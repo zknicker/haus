@@ -62,7 +62,7 @@ public struct HausBrandMark: View {
         Group {
             switch style {
             case .tile: tile
-            case .bare: ghost.aspectRatio(contentMode: .fit)
+            case .bare: ghost.aspectRatio(contentMode: .fit).scaleEffect(Self.bareGlyphFraction)
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -90,6 +90,12 @@ public struct HausBrandMark: View {
                 )
         }
     }
+
+    /// The glyph family this mark sits beside draws inside a 24pt viewBox with
+    /// its own margin, so a silhouette fitted edge-to-edge in the same box
+    /// reads a size larger than its neighbours. `HausMark.svg`'s viewBox wraps
+    /// the blob tightly, so the bare style pays that margin itself.
+    private static let bareGlyphFraction: CGFloat = 0.86
 
     private var ghost: some View {
         Image("HausMark", bundle: .module)
