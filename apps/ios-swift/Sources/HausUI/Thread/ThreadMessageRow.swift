@@ -58,6 +58,10 @@ struct ThreadMessageRow: View {
                     )
                 }
 
+                if let ask = message.ask {
+                    AskMark(ask: ask).padding(.top, 4)
+                }
+
                 ForEach(message.cloudAgents) { agent in
                     CloudAgentCard(agent: agent, onCancel: onCancelCloudAgent).padding(.top, 6)
                 }

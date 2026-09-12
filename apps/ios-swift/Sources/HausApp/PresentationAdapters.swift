@@ -101,6 +101,7 @@ extension HausStore {
                 attachments: message.attachments.map(attachmentPresentation),
                 thread: thread,
                 task: message.task.map(taskPresentation),
+                ask: askPresentation(message.body),
                 cloudAgents: cloudAgentPresentation(message.body).map { [$0] } ?? [],
                 threadCloudAgents: cloudAgentPresentations(cloudAgentWork.filter { $0.anchorMessageId == message.id }),
                 richSegments: richMessageSegments(fenced.prose),
@@ -285,21 +286,6 @@ extension HausStore {
             name: viewer.displayName ?? viewer.email ?? "You",
             avatarURL: resolvedAvatarURL(viewer.avatarURL)
         )
-    }
-
-    func presence(_ availability: AgentAvailability) -> AgentPresence {
-        switch availability {
-        case .error: .error
-        case .idle: .idle
-        case .offline: .offline
-        case .stopped: .stopped
-        case .working: .working
-        }
-    }
-
-    func resolvedAvatarURL(_ value: String?) -> URL? {
-        guard let value else { return nil }
-        return URL(string: value, relativeTo: HausRuntimeConfiguration.serverOrigin)?.absoluteURL
     }
 
 }

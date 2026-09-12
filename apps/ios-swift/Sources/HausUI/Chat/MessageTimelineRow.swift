@@ -62,6 +62,10 @@ struct MessageTimelineRow: View {
                     .padding(.top, hasBodyAbove ? 3 : 0)
                 }
 
+                if let ask = message.ask {
+                    AskMark(ask: ask).padding(.top, 4)
+                }
+
                 ForEach(message.cloudAgents) { agent in
                     CloudAgentCard(agent: agent).padding(.top, 6)
                 }
