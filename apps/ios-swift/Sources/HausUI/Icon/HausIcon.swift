@@ -15,6 +15,8 @@ public enum HausIconName: String, CaseIterable, Sendable {
     case alert = "AlertCircleIcon"
     case appearance = "Sun03Icon"
     case archive = "ArchiveIcon"
+    /// The mark on a Message that asks a named human for a decision.
+    case ask = "BubbleChatQuestionIcon"
     case arrowDown = "ArrowDown01Icon"
     case attachment = "Attachment01Icon"
     case calendar = "Calendar03Icon"

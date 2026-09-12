@@ -571,7 +571,29 @@ when the Ask was posted inside one, and the Ask's own Message when it was not. `
 Channel or DM, never a Thread, so a row carries the same pair a Thread composer sends. An Ask's
 `options` are up to four short replies, the first the Agent's recommendation, and no options at all
 is an open question whose answer is whatever the human writes. The Ask reaches a transcript as the
-`ask` Message body beside that row. A Task lens widens through `loadTasks(includeBackground:)`, and
+`ask` Message body beside that row.
+
+That contract is why the phone has no Ask screen: opening an Ask is opening the Thread its answer
+is written in. `HausStore.threadSelection(openAsk:)` is the one entry point a surface that lists
+open Asks pushes, and it builds the ordinary `.thread` route out of `AskAnswerRoute` — the
+conversation's Chat id and the Ask's Thread anchor, never the Thread's own Chat. The Thread
+composer already sends exactly that pair, so the offered options ride the send the screen has: the
+open Ask's options sit as capsule buttons directly above the composer (`AskOptionsRow`), in the
+order the Agent wrote them with the recommendation first and prominent, and pressing one sends its
+text verbatim as the human's own reply. One press spends the whole row, because the Ask leaves only
+when `ask.updated` refetches `ask.listOpen` — nothing here is optimistic — while a failed send
+spends nothing. An Ask with no options offers no buttons at all; the composer is the whole answer.
+The options row is a sibling above the composer, never a control inside it: the composer is a
+custom surface with its own glass and attachment portal.
+
+The Ask itself reads on its Message as `AskMark` — the Ask glyph, the addressee's face and name,
+and a trailing status disc, with `Answered by <name>` once it is settled — in the same annotation
+grammar as the task chip, drawn under the body in both the Chat timeline and the Thread. It is
+projected from the `ask` Message body through the one actor resolver every other row already reads
+(`HausStore.askPresentation`), so an answered Ask still reads correctly long after its options
+stopped mattering.
+
+A Task lens widens through `loadTasks(includeBackground:)`, and
 a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N
 background" without a second round trip. The week behind "Active this week" is sliced per Agent out
 of that one usage snapshot (`AgentTokenUsage.summarize`, the App's `summarizeAgentTokenUsage`) on

@@ -110,18 +110,21 @@ public struct ThreadDetailView: View {
                     // Same shape as the chat screen: replies run under the floating glass
                     // composer and the inset reserves their clearance.
                     .safeAreaInset(edge: .bottom, spacing: 0) {
-                        MessageComposerView(
-                            text: $draft,
-                            interaction: composerInteraction,
-                            placeholder: "Reply in thread",
-                            isConnected: isConnected,
-                            isTextFocused: $isComposerFocused,
-                            transitionNamespace: composerTransitionNamespace,
-                            onSend: { content, attachments in
-                                guard !pending else { return false }
-                                return await onSend(content, attachments)
-                            }
-                        )
+                        VStack(spacing: 8) {
+                            askOptions
+                            MessageComposerView(
+                                text: $draft,
+                                interaction: composerInteraction,
+                                placeholder: "Reply in thread",
+                                isConnected: isConnected,
+                                isTextFocused: $isComposerFocused,
+                                transitionNamespace: composerTransitionNamespace,
+                                onSend: { content, attachments in
+                                    guard !pending else { return false }
+                                    return await onSend(content, attachments)
+                                }
+                            )
+                        }
                     }
             }
             // Same contract as the Chat screen: the portal draws in an overlay window above the
@@ -145,6 +148,21 @@ public struct ThreadDetailView: View {
         )
         .navigationTitle("Thread")
         .hausInlineNavigationTitle()
+    }
+
+    /// An open Ask's offered options, above the composer that would otherwise
+    /// carry the same words. Pressing one is the Thread's own send, which
+    /// already addresses the parent Chat and this anchor Message — the exact
+    /// pair an Ask's answer takes (`AskAnswerRoute`). A settled Ask keeps only
+    /// its marker: the first answer won permanently.
+    @ViewBuilder
+    private var askOptions: some View {
+        if let ask = anchor.ask, ask.status == .open {
+            AskOptionsRow(options: AskOptions(ask.options)) { option in
+                guard !pending else { return false }
+                return await onSend(option, [])
+            }
+        }
     }
 
     /// The replies sit on the same flipped-table substrate as the Chat
