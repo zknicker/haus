@@ -30,6 +30,18 @@ extension HausShellView {
         }
     }
 
+    /// The sidebar's Inbox row. Unlike Settings and Tasks, which present a
+    /// surface over the open drawer, this one only swaps what the canvas draws
+    /// — so it closes the drawer the way selecting a Chat does, and for the
+    /// same two reasons: the veil cuts rather than dissolving over a canvas
+    /// that was never behind it, and the slide waits a turn so the page
+    /// mounting inside it is not pinned at the closed position.
+    func openInboxCanvas() {
+        if !showsInbox { drawerClose = .chatSelection }
+        onOpenInbox()
+        Task { @MainActor in setDrawer(open: false) }
+    }
+
     func selectDestination(_ destination: ChatDestination) {
         if case .chat(let chatID) = destination.id, pendingChatSelectionID != chatID {
             pendingChatSelectionID = nil

@@ -138,7 +138,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                     onSelectDestination: selectDestination,
                     onOpenSettings: { openSettings() },
                     onOpenSearch: { activeChatSheet = .search },
-                    onOpenInbox: onOpenInbox,
+                    onOpenInbox: openInboxCanvas,
                     needsYouCount: needsYouCount,
                     onOpenTasks: openTasks,
                     onOpenArchived: { activeChatSheet = .archived },
