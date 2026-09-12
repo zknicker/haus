@@ -98,15 +98,17 @@ struct TaskListRow: View {
                     .truncationMode(.tail)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.trailing, 4)
-                    .layoutPriority(1)
 
                 if item.task.tier == .background {
                     // A lens the reader opened, not a status of its own, so
-                    // it reads as a muted word rather than a chip.
+                    // it reads as a muted word rather than a chip. It keeps
+                    // its width: the title is the part that truncates.
                     Text("background")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
+                        .fixedSize()
+                        .layoutPriority(1)
                 }
 
                 trailingSlot
