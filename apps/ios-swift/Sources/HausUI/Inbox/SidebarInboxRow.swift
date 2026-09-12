@@ -8,14 +8,16 @@ import SwiftUI
 /// It stays silent until the Store can answer honestly, so it never ticks
 /// upward in front of the reader.
 ///
-/// The mark is the bare ghost, not the app-icon tile: it shares a glyph column
-/// with Tasks directly below it, and a filled blue tile beside a stroked
+/// The mark is the iridescent ghost, not the app-icon tile: it shares a glyph
+/// column with Tasks directly below it, and a filled blue tile beside a stroked
 /// checklist reads as a different kind of thing rather than the row above it.
-/// It takes the sibling's glyph size and the row's own foreground, so the two
-/// can only ever match.
+/// It sits a size above those boxed glyphs rather than matching them — the
+/// App's own proportion for this row, which names the product where they name a
+/// screen — and its mesh drifts, quicker while an Agent here is working.
 struct SidebarInboxRow: View {
     let needsYouCount: Int
     let glyphSize: CGFloat
+    let ghostTempo: HausGhostTempo
     let glyphColumn: CGFloat
     let capsuleBleed: CGFloat
     let onOpen: () -> Void
@@ -23,8 +25,7 @@ struct SidebarInboxRow: View {
     var body: some View {
         Button(action: onOpen) {
             HStack(spacing: 10) {
-                HausBrandMark(style: .bare)
-                    .frame(width: glyphSize, height: glyphSize)
+                HausGhost(fill: .iridescent, animated: true, tempo: ghostTempo, size: glyphSize)
                     .frame(width: glyphColumn, height: glyphColumn)
                 Text("Inbox")
                 Spacer(minLength: 0)

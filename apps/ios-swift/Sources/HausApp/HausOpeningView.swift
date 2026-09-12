@@ -1,16 +1,19 @@
 import HausUI
 import SwiftUI
 
-/// The app-opening screen: the bare surface, matching the empty launch
-/// screen, so cold start reads as one quiet held frame until the loaded
-/// screen plays its sectioned entrance (`OpeningEntrance`). Deliberately no
-/// spinner, caption, or artwork.
+/// The app-opening screen: the bare surface that matches the empty launch
+/// screen, with the Haus mark at its centre — the one thing on it, drifting, so
+/// cold start reads as one quiet held frame rather than a blank one. Still no
+/// spinner and no caption: the mark is the wait.
 struct HausOpeningView: View {
     var body: some View {
-        Color(uiColor: .systemBackground)
-            .ignoresSafeArea()
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text("Opening Haus"))
+        ZStack {
+            Color(uiColor: .systemBackground)
+                .ignoresSafeArea()
+            HausGhost(fill: .iridescent, animated: true, size: 56)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Opening Haus"))
     }
 }
 

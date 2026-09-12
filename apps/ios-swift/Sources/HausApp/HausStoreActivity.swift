@@ -100,6 +100,7 @@ extension HausStore {
     }
 
     func replaceActiveActivitySnapshot(_ snapshot: AgentActiveActivitySnapshot) {
+        hasAgentActivitySnapshot = true
         let workingAgentIDs = Set(
             agents.filter { availability(for: $0) == .working }.map(\.id)
         )

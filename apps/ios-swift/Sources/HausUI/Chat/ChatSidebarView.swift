@@ -24,13 +24,9 @@ public struct ChatSidebarView: View {
     /// Every row leads with a glyph in a box this size, so the labels behind
     /// them share one column too.
     private static let rowGlyphSize: CGFloat = 26
-    /// A bare glyph has no box behind it to hold that column the way a
-    /// channel's tinted box or an Agent's avatar does, so it takes a larger
-    /// share of the box than `ChannelIconBox` gives its own boxed glyph. An app
-    /// icon fills the square it is handed, so this is its drawn size — unlike
-    /// an SF Symbol, where the same number is a font size and a wide symbol
-    /// spills past the column.
-    private static let bareGlyphSize: CGFloat = (rowGlyphSize * 0.8).rounded()
+    /// The Inbox mark's drawn height — the App sidebar's own number for the
+    /// same row, and a size above the boxed glyphs below it.
+    private static let inboxGhostSize: CGFloat = 22
     /// The family's own 1.5 reads thin against a row's body text.
     private static let rowGlyphWeight: CGFloat = 1.8
     /// The unread marker is a disc centred on the sidebar's leading edge, so
@@ -48,6 +44,9 @@ public struct ChatSidebarView: View {
     /// The Inbox's own "Needs you" total, in the same chip the Chat rows wear
     /// for unread messages and, like them, absent at zero.
     private let needsYouCount: Int
+    /// How fast the Inbox mark's mesh drifts: `lively` only while an Agent on
+    /// this Server is working.
+    private let ghostTempo: HausGhostTempo
     private let onOpenTasks: () -> Void
     private let onOpenArchived: () -> Void
     private let onOpenNewChannel: () -> Void
@@ -63,6 +62,7 @@ public struct ChatSidebarView: View {
         onOpenSearch: @escaping () -> Void = {},
         onOpenInbox: @escaping () -> Void = {},
         needsYouCount: Int = 0,
+        ghostTempo: HausGhostTempo = .calm,
         onOpenTasks: @escaping () -> Void = {},
         onOpenArchived: @escaping () -> Void = {},
         onOpenNewChannel: @escaping () -> Void = {}
@@ -75,6 +75,7 @@ public struct ChatSidebarView: View {
         self.onOpenSearch = onOpenSearch
         self.onOpenInbox = onOpenInbox
         self.needsYouCount = needsYouCount
+        self.ghostTempo = ghostTempo
         self.onOpenTasks = onOpenTasks
         self.onOpenArchived = onOpenArchived
         self.onOpenNewChannel = onOpenNewChannel
@@ -101,13 +102,20 @@ public struct ChatSidebarView: View {
                             // lists — the App's own sidebar order, Inbox first.
                             SidebarInboxRow(
                                 needsYouCount: needsYouCount,
-                                glyphSize: Self.bareGlyphSize,
+                                glyphSize: Self.inboxGhostSize,
+                                ghostTempo: ghostTempo,
                                 glyphColumn: Self.rowGlyphSize,
                                 capsuleBleed: Self.rowCapsuleBleed,
                                 onOpen: onOpenInbox
                             )
 
-                            utilityRow("Tasks", icon: .tasks, action: onOpenTasks)
+                            SidebarUtilityRow(
+                                title: "Tasks",
+                                icon: .tasks,
+                                glyphColumn: Self.rowGlyphSize,
+                                capsuleBleed: Self.rowCapsuleBleed,
+                                action: onOpenTasks
+                            )
 
                             sectionHeader("Channels", trailingAction: onOpenNewChannel)
                                 .padding(.top, 6)
@@ -167,26 +175,6 @@ public struct ChatSidebarView: View {
         Color.clear
             .frame(height: Self.shadowBleedHeight)
             .allowsHitTesting(false)
-    }
-
-    private func utilityRow(
-        _ title: String,
-        icon: HausIconName,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                HausIcon(icon, size: Self.bareGlyphSize, weight: Self.rowGlyphWeight)
-                    .frame(width: Self.rowGlyphSize, height: Self.rowGlyphSize)
-                Text(title)
-                Spacer(minLength: 0)
-            }
-            .foregroundStyle(.primary)
-            .padding(.horizontal, Self.rowCapsuleBleed)
-            .frame(height: 42)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.pressableRow)
     }
 
     private var channels: [ChatDestination] {
