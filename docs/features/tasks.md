@@ -174,6 +174,10 @@ in `localStorage` under `haus.chat.showTasks`. The command palette carries the s
 entry that reads as what pressing it does — `Show tasks in chat` while they are hidden, `Hide tasks
 in chat` while they are showing.
 
+The native iPhone app mirrors both lenses: the same rule hides a `claimed` task's whole ingress in
+Chat behind the same per-device **Show tasks in chat** preference, and the Task list carries the same
+`N background` widening ([iOS internals](../internals/ios.md)).
+
 A claim nobody finished is the one case a person needs told, and it is told in the
 [Inbox](inbox.md) rather than in Chat: a `claimed` task still `in_progress`, stamped tracked because
 its run settled without answering, and not `live`, appears under **Needs you** as the Agent that

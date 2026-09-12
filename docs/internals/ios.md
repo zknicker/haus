@@ -523,6 +523,22 @@ Reply, Task, and cloud-agent rows enter, exit, and swap with a 220ms slide/fade;
 a 150ms crossfade. Cloud-agent activity timestamps do not trigger swaps. The count stays in place. The anchor
 message remains the task title and is never duplicated inside the ingress.
 
+Chat honors the App's own task visibility rule (`TaskVisibility.visibleInChat` in `HausModels`,
+applied through `ThreadPreviewProjection.ingressTask`). A task an Agent claimed for itself states
+nothing in Chat unless the reader asked for it: no note, no ingress, no reserved space. A Thread
+that filled up under a hidden claim keeps its ingress and reads as the ordinary conversation it is,
+and a task a human composed or converted always states itself. The preference is per device, like
+appearance — `@AppStorage` under the App's own `haus.chat.showTasks` key — and Settings →
+Preferences → **Show tasks in chat** is the switch.
+
+The Task list reads the Store's own Server-wide lens rather than a second copy of the same query,
+so a durable `task.created` or `task.updated` repaints it without a pull to refresh; only the
+widened background lens is the screen's, because it is a different question the reader asked for a
+moment (`@State`, not a route). Its one control states what the default lens hid — `N background` —
+and stays away on a Server with no background claims; widened, it states what it is showing and
+keeps stating it at zero, because on iPhone it is the only way back out. Background rows there wear
+a muted `background` word rather than a chip.
+
 Tasks are Server work, not a settings screen. The sidebar opens the Task list as a push on the root
 navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread
 → Task list → Chat canvas. Opening a Task leaves the canvas selection alone — its route carries the
