@@ -611,9 +611,11 @@ spends nothing. An Ask with no options offers no buttons at all; the composer is
 The options row is a sibling above the composer, never a control inside it: the composer is a
 custom surface with its own glass and attachment portal.
 
-The Ask itself reads on its Message as `AskMark` — the Ask glyph, the addressee's face and name,
-and a trailing status disc, with `Answered by <name>` once it is settled — in the same annotation
-grammar as the task chip, drawn under the body in both the Chat timeline and the Thread. It is
+The Ask itself reads on its Message as `AskMark`, one fact per line: while the Ask is open, the Ask
+glyph, the word `Ask`, the addressee's face and name, and the open ring; once it is settled, the
+glyph, the green check, and `Answered by <name>` alone, because two names on one phone line truncate
+both and the reader learns neither. It is drawn in the same annotation grammar as the task chip,
+under the body in both the Chat timeline and the Thread. It is
 projected from the `ask` Message body through the one actor resolver every other row already reads
 (`HausStore.askPresentation`), so an answered Ask still reads correctly long after its options
 stopped mattering.

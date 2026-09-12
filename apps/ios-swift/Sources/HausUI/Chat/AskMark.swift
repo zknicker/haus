@@ -48,6 +48,23 @@ public struct AskPresentation: Hashable, Sendable {
         }
     }
 
+    /// The words the marker spends its one line on. While the Ask is open that
+    /// is the word `Ask`, with whose turn it is riding beside it as a face;
+    /// once it is settled it is who answered. Two names on one phone line
+    /// truncate both and the reader learns neither.
+    public var markerText: String {
+        switch status {
+        case .open: Self.markerLabel
+        case .answered: statusText
+        }
+    }
+
+    /// The face the marker carries, and nil once the Ask is settled: whose turn
+    /// it was stopped being the fact the moment somebody took it.
+    public var markerAddressee: MessageAuthorPresentation? {
+        status == .open ? addressee : nil
+    }
+
     /// The marker a Message body earns, and nil for every body that is not an
     /// Ask. Names and faces resolve through the caller's one actor resolver, so
     /// an addressee who has since left the Server reads here as it does
@@ -75,8 +92,10 @@ public struct AskPresentation: Hashable, Sendable {
 /// whose decision it waits on, and a trailing status.
 ///
 /// Task-chip grammar — annotation scale, muted throughout, with only the status
-/// disc carrying lifecycle color. An open Ask says "Open" with the disc alone,
-/// because the row it sits under is already the question.
+/// disc carrying lifecycle color. One fact per line: while the Ask is open that
+/// is whose turn it is, and the disc alone says "Open", because the row it sits
+/// under is already the question. Once it is answered the line is who answered,
+/// and the addressee gives way rather than truncating beside them.
 ///
 /// In a Chat transcript the marker is also the way in. An Ask with no replies
 /// yet shows no Thread ingress, so without this the only surface that could
@@ -105,9 +124,17 @@ struct AskMark: View {
             HausIcon(.ask, size: 13, weight: 2)
                 .frame(width: 13, height: 13)
 
-            Text(AskPresentation.markerLabel)
+            // Open: `Ask`, then whose turn it is, then the ring. Answered: the
+            // check, then who answered. The disc leads the settled line because
+            // its text is the status rather than a label before one.
+            if ask.status == .answered {
+                AskStatusDisc(status: ask.status)
+            }
 
-            if let addressee = ask.addressee {
+            Text(ask.markerText)
+                .lineLimit(1)
+
+            if let addressee = ask.markerAddressee {
                 AvatarView(
                     name: addressee.name,
                     url: addressee.avatarURL,
@@ -119,12 +146,9 @@ struct AskMark: View {
                     .lineLimit(1)
             }
 
-            AskStatusDisc(status: ask.status)
-                .padding(.leading, 1)
-
-            if ask.status == .answered {
-                Text(ask.statusText)
-                    .lineLimit(1)
+            if ask.status == .open {
+                AskStatusDisc(status: ask.status)
+                    .padding(.leading, 1)
             }
         }
         .font(.caption.weight(.semibold))
@@ -134,7 +158,7 @@ struct AskMark: View {
     }
 
     private var accessibilityLabel: String {
-        let addressee = ask.addressee.map { " for \($0.name)" } ?? ""
+        let addressee = ask.markerAddressee.map { " for \($0.name)" } ?? ""
         return "\(AskPresentation.markerLabel)\(addressee). \(ask.statusText)"
     }
 }

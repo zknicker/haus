@@ -13,6 +13,9 @@ import Testing
         #expect(ask.addressee?.name == "Zach")
         #expect(ask.statusText == "Open")
         #expect(ask.options == ["Yes, rename it", "Keep #product", "Not now"])
+        // The open line is the word plus whose turn it is; the ring says "Open".
+        #expect(ask.markerText == "Ask")
+        #expect(ask.markerAddressee?.name == "Zach")
     }
 
     /// A settled Ask names who answered, because the first answer wins
@@ -26,6 +29,11 @@ import Testing
         )
         #expect(human.status == .answered)
         #expect(human.statusText == "Answered by Zach")
+        // One fact per line: the settled marker spends it on who answered, and
+        // the addressee gives way rather than truncating beside them.
+        #expect(human.markerText == "Answered by Zach")
+        #expect(human.addressee?.name == "Zach")
+        #expect(human.markerAddressee == nil)
 
         let agent = try #require(
             AskPresentation.present(
