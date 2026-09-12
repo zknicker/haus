@@ -532,6 +532,31 @@ the open Chat while it is on screen, and the shell's Chat selection resumes owne
 the covered canvas Chat stays named so its page keeps refreshing underneath, but read
 acknowledgements belong to the deepest surface alone.
 
+The Inbox is the phone's landing screen and the sidebar's anchor. It mirrors the App page section
+for section — header, **Active this week**, **Needs you**, **Conversations**, **Happening now** —
+because [that page's order is the contract](../features/inbox.md), and it renders from the Store
+snapshots below rather than from reads of its own: `HausUI/Inbox` owns the row projections and the
+page, and `HausApp/InboxPresentationAdapters.swift` is the only place the Store's records become
+them. A section renders nothing at all until its read lands, so an unsettled section is blank rather
+than an empty box that fills a moment later; **Needs you** waits for both the Asks and the Tasks,
+which is the same pair the sidebar badge waits for.
+
+It is a push on the root stack, not the canvas. The canvas is what the drawer slides aside, what the
+Chat selection owns, and what a popped Thread returns to, so making it switch between a Chat and a
+page would have put a second owner on all three; as a push the Inbox reuses the Tasks route's shape
+exactly. A cold start seeds that stack with `.inbox`, so the app opens on the Inbox with the
+restored last-open Chat one Back away — in-session behavior is untouched, and selecting a Chat pops
+the stack the way it always did. An Ask row and a Cloud Agent work row each push the Thread they
+hang off, carrying the conversation's Chat id and the anchor Message — the same pair a Thread
+composer sends to — and leaving the canvas selection alone for the same reason a Task does. Two rows
+land somewhere the App does not send them, because the phone has nowhere else: a stalled claim opens
+the Task list rather than the task, since the native lens has no per-task focus, and an Agent in
+**Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
+Inbox, wearing the Haus mark at 22pt in the same glyph column every other row uses and badging
+`needsYouCount` in the chip the Chat rows wear for unread messages — absent at zero, which is also
+what it reads while the count is still unknown. The mark is static: the App's iridescent ghost tempo
+has no counterpart here yet.
+
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
 holds four reads — the viewer's open Asks (`ask.listOpen`), the default Server-wide Task lens
 (`task.list`), the Cloud Agent work running right now (`cloudAgentWork.listActive`), and the
@@ -959,7 +984,8 @@ this remains future work.
 
 Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
 floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
-carries the App's own order: Server-wide destinations lead, then Channels, then DMs. The sidebar's
+carries the App's own order: Server-wide destinations lead — the Inbox row first, then Tasks — then
+Channels, then DMs. The sidebar's
 Server header is the Server menu; archived chats open from there
 rather than spending a navigation row. That header carries the Server's name and nothing else —
 Agent and member counts are a Settings readout, not standing sidebar chrome — so `ServerPresentation`
