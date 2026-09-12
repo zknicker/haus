@@ -5,12 +5,17 @@ import SwiftUI
 /// muted preview that gives way first, and a trailing cluster that never
 /// shrinks.
 ///
+/// The preview is optional because not every row has a second fact worth the
+/// width. Without one the title takes the whole middle and truncates at its own
+/// tail, which is what "Needs you" wants: a decision and where it came from,
+/// neither of them cut in half to make room for the other.
+///
 /// No row carries a control, so the whole row is the press target and every row
 /// in the column ends on the same right edge.
 struct InboxRowView<Trailing: View>: View {
     let mark: InboxMark
     let title: String
-    let preview: String
+    let preview: String?
     let onOpen: () -> Void
     @ViewBuilder var trailing: Trailing
 
@@ -28,17 +33,21 @@ struct InboxRowView<Trailing: View>: View {
                     // preview always starts right after the title.
                     Text(title)
                         .lineLimit(1)
-                        .layoutPriority(1)
-                    Text(preview)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(
-                            minWidth: InboxMetrics.previewFloor,
-                            maxWidth: .infinity,
-                            alignment: .leading
-                        )
+                        .layoutPriority(1)
+                    if let preview {
+                        Text(preview)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(
+                                minWidth: InboxMetrics.previewFloor,
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 trailing
                     .font(.footnote)
@@ -57,7 +66,7 @@ struct InboxRowView<Trailing: View>: View {
 }
 
 extension InboxRowView where Trailing == EmptyView {
-    init(mark: InboxMark, title: String, preview: String, onOpen: @escaping () -> Void) {
+    init(mark: InboxMark, title: String, preview: String?, onOpen: @escaping () -> Void) {
         self.init(mark: mark, title: title, preview: preview, onOpen: onOpen) { EmptyView() }
     }
 }

@@ -42,7 +42,6 @@ public enum InboxNeedsYouRows {
             id: "ask:\(item.ask.messageID)",
             mark: .identity(name: name, avatarURL: resolved?.avatarURL, presence: resolved?.presence),
             title: item.ask.title,
-            preview: RichMessageParser.oneLinePreview(item.ask.summary),
             meta: "Ask · \(InboxConversationLabel.text(kind: item.chatKind, name: item.chatName))",
             open: .ask(messageID: item.ask.messageID)
         )
@@ -57,7 +56,6 @@ public enum InboxNeedsYouRows {
             id: "claim:\(item.message.id)",
             mark: .identity(name: name, avatarURL: resolved?.avatarURL, presence: resolved?.presence),
             title: "\(name) stopped before finishing",
-            preview: RichMessageParser.oneLinePreview(item.message.content),
             meta: "\(InboxConversationLabel.text(kind: item.chatKind, name: item.chatName))"
                 + " · Task #\(item.task.number)",
             open: .tasks

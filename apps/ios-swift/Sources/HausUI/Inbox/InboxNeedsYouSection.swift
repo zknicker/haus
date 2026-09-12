@@ -21,7 +21,7 @@ struct InboxNeedsYouSection: View {
                             InboxRowView(
                                 mark: row.mark,
                                 title: row.title,
-                                preview: row.preview,
+                                preview: nil,
                                 onOpen: { onOpen(row.open) }
                             ) {
                                 Text(row.meta).lineLimit(1)

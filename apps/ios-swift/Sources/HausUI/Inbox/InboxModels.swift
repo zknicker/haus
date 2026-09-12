@@ -28,13 +28,16 @@ public enum InboxMark: Hashable, Sendable {
 /// Every Inbox mark is this size, Agent, Channel, or week card alike.
 public let inboxMarkSize: CGFloat = 32
 
+/// A row in "Needs you" carries no preview. The title is already the decision
+/// or the stalled claim, and on a phone a summary between it and the trailing
+/// meta only truncates all three; where the row came from is the fact that
+/// survives instead.
 public struct InboxNeedsYouRow: Identifiable, Hashable, Sendable {
     /// Namespaced by kind: an Ask and a claim can name the same Message, so a
     /// raw Message id would collide across the two halves of the section.
     public let id: String
     public let mark: InboxMark
     public let title: String
-    public let preview: String
     /// Where it came from and what kind of row it is — `Ask · #onboarding`.
     public let meta: String
     public let open: InboxOpenRequest
@@ -43,14 +46,12 @@ public struct InboxNeedsYouRow: Identifiable, Hashable, Sendable {
         id: String,
         mark: InboxMark,
         title: String,
-        preview: String,
         meta: String,
         open: InboxOpenRequest
     ) {
         self.id = id
         self.mark = mark
         self.title = title
-        self.preview = preview
         self.meta = meta
         self.open = open
     }

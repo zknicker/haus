@@ -48,14 +48,18 @@ struct InboxNeedsYouRowsTests {
         #expect(rows.map(\.meta) == ["#all · Task #5"])
     }
 
-    @Test func flattensAnAskSummaryToOneLine() throws {
+    /// The row states the Ask's question and where it came from, and nothing
+    /// else: its summary is the Thread's to show, not a third thing to cut in
+    /// half on a phone line.
+    @Test func statesTheAskQuestionWithoutItsSummary() throws {
         let rows = try #require(InboxNeedsYouRows.rows(
             asks: [InboxFixtures.openAsk(summary: "Ship on\n**Friday** or Monday")],
             tasks: [],
             resolveActor: InboxFixtures.directory
         ))
 
-        #expect(rows[0].preview == "Ship on **Friday** or Monday")
+        #expect(rows[0].title == "Pick a rollout window")
+        #expect(rows[0].meta == "Ask · #onboarding")
     }
 
     @Test func namesADirectMessageAsDM() throws {
