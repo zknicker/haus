@@ -7,17 +7,32 @@ import HausModels
 /// maintaining a second task cache. A parent surface can keep the returned
 /// snapshot in its own view state and replace it after each mutation.
 extension HausStore {
-    /// The tracked tasks a lens shows. Background-tier tasks stay hidden, so
-    /// the result's `backgroundCount` is dropped here rather than threaded
-    /// through the UI.
-    func loadTasks(chatID: String? = nil) async throws -> [TaskListItem] {
+    /// The tasks a lens shows. The default lens is the tracked tier alone;
+    /// `includeBackground` widens it to the bookkeeping claims an Agent settles
+    /// inside one turn.
+    ///
+    /// A Server-wide read also records how many tasks the lens hid, so a
+    /// surface can say "N background" without a second round trip. A
+    /// Chat-scoped read leaves that count alone: it answers a different
+    /// question than the Server-wide lens the Inbox and the Task list read.
+    func loadTasks(
+        chatID: String? = nil,
+        includeBackground: Bool = false
+    ) async throws -> [TaskListItem] {
         guard let serverID = activeServer?.id else {
             throw HausStoreError.serverUnavailable
         }
         let list: TaskList = try await client.query(
             "task.list",
-            input: TaskListInput(serverID: serverID, chatID: chatID)
+            input: TaskListInput(
+                serverID: serverID,
+                chatID: chatID,
+                includeBackground: includeBackground ? true : nil
+            )
         )
+        if chatID == nil, taskBackgroundCount != list.backgroundCount {
+            taskBackgroundCount = list.backgroundCount
+        }
         return list.tasks
     }
 

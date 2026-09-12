@@ -67,6 +67,7 @@ public enum ChatEventKind: String, Codable, Sendable {
     case messageCreated = "message.created"
     case cloudAgentWorkUpdated = "cloud-agent-work.updated"
     case chatRead = "chat.read"
+    case askUpdated = "ask.updated"
     case threadFollowUpdated = "thread.follow.updated"
     case taskCreated = "task.created"
     case taskUpdated = "task.updated"
@@ -90,6 +91,8 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
     /// Event-specific action. Reminder actions and Chat lifecycle actions use
     /// different unions on the Server, so preserve the wire string losslessly.
     public let action: String?
+    /// The Ask an `ask.updated` event names. Absent on every other kind.
+    public let askID: String?
     public let chatID: String?
     public let createdAt: Date
     public let cursor: String
@@ -104,6 +107,7 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case action
+        case askID = "askId"
         case chatID = "chatId"
         case createdAt
         case cursor
@@ -119,6 +123,7 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
 
     public init(
         action: String? = nil,
+        askID: String? = nil,
         chatID: String?,
         createdAt: Date,
         cursor: String,
@@ -132,6 +137,7 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
         type: ChatEventKind
     ) {
         self.action = action
+        self.askID = askID
         self.chatID = chatID
         self.createdAt = createdAt
         self.cursor = cursor

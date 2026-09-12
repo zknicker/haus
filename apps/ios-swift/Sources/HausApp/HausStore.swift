@@ -28,6 +28,21 @@ final class HausStore {
     private var storedChats: [ChatSummary] = []
     private var storedReceiptBackedAgentDMsByChatID: [String: String] = [:]
     private var storedMessagesByChatID: [String: ChatMessagePage] = [:]
+    // MARK: - Inbox snapshots
+    //
+    // The Server-wide reads the Inbox and its sidebar badge stand on, loaded
+    // and refreshed by `HausStoreInbox.swift`. Each stays nil until its first
+    // load, which is what lets `needsYouCount` stay silent until it can answer
+    // honestly, and what lets a durable event refresh only what this client
+    // actually holds.
+    var openAsks: [OpenAsk]?
+    var inboxTasks: [TaskListItem]?
+    var activeCloudAgentWork: [ActiveCloudAgentWork]?
+    var serverUsage: ServerUsageSnapshot?
+    /// How many background-tier tasks the Server-wide Task lens last hid. Zero
+    /// whenever the last Server-wide read already widened the lens, which is
+    /// what `task.list` reports for it.
+    var taskBackgroundCount = 0
     var cloudAgentWorkByChatID: [String: [ThreadCloudAgentWork]] = [:] {
         didSet {
             if oldValue != cloudAgentWorkByChatID { projections.retireMessageProjections() }
@@ -70,7 +85,7 @@ final class HausStore {
     /// Downloaded attachment bytes are app cache state, like every other
     /// snapshot the Store holds; the transport stays a pure transfer boundary.
     let attachmentFiles = AttachmentFileCache()
-    private nonisolated let eventTasks = EventTaskBag()
+    nonisolated let eventTasks = EventTaskBag()
 
     init(clerk: Clerk) {
         self.clerk = clerk
@@ -149,75 +164,6 @@ final class HausStore {
         }
     }
 
-    func startEventStreams(serverID: String) {
-        stopEventStreams()
-        if chatEventServerID != serverID {
-            chatEventServerID = serverID
-            chatEventReplay.reset()
-        }
-
-        let chatTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                for try await event in await client.subscribe(
-                    "chat.onEvent",
-                    input: ServerScopedInput(serverId: serverID),
-                    onConnected: { [weak self] in
-                        guard let self else { return }
-                        await self.catchUpChatEvents(serverID: serverID)
-                    }
-                ) as AsyncThrowingStream<ChatEvent, Error> {
-                    guard !Task.isCancelled else { return }
-                    await handle(chatEvent: event, serverID: serverID)
-                }
-            } catch {
-                // A cancelled stream is a teardown we asked for, not an outage.
-                guard !Task.isCancelled else { return }
-                markDisconnected()
-            }
-        }
-        let lifecycleTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                for try await event in await client.subscribe(
-                    "agent.onLifecycle",
-                    input: ServerScopedInput(serverId: serverID),
-                    onConnected: { [weak self] in
-                        await self?.reloadAgentAvailability(serverID: serverID)
-                    }
-                ) as AsyncThrowingStream<AgentLifecycleEvent, Error> {
-                    guard !Task.isCancelled else { return }
-                    handle(lifecycleEvent: event)
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-                markDisconnected()
-            }
-        }
-        let activityTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                for try await event in await client.subscribe(
-                    "agent.onActivity",
-                    input: ServerScopedInput(serverId: serverID),
-                    onConnected: { [weak self] in
-                        await self?.reloadActiveActivity(serverID: serverID)
-                    }
-                ) as AsyncThrowingStream<AgentActivityEvent, Error> {
-                    guard !Task.isCancelled else { return }
-                    handle(activityEvent: event)
-                }
-            } catch {
-                Self.logger.warning("Agent activity stream ended: \(error.localizedDescription, privacy: .public)")
-            }
-        }
-        eventTasks.replace(with: [
-            chatTask,
-            lifecycleTask,
-            activityTask,
-        ])
-    }
-
     /// Observation notifies on equal-value writes, so the event paths must not
     /// restate a connection they already have: doing so invalidated the root
     /// body once per SSE frame. `markDisconnected` is the same rule for the
@@ -228,11 +174,6 @@ final class HausStore {
 
     func markDisconnected() {
         if isConnected { isConnected = false }
-    }
-
-    func stopEventStreams() {
-        flushLiveChatEventsBeforeTeardown()
-        eventTasks.cancelAll()
     }
 
     // MARK: - Projected Server state

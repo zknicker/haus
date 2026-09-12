@@ -3,10 +3,11 @@ import Foundation
 public enum ChatMessageBody: Codable, Sendable, Equatable {
     case text
     case agentCreated(CreatedAgentSummary)
+    case ask(Ask)
     case cloudAgentWork(CloudAgentWork)
     case unsupported(String)
 
-    private enum CodingKeys: String, CodingKey { case agent, kind, work }
+    private enum CodingKeys: String, CodingKey { case agent, ask, kind, work }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -15,6 +16,7 @@ public enum ChatMessageBody: Codable, Sendable, Equatable {
         case "text": self = .text
         case "agent-created":
             self = .agentCreated(try container.decode(CreatedAgentSummary.self, forKey: .agent))
+        case "ask": self = .ask(try container.decode(Ask.self, forKey: .ask))
         case "cloud-agent-work": self = .cloudAgentWork(try container.decode(CloudAgentWork.self, forKey: .work))
         default: self = .unsupported(kind)
         }
@@ -27,6 +29,9 @@ public enum ChatMessageBody: Codable, Sendable, Equatable {
         case .agentCreated(let agent):
             try container.encode("agent-created", forKey: .kind)
             try container.encode(agent, forKey: .agent)
+        case .ask(let ask):
+            try container.encode("ask", forKey: .kind)
+            try container.encode(ask, forKey: .ask)
         case .cloudAgentWork(let work):
             try container.encode("cloud-agent-work", forKey: .kind)
             try container.encode(work, forKey: .work)
