@@ -12,8 +12,10 @@ struct AuthenticatedHausView: View {
     /// The App owns the open Chat so the shell canvas, the pushed Thread, and
     /// the Store's read acknowledgements always name the same Chat.
     @State var selectedDestinationID: ChatDestination.ID?
-    /// A cold start lands on the Inbox; see `AuthenticatedHausView+Routes`.
-    @State var path: [HausRootRoute] = [.inbox]
+    @State var path: [HausRootRoute] = []
+    /// A cold start lands on the Inbox, which is the canvas itself rather than
+    /// a screen over it; see `AuthenticatedHausView+Routes`.
+    @State var showsInboxCanvas = true
     /// iOS reaches `.active` through `.inactive` from both a real suspension and
     /// a Control Center pull or app-switcher peek. Only the first is a stale
     /// cache, so the refresh waits for a phase run that actually backgrounded.
@@ -100,6 +102,7 @@ struct AuthenticatedHausView: View {
                     server: server,
                     destinations: store.chatDestinations,
                     selectedDestinationID: $selectedDestinationID,
+                    showsInbox: $showsInboxCanvas,
                     messagesForDestination: { store.messagePresentations(chatID: $0.pendingKey) },
                     isMessageHistoryLoaded: { destination in
                         guard let chat = destination.durableChat else { return true }
@@ -119,8 +122,9 @@ struct AuthenticatedHausView: View {
                             SettingsUnavailableSheet()
                         }
                     },
+                    inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
                     onOpenTasks: { path.append(.tasks) },
-                    onOpenInbox: { path = [.inbox] },
+                    onOpenInbox: openInbox,
                     needsYouCount: store.needsYouCount,
                     onOpenThread: openThread,
                     onSend: { destination, content, attachments in
@@ -181,8 +185,6 @@ struct AuthenticatedHausView: View {
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in
                     switch route {
-                    case .inbox:
-                        inboxDestination
                     case .tasks:
                         TaskListDestinationView(
                             persistence: store.settingsTasksPersistence,
@@ -230,9 +232,7 @@ struct AuthenticatedHausView: View {
         guard let destination = store.chatDestinations.agentDestination(agentID: agentID) else {
             return
         }
-        path.removeAll()
-        selectedThread = nil
-        selectedDestinationID = destination.id
+        openCanvasChat(destination.id)
     }
 
     /// The Chat the canvas has to have open. A pushed Thread or the Tasks list
@@ -240,7 +240,7 @@ struct AuthenticatedHausView: View {
     private var canvasOpenChatID: String? {
         ChatCanvasOpen.chatID(
             selectedID: selectedDestinationID,
-            isCovered: !path.isEmpty || selectedThread != nil
+            isCovered: showsInboxCanvas || !path.isEmpty || selectedThread != nil
         )
     }
 

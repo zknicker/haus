@@ -557,18 +557,22 @@ them. A section renders nothing at all until its read lands, so an unsettled sec
 than an empty box that fills a moment later; **Needs you** waits for both the Asks and the Tasks,
 which is the same pair the sidebar badge waits for.
 
-It is a push on the root stack, not the canvas. The canvas is what the drawer slides aside, what the
-Chat selection owns, and what a popped Thread returns to, so making it switch between a Chat and a
-page would have put a second owner on all three; as a push the Inbox reuses the Tasks route's shape
-exactly. A cold start seeds that stack with `.inbox`, so the app opens on the Inbox with the
-restored last-open Chat one Back away — in-session behavior is untouched, and selecting a Chat pops
-the stack the way it always did. An Ask row and a Cloud Agent work row each push the Thread they
-hang off, carrying the conversation's Chat id and the anchor Message — the same pair a Thread
+It is the canvas itself, not a push on the root stack. A cold start shows the Inbox page as the
+shell's canvas — no navigation bar, no title, no Back chevron, because there is nothing behind a
+landing screen to go back to — and the page's greeting and date are its first content. The Chat
+canvas and the Inbox take turns in the one canvas slot, so the drawer belongs to the slot rather
+than to either of them: the leading chrome button sits where it sits on a Chat screen, and the veil
+and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
+the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
+Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
+always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. An Ask row and a Cloud
+Agent work row each push the Thread they hang off, carrying the conversation's Chat id and the anchor Message — the same pair a Thread
 composer sends to — and leaving the canvas selection alone for the same reason a Task does. Two rows
 land somewhere the App does not send them, because the phone has nowhere else: a stalled claim opens
 the Task list rather than the task, since the native lens has no per-task focus, and an Agent in
 **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
-Inbox, wearing the Haus mark at 22pt in the same glyph column every other row uses and badging
+Inbox, wearing the bare Haus ghost at the sibling Tasks row's own glyph size, in the same glyph
+column every other row uses, and badging
 `needsYouCount` in the chip the Chat rows wear for unread messages — absent at zero, which is also
 what it reads while the count is still unknown. The mark is static: the App's iridescent ghost tempo
 has no counterpart here yet.

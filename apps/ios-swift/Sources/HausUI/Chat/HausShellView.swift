@@ -1,22 +1,26 @@
 import SwiftUI
 import Foundation
 
-public struct HausShellView<SettingsContent: View>: View {
+public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     private let server: ServerPresentation
     let destinations: [ChatDestination]
-    private let messagesForDestination: (ChatDestination) -> [MessagePresentation]
-    private let isMessageHistoryLoaded: (ChatDestination) -> Bool
-    private let isConnected: Bool
+    let messagesForDestination: (ChatDestination) -> [MessagePresentation]
+    let isMessageHistoryLoaded: (ChatDestination) -> Bool
+    let isConnected: Bool
     private let settingsContent: ([SettingsRoute]) -> SettingsContent
+    /// The Inbox as the canvas draws it. The App owns the page and its reads;
+    /// the shell owns where it sits, what slides over it, and the drawer toggle
+    /// it is handed — the drawer is the canvas's, not the page's.
+    @ViewBuilder let inboxCanvas: (EdgeInsets, @escaping () -> Void) -> InboxCanvas
     let onOpenTasks: () -> Void
     let onOpenInbox: () -> Void
     private let needsYouCount: Int
-    private let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
-    private let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
-    private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    private let hasOlderMessages: (ChatPresentation) -> Bool
-    private let isLoadingOlderMessages: (ChatPresentation) -> Bool
-    private let onLoadOlderMessages: (ChatPresentation) async -> Bool
+    let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
+    let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
+    let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
+    let hasOlderMessages: (ChatPresentation) -> Bool
+    let isLoadingOlderMessages: (ChatPresentation) -> Bool
+    let onLoadOlderMessages: (ChatPresentation) async -> Bool
     private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
     private let loadArchivedChannels: @Sendable () async throws -> [ArchivedChannelPresentation]
     private let restoreArchivedChannel: @Sendable (ArchivedChannelPresentation) async throws -> Void
@@ -29,10 +33,14 @@ public struct HausShellView<SettingsContent: View>: View {
     private let currentAgentActivity: (String) -> AgentActivityPresentation?
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
     private let agentProfile: (String) -> AgentProfilePresentation?
-    private let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
-    private let loadMentionOptions: (ChatDestination) async -> Void
+    let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
+    let loadMentionOptions: (ChatDestination) async -> Void
 
     @Binding var selectedDestinationID: ChatDestination.ID?
+    /// Whether the canvas is the Inbox rather than the selected Chat. The App
+    /// owns it because the App is what lands on it and what routes away from
+    /// it; the shell only clears it when a Chat is selected.
+    @Binding var showsInbox: Bool
     @State var drawerPresented = false
     @State var settingsRequest: SettingsPresentationRequest?
     /// Settings queued behind a Chat sheet that has to dismiss first; the two
@@ -52,16 +60,18 @@ public struct HausShellView<SettingsContent: View>: View {
     /// What the current close is, for as long as one is running. Only the veil
     /// reads it, and only a Chat selection ever sets anything else.
     @State var drawerClose = HausDrawerClose.interactive
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorScheme) var colorScheme
 
     public init(
         server: ServerPresentation,
         destinations: [ChatDestination],
         selectedDestinationID: Binding<ChatDestination.ID?> = .constant(nil),
+        showsInbox: Binding<Bool> = .constant(false),
         messagesForDestination: @escaping (ChatDestination) -> [MessagePresentation],
         isMessageHistoryLoaded: @escaping (ChatDestination) -> Bool = { _ in true },
         isConnected: Bool,
         @ViewBuilder settingsContent: @escaping ([SettingsRoute]) -> SettingsContent,
+        @ViewBuilder inboxCanvas: @escaping (EdgeInsets, @escaping () -> Void) -> InboxCanvas,
         onOpenTasks: @escaping () -> Void = {},
         onOpenInbox: @escaping () -> Void = {},
         needsYouCount: Int = 0,
@@ -88,12 +98,14 @@ public struct HausShellView<SettingsContent: View>: View {
         }
     ) {
         _selectedDestinationID = selectedDestinationID
+        _showsInbox = showsInbox
         self.server = server
         self.destinations = destinations
         self.messagesForDestination = messagesForDestination
         self.isMessageHistoryLoaded = isMessageHistoryLoaded
         self.isConnected = isConnected
         self.settingsContent = settingsContent
+        self.inboxCanvas = inboxCanvas
         self.onOpenTasks = onOpenTasks
         self.onOpenInbox = onOpenInbox
         self.needsYouCount = needsYouCount
@@ -153,86 +165,7 @@ public struct HausShellView<SettingsContent: View>: View {
                 .allowsHitTesting(drawerPresented)
                 .zIndex(1)
 
-                if let selectedDestination {
-                    // The drawer's geometry belongs to this container, not
-                    // to the screen inside it. The screen is keyed by
-                    // destination, so selecting a Chat replaces it, and a
-                    // view that did not exist a frame ago has no offset to
-                    // animate from. The container outlives the swap, so the
-                    // spring keeps running through it.
-                    ZStack {
-                        ChatScreenView(
-                            chat: selectedDestination,
-                            messages: messagesForDestination(selectedDestination),
-                            isMessageHistoryLoaded: isMessageHistoryLoaded(selectedDestination),
-                            draft: draftBinding(for: selectedDestination),
-                            composerInteraction: composerInteraction(for: selectedDestination),
-                            isConnected: isConnected,
-                            onOpenSidebar: { setDrawer(open: !drawerPresented) },
-                            onOpenChatDetails: { activeChatSheet = .details(selectedDestination) },
-                            onOpenSearch: { activeChatSheet = .search },
-                            onOpenThread: { message in
-                                guard let chat = selectedDestination.durableChat else { return }
-                                onOpenThread(chat, message)
-                            },
-                            onSend: { await onSend(selectedDestination, $0, $1) },
-                            onOpenAttachment: onOpenAttachment,
-                            onOpenAgent: openAgent,
-                            hasOlderMessages: selectedDestination.durableChat.map(hasOlderMessages) ?? false,
-                            isLoadingOlderMessages: selectedDestination.durableChat.map(isLoadingOlderMessages) ?? false,
-                            onLoadOlderMessages: {
-                                guard let chat = selectedDestination.durableChat else { return false }
-                                return await onLoadOlderMessages(chat)
-                            },
-                            mentionOptions: mentionOptions(selectedDestination),
-                            onLoadMentionOptions: { await loadMentionOptions(selectedDestination) },
-                            contentInsets: proxy.safeAreaInsets,
-                            scrollTargetMessageID: scrollTargetBinding(for: selectedDestination)
-                        )
-                        // Each Chat gets its own screen. Reusing one screen carried
-                        // the previous Chat's scroll offset and transcript state
-                        // into the next one, and left `defaultScrollAnchor(.bottom)`
-                        // unapplied; a fresh screen lays out bottom-anchored before
-                        // the drawer reveals it.
-                        .id(selectedDestination.id)
-                        // The drawer's own motion is the transition. The Chat
-                        // behind it is already the next one, fully formed, and
-                        // `selectDestination` has given it a frame of its own
-                        // to land in before the spring starts.
-                        .transition(.identity)
-                    }
-                    .overlay {
-                        let progress = drawerProgress(drawerWidth: drawerWidth)
-                        // The veil leaves by being removed, never by animating to
-                        // clear: progress is discrete, so it reads zero as soon as
-                        // the drawer is told to close. Removing it inside the
-                        // closing spring is the fade an interactive close wants;
-                        // removing it outside any animation, which is how a Chat
-                        // selection commits, is the hard cut that keeps the slide
-                        // the only transition.
-                        if HausDrawerVeil.isPainted(progress: progress, close: drawerClose) {
-                            HausDrawerVeil.color(for: colorScheme)
-                                .opacity(HausDrawerVeil.opacity(for: colorScheme, progress: progress))
-                                .contentShape(.rect)
-                                .allowsHitTesting(drawerPresented)
-                                .onTapGesture { setDrawer(open: false) }
-                        }
-                    }
-                    // The veil is shaped and expanded with the canvas it covers,
-                    // so it carries the same corners and the same full height.
-                    .clipShape(.rect(cornerRadius: canvasCornerRadius(drawerWidth: drawerWidth)))
-                    .ignoresSafeArea()
-                    .shadow(
-                        color: .black.opacity(0.13 * drawerProgress(drawerWidth: drawerWidth)),
-                        radius: 20,
-                        x: -6
-                    )
-                    .offset(x: canvasOffset(drawerWidth: drawerWidth))
-                    .zIndex(2)
-                    .drawerPan(isOpen: drawerPresented) { pan in
-                        handleDrawerPan(pan, drawerWidth: drawerWidth)
-                    }
-                }
+                canvas(proxy: proxy, drawerWidth: drawerWidth)
             }
             .background(HausPlatformColor.background)
         }
@@ -295,6 +228,7 @@ public struct HausShellView<SettingsContent: View>: View {
         settingsContent: { path in
             SettingsSheet(initialPath: path)
         },
+        inboxCanvas: { _, _ in EmptyView() },
         onSend: { _, _, _ in true }
     )
 }

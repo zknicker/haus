@@ -2,20 +2,23 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// How the root stack's routes are opened.
+/// How the root canvas and the root stack's routes are opened.
 ///
-/// The Inbox is a push over the Chat canvas rather than the canvas itself. The
-/// canvas is what the drawer slides aside, what the Chat selection owns, and
-/// what a popped Thread returns to; making it switch between a Chat and a page
-/// would have put a second owner on all three. As a push it reuses the Tasks
-/// route's shape exactly — and a cold start seeds the stack with it, so the app
-/// lands on the Inbox with the restored Chat one Back away.
+/// The Inbox is the canvas the app lands on, not a screen pushed over one: a
+/// landing screen with a navigation title and a Back chevron claims there is
+/// somewhere behind it, and on a cold start there is not. The Chat canvas and
+/// the Inbox therefore take turns in the one canvas slot, and the drawer —
+/// its toggle, its veil, its pan — belongs to the slot rather than to either
+/// of them. Tasks and Threads stay pushes over whichever is showing.
 extension AuthenticatedHausView {
     /// The Inbox page. Every section reads a Store snapshot, so the page adds
     /// no load of its own beyond the gathered refresh it asks for on arrival
     /// and on pull.
     @ViewBuilder
-    var inboxDestination: some View {
+    func inboxCanvas(
+        contentInsets: EdgeInsets,
+        onOpenSidebar: @escaping () -> Void
+    ) -> some View {
         InboxPageView(
             greetingName: store.inboxGreetingName,
             agentWeeks: store.inboxAgentWeeks(),
@@ -27,10 +30,18 @@ extension AuthenticatedHausView {
                 store.actorPresentation(agentID: agentID, userID: userID)
             },
             onOpen: openInboxRequest,
-            onRefresh: { await store.loadInbox() }
+            onRefresh: { await store.loadInbox() },
+            onOpenSidebar: onOpenSidebar,
+            contentInsets: contentInsets
         )
-        .navigationTitle("Inbox")
-        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// The sidebar's Inbox row: the canvas goes back to the Inbox, and anything
+    /// pushed over it comes off.
+    func openInbox() {
+        path.removeAll()
+        selectedThread = nil
+        showsInboxCanvas = true
     }
 
     /// A row states a record and opens it where that record is fully readable.
@@ -53,9 +64,7 @@ extension AuthenticatedHausView {
                 anchor: ask.threadAnchor
             )
         case .chat(let chatID):
-            path.removeAll()
-            selectedThread = nil
-            selectedDestinationID = .chat(chatID)
+            openCanvasChat(.chat(chatID))
         case .cloudAgentWork(let messageID):
             guard let work = store.activeCloudAgentWork?
                 .first(where: { $0.work.messageId == messageID })
@@ -101,9 +110,16 @@ extension AuthenticatedHausView {
         guard let destination = store.chatDestinations.agentDestination(agentID: agentID) else {
             return
         }
+        openCanvasChat(destination.id)
+    }
+
+    /// The one way a route puts a Chat on the canvas: everything covering the
+    /// canvas comes off, and the Inbox stops being what it shows.
+    func openCanvasChat(_ id: ChatDestination.ID) {
         path.removeAll()
         selectedThread = nil
-        selectedDestinationID = destination.id
+        showsInboxCanvas = false
+        selectedDestinationID = id
     }
 
     /// A Thread opened from the canvas pops back to the canvas, so the canvas

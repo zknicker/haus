@@ -13,6 +13,12 @@ import SwiftUI
 /// A section that has not settled renders nothing rather than an empty box: an
 /// unsettled read is not an empty collection, so nothing is claimed — and
 /// nothing flashes — on the way there.
+///
+/// It is the app's landing canvas, not a pushed screen, so it wears no
+/// navigation bar and no Back button — there is nothing behind it to return to.
+/// What it does wear is the Chat canvas's own leading chrome button, in the
+/// same place and at the same size, because the drawer has to stay one tap away
+/// from wherever the reader is.
 public struct InboxPageView: View {
     private let greetingName: String?
     private let agentWeeks: [InboxAgentWeek]?
@@ -23,6 +29,10 @@ public struct InboxPageView: View {
     private let resolveActor: InboxActorResolver
     private let onOpen: (InboxOpenRequest) -> Void
     private let onRefresh: () async -> Void
+    private let onOpenSidebar: () -> Void
+    /// The canvas ignores safe areas, so the chrome row carries its own
+    /// status-bar clearance exactly as the Chat screen's does.
+    private let contentInsets: EdgeInsets
 
     /// Elapsed time ticks on the rows that are counting up, and only on them.
     @State private var now = Date.now
@@ -36,7 +46,9 @@ public struct InboxPageView: View {
         workingAgents: [InboxWorkingAgent],
         resolveActor: @escaping InboxActorResolver,
         onOpen: @escaping (InboxOpenRequest) -> Void,
-        onRefresh: @escaping () async -> Void
+        onRefresh: @escaping () async -> Void,
+        onOpenSidebar: @escaping () -> Void,
+        contentInsets: EdgeInsets = EdgeInsets()
     ) {
         self.greetingName = greetingName
         self.agentWeeks = agentWeeks
@@ -47,9 +59,25 @@ public struct InboxPageView: View {
         self.resolveActor = resolveActor
         self.onOpen = onOpen
         self.onRefresh = onRefresh
+        self.onOpenSidebar = onOpenSidebar
+        self.contentInsets = contentInsets
     }
 
     public var body: some View {
+        page
+            // A bar, not a plain inset: the soft scroll edge below the chrome
+            // only paints behind a region the scroll view knows is one.
+            .chromeBar(edge: .top, spacing: 0) {
+                ChromeHeader {
+                    GlassChromeButton(.sidebar, label: "Open navigation", action: onOpenSidebar)
+                } trailing: {
+                    EmptyView()
+                }
+                .padding(.top, contentInsets.top)
+            }
+    }
+
+    private var page: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 header
@@ -59,7 +87,7 @@ public struct InboxPageView: View {
                 InboxHappeningNowSection(rows: happeningNowRows, onOpen: onOpen)
             }
             .padding(.top, 4)
-            .padding(.bottom, 28)
+            .padding(.bottom, 28 + contentInsets.bottom)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(HausPlatformColor.background)

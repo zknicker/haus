@@ -45,6 +45,9 @@ extension HausShellView {
         if destination.id != selectedDestination?.id {
             drawerClose = .chatSelection
         }
+        // Selecting a Chat is what takes the canvas off the Inbox; every other
+        // way back to it is the App's.
+        showsInbox = false
         selectedDestinationID = destination.id
         // The swap and the slide are two events, and they have to land in two
         // frames. The canvas is keyed by destination, so this selection inserts
