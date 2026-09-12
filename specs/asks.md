@@ -169,6 +169,10 @@ spec owns the record and its surfaces.
    settlement inside the ordinary Message creation paths, `ask.updated`, and `ask.listOpen`.
 3. **Landed.** The Inbox "Needs you" row and the peek's option chips, each posting the human's
    Message.
-4. **Landed in web.** The Thread-surface Ask marker in Haus App, with deterministic Server, API,
+4. **Landed.** The Thread-surface Ask marker in Haus App, with deterministic Server, API,
    Computer, and App coverage of creation, settlement, ineligible-addressee failure, the Agent line
-   format, and the browser Inbox flow. Still open: the iOS marker and its coverage.
+   format, and the browser Inbox flow. Haus for iPhone draws the same marker on the Ask Message in
+   both the Chat timeline and the Thread — glyph, addressee, and status — and offers the options
+   above the answer Thread's composer, where pressing one posts the human's own reply through the
+   Thread send that already carries the conversation Chat and the Ask's anchor
+   ([iPhone internals](../docs/internals/ios.md)).
