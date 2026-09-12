@@ -101,6 +101,7 @@ public struct ChatSidebarView: View {
                             // lists — the App's own sidebar order, Inbox first.
                             SidebarInboxRow(
                                 needsYouCount: needsYouCount,
+                                glyphSize: Self.bareGlyphSize,
                                 glyphColumn: Self.rowGlyphSize,
                                 capsuleBleed: Self.rowCapsuleBleed,
                                 onOpen: onOpenInbox

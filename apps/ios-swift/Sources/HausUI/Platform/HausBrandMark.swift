@@ -22,7 +22,19 @@ public enum HausBrandColors {
 /// Haus's brand mark — a rendering of the app icon (`assets/mac-icon.icon`):
 /// a rounded-square tile filled with the icon's deep-blue background gradient,
 /// with the blob silhouette layered on top in white, matching `icon.json`.
+///
+/// The `bare` style is the same silhouette with the tile taken away, drawn in
+/// the current foreground. It is what a glyph column wants: beside the Tasks
+/// checklist in the sidebar an app-icon tile reads as a second product rather
+/// than a sibling row, so the anchor wears the ghost alone at the neighbour's
+/// weight and size.
 public struct HausBrandMark: View {
+    public enum Style: Sendable {
+        /// The app icon: the blob on its blue tile.
+        case tile
+        /// The blob alone, tinted by the surrounding foreground style.
+        case bare
+    }
 
     /// iOS app-icon corner ratio (corner radius / side length).
     private static let cornerRatio: CGFloat = 0.2237
@@ -40,21 +52,36 @@ public struct HausBrandMark: View {
     private static let markOffsetXRatio: CGFloat = 12.76023816672495 / 1024
     private static let markOffsetYRatio: CGFloat = -7.137749425136645 / 1024
 
-    public init() {}
+    private let style: Style
+
+    public init(style: Style = .tile) {
+        self.style = style
+    }
 
     public var body: some View {
+        Group {
+            switch style {
+            case .tile: tile
+            case .bare: ghost.aspectRatio(contentMode: .fit)
+            }
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .accessibilityHidden(true)
+    }
+
+    private var tile: some View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
 
             RoundedRectangle(cornerRadius: side * Self.cornerRatio, style: .continuous)
                 .fill(HausBrandColors.iconGradient)
                 .overlay(
-                    Image("HausMark", bundle: .module)
-                        .renderingMode(.template)
-                        .resizable()
+                    ghost
                         .aspectRatio(contentMode: .fit)
                         .foregroundStyle(HausBrandColors.iconBlob)
                         .opacity(HausBrandColors.iconBlobOpacity)
+                        // The icon's own inset and nudge, which only the tile
+                        // has a canvas to sit inside.
                         .scaleEffect(Self.markBaseFraction * Self.markScale)
                         .offset(
                             x: side * Self.markOffsetXRatio,
@@ -62,13 +89,21 @@ public struct HausBrandMark: View {
                         )
                 )
         }
-        .aspectRatio(1, contentMode: .fit)
-        .accessibilityHidden(true)
+    }
+
+    private var ghost: some View {
+        Image("HausMark", bundle: .module)
+            .renderingMode(.template)
+            .resizable()
     }
 }
 
 #Preview {
-    HausBrandMark()
-        .frame(width: 96, height: 96)
-        .padding()
+    HStack(spacing: 24) {
+        HausBrandMark()
+            .frame(width: 96, height: 96)
+        HausBrandMark(style: .bare)
+            .frame(width: 96, height: 96)
+    }
+    .padding()
 }
