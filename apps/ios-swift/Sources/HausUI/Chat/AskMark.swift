@@ -77,10 +77,30 @@ public struct AskPresentation: Hashable, Sendable {
 /// Task-chip grammar — annotation scale, muted throughout, with only the status
 /// disc carrying lifecycle color. An open Ask says "Open" with the disc alone,
 /// because the row it sits under is already the question.
+///
+/// In a Chat transcript the marker is also the way in. An Ask with no replies
+/// yet shows no Thread ingress, so without this the only surface that could
+/// open it was the Inbox; `onOpen` gives the marker the ingress card's own
+/// press feedback and route. Inside a Thread the marker is already home, so it
+/// is passed no handler and stays inert.
 struct AskMark: View {
     let ask: AskPresentation
+    var onOpen: (() -> Void)?
 
     var body: some View {
+        if let onOpen {
+            Button(action: onOpen) {
+                mark.contentShape(Rectangle())
+            }
+            .buttonStyle(.pressableRow(cornerRadius: 8))
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityHint("Opens the Ask's thread")
+        } else {
+            mark
+        }
+    }
+
+    private var mark: some View {
         HStack(spacing: 5) {
             HausIcon(.ask, size: 13, weight: 2)
                 .frame(width: 13, height: 13)

@@ -618,6 +618,11 @@ projected from the `ask` Message body through the one actor resolver every other
 (`HausStore.askPresentation`), so an answered Ask still reads correctly long after its options
 stopped mattering.
 
+In the Chat timeline the marker is also the way in, taking the Thread ingress card's own press
+feedback and route. An Ask nobody has replied to yet shows no ingress card, so without that the
+Inbox was the only surface that could open it. Inside a Thread the marker is inert: the screen it
+would open is the screen it is on.
+
 A Task lens widens through `loadTasks(includeBackground:)`, and
 a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N
 background" without a second round trip. The week behind "Active this week" is sliced per Agent out
