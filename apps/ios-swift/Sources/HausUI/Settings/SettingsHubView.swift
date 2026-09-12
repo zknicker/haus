@@ -72,6 +72,12 @@ struct SettingsHubView: View {
                     }
                 }
 
+                SettingsSection("Preferences") {
+                    SettingsListGroup {
+                        ShowTasksInChatRow()
+                    }
+                }
+
                 SettingsSection("Theme") {
                     SettingsListGroup {
                         PickerRow(

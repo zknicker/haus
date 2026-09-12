@@ -14,6 +14,7 @@ struct MessageTimelineRow: View {
     let visualHeights: VisualHeightRegistry
     let onOpenThread: () -> Void
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
+    @AppStorage(ShowTasksInChat.storageKey) private var showTasksInChat = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 11) {
@@ -74,10 +75,13 @@ struct MessageTimelineRow: View {
                     .padding(.top, 2)
                 }
 
-                if message.thread?.replyCount ?? 0 > 0 || message.task != nil {
+                if ThreadPreviewProjection.showsIngress(
+                    replyCount: message.thread?.replyCount ?? 0,
+                    task: ingressTask
+                ) {
                     ThreadPreviewCard(
                         thread: message.thread,
-                        task: message.task,
+                        task: ingressTask,
                         cloudAgents: message.threadCloudAgents,
                         onOpen: onOpenThread
                     )
@@ -97,6 +101,12 @@ struct MessageTimelineRow: View {
                 .padding(.horizontal, -8)
                 .padding(.vertical, -5)
         }
+    }
+
+    /// The task this row states, or nil for a claim the reader has not asked
+    /// to see. Chat's own preference, per device, like appearance.
+    private var ingressTask: TaskPresentation? {
+        ThreadPreviewProjection.ingressTask(message.task, showTasksInChat: showTasksInChat)
     }
 
     /// Whether anything the message itself says sits above the cards below it.

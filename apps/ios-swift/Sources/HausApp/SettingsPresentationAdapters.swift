@@ -65,24 +65,26 @@ extension HausStore {
                 }
                 return nil
             },
-            load: { [weak self] in
+            // The default lens is the Server-wide read the Store already
+            // owns, so the screen reads that one snapshot and a durable task
+            // event keeps it current. Only the widened lens is the screen's.
+            tasks: { [weak self] in self?.inboxTasks },
+            backgroundCount: { [weak self] in self?.taskBackgroundCount ?? 0 },
+            load: { [weak self] includeBackground in
                 guard let self else { throw CancellationError() }
-                return try await self.loadTasks()
+                return try await self.reloadTaskLens(includeBackground: includeBackground)
             },
             updateStatus: { [weak self] item, status in
                 guard let self else { throw CancellationError() }
                 _ = try await self.updateTaskStatus(item.task, status: status)
-                return try await self.loadTasks()
             },
             claim: { [weak self] item in
                 guard let self else { throw CancellationError() }
                 _ = try await self.claimTask(item.task)
-                return try await self.loadTasks()
             },
             unclaim: { [weak self] item in
                 guard let self else { throw CancellationError() }
                 _ = try await self.unclaimTask(item.task)
-                return try await self.loadTasks()
             }
         )
     }
