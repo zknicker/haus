@@ -599,10 +599,11 @@ composer sends to — and leaving the canvas selection alone for the same reason
 land somewhere the App does not send them, because the phone has nowhere else: a stalled claim opens
 the Task list rather than the task, since the native lens has no per-task focus, and an Agent in
 **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
-Inbox, wearing the iridescent Haus ghost at 22 points — the App sidebar's own number, a size above
-the boxed glyphs below it — in the same glyph
-column every other row uses, and badging
-`needsYouCount` in the chip the Chat rows wear for unread messages — absent at zero, which is also
+Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
+column every other row uses — a deliberate exception to the column's 26-point boxed glyphs, because
+this mark is the logo rather than a screen's icon, and it grows inside the shared column so the
+`Inbox` label stays on the `Tasks` label's edge. It marks
+`needsYouCount` with the unread dot the Chat rows wear — absent at zero, which is also
 what it reads while the count is still unknown. Its mesh drifts, and drifts quicker while an Agent
 on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App's own rule through
 `HausGhostTempo.resolve`, and reads one stored bit rather than the activity dictionary
@@ -1081,7 +1082,11 @@ it would need is the one element that cannot sit on the rail with the rest.
 An unread chat hangs a disc off the sidebar's leading edge and lets that edge cut it in half, so
 what shows is a nub in the margin. The clip is load-bearing, which is why the rail inset rides on
 the scrolling list rather than on the scroll view: the scroll view has to reach the sidebar's own
-leading edge, or its bounds cut the marker away before the sidebar edge can halve it. The Chat
+leading edge, or its bounds cut the marker away before the sidebar edge can halve it. That disc is
+the phone's whole unread vocabulary: `UnreadDot` owns it, the drawer's Inbox row and every Chat row
+hang it off the edge together, and the Inbox's Conversations rows and Search show the same disc
+whole beside the row's time. The phone never counts — a number a reader cannot act on is not worth a
+chip beside the fact it repeats — so no surface here carries an unread badge. The Chat
 details sheet pushes a read-only Agent profile on its own `NavigationStack` — the chevron row is a
 real push, and the sheet grows to the large detent for it — so inspection never leaves the sheet.
 Editing does: the pushed profile's "Manage in Settings" row is the one details-to-Settings hop, and
