@@ -24,15 +24,13 @@ public struct ChatSidebarView: View {
     /// Every row leads with a glyph in a box this size, so the labels behind
     /// them share one column too.
     private static let rowGlyphSize: CGFloat = 26
-    /// The Inbox mark's drawn height — the App sidebar's own number for the
-    /// same row, and a size above the boxed glyphs below it.
-    private static let inboxGhostSize: CGFloat = 22
+    /// The Inbox mark's drawn height. It is deliberately larger than the boxed
+    /// glyphs below it — the one glyph in the column that is the logo rather
+    /// than a screen's icon — and it grows inside that column, so no label
+    /// moves with it.
+    private static let inboxGhostSize: CGFloat = 26
     /// The family's own 1.5 reads thin against a row's body text.
     private static let rowGlyphWeight: CGFloat = 1.8
-    /// The unread marker is a disc centred on the sidebar's leading edge, so
-    /// only its trailing half shows — Discord's nub. Half of this is what the
-    /// reader actually sees.
-    private static let unreadMarkerDiameter: CGFloat = 14
 
     private let server: ServerPresentation
     private let destinations: [ChatDestination]
@@ -41,8 +39,8 @@ public struct ChatSidebarView: View {
     private let onOpenSettings: () -> Void
     private let onOpenSearch: () -> Void
     private let onOpenInbox: () -> Void
-    /// The Inbox's own "Needs you" total, in the same chip the Chat rows wear
-    /// for unread messages and, like them, absent at zero.
+    /// The Inbox's own "Needs you" total. The row spends it as the same unread
+    /// dot the Chat rows wear, so it shows nothing at zero.
     private let needsYouCount: Int
     /// How fast the Inbox mark's mesh drifts: `lively` only while an Agent on
     /// this Server is working.
@@ -106,6 +104,7 @@ public struct ChatSidebarView: View {
                                 ghostTempo: ghostTempo,
                                 glyphColumn: Self.rowGlyphSize,
                                 capsuleBleed: Self.rowCapsuleBleed,
+                                listInset: Self.listInset,
                                 onOpen: onOpenInbox
                             )
 
@@ -230,19 +229,7 @@ public struct ChatSidebarView: View {
                 selectedDestinationID == chat.id ? selectedRowFill : .clear,
                 in: .capsule
             )
-            // Pushed out until its centre lands on the sidebar's leading
-            // edge, where the scroll view's clip takes the other half.
-            .overlay(alignment: .leading) {
-                if chat.unreadCount > 0 {
-                    Circle()
-                        .fill(.primary)
-                        .frame(
-                            width: Self.unreadMarkerDiameter,
-                            height: Self.unreadMarkerDiameter
-                        )
-                        .offset(x: -Self.listInset - Self.unreadMarkerDiameter / 2)
-                }
-            }
+            .sidebarUnreadDot(chat.unreadCount > 0, listInset: Self.listInset)
             // The label's own drawing stops at the title, so without this the
             // tappable area is the glyph and the text rather than the row.
             .contentShape(Rectangle())

@@ -64,7 +64,9 @@ public struct InboxConversationRow: Identifiable, Hashable, Sendable {
     public let title: String
     public let preview: String
     public let lastActivityAt: Date?
-    public let unreadCount: Int
+    /// Whether the row is waiting on the reader. The phone marks that with a
+    /// dot and never a number, so the count stays behind in the Chat record.
+    public let isUnread: Bool
 
     public init(
         id: String,
@@ -72,14 +74,14 @@ public struct InboxConversationRow: Identifiable, Hashable, Sendable {
         title: String,
         preview: String,
         lastActivityAt: Date?,
-        unreadCount: Int
+        isUnread: Bool
     ) {
         self.id = id
         self.mark = mark
         self.title = title
         self.preview = preview
         self.lastActivityAt = lastActivityAt
-        self.unreadCount = unreadCount
+        self.isUnread = isUnread
     }
 }
 

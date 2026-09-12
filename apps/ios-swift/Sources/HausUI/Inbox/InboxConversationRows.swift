@@ -68,7 +68,7 @@ public enum InboxConversationRows {
                         viewerDisplayName: viewerDisplayName
                     ) ?? noActivityPreview,
                     lastActivityAt: chat.lastActivityAt,
-                    unreadCount: chat.unreadCount
+                    isUnread: chat.unreadCount > 0
                 )
             }
     }

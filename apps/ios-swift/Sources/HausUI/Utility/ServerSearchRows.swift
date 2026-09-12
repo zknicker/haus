@@ -24,12 +24,7 @@ struct ChatSearchResultRow: View {
 
             Spacer(minLength: 8)
 
-            if chat.unreadCount > 0 {
-                Circle()
-                    .fill(.primary)
-                    .frame(width: 8, height: 8)
-                    .accessibilityHidden(true)
-            }
+            if chat.unreadCount > 0 { UnreadDot() }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())

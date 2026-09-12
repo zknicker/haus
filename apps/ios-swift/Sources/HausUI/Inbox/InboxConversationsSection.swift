@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Unread conversation, newest activity first, each row quoting the line that
-/// is waiting and trailing its age and unread count.
+/// is waiting and trailing its age and the unread dot.
 struct InboxConversationsSection: View {
     let rows: [InboxConversationRow]?
     let now: Date
@@ -32,7 +32,7 @@ struct InboxConversationsSection: View {
                                         )
                                         .monospacedDigit()
                                     }
-                                    InboxUnreadCountChip(count: row.unreadCount)
+                                    if row.isUnread { UnreadDot() }
                                 }
                             }
                         }
@@ -40,23 +40,5 @@ struct InboxConversationsSection: View {
                 }
             }
         }
-    }
-}
-
-/// A count badge for waiting work: a Chat's unread messages, and the sidebar's
-/// Inbox count. One owner for the cap and the chip's shape, so the sidebar row
-/// and the Inbox never disagree about what 100 waiting items looks like.
-struct InboxUnreadCountChip: View {
-    let count: Int
-
-    var body: some View {
-        Text(count > 99 ? "99+" : "\(count)")
-            .font(.caption2.weight(.semibold))
-            .monospacedDigit()
-            .foregroundStyle(.white)
-            .padding(.horizontal, 6)
-            .frame(minWidth: 20, minHeight: 18)
-            .background(Color.accentColor, in: .capsule)
-            .accessibilityLabel("\(count) unread")
     }
 }
