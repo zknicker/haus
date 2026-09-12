@@ -24,19 +24,38 @@ extension HausStore {
     /// it or presses one of the offered options.
     func threadSelection(openAsk: OpenAsk) -> ThreadSelection? {
         let route = AskAnswerRoute(openAsk)
-        let anchorMessage = openAsk.threadAnchor
-        guard let author = authorPresentation(anchorMessage.author) else { return nil }
-        let (body, fenced) = MessagePresentation.resolvedBody(content: anchorMessage.content)
-        return ThreadSelection(
-            parentChatID: route.chatID,
+        return threadSelection(
+            conversationChatID: route.chatID,
             threadChatID: openAsk.threadChatID,
+            anchor: openAsk.threadAnchor
+        )
+    }
+
+    /// The Thread a Server-wide row hangs off, projected from the Message that
+    /// row carries rather than from a Chat page.
+    ///
+    /// A surface that lists records from across the Server — the Inbox — opens
+    /// Chats this client has never loaded, so the anchor must arrive fully
+    /// projected: an anchor assembled from id, author, and content alone loses
+    /// the Ask its body states, and with it the marker and the offered options
+    /// the answer Thread exists to show.
+    func threadSelection(
+        conversationChatID: String,
+        threadChatID: String,
+        anchor: ChatMessage
+    ) -> ThreadSelection? {
+        guard let author = authorPresentation(anchor.author) else { return nil }
+        let (body, fenced) = MessagePresentation.resolvedBody(content: anchor.content)
+        return ThreadSelection(
+            parentChatID: conversationChatID,
+            threadChatID: threadChatID,
             anchor: MessagePresentation(
-                id: route.anchorMessageID,
+                id: anchor.id,
                 author: author,
                 content: body,
-                createdAt: anchorMessage.createdAt,
+                createdAt: anchor.createdAt,
                 attachments: [],
-                ask: askPresentation(anchorMessage.body),
+                ask: askPresentation(anchor.body),
                 visualBody: fenced
             )
         )

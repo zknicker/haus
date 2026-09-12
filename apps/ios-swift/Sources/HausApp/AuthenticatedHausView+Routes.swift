@@ -56,24 +56,22 @@ extension AuthenticatedHausView {
         case .agent(let agentID):
             openAgentDM(agentID)
         case .ask(let messageID):
-            guard let ask = store.openAsks?.first(where: { $0.ask.messageID == messageID })
+            guard let ask = store.openAsks?.first(where: { $0.ask.messageID == messageID }),
+                  let selection = store.threadSelection(openAsk: ask)
             else { return }
-            pushConversationThread(
-                chatID: ask.conversationChatID,
-                threadChatID: ask.threadChatID,
-                anchor: ask.threadAnchor
-            )
+            pushConversationThread(selection)
         case .chat(let chatID):
             openCanvasChat(.chat(chatID))
         case .cloudAgentWork(let messageID):
             guard let work = store.activeCloudAgentWork?
-                .first(where: { $0.work.messageId == messageID })
+                .first(where: { $0.work.messageId == messageID }),
+                let selection = store.threadSelection(
+                    conversationChatID: work.conversationChatID,
+                    threadChatID: work.threadChatID,
+                    anchor: work.threadAnchor
+                )
             else { return }
-            pushConversationThread(
-                chatID: work.conversationChatID,
-                threadChatID: work.threadChatID,
-                anchor: work.threadAnchor
-            )
+            pushConversationThread(selection)
         case .tasks:
             path.append(.tasks)
         }
@@ -83,25 +81,13 @@ extension AuthenticatedHausView {
     /// Chat may be one the user has never visited — selecting it would mark it
     /// read on the way back out. The route carries the parent Chat id and the
     /// Ask or work carries the child Chat id, so it needs no selection.
-    private func pushConversationThread(
-        chatID: String,
-        threadChatID: String,
-        anchor: ChatMessage
-    ) {
-        guard let author = store.authorPresentation(anchor.author) else { return }
-        pushThread(
-            ThreadSelection(
-                parentChatID: chatID,
-                threadChatID: threadChatID,
-                anchor: MessagePresentation(
-                    id: anchor.id,
-                    author: author,
-                    content: anchor.content,
-                    createdAt: anchor.createdAt
-                )
-            ),
-            selectingParent: nil
-        )
+    ///
+    /// The Store projects the anchor, because the Inbox is the one surface that
+    /// opens a Thread over a Chat page this client has not loaded: the Thread
+    /// screen has nothing to fall back to, so what the row hands it is all it
+    /// will ever have — the Ask marker and its offered options included.
+    private func pushConversationThread(_ selection: ThreadSelection) {
+        pushThread(selection, selectingParent: nil)
     }
 
     /// An Agent's own Chat is where a person talks to it, so an Agent row lands
