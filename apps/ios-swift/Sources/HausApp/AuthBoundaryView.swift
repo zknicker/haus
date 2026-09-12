@@ -123,8 +123,7 @@ private struct SignInView: View {
 
     var body: some View {
         VStack(spacing: 22) {
-            HausBrandMark()
-                .frame(width: 96, height: 96)
+            HausGhost(fill: .iridescent, animated: true, size: 56)
 
             VStack(spacing: 6) {
                 Text("Welcome to Haus")

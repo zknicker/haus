@@ -126,6 +126,7 @@ struct AuthenticatedHausView: View {
                     onOpenTasks: { path.append(.tasks) },
                     onOpenInbox: openInbox,
                     needsYouCount: store.needsYouCount,
+                    ghostTempo: store.agentActivityGhostTempo,
                     onOpenThread: openThread,
                     onSend: { destination, content, attachments in
                         switch destination {
@@ -323,5 +324,4 @@ struct AuthenticatedHausView: View {
     private func resolvedThreadChatID(for thread: ThreadSelection) -> String? {
         thread.resolvedChatID(selectedThread: selectedThread, store: store)
     }
-
 }

@@ -18,7 +18,20 @@ final class HausStore {
     // Internal so the app-only computer loader can live in its own file.
     var computers: [ComputerSummary]?
     var mentionOptionsByDestinationID: [ChatDestination.ID: [MentionOptionPresentation]] = [:]
-    var currentActivityByAgentID: [String: AgentActivityEvent] = [:]
+    var currentActivityByAgentID: [String: AgentActivityEvent] = [:] {
+        didSet {
+            // One bit for the sidebar's Haus mark, so the shell subscribes to
+            // that rather than to a dictionary `agent.onActivity` rewrites on
+            // every tool call.
+            let working = !currentActivityByAgentID.isEmpty
+            if isAnyAgentWorking != working { isAnyAgentWorking = working }
+        }
+    }
+    /// Whether any Agent on the active Server is working right now, and whether
+    /// the Server has answered that question at all yet. Until it has, the
+    /// answer is "no" rather than a guess — see `HausGhostTempo.resolve`.
+    private(set) var isAnyAgentWorking = false
+    var hasAgentActivitySnapshot = false
     var currentActivityPositionByRunID: [String: Int] = [:]
     var lifecycleRevision = 0
     // Everything the memoized Chat projections read is stored here and

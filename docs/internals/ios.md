@@ -374,6 +374,34 @@ the family — without that check a typo renders an invisible icon. `ui-icons.js
 decode on first use, unlike the 1.8 MiB channel catalog, so an icon never appears after its row has
 drawn.
 
+The Haus ghost is the brand mark, and the App owns its artwork. `HausGhostPaths` parses the App's
+own `BODY_PATH` and `EYES_PATH` strings character for character through the same `SVGPathData`
+reader the channel glyphs use, `HausGhostPalette` carries its colors and stop tables, and
+`HausGhostCanvas` paints the faux-glass stack — halo, interior scatter, drifting color mesh, colored
+rim, white dome, speculars, hairline edge, eyes — into a `Canvas`. `HausGhost` is the view, with the
+App component's API: `fill` (`.solid` tints the body in the current foreground with the eyes punched
+out even-odd; `.iridescent` is the glass), `animated`, `tempo`, and `size` as the rendered height.
+It is drawn three places: the sidebar's Inbox row, the sign-in screen, and the opening frame the app
+holds while authentication resolves. The retired `HausBrandMark` and its `HausMark` imageset are
+gone — that asset was an older eyeless silhouette from a different viewBox.
+
+Two things in the port are carried differently from the App's SVG, and only these two. SVG masks by
+luminance and `Canvas` masks by compositing, so each mask is drawn into its own layer and punched
+through with `destinationIn`, its gray ramp read as alpha. That is the same number the browser
+arrives at for an opaque neutral ramp, so only the mechanism differs. And `feGaussianBlur`'s
+`stdDeviation` is passed straight to `GraphicsContext.Filter.blur(radius:)`, which takes a standard
+deviation too; every radius scales with the mark, so a 22-point row blurs by 22/204ths of what a
+full-size mark does.
+
+Only the three mesh blobs move, each on an elliptical loop stepped onto one shared 0.3-second grid
+(`HausGhostDrift`) — 6s/5 steps, 8.4s/7 reversed, 4.8s/4, and `lively` scales the periods and the
+grid together. The grid is the whole performance story: the blobs drift inside a Gaussian blur
+nested in two masks and a clip, so what costs is the number of frames the mark redraws on, not how
+many blobs moved in one. `TimelineView` ticks the canvas on exactly that grid and emits a single
+entry when the drift is stopped, which it is under Reduce Motion and whenever the scene is not
+active. Every offset is a pure function of elapsed seconds, so a pause freezes the mark where it
+stands instead of snapping it back to the loop's start.
+
 SF Symbols stay wherever the system owns the grammar: inside `ContentUnavailableView`, `Menu` labels,
 and `Label`, and for navigation backs, disclosure chevrons, picker chevrons, and selection
 checkmarks. Those read as platform affordances rather than product iconography, and a custom glyph
@@ -571,11 +599,14 @@ composer sends to — and leaving the canvas selection alone for the same reason
 land somewhere the App does not send them, because the phone has nowhere else: a stalled claim opens
 the Task list rather than the task, since the native lens has no per-task focus, and an Agent in
 **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
-Inbox, wearing the bare Haus ghost at the sibling Tasks row's own glyph size, in the same glyph
+Inbox, wearing the iridescent Haus ghost at 22 points — the App sidebar's own number, a size above
+the boxed glyphs below it — in the same glyph
 column every other row uses, and badging
 `needsYouCount` in the chip the Chat rows wear for unread messages — absent at zero, which is also
-what it reads while the count is still unknown. The mark is static: the App's iridescent ghost tempo
-has no counterpart here yet.
+what it reads while the count is still unknown. Its mesh drifts, and drifts quicker while an Agent
+on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App's own rule through
+`HausGhostTempo.resolve`, and reads one stored bit rather than the activity dictionary
+`agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
 
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
 holds four reads — the viewer's open Asks (`ask.listOpen`), the default Server-wide Task lens

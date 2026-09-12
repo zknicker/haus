@@ -2,6 +2,16 @@ import HausModels
 import HausUI
 
 extension HausStore {
+    /// How fast the sidebar's Haus mark drifts. Reads the one bit the activity
+    /// snapshot leaves behind rather than the snapshot itself, so the shell is
+    /// not invalidated by every semantic activity event.
+    var agentActivityGhostTempo: HausGhostTempo {
+        HausGhostTempo.resolve(
+            isSnapshotReady: hasAgentActivitySnapshot,
+            hasWorkingAgent: isAnyAgentWorking
+        )
+    }
+
     /// Resolved where it is drawn — inside the Chat details sheet — rather than
     /// at the shell's root. `agent.onActivity` ticks constantly, and reading
     /// this projection at the root invalidated the whole shell once per frame.

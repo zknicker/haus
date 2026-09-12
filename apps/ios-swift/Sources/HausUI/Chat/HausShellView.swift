@@ -15,6 +15,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     let onOpenTasks: () -> Void
     let onOpenInbox: () -> Void
     private let needsYouCount: Int
+    private let ghostTempo: HausGhostTempo
     let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
     let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
@@ -75,6 +76,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         onOpenTasks: @escaping () -> Void = {},
         onOpenInbox: @escaping () -> Void = {},
         needsYouCount: Int = 0,
+        ghostTempo: HausGhostTempo = .calm,
         onOpenThread: @escaping (ChatPresentation, MessagePresentation) -> Void = { _, _ in },
         onSend: @escaping (ChatDestination, String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
@@ -109,6 +111,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.onOpenTasks = onOpenTasks
         self.onOpenInbox = onOpenInbox
         self.needsYouCount = needsYouCount
+        self.ghostTempo = ghostTempo
         self.onOpenThread = onOpenThread
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
@@ -140,6 +143,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                     onOpenSearch: { activeChatSheet = .search },
                     onOpenInbox: openInboxCanvas,
                     needsYouCount: needsYouCount,
+                    ghostTempo: ghostTempo,
                     onOpenTasks: openTasks,
                     onOpenArchived: { activeChatSheet = .archived },
                     onOpenNewChannel: { activeChatSheet = .newChannel }
