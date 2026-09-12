@@ -168,8 +168,22 @@ public struct TaskListDestinationView: View {
         }
     }
 
+    /// The lens control is words, not a button: it states how much the list is
+    /// not showing, which is a footnote on the list rather than an action the
+    /// screen is offering. The navigation bar wraps its items in glass on its
+    /// own, which turned that footnote into a filled pill, so the item drops
+    /// the shared background where the system draws one — matching the App's
+    /// ghost button.
     @ToolbarContentBuilder
     private var backgroundToggle: some ToolbarContent {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            backgroundToggleItem.sharedBackgroundVisibility(.hidden)
+        } else {
+            backgroundToggleItem
+        }
+    }
+
+    private var backgroundToggleItem: some ToolbarContent {
         ToolbarItem(placement: .automatic) {
             if let label = TaskBackgroundLens.label(
                 items: items ?? [],
@@ -180,9 +194,9 @@ public struct TaskListDestinationView: View {
                     includeBackground.toggle()
                     widenedItems = nil
                 }
+                .buttonStyle(.plain)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .buttonStyle(.plain)
             }
         }
     }
