@@ -532,6 +532,37 @@ the open Chat while it is on screen, and the shell's Chat selection resumes owne
 the covered canvas Chat stays named so its page keeps refreshing underneath, but read
 acknowledgements belong to the deepest surface alone.
 
+What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
+holds four reads — the viewer's open Asks (`ask.listOpen`), the default Server-wide Task lens
+(`task.list`), the Cloud Agent work running right now (`cloudAgentWork.listActive`), and the
+Server's token-usage snapshot (`stats.live`) — and each stays nil until its first load. That nil is
+load-bearing: `needsYouCount` answers zero until both the Asks and the Tasks have landed, because a
+badge that counted Asks now and Tasks a moment later would tick upward in front of the reader; ask
+`isNeedsYouCountReady` to tell "nothing waiting" from "not yet known". The count is the App's own
+selector ported whole (`InboxNeedsYou` in `HausModels`): every open Ask addressed to this human,
+plus every stalled claim — `claimed`, `in_progress`, `tracked`, and not `live`, each clause
+load-bearing. Durable events refresh only what this client already holds, the way the App's
+invalidation only refetches a live query: `ask.updated` reloads the open Asks beside the transcripts
+naming the Ask and its parent, `task.created` and `task.updated` reload the Server Task lens beside
+the affected Chat page, and `cloud-agent-work.updated` reloads the active work list beside its own.
+A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
+Chat-level send alert raised by a background read is not.
+
+An Ask is answered exactly as the App answers one, so there is no answer procedure: an ordinary
+`chat.send` carrying the chosen option, addressed to the conversation's Chat id and to
+`OpenAsk.threadAnchor`, which is the shared `openAskThreadAnchor` rule — the Thread's own anchor
+when the Ask was posted inside one, and the Ask's own Message when it was not. `OpenAsk` names the
+Channel or DM, never a Thread, so a row carries the same pair a Thread composer sends. An Ask's
+`options` are up to four short replies, the first the Agent's recommendation, and no options at all
+is an open question whose answer is whatever the human writes. The Ask reaches a transcript as the
+`ask` Message body beside that row. A Task lens widens through `loadTasks(includeBackground:)`, and
+a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N
+background" without a second round trip. The week behind "Active this week" is sliced per Agent out
+of that one usage snapshot (`AgentTokenUsage.summarize`, the App's `summarizeAgentTokenUsage`) on
+UTC days, because ranking a week is a question about every Agent at once and a per-Agent read was
+never its shape. A Chat row's quoted last line is Server's own `lastMessage` projection and stays
+raw Markdown; collapsing it to one plain line is the reader's job.
+
 Swift optimistic Chat and Thread rows remain app-local and keyed by the client nonce. Thread replies
 use the canonical parent Chat plus anchor-message contract. A failed mutation removes its optimistic
 row and restores the exact draft, while a successful row remains pending until a refreshed Server
