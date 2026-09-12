@@ -21,6 +21,22 @@ enum TaskPreviewFixtures {
         """
     )
 
+    /// An Agent's own claim on work it settled inside one turn: the tier the
+    /// default lens hides and the widened one states.
+    static let backgroundItems: [TaskListItem] = decode(
+        """
+        [
+          {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
+           "message":{"attachments":[],"author":{"kind":"agent","agentId":"agent_preview","profile":null},"chatId":"chat_product","content":"Summarize yesterday's release notes","createdAt":"2026-01-01T00:00:00Z","id":"message_task_4","nonce":"nonce_4","runId":null,"sequence":4,"serverId":"server_preview","task":null},
+           "task":{"assigneeAgentId":"agent_preview","assigneeUserId":null,"chatId":"chat_product","claimedAt":"2026-01-01T00:00:00Z","createdAt":"2026-01-01T00:00:00Z","createdByAgentId":"agent_preview","createdByUserId":null,"labels":[],"live":false,"messageId":"message_task_4","number":15,"origin":"claimed","priority":"none","status":"done","threadChatId":"thread_4","tier":"background","updatedAt":"2026-01-01T00:00:00Z","version":1},
+           "threadSummary":{"anchorMessageId":"message_task_4","followed":false,"latestReplyAt":null,"recentReplies":[],"replyCount":0,"threadChatId":"thread_4","unreadCount":0}}
+        ]
+        """
+    )
+
+    /// What the widened lens holds: the tracked rows plus the background ones.
+    static let widenedItems: [TaskListItem] = items + backgroundItems
+
     private static func decode<Value: Decodable>(_ json: String) -> Value {
         do {
             return try HausJSON.decoder().decode(Value.self, from: Data(json.utf8))

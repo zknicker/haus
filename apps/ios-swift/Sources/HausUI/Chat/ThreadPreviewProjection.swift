@@ -27,6 +27,29 @@ public enum ThreadPreviewProjection {
         )
     }
 
+    /// The task the ingress states, under the reader's Chat preference.
+    ///
+    /// An Agent's claim on a message is bookkeeping it keeps on its own work,
+    /// so unless the reader asked to see tasks in Chat it contributes nothing
+    /// here: no note, no reserved row. A task a human made always states
+    /// itself, whatever the preference says.
+    public static func ingressTask(
+        _ task: TaskPresentation?,
+        showTasksInChat: Bool
+    ) -> TaskPresentation? {
+        guard let task,
+              TaskVisibility.visibleInChat(origin: task.origin, showTasksInChat: showTasksInChat)
+        else { return nil }
+        return task
+    }
+
+    /// Whether the anchor draws an ingress at all. The card exists for the
+    /// Thread's replies and for the marks under the message, so a hidden claim
+    /// with nothing said under it leaves the message exactly as it was.
+    public static func showsIngress(replyCount: Int, task: TaskPresentation?) -> Bool {
+        replyCount > 0 || task != nil
+    }
+
     /// The count as the ingress says it. A task ingress with no replies yet
     /// keeps just the chevron; the row is still the way in, but "0 replies"
     /// is noise next to the task summary.

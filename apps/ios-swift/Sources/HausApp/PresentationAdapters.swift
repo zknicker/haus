@@ -215,15 +215,10 @@ extension HausStore {
         }
         return TaskPresentation(
             number: task.number,
+            origin: task.origin,
             status: status,
-            assignee: actorPresentation(
-                agentID: task.assigneeAgentID,
-                userID: task.assigneeUserID
-            ),
-            creator: actorPresentation(
-                agentID: task.createdByAgentID,
-                userID: task.createdByUserID
-            )
+            assignee: actorPresentation(agentID: task.assigneeAgentID, userID: task.assigneeUserID),
+            creator: actorPresentation(agentID: task.createdByAgentID, userID: task.createdByUserID)
         )
     }
 

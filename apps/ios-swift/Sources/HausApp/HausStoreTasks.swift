@@ -36,6 +36,20 @@ extension HausStore {
         return list.tasks
     }
 
+    /// Reloads the lens a task surface is showing.
+    ///
+    /// The default lens is the Server-wide read the Store already owns, so it
+    /// lands on that one snapshot and every surface reading it repaints. The
+    /// widened lens is one reader's temporary question, so it is only returned.
+    func reloadTaskLens(includeBackground: Bool) async throws -> [TaskListItem] {
+        if includeBackground {
+            return try await loadTasks(includeBackground: true)
+        }
+        let rows = try await loadTasks()
+        if inboxTasks != rows { inboxTasks = rows }
+        return rows
+    }
+
     @discardableResult
     func updateTaskStatus(_ task: MessageTask, status: TaskStatus) async throws -> MessageTask {
         guard let serverID = activeServer?.id else {
