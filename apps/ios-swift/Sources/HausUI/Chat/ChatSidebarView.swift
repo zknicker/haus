@@ -44,6 +44,10 @@ public struct ChatSidebarView: View {
     private let onSelectDestination: (ChatDestination) -> Void
     private let onOpenSettings: () -> Void
     private let onOpenSearch: () -> Void
+    private let onOpenInbox: () -> Void
+    /// The Inbox's own "Needs you" total, in the same chip the Chat rows wear
+    /// for unread messages and, like them, absent at zero.
+    private let needsYouCount: Int
     private let onOpenTasks: () -> Void
     private let onOpenArchived: () -> Void
     private let onOpenNewChannel: () -> Void
@@ -57,6 +61,8 @@ public struct ChatSidebarView: View {
         onSelectDestination: @escaping (ChatDestination) -> Void,
         onOpenSettings: @escaping () -> Void,
         onOpenSearch: @escaping () -> Void = {},
+        onOpenInbox: @escaping () -> Void = {},
+        needsYouCount: Int = 0,
         onOpenTasks: @escaping () -> Void = {},
         onOpenArchived: @escaping () -> Void = {},
         onOpenNewChannel: @escaping () -> Void = {}
@@ -67,6 +73,8 @@ public struct ChatSidebarView: View {
         self.onSelectDestination = onSelectDestination
         self.onOpenSettings = onOpenSettings
         self.onOpenSearch = onOpenSearch
+        self.onOpenInbox = onOpenInbox
+        self.needsYouCount = needsYouCount
         self.onOpenTasks = onOpenTasks
         self.onOpenArchived = onOpenArchived
         self.onOpenNewChannel = onOpenNewChannel
@@ -90,7 +98,14 @@ public struct ChatSidebarView: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 5) {
                             // Server-wide destinations lead, then the chat
-                            // lists — the App's own sidebar order.
+                            // lists — the App's own sidebar order, Inbox first.
+                            SidebarInboxRow(
+                                needsYouCount: needsYouCount,
+                                glyphColumn: Self.rowGlyphSize,
+                                capsuleBleed: Self.rowCapsuleBleed,
+                                onOpen: onOpenInbox
+                            )
+
                             utilityRow("Tasks", icon: .tasks, action: onOpenTasks)
 
                             sectionHeader("Channels", trailingAction: onOpenNewChannel)

@@ -21,9 +21,17 @@ struct SettingsUnavailableSheet: View {
     }
 }
 
-/// Tasks and Threads share the root stack, so a Thread opened from a Task pops
-/// back to the Task list rather than to the Chat canvas.
+/// Inbox, Tasks, and Threads share the root stack, so a Thread opened from a
+/// Task pops back to the Task list rather than to the Chat canvas, and an Ask
+/// opened from the Inbox pops back to the Inbox.
+///
+/// The Inbox is a push over the Chat canvas rather than the canvas itself. The
+/// canvas is what the drawer slides aside, what the Chat selection owns, and
+/// what a Thread pops back to; making it switch between a Chat and a page would
+/// have put a second owner on all three. A cold start seeds this stack with the
+/// Inbox, so the app lands there with the restored Chat one Back away.
 enum HausRootRoute: Hashable {
+    case inbox
     case tasks
     case thread(ThreadSelection)
 }

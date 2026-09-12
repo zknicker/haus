@@ -4,15 +4,16 @@ import HausUI
 import SwiftUI
 
 struct AuthenticatedHausView: View {
-    @State private var store: HausStore
+    @State var store: HausStore
     /// The mutable mirror of the pushed Thread route. The route value itself
     /// stays stable so adopting a Server child Chat id cannot remount the
     /// screen mid-conversation.
-    @State private var selectedThread: ThreadSelection?
+    @State var selectedThread: ThreadSelection?
     /// The App owns the open Chat so the shell canvas, the pushed Thread, and
     /// the Store's read acknowledgements always name the same Chat.
-    @State private var selectedDestinationID: ChatDestination.ID?
-    @State private var path: [HausRootRoute] = []
+    @State var selectedDestinationID: ChatDestination.ID?
+    /// A cold start lands on the Inbox; see `AuthenticatedHausView+Routes`.
+    @State var path: [HausRootRoute] = [.inbox]
     /// iOS reaches `.active` through `.inactive` from both a real suspension and
     /// a Control Center pull or app-switcher peek. Only the first is a stale
     /// cache, so the refresh waits for a phase run that actually backgrounded.
@@ -119,6 +120,8 @@ struct AuthenticatedHausView: View {
                         }
                     },
                     onOpenTasks: { path.append(.tasks) },
+                    onOpenInbox: { path = [.inbox] },
+                    needsYouCount: store.needsYouCount,
                     onOpenThread: openThread,
                     onSend: { destination, content, attachments in
                         switch destination {
@@ -178,6 +181,8 @@ struct AuthenticatedHausView: View {
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in
                     switch route {
+                    case .inbox:
+                        inboxDestination
                     case .tasks:
                         TaskListDestinationView(
                             persistence: store.settingsTasksPersistence,
@@ -254,45 +259,6 @@ struct AuthenticatedHausView: View {
 
     private var preferredColorScheme: ColorScheme? {
         (AppearancePreference(rawValue: appearanceRawValue) ?? .system).colorScheme
-    }
-
-    /// A Thread opened from the canvas pops back to the canvas, so the canvas
-    /// underneath has to be its parent Chat.
-    private func openThread(_ chat: ChatPresentation, _ anchor: MessagePresentation) {
-        pushThread(
-            ThreadSelection(
-                parentChatID: chat.id,
-                threadChatID: anchor.thread?.threadChatID,
-                anchor: anchor
-            ),
-            selectingParent: chat.id
-        )
-    }
-
-    /// A Thread opened from the Tasks list pops back to the Tasks list, and the
-    /// Task's parent Chat may be one the user has never visited. Selecting it
-    /// would mark it read on the way back out and strand the user in it once the
-    /// Tasks list pops, so this route leaves the canvas selection alone. The
-    /// Thread needs no selection of its own: its route carries the parent Chat
-    /// id and the Task carries the child Chat id.
-    private func openTask(_ item: TaskListItem) {
-        guard let anchor = store.taskMessagePresentation(item) else { return }
-        pushThread(
-            ThreadSelection(
-                parentChatID: item.message.chatID,
-                threadChatID: item.task.threadChatID,
-                anchor: anchor
-            ),
-            selectingParent: nil
-        )
-    }
-
-    private func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
-        if let parentChatID {
-            selectedDestinationID = .chat(parentChatID)
-        }
-        selectedThread = thread
-        path.append(.thread(thread))
     }
 
     /// The pushed Thread screen. It owns the open Chat while it is on screen,

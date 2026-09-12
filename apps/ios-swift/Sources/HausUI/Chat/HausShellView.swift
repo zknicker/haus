@@ -9,6 +9,8 @@ public struct HausShellView<SettingsContent: View>: View {
     private let isConnected: Bool
     private let settingsContent: ([SettingsRoute]) -> SettingsContent
     let onOpenTasks: () -> Void
+    let onOpenInbox: () -> Void
+    private let needsYouCount: Int
     private let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
     private let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
@@ -61,6 +63,8 @@ public struct HausShellView<SettingsContent: View>: View {
         isConnected: Bool,
         @ViewBuilder settingsContent: @escaping ([SettingsRoute]) -> SettingsContent,
         onOpenTasks: @escaping () -> Void = {},
+        onOpenInbox: @escaping () -> Void = {},
+        needsYouCount: Int = 0,
         onOpenThread: @escaping (ChatPresentation, MessagePresentation) -> Void = { _, _ in },
         onSend: @escaping (ChatDestination, String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
@@ -91,6 +95,8 @@ public struct HausShellView<SettingsContent: View>: View {
         self.isConnected = isConnected
         self.settingsContent = settingsContent
         self.onOpenTasks = onOpenTasks
+        self.onOpenInbox = onOpenInbox
+        self.needsYouCount = needsYouCount
         self.onOpenThread = onOpenThread
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
@@ -120,6 +126,8 @@ public struct HausShellView<SettingsContent: View>: View {
                     onSelectDestination: selectDestination,
                     onOpenSettings: { openSettings() },
                     onOpenSearch: { activeChatSheet = .search },
+                    onOpenInbox: onOpenInbox,
+                    needsYouCount: needsYouCount,
                     onOpenTasks: openTasks,
                     onOpenArchived: { activeChatSheet = .archived },
                     onOpenNewChannel: { activeChatSheet = .newChannel }
