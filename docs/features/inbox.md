@@ -185,5 +185,12 @@ One source has no Server list procedure yet and is absent until it does: followe
   the Ask, Task, and work records. Opening the Inbox marks nothing read.
 - The Inbox adds no store, no cache, and no page-local lifecycle. Authorization is the ordinary
   Server membership and Chat access of each projected record.
-- iOS mirrors this page later; the sections and their ordering are the contract it mirrors. No iOS
-  Inbox exists yet, and Cloud Agent work has no iPhone presentation either.
+- iOS mirrors this page, and the sections and their ordering above are the contract it mirrors:
+  the same header, the same **Active this week** strip, and the same three lists in the same order,
+  reading the same Server records through Store-owned snapshots
+  ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Cloud Agent work gets its
+  first iPhone presentation. Two rows differ, because the phone has nowhere else to send them: a
+  stalled claim opens the Task list rather than the task itself, since the iPhone Task lens has no
+  per-task focus, and an Agent row in **Happening now** opens that Agent's DM rather than a profile
+  page, which the phone reaches from a Chat instead. The iPhone Inbox is also the cold-start
+  landing screen there, which the App has no counterpart for.
