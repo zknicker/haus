@@ -1,3 +1,4 @@
+import { AnimatePresence, LayoutGroup } from 'framer-motion';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
@@ -13,6 +14,7 @@ import { AgentWeekCard } from './agent-week-card.tsx';
 import { AgentWeekStrip } from './agent-week-strip.tsx';
 import { currentAgentActivityLabels } from './inbox-agent-activity.ts';
 import { InboxSection } from './inbox-section.tsx';
+import { InboxEmptySlot, InboxMotionItem } from './inbox-section-rows.tsx';
 
 /**
  * The Agents worth looking at right now, as a scrolling row of week cards.
@@ -29,6 +31,15 @@ import { InboxSection } from './inbox-section.tsx';
  *
  * The strip is the page's only section whose body is not a box: cards already
  * carry their own edges, and wrapping them would put a border around borders.
+ * A still week keeps that: the slot rides the same track the cards do, bare,
+ * so the empty week is the same frameless shape as the filled one and says in
+ * the same quiet line the other three use that nothing moved — not that the
+ * section failed to render.
+ *
+ * Cards and slot are children of one presence, above the empty/filled fork, so
+ * the last card leaving still has something to exit into. Nesting the presence
+ * inside the filled branch unmounted the whole tree the moment that branch
+ * flipped, and an unmounted presence animates nothing.
  */
 export function InboxActiveAgents() {
     const { server } = useServerContext();
@@ -74,23 +85,40 @@ export function InboxActiveAgents() {
 
     return (
         <InboxSection title="Active this week">
-            {rows === null ? null : rows.length === 0 ? (
-                <p className="text-muted text-sm">No Agent activity this week.</p>
-            ) : (
+            {rows === null ? null : (
                 <AgentWeekStrip>
-                    {rows.map((row) => (
-                        <AgentWeekCard
-                            activity={row}
-                            key={row.agent.id}
-                            onPress={() =>
-                                navigate(
-                                    row.agent.dmChatId
-                                        ? serverChatRoute(server.slug, row.agent.dmChatId)
-                                        : agentProfileRoute(server.slug, row.agent.id)
-                                )
-                            }
-                        />
-                    ))}
+                    <LayoutGroup id="inbox-active-agents">
+                        <AnimatePresence initial={false} mode="popLayout">
+                            {rows.length === 0 ? (
+                                <InboxEmptySlot
+                                    className="w-full p-1.5"
+                                    key="inbox-active-agents-empty"
+                                    label="No activity this week."
+                                />
+                            ) : (
+                                rows.map((row) => (
+                                    <InboxMotionItem className="shrink-0" key={row.agent.id}>
+                                        <AgentWeekCard
+                                            activity={row}
+                                            onPress={() =>
+                                                navigate(
+                                                    row.agent.dmChatId
+                                                        ? serverChatRoute(
+                                                              server.slug,
+                                                              row.agent.dmChatId
+                                                          )
+                                                        : agentProfileRoute(
+                                                              server.slug,
+                                                              row.agent.id
+                                                          )
+                                                )
+                                            }
+                                        />
+                                    </InboxMotionItem>
+                                ))
+                            )}
+                        </AnimatePresence>
+                    </LayoutGroup>
                 </AgentWeekStrip>
             )}
         </InboxSection>

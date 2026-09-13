@@ -1,8 +1,6 @@
 import type { Agent } from '@haus/api';
-import { Separator } from '@heroui/react';
-import * as React from 'react';
 import { InboxIdentityMark, InboxRow, InboxRowBody, InboxRowMeta } from './inbox-row.tsx';
-import { InboxSectionRows } from './inbox-section.tsx';
+import { InboxRowList } from './inbox-section-rows.tsx';
 import type { NeedsYouRow } from './needs-you-rows.ts';
 
 /**
@@ -25,21 +23,21 @@ export function NeedsYouList({
     rows: readonly NeedsYouRow[];
 }) {
     return (
-        <InboxSectionRows>
-            {rows.map((row, index) => (
-                <React.Fragment key={row.id}>
-                    {index === 0 ? null : <Separator />}
-                    <InboxRow label={row.title} onOpen={() => onOpenRow(row)}>
-                        <InboxIdentityMark
-                            agent={(row.agentId && agentById.get(row.agentId)) || null}
-                            avatarUrl={row.avatarUrl}
-                            name={row.markName}
-                        />
-                        <InboxRowBody preview={row.preview} title={row.title} />
-                        <InboxRowMeta>{row.meta}</InboxRowMeta>
-                    </InboxRow>
-                </React.Fragment>
-            ))}
-        </InboxSectionRows>
+        <InboxRowList
+            emptyLabel="Nothing needs you."
+            listId="inbox-needs-you"
+            renderRow={(row) => (
+                <InboxRow label={row.title} onOpen={() => onOpenRow(row)}>
+                    <InboxIdentityMark
+                        agent={(row.agentId && agentById.get(row.agentId)) || null}
+                        avatarUrl={row.avatarUrl}
+                        name={row.markName}
+                    />
+                    <InboxRowBody preview={row.preview} title={row.title} />
+                    <InboxRowMeta>{row.meta}</InboxRowMeta>
+                </InboxRow>
+            )}
+            rows={rows}
+        />
     );
 }

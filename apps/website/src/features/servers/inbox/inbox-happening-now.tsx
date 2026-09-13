@@ -13,7 +13,7 @@ import { HappeningNowList } from './happening-now-list.tsx';
 import { type HappeningNowRow, toHappeningNowRows } from './happening-now-rows.ts';
 import { toHappeningNowWork } from './happening-now-work.ts';
 import { happeningNowAgentRows } from './inbox-agent-activity.ts';
-import { InboxSection, InboxSectionEmpty, InboxSectionPending } from './inbox-section.tsx';
+import { InboxSection, InboxSectionPending } from './inbox-section.tsx';
 
 /**
  * Work running right now, whether or not this human started it. Both sources
@@ -55,11 +55,7 @@ export function InboxHappeningNow() {
     return (
         <InboxSection title="Happening now">
             {settled ? (
-                rows.length === 0 ? (
-                    <InboxSectionEmpty description="No agents are working right now." />
-                ) : (
-                    <HappeningNowList onOpenRow={openRow} rows={rows} />
-                )
+                <HappeningNowList onOpenRow={openRow} rows={rows} />
             ) : (
                 <InboxSectionPending label="Loading current Agent work" />
             )}

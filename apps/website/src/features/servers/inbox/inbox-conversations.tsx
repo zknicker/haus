@@ -1,5 +1,4 @@
 import type { Agent, Chat } from '@haus/api';
-import { Separator } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
@@ -20,12 +19,8 @@ import {
     InboxRowBody,
     InboxRowMeta,
 } from './inbox-row.tsx';
-import {
-    InboxSection,
-    InboxSectionEmpty,
-    InboxSectionPending,
-    InboxSectionRows,
-} from './inbox-section.tsx';
+import { InboxSection, InboxSectionPending } from './inbox-section.tsx';
+import { InboxRowList } from './inbox-section-rows.tsx';
 
 /**
  * Unread conversation, newest first, each row quoting the line that is waiting.
@@ -50,27 +45,21 @@ export function InboxConversations() {
     return (
         <InboxSection title="Conversations">
             {chats.data ? (
-                unread.length === 0 ? (
-                    <InboxSectionEmpty description="You’re caught up." />
-                ) : (
-                    <InboxSectionRows>
-                        {unread.map((chat, index) => (
-                            <React.Fragment key={chat.id}>
-                                {index === 0 ? null : <Separator />}
-                                <UnreadChatRow
-                                    agent={
-                                        chat.peerAgentId
-                                            ? (agentById.get(chat.peerAgentId) ?? null)
-                                            : null
-                                    }
-                                    chat={chat}
-                                    onOpen={() => navigate(serverChatRoute(server.slug, chat.id))}
-                                    viewerDisplayName={viewerDisplayName}
-                                />
-                            </React.Fragment>
-                        ))}
-                    </InboxSectionRows>
-                )
+                <InboxRowList
+                    emptyLabel="All caught up."
+                    listId="inbox-conversations"
+                    renderRow={(chat) => (
+                        <UnreadChatRow
+                            agent={
+                                chat.peerAgentId ? (agentById.get(chat.peerAgentId) ?? null) : null
+                            }
+                            chat={chat}
+                            onOpen={() => navigate(serverChatRoute(server.slug, chat.id))}
+                            viewerDisplayName={viewerDisplayName}
+                        />
+                    )}
+                    rows={unread}
+                />
             ) : (
                 <InboxSectionPending label="Loading unread chats" />
             )}

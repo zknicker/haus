@@ -1,4 +1,4 @@
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ItemCardGroup } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 
 /**
@@ -33,7 +33,11 @@ export function InboxSection({ children, title }: { children: ReactNode; title: 
  * and last row's hover fill is squared off without `overflow-hidden`.
  */
 export function InboxSectionRows({ children }: { children: ReactNode }) {
-    return <ItemCardGroup className="overflow-hidden">{children}</ItemCardGroup>;
+    return (
+        <ItemCardGroup className="item-card-group--inbox-rows overflow-hidden">
+            {children}
+        </ItemCardGroup>
+    );
 }
 
 /**
@@ -46,22 +50,5 @@ export function InboxSectionPending({ label }: { label: string }) {
         <div aria-busy="true">
             <span className="sr-only">{label}</span>
         </div>
-    );
-}
-
-/**
- * The settled, genuinely empty section: one quiet row in the same box the rows
- * would have filled, so a quiet section keeps the section's shape instead of
- * changing it to say so.
- */
-export function InboxSectionEmpty({ description }: { description: string }) {
-    return (
-        <InboxSectionRows>
-            <ItemCard>
-                <ItemCard.Content>
-                    <ItemCard.Description>{description}</ItemCard.Description>
-                </ItemCard.Content>
-            </ItemCard>
-        </InboxSectionRows>
     );
 }
