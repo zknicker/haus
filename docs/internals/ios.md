@@ -1050,6 +1050,20 @@ explicitly so app reloads cannot return to a default Chat, while ordinary stack 
 the mounted parent timeline and scroll position. Task metadata renders on its canonical anchor message;
 the native timeline does not invent a second task receipt row.
 
+A Thread screen carries the App's follow action on its navigation bar's trailing rail
+(`ThreadFollowControl`). The App keeps the same action in the Thread header's name dropdown, where two
+other actions keep it company; a pushed phone screen has no such menu, so the action is the bar item
+itself and it wears the same words and the same pair of bells — **Follow thread** with
+`Notification01Icon`, **Stop following thread** with `NotificationOff01Icon`, both stating what a press
+will do. Follow state lives on the parent page's `ThreadSummary` (ADR 0013), so a Thread Server has not
+created yet has no summary and shows no control until its first reply lands.
+
+`HausStoreThreads` owns the write. `setThreadFollow` patches that summary optimistically through
+`ThreadFollowPatch` in `HausModels`, sends `thread.setFollow`, keeps whatever the receipt says, and on
+failure rolls the summary back to the value the press replaced and logs the error. It keeps no second
+copy of the state: the durable `thread.follow.updated` event already refetches the parent Chat page and
+the Chat list, which is what converges this client with every other one.
+
 Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
 Haus starts Clerk's direct Google SSO flow from a native SwiftUI action instead of routing through the
 hosted Account Portal. The provider browser returns through the production-authorized

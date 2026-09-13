@@ -16,6 +16,8 @@ public struct ThreadDetailView: View {
     private let onLoadOlderReplies: (() async -> Bool)?
     private let onOpenAgent: (String) -> Void
     private let onCancelCloudAgent: ((String) async throws -> Void)?
+    /// Nil until Server has a Thread row to follow.
+    private let follow: ThreadFollow?
 
     @State private var draft = ""
     @State private var isNearNewest = true
@@ -48,7 +50,8 @@ public struct ThreadDetailView: View {
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
-        onCancelCloudAgent: ((String) async throws -> Void)? = nil
+        onCancelCloudAgent: ((String) async throws -> Void)? = nil,
+        follow: ThreadFollow? = nil
     ) {
         self.anchor = anchor
         self.replyProvider = { replies }
@@ -61,6 +64,7 @@ public struct ThreadDetailView: View {
         self.onLoadOlderReplies = onLoadOlderReplies
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
+        self.follow = follow
     }
 
     /// Resolves replies while this view's body is being evaluated so an
@@ -80,7 +84,8 @@ public struct ThreadDetailView: View {
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
-        onCancelCloudAgent: ((String) async throws -> Void)? = nil
+        onCancelCloudAgent: ((String) async throws -> Void)? = nil,
+        follow: ThreadFollow? = nil
     ) {
         self.anchor = anchor
         self.replyProvider = replies
@@ -93,6 +98,7 @@ public struct ThreadDetailView: View {
         self.onLoadOlderReplies = onLoadOlderReplies
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
+        self.follow = follow
     }
 
     public var body: some View {
@@ -148,6 +154,13 @@ public struct ThreadDetailView: View {
         )
         .navigationTitle("Thread")
         .hausInlineNavigationTitle()
+        .toolbar {
+            if let follow {
+                ToolbarItem(placement: .automatic) {
+                    ThreadFollowControl(follow: follow)
+                }
+            }
+        }
     }
 
     /// An open Ask's offered options, above the composer that would otherwise
