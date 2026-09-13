@@ -42,6 +42,9 @@ test('the options read in the Agent’s order, the recommendation emphasized', (
     // carrying the emphasized Button variant.
     expect(markup.match(/button--primary/g)).toHaveLength(1);
     expect(markup.match(/button--secondary/g)).toHaveLength(1);
+    // Emphasis is the only mark: the label is the option's own text, never
+    // annotated with the recommendation.
+    expect(markup).not.toContain('Recommended');
 });
 
 test('an open question points to the existing composer', () => {

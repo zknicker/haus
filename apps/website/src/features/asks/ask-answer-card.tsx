@@ -61,7 +61,6 @@ export function AskAnswerCard({
                             variant={index === 0 ? 'primary' : 'secondary'}
                         >
                             {option}
-                            {index === 0 ? ' · Recommended' : ''}
                         </Button>
                     ))}
                 </ActionCard.Actions>

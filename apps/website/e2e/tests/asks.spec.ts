@@ -40,9 +40,7 @@ test('an open Ask leads the Inbox, and its options answer in the Thread peek', a
     await attachment.click();
     await expect(page.getByRole('complementary', { name: 'Thread' })).toBeVisible();
     await expect(page.getByRole('article', { name: 'Answer ask' })).toBeVisible();
-    await expect(
-        page.getByRole('button', { name: `${recommendation} · Recommended`, exact: true })
-    ).toBeVisible();
+    await expect(page.getByRole('button', { exact: true, name: recommendation })).toBeVisible();
 
     // The row states the Ask and opens it. It carries no control of its own,
     // so no option is pressable until the Ask itself is open.
@@ -50,17 +48,12 @@ test('an open Ask leads the Inbox, and its options answer in the Thread peek', a
     const row = page.getByRole('button', { exact: true, name: askTitle });
     await expect(row).toBeVisible();
     await expect(row).toContainText('The migration is staged and reversible for one hour.');
-    await expect(
-        page.getByRole('button', { exact: true, name: `${recommendation} · Recommended` })
-    ).toHaveCount(0);
+    await expect(page.getByRole('button', { exact: true, name: recommendation })).toHaveCount(0);
 
     // The options live in the peek, where the question and its reasoning are
     // readable, and the Agent's recommendation leads them emphasized.
     await row.click();
-    const recommended = page.getByRole('button', {
-        exact: true,
-        name: `${recommendation} · Recommended`,
-    });
+    const recommended = page.getByRole('button', { exact: true, name: recommendation });
     const held = page.getByRole('button', { exact: true, name: alternative });
     await expect(recommended).toBeVisible();
     await expect(held).toBeVisible();
