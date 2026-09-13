@@ -1,4 +1,5 @@
 import type { CloudAgentWork } from '@haus/api';
+import { Button } from '@heroui/react';
 import { ChatMessage } from '@heroui-pro/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
@@ -19,6 +20,7 @@ import { taskVisibleInChat, useShowTasksInChat } from '../../tasks/show-tasks-in
 import { TranscriptTaskChip } from '../../tasks/transcript-task-chip.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {
+    getTranscriptMessageThread,
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
@@ -27,23 +29,7 @@ import { MessageReactionPills } from './message-reactions.tsx';
 import { isThreadAnchorRow } from './thread-anchor.ts';
 import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
-/**
- * One message's Thread surroundings: the marks for whatever it is, its
- * reactions, and the Thread preview.
- *
- * Everything under a Message that carries a lifecycle a reader tracks — the
- * Task it is, the Ask it asks, the Cloud Agent work it launched, and any live
- * work running inside its Thread — reads in the header of the one recessed
- * surface beneath it, in one chip grammar. Provenance stays on the author line:
- * a trigger or reminder fire and a session restart explain how the message came
- * to be said, and neither has a status to follow.
- *
- * A finished act with no lifecycle at all — the Agent this Message created —
- * gets no surface here at all: the Agent's own announcement names the new
- * teammate by `@handle`, and that mention chip is the way to the profile.
- *
- * Inside a Thread, full Cloud Agent cards follow their delegation Message.
- */
+/** Message attachments become Thread metadata once replies exist. */
 export function ThreadMessageSurface({
     children,
     row,
@@ -62,15 +48,10 @@ export function ThreadMessageSurface({
     // the anchor, so the anchor's own chip would repeat every word of it.
     const anchored =
         context?.taskChipHiddenMessageId === row.message.id ? null : (row.message.task ?? null);
-    // An Agent's own claim is bookkeeping it keeps on itself, so unless the
-    // reader has asked to see tasks in Chat it states nothing here: no chip, no
-    // title on the surface, no room reserved. A Thread that filled up under one
-    // anyway keeps its card and reads as the ordinary conversation it is.
-    const task = anchored && taskVisibleInChat(anchored.origin, showTasks) ? anchored : null;
-    const marks = <ThreadSurfaceMarks row={row} task={task} work={canOpenThread ? work : null} />;
-    // The preview card exists for the marks even before the first reply, so
-    // whether there are any decides whether it appears at all.
-    const hasMarks = Boolean(task || row.message.ask || work || hoisted.length);
+    const hasReplies = (getTranscriptMessageThread(row)?.replyCount ?? 0) > 0;
+    const task =
+        anchored && (hasReplies || taskVisibleInChat(anchored.origin, showTasks)) ? anchored : null;
+    const marks = <ThreadSurfaceMarks row={row} task={task} work={null} />;
 
     return (
         <MessageContextMenu className={cn(flashing && 'chat-thread-flash')} row={row}>
@@ -81,32 +62,76 @@ export function ThreadMessageSurface({
             </div>
             {work && !canOpenThread ? <CloudAgentWorkCard work={work} /> : null}
             {canOpenThread ? (
-                <ThreadPreviewBlock
-                    detail={<ThreadSurfaceWorkDetail hoisted={hoisted} work={work} />}
-                    headerLabel={threadSurfaceLabel({
-                        ask: Boolean(row.message.ask),
-                        hoisted: hoisted.length > 0,
-                        taskNumber: task?.number,
-                        workTitle: work?.title,
-                    })}
-                    headerLeading={
-                        hasMarks ? (
-                            <span className="flex min-w-0 items-center gap-2">{marks}</span>
-                        ) : undefined
-                    }
-                    headerTrailing={
-                        work ? (
-                            <TranscriptCloudAgentWorkMenu
-                                className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover/thread:opacity-100 aria-expanded:opacity-100"
-                                row={row}
-                                work={work}
-                            />
-                        ) : undefined
-                    }
+                <ThreadSurfacePreview
+                    hasReplies={hasReplies}
+                    hoisted={hoisted}
                     row={row}
+                    task={task}
+                    work={work}
                 />
             ) : null}
         </MessageContextMenu>
+    );
+}
+
+function ThreadSurfacePreview({
+    row,
+    task,
+    work,
+    hoisted,
+    hasReplies,
+}: {
+    row: TranscriptMessageRow;
+    task: TranscriptMessageRow['message']['task'];
+    work: CloudAgentWork | null;
+    hoisted: readonly CloudAgentWork[];
+    hasReplies: boolean;
+}) {
+    const context = useTranscriptRenderContextOptional();
+    const label = threadSurfaceLabel({
+        ask: row.message.ask?.status === 'open',
+        hoisted: hoisted.length > 0,
+        taskNumber: task?.number,
+        workTitle: work?.title,
+    });
+    const marks = <ThreadSurfaceMarks row={row} task={task} work={work} />;
+    const detail = <ThreadSurfaceWorkDetail hoisted={hoisted} work={work} />;
+    const menu = work ? <TranscriptCloudAgentWorkMenu row={row} work={work} /> : null;
+    if (hasReplies) {
+        return (
+            <ThreadPreviewBlock
+                detail={detail}
+                headerLabel={label}
+                headerLeading={
+                    label ? (
+                        <span className="flex min-w-0 flex-wrap items-center gap-2">{marks}</span>
+                    ) : undefined
+                }
+                headerTrailing={menu}
+                row={row}
+            />
+        );
+    }
+    if (!label) {
+        return null;
+    }
+    return (
+        <div className="mt-1.5 flex min-w-0 flex-col items-start gap-1">
+            <div className="flex max-w-full items-center gap-1">
+                <Button
+                    aria-label={`Open thread, ${label}`}
+                    className="max-w-full"
+                    onPress={() => context?.onOpenThread(row)}
+                    size="sm"
+                    variant="secondary"
+                >
+                    {marks}
+                    <span aria-hidden>›</span>
+                </Button>
+                {menu}
+            </div>
+            {detail}
+        </div>
     );
 }
 

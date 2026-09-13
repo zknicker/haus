@@ -1,6 +1,5 @@
 import type { Chat, ChatMessage, ThreadSummary } from '@haus/api';
 import { Button } from '@heroui/react';
-import type { ReactNode } from 'react';
 import * as React from 'react';
 import {
     MessageScroller,
@@ -33,18 +32,11 @@ import { pendingThreadReplyKey, usePendingChatMessages } from '../chat/use-pendi
 import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
 import { threadTitles } from './thread-target.ts';
 
-/**
- * The full Thread work surface — header, the anchor record's own metadata,
- * the anchor, replies, and composer. The chat page hosts it in the shell side pane (`ThreadPanel`);
- * the Tasks page hosts it in the task thread dialog.
- *
- * Task metadata stays above the conversation; Cloud Agent cards scroll with their Messages.
- */
+/** Shared Thread surface for channels, Tasks, and Inbox. */
 export function ThreadContent({
     active,
     anchor,
     chat,
-    composerAction,
     composerVariant = 'primary',
     headerTitle,
     initialThreadChatId,
@@ -61,8 +53,6 @@ export function ThreadContent({
     active: boolean;
     anchor: ChatMessage;
     chat: Chat;
-    /** One press that writes a reply, in the composer's gutter and sharing its fate. */
-    composerAction?: ReactNode;
     /** `secondary` when the host is a surface (the task dialog). */
     composerVariant?: 'primary' | 'secondary';
     /**
@@ -154,7 +144,20 @@ export function ThreadContent({
                 target={titles.target}
                 threadExists={threadChatId !== undefined}
             />
-            <TranscriptRenderProvider value={renderContext}>
+            <TranscriptRenderProvider
+                value={{
+                    ...renderContext,
+                    threadAskReply: {
+                        anchorMessageId: anchor.id,
+                        chatId: chat.id,
+                        serverId: chat.serverId,
+                        answerableMessageId: readOnly
+                            ? null
+                            : ([...rows].reverse().find((row) => row.message.ask?.status === 'open')
+                                  ?.message.id ?? null),
+                    },
+                }}
+            >
                 <div className="max-h-[50%] shrink-0 overflow-y-auto px-5">
                     {anchor.task ? (
                         <TaskThreadMetadata
@@ -252,21 +255,16 @@ export function ThreadContent({
                     This conversation is read-only because the Agent has been retired.
                 </p>
             ) : (
-                <>
-                    {composerAction ? (
-                        <div className="shrink-0 px-5 pb-2">{composerAction}</div>
-                    ) : null}
-                    <ChatComposer
-                        chatId={chat.id}
-                        chatName={titles.header}
-                        onThreadCreated={setCreatedThreadChatId}
-                        pendingChatId={pendingThreadReplyKey(anchor.id)}
-                        placeholder="Add a reply…"
-                        serverId={chat.serverId}
-                        thread={{ anchorMessageId: anchor.id }}
-                        variant={composerVariant}
-                    />
-                </>
+                <ChatComposer
+                    chatId={chat.id}
+                    chatName={titles.header}
+                    onThreadCreated={setCreatedThreadChatId}
+                    pendingChatId={pendingThreadReplyKey(anchor.id)}
+                    placeholder="Add a reply…"
+                    serverId={chat.serverId}
+                    thread={{ anchorMessageId: anchor.id }}
+                    variant={composerVariant}
+                />
             )}
         </div>
     );

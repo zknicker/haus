@@ -2,20 +2,9 @@ import * as React from 'react';
 import type { TaskOrigin } from './task-presentation.ts';
 
 /**
- * Whether Chat states the tasks Agents claim for themselves.
- *
- * A task is background tracking for an Agent before it is anything a person
- * reads: an Agent claims a message before working on it, and almost every one
- * of those claims is over inside the turn that opened it. Off — the default —
- * Chat reads as a conversation and those claims stay on the Tasks page, where
- * a reader goes to look at them. On, every task states itself under its
- * message the way a human-made one always does.
- *
- * Per device, like the theme: it is how one reader wants Chat to read, not a
- * fact about the Server. It is an external store rather than a provider so
- * that a transcript row, the Preferences row, and the command palette all read
- * the same value without the transcript learning about a context it would only
- * pass through.
+ * Per-device preference for showing Agent claims before their Thread has replies.
+ * Populated Threads always state their task; human-created tasks remain visible.
+ * An external store keeps the preference shared without a transcript provider.
  */
 const storageKey = 'haus.chat.showTasks';
 
