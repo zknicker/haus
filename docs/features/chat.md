@@ -63,8 +63,10 @@ and [Agent Inbox](../../specs/inbox.md).
 
 * **Ask markers.** An open [Ask](../../specs/asks.md) shows its glyph, addressee's face and name,
   accent status disc, and `Awaiting answer`. Inside a Thread, an answer card below the question
-  offers suggested replies and points to the existing composer for free text. Channel panes,
-  Task dialogs, and Inbox peeks share that card. Answered Asks show no marker or answer card.
+  offers one button per option in the Agent's order — the recommendation first and emphasized, each
+  button labeled with its option text verbatim — and points to the existing composer for free text.
+  Channel panes, Task dialogs, and Inbox peeks share that card. Answered Asks show no marker or
+  answer card.
 * **Cloud Agent work.** A Message carrying
   [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message
   whose attachment or populated Thread card is headed by that work: the provider's own mark and

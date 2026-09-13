@@ -96,8 +96,11 @@ An open Ask reads as an ordinary Message with a content-width attachment beneath
 addressee, status disc, and "Awaiting answer". The attachment opens its existing Thread without
 showing a zero-reply count. Once replies exist, the Ask marker belongs to the Thread card instead.
 Inside a Thread, an open Ask shows an answer card below its question: addressee, awaiting status,
-recommended answer buttons, and guidance to use the existing composer for free text. Channel side
-panes, Task dialogs, and Inbox peeks share this surface. The question is not repeated in the card.
+one button per option in the Agent's own order, and guidance to use the existing composer for free
+text. The first option is the Agent's recommendation; it is rendered as the primary button and every
+other option is secondary. Emphasis is the only thing that marks the recommendation — each button's
+label is its option's text verbatim, never annotated. Channel side panes, Task dialogs, and Inbox
+peeks share this surface. The question is not repeated in the card.
 Only the newest open Ask offers answer controls, matching Server settlement; read-only Threads
 show status without controls.
 
