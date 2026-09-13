@@ -78,6 +78,9 @@ extension TaskListPersistence {
 /// delegates to the existing canonical Thread route.
 public struct TaskListDestinationView: View {
     private let persistence: TaskListPersistence
+    /// The task the route sent the reader to, or nil for the sidebar's own
+    /// unfocused list.
+    private let focus: TaskFocus?
     private let onOpenTask: (TaskListItem) -> Void
 
     /// The reader's own widening, and the rows it asked for. View-local: the
@@ -92,9 +95,11 @@ public struct TaskListDestinationView: View {
 
     public init(
         persistence: TaskListPersistence,
+        focus: TaskFocus? = nil,
         onOpenTask: @escaping (TaskListItem) -> Void
     ) {
         self.persistence = persistence
+        self.focus = focus
         self.onOpenTask = onOpenTask
     }
 
@@ -108,6 +113,17 @@ public struct TaskListDestinationView: View {
             }
             .refreshable {
                 await loadTasks()
+            }
+            // A focused task the default lens hides is a task the reader was
+            // sent to and cannot see, so the route opens the lens for them.
+            // The control stays exactly where it was: they can close it again.
+            .onChange(
+                of: TaskFocusLens.widens(focus: focus, defaultLens: persistence.tasks()),
+                initial: true
+            ) { _, widens in
+                guard widens, !includeBackground else { return }
+                includeBackground = true
+                widenedItems = nil
             }
             .sensoryFeedback(.success, trigger: mutationSuccessFeedback)
     }
@@ -134,6 +150,7 @@ public struct TaskListDestinationView: View {
                 TaskListLensView(
                     items: items,
                     viewerUserID: persistence.viewerUserID,
+                    focus: focus,
                     assignee: persistence.assignee,
                     mutatingIDs: mutatingIDs,
                     actionsDisabled: !mutatingIDs.isEmpty,

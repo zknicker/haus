@@ -58,7 +58,9 @@ public enum InboxNeedsYouRows {
             title: "\(name) stopped before finishing",
             meta: "\(InboxConversationLabel.text(kind: item.chatKind, name: item.chatName))"
                 + " · Task #\(item.task.number)",
-            open: .tasks
+            // The Task is a promoted Message, so its Message id is the focus
+            // the list scrolls to and, when it is background-tier, widens for.
+            open: .tasks(focus: TaskFocus(messageID: item.message.id))
         )
     }
 

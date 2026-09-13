@@ -12,9 +12,9 @@ public enum InboxOpenRequest: Hashable, Sendable {
     case ask(messageID: String)
     case chat(String)
     case cloudAgentWork(messageID: String)
-    /// The Task list. iOS has no per-task focus, so a stalled claim lands on
-    /// the list rather than on its own row; see `docs/features/inbox.md`.
-    case tasks
+    /// The Task list, landing on one task when the row names one — a stalled
+    /// claim names its own, the way the App's `?task=` deep link does.
+    case tasks(focus: TaskFocus?)
 }
 
 /// The 32pt mark every Inbox row leads with: a face, a Channel's icon box, or

@@ -123,7 +123,7 @@ struct AuthenticatedHausView: View {
                         }
                     },
                     inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
-                    onOpenTasks: { path.append(.tasks) },
+                    onOpenTasks: { path.append(.tasks(focus: nil)) },
                     onOpenInbox: openInbox,
                     needsYouCount: store.needsYouCount,
                     ghostTempo: store.agentActivityGhostTempo,
@@ -144,15 +144,9 @@ struct AuthenticatedHausView: View {
                     onOpenAttachment: { attachment in
                         try await store.downloadAttachment(attachment)
                     },
-                    hasOlderMessages: { chat in
-                        store.hasOlderMessages(chatID: chat.id)
-                    },
-                    isLoadingOlderMessages: { chat in
-                        store.isLoadingOlderMessages(chatID: chat.id)
-                    },
-                    onLoadOlderMessages: { chat in
-                        await store.loadOlderMessages(chatID: chat.id)
-                    },
+                    hasOlderMessages: { store.hasOlderMessages(chatID: $0.id) },
+                    isLoadingOlderMessages: { store.isLoadingOlderMessages(chatID: $0.id) },
+                    onLoadOlderMessages: { await store.loadOlderMessages(chatID: $0.id) },
                     searchMessages: { query in
                         try await store.searchMessagePresentations(query: query)
                     },
@@ -186,9 +180,10 @@ struct AuthenticatedHausView: View {
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in
                     switch route {
-                    case .tasks:
+                    case .tasks(let focus):
                         TaskListDestinationView(
                             persistence: store.settingsTasksPersistence,
+                            focus: focus,
                             onOpenTask: openTask
                         )
                     case .thread(let thread):
@@ -275,6 +270,7 @@ struct AuthenticatedHausView: View {
                 return store.messagePresentations(chatID: chatID)
             },
             isConnected: store.isConnected,
+            openAsks: { store.openAsks },
             onSend: { content, attachments in
                 guard let resolvedThreadChatID = await store.sendThreadReply(
                     content,

@@ -48,9 +48,8 @@ extension AuthenticatedHausView {
     ///
     /// An Ask and a Cloud Agent work both open the Thread they hang off, which
     /// is the same pair a Thread composer sends to: the conversation's Chat and
-    /// the anchor Message. A stalled claim opens the Task list — iOS has no
-    /// per-task focus, so the App's deep link to one task has no counterpart
-    /// here yet.
+    /// the anchor Message. A stalled claim opens the Task list on its own task,
+    /// the phone's counterpart of the App's `?task=` deep link.
     func openInboxRequest(_ request: InboxOpenRequest) {
         switch request {
         case .agent(let agentID):
@@ -72,8 +71,8 @@ extension AuthenticatedHausView {
                 )
             else { return }
             pushConversationThread(selection)
-        case .tasks:
-            path.append(.tasks)
+        case .tasks(let focus):
+            path.append(.tasks(focus: focus))
         }
     }
 
@@ -139,7 +138,15 @@ extension AuthenticatedHausView {
         )
     }
 
+    /// Every Thread push, whichever row opened it. The viewer's open Asks are
+    /// pulled in here because the Thread screen offers the newest open Ask in
+    /// the Thread — which may be a reply rather than the anchor, and a reply's
+    /// Ask is not in anything the route carries. The Inbox has usually already
+    /// landed this read; a Thread opened from a Chat or a Task has not.
     private func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
+        if store.openAsks == nil {
+            Task { await store.loadOpenAsks() }
+        }
         if let parentChatID {
             selectedDestinationID = .chat(parentChatID)
         }

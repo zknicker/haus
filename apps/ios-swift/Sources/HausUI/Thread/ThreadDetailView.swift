@@ -1,3 +1,4 @@
+import HausModels
 import SwiftUI
 
 /// A native NavigationStack destination for one message thread.
@@ -7,6 +8,9 @@ import SwiftUI
 public struct ThreadDetailView: View {
     private let anchor: MessagePresentation
     private let replyProvider: () -> [MessagePresentation]
+    /// The viewer's open Asks, read in this screen's body so an Ask posted as
+    /// a reply lands here the moment `ask.listOpen` does.
+    private let openAsksProvider: () -> [OpenAsk]?
     private let pending: Bool
     private let isConnected: Bool
     private let onSend: (String, [ComposerAttachment]) async -> Bool
@@ -39,6 +43,7 @@ public struct ThreadDetailView: View {
         replies: [MessagePresentation],
         pending: Bool = false,
         isConnected: Bool = true,
+        openAsks: @escaping () -> [OpenAsk]? = { nil },
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -54,6 +59,7 @@ public struct ThreadDetailView: View {
         self.replyProvider = { replies }
         self.pending = pending
         self.isConnected = isConnected
+        self.openAsksProvider = openAsks
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
         self.hasOlderReplies = hasOlderReplies
@@ -71,6 +77,7 @@ public struct ThreadDetailView: View {
         replies: @escaping () -> [MessagePresentation],
         pending: Bool = false,
         isConnected: Bool = true,
+        openAsks: @escaping () -> [OpenAsk]? = { nil },
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -86,6 +93,7 @@ public struct ThreadDetailView: View {
         self.replyProvider = replies
         self.pending = pending
         self.isConnected = isConnected
+        self.openAsksProvider = openAsks
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
         self.hasOlderReplies = hasOlderReplies
@@ -150,18 +158,22 @@ public struct ThreadDetailView: View {
         .hausInlineNavigationTitle()
     }
 
-    /// An open Ask's offered options, above the composer that would otherwise
-    /// carry the same words. Pressing one is the Thread's own send, which
-    /// already addresses the parent Chat and this anchor Message — the exact
-    /// pair an Ask's answer takes (`AskAnswerRoute`). A settled Ask keeps only
-    /// its marker: the first answer won permanently.
+    /// The newest open Ask in this Thread — the anchor's own, or one an Agent
+    /// posted as a reply; `ThreadAskOptions` owns which. Pressing an option is
+    /// the Thread's own send, which already addresses the parent Chat and this
+    /// anchor Message — the exact pair an Ask's answer takes (`AskAnswerRoute`),
+    /// whichever Ask in the Thread it settles. A settled Ask keeps only its
+    /// marker: the first answer won permanently.
     @ViewBuilder
     private var askOptions: some View {
-        if let ask = anchor.ask, ask.status == .open {
-            AskOptionsRow(options: AskOptions(ask.options)) { option in
+        if let offer = ThreadAskOptions.offered(openAsks: openAsksProvider(), anchor: anchor) {
+            AskOptionsRow(options: offer.options) { option in
                 guard !pending else { return false }
                 return await onSend(option, [])
             }
+            // A second Ask is a second decision: its own row, not one a
+            // previous answer already spent.
+            .id(offer.id)
         }
     }
 

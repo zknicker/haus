@@ -26,7 +26,10 @@ struct SettingsUnavailableSheet: View {
 /// here: it is the canvas itself, which is why it wears no navigation bar and
 /// no Back button — see `AuthenticatedHausView+Routes`.
 enum HausRootRoute: Hashable {
-    case tasks
+    /// The Task list, landing on one task when the route names one. The
+    /// sidebar's own row names none; a stalled-claim Inbox row names the task
+    /// it is about, which is the phone's counterpart of the App's `?task=`.
+    case tasks(focus: TaskFocus?)
     case thread(ThreadSelection)
 }
 
