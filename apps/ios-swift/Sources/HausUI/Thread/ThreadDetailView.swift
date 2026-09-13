@@ -16,6 +16,10 @@ public struct ThreadDetailView: View {
     private let onLoadOlderReplies: (() async -> Bool)?
     private let onOpenAgent: (String) -> Void
     private let onCancelCloudAgent: ((String) async throws -> Void)?
+    /// The reply ids the transcript is showing. Read acknowledgement is built
+    /// on this; the anchor and task rows carry no Server sequence, so the App
+    /// simply cannot resolve them.
+    private let onVisibleMessagesChange: ([String]) -> Void
 
     @State private var draft = ""
     @State private var isNearNewest = true
@@ -48,7 +52,8 @@ public struct ThreadDetailView: View {
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
-        onCancelCloudAgent: ((String) async throws -> Void)? = nil
+        onCancelCloudAgent: ((String) async throws -> Void)? = nil,
+        onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = { replies }
@@ -61,6 +66,7 @@ public struct ThreadDetailView: View {
         self.onLoadOlderReplies = onLoadOlderReplies
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
+        self.onVisibleMessagesChange = onVisibleMessagesChange
     }
 
     /// Resolves replies while this view's body is being evaluated so an
@@ -80,7 +86,8 @@ public struct ThreadDetailView: View {
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
-        onCancelCloudAgent: ((String) async throws -> Void)? = nil
+        onCancelCloudAgent: ((String) async throws -> Void)? = nil,
+        onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = replies
@@ -93,6 +100,7 @@ public struct ThreadDetailView: View {
         self.onLoadOlderReplies = onLoadOlderReplies
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
+        self.onVisibleMessagesChange = onVisibleMessagesChange
     }
 
     public var body: some View {
@@ -191,6 +199,7 @@ public struct ThreadDetailView: View {
                 reveal: nil,
                 isNearNewest: $isNearNewest,
                 onContentTap: { isComposerFocused = false },
+                onVisibleItems: onVisibleMessagesChange,
                 row: { item in
                     threadRow(item)
                 },

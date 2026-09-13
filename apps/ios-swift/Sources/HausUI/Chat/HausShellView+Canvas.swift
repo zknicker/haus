@@ -89,7 +89,8 @@ extension HausShellView {
                         mentionOptions: mentionOptions(selectedDestination),
                         onLoadMentionOptions: { await loadMentionOptions(selectedDestination) },
                         contentInsets: proxy.safeAreaInsets,
-                        scrollTargetMessageID: scrollTargetBinding(for: selectedDestination)
+                        scrollTargetMessageID: scrollTargetBinding(for: selectedDestination),
+                        onVisibleMessagesChange: { onVisibleMessages(selectedDestination, $0) }
                     )
                     // Each Chat gets its own screen. Reusing one screen carried
                     // the previous Chat's scroll offset and transcript state

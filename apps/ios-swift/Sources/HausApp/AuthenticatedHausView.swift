@@ -79,7 +79,8 @@ struct AuthenticatedHausView: View {
                 forKey: ChatDestination.ID.lastOpenDefaultsKey
             )
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            applyReadForeground(phase)
             switch phase {
             case .background:
                 hasBackgrounded = true
@@ -181,7 +182,8 @@ struct AuthenticatedHausView: View {
                     loadMentionOptions: { await store.loadMentionOptions(for: $0) },
                     createChannel: { draft in
                         try await store.createNativeChannel(draft)
-                    }
+                    },
+                    onVisibleMessages: reportVisibleMessages
                 )
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in
@@ -234,21 +236,6 @@ struct AuthenticatedHausView: View {
             return
         }
         openCanvasChat(destination.id)
-    }
-
-    /// The Chat the canvas has to have open. A pushed Thread or the Tasks list
-    /// covers the canvas and owns the open Chat while it is on screen.
-    private var canvasOpenChatID: String? {
-        ChatCanvasOpen.chatID(
-            selectedID: selectedDestinationID,
-            isCovered: showsInboxCanvas || !path.isEmpty || selectedThread != nil
-        )
-    }
-
-    /// The Chat the canvas is showing, covered or not. It is what a pop lands
-    /// on, so the Store keeps its page fresh even while it is off screen.
-    private var selectedCanvasChatID: String? {
-        ChatCanvasOpen.canvasChatID(selectedID: selectedDestinationID)
     }
 
     private var appearanceBinding: Binding<AppearancePreference> {
@@ -313,7 +300,8 @@ struct AuthenticatedHausView: View {
             onOpenAgent: openAgentFromThread,
             onCancelCloudAgent: store.canManageServer ? { workID in
                 try await store.cancelCloudAgent(workID: workID)
-            } : nil
+            } : nil,
+            onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {
             guard let chatID = resolvedThreadChatID(for: thread) else { return }
@@ -321,7 +309,7 @@ struct AuthenticatedHausView: View {
         }
     }
 
-    private func resolvedThreadChatID(for thread: ThreadSelection) -> String? {
+    func resolvedThreadChatID(for thread: ThreadSelection) -> String? {
         thread.resolvedChatID(selectedThread: selectedThread, store: store)
     }
 }

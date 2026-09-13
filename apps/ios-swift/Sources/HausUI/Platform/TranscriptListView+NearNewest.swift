@@ -118,6 +118,35 @@ extension TranscriptListCoordinator {
         nearNewest.endSettling()
     }
 
+    /// Hands up the ids of the rows the viewport is showing, newest first.
+    ///
+    /// `indexPathsForVisibleRows` is the whole mechanism: the flipped table
+    /// already knows exactly which cells intersect its bounds, which is the
+    /// same question the web App asks an `IntersectionObserver`. Rows that
+    /// intersect while sitting behind the header's or the composer's glass
+    /// count, because glass is translucent and the reader can see them — the
+    /// browser counts them too.
+    ///
+    /// It rides the near-newest sync rather than `scrollViewDidScroll` for the
+    /// same reason that reading does: mid-turn geometry describes a viewport
+    /// that is still landing, and a settle's destination is the honest answer.
+    func publishVisibleItems(
+        view: TranscriptListView<Item, Row, Accessory>,
+        scrollView: UIScrollView
+    ) {
+        guard let onVisibleItems = view.onVisibleItems,
+              let table = scrollView as? UITableView
+        else { return }
+        let visibleIDs = (table.indexPathsForVisibleRows ?? []).compactMap { indexPath -> String? in
+            let index = items.count - 1 - indexPath.row
+            guard items.indices.contains(index) else { return nil }
+            return items[index].id
+        }
+        guard visibleIDs != publishedVisibleItemIDs else { return }
+        publishedVisibleItemIDs = visibleIDs
+        onVisibleItems(visibleIDs)
+    }
+
     /// Publishes the near-newest answer once per runloop turn, from the geometry
     /// left standing at the end of it. Deferral is the point: insets, inserted
     /// rows, and settle offsets all land within the turn that triggered this,
@@ -130,6 +159,7 @@ extension TranscriptListCoordinator {
                 guard let self else { return }
                 self.nearNewestSyncScheduled = false
                 guard let scrollView, let view = self.view else { return }
+                self.publishVisibleItems(view: view, scrollView: scrollView)
                 let published = self.nearNewest.settle(
                     distance: self.distanceFromNewest(scrollView)
                 )
