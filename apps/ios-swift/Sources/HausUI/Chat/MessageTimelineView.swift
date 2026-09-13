@@ -10,6 +10,10 @@ public struct MessageTimelineView: View {
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
     private let onLoadOlderMessages: (() async -> Bool)?
+    /// The message ids the viewport is showing, whenever that set changes.
+    /// Read acknowledgement is built on this: a message is read when it has
+    /// been on screen, not when its page happened to load.
+    private let onVisibleMessagesChange: ([String]) -> Void
 
     @Binding private var scrollTargetMessageID: String?
     /// Attachment presentation is the screen's, not the row's: rows are hosted
@@ -43,9 +47,11 @@ public struct MessageTimelineView: View {
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: (() async -> Bool)? = nil,
-        scrollTargetMessageID: Binding<String?> = .constant(nil)
+        scrollTargetMessageID: Binding<String?> = .constant(nil),
+        onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         _scrollTargetMessageID = scrollTargetMessageID
+        self.onVisibleMessagesChange = onVisibleMessagesChange
         self.messages = messages
         self.isMessageHistoryLoaded = isMessageHistoryLoaded
         self.emptyStateDescription = emptyStateDescription
@@ -107,6 +113,7 @@ public struct MessageTimelineView: View {
                     },
                     reveal: reveal,
                     isNearNewest: $isNearNewest,
+                    onVisibleItems: onVisibleMessagesChange,
                     animatesEntrance: opensWithEntrance,
                     menuActions: { message in
                         guard !message.isPending else { return [] }

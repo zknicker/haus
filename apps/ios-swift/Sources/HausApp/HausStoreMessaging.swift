@@ -1,71 +1,8 @@
 import Foundation
 import HausModels
 import HausUI
-import OSLog
-
-private let readStateLogger = Logger(
-    subsystem: "chat.haus.ios",
-    category: "chat-read"
-)
 
 extension HausStore {
-    /// Loads the selected Chat and acknowledges only the history currently visible
-    /// in that open surface. Unselected cached Chats stay unread.
-    func openChat(chatID: String) async {
-        openChatID = chatID
-        await loadMessages(chatID: chatID)
-        await markChatReadIfNeeded(chatID: chatID)
-    }
-
-    /// Mirrors the React `useChatRead` view key while keeping unread counts
-    /// Server-owned.
-    ///
-    /// The durable `chat.read` event owns the Chat-list refresh, exactly as the
-    /// web App's `useChatRead` does. Server writes that event only when the read
-    /// actually moved, addresses it to the reader alone, and both live delivery
-    /// and the reconnect walk carry it, so one acknowledgement produces one list
-    /// refresh. Refreshing here as well made every opened Chat refetch twice.
-    func markChatReadIfNeeded(chatID: String) async {
-        guard let serverID = activeServer?.id,
-              openChatID == chatID,
-              let sequence = messagesByChatID[chatID]?.messages.last?.sequence,
-              sequence > 0
-        else { return }
-
-        let scope = ChatReadScope(serverID: serverID, chatID: chatID)
-        guard (acknowledgedReadSequences[scope] ?? 0) < sequence else { return }
-
-        let acknowledgement = ChatReadAcknowledgement(scope: scope, sequence: sequence)
-        guard readAcknowledgementsInFlight.insert(acknowledgement).inserted else { return }
-        defer { readAcknowledgementsInFlight.remove(acknowledgement) }
-
-        do {
-            let receipt: ChatReadReceipt = try await client.mutation(
-                "chat.markRead",
-                input: ChatReadInput(chatID: chatID, sequence: sequence, serverID: serverID)
-            )
-            guard activeServer?.id == serverID else { return }
-            acknowledgedReadSequences[scope] = max(
-                acknowledgedReadSequences[scope] ?? 0,
-                receipt.sequence
-            )
-
-            // A new message can land while the mutation is in flight. Match the
-            // view-key effect by immediately acknowledging the newer loaded tail.
-            if openChatID == chatID,
-               let latest = messagesByChatID[chatID]?.messages.last?.sequence,
-               latest > (acknowledgedReadSequences[scope] ?? 0) {
-                await markChatReadIfNeeded(chatID: chatID)
-            }
-        } catch is CancellationError {
-            return
-        } catch {
-            readStateLogger.error(
-                "Marking Chat read failed: \(error.localizedDescription, privacy: .public)"
-            )
-        }
-    }
-
     func threadChatID(parentChatID: String, anchorMessageID: String) -> String? {
         messagesByChatID[parentChatID]?.threads.first {
             $0.anchorMessageID == anchorMessageID

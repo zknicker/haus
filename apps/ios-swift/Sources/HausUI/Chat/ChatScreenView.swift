@@ -18,6 +18,9 @@ public struct ChatScreenView: View {
     private let mentionOptions: [MentionOptionPresentation]
     private let onLoadMentionOptions: () async -> Void
     private let contentInsets: EdgeInsets
+    /// The message ids this Chat's transcript is showing. The App turns them
+    /// into the read acknowledgement; the screen only forwards them.
+    private let onVisibleMessagesChange: ([String]) -> Void
 
     @Binding private var scrollTargetMessageID: String?
     /// The draft is owned above this screen, which is remounted per Chat, so a
@@ -52,10 +55,12 @@ public struct ChatScreenView: View {
         mentionOptions: [MentionOptionPresentation] = [],
         onLoadMentionOptions: @escaping () async -> Void = {},
         contentInsets: EdgeInsets = EdgeInsets(),
-        scrollTargetMessageID: Binding<String?> = .constant(nil)
+        scrollTargetMessageID: Binding<String?> = .constant(nil),
+        onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         _scrollTargetMessageID = scrollTargetMessageID
         _draft = draft
+        self.onVisibleMessagesChange = onVisibleMessagesChange
         self.composerInteraction = composerInteraction
         self.chat = chat
         self.messages = messages
@@ -157,7 +162,8 @@ public struct ChatScreenView: View {
             hasOlderMessages: hasOlderMessages,
             isLoadingOlderMessages: isLoadingOlderMessages,
             onLoadOlderMessages: onLoadOlderMessages,
-            scrollTargetMessageID: $scrollTargetMessageID
+            scrollTargetMessageID: $scrollTargetMessageID,
+            onVisibleMessagesChange: onVisibleMessagesChange
         )
     }
 

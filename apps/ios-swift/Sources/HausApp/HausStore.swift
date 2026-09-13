@@ -80,8 +80,13 @@ final class HausStore {
     /// Observation: a projection read happens inside a view body, and a tracked
     /// write there would invalidate the body that just performed it.
     @ObservationIgnored var projections = ChatProjectionCaches()
-    var acknowledgedReadSequences: [ChatReadScope: Int] = [:]
-    var readAcknowledgementsInFlight: Set<ChatReadAcknowledgement> = []
+    /// What each Chat has shown the reader, what Server has confirmed, and what
+    /// is in flight. Observation-ignored: no view reads it, and a read
+    /// acknowledgement must not repaint the app.
+    @ObservationIgnored var chatReads = ChatReadLedger()
+    /// Whether the app is frontmost. A transcript on a backgrounded phone is
+    /// not being read, so nothing acknowledges until it returns.
+    @ObservationIgnored var isForegrounded = true
     var olderMessageLoadsInFlight: Set<String> = []
     /// Live SSE events accumulate here for one short window before the existing
     /// batch applier runs; the catch-up walk already arrives batched.

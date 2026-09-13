@@ -69,7 +69,8 @@ extension AuthenticatedHausView {
             onCancelCloudAgent: store.canManageServer ? { workID in
                 try await store.cancelCloudAgent(workID: workID)
             } : nil,
-            follow: threadFollow(for: thread)
+            follow: threadFollow(for: thread),
+            onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {
             guard let chatID = resolvedThreadChatID(for: thread) else { return }

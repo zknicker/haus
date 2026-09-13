@@ -36,6 +36,9 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     private let agentProfile: (String) -> AgentProfilePresentation?
     let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
     let loadMentionOptions: (ChatDestination) async -> Void
+    /// The message ids the canvas transcript is showing. It passes straight
+    /// through to the App, which owns read acknowledgement.
+    let onVisibleMessages: (ChatDestination, [String]) -> Void
 
     @Binding var selectedDestinationID: ChatDestination.ID?
     /// Whether the canvas is the Inbox rather than the selected Chat. The App
@@ -97,7 +100,8 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         loadMentionOptions: @escaping (ChatDestination) async -> Void = { _ in },
         createChannel: @escaping @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation = { _ in
             throw CancellationError()
-        }
+        },
+        onVisibleMessages: @escaping (ChatDestination, [String]) -> Void = { _, _ in }
     ) {
         _selectedDestinationID = selectedDestinationID
         _showsInbox = showsInbox
@@ -128,6 +132,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.mentionOptions = mentionOptions
         self.loadMentionOptions = loadMentionOptions
         self.createChannel = createChannel
+        self.onVisibleMessages = onVisibleMessages
     }
 
     public var body: some View {

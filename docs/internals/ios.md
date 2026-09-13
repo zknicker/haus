@@ -1056,12 +1056,30 @@ double-tap word selection intact. The body carries an accessibility label naming
 kind, and the text view's value is suppressed so VoiceOver reads the sentence once, as
 `Agent reference, Marlow`.
 
-The open native Chat and Thread surfaces acknowledge the latest loaded message sequence through
-`chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory. The
-durable `chat.read` event — which Server writes only when the read moved and addresses to the reader
-alone — owns the `chat.list` refresh, exactly as the web App's `useChatRead` does, so one
-acknowledgement produces one list refresh and unread counts remain Server projections rather than
-local durable state.
+A message is read when it has been on screen, not when its page loaded — the phone runs the web
+App's rule rather than a mobile variant of it. `chat.markRead` carries the highest sequence the
+viewport has actually shown, and nothing else moves the mark: a Chat opened and left at the top of
+a long unread run stays unread until the reader scrolls down to the newest rows. The transcripts
+answer that question from the substrate they already sit on — `TranscriptListView`'s flipped table
+knows exactly which cells intersect its bounds, so `indexPathsForVisibleRows` is the phone's
+`IntersectionObserver`. Visible ids ride the same once-per-runloop-turn sync as the near-newest
+reading, for the same reason: mid-turn geometry describes a viewport that is still landing. Rows
+sitting behind the header's or the composer's glass count, because glass is translucent and the
+browser counts them too.
+
+`ChatReadLedger` in `HausModels` is the rule as one pure value, and it owns four properties the call
+order cannot be trusted to produce: a Chat's visible mark is a **high-water mark**, so scrolling
+back into history never sends a lower sequence; one `(chat, sequence)` is **attempted once** while
+it is in flight; a **failed** acknowledgement releases its claim without advancing the mark, so the
+next visibility change or foreground retries it; and nothing acknowledges at all unless the app is
+**frontmost**, the phone's reading of the web App's document-visible-and-window-focused gate.
+Returning to active re-evaluates the open Chat's current mark. Reads still belong to the deepest
+surface alone: every mounted transcript reports what it is showing, including a canvas Chat a pushed
+Thread covers, but only `openChatID` acknowledges — and while the Inbox is the canvas there is no
+Chat screen mounted to report at all. The durable `chat.read` event — which Server writes only when
+the read moved and addresses to the reader alone — owns the `chat.list` refresh, exactly as the web
+App's `useChatRead` does, so one acknowledgement produces one list refresh and unread counts remain
+Server projections rather than local durable state.
 
 Native Thread routes are anchored by the parent message id, which exists before the child Chat is
 created. The route also carries the parent Chat id and may carry a resolved Thread Chat id. Opening an

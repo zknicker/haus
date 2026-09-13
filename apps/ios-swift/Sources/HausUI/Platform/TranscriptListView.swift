@@ -35,6 +35,12 @@ where Item.ID == String {
     /// Called for a tap that lands on the transcript itself; the Thread uses
     /// it to put the keyboard away. Scrolls and row controls are unaffected.
     var onContentTap: (() -> Void)? = nil
+    /// The ids of the rows currently in the viewport, newest first, published
+    /// once per runloop turn from settled geometry and only when the set
+    /// changes. This is what read acknowledgement is built on: the transcript
+    /// knows what it is showing, and nothing above it can infer that from a
+    /// loaded page.
+    var onVisibleItems: (([String]) -> Void)? = nil
     /// Plays the app-opening settle (rise and fade, matching
     /// `OpeningEntranceSection.timeline`) once on mount. Owned here in UIKit
     /// because a SwiftUI opacity animation over a platform view can be dropped
@@ -127,6 +133,10 @@ where Item.ID == String {
     /// Driven from `TranscriptListView+NearNewest`.
     var nearNewest = TranscriptNearNewest()
     var nearNewestSyncScheduled = false
+    /// The visible set last handed upward, so a scroll that changes nothing
+    /// about which rows are on screen — an inset write, a re-host — does not
+    /// wake the read path every runloop turn.
+    var publishedVisibleItemIDs: [String]?
 
     // MARK: Lifecycle from the representable
 
@@ -393,43 +403,6 @@ where Item.ID == String {
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         scheduleNearNewestSync(scrollView)
-    }
-}
-
-#else
-
-/// macOS exists in this package only so the pure logic can run under
-/// `swift test`; the app targets iOS. This stand-in keeps the SwiftUI callers
-/// compiling with the same shape and no scroll management.
-struct TranscriptListView<Item: Identifiable & Equatable, Row: View, Accessory: View>: View
-where Item.ID == String {
-    let items: [Item]
-    let topInset: CGFloat
-    let bottomInset: CGFloat
-    let showsAccessory: Bool
-    let onAppend: (_ previousItems: [Item], _ items: [Item], _ isNearNewest: Bool) -> TranscriptAppendBehavior
-    let reveal: TranscriptReveal?
-    @Binding var isNearNewest: Bool
-    var onContentTap: (() -> Void)? = nil
-    var animatesEntrance = false
-    var menuActions: (Item) -> [TranscriptMenuAction] = { _ in [] }
-    @ViewBuilder let row: (Item) -> Row
-    @ViewBuilder let accessory: () -> Accessory
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                if showsAccessory {
-                    accessory()
-                }
-                ForEach(items) { row($0) }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            // Upright here, so the runway is the literal bottom padding.
-            .padding(.bottom, HausChrome.transcriptBottomRunway)
-        }
-        .defaultScrollAnchor(.bottom)
     }
 }
 

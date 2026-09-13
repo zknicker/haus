@@ -22,6 +22,10 @@ public struct ThreadDetailView: View {
     private let onCancelCloudAgent: ((String) async throws -> Void)?
     /// Nil until Server has a Thread row to follow.
     private let follow: ThreadFollow?
+    /// The reply ids the transcript is showing. Read acknowledgement is built
+    /// on this; the anchor and task rows carry no Server sequence, so the App
+    /// simply cannot resolve them.
+    private let onVisibleMessagesChange: ([String]) -> Void
 
     @State private var draft = ""
     @State private var isNearNewest = true
@@ -56,7 +60,8 @@ public struct ThreadDetailView: View {
         onLoadOlderReplies: (() async -> Bool)? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCancelCloudAgent: ((String) async throws -> Void)? = nil,
-        follow: ThreadFollow? = nil
+        follow: ThreadFollow? = nil,
+        onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = { replies }
@@ -71,6 +76,7 @@ public struct ThreadDetailView: View {
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
         self.follow = follow
+        self.onVisibleMessagesChange = onVisibleMessagesChange
     }
 
     /// Resolves replies while this view's body is being evaluated so an
@@ -92,7 +98,8 @@ public struct ThreadDetailView: View {
         onLoadOlderReplies: (() async -> Bool)? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCancelCloudAgent: ((String) async throws -> Void)? = nil,
-        follow: ThreadFollow? = nil
+        follow: ThreadFollow? = nil,
+        onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = replies
@@ -107,6 +114,7 @@ public struct ThreadDetailView: View {
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
         self.follow = follow
+        self.onVisibleMessagesChange = onVisibleMessagesChange
     }
 
     public var body: some View {
@@ -203,6 +211,7 @@ public struct ThreadDetailView: View {
                 reveal: nil,
                 isNearNewest: $isNearNewest,
                 onContentTap: { isComposerFocused = false },
+                onVisibleItems: onVisibleMessagesChange,
                 row: { item in
                     threadRow(item)
                 },
@@ -275,22 +284,10 @@ public struct ThreadDetailView: View {
     @ViewBuilder
     private var loadOlderAccessory: some View {
         if let onLoadOlderReplies {
-            Button {
-                Task { @MainActor in _ = await onLoadOlderReplies() }
-            } label: {
-                Group {
-                    if isLoadingOlderReplies {
-                        ProgressView()
-                    } else {
-                        Label("Load older replies", systemImage: "chevron.up")
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .disabled(isLoadingOlderReplies)
-            .padding(.bottom, 8)
+            ThreadLoadOlderAccessory(
+                isLoading: isLoadingOlderReplies,
+                onLoad: onLoadOlderReplies
+            )
         }
     }
 }

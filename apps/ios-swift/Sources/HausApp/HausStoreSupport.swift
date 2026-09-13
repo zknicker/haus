@@ -130,16 +130,6 @@ struct AttachmentReservation: Decodable, Sendable {
     let state: String
 }
 
-struct ChatReadScope: Hashable, Sendable {
-    let serverID: String
-    let chatID: String
-}
-
-struct ChatReadAcknowledgement: Hashable, Sendable {
-    let scope: ChatReadScope
-    let sequence: Int
-}
-
 struct PendingChatMessage: Identifiable, Equatable, Sendable {
     let attachments: [ComposerAttachment]
     let chatID: String
