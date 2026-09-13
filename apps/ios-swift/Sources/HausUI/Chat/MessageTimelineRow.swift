@@ -67,7 +67,7 @@ struct MessageTimelineRow: View {
                     // The marker is this Ask's only ingress until somebody
                     // replies: with no replies the row shows no Thread card,
                     // and the answer is written in the Thread either way.
-                    AskMark(ask: ask, onOpen: onOpenThread).padding(.top, 4)
+                    AskMark(ask: ask, onOpen: onOpenThread)
                 }
 
                 ForEach(message.cloudAgents) { agent in
@@ -111,9 +111,14 @@ struct MessageTimelineRow: View {
     }
 
     /// The task this row states, or nil for a claim the reader has not asked
-    /// to see. Chat's own preference, per device, like appearance.
+    /// to see and nobody has replied to. Chat's own preference, per device,
+    /// like appearance.
     private var ingressTask: TaskPresentation? {
-        ThreadPreviewProjection.ingressTask(message.task, showTasksInChat: showTasksInChat)
+        ThreadPreviewProjection.ingressTask(
+            message.task,
+            hasReplies: (message.thread?.replyCount ?? 0) > 0,
+            showTasksInChat: showTasksInChat
+        )
     }
 
     /// Whether anything the message itself says sits above the cards below it.

@@ -29,7 +29,6 @@ extension AuthenticatedHausView {
                 return store.messagePresentations(chatID: chatID)
             },
             isConnected: store.isConnected,
-            openAsks: { store.openAsks },
             onSend: { content, attachments in
                 guard let resolvedThreadChatID = await store.sendThreadReply(
                     content,

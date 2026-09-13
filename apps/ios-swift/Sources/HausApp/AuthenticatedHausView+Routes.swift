@@ -138,15 +138,10 @@ extension AuthenticatedHausView {
         )
     }
 
-    /// Every Thread push, whichever row opened it. The viewer's open Asks are
-    /// pulled in here because the Thread screen offers the newest open Ask in
-    /// the Thread — which may be a reply rather than the anchor, and a reply's
-    /// Ask is not in anything the route carries. The Inbox has usually already
-    /// landed this read; a Thread opened from a Chat or a Task has not.
+    /// Every Thread push, whichever row opened it. The Thread screen reads its
+    /// open Asks off its own rows — anchor and replies alike — so nothing but
+    /// the route is needed to open one.
     private func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
-        if store.openAsks == nil {
-            Task { await store.loadOpenAsks() }
-        }
         if let parentChatID {
             selectedDestinationID = .chat(parentChatID)
         }

@@ -1,4 +1,3 @@
-import HausModels
 import SwiftUI
 
 /// A native NavigationStack destination for one message thread.
@@ -8,9 +7,6 @@ import SwiftUI
 public struct ThreadDetailView: View {
     private let anchor: MessagePresentation
     private let replyProvider: () -> [MessagePresentation]
-    /// The viewer's open Asks, read in this screen's body so an Ask posted as
-    /// a reply lands here the moment `ask.listOpen` does.
-    private let openAsksProvider: () -> [OpenAsk]?
     private let pending: Bool
     private let isConnected: Bool
     private let onSend: (String, [ComposerAttachment]) async -> Bool
@@ -45,7 +41,6 @@ public struct ThreadDetailView: View {
         replies: [MessagePresentation],
         pending: Bool = false,
         isConnected: Bool = true,
-        openAsks: @escaping () -> [OpenAsk]? = { nil },
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -62,7 +57,6 @@ public struct ThreadDetailView: View {
         self.replyProvider = { replies }
         self.pending = pending
         self.isConnected = isConnected
-        self.openAsksProvider = openAsks
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
         self.hasOlderReplies = hasOlderReplies
@@ -81,7 +75,6 @@ public struct ThreadDetailView: View {
         replies: @escaping () -> [MessagePresentation],
         pending: Bool = false,
         isConnected: Bool = true,
-        openAsks: @escaping () -> [OpenAsk]? = { nil },
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -98,7 +91,6 @@ public struct ThreadDetailView: View {
         self.replyProvider = replies
         self.pending = pending
         self.isConnected = isConnected
-        self.openAsksProvider = openAsks
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
         self.hasOlderReplies = hasOlderReplies
@@ -112,6 +104,10 @@ public struct ThreadDetailView: View {
     public var body: some View {
         let replies = replyProvider()
         let items = transcriptItems(replies: replies)
+        // The Ask a reply here would settle, read in the screen's body so an
+        // Ask posted as a reply takes over the moment its Message lands.
+        let answerableAskMessageID = ThreadAskAnswerability
+            .answerableMessageID(rows: [anchor] + replies)
         // Read here, in the screen's own body, so a visual's height report
         // re-renders the screen and the table re-hosts its visible rows. Read
         // only inside a row it would land on the cell's hosting view, which the
@@ -120,31 +116,22 @@ public struct ThreadDetailView: View {
 
         return GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
-                transcript(items: items)
+                transcript(items: items, answerableAskMessageID: answerableAskMessageID)
                     // Same shape as the chat screen: replies run under the floating glass
                     // composer and the inset reserves their clearance.
                     .safeAreaInset(edge: .bottom, spacing: 0) {
-                        VStack(spacing: 8) {
-                            ThreadAskOptionsRow(
-                                openAsks: openAsksProvider(),
-                                anchor: anchor
-                            ) { option in
+                        MessageComposerView(
+                            text: $draft,
+                            interaction: composerInteraction,
+                            placeholder: "Reply in thread",
+                            isConnected: isConnected,
+                            isTextFocused: $isComposerFocused,
+                            transitionNamespace: composerTransitionNamespace,
+                            onSend: { content, attachments in
                                 guard !pending else { return false }
-                                return await onSend(option, [])
+                                return await onSend(content, attachments)
                             }
-                            MessageComposerView(
-                                text: $draft,
-                                interaction: composerInteraction,
-                                placeholder: "Reply in thread",
-                                isConnected: isConnected,
-                                isTextFocused: $isComposerFocused,
-                                transitionNamespace: composerTransitionNamespace,
-                                onSend: { content, attachments in
-                                    guard !pending else { return false }
-                                    return await onSend(content, attachments)
-                                }
-                            )
-                        }
+                        )
                     }
             }
             // Same contract as the Chat screen: the portal draws in an overlay window above the
@@ -181,7 +168,10 @@ public struct ThreadDetailView: View {
     /// timeline, so the bottom anchor, keyboard rides, and history prepends
     /// are structural here too. The anchor and its task metadata are simply
     /// the transcript's oldest items.
-    private func transcript(items: [ThreadTranscriptItem]) -> some View {
+    private func transcript(
+        items: [ThreadTranscriptItem],
+        answerableAskMessageID: String?
+    ) -> some View {
         GeometryReader { proxy in
             TranscriptListView(
                 items: items,
@@ -204,7 +194,7 @@ public struct ThreadDetailView: View {
                 isNearNewest: $isNearNewest,
                 onContentTap: { isComposerFocused = false },
                 row: { item in
-                    threadRow(item)
+                    threadRow(item, answerableAskMessageID: answerableAskMessageID)
                 },
                 accessory: {
                     loadOlderAccessory
@@ -230,35 +220,21 @@ public struct ThreadDetailView: View {
     }
 
     @ViewBuilder
-    private func threadRow(_ item: ThreadTranscriptItem) -> some View {
+    private func threadRow(
+        _ item: ThreadTranscriptItem,
+        answerableAskMessageID: String?
+    ) -> some View {
         switch item {
         case .anchor(let message, let hasReplies):
-            ThreadMessageRow(
-                message: message,
-                emphasized: true,
-                onOpenAttachment: onOpenAttachment,
-                preview: $attachmentPreview,
-                tiles: attachmentTiles,
-                visualHeights: visualHeights,
-                onOpenAgent: onOpenAgent,
-                onCancelCloudAgent: onCancelCloudAgent
-            )
-            .padding(.bottom, hasReplies ? 2 : 0)
+            messageRow(message, emphasized: true, answerableAskMessageID: answerableAskMessageID)
+                .padding(.bottom, hasReplies ? 2 : 0)
         case .taskMetadata(let task, let hasReplies):
             ThreadTaskMetadataView(task: task)
                 .padding(.top, 12)
                 .padding(.bottom, hasReplies ? 2 : 0)
         case .reply(let message):
-            ThreadMessageRow(
-                message: message,
-                onOpenAttachment: onOpenAttachment,
-                preview: $attachmentPreview,
-                tiles: attachmentTiles,
-                visualHeights: visualHeights,
-                onOpenAgent: onOpenAgent,
-                onCancelCloudAgent: onCancelCloudAgent
-            )
-            .padding(.top, 10)
+            messageRow(message, answerableAskMessageID: answerableAskMessageID)
+                .padding(.top, 10)
         case .pendingSend:
             HStack(spacing: 7) {
                 ProgressView()
@@ -270,6 +246,33 @@ public struct ThreadDetailView: View {
             .padding(.leading, 46)
             .padding(.top, 12)
         }
+    }
+
+    private func messageRow(
+        _ message: MessagePresentation,
+        emphasized: Bool = false,
+        answerableAskMessageID: String?
+    ) -> ThreadMessageRow {
+        ThreadMessageRow(
+            message: message,
+            emphasized: emphasized,
+            onOpenAttachment: onOpenAttachment,
+            preview: $attachmentPreview,
+            tiles: attachmentTiles,
+            visualHeights: visualHeights,
+            onOpenAgent: onOpenAgent,
+            onCancelCloudAgent: onCancelCloudAgent,
+            answerableAskMessageID: answerableAskMessageID,
+            onAnswerAsk: answerAsk
+        )
+    }
+
+    /// Pressing an offered option is this screen's ordinary send: it already
+    /// carries the conversation Chat and this anchor, the pair an Ask's answer
+    /// takes (`AskAnswerRoute`), whichever Ask in the Thread it settles.
+    private func answerAsk(_ option: String) async -> Bool {
+        guard !pending else { return false }
+        return await onSend(option, [])
     }
 
     @ViewBuilder

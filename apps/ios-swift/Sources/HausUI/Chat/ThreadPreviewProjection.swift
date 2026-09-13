@@ -30,15 +30,22 @@ public enum ThreadPreviewProjection {
     /// The task the ingress states, under the reader's Chat preference.
     ///
     /// An Agent's claim on a message is bookkeeping it keeps on its own work,
-    /// so unless the reader asked to see tasks in Chat it contributes nothing
-    /// here: no note, no reserved row. A task a human made always states
-    /// itself, whatever the preference says.
+    /// so while nothing has come of it and the reader has not asked to see
+    /// tasks in Chat it contributes nothing here: no note, no reserved row. A
+    /// task a human made always states itself, whatever the preference says.
+    ///
+    /// A populated Thread always states its task. Once there are replies the
+    /// card is on screen anyway, and a reader following a conversation about
+    /// work needs to know which work — the preference hides empty claims, not
+    /// the identity of a Thread somebody is already talking in.
     public static func ingressTask(
         _ task: TaskPresentation?,
+        hasReplies: Bool,
         showTasksInChat: Bool
     ) -> TaskPresentation? {
         guard let task,
-              TaskVisibility.visibleInChat(origin: task.origin, showTasksInChat: showTasksInChat)
+              hasReplies
+              || TaskVisibility.visibleInChat(origin: task.origin, showTasksInChat: showTasksInChat)
         else { return nil }
         return task
     }
