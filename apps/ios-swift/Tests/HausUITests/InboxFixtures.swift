@@ -26,21 +26,32 @@ enum InboxFixtures {
         return nil
     }
 
+    /// One open Ask as `ask.listOpen` returns it. An Ask posted inside a Thread
+    /// names that Thread's anchor Message, which is how a Thread screen tells
+    /// its own Asks from every other one the viewer holds.
     static func openAsk(
         chatKind: HausModels.ChatKind = .channel,
         chatName: String? = "onboarding",
-        summary: String = "Friday or Monday"
+        summary: String = "Friday or Monday",
+        id: String = "ask_1",
+        messageID: String = "message_ask",
+        createdAt: String = "2026-09-11T09:00:00.000Z",
+        status: AskStatus = .open,
+        options: [String] = ["Friday"],
+        threadAnchorMessageID: String? = nil
     ) -> OpenAsk {
         decode(
             """
             {"ask":{"addresseeUserId":"user_1","agentId":"agent_blippy","answerMessageId":null,
               "answeredAt":null,"answeredBy":null,"chatId":"chat_1",
-              "createdAt":"2026-09-11T09:00:00.000Z","id":"ask_1","messageId":"message_ask",
-              "options":["Friday"],"status":"open","summary":\(quoted(summary)),
+              "createdAt":"\(createdAt)","id":"\(id)","messageId":"\(messageID)",
+              "options":[\(options.map(quoted).joined(separator: ","))],
+              "status":"\(status.rawValue)","summary":\(quoted(summary)),
               "title":"Pick a rollout window"},
              "chatKind":"\(chatKind.rawValue)","chatName":\(chatName.map(quoted) ?? "null"),
              "chatPeerUserId":null,"conversationChatId":"chat_1",
-             "message":\(message(id: "message_ask")),"threadAnchorMessage":null,
+             "message":\(message(id: messageID, createdAt: createdAt)),
+             "threadAnchorMessage":\(threadAnchorMessageID.map { message(id: $0) } ?? "null"),
              "threadChatId":"chat_thread"}
             """
         )
@@ -136,13 +147,17 @@ enum InboxFixtures {
         )
     }
 
-    private static func message(id: String, content: String = "Ship the iPhone build") -> String {
+    private static func message(
+        id: String,
+        content: String = "Ship the iPhone build",
+        createdAt: String = "2026-09-11T09:00:00.000Z"
+    ) -> String {
         """
         {"attachments":[],"author":{"agentId":"agent_blippy","kind":"agent",
           "profile":{"avatarUrl":null,"deleted":false,"description":null,
             "displayName":"Blippy"}},
          "chatId":"chat_1","content":\(quoted(content)),
-         "createdAt":"2026-09-11T09:00:00.000Z","id":"\(id)","nonce":"nonce_\(id)",
+         "createdAt":"\(createdAt)","id":"\(id)","nonce":"nonce_\(id)",
          "runId":null,"sequence":1,"serverId":"server_1","task":null}
         """
     }
