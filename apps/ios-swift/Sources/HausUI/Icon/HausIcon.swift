@@ -47,6 +47,10 @@ public enum HausIconName: String, CaseIterable, Sendable {
     case members = "UserMultiple02Icon"
     case menu = "Menu02Icon"
     case more = "MoreHorizontalIcon"
+    /// A Thread the reader follows, and the press that stops it. The
+    /// App's Thread header draws the same pair.
+    case notification = "Notification01Icon"
+    case notificationOff = "NotificationOff01Icon"
     case pdf = "Pdf01Icon"
     case permissions = "UserLock01Icon"
     case plus = "PlusSignIcon"

@@ -226,16 +226,6 @@ struct AuthenticatedHausView: View {
         }
     }
 
-    /// A Thread is a pushed screen above the canvas, so opening an Agent from a
-    /// reply pops back to the canvas the shell's own Agent route lands on.
-    @MainActor
-    private func openAgentFromThread(_ agentID: String) {
-        guard let destination = store.chatDestinations.agentDestination(agentID: agentID) else {
-            return
-        }
-        openCanvasChat(destination.id)
-    }
-
     /// The Chat the canvas has to have open. A pushed Thread or the Tasks list
     /// covers the canvas and owns the open Chat while it is on screen.
     private var canvasOpenChatID: String? {
@@ -260,68 +250,5 @@ struct AuthenticatedHausView: View {
 
     private var preferredColorScheme: ColorScheme? {
         (AppearancePreference(rawValue: appearanceRawValue) ?? .system).colorScheme
-    }
-
-    /// The pushed Thread screen. It owns the open Chat while it is on screen,
-    /// which is why the selection sync above stands down for it.
-    @ViewBuilder
-    private func threadDestination(_ thread: ThreadSelection) -> some View {
-        ThreadDetailView(
-            anchor: store.messagePresentations(chatID: thread.parentChatID)
-                .first(where: { $0.id == thread.anchor.id }) ?? thread.anchor,
-            replies: {
-                let chatID = resolvedThreadChatID(for: thread)
-                    ?? store.pendingThreadChatID(anchorMessageID: thread.anchor.id)
-                return store.messagePresentations(chatID: chatID)
-            },
-            isConnected: store.isConnected,
-            onSend: { content, attachments in
-                guard let resolvedThreadChatID = await store.sendThreadReply(
-                    content,
-                    to: thread.parentChatID,
-                    anchorMessageID: thread.anchor.id,
-                    pendingChatID: thread.threadChatID
-                        ?? store.pendingThreadChatID(anchorMessageID: thread.anchor.id),
-                    attachments: attachments
-                ) else { return false }
-
-                // Server is authoritative for the child Chat id. Usually this
-                // equals the route value; retaining the update makes a
-                // stale/prospective route converge without deriving an id
-                // on-device.
-                if resolvedThreadChatID != thread.threadChatID {
-                    selectedThread?.threadChatID = resolvedThreadChatID
-                }
-                // A prospective route had no child Chat to open on arrival.
-                // Promote it to the canonical child now so subsequent sends and
-                // read acknowledgements use the same Server Chat as the
-                // transcript.
-                if selectedThread?.id == thread.id {
-                    await store.openChat(chatID: resolvedThreadChatID)
-                }
-                return true
-            },
-            onOpenAttachment: { attachment in
-                try await store.downloadAttachment(attachment)
-            },
-            hasOlderReplies: resolvedThreadChatID(for: thread).map(store.hasOlderMessages) ?? false,
-            isLoadingOlderReplies: resolvedThreadChatID(for: thread).map(store.isLoadingOlderMessages) ?? false,
-            onLoadOlderReplies: {
-                guard let chatID = resolvedThreadChatID(for: thread) else { return false }
-                return await store.loadOlderMessages(chatID: chatID)
-            },
-            onOpenAgent: openAgentFromThread,
-            onCancelCloudAgent: store.canManageServer ? { workID in
-                try await store.cancelCloudAgent(workID: workID)
-            } : nil
-        )
-        .task {
-            guard let chatID = resolvedThreadChatID(for: thread) else { return }
-            await store.openChat(chatID: chatID)
-        }
-    }
-
-    private func resolvedThreadChatID(for thread: ThreadSelection) -> String? {
-        thread.resolvedChatID(selectedThread: selectedThread, store: store)
     }
 }

@@ -48,7 +48,6 @@
     "apps/computer/src/proxy.ts": 462,
     "apps/computer/src/setup-resume.test.ts": 325,
     "apps/computer/src/update.test.ts": 340,
-    "apps/ios-swift/Sources/HausApp/AuthenticatedHausView.swift": 327,
     "apps/ios-swift/Sources/HausUI/Chat/MessageComposerView.swift": 386,
     "apps/ios-swift/Sources/HausUI/Platform/TranscriptListView.swift": 436,
     "apps/ios-swift/Sources/HausUI/Settings/SettingsModels.swift": 305,
