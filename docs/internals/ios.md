@@ -555,11 +555,13 @@ a 150ms crossfade. Cloud-agent activity timestamps do not trigger swaps. The cou
 message remains the task title and is never duplicated inside the ingress.
 
 Chat honors the App's own task visibility rule (`TaskVisibility.visibleInChat` in `HausModels`,
-applied through `ThreadPreviewProjection.ingressTask`). A task an Agent claimed for itself states
-nothing in Chat unless the reader asked for it: no note, no ingress, no reserved space. A Thread
-that filled up under a hidden claim keeps its ingress and reads as the ordinary conversation it is,
-and a task a human composed or converted always states itself. The preference is per device, like
-appearance — `@AppStorage` under the App's own `haus.chat.showTasks` key — and Settings →
+applied through `ThreadPreviewProjection.ingressTask`). An **empty** claim an Agent made for itself
+states nothing in Chat unless the reader asked for it: no note, no ingress, no reserved space. A
+task a human composed or converted always states itself, and so does any task whose Thread has
+replies — the App's own `hasReplies || taskVisibleInChat(…)` rule. Once people are talking in a
+Thread its card is on screen anyway, and which work they are talking about is part of reading it,
+so the ingress states `Task #N · status` even under a hidden claim. The preference is per device,
+like appearance — `@AppStorage` under the App's own `haus.chat.showTasks` key — and Settings →
 Preferences → **Show tasks in chat** is the switch.
 
 The Task list reads the Store's own Server-wide lens rather than a second copy of the same query,
@@ -651,43 +653,43 @@ is an open question whose answer is whatever the human writes. The Ask reaches a
 That contract is why the phone has no Ask screen: opening an Ask is opening the Thread its answer
 is written in. `HausStore.threadSelection(openAsk:)` is the one entry point a surface that lists
 open Asks pushes, and it builds the ordinary `.thread` route out of `AskAnswerRoute` — the
-conversation's Chat id and the Ask's Thread anchor, never the Thread's own Chat. The Thread
-composer already sends exactly that pair, so the offered options ride the send the screen has: the
-open Ask's options sit as capsule buttons directly above the composer (`AskOptionsRow`), in the
-order the Agent wrote them with the recommendation first and prominent, and pressing one sends its
-text verbatim as the human's own reply. One press spends the whole row, because the Ask leaves only
-when `ask.updated` refetches `ask.listOpen` — nothing here is optimistic — while a failed send
-spends nothing. An Ask with no options offers no buttons at all; the composer is the whole answer.
-The options row is a sibling above the composer, never a control inside it: the composer is a
-custom surface with its own glass and attachment portal.
+conversation's Chat id and the Ask's Thread anchor, never the Thread's own Chat.
 
-The Ask itself reads on its Message as `AskMark`, one fact per line: while the Ask is open, the Ask
-glyph, the word `Ask`, the addressee's face and name, and the open ring; once it is settled, the
-glyph, the green check, and `Answered by <name>` alone, because two names on one phone line truncate
-both and the reader learns neither. It is drawn in the same annotation grammar as the task chip,
-under the body in both the Chat timeline and the Thread. It is
-projected from the `ask` Message body through the one actor resolver every other row already reads
-(`HausStore.askPresentation`), so an answered Ask still reads correctly long after its options
-stopped mattering.
+Inside a Thread an Ask is answered where it was asked: `AskAnswerCard` draws under the Ask's own
+Message, the same surface the App draws. The card states `Ask for <name>` beside the addressee's
+face and `Awaiting answer` under it, and never repeats the question — that is the Message above it.
+The answerable Ask also carries the Agent's options as capsule buttons, in the order it wrote them
+with the recommendation first and prominent, and then a line pointing at the composer: `Or write a
+reply below.`, or `Write your answer below.` for an Ask with no options at all. Pressing one sends
+its text verbatim as the human's own reply through the Thread send the screen already has, which
+addresses the conversation Chat and this anchor — the exact pair an Ask's answer takes. One press
+spends the whole card, because the Ask leaves only when `ask.updated` refetches this Thread's
+Messages — nothing here is optimistic. A send that failed spends nothing: the card re-enables and
+says so in its own line rather than swallowing it, because the store's send reports only whether it
+landed.
 
-In the Chat timeline the marker is also the way in, taking the Thread ingress card's own press
-feedback and route. An Ask nobody has replied to yet shows no ingress card, so without that the
-Inbox was the only surface that could open it. Inside a Thread the marker is inert: the screen it
-would open is the screen it is on.
+The card belongs to the **newest open Ask among that Thread's own rows**, anchor or reply alike
+(`ThreadAskAnswerability`, read once in `ThreadDetailView`'s body, with coverage in
+`ThreadAskAnswerabilityTests`). An Agent can ask inside a Thread as easily as it can start one, so
+the decision waiting on the reader is not always the anchor's; newest, because an Agent that asked
+twice is waiting on the second question, and because Server settles a reply against exactly that
+Ask. An older open Ask still draws its card, header only — a reply here would not settle it, so it
+offers nothing to press. The phone has no read-only Thread state today; when it grows one, that is
+the gate that turns every card header-only, the way the App's `readOnly` does. Each card is keyed on
+its own Ask Message, so a second Ask arriving in the same Thread gets a card of its own rather than
+one a previous answer already spent.
 
-The options above the Thread composer belong to the **newest open Ask in that Thread**, anchor or
-reply alike (`ThreadAskOptions`, presented by `ThreadAskOptionsRow`, with coverage in
-`ThreadAskOptionsTests`). An Agent can ask inside
-a Thread as easily as it can start one, so the decision waiting on the reader is not always the
-anchor's; newest, because an Agent that asked twice is waiting on the second question. The screen
-picks it out of the viewer's own `ask.listOpen` snapshot, matching on the Ask's answer anchor —
-Server projects a Thread Ask's `threadAnchorMessage` as the Thread's anchor and a top-level Ask's as
-its own Message, so one comparison covers both. Until that snapshot lands, the anchor's own open Ask
-stands in, so a Thread opened straight onto an Ask never blinks its options on; `pushThread` pulls
-the read in when this client is holding none. Answering is unchanged either way: pressing an option
-sends an ordinary Thread reply carrying that text through the pair the composer already addresses
-(`AskAnswerRoute`), and Server settles whichever Ask the reply answers. A second Ask arriving in the
-same Thread gets a row of its own rather than one a previous answer already spent.
+In the Chat timeline the same Ask reads as `AskMark`, the compact marker: the Ask glyph, the word
+`Ask`, the addressee's face and name, the accent ring, and `· Awaiting answer`, in the same
+annotation grammar as the task chip. The marker is also the way in, taking the Thread ingress card's
+own press feedback and route under the App's own accessible name, `Open thread, Ask`; an Ask nobody
+has replied to yet shows no ingress card, so without that the Inbox was the only surface that could
+open it. Both are projected from the `ask` Message body through the one actor resolver every other
+row already reads (`HausStore.askPresentation`).
+
+An answered Ask draws nothing — no marker, no card, on either surface. The question and its reply
+stay ordinary conversation, and a Thread that filled up keeps its ordinary ingress; a settled marker
+is bookkeeping nobody scanning back needs.
 
 A Task lens widens through `loadTasks(includeBackground:)`, and
 a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N
