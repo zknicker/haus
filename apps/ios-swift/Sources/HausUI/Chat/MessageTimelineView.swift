@@ -198,22 +198,11 @@ public struct MessageTimelineView: View {
     @ViewBuilder
     private var loadOlderAccessory: some View {
         if let onLoadOlderMessages {
-            Button {
-                Task { @MainActor in _ = await onLoadOlderMessages() }
-            } label: {
-                Group {
-                    if isLoadingOlderMessages {
-                        ProgressView()
-                    } else {
-                        Label("Load older messages", systemImage: "chevron.up")
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .disabled(isLoadingOlderMessages)
-            .padding(.bottom, 8)
+            TranscriptLoadOlderButton(
+                title: "Load older messages",
+                isLoading: isLoadingOlderMessages,
+                onLoad: onLoadOlderMessages
+            )
         }
     }
 

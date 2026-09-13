@@ -280,7 +280,8 @@ public struct ThreadDetailView: View {
     @ViewBuilder
     private var loadOlderAccessory: some View {
         if let onLoadOlderReplies {
-            ThreadLoadOlderAccessory(
+            TranscriptLoadOlderButton(
+                title: "Load older replies",
                 isLoading: isLoadingOlderReplies,
                 onLoad: onLoadOlderReplies
             )
