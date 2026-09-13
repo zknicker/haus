@@ -6,16 +6,16 @@ import { shellBandIconSize } from './section-header.tsx';
 
 /**
  * The sidebar's one piece of chrome: Settings, and nothing else. Server
- * identity moved out of the sidebar entirely — the navigation below now leads
- * with the Haus mark on the Inbox row — so what is left is a single quiet
- * action with no row to justify.
+ * identity moved out of the sidebar's navigation entirely, so what is left is a
+ * single quiet action with no row to justify.
  *
- * So it takes none, on either surface. On the macOS desktop `shell.css` floats
- * it in the titlebar strip beside the traffic lights, reserved space with
- * nothing else in it. Everywhere else it sits at the trailing end of the
- * sidebar footer, on the Agent activity strip's line — the quietest corner of
- * the column, and nothing else's line to share. `ShellSidebar` picks the slot;
- * where the gear lands is the shell's business, not this action's.
+ * So it takes none, on any surface. It rides the trailing end of the titlebar
+ * strip (`sidebar-titlebar-strip.tsx`), opposite the Haus mark — beside the
+ * traffic lights on the macOS desktop, in the same corner on the web. The
+ * sidebar footer holds live Agent activity and the desktop update status, and
+ * stays wired as the gear's other slot. `ShellSidebar` picks it; where the gear
+ * lands is the shell's business, not this action's, so this owns the button and
+ * none of its placement.
  */
 export function SidebarSettingsAction({
     onOpenSettings,
@@ -25,9 +25,9 @@ export function SidebarSettingsAction({
     onPreloadSettings: () => void;
 }) {
     return (
-        // `app-shell-band` is the glyph rank, not a box: the gear still sits
-        // beside the 22px Haus mark and is sized against it.
-        <div className="app-shell-band app-shell-titlebar-action flex items-center">
+        // `app-shell-band` is the glyph rank, not a box: the gear shares its
+        // line with the 22px Haus mark and is sized against it.
+        <div className="app-shell-band flex items-center">
             <Tooltip>
                 <Button
                     aria-label="Settings"

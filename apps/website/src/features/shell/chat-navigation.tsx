@@ -14,7 +14,7 @@ import { ChatNavigationRow, chatNavigationName } from './chat-navigation-row.tsx
 import { useCommandMenu } from './command-menu-provider.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 import { sidebarActionIconSize } from './section-header.tsx';
-import { ShellSidebarPageContent } from './shell-sidebar.tsx';
+import { ShellSidebarPageContent, useSidebarSurface } from './shell-sidebar.tsx';
 import { SidebarInboxRow } from './sidebar-inbox-row.tsx';
 import { SortableChannelList } from './sortable-channel-list.tsx';
 
@@ -46,6 +46,10 @@ export function ChatNavigation({
 }) {
     const location = useLocation();
     const { open: openCommandMenu } = useCommandMenu();
+    // The Haus mark leads the titlebar strip on the web, so Inbox takes its own
+    // glyph there; on the macOS desktop the lights lead that strip and the mark
+    // stays on this row.
+    const inboxMark = useSidebarSurface() === 'macos-desktop' ? 'ghost' : 'inbox';
     // Channel glyphs live in a lazily imported catalog. Warm it as soon as the
     // chat list mounts so rows and the picker have it before they need it.
     React.useEffect(() => {
@@ -66,8 +70,9 @@ export function ChatNavigation({
             <Sidebar.Group>
                 {/* One menu so Inbox, Search, and Tasks share one row anatomy
                     and one pitch. Inbox leads: it is the sidebar's top-left
-                    anchor, so the Haus mark sits where a product's wordmark
-                    would, and `shell.css` offsets that lead row by half the
+                    anchor, wearing the Haus mark on the macOS desktop and the
+                    route's own glyph on the web, where the mark leads the
+                    titlebar strip instead. `shell.css` offsets that lead row by half the
                     shared shell band so its midline meets the content topbar's
                     — the row keeps its own height, fill, and pitch, so Search
                     follows it at the same step every other pair sits at.
@@ -83,6 +88,7 @@ export function ChatNavigation({
                 >
                     <SidebarInboxRow
                         isCurrent={location.pathname.startsWith(inboxRoute(slug))}
+                        mark={inboxMark}
                         needsYouCount={needsYouCount}
                         onPreload={() => onPreloadSection('inbox')}
                         slug={slug}

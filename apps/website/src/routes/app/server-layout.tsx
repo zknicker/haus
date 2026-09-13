@@ -146,6 +146,7 @@ export function ServerLayout() {
                                                             }
                                                         />
                                                     }
+                                                    slug={slug}
                                                 >
                                                     <ShellSidebarPage
                                                         ariaLabel="Server"
