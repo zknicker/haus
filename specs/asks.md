@@ -175,4 +175,7 @@ spec owns the record and its surfaces.
    both the Chat timeline and the Thread — glyph, addressee, and status — and offers the options
    above the answer Thread's composer, where pressing one posts the human's own reply through the
    Thread send that already carries the conversation Chat and the Ask's anchor
-   ([iPhone internals](../docs/internals/ios.md)).
+   ([iPhone internals](../docs/internals/ios.md)). A Thread offers the options of the **newest open
+   Ask in that Thread**, whether that Ask is the anchor or a later reply: an Agent asks inside a
+   Thread as readily as it starts one, and the reply that answers either is the same send, so the
+   phone follows the open decision rather than the anchor.

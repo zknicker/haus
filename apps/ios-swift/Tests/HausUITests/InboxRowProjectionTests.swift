@@ -19,7 +19,7 @@ struct InboxNeedsYouRowsTests {
         #expect(rows.map(\.id) == ["ask:message_ask", "claim:message_task_3"])
     }
 
-    @Test func opensAnAskAtItsMessageAndAStalledClaimAtTheTaskList() throws {
+    @Test func opensAnAskAtItsMessageAndAStalledClaimAtItsOwnTask() throws {
         let rows = try #require(InboxNeedsYouRows.rows(
             asks: [InboxFixtures.openAsk()],
             tasks: [
@@ -29,7 +29,7 @@ struct InboxNeedsYouRowsTests {
         ))
 
         #expect(rows[0].open == .ask(messageID: "message_ask"))
-        #expect(rows[1].open == .tasks)
+        #expect(rows[1].open == .tasks(focus: TaskFocus(messageID: "message_task_3")))
     }
 
     @Test func listsOnlyClaimsThatStalled() throws {
