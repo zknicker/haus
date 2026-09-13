@@ -400,7 +400,10 @@ nested in two masks and a clip, so what costs is the number of frames the mark r
 many blobs moved in one. `TimelineView` ticks the canvas on exactly that grid and emits a single
 entry when the drift is stopped, which it is under Reduce Motion and whenever the scene is not
 active. Every offset is a pure function of elapsed seconds, so a pause freezes the mark where it
-stands instead of snapping it back to the loop's start.
+stands instead of snapping it back to the loop's start. The drawer is the third pause, beside
+Reduce Motion and the scene phase: the sidebar stays mounted behind the canvas, so the shell hands
+the row `ghostPaused` whenever no sliver of the drawer is showing — mid-drag counts as visible —
+and `HausGhostDriftClock` subtracts the slept stretch so reopening resumes the held frame.
 
 SF Symbols stay wherever the system owns the grammar: inside `ContentUnavailableView`, `Menu` labels,
 and `Label`, and for navigation backs, disclosure chevrons, picker chevrons, and selection
