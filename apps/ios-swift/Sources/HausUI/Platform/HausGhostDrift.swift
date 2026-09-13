@@ -156,3 +156,34 @@ struct HausGhostDriftSchedule: TimelineSchedule {
         }
     }
 }
+
+/// Elapsed drift time with every paused stretch subtracted out — the whole of
+/// how the mark freezes. Holding stores the moment it stopped and answers with
+/// it forever after; resuming adds that stretch to the sleep it carries, so the
+/// phase picks up where it stood rather than jumping to wherever the wall clock
+/// has got to, and never restarts from zero. It lives out here rather than in
+/// the view because it is the part worth asserting on.
+struct HausGhostDriftClock: Equatable {
+    private var pausedAt: Date?
+    private var slept: TimeInterval = 0
+
+    var isHeld: Bool { pausedAt != nil }
+
+    /// Seconds to hand `HausGhostDrift.offsets(atPhase:tempo:)` at `date`.
+    func phase(at date: Date) -> Double {
+        (pausedAt ?? date).timeIntervalSinceReferenceDate - slept
+    }
+
+    /// Freezes the drift on the frame it is showing. A second hold is a no-op:
+    /// the first one is what the mark is standing on.
+    mutating func hold(at date: Date) {
+        guard pausedAt == nil else { return }
+        pausedAt = date
+    }
+
+    mutating func resume(at date: Date) {
+        guard let pausedAt else { return }
+        slept += date.timeIntervalSince(pausedAt)
+        self.pausedAt = nil
+    }
+}

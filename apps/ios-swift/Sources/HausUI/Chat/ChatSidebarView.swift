@@ -45,6 +45,10 @@ public struct ChatSidebarView: View {
     /// How fast the Inbox mark's mesh drifts: `lively` only while an Agent on
     /// this Server is working.
     private let ghostTempo: HausGhostTempo
+    /// Whether that drift is frozen because the drawer is shut. This view stays
+    /// mounted behind the canvas, so without it the mark repaints on its grid
+    /// for a reader who cannot see it.
+    private let ghostPaused: Bool
     private let onOpenTasks: () -> Void
     private let onOpenArchived: () -> Void
     private let onOpenNewChannel: () -> Void
@@ -61,6 +65,7 @@ public struct ChatSidebarView: View {
         onOpenInbox: @escaping () -> Void = {},
         needsYouCount: Int = 0,
         ghostTempo: HausGhostTempo = .calm,
+        ghostPaused: Bool = false,
         onOpenTasks: @escaping () -> Void = {},
         onOpenArchived: @escaping () -> Void = {},
         onOpenNewChannel: @escaping () -> Void = {}
@@ -74,6 +79,7 @@ public struct ChatSidebarView: View {
         self.onOpenInbox = onOpenInbox
         self.needsYouCount = needsYouCount
         self.ghostTempo = ghostTempo
+        self.ghostPaused = ghostPaused
         self.onOpenTasks = onOpenTasks
         self.onOpenArchived = onOpenArchived
         self.onOpenNewChannel = onOpenNewChannel
@@ -102,6 +108,7 @@ public struct ChatSidebarView: View {
                                 needsYouCount: needsYouCount,
                                 glyphSize: Self.inboxGhostSize,
                                 ghostTempo: ghostTempo,
+                                ghostPaused: ghostPaused,
                                 glyphColumn: Self.rowGlyphSize,
                                 capsuleBleed: Self.rowCapsuleBleed,
                                 listInset: Self.listInset,

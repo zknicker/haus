@@ -17,11 +17,13 @@ import SwiftUI
 /// the column that names the product where the others name a screen — and it
 /// grows inside the shared column, centred on the same midline, so the `Inbox`
 /// label stays on the `Tasks` label's edge whatever size the mark takes. Its
-/// mesh drifts, quicker while an Agent here is working.
+/// mesh drifts, quicker while an Agent here is working, and not at all while
+/// the drawer holding it is shut.
 struct SidebarInboxRow: View {
     let needsYouCount: Int
     let glyphSize: CGFloat
     let ghostTempo: HausGhostTempo
+    let ghostPaused: Bool
     let glyphColumn: CGFloat
     let capsuleBleed: CGFloat
     let listInset: CGFloat
@@ -30,7 +32,13 @@ struct SidebarInboxRow: View {
     var body: some View {
         Button(action: onOpen) {
             HStack(spacing: 10) {
-                HausGhost(fill: .iridescent, animated: true, tempo: ghostTempo, size: glyphSize)
+                HausGhost(
+                    fill: .iridescent,
+                    animated: true,
+                    tempo: ghostTempo,
+                    paused: ghostPaused,
+                    size: glyphSize
+                )
                     .frame(width: glyphColumn, height: glyphColumn)
                 Text("Inbox")
                 Spacer(minLength: 0)

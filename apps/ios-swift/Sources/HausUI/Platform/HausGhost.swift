@@ -17,33 +17,36 @@ public struct HausGhost: View {
     private let fill: Fill
     private let animated: Bool
     private let tempo: HausGhostTempo
+    private let paused: Bool
     private let size: CGFloat
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
 
-    /// When the drift stopped, and how much of the clock it has slept through.
-    /// Together they hold the mark on the frame it was paused at: the phase is
-    /// a pure function of elapsed time, so subtracting the sleep resumes the
-    /// loop where it stood instead of snapping it back to the start.
-    @State private var pausedAt: Date?
-    @State private var slept: TimeInterval = 0
+    /// Where the drift stands, and what it has slept through. The phase is a
+    /// pure function of elapsed time, so subtracting the sleep holds the mark
+    /// on the frame it was paused at instead of snapping it back to the start.
+    @State private var clock = HausGhostDriftClock()
 
     /// - Parameters:
     ///   - animated: Iridescent only: drift the mesh so the color slowly
     ///     reorganizes.
     ///   - tempo: Animated only: `lively` runs the same drift loops 2.5x faster.
+    ///   - paused: Freeze the drift where it stands because nobody can see it —
+    ///     the caller's own answer, alongside the two this view already knows.
     ///   - size: Rendered height in points; width follows the 192:204 aspect.
     public init(
         fill: Fill = .solid,
         animated: Bool = false,
         tempo: HausGhostTempo = .calm,
+        paused: Bool = false,
         size: CGFloat = 24
     ) {
         self.fill = fill
         self.animated = animated
         self.tempo = tempo
+        self.paused = paused
         self.size = size
     }
 
@@ -83,33 +86,28 @@ public struct HausGhost: View {
             }
         }
         .onAppear {
-            if !isDrifting, pausedAt == nil { pausedAt = Date() }
+            if !isDrifting { clock.hold(at: Date()) }
         }
         .onChange(of: isDrifting) { _, running in
-            guard running else {
-                pausedAt = Date()
-                return
+            if running {
+                clock.resume(at: Date())
+            } else {
+                clock.hold(at: Date())
             }
-            slept += Date().timeIntervalSince(pausedAt ?? Date())
-            pausedAt = nil
         }
     }
 
-    /// Nobody is watching a backgrounded app's sidebar, and the filter chain
-    /// does not know that.
+    /// Nobody is watching a backgrounded app's sidebar — or a sidebar parked
+    /// behind the canvas — and the filter chain does not know that.
     private var isDrifting: Bool {
-        fill == .iridescent && animated && !reduceMotion && scenePhase == .active
+        fill == .iridescent && animated && !paused && !reduceMotion && scenePhase == .active
     }
 
     private func offsets(at date: Date) -> [CGSize] {
         guard fill == .iridescent, animated else {
             return HausGhostDrift.offsets(atPhase: 0, tempo: tempo)
         }
-        let moment = pausedAt ?? date
-        return HausGhostDrift.offsets(
-            atPhase: moment.timeIntervalSinceReferenceDate - slept,
-            tempo: tempo
-        )
+        return HausGhostDrift.offsets(atPhase: clock.phase(at: date), tempo: tempo)
     }
 }
 

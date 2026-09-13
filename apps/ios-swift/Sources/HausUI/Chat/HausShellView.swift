@@ -144,6 +144,12 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                     onOpenInbox: openInboxCanvas,
                     needsYouCount: needsYouCount,
                     ghostTempo: ghostTempo,
+                    // The sidebar stays mounted behind the canvas, so the mark
+                    // would keep repainting on its drift grid for a shut
+                    // drawer. Any sliver of it counts as visible, mid-drag
+                    // included; the drift freezes where it stands and resumes
+                    // from that frame rather than from the loop's start.
+                    ghostPaused: drawerProgress(drawerWidth: drawerWidth) <= 0,
                     onOpenTasks: openTasks,
                     onOpenArchived: { activeChatSheet = .archived },
                     onOpenNewChannel: { activeChatSheet = .newChannel }
