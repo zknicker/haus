@@ -30,6 +30,7 @@ import { ensureDevelopmentChatAttachment } from './seed-chat-attachment.ts';
 import { ensureDevelopmentCove } from './seed-cove.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
 import { seedDevelopmentInboxActivity } from './seed-inbox-activity.ts';
+import { seedDevelopmentUiGallery } from './seed-ui-gallery.ts';
 
 const demoInventory = {
     name: 'Development Mac',
@@ -64,6 +65,7 @@ export async function seedDevelopmentServer(
             await ensureDevelopmentChatAttachment(db, options.attachmentRoot, existing[0].id);
         }
         await seedDevelopmentInboxActivity(db, { serverId: existing[0].id, userId: user.id });
+        await seedDevelopmentUiGallery(db, { serverId: existing[0].id, userId: user.id });
         return existing[0];
     }
 
@@ -325,8 +327,7 @@ export async function seedDevelopmentServer(
             url: 'https://example.invalid/mcp',
         });
 
-        // Ninety days of token usage, so the Usage dashboard has a shape to
-        // read at every range and its breakdown has more than one row.
+        // Ninety days of usage populate every dashboard range.
         await tx.insert(agentTokenUsageDailyTable).values(
             demoTokenUsage(serverId, now, [
                 { id: blippyId, modelId: 'gpt-5.6-sol', weight: 1 },
@@ -342,6 +343,7 @@ export async function seedDevelopmentServer(
         await ensureDevelopmentChatAttachment(db, options.attachmentRoot, seeded.id);
     }
     await seedDevelopmentInboxActivity(db, { serverId: seeded.id, userId: user.id });
+    await seedDevelopmentUiGallery(db, { serverId: seeded.id, userId: user.id });
     return seeded;
 }
 
@@ -358,6 +360,7 @@ async function ensureDevelopmentComputerAttachment(
     const [computer] = await db
         .select({ id: computersTable.id })
         .from(computersTable)
+        .innerJoin(serverOnboardingTable, eq(serverOnboardingTable.computerId, computersTable.id))
         .where(eq(computersTable.serverId, server.id))
         .limit(1);
     if (!computer) {
@@ -402,10 +405,7 @@ function hash(value: string) {
     return createHash('sha256').update(value).digest('hex');
 }
 
-/**
- * A Thread's id is derived from the message it hangs off, so a task and its
- * Thread agree without a lookup. Mirrors `ensureThread`.
- */
+/** Mirrors the deterministic anchor id used by `ensureThread`. */
 function demoThreadId(anchorMessageId: string) {
     return `cht_thr_${anchorMessageId.replace(/^msg_/u, '')}`;
 }

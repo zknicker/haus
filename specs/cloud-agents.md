@@ -130,6 +130,12 @@ One optional line shows `activity` while the work runs, and the latest Run summa
 work is terminal. The surface opens the Thread. Open in Cursor and Cancel live in the surface's
 overflow menu.
 
+**Web attachments before replies.** A top-level work Message with no replies uses a content-width
+button containing provider, work title, and status, followed by the activity line when present.
+The adjacent menu retains the work actions. Once replies exist, the same facts move into the
+Thread card; zero replies never reserves an empty Thread card. Full work details inside the Thread
+remain unchanged. iOS retains its existing presentation until a separate native update.
+
 **Thread preview.** Each Cloud Agent work inside a Thread gets an informational row below the
 anchor's Task/Ask header: provider, title, and status with elapsed or total duration. Completed work
 stays visible. The entire preview opens the Thread; individual work rows are not click targets.

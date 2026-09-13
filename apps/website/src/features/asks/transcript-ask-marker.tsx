@@ -1,6 +1,6 @@
 import type { Ask } from '@haus/api';
 import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
-import type { TranscriptActor } from '../chats/transcript-contract.ts';
+import { AskAnswerCard } from './ask-answer-card.tsx';
 import { MessageAskMarker } from './message-ask-marker.tsx';
 
 /**
@@ -9,23 +9,18 @@ import { MessageAskMarker } from './message-ask-marker.tsx';
  * addressee who has since left the Server reads the same here as anywhere.
  */
 export function TranscriptAskMarker({ ask }: { ask: Ask }) {
-    const resolve = useTranscriptRenderContextOptional()?.resolveActorProfile;
+    const context = useTranscriptRenderContextOptional();
+    const resolve = context?.resolveActorProfile;
     const addressee = resolve?.({ id: ask.addresseeUserId, kind: 'participant' }) ?? null;
-    const answeredBy = ask.answeredBy ? (resolve?.(askAnswerActor(ask.answeredBy)) ?? null) : null;
-
+    if (context?.threadAskReply) {
+        return <AskAnswerCard addressee={addressee} ask={ask} reply={context.threadAskReply} />;
+    }
     return (
         <MessageAskMarker
             addresseeProfile={
                 addressee ? { avatarUrl: addressee.avatarUrl, name: addressee.name } : null
             }
-            answeredByName={answeredBy?.name ?? null}
             status={ask.status}
         />
     );
-}
-
-function askAnswerActor(answeredBy: NonNullable<Ask['answeredBy']>): TranscriptActor {
-    return answeredBy.kind === 'agent'
-        ? { id: answeredBy.id, kind: 'agent' }
-        : { id: answeredBy.id, kind: 'participant' };
 }

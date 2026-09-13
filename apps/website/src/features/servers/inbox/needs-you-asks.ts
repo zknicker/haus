@@ -1,4 +1,4 @@
-import { type Agent, type ChatSendInput, type OpenAsk, openAskThreadAnchor } from '@haus/api';
+import type { Agent, OpenAsk } from '@haus/api';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
@@ -44,30 +44,6 @@ export function toNeedsYouAsks(
         summary: messagePreviewLine(item.ask.summary),
         title: item.ask.title,
     }));
-}
-
-/**
- * The answer a pressed option sends: the human's own Message, carrying that
- * option's text verbatim, addressed to the conversation and to the Message its
- * Thread hangs off — never to the Thread's own Chat id, which is the shape a
- * Thread reply takes everywhere. Pressing an option and typing the same words
- * are the same send, so the Server settles the Ask as a side effect of either.
- *
- * It reads the Server record rather than the row projection: the options live
- * in the Ask's own Thread peek, and that is the record the peek already holds.
- */
-export function askAnswerMessage(
-    item: OpenAsk,
-    input: { nonce: string; option: string; serverId: string }
-): ChatSendInput {
-    return {
-        attachmentIds: [],
-        chatId: item.conversationChatId,
-        content: input.option,
-        nonce: input.nonce,
-        serverId: input.serverId,
-        thread: { anchorMessageId: openAskThreadAnchor(item).id },
-    };
 }
 
 function askAgentName(item: OpenAsk, agentsById: ReadonlyMap<string, Agent>): string {

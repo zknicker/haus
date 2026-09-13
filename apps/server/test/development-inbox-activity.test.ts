@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { listComputerCloudAgentWork } from '../src/cloud-agents/list-computer-cloud-agent-work.ts';
 import { seedDevelopmentInboxActivity } from '../src/development/seed-inbox-activity.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -57,7 +58,7 @@ test('Conversations reads unread demo Chats with their last line', async () => {
 
 test('Needs you reads both open Asks and one stalled claim', async () => {
     const asks = await owner.trpc.ask.listOpen.query({ serverId });
-    expect(asks).toHaveLength(2);
+    expect(asks.filter((row) => row.chatName !== 'ui-gallery')).toHaveLength(2);
     const rename = asks.find((row) => row.ask.title === 'Rename #product to #build?');
     const staleCopy = asks.find((row) => row.ask.title === 'Which stale copy should I fix first?');
 
@@ -82,7 +83,9 @@ test('Needs you reads both open Asks and one stalled claim', async () => {
     const agents = await owner.trpc.agent.list.query({ serverId });
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id;
     const { tasks } = await owner.trpc.task.list.query({ includeBackground: false, serverId });
-    const claims = tasks.filter((item) => item.task.origin === 'claimed');
+    const claims = tasks.filter(
+        (item) => item.task.origin === 'claimed' && item.task.assigneeAgentId === blippyId
+    );
 
     expect(claims).toHaveLength(1);
     expect(claims[0]?.task).toMatchObject({
@@ -96,9 +99,9 @@ test('Needs you reads both open Asks and one stalled claim', async () => {
 
 // No running Cloud Agent work is seeded: Computer would reconcile a fake run
 // against the provider every minute and wedge the Server's connection pool.
-test('Happening now is empty and the settled Cloud Agent work keeps its evidence', async () => {
+test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
     const active = await owner.trpc.cloudAgentWork.listActive.query({ serverId });
-    expect(active).toEqual([]);
+    expect(active).toHaveLength(5);
 
     const chats = await owner.trpc.chat.list.query({ serverId });
     const productChatId = chats.find((chat) => chat.name === 'product')?.id ?? '';
@@ -191,4 +194,38 @@ test('a Server without the demo shape is left alone', async () => {
         before.map((chat) => chat.lastMessageSequence)
     );
     expect(await owner.trpc.ask.listOpen.query({ serverId: plain.id })).toEqual([]);
+});
+
+test('UI gallery reads the attachment combinations and isolates live samples', async () => {
+    const chats = await owner.trpc.chat.list.query({ serverId });
+    const gallery = chats.find((chat) => chat.name === 'ui-gallery');
+    expect(gallery).toBeDefined();
+    const chatId = gallery?.id ?? '';
+    const transcript = await owner.trpc.chat.messages.query({ serverId, chatId });
+    expect(transcript.messages).toHaveLength(26);
+    expect(transcript.messages.filter((message) => message.body.kind === 'ask')).toHaveLength(6);
+    const works = await owner.trpc.cloudAgentWork.listForChat.query({ serverId, chatId });
+    expect(works).toHaveLength(11);
+    expect([...new Set(works.map((entry) => entry.work.status))].sort()).toEqual([
+        'cancelled',
+        'completed',
+        'expired',
+        'failed',
+        'queued',
+        'running',
+    ]);
+    const [onboarding] =
+        await harness.sql`select computer_id from server_onboarding where server_id = ${serverId}`;
+    expect(
+        await listComputerCloudAgentWork(database.db, {
+            serverId,
+            computerId: onboarding.computer_id,
+        })
+    ).toEqual([]);
+    const active = works.filter(
+        (entry) => entry.work.status === 'running' || entry.work.status === 'queued'
+    );
+    expect(active).toHaveLength(5);
+    expect(active.every((entry) => entry.work.computerId !== onboarding.computer_id)).toBe(true);
+    expect(works.every((entry) => entry.work.providerUrl === null)).toBe(true);
 });

@@ -1,6 +1,11 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, chatsTable, computersTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    chatsTable,
+    computersTable,
+    serverOnboardingTable,
+} from '../postgres/schema.ts';
 
 /** Every record the Inbox seed writes against, resolved once and fully. */
 export interface InboxSeedContext {
@@ -41,6 +46,7 @@ export async function findInboxSeedContext(
     const [computer] = await tx
         .select({ id: computersTable.id })
         .from(computersTable)
+        .innerJoin(serverOnboardingTable, eq(serverOnboardingTable.computerId, computersTable.id))
         .where(eq(computersTable.serverId, input.serverId))
         .limit(1);
     const agentIdByHandle = new Map(agents.map((agent) => [agent.handle, agent.id]));
