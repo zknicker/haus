@@ -11,50 +11,35 @@ import Testing
 
         #expect(ask.status == .open)
         #expect(ask.addressee?.name == "Zach")
-        #expect(ask.statusText == "Open")
         #expect(ask.options == ["Yes, rename it", "Keep #product", "Not now"])
-        // The open line is the word plus whose turn it is; the ring says "Open".
-        #expect(ask.markerText == "Ask")
-        #expect(ask.markerAddressee?.name == "Zach")
+        // The open line is the word, whose turn it is, and what it waits for.
+        #expect(AskPresentation.markerLabel == "Ask")
+        #expect(AskPresentation.awaitingAnswer == "Awaiting answer")
     }
 
-    /// A settled Ask names who answered, because the first answer wins
-    /// permanently and that author is what a reader scanning back needs.
-    @Test func namesWhoAnsweredOnceTheAskIsSettled() throws {
+    /// A settled Ask still projects — the marker and the card are what stop
+    /// drawing, not the record they read.
+    @Test func readsASettledAskAsAnsweredAndDrawsNothing() throws {
         let human = try #require(
             AskPresentation.present(
                 try body(answeredBy: #"{"id":"user_1","kind":"user"}"#, status: "answered"),
                 actor: directory
             )
         )
-        #expect(human.status == .answered)
-        #expect(human.statusText == "Answered by Zach")
-        // One fact per line: the settled marker spends it on who answered, and
-        // the addressee gives way rather than truncating beside them.
-        #expect(human.markerText == "Answered by Zach")
-        #expect(human.addressee?.name == "Zach")
-        #expect(human.markerAddressee == nil)
 
-        let agent = try #require(
-            AskPresentation.present(
-                try body(answeredBy: #"{"id":"agent_marlow","kind":"agent"}"#, status: "answered"),
-                actor: directory
-            )
-        )
-        #expect(agent.statusText == "Answered by Marlow")
+        #expect(human.status == .answered)
+        #expect(human.addressee?.name == "Zach")
     }
 
-    /// An answerer nobody can resolve still reads as settled; only the name is
-    /// missing.
-    @Test func readsAnUnresolvableAnswererAsUnknown() throws {
-        let ask = try #require(
-            AskPresentation.present(
-                try body(answeredBy: #"{"id":"user_gone","kind":"user"}"#, status: "answered"),
-                actor: directory
-            )
-        )
+    /// The card leads with the decision and whose it is; the question itself is
+    /// the Message above it and is never repeated.
+    @Test func titlesTheAnswerCardWithItsAddressee() throws {
+        let ask = try #require(AskPresentation.present(try body(), actor: directory))
 
-        #expect(ask.statusText == "Answered by Unknown")
+        #expect(AskPresentation.answerCardTitle(addressee: ask.addressee) == "Ask for Zach")
+        // An addressee who is no longer resolvable is a missing face, not a
+        // missing Ask: the card still names what it is.
+        #expect(AskPresentation.answerCardTitle(addressee: nil) == "Ask")
     }
 
     /// Only an `ask` body earns a marker; every other body kind wears none.
