@@ -174,8 +174,8 @@ spec owns the record and its surfaces.
    the same union later ([Cloud Agents](cloud-agents.md)).
 2. **Landed.** The `haus ask` command, addressee validation, the single creation transaction,
    settlement inside the ordinary Message creation paths, `ask.updated`, and `ask.listOpen`.
-3. **Landed.** The Inbox "Needs you" row and the peek's option chips, each posting the human's
-   Message.
+3. **Landed.** The Inbox "Needs you" row and the peek's shared answer card under the Ask, each
+   option posting the human's Message.
 4. **Landed.** The Thread-surface Ask marker in Haus App, with deterministic Server, API,
    Computer, and App coverage of creation, settlement, ineligible-addressee failure, the Agent line
    format, and the browser Inbox flow. Haus for iPhone carries the same presentation: the answer
