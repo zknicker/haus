@@ -168,11 +168,11 @@ in `localStorage` under `haus.chat.showTasks`. The command palette carries the s
 entry that reads as what pressing it does — `Show tasks in chat` while they are hidden, `Hide tasks
 in chat` while they are showing.
 
-The native iPhone app carries both lenses, and on the Chat lens it still reads the way the web did
-before the attachment change: the same per-device **Show tasks in chat** preference decides whether a
-`claimed` task states itself at all, so a hidden claim contributes nothing and a Thread that filled
-up under one reads as the plain recessed card without the task's metadata. The Task list carries the
-same `N background` widening ([iOS internals](../internals/ios.md)).
+The native iPhone app carries both lenses and reads the same way on the Chat lens: the per-device
+**Show tasks in chat** preference decides whether an empty `claimed` task states itself, and a
+populated Thread always states its task, so a hidden claim whose Thread has replies shows
+`Task #N · status` on its ingress card. The Task list carries the same `N background` widening
+([iOS internals](../internals/ios.md)).
 
 A claim nobody finished is the one case a person needs told, and it is told in the
 [Inbox](inbox.md) rather than in Chat: a `claimed` task still `in_progress`, stamped tracked because

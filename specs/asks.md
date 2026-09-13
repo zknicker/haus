@@ -101,10 +101,11 @@ panes, Task dialogs, and Inbox peeks share this surface. The question is not rep
 Only the newest open Ask offers answer controls, matching Server settlement; read-only Threads
 show status without controls.
 
-Once answered, the Ask marker disappears everywhere in the web transcript, including Task Threads.
-The question and replies remain ordinary conversation; any populated Thread keeps its reply card
-without Ask metadata. Settlement and Inbox behavior are unchanged. iOS retains its existing
-presentation until a separate native update.
+Once answered, the Ask marker disappears everywhere in the transcript, including Task Threads. The
+question and replies remain ordinary conversation; any populated Thread keeps its reply card without
+Ask metadata. Settlement and Inbox behavior are unchanged. Haus for iPhone carries this presentation
+natively: the same answer card under the Ask inside a Thread, the same compact marker in the Chat
+timeline, and nothing at all once the Ask is answered.
 
 ## Agent reading
 
@@ -177,11 +178,12 @@ spec owns the record and its surfaces.
    Message.
 4. **Landed.** The Thread-surface Ask marker in Haus App, with deterministic Server, API,
    Computer, and App coverage of creation, settlement, ineligible-addressee failure, the Agent line
-   format, and the browser Inbox flow. Haus for iPhone carries the presentation this spec retains
-   for iOS: a compact Ask marker on the Ask Message in both the Chat timeline and the Thread —
-   glyph, addressee, and status — and the options as a row above the answer Thread's composer, where
-   pressing one posts the human's own reply through the Thread send that already carries the
-   conversation Chat and the Ask's anchor ([iPhone internals](../docs/internals/ios.md)). The phone
-   has no answer card and no content-width attachment yet. It does follow the same **newest open
-   Ask** rule the web answer card does, anchor or later reply alike: an Agent asks inside a Thread
-   as readily as it starts one, and the reply that answers either is the same send.
+   format, and the browser Inbox flow. Haus for iPhone carries the same presentation: the answer
+   card under the Ask's own Message inside a Thread — addressee, `Awaiting answer`, the options, and
+   the line pointing at the composer — and the compact marker in the Chat timeline, which is also
+   that Ask's way in until somebody replies ([iPhone internals](../docs/internals/ios.md)). Pressing
+   an option posts the human's own reply through the Thread send that already carries the
+   conversation Chat and the Ask's anchor. The phone follows the same **newest open Ask** rule,
+   anchor or later reply alike, and an older open Ask keeps its card's header without controls. The
+   phone has no read-only Thread state, so it has nothing to gate on; the content-width attachment
+   treatment remains web-only.
