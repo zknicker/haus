@@ -31,18 +31,36 @@ test('an open Ask leads the Inbox, and its options answer in the Thread peek', a
         token: session.token,
     });
 
+    await page.goto('/s/asks');
+    await openChannel(page, 'all');
+    const attachment = page.getByRole('button', { exact: true, name: 'Open thread, Ask' });
+    await expect(attachment).toBeVisible();
+    await expect(attachment).toContainText('Awaiting answer');
+    await expect(page.getByText('0 replies', { exact: true })).toHaveCount(0);
+    await attachment.click();
+    await expect(page.getByRole('complementary', { name: 'Thread' })).toBeVisible();
+    await expect(page.getByRole('article', { name: 'Answer ask' })).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: `${recommendation} · Recommended`, exact: true })
+    ).toBeVisible();
+
     // The row states the Ask and opens it. It carries no control of its own,
     // so no option is pressable until the Ask itself is open.
     await page.goto('/s/asks/inbox');
     const row = page.getByRole('button', { exact: true, name: askTitle });
     await expect(row).toBeVisible();
     await expect(row).toContainText('The migration is staged and reversible for one hour.');
-    await expect(page.getByRole('button', { exact: true, name: recommendation })).toHaveCount(0);
+    await expect(
+        page.getByRole('button', { exact: true, name: `${recommendation} · Recommended` })
+    ).toHaveCount(0);
 
     // The options live in the peek, where the question and its reasoning are
     // readable, and the Agent's recommendation leads them emphasized.
     await row.click();
-    const recommended = page.getByRole('button', { exact: true, name: recommendation });
+    const recommended = page.getByRole('button', {
+        exact: true,
+        name: `${recommendation} · Recommended`,
+    });
     const held = page.getByRole('button', { exact: true, name: alternative });
     await expect(recommended).toBeVisible();
     await expect(held).toBeVisible();
@@ -64,11 +82,14 @@ test('an open Ask leads the Inbox, and its options answer in the Thread peek', a
     expect(answer?.content).toBe(recommendation);
     expect(answer?.author.kind).toBe('human');
 
-    // The Chat keeps the settled Ask legible: the marker names who answered.
+    // Settlement removes the Ask attachment while keeping the conversation.
     await page.goto('/s/asks');
     await openChannel(page, 'all');
     const askRow = page
         .getByText('The migration is staged. Should I run it now?', { exact: true })
         .locator('xpath=ancestor::div[@data-message-id][1]');
-    await expect(askRow.getByTestId('message-ask-marker')).toContainText('Answered by Ada');
+    await expect(askRow.getByTestId('message-ask-marker')).toHaveCount(0);
+    await expect(
+        askRow.getByRole('button', { name: 'Open thread, 1 reply', exact: true })
+    ).toBeVisible();
 });

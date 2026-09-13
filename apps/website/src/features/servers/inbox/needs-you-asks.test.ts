@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { Agent, OpenAsk } from '@haus/api';
 import { humanDirectory } from '../human-identity.ts';
-import { askAnswerMessage, toNeedsYouAsks } from './needs-you-asks.ts';
+import { toNeedsYouAsks } from './needs-you-asks.ts';
 
 const humans = humanDirectory(
     [{ displayName: 'Zach', handle: 'zach', userId: 'user_me' } as never],
@@ -104,41 +104,4 @@ test('an Ask summary written as Markdown reads as one flat line', () => {
 
 test('a retired Agent keeps the name its Message stored', () => {
     expect(toNeedsYouAsks([openAsk()], humans, [])[0]?.agentName).toBe('Blippy (stored)');
-});
-
-test('a pressed option answers in the conversation, on the Thread anchor', () => {
-    const topLevel = openAsk();
-    const inThread = openAsk({
-        ask: { ...openAsk().ask, chatId: 'chat_thread' },
-        threadAnchorMessage: { id: 'message_anchor' } as OpenAsk['message'],
-    });
-
-    // A top-level Ask anchors its own Thread, so the answer replies to the Ask
-    // Message itself, carrying the pressed option's text verbatim.
-    expect(
-        askAnswerMessage(topLevel, {
-            nonce: 'nonce_one',
-            option: 'Hold for review',
-            serverId: 'server_one',
-        })
-    ).toEqual({
-        attachmentIds: [],
-        chatId: 'chat_product',
-        content: 'Hold for review',
-        nonce: 'nonce_one',
-        serverId: 'server_one',
-        thread: { anchorMessageId: 'message_one' },
-    });
-    // Threads do not nest: an Ask inside one answers on that Thread's anchor,
-    // addressed to the Channel or DM the Thread hangs under.
-    expect(
-        askAnswerMessage(inThread, {
-            nonce: 'nonce_two',
-            option: 'Ship it',
-            serverId: 'server_one',
-        })
-    ).toMatchObject({
-        chatId: 'chat_product',
-        thread: { anchorMessageId: 'message_anchor' },
-    });
 });

@@ -31,7 +31,7 @@ test('a claimed task states nothing in Chat while the setting is off', () => {
     assert.doesNotMatch(markup, /Open thread/);
 });
 
-test('a claimed task with replies keeps a plain Thread, without its title', () => {
+test('a claimed task with replies states its task in the Thread', () => {
     const row = taskRow('msg_1', 'Rename the deploy script', {
         origin: 'claimed',
         status: 'in_progress',
@@ -41,9 +41,10 @@ test('a claimed task with replies keeps a plain Thread, without its title', () =
     );
 
     assert.match(markup, /2 replies/);
-    assert.match(markup, /aria-label="Open thread, 2 replies"/);
-    assert.doesNotMatch(markup, /message-task-chip/);
-    assert.doesNotMatch(markup, /Task #1/);
+    assert.match(markup, /aria-label="Open thread, Task #1, 2 replies"/);
+    assert.match(markup, /message-task-chip/);
+    assert.match(markup, /Task #1/);
+    assert.doesNotMatch(markup, /0 replies/);
 });
 
 test('turning the setting on gives a claimed task the ordinary task surface', () => {
@@ -58,6 +59,7 @@ test('turning the setting on gives a claimed task the ordinary task surface', ()
 
     assert.match(markup, /message-task-chip/);
     assert.match(markup, /Task #1/);
+    assert.doesNotMatch(markup, /0 replies/);
 });
 
 test('a task a human made shows in Chat whatever the setting says', () => {
@@ -73,6 +75,65 @@ test('a task a human made shows in Chat whatever the setting says', () => {
     assert.match(converted, /message-task-chip/);
     assert.match(converted, /Task #2/);
 });
+
+test('an open Ask is a compact attachment, never a zero-reply card', () => {
+    const row = askRow('open');
+    const markup = renderTranscript([row]);
+    assert.match(markup, /message-ask-marker/);
+    assert.match(markup, /Awaiting answer/);
+    assert.match(markup, /aria-label="Open thread, Ask"/);
+    assert.doesNotMatch(markup, /0 replies|group\/thread/);
+});
+
+test('an answered Ask leaves only its conversation, including on a task', () => {
+    const row = askRow('answered');
+    const markup = renderTranscript([{ ...row, thread: threadSummary(row.id, 1) }]);
+    assert.doesNotMatch(markup, /message-ask-marker|Answered by|Awaiting answer/);
+    assert.match(markup, /aria-label="Open thread, 1 reply"/);
+    const task = taskRow(row.id, row.message.content);
+    const taskMarkup = renderTranscript([
+        {
+            ...task,
+            message: { ...task.message, ask: row.message.ask },
+            thread: threadSummary(row.id, 1),
+        },
+    ]);
+    assert.match(taskMarkup, /Task #1/);
+    assert.doesNotMatch(taskMarkup, /message-ask-marker|Answered by/);
+});
+
+test('answered Asks leave no attachment inside a Thread or without replies', () => {
+    for (const threadActionsEnabled of [true, false]) {
+        const markup = renderTranscript([askRow('answered')], { threadActionsEnabled });
+        assert.doesNotMatch(markup, /message-ask-marker|Answered by|group\/thread/);
+    }
+});
+
+function askRow(status: 'open' | 'answered'): TranscriptMessageRow {
+    const row = taskRow('msg_ask', 'Should I rename the channel?');
+    return {
+        ...row,
+        message: {
+            ...row.message,
+            task: undefined,
+            ask: {
+                id: 'ask_1',
+                messageId: row.id,
+                chatId: 'cht_parent',
+                agentId: 'agt_cove',
+                addresseeUserId: 'usr_zach',
+                title: 'Rename?',
+                summary: 'Rename the channel',
+                options: ['Yes'],
+                status,
+                answeredBy: status === 'answered' ? { kind: 'user', id: 'usr_zach' } : null,
+                answerMessageId: status === 'answered' ? 'msg_answer' : null,
+                createdAt: '2026-09-08T12:00:00.000Z',
+                answeredAt: status === 'answered' ? '2026-09-08T12:01:00.000Z' : null,
+            },
+        },
+    };
+}
 
 /** The preference is a device-wide store, so a test that flips it puts it back. */
 function withTasksInChat<TResult>(enabled: boolean, render: () => TResult): TResult {

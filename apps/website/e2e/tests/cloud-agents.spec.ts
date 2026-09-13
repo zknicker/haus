@@ -48,6 +48,10 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     await expect(header).toContainText('Cursor');
     await expect(header).toContainText(workTitle);
     await expect(header).toContainText('Queued');
+    await expect(page.getByText('0 replies', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Open thread, Cloud Agent work/u })).toHaveClass(
+        /button--secondary/u
+    );
 
     // A Computer reporting progress updates the same header in place, with no
     // second Message: this is one record, not a transcript.
