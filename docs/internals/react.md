@@ -91,24 +91,49 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 ## Shell
 
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
-  `ShellSidebar` — there is no icon rail. The sidebar leads with the Inbox row,
-  first in the Inbox/Search/Tasks menu and marked by the Haus ghost where a
-  product's wordmark would sit; the mark carries a slowly drifting mesh
-  gradient that moves a little faster while any Agent is working. Chat navigation follows; the footer holds live Agent activity above
-  the bottom-pinned desktop update status. The settings gear is the sidebar's
-  only other chrome, and it takes no row: off the macOS desktop it sits at the
-  trailing end of the footer, on the Agent activity strip's line, and
-  `ShellSidebar` chooses that slot from the `macos-electron` root class rather
-  than a process probe, so the gear's DOM position matches where it is drawn.
+  `ShellSidebar` — there is no icon rail. Every surface reserves a titlebar
+  strip at the top of the sidebar, held by `SidebarTitlebarStrip`, and where
+  the Haus ghost sits is the sidebar's one platform fork. On the web the mark
+  leads that strip, where a product's wordmark would sit, and the Inbox row
+  wears the inbox glyph like every other navigation row. On the macOS desktop
+  the traffic lights already lead the strip, so the strip carries only the
+  settings gear and the mark stays on the Inbox row. On the web the strip's mark is a link to the
+  Inbox — the way home a wordmark in a product's corner is, with no hover
+  treatment and a real tab stop — and the ghost inside it stays `aria-hidden`
+  so the link carries the name. That name is "Haus", the product mark and the
+  breadcrumb's leading crumb, not its destination: the Inbox navigation row
+  sits just below it with the same href, and two adjacent tab stops named
+  "Inbox" is one name too many.
+   the Inbox row's own mark on the macOS desktop
+  is the row's icon and nothing more. Either way the mark carries a slowly
+  drifting mesh gradient that moves a little faster while any Agent is
+  working.
+  `ShellSidebar` resolves the surface once from the `macos-electron` class
+  `main.tsx` stamps on the root (`resolveSidebarSurface`) and publishes it as
+  context (`useSidebarSurface`); `shell.css` forks on the same class, and
+  nothing else reads it. The navigation below leads with the Inbox row, first
+  in the Inbox/Search/Tasks menu, and chat navigation follows; the footer holds
+  live Agent activity above the bottom-pinned desktop update status. The gear
+  takes no row of its own: `resolveSettingsActionSlot` derives from the same
+  surface and keeps the footer's trailing end wired as the other slot, so the
+  gear's DOM position matches where it is drawn.
   A sidebar page's first navigation row is offset by half the shared
   `--app-shell-band-height` band — Inbox in chat navigation, the back-to-chat
   row elsewhere — so its midline meets the content topbar's across the divider
   while the menu's own pitch continues underneath; the row keeps HeroUI's own
-  height, fill, and end padding. On the macOS desktop the column starts below
-  the titlebar strip, which is where the gear lands beside the traffic lights,
-  and the strip plus that offset is the navigation's clearance under them — so
-  the lead row's midline sits a strip lower than the content topbar's there, by
-  construction. Switching,
+  height, fill, and end padding. The column starts below the titlebar strip on
+  every surface — that is where the gear lands, beside the traffic lights on
+  macOS — and the strip plus that offset is the navigation's clearance under
+  them, so the lead row's midline sits one strip below the content topbar's
+  everywhere, by construction. Only the strip's value is declared per platform
+  (`--app-shell-titlebar-inset`, `shell.css`); the web currently takes the same
+  one. The Inbox page fills the band like every other routed
+  destination: the page's own glyph and its breadcrumb trail, in Settings' own
+  band shape, and nothing at the trailing end. Every band's trail leads with a
+  "Haus" crumb linking back to the Inbox: the Inbox band reads Haus › Inbox,
+  and Settings reads Haus › Settings › page (› record). Its column is stock,
+  so the greeting opens under the band at the page's ordinary top inset on
+  every surface. Switching,
   creating, and joining Servers live under Settings → Servers, not in the
   sidebar. Sections compose `ShellSidebarPage` slots; route state
   selects one slot without replacing the sidebar root, and non-chat pages
