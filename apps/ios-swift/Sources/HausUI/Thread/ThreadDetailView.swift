@@ -125,7 +125,13 @@ public struct ThreadDetailView: View {
                     // composer and the inset reserves their clearance.
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         VStack(spacing: 8) {
-                            askOptions
+                            ThreadAskOptionsRow(
+                                openAsks: openAsksProvider(),
+                                anchor: anchor
+                            ) { option in
+                                guard !pending else { return false }
+                                return await onSend(option, [])
+                            }
                             MessageComposerView(
                                 text: $draft,
                                 interaction: composerInteraction,
@@ -168,25 +174,6 @@ public struct ThreadDetailView: View {
                     ThreadFollowControl(follow: follow)
                 }
             }
-        }
-    }
-
-    /// The newest open Ask in this Thread — the anchor's own, or one an Agent
-    /// posted as a reply; `ThreadAskOptions` owns which. Pressing an option is
-    /// the Thread's own send, which already addresses the parent Chat and this
-    /// anchor Message — the exact pair an Ask's answer takes (`AskAnswerRoute`),
-    /// whichever Ask in the Thread it settles. A settled Ask keeps only its
-    /// marker: the first answer won permanently.
-    @ViewBuilder
-    private var askOptions: some View {
-        if let offer = ThreadAskOptions.offered(openAsks: openAsksProvider(), anchor: anchor) {
-            AskOptionsRow(options: offer.options) { option in
-                guard !pending else { return false }
-                return await onSend(option, [])
-            }
-            // A second Ask is a second decision: its own row, not one a
-            // previous answer already spent.
-            .id(offer.id)
         }
     }
 
@@ -306,5 +293,4 @@ public struct ThreadDetailView: View {
             .padding(.bottom, 8)
         }
     }
-
 }

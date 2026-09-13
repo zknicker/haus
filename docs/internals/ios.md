@@ -676,7 +676,8 @@ Inbox was the only surface that could open it. Inside a Thread the marker is ine
 would open is the screen it is on.
 
 The options above the Thread composer belong to the **newest open Ask in that Thread**, anchor or
-reply alike (`ThreadAskOptions`, with coverage in `ThreadAskOptionsTests`). An Agent can ask inside
+reply alike (`ThreadAskOptions`, presented by `ThreadAskOptionsRow`, with coverage in
+`ThreadAskOptionsTests`). An Agent can ask inside
 a Thread as easily as it can start one, so the decision waiting on the reader is not always the
 anchor's; newest, because an Agent that asked twice is waiting on the second question. The screen
 picks it out of the viewer's own `ask.listOpen` snapshot, matching on the Ask's answer anchor —
