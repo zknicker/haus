@@ -184,6 +184,8 @@ spec owns the record and its surfaces.
    that Ask's way in until somebody replies ([iPhone internals](../docs/internals/ios.md)). Pressing
    an option posts the human's own reply through the Thread send that already carries the
    conversation Chat and the Ask's anchor. The phone follows the same **newest open Ask** rule,
-   anchor or later reply alike, and an older open Ask keeps its card's header without controls. The
-   phone has no read-only Thread state, so it has nothing to gate on; the content-width attachment
+   anchor or later reply alike, and an older open Ask keeps its card's header without controls. A
+   read-only Thread — an archived Chat, or a DM whose peer Agent was retired, the same predicate the
+   App reads — keeps every card's header without controls and stands one line where the composer
+   would be, because without a composer nothing here can settle an Ask. The content-width attachment
    treatment remains web-only.

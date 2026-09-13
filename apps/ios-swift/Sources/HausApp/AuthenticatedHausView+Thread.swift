@@ -29,6 +29,10 @@ extension AuthenticatedHausView {
                 return store.messagePresentations(chatID: chatID)
             },
             isConnected: store.isConnected,
+            // The parent conversation decides whether a reply can be sent at
+            // all: an archived Chat or a retired peer Agent leaves the Thread
+            // readable and takes its composer and Ask controls away.
+            isReadOnly: store.chatsByID[thread.parentChatID]?.isReadOnly ?? false,
             onSend: { content, attachments in
                 guard let resolvedThreadChatID = await store.sendThreadReply(
                     content,

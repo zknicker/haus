@@ -12,7 +12,7 @@ struct ThreadAskAnswerabilityTests {
             message("message_reply", ask: AskPresentation(status: .open, options: ["Ship it"])),
         ]
 
-        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows) == "message_reply")
+        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows, readOnly: false) == "message_reply")
     }
 
     /// An Agent that asked twice is waiting on the second question, which is
@@ -24,7 +24,7 @@ struct ThreadAskAnswerabilityTests {
             message("message_second", ask: AskPresentation(status: .open, options: ["Third"])),
         ]
 
-        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows) == "message_second")
+        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows, readOnly: false) == "message_second")
     }
 
     /// A top-level Ask anchors its own Thread, so before any reply the anchor
@@ -35,7 +35,7 @@ struct ThreadAskAnswerabilityTests {
             message("message_reply", ask: nil),
         ]
 
-        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows) == "message_anchor")
+        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows, readOnly: false) == "message_anchor")
     }
 
     /// A settled Ask keeps nothing: the first answer won permanently, so once
@@ -46,13 +46,24 @@ struct ThreadAskAnswerabilityTests {
             message("message_reply", ask: AskPresentation(status: .answered)),
         ]
 
-        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows) == nil)
+        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows, readOnly: false) == nil)
     }
 
     @Test func answersNothingInAThreadWithNoAsks() {
         let rows = [message("message_anchor", ask: nil), message("message_reply", ask: nil)]
 
-        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows) == nil)
+        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows, readOnly: false) == nil)
+    }
+
+    /// A read-only conversation has no composer, so no reply can reach the Ask
+    /// to settle it: the card keeps its header and offers nothing to press.
+    @Test func answersNothingInAReadOnlyThread() {
+        let rows = [
+            message("message_anchor", ask: nil),
+            message("message_reply", ask: AskPresentation(status: .open, options: ["Ship it"])),
+        ]
+
+        #expect(ThreadAskAnswerability.answerableMessageID(rows: rows, readOnly: true) == nil)
     }
 
     private func message(_ id: String, ask: AskPresentation?) -> MessagePresentation {

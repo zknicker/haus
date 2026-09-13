@@ -27,6 +27,41 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         if case .reply(let message) = self { return message.id }
         return nil
     }
+
+    /// The Thread transcript in order: the anchor, its task metadata when it
+    /// has any, the replies, and the viewer's own send while it is in flight.
+    static func items(
+        anchor: MessagePresentation,
+        replies: [MessagePresentation],
+        pending: Bool
+    ) -> [ThreadTranscriptItem] {
+        let hasReplies = !replies.isEmpty
+        var items: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: hasReplies)]
+        if let task = anchor.task {
+            items.append(.taskMetadata(task, hasReplies: hasReplies))
+        }
+        items.append(contentsOf: replies.map(ThreadTranscriptItem.reply))
+        if pending {
+            items.append(.pendingSend)
+        }
+        return items
+    }
+}
+
+/// The viewer's own reply while the send is in flight, aligned under the reply
+/// column rather than the avatar rail.
+struct ThreadPendingSendRow: View {
+    var body: some View {
+        HStack(spacing: 7) {
+            ProgressView()
+                .controlSize(.small)
+            Text("Sending")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.leading, 46)
+        .padding(.top, 12)
+    }
 }
 
 /// Decides how the thread transcript responds when its latest reply changes.
