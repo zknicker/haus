@@ -11,7 +11,19 @@ import HausModels
 /// Widened, it states what it is showing instead. It keeps stating it even at
 /// zero, unlike the App: a URL is the App reader's way back out of the widened
 /// lens, and on iPhone this control is the only one.
-enum TaskBackgroundLens {
+public enum TaskBackgroundLens {
+    /// Whether a `task.list` read is the one that records how many tasks the
+    /// default lens hid.
+    ///
+    /// Only the Server-wide default lens answers that question. A widened read
+    /// hides nothing, so Server truthfully reports zero; a Chat-scoped read
+    /// answers a different question altogether. Recording either would blank
+    /// the count the reader is standing in front of — and on the phone that
+    /// count is their only way back out of the widened lens.
+    public static func recordsHiddenCount(chatID: String?, includeBackground: Bool) -> Bool {
+        chatID == nil && !includeBackground
+    }
+
     static func label(items: [TaskListItem], hiddenCount: Int, includeBackground: Bool) -> String? {
         guard includeBackground else {
             return hiddenCount == 0 ? nil : "\(hiddenCount) background"
