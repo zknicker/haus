@@ -189,8 +189,9 @@ One source has no Server list procedure yet and is absent until it does: followe
   the same header, the same **Active this week** strip, and the same three lists in the same order,
   reading the same Server records through Store-owned snapshots
   ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Cloud Agent work gets its
-  first iPhone presentation. Two rows differ, because the phone has nowhere else to send them: a
-  stalled claim opens the Task list rather than the task itself, since the iPhone Task lens has no
-  per-task focus, and an Agent row in **Happening now** opens that Agent's DM rather than a profile
-  page, which the phone reaches from a Chat instead. The iPhone Inbox is also the cold-start
+  first iPhone presentation. A stalled claim deep-links to its own task on both surfaces: the App
+  through `?task=`, the phone through a focused Task list that scrolls to the row and widens the
+  background lens when it has to. One row differs, because the phone has nowhere else to send it: an
+  Agent row in **Happening now** opens that Agent's DM rather than a profile page, which the phone
+  reaches from a Chat instead. The iPhone Inbox is also the cold-start
   landing screen there, which the App has no counterpart for.

@@ -569,7 +569,18 @@ a muted `background` word rather than a chip.
 
 Tasks are Server work, not a settings screen. The sidebar opens the Task list as a push on the root
 navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread
-→ Task list → Chat canvas. Opening a Task leaves the canvas selection alone — its route carries the
+→ Task list → Chat canvas.
+
+The route carries the task it lands on: `HausRootRoute.tasks(focus:)` takes a `TaskFocus`, which is
+a Task's Message id and nothing else, because a Task is a promoted Message. The sidebar's own Tasks
+row names none and opens the list the way it always did; a row that is about one task names it —
+today that is the Inbox's stalled claim. A focused list scrolls that row under the reader's eye and
+holds the press wash on it for a moment, so they see which row they were sent to rather than hunting
+a list they did not scroll; the mark fades on its own and nothing stays selected. When the focused
+task is one the default lens hides — the background tier — the list widens itself
+(`TaskFocusLens.widens`, which asks only whether the landed lens holds the focus), because a route
+that sends a reader to a row they cannot see is a broken route. The background control stays exactly
+where it was, so they can close the lens again. Opening a Task leaves the canvas selection alone — its route carries the
 parent Chat id and the Task carries the child Chat id, so selecting the parent would mark a channel
 the user never visited as read and strand them there once the Tasks list pops. A pushed Thread owns
 the open Chat while it is on screen, and the shell's Chat selection resumes ownership when it pops;
@@ -593,12 +604,12 @@ than to either of them: the leading chrome button sits where it sits on a Chat s
 and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
-always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. An Ask row and a Cloud
+always did. `HausRootRoute` therefore carries only `.tasks(focus:)` and `.thread`. An Ask row and a Cloud
 Agent work row each push the Thread they hang off, carrying the conversation's Chat id and the anchor Message — the same pair a Thread
-composer sends to — and leaving the canvas selection alone for the same reason a Task does. Two rows
-land somewhere the App does not send them, because the phone has nowhere else: a stalled claim opens
-the Task list rather than the task, since the native lens has no per-task focus, and an Agent in
-**Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
+composer sends to — and leaving the canvas selection alone for the same reason a Task does. A
+stalled claim pushes the Task list focused on its own task, which is the phone's counterpart of the
+App's `?task=` deep link. One row still lands somewhere the App does not send it, because the phone
+has nowhere else: an Agent in **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
 Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
 column every other row uses — a deliberate exception to the column's 26-point boxed glyphs, because
 this mark is the logo rather than a screen's icon, and it grows inside the shared column so the
@@ -660,6 +671,19 @@ In the Chat timeline the marker is also the way in, taking the Thread ingress ca
 feedback and route. An Ask nobody has replied to yet shows no ingress card, so without that the
 Inbox was the only surface that could open it. Inside a Thread the marker is inert: the screen it
 would open is the screen it is on.
+
+The options above the Thread composer belong to the **newest open Ask in that Thread**, anchor or
+reply alike (`ThreadAskOptions`, with coverage in `ThreadAskOptionsTests`). An Agent can ask inside
+a Thread as easily as it can start one, so the decision waiting on the reader is not always the
+anchor's; newest, because an Agent that asked twice is waiting on the second question. The screen
+picks it out of the viewer's own `ask.listOpen` snapshot, matching on the Ask's answer anchor —
+Server projects a Thread Ask's `threadAnchorMessage` as the Thread's anchor and a top-level Ask's as
+its own Message, so one comparison covers both. Until that snapshot lands, the anchor's own open Ask
+stands in, so a Thread opened straight onto an Ask never blinks its options on; `pushThread` pulls
+the read in when this client is holding none. Answering is unchanged either way: pressing an option
+sends an ordinary Thread reply carrying that text through the pair the composer already addresses
+(`AskAnswerRoute`), and Server settles whichever Ask the reply answers. A second Ask arriving in the
+same Thread gets a row of its own rather than one a previous answer already spent.
 
 A Task lens widens through `loadTasks(includeBackground:)`, and
 a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N
