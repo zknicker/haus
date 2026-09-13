@@ -148,10 +148,10 @@ would need the target underneath and the control lifted above, and no row acts.
 ## Current stub
 
 The page is live at `/s/:slug/inbox`. An Ask row peeks its Thread over the Inbox at
-`?ask=<messageId>`, with the Ask's options above that Thread's composer as tap-to-reply chips in the
-Agent's own order, the recommendation first and emphasized — the one-press form of the reply a
-person would otherwise type, and the only place an Ask can be answered without typing. Pressing one
-sends exactly its text; one press spends the row. An Ask with no options is an open question and
+`?ask=<messageId>`, showing that Thread's shared answer card under the Ask itself, with the options
+in the Agent's own order, the first emphasized and every label carried verbatim — the one-press form
+of the reply a person would otherwise type, and the only place an Ask can be answered without
+typing. Pressing one sends exactly its text; one press spends the row. An Ask with no options is an open question and
 shows only the composer. The options ride the same open-Ask read the section does, so an Ask
 answered elsewhere takes them, the peek, and the row with it; a Cloud Agent work row peeks its conversation at `?work=<messageId>` — the same
 Thread timeline the Chat opens, work card and all; a stalled claim opens the task on the Tasks page;

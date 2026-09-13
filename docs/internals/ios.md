@@ -674,8 +674,13 @@ The card belongs to the **newest open Ask among that Thread's own rows**, anchor
 the decision waiting on the reader is not always the anchor's; newest, because an Agent that asked
 twice is waiting on the second question, and because Server settles a reply against exactly that
 Ask. An older open Ask still draws its card, header only — a reply here would not settle it, so it
-offers nothing to press. The phone has no read-only Thread state today; when it grows one, that is
-the gate that turns every card header-only, the way the App's `readOnly` does. Each card is keyed on
+offers nothing to press. A **read-only** Thread turns every card header-only for the same reason,
+the way the App's `readOnly` does: the predicate is `ChatSummary.isReadOnly` — an archived Chat, or
+a DM whose peer Agent was retired, the one Haus App computes in `thread-content.tsx` — read off the
+parent Chat in `AuthenticatedHausView+Thread` and passed into `ThreadDetailView`, which hands it to
+`ThreadAskAnswerability.answerableMessageID(rows:readOnly:)` and replaces its composer with
+`ThreadReadOnlyNotice`, one line saying the Thread reads but does not reply. No composer means no
+reply can settle an Ask, so the controls would be a lie. Each card is keyed on
 its own Ask Message, so a second Ask arriving in the same Thread gets a card of its own rather than
 one a previous answer already spent.
 

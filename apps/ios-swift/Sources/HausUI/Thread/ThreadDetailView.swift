@@ -9,6 +9,11 @@ public struct ThreadDetailView: View {
     private let replyProvider: () -> [MessagePresentation]
     private let pending: Bool
     private let isConnected: Bool
+    /// Whether this conversation refuses new Messages — an archived Chat, or a
+    /// DM whose peer Agent was retired (`ChatSummary.isReadOnly`). The Thread
+    /// keeps its transcript and loses its composer, and with it every Ask
+    /// answer control, because no reply can be sent to settle one.
+    private let isReadOnly: Bool
     private let onSend: (String, [ComposerAttachment]) async -> Bool
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let hasOlderReplies: Bool
@@ -45,6 +50,7 @@ public struct ThreadDetailView: View {
         replies: [MessagePresentation],
         pending: Bool = false,
         isConnected: Bool = true,
+        isReadOnly: Bool = false,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -62,6 +68,7 @@ public struct ThreadDetailView: View {
         self.replyProvider = { replies }
         self.pending = pending
         self.isConnected = isConnected
+        self.isReadOnly = isReadOnly
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
         self.hasOlderReplies = hasOlderReplies
@@ -81,6 +88,7 @@ public struct ThreadDetailView: View {
         replies: @escaping () -> [MessagePresentation],
         pending: Bool = false,
         isConnected: Bool = true,
+        isReadOnly: Bool = false,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -98,6 +106,7 @@ public struct ThreadDetailView: View {
         self.replyProvider = replies
         self.pending = pending
         self.isConnected = isConnected
+        self.isReadOnly = isReadOnly
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
         self.hasOlderReplies = hasOlderReplies
@@ -111,11 +120,11 @@ public struct ThreadDetailView: View {
 
     public var body: some View {
         let replies = replyProvider()
-        let items = transcriptItems(replies: replies)
+        let items = ThreadTranscriptItem.items(anchor: anchor, replies: replies, pending: pending)
         // The Ask a reply here would settle, read in the screen's body so an
         // Ask posted as a reply takes over the moment its Message lands.
         let answerableAskMessageID = ThreadAskAnswerability
-            .answerableMessageID(rows: [anchor] + replies)
+            .answerableMessageID(rows: [anchor] + replies, readOnly: isReadOnly)
         // Read here, in the screen's own body, so a visual's height report
         // re-renders the screen and the table re-hosts its visible rows. Read
         // only inside a row it would land on the cell's hosting view, which the
@@ -128,18 +137,22 @@ public struct ThreadDetailView: View {
                     // Same shape as the chat screen: replies run under the floating glass
                     // composer and the inset reserves their clearance.
                     .safeAreaInset(edge: .bottom, spacing: 0) {
-                        MessageComposerView(
-                            text: $draft,
-                            interaction: composerInteraction,
-                            placeholder: "Reply in thread",
-                            isConnected: isConnected,
-                            isTextFocused: $isComposerFocused,
-                            transitionNamespace: composerTransitionNamespace,
-                            onSend: { content, attachments in
-                                guard !pending else { return false }
-                                return await onSend(content, attachments)
-                            }
-                        )
+                        if isReadOnly {
+                            ThreadReadOnlyNotice()
+                        } else {
+                            MessageComposerView(
+                                text: $draft,
+                                interaction: composerInteraction,
+                                placeholder: "Reply in thread",
+                                isConnected: isConnected,
+                                isTextFocused: $isComposerFocused,
+                                transitionNamespace: composerTransitionNamespace,
+                                onSend: { content, attachments in
+                                    guard !pending else { return false }
+                                    return await onSend(content, attachments)
+                                }
+                            )
+                        }
                     }
             }
             // Same contract as the Chat screen: the portal draws in an overlay window above the
@@ -216,18 +229,6 @@ public struct ThreadDetailView: View {
         }
     }
 
-    private func transcriptItems(replies: [MessagePresentation]) -> [ThreadTranscriptItem] {
-        var items: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: !replies.isEmpty)]
-        if let task = anchor.task {
-            items.append(.taskMetadata(task, hasReplies: !replies.isEmpty))
-        }
-        items.append(contentsOf: replies.map(ThreadTranscriptItem.reply))
-        if pending {
-            items.append(.pendingSend)
-        }
-        return items
-    }
-
     @ViewBuilder
     private func threadRow(
         _ item: ThreadTranscriptItem,
@@ -245,15 +246,7 @@ public struct ThreadDetailView: View {
             messageRow(message, answerableAskMessageID: answerableAskMessageID)
                 .padding(.top, 10)
         case .pendingSend:
-            HStack(spacing: 7) {
-                ProgressView()
-                    .controlSize(.small)
-                Text("Sending")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.leading, 46)
-            .padding(.top, 12)
+            ThreadPendingSendRow()
         }
     }
 
@@ -287,7 +280,8 @@ public struct ThreadDetailView: View {
     @ViewBuilder
     private var loadOlderAccessory: some View {
         if let onLoadOlderReplies {
-            ThreadLoadOlderAccessory(
+            TranscriptLoadOlderButton(
+                title: "Load older replies",
                 isLoading: isLoadingOlderReplies,
                 onLoad: onLoadOlderReplies
             )

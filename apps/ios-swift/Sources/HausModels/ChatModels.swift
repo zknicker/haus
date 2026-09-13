@@ -47,6 +47,17 @@ public struct ChatSummary: Codable, Identifiable, Sendable, Equatable {
     public let serverID: String
     public let unreadCount: Int
 
+    /// Whether this conversation still takes new Messages.
+    ///
+    /// Two lifecycles end a conversation without deleting it: a DM whose peer
+    /// Agent was retired, and a Chat that was archived. Either leaves the
+    /// transcript readable and takes the composer away — and with it every
+    /// answer control, because an Ask here can no longer be settled. Haus App
+    /// reads exactly this predicate as `readOnly`.
+    public var isReadOnly: Bool {
+        (kind == .dm && peerAgentRetired) || archivedAt != nil
+    }
+
     enum CodingKeys: String, CodingKey {
         case archivedAt
         case archivedByUserID = "archivedByUserId"

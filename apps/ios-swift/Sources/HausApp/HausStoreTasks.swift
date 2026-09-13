@@ -1,5 +1,6 @@
 import Foundation
 import HausModels
+import HausUI
 
 /// Server-backed task reads and lifecycle mutations for native task lenses.
 ///
@@ -11,10 +12,12 @@ extension HausStore {
     /// `includeBackground` widens it to the bookkeeping claims an Agent settles
     /// inside one turn.
     ///
-    /// A Server-wide read also records how many tasks the lens hid, so a
-    /// surface can say "N background" without a second round trip. A
-    /// Chat-scoped read leaves that count alone: it answers a different
-    /// question than the Server-wide lens the Inbox and the Task list read.
+    /// The Server-wide default lens also records how many tasks it hid, so a
+    /// surface can say "N background" without a second round trip. Every other
+    /// read leaves that count alone (`TaskBackgroundLens.recordsHiddenCount`):
+    /// a Chat-scoped read answers a different question, and a widened read
+    /// hides nothing and so reports zero — recording that would take the
+    /// number off the one control that leads back out of the widened lens.
     func loadTasks(
         chatID: String? = nil,
         includeBackground: Bool = false
@@ -30,7 +33,8 @@ extension HausStore {
                 includeBackground: includeBackground ? true : nil
             )
         )
-        if chatID == nil, taskBackgroundCount != list.backgroundCount {
+        if TaskBackgroundLens.recordsHiddenCount(chatID: chatID, includeBackground: includeBackground),
+           taskBackgroundCount != list.backgroundCount {
             taskBackgroundCount = list.backgroundCount
         }
         return list.tasks

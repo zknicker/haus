@@ -177,8 +177,8 @@ spec owns the record and its surfaces.
    the same union later ([Cloud Agents](cloud-agents.md)).
 2. **Landed.** The `haus ask` command, addressee validation, the single creation transaction,
    settlement inside the ordinary Message creation paths, `ask.updated`, and `ask.listOpen`.
-3. **Landed.** The Inbox "Needs you" row and the peek's option chips, each posting the human's
-   Message.
+3. **Landed.** The Inbox "Needs you" row and the peek's shared answer card under the Ask, each
+   option posting the human's Message.
 4. **Landed.** The Thread-surface Ask marker in Haus App, with deterministic Server, API,
    Computer, and App coverage of creation, settlement, ineligible-addressee failure, the Agent line
    format, and the browser Inbox flow. Haus for iPhone carries the same presentation: the answer
@@ -187,6 +187,8 @@ spec owns the record and its surfaces.
    that Ask's way in until somebody replies ([iPhone internals](../docs/internals/ios.md)). Pressing
    an option posts the human's own reply through the Thread send that already carries the
    conversation Chat and the Ask's anchor. The phone follows the same **newest open Ask** rule,
-   anchor or later reply alike, and an older open Ask keeps its card's header without controls. The
-   phone has no read-only Thread state, so it has nothing to gate on; the content-width attachment
+   anchor or later reply alike, and an older open Ask keeps its card's header without controls. A
+   read-only Thread — an archived Chat, or a DM whose peer Agent was retired, the same predicate the
+   App reads — keeps every card's header without controls and stands one line where the composer
+   would be, because without a composer nothing here can settle an Ask. The content-width attachment
    treatment remains web-only.
