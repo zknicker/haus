@@ -153,20 +153,14 @@ the reply count trails it. The message's author line carries provenance only: th
 session marks explain how the message came to be said
 ([ADR 0026](../adr/0026-automation-provenance-rides-the-agents-message.md)).
 
-The chip is a label, not a second target: the whole surface is one button into the Thread, named for
-what it opens (`Open thread, Task #1, 2 replies`). The surface is the Thread's own card, so it
-appears once that Thread holds a reply and never as an empty frame announcing `0 replies`; the chip
-states the task there from the first reply on. When the task's Thread contains queued or running
-[Cloud Agent work](../../specs/cloud-agents.md), that work's status trails the chip in the same
-header.
+The chip is a label in one button into the Thread. Before replies exist, visible tasks use a
+content-width attachment with no reply count. Once replies exist, the Thread card carries the task
+metadata and reply previews together. Cloud Agent work in the Thread appears in that same card.
 
-**Chat hides the tasks Agents claim for themselves.** A claim is bookkeeping an Agent keeps on its
-own work, and almost every one is over inside the turn that opened it, so by default a task with
-`origin` `claimed` states nothing in Chat: no chip, no card, no room reserved. Its Thread is still
-a Thread — replies under one read as the ordinary recessed card, without the task's title — and the
-task itself is unchanged on the Tasks page and its `?task=` link. A task a human made (`composed` or
-`converted`) always shows its chip and surface, whatever the setting says, because a person made it
-on purpose. Tier changes nothing here: it stays a lens on the Board and List.
+**Chat hides empty Agent claims by default.** A task with `origin` `claimed` shows no attachment
+until its Thread has replies, unless the reader enables Show tasks in chat. A populated Thread
+always states its task metadata. Human-created tasks (`composed` or `converted`) remain visible
+before replies because a person made them deliberately. Tier remains a Board and List concern.
 
 The **Show tasks in chat** preference (Settings → Preferences → Chat) turns the claims back on, and
 with it every task reads the way a human-made one does. It is off by default and per device, stored

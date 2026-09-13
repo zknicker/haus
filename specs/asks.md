@@ -83,22 +83,28 @@ An open Ask addressed to a human appears in that human's [Inbox](../docs/feature
 carries no control of its own.
 
 Opening the row peeks the Ask's Thread, and the options — recommendation first — are offered there
-as tap-to-reply chips above the composer. Pressing one sends a real Message authored by that human
+in an answer card directly below the question. Pressing one sends a real Message authored by that human
 into the Thread whose content is exactly that option's text; that Message settles the Ask and
 reaches the Agent through ordinary Thread delivery, exactly as a typed reply would. An Ask with no
-options is an open question: the peek offers its composer and nothing else. The options live with
+options is an open question: the card points to the existing composer. The options live with
 the Thread because that is where the Ask is fully readable — a row shows one line of a question,
 which is not enough to commit to an answer from.
 
 ## Chat presentation
 
-An Ask reads as an ordinary Message. In the parent Chat, Haus App renders the recessed Thread
-surface beneath it with a compact Ask marker in the task-chip grammar it shares with the Task chip
-and the Cloud Agent work header: the Ask glyph, the addressee's avatar and name, and a trailing
-status — an open disc, or `Answered by <name>` — plus the ordinary reply count. Inside a Thread the
-marker stays inline on the Ask Message itself, without a count. Only the trailing status carries
-lifecycle color. Older clients and unknown body kinds render the Message `content` and the ordinary
-Thread preview.
+An open Ask reads as an ordinary Message with a content-width attachment beneath it: the Ask glyph,
+addressee, status disc, and "Awaiting answer". The attachment opens its existing Thread without
+showing a zero-reply count. Once replies exist, the Ask marker belongs to the Thread card instead.
+Inside a Thread, an open Ask shows an answer card below its question: addressee, awaiting status,
+recommended answer buttons, and guidance to use the existing composer for free text. Channel side
+panes, Task dialogs, and Inbox peeks share this surface. The question is not repeated in the card.
+Only the newest open Ask offers answer controls, matching Server settlement; read-only Threads
+show status without controls.
+
+Once answered, the Ask marker disappears everywhere in the web transcript, including Task Threads.
+The question and replies remain ordinary conversation; any populated Thread keeps its reply card
+without Ask metadata. Settlement and Inbox behavior are unchanged. iOS retains its existing
+presentation until a separate native update.
 
 ## Agent reading
 
@@ -148,7 +154,7 @@ spec owns the record and its surfaces.
 | Layer | Owns |
 | --- | --- |
 | Haus Server | The Ask record, addressee authorization, settlement, durable events, and the Inbox projection |
-| Haus App | Inbox rows, the option chips above the peek's composer, and the Thread-surface Ask marker |
+| Haus App | Inbox rows, the shared Thread answer card, and the Thread-surface Ask marker |
 | Haus Computer | The `haus ask` command and its Agent-scoped Server call |
 
 ## Intentionally missing

@@ -69,12 +69,25 @@ connection — enough to open any surface without hand-building data. It then
 seeds the activity the Inbox is a lens over: unread lines in both Channels and
 both Agent DMs, two open Asks — Cove's rename question offering three replies
 and Tiny's stale-copy question offering none — one claim Blippy left stalled, one
-settled Cloud Agent work, and seven days of Agent turns. No running Cloud Agent
-work is seeded — Computer reconciles running work against the provider every
-minute, and a fake run fails that loop until its retries exhaust the Server
-database pool — so Happening now is empty on a fresh boot. That activity is
-idempotent and separate, in
-`apps/server/src/development/seed-inbox-activity.ts`. Computer
+settled Cloud Agent work, and seven days of Agent turns. That activity is idempotent and separate,
+in `apps/server/src/development/seed-inbox-activity.ts`.
+
+A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its 26
+anchor messages cover open/answered Asks, options and free-text questions, all task statuses,
+hidden claims, claims with replies, all cloud-work statuses, cancelling/stale work, ordinary
+threads, and a task thread containing multiple cloud runs and inline Asks. Toggle **Show tasks
+in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic and has no external
+link. The gallery's queued/running work appears in Inbox too.
+
+Gallery runs belong to a dedicated **UI gallery (unattached samples)** Computer whose randomly
+created credential is discarded. The attached development Computer never receives these runs for
+reconciliation, and the seed creates no deliveries or external jobs. Running timestamps age
+naturally into stale states; these are static examples, not a simulated provider. The bootstrap
+always resolves the real Computer through onboarding, so adding the gallery cannot replace its
+attachment. Restarting and opening the dev workspace adds missing gallery data without resetting
+existing messages; subsequent bootstraps leave it alone.
+
+Computer
 then runs their real Agent turns using the host's Codex, Claude Code, Grok Build, or Pi
 sign-in.
 

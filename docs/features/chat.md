@@ -53,24 +53,21 @@ and [Agent Inbox](../../specs/inbox.md).
   control, and no second Chat receipt. The App never treats it as a Widget,
   visual fence, artifact, or model-authored form. Dropped realtime events
   recover through the ordinary message snapshot on reconnect.
-* **The Thread surface header.** Everything under a Message that carries a
-  lifecycle a reader tracks reads in the header of the one recessed Thread
-  surface beneath it, in a single chip grammar at annotation scale, with the
-  reply count trailing and reply previews below: the **task chip**
-  (`Task #<n>`, a status disc, the assignee's face and name), the **Ask marker**,
-  the **Cloud Agent work header**, and the **hoisted status** of live work
-  running inside that Thread. Only status discs carry lifecycle color. A Message
-  with none of these keeps the plain preview, which appears only once someone has
-  replied. The surface is one button into the Thread, and its accessible name
-  says what it opens (`Open thread, Task #1, 2 replies`).
-* **Ask markers.** A Message carrying an [Ask](../../specs/asks.md) reads as an
-  ordinary Message with a compact marker in that header: the Ask glyph, `Ask`,
-  the addressee's face and name, and a trailing status — an accent open disc, or
-  a filled success disc with `Answered by <name>`. Inside a Thread the marker
-  renders inline on the reply itself, without a count.
+* **Message attachments and Threads.** Open Asks, visible tasks, and Cloud Agent work use compact,
+  content-width attachments beneath their message before anyone replies. They open the existing
+  Thread destination without a zero-reply count. Once replies exist, one recessed Thread card holds
+  the metadata, Cloud Agent summaries, reply count, and recent replies. Agent-claimed task metadata
+  becomes visible with those replies even when Show tasks in chat is off. Answered Ask markers
+  disappear, leaving the question and replies as ordinary conversation. Inside a Thread, Cloud Agent
+  work keeps its full detail card. These attachment rules apply to the web App.
+
+* **Ask markers.** An open [Ask](../../specs/asks.md) shows its glyph, addressee's face and name,
+  accent status disc, and `Awaiting answer`. Inside a Thread, an answer card below the question
+  offers suggested replies and points to the existing composer for free text. Channel panes,
+  Task dialogs, and Inbox peeks share that card. Answered Asks show no marker or answer card.
 * **Cloud Agent work.** A Message carrying
   [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message
-  whose Thread surface is headed by that work: the provider's own mark and
+  whose attachment or populated Thread card is headed by that work: the provider's own mark and
   name, the work title, and a trailing status disc and label — `Queued`,
   `Running · <elapsed>`, `Done · <duration>`, `Failed`, `Expired`, `Cancelled`,
   or `Cancelling` while a cancel is recorded against a live Run. One muted line
