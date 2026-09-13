@@ -140,6 +140,44 @@ final class HausGhostDriftTests: XCTestCase {
     }
 }
 
+/// What every pause the mark answers to — Reduce Motion, a backgrounded scene,
+/// a shut drawer — has to keep doing: hold the frame, then carry on from it.
+final class HausGhostDriftClockTests: XCTestCase {
+    func testAHeldClockKeepsAnsweringTheMomentItStopped() {
+        let stopped = Date(timeIntervalSinceReferenceDate: 812_345.7)
+        var clock = HausGhostDriftClock()
+        clock.hold(at: stopped)
+
+        XCTAssertTrue(clock.isHeld)
+        XCTAssertEqual(clock.phase(at: stopped.addingTimeInterval(9)), clock.phase(at: stopped))
+        XCTAssertEqual(
+            HausGhostDrift.offsets(atPhase: clock.phase(at: stopped.addingTimeInterval(60)), tempo: .calm),
+            HausGhostDrift.offsets(atPhase: stopped.timeIntervalSinceReferenceDate, tempo: .calm)
+        )
+    }
+
+    func testResumingPicksUpTheHeldFrameRatherThanRestarting() {
+        let stopped = Date(timeIntervalSinceReferenceDate: 812_345.7)
+        var clock = HausGhostDriftClock()
+        clock.hold(at: stopped)
+        // A second hold must not re-stamp the frame the mark is standing on.
+        clock.hold(at: stopped.addingTimeInterval(30))
+        let held = clock.phase(at: stopped.addingTimeInterval(30))
+        clock.resume(at: stopped.addingTimeInterval(47))
+
+        XCTAssertFalse(clock.isHeld)
+        // The 47 slept seconds are gone, so the drift continues from the frame
+        // it froze on — not from zero, and not from where the wall clock got to.
+        XCTAssertEqual(clock.phase(at: stopped.addingTimeInterval(47)), held, accuracy: 0.0001)
+        XCTAssertEqual(clock.phase(at: stopped.addingTimeInterval(47.9)), held + 0.9, accuracy: 0.0001)
+        XCTAssertEqual(
+            HausGhostDrift.offsets(atPhase: clock.phase(at: stopped.addingTimeInterval(47)), tempo: .calm),
+            HausGhostDrift.offsets(atPhase: held, tempo: .calm)
+        )
+        XCTAssertNotEqual(clock.phase(at: stopped.addingTimeInterval(47)), 0)
+    }
+}
+
 final class HausGhostTempoTests: XCTestCase {
     func testOnlyAReadyAndNonEmptySnapshotQuickensTheDrift() {
         XCTAssertEqual(
