@@ -1,11 +1,8 @@
 import type { ServerMember } from '@haus/api/membership';
+import { ProfileFact, ProfileFacts } from '../../../components/ui/profile-facts.tsx';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
-import {
-    MemberProfileFact,
-    MemberProfileFacts,
-    MemberProfileHeader,
-} from '../member-profile-header.tsx';
+import { MemberProfileHeader } from '../member-profile-header.tsx';
 import { CreatedAgents } from './created-agents.tsx';
 import { HumanIdentity } from './human-identity.tsx';
 
@@ -53,11 +50,11 @@ export function HumanProfile({
                         </p>
                     ) : null}
                     <div aria-busy={!error}>
-                        <MemberProfileFacts>
+                        <ProfileFacts>
                             {['Role', 'Email', 'Joined'].map((label) => (
-                                <MemberProfileFact key={label} label={label} value={null} />
+                                <ProfileFact key={label} label={label} value={null} />
                             ))}
-                        </MemberProfileFacts>
+                        </ProfileFacts>
                     </div>
                 </MemberProfileHeader>
             )}
