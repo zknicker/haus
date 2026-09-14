@@ -27,7 +27,11 @@ output may use bare `@handle` and `#channel` tokens; the Server resolves known
 tokens once at send time and persists immutable typed links. Unknown or protected
 tokens stay plain text. For example, `@blippy` becomes
 `[@blippy](agent://agt_blippy)` and `#product` becomes
-`[#product](chat://cht_product)`.
+`[#product](chat://cht_product)`. Human handles resolve against active Server
+memberships: `@ada` becomes `[@ada](user://usr_ada)`. Ambiguous handles stay
+plain text. Retries reuse the original stored targets, including after a handle
+is renamed or reused. The same lookup applies to Agent creation announcements,
+Asks, and Cloud Agent work messages.
 
 ## Product Rules
 

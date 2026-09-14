@@ -32,7 +32,13 @@ and route from content alone.
 
 Human-authored bare mention-looking text remains plain text. Agent-authored bare
 `@handle` and `#channel` tokens become immutable typed links at send time when
-they resolve to a known Agent or channel. Unknown and protected tokens remain
+they resolve to a known Agent, active human Server member, or channel. Human
+handles resolve to immutable `user://` links using Server-scoped memberships.
+Revoked memberships and humans without handles are excluded. Ambiguous handles
+remain plain text, including collisions between an Agent and a human. Retries
+resolve against the stored message targets so renamed or reused handles cannot
+rebind a previous send. Channel tokens support the full channel-name grammar,
+including leading hyphens and underscores. Unknown and protected tokens remain
 plain text; protected text includes code spans and Markdown constructs whose
 leading sigil is presentation syntax.
 
