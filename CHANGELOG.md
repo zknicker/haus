@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v3.1.0 - 2026-09-14
+
+- Haus for iPhone opens to Inbox with Agent activity, conversations, and Asks that need you.
+- Answer Asks on their messages, follow Threads, focus tasks, and choose whether background
+  tasks appear in chat on iPhone. Threads show when replies are unavailable.
+- iPhone unread dots clear for the messages you actually view, including in Threads.
+- The web Inbox gives empty sections a clear state, and Ask answers stay with their messages
+  in chat and Thread previews.
+
 ## v3.0.0 - 2026-09-11
 
 - Haus uses one identity throughout its apps, Agent commands, and connections.
