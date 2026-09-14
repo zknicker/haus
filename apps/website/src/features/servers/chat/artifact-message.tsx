@@ -26,7 +26,7 @@ export function ArtifactMessage({
 
     return (
         <ArtifactPanelOpenProvider agentId={agentId} onOpen={onOpenArtifact}>
-            <div className="flex min-w-0 max-w-[46rem] flex-col gap-3">
+            <div className="flex min-w-0 flex-col gap-3">
                 {segments.map((segment) =>
                     segment.kind === 'artifact' ? (
                         <WidgetArtifactCard key={segment.key} props={segment.props} />
