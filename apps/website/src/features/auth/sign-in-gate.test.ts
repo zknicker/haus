@@ -41,7 +41,7 @@ test('only a ready known Clerk identity owns authenticated Server state', () => 
             tokenState: 'loading',
             userId: undefined,
         })
-    ).toEqual({ kind: 'signed-out' });
+    ).toEqual({ kind: 'loading' });
     expect(
         resolveClerkSessionGate({
             isLoaded: true,
@@ -74,4 +74,15 @@ test('token readiness belongs only to the Clerk session that produced it', () =>
     expect(resolveClerkSessionTokenState(readySessionA, 'session-a')).toBe('ready');
     expect(resolveClerkSessionTokenState(readySessionA, 'session-b')).toBe('loading');
     expect(resolveClerkSessionTokenState(readySessionA, undefined)).toBe('loading');
+});
+
+test('a resolved signed-out session shows sign-in', () => {
+    expect(
+        resolveClerkSessionGate({
+            isLoaded: true,
+            isSignedIn: false,
+            tokenState: 'loading',
+            userId: undefined,
+        })
+    ).toEqual({ kind: 'signed-out' });
 });

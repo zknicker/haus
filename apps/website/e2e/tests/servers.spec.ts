@@ -17,16 +17,8 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     test.setTimeout(120_000);
     await signInAsClerkHuman(page);
 
-    // Creating and joining live in Settings > Servers now; only an identity
-    // with no Server still meets them on the activation screen.
     const owner = createClient(readClerkSessionFixture().token);
-    const [joined] = await owner.server.list.query();
-    if (joined) {
-        await page.goto(`/s/${joined.slug}/settings/servers`);
-        await expect(page.getByRole('button', { name: 'Join a Server' })).toBeVisible();
-    } else {
-        await page.goto('/s');
-    }
+    await page.goto('/s?choose');
     const nameField = page.getByLabel('Name');
     await page.getByRole('button', { name: 'Create a Server' }).click();
     await expect(nameField).toBeVisible();
@@ -53,6 +45,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Members' })).toHaveCount(0);
 
+    const openingGhost = await page.locator('.activation-mark').elementHandle();
     const server = await owner.server.bySlug.query({ slug: 'haus-hq' });
     const computer = await startComputerSetup({ serverId: server.id, slug: 'haus-hq' });
     try {
@@ -106,6 +99,12 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             ).toBeVisible();
             await page.context().setOffline(false);
             await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toBeVisible();
+            expect(
+                await openingGhost?.evaluate(
+                    (node) => node === document.querySelector('.activation-mark')
+                )
+            ).toBe(true);
+            await expect(page.locator('.activation-brand')).toHaveCSS('opacity', '0');
         } finally {
             await page.context().setOffline(false);
             await approvalContext.close();
@@ -172,6 +171,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         );
         await expect(page).toHaveURL(/\/s\/haus-hq\/chats\//u);
         await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
+        await expect(page.locator('.activation-frame')).toBeHidden();
         const greetingStart = await greetingStartPromise;
         expect(greetingStart).toMatchObject({
             agentId: command.agentId,
