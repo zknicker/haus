@@ -27,10 +27,9 @@ The first step gives the Owner two Server-specific commands: install Haus Comput
 up for this Server. `haus-computer setup /<slug>` reuses a valid Computer login or opens and
 prints a complete device URL plus a short code that can also be entered manually. Haus App
 keeps the code through Clerk sign-in, shows the current account with a **Use another account**
-path, and requires explicit approval. It then reports **Signed in — finishing the connection**
-until the CLI durably stores the Server attachment, followed by **Computer connected — you can
-close this page**. A Computer connection records live progress but does not advance setup. The
-Server advances from `awaiting-computer` to
+path, and requires explicit approval. It then reports **Finishing the connection**
+until the CLI durably stores the Server attachment, followed by **Computer connected**.
+A Computer connection records live progress but does not advance setup. The Server advances from `awaiting-computer` to
 `awaiting-cove` only after that Computer reports at least one runtime with at
 least one model. Empty or invalid inventory, protocol incompatibility, and
 disconnection remain on the owning durable phase with a concrete repair

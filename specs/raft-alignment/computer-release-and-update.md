@@ -125,8 +125,8 @@ Setup reuses or refreshes the machine-local Computer login session. When login i
 the complete device URL in the default browser, always prints that URL and the short code for manual
 entry, and lets an interactive operator press Enter to retry the handoff. The command continues
 polling after Clerk-backed approval, attaches the selected Server with a persisted idempotency key,
-and completes automatically. The browser distinguishes **Signed in — finishing the connection**
-from the final **Computer connected — you can close this page** state.
+and completes automatically. The browser distinguishes **Finishing the connection**
+from the final **Computer connected** state.
 
 The installed executable then uses its embedded Ed25519 key for every later update. Reinstalling
 code never deletes or adopts `~/.haus`.

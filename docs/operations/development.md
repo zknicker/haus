@@ -166,7 +166,7 @@ a warning only when repeated recent disconnects indicate instability.
 For login and setup failures, start with `haus-computer status`. An expired or
 abandoned device code is not resumed; rerun `setup /<server-slug>` for a new code.
 A saved wrong account or origin requires `haus-computer login --replace`, then
-setup again. **Signed in — finishing the connection** means browser approval
+setup again. **Finishing the connection** means browser approval
 succeeded but durable local attachment storage has not; leave the page open and
 rerun the same setup command if the CLI stopped. Its persisted idempotency key
 recovers the issued Computer instead of creating another. `logout` revokes only

@@ -87,7 +87,7 @@ Prove the smoke account has no service plist and uses the published executable, 
 Server in the production Haus App and record its exact slug and Server id. Run setup against that
 recorded Server with an isolated `HAUS_COMPUTER_DATA_ROOT`.
 
-Verify device-code prefill, explicit account approval, **Signed in — finishing the connection**,
+Verify device-code prefill, explicit account approval, **Finishing the connection**,
 and **Computer connected** only after the CLI stores the attachment. In Haus App, verify the
 Server observes the Computer, onboarding advances only after runtime/model inventory, the Owner
 selects Cove's model, and the App unlocks into the retained onboarding Channel. Verify Cove's

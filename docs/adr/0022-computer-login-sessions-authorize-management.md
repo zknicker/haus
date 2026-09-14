@@ -33,8 +33,8 @@ Haus owns the device authorization protocol because Clerk does not provide OAuth
 Authorization Grant. Clerk authenticates the approving browser User and handles sign-in and account
 switching. Haus issues the human-readable device code, complete and manual verification URLs,
 expiry and polling interval, one-time exchange, rotating refresh-token family, and revocation.
-Approval alone produces **Signed in — finishing the connection**; a setup page says **Computer
-connected — you can close this page** only after the attachment is durably recoverable locally.
+Approval alone produces **Finishing the connection**; a setup page says **Computer connected**
+only after the attachment is durably recoverable locally.
 A standalone login ends at **Haus Computer signed in**. Completed pages offer a best-effort
 **Close this page** button while remaining understandable when the browser refuses scripted close.
 
