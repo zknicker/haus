@@ -488,6 +488,9 @@ to `sm` once, globally, rather than each call site patching its own.
 Layout should use Tailwind v4 spacing utilities and HeroUI component structure. Keep spacing semantic and consistent instead of copying raw `rem` values into components.
 ### Spacing and Sizing
 
+The channel name field presents its icon picker and text as one control. Its
+InputGroup prefix has no divider; the field keeps its outer border and focus ring.
+
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- |
 | `spacing` | `3.75px` |  | `--spacing` | Prefer Tailwind spacing utilities like `gap-4`, `p-6`, `px-8`, and `space-y-4`. | Base spacing unit used by the generated Tailwind spacing scale. |
