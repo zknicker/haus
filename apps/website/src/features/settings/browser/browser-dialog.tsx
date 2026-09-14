@@ -1,20 +1,9 @@
-import {
-    Alert,
-    Button,
-    Description,
-    FieldError,
-    Form,
-    Label,
-    Modal,
-    Switch,
-    TextField,
-    Tooltip,
-} from '@heroui/react';
+import { Button, Form, Modal, Switch, Tooltip } from '@heroui/react';
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import type { ReactNode } from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 
-// Reusable shell + field composition for Browser config dialogs.
+// Shell and switch composition shared by Browser config dialogs.
 
 // Footer submit buttons live outside the form; associate them via form={BROWSER_DIALOG_FORM_ID}.
 export const BROWSER_DIALOG_FORM_ID = 'browser-dialog-form';
@@ -79,73 +68,6 @@ export function BrowserDialog({
                 </Modal.Dialog>
             </Modal.Container>
         </Modal.Backdrop>
-    );
-}
-
-export function BrowserField({
-    children,
-    description,
-    error,
-    label,
-}: {
-    children: ReactNode;
-    description?: ReactNode;
-    error?: ReactNode;
-    label: ReactNode;
-}) {
-    return (
-        <TextField fullWidth isInvalid={Boolean(error)} variant="secondary">
-            <Label>{label}</Label>
-            {children}
-            {description ? <Description>{description}</Description> : null}
-            {error ? <FieldError>{error}</FieldError> : null}
-        </TextField>
-    );
-}
-
-// Lays out two or more fields side by side, collapsing to one column when narrow.
-export function BrowserFieldRow({ children }: { children: ReactNode }) {
-    return <div className="grid gap-4 sm:grid-cols-2">{children}</div>;
-}
-
-export function BrowserToggleField({
-    control,
-    description,
-    label,
-}: {
-    control: ReactNode;
-    description?: ReactNode;
-    label: ReactNode;
-}) {
-    return (
-        <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-                <div className="text-foreground text-sm">{label}</div>
-                {description ? (
-                    <div className="text-muted text-sm leading-relaxed">{description}</div>
-                ) : null}
-            </div>
-            {control}
-        </div>
-    );
-}
-
-export function BrowserNotice({
-    children,
-    title,
-    variant = 'warning',
-}: {
-    children: ReactNode;
-    title: ReactNode;
-    variant?: 'warning' | 'error';
-}) {
-    return (
-        <Alert status={variant === 'error' ? 'danger' : 'warning'}>
-            <Alert.Content>
-                <Alert.Title>{title}</Alert.Title>
-                <Alert.Description>{children}</Alert.Description>
-            </Alert.Content>
-        </Alert>
     );
 }
 

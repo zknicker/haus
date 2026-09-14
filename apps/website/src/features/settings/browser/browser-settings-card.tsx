@@ -68,8 +68,6 @@ export function BrowserSettingsCard({
         <BrowserSettingsControl
             error={error}
             isSaving={isSaving}
-            onOpenBrowser={onOpenBrowser}
-            onRestartBrowser={onRestartBrowser}
             onSave={onSave}
             settings={currentSettings}
         >
@@ -92,20 +90,21 @@ export function BrowserSettingsCard({
     );
 }
 
+/**
+ * Owns the draft and the settings dialog. Opening and restarting Chrome are
+ * the Computer page row's actions, not this control's — they reach `BrowserRow`
+ * straight from the card.
+ */
 export function BrowserSettingsControl({
     children,
     error,
     isSaving,
-    onOpenBrowser,
-    onRestartBrowser,
     onSave,
     settings,
 }: {
     children: BrowserSettingsControlRender;
     error?: string | null;
     isSaving: boolean;
-    onOpenBrowser: () => Promise<unknown> | undefined;
-    onRestartBrowser: () => Promise<unknown> | undefined;
     onSave: (input: AgentRuntimeSaveBrowserSettings) => Promise<unknown> | undefined;
     settings: BrowserSettings;
 }) {
@@ -144,9 +143,7 @@ export function BrowserSettingsControl({
                 error={error}
                 isSaving={isSaving}
                 onDraftChange={setDraft}
-                onOpenBrowser={onOpenBrowser}
                 onOpenChange={setSettingsDialogOpen}
-                onRestartBrowser={onRestartBrowser}
                 onSave={() => requestSave(toSaveInput(currentSettings, normalized))}
                 open={settingsDialogOpen}
                 settings={currentSettings}

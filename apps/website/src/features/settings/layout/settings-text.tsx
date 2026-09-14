@@ -1,4 +1,5 @@
 import type React from 'react';
+import { cn } from '../../../lib/utils.ts';
 
 /**
  * The two text roles HeroUI's ItemCard has no slot for.
@@ -10,9 +11,25 @@ import type React from 'react';
  * `ItemCardGroup`, not here.
  */
 
-/** A read-only value reported in a row's trailing slot. */
-export function SettingsFact({ children }: { children: React.ReactNode }) {
-    return <span className="text-muted text-sm">{children}</span>;
+/**
+ * A read-only value reported in a row's trailing slot. `className` carries the
+ * value's own shape — a mono path, tabular digits, a truncation edge — never a
+ * second text role.
+ */
+export function SettingsFact({
+    children,
+    className,
+    title,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    title?: string;
+}) {
+    return (
+        <span className={cn('text-muted text-sm', className)} title={title}>
+            {children}
+        </span>
+    );
 }
 
 /**
