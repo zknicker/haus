@@ -5,13 +5,13 @@ import {
     canSaveTriggerEdit,
     canTestTrigger,
     formatTriggerActivity,
-    formatTriggerCreator,
     formatTriggerFireDetail,
     formatTriggerFireTime,
     formatTriggerHistoryTime,
     formatTriggerPayloadSize,
     formatTriggerRowDetail,
     resolveTriggerSheetMode,
+    triggerCreatorName,
     triggerEditPatch,
     triggerInstructionIssue,
     triggerKindLabel,
@@ -73,8 +73,8 @@ test('a row leads with what wakes the Trigger, then how it has been used', () =>
 });
 
 test('a human-created Trigger credits the handle, an Agent-created one the Agent', () => {
-    expect(formatTriggerCreator({ createdByHandle: 'zach' }, 'Blippy')).toBe('Created by @zach');
-    expect(formatTriggerCreator({ createdByHandle: null }, 'Blippy')).toBe('Created by Blippy');
+    expect(triggerCreatorName({ createdByHandle: 'zach' }, 'Blippy')).toBe('@zach');
+    expect(triggerCreatorName({ createdByHandle: null }, 'Blippy')).toBe('Blippy');
 });
 
 test('payload size reads in the unit a person would say it in', () => {

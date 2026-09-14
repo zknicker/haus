@@ -2,19 +2,10 @@ import {
     avatarGenerationConceptMaxLength,
     type GeneratedAvatar,
 } from '@haus/api/avatar-generation';
-import {
-    Alert,
-    Button,
-    FieldError,
-    Form,
-    Input,
-    Label,
-    Modal,
-    Skeleton,
-    TextField,
-} from '@heroui/react';
+import { Button, FieldError, Form, Input, Label, Modal, Skeleton, TextField } from '@heroui/react';
 import { AiMagicIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 
 const avatarGenerationFormId = 'agent-avatar-generation-form';
 
@@ -161,14 +152,7 @@ export function AvatarGenerationFields({
                     ) : null}
                 </div>
             ) : null}
-            {error ? (
-                <Alert role="alert" status="danger">
-                    <Alert.Indicator />
-                    <Alert.Content>
-                        <Alert.Description>{error}</Alert.Description>
-                    </Alert.Content>
-                </Alert>
-            ) : null}
+            <SettingsRowError>{error}</SettingsRowError>
         </Form>
     );
 }

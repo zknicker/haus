@@ -1,10 +1,13 @@
 import type { Agent, AgentSkillMetadata } from '@haus/api';
-import { Alert, AlertDialog, Button, Modal, TextArea } from '@heroui/react';
+import { AlertDialog, Button, Modal, TextArea } from '@heroui/react';
+import { SparklesIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { useSkillDelete } from '../../../hooks/members/use-skill-delete.ts';
 import { useSkillFile } from '../../../hooks/members/use-skill-file.ts';
 import { useSkillSave } from '../../../hooks/members/use-skill-save.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
 
 export function SkillDialog({
@@ -48,15 +51,16 @@ export function SkillDialog({
                     <Modal.Dialog>
                         <Modal.CloseTrigger />
                         <Modal.Header>
+                            {/* Modal.Icon carries no background of its own;
+                                the stock idiom pairs it with a soft fill. */}
+                            <Modal.Icon className="bg-default text-foreground">
+                                <Icon className="size-5" icon={SparklesIcon} />
+                            </Modal.Icon>
                             <Modal.Heading>
                                 {skill ? formatSkillName(skill.name) : 'Agent Skill'}
                             </Modal.Heading>
                             <p className="mt-1.5 text-muted text-sm leading-5">
-                                Edit this Agent’s independent SKILL.md copy. Other support files
-                                stay unchanged.
-                                {/* The row keeps one clean line, so the update
-                                    date lives here with the rest of the detail. */}
-                                {skill ? ` Last updated ${formatUpdatedAt(skill.modifiedAt)}.` : ''}
+                                Edit this Agent’s own copy of SKILL.md.
                             </p>
                         </Modal.Header>
                         <Modal.Body>
@@ -74,14 +78,15 @@ export function SkillDialog({
                                         variant="secondary"
                                     />
                                 )}
-                                {error ? (
-                                    <Alert role="alert" status="danger">
-                                        <Alert.Indicator />
-                                        <Alert.Content>
-                                            <Alert.Description>{error}</Alert.Description>
-                                        </Alert.Content>
-                                    </Alert>
+                                {/* When the file was last written is a caption
+                                    on the editor, not a second header line —
+                                    and it costs the editor nothing here. */}
+                                {skill ? (
+                                    <p className="text-muted text-sm">
+                                        {`Last updated ${formatUpdatedAt(skill.modifiedAt)}. Other support files stay unchanged.`}
+                                    </p>
                                 ) : null}
+                                <SettingsRowError>{error}</SettingsRowError>
                             </div>
                         </Modal.Body>
                         <Modal.Footer>

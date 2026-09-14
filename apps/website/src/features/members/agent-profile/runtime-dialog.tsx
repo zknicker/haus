@@ -1,6 +1,9 @@
 import type { Agent, ComputerInventory } from '@haus/api';
-import { Alert, Button, Form, Label, ListBox, Modal, Select } from '@heroui/react';
+import { Button, Description, Form, Label, ListBox, Modal, Select } from '@heroui/react';
+import { CpuIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { Icon } from '../../../components/ui/icon.tsx';
+import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { isRuntimeConfigDraftAvailable, type RuntimeConfigDraft } from './runtime-model.ts';
 
 type Runtime = ComputerInventory['runtimes'][number];
@@ -72,6 +75,11 @@ function RuntimeConfigForm({
     return (
         <>
             <Modal.Header>
+                {/* Modal.Icon carries no background of its own;
+                    the stock idiom pairs it with a soft fill. */}
+                <Modal.Icon className="bg-default text-foreground">
+                    <Icon className="size-5" icon={CpuIcon} />
+                </Modal.Icon>
                 <Modal.Heading>Runtime Config</Modal.Heading>
                 <p className="mt-1.5 text-muted text-sm leading-5">
                     Choose the installed runtime and model this Agent uses.
@@ -116,7 +124,11 @@ function RuntimeConfigForm({
                                         id={agent.desiredRuntimeId}
                                         textValue={`${agent.desiredRuntimeId} (not installed)`}
                                     >
-                                        <Label>{agent.desiredRuntimeId} (not installed)</Label>
+                                        {/* The name is the name; whether this
+                                            Computer has it is a second fact
+                                            about it, in the slot for one. */}
+                                        <Label>{agent.desiredRuntimeId}</Label>
+                                        <Description>Not installed</Description>
                                     </ListBox.Item>
                                 )}
                                 {runtimes.map((runtime) => (
@@ -152,7 +164,8 @@ function RuntimeConfigForm({
                                         id={modelId}
                                         textValue={`${modelId} (not installed)`}
                                     >
-                                        <Label>{modelId} (not installed)</Label>
+                                        <Label>{modelId}</Label>
+                                        <Description>Not installed</Description>
                                     </ListBox.Item>
                                 )}
                                 {models.map((model) => (
@@ -168,14 +181,7 @@ function RuntimeConfigForm({
                             </ListBox>
                         </Select.Popover>
                     </Select>
-                    {error ? (
-                        <Alert status="danger">
-                            <Alert.Indicator />
-                            <Alert.Content>
-                                <Alert.Description>{error}</Alert.Description>
-                            </Alert.Content>
-                        </Alert>
-                    ) : null}
+                    <SettingsRowError>{error}</SettingsRowError>
                 </Form>
             </Modal.Body>
             <Modal.Footer>

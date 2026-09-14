@@ -36,8 +36,14 @@ export function TriggerHistoryDrawer({
             <Drawer.Content placement="right">
                 <Drawer.Dialog className="w-[42rem]">
                     <Drawer.CloseTrigger />
+                    {/* The header's one muted line says how far back the
+                        reader is looking; a footer line under a long table is
+                        read after the answer it qualifies. */}
                     <Drawer.Header>
                         <Drawer.Heading>History</Drawer.Heading>
+                        <p className="mt-1.5 text-muted text-sm leading-5">
+                            {retentionNote(rows?.length ?? 0)}
+                        </p>
                     </Drawer.Header>
                     <Drawer.Body>
                         <DataGrid
@@ -52,9 +58,6 @@ export function TriggerHistoryDrawer({
                             }
                         />
                     </Drawer.Body>
-                    <Drawer.Footer className="justify-start">
-                        <p className="text-muted text-sm">{retentionNote(rows?.length ?? 0)}</p>
-                    </Drawer.Footer>
                 </Drawer.Dialog>
             </Drawer.Content>
         </Drawer.Backdrop>

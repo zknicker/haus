@@ -79,12 +79,11 @@ export function formatTriggerRowDetail(
 
 /**
  * A human author is named by handle; an Agent-created Trigger has no creating
- * user, so it credits the Agent that owns it.
+ * user, so it credits the Agent that owns it. The row says "Created by", so the
+ * value is the author alone rather than a sentence that repeats its own label.
  */
-export function formatTriggerCreator(trigger: Pick<Trigger, 'createdByHandle'>, ownerName: string) {
-    return trigger.createdByHandle
-        ? `Created by @${trigger.createdByHandle}`
-        : `Created by ${ownerName}`;
+export function triggerCreatorName(trigger: Pick<Trigger, 'createdByHandle'>, ownerName: string) {
+    return trigger.createdByHandle ? `@${trigger.createdByHandle}` : ownerName;
 }
 
 /** Payload size reads in the unit a person would say it in. */
