@@ -183,6 +183,17 @@ function answerCloudAgentCapability(socket: WebSocket) {
             requestId?: string;
             type?: string;
         };
+        if (frame.type === 'browser-request') {
+            // The page batches Browser and Cloud Agent reads; both need a reply.
+            socket.send(
+                JSON.stringify({
+                    error: 'Browser is unavailable on this test Computer.',
+                    requestId: frame.requestId,
+                    type: 'browser-result',
+                })
+            );
+            return;
+        }
         if (frame.type !== 'cloud-agent-capability-request') {
             return;
         }
