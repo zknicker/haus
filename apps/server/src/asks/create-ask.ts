@@ -1,4 +1,5 @@
 import type { AgentAskInput, AgentAskReceipt, ServerDurableEvent } from '@haus/api';
+import { agentAskInputSchema } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import {
@@ -6,6 +7,7 @@ import {
     planAgentAuthoredMessage,
     writeAgentAuthoredMessage,
 } from '../chats/agent-authored-message.ts';
+import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
 import { findChatAccess } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -45,11 +47,17 @@ export async function createAsk(
         }
 
         const addresseeUserId = await resolveAddressee(tx, runner.serverId, plan.chatId, input);
+        const content = agentAskInputSchema.shape.content.parse(
+            await canonicalizeAgentMessageContentForPersistence(tx, {
+                content: input.content,
+                serverId: runner.serverId,
+            })
+        );
         const written = await writeAgentAuthoredMessage(
             tx,
             runner,
             plan,
-            { bodyKind: 'ask', content: input.content, nonce: input.nonce },
+            { bodyKind: 'ask', content, nonce: input.nonce },
             agentDelivery
         );
 
@@ -111,11 +119,16 @@ async function readAskByNonce(
     if (!message) {
         return null;
     }
+    const content = await canonicalizeAgentMessageContentForPersistence(db, {
+        content: input.content,
+        existingContent: message.content,
+        serverId: runner.serverId,
+    });
     const ask = await findAskByMessage(db, runner.serverId, message.id);
     if (
         !ask ||
         message.authorAgentId !== runner.agentId ||
-        message.content !== input.content ||
+        message.content !== content ||
         ask.title !== input.title ||
         ask.summary !== input.summary ||
         !sameOptions(ask.options, input.options)

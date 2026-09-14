@@ -28,7 +28,7 @@ interface ReferenceRange {
 export function readBareReferenceTokens(content: string): BareReferenceToken[] {
     const protectedRanges = readProtectedRanges(content);
     const tokens: BareReferenceToken[] = [];
-    const tokenPattern = /[@#][A-Za-z0-9][A-Za-z0-9_-]{0,31}/gu;
+    const tokenPattern = /(?:@[A-Za-z0-9][A-Za-z0-9_-]{0,31}|#[A-Za-z0-9_-]{1,32})/gu;
 
     for (const match of content.matchAll(tokenPattern)) {
         const text = match[0];

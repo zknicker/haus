@@ -3,6 +3,7 @@ import type {
     AgentCloudAgentStartInput,
     ServerDurableEvent,
 } from '@haus/api';
+import { agentCloudAgentStartInputSchema } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import {
@@ -10,6 +11,7 @@ import {
     planAgentAuthoredMessage,
     writeAgentAuthoredMessage,
 } from '../chats/agent-authored-message.ts';
+import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -49,11 +51,17 @@ export async function createCloudAgentWork(
         }
 
         const computerId = await requireAssignedComputer(tx, runner);
+        const content = agentCloudAgentStartInputSchema.shape.content.parse(
+            await canonicalizeAgentMessageContentForPersistence(tx, {
+                content: input.content,
+                serverId: runner.serverId,
+            })
+        );
         const written = await writeAgentAuthoredMessage(
             tx,
             runner,
             plan,
-            { bodyKind: 'cloud-agent-work', content: input.content, nonce: input.nonce },
+            { bodyKind: 'cloud-agent-work', content, nonce: input.nonce },
             agentDelivery
         );
 
@@ -123,11 +131,16 @@ async function readWorkByNonce(
     if (!message) {
         return null;
     }
+    const content = await canonicalizeAgentMessageContentForPersistence(db, {
+        content: input.content,
+        existingContent: message.content,
+        serverId: runner.serverId,
+    });
     const work = await findCloudAgentWorkByMessage(db, runner.serverId, message.id);
     if (
         !work ||
         message.authorAgentId !== runner.agentId ||
-        message.content !== input.content ||
+        message.content !== content ||
         work.title !== input.title ||
         work.repository !== input.repository ||
         work.startingRef !== input.startingRef ||

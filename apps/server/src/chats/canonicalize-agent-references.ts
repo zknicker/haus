@@ -1,16 +1,18 @@
 import {
     formatAgentReferenceTarget,
     formatChatReferenceTarget,
+    formatUserReferenceTarget,
     parseAgentReferenceTarget,
     parseChatReferenceTarget,
     parseHausRichReferences,
+    parseUserReferenceTarget,
 } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable, chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { readBareReferenceTokens } from './bare-reference-tokens.ts';
 
-export interface AgentReferenceTarget {
+interface ParticipantReferenceTarget {
     handle: string;
     id: string;
 }
@@ -22,9 +24,9 @@ export interface ChatReferenceTarget {
 
 /**
  * Resolves the live Server directory once, then stores only immutable targets
- * in the Agent-authored message. Retired Agents and deleted Channels are not
- * eligible. Channel lookup is Server-wide label resolution; target routing and
- * delivery still enforce the Agent's Chat access separately.
+ * in the Agent-authored message. Revoked human memberships, retired Agents,
+ * and deleted Channels are not eligible. Channel lookup is Server-wide label
+ * resolution; target routing and delivery still enforce the Agent's Chat access separately.
  *
  * `additionalAgents` names an Agent the directory cannot know yet — the one
  * being created in this same transaction, whose announcement is the Message
@@ -33,7 +35,7 @@ export interface ChatReferenceTarget {
 export async function canonicalizeAgentMessageContentForPersistence(
     db: HausDatabase,
     input: {
-        additionalAgents?: AgentReferenceTarget[];
+        additionalAgents?: ParticipantReferenceTarget[];
         content: string;
         existingContent?: string;
         serverId: string;
@@ -44,10 +46,11 @@ export async function canonicalizeAgentMessageContentForPersistence(
         return canonicalizeAgentMessageContent(input.content, {
             agents: preferred.agents,
             channels: preferred.channels,
+            users: preferred.users,
         });
     }
 
-    const [agents, channels] = await Promise.all([
+    const [agents, channels, users] = await Promise.all([
         db
             .select({ handle: agentsTable.handle, id: agentsTable.id })
             .from(agentsTable)
@@ -66,34 +69,57 @@ export async function canonicalizeAgentMessageContentForPersistence(
             .then((rows) =>
                 rows.flatMap((row) => (row.name ? [{ id: row.id, name: row.name }] : []))
             ),
+        db
+            .select({ handle: serverMembershipsTable.handle, id: serverMembershipsTable.userId })
+            .from(serverMembershipsTable)
+            .where(
+                and(
+                    eq(serverMembershipsTable.serverId, input.serverId),
+                    isNull(serverMembershipsTable.revokedAt)
+                )
+            ),
     ]);
 
     return canonicalizeAgentMessageContent(input.content, {
         agents: [...agents, ...(input.additionalAgents ?? [])],
         channels,
+        users: users.flatMap((user) => (user.handle ? [{ handle: user.handle, id: user.id }] : [])),
     });
 }
 
-/** Rewrites only known bare Agent/channel references outside protected Markdown. */
+/** Rewrites only known bare participant/channel references outside protected Markdown. */
 export function canonicalizeAgentMessageContent(
     content: string,
     input: {
-        agents: AgentReferenceTarget[];
+        agents: ParticipantReferenceTarget[];
         channels: ChatReferenceTarget[];
+        users: ParticipantReferenceTarget[];
     }
 ): string {
-    const agentIds = uniqueTargetMap(input.agents, (agent) => agent.handle);
+    const participantTargets = uniqueTargetMap(
+        [
+            ...input.agents.map((agent) => ({
+                handle: agent.handle,
+                id: formatAgentReferenceTarget(agent.id),
+            })),
+            ...input.users.map((user) => ({
+                handle: user.handle,
+                id: formatUserReferenceTarget(user.id),
+            })),
+        ],
+        (participant) => participant.handle
+    );
     const channelIds = uniqueTargetMap(input.channels, (channel) => channel.name);
     const replacements: Array<{ end: number; start: number; text: string }> = [];
 
     for (const token of readBareReferenceTokens(content)) {
-        const id = token.sigil === '@' ? agentIds.get(token.key) : channelIds.get(token.key);
+        const id =
+            token.sigil === '@' ? participantTargets.get(token.key) : channelIds.get(token.key);
         if (!id) {
             continue;
         }
 
-        const target =
-            token.sigil === '@' ? formatAgentReferenceTarget(id) : formatChatReferenceTarget(id);
+        const target = token.sigil === '@' ? id : formatChatReferenceTarget(id);
         replacements.push({
             end: token.end,
             start: token.start,
@@ -116,10 +142,11 @@ export function canonicalizeAgentMessageContent(
 }
 
 function readExistingReferenceTargets(content: string | undefined) {
-    const agents: AgentReferenceTarget[] = [];
+    const agents: ParticipantReferenceTarget[] = [];
     const channels: ChatReferenceTarget[] = [];
+    const users: ParticipantReferenceTarget[] = [];
     if (!content) {
-        return { agents, channels };
+        return { agents, channels, users };
     }
 
     for (const reference of parseHausRichReferences(content)) {
@@ -128,6 +155,11 @@ function readExistingReferenceTargets(content: string | undefined) {
             if (id) {
                 agents.push({ handle: reference.label, id });
             }
+        } else if (reference.kind === 'user') {
+            const id = parseUserReferenceTarget(reference.id);
+            if (id) {
+                users.push({ handle: reference.label, id });
+            }
         } else if (reference.kind === 'chat') {
             const id = parseChatReferenceTarget(reference.id);
             if (id) {
@@ -135,7 +167,7 @@ function readExistingReferenceTargets(content: string | undefined) {
             }
         }
     }
-    return { agents, channels };
+    return { agents, channels, users };
 }
 
 /**

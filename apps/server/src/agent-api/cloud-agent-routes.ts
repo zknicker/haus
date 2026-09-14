@@ -5,6 +5,7 @@ import {
     agentCloudAgentStartInputSchema,
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
+import { ZodError } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
@@ -172,6 +173,14 @@ function sendCloudAgentFailure(
     reply: Parameters<typeof sendAgentApiError>[0],
     cause: unknown
 ): unknown {
+    if (cause instanceof ZodError) {
+        return sendAgentApiError(
+            reply,
+            400,
+            'INVALID_ARG',
+            'The expanded Cloud Agent message exceeds the content limit.'
+        );
+    }
     if (cause instanceof CloudAgentNotLaunchedError) {
         return sendAgentApiError(reply, 409, 'CLOUD_AGENT_NOT_LAUNCHED', cause.message);
     }
