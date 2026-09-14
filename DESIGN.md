@@ -439,7 +439,9 @@ Use the generated font and text scale through HeroUI components and Tailwind tex
 | `9xl` | Inter | `112px` | `112px` | `--text-9xl` | `text-9xl` |
 
 Product copy uses `base`; compact app chrome uses `sm`. Tooltips are globally promoted from
-HeroUI's stock `xs` to `sm` in `default-theme.css` so action labels never read as fine print.
+HeroUI's stock `xs` to `sm` in `default-theme.css` so action labels never read as fine print,
+and their stock `word-break: break-all` is relaxed to `overflow-wrap: anywhere` so a help
+sentence wraps between words while a long path can still break.
 Base text retains a 1.6 line-height ratio. HeroUI Markdown uses its own 1.625 ratio,
 giving chat messages a 22.75px line height at the shared 14px base size.
 Inline code uses a 7% foreground tint over its surrounding surface, keeping it distinct

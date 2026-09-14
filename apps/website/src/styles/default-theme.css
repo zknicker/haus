@@ -605,10 +605,18 @@
         padding-inline-end: 0;
     }
 
-    /* Tooltips are compact app chrome, not 11px fine print. */
+    /*
+     * Tooltips are compact app chrome, not 11px fine print. HeroUI also ships
+     * `word-break: break-all`, which is right for an unbreakable path and wrong
+     * for the sentence a help affordance carries — it hyphenless-splits
+     * ordinary words mid-token. `anywhere` keeps the long-token escape hatch
+     * without breaking prose.
+     */
     .tooltip {
         font-size: var(--text-sm);
         line-height: var(--text-sm--line-height);
+        word-break: normal;
+        overflow-wrap: anywhere;
     }
 
     /*
