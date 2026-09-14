@@ -410,7 +410,6 @@ export class AgentDelivery {
         });
     }
 
-    /** The Computer accepted a delivery locally — stop retrying it. */
     async onAck(input: { agentId: string; runId: string }): Promise<void> {
         const stateAndPlan = await this.db.transaction(async (tx) => {
             const serverId = await store.readAgentServerId(tx, input.agentId);
@@ -438,7 +437,8 @@ export class AgentDelivery {
         });
         const state = stateAndPlan?.state;
         if (stateAndPlan?.acceptedActivity) {
-            publishCommittedAgentActivity(stateAndPlan.acceptedActivity);
+            const { runStartedAt: _runStartedAt, ...activity } = stateAndPlan.acceptedActivity;
+            publishCommittedAgentActivity(activity);
         }
         if (state?.activeRunId === input.runId && state.activeRunChatId) {
             publishAgentLifecycle({

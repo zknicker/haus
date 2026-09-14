@@ -106,24 +106,38 @@ export const agentActivityEventSchema = z
 
 export type AgentActivityEvent = z.infer<typeof agentActivityEventSchema>;
 
+export const agentCurrentActivitySchema = agentActivityEventSchema.extend({
+    runStartedAt: timestampSchema.nullable(),
+});
+export type AgentCurrentActivity = z.infer<typeof agentCurrentActivitySchema>;
+
 /** Projects one journal event into the visible activity for its accepted run. */
 export function projectAgentCurrentActivity(
-    current: AgentActivityEvent | null,
-    event: AgentActivityEvent
-): AgentActivityEvent | null {
+    current: AgentCurrentActivity | null,
+    event: AgentActivityEvent | AgentCurrentActivity
+): AgentCurrentActivity | null {
+    const previous = current?.runId === event.runId ? current : null;
+    const runStartedAt =
+        previous?.runStartedAt ??
+        ('runStartedAt' in event ? event.runStartedAt : null) ??
+        (event.producer === 'server' &&
+        event.category === 'starting_work' &&
+        event.phase === 'started'
+            ? event.occurredAt
+            : null);
     if (isAgentCurrentActivityTerminalEvent(event)) {
         return null;
     }
-    if (current && isAgentFinishingActivityEvent(current) && event.phase !== 'started') {
-        return current;
+    if (previous && isAgentFinishingActivityEvent(previous) && event.phase !== 'started') {
+        return previous;
     }
     if (event.phase === 'started') {
-        return event;
+        return { ...event, runStartedAt };
     }
     if (isAgentFinishingActivityEvent(event)) {
-        return event;
+        return { ...event, runStartedAt };
     }
-    return current ? { ...event, category: 'working', phase: 'started' } : null;
+    return previous ? { ...event, category: 'working', phase: 'started', runStartedAt } : null;
 }
 
 export function isAgentCurrentActivityTerminalEvent(event: AgentActivityEvent) {
@@ -180,7 +194,7 @@ export type AgentActivityHistoryPage = z.infer<typeof agentActivityHistoryPageSc
 export const agentActiveActivityInputSchema = z.object({ serverId: idSchema }).strict();
 
 export const agentActiveActivitySnapshotSchema = z
-    .object({ activities: z.array(agentActivityEventSchema) })
+    .object({ activities: z.array(agentCurrentActivitySchema) })
     .strict();
 
 export type AgentActiveActivitySnapshot = z.infer<typeof agentActiveActivitySnapshotSchema>;

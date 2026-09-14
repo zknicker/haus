@@ -3,6 +3,7 @@ import type {
     AgentActivityEvent,
     AgentActivityHistoryInput,
     AgentActivityHistoryPage,
+    AgentCurrentActivity,
 } from '@haus/api';
 import { projectAgentCurrentActivity } from '@haus/api/agent-activity';
 import { and, asc, desc, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
@@ -118,7 +119,7 @@ export async function readActiveAgentActivity(
     const activities = [...eventsByRun.values()].flatMap((events) => {
         const current = [...events]
             .sort((left, right) => left.position - right.position)
-            .reduce<AgentActivityEvent | null>(projectAgentCurrentActivity, null);
+            .reduce<AgentCurrentActivity | null>(projectAgentCurrentActivity, null);
         return current ? [current] : [];
     });
     return { activities };

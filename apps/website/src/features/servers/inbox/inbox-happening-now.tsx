@@ -32,7 +32,7 @@ export function InboxHappeningNow() {
     const activities = currentActivity?.activities ?? [];
     // Elapsed time ticks on the rows the same way it does on a work surface —
     // and only while a row is actually counting up.
-    const now = useRelativeNow(cloudAgentWork.data?.length || activities.length ? 5000 : 60_000);
+    const now = useRelativeNow(cloudAgentWork.data?.length || activities.length ? 1000 : 60_000);
     const rows = React.useMemo(
         () =>
             toHappeningNowRows(

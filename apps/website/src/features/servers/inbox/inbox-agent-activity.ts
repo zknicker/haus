@@ -4,13 +4,12 @@ import {
     filterCurrentAgentActivityByLifecycle,
     formatCurrentAgentActivityLabel,
 } from '../../../hooks/agents/current-agent-activity.ts';
-import { elapsedSince } from '../../cloud-agents/cloud-agent-presentation.ts';
 
 /** One Agent in a turn, as both the roster band and Happening now read it. */
 export interface HappeningNowAgent {
     agent: Agent | null;
     id: string;
-    /** The current step and how long it has been running: `Editing files · 3m`. */
+    /** Current activity alongside elapsed time for the whole turn. */
     label: string;
     name: string;
 }
@@ -32,11 +31,7 @@ export function currentAgentActivityLabels(
     );
 }
 
-/**
- * Agents in a turn as rows. The snapshot carries one event per Agent — the
- * step it is on — so elapsed is time in that step, which is the number that
- * answers "is this moving?". The run's own start is not in this projection.
- */
+/** Current steps share a continuous clock anchored to the Server's turn start. */
 export function happeningNowAgentRows(
     activities: readonly CurrentAgentActivity[],
     lifecycles: ReadonlyMap<string, AgentLifecycleEvent>,
@@ -52,7 +47,7 @@ export function happeningNowAgentRows(
             id: activity.agentId,
             label: stepWithElapsed(
                 formatCurrentAgentActivityLabel(activity),
-                activity.occurredAt,
+                activity.runStartedAt,
                 now
             ),
             name: agent?.displayName ?? `Agent ${activity.agentId.slice(-6)}`,
@@ -65,7 +60,12 @@ export function happeningNowAgentRows(
  * elapsed clause follows it, the clause says that instead, so the ellipsis
  * comes off rather than reading as `Editing files… · 3m`.
  */
-function stepWithElapsed(label: string, occurredAt: string, now: number): string {
-    const elapsed = elapsedSince(occurredAt, now);
-    return elapsed === null ? label : `${label.replace(/…$/u, '')} · ${elapsed}`;
+function stepWithElapsed(label: string, runStartedAt: string | null, now: number): string {
+    if (runStartedAt === null) {
+        return label;
+    }
+    const seconds = Math.max(0, Math.floor((now - Date.parse(runStartedAt)) / 1000));
+    const minutes = Math.floor(seconds / 60);
+    const elapsed = minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
+    return `${label.replace(/…$/u, '')} · ${elapsed} elapsed`;
 }

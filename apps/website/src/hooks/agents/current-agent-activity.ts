@@ -1,11 +1,16 @@
-import type { Agent, AgentActivityEvent, AgentLifecycleEvent } from '@haus/api';
+import type {
+    Agent,
+    AgentActivityEvent,
+    AgentCurrentActivity,
+    AgentLifecycleEvent,
+} from '@haus/api';
 import {
     isAgentCurrentActivityTerminalEvent,
     isAgentFinishingActivityEvent,
     projectAgentCurrentActivity,
 } from '@haus/api/agent-activity';
 
-export type CurrentAgentActivity = AgentActivityEvent;
+export type CurrentAgentActivity = AgentCurrentActivity;
 
 const activityLabels: Record<AgentActivityEvent['category'], string> = {
     browsing: 'Browsing…',
@@ -22,9 +27,12 @@ const activityLabels: Record<AgentActivityEvent['category'], string> = {
     working: 'Working…',
 };
 
-export function formatCurrentAgentActivityLabel(activity: CurrentAgentActivity) {
+export function formatCurrentAgentActivityLabel(activity: AgentActivityEvent) {
     if (isAgentFinishingActivityEvent(activity)) {
         return 'Finishing up…';
+    }
+    if (activity.category === 'using_tool' && activity.toolRef) {
+        return `Using ${activity.toolRef}…`;
     }
     return activityLabels[activity.category];
 }
@@ -36,7 +44,7 @@ export function formatCurrentAgentActivityLabel(activity: CurrentAgentActivity) 
  */
 export function applyCurrentAgentActivityEvent(
     activities: readonly CurrentAgentActivity[],
-    event: CurrentAgentActivity
+    event: AgentActivityEvent
 ): CurrentAgentActivity[] {
     const index = activities.findIndex((activity) => activityKey(activity) === activityKey(event));
     const current = index >= 0 ? activities[index] : undefined;
@@ -98,7 +106,7 @@ export interface CurrentAgentActivityLiveOverlay {
 
 export function mergeCurrentAgentActivityLiveEvent(
     previous: CurrentAgentActivityLiveOverlay | undefined,
-    event: CurrentAgentActivity
+    event: AgentActivityEvent
 ): CurrentAgentActivityLiveOverlay {
     if (previous?.event.runId === event.runId && previous.latestPosition >= event.position) {
         return previous;
@@ -113,11 +121,23 @@ export function mergeCurrentAgentActivityLiveEvent(
     ) {
         return { ...previous, latestPosition: event.position };
     }
-    if (previous?.event.runId === event.runId && previous.event.phase === 'started') {
+    if (
+        previous?.event.runId === event.runId &&
+        (previous.event.phase === 'started' || isAgentFinishingActivityEvent(previous.event))
+    ) {
         const projected = projectAgentCurrentActivity(previous.event, event);
-        return { event: projected ?? event, latestPosition: event.position };
+        return {
+            event: projected ?? { ...event, runStartedAt: previous.event.runStartedAt },
+            latestPosition: event.position,
+        };
     }
-    return { event, latestPosition: event.position };
+    return {
+        event: {
+            ...event,
+            runStartedAt: projectAgentCurrentActivity(null, event)?.runStartedAt ?? null,
+        },
+        latestPosition: event.position,
+    };
 }
 
 export function splitCurrentAgentActivity(
@@ -153,6 +173,6 @@ export function filterCurrentAgentActivityByLifecycle(
     });
 }
 
-function activityKey(activity: CurrentAgentActivity) {
+function activityKey(activity: AgentActivityEvent) {
     return `${activity.agentId}:${activity.runId}`;
 }
