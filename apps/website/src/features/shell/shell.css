@@ -119,10 +119,21 @@
     }
 
     /*
+     * The titlebar strip: the opening every surface leaves at the top of the
+     * sidebar, before the navigation starts. macOS needs it to clear the
+     * traffic lights; the web takes the same value so both surfaces read alike
+     * and the Haus mark and Settings gear have one home. This is the web's
+     * declaration site — a web-specific strip is tuned here, without touching
+     * the macOS arithmetic below.
+     */
+    .app-shell {
+        --app-shell-titlebar-inset: calc(var(--app-shell-band-height) * 0.8);
+    }
+
+    /*
      * The native titlebar band is the shared shell band seen from the window's
      * side, so it reads the same value rather than restating a height that can
-     * drift. electron/main.cjs centers the traffic lights on it too. The gutter
-     * clears the three 12px lights inset 17px from the window edge.
+     * drift. electron/main.cjs centers the traffic lights on it too.
      */
     html.macos-electron .app-shell {
         /*
@@ -137,12 +148,14 @@
          * started sitting on a half-band offset instead.
          */
         --app-shell-titlebar-inset: calc(var(--app-shell-band-height) * 0.8);
-        --app-shell-traffic-light-gutter: 5rem;
     }
 
     /*
-     * Keep HeroUI's sidebar panels full-height, then reserve a native titlebar
-     * band inside them, masking any panel edge behind the macOS traffic lights.
+     * Keep HeroUI's sidebar panels full-height, then reserve the titlebar strip
+     * inside them, masking any panel edge behind the macOS traffic lights. The
+     * strip is unconditional: the lights are why macOS has one, and the air
+     * above the lead row plus a home for the Haus mark and the Settings gear
+     * are why the web takes the same one.
      *
      * The band paints the sidebar's own surface and draws no line. It used to
      * do both the other way round — `--background` plus a hairline continuing
@@ -153,19 +166,25 @@
      * separates chrome from content, so the line has nothing left to do: the
      * sidebar is one unbroken column and the topbar's rule stops at it.
      */
-    html.macos-electron .app-shell [data-slot='sidebar'] {
+    .app-shell [data-slot='sidebar'] {
         /*
          * The strip's clearance and nothing else. The rest of the air before
          * the first navigation row is that row's own half-band offset (the
          * lead-row rule in the components layer), which reads the same on
-         * every platform; here the two stack into the clearance under the
-         * traffic lights. The web has no strip, so its sidebar starts at zero
-         * and the offset alone leads the column.
+         * every platform; the two stack into the clearance under the macOS
+         * traffic lights, and into the same opening on the web.
          */
         padding-block-start: var(--app-shell-titlebar-inset);
     }
 
-    html.macos-electron .app-shell [data-slot='sidebar']::before {
+    /*
+     * The mask paints the sidebar's own surface, so on the web it covers the
+     * surface with itself and changes nothing visible. It stays because it is
+     * what keeps the two platforms one layout: the same box still hides the
+     * panel edge behind the traffic lights, still stays solid while the native
+     * window is unfocused, and is one rule rather than a platform fork.
+     */
+    .app-shell [data-slot='sidebar']::before {
         position: absolute;
         z-index: 1;
         inset-block-start: 0;
@@ -177,37 +196,54 @@
     }
 
     /*
-     * Settings is the sidebar's only chrome, and it never earned a row of its
-     * own. On the macOS desktop it takes none: the titlebar strip beside the
-     * traffic lights is reserved space with nothing else in it, so the gear
-     * rides there and the navigation below leads the column flush.
+     * The strip's contents: Settings at the trailing end, and on the web the
+     * Haus mark at the leading one. Neither earned a row, so neither takes one
+     * — the strip is reserved space and the navigation below leads the column
+     * flush. On the macOS desktop the traffic lights already lead this line, so
+     * only the gear is in the box and the mark stays on the Inbox row.
      *
-     * The sidebar root is already positioned, so this is one absolute box, and
-     * `app-region: no-drag` already reaches it as a button, so the strip stays
-     * draggable around it.
+     * The sidebar root is already positioned, so this is one absolute box
+     * spanning the strip rather than two floating corners kept level by hand.
      *
-     * The web has no strip to fill. The gear used to float in the same corner
-     * there, over the trailing end of the lead row's line, which made Inbox
-     * and Settings share a line they had no business sharing. On the web the
-     * gear is an ordinary footer item beside the Agent activity strip
-     * (`ShellSidebar`), so it needs no rule here at all.
+     * Its height is the lights' axis, not the strip's: the same arithmetic
+     * main.cjs uses puts their midline at `band / 2 - 1`, so a box of twice
+     * that centres its contents on that axis whatever the strip's own height
+     * is. That box runs past the strip and over the first navigation row, so
+     * the strip itself takes no pointer events and hands them back to its
+     * contents; `app-region: no-drag` still reaches the gear as a button, so
+     * the strip stays draggable around both.
      */
-    html.macos-electron .app-shell [data-slot='sidebar'] .app-shell-titlebar-action {
+    .app-shell [data-slot='sidebar'] .app-shell-titlebar-strip {
         position: absolute;
         z-index: 2;
-        inset-block-start: 0;
-        inset-inline-end: calc(var(--spacing) * 3);
+        display: flex;
         /*
-         * Centred on the lights rather than on the strip: the same arithmetic
-         * main.cjs uses puts their midline at `band / 2 - 1`, so a box of twice
-         * that lands the gear on their axis whatever the strip's height.
+         * The navigation's icon column, so the mark reads as its head: the
+         * sidebar content's own inset in the compact density the rows run at,
+         * plus HeroUI's fixed inset from a menu row's edge to its icon.
          */
+        inset-inline: calc(var(--spacing-compact) * 3 + 8px) calc(var(--spacing) * 3);
+        inset-block-start: 0;
         height: calc(var(--app-shell-band-height) - 2px);
+        align-items: center;
+        /*
+         * End-justified, with the mark pushing itself away rather than the box
+         * spreading its contents: `space-between` would strand a lone gear at
+         * the leading edge on the surface where the mark is absent.
+         */
+        justify-content: flex-end;
+        pointer-events: none;
     }
 
-    html.macos-electron
-        .app-shell
-        [data-slot='sidebar'].sidebar--default::before {
+    .app-shell [data-slot='sidebar'] .app-shell-titlebar-strip > * {
+        pointer-events: auto;
+    }
+
+    .app-shell [data-slot='sidebar'] .app-shell-titlebar-mark {
+        margin-inline-end: auto;
+    }
+
+    .app-shell [data-slot='sidebar'].sidebar--default::before {
         inset-inline-end: 1px;
     }
 }

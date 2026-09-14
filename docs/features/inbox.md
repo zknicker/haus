@@ -9,10 +9,12 @@ read_when:
 # Inbox
 
 The Inbox is a Haus App page in the sidebar. Its row is the sidebar's anchor — first in the
-Inbox/Search/Tasks menu, wearing the Haus ghost mark, which turns iridescent while any Agent is
-working. The row badges the **Needs you** total in the same count chip the Channel and DM rows wear
-for unread messages, and shows nothing when nothing needs you. It shows one human what they need to
-know right now.
+Inbox/Search/Tasks menu. What it wears there follows the surface: on the web the Haus ghost mark
+leads the titlebar strip above — named "Haus", so it does not repeat this row's name one tab stop
+earlier — and the row takes the inbox glyph at the same measure Search and Tasks do; on the macOS desktop the traffic lights lead that strip, so the mark stays on this row.
+The row badges the **Needs you** total in the same count chip the Channel and DM rows wear for
+unread messages, and shows nothing when nothing needs you. It shows one human what they need to know
+right now.
 
 The Inbox is a lens, not a store. It owns no state of its own, creates no records, and duplicates no
 lifecycle. Every row projects an existing Server record and links to that record's canonical place —
@@ -23,10 +25,14 @@ delivery ledger that wakes Agents. Say "Agent inbox" wherever the two could be c
 
 ## Layout
 
-The page opens on a header with no card: the greeting that names the reader, and the weekday and
-date beneath it. Under that sits the **Active this week** strip, and under that three full-width
-sections stacked in reading order — **Needs you**, **Conversations**, **Happening now** — in the
-page column's own rhythm.
+The page opens on a header with no card: the greeting that names the reader, set at the same
+page-title step every settings page opens with, and the weekday and date beneath it. Under that sits the **Active this week** strip, and under that three full-width sections stacked in reading order —
+**Needs you**, **Conversations**, **Happening now** — in the page column's own rhythm.
+
+The page fills the shell band the way Settings does: every band's trail leads with a **Haus**
+crumb linking back to the Inbox, and the Inbox band reads **Haus › Inbox** with the current page as
+the trailing crumb. With the band saying where you are, the column is stock on every surface: the
+greeting opens the page at the ordinary top inset, under the band, rather than rising into it.
 
 They stack rather than split because a row is one line tall. Three-line rows made each section a
 tall narrow thing, and two columns were how a 1152px page held them; a one-line row makes a section
@@ -169,9 +175,19 @@ One source has no Server list procedure yet and is absent until it does: followe
 
 ## Rules
 
-- Each section states its own explicit empty state, as a quiet row inside its own group. A quiet
-  section says so; it does not collapse into the section above it, and it does not change shape to
-  say it.
+- A settled, empty section draws a **slot**: inside the same frame its rows would share, one
+  dashed outline exactly one row tall, carrying the short fact in muted text (`Nothing needs you.`,
+  `Nothing running.`). The week strip has no frame, so its slot rides the card track bare and the
+  still week keeps the filled week's frameless shape. It is the outline of the row that is missing, so it says where the next one
+  lands as well as that none is there. It is deliberately not a filled block — a filled block that
+  moves is a skeleton, and a skeleton promises a load that is already finished. Its slow breath
+  (a quarter of opacity over 4.5s) is off under `prefers-reduced-motion`.
+- Rows **animate in place**. A row arrives on a fade and a few pixels of upward settle, leaves on a
+  fade as its neighbours close the gap, and slides when the list reorders under it, on one calm
+  spring with no bounce. Because the slot is exactly one row tall and shares the rows' frame, the
+  first arrival takes the slot's box without the section changing height. The week strip animates
+  its cards the same way, with its slot and its cards inside one presence so the last card leaving
+  and the slot arriving are the same exchange. Under `prefers-reduced-motion` every one of these is an instant swap.
 - A section stays blank while its reads settle. An unsettled query is not an empty collection, so
   nothing is claimed — and nothing flashes — on the way there. This holds for the header, which
   waits for the name it greets, and for the week strip, which waits for the usage snapshot rather

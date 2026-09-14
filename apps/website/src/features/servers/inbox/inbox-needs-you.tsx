@@ -7,7 +7,7 @@ import { useTasks } from '../../../hooks/servers/use-tasks.ts';
 import { useServerContext } from '../server-context.ts';
 import { tasksRoute } from '../server-routes.ts';
 import { toTaskItem } from '../tasks/task-model.ts';
-import { InboxSection, InboxSectionEmpty, InboxSectionPending } from './inbox-section.tsx';
+import { InboxSection, InboxSectionPending } from './inbox-section.tsx';
 import { useInboxView } from './inbox-view.ts';
 import { toNeedsYouAsks } from './needs-you-asks.ts';
 import { NeedsYouList } from './needs-you-list.tsx';
@@ -71,11 +71,7 @@ export function InboxNeedsYou() {
     return (
         <InboxSection title="Needs you">
             {settled ? (
-                rows.length === 0 ? (
-                    <InboxSectionEmpty description="Nothing needs you." />
-                ) : (
-                    <NeedsYouList agentById={agentById} onOpenRow={openRow} rows={rows} />
-                )
+                <NeedsYouList agentById={agentById} onOpenRow={openRow} rows={rows} />
             ) : (
                 <InboxSectionPending label="Loading what needs you" />
             )}

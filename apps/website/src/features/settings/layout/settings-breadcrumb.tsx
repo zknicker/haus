@@ -4,20 +4,28 @@ import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useMember } from '../../../hooks/members/use-member.ts';
 import { humanDisplayName } from '../../servers/human-identity.ts';
-import { serverSettingsSectionRoute } from '../../servers/server-routes.ts';
-import { type SettingsRouteTab, settingsNavItems, settingsNavSections } from './navigation.ts';
+import {
+    inboxRoute,
+    serverSettingsRoute,
+    serverSettingsSectionRoute,
+} from '../../servers/server-routes.ts';
+import { type SettingsRouteTab, settingsNavItems } from './navigation.ts';
 
 /**
  * Where you are, in the band the rest of the app uses for content identity.
  *
  * Settings registered nothing there, so every settings route drew an empty
  * band with a hairline under it — chrome that looks unfinished rather than
- * deliberately blank. The group is the part worth showing: the page already
- * names itself in `SettingsPageHeader`, but nothing else says which of the
- * three subjects it belongs to, and the rail's answer scrolls away.
+ * deliberately blank. The trail is the product, then Settings, then the page:
+ * "Haus › Settings › Profile". The rail's group headings (Preferences,
+ * Server) are not crumbs — they are headings in the rail, not places — and
+ * naming them here made the trail read as a path through pages that do not
+ * exist.
  *
- * The group is a label, not a destination — a section is a heading in the
- * rail, not a page — so only the section crumb carries an href.
+ * Every crumb but the last is a destination: Haus is the Inbox, the app's
+ * front page, and Settings is the settings root. A page stops being the
+ * destination once you are inside one of its records, so it takes an href
+ * and the record becomes the current crumb.
  */
 export function SettingsBreadcrumb({
     pathname,
@@ -50,10 +58,11 @@ export function SettingsBreadcrumb({
                 />
             ) : null}
             <Breadcrumbs className="min-w-0">
-                <Breadcrumbs.Item>{crumb.group}</Breadcrumbs.Item>
-                {/* A section stops being the destination once you are inside
-                    one of its records, so it takes the href and the record
-                    becomes the current crumb. */}
+                {/* The product leads every trail, and it is a destination: the
+                    Inbox is the app's front page, the same place the sidebar's
+                    mark goes. */}
+                <Breadcrumbs.Item href={inboxRoute(slug)}>Haus</Breadcrumbs.Item>
+                <Breadcrumbs.Item href={serverSettingsRoute(slug)}>Settings</Breadcrumbs.Item>
                 <Breadcrumbs.Item href={leaf ? sectionHref : undefined}>
                     {crumb.label}
                 </Breadcrumbs.Item>
@@ -109,7 +118,6 @@ function matchHumanId(pathname: string): string | undefined {
  * it names its own place in Settings.
  */
 const computersCrumb = {
-    group: 'Settings',
     icon: ComputerIcon,
     id: 'computers',
     label: 'Computers',
@@ -124,9 +132,6 @@ function resolveCrumb(section: SettingsRouteTab) {
     if (!item) {
         return undefined;
     }
-    const group = settingsNavSections.find((candidate) =>
-        (candidate.itemIds as readonly string[]).includes(item.id)
-    );
 
-    return { group: group?.label ?? 'Settings', icon: item.icon, id: item.id, label: item.label };
+    return { icon: item.icon, id: item.id, label: item.label };
 }

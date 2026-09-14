@@ -410,6 +410,22 @@
     }
 
     /*
+     * A row in an Inbox list rides a motion wrapper — it arrives, leaves, and
+     * reorders — so it is no longer the group's direct child, and HeroUI's own
+     * `> [data-slot="item-card"]` reset stops reaching it. Without this the
+     * wrapper would hand every row its card surface back and the list would
+     * read as cards stacked inside a card. The row group restates the same
+     * reset as a descendant rule; the week cards are deliberately out of its
+     * reach, because a card in the strip is meant to keep its edges.
+     */
+    .item-card-group--inbox-rows [data-slot='item-card'] {
+        background-color: transparent;
+        border-radius: 0;
+        border-width: 0;
+        box-shadow: none;
+    }
+
+    /*
      * A secondary navigation rail (the workspace file rail, the Skills
      * browser) sits on the same ground as the primary sidebar — one token,
      * so every sidebar-shaped surface tints together. Dark themes define no

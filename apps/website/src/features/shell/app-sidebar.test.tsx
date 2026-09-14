@@ -14,7 +14,7 @@ test('hides a retired Agent DM from active navigation', () => {
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
-                    <ShellSidebar activePage="server">
+                    <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
                                 agents={[]}
@@ -41,7 +41,7 @@ test('hides the New agent action when no handler is given', () => {
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
-                    <ShellSidebar activePage="server">
+                    <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
                                 agents={[]}
@@ -67,7 +67,7 @@ test('shows the New agent action on Direct messages for a manager', () => {
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
-                    <ShellSidebar activePage="server">
+                    <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
                                 agents={[]}
@@ -104,7 +104,7 @@ test('renders each DM from its own Agent availability', () => {
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
-                    <ShellSidebar activePage="server">
+                    <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
                                 agents={[blippy, tiny]}
@@ -138,7 +138,7 @@ test('renders an active Agent as an implicit DM without a Chat row', () => {
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
-                    <ShellSidebar activePage="server">
+                    <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
                                 agents={[blippy]}
@@ -167,7 +167,7 @@ test('keeps a draggable channel row out of native window dragging without a hand
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
-                    <ShellSidebar activePage="server">
+                    <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
                                 agents={[]}
@@ -201,7 +201,7 @@ test('keeps context-menu chat rows on the stock Sidebar icon gap', () => {
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
-                    <ShellSidebar activePage="server">
+                    <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
                                 agents={[blippy]}
@@ -231,7 +231,7 @@ test('keeps unread count chips circular until the number needs a pill', () => {
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
-                    <ShellSidebar activePage="server">
+                    <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
                                 agents={[]}
