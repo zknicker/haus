@@ -271,13 +271,13 @@ test('Agent message references persist as stable Agent and Chat links', async ()
     `;
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reference_canonicalization' });
     const inputContent =
-        'Coordinate @blippy, @tiny, and unknown @future in #unjoined-product and #canonical-product.';
+        'Coordinate @blippy, @tiny, @ada, and unknown @future in #unjoined-product and #canonical-product.';
     const sent = await agentSend(minted.runnerToken, {
         content: inputContent,
         nonce: 'agent_reference_canonicalization_1',
         target: '#canonical-product',
     });
-    const expectedContent = `Coordinate [@blippy](agent://${blippy.agent.id}), [@tiny](agent://${tiny.agent.id}), and unknown @future in [#unjoined-product](chat://${unjoinedChannelId}) and [#canonical-product](chat://${channel.id}).`;
+    const expectedContent = `Coordinate [@blippy](agent://${blippy.agent.id}), [@tiny](agent://${tiny.agent.id}), [@ada](user://${ownerUserId}), and unknown @future in [#unjoined-product](chat://${unjoinedChannelId}) and [#canonical-product](chat://${channel.id}).`;
 
     expect(sent).toMatchObject({
         body: { message: { chat_id: channel.id, content: expectedContent }, state: 'sent' },

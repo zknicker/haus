@@ -37,6 +37,7 @@ describe('mentionsBareAgentHandle', () => {
 
         for (const content of announcements) {
             const canonicalized = canonicalizeAgentMessageContent(content, {
+                users: [],
                 agents: [orbit],
                 channels: [],
             });

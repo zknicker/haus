@@ -8,7 +8,10 @@ test('one Cloud Agent work writes its Message, record, first Run, Thread, and ev
     const runner = await fixture.mintRunner('run_cloud_create');
     const head = await fixture.owner.trpc.chat.eventHead.query({ serverId: fixture.serverId });
 
-    const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-create' }));
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'cloud-create', content: 'Handing @ada the work in #product.' })
+    );
     expect(created.status).toBe(200);
     const work = created.body.work as CloudAgentWork;
     expect(created.body).toMatchObject({
@@ -56,7 +59,10 @@ test('one Cloud Agent work writes its Message, record, first Run, Thread, and ev
         type: 'cloud-agent-work.updated',
     });
 
-    const replay = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-create' }));
+    const replay = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'cloud-create', content: 'Handing @ada the work in #product.' })
+    );
     expect(replay.status).toBe(200);
     expect(replay.body).toMatchObject({ idempotent: true, work: { id: work.id } });
     expect(await fixture.countWork()).toBe(1);
@@ -69,7 +75,7 @@ test('one Cloud Agent work writes its Message, record, first Run, Thread, and ev
     expect(history.messages.find((message) => message.id === created.body.messageId)).toMatchObject(
         {
             body: { kind: 'cloud-agent-work', work: { id: work.id } },
-            content: 'Handing the flaky delivery test to a cloud agent.',
+            content: `Handing [@ada](user://${fixture.ownerUserId}) the work in [#product](chat://${fixture.channelId}).`,
         }
     );
 });
@@ -117,5 +123,20 @@ test('a launch that fails validation creates nothing', async () => {
             )
         ).status
     ).toBe(409);
+    expect(await fixture.countWork()).toBe(before);
+});
+
+test('reference expansion rejects oversized content before creating work', async () => {
+    const runner = await fixture.mintRunner('run_cloud_expansion');
+    const before = await fixture.countWork();
+    const result = await fixture.postStart(
+        runner,
+        fixture.startBody({
+            nonce: 'cloud-expansion',
+            content: `${'x'.repeat(31_995)} @ada`,
+        })
+    );
+    expect(result.status).toBe(400);
+    expect(result.body.code).toBe('INVALID_ARG');
     expect(await fixture.countWork()).toBe(before);
 });

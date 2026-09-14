@@ -9,9 +9,47 @@ const agents = [
 const channels = [{ id: 'cht_product', name: 'product' }];
 
 describe('canonicalizeAgentMessageContent', () => {
+    it('resolves human handles, preserves explicit links and protects code and URLs', () => {
+        const content =
+            'Ask @ZACH-KNICKERBOCKER. `@zach-knickerbocker` https://example.com/@zach-knickerbocker [@Zach](user://usr_old)';
+        expect(
+            canonicalizeAgentMessageContent(content, {
+                agents,
+                channels,
+                users: [{ handle: 'zach-knickerbocker', id: 'usr_zach' }],
+            })
+        ).toBe(
+            'Ask [@ZACH-KNICKERBOCKER](user://usr_zach). `@zach-knickerbocker` https://example.com/@zach-knickerbocker [@Zach](user://usr_old)'
+        );
+    });
+
+    it('does not pick an agent over a human with the same handle', () => {
+        expect(
+            canonicalizeAgentMessageContent('Ask @blippy.', {
+                agents,
+                channels,
+                users: [{ handle: 'blippy', id: 'usr_blippy' }],
+            })
+        ).toBe('Ask @blippy.');
+    });
+
+    it('resolves every permitted channel prefix and the maximum name length', () => {
+        const names = ['_notes', '-notes', 'a'.repeat(32)];
+        for (const name of names) {
+            expect(
+                canonicalizeAgentMessageContent(`See #${name}.`, {
+                    agents: [],
+                    users: [],
+                    channels: [{ name, id: 'cht_notes' }],
+                })
+            ).toBe(`See [#${name}](chat://cht_notes).`);
+        }
+    });
+
     it('rewrites known bare Agent and channel references to stable links', () => {
         expect(
             canonicalizeAgentMessageContent('Ask @blippy and @tiny in #product.', {
+                users: [],
                 agents,
                 channels,
             })
@@ -24,7 +62,7 @@ describe('canonicalizeAgentMessageContent', () => {
         expect(
             canonicalizeAgentMessageContent(
                 'Email blippy@example.com, mention @BLIPPY; #PRODUCT works, but #123 stays.',
-                { agents, channels }
+                { agents, channels, users: [] }
             )
         ).toBe(
             `Email blippy@example.com, mention [@BLIPPY](${formatAgentReferenceTarget('agt_blippy')}); [#PRODUCT](${formatChatReferenceTarget('cht_product')}) works, but #123 stays.`
@@ -34,6 +72,7 @@ describe('canonicalizeAgentMessageContent', () => {
     it('does not treat repeated reference sigils as a bare reference', () => {
         expect(
             canonicalizeAgentMessageContent('@@blippy and ##product stay raw.', {
+                users: [],
                 agents,
                 channels,
             })
@@ -44,7 +83,7 @@ describe('canonicalizeAgentMessageContent', () => {
         expect(
             canonicalizeAgentMessageContent(
                 'See https://example.com/@tiny and www.example.com/@blippy.',
-                { agents, channels: [] }
+                { agents, channels: [], users: [] }
             )
         ).toBe('See https://example.com/@tiny and www.example.com/@blippy.');
     });
@@ -60,7 +99,7 @@ describe('canonicalizeAgentMessageContent', () => {
             'Unknown @nobody #missing.',
         ].join('\n');
 
-        expect(canonicalizeAgentMessageContent(content, { agents, channels })).toBe(
+        expect(canonicalizeAgentMessageContent(content, { agents, channels, users: [] })).toBe(
             [
                 `Keep [@blippy](${formatAgentReferenceTarget('agt_blippy')}) and [#product](${formatChatReferenceTarget('cht_product')}).`,
                 '`@tiny #product` stays code.',
@@ -80,6 +119,7 @@ describe('canonicalizeAgentMessageContent', () => {
     it('treats a target repeated under one label as that target, not ambiguity', () => {
         expect(
             canonicalizeAgentMessageContent('Meet @orbit. @orbit owns notes in #product.', {
+                users: [],
                 agents: [
                     { handle: 'orbit', id: 'agt_orbit' },
                     { handle: 'orbit', id: 'agt_orbit' },
@@ -97,6 +137,7 @@ describe('canonicalizeAgentMessageContent', () => {
     it('leaves a label genuinely claimed by two targets alone', () => {
         expect(
             canonicalizeAgentMessageContent('See #product.', {
+                users: [],
                 agents: [],
                 channels: [
                     { id: 'cht_one', name: 'product' },
@@ -111,6 +152,7 @@ describe('canonicalizeAgentMessageContent', () => {
 
         expect(
             canonicalizeAgentMessageContent(content, {
+                users: [],
                 agents: [{ handle: 'blippy', id: 'agt_new' }],
                 channels,
             })

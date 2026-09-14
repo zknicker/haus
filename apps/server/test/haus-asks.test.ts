@@ -83,7 +83,7 @@ test('one Ask writes its Message, record, Thread, and events, and replays by non
 
     const created = await postAsk(runner, {
         addresseeHandle: 'ada',
-        content: 'The migration is staged. Should I run it now?',
+        content: '@ada, the migration is staged. Should I run it now?',
         nonce: 'ask-top-level',
         options: ['Approve the staged migration', 'Wait for the release window'],
         summary: 'The migration is staged and reversible for one hour.',
@@ -129,7 +129,7 @@ test('one Ask writes its Message, record, Thread, and events, and replays by non
 
     const replay = await postAsk(runner, {
         addresseeHandle: 'ada',
-        content: 'The migration is staged. Should I run it now?',
+        content: '@ada, the migration is staged. Should I run it now?',
         nonce: 'ask-top-level',
         options: ['Approve the staged migration', 'Wait for the release window'],
         summary: 'The migration is staged and reversible for one hour.',
@@ -164,7 +164,7 @@ test('the one Message reader projects text and ask bodies for every consumer', a
     const askMessage = page.messages.find((message) => message.body.kind === 'ask');
     expect(askMessage).toMatchObject({
         body: { ask: { status: 'open', title: 'Run the staged migration?' }, kind: 'ask' },
-        content: 'The migration is staged. Should I run it now?',
+        content: `[@ada](user://${ownerUserId}), the migration is staged. Should I run it now?`,
     });
 
     const sent = await owner.trpc.chat.send.mutate({
@@ -434,7 +434,7 @@ test('listOpen returns only the viewer’s open Asks and fails closed on lost ac
 function askBody(overrides: Record<string, string> = {}) {
     return {
         addresseeHandle: 'ada',
-        content: 'The migration is staged. Should I run it now?',
+        content: '@ada, the migration is staged. Should I run it now?',
         nonce: `ask-rejected-${overrides.nonce ?? Math.random().toString(36).slice(2)}`,
         options: ['Approve the staged migration', 'Wait for the release window'],
         summary: 'The migration is staged and reversible for one hour.',
