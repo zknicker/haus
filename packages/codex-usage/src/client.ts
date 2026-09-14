@@ -1,12 +1,9 @@
 import * as z from 'zod';
 import { loadCodexCredentials } from './credentials.ts';
 import { CodexUsageAuthError, CodexUsageParseError, CodexUsageRequestError } from './errors.ts';
-import type {
-    CodexUsageOptions,
-    CodexUsageSnapshot,
-    CodexUsageWindow,
-    CodexUsageWindowId,
-} from './types.ts';
+import { coerceNumber, headerNumber } from './field-values.ts';
+import type { CodexUsageOptions, CodexUsageSnapshot } from './types.ts';
+import { buildUsageWindows } from './usage-windows.ts';
 
 const CODEX_USAGE_URL = 'https://chatgpt.com/backend-api/wham/usage';
 const codexUsageWindowSchema = z.record(z.string(), z.unknown()).nullable().optional();
@@ -43,27 +40,6 @@ export function normalizeCodexUsageResponse(
 ): CodexUsageSnapshot {
     const response = codexUsageResponseSchema.parse(input);
     const now = options.now ?? new Date();
-    const windows: CodexUsageWindow[] = [];
-
-    appendWindow(
-        windows,
-        'current-session',
-        'Current session',
-        headerNumber(options.headers, 'x-codex-primary-used-percent') ??
-            numberField(response.rate_limit?.primary_window ?? undefined, 'used_percent'),
-        response.rate_limit?.primary_window ?? undefined,
-        now
-    );
-
-    appendWindow(
-        windows,
-        'current-week',
-        'Current week',
-        headerNumber(options.headers, 'x-codex-secondary-used-percent') ??
-            numberField(response.rate_limit?.secondary_window ?? undefined, 'used_percent'),
-        response.rate_limit?.secondary_window ?? undefined,
-        now
-    );
 
     return {
         capturedAt: (options.capturedAt ?? now).toISOString(),
@@ -74,7 +50,12 @@ export function normalizeCodexUsageResponse(
         planType: response.plan_type ?? null,
         provider: 'codex',
         source: 'chatgpt-wham-usage',
-        windows,
+        windows: buildUsageWindows({
+            headers: options.headers,
+            now,
+            primaryWindow: response.rate_limit?.primary_window ?? undefined,
+            secondaryWindow: response.rate_limit?.secondary_window ?? undefined,
+        }),
     };
 }
 
@@ -129,40 +110,6 @@ export async function getCodexUsage(options: CodexUsageOptions = {}): Promise<Co
     }
 }
 
-function appendWindow(
-    windows: CodexUsageWindow[],
-    id: CodexUsageWindowId,
-    label: string,
-    usedPercent: number | null,
-    rawWindow: Record<string, unknown> | undefined,
-    now: Date
-): void {
-    if (usedPercent === null) {
-        return;
-    }
-
-    const resetAfterSeconds = numberField(rawWindow, 'reset_after_seconds');
-    const resetAt = numberField(rawWindow, 'reset_at');
-
-    windows.push({
-        id,
-        label,
-        remainingPercent: clampPercent(100 - usedPercent),
-        resetAfterSeconds,
-        resetsAt:
-            resetAt !== null
-                ? new Date(resetAt * 1000).toISOString()
-                : resetAfterSeconds !== null
-                  ? new Date(now.getTime() + resetAfterSeconds * 1000).toISOString()
-                  : null,
-        usedPercent: clampPercent(usedPercent),
-    });
-}
-
-function clampPercent(value: number): number {
-    return Math.max(0, Math.min(100, value));
-}
-
 async function fetchCodexUsageResponse(options: {
     accessToken: string;
     accountId: string | null;
@@ -183,40 +130,4 @@ async function fetchCodexUsageResponse(options: {
         method: 'GET',
         signal: options.signal,
     });
-}
-
-function headerNumber(headers: Headers | undefined, key: string): number | null {
-    if (!headers) {
-        return null;
-    }
-
-    const value = headers.get(key);
-    if (value === null) {
-        return null;
-    }
-
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-}
-
-function numberField(value: Record<string, unknown> | undefined, key: string): number | null {
-    if (!value) {
-        return null;
-    }
-
-    const raw = value[key];
-    return coerceNumber(raw);
-}
-
-function coerceNumber(value: unknown): number | null {
-    if (typeof value === 'number') {
-        return Number.isFinite(value) ? value : null;
-    }
-
-    if (typeof value === 'string' && value.trim().length > 0) {
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    return null;
 }
