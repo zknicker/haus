@@ -61,7 +61,7 @@
     "apps/server/src/chats/send-agent-message.ts": 390,
     "apps/server/src/chats/send-message.ts": 301,
     "apps/server/src/computers/login-service.ts": 321,
-    "apps/server/src/computers/service.ts": 578,
+    "apps/server/src/computers/service.ts": 515,
     "apps/server/src/development/seed-server.ts": 502,
     "apps/server/src/haus-server-activation.ts": 310,
     "apps/server/src/reminders/scheduler.ts": 344,
