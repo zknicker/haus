@@ -98,6 +98,11 @@ Computer also records normalized token counts from each completed Haus Agent tur
 turn summary carries the Agent, runtime, model, input, output, and cache counts to Server; prompts,
 transcripts, and raw provider events remain Computer-local. Codex exposes session-cumulative
 counters, so Computer stores a per-session baseline and reports only each turn's delta.
+Grok Build reports full turn totals in the prompt response's `_meta.usage` object. The ACP adapter
+patch maps those counts into standard finish usage, including cache counts, without adding
+reasoning tokens a second time. Sibling token fields describe only the last model call and are
+not a fallback for missing turn usage. Remove this part of the patch once the upstream adapter
+consumes Grok's prompt usage. Turns without reported usage remain unknown.
 
 Server maintains a daily UTC rollup keyed by Server, date, Agent, runtime, and model. PostgreSQL
 updates that cube transactionally when a compact turn summary is inserted, corrected, or deleted.
