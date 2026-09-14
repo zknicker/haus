@@ -664,6 +664,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 ## Components
 - **Chat message width:** The transcript pane owns the horizontal gutter. Message bodies have
   no additional end padding, so text and thread previews use the space beside the avatar rail.
+  Human and Agent message bodies use the full available width, without an Agent-only width cap.
 - **Chat card backgrounds:** Thread/task previews and Cloud Agent cards share
   `nested-surface`: `rgb(189 189 219 / 10%)` in dark mode and solid `surface` in light mode.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
