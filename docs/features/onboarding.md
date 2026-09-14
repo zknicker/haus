@@ -39,8 +39,23 @@ from Server state instead of reconstructing progress.
 
 Haus App owns no onboarding authority. The `/s/:slug` route reads the Server's
 onboarding record before mounting `ServerLayout`; while setup is incomplete,
-every nested destination renders the dedicated HeroUI onboarding feature
-instead of the rail, sidebar, Chats, Members, Tasks, Computers, or Settings.
+every nested destination stays outside the Server shell. Owners resume Computer/Cove setup.
+Members and Admins see the Server name and “The server owner is still setting up this server.
+Please check again later.” They receive no installation commands or setup diagnostics. When setup
+completes, they enter their retained destination or the normal accessible Chat at the Server root,
+never the owner’s private onboarding Channel. Completed setup stays complete when Computers go offline.
+
+Session, route-module, Server-list, and Server-detail loading share one persistent activation frame
+above the router. Its animated Haus mark stays mounted across authentication, loading, and setup;
+steps render into its slots through React portals, retaining their own auth and query context.
+Unknown authentication never displays sign-in copy; unknown Server state never displays an empty
+Server. Step content and progress enter with a short fade and small rise; the mark keeps its gentle bob within a fixed layout slot.
+When Cove leads the step, the mark fades and collapses without unmounting. Reduced motion removes
+these transitions. The inactive frame is hidden from interaction and accessibility while the Server
+shell is open.
+Setup and waiting screens offer an explicit chooser at `/s?choose`, which lists joined Servers
+without automatically redirecting back into one. The ordinary `/s` entry still resumes a Server.
+
 Computer events invalidate that focused Server read for immediate progress. While onboarding is
 incomplete, Haus App also reconciles the durable record once per second so a missed or racing
 realtime event cannot leave Computer connection or Cove application visibly stuck. This reads only

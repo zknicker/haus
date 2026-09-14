@@ -64,6 +64,13 @@ composer, or drawer model.
 
 ### Loading and navigation
 
+`ActivationFrame` lives above `RouterProvider` and owns the activation chrome and animated ghost.
+`ActivationShell` portals only step content and topbar slots into that frame; portals retain the
+calling screen's auth/query context. Do not put another ghost in a loading or setup branch, key the
+frame by identity/route, or hide it with `display: none`, which resets its animation clock. The frame
+uses scene presence to control visibility and interaction, without copying query data into context.
+
+
 Keep the destination shell mounted while its first snapshot resolves. An unresolved query is not
 an empty collection: reserve a neutral data region until the query settles, and show an empty state
 only after a successful empty result. Keep surrounding navigation and page structure mounted, but

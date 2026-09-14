@@ -215,6 +215,12 @@ App-to-Computer-to-model behavior belongs to the agent-test lanes below.
 
 ### Fresh-Server onboarding proof
 
+`apps/website/e2e/tests/onboarding-entry.spec.ts` covers the short opening path without a Computer:
+neutral delayed loading with a persistent mark and uninterrupted animation clock, reduced-motion
+behavior, owner reload and Server switching, invitation
+acceptance by a member, member/admin gating, and automatic entry at the retained destination when
+setup completes. It also checks that a completed Server with no Computer remains accessible.
+
 `apps/website/e2e/tests/servers.spec.ts` is the one browser tracer for a fresh
 Server. It drives the real App, hosted Server, throwaway PostgreSQL and Clerk
 fixtures, deterministic Computer protocol, and public Agent runner contract.

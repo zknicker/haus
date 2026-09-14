@@ -86,9 +86,8 @@ row inside that same box, so it keeps the section's shape rather than changing i
 They share a list rather than a card. As two lists in one group, the seam between them was the only
 place in the section without a divider, and the reader could see the join.
 
-A failed Server onboarding is not here. The Cove gate holds every owner on the setup screen
-until onboarding completes, so the only person who could reach an Inbox row about it is a member who
-cannot act on it; the failure states itself on the gate instead.
+A failed Server onboarding appears on the owner's setup screen. Until setup completes,
+owners remain in setup and members and Admins remain on the waiting page, outside the Inbox.
 
 Tasks are not here. Task tiers made a task the Agent's own ledger, the Tasks page already leads with
 its **Needs your review** group, and an [Ask](../../specs/asks.md) is the record that addresses a

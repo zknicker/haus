@@ -258,3 +258,16 @@ local backend, Server, Computer, and PostgreSQL processes.
 ## Verification
 
 Use [Testing](testing.md) for test lanes and e2e rules.
+
+### Repeating the opening and waiting experience
+
+Create a fresh Server from Settings → Servers and leave it without a Computer. Reload its
+`/s/<slug>` URL to exercise real authentication and Server loading into setup. This does not
+change the seeded `/dev` Server or its attached Computer.
+
+The dev-only activation preview also includes `/prototype/activation/sign-in-loading`,
+`/prototype/activation/onboarding/preview-connect-computer`,
+`/prototype/activation/onboarding/preview-member`, and
+`/prototype/activation/onboarding/preview-admin`. These render the actual components with fixture
+responses for quick visual checks; they do not prove authentication or real Server transitions.
+Use the focused `onboarding-entry.spec.ts` browser test for those Server transitions.
