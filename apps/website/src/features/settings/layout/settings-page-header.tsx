@@ -32,23 +32,59 @@ import { cn } from '../../../lib/utils.ts';
  * A Computer's system, version, and last contact say more than any sentence
  * about Computers could, and they change — a static line does not. Prose in
  * `description`, structured facts in `meta`; a page rarely wants both.
+ *
+ * `aside` is the same record's *tabular* facts — a `ProfileFacts` list — set at
+ * the far end of the title line instead of stacked under it. Values that short
+ * read as a caption band beside the name, not as a third paragraph below it.
+ * It is still not an action slot: a control goes in the shell band, a section
+ * header, or a row. The header is a wrapping row, so once the reading column is
+ * too narrow the facts drop to their own line and stay left-aligned there.
+ *
+ * The title's rhythm is set per slot rather than as one `space-y`, because the
+ * two slots are not the same kind of neighbour. `description` is body copy
+ * continuing the title's paragraph, and keeps the 6px it has always had.
+ * `meta` is a band of chips whose own boxes already carry padding, and sits
+ * under a `text-2xl` whose 32px line box adds 4px of half-leading below the
+ * glyphs — so at the same 6px it read as detached from the name it describes.
+ * In that case only, the gap drops to 4px and the title takes `leading-7`,
+ * which trims the half-leading rather than the gap and leaves the identity
+ * block short enough to share a band with `aside`. Pages that pass only a
+ * description are byte-identical to before.
  */
 export function SettingsPageHeader({
+    aside,
     className,
     description,
     meta,
     title,
     ...props
 }: Omit<React.ComponentProps<'header'>, 'title'> & {
+    aside?: React.ReactNode;
     description?: React.ReactNode;
     meta?: React.ReactNode;
     title: React.ReactNode;
 }) {
     return (
-        <header className={cn('min-w-0 space-y-1.5 px-4', className)} {...props}>
-            <h1 className="font-semibold text-2xl text-foreground tracking-tight">{title}</h1>
-            {description ? <p className="text-muted text-sm">{description}</p> : null}
-            {meta}
+        <header
+            className={cn(
+                'flex min-w-0 flex-wrap items-end justify-between gap-x-8 gap-y-3 px-4',
+                className
+            )}
+            {...props}
+        >
+            <div className="min-w-0">
+                <h1
+                    className={cn(
+                        'font-semibold text-2xl text-foreground tracking-tight',
+                        meta ? 'leading-7' : undefined
+                    )}
+                >
+                    {title}
+                </h1>
+                {description ? <p className="mt-1.5 text-muted text-sm">{description}</p> : null}
+                {meta ? <div className="mt-1">{meta}</div> : null}
+            </div>
+            {aside}
         </header>
     );
 }

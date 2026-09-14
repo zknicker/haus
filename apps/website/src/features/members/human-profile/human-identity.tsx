@@ -4,15 +4,12 @@ import { ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { ProfileFact, ProfileFacts } from '../../../components/ui/profile-facts.tsx';
 import { useHumanAvatar } from '../../../hooks/members/use-human-avatar.ts';
 import { useHumanIdentity } from '../../../hooks/members/use-human-identity.ts';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { humanDisplayName, humanHandle } from '../../servers/human-identity.ts';
-import {
-    MemberProfileFact,
-    MemberProfileFacts,
-    MemberProfileHeader,
-} from '../member-profile-header.tsx';
+import { MemberProfileHeader } from '../member-profile-header.tsx';
 import { ProfileEdit } from '../profile-edit.tsx';
 
 /** Human-owned identity, edits, and durable workspace facts. */
@@ -78,8 +75,8 @@ export function HumanIdentity({
             }
         >
             {error ? <p className="mb-3 text-danger text-sm">{error}</p> : null}
-            <MemberProfileFacts>
-                <MemberProfileFact
+            <ProfileFacts>
+                <ProfileFact
                     label="Role"
                     value={
                         <Chip
@@ -91,8 +88,8 @@ export function HumanIdentity({
                         </Chip>
                     }
                 />
-                <MemberProfileFact label="Email" value={member.email ?? 'Unavailable'} />
-                <MemberProfileFact
+                <ProfileFact label="Email" value={member.email ?? 'Unavailable'} />
+                <ProfileFact
                     className="tabular-nums"
                     label="Joined"
                     value={new Date(member.joinedAt).toLocaleDateString(undefined, {
@@ -101,7 +98,7 @@ export function HumanIdentity({
                         year: 'numeric',
                     })}
                 />
-            </MemberProfileFacts>
+            </ProfileFacts>
         </MemberProfileHeader>
     );
 }

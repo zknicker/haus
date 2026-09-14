@@ -1,5 +1,4 @@
 import type React from 'react';
-import { cn } from '../../lib/utils.ts';
 
 /**
  * One identity row, left-aligned: the mark, then a name line carrying the
@@ -70,35 +69,5 @@ export function MemberProfileHeader({
             </div>
             {children ? <div className="w-full min-w-0">{children}</div> : null}
         </header>
-    );
-}
-
-export function MemberProfileFacts({ children }: { children: React.ReactNode }) {
-    return (
-        <dl className="flex min-w-0 flex-wrap items-start gap-x-8 gap-y-3 text-sm">{children}</dl>
-    );
-}
-
-export function MemberProfileFact({
-    className,
-    label,
-    value,
-}: {
-    className?: string;
-    label: React.ReactNode;
-    value: React.ReactNode;
-}) {
-    return (
-        <div className="flex min-w-0 flex-col items-start gap-1 text-start">
-            <dt className="order-2 truncate font-medium text-muted">{label}</dt>
-            <dd
-                className={cn(
-                    'order-1 flex min-h-6 min-w-0 items-center truncate font-semibold text-foreground',
-                    className
-                )}
-            >
-                {value}
-            </dd>
-        </div>
     );
 }

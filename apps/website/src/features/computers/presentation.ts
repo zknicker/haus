@@ -1,5 +1,6 @@
 import type { Agent, ComputerInventory } from '@haus/api';
 import { computerRuntimeCatalog } from '@haus/api/computer-runtime';
+import { AppleIcon, ComputerIcon, WindowsNewIcon } from '@hugeicons-pro/core-solid-rounded';
 
 export interface ComputerPresentation {
     architecture: string | null;
@@ -25,6 +26,26 @@ export function computerSystemLabel(computer: ComputerPresentation) {
             .filter(Boolean)
             .join(' · ') || 'Awaiting first report'
     );
+}
+
+/**
+ * The platform's own mark, for the chip that carries `computerSystemLabel`.
+ *
+ * Solid, not stroke: these are logos standing in for a manufacturer, and an
+ * outlined Apple at 14px reads as a piece of fruit rather than as a brand. The
+ * set has no penguin, so Linux and anything we have not seen before share the
+ * generic machine glyph — a wrong-looking logo would say more than no logo.
+ */
+export function computerPlatformIcon(computer: Pick<ComputerPresentation, 'operatingSystem'>) {
+    switch (computer.operatingSystem?.toLowerCase()) {
+        case 'darwin':
+            return AppleIcon;
+        case 'win32':
+        case 'windows':
+            return WindowsNewIcon;
+        default:
+            return ComputerIcon;
+    }
 }
 
 export function agentExecutionLabels(

@@ -1,6 +1,8 @@
 import type { ComputerRuntimeId } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { ItemCardGroup } from '@heroui-pro/react';
+import { Icon } from '../../components/ui/icon.tsx';
+import { ProfileFact, ProfileFacts } from '../../components/ui/profile-facts.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
 import { PageColumn } from '../shell/page-column.tsx';
@@ -15,6 +17,7 @@ import {
     computerHealthColor,
     computerHealthLabel,
     computerLabel,
+    computerPlatformIcon,
     computerRuntimePresentations,
     computerSystemLabel,
 } from './presentation.ts';
@@ -58,29 +61,56 @@ export function ComputerDetail({
         // the extra 512px on gutters.
         <PageColumn>
             <SettingsPageHeader
-                meta={
-                    <div className="flex flex-wrap items-center gap-3">
-                        <Chip color={computerHealthColor(computer.health)} size="sm" variant="soft">
-                            {computerHealthLabel(computer.health)}
-                        </Chip>
-                        <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-sm">
-                            <ComputerFact srLabel="System" value={computerSystemLabel(computer)} />
-                            {computer.productVersion ? (
-                                <ComputerFact
-                                    label="Version"
-                                    value={`v${computer.productVersion}`}
-                                />
-                            ) : null}
-                            <ComputerFact
-                                label="Last connected"
-                                value={
-                                    computer.lastConnectedAt
-                                        ? formatTimestamp(computer.lastConnectedAt)
-                                        : 'Never'
-                                }
+                aside={
+                    // The dated facts are what this Computer has done, so they
+                    // are the record's own column at the far end of the title
+                    // line — not a third paragraph under a name that already
+                    // has two. The header wraps them under the title, still
+                    // left-aligned, once the reading column is too narrow.
+                    <ProfileFacts>
+                        {computer.productVersion ? (
+                            <ProfileFact
+                                className="tabular-nums"
+                                label="Version"
+                                value={`v${computer.productVersion}`}
                             />
-                            <ComputerFact label="Added" value={formatDate(computer.createdAt)} />
-                        </dl>
+                        ) : null}
+                        <ProfileFact
+                            className="tabular-nums"
+                            label="Last connected"
+                            value={
+                                computer.lastConnectedAt
+                                    ? formatTimestamp(computer.lastConnectedAt)
+                                    : 'Never'
+                            }
+                        />
+                        <ProfileFact
+                            className="tabular-nums"
+                            label="Added"
+                            value={formatDate(computer.createdAt)}
+                        />
+                    </ProfileFacts>
+                }
+                meta={
+                    // What this Computer is — reachable, and which machine —
+                    // reads as one identity line under the title. Both facts
+                    // are the same kind of thing, so both are the same `sm`
+                    // Chip: the machine used to be a bare `text-sm` paragraph
+                    // beside a chip whose label sets its own smaller step, so
+                    // the two sat at different sizes and never quite shared a
+                    // centerline. Matching chips make that alignment structural
+                    // rather than something to nudge.
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <Chip color={computerHealthColor(computer.health)} size="sm" variant="soft">
+                            <Chip.Label>{computerHealthLabel(computer.health)}</Chip.Label>
+                        </Chip>
+                        <Chip size="sm" variant="soft">
+                            <Icon icon={computerPlatformIcon(computer)} size={12} />
+                            <Chip.Label className="min-w-0 truncate">
+                                <span className="sr-only">System </span>
+                                {computerSystemLabel(computer)}
+                            </Chip.Label>
+                        </Chip>
                     </div>
                 }
                 title={computerLabel(computer)}
@@ -88,16 +118,18 @@ export function ComputerDetail({
 
             <section>
                 <ItemCardGroup variant="transparent">
-                    <ItemCardGroup.Header className="flex items-baseline justify-between gap-3">
-                        <ItemCardGroup.Title>Runtimes</ItemCardGroup.Title>
-                        {undetectedRuntimeLabels.length > 0 ? (
-                            // A runtime with nothing installed has no limit and no
-                            // reset, so it rides in the section header rather than
-                            // claiming a data row or a line below the table.
-                            <p className="min-w-0 truncate text-muted text-sm">
-                                Not detected: {undetectedRuntimeLabels.join(', ')}
-                            </p>
-                        ) : null}
+                    <ItemCardGroup.Header className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <ItemCardGroup.Title>Runtimes</ItemCardGroup.Title>
+                            {undetectedRuntimeLabels.length > 0 ? (
+                                // A runtime with nothing installed has no limit
+                                // and no reset, so it says so as the section's
+                                // description rather than claiming a data row.
+                                <ItemCardGroup.Description>
+                                    Not detected: {undetectedRuntimeLabels.join(', ')}
+                                </ItemCardGroup.Description>
+                            ) : null}
+                        </div>
                         <ComputerInventoryRefresh computerId={computerId} serverId={serverId} />
                     </ItemCardGroup.Header>
                     <ComputerUsageCapacity
@@ -121,21 +153,6 @@ export function ComputerDetail({
             />
         </PageColumn>
     );
-}
-
-function ComputerFact({ label, srLabel, value }: ComputerFactProps) {
-    return (
-        <div className="flex min-w-0 items-baseline gap-1.5">
-            <dt className={label ? 'text-muted' : 'sr-only'}>{label ?? srLabel}</dt>
-            <dd className="truncate text-foreground">{value}</dd>
-        </div>
-    );
-}
-
-interface ComputerFactProps {
-    label?: string;
-    srLabel?: string;
-    value: string;
 }
 
 function isComputerRuntimeId(value: string): value is ComputerRuntimeId {
