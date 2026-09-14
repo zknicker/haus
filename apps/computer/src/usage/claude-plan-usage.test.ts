@@ -51,7 +51,7 @@ test('coalesces concurrent Claude plan reads', async () => {
     expect(calls).toBe(1);
 });
 
-test('keeps the last successful Claude plan snapshot during rate limiting', async () => {
+test('a rate-limited Claude plan read backs off instead of replaying its last snapshot', async () => {
     let calls = 0;
     const read = createClaudePlanUsageReader({
         load: async () => {
@@ -65,8 +65,30 @@ test('keeps the last successful Claude plan snapshot during rate limiting', asyn
     });
 
     await read({ now: new Date('2026-08-14T15:00:00.000Z') });
-    expect(await read({ now: new Date('2026-08-14T15:16:00.000Z') })).toBe(snapshot);
-    expect(await read({ now: new Date('2026-08-14T15:30:00.000Z') })).toBe(snapshot);
+    // Retention belongs to the aggregate usage cache, which can say why it is
+    // showing last-known numbers. The reader only reports what it just learned.
+    await expect(read({ now: new Date('2026-08-14T15:16:00.000Z') })).rejects.toThrow(
+        'rate limited'
+    );
+    await expect(read({ now: new Date('2026-08-14T15:30:00.000Z') })).rejects.toThrow(
+        'rate limited'
+    );
+    expect(calls).toBe(2);
+});
+
+test('an in-memory snapshot older than the refresh interval is re-requested', async () => {
+    let calls = 0;
+    const read = createClaudePlanUsageReader({
+        load: async () => {
+            calls += 1;
+            return { ...snapshot, capturedAt: '2026-08-14T14:00:00.000Z' };
+        },
+        refreshIntervalMs: 900_000,
+    });
+
+    await read({ now: new Date('2026-08-14T15:00:00.000Z') });
+    await read({ now: new Date('2026-08-14T15:05:00.000Z') });
+
     expect(calls).toBe(2);
 });
 
@@ -124,7 +146,7 @@ test('leases one Claude SDK usage refresh per interval', async () => {
     expect(await claimClaudeSdkUsageRefresh(dataRoot, now)).toBe(false);
 });
 
-test('refreshes expired persisted usage and preserves it during durable backoff', async () => {
+test('refreshes expired persisted usage and serves it only while it is fresh', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-claude-plan-'));
     await saveClaudePlanUsageSnapshot(dataRoot, snapshot);
     const refreshed = { ...snapshot, capturedAt: '2026-09-08T15:00:00.000Z' };
@@ -138,14 +160,75 @@ test('refreshes expired persisted usage and preserves it during durable backoff'
     };
     const read = createClaudePlanUsageReader({ load });
     expect(await read({ dataRoot, now: new Date(refreshed.capturedAt) })).toEqual(refreshed);
+    expect(await read({ dataRoot, now: new Date('2026-09-08T15:10:00.000Z') })).toEqual(refreshed);
     expect(calls).toBe(1);
-    expect(await read({ dataRoot, now: new Date('2026-09-08T15:16:00.000Z') })).toEqual(refreshed);
+    await expect(read({ dataRoot, now: new Date('2026-09-08T15:16:00.000Z') })).rejects.toThrow(
+        'rate limited'
+    );
     expect(calls).toBe(2);
-    expect(
-        await createClaudePlanUsageReader({ load })({
+    await expect(
+        createClaudePlanUsageReader({ load })({
             dataRoot,
             now: new Date('2026-09-08T15:30:00.000Z'),
         })
-    ).toEqual(refreshed);
+    ).rejects.toThrow('waiting for its guarded fallback retry');
+    expect(calls).toBe(2);
+});
+
+test('a manual refresh retries Claude plan usage inside the guarded backoff', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-claude-plan-'));
+    let calls = 0;
+    const load = async (): Promise<ClaudeUsageSnapshot> => {
+        calls += 1;
+        if (calls === 1) {
+            throw new ClaudeUsageRequestError('rate limited', 429, 20 * 60_000);
+        }
+        return snapshot;
+    };
+
+    await expect(
+        createClaudePlanUsageReader({ load })({
+            dataRoot,
+            now: new Date('2026-08-14T15:00:00.000Z'),
+        })
+    ).rejects.toThrow('rate limited');
+    expect(
+        await createClaudePlanUsageReader({ load })({
+            dataRoot,
+            force: true,
+            now: new Date('2026-08-14T15:05:00.000Z'),
+        })
+    ).toBe(snapshot);
+    expect(calls).toBe(2);
+});
+
+test('a failed manual refresh re-arms the Claude fallback backoff', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-claude-plan-'));
+    let calls = 0;
+    const load = async (): Promise<ClaudeUsageSnapshot> => {
+        calls += 1;
+        throw new ClaudeUsageRequestError('rate limited', 429, 20 * 60_000);
+    };
+
+    await expect(
+        createClaudePlanUsageReader({ load })({
+            dataRoot,
+            now: new Date('2026-08-14T15:00:00.000Z'),
+        })
+    ).rejects.toThrow('rate limited');
+    await expect(
+        createClaudePlanUsageReader({ load })({
+            dataRoot,
+            force: true,
+            now: new Date('2026-08-14T15:05:00.000Z'),
+        })
+    ).rejects.toThrow('rate limited');
+    expect(calls).toBe(2);
+    await expect(
+        createClaudePlanUsageReader({ load })({
+            dataRoot,
+            now: new Date('2026-08-14T15:10:00.000Z'),
+        })
+    ).rejects.toThrow('waiting for its guarded fallback retry');
     expect(calls).toBe(2);
 });

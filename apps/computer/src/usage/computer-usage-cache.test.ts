@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { UsageOverview } from '@haus/api';
 import { createComputerUsageCache } from './computer-usage-cache.ts';
+import { usageAt } from './usage-overview-fixtures.ts';
 
 test('a fresh Computer usage cache avoids provider reads across restarts', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-cache-'));
@@ -65,103 +65,80 @@ test('manual refresh replaces a fresh snapshot and coalesces concurrent requests
     expect(calls).toBe(2);
 });
 
-test('a transient provider failure retains only that provider last-good snapshot', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-cache-'));
-    let calls = 0;
+test('a manual refresh asks providers to bypass their guarded backoff', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-refresh-'));
+    const forced: (boolean | undefined)[] = [];
     const read = createComputerUsageCache({
         dataRoot,
-        load: async ({ now } = {}) => {
-            calls += 1;
-            if (calls === 1) {
-                return usageAt((now?.() ?? new Date()).toISOString());
-            }
-            const usage = usageAt((now?.() ?? new Date()).toISOString());
-            usage.codex = {
-                error: { code: 'request', message: 'Unavailable.', name: 'UsageError' },
-                provider: 'codex',
-                status: 'error',
-            };
-            usage.connectedProviders = [];
-            return usage;
+        load: async ({ force, now } = {}) => {
+            forced.push(force);
+            return usageAt((now?.() ?? new Date()).toISOString());
         },
         refreshIntervalMs: 1,
     });
+
     await read({ now: () => new Date('2026-08-14T15:00:00.000Z') });
+    await read({ now: () => new Date('2026-08-14T15:01:00.000Z') }, 'refresh');
 
-    const refreshed = await read({ now: () => new Date('2026-08-14T15:01:00.000Z') });
-
-    expect(refreshed.codex.status).toBe('ok');
-    expect(refreshed.connectedProviders).toContain('openai-codex');
+    expect(forced).toEqual([false, true]);
 });
 
-test('an authentication failure retains the cached provider snapshot', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-cache-'));
-    let calls = 0;
+test('a manual refresh does not inherit an unforced read already in flight', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-refresh-'));
+    const forced: (boolean | undefined)[] = [];
+    let release: () => void = () => undefined;
+    const started = new Promise<void>((resolve) => {
+        release = resolve;
+    });
     const read = createComputerUsageCache({
         dataRoot,
-        load: async ({ now } = {}) => {
-            calls += 1;
-            const usage = usageAt((now?.() ?? new Date()).toISOString());
-            if (calls > 1) {
-                usage.codex = {
-                    error: { code: 'auth', message: 'Signed out.', name: 'UsageError' },
-                    provider: 'codex',
-                    status: 'error',
-                };
+        load: async ({ force, now } = {}) => {
+            forced.push(force);
+            if (forced.length === 1) {
+                await started;
             }
-            return usage;
+            return usageAt((now?.() ?? new Date()).toISOString());
         },
         refreshIntervalMs: 1,
     });
-    await read({ now: () => new Date('2026-08-14T15:00:00.000Z') });
 
-    const refreshed = await read({ now: () => new Date('2026-08-14T15:01:00.000Z') });
+    const background = read({ now: () => new Date('2026-08-14T15:00:00.000Z') });
+    const manual = read({ now: () => new Date('2026-08-14T15:01:00.000Z') }, 'refresh');
+    release();
+    const [cached, refreshed] = await Promise.all([background, manual]);
 
-    expect(refreshed.codex.status).toBe('ok');
-    expect(refreshed.connectedProviders).toContain('openai-codex');
+    expect(forced).toEqual([false, true]);
+    expect(cached.capturedAt).toBe('2026-08-14T15:00:00.000Z');
+    expect(refreshed.capturedAt).toBe('2026-08-14T15:01:00.000Z');
 });
 
-function usageAt(capturedAt: string): UsageOverview {
-    return {
-        capturedAt,
-        claude: {
-            error: { code: 'auth', message: 'Unavailable.', name: 'UsageError' },
-            provider: 'claude',
-            status: 'error',
+test('a read that rejects still closes its failure pass', async () => {
+    // The pass is what recovery is measured against. A rejected read used to
+    // leave it open, so the next pass still saw the failed provider and the
+    // recovery line never printed.
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-recovery-'));
+    const lines: string[] = [];
+    let attempt = 0;
+    const read = createComputerUsageCache({
+        dataRoot,
+        load: async ({ logUsageFailure, now } = {}) => {
+            attempt += 1;
+            if (attempt <= 2) {
+                logUsageFailure?.({ code: 'auth', errorClass: 'UsageError', provider: 'codex' });
+            }
+            if (attempt === 2) {
+                throw new Error('usage read failed');
+            }
+            return usageAt((now?.() ?? new Date()).toISOString());
         },
-        codex: {
-            provider: 'codex',
-            snapshot: {
-                capturedAt,
-                creditsBalance: null,
-                planType: 'pro',
-                provider: 'codex',
-                source: 'chatgpt-wham-usage',
-                windows: [],
-            },
-            status: 'ok',
-        },
-        connectedProviders: ['openai-codex'],
-        grok: {
-            error: { code: 'auth', message: 'Unavailable.', name: 'UsageError' },
-            provider: 'grok',
-            status: 'error',
-        },
-        openRouter: {
-            error: null,
-            overview: {
-                days: 30,
-                keys: [],
-                message: null,
-                note: null,
-                series: [],
-                status: 'unconfigured',
-                totalByokUsageUsd: 0,
-                totalRequests: 0,
-                totalUsageUsd: 0,
-            },
-            status: 'ok',
-        },
-        runtimeUsage: [],
-    };
-}
+        logUsageFailure: (failure) => lines.push(`failed ${failure.provider} ${failure.code}`),
+        logUsageRecovery: (provider) => lines.push(`recovered ${provider}`),
+        refreshIntervalMs: 1,
+    });
+
+    await read({ now: () => new Date('2026-08-14T15:00:00.000Z') });
+    await read({ now: () => new Date('2026-08-14T15:01:00.000Z') });
+    await read({ now: () => new Date('2026-08-14T15:02:00.000Z') });
+
+    expect(lines).toEqual(['failed codex auth', 'recovered codex']);
+});

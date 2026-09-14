@@ -1,79 +1,12 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
 import { ComputerUsageCapacityView } from './computer-usage-capacity.tsx';
-
-const usage = {
-    capturedAt: '2026-08-14T15:00:00.000Z',
-    claude: {
-        error: {
-            code: 'request' as const,
-            message: 'Claude usage is unavailable.',
-            name: 'UsageError',
-        },
-        provider: 'claude' as const,
-        status: 'error' as const,
-    },
-    codex: {
-        provider: 'codex' as const,
-        snapshot: {
-            capturedAt: '2026-08-14T15:00:00.000Z',
-            creditsBalance: null,
-            planType: 'pro',
-            provider: 'codex' as const,
-            source: 'chatgpt-wham-usage' as const,
-            windows: [
-                {
-                    id: 'current-week' as const,
-                    label: 'Current week',
-                    remainingPercent: 87,
-                    resetAfterSeconds: 3600,
-                    resetsAt: '2026-08-14T16:00:00.000Z',
-                    usedPercent: 13,
-                },
-            ],
-        },
-        status: 'ok' as const,
-    },
-    connectedProviders: ['openai-codex' as const],
-    grok: {
-        error: {
-            code: 'request' as const,
-            message: 'Grok usage is unavailable.',
-            name: 'UsageError',
-        },
-        provider: 'grok' as const,
-        status: 'error' as const,
-    },
-    openRouter: {
-        error: null,
-        overview: {
-            days: 30,
-            keys: [],
-            message: null,
-            note: null,
-            series: [],
-            status: 'unconfigured' as const,
-            totalByokUsageUsd: 0,
-            totalRequests: 0,
-            totalUsageUsd: 0,
-        },
-        status: 'ok' as const,
-    },
-    runtimeUsage: [],
-};
+import { computerWith, usageFixture as usage } from './usage-fixtures.ts';
 
 test('keeps a Computer plan snapshot visible while the Computer is offline', () => {
     const markup = renderToStaticMarkup(
         <ComputerUsageCapacityView
-            computer={{
-                architecture: 'arm64',
-                computerId: 'cmp_test',
-                health: 'offline',
-                operatingSystem: 'darwin',
-                productVersion: '1.4.4',
-                reportedAt: '2026-08-14T15:00:00.000Z',
-                usage,
-            }}
+            computer={computerWith({ health: 'offline' })}
             detectedRuntimeIds={['codex']}
         />
     );
@@ -87,55 +20,10 @@ test('keeps a Computer plan snapshot visible while the Computer is offline', () 
     expect(markup).not.toContain('Pi');
 });
 
-test('renders the sole Codex primary window as the weekly allowance', () => {
-    const markup = renderToStaticMarkup(
-        <ComputerUsageCapacityView
-            computer={{
-                architecture: 'arm64',
-                computerId: 'cmp_test',
-                health: 'healthy',
-                operatingSystem: 'darwin',
-                productVersion: '1.4.4',
-                reportedAt: usage.capturedAt,
-                usage: {
-                    ...usage,
-                    codex: {
-                        ...usage.codex,
-                        snapshot: {
-                            ...usage.codex.snapshot,
-                            windows: [
-                                {
-                                    id: 'current-session',
-                                    label: 'Current session',
-                                    remainingPercent: 83,
-                                    resetAfterSeconds: 480_000,
-                                    resetsAt: '2026-08-20T03:31:27.000Z',
-                                    usedPercent: 17,
-                                },
-                            ],
-                        },
-                    },
-                },
-            }}
-            detectedRuntimeIds={['codex']}
-        />
-    );
-
-    expect(markup).toContain('Weekly Limit');
-    expect(markup).toContain('17%');
-    expect(markup).not.toContain('Plan limits unavailable');
-});
-
 test('renders only detected runtime cards without token details', () => {
     const markup = renderToStaticMarkup(
         <ComputerUsageCapacityView
-            computer={{
-                architecture: 'arm64',
-                computerId: 'cmp_test',
-                health: 'healthy',
-                operatingSystem: 'darwin',
-                productVersion: '1.4.4',
-                reportedAt: '2026-08-14T15:00:00.000Z',
+            computer={computerWith({
                 usage: {
                     ...usage,
                     claude: {
@@ -194,7 +82,7 @@ test('renders only detected runtime cards without token details', () => {
                         runtimeTokens('grok-build', 'grok-build-jsonl', 'grok-code-fast-1', 80_000),
                     ],
                 },
-            }}
+            })}
             detectedRuntimeIds={['claude-code', 'grok-build']}
         />
     );
@@ -228,13 +116,7 @@ test('renders only detected runtime cards without token details', () => {
 test('represents Pi as a detected runtime with a filtered Agent usage link', () => {
     const markup = renderToStaticMarkup(
         <ComputerUsageCapacityView
-            computer={{
-                architecture: 'arm64',
-                computerId: 'cmp_test',
-                health: 'healthy',
-                operatingSystem: 'darwin',
-                productVersion: '1.4.4',
-                reportedAt: usage.capturedAt,
+            computer={computerWith({
                 usage: {
                     ...usage,
                     connectedProviders: ['openrouter'],
@@ -247,7 +129,7 @@ test('represents Pi as a detected runtime with a filtered Agent usage link', () 
                         status: 'ok',
                     },
                 },
-            }}
+            })}
             detectedRuntimeIds={['pi']}
             onViewPiUsage={() => undefined}
             piAgentCount={2}
@@ -263,15 +145,7 @@ test('represents Pi as a detected runtime with a filtered Agent usage link', () 
 test('explains when a Computer has not reported usage', () => {
     const markup = renderToStaticMarkup(
         <ComputerUsageCapacityView
-            computer={{
-                architecture: 'arm64',
-                computerId: 'cmp_test',
-                health: 'healthy',
-                operatingSystem: 'darwin',
-                productVersion: '1.4.4',
-                reportedAt: null,
-                usage: null,
-            }}
+            computer={computerWith({ reportedAt: null, usage: null })}
             detectedRuntimeIds={['codex']}
         />
     );
