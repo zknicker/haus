@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { appBuildPlugin } from './vite-app-build.ts';
 import { rejectNodeBuiltins } from './vite-browser-module-guard.ts';
 
 const websiteRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +30,7 @@ export default defineConfig(({ command }) => ({
         ),
         'import.meta.env.VITE_HAUS_RELEASE_SNAPSHOT': JSON.stringify(releaseSnapshot),
     },
-    plugins: [rejectNodeBuiltins(), tailwindcss(), react()],
+    plugins: [appBuildPlugin(), rejectNodeBuiltins(), tailwindcss(), react()],
     resolve: {
         alias: {
             '@': path.join(websiteRoot, 'src'),
