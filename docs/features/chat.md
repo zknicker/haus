@@ -165,7 +165,10 @@ and [Agent Inbox](../../specs/inbox.md).
   the channel, picks its icon and color from a trigger inside the name field,
   and chooses its agent participants. Both dialogs choose Agents the same way:
   a search field adds one Agent at a time, and the roster below it lists only
-  the chosen Agents, each with its own remove control.
+  the chosen Agents, each with its own remove control. Adding the last available
+  Agent closes the dropdown and disables the field. Removing an Agent enables
+  the field again. A search with no matches shows an empty result while other
+  Agents remain available.
   Archive channel is an Owner/Admin action for a regular channel. It hides the
   channel from the active sidebar without deleting history. Settings carries an
   Archived chats entry that opens the archived channel view (`/s/:slug/archived`), where
