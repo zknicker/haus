@@ -1,5 +1,6 @@
 import { AlertDialog, Button, Input, Label, TextField } from '@heroui/react';
 import * as React from 'react';
+import { SettingsRowError } from '../../features/settings/layout/settings-text.tsx';
 
 export function DeleteDialog({
     confirmation,
@@ -44,11 +45,7 @@ export function DeleteDialog({
                                     </Label>
                                     <Input />
                                 </TextField>
-                                {error ? (
-                                    <p aria-live="polite" className="text-danger text-sm">
-                                        {error}
-                                    </p>
-                                ) : null}
+                                <SettingsRowError>{error}</SettingsRowError>
                             </div>
                         </AlertDialog.Body>
                         <AlertDialog.Footer>
