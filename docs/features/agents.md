@@ -61,6 +61,10 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   identity facts, model and runtime, Connection grants, and Skills. **Automations** carries
   Reminders and Triggers, **Activity** the turn-by-turn execution history, and **Workspace** the
   Agent's files.
+- Tab changes keep the profile navigation visible. Workspace renders its toolbar, search rail,
+  and preview frame before the file listing arrives; pending reads and errors stay in the rail.
+  Automations keeps section headings and actions visible while each list loads, without showing
+  an empty count before its first result. Cached lists remain visible during refreshes.
 - Members in Settings lists Agents and Humans and links into these profiles. Member lists stay
   lightweight; Agent and human profile routes load one focused detail record so profile refreshes
   do not rebuild the directory.

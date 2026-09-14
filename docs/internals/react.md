@@ -79,6 +79,12 @@ through background refreshes instead of replacing the page with a loading state.
 queries should use the shared synced-snapshot query policy so ordinary back-and-forth navigation
 reuses the latest local snapshot while realtime invalidations refresh it.
 
+Profile loading follows the same rule. Human profiles reserve identity facts and load Created
+Agents independently. Profile settings keeps Identity rows and Account actions visible while
+the member directory resolves, with identity inputs disabled until the real member arrives.
+Computer profiles reserve their named sections during the first roster read. The Agent peek
+keeps its header, Close, and Open profile controls outside its Agent query boundary.
+
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
 * Keep primary page content mounted during background refreshes.
