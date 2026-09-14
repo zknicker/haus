@@ -839,6 +839,10 @@
         --channel-swatch-strong: var(--channel-color-light, var(--foreground));
     }
 
+    .channel-name-field .input-group__prefix {
+        --border-width-field: 0;
+    }
+
     [data-theme='dark'] .channel-icon-swatches,
     .dark .channel-icon-swatches {
         --channel-swatch: var(

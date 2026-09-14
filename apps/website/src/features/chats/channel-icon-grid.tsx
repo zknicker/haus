@@ -115,6 +115,10 @@ function ChannelIconCatalogGrid({
                 variant.heightClassName,
                 'channel-icon-swatches mt-3 min-h-0 overflow-y-auto'
             )}
+            // Keep HeroUI's measured edge detection: an inactive CSS scroll
+            // timeline can retain its old fade after filtering away overflow.
+            // Remove when ScrollShadow clears that retained animation state.
+            data-scroll-shadow-mode="manual"
             ref={scrollerRef}
             // The catalog previews the Channel, so the chosen color resolves on
             // the grid the same way it does on a rendered Channel mark.

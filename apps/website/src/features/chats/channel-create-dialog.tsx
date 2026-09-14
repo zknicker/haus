@@ -121,7 +121,7 @@ function ChannelCreateForm({
                         variant="secondary"
                     >
                         <Label>Channel name</Label>
-                        <InputGroup fullWidth variant="secondary">
+                        <InputGroup className="channel-name-field" fullWidth variant="secondary">
                             <InputGroup.Prefix className="ps-1">
                                 <ChannelAppearancePicker
                                     appearance={appearance}
