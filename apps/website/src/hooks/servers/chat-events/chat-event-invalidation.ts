@@ -3,7 +3,10 @@ import type { hausTrpc } from '../../../lib/haus-server.tsx';
 import type { ChatEventOf, ChatEventType } from './chat-event-registry.ts';
 
 /** The tRPC cache handle every Chat event listener invalidates through. */
-export type ChatEventUtils = ReturnType<typeof hausTrpc.useUtils>;
+export type ChatEventUtils = Pick<
+    ReturnType<typeof hausTrpc.useUtils>,
+    'agent' | 'ask' | 'chat' | 'cloudAgentWork' | 'task' | 'taskLabel'
+>;
 
 /** What one listener needs to invalidate the reads its own events change. */
 export interface ChatEventInvalidation<Type extends ChatEventType> {

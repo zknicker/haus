@@ -31,6 +31,15 @@ export async function invalidateMessageCreated({
     );
     const threadChatIds = uniqueChatIds(events.map((event) => event.chatId));
 
+    // Inactive reads are not refetched by invalidation. Cancel older requests
+    // first so their late responses cannot erase the stale mark before remount.
+    await Promise.all([
+        ...messageChatIds.map((chatId) => utils.chat.messages.cancel({ chatId, serverId })),
+        ...threadChatIds.map((chatId) =>
+            queryClient.cancelQueries({ queryKey: threadMessagesQueryKey(serverId, chatId) })
+        ),
+    ]);
+
     await Promise.all([
         utils.chat.list.invalidate({ serverId }),
         utils.chat.search.invalidate({ serverId }),
