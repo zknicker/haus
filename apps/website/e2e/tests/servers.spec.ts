@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 import { WebSocket } from 'ws';
+import { watchActivationMark } from '../support/activation-mark.ts';
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { createClient, runAgentAction } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -115,9 +116,6 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await expect(page.getByLabel('Model')).toContainText('GPT-5.6 Sol');
         await expect(page.getByRole('button', { name: 'Create Cove' })).toBeEnabled();
 
-        // The rest of this tracer exercises Cove's background application path
-        // through the deterministic socket fixture. The real Computer has
-        // already proved the setup, persistence, and inventory boundary above.
         await computer.stop();
         const socket = await connectComputer(attachment.credential);
         await expect(page.getByRole('alert')).toHaveCount(0);
@@ -160,6 +158,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             applicationId: command.applicationId,
         });
         const greetingStartPromise = socketMessage(reconnected, 'start');
+        const expectNoGhostFlash = await watchActivationMark(page);
         reconnected.send(
             JSON.stringify({
                 agentId: command.agentId,
@@ -172,6 +171,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await expect(page).toHaveURL(/\/s\/haus-hq\/chats\//u);
         await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
         await expect(page.locator('.activation-frame')).toBeHidden();
+        await expectNoGhostFlash();
         const greetingStart = await greetingStartPromise;
         expect(greetingStart).toMatchObject({
             agentId: command.agentId,
