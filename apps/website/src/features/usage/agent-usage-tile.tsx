@@ -8,7 +8,6 @@ import { useUsage } from '../../hooks/servers/use-usage.ts';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { usageRoute } from '../servers/server-routes.ts';
 import { agentUsageSparkline, summarizeAgentTokenUsage } from '../stats/agent-usage-summary.ts';
-import { UsageEmptyCard } from './usage-empty.tsx';
 
 const tileDays = 30;
 const sparklineHeight = 64;
@@ -30,14 +29,7 @@ export function AgentUsageTile({ agent, server }: { agent: Agent; server: Server
         [agent.id, tokenUsage]
     );
 
-    if (!summary) {
-        // Blank while the snapshot settles; an error says so in the card's place.
-        return usage.error ? (
-            <UsageEmptyCard description={usage.error.message} title="Usage Unavailable" />
-        ) : null;
-    }
-
-    const hasUsage = summary.totalTokens > 0;
+    const hasUsage = summary !== null && summary.totalTokens > 0;
 
     return (
         <KPI>
@@ -48,27 +40,39 @@ export function AgentUsageTile({ agent, server }: { agent: Agent; server: Server
                 under it, per KPI's own inline-chart recipe. Without a series to
                 draw, the number keeps the whole content row. */}
             <KPI.Content className={hasUsage ? 'grid-cols-2 items-end' : undefined}>
-                <div className="flex flex-col gap-1">
-                    <KPI.Value
-                        maximumFractionDigits={1}
-                        notation="compact"
-                        value={summary.totalTokens}
-                    />
-                    <span className="text-muted text-sm">
-                        {hasUsage
-                            ? `Last ${summary.days} days`
-                            : `No model turns in the last ${summary.days} days`}
-                    </span>
-                </div>
-                {hasUsage ? (
-                    <KPI.Chart
-                        color="var(--color-accent)"
-                        data={agentUsageSparkline(summary)}
-                        dataKey="tokens"
-                        height={sparklineHeight}
-                        strokeWidth={1.5}
-                    />
-                ) : null}
+                {summary ? (
+                    <>
+                        <div className="flex flex-col gap-1">
+                            <KPI.Value
+                                maximumFractionDigits={1}
+                                notation="compact"
+                                value={summary.totalTokens}
+                            />
+                            <span className="text-muted text-sm">
+                                {hasUsage
+                                    ? `Last ${summary.days} days`
+                                    : `No model turns in the last ${summary.days} days`}
+                            </span>
+                        </div>
+                        {hasUsage ? (
+                            <KPI.Chart
+                                color="var(--color-accent)"
+                                data={agentUsageSparkline(summary)}
+                                dataKey="tokens"
+                                height={sparklineHeight}
+                                strokeWidth={1.5}
+                            />
+                        ) : null}
+                    </>
+                ) : usage.error ? (
+                    <p className="text-danger text-sm" role="alert">
+                        {usage.error.message}
+                    </p>
+                ) : (
+                    <div aria-busy="true" className="min-h-16">
+                        <span className="sr-only">Loading processed tokens</span>
+                    </div>
+                )}
             </KPI.Content>
             <KPI.Separator />
             <KPI.Footer>

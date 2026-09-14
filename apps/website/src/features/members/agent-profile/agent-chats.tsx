@@ -16,9 +16,6 @@ import { AgentLoading } from './agent-loading.tsx';
 export function AgentChats({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const navigate = useNavigate();
     const chats = useAgentChats(server.id, agent.id);
-    if (chats.isPending) {
-        return <AgentLoading label="Loading chats..." />;
-    }
     const rows = chats.data ?? [];
 
     return (
@@ -26,11 +23,15 @@ export function AgentChats({ agent, server }: { agent: Agent; server: ServerDeta
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>
                     Chats
-                    <span className="ms-2 text-muted tabular-nums">{rows.length}</span>
+                    {chats.data ? (
+                        <span className="ms-2 text-muted tabular-nums">{rows.length}</span>
+                    ) : null}
                 </ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
-                {rows.length === 0 ? (
+                {chats.isPending ? (
+                    <AgentLoading label="Loading chats..." />
+                ) : rows.length === 0 ? (
                     <ItemCard>
                         <ItemCard.Content>
                             <ItemCard.Description>No chats yet.</ItemCard.Description>

@@ -20,6 +20,7 @@ interface WorkspaceBrowserRailProps {
     onWidthCommit: (width: number) => void;
     query: string;
     selectedPath: null | string;
+    status: 'loading' | 'error' | 'ready';
     treeAtStart: boolean;
     width: number;
 }
@@ -38,6 +39,7 @@ export function WorkspaceBrowserRail({
     onWidthCommit,
     query,
     selectedPath,
+    status,
     treeAtStart,
     width,
 }: WorkspaceBrowserRailProps) {
@@ -66,15 +68,25 @@ export function WorkspaceBrowserRail({
                 />
             )}
             <div className="flex min-h-0 flex-1 overflow-hidden px-1 pb-2">
-                <WorkspaceFileTree
-                    expandedPaths={expandedPaths}
-                    hasQuery={query.trim().length > 0}
-                    nodes={nodes}
-                    onExpandedChange={onExpandedChange}
-                    onSelectDirectory={onSelectDirectory}
-                    onSelectFile={onSelectFile}
-                    selectedPath={selectedPath}
-                />
+                {status === 'loading' ? (
+                    <div aria-busy="true">
+                        <span className="sr-only">Loading workspace files</span>
+                    </div>
+                ) : status === 'error' ? (
+                    <p className="text-danger text-sm" role="alert">
+                        Unable to browse this workspace.
+                    </p>
+                ) : (
+                    <WorkspaceFileTree
+                        expandedPaths={expandedPaths}
+                        hasQuery={query.trim().length > 0}
+                        nodes={nodes}
+                        onExpandedChange={onExpandedChange}
+                        onSelectDirectory={onSelectDirectory}
+                        onSelectFile={onSelectFile}
+                        selectedPath={selectedPath}
+                    />
+                )}
             </div>
         </aside>
     );

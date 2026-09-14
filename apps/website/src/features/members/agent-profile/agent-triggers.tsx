@@ -31,10 +31,6 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
     // on the same record — and closes it when a delete removes that row.
     const mode = resolveTriggerSheetMode(sheet, rows);
 
-    if (canManage && triggers.isPending) {
-        return <AgentLoading label="Loading triggers" />;
-    }
-
     return (
         <>
             <ProfileListSection
@@ -70,10 +66,14 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
                         </div>
                     ) : null
                 }
-                count={rows.length}
+                count={triggers.data ? rows.length : undefined}
                 title="Triggers"
             >
-                {rows.length === 0 ? (
+                {canManage && triggers.isPending ? (
+                    <AgentLoading label="Loading triggers" />
+                ) : triggers.error && !triggers.data ? (
+                    <ProfileListSection.Empty>Unable to load triggers.</ProfileListSection.Empty>
+                ) : rows.length === 0 ? (
                     <ProfileListSection.Empty>
                         No triggers yet. Add one for an outside event, or ask {agent.displayName} to
                         wire one up.

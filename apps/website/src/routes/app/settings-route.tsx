@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ComputerPage } from '../../features/computers/computer-page.tsx';
-import { AgentLoading } from '../../features/members/agent-profile/agent-loading.tsx';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
 import { HumanDirectory } from '../../features/servers/human-directory.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
@@ -117,23 +116,18 @@ export function SettingsHumanRoute() {
     const { server } = useServerContext();
     const member = useMember(server.id, userId);
 
-    if (member.isPending) {
-        return (
-            <div className="mx-auto w-full max-w-3xl px-6 pt-8">
-                <AgentLoading label="Loading member" />
-            </div>
-        );
-    }
-    if (!member.data) {
+    if (!member.data && member.error?.data?.code === 'NOT_FOUND') {
         return <Navigate replace to={serverSettingsSectionRoute(server.slug, 'members')} />;
     }
 
     return (
         <HumanProfile
             agentHref={(agentId) => agentProfileRoute(server.slug, agentId)}
-            key={member.data.userId}
+            error={member.data ? undefined : member.error?.message}
+            key={userId}
             member={member.data}
             server={server}
+            userId={userId}
             viewerUserId={server.viewerUserId}
         />
     );

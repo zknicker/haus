@@ -25,10 +25,6 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
     const reminders = useAgentReminders(server.id, agent.id, canView);
     const [isHistoryOpen, setHistoryOpen] = React.useState(false);
 
-    if (canView && reminders.isPending) {
-        return <AgentLoading label="Loading reminders" />;
-    }
-
     const scheduled = scheduledReminders(reminders.data ?? []);
 
     return (
@@ -51,10 +47,14 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
                         </Tooltip>
                     ) : null
                 }
-                count={scheduled.length}
+                count={reminders.data ? scheduled.length : undefined}
                 title="Reminders"
             >
-                {scheduled.length === 0 ? (
+                {canView && reminders.isPending ? (
+                    <AgentLoading label="Loading reminders" />
+                ) : reminders.error && !reminders.data ? (
+                    <ProfileListSection.Empty>Unable to load reminders.</ProfileListSection.Empty>
+                ) : scheduled.length === 0 ? (
                     <ProfileListSection.Empty>
                         Nothing scheduled. Just tell {agent.displayName} what to remember and when.
                     </ProfileListSection.Empty>

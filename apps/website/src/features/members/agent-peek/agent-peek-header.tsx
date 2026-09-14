@@ -21,7 +21,7 @@ export function AgentPeekHeader({
     onOpenProfile,
     server,
 }: {
-    agent: Agent;
+    agent: Agent | undefined;
     onClose: () => void;
     onOpenProfile: () => void;
     server: ServerDetail;
@@ -34,7 +34,7 @@ export function AgentPeekHeader({
                     <Button onPress={onOpenProfile} size="sm" variant="ghost">
                         Open profile
                     </Button>
-                    <AgentPeekActions agent={agent} server={server} />
+                    {agent ? <AgentPeekActions agent={agent} server={server} /> : null}
                     <Tooltip>
                         <Button
                             aria-label="Close"

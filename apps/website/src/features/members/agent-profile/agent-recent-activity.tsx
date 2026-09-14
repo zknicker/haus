@@ -37,9 +37,7 @@ export function AgentRecentActivity({ agent, server }: { agent: Agent; server: S
         recentTurnLimit
     );
 
-    if (activity.isPending && settledTurns.isPending) {
-        return <AgentLoading label="Loading recent activity" />;
-    }
+    const isPending = activity.isPending && settledTurns.isPending;
 
     return (
         <ProfileListSection
@@ -52,10 +50,12 @@ export function AgentRecentActivity({ agent, server }: { agent: Agent; server: S
                     See all
                 </Button>
             }
-            count={turns.length}
+            count={isPending ? undefined : turns.length}
             title="Recent activity"
         >
-            {turns.length === 0 ? (
+            {isPending ? (
+                <AgentLoading label="Loading recent activity" />
+            ) : turns.length === 0 ? (
                 <ProfileListSection.Empty>
                     {activity.error && settledTurns.error
                         ? 'Activity history is unavailable right now.'

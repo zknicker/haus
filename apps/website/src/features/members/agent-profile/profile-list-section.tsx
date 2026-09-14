@@ -18,7 +18,7 @@ export function ProfileListSection({
     /** A control acting on the whole list, at the altitude it acts on. */
     action?: React.ReactNode;
     children: React.ReactNode;
-    count: number;
+    count: number | undefined;
     title: string;
 }) {
     return (
@@ -26,7 +26,9 @@ export function ProfileListSection({
             <ItemCardGroup.Header className="flex items-center justify-between gap-3">
                 <ItemCardGroup.Title>
                     {title}
-                    <span className="ms-2 text-muted tabular-nums">{count}</span>
+                    {count === undefined ? null : (
+                        <span className="ms-2 text-muted tabular-nums">{count}</span>
+                    )}
                 </ItemCardGroup.Title>
                 {action}
             </ItemCardGroup.Header>

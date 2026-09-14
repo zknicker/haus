@@ -189,16 +189,6 @@ export function WorkspaceBrowserContent({
         );
     }
 
-    if (filesQuery.isPending) {
-        return <WorkspaceArtifactEmpty detail="Loading workspace files..." title="Workspace" />;
-    }
-
-    if (filesQuery.error) {
-        return (
-            <WorkspaceArtifactEmpty detail="Unable to browse this workspace." title="Workspace" />
-        );
-    }
-
     const treeAtStart = treeSide === 'start';
     const isSidebarRail = railVariant === 'sidebar';
     const fileViewControls = <WorkspaceArtifactControls artifact={artifact} />;
@@ -247,6 +237,13 @@ export function WorkspaceBrowserContent({
             onWidthCommit={fileSidebarWidth.persistWidth}
             query={query}
             selectedPath={selectedPath}
+            status={
+                filesQuery.isPending
+                    ? 'loading'
+                    : filesQuery.error && !filesQuery.data
+                      ? 'error'
+                      : 'ready'
+            }
             treeAtStart={treeAtStart}
             width={fileSidebarWidth.width}
         />

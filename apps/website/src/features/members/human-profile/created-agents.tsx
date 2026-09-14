@@ -41,7 +41,9 @@ export function CreatedAgents({
                         <ItemCard>
                             <ItemCard.Content>
                                 <ItemCard.Description>
-                                    No Agents created by this human yet.
+                                    {agents.error && !agents.data
+                                        ? 'Unable to load created Agents.'
+                                        : 'No Agents created by this human yet.'}
                                 </ItemCard.Description>
                             </ItemCard.Content>
                         </ItemCard>

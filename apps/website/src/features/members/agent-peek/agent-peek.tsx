@@ -5,7 +5,6 @@ import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { agentProfileRoute } from '../../servers/server-routes.ts';
 import { AgentPeekAutomations } from './agent-peek-automations.tsx';
 import { AgentPeekChats } from './agent-peek-chats.tsx';
-import { AgentPeekHeader } from './agent-peek-header.tsx';
 import { AgentPeekIdentity } from './agent-peek-identity.tsx';
 import type { AgentPeekTab } from './agent-peek-model.ts';
 import { AgentPeekNow } from './agent-peek-now.tsx';
@@ -42,38 +41,37 @@ export function AgentPeek({
     );
 
     return (
-        <div className="flex h-full min-h-0 w-full flex-col">
-            <AgentPeekHeader
-                agent={agent}
-                onClose={onClose}
-                onOpenProfile={() => openProfile('overview')}
-                server={server}
-            />
-            <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-                {/* px-3 matches the band above so the label and the content
+        <AgentPeekBody>
+            {/* px-3 matches the band above so the label and the content
                     share one left edge, and keeps the reading measure at the
                     pane's 420px minimum. The modules below carry their own
                     padding, so nothing here wraps them in a second one. */}
-                <div className="flex min-w-0 flex-col gap-6 px-3 pt-2 pb-12">
-                    <AgentPeekIdentity agent={agent} server={server} />
-                    <AgentPeekNow
-                        agent={agent}
-                        onOpenActivity={() => openProfile('activity')}
-                        serverId={server.id}
-                    />
-                    <AgentPeekChats agent={agent} server={server} />
-                    <AgentPeekAutomations
-                        agent={agent}
-                        onOpenAutomations={() => openProfile('automations')}
-                        server={server}
-                    />
-                    <AgentPeekTools
-                        agent={agent}
-                        onOpenSetup={() => openProfile('setup')}
-                        server={server}
-                    />
-                </div>
-            </div>
+
+            <AgentPeekIdentity agent={agent} server={server} />
+            <AgentPeekNow
+                agent={agent}
+                onOpenActivity={() => openProfile('activity')}
+                serverId={server.id}
+            />
+            <AgentPeekChats agent={agent} server={server} />
+            <AgentPeekAutomations
+                agent={agent}
+                onOpenAutomations={() => openProfile('automations')}
+                server={server}
+            />
+            <AgentPeekTools
+                agent={agent}
+                onOpenSetup={() => openProfile('setup')}
+                server={server}
+            />
+        </AgentPeekBody>
+    );
+}
+
+export function AgentPeekBody({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+            <div className="flex min-w-0 flex-col gap-6 px-3 pt-2 pb-12">{children}</div>
         </div>
     );
 }

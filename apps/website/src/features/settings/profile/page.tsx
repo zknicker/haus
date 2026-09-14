@@ -13,6 +13,7 @@ import { humanDisplayName } from '../../servers/human-identity.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
+import { ProfileIdentityPending } from './profile-identity-pending.tsx';
 
 export function ProfileSettings({ serverId }: { serverId: string }) {
     const directory = useMembers(serverId);
@@ -20,23 +21,33 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
         (member) => member.userId === directory.data.viewerUserId
     );
 
-    if (!viewer) {
-        return (
-            <PageColumn>
-                <SettingsPageHeader
-                    description="How you appear to the people and Agents you work with."
-                    title="Profile"
-                />
-            </PageColumn>
-        );
-    }
-
     return (
-        <ProfileIdentity
-            key={`${viewer.userId}:${viewer.displayName ?? ''}`}
-            serverId={serverId}
-            viewer={viewer}
-        />
+        <PageColumn>
+            <SettingsPageHeader
+                description="How you appear to the people and Agents you work with."
+                title="Profile"
+            />
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup.Header>
+                    <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
+                </ItemCardGroup.Header>
+                {viewer ? (
+                    <ProfileIdentity
+                        key={`${viewer.userId}:${viewer.displayName ?? ''}`}
+                        serverId={serverId}
+                        viewer={viewer}
+                    />
+                ) : (
+                    <ProfileIdentityPending
+                        error={
+                            directory.error?.message ??
+                            (directory.data ? 'Your profile is unavailable.' : undefined)
+                        }
+                    />
+                )}
+            </ItemCardGroup>
+            <AccountSection />
+        </PageColumn>
     );
 }
 
@@ -80,108 +91,91 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
     };
 
     return (
-        <PageColumn>
-            <SettingsPageHeader
-                description="How you appear to the people and Agents you work with."
-                title="Profile"
-            />
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
-                </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Title>Photo</ItemCard.Title>
-                            <ItemCard.Description>Shown beside your messages.</ItemCard.Description>
-                            <SettingsRowError>
-                                {avatarError ?? setAvatar.error?.message}
-                            </SettingsRowError>
-                        </ItemCard.Content>
-                        {/* The picker's edit badge overhangs its own box by 8px,
+        <ItemCardGroup className="overflow-hidden">
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>Photo</ItemCard.Title>
+                    <ItemCard.Description>Shown beside your messages.</ItemCard.Description>
+                    <SettingsRowError>{avatarError ?? setAvatar.error?.message}</SettingsRowError>
+                </ItemCard.Content>
+                {/* The picker's edit badge overhangs its own box by 8px,
                             so the slot buys that back to keep the row's trailing
                             padding even with every other row. */}
-                        <ItemCard.Action className="pe-2">
-                            <AvatarPicker
-                                isDisabled={setAvatar.isPending}
-                                label="profile photo"
-                                name={humanDisplayName(viewer)}
-                                onError={setAvatarError}
-                                onSelect={async (image) => {
-                                    await setAvatar.mutateAsync({
-                                        bytesBase64: image.base64,
-                                        mediaType: image.mediaType,
-                                        serverId,
-                                        target: { kind: 'user' },
-                                    });
-                                }}
-                                src={viewer.avatarUrl}
-                            />
-                        </ItemCard.Action>
-                    </ItemCard>
-                    <Separator />
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Title>Display Name</ItemCard.Title>
-                            <ItemCard.Description>Shown beside your messages.</ItemCard.Description>
-                            <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
-                        </ItemCard.Content>
-                        <ItemCard.Action>
-                            {/* The field is the row's control, so it carries a
+                <ItemCard.Action className="pe-2">
+                    <AvatarPicker
+                        isDisabled={setAvatar.isPending}
+                        label="profile photo"
+                        name={humanDisplayName(viewer)}
+                        onError={setAvatarError}
+                        onSelect={async (image) => {
+                            await setAvatar.mutateAsync({
+                                bytesBase64: image.base64,
+                                mediaType: image.mediaType,
+                                serverId,
+                                target: { kind: 'user' },
+                            });
+                        }}
+                        src={viewer.avatarUrl}
+                    />
+                </ItemCard.Action>
+            </ItemCard>
+            <Separator />
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>Display Name</ItemCard.Title>
+                    <ItemCard.Description>Shown beside your messages.</ItemCard.Description>
+                    <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
+                </ItemCard.Content>
+                <ItemCard.Action>
+                    {/* The field is the row's control, so it carries a
                                 readable measure of its own rather than stretching
                                 to whatever the trailing slot allows. */}
-                            <TextField
-                                aria-label="Display name"
-                                className="w-56 max-w-full"
-                                isDisabled={updateProfile.isPending}
-                                isRequired
-                                maxLength={80}
-                                onBlur={() => {
-                                    void saveDisplayName().catch(() => undefined);
-                                }}
-                                onChange={setDisplayName}
-                                value={displayName}
-                                variant="secondary"
-                            >
-                                <Input placeholder="Your name" />
-                            </TextField>
-                        </ItemCard.Action>
-                    </ItemCard>
-                    <Separator />
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Title>Handle</ItemCard.Title>
-                            <ItemCard.Description>
-                                Your unique @name on this Server.
-                            </ItemCard.Description>
-                            <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
-                        </ItemCard.Content>
-                        <ItemCard.Action>
-                            <TextField
-                                aria-label="Handle"
-                                className="w-56 max-w-full"
-                                isDisabled={updateProfile.isPending}
-                                isInvalid={
-                                    handle.length > 0 &&
-                                    !participantHandleSchema.safeParse(handle).success
-                                }
-                                isRequired
-                                maxLength={31}
-                                onBlur={() => {
-                                    void saveHandle().catch(() => undefined);
-                                }}
-                                onChange={setHandle}
-                                value={handle}
-                                variant="secondary"
-                            >
-                                <Input placeholder="your-handle" />
-                            </TextField>
-                        </ItemCard.Action>
-                    </ItemCard>
-                </ItemCardGroup>
-            </ItemCardGroup>
-            <AccountSection />
-        </PageColumn>
+                    <TextField
+                        aria-label="Display name"
+                        className="w-56 max-w-full"
+                        isDisabled={updateProfile.isPending}
+                        isRequired
+                        maxLength={80}
+                        onBlur={() => {
+                            void saveDisplayName().catch(() => undefined);
+                        }}
+                        onChange={setDisplayName}
+                        value={displayName}
+                        variant="secondary"
+                    >
+                        <Input placeholder="Your name" />
+                    </TextField>
+                </ItemCard.Action>
+            </ItemCard>
+            <Separator />
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>Handle</ItemCard.Title>
+                    <ItemCard.Description>Your unique @name on this Server.</ItemCard.Description>
+                    <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
+                </ItemCard.Content>
+                <ItemCard.Action>
+                    <TextField
+                        aria-label="Handle"
+                        className="w-56 max-w-full"
+                        isDisabled={updateProfile.isPending}
+                        isInvalid={
+                            handle.length > 0 && !participantHandleSchema.safeParse(handle).success
+                        }
+                        isRequired
+                        maxLength={31}
+                        onBlur={() => {
+                            void saveHandle().catch(() => undefined);
+                        }}
+                        onChange={setHandle}
+                        value={handle}
+                        variant="secondary"
+                    >
+                        <Input placeholder="your-handle" />
+                    </TextField>
+                </ItemCard.Action>
+            </ItemCard>
+        </ItemCardGroup>
     );
 }
 

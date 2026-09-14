@@ -9,6 +9,7 @@ import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
 import { ComputerDetail } from './computer-detail.tsx';
 import { resolveComputerPageState } from './computer-page-state.ts';
+import { ComputerProfilePending } from './computer-profile-pending.tsx';
 import { computerRemovalDescription, useComputerRemovalAvailability } from './computer-removal.ts';
 import { ComputerRemoveDialog } from './computer-remove-dialog.tsx';
 
@@ -45,7 +46,7 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
                 {computers.error && !computers.data ? (
                     <ComputerUnavailable />
                 ) : state.status === 'loading' ? (
-                    <ComputerPending />
+                    <ComputerProfilePending />
                 ) : state.status === 'ready' ? (
                     <ComputerDetail
                         computerId={state.computerId}
@@ -116,14 +117,6 @@ function ComputerBandMenu({
                 </Dropdown.Menu>
             </Dropdown.Popover>
         </Dropdown>
-    );
-}
-
-function ComputerPending() {
-    return (
-        <div aria-busy="true" className="min-h-full">
-            <span className="sr-only">Loading Computers</span>
-        </div>
     );
 }
 
