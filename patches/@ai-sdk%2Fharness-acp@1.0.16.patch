@@ -1,8 +1,32 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index d7d322dbd..9510eb524 100644
+index d7d322dbd6d999a40ffc8dbbf2ced4791d893de1..e86e2239a077386f86ebf541933004407215bfff 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -3190,6 +3190,11 @@ async function runTurn(start, turn) {
+@@ -885,6 +885,23 @@ function captureACPStream({ stream }) {
+     }
+   };
+ }
++function readGrokTurnUsage(usage) {
++  if (!isRecord2(usage)) return void 0;
++  for (const field of ["inputTokens", "outputTokens", "totalTokens"]) {
++    if (!Number.isSafeInteger(usage[field]) || usage[field] < 0) return void 0;
++  }
++  for (const field of ["cachedReadTokens", "cacheCreationTokens", "reasoningTokens"]) {
++    if (usage[field] != null && (!Number.isSafeInteger(usage[field]) || usage[field] < 0)) return void 0;
++  }
++  return {
++    inputTokens: usage.inputTokens,
++    outputTokens: usage.outputTokens,
++    totalTokens: usage.totalTokens,
++    cachedReadTokens: usage.cachedReadTokens,
++    cachedWriteTokens: usage.cacheCreationTokens,
++    thoughtTokens: usage.reasoningTokens
++  };
++}
+ function getRawSessionUpdate({ message }) {
+   const record = message;
+   if (record.method !== "session/update" || !isRecord2(record.params)) {
+@@ -3190,6 +3207,11 @@ async function runTurn(start, turn) {
      removeCorrelationInvocation: emitStreamEvent.removeHostToolCorrelationInvocation
    };
    hostToolRelay?.bindTurn({ turn: relayTurn });
@@ -14,7 +38,7 @@ index d7d322dbd..9510eb524 100644
    try {
      const promptMeta = createOutputSchemaPromptMeta({ start });
      void promptActiveSession({
-@@ -3198,6 +3203,25 @@ async function runTurn(start, turn) {
+@@ -3198,6 +3220,25 @@ async function runTurn(start, turn) {
        prompt: start.prompt,
        meta: promptMeta
      });
@@ -40,7 +64,7 @@ index d7d322dbd..9510eb524 100644
      if (turn.abortSignal.aborted) {
        await cancel();
      } else {
-@@ -3225,6 +3249,8 @@ async function runTurn(start, turn) {
+@@ -3225,6 +3266,8 @@ async function runTurn(start, turn) {
          });
        }
        if (message.kind === "session_update") {
@@ -49,7 +73,16 @@ index d7d322dbd..9510eb524 100644
          const captured = streamCapture?.takeForUpdate({
            update: message.update
          });
-@@ -3243,6 +3269,8 @@ async function runTurn(start, turn) {
+@@ -3240,9 +3283,17 @@ async function runTurn(start, turn) {
+       for (const rawValue of streamCapture?.drainRawValues() ?? []) {
+         emitStreamEvent.raw({ rawValue });
+       }
++      if (bridgeType === "grok-build" && message.kind === "stop" && message.response.usage == null) {
++        const usage = readGrokTurnUsage(message.response._meta?.usage);
++        if (usage != null) {
++          message = { ...message, response: { ...message.response, usage } };
++        }
++      }
        if (emitStreamEvent.message({ message })) return;
      }
    } finally {
@@ -58,7 +91,7 @@ index d7d322dbd..9510eb524 100644
      permissionController.cancelAll();
      activePermissionController = void 0;
      hostToolRelay?.unbindTurn({ turn: relayTurn });
-@@ -3304,7 +3332,7 @@ async function ensureSession({
+@@ -3304,7 +3355,7 @@ async function ensureSession({
      environment: createChildEnvironment({ launchEnv })
    });
    child = spawn(
@@ -67,7 +100,7 @@ index d7d322dbd..9510eb524 100644
      [...implementation.args],
      {
        cwd: workDir,
-@@ -3645,13 +3673,14 @@ async function readImplementationDescriptor({
+@@ -3645,13 +3696,14 @@ async function readImplementationDescriptor({
    const value = await new Response(text, {
      headers: { "content-type": "application/json" }
    }).json();
@@ -84,13 +117,6 @@ index d7d322dbd..9510eb524 100644
    };
  }
  function parseArgs({ args: args2 }) {
-@@ -3677,4 +3706,4 @@ function requireArg({
-   }
-   return value;
- }
--//# sourceMappingURL=index.mjs.map
-\ No newline at end of file
-+//# sourceMappingURL=index.mjs.map
 diff --git a/dist/bridge/package.json b/dist/bridge/package.json
 index c320b6f1d..46cd93c1c 100644
 --- a/dist/bridge/package.json
