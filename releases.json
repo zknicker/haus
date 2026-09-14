@@ -969,5 +969,16 @@
       "computer": "2.0.1",
       "agent": "2.0.1"
     }
+  },
+  {
+    "version": "3.1.3",
+    "date": "2026-09-14",
+    "targets": {
+      "server": "2.1.3",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
   }
 ]

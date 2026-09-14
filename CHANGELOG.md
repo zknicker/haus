@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v3.1.3 - 2026-09-14
+
+- Haus shows website updates in the sidebar updater. Reload when ready, or pick up the changes with a pending desktop restart.
+- Profiles keep their layout while details load, and onboarding keeps Meet Cove visible until the chat is ready.
+
 ## v3.1.2 - 2026-09-14
 
 - Haus centers the ghost while loading and moves it upward as login or setup appears.

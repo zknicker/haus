@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { ClerkProvider } from '@clerk/clerk-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import type { ReactNode } from 'react';
@@ -81,7 +82,9 @@ function render(children: ReactNode) {
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <MemoryRouter initialEntries={['/user_one']}>{children}</MemoryRouter>
+                <ClerkProvider publishableKey="pk_test_Y2xlcmstdGVzdC5oYXVzLmludmFsaWQk">
+                    <MemoryRouter initialEntries={['/user_one']}>{children}</MemoryRouter>
+                </ClerkProvider>
             </hausTrpc.Provider>
         </QueryClientProvider>
     );
