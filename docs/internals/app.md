@@ -49,6 +49,12 @@ replaced; they are not supported against the renamed contract.
 Both ends are covered by `apps/website/electron/preload.test.cjs` and
 `apps/website/src/lib/desktop-bridge.test.ts`.
 
+Each website build embeds a unique build id and emits the same id in `haus-app-build.json`.
+The App polls this same-origin file independently of the published release feed, so it detects
+the website actually deployed, including rollbacks. Haus Server serves the marker and every
+`index.html` response with `Cache-Control: no-store`. Reload keeps the current URL and loads the
+deployed renderer; an existing window continues running its loaded code until the user reloads.
+
 ## Session Refresh And Reconnect
 
 The App keeps one tRPC client and React provider mounted for the signed-in human. Clerk token

@@ -35,3 +35,11 @@ button after a ten-second offline delay. Its tooltip lists each offline Computer
 connected time, including **Never**. Clicking opens the first listed Computer in Settings. Expected
 disconnects during an update restart are suppressed; a Computer that does not reconnect within
 the restart window becomes ordinary offline attention and a named update failure.
+
+The hosted website contributes a reload opportunity to the same updater. Its build marker ships
+with the website files; the App checks it every minute while visible and when returning to Haus.
+Website-only updates show a reload icon with **Update available. Reload Haus.** Computer updates
+finish first, then reload becomes the next action. A ready desktop restart takes precedence and
+also picks up the website. Failed Computer updates remain visible without blocking website reload.
+Website reload is available to every member and never happens automatically. Pending chat drafts,
+editor drafts, or saves must be finished before reloading because they are held in memory.
