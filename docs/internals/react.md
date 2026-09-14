@@ -237,7 +237,9 @@ keeps its header, Close, and Open profile controls outside its Agent query bound
   shell band through `PageTopbar` + `SectionHeader` with no title; a control
   scoped to one section rides in that section's `ItemCardGroup.Header`; a
   control acting on one row lives in that row's `ItemCard.Action`.
-  `SettingsPageHeader` carries identity only and takes no action slot.
+  `SettingsPageHeader` carries identity only — a title with either a
+  description, a `meta` identity line, or an `aside` of the record's
+  facts — and takes no action slot.
 * Empty states have exactly three shapes, by surface. A full pane or
   page-level empty/error is stock `EmptyState` with `Media variant="icon"`
   (inside a `Card` when it stands in for a card the data would have filled —

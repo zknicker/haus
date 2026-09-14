@@ -49,23 +49,29 @@ events update runtime rows, Agent runtime/model choices, and usage views togethe
 not poll for installed software. Background discovery also runs when Computer connects and after
 Agent configuration or execution changes. Grok discovery includes its native `~/.grok/bin` install.
 
-Manual refresh also requests a new usage snapshot, bypassing the aggregate cache described below
-while retaining each provider's retry and authentication protections. Inventory completion does not
-wait for provider usage, so newly detected runtimes become selectable even when usage is unavailable.
+Manual refresh also requests a new usage snapshot, bypassing the aggregate cache described below.
+It makes one Claude plan attempt past that provider's guarded fallback backoff; a failed attempt
+records the failure and re-arms the backoff. Fresh managed-SDK evidence and provider authentication
+still apply. Inventory completion does not wait for provider usage, so newly detected runtimes
+become selectable even when usage is unavailable.
 An offline Computer cannot refresh. If an older Computer does not answer the refresh request,
 the action times out with instructions to update Haus Computer and retry.
 
-Each compatible Computer refreshes provider usage in the background at most once every 15 minutes and stores the
-sanitized snapshot atomically in its data root. Reconnects and restarts therefore reuse fresh data
-without calling provider APIs. Refreshes are coalesced, retry schedules survive Computer restarts,
-and transient request or authentication failures retain the affected provider's last successful
-snapshot. The Computer reports only sources it can actually read. The Server stores the latest
-timestamped snapshot for each Computer. Disconnecting a Computer changes freshness and health; it
-does not erase its last report.
+Each compatible Computer refreshes provider usage in the background at most once every 15 minutes
+and stores the sanitized snapshot atomically in its data root. Reconnects and restarts therefore
+reuse fresh data without calling provider APIs. Refreshes are coalesced, retry schedules survive
+Computer restarts, and transient request or authentication failures retain the affected provider's
+last successful snapshot, stamped with the failure that kept it. That aggregate cache is the only
+layer that retains: a provider read either reports what it just learned or fails. The Computer
+reports only sources it can actually read. The Server stores the latest timestamped snapshot for
+each Computer. Disconnecting a Computer changes freshness and health; it does not erase its last
+report.
 
 Each runtime row uses its provider snapshot's capture time, independently of the Computer's report
 time. After 30 minutes, or once a displayed allowance window has reset, the row labels its retained
-numbers **Usage out of date** and shows **Last updated** instead of an upcoming reset date.
+numbers **Usage out of date** and shows **Last updated** instead of an upcoming reset date. A
+snapshot the Computer has already reported as retained is labelled immediately rather than waiting
+for that 30-minute mark, since it is known to be out of date rather than guessed to be.
 
 Codex usage uses the Computer's native Codex session. Claude Code plan usage comes primarily from
 the structured usage data exposed by an already-running managed Claude Code SDK session. Computer
@@ -77,7 +83,14 @@ On macOS, that fallback prefers Claude Code's current Keychain session and rejec
 local login and the same credits billing request as the official Grok Build client. Computer cards
 use the provider's all-model weekly allowance as their shared primary metric. A compact header
 indicator conditionally shows an enforced 5-hour window; model-specific windows stay out of this
-comparative surface. Authentication and raw provider responses remain Computer-local.
+comparative surface. A runtime whose snapshot carries no weekly window shows no weekly meter: a
+5-hour allowance stays in the 5-hour column rather than standing in for a weekly one, and a session
+window too long to be a 5-hour allowance is reported as unavailable rather than mislabelled. A
+runtime that has never reported usage and has no login reads **Signed out on this Computer** in
+place of its meters. A runtime whose login later expires keeps its last known meters and labels
+them **Signed out on this Computer** rather than with the generic out-of-date note. Either clears
+when the owner signs in to that runtime on the Computer and the next snapshot arrives.
+Authentication and raw provider responses remain Computer-local.
 
 Cloud Agent usage is per-Run rather than per-window. Each terminal Run observation carries the
 input and output tokens Cursor reports plus its optional cost, which is eventually consistent and

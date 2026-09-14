@@ -26,7 +26,10 @@ not require clients to parse logs or runtime internals.
   snapshots before reporting them, and members read the Server copy rather than triggering provider
   calls. Claude Code snapshots are captured from a managed SDK turn under a durable 15-minute
   Computer lease; its direct OAuth request is bootstrap-only and durably backed off after failure.
-  Members can also read those snapshots while a Computer is offline.
+  Members can also read those snapshots while a Computer is offline. A provider snapshot reported
+  as `ok` may carry an optional `stale` stamp — the failure `code` and the time `at` which the
+  Computer kept the previous snapshot instead of a new one — which the Server stores and returns
+  verbatim.
 * Claude Code and Grok Build also expose 30-day Computer-local transcript totals by model.
   These snapshots follow ccusage accounting and contain only normalized counts, not transcripts.
 * Token usage comes from normalized Computer turn reports. The Server maintains
