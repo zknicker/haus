@@ -48,7 +48,8 @@ Session, route-module, Server-list, and Server-detail loading share one persiste
 above the router. Its animated Haus mark stays mounted across authentication, loading, and setup;
 steps render into its slots through React portals, retaining their own auth and query context.
 Unknown authentication never displays sign-in copy; unknown Server state never displays an empty
-Server. Step content and progress enter with a short fade and small rise; the mark keeps its gentle bob within a fixed layout slot.
+Server. The mark is centered in the viewport while loading. When a login or setup step appears,
+it moves upward over the same 240ms as the content's fade and small rise, keeping its gentle bob.
 When Cove leads the step, the mark fades and collapses without unmounting. Reduced motion removes
 these transitions. The inactive frame is hidden from interaction and accessibility while the Server
 shell is open.

@@ -26,6 +26,12 @@ test('fresh owner reload keeps a neutral frame until setup resolves and can swit
     const mark = page.locator('.activation-mark');
     const brand = page.locator('.activation-brand');
     const before = await brand.boundingBox();
+    const viewport = page.viewportSize();
+    if (!(before && viewport)) {
+        throw new Error('The opening mark and viewport must have measurable bounds.');
+    }
+    expect(before.x + before.width / 2).toBeCloseTo(viewport.width / 2, 0);
+    expect(before.y + before.height / 2).toBeCloseTo(viewport.height / 2, 0);
     const ghost = await mark.elementHandle();
     if (!ghost) {
         throw new Error('The opening ghost must be mounted.');
@@ -36,7 +42,12 @@ test('fresh owner reload keeps a neutral frame until setup resolves and can swit
     expect(animationStarts.length).toBeGreaterThan(0);
     release();
     await expect(page.getByRole('heading', { name: 'Connect a Computer' })).toBeVisible();
-    expect(await brand.boundingBox()).toEqual(before);
+    await expect.poll(async () => (await brand.boundingBox())?.y).toBeLessThan(before.y);
+    expect(
+        await page
+            .locator('.activation-main')
+            .evaluate((node) => getComputedStyle(node, '::before').transitionDuration)
+    ).toBe('0.24s');
     await expect(mark).toHaveCSS('animation-name', 'activation-mark-float');
     expect(
         await ghost.evaluate((node) => node === document.querySelector('.activation-mark'))
@@ -129,4 +140,27 @@ test('activation content uses a bounded entrance and respects reduced motion', a
     await expect(step).toHaveCSS('animation-name', 'none');
     await expect(page.locator('.activation-mark')).toHaveCSS('animation-name', 'none');
     await expect(page.locator('.activation-brand')).toHaveCSS('transition-duration', '0s');
+    expect(
+        await page
+            .locator('.activation-main')
+            .evaluate((node) => getComputedStyle(node, '::before').transitionDuration)
+    ).toBe('0s');
 });
+
+for (const viewport of [
+    { width: 1280, height: 900 },
+    { width: 640, height: 480 },
+]) {
+    test(`loading stays centered at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        await page.goto('/prototype/activation/sign-in-loading');
+        const brand = page.locator('.activation-brand');
+        await expect(brand).toBeVisible();
+        const bounds = await brand.boundingBox();
+        if (!bounds) {
+            throw new Error('The loading mark must have measurable bounds.');
+        }
+        expect(bounds.x + bounds.width / 2).toBeCloseTo(viewport.width / 2, 0);
+        expect(bounds.y + bounds.height / 2).toBeCloseTo(viewport.height / 2, 0);
+    });
+}
