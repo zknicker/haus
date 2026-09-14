@@ -1,5 +1,7 @@
 import { Button, Form, Modal } from '@heroui/react';
+import { Key01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { SecretFieldsEditor } from './mcp-secret-fields.tsx';
 import {
     createSecretDraftEntry,
@@ -67,10 +69,12 @@ function HeaderCredentialsForm({
     return (
         <>
             <Modal.Header>
+                <Modal.Icon className="bg-default text-foreground">
+                    <Icon className="size-5" icon={Key01Icon} />
+                </Modal.Icon>
                 <Modal.Heading>Connect {connection.name}</Modal.Heading>
                 <p className="mt-1.5 text-muted text-sm leading-5">
-                    Enter the request headers this server uses for authentication. Existing values
-                    are never shown.
+                    Enter the request headers this server uses to authenticate.
                 </p>
             </Modal.Header>
             <Modal.Body>
@@ -83,8 +87,11 @@ function HeaderCredentialsForm({
                         }
                     }}
                 >
+                    {/* Saved values never come back from the Server, so the
+                        caveat belongs to the fields it constrains. */}
                     <SecretFieldsEditor
                         addLabel="Add Header"
+                        description="Existing values are never shown. Re-enter every header you want to keep."
                         entries={headers}
                         onChange={setHeaders}
                         title="Headers"

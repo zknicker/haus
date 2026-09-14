@@ -225,19 +225,20 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await expect(page.getByText('Recommended', { exact: true })).toHaveCount(0);
 
     await connection.click();
-    const detail = page.getByRole('dialog', { name: 'MerchBase Sign in required' });
+    // The heading carries the connection's name alone; its state is a fact row
+    // in the body, so `exact` keeps this off the "MerchBase account" dialog.
+    const detail = page.getByRole('dialog', { exact: true, name: 'MerchBase' });
     await expect(detail.getByRole('button', { exact: true, name: 'Sign in' })).toBeVisible();
+    await expect(detail).toContainText('Sign in required');
     await expect(detail).toContainText('This MCP is added to Haus. Sign in to your account');
-    await expect(detail).toContainText(
-        'Removes this MCP entry, saved credentials, and Agent access'
-    );
+    await expect(detail).toContainText('Removes this MCP and its credentials from this Server.');
     await detail.getByRole('button', { exact: true, name: 'Add' }).click();
     await detail.getByRole('button', { name: 'Done' }).click();
     const secondAccount = page.getByRole('button', { name: /MerchBase account Built in/u });
     await expect(secondAccount).toBeVisible();
     await secondAccount.click();
     await page
-        .getByRole('dialog', { name: 'MerchBase account Sign in required' })
+        .getByRole('dialog', { exact: true, name: 'MerchBase account' })
         .getByRole('button', { exact: true, name: 'Remove' })
         .click();
     await page

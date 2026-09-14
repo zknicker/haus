@@ -1,5 +1,6 @@
 import {
     Button,
+    Description,
     Disclosure,
     Drawer,
     Form,
@@ -46,10 +47,17 @@ export function McpConnectionFormDrawer({
                     <Drawer.CloseTrigger />
                     <Drawer.Header>
                         <Drawer.Heading>Add MCP Server</Drawer.Heading>
+                        <p className="mt-1.5 text-muted text-sm leading-5">
+                            Point Haus at an MCP server, then authorize it if it asks for
+                            credentials.
+                        </p>
                     </Drawer.Header>
                     <Drawer.Body>
+                        {/* A column, not a grid: grid items refuse to shrink
+                            below their min-content, so one wide field would
+                            widen every other field past the drawer. */}
                         <Form
-                            className="grid gap-6"
+                            className="flex flex-col gap-6"
                             id={MCP_CONNECTION_FORM_ID}
                             onSubmit={(event) => {
                                 event.preventDefault();
@@ -96,7 +104,10 @@ function HttpConnectionFields({
 }) {
     return (
         <>
+            {/* Trust is a property of the address, so the caveat rides with
+                the field that names it rather than floating under the form. */}
             <LabeledField
+                description="Only connect servers from developers you trust. Their tools and behavior can change."
                 label="URL"
                 onChange={(url) => update(setDraft, { url })}
                 type="url"
@@ -148,9 +159,6 @@ function HttpConnectionFields({
             {draft.auth === 'oauth' ? (
                 <OAuthAdvancedFields draft={draft} setDraft={setDraft} />
             ) : null}
-            <p className="text-muted text-sm">
-                Only connect servers from developers you trust. Their tools and behavior can change.
-            </p>
         </>
     );
 }
@@ -206,12 +214,14 @@ function OAuthAdvancedFields({
 
 function LabeledField({
     children,
+    description,
     label,
     onChange,
     type = 'text',
     value,
 }: {
     children: React.ReactNode;
+    description?: string;
     label: string;
     onChange?: (value: string) => void;
     type?: 'password' | 'text' | 'url';
@@ -221,6 +231,7 @@ function LabeledField({
         <TextField fullWidth onChange={onChange} type={type} value={value} variant="secondary">
             <Label>{label}</Label>
             {children}
+            {description ? <Description>{description}</Description> : null}
         </TextField>
     );
 }

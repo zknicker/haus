@@ -44,10 +44,6 @@ export interface McpConnectionDraft {
     url: string;
 }
 
-export function connectionSummary(connection: McpConnection): string {
-    return connection.url;
-}
-
 export function connectionStatusLabel(
     connection: Pick<McpConnection, 'auth' | 'connected'>
 ): string {

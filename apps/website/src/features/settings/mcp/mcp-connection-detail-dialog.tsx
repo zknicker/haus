@@ -1,21 +1,16 @@
-import { Alert, Button, Chip, Modal, Separator, Spinner, Tooltip } from '@heroui/react';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { ArrowReloadHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Fragment, type ReactNode, useState } from 'react';
-import { Icon } from '../../../components/ui/icon.tsx';
+import { Button, Modal } from '@heroui/react';
+import { useState } from 'react';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import {
     ConnectionDestructiveDialog,
     type McpDestructiveAction,
 } from './mcp-connection-actions.tsx';
+import { McpAgentAccessGroup } from './mcp-connection-agents.tsx';
+import { McpConnectionFacts } from './mcp-connection-facts.tsx';
+import { McpManageGroup } from './mcp-connection-manage.tsx';
+import { McpToolsGroup } from './mcp-connection-tools.tsx';
 import { McpHeaderCredentialsDialog } from './mcp-header-credentials-dialog.tsx';
-import {
-    connectionSetupDescription,
-    connectionStatusLabel,
-    connectionSummary,
-    type McpConnection,
-    type McpConnectionTool,
-} from './mcp-server-shared.ts';
+import type { McpConnection, McpConnectionTool } from './mcp-server-shared.ts';
 
 export function McpConnectionDetailDialog({
     connection,
@@ -70,166 +65,36 @@ export function McpConnectionDetailDialog({
                             <Modal.Icon className="overflow-hidden bg-default text-foreground">
                                 <ConnectionGlyph connection={connection} />
                             </Modal.Icon>
-                            <Modal.Heading>
-                                {connection.name}
-                                <Chip
-                                    className="ms-2 align-middle"
-                                    color={connection.connected ? 'success' : 'default'}
-                                    size="sm"
-                                    variant="soft"
-                                >
-                                    {connectionStatusLabel(connection)}
-                                </Chip>
-                            </Modal.Heading>
-                            {/* What the server is, when it says so. Its
-                                address is diagnostic, so it only stands in
-                                when there is nothing better. */}
-                            {connection.summary ? (
-                                <p className="mt-1.5 text-muted text-sm leading-5">
-                                    {connection.summary}
-                                </p>
-                            ) : (
-                                <p className="mt-1.5 truncate font-mono text-muted text-sm">
-                                    {connectionSummary(connection)}
-                                </p>
-                            )}
+                            <Modal.Heading>{connection.name}</Modal.Heading>
+                            {/* What the server is, when it says so. Its state
+                                and its address are facts in the body, not part
+                                of its identity. */}
+                            <p className="mt-1.5 text-muted text-sm leading-5">
+                                {connection.summary ?? 'MCP server connection.'}
+                            </p>
                         </Modal.Header>
                         <Modal.Body>
-                            <div className="grid gap-6">
-                                <ItemCardGroup variant="transparent">
-                                    <ItemCardGroup.Header className="flex items-center justify-between gap-3">
-                                        <ItemCardGroup.Title>
-                                            Tools
-                                            {tools && tools.length > 0 ? (
-                                                <span className="ms-2 text-muted tabular-nums">
-                                                    {tools.length}
-                                                </span>
-                                            ) : null}
-                                        </ItemCardGroup.Title>
-                                        {toolsPending ? (
-                                            <Spinner size="sm" />
-                                        ) : (
-                                            <Tooltip delay={0}>
-                                                <Button
-                                                    aria-label="Refresh tools"
-                                                    isDisabled={!connection.connected}
-                                                    isIconOnly
-                                                    onPress={() => {
-                                                        void onRefresh(connection).catch(
-                                                            () => undefined
-                                                        );
-                                                    }}
-                                                    size="sm"
-                                                    variant="ghost"
-                                                >
-                                                    <Icon
-                                                        icon={ArrowReloadHorizontalIcon}
-                                                        size={16}
-                                                    />
-                                                </Button>
-                                                <Tooltip.Content>Refresh tools</Tooltip.Content>
-                                            </Tooltip>
-                                        )}
-                                    </ItemCardGroup.Header>
-                                    {/* Bounded: a server with thirty tools
-                                        would otherwise bury Agent Access and
-                                        Manage under a wall of rows. */}
-                                    <ItemCardGroup
-                                        className="max-h-72 overflow-y-auto"
-                                        variant="secondary"
-                                    >
-                                        <ToolList
-                                            connection={connection}
-                                            error={toolsError}
-                                            pending={toolsPending}
-                                            tools={tools}
-                                        />
-                                    </ItemCardGroup>
-                                </ItemCardGroup>
-
-                                <ItemCardGroup variant="transparent">
-                                    <ItemCardGroup.Header>
-                                        <ItemCardGroup.Title>Agent Access</ItemCardGroup.Title>
-                                    </ItemCardGroup.Header>
-                                    <ItemCardGroup
-                                        className="max-h-72 overflow-y-auto"
-                                        variant="secondary"
-                                    >
-                                        {connection.affectedAgents.length > 0 ? (
-                                            connection.affectedAgents.map((agent, index) => (
-                                                <Fragment key={agent.id}>
-                                                    {index > 0 ? (
-                                                        <Separator variant="secondary" />
-                                                    ) : null}
-                                                    <ItemCard>
-                                                        <ItemCard.Content>
-                                                            <ItemCard.Title>
-                                                                {agent.name}
-                                                            </ItemCard.Title>
-                                                        </ItemCard.Content>
-                                                    </ItemCard>
-                                                </Fragment>
-                                            ))
-                                        ) : (
-                                            <p className="px-4 py-4 text-muted text-sm">
-                                                No agents have access yet.
-                                            </p>
-                                        )}
-                                    </ItemCardGroup>
-                                </ItemCardGroup>
-
-                                {/* Named rows, the way Computer Management
-                                    does it. An overflow menu in a dialog
-                                    corner hides these behind a guess. */}
-                                <ItemCardGroup variant="transparent">
-                                    <ItemCardGroup.Header>
-                                        <ItemCardGroup.Title>Manage</ItemCardGroup.Title>
-                                    </ItemCardGroup.Header>
-                                    <ItemCardGroup className="overflow-hidden" variant="secondary">
-                                        {connection.preset ? (
-                                            <ManageRow title="Add another account">
-                                                <Button
-                                                    isDisabled={saving}
-                                                    onPress={() => onAddAccount(connection)}
-                                                    size="sm"
-                                                    variant="outline"
-                                                >
-                                                    Add
-                                                </Button>
-                                            </ManageRow>
-                                        ) : null}
-                                        {/* Nothing to sign out of when the
-                                            server takes no credentials. */}
-                                        {connection.connected && connection.auth !== 'none' ? (
-                                            <ManageRow
-                                                description="Clears saved credentials and Agent access. Keeps this MCP in Added MCPs."
-                                                title="Disconnect account"
-                                            >
-                                                <Button
-                                                    onPress={() =>
-                                                        setDestructiveAction('disconnect')
-                                                    }
-                                                    size="sm"
-                                                    variant="danger-soft"
-                                                >
-                                                    Disconnect
-                                                </Button>
-                                            </ManageRow>
-                                        ) : null}
-                                        <ManageRow
-                                            description="Removes this MCP entry, saved credentials, and Agent access from this Haus Server."
-                                            title="Remove from Haus"
-                                        >
-                                            <Button
-                                                onPress={() => setDestructiveAction('delete')}
-                                                size="sm"
-                                                variant="danger-soft"
-                                            >
-                                                Remove
-                                            </Button>
-                                        </ManageRow>
-                                    </ItemCardGroup>
-                                </ItemCardGroup>
+                            {/* A column, not a grid: grid items refuse to
+                                shrink below their min-content, so one long
+                                server address would widen every group. */}
+                            <div className="flex flex-col gap-6">
+                                <McpConnectionFacts connection={connection} />
+                                <McpToolsGroup
+                                    connection={connection}
+                                    error={toolsError}
+                                    onRefresh={() => {
+                                        void onRefresh(connection).catch(() => undefined);
+                                    }}
+                                    pending={toolsPending}
+                                    tools={tools}
+                                />
+                                <McpAgentAccessGroup connection={connection} />
+                                <McpManageGroup
+                                    connection={connection}
+                                    onAddAccount={() => onAddAccount(connection)}
+                                    onDestructiveAction={setDestructiveAction}
+                                    saving={saving}
+                                />
                             </div>
                         </Modal.Body>
                         <Modal.Footer>
@@ -293,77 +158,5 @@ export function McpConnectionDetailDialog({
                 saving={saving}
             />
         </>
-    );
-}
-
-function ToolList({
-    connection,
-    error,
-    pending,
-    tools,
-}: {
-    connection: McpConnection;
-    error: string | null;
-    pending: boolean;
-    tools: McpConnectionTool[] | null;
-}) {
-    if (!connection.connected) {
-        return (
-            <p className="px-4 py-4 text-muted text-sm">{connectionSetupDescription(connection)}</p>
-        );
-    }
-    if (pending) {
-        return <p className="px-4 py-4 text-muted text-sm">Loading tools…</p>;
-    }
-    if (error) {
-        return (
-            <Alert status="danger">
-                <Alert.Indicator />
-                <Alert.Content>
-                    <Alert.Description>{error}</Alert.Description>
-                </Alert.Content>
-            </Alert>
-        );
-    }
-    if (!tools || tools.length === 0) {
-        return <p className="px-4 py-4 text-muted text-sm">No tools reported.</p>;
-    }
-    return tools.map((tool, index) => (
-        <Fragment key={tool.name}>
-            {index > 0 ? <Separator variant="secondary" /> : null}
-            <ItemCard>
-                <ItemCard.Content>
-                    <ItemCard.Title>{tool.title ?? tool.name}</ItemCard.Title>
-                    {tool.description ? (
-                        <ItemCard.Description>{tool.description}</ItemCard.Description>
-                    ) : null}
-                </ItemCard.Content>
-            </ItemCard>
-        </Fragment>
-    ));
-}
-
-function ManageRow({
-    children,
-    description,
-    title,
-}: {
-    children: ReactNode;
-    description?: string;
-    title: string;
-}) {
-    return (
-        <ItemCard>
-            <ItemCard.Content>
-                <ItemCard.Title>{title}</ItemCard.Title>
-                {/* Only where the title alone leaves the outcome ambiguous. */}
-                {description ? (
-                    <ItemCard.Description className="whitespace-normal">
-                        {description}
-                    </ItemCard.Description>
-                ) : null}
-            </ItemCard.Content>
-            <ItemCard.Action>{children}</ItemCard.Action>
-        </ItemCard>
     );
 }

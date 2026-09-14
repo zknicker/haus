@@ -104,7 +104,6 @@
     "apps/website/src/features/servers/chat/chat-search.tsx": 338,
     "apps/website/src/features/servers/chat/chat-topbar.tsx": 439,
     "apps/website/src/features/servers/chat/chat-view.tsx": 341,
-    "apps/website/src/features/settings/mcp/mcp-connection-detail-dialog.tsx": 369,
     "apps/website/src/hooks/agents/current-agent-activity.test.ts": 368,
     "packages/claude-usage/src/claude-usage.test.ts": 310,
     "packages/haus-api/src/agent-runner.ts": 560,
