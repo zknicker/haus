@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v3.1.2 - 2026-09-14
+
+- Haus centers the ghost while loading and moves it upward as login or setup appears.
+- Computer login separates account approval from connection progress and completion.
+- Computer settings can refresh installed runtimes, models, and usage without restarting. Update Haus Computer to 2.0.1 for this refresh.
+- Inbox keeps Agent elapsed time continuous across work steps and reloads, and shows readable tool names. Haus Agent 2.0.1 carries the updated activity contracts.
+
 ## v3.1.1 - 2026-09-14
 
 - Haus opens into setup without flashing intermediate screens, and the ghost keeps moving as steps change.
