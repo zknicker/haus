@@ -88,7 +88,8 @@ ready…” state—never creation, configuration, workspace, factory, command, 
 acknowledgement substeps. Failures become one plain retry or Computer-repair
 sentence; raw codes and diagnostics remain internal. Completion invalidates
 Server state and replaces the setup route with retained
-`#onboarding-owner`. The same Server transaction creates one durable system
+`#onboarding-owner`. Meet Cove stays mounted during that redirect, so the loading
+mark does not reappear between setup and the chat. The same Server transaction creates one durable system
 attention item for Cove in that Channel. Haus App unlocks immediately; the
 attention item runs through ordinary Agent delivery and Cove authors the first
 canonical message with Cove's identity. It is not a Server-authored greeting.
