@@ -4,6 +4,8 @@ import { useSearchParams } from 'react-router-dom';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
+import { loginDescription, loginTitle } from './computer-login-copy.tsx';
+
 const codeLength = 8;
 
 /** The URL and wire format is `ABCD-EFGH`; slots hold the eight characters. */
@@ -85,7 +87,7 @@ export function ComputerLoginApproval({
 
     return (
         <LoginFrame
-            description={loginDescription(status, accountLabel, signedIn, setupFlow)}
+            description={loginDescription(status, signedIn)}
             footer={
                 status === undefined ? (
                     // Checking is automatic on the eighth character; this anchor
@@ -105,7 +107,6 @@ export function ComputerLoginApproval({
                         onDeny={() => deny.mutate({ userCode })}
                         onSignIn={onSignIn}
                         onSwitchAccount={onSwitchAccount}
-                        setupFlow={setupFlow}
                         signedIn={signedIn}
                         status={status}
                     />
@@ -113,36 +114,38 @@ export function ComputerLoginApproval({
             }
             title={loginTitle(status, setupFlow)}
         >
-            <div className="flex flex-col items-center gap-2">
-                <InputOTP
-                    aria-label="Computer login code"
-                    autoFocus={codeFromUrl.length === 0}
-                    className="justify-center"
-                    inputMode="text"
-                    isDisabled={isWorking || status === 'approved' || status === 'consumed'}
-                    isInvalid={status === 'malformed'}
-                    maxLength={codeLength}
-                    onChange={changeSlots}
-                    onComplete={completeCode}
-                    pasteTransformer={slotsFromCode}
-                    pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-                    value={slots}
-                >
-                    <InputOTP.Group>
-                        <InputOTP.Slot index={0} />
-                        <InputOTP.Slot index={1} />
-                        <InputOTP.Slot index={2} />
-                        <InputOTP.Slot index={3} />
-                    </InputOTP.Group>
-                    <InputOTP.Separator />
-                    <InputOTP.Group>
-                        <InputOTP.Slot index={4} />
-                        <InputOTP.Slot index={5} />
-                        <InputOTP.Slot index={6} />
-                        <InputOTP.Slot index={7} />
-                    </InputOTP.Group>
-                </InputOTP>
-            </div>
+            {status !== 'consumed' ? (
+                <div className="flex flex-col items-center gap-2">
+                    <InputOTP
+                        aria-label="Computer login code"
+                        autoFocus={codeFromUrl.length === 0}
+                        className="justify-center"
+                        inputMode="text"
+                        isDisabled={isWorking || status === 'approved'}
+                        isInvalid={status === 'malformed'}
+                        maxLength={codeLength}
+                        onChange={changeSlots}
+                        onComplete={completeCode}
+                        pasteTransformer={slotsFromCode}
+                        pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+                        value={slots}
+                    >
+                        <InputOTP.Group>
+                            <InputOTP.Slot index={0} />
+                            <InputOTP.Slot index={1} />
+                            <InputOTP.Slot index={2} />
+                            <InputOTP.Slot index={3} />
+                        </InputOTP.Group>
+                        <InputOTP.Separator />
+                        <InputOTP.Group>
+                            <InputOTP.Slot index={4} />
+                            <InputOTP.Slot index={5} />
+                            <InputOTP.Slot index={6} />
+                            <InputOTP.Slot index={7} />
+                        </InputOTP.Group>
+                    </InputOTP>
+                </div>
+            ) : null}
             {statusQuery.error ? (
                 <p className="text-center text-danger text-sm">{statusQuery.error.message}</p>
             ) : null}
@@ -162,7 +165,6 @@ function LoginActions({
     onDeny,
     onSignIn,
     onSwitchAccount,
-    setupFlow,
     signedIn,
     status,
 }: {
@@ -172,23 +174,10 @@ function LoginActions({
     onDeny: () => void;
     onSignIn: (() => void) | undefined;
     onSwitchAccount: (() => void) | undefined;
-    setupFlow: boolean;
     signedIn: boolean;
     status: ComputerLoginStatus | undefined;
 }) {
     if (status === 'consumed') {
-        if (setupFlow) {
-            return (
-                <div className="flex flex-col items-center gap-2">
-                    <Button onPress={() => window.close()} variant="secondary">
-                        Close this page
-                    </Button>
-                    <p className="text-center text-muted text-sm">
-                        If this page stays open, close it manually.
-                    </p>
-                </div>
-            );
-        }
         return (
             <Button onPress={() => window.close()} variant="secondary">
                 Close this page
@@ -206,23 +195,28 @@ function LoginActions({
     }
 
     return (
-        <div className="flex flex-wrap items-center justify-center gap-2">
-            <Button isPending={isWorking} onPress={onApprove}>
-                Approve Haus Computer
-            </Button>
-            <Button isDisabled={isWorking} onPress={onDeny} variant="danger-soft">
-                Deny
-            </Button>
-            {onSwitchAccount ? (
-                <Button isDisabled={isWorking} onPress={onSwitchAccount} variant="ghost">
-                    Use another account
+        <div className="flex w-full flex-col gap-6">
+            <div className="flex flex-col items-center gap-1">
+                <p className="text-center text-muted text-sm">
+                    Signed in as{' '}
+                    <span className="font-medium text-foreground">
+                        {accountLabel ?? 'your active account'}
+                    </span>
+                </p>
+                {onSwitchAccount ? (
+                    <Button isDisabled={isWorking} onPress={onSwitchAccount} variant="ghost">
+                        Use another account
+                    </Button>
+                ) : null}
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+                <Button isPending={isWorking} onPress={onApprove}>
+                    Approve Haus Computer
                 </Button>
-            ) : null}
-            {accountLabel ? (
-                <span className="w-full text-center text-muted text-sm">
-                    Active account: {accountLabel}
-                </span>
-            ) : null}
+                <Button isDisabled={isWorking} onPress={onDeny} variant="secondary">
+                    Deny
+                </Button>
+            </div>
         </div>
     );
 }
@@ -245,78 +239,4 @@ export function LoginFrame({
             </ActivationStep>
         </ActivationShell>
     );
-}
-
-function loginTitle(status: ComputerLoginStatus | undefined, setupFlow: boolean) {
-    switch (status) {
-        case 'approved':
-            return 'Signed in — finishing the connection';
-        case 'consumed':
-            return setupFlow
-                ? 'Computer connected — you can close this page'
-                : 'Haus Computer signed in';
-        case 'denied':
-            return 'Computer login denied';
-        case 'expired':
-            return 'Computer login expired';
-        case 'malformed':
-            return 'Code not recognized';
-        case 'not-found':
-            return 'Computer login not found';
-        case 'pending':
-            return 'Approve Haus Computer?';
-        default:
-            return 'Sign in Haus Computer';
-    }
-}
-
-function loginDescription(
-    status: ComputerLoginStatus | undefined,
-    accountLabel: string | null,
-    signedIn: boolean,
-    setupFlow: boolean
-): React.ReactNode {
-    switch (status) {
-        case 'approved':
-            return 'Haus Computer is completing its secure connection. Keep this page open for a moment.';
-        case 'consumed':
-            return setupFlow
-                ? 'The Computer attachment is saved locally. You can close this page.'
-                : 'The standalone Computer login is complete. You can close this page.';
-        case 'denied':
-            return (
-                <>
-                    This Computer login was denied. Start <LoginCommand /> again to try another
-                    request.
-                </>
-            );
-        case 'expired':
-            return (
-                <>
-                    This Computer login code expired. Start <LoginCommand /> again for a new code.
-                </>
-            );
-        case 'malformed':
-            return 'Enter the eight-character code shown in your Haus Computer terminal.';
-        case 'not-found':
-            return (
-                <>
-                    No Computer login is waiting for that code. Start <LoginCommand /> again.
-                </>
-            );
-        case 'pending':
-            return signedIn
-                ? `Approve this request for ${accountLabel ?? 'your active account'}.`
-                : 'Sign in with the account that should own this Computer login.';
-        default:
-            return (
-                <>
-                    Enter the code shown by <LoginCommand />.
-                </>
-            );
-    }
-}
-
-function LoginCommand() {
-    return <code className="font-mono text-foreground">haus-computer login</code>;
 }
