@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
+import { AppleIcon, ComputerIcon, WindowsNewIcon } from '@hugeicons-pro/core-solid-rounded';
 import {
     agentExecutionLabels,
     computerHealthColor,
     computerLabel,
+    computerPlatformIcon,
     computerRuntimePresentations,
     computerSystemLabel,
 } from './presentation.ts';
@@ -109,4 +111,16 @@ test('presents every supported runtime and preserves newly reported runtimes', (
         { detected: false, id: 'pi', label: 'Pi' },
         { detected: true, id: 'future-runtime', label: 'Future Runtime' },
     ]);
+});
+
+test('marks a Computer with its platform logo, and unknown platforms with a machine', () => {
+    expect(computerPlatformIcon({ operatingSystem: 'darwin' })).toBe(AppleIcon);
+    expect(computerPlatformIcon({ operatingSystem: 'win32' })).toBe(WindowsNewIcon);
+    expect(computerPlatformIcon({ operatingSystem: 'Windows' })).toBe(WindowsNewIcon);
+    // No penguin exists in the icon set, so Linux shares the generic machine
+    // glyph with platforms we have never seen and with a Computer that has not
+    // reported yet — rather than borrowing another vendor's mark.
+    expect(computerPlatformIcon({ operatingSystem: 'linux' })).toBe(ComputerIcon);
+    expect(computerPlatformIcon({ operatingSystem: 'plan9' })).toBe(ComputerIcon);
+    expect(computerPlatformIcon({ operatingSystem: null })).toBe(ComputerIcon);
 });

@@ -124,7 +124,9 @@ test('manual runtime refresh updates capacity and Agent model choices without re
         const refresh = page.getByRole('button', { name: 'Refresh runtimes' });
         await refresh.click();
         const request = await refreshRequest;
-        await expect(refresh).toContainText('Refreshing');
+        // The control is an icon now: it says it is working by going pending
+        // (a spinner in place of the glyph) rather than by changing its label.
+        await expect(refresh).toHaveAttribute('data-pending', 'true');
         const grok = {
             id: 'grok-build',
             label: 'Grok Build',
