@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentActivityEvent } from '@haus/api';
+import type { AgentCurrentActivity } from '@haus/api';
 import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts';
 
 test('keeps the mark calm outside an activity provider', () => {
@@ -28,12 +28,13 @@ test('quickens the mark while any Agent is working', () => {
     ).toBe('lively');
 });
 
-function activity(agentId: string): AgentActivityEvent {
+function activity(agentId: string): AgentCurrentActivity {
     return {
         agentId,
         category: 'thinking',
         id: `aev_${agentId}`,
         occurredAt: '2026-08-14T12:00:00.000Z',
+        runStartedAt: null,
         phase: 'started',
         position: 1,
         producer: 'server',

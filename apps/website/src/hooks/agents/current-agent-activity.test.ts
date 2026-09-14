@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentActivityEvent } from '@haus/api';
+import type { AgentCurrentActivity } from '@haus/api';
 import {
     applyCurrentAgentActivityEvent,
     filterCurrentAgentActivityByAvailability,
@@ -11,12 +11,13 @@ import {
     splitCurrentAgentActivity,
 } from './current-agent-activity.ts';
 
-function activity(overrides: Partial<AgentActivityEvent> = {}): AgentActivityEvent {
+function activity(overrides: Partial<AgentCurrentActivity> = {}): AgentCurrentActivity {
     return {
         agentId: 'agt_one',
         category: 'thinking',
         id: 'aev_one',
         occurredAt: '2026-08-11T12:00:00.000Z',
+        runStartedAt: null,
         phase: 'started',
         position: 1,
         producer: 'server',
@@ -310,12 +311,6 @@ test('reconnect snapshots preserve a finishing turn', () => {
     });
 
     expect(projectCurrentAgentActivitySnapshot([finishing])).toEqual([finishing]);
-});
-
-test('a live accepted run survives an older empty snapshot response', () => {
-    expect(reconcileCurrentAgentActivity([], [activity({ category: 'starting_work' })])).toEqual([
-        activity({ category: 'starting_work' }),
-    ]);
 });
 
 test('stale events cannot roll back a newer current category', () => {

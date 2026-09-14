@@ -144,8 +144,14 @@ test('current activity finishes after a committed message until the turn settles
     const started = projectAgentCurrentActivity(null, event);
     const afterMessage = projectAgentCurrentActivity(started, committedMessage);
 
-    expect(afterMessage).toEqual(committedMessage);
-    expect(projectAgentCurrentActivity(afterMessage, lateCompletion)).toEqual(committedMessage);
-    expect(projectAgentCurrentActivity(afterMessage, nextOperation)).toEqual(nextOperation);
+    expect(afterMessage).toEqual({ ...committedMessage, runStartedAt: null });
+    expect(projectAgentCurrentActivity(afterMessage, lateCompletion)).toEqual({
+        ...committedMessage,
+        runStartedAt: null,
+    });
+    expect(projectAgentCurrentActivity(afterMessage, nextOperation)).toEqual({
+        ...nextOperation,
+        runStartedAt: null,
+    });
     expect(projectAgentCurrentActivity(afterMessage, settled)).toBeNull();
 });

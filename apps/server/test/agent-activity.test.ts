@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@haus/api';
+import type { AgentCommand } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
@@ -25,6 +25,7 @@ import {
     readActiveAgentActivity,
 } from '../src/server-agents/agent-activity-history.ts';
 import { lockServerRow } from '../src/servers/server-lock.ts';
+import { activityFrame, summary } from './agent-activity-fixture.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
@@ -132,37 +133,6 @@ async function startRun(seed: Seed) {
         throw new Error('The test run did not start.');
     }
     return { delivery, frame, transport };
-}
-
-function activityFrame(seed: Seed, runId: string, producerSequence: number): AgentActivityFrame {
-    return {
-        agentId: seed.agentId,
-        category: 'using_tool',
-        occurredAt: '2020-01-01T00:00:00.000Z',
-        phase: 'started',
-        producerSequence,
-        runId,
-        type: 'agent-activity',
-    };
-}
-
-function summary(seed: Seed, runId: string): AgentTurnSummary {
-    return {
-        activity: { operations: [] },
-        agentId: seed.agentId,
-        endedAt: '2026-08-11T12:00:00.000Z',
-        messageCount: 0,
-        modelId: 'gpt-test',
-        outputProduced: false,
-        runId,
-        runtimeId: 'codex',
-        startedAt: '2026-08-11T11:59:00.000Z',
-        status: 'completed',
-        summary: 'done',
-        tokenUsage: null,
-        type: 'turn',
-        visibleMessages: [],
-    };
 }
 
 test('deduplicates out-of-order Computer frames and interleaves by Server position', async () => {
@@ -304,7 +274,17 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
     });
     const snapshot = await readActiveAgentActivity(connection.db, seed.serverId);
     expect(snapshot.activities).toHaveLength(1);
-    expect(snapshot.activities[0]).toEqual(accepted);
+    const history = await listAgentActivityHistory(connection.db, {
+        agentId: seed.agentId,
+        serverId: seed.serverId,
+        runId: frame.runId,
+        limit: 50,
+    });
+    const runStartedAt = history.events.find(
+        (event) => event.category === 'starting_work'
+    )?.occurredAt;
+    expect(runStartedAt).toBeString();
+    expect(snapshot.activities[0]).toEqual({ ...accepted, runStartedAt });
 
     const finishing = await connection.db.transaction(async (tx) => {
         await lockServerRow(tx, seed.serverId);
@@ -325,7 +305,7 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
         serverId: seed.serverId,
     });
     expect((await readActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual([
-        finishing,
+        { ...finishing, runStartedAt },
     ]);
 
     const resumed = await recordComputerAgentActivity(connection.db, {
@@ -334,7 +314,7 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
         serverId: seed.serverId,
     });
     expect((await readActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual([
-        resumed,
+        { ...resumed, runStartedAt },
     ]);
 
     await connection.db

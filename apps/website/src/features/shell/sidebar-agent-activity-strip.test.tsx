@@ -44,6 +44,7 @@ function row(agentId: string, runId: string, category: AgentActivityEvent['categ
             category,
             id: `aev_${agentId}`,
             occurredAt: '2026-08-14T12:00:00.000Z',
+            runStartedAt: null,
             phase: 'started' as const,
             position: 1,
             producer: 'server' as const,

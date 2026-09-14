@@ -12,6 +12,7 @@ function activity(overrides: Partial<CurrentAgentActivity> = {}): CurrentAgentAc
         category: 'editing_files',
         id: 'act_1',
         occurredAt: '2025-05-08T15:00:00.000Z',
+        runStartedAt: '2025-05-08T15:00:00.000Z',
         phase: 'started',
         position: 1,
         producer: 'computer',
@@ -47,9 +48,46 @@ function workingLifecycle(runId: string): AgentLifecycleEvent {
 }
 
 describe('happeningNowAgentRows', () => {
-    test('states the step and how long it has been running', () => {
+    test('step transitions keep total elapsed time and tick in seconds past a minute', () => {
+        const step = activity({ occurredAt: '2025-05-08T15:02:59.000Z' });
+        expect(happeningNowAgentRows([step], noLifecycles, [], now)[0]?.label).toBe(
+            'Editing files · 3m 0s elapsed'
+        );
+        expect(
+            happeningNowAgentRows(
+                [{ ...step, category: 'working' }],
+                noLifecycles,
+                [],
+                now + 1000
+            )[0]?.label
+        ).toBe('Working · 3m 1s elapsed');
+    });
+
+    test('missing turn timing does not substitute the current step timestamp', () => {
+        expect(
+            happeningNowAgentRows([activity({ runStartedAt: null })], noLifecycles, [], now)[0]
+                ?.label
+        ).toBe('Editing files…');
+    });
+
+    test('shows the safe tool name when available', () => {
+        expect(
+            happeningNowAgentRows(
+                [activity({ category: 'using_tool', toolRef: 'browser' })],
+                noLifecycles,
+                [],
+                now
+            )[0]?.label
+        ).toBe('Using browser · 3m 0s elapsed');
+        expect(
+            happeningNowAgentRows([activity({ category: 'using_tool' })], noLifecycles, [], now)[0]
+                ?.label
+        ).toBe('Using a tool · 3m 0s elapsed');
+    });
+
+    test('states the current step and total turn duration', () => {
         const [row] = happeningNowAgentRows([activity()], noLifecycles, [], now);
-        expect(row?.label).toBe('Editing files · 3m');
+        expect(row?.label).toBe('Editing files · 3m 0s elapsed');
     });
 
     test('names the Agent when the roster knows it, and its id tail when it does not', () => {
