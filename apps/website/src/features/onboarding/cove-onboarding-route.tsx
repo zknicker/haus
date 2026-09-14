@@ -44,7 +44,8 @@ export function CoveOnboardingRoute() {
         );
     }
 
-    const view = getCoveOnboardingView(server.data.onboarding);
+    let view = getCoveOnboardingView(server.data.onboarding);
+    let redirect: string | null = null;
     if (view === 'app') {
         const serverRoot = `/s/${server.data.slug}`;
         const target = `/s/${server.data.slug}/chats/${server.data.onboarding.channelId}`;
@@ -54,16 +55,20 @@ export function CoveOnboardingRoute() {
             pending: wasGated.current === server.data.id,
             serverRootPath: serverRoot,
         });
-        if (handoff.redirect) {
+        if (handoff.redirect && wasGated.current === server.data.id) {
+            redirect = handoff.redirect;
+            view = 'applying-cove';
+        } else if (handoff.redirect) {
             return (
                 <>
                     <ActivationLoading />
                     <Navigate replace to={handoff.redirect} />
                 </>
             );
+        } else {
+            wasGated.current = null;
+            return <Outlet />;
         }
-        wasGated.current = null;
-        return <Outlet />;
     }
     wasGated.current = server.data.id;
 
@@ -77,6 +82,7 @@ export function CoveOnboardingRoute() {
                 <SetupProgressMarker stage={meetingCove ? 'meet-cove' : 'connect-computer'} />
             }
         >
+            {redirect ? <Navigate replace to={redirect} /> : null}
             {view === 'meet-cove' || view === 'applying-cove' || view === 'apply-failed' ? (
                 <CoveMeetStep
                     onboarding={server.data.onboarding}
