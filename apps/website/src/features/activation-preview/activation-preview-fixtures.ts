@@ -89,6 +89,8 @@ const onboardingBySlug: Record<string, ServerOnboarding> = {
         phase: 'applying',
         runtimeId: 'codex',
     }),
+    'preview-member': onboarding({}),
+    'preview-admin': onboarding({}),
     'preview-connect-computer': onboarding({}),
     'preview-connect-failed': onboarding({
         failure: {
@@ -151,7 +153,7 @@ function previewServerDetail(slug: string): ServerDetail {
         displayName: 'Haus HQ',
         id: 'srv_preview_hq',
         onboarding: onboardingState,
-        role: 'owner',
+        role: slug === 'preview-member' ? 'member' : slug === 'preview-admin' ? 'admin' : 'owner',
         // The display slug, not the URL's variant slug, so rendered setup
         // commands read like a real Server's.
         slug: 'haus-hq',

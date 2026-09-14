@@ -1,4 +1,5 @@
 import type * as React from 'react';
+import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell } from '../../components/activation/activation-shell.tsx';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { SignInGateFrame, SignInSessionRecovery } from '../auth/sign-in-gate.tsx';
@@ -39,7 +40,7 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
         description: 'Clerk or the session token is still loading.',
         group: 'Sign in',
         id: 'sign-in-loading',
-        render: () => <SignInGateFrame />,
+        render: () => <ActivationLoading />,
     },
     {
         description: 'Signed in, but the session token is unusable.',
@@ -151,6 +152,18 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
         group: 'Cove onboarding',
         id: 'onboarding-connect',
         path: 'onboarding/preview-connect-computer',
+    },
+    {
+        description: 'A member waits for the owner to finish setup.',
+        group: 'Cove onboarding',
+        id: 'onboarding-member',
+        path: 'onboarding/preview-member',
+    },
+    {
+        description: 'An admin also waits for the owner to finish setup.',
+        group: 'Cove onboarding',
+        id: 'onboarding-admin',
+        path: 'onboarding/preview-admin',
     },
     {
         description: 'The Computer connected and is reporting runtimes.',

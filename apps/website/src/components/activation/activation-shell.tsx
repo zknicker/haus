@@ -1,51 +1,39 @@
 import type * as React from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils.ts';
-import { HausGhost } from '../haus-ghost.tsx';
-import { AppShell, AppShellDragRegion } from '../ui/app-shell.tsx';
-import './activation.css';
+import { useActivationSlots } from './activation-frame.tsx';
 
-/**
- * ActivationShell — the one frame every signed-out and setup surface shares:
- * sign-in, Server choice and creation, invitations, Computer login, and
- * Server onboarding. The Haus mark and chrome stay put while steps change
- * beneath them, so consecutive screens read as one continuous flow.
- */
+/** Portals keep each screen's query/auth context while the frame stays mounted. */
 export function ActivationShell({
     children,
     end,
-    mark = (
-        <HausGhost
-            animated
-            aria-hidden="true"
-            className="activation-mark"
-            fill="iridescent"
-            size={56}
-        />
-    ),
+    mark,
     progress,
 }: {
     children: React.ReactNode;
-    /** Quiet top-right actions such as Switch Server or review controls. */
     end?: React.ReactNode;
-    /** The floating brand mark above the step; pass null when another identity leads the screen. */
+    /** null hides the persistent brand while Cove leads the step. */
     mark?: React.ReactNode;
-    /** Centered top progress signal for multi-step flows. */
     progress?: React.ReactNode;
 }) {
+    const slots = useActivationSlots();
     return (
-        <AppShell>
-            <AppShellDragRegion />
-            <header className="activation-topbar">
-                {progress ? <div className="activation-topbar__progress">{progress}</div> : null}
-                {end}
-            </header>
-            <main className="activation-main">
-                <div className="activation-column">
-                    {mark}
-                    {children}
-                </div>
-            </main>
-        </AppShell>
+        <>
+            {slots.content
+                ? createPortal(
+                      <div
+                          className="activation-scene"
+                          data-hide-mark={mark !== undefined || undefined}
+                      >
+                          {mark}
+                          {children}
+                      </div>,
+                      slots.content
+                  )
+                : null}
+            {slots.end ? createPortal(end, slots.end) : null}
+            {slots.progress ? createPortal(progress, slots.progress) : null}
+        </>
     );
 }
 

@@ -1,20 +1,28 @@
-import { Spinner } from '@heroui/react';
 import * as React from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
+import { rememberLastServerSlug } from '../servers/server-choice.ts';
 import { CoveComputerStep } from './cove-computer-step.tsx';
 import { CoveMeetStep } from './cove-meet-step.tsx';
 import { getCoveOnboardingView, resolveCoveAppHandoff } from './cove-onboarding-model.ts';
 import { SetupProgressMarker } from './cove-step-parts.tsx';
+import { ServerSetupWaiting } from './server-setup-waiting.tsx';
 
 /** Mandatory fresh-Server gate, structurally outside the general Server shell. */
 export function CoveOnboardingRoute() {
     const { slug = '' } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
-    const wasGated = React.useRef(false);
+    const wasGated = React.useRef<string | null>(null);
     const server = useServer(slug);
+    const resolvedSlug = server.data?.slug;
+    React.useEffect(() => {
+        if (resolvedSlug === slug) {
+            rememberLastServerSlug(resolvedSlug);
+        }
+    }, [resolvedSlug, slug]);
 
     if (server.error && !server.data) {
         return (
@@ -24,19 +32,16 @@ export function CoveOnboardingRoute() {
         );
     }
     if (!server.data) {
-        if (wasGated.current) {
-            return (
-                <ActivationShell>
-                    <Spinner aria-label="Loading this Server" size="sm" />
-                </ActivationShell>
-            );
-        }
-        return null;
+        return <ActivationLoading />;
     }
 
     const canManageOnboarding = server.data.role === 'owner';
     if (!canManageOnboarding) {
-        return <Outlet />;
+        return server.data.onboarding.phase === 'complete' ? (
+            <Outlet />
+        ) : (
+            <ServerSetupWaiting serverName={server.data.displayName} />
+        );
     }
 
     const view = getCoveOnboardingView(server.data.onboarding);
@@ -46,18 +51,23 @@ export function CoveOnboardingRoute() {
         const handoff = resolveCoveAppHandoff({
             onboardingChatPath: target,
             pathname: location.pathname,
-            pending: wasGated.current,
+            pending: wasGated.current === server.data.id,
             serverRootPath: serverRoot,
         });
         if (handoff.redirect) {
-            return <Navigate replace to={handoff.redirect} />;
+            return (
+                <>
+                    <ActivationLoading />
+                    <Navigate replace to={handoff.redirect} />
+                </>
+            );
         }
-        wasGated.current = handoff.pending;
+        wasGated.current = null;
         return <Outlet />;
     }
-    wasGated.current = true;
+    wasGated.current = server.data.id;
 
-    const switchServer = () => navigate('/s');
+    const switchServer = () => navigate('/s?choose');
     const meetingCove = ['meet-cove', 'applying-cove', 'apply-failed'].includes(view);
     return (
         <ActivationShell
@@ -78,6 +88,7 @@ export function CoveOnboardingRoute() {
                 <CoveComputerStep
                     failure={server.data.onboarding.failure}
                     onSwitchServer={switchServer}
+                    serverName={server.data.displayName}
                     serverSlug={server.data.slug}
                     view={view}
                 />

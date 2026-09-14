@@ -1,6 +1,7 @@
 import { ClerkFailed, ClerkLoaded, ClerkLoading, useAuth, useClerk } from '@clerk/clerk-react';
 import { Button, Spinner } from '@heroui/react';
 import { Fragment, type ReactNode, useEffect, useState } from 'react';
+import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { getClerkSessionToken, isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
@@ -25,7 +26,7 @@ export function SignInGate({ children }: { children: ReactNode }) {
     return (
         <>
             <ClerkLoading>
-                <SignInGateFrame />
+                <ActivationLoading />
             </ClerkLoading>
             <ClerkFailed>
                 <SignInGateFrame signIn />
@@ -80,7 +81,7 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
     }
 
     if (gate.kind === 'loading') {
-        return <SignInGateFrame />;
+        return <ActivationLoading />;
     }
 
     if (gate.kind === 'missing') {
@@ -140,7 +141,10 @@ export function resolveClerkSessionGate({
     tokenState: ClerkSessionTokenState;
     userId: string | null | undefined;
 }): ClerkSessionGateState {
-    if (!(isLoaded && isSignedIn)) {
+    if (!isLoaded) {
+        return { kind: 'loading' };
+    }
+    if (!isSignedIn) {
         return { kind: 'signed-out' };
     }
     if (tokenState === 'missing') {

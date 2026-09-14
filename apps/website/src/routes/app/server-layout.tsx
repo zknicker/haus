@@ -4,11 +4,7 @@ import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
-import {
-    readLastChatId,
-    rememberLastChatId,
-    rememberLastServerSlug,
-} from '../../features/servers/server-choice.ts';
+import { readLastChatId, rememberLastChatId } from '../../features/servers/server-choice.ts';
 import { serverSearchRoute, serverSettingsRoute } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
@@ -58,11 +54,6 @@ export function ServerLayout() {
     useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
     useUnfocusableAppMain();
 
-    React.useEffect(() => {
-        if (currentServerSlug) {
-            rememberLastServerSlug(currentServerSlug);
-        }
-    }, [currentServerSlug]);
     React.useEffect(() => {
         if (
             currentServerSlug &&

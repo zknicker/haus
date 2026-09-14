@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { createBrowserRouter, createHashRouter, Navigate, useParams } from 'react-router-dom';
+import { ActivationLoading } from './components/activation/activation-loading.tsx';
 import { AppFrame } from './components/app-frame.tsx';
 import { ComputerLoginRoutes } from './features/computers/computer-login-routes.tsx';
 import { HausServerRoutes } from './features/servers/haus-server-routes.tsx';
@@ -33,6 +34,7 @@ export function createAppRouter() {
     return createRouter([
         {
             element: <AppFrame />,
+            hydrateFallbackElement: <ActivationLoading />,
             children: [
                 ...(import.meta.env.DEV
                     ? [

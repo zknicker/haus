@@ -13,16 +13,18 @@ export function CoveComputerStep({
     failure,
     onSwitchServer,
     serverSlug,
+    serverName,
     view,
 }: {
     failure: ServerDetail['onboarding']['failure'];
     onSwitchServer: () => void;
     serverSlug: string;
+    serverName: string;
     view: Exclude<CoveOnboardingView, 'app' | 'meet-cove'>;
 }) {
     return (
         <ActivationStep
-            className="activation-step--tall"
+            description={`Connect a Computer to run the Agents in ${serverName}.`}
             footer={<SwitchServerButton onPress={onSwitchServer} />}
             title="Connect a Computer"
         >
@@ -44,8 +46,8 @@ export function CoveComputerStep({
                     </Tabs.ListContainer>
                     <Tabs.Panel className="grid min-w-0 gap-4 pt-4" id="macos">
                         <p className="text-base text-muted sm:text-sm">
-                            Run both commands on the Mac you want to connect. Setup gives you a
-                            browser approval link.
+                            Run these commands on the Mac you want to connect. Already installed
+                            Haus Computer? Skip to Setup.
                         </p>
                         <ComputerSetupCommands serverSlug={serverSlug} />
                     </Tabs.Panel>

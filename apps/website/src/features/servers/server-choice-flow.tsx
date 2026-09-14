@@ -50,7 +50,6 @@ function ServerChoiceStep({
 
     return (
         <ActivationStep
-            className={hasServers ? 'activation-step--tall' : undefined}
             description={
                 hasServers
                     ? 'Open a joined Server, or start another.'
@@ -82,7 +81,6 @@ function CreateServerStep({ onBack }: { onBack: () => void }) {
 
     return (
         <ActivationStep
-            className="activation-step--tall"
             description="Start a new place for your people and Agents."
             footer={
                 <>
@@ -121,7 +119,6 @@ function JoinServerStep({ onBack }: { onBack: () => void }) {
 
     return (
         <ActivationStep
-            className="activation-step--tall"
             description="Paste an invitation link or token."
             footer={
                 <>

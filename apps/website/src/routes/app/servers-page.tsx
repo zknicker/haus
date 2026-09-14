@@ -1,14 +1,15 @@
-import { Spinner } from '@heroui/react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
+import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { readLastServerSlug, resolveEntryServer } from '../../features/servers/server-choice.ts';
 import { ServerChoiceFlow } from '../../features/servers/server-choice-flow.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
 
-/** Resolves signed-in entry to a joined Server; only the empty state remains here. */
+/** Resume a joined Server unless the human explicitly opens the chooser. */
 export function ServersPage() {
     const servers = useServerList();
+    const [search] = useSearchParams();
 
     if (!servers.data && servers.error) {
         return (
@@ -19,21 +20,22 @@ export function ServersPage() {
     }
 
     if (!servers.data) {
-        return (
-            <ActivationShell>
-                <Spinner aria-label="Loading your Servers" size="sm" />
-            </ActivationShell>
-        );
+        return <ActivationLoading />;
     }
 
     const entryServer = resolveEntryServer(servers.data, readLastServerSlug());
-    if (entryServer) {
-        return <Navigate replace to={serverRoute(entryServer.slug)} />;
+    if (entryServer && !search.has('choose')) {
+        return (
+            <>
+                <ActivationLoading />
+                <Navigate replace to={serverRoute(entryServer.slug)} />
+            </>
+        );
     }
 
     return (
         <ActivationShell>
-            <ServerChoiceFlow servers={[]} />
+            <ServerChoiceFlow servers={servers.data} />
         </ActivationShell>
     );
 }
