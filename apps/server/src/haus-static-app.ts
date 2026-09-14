@@ -4,6 +4,11 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 export async function registerHausStaticApp(app: FastifyInstance, staticAppRoot: string) {
     await app.register(fastifyStatic, {
         root: staticAppRoot,
+        setHeaders(reply, filePath) {
+            if (filePath.endsWith('/index.html') || filePath.endsWith('/haus-app-build.json')) {
+                reply.header('cache-control', 'no-store');
+            }
+        },
     });
 
     const sendPrivacyPage = (_request: FastifyRequest, reply: FastifyReply) =>

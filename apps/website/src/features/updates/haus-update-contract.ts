@@ -1,4 +1,10 @@
-export type HausUpdatePhase = 'available' | 'current' | 'failed' | 'restart-required' | 'updating';
+export type HausUpdatePhase =
+    | 'available'
+    | 'current'
+    | 'failed'
+    | 'restart-required'
+    | 'reload-required'
+    | 'updating';
 
 export interface HausReleaseSnapshot {
     components: {
@@ -94,7 +100,7 @@ export interface HausComponentFact {
     currentVersion: string | null;
     detail: string | null;
     id: string;
-    kind: 'computer' | 'desktop-app';
+    kind: 'computer' | 'desktop-app' | 'website';
     label: string;
     remedy: string | null;
     status: 'current' | 'external' | 'failed' | 'pending' | 'updating';
@@ -108,6 +114,7 @@ export interface HausUpdateView {
     phase: HausUpdatePhase;
     primaryAction:
         | { kind: 'restart'; label: 'Restart' }
+        | { kind: 'reload'; label: 'Reload' }
         | { kind: 'retry'; label: 'Try again' }
         | { kind: 'start'; label: 'Update' }
         | null;

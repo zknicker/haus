@@ -31,6 +31,9 @@ export function HausVersionBreakdown({ facts }: { facts: readonly HausComponentF
 }
 
 function factDisplay(fact: HausComponentFact) {
+    if (fact.kind === 'website') {
+        return { tone: 'text-muted', value: 'Reload available' };
+    }
     if (!fact.targetVersion) {
         return { tone: 'text-muted', value: 'Unavailable' };
     }

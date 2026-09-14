@@ -60,6 +60,8 @@ function tooltipTitle(view: HausUpdateView) {
             return 'Click to update';
         case 'restart-required':
             return 'Click to restart';
+        case 'reload-required':
+            return 'Update available. Reload Haus.';
         case 'failed':
             return 'Click to try again';
         case 'updating':

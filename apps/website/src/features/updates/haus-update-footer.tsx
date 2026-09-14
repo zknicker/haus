@@ -151,6 +151,7 @@ function FooterMark({
         case 'available':
             return <Icon aria-hidden="true" icon={Download04Icon} />;
         case 'restart-required':
+        case 'reload-required':
             return <Icon aria-hidden="true" icon={ReloadIcon} />;
         case 'failed':
             return <Icon aria-hidden="true" icon={Alert01Icon} />;
@@ -169,6 +170,8 @@ function buttonLabel(view: HausUpdateView) {
             return `Updating Haus. ${view.detail}`;
         case 'restart-required':
             return 'Restart Haus to finish updating';
+        case 'reload-required':
+            return 'Update available. Reload Haus.';
         case 'failed':
             return `Haus update failed. ${view.detail}`;
     }

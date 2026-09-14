@@ -3,6 +3,10 @@ import type { PaneEditorSnapshot } from './use-pane-editor-host.ts';
 const maxPaneDrafts = 50;
 const paneDrafts = new Map<string, StoredPaneDraft>();
 
+export function hasPaneEditorDrafts() {
+    return paneDrafts.size > 0;
+}
+
 interface StoredPaneDraft {
     content: string;
     snapshot: PaneEditorSnapshot<unknown>;

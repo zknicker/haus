@@ -29,6 +29,10 @@ const emptyState: ChatDraftState = { draft: emptyDraft, failed: [] };
 const drafts = new Map<string, ChatDraftState>();
 const listeners = new Map<string, Set<() => void>>();
 
+export function hasChatDrafts() {
+    return drafts.size > 0;
+}
+
 export function chatDraftKey(serverId: string, chatId: string) {
     return `server:${serverId}:chat:${chatId}`;
 }

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as React from 'react';
 import { useDesktopUpdate } from '../../hooks/desktop/use-desktop-update.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { useWebsiteUpdate } from '../../hooks/updates/use-website-update.ts';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { ComputerUpdateComputer } from '../computers/computer-update-card.tsx';
@@ -11,6 +12,7 @@ import type { HausUpdateComputer, HausUpdateDesktop, HausUpdateView } from './ha
 import { projectHausUpdate } from './haus-update-model.ts';
 import { createHausUpdateController, type HausUpdateRunResult } from './haus-update-reconciler.ts';
 import { useOfflineComputers } from './use-offline-computers.ts';
+import { withWebsiteUpdate } from './website-update-model.ts';
 
 const productionReleaseUrl = '/api/haus-release';
 const fallbackDiscovery = {
@@ -41,8 +43,10 @@ export function useHausUpdate() {
 }
 
 function useHausUpdateState(serverId: string, canOperate: boolean) {
+    const websiteUpdate = useWebsiteUpdate();
     const computers = useComputers(serverId, { enabled: canOperate });
-    const offlineComputers = useOfflineComputers(computers.data ?? []);
+    const visibleComputers = canOperate ? (computers.data ?? []) : [];
+    const offlineComputers = useOfflineComputers(visibleComputers);
     const desktop = useDesktopUpdate();
     const updateComputer = hausTrpc.computer.update.useMutation();
     const release = useQuery({
@@ -56,15 +60,15 @@ function useHausUpdateState(serverId: string, canOperate: boolean) {
     const [runResult, setRunResult] = React.useState<HausUpdateRunResult | null>(null);
     const [isRunning, setIsRunning] = React.useState(false);
     const activeRun = React.useRef<Promise<HausUpdateRunResult> | null>(null);
-    const observations = React.useRef({ computers: computers.data, desktop });
-    observations.current = { computers: computers.data, desktop };
+    const observations = React.useRef({ computers: visibleComputers, desktop });
+    observations.current = { computers: visibleComputers, desktop };
 
     const observedView = projectObservedUpdate({
-        computers: computers.data ?? [],
+        computers: visibleComputers,
         desktop,
         discovery: release.data,
     });
-    const view = applyRunFailures(observedView, runResult);
+    const view = withWebsiteUpdate(applyRunFailures(observedView, runResult), websiteUpdate);
 
     const run = React.useCallback(() => {
         if (activeRun.current) {
@@ -96,7 +100,7 @@ function useHausUpdateState(serverId: string, canOperate: boolean) {
                     await wait(1000);
                     if (step.kind === 'computer') {
                         const computerResult = await computers.refetch();
-                        observations.current.computers = computerResult.data;
+                        observations.current.computers = computerResult.data ?? [];
                     }
                     const next = readView().steps.find((candidate) => candidate.id === step.id);
                     if (!next || stepSignature(next) !== initial) {
@@ -129,11 +133,13 @@ function useHausUpdateState(serverId: string, canOperate: boolean) {
             .finally(async () => {
                 activeRun.current = null;
                 setIsRunning(false);
-                await computers.refetch();
+                if (canOperate) {
+                    await computers.refetch();
+                }
             });
         activeRun.current = task;
         return task;
-    }, [computers, release.data, serverId, updateComputer]);
+    }, [canOperate, computers, release.data, serverId, updateComputer]);
 
     return {
         canOperate,

@@ -175,6 +175,8 @@ function aggregateHeadline(phase: HausUpdatePhase, version: string) {
             return `Updating Haus ${version}`;
         case 'restart-required':
             return 'Restart to finish';
+        case 'reload-required':
+            return 'Update available. Reload Haus.';
         case 'failed':
             return 'Update needs attention';
     }
@@ -192,6 +194,8 @@ function aggregateDetail(phase: HausUpdatePhase, steps: readonly HausUpdateStep[
             return active ? `Updating ${active.label}.` : 'Update in progress.';
         case 'restart-required':
             return 'The Haus App is ready to restart.';
+        case 'reload-required':
+            return 'Reload to use the updated website.';
         case 'failed': {
             const failed = steps.find((step) => step.phase === 'failed');
             return (
