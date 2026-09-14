@@ -233,6 +233,17 @@ keeps its header, Close, and Open profile controls outside its Agent query bound
   trailing-column width; a wide control carries its own measure.
   `features/settings/layout/settings-text.tsx` holds the only two roles
   `ItemCard` has no slot for — a read-only value and a row's action error.
+* A dialog or drawer body is the same row kit, not a stack of labeled form
+  fields. `Modal.Header`/`Drawer.Header`/`Sheet.Header` carries an icon, the
+  name, and one muted line; everything the surface reports or changes below it
+  is `ItemCardGroup` sections of `ItemCard` rows. A fact is a title plus a
+  `SettingsFact` in `ItemCard.Action`; a row that acts carries one small button
+  and nothing else, so the body never grows a second button style beside the
+  footer pair. Prose that is read once — what a profile is, what a caller does
+  with a URL — sits behind a ghost info-icon `Tooltip` next to the row title,
+  and `ItemCard.Description` is kept for the one clause a destructive row owes
+  the reader. A failed action is `SettingsRowError` at the end of the body, not
+  a boxed `Alert`: an Alert outweighs every row it sits under.
 * Controls sit at the altitude they act on. A page-level action goes in the
   shell band through `PageTopbar` + `SectionHeader` with no title; a control
   scoped to one section rides in that section's `ItemCardGroup.Header`; a
