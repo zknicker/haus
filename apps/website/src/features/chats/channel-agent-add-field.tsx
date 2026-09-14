@@ -1,5 +1,6 @@
 import { ComboBox, EmptyState, Input, Label, ListBox } from '@heroui/react';
 import * as React from 'react';
+import { ComboBoxStateContext } from 'react-aria-components';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import type { ChannelAgentOption } from './channel-agent-picker.tsx';
 
@@ -40,7 +41,7 @@ export function ChannelAgentAddField({
 
     return (
         <ComboBox
-            allowsEmptyCollection
+            allowsEmptyCollection={!isExhausted}
             aria-label={label === null ? addFieldLabel : undefined}
             fullWidth
             inputValue={query}
@@ -58,6 +59,7 @@ export function ChannelAgentAddField({
             selectedKey={null}
             variant="secondary"
         >
+            <CloseExhaustedAgentMenu isExhausted={isExhausted} />
             {label}
             <ComboBox.InputGroup>
                 <Input placeholder={isExhausted ? 'All agents added' : 'Add an agent…'} />
@@ -83,3 +85,14 @@ export function ChannelAgentAddField({
 }
 
 const addFieldLabel = 'Add an agent';
+
+function CloseExhaustedAgentMenu({ isExhausted }: { isExhausted: boolean }) {
+    const state = React.useContext(ComboBoxStateContext);
+    React.useEffect(() => {
+        // React Aria keeps manually opened menus open even when their collection empties.
+        if (isExhausted && state?.isOpen) {
+            state.close();
+        }
+    }, [isExhausted, state]);
+    return null;
+}
