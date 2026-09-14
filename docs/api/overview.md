@@ -50,6 +50,13 @@ rejecting the ordinary inventory report.
 Cross-boundary types use Haus product nouns and narrow discriminated unions. Do not add aliases
 for the retired standalone Runtime or SDK surfaces.
 
+`computer.refreshInventory` is an Owner/Admin mutation for one attached Computer. Server sends a
+correlated `inventory-refresh-request` and waits up to 30 seconds for `inventory-refresh-result`.
+Concurrent requests for the same Computer share one scan. A successful response replaces only
+the stored runtimes and models, then emits a Computer update event before the mutation completes.
+Failed, disconnected, or unanswered requests preserve the last inventory. Computer separately
+reports refreshed usage. These optional frames leave older peers' ordinary reports intact.
+
 Haus 1.16 requires Computer protocol 17 for Agent configuration briefs and the current Browser
 and task contracts. Older Computers retain bootstrap update control but cannot execute ordinary
 work. App protocol 5 gates the task-list envelope and the removal of Agent roles and prepared

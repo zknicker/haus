@@ -42,7 +42,20 @@ because those runtime transcripts do not carry a Haus Agent id.
 
 ## Hosted data flow
 
-Each compatible Computer refreshes provider usage at most once every 15 minutes and stores the
+Computer settings includes **Refresh** beside Runtimes. Owners and Admins can ask an online
+Computer to rescan installed runtimes and their models without restarting it. The scan replaces
+only runtime inventory, preserving the Computer name, skills, and Cloud Agent readiness. Server
+events update runtime rows, Agent runtime/model choices, and usage views together; the App does
+not poll for installed software. Background discovery also runs when Computer connects and after
+Agent configuration or execution changes. Grok discovery includes its native `~/.grok/bin` install.
+
+Manual refresh also requests a new usage snapshot, bypassing the aggregate cache described below
+while retaining each provider's retry and authentication protections. Inventory completion does not
+wait for provider usage, so newly detected runtimes become selectable even when usage is unavailable.
+An offline Computer cannot refresh. If an older Computer does not answer the refresh request,
+the action times out with instructions to update Haus Computer and retry.
+
+Each compatible Computer refreshes provider usage in the background at most once every 15 minutes and stores the
 sanitized snapshot atomically in its data root. Reconnects and restarts therefore reuse fresh data
 without calling provider APIs. Refreshes are coalesced, retry schedules survive Computer restarts,
 and transient request or authentication failures retain the affected provider's last successful
