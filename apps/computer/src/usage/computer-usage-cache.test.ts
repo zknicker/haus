@@ -43,6 +43,28 @@ test('a stale cache refreshes once for concurrent readers', async () => {
     expect(calls).toBe(1);
 });
 
+test('manual refresh replaces a fresh snapshot and coalesces concurrent requests', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-refresh-'));
+    let calls = 0;
+    const read = createComputerUsageCache({
+        dataRoot,
+        load: async ({ now } = {}) => {
+            calls += 1;
+            await Promise.resolve();
+            return usageAt((now?.() ?? new Date()).toISOString());
+        },
+    });
+    await read({ now: () => new Date('2026-08-14T15:00:00.000Z') });
+    const now = () => new Date('2026-08-14T15:01:00.000Z');
+    const refreshed = await Promise.all([read({ now }, 'refresh'), read({ now }, 'refresh')]);
+    expect(refreshed.map((value) => value.capturedAt)).toEqual([
+        now().toISOString(),
+        now().toISOString(),
+    ]);
+    expect((await read({ now })).capturedAt).toBe(now().toISOString());
+    expect(calls).toBe(2);
+});
+
 test('a transient provider failure retains only that provider last-good snapshot', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-cache-'));
     let calls = 0;

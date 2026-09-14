@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { recordComputerInventory } from '../src/computers/service.ts';
+import { recordComputerInventory } from '../src/computers/record-inventory.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { recordAgentEffectiveState } from '../src/server-agents/record-agent-effective-state.ts';
 import {

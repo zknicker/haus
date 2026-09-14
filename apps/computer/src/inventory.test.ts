@@ -1,8 +1,26 @@
 import { expect, test } from 'bun:test';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { detectInventory } from './inventory.ts';
+import { runtimeSearchPath } from './runtime-discovery.ts';
+
+test('finds the native Grok install with a minimal background-service PATH', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'haus-grok-home-'));
+    try {
+        const directory = join(homeDirectory, '.grok', 'bin');
+        await mkdir(directory, { recursive: true });
+        const executable = join(directory, 'grok');
+        await writeFile(executable, '#!/bin/sh\necho "grok 1.0.13"\n');
+        await chmod(executable, 0o755);
+        const searchPath = runtimeSearchPath({ currentPath: '/usr/bin:/bin', homeDirectory });
+        expect(detectInventory({ searchPath }).runtimes.map((runtime) => runtime.id)).toContain(
+            'grok-build'
+        );
+    } finally {
+        await rm(homeDirectory, { recursive: true, force: true });
+    }
+});
 
 test('discovers a runtime from the Computer search path and verifies the executable', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-runtime-inventory-'));
