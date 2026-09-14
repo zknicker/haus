@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v3.1.5 - 2026-09-14
+
+- Delivers the Grok usage, human mention, chat, and channel fixes listed in 3.1.4, whose publication failed. Update Haus Computer to 2.0.3; Haus Agent is 2.0.3.
+
 ## v3.1.4 - 2026-09-14
 
 - Grok Agents report their token usage and appear in Inbox's Active this week cards. Update Haus Computer to 2.0.2 for this fix.
