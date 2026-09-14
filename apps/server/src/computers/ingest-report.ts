@@ -9,6 +9,7 @@ import {
     agentTurnSummarySchema,
     agentWorkspaceResultSchema,
     browserResultSchema,
+    computerInventoryRefreshResultSchema,
     computerInventorySchema,
     computerSystemEventReportSchema,
     computerUpdateProgressFrameSchema,
@@ -30,8 +31,8 @@ import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
+import { recordComputerInventory } from './record-inventory.ts';
 import {
-    recordComputerInventory,
     recordComputerManagementEvents,
     recordInvalidComputerInventory,
     reportComputerUpdateProgress,
@@ -206,6 +207,11 @@ async function recordComputerReport(
 }
 
 function acceptComputerReply(connections: ComputerConnections, computerId: string, frame: unknown) {
+    const inventoryRefresh = computerInventoryRefreshResultSchema.safeParse(frame);
+    if (inventoryRefresh.success) {
+        connections.inventoryRefresh.accept(computerId, inventoryRefresh.data);
+        return true;
+    }
     const skillImport = agentSkillImportResultSchema.safeParse(frame);
     if (skillImport.success) {
         connections.acceptSkillImport(computerId, skillImport.data);

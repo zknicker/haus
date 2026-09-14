@@ -18,12 +18,17 @@ export function createComputerUsageCache(options: {
     let refresh: Promise<UsageOverview> | null = null;
 
     return async (
-        readOptions: Parameters<typeof readComputerUsage>[0] = {}
+        readOptions: Parameters<typeof readComputerUsage>[0] = {},
+        mode: 'cached' | 'refresh' = 'cached'
     ): Promise<UsageOverview> => {
         cacheLoad ??= readUsageCache(cachePath);
         cached ??= await cacheLoad;
         const now = readOptions.now?.() ?? new Date();
-        if (cached && now.getTime() - Date.parse(cached.capturedAt) < refreshIntervalMs) {
+        if (
+            mode === 'cached' &&
+            cached &&
+            now.getTime() - Date.parse(cached.capturedAt) < refreshIntervalMs
+        ) {
             return cached;
         }
         if (refresh) {

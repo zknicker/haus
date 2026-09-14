@@ -28,6 +28,7 @@ export function runtimeSearchPath(options: RuntimeSearchPathOptions = {}) {
     const entries = [
         ...(options.currentPath ?? process.env.PATH ?? '').split(':'),
         join(homeDirectory, '.local', 'bin'),
+        join(homeDirectory, '.grok', 'bin'),
         ...systemSearchPaths,
     ];
     return [...new Set(entries.filter(Boolean))].join(':');

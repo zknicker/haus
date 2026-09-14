@@ -25,11 +25,8 @@ import { recordComputerAgentActivityWithStatus } from '../server-agents/agent-ac
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ComputerConnections } from './connections.ts';
-import {
-    recordComputerInventory,
-    recordInvalidComputerInventory,
-    reportComputerUpdateProgress,
-} from './service.ts';
+import { recordComputerInventory } from './record-inventory.ts';
+import { recordInvalidComputerInventory, reportComputerUpdateProgress } from './service.ts';
 
 const reportSchema = z
     .object({

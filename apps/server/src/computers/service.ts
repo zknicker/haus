@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import {
-    type ComputerInventory,
     type ComputerManagementEvent,
     type ComputerSystemEvent,
     type ComputerUpdateProgress,
@@ -157,68 +156,6 @@ export async function reportComputerUpdateProgress(
         })
         .where(eq(computersTable.id, computerId));
     return true;
-}
-
-/** Replaces a Computer's last-reported runtime/model inventory wholesale. */
-export async function recordComputerInventory(
-    db: HausDatabase,
-    computerId: string,
-    inventory: ComputerInventory
-) {
-    await db.transaction(async (tx) => {
-        const [computer] = await tx
-            .select({ serverId: computersTable.serverId })
-            .from(computersTable)
-            .where(eq(computersTable.id, computerId))
-            .limit(1);
-        if (!computer) {
-            return;
-        }
-        await tx
-            .update(computersTable)
-            .set({ reportedInventory: inventory })
-            .where(eq(computersTable.id, computerId));
-        const usable = inventory.runtimes.some((runtime) => runtime.models.length > 0);
-        const [onboarding] = await tx
-            .select({
-                failureCode: serverOnboardingTable.failureCode,
-                phase: serverOnboardingTable.phase,
-            })
-            .from(serverOnboardingTable)
-            .where(eq(serverOnboardingTable.serverId, computer.serverId))
-            .limit(1);
-        await tx
-            .update(serverOnboardingTable)
-            .set({
-                computerId,
-                failureCode:
-                    usable && onboarding?.failureCode === 'application-failed'
-                        ? 'application-failed'
-                        : usable
-                          ? null
-                          : 'inventory-empty',
-                failureDetail:
-                    usable && onboarding?.failureCode === 'application-failed'
-                        ? undefined
-                        : usable
-                          ? null
-                          : 'This Computer did not report a usable runtime and model.',
-                ...(usable && onboarding?.phase === 'awaiting-computer'
-                    ? { phase: 'awaiting-cove' as const }
-                    : {}),
-                updatedAt: new Date(),
-            })
-            .where(
-                and(
-                    eq(serverOnboardingTable.serverId, computer.serverId),
-                    ne(serverOnboardingTable.phase, 'complete'),
-                    or(
-                        eq(serverOnboardingTable.phase, 'awaiting-computer'),
-                        eq(serverOnboardingTable.computerId, computerId)
-                    )
-                )
-            );
-    });
 }
 
 export async function recordComputerManagementEvents(

@@ -73,6 +73,7 @@ export * from './chat.ts';
 export * from './chat-last-message.ts';
 export * from './cloud-agent.ts';
 export * from './cloud-agent-shared.ts';
+export * from './computer-inventory-refresh.ts';
 export * from './computer-runtime.ts';
 export * from './computer-system-events.ts';
 export * from './computer-update.ts';

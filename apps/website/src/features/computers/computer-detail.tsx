@@ -9,6 +9,7 @@ import { BrowserCapabilityCard } from './browser-capability-card.tsx';
 import { CloudAgentCapabilityCard } from './cloud-agent-capability-card.tsx';
 import { ComputerActions } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
+import { ComputerInventoryRefresh } from './computer-inventory-refresh.tsx';
 import { ComputerSystemLog } from './computer-system-log-card.tsx';
 import {
     computerHealthColor,
@@ -97,6 +98,7 @@ export function ComputerDetail({
                                 Not detected: {undetectedRuntimeLabels.join(', ')}
                             </p>
                         ) : null}
+                        <ComputerInventoryRefresh computerId={computerId} serverId={serverId} />
                     </ItemCardGroup.Header>
                     <ComputerUsageCapacity
                         computerId={computerId}

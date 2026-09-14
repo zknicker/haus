@@ -83,6 +83,7 @@ import {
     replacePendingInbox,
 } from './inbox-store.ts';
 import { detectInventory } from './inventory.ts';
+import { handleInventoryRefresh } from './inventory-refresh.ts';
 import {
     type AgentStartCommand,
     type AgentTurnFrame,
@@ -127,11 +128,8 @@ import {
     parseComputerUpdateCommand,
 } from './update-contract.ts';
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
-import { createComputerUsageCache } from './usage/computer-usage-cache.ts';
-import {
-    readOpenRouterManagementKey,
-    saveOpenRouterManagementKey,
-} from './usage/openrouter-settings.ts';
+import { saveOpenRouterManagementKey } from './usage/openrouter-settings.ts';
+import { createUsageReporter } from './usage/report.ts';
 import { parseAgentWorkspaceRequest, runAgentWorkspaceRequest } from './workspace-files.ts';
 
 interface AttachResponse {
@@ -142,7 +140,7 @@ interface AttachResponse {
 }
 
 const dataRoot = process.env.HAUS_COMPUTER_DATA_ROOT ?? join(homedir(), '.haus', 'computer');
-const readCachedComputerUsage = createComputerUsageCache({ dataRoot });
+const sendUsageReport = createUsageReporter(dataRoot);
 const serverOrigin = process.env.HAUS_SERVER_ORIGIN ?? 'https://haus.chat';
 const { findAttachment, listAttachments, readAttachment } = createAttachmentStore(dataRoot);
 const attachmentDaemonProcesses = new AttachmentDaemonProcessRegistry();
@@ -1140,6 +1138,15 @@ async function connect(
                 return;
             }
             const update = parseComputerUpdateCommand(frame);
+            if (
+                handleInventoryRefresh(frame, {
+                    send: sendFrame,
+                    track: trackWriter,
+                    refreshUsage: () => sendUsageReport(sendFrame, 'refresh'),
+                })
+            ) {
+                return;
+            }
             if (update) {
                 void runSignedUpdate({
                     dataRoot,
@@ -1676,13 +1683,6 @@ async function recordManagementCommandForAttachments(
             recordAttachmentManagementEvent(dataRoot, attachment.serverId, command)
         )
     );
-}
-
-async function sendUsageReport(send: SendComputerFrame) {
-    const usage = await readCachedComputerUsage({
-        openRouterManagementKey: await readOpenRouterManagementKey(dataRoot),
-    });
-    send({ type: 'usage-report', usage });
 }
 
 function hash(value: string) {

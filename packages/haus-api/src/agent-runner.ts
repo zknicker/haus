@@ -21,6 +21,7 @@ import {
     workspaceFileListSchema,
 } from './agent-workspace-files.ts';
 import { idSchema } from './chat.ts';
+import { computerInventoryRefreshRequestSchema } from './computer-inventory-refresh.ts';
 import {
     agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
@@ -192,9 +193,8 @@ export const serverDeleteCommandSchema = z
 export type ServerDeleteCommand = z.infer<typeof serverDeleteCommandSchema>;
 
 /**
- * One authenticated Server request against the Browser service owned by this
- * Computer attachment. Browser settings and lifecycle never bypass the
- * Server or expose the Computer socket to the App.
+ * Authenticated Browser request for one Computer attachment. Settings and lifecycle
+ * go through Server; the App never accesses the Computer socket.
  */
 export const browserRequestSchema = z
     .object({
@@ -216,9 +216,9 @@ export const browserRequestSchema = z
     .strict();
 
 export type BrowserRequest = z.infer<typeof browserRequestSchema>;
-
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const agentCommandSchema = z.discriminatedUnion('type', [
+    computerInventoryRefreshRequestSchema,
     agentStartCommandSchema,
     agentStopCommandSchema,
     agentRestartCommandSchema,
