@@ -62,11 +62,11 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             await page.context().setOffline(true);
             await approvalPage.getByRole('button', { name: 'Approve Haus Computer' }).click();
             await expect(
-                approvalPage.getByRole('heading', { name: 'Signed in — finishing the connection' })
+                approvalPage.getByRole('heading', { name: 'Finishing the connection' })
             ).toBeVisible();
             await expect(
                 approvalPage.getByRole('heading', {
-                    name: 'Computer connected — you can close this page',
+                    name: 'Computer connected',
                 })
             ).toHaveCount(0);
 
@@ -78,14 +78,14 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             ).toBe(0o600);
             await expect(
                 approvalPage.getByRole('heading', {
-                    name: 'Computer connected — you can close this page',
+                    name: 'Computer connected',
                 })
             ).toBeVisible();
             await expect(
                 approvalPage.getByRole('button', { name: 'Close this page' })
             ).toBeVisible();
             await expect(
-                approvalPage.getByText('If this page stays open, close it manually.')
+                approvalPage.getByText('All done. You can close this browser tab.')
             ).toBeVisible();
 
             await expect

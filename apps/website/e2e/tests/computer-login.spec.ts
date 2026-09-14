@@ -22,12 +22,10 @@ test('Clerk-backed Computer login preserves its code and finishes after approval
     await expect(page.getByLabel('Computer login code')).toHaveValue(
         started.userCode.replace('-', '')
     );
-    await expect(page.getByText('Active account: your current Clerk account')).toBeVisible();
+    await expect(page.getByText('Signed in as your current Clerk account')).toBeVisible();
 
     await page.getByRole('button', { name: 'Approve Haus Computer' }).click();
-    await expect(
-        page.getByRole('heading', { name: 'Signed in — finishing the connection' })
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Finishing the connection' })).toBeVisible();
 
     const exchanged = await fetch(new URL('/computer/login/poll', serverOrigin), {
         body: JSON.stringify({ deviceCode: started.deviceCode }),
@@ -36,9 +34,7 @@ test('Clerk-backed Computer login preserves its code and finishes after approval
     });
     expect(exchanged.status).toBe(200);
     const session = (await exchanged.json()) as { accessToken: string };
-    await expect(
-        page.getByRole('heading', { name: 'Signed in — finishing the connection' })
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Finishing the connection' })).toBeVisible();
 
     const completed = await fetch(new URL('/computer/login/complete', serverOrigin), {
         body: JSON.stringify({ accessToken: session.accessToken }),
@@ -47,9 +43,8 @@ test('Clerk-backed Computer login preserves its code and finishes after approval
     });
     expect(completed.status).toBe(200);
     await expect(page.getByRole('heading', { name: 'Haus Computer signed in' })).toBeVisible();
-    await expect(
-        page.getByRole('heading', { name: 'Computer connected — you can close this page' })
-    ).toHaveCount(0);
+    await expect(page.getByLabel('Computer login code')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Computer connected' })).toHaveCount(0);
 });
 
 async function beginLogin(origin: string): Promise<DeviceGrant> {
