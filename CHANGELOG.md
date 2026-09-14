@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v3.1.1 - 2026-09-14
+
+- Haus opens into setup without flashing intermediate screens, and the ghost keeps moving as steps change.
+- Members joining an unfinished Server see a waiting page while its owner completes setup. Owners can switch Servers and resume setup when they return.
+
 ## v3.1.0 - 2026-09-14
 
 - Haus for iPhone opens to Inbox with Agent activity, conversations, and Asks that need you.
