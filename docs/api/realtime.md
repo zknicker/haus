@@ -96,6 +96,13 @@ rows are the viewer's visible Chats filtered by Agent membership. Unlike
 ordinary Chat events, its id is retained outside the live Chat foreign key so a
 delete notification survives the purge.
 
+Before invalidating transcripts for `message.created`, the App cancels their
+in-flight reads. Otherwise, a request started before the send can finish after
+invalidation and mark an outdated snapshot fresh, especially while its Chat is
+unmounted. Active transcripts refetch immediately; inactive transcripts stay
+stale until opened. The sidebar can already show an unread message while that
+older transcript request is still pending.
+
 Every Chat lifecycle mutation emits one: `chat.createChannel` emits `created`,
 `chat.updateChannel` emits `updated` when the save changes the name or the Agent
 participant set, `chat.ensureDm` emits `created` for a DM's first resolution and
