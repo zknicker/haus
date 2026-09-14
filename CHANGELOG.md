@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Grok Agents report their token usage and appear in Inbox's Active this week cards. Update Haus Computer to 2.0.2 for this fix.
 - Haus Agent 2.0.2 resolves human mentions in messages, Asks, and Cloud Agent work.
-- Chats keep new messages visible when an older history request finishes late. Channel creation uses one name field and keeps icon picker fades aligned with scrolling and search.
+- Chats keep new messages visible when an older history request finishes late. Channel creation uses one name field and keeps icon picker fades aligned with scrolling and search. The Agent picker closes when every available Agent has been added.
 
 ## v3.1.3 - 2026-09-14
 
