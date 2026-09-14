@@ -228,7 +228,7 @@ function recordingCaches() {
             get: { invalidate: record('chat.get') },
             list: { invalidate: record('chat.list') },
             listArchived: { invalidate: record('chat.listArchived') },
-            messages: { invalidate: record('chat.messages') },
+            messages: { cancel: async () => {}, invalidate: record('chat.messages') },
             search: { invalidate: record('chat.search') },
         },
         cloudAgentWork: {
@@ -239,6 +239,7 @@ function recordingCaches() {
         taskLabel: { list: { invalidate: record('taskLabel.list') } },
     } as unknown as ChatEventUtils;
     const queryClient = {
+        cancelQueries: async () => {},
         invalidateQueries: record('threadMessages'),
     } as unknown as QueryClient;
 
