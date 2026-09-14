@@ -101,6 +101,12 @@ but unaccepted run remains durable history without entering the current projecti
 use a run-local `{ runId, position }` cursor; the legacy compact `agent.activity` turn summary
 remains a separate compatibility read.
 
+The current-activity snapshot adds `runStartedAt` to each projected event. It preserves the
+Server's `starting_work` timestamp across every step in the same run; it is null when that
+start evidence is absent. Live App projections retain the same timestamp, and snapshot recovery
+restores it after reload or reconnect. Journal and subscription events retain their original shape.
+The Inbox uses this timestamp for a locally ticking, second-resolution total-turn clock.
+
 Heartbeats and repeated identical current states are not persisted. Short adjacent events may be
 coalesced for the live strip, but every meaningful transition remains available in history.
 

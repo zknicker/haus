@@ -57,7 +57,7 @@ usage grammar and the one the strip already had.
 Agent cards under the shared label. Each card is one Agent — its 32px avatar and name on the header
 line, at the mark size and gap every row below it leads with, then the **processed tokens it burned
 over the last seven days** as the figure, that week's daily token totals as a sparkline beside it,
-and one muted line, `Tokens · 7d`, naming what the figure counts. An Agent that is mid-turn spends that line on the step it is on and its elapsed time,
+and one muted line, `Tokens · 7d`, naming what the figure counts. An Agent that is mid-turn spends that line on its current activity,
 in accent. Pressing a card opens that Agent's DM, or its profile when it has no DM yet.
 
 The metric is tokens rather than turns. A turn is the execution runtime's own bookkeeping, and ten
@@ -112,9 +112,11 @@ collision does is drop or add a prefix.
   see, led by its provider glyph: the title, the Chat and Agent it came from as its preview, and its
   status disc with the elapsed time trailing — `Running · 25m`.
 - Agents currently in a turn, from the same data as the Agent activity strip
-  ([Agent Activity](../../specs/agent-activity.md)), each stating its current step and how long it
-  has been on it — `Editing files · 3m`. The snapshot carries one event per Agent, so that span is
-  time in the current step; the run's own start is not part of this projection.
+  ([Agent Activity](../../specs/agent-activity.md)), each stating its current activity and total
+  elapsed time for the turn, such as `Editing files · 3m 12s elapsed`. The clock ticks every second
+  from the Server's recorded turn start and survives step changes, reloads, and reconnects.
+  Safe tool display names appear when available; unknown tools stay `Using a tool`.
+  If the turn start is unavailable, the row shows activity without a timer.
 
 This is where background work that outlives an Agent turn stays observable.
 
