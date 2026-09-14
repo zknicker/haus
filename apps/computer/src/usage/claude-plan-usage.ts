@@ -16,8 +16,20 @@ const MAX_FALLBACK_DELAY_MS = 24 * 60 * 60_000;
 
 export interface ClaudePlanUsageReadOptions extends ClaudeUsageOptions {
     dataRoot?: string;
+    /**
+     * A user-initiated refresh makes one attempt past the guarded fallback
+     * backoff. Fresh evidence still short-circuits the read, and a failed
+     * forced attempt re-arms the backoff.
+     */
+    force?: boolean;
 }
 
+/**
+ * The reader owns freshness and the durable fallback backoff, not retention: a
+ * failed read throws so the aggregate Computer usage cache can decide whether
+ * last-known numbers are still worth showing, and say why. Only a persisted
+ * snapshot that is still fresh short-circuits a provider call.
+ */
 export function createClaudePlanUsageReader(
     options: {
         fallbackDelayMs?: number;
@@ -37,29 +49,25 @@ export function createClaudePlanUsageReader(
 
     return async (readOptions: ClaudePlanUsageReadOptions = {}): Promise<ClaudeUsageSnapshot> => {
         const now = readOptions.now ?? new Date();
+        const force = readOptions.force === true;
+        const isFresh = (candidate: ClaudeUsageSnapshot) =>
+            now.getTime() - Date.parse(candidate.capturedAt) < refreshIntervalMs;
         if (readOptions.dataRoot) {
             const state = await readClaudePlanUsageState(readOptions.dataRoot);
-            if (
-                state.snapshot &&
-                now.getTime() - Date.parse(state.snapshot.capturedAt) < refreshIntervalMs
-            ) {
+            if (state.snapshot && isFresh(state.snapshot)) {
                 return state.snapshot;
             }
-            if (now.getTime() < state.nextFallbackAt) {
-                if (state.snapshot) {
-                    return state.snapshot;
-                }
+            if (!force && now.getTime() < state.nextFallbackAt) {
                 throw new ClaudeUsageRequestError(
                     'Claude plan usage is waiting for its guarded fallback retry.',
                     429,
                     state.nextFallbackAt - now.getTime()
                 );
             }
-        } else if (now.getTime() < nextRequestAt) {
-            if (lastSnapshot) {
-                return lastSnapshot;
-            }
-            throw lastError ?? new Error('Claude plan usage is waiting to retry.');
+        } else if (lastSnapshot && isFresh(lastSnapshot)) {
+            return lastSnapshot;
+        } else if (lastError && !force && now.getTime() < nextRequestAt) {
+            throw lastError;
         }
         if (pending) {
             return pending;
@@ -87,7 +95,6 @@ export function createClaudePlanUsageReader(
             } catch (error) {
                 lastError = error;
                 if (!(dataRoot || isTransientFailure(error))) {
-                    lastSnapshot = null;
                     nextRequestAt = 0;
                     throw error;
                 }
@@ -104,10 +111,6 @@ export function createClaudePlanUsageReader(
                 nextRequestAt = now.getTime() + delay;
                 if (dataRoot) {
                     await scheduleClaudeUsageFallback(dataRoot, nextRequestAt, true);
-                }
-                const retainedSnapshot = dataRoot ? state?.snapshot : lastSnapshot;
-                if (retainedSnapshot) {
-                    return retainedSnapshot;
                 }
                 throw error;
             } finally {

@@ -1,21 +1,42 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { type UsageOverview, usageOverviewSchema } from '@haus/api';
+import { type UsageOverview, type UsageStale, usageOverviewSchema } from '@haus/api';
 import { readComputerUsage } from './read-usage.ts';
+import { createUsageFailureReporter, type UsageFailureLog } from './usage-failure.ts';
 
 const DEFAULT_REFRESH_INTERVAL_MS = 15 * 60_000;
 
+type ProviderUsageState = UsageOverview['claude'] | UsageOverview['codex'] | UsageOverview['grok'];
+
+interface PendingRead {
+    forced: boolean;
+    promise: Promise<UsageOverview>;
+    token: symbol;
+}
+
+/**
+ * The one place that decides a provider's last good snapshot is still worth
+ * showing. Provider readers throw; this cache substitutes the retained snapshot
+ * and stamps `stale` with the failure that kept it, so the App can tell an
+ * expired login apart from ordinary out-of-date numbers.
+ */
 export function createComputerUsageCache(options: {
     dataRoot: string;
     load?: typeof readComputerUsage;
+    logUsageFailure?: UsageFailureLog;
+    logUsageRecovery?: (provider: string) => void;
     refreshIntervalMs?: number;
 }) {
     const cachePath = join(options.dataRoot, 'usage-cache.json');
     const load = options.load ?? readComputerUsage;
     const refreshIntervalMs = options.refreshIntervalMs ?? DEFAULT_REFRESH_INTERVAL_MS;
+    const failures = createUsageFailureReporter({
+        log: options.logUsageFailure,
+        logRecovery: options.logUsageRecovery,
+    });
     let cached: UsageOverview | null = null;
     let cacheLoad: Promise<UsageOverview | null> | null = null;
-    let refresh: Promise<UsageOverview> | null = null;
+    let pending: PendingRead | null = null;
 
     return async (
         readOptions: Parameters<typeof readComputerUsage>[0] = {},
@@ -31,18 +52,30 @@ export function createComputerUsageCache(options: {
         ) {
             return cached;
         }
-        if (refresh) {
-            return refresh;
+        const forced = mode === 'refresh';
+        if (pending && (pending.forced || !forced)) {
+            return pending.promise;
         }
 
-        refresh = (async () => {
+        // A forced refresh never joins an unforced read already in flight: that
+        // read asked its providers to respect the guarded backoff, which is the
+        // one thing the operator pressed Refresh to get past. It queues behind
+        // it instead, so the forced attempt still happens.
+        const queued = pending?.promise ?? null;
+        const token = Symbol('usage-read');
+        const run = async (): Promise<UsageOverview> => {
             try {
+                if (queued) {
+                    await Promise.allSettled([queued]);
+                }
                 const current = await load({
                     ...readOptions,
                     dataRoot: options.dataRoot,
+                    force: forced,
+                    logUsageFailure: readOptions.logUsageFailure ?? failures.log,
                     now: () => now,
                 });
-                cached = mergeTransientProviderFailures(current, cached);
+                cached = retainProviderSnapshots(current, cached);
                 await writeUsageCache(cachePath, cached);
                 return cached;
             } catch (error) {
@@ -51,23 +84,34 @@ export function createComputerUsageCache(options: {
                 }
                 throw error;
             } finally {
-                refresh = null;
+                // The pass closes even when the read as a whole rejected.
+                // Leaving it open carried this pass's failures into the next
+                // one, which swallowed the recovery line for every provider
+                // that had since started answering.
+                failures.settle();
+                if (pending?.token === token) {
+                    pending = null;
+                }
             }
-        })();
-        return refresh;
+        };
+        // Started on a microtask so `pending` is already published when the run
+        // body — and its `finally` — first executes.
+        pending = { forced, promise: Promise.resolve().then(run), token };
+        return pending.promise;
     };
 }
 
-function mergeTransientProviderFailures(
+function retainProviderSnapshots(
     current: UsageOverview,
     previous: UsageOverview | null
 ): UsageOverview {
     if (!previous) {
         return current;
     }
-    const claude = retainLastSuccess(current.claude, previous.claude);
-    const codex = retainLastSuccess(current.codex, previous.codex);
-    const grok = retainLastSuccess(current.grok, previous.grok);
+    const at = current.capturedAt;
+    const claude = retainLastSuccess(current.claude, previous.claude, at);
+    const codex = retainLastSuccess(current.codex, previous.codex, at);
+    const grok = retainLastSuccess(current.grok, previous.grok, at);
     const openRouter =
         current.openRouter.status === 'error' &&
         current.openRouter.error?.code === 'request' &&
@@ -98,15 +142,20 @@ function mergeTransientProviderFailures(
     };
 }
 
-function retainLastSuccess<T extends UsageOverview['claude' | 'codex' | 'grok']>(
-    current: T,
-    previous: T
-): T {
-    return current.status === 'error' &&
-        (current.error.code === 'request' || current.error.code === 'auth') &&
-        previous.status === 'ok'
-        ? previous
-        : current;
+/**
+ * A retained snapshot always says why it was retained. The cast re-attaches the
+ * provider-specific state type to the stamped copy; `stale` is optional on
+ * every `status: 'ok'` variant, so the shape stays exact.
+ */
+function retainLastSuccess<T extends ProviderUsageState>(current: T, previous: T, at: string): T {
+    if (current.status !== 'error' || previous.status !== 'ok') {
+        return current;
+    }
+    if (current.error.code !== 'auth' && current.error.code !== 'request') {
+        return current;
+    }
+    const stale: UsageStale = { at, code: current.error.code };
+    return { ...previous, stale } as T;
 }
 
 async function readUsageCache(path: string): Promise<UsageOverview | null> {

@@ -5,6 +5,7 @@ import { type ClaudePlanUsageReadOptions, readClaudePlanUsage } from './claude-p
 import { readGrokLocalUsage } from './grok-local-usage.ts';
 import { getGrokUsage } from './grok-usage.ts';
 import { readOpenRouterUsage } from './openrouter-usage.ts';
+import { reportUsageFailure, type UsageFailureLog, usageFailure } from './usage-failure.ts';
 
 export async function readComputerUsage(
     options: {
@@ -16,12 +17,15 @@ export async function readComputerUsage(
         loadGrokLocalUsage?: typeof readGrokLocalUsage;
         loadGrokUsage?: typeof getGrokUsage;
         loadOpenRouterUsage?: typeof readOpenRouterUsage;
+        logUsageFailure?: UsageFailureLog;
         dataRoot?: string;
+        force?: boolean;
         now?: () => Date;
         openRouterManagementKey?: string | null;
     } = {}
 ): Promise<UsageOverview> {
     const now = options.now?.() ?? new Date();
+    const log = options.logUsageFailure ?? reportUsageFailure;
     const loadClaudeUsage = options.loadClaudeUsage ?? readClaudePlanUsage;
     const loadClaudeLocalUsage = options.loadClaudeLocalUsage ?? readClaudeLocalUsage;
     const loadCodexUsage = options.loadCodexUsage ?? getCodexUsage;
@@ -29,14 +33,19 @@ export async function readComputerUsage(
     const loadGrokUsage = options.loadGrokUsage ?? getGrokUsage;
     const loadOpenRouterUsage = options.loadOpenRouterUsage ?? readOpenRouterUsage;
     const [claude, codex, grok, openRouter, claudeLocal, grokLocal] = await Promise.all([
-        loadClaudeUsage({ dataRoot: options.dataRoot, now })
+        loadClaudeUsage({ dataRoot: options.dataRoot, force: options.force, now })
             .then((snapshot) => ({
                 provider: 'claude' as const,
                 snapshot,
                 status: 'ok' as const,
             }))
             .catch((cause: unknown) => ({
-                error: sanitizedUsageError(cause, 'Claude usage is unavailable on this Computer.'),
+                error: usageFailure(
+                    'claude',
+                    cause,
+                    'Claude usage is unavailable on this Computer.',
+                    log
+                ),
                 provider: 'claude' as const,
                 status: 'error' as const,
             })),
@@ -47,7 +56,12 @@ export async function readComputerUsage(
                 status: 'ok' as const,
             }))
             .catch((cause: unknown) => ({
-                error: sanitizedUsageError(cause, 'Codex usage is unavailable on this Computer.'),
+                error: usageFailure(
+                    'codex',
+                    cause,
+                    'Codex usage is unavailable on this Computer.',
+                    log
+                ),
                 provider: 'codex' as const,
                 status: 'error' as const,
             })),
@@ -58,7 +72,12 @@ export async function readComputerUsage(
                 status: 'ok' as const,
             }))
             .catch((cause: unknown) => ({
-                error: sanitizedUsageError(cause, 'Grok usage is unavailable on this Computer.'),
+                error: usageFailure(
+                    'grok',
+                    cause,
+                    'Grok usage is unavailable on this Computer.',
+                    log
+                ),
                 provider: 'grok' as const,
                 status: 'error' as const,
             })),
@@ -71,9 +90,11 @@ export async function readComputerUsage(
                 status: 'ok' as const,
             }))
             .catch((cause: unknown) => ({
-                error: sanitizedUsageError(
+                error: usageFailure(
+                    'openrouter',
                     cause,
-                    'OpenRouter usage is unavailable on this Computer.'
+                    'OpenRouter usage is unavailable on this Computer.',
+                    log
                 ),
                 overview: {
                     days: 0,
@@ -88,8 +109,8 @@ export async function readComputerUsage(
                 },
                 status: 'error' as const,
             })),
-        readRuntimeUsageState('claude-code', () => loadClaudeLocalUsage({ now })),
-        readRuntimeUsageState('grok-build', () => loadGrokLocalUsage({ now })),
+        readRuntimeUsageState('claude-code', () => loadClaudeLocalUsage({ now }), log),
+        readRuntimeUsageState('grok-build', () => loadGrokLocalUsage({ now }), log),
     ]);
     const connectedProviders: UsageOverview['connectedProviders'] = [];
     if (claude.status === 'ok' || claudeLocal?.status === 'ok') {
@@ -120,40 +141,17 @@ export async function readComputerUsage(
 
 async function readRuntimeUsageState(
     runtimeId: 'claude-code' | 'grok-build',
-    load: () => Promise<RuntimeTokenUsageSnapshot | null>
+    load: () => Promise<RuntimeTokenUsageSnapshot | null>,
+    log: UsageFailureLog
 ): Promise<UsageOverview['runtimeUsage'][number] | null> {
     try {
         const snapshot = await load();
         return snapshot ? { runtimeId, snapshot, status: 'ok' } : null;
     } catch (cause) {
         return {
-            error: sanitizedUsageError(cause, `${runtimeId} token usage is unavailable.`),
+            error: usageFailure(runtimeId, cause, `${runtimeId} token usage is unavailable.`, log),
             runtimeId,
             status: 'error',
         };
     }
-}
-
-function sanitizedUsageError(cause: unknown, message: string) {
-    const rawMessage = cause instanceof Error ? cause.message : '';
-    const errorName = cause instanceof Error ? cause.name : '';
-    const isAuthenticationFailure =
-        errorName.includes('Auth') ||
-        /\b(auth|authentication|credential|login|signed out)\b/i.test(rawMessage) ||
-        rawMessage.includes('rejected the Computer management key');
-    const code = isAuthenticationFailure
-        ? ('auth' as const)
-        : errorName.includes('Parse') || errorName === 'ZodError'
-          ? ('parse' as const)
-          : cause instanceof TypeError ||
-              rawMessage.includes('HTTP') ||
-              rawMessage.includes('status')
-            ? ('request' as const)
-            : ('unknown' as const);
-
-    return {
-        code,
-        message,
-        name: 'UsageError',
-    };
 }

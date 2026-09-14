@@ -8,6 +8,7 @@ import {
     buildRuntimeRow,
     type RuntimeUsageRow,
     runtimeOrder,
+    staleUsageLabel,
     staleUsageTimestamp,
 } from './runtime-usage-row.ts';
 
@@ -80,7 +81,7 @@ function runtimeColumns(
                     <div className="min-w-0">
                         <p className="truncate font-medium">{item.title}</p>
                         {staleUsageTimestamp(item, now) && (
-                            <p className="text-muted text-xs">Usage out of date</p>
+                            <p className="text-muted text-xs">{staleUsageLabel(item)}</p>
                         )}
                     </div>
                 </div>

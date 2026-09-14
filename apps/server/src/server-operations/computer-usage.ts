@@ -61,7 +61,13 @@ export async function readServerUsage(
     };
 }
 
-function normalizeStoredUsage(usage: UsageOverview | null): UsageOverview | null {
+/**
+ * Fills in fields older Computers never stored. Everything a current Computer
+ * reports — including each provider's optional `stale` retention stamp — is
+ * stored and returned verbatim, so the App reads the Computer's own account of
+ * why a snapshot is last-known rather than current.
+ */
+export function normalizeStoredUsage(usage: UsageOverview | null): UsageOverview | null {
     if (!usage) {
         return null;
     }

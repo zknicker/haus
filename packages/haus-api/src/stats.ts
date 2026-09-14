@@ -1,13 +1,22 @@
 import * as z from 'zod';
 
 const timestampSchema = z.iso.datetime({ offset: true });
+const usageErrorCodeSchema = z.enum(['auth', 'parse', 'request', 'unknown']);
 const usageErrorSchema = z
     .object({
-        code: z.enum(['auth', 'parse', 'request', 'unknown']),
+        code: usageErrorCodeSchema,
         message: z.string(),
         name: z.string(),
     })
     .strict();
+/**
+ * Why a reported `status: 'ok'` carries last-known numbers instead of current
+ * ones. The Computer stamps it when it retains a provider's previous snapshot
+ * past a failed read, so an expired login stays legible as a login problem
+ * rather than as generic staleness. Absent means the snapshot is as fresh as
+ * its `capturedAt` claims.
+ */
+const usageStaleSchema = z.object({ at: timestampSchema, code: usageErrorCodeSchema }).strict();
 const codexUsageWindowSchema = z
     .object({
         id: z.enum(['current-session', 'current-week']),
@@ -40,6 +49,7 @@ const codexUsageStateSchema = z.discriminatedUnion('status', [
         .object({
             provider: z.literal('codex'),
             snapshot: codexUsageSnapshotSchema,
+            stale: usageStaleSchema.optional(),
             status: z.literal('ok'),
         })
         .strict(),
@@ -86,6 +96,7 @@ const claudeUsageStateSchema = z.discriminatedUnion('status', [
         .object({
             provider: z.literal('claude'),
             snapshot: claudeUsageSnapshotSchema,
+            stale: usageStaleSchema.optional(),
             status: z.literal('ok'),
         })
         .strict(),
@@ -120,6 +131,7 @@ const grokUsageStateSchema = z.discriminatedUnion('status', [
         .object({
             provider: z.literal('grok'),
             snapshot: grokUsageSnapshotSchema,
+            stale: usageStaleSchema.optional(),
             status: z.literal('ok'),
         })
         .strict(),
@@ -276,5 +288,7 @@ export type ServerUsageOverview = z.infer<typeof serverUsageOverviewSchema>;
 export type TokenUsageOverview = z.infer<typeof tokenUsageOverviewSchema>;
 export type UsageOverview = z.infer<typeof usageOverviewSchema>;
 export type UsageReport = z.infer<typeof usageReportSchema>;
+export type UsageErrorCode = z.infer<typeof usageErrorCodeSchema>;
+export type UsageStale = z.infer<typeof usageStaleSchema>;
 export type RuntimeTokenUsageSnapshot = z.infer<typeof runtimeTokenUsageSnapshotSchema>;
 export type RuntimeTokenUsageState = z.infer<typeof runtimeTokenUsageStateSchema>;
