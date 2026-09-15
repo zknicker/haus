@@ -1,8 +1,6 @@
-import { splitVisualFences } from '@haus/api/widgets/visual';
 import { Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
@@ -12,9 +10,8 @@ import { writeClipboardText } from '../../lib/clipboard.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
+import { AssistantReplyBody } from './assistant-reply-body.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
-import { ChatMarkdownText } from './chat-markdown-text.tsx';
-import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
 import {
     ChatTranscriptActivity,
     ChatTranscriptActivityGroup,
@@ -30,9 +27,7 @@ import {
 } from './chat-transcript-item-utils.ts';
 import {
     ChatTranscriptMessageContent,
-    getTranscriptMessageContent,
     renderTranscriptMessageAttachments,
-    type TranscriptMessage,
 } from './chat-transcript-message.tsx';
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 import type {
@@ -68,8 +63,6 @@ import { MessageContextActionsProvider } from './thread/message-context-actions.
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
 import type { TranscriptActiveReply, TranscriptActorProfile } from './transcript-contract.ts';
-import { useRevealedText } from './use-revealed-text.ts';
-import { VisualCard } from './visual-card.tsx';
 import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 
 // Raft-style geometry: the name line plus the first message line read as one
@@ -893,189 +886,6 @@ function AssistantNarrationText({ item }: { item: TranscriptItem }) {
             {text}
         </div>
     ) : null;
-}
-
-function AssistantReplyText({
-    animateEnter = false,
-    content,
-    message,
-    revealKey,
-    revealText = false,
-    slotKey = null,
-}: {
-    animateEnter?: boolean;
-    content?: string;
-    message?: TranscriptMessage;
-    revealKey?: string;
-    revealText?: boolean;
-    slotKey?: string | null;
-}) {
-    const fullContent = content ?? (message ? getTranscriptMessageContent(message) : '');
-    const messagePhase = message ? getAssistantMessagePhase(message) : null;
-    const isCommentary = messagePhase === 'commentary';
-    const revealedText = useRevealedText(fullContent, {
-        enabled: revealText,
-        revealKey: revealKey ?? (message ? getAssistantMessageRevealKey(message) : 'assistant'),
-    });
-    const shouldReduceMotion = useReducedMotion();
-    const context = useTranscriptRenderContextOptional();
-    const animatedRanges = useStreamingTextRanges(revealedText, {
-        enabled:
-            shouldReduceMotion !== true && (revealText || revealedText.length < fullContent.length),
-    });
-    const attachments = message
-        ? context?.renderMessageAttachments
-            ? context.renderMessageAttachments(message)
-            : renderTranscriptMessageAttachments(message.attachments)
-        : null;
-    const ratchetRef = useRatchetedMinHeight(revealText, slotKey);
-    const body = message ? (
-        context?.renderMessageContent ? (
-            context.renderMessageContent({ ...message, content: revealedText })
-        ) : (
-            <ChatTranscriptMessageContent
-                animatedRanges={animatedRanges}
-                contentOverride={revealedText}
-                message={message}
-                textClassName={isCommentary ? 'text-muted' : undefined}
-            />
-        )
-    ) : (
-        <ChatMarkdownText animatedRanges={animatedRanges} content={revealedText} />
-    );
-
-    return (
-        <TranscriptMessageBlock
-            animateEnter={animateEnter}
-            attachments={attachments}
-            className={isCommentary ? 'opacity-85' : undefined}
-            data-message-phase={messagePhase ?? undefined}
-            from="assistant"
-        >
-            {/* The reveal empties and regrows the text when a narration swap
-                restarts it; the ratcheted floor keeps the slot from ever
-                shrinking mid-turn so the bottom-anchored transcript holds
-                still. The floor dies with the slot when the reply lands. */}
-            {revealText ? (
-                <div className="min-h-[1lh]" ref={ratchetRef}>
-                    {body}
-                </div>
-            ) : (
-                body
-            )}
-        </TranscriptMessageBlock>
-    );
-}
-
-// Any assistant reply — streaming or durable — may carry ```visual fences:
-// fence bodies render as visual cards below the prose, never as raw fence
-// text. Message content is the single source of truth for visuals; there is
-// no separate durable widget projection. An unclosed trailing fence is an
-// in-progress visual whose body grows as content arrives.
-function AssistantReplyBody(props: {
-    animateEnter?: boolean;
-    content?: string;
-    message?: TranscriptMessage;
-    revealKey?: string;
-    revealText?: boolean;
-    slotKey?: string | null;
-}) {
-    const fullContent =
-        props.content ?? (props.message ? getTranscriptMessageContent(props.message) : '');
-    const segments = splitVisualFences(fullContent);
-    const slot = props.slotKey ?? props.revealKey ?? 'visual';
-    // The Nth fence in the reply is that visual's stable identity: content
-    // only appends while streaming, so ordinals never reorder.
-    const cards: React.ReactNode[] = [];
-    for (const segment of segments) {
-        if (segment.kind === 'visual') {
-            cards.push(
-                <div className="max-w-[46rem]" key={`${slot}:visual:${cards.length + 1}`}>
-                    <VisualCard html={segment.html} open={segment.open} title={segment.title} />
-                </div>
-            );
-        }
-    }
-
-    if (cards.length === 0) {
-        return <AssistantReplyText {...props} />;
-    }
-
-    const prose = segments
-        .filter((segment) => segment.kind === 'text')
-        .map((segment) => segment.text)
-        .join('')
-        .trim();
-
-    // Keep the message shell when there is prose OR attachments — a durable
-    // reply that is only a visual fence still carries its attached files, and
-    // those render through the text body, not the cards.
-    const hasAttachments = (props.message?.attachments?.length ?? 0) > 0;
-
-    return (
-        <>
-            {prose || hasAttachments ? <AssistantReplyText {...props} content={prose} /> : null}
-            {cards}
-        </>
-    );
-}
-
-// Tallest height each live narration slot has reached, keyed by run. Module
-// level on purpose: narration swaps can remount the slot, and the floor must
-// survive the remount or the swap still shrinks the turn. Entries are a few
-// bytes per run; the map is cleared when it grows past a session's worth.
-const narrationSlotHeights = new Map<string, number>();
-const maxTrackedNarrationSlots = 64;
-
-// Latches the tallest height the live narration slot has reached and holds it
-// as min-height, so replace-in-place text swaps never shrink the turn while
-// it is running. The floor dies with the slot when the reply replaces it.
-function useRatchetedMinHeight(enabled: boolean, slotKey: string | null) {
-    const ref = React.useRef<HTMLDivElement | null>(null);
-
-    React.useLayoutEffect(() => {
-        if (!(enabled && slotKey && ref.current)) {
-            return;
-        }
-
-        const floor = narrationSlotHeights.get(slotKey) ?? 0;
-        const height = Math.max(ref.current.offsetHeight, floor);
-
-        if (height > floor) {
-            if (narrationSlotHeights.size >= maxTrackedNarrationSlots) {
-                narrationSlotHeights.clear();
-            }
-
-            narrationSlotHeights.set(slotKey, height);
-        }
-
-        ref.current.style.minHeight = `${height}px`;
-    });
-
-    return ref;
-}
-
-function getAssistantMessagePhase(message: TranscriptMessage) {
-    const runtime = message.metadata?.runtime;
-
-    if (!(runtime && typeof runtime === 'object' && !Array.isArray(runtime))) {
-        return null;
-    }
-
-    const phase = (runtime as Record<string, unknown>).messagePhase;
-    return phase === 'commentary' || phase === 'final_answer' ? phase : null;
-}
-
-function getAssistantMessageRevealKey(message: TranscriptMessage) {
-    const runtime = message.metadata?.runtime;
-
-    if (!(runtime && typeof runtime === 'object' && !Array.isArray(runtime))) {
-        return message.id;
-    }
-
-    const runId = (runtime as Record<string, unknown>).runId;
-
-    return typeof runId === 'string' && runId.trim().length > 0 ? runId : message.id;
 }
 
 function isStreamingActiveReply(reply: TranscriptActiveReply) {

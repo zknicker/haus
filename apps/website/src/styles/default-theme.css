@@ -463,6 +463,11 @@
         transition: none;
     }
 
+    /* Remove when HeroUI scopes its last-child reset to the final Markdown block. */
+    .chat-markdown > .markdown__block:not(:last-child) > :is(p, ul, ol):last-child {
+        margin-bottom: calc(var(--spacing, 0.25rem) * 3);
+    }
+
     .markdown__inline-code {
         /* Composite over the message's resting or hovered surface in either theme. */
         background-color: color-mix(in oklab, var(--foreground) 7%, transparent);
