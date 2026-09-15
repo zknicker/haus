@@ -85,7 +85,8 @@ operations through Server. Network loss may prevent acknowledgment, and cancella
 upstream work already performed. Cancelling one request does not retire the shared MCP client used
 by another Agent.
 
-Deploy the matching Server and Computer contracts together. Deployment requires a one-time operator reset of existing Agent sessions to install `execute`.
+Protocol 20 requires the fixed Executor tool and cancellable MCP request contract. Publish and verify
+the compatible Computer before Server promotion; older Computers remain in update-required mode. Deployment requires a one-time operator reset of existing Agent sessions to install `execute`.
 Computer does not silently reset or attempt to migrate old tool catalogs. Subsequent MCP access
 changes require no reset. The Computer release check runs the embedded worker and a round-trip
 host call before the artifact can ship.
