@@ -365,3 +365,7 @@ relayed response.
 A running turn is answered from the Computer's append-only `<runId>.ndjson` log and a settled one
 from the consolidated `<runId>.json` snapshot; both live under the Agent's
 `runtime/execution-journal/` directory and neither reaches the Server's store.
+
+Computer flushes ongoing reasoning at most every 250 ms as deltas arrive, in addition to block,
+tool, and turn boundaries. An authorized open activity view can therefore inspect reasoning before
+the first tool call or completed reasoning block.
