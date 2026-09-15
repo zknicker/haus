@@ -147,21 +147,6 @@ export type TurnJournalPresentation =
           title: string;
       }
     | {
-          description: string;
-          kind: 'interrupted';
-          title: string;
-      }
-    | {
-          description: string;
-          kind: 'redacted-by-source';
-          title: string;
-      }
-    | {
-          description: string;
-          kind: 'empty';
-          title: string;
-      }
-    | {
           journal: Extract<AgentExecutionJournalResult, { status: 'available' }>['journal'];
           kind: 'available';
       };
@@ -201,30 +186,6 @@ export function getTurnJournalPresentation(
         };
     }
 
-    if (result.journal.status === 'interrupted') {
-        return {
-            description: 'The turn stopped before detailed execution finished.',
-            kind: 'interrupted',
-            title: 'Turn interrupted',
-        };
-    }
-
-    if (result.journal.tools.length === 0) {
-        return {
-            description: 'No detailed tool activity was recorded for this turn.',
-            kind: 'empty',
-            title: 'No detailed activity',
-        };
-    }
-
-    if (!result.journal.tools.some(hasSourceDetails)) {
-        return {
-            description: 'The source redacted detailed tool evidence for this turn.',
-            kind: 'redacted-by-source',
-            title: 'Details redacted by source',
-        };
-    }
-
     return { journal: result.journal, kind: 'available' };
 }
 
@@ -241,28 +202,4 @@ export function shouldRequestExecutionJournal(input: {
     runId: string | null;
 }): boolean {
     return input.open && input.access === 'journal' && input.runId !== null;
-}
-
-function hasSourceDetails(tool: {
-    durationMs?: number;
-    endedAt?: string;
-    error?: unknown;
-    final?: unknown;
-    input?: unknown;
-    interruptions?: readonly unknown[];
-    nativeName?: string;
-    output?: unknown;
-    preliminary?: unknown;
-}) {
-    return Boolean(
-        tool.durationMs !== undefined ||
-            tool.endedAt ||
-            tool.error !== undefined ||
-            tool.final !== undefined ||
-            tool.input !== undefined ||
-            tool.interruptions?.length ||
-            tool.nativeName ||
-            tool.output !== undefined ||
-            tool.preliminary !== undefined
-    );
 }
