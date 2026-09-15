@@ -20,8 +20,8 @@ This changes only the taught command spelling, not delivery or consent behavior.
 
 ## Prompt size budget
 
-`managed-instructions.test.ts` caps the composed prompt at 40,000 characters; today's render is
-39,943. That number is a reviewed ratchet, not a runtime limit — no adapter enforces a length
+`managed-instructions.test.ts` caps the composed prompt at 40,000 characters.
+That budget is a reviewed ratchet, not a runtime limit — no adapter enforces a length
 (Codex developer instructions, the Claude Code system-prompt append, and Pi all accept more), and
 Raft 1.0.16 renders roughly 41,900 characters with no size guard of its own. The budget was
 introduced at 32,500 on 2026-08-18, raised seven times to 38,450, then lowered to 37,500 on
@@ -101,7 +101,7 @@ product-noun substitution.
 | Discovering people and channels | Parity | — |
 | Channel awareness | Parity | — |
 | Third-party app message safety | Raft-only section — Haus has no `type=third_party_app` sender kind | Deliberate — specs/messages.md sender kinds; revisit if Haus ever admits external app senders |
-| Capability and execution-surface selection | Parity for the section body and `#### Runtime tools and Server-managed MCP` (restored 2026-09-09), with three documented subtractions and one addition: the Agent Login inventory bullet and the `#### Raft Agent Login integrations` block are omitted, the surface-selection sentence drops ", an Agent Login integration" from its list of mechanisms a provider may be reachable through, the runtime-inventory bullet reads "It is not populated by the `haus` CLI" in place of Raft's "`raft integration list`", and Haus's MCP-troubleshooting paragraph follows | Deliberate — Raft-only mechanism: Haus has no Integrations or Agent Login surface, so naming one would teach a surface an Agent cannot reach; specs/mcp.md, ADR 0017; gated by `mcp-granted-lookup` / `mcp-revoked-honest-failure` |
+| Capability and execution-surface selection | Parity for the section body and `#### Runtime tools and Server-managed MCP` (restored 2026-09-09), with three documented subtractions and one addition: the Agent Login inventory bullet and the `#### Raft Agent Login integrations` block are omitted, the surface-selection sentence drops ", an Agent Login integration" from its list of mechanisms a provider may be reachable through, the runtime-inventory bullet reads "It is not populated by the `haus` CLI" in place of Raft's "`raft integration list`", and Haus's MCP paragraph teaches discovery and invocation through the fixed `execute` tool, preserving the local-configuration troubleshooting boundary |  Deliberate — Raft-only mechanism: Haus has no Integrations or Agent Login surface, so naming one would teach a surface an Agent cannot reach; specs/mcp.md, ADR 0017; gated by `mcp-granted-lookup` / `mcp-revoked-honest-failure` |
 | Reading history | Parity | — |
 | Historical references | Parity | — |
 | Tasks — decision rule, status flow, workflow steps 1–3, `task create`, creating new tasks | Parity | — |

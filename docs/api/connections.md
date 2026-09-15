@@ -30,21 +30,32 @@ does not participate.
 `mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every current tool
 on the connection available to that Agent.
 
-During an Agent launch, Computer calls two scoped Server endpoints through its per-run loopback
-proxy:
+Computer exposes a fixed `execute` tool. Its search, schema lookup, and invocation call scoped
+Server endpoints through the current per-run loopback proxy:
 
 ```txt
 GET  /api/agent/mcp/tools
 POST /api/agent/mcp/invoke
+POST /api/agent/mcp/cancel
 ```
 
-The first returns safe tool names, descriptions, and input schemas for currently granted
-connections. The second resolves the tool, rechecks the grant, and invokes the upstream MCP from
+Discovery and invocation carry a fresh UUID in `x-haus-mcp-request-id`. Cancellation posts
+`{requestId}` using the same runner credential; ids and credentials never enter generated code.
+Server matches both credential and request id, so a revoked runner may cancel its own already
+registered work but cannot start work or cancel another runner. A valid runner may cancel before
+dispatch; Server retains that cancellation for up to 65 seconds in a bounded registry. Cancellation
+is best effort across network loss, and upstream deadlines still apply.
+
+Discovery with `?query=keywords` returns up to 50 matching tool summaries and the total match count,
+without input schemas. Search includes the connection name. `?name=exact-tool-name` returns only
+that tool's full schema; an unfiltered request returns the full granted catalog.
+Invocation resolves the tool, rechecks the grant, and invokes the upstream MCP from
 Server. Computer never receives MCP secrets, OAuth tokens, or upstream session state.
 
 Discovery runs concurrently with a five-second deadline for each granted connection. Unavailable
-connections contribute no tools to that launch; healthy connections remain available. Invocation
-has a 30-second upstream deadline.
+connections contribute no tools to that search; healthy connections remain available. Invocation
+has a 30-second upstream deadline. Client cancellation interrupts the request through Computer
+and Server without closing other Agents' healthy shared client operations.
 
 Runner failures use stable codes:
 

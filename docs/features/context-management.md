@@ -25,7 +25,8 @@ model session. Per-turn message delivery is an inbox concern; see
 - Each turn reads the current MEMORY.md index and only the additional notes needed for the task.
   Context compression also requires a recovery read. These are Agent instructions, not automatic
   file injection or a Computer-enforced freshness guarantee; the same global session still resumes.
-- Explicit MCP requests use the current injected tool inventory and runtime tool discovery.
+- Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
+  Server tools. MCP grants and discovery results never change the harness tool catalog.
   Missing tools call for the specific connection or grant to be repaired; local configuration
   searches do not establish Server-owned MCP access. General capability selection still considers
   other authorized execution methods, and requested setup troubleshooting can inspect local state.

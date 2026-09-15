@@ -25,7 +25,9 @@ Haus Server is the AI SDK MCP client and credential broker:
 - One `(Server, Agent, connection)` grant enables every tool on that connection.
 - Server rechecks the grant at call time.
 - Credentials never enter Agent prompts, tool arguments, audit records, or Computer.
-- Computer receives safe tool schemas and proxies invocation through its scoped runner identity.
+- Computer exposes one fixed `execute` tool backed by headless Executor. Its discovery and
+  invocation read safe schemas and use the scoped runner identity; changing grants never changes
+  the harness catalog. See [the execution contract](../../specs/mcp.md#agent-execution).
 
 Each connection is one account. The same MCP server or preset may have multiple connections.
 Disconnect removes its active credentials, inventory, and Agent grants. Deleting also removes a

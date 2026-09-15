@@ -36,7 +36,8 @@ can reuse its configured OAuth client and previously approved authorization-serv
 
 Each Agent profile shows one switch per connected MCP server. Turning it on grants that Agent all
 tools exposed by the connection. The tool names are read-only context, not individual permission
-controls.
+controls. Access changes take effect on the Agent's next MCP discovery or call without resetting
+its conversation.
 
 Each connection shows the MCP server's own icon when one can be resolved, and a tinted monogram
 otherwise. Haus Server resolves and stores the image during discovery, so the settings page makes

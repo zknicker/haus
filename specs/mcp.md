@@ -62,3 +62,30 @@ read_when:
 - Invocation is authorized by the scoped runner identity plus the current Server grant.
 - `connected` means the Server retains an active connection identity; it is not transient upstream
   health. Request failures do not disconnect an account or erase grants.
+
+## Agent execution
+
+Computer registers one fixed `execute` tool in every new Agent session, including Agents with no
+MCP grants. Headless Executor (`@executor-js/runtime-quickjs`) runs its JavaScript in a disposable
+QuickJS child process. Haus supplies `tools.search({query})`, `tools.describe({name})`, and
+`tools.call({name,args})`; each must be awaited. Search and schema lookup read current Server grants,
+and invocation uses the same authenticated Server authority as ordinary MCP calls. The harness
+schema and description never contain the changing connection inventory.
+
+Grants, revocations, new tools, and temporary outages do not change the harness catalog or reset
+its session. Search returns up to 50 matches plus the total; the Agent narrows its query when needed.
+Generated JavaScript has no runner token, MCP credentials, host environment, network, filesystem,
+or persistent state. Computer embeds the worker and WASM in its standalone executable; no Executor
+Cloud, additional service, database, or dashboard is required.
+
+Each execution is limited to 60 seconds, 50 dispatches, 64 KiB of code, 1 MiB per protocol message,
+64 MiB of QuickJS memory, and five seconds of uninterrupted CPU work. Computer also bounds Server
+response bodies to 1 MiB. Stop kills the child and explicitly requests cancellation of pending MCP
+operations through Server. Network loss may prevent acknowledgment, and cancellation cannot undo
+upstream work already performed. Cancelling one request does not retire the shared MCP client used
+by another Agent.
+
+Deploy the matching Server and Computer contracts together. Deployment requires a one-time operator reset of existing Agent sessions to install `execute`.
+Computer does not silently reset or attempt to migrate old tool catalogs. Subsequent MCP access
+changes require no reset. The Computer release check runs the embedded worker and a round-trip
+host call before the artifact can ship.

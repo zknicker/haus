@@ -570,6 +570,50 @@
         "manualPromise": 1,
         "timer": 2
       }
+    },
+    "apps/computer/src/server-mcp-client.ts": {
+      "disposition": "external-adapter",
+      "reason": "Finite fetch and body-reader adapter. The turn signal triggers a bounded explicit cancellation request; network failure leaves Server deadlines authoritative.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/server/src/agent-api/mcp-routes.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each authenticated HTTP handler releases its cancellation registry entry in finally; the existing MCP runtime owns upstream interruption.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/server/src/server-mcp/requests.ts": {
+      "disposition": "external-adapter",
+      "reason": "Bounded request cancellation registry adapting HTTP messages to AbortSignals. Entries release with handlers, expire on access, and abort at Fastify shutdown; no background work is launched.",
+      "risks": {
+        "abortController": 2,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/mcp-response.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Bounded MCP response reader cancels and releases the stream reader on success, overflow, and parsing failure.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
     }
   },
   "staticRuntimeCeilings": {}
