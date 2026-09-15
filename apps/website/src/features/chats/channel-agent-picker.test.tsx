@@ -64,43 +64,25 @@ test('every roster state is drawn in the same fixed box', () => {
         // for the roster must not resize the dialog around it.
         expect(markup).toContain('h-60');
         expect(markup).toContain('md:h-56');
-        // And the line under it holds its own height whether or not it speaks.
-        expect(markup).toMatch(/<p class="text-muted text-xs"[^>]*>[^<]/);
+        expect(markup).not.toContain(rule);
     }
 });
 
-test('an empty roster carries the rule in the box and leaves the line under it quiet', () => {
+test('only an empty roster describes how to add an agent', () => {
     const filled = renderToStaticMarkup(picker({ selectedAgentIds: ['agent_cove'] }));
     const empty = renderToStaticMarkup(picker({ selectedAgentIds: [] }));
 
-    expect(filled).toContain(rule);
     expect(filled).not.toContain('No agents yet');
-
+    expect(filled).not.toMatch(/<fieldset[^>]*aria-describedby/);
     expect(empty).toContain('No agents yet');
-    expect(empty).toContain(`${rule} Add one above.`);
-    // One fact, one place: the box asks for the Agent, so the hint line has
-    // nothing left to say and nothing to say it in red.
-    expect(occurrences(empty, rule)).toBe(1);
-    expect(empty).not.toContain('text-danger');
-    expect(empty).not.toContain('Choose at least one Agent.');
-    // The quiet line is still a line: a no-break space holds the slot open.
-    expect(empty).toContain('>\u00A0</p>');
-});
-
-test('the group is described by the rule in either roster state', () => {
-    for (const markup of [
-        renderToStaticMarkup(picker({ selectedAgentIds: ['agent_cove'] })),
-        renderToStaticMarkup(picker({ selectedAgentIds: [] })),
-    ]) {
-        expect(describedText(markup)).toContain(rule);
-    }
+    expect(describedText(empty)).toBe('Add an agent above.');
 });
 
 test('a Server with no Agents says so instead of asking for one it cannot offer', () => {
     const markup = renderToStaticMarkup(picker({ agents: [], selectedAgentIds: [] }));
 
     expect(markup).toContain('No agents available.');
-    expect(markup).not.toContain('Add one above.');
+    expect(markup).not.toContain('Add an agent above.');
 });
 
 test('a hidden label names the group without drawing it', () => {
@@ -121,7 +103,7 @@ test('a pending Agents list waits instead of claiming the roster is empty', () =
 
     expect(markup).toContain('Loading agents');
     expect(markup).not.toContain('No agents yet');
-    expect(markup).toContain(rule);
+    expect(markup).not.toContain(rule);
 });
 
 const rule = 'A channel keeps at least one Agent.';
@@ -141,10 +123,6 @@ function describedText(markup: string) {
         throw new Error(`nothing carries id ${described[1]}`);
     }
     return target[1];
-}
-
-function occurrences(markup: string, text: string) {
-    return markup.split(text).length - 1;
 }
 
 function picker(overrides: Partial<Parameters<typeof ChannelAgentPicker>[0]> = {}) {
