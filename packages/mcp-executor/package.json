@@ -1,0 +1,24 @@
+{
+  "name": "@haus/mcp-executor",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/execute.ts",
+    "./worker": "./src/worker.ts"
+  },
+  "scripts": {
+    "test": "bun test src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@executor-js/runtime-quickjs": "1.6.8",
+    "@jitl/quickjs-wasmfile-release-sync": "0.31.0",
+    "effect": "4.0.0-beta.59",
+    "quickjs-emscripten-core": "0.31.0",
+    "zod": "4.1.11"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.13",
+    "typescript": "5.9.3"
+  }
+}
