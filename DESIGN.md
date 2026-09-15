@@ -444,6 +444,9 @@ and their stock `word-break: break-all` is relaxed to `overflow-wrap: anywhere` 
 sentence wraps between words while a long path can still break.
 Base text retains a 1.6 line-height ratio. HeroUI Markdown uses its own 1.625 ratio,
 giving chat messages a 22.75px line height at the shared 14px base size.
+Chat paragraphs and lists retain three spacing units between Markdown blocks.
+The theme corrects HeroUI’s last-child reset within its per-block wrappers; the
+reply layout uses the same gap around inline visuals.
 Inline code uses a 7% foreground tint over its surrounding surface, keeping it distinct
 when a message is hovered in either theme. Fenced code blocks retain their stock background.
 

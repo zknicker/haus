@@ -98,7 +98,9 @@ registration), with optional info-string text as the title:
   field and outline-button metrics, expressed in published tokens. So an agent
   writes plain HTML and gets Haus chrome with no per-visual CSS. The visuals
   skill forbids Markdown tables in replies for the same reason.
-- **Presentation.** Height fits content via a host-owned size reporter inside
+- **Presentation.** Prose and visuals render in authored order with three spacing
+  units between segments. Attachments render once after the complete message.
+  Height fits content via a host-owned size reporter inside
   the frame (clamped 120-1600px); visuals taller than 420px render collapsed
   with a fade and a Show all toggle so large blocks do not shove scrollback.
   No pane promotion, and no bridge of any kind (no sendPrompt, no
@@ -208,7 +210,7 @@ visible "Widget unavailable" state. No legacy renderers are kept.
 Canonical names, props schemas, and the render envelope live in
 `packages/haus-api/src/widgets`. Visuals parse and render on the Website:
 `splitVisualFences` (`packages/haus-api/src/widgets/visual`) splits fences
-from message content and `chat-transcript-turn.tsx` renders the iframe card —
+from message content and `assistant-reply-body.tsx` renders the iframe card —
 Computer does not parse fences or write `widget` activity. Server still
 holds the dormant row projection (`apps/server/src/widgets/widgets.ts`) and
 Website the `widget`-row renderers (`apps/website/src/widgets`: artifact card
