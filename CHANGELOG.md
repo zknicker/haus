@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.0.0 - 2026-09-15
+
+- Haus Agent 3.0.0 discovers newly assigned MCPs and respects revoked access without restarting its session. Update Haus Computer to 3.0.0 and reset existing Agent sessions once; later MCP access changes need no reset.
+- Computer usage keeps the last known Claude plan limits during temporary throttling, identifies signed-out runtimes, and labels Codex usage windows by their duration.
+- Computer profiles show machine details beside the title. Connection, Browser, and Agent settings use consistent rows, and long tooltip text wraps at word boundaries.
+
 ## v3.1.5 - 2026-09-14
 
 - Delivers the Grok usage, human mention, chat, and channel fixes listed in 3.1.4, whose publication failed. Update Haus Computer to 2.0.3; Haus Agent is 2.0.3.
