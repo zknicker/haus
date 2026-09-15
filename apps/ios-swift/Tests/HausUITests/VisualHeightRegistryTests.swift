@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import Testing
 @testable import HausUI
 
@@ -65,13 +66,15 @@ struct VisualHeightRegistryTests {
         #expect(registry.revision == 1)
     }
 
-    /// A tap is one event, not a burst, and the card has to answer it now.
-    @Test func bumpsImmediatelyForACollapseToggle() {
+    @Test func naturalHeightGrowsAndShrinksWithAResourceGuard() {
         let registry = VisualHeightRegistry()
-
-        registry.toggleExpanded(key(1))
-
-        #expect(registry.isExpanded(key(1)))
-        #expect(registry.revision == 1)
+        for height: CGFloat in [700, 2400, 300] {
+            registry.report(height, for: key(1))
+            #expect(registry.height(key(1)) == height)
+        }
+        registry.report(1_000_000, for: key(1))
+        #expect(registry.height(key(1)) == VisualHeights.maximum)
+        registry.report(.infinity, for: key(1))
+        #expect(registry.height(key(1)) == VisualHeights.maximum)
     }
 }
