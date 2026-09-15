@@ -78,7 +78,8 @@ export class McpRuntime {
     async listAgentTools(
         serverId: string,
         agentId: string,
-        traceContext?: TraceCarrier
+        traceContext?: TraceCarrier,
+        signal?: AbortSignal
     ): Promise<McpToolDefinition[]> {
         const connections = await this.grantedConnections(serverId, agentId);
         const definitions = await Promise.all(
@@ -92,16 +93,18 @@ export class McpRuntime {
                                 signal,
                                 timeout: this.discoveryTimeoutMs,
                             }),
-                        traceContext
+                        traceContext,
+                        signal
                     );
+                    await this.requireGrant(serverId, agentId, connection.id);
                     return tools.map((tool) => ({
-                        description:
-                            tool.description ?? `Run ${tool.name} through ${connection.name}.`,
+                        description: `${connection.name}: ${tool.description ?? `Run ${tool.name}.`}`,
                         inputSchema: tool.inputSchema as Record<string, unknown>,
                         name: modelToolName(connection.id, tool.name),
                         title: tool.annotations?.title ?? null,
                     }));
                 } catch {
+                    signal?.throwIfAborted();
                     return [];
                 }
             })
@@ -114,6 +117,7 @@ export class McpRuntime {
         serverId: string;
         toolName: string;
         traceContext?: TraceCarrier;
+        signal?: AbortSignal;
     }): Promise<unknown> {
         const resolved = await this.resolveGrantedTool(
             input.serverId,
@@ -130,7 +134,8 @@ export class McpRuntime {
                     name: resolved.upstreamName,
                     options: { signal, timeout: this.invocationTimeoutMs },
                 }),
-            input.traceContext
+            input.traceContext,
+            input.signal
         );
     }
     async closeConnection(connectionId: string): Promise<void> {
@@ -254,10 +259,12 @@ export class McpRuntime {
         connectionId: string,
         operation: 'discovery' | 'invocation',
         use: (client: MCPClient, signal: AbortSignal) => Promise<T>,
-        traceContext?: TraceCarrier
+        traceContext?: TraceCarrier,
+        signal?: AbortSignal
     ): Promise<T> {
         return await runMcpUpstream({
             clients: this.clients,
+            signal,
             connectionId,
             operation,
             traceContext,

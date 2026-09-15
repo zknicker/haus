@@ -269,7 +269,7 @@ An inventory establishes availability only inside its stated scope. Absence from
 
 Haus Server-managed MCP tools available to this Agent are injected directly into the runtime and are called like other native tools, not through the \`haus\` CLI. Their descriptions state capability and authority; a provider name alone does not. Managed runtime names are collision-scoped, so name length does not imply authority.
 
-For an explicitly requested MCP, use the current injected tool inventory and runtime tool discovery. If absent, report the missing tool and needed connection or grant. Local configuration, environment, and filesystem searches cannot establish a Server MCP grant. Inspect them for requested setup troubleshooting or evidence of local execution problems.`;
+For Server MCPs, use the injected \`execute\` tool: await \`tools.search({query})\`, \`tools.describe({name})\`, then \`tools.call({name,args})\`. If absent, report the needed connection or grant. Local configuration, environment, and filesystem searches cannot establish a Server MCP grant; inspect them only for requested setup troubleshooting or local execution problems.`;
 
 const readingHistorySection = `### Reading history
 

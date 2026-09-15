@@ -185,3 +185,31 @@ export type McpOAuthStart = z.infer<typeof mcpOAuthStartSchema>;
 export type McpOAuthStartResult = z.infer<typeof mcpOAuthStartResultSchema>;
 export type McpPreset = z.infer<typeof mcpPresetSchema>;
 export type McpPresetAccountCreate = z.infer<typeof mcpPresetAccountCreateSchema>;
+
+/** Agent-scoped catalog and invocation contracts; credentials stay on Server. */
+export const agentMcpToolSchema = z.object({
+    description: z.string(),
+    inputSchema: z.record(z.string(), z.unknown()),
+    name: z.string().min(1).max(256),
+    title: z.string().nullable(),
+});
+export const agentMcpToolsSchema = z.object({ tools: z.array(agentMcpToolSchema) });
+export const agentMcpInvocationSchema = z
+    .object({
+        args: z.unknown(),
+        toolName: z.string().trim().min(1).max(256),
+    })
+    .strict();
+export const agentMcpResultSchema = z.object({ result: z.unknown() });
+
+export const agentMcpRequestIdSchema = z.uuid();
+
+export const agentMcpSearchSchema = z.object({
+    tools: z.array(agentMcpToolSchema.omit({ inputSchema: true })),
+    total: z.number().int().nonnegative(),
+});
+export const agentMcpCatalogQuerySchema = z.union([
+    z.object({ query: z.string().max(200) }).strict(),
+    z.object({ name: z.string().min(1).max(256) }).strict(),
+    z.object({}).strict(),
+]);

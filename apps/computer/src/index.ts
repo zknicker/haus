@@ -4,7 +4,6 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
-import { runAgentCli } from './agent-cli.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
@@ -65,7 +64,6 @@ import {
     parseExecutionJournalRequest,
     readExecutionJournalRequest,
 } from './execution-journal-relay.ts';
-import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
 import {
@@ -82,6 +80,7 @@ import {
     reofferPendingMessages,
     replacePendingInbox,
 } from './inbox-store.ts';
+import { runInternalCommand } from './internal-commands.ts';
 import { detectInventory } from './inventory.ts';
 import { handleInventoryRefresh } from './inventory-refresh.ts';
 import {
@@ -164,14 +163,7 @@ const headerCommands: Record<string, { updateStatus: boolean }> = {
 
 async function main(args: string[]) {
     const [command, target] = args;
-    // The managed Agent CLI re-executes this entrypoint as another command surface.
-    if (command === '__agent') {
-        process.exitCode = await runAgentCli(args.slice(1));
-        return;
-    }
-    if (command === '__release-check') {
-        await validateComputerBridgeAssets();
-        console.log('Haus Computer release assets are ready.');
+    if (await runInternalCommand(args)) {
         return;
     }
     const helpRequest = resolveComputerHelpRequest(args);

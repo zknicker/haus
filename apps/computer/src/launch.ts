@@ -338,7 +338,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       activity,
                       registerNoticeSink: options.registerNoticeSink,
                       runtime: options.runtime,
-                      tools: await createServerMcpTools({
+                      tools: createServerMcpTools({
                           proxyToken,
                           proxyUrl: proxy.url,
                       }),

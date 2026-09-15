@@ -12,6 +12,7 @@ interface McpUpstreamOperation<T> {
     clients: McpClientCache;
     connectionId: string;
     operation: 'discovery' | 'invocation';
+    signal?: AbortSignal;
     timeoutMs: number;
     traceContext?: TraceCarrier;
     use(client: MCPClient, signal: AbortSignal): Promise<T>;
@@ -19,28 +20,31 @@ interface McpUpstreamOperation<T> {
 
 export async function runMcpUpstream<T>(input: McpUpstreamOperation<T>): Promise<T> {
     try {
-        return await input.clients.run(input.connectionId, (acquisition) =>
-            acquisition.pipe(
-                Effect.flatMap((client) =>
-                    Effect.tryPromise({
-                        try: (signal) => input.use(client, signal),
-                        catch: (cause) => new McpForeignOperationError({ cause }),
-                    })
+        return await input.clients.run(
+            input.connectionId,
+            (acquisition) =>
+                acquisition.pipe(
+                    Effect.flatMap((client) =>
+                        Effect.tryPromise({
+                            try: (signal) => input.use(client, signal),
+                            catch: (cause) => new McpForeignOperationError({ cause }),
+                        })
+                    ),
+                    Effect.mapError((cause) => classifyRuntimeFailure(cause, input.operation)),
+                    Effect.timeoutFail({
+                        duration: input.timeoutMs,
+                        onTimeout: () =>
+                            new McpUpstreamError(
+                                'MCP_TIMEOUT',
+                                `The MCP ${input.operation} timed out.`
+                            ),
+                    }),
+                    withTelemetrySpan('haus.mcp.operation', {
+                        'haus.operation': `mcp.${input.operation}`,
+                    }),
+                    withTraceCarrier(input.traceContext)
                 ),
-                Effect.mapError((cause) => classifyRuntimeFailure(cause, input.operation)),
-                Effect.timeoutFail({
-                    duration: input.timeoutMs,
-                    onTimeout: () =>
-                        new McpUpstreamError(
-                            'MCP_TIMEOUT',
-                            `The MCP ${input.operation} timed out.`
-                        ),
-                }),
-                withTelemetrySpan('haus.mcp.operation', {
-                    'haus.operation': `mcp.${input.operation}`,
-                }),
-                withTraceCarrier(input.traceContext)
-            )
+            input.signal
         );
     } catch (cause) {
         if (Runtime.isFiberFailure(cause)) {

@@ -28,6 +28,7 @@ import {
     type VisibleMessageIdentity,
 } from './inbox-store.ts';
 import { serveLocalAgentEvents } from './proxy-inbox.ts';
+import { mcpRequestHeaders, mcpRequestSignal, readProxyResponse } from './proxy-mcp.ts';
 import { isCommittedSend, isDefinitelyPreCommitFailure } from './proxy-send-outcome.ts';
 
 const skillCreateSchema = z.object({
@@ -198,9 +199,6 @@ async function handleAuthorizedProxyRequest(
         }
     }
     const body = await request.text();
-    // A bodyless POST or DELETE must reach the Server with neither body nor
-    // content-type. Labelling an empty body as JSON makes Fastify reject the
-    // request with FST_ERR_CTP_EMPTY_JSON_BODY before it ever authenticates.
     const forwardsBody = body.length > 0 && request.method !== 'GET' && request.method !== 'HEAD';
     const upstreamUrl = new URL(url.pathname, input.serverOrigin);
     upstreamUrl.search = url.search;
@@ -212,6 +210,7 @@ async function handleAuthorizedProxyRequest(
             ...(forwardsBody ? { body } : {}),
             headers: {
                 authorization: `Bearer ${runnerToken}`,
+                ...mcpRequestHeaders(request),
                 ...(traceContext ? { traceparent: traceContext.traceparent } : {}),
                 ...(forwardsBody
                     ? {
@@ -220,6 +219,7 @@ async function handleAuthorizedProxyRequest(
                     : {}),
             },
             method: request.method,
+            signal: mcpRequestSignal(request),
         });
     } catch (error) {
         // Count ambiguous sends so a failed turn cannot replay duplicate model output.
@@ -231,7 +231,7 @@ async function handleAuthorizedProxyRequest(
             { status: 502 }
         );
     }
-    const responseBody = await upstream.text();
+    const responseBody = await readProxyResponse(request, upstream);
     if (upstream.ok && isMessageSend && isCommittedSend(responseBody)) {
         state.incrementSendCount();
         state.onCommittedSend?.();

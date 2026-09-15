@@ -39,20 +39,26 @@ export class McpClientCache {
                 McpClientAcquireError | McpClientRetiredError,
                 never
             >
-        ) => Effect.Effect<A, E, never>
+        ) => Effect.Effect<A, E, never>,
+        signal?: AbortSignal
     ): Promise<A> {
+        signal?.throwIfAborted();
         const entry = this.acquire(connectionId);
         const operationAbort = this.beginOperation(entry);
         try {
             const result = await this.runEffect(lifecycle(this.awaitClient(entry)), {
-                signal: operationAbort.signal,
+                signal: signal
+                    ? AbortSignal.any([operationAbort.signal, signal])
+                    : operationAbort.signal,
             });
             if (!this.finishOperation(entry, operationAbort)) {
                 throw new McpClientRetiredError();
             }
             return result;
         } catch (cause) {
-            void this.discard(entry).catch(() => undefined);
+            if (!signal?.aborted) {
+                void this.discard(entry).catch(() => undefined);
+            }
             throw cause;
         } finally {
             this.finishOperation(entry, operationAbort);
