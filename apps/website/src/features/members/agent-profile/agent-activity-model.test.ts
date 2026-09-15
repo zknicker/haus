@@ -57,7 +57,7 @@ test('activity phases map onto HeroUI Chip presentation', () => {
     expect(getAgentActivityPhaseLabel('failed')).toBe('Failed');
 });
 
-test('journal presentation names missing, interrupted, and redacted states', () => {
+test('journal presentation preserves available evidence, including interrupted and reasoning-only turns', () => {
     expect(getTurnJournalPresentation(null, null)).toMatchObject({ kind: 'missing' });
 
     expect(
@@ -109,7 +109,7 @@ test('journal presentation names missing, interrupted, and redacted states', () 
             }),
             'run_one'
         )
-    ).toMatchObject({ kind: 'interrupted' });
+    ).toMatchObject({ kind: 'available', journal: { status: 'interrupted' } });
 
     expect(
         getTurnJournalPresentation(
@@ -128,7 +128,25 @@ test('journal presentation names missing, interrupted, and redacted states', () 
             }),
             'run_one'
         )
-    ).toMatchObject({ kind: 'redacted-by-source' });
+    ).toMatchObject({ kind: 'available' });
+    expect(
+        getTurnJournalPresentation(
+            availableJournal({
+                journal: {
+                    status: 'running',
+                    tools: [],
+                    reasoning: [
+                        {
+                            id: 'thought',
+                            startedAt: '2026-08-11T12:00:00.000Z',
+                            text: 'Checking the current state.',
+                        },
+                    ],
+                },
+            }),
+            'run_one'
+        )
+    ).toMatchObject({ kind: 'available' });
 });
 
 test('execution journal requests require an explicit privileged open and real run id', () => {
