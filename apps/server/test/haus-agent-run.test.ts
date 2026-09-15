@@ -2455,7 +2455,7 @@ test('Server discovers and invokes a granted remote MCP without Computer custody
 
         const tools = await runtime.listAgentTools(serverId, agentId);
         expect(tools).toHaveLength(1);
-        expect(tools[0]).toMatchObject({ description: 'Echo text from the fixture.' });
+        expect(tools[0]?.description).toBe('Server fixture: Echo text from the fixture.');
         const result = await runtime.invoke({
             agentId,
             args: { text: 'server-owned' },
