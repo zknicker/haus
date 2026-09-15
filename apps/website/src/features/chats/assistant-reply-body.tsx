@@ -53,13 +53,12 @@ export function AssistantReplyBody(props: {
                         const key = `${slot}:${segment.kind}:${index}`;
                         if (segment.kind === 'visual') {
                             return (
-                                <div className="max-w-[46rem]" key={key}>
-                                    <VisualCard
-                                        html={segment.html}
-                                        open={segment.open}
-                                        title={segment.title}
-                                    />
-                                </div>
+                                <VisualCard
+                                    html={segment.html}
+                                    key={key}
+                                    open={segment.open}
+                                    title={segment.title}
+                                />
                             );
                         }
                         if (!segment.text.trim()) {
