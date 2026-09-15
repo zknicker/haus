@@ -15,6 +15,7 @@ import { listMcpConnections, setMcpGrant } from '../src/server-mcp/state.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { invokeMcp } from './mcp-client.ts';
 import { registerServerRuntime, registerTestConnections } from './test-computer-connections.ts';
 
 let harness: HausServerHarness;
@@ -2756,20 +2757,8 @@ async function mintRunner(input: { agentId?: string; chatId: string; runId: stri
     return (await response.json()) as { runnerId: string; runnerToken: string };
 }
 
-async function invokeAgentMcp(
-    token: string,
-    body: { args: Record<string, unknown>; toolName: string }
-) {
-    const response = await fetch(new URL('/api/agent/mcp/invoke', harness.url), {
-        body: JSON.stringify(body),
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        method: 'POST',
-    });
-    return {
-        body: (await response.json()) as { code?: string; message?: string },
-        status: response.status,
-    };
-}
+const invokeAgentMcp = (token: string, body: Parameters<typeof invokeMcp>[2]) =>
+    invokeMcp(harness.url, token, body);
 
 async function agentSend(
     token: string,

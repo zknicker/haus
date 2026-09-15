@@ -3,7 +3,8 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpUpstreamError } from './errors.ts';
 import { McpRuntime } from './runtime.ts';
-import { grantDb, invoke, makeClient, tick } from './runtime-test-fixtures.ts';
+import { fakeQuery, grantDb, invoke, makeClient, tick } from './runtime-test-fixtures.ts';
+import { modelToolName } from './tool-catalog.ts';
 
 const effectRuntime = makeServerRuntime();
 
@@ -197,4 +198,48 @@ test('one failed operation retires the client and interrupts its sibling', async
     expect(fixture.state.closeCount).toBe(1);
     await runtime.close();
     expect(fixture.state.closeCount).toBe(1);
+});
+
+test('caller cancellation aborts one invocation without retiring its shared MCP client', async () => {
+    const started = Promise.withResolvers<void>();
+    let calls = 0;
+    const fixture = makeClient('Shared caller cancellation', {
+        call: async (request) => {
+            if (++calls > 1) {
+                return { content: [] };
+            }
+            started.resolve();
+            return await new Promise((_resolve, reject) =>
+                request.options?.signal?.addEventListener(
+                    'abort',
+                    () => reject(new Error('cancelled')),
+                    { once: true }
+                )
+            );
+        },
+    });
+    const db = {
+        select: () =>
+            fakeQuery([{ id: 'shared', name: 'Shared', tools: ['echo'], connectionId: 'shared' }]),
+    } as unknown as HausDatabase;
+    const runtime = new McpRuntime(db, effectRuntime, {
+        clientFactory: async () => fixture.client,
+    });
+    const controller = new AbortController();
+    const pending = runtime
+        .invoke({
+            agentId: 'agent-one',
+            serverId: 'server-one',
+            toolName: modelToolName('shared', 'echo'),
+            args: {},
+            signal: controller.signal,
+        })
+        .catch((error) => error);
+    await started.promise;
+    controller.abort();
+    await pending;
+    expect(fixture.state.closeCount).toBe(0);
+    expect(await invoke(runtime, 'shared')).toEqual({ content: [] });
+    expect(fixture.state.closeCount).toBe(0);
+    await runtime.close();
 });

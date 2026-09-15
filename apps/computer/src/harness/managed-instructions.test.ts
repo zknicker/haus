@@ -25,9 +25,7 @@ test('each turn reads current memory while compaction recovery remains required'
 });
 
 test('an explicitly requested unavailable MCP does not trigger local configuration searches', () => {
-    expect(efficiencyPrompt).toContain(
-        'For an explicitly requested MCP, use the current injected tool inventory'
-    );
+    expect(efficiencyPrompt).toContain('For Server MCPs, use the injected `execute` tool');
     expect(efficiencyPrompt).toContain(
         'Local configuration, environment, and filesystem searches cannot establish a Server MCP grant'
     );

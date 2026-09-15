@@ -79,6 +79,7 @@ test('isolates failed discovery while preserving healthy tool order', async () =
         }
     );
     const tools = await runtime.listAgentTools('server', 'agent');
+    expect(tools.map((tool) => tool.description)).toEqual(['First: Echo', 'Last: Echo']);
     expect(tools.map((tool) => tool.name)).toEqual([
         modelToolName('first', 'echo'),
         modelToolName('last', 'echo'),

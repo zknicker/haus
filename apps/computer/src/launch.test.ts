@@ -316,9 +316,10 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
                 sessionId: 'mcp-session',
             })) as unknown as HarnessAgent['createSession'],
             stream: (async () => {
-                const [visibleName] = Object.keys(input.tools);
-                invocationResult = await input.tools[visibleName ?? '']?.execute?.(
-                    { value: 'granted' },
+                invocationResult = await input.tools.execute?.execute?.(
+                    {
+                        code: 'return await tools.call({name:"mcp__server__echo",args:{value:"granted"}});',
+                    },
                     {
                         abortSignal: new AbortController().signal,
                         context: undefined,
@@ -356,9 +357,8 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
     expect(turn.status).toBe('completed');
-    const [visibleName] = Object.keys(tools);
-    expect(visibleName).toBe('mcp__server__echo');
-    expect(invocationResult).toBe('server:granted');
+    expect(Object.keys(tools)).toEqual(['execute']);
+    expect(invocationResult).toMatchObject({ result: 'server:granted' });
 });
 
 test('session reset rotates harness context while preserving Agent-owned state', async () => {
