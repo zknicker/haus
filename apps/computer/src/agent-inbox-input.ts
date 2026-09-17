@@ -1,5 +1,5 @@
-import { cloudAgentWorkAttentionSchema } from '@haus/api';
-import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './launch.ts';
+import { chatMessageReplySchema, cloudAgentWorkAttentionSchema } from '@haus/api';
+import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
 
 export function parseInbox(value: unknown): AgentInboxItem[] | null {
     if (!Array.isArray(value) || value.length > 100) {
@@ -37,6 +37,10 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
         return null;
     }
     const cloudAgentWork = parseCloudAgentWorkAttention(item.cloudAgentWork);
+    const reply = chatMessageReplySchema.nullish().safeParse(item.reply);
+    if (!reply.success) {
+        return null;
+    }
     if (item.cloudAgentWork !== undefined && !cloudAgentWork) {
         return null;
     }
@@ -45,6 +49,7 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
     }
     return {
         ...item,
+        ...(reply.data !== undefined ? { reply: reply.data } : {}),
         ...(cloudAgentWork ? { cloudAgentWork } : {}),
     } as unknown as AgentInboxItem;
 }

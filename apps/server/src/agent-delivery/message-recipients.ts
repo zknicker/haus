@@ -1,5 +1,5 @@
-import { parseAgentReferenceTarget, parseHausRichReferences } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentChannelMutesTable,
@@ -8,6 +8,7 @@ import {
     channelAgentParticipantsTable,
     chatsTable,
 } from '../postgres/schema.ts';
+import { planInlineReplyMessage } from './inline-reply-recipients.ts';
 
 export interface AgentMessageRecipientPlan {
     agentId: string;
@@ -21,6 +22,7 @@ export async function planAgentMessageRecipients(
         authorAgentId: string | null;
         chatId: string;
         content: string;
+        messageId?: string;
         serverId: string;
     }
 ): Promise<AgentMessageRecipientPlan[]> {
@@ -35,6 +37,13 @@ export async function planAgentMessageRecipients(
         .limit(1);
     if (!chat) {
         return [];
+    }
+    const messageId = input.messageId;
+    const inlineReplyRecipients = messageId
+        ? await planInlineReplyMessage(db, { ...input, messageId })
+        : null;
+    if (inlineReplyRecipients) {
+        return inlineReplyRecipients;
     }
     if (chat.kind === 'dm') {
         return chat.dmAgentId && chat.dmAgentId !== input.authorAgentId
@@ -249,31 +258,4 @@ async function activeDmThreadRecipient(
             threadFollowReactivated: reactivated,
         },
     ];
-}
-
-function mentionedAgentIds(
-    content: string,
-    agents: Array<{ handle: string; id: string }>
-): Set<string> {
-    const ids = new Set(
-        parseHausRichReferences(content).flatMap((reference) => {
-            if (reference.kind !== 'agent') {
-                return [];
-            }
-            const id = parseAgentReferenceTarget(reference.id);
-            return id ? [id] : [];
-        })
-    );
-    for (const agent of agents) {
-        if (
-            new RegExp(`(^|\\s)@${escapeRegex(agent.handle)}(?=$|[\\s.,!?;:])`, 'iu').test(content)
-        ) {
-            ids.add(agent.id);
-        }
-    }
-    return ids;
-}
-
-function escapeRegex(value: string) {
-    return value.replaceAll(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }

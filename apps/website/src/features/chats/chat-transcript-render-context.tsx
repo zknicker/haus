@@ -8,6 +8,7 @@ import type {
     TranscriptMessageRow,
     TranscriptThreadSummary,
 } from './transcript-contract.ts';
+import type { InlineReplyNavigation } from './transcript-reply-contract.ts';
 
 export type { TranscriptMessageRow } from './transcript-contract.ts';
 
@@ -65,7 +66,11 @@ export interface TranscriptRenderContextValue {
      */
     messageCopyText?: (message: TranscriptMessage) => string;
     onActorClick?: (actor: TranscriptActor) => void;
+    /** Reveals the parent excerpt's message in the current Channel/DM. */
+    onOpenInlineReply?: InlineReplyNavigation;
     onOpenThread: (row: TranscriptMessageRow) => void;
+    /** Selects a durable Channel/DM message as the next inline reply parent. */
+    onSelectInlineReply?: (message: TranscriptMessage) => void;
     /**
      * Toggles the viewer's emoji reaction on a message. Absent when the
      * surface has no reaction support; all reaction UI hides with it.
@@ -84,6 +89,7 @@ export interface TranscriptRenderContextValue {
     renderMessageContent?: (message: TranscriptMessage) => React.ReactNode;
     /** Runs whose final reply is present anywhere in the transcript. */
     repliedRunIds: ReadonlySet<string>;
+    replyTargetMessageId?: string;
     resolveActorProfile?: (actor: TranscriptActor) => TranscriptActorProfile | null;
     /**
      * Messages that opened a new Agent session, by message id. Derived across

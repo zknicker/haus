@@ -11,6 +11,8 @@ public struct MessageComposerView: View {
     private let isConnected: Bool
     private let allowsAttachments: Bool
     private let mentionOptions: [MentionOptionPresentation]
+    private let inlineReply: MessageReplyReferencePresentation?
+    private let onCancelInlineReply: () -> Void
     private let transitionNamespace: Namespace.ID?
     private let onSend: (String, [ComposerAttachment]) async -> Bool
 
@@ -29,6 +31,8 @@ public struct MessageComposerView: View {
         isTextFocused: FocusState<Bool>.Binding,
         allowsAttachments: Bool = true,
         mentionOptions: [MentionOptionPresentation] = [],
+        inlineReply: MessageReplyReferencePresentation? = nil,
+        onCancelInlineReply: @escaping () -> Void = {},
         transitionNamespace: Namespace.ID? = nil,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool
     ) {
@@ -39,6 +43,8 @@ public struct MessageComposerView: View {
         _isTextFocused = isTextFocused
         self.allowsAttachments = allowsAttachments
         self.mentionOptions = mentionOptions
+        self.inlineReply = inlineReply
+        self.onCancelInlineReply = onCancelInlineReply
         self.transitionNamespace = transitionNamespace
         self.onSend = onSend
     }
@@ -51,7 +57,14 @@ public struct MessageComposerView: View {
         // `ComposerGlassSurface` no longer paints, so it no longer argues against a container. If
         // the composer and the attachment portal are ever morphed as one glass object, that is the
         // change to reach for.
-        composerStack
+        MessageComposerStack(
+            text: $text,
+            mentionOptions: mentionOptions,
+            inlineReply: inlineReply,
+            onCancelInlineReply: onCancelInlineReply,
+            status: { statusView },
+            surface: { composerSurface }
+        )
             .padding(.horizontal, isExpanded ? 12 : 24)
             .padding(.top, 4)
             .padding(.bottom, isExpanded ? 8 : 0)
@@ -105,25 +118,6 @@ public struct MessageComposerView: View {
                 guard !interaction.isFileImporterPresented else { return }
                 interaction.resetPresentation()
             }
-    }
-
-    private var composerStack: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            statusView
-            MessageComposerMentionPicker(text: $text, options: mentionOptions)
-            composerSurface
-        }
-        // Keyed on the card's presence, never on its contents: filtering reflows the rows without
-        // replaying the entrance, and the stack still animates the height the card takes so the
-        // input rides up rather than jumping.
-        .animation(
-            isMentionPickerActive ? MentionPickerMotion.arrive : MentionPickerMotion.leave,
-            value: isMentionPickerActive
-        )
-    }
-
-    private var isMentionPickerActive: Bool {
-        MessageComposerMentionPicker.isActive(text: text, options: mentionOptions)
     }
 
     private var composerSurface: some View {

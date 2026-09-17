@@ -16,6 +16,8 @@ interface StoredChatMessage {
     createdAt: Date;
     id: string;
     nonce: string;
+    replyRootMessageId?: string | null;
+    replyToMessageId?: string | null;
     runId: string | null;
     sequence: number;
     serverId: string;
@@ -98,13 +100,15 @@ export interface StoredChatMessageRelations {
     /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
     cause?: MessageCause;
     reactions?: ChatMessage['reactions'];
+    /** Bounded direct-parent and chain-root context for an inline reply. */
+    reply?: ChatMessage['reply'];
 }
 
 export function toChatMessage(
     message: StoredChatMessage,
     related: StoredChatMessageRelations = {}
 ): ChatMessage {
-    const { attachments = [], authorProfile, body, cause, reactions = [] } = related;
+    const { attachments = [], authorProfile, body, cause, reactions = [], reply = null } = related;
     return {
         attachments,
         author: readAuthor(message, authorProfile),
@@ -117,6 +121,7 @@ export function toChatMessage(
         nonce: message.nonce,
         runId: message.runId,
         reactions,
+        reply,
         sequence: message.sequence,
         serverId: message.serverId,
         sessionGeneration: message.sessionGeneration,

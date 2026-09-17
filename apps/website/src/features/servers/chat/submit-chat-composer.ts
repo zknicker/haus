@@ -9,6 +9,7 @@ import {
     recoverFailedChatDraft,
     takeChatDraftForSend,
 } from './chat-draft-store.ts';
+import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 import {
     addPendingChatMessage,
     dropPendingChatMessage,
@@ -22,7 +23,9 @@ export async function submitChatComposer({
     draftKey,
     event,
     focusTextEditor,
+    inlineReply,
     onMaterialized,
+    onInlineReplySent,
     onThreadCreated,
     pendingChatId,
     send,
@@ -37,7 +40,9 @@ export async function submitChatComposer({
     draftKey: string;
     event?: React.FormEvent;
     focusTextEditor: () => void;
+    inlineReply?: ChatInlineReplyTarget | null;
     onMaterialized?: (chatId: string) => void;
+    onInlineReplySent?: (messageId: string) => void;
     onThreadCreated?: (threadChatId: string) => void;
     pendingChatId?: string;
     send: Pick<ReturnType<typeof useChatMessageSend>, 'mutateAsync'>;
@@ -69,6 +74,14 @@ export async function submitChatComposer({
                 attachments: submitted.attachments.map(pendingAttachment),
                 content,
                 nonce,
+                reply: inlineReply
+                    ? {
+                          parent: inlineReply.parent,
+                          parentMessageId: inlineReply.messageId,
+                          root: inlineReply.root,
+                          rootMessageId: inlineReply.root.id,
+                      }
+                    : null,
             });
         }
         const uploaded = await Promise.all(
@@ -96,6 +109,7 @@ export async function submitChatComposer({
                       chatId: target.chatId,
                       content,
                       nonce,
+                      ...(inlineReply ? { replyToMessageId: inlineReply.messageId } : {}),
                       serverId,
                       thread,
                   }
@@ -108,6 +122,9 @@ export async function submitChatComposer({
                 messageId: receipt.message.id,
                 nonce,
             });
+        }
+        if (inlineReply) {
+            onInlineReplySent?.(inlineReply.messageId);
         }
         if (receipt.threadChatId) {
             onThreadCreated?.(receipt.threadChatId);

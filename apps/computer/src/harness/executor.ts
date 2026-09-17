@@ -17,11 +17,11 @@ import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
 import { Cause, Data, Effect, Exit, Stream } from 'effect';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
+import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
-import type { AgentInboxItem } from '../launch.ts';
 import {
     claimClaudeSdkUsageRefresh,
     saveClaudePlanUsageSnapshot,

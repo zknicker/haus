@@ -1,9 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { noticePath, type StoredNoticeReceipt, writePendingNotice } from './delivery.ts';
 import { composeInboxNotice } from './inbox-format.ts';
-import type { AgentInboxItem } from './launch.ts';
 
 export interface AgentInboxLocation {
     agentId: string;

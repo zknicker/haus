@@ -6,6 +6,7 @@ import { inferMessageCause } from '../automations/infer-message-cause.ts';
 import { MessageCauseError, resolveMessageCause } from '../automations/message-cause.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
+import { InvalidInlineReplyError } from '../chats/reply-context.ts';
 import {
     AgentMessageContentTooLongError,
     AgentSendConflictError,
@@ -83,6 +84,9 @@ export function registerAgentMessageSendRoute(
                         chatId,
                         content: prepared.outgoing.content,
                         nonce: input.nonce,
+                        ...(prepared.outgoing.replyToMessageId
+                            ? { replyToMessageId: prepared.outgoing.replyToMessageId }
+                            : {}),
                         runId: runner.runId,
                         serverId: runner.serverId,
                         target: input.target,
@@ -127,7 +131,11 @@ export function registerAgentMessageSendRoute(
 }
 
 function sendAgentMessageError(reply: import('fastify').FastifyReply, cause: unknown) {
-    if (cause instanceof AgentMessageContentTooLongError || cause instanceof MessageCauseError) {
+    if (
+        cause instanceof AgentMessageContentTooLongError ||
+        cause instanceof MessageCauseError ||
+        cause instanceof InvalidInlineReplyError
+    ) {
         return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
     }
     if (cause instanceof AgentSendConflictError) {

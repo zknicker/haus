@@ -13,6 +13,7 @@ struct MessageTimelineRow: View {
     let attachmentTiles: AttachmentImageTileRegistry
     let visualHeights: VisualHeightRegistry
     let onOpenThread: () -> Void
+    let onOpenInlineReply: (MessageReplyReferencePresentation) -> Void
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     @AppStorage(ShowTasksInChat.storageKey) private var showTasksInChat = false
 
@@ -42,8 +43,20 @@ struct MessageTimelineRow: View {
                 }
 
                 if !message.prose.isEmpty {
+                    if let inlineReply = message.inlineReply {
+                        InlineReplyPreview(
+                            reference: inlineReply,
+                            onOpen: { onOpenInlineReply(inlineReply) }
+                        )
+                    }
+
                     RichMessageContentView(segments: message.richSegments)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                } else if let inlineReply = message.inlineReply {
+                    InlineReplyPreview(
+                        reference: inlineReply,
+                        onOpen: { onOpenInlineReply(inlineReply) }
+                    )
                 }
 
                 MessageVisualStack(

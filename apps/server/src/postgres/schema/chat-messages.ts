@@ -33,6 +33,10 @@ export const chatMessagesTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         id: text('id').primaryKey(),
         nonce: text('nonce').notNull(),
+        /** Direct parent of an inline reply; null for a top-level message. */
+        replyToMessageId: text('reply_to_message_id'),
+        /** Root of the inline chain; top-level messages point at themselves. */
+        replyRootMessageId: text('reply_root_message_id'),
         runId: text('run_id'),
         searchVector: tsvector('search_vector').generatedAlwaysAs(
             sql`to_tsvector('simple', content)`
@@ -66,6 +70,16 @@ export const chatMessagesTable = pgTable(
             foreignColumns: [agentsTable.serverId, agentsTable.id],
             name: 'chat_messages_author_agent_fk',
         }),
+        foreignKey({
+            columns: [table.serverId, table.chatId, table.replyToMessageId],
+            foreignColumns: [table.serverId, table.chatId, table.id],
+            name: 'chat_messages_reply_parent_fk',
+        }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.serverId, table.chatId, table.replyRootMessageId],
+            foreignColumns: [table.serverId, table.chatId, table.id],
+            name: 'chat_messages_reply_root_fk',
+        }).onDelete('cascade'),
         check('chat_messages_positive_sequence', sql`${table.sequence} > 0`),
         check(
             'chat_messages_body_kind',
@@ -87,7 +101,21 @@ export const chatMessagesTable = pgTable(
                 ${table.sessionGeneration} > 0 and ${table.authorAgentId} is not null
             )`
         ),
+        check(
+            'chat_messages_reply_shape',
+            sql`(
+                ${table.replyToMessageId} is null
+                and (${table.replyRootMessageId} is null or ${table.replyRootMessageId} = ${table.id})
+            )
+            or (${table.replyToMessageId} is not null and ${table.replyRootMessageId} is not null)`
+        ),
         index('chat_messages_chat_sequence_idx').on(table.serverId, table.chatId, table.sequence),
+        index('chat_messages_reply_root_idx').on(
+            table.serverId,
+            table.chatId,
+            table.replyRootMessageId,
+            table.sequence
+        ),
         index('chat_messages_search_idx').using('gin', table.searchVector),
     ]
 );

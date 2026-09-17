@@ -7,18 +7,19 @@ import SwiftUI
 public struct ThreadDetailView: View {
     private let anchor: MessagePresentation
     private let replyProvider: () -> [MessagePresentation]
-    private let pending: Bool
+    let pending: Bool
     private let isConnected: Bool
     /// Whether this conversation refuses new Messages — an archived Chat, or a
     /// DM whose peer Agent was retired (`ChatSummary.isReadOnly`). The Thread
     /// keeps its transcript and loses its composer, and with it every Ask
     /// answer control, because no reply can be sent to settle one.
     private let isReadOnly: Bool
-    private let onSend: (String, [ComposerAttachment]) async -> Bool
+    let onSend: (String, [ComposerAttachment]) async -> Bool
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    private let hasOlderReplies: Bool
-    private let isLoadingOlderReplies: Bool
-    private let onLoadOlderReplies: (() async -> Bool)?
+    let hasOlderReplies: Bool
+    let isLoadingOlderReplies: Bool
+    let onLoadOlderReplies: (() async -> Bool)?
+    let inlineReplies: ThreadInlineReplies?
     private let onOpenAgent: (String) -> Void
     private let onCancelCloudAgent: ((String) async throws -> Void)?
     /// Nil until Server has a Thread row to follow.
@@ -59,6 +60,7 @@ public struct ThreadDetailView: View {
         hasOlderReplies: Bool = false,
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
+        inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCancelCloudAgent: ((String) async throws -> Void)? = nil,
         follow: ThreadFollow? = nil,
@@ -74,6 +76,7 @@ public struct ThreadDetailView: View {
         self.hasOlderReplies = hasOlderReplies
         self.isLoadingOlderReplies = isLoadingOlderReplies
         self.onLoadOlderReplies = onLoadOlderReplies
+        self.inlineReplies = inlineReplies
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
         self.follow = follow
@@ -97,6 +100,7 @@ public struct ThreadDetailView: View {
         hasOlderReplies: Bool = false,
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
+        inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCancelCloudAgent: ((String) async throws -> Void)? = nil,
         follow: ThreadFollow? = nil,
@@ -112,6 +116,7 @@ public struct ThreadDetailView: View {
         self.hasOlderReplies = hasOlderReplies
         self.isLoadingOlderReplies = isLoadingOlderReplies
         self.onLoadOlderReplies = onLoadOlderReplies
+        self.inlineReplies = inlineReplies
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
         self.follow = follow
@@ -120,7 +125,13 @@ public struct ThreadDetailView: View {
 
     public var body: some View {
         let replies = replyProvider()
-        let items = ThreadTranscriptItem.items(anchor: anchor, replies: replies, pending: pending)
+        let inlineReplyMessages = inlineReplies?.messages() ?? []
+        let items = ThreadTranscriptItem.items(
+            anchor: anchor,
+            replies: replies,
+            pending: pending,
+            includesInlineReplies: inlineReplies != nil
+        )
         // The Ask a reply here would settle, read in the screen's body so an
         // Ask posted as a reply takes over the moment its Message lands.
         let answerableAskMessageID = ThreadAskAnswerability
@@ -170,7 +181,7 @@ public struct ThreadDetailView: View {
         .background(.background)
         .attachmentPreview(
             $attachmentPreview,
-            images: AttachmentImagePages.pages(in: [anchor] + replies),
+            images: AttachmentImagePages.pages(in: [anchor] + inlineReplyMessages + replies),
             tiles: attachmentTiles,
             onOpen: onOpenAttachment
         )
@@ -183,6 +194,7 @@ public struct ThreadDetailView: View {
                 }
             }
         }
+        .task(id: inlineReplies?.id) { if let inlineReplies { _ = await inlineReplies.load() } }
     }
 
     /// The replies sit on the same flipped-table substrate as the Chat
@@ -198,7 +210,8 @@ public struct ThreadDetailView: View {
                 items: items,
                 topInset: proxy.safeAreaInsets.top,
                 bottomInset: proxy.safeAreaInsets.bottom,
-                showsAccessory: hasOlderReplies && onLoadOlderReplies != nil,
+                showsAccessory: (hasOlderReplies && onLoadOlderReplies != nil)
+                    || inlineReplies?.hasOlder() == true,
                 onAppend: { previousItems, items, isNearNewest in
                     // Anchor and task rows can precede the first fetched reply page.
                     switch ThreadReplyReveal.onLatestReplyChange(
@@ -242,6 +255,19 @@ public struct ThreadDetailView: View {
             ThreadTaskMetadataView(task: task)
                 .padding(.top, 12)
                 .padding(.bottom, hasReplies ? 2 : 0)
+        case .inlineReplies:
+            if let inlineReplies {
+                ThreadInlineRepliesRegion(
+                    config: inlineReplies,
+                    onOpenAttachment: onOpenAttachment,
+                    attachmentPreview: $attachmentPreview,
+                    attachmentTiles: attachmentTiles,
+                    visualHeights: visualHeights,
+                    onOpenAgent: onOpenAgent
+                )
+            }
+        case .threadHeader:
+            ThreadRegionHeader(title: "Thread")
         case .reply(let message):
             messageRow(message, answerableAskMessageID: answerableAskMessageID)
                 .padding(.top, 10)
@@ -269,22 +295,4 @@ public struct ThreadDetailView: View {
         )
     }
 
-    /// Pressing an offered option is this screen's ordinary send: it already
-    /// carries the conversation Chat and this anchor, the pair an Ask's answer
-    /// takes (`AskAnswerRoute`), whichever Ask in the Thread it settles.
-    private func answerAsk(_ option: String) async -> Bool {
-        guard !pending else { return false }
-        return await onSend(option, [])
-    }
-
-    @ViewBuilder
-    private var loadOlderAccessory: some View {
-        if let onLoadOlderReplies {
-            TranscriptLoadOlderButton(
-                title: "Load older replies",
-                isLoading: isLoadingOlderReplies,
-                onLoad: onLoadOlderReplies
-            )
-        }
-    }
 }

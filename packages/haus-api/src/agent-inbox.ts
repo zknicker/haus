@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { askStatusSchema } from './ask-shared.ts';
-import { idSchema } from './chat.ts';
+import { chatMessageReplySchema, idSchema } from './chat.ts';
 import {
     cloudAgentBranchSchema,
     cloudAgentProviderSchema,
@@ -57,6 +57,8 @@ export const agentInboxItemSchema = z
         /** Canonical Agent API shape cached for Computer-local message checks. */
         message: z.record(z.string(), z.unknown()).optional(),
         mentioned: z.boolean().optional(),
+        /** Bounded direct-parent and chain-root context for an inline reply. */
+        reply: chatMessageReplySchema.nullable().optional(),
         senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
         senderType: z.enum(['agent', 'human', 'system', 'trigger']),

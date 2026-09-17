@@ -85,6 +85,7 @@ export function projectChatMessage(
             sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
             hausAgentId: agentId,
             reactions: message.reactions,
+            reply: message.reply,
             task: messageTask(message.task, directories.handleByAgentId, directories.humans),
             timestamp: message.createdAt,
         },

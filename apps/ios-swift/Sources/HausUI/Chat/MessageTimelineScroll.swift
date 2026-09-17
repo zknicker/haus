@@ -20,6 +20,21 @@ enum MessageTimelineScrollTarget {
         }
         return messageIDs.contains(target) ? .reveal(target) : .unavailable
     }
+
+    /// A reply reference carries the parent's sequence when it came from the
+    /// Server. Once the loaded page reaches that sequence, another older page
+    /// cannot contain the target and the caller can report it as unavailable.
+    static func shouldLoadOlder(
+        targetSequence: Int?,
+        loadedMessageSequences: [Int],
+        hasOlderMessages: Bool
+    ) -> Bool {
+        guard hasOlderMessages else { return false }
+        guard let targetSequence, let oldest = loadedMessageSequences.min() else {
+            return true
+        }
+        return targetSequence < oldest
+    }
 }
 
 /// How the timeline reaches a new tail message. A page that arrives for a Chat

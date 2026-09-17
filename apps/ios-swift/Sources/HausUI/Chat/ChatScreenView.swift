@@ -10,6 +10,8 @@ public struct ChatScreenView: View {
     private let onOpenSearch: () -> Void
     private let onOpenThread: (MessagePresentation) -> Void
     private let onSend: (String, [ComposerAttachment]) async -> Bool
+    private let onSendInlineReply:
+        ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
     private let hasOlderMessages: Bool
@@ -31,6 +33,7 @@ public struct ChatScreenView: View {
     private let composerInteraction: ComposerInteraction
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
+    @State private var inlineReply: MessageReplyReferencePresentation?
 
     public init(
         chat: ChatDestination,
@@ -44,6 +47,7 @@ public struct ChatScreenView: View {
         onOpenSearch: @escaping () -> Void,
         onOpenThread: @escaping (MessagePresentation) -> Void,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
+        onSendInlineReply: ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)? = nil,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
@@ -71,6 +75,7 @@ public struct ChatScreenView: View {
         self.onOpenSearch = onOpenSearch
         self.onOpenThread = onOpenThread
         self.onSend = onSend
+        self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
         self.onOpenAgent = onOpenAgent
         self.hasOlderMessages = hasOlderMessages
@@ -111,8 +116,10 @@ public struct ChatScreenView: View {
                     isTextFocused: $isComposerFocused,
                     allowsAttachments: chat.durableChat != nil,
                     mentionOptions: mentionOptions,
+                    inlineReply: inlineReply,
+                    onCancelInlineReply: { inlineReply = nil },
                     transitionNamespace: composerTransitionNamespace,
-                    onSend: onSend
+                    onSend: sendMessage
                 )
                 .padding(.bottom, chatBottomInset)
                 // The shell ignores the keyboard safe area, so this manual inset is the only
@@ -157,6 +164,8 @@ public struct ChatScreenView: View {
             isMessageHistoryLoaded: isMessageHistoryLoaded,
             emptyStateDescription: emptyStateDescription,
             onOpenThread: onOpenThread,
+            allowsInlineReplies: chat.durableChat != nil && onSendInlineReply != nil,
+            onSelectInlineReply: selectInlineReply,
             onOpenAttachment: onOpenAttachment,
             onOpenAgent: onOpenAgent,
             hasOlderMessages: hasOlderMessages,
@@ -173,6 +182,34 @@ public struct ChatScreenView: View {
         } else {
             "Send the first message to \(chat.title)."
         }
+    }
+
+    private func selectInlineReply(_ message: MessagePresentation) {
+        guard chat.durableChat != nil, !message.isPending else { return }
+        inlineReply = MessageReplyReferencePresentation(
+            id: message.id,
+            author: message.author,
+            content: message.content,
+            createdAt: message.createdAt,
+            sequence: message.sequence
+        )
+        isComposerFocused = true
+    }
+
+    private func sendMessage(
+        _ content: String,
+        _ attachments: [ComposerAttachment]
+    ) async -> Bool {
+        guard let inlineReply else {
+            return await onSend(content, attachments)
+        }
+
+        guard let onSendInlineReply else { return false }
+        let sent = await onSendInlineReply(content, attachments, inlineReply)
+        if sent, self.inlineReply?.id == inlineReply.id {
+            self.inlineReply = nil
+        }
+        return sent
     }
 
     private var header: some View {

@@ -41,6 +41,12 @@ final class HausStore {
     private var storedChats: [ChatSummary] = []
     private var storedReceiptBackedAgentDMsByChatID: [String: String] = [:]
     private var storedMessagesByChatID: [String: ChatMessagePage] = [:]
+    /// Inline reply pages are filtered Server reads, so they stay separate from
+    /// the ordinary Chat history page they came from.
+    var inlineReplyPagesByRootID: [String: ChatMessagePage] = [:]
+    var inlineReplyChatIDByRootID: [String: String] = [:]
+    var inlineReplyCacheGeneration = 0
+    var inlineReplyLoadsInFlight: Set<String> = []
     // MARK: - Inbox snapshots
     //
     // The Server-wide reads the Inbox and its sidebar badge stand on, loaded
@@ -132,6 +138,9 @@ final class HausStore {
                 let _: ServerSummary = try await client.mutation("server.developmentBootstrap")
             }
             let loadedServers: [ServerSummary] = try await client.query("server.list")
+            if activeServer?.id != loadedServers.first?.id {
+                resetInlineReplyCache()
+            }
             servers = loadedServers
             guard let server = loadedServers.first else {
                 state = .failed("You do not have a Haus Server yet.")

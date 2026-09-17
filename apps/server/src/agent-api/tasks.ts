@@ -5,6 +5,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
+import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -15,7 +16,6 @@ import {
     chatMessagesTable,
     chatsTable,
     messageTasksTable,
-    serverMembershipsTable,
 } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -25,15 +25,10 @@ import { insertTaskEvent } from '../tasks/task-events.ts';
 import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
 import { stampsTaskTracked } from '../tasks/task-tier.ts';
 import { resolveAgentMessage } from './message-read.ts';
-import {
-    type MessageRow,
-    messageSelection,
-    targetForChat,
-    toAgentMessages,
-    visibleChatSql,
-} from './message-view.ts';
-import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
+import { messageSelection, targetForChat, visibleChatSql } from './message-view.ts';
+import { resolveAgentTarget } from './resolve-target.ts';
 import { hasUnseenTaskThreadContext } from './task-freshness.ts';
+import { agentHandle, stripAt, taskRow } from './task-row.ts';
 
 type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';
 
@@ -136,14 +131,16 @@ export async function createAgentTasks(
             if (!numberedChat) {
                 throw new AgentTaskError('That task target no longer exists.');
             }
+            const messageId = createOpaqueId('msg');
             const [message] = await tx
                 .insert(chatMessagesTable)
                 .values({
                     authorAgentId: runner.agentId,
                     chatId,
                     content: title.trim(),
-                    id: createOpaqueId('msg'),
+                    id: messageId,
                     nonce: nonces[index],
+                    replyRootMessageId: messageId,
                     runId: runner.runId,
                     sequence: numberedChat.messageSequence,
                     serverId: runner.serverId,
@@ -171,6 +168,14 @@ export async function createAgentTasks(
                 serverId: runner.serverId,
                 status: selfClaim ? 'in_progress' : 'todo',
             });
+            if (assigneeAgentId) {
+                await followInlineReplyForMessage(tx, {
+                    agentId: assigneeAgentId,
+                    chatId,
+                    messageId: message.id,
+                    serverId: runner.serverId,
+                });
+            }
             // The handoff is a private Agent delivery: a typed inbox item keyed
             // by the assignment identity, never a hidden Chat message.
             const assignmentEnvelope =
@@ -186,6 +191,7 @@ export async function createAgentTasks(
                 authorAgentId: runner.agentId,
                 chatId,
                 content: title.trim(),
+                messageId: message.id,
                 serverId: runner.serverId,
             });
             if (assigneeAgentId && assigneeAgentId !== runner.agentId) {
@@ -340,16 +346,7 @@ async function mutateAgentTask(
             current.assigneeAgentId === runner.agentId &&
             current.claimedAt !== null
         ) {
-            const [message] = await tx
-                .select(messageSelection)
-                .from(chatMessagesTable)
-                .where(
-                    and(
-                        eq(chatMessagesTable.serverId, runner.serverId),
-                        eq(chatMessagesTable.id, messageId)
-                    )
-                );
-            return { event: null, task: await taskRow(tx, runner, message, current) };
+            return await repeatAgentTaskClaim(tx, runner, messageId, current);
         }
         // The holder is the authoritative answer to a claim, whatever version
         // the caller read: two Agents racing for the same lock both read the
@@ -422,6 +419,7 @@ async function mutateAgentTask(
         if (!updated) {
             throw new AgentTaskError('That task changed; refresh it before updating.');
         }
+        await followClaimedTask(tx, action, runner, current.chatId, messageId);
         const event = await insertTaskEvent(tx, {
             chatId: current.chatId,
             messageId: current.messageId,
@@ -447,6 +445,48 @@ async function mutateAgentTask(
                 )
             );
         return { event, task: await taskRow(tx, runner, message, next) };
+    });
+}
+
+async function repeatAgentTaskClaim(
+    db: HausDatabase,
+    runner: ResolvedRunner,
+    messageId: string,
+    task: typeof messageTasksTable.$inferSelect
+) {
+    const [message] = await db
+        .select(messageSelection)
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.serverId, runner.serverId),
+                eq(chatMessagesTable.id, messageId)
+            )
+        );
+    await followInlineReplyForMessage(db, {
+        agentId: runner.agentId,
+        chatId: task.chatId,
+        messageId,
+        serverId: runner.serverId,
+    });
+    return { event: null, task: await taskRow(db, runner, message, task) };
+}
+
+async function followClaimedTask(
+    db: HausDatabase,
+    action: 'claim' | 'unclaim' | 'update',
+    runner: ResolvedRunner,
+    chatId: string,
+    messageId: string
+) {
+    if (action !== 'claim') {
+        return;
+    }
+    await followInlineReplyForMessage(db, {
+        agentId: runner.agentId,
+        chatId,
+        messageId,
+        serverId: runner.serverId,
     });
 }
 
@@ -532,6 +572,12 @@ async function promoteAgentMessageTask(
             serverId: runner.serverId,
             status: 'in_progress',
         });
+        await followInlineReplyForMessage(tx, {
+            agentId: runner.agentId,
+            chatId,
+            messageId,
+            serverId: runner.serverId,
+        });
         const [created] = await queryAgentTasks(tx, runner, chatId, { messageId });
         if (!created) {
             throw new Error('Task conversion did not persist.');
@@ -544,34 +590,6 @@ async function promoteAgentMessageTask(
         });
         return { events: [event], task: created };
     });
-}
-
-async function taskRow(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    messageRow: MessageRow,
-    task: typeof messageTasksTable.$inferSelect
-) {
-    const [message] = await toAgentMessages(db, runner.serverId, [messageRow]);
-    const assignee = task.assigneeAgentId
-        ? {
-              handle: await agentHandle(db, { ...runner, agentId: task.assigneeAgentId }),
-              id: task.assigneeAgentId,
-          }
-        : task.assigneeUserId
-          ? {
-                handle: await humanHandle(db, runner.serverId, task.assigneeUserId),
-                id: task.assigneeUserId,
-            }
-          : null;
-    return {
-        assignee,
-        message,
-        number: task.number,
-        status: task.status,
-        target: await targetForChat(db, runner.serverId, task.chatId),
-        version: task.version,
-    };
 }
 
 async function insertAgentMessageCreatedEvent(
@@ -732,34 +750,6 @@ function dedupeRecipients(
         });
     }
     return [...byAgent.values()];
-}
-
-async function agentHandle(db: HausDatabase, runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>) {
-    const [agent] = await db
-        .select({ handle: agentsTable.handle })
-        .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)));
-    if (!agent) {
-        throw new AgentTargetError('This Agent no longer exists.');
-    }
-    return agent.handle;
-}
-
-async function humanHandle(db: HausDatabase, serverId: string, userId: string) {
-    const [human] = await db
-        .select({ handle: serverMembershipsTable.handle })
-        .from(serverMembershipsTable)
-        .where(
-            and(
-                eq(serverMembershipsTable.serverId, serverId),
-                eq(serverMembershipsTable.userId, userId)
-            )
-        );
-    return human?.handle ?? null;
-}
-
-function stripAt(value: string) {
-    return value.startsWith('@') ? value.slice(1) : value;
 }
 
 /**

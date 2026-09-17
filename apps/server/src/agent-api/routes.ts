@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
+import { setAgentInlineReplyFollow } from '../chats/reply-follow-route.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
@@ -50,6 +51,12 @@ const directoryQuerySchema = z.object({
     query: z.string().trim().min(1).max(200).optional(),
 });
 const targetQuerySchema = z.object({ target: z.string().trim().min(1).max(200) });
+const messageFollowSchema = z
+    .object({
+        messageId: z.string().trim().min(1).max(200),
+        target: z.string().trim().min(1).max(200),
+    })
+    .strict();
 
 /**
  * The Agent surface behind the Computer's loopback proxy. A managed
@@ -158,6 +165,33 @@ export function registerAgentApiRoutes(
             return sendAgentReadError(reply, cause);
         }
     });
+
+    for (const [path, followed] of [
+        ['/api/agent/messages/follow', true],
+        ['/api/agent/messages/unfollow', false],
+    ] as const) {
+        app.post(path, async (request, reply) => {
+            const runner = await authorizeAgentRunner(options.db, request);
+            const parsed = messageFollowSchema.safeParse(request.body);
+            if (!(runner && parsed.success)) {
+                return sendAgentApiError(
+                    reply,
+                    400,
+                    'INVALID_ARG',
+                    'The inline reply follow request was invalid.'
+                );
+            }
+            try {
+                return await setAgentInlineReplyFollow(options.db, runner, {
+                    followed,
+                    messageId: parsed.data.messageId,
+                    target: parsed.data.target,
+                });
+            } catch (cause) {
+                return sendAgentReadError(reply, cause);
+            }
+        });
+    }
 
     app.get('/api/agent/history', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);

@@ -82,8 +82,7 @@ export async function seedDevelopmentServer(
         const tinyId = createOpaqueId('agt');
         const mcpId = createOpaqueId('mcp');
         const now = new Date();
-        // Messages that later rows point at (a thread anchor, task carriers)
-        // need stable ids, so those are minted up front.
+        // Messages that later rows point at need stable ids, so mint them up front.
         const planMessageId = createOpaqueId('msg');
         const shipTaskMessageId = createOpaqueId('msg');
         const auditTaskMessageId = createOpaqueId('msg');
@@ -496,6 +495,7 @@ function demoMessage(
         chatId,
         id,
         nonce: `dev-${chatId}-${sequence}`,
+        replyRootMessageId: id,
         sequence,
         serverId,
     };

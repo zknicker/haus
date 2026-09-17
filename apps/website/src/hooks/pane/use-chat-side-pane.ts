@@ -5,7 +5,7 @@ export type ChatSidePaneKind = 'artifact' | 'files' | 'profile' | 'thread';
 const activePanes = new Map<string, ChatSidePaneKind>();
 const listeners = new Set<() => void>();
 
-export function useChatSidePane(chatId: string) {
+export function useChatSidePane(chatId: string): ChatSidePaneKind {
     return React.useSyncExternalStore(
         subscribe,
         () => getChatSidePane(chatId),

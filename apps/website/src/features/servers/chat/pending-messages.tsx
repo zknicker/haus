@@ -38,6 +38,7 @@ export function projectPendingChatMessageRows(
                 content: message.content,
                 id,
                 metadata: withLocalTimelineMessageMetadata(),
+                reply: message.reply ?? null,
                 sender: 'You',
                 senderType: 'user',
                 sourceSessionId: null,

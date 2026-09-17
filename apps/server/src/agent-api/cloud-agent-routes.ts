@@ -10,6 +10,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
+import { InvalidInlineReplyError } from '../chats/reply-context.ts';
 import { createCloudAgentWork } from '../cloud-agents/create-cloud-agent-work.ts';
 import {
     CloudAgentAgentNotFoundError,
@@ -173,6 +174,9 @@ function sendCloudAgentFailure(
     reply: Parameters<typeof sendAgentApiError>[0],
     cause: unknown
 ): unknown {
+    if (cause instanceof InvalidInlineReplyError) {
+        return sendAgentApiError(reply, 400, 'INVALID_REPLY', cause.message);
+    }
     if (cause instanceof ZodError) {
         return sendAgentApiError(
             reply,

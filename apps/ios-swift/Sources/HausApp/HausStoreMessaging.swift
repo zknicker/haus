@@ -20,6 +20,8 @@ extension HausStore {
         _ content: String,
         to chatID: String,
         attachments: [ComposerAttachment] = [],
+        replyToMessageID: String? = nil,
+        replyPreview: MessageReplyReferencePresentation? = nil,
         threadAnchorMessageID: String? = nil,
         pendingChatID: String? = nil
     ) async -> Bool {
@@ -27,6 +29,8 @@ extension HausStore {
             content,
             to: chatID,
             attachments: attachments,
+            replyToMessageID: replyToMessageID,
+            replyPreview: replyPreview,
             threadAnchorMessageID: threadAnchorMessageID,
             pendingChatID: pendingChatID
         ) != nil
@@ -48,6 +52,8 @@ extension HausStore {
             content,
             to: parentChatID,
             attachments: attachments,
+            replyToMessageID: nil,
+            replyPreview: nil,
             threadAnchorMessageID: anchorMessageID,
             pendingChatID: pendingChatID
         )
@@ -58,6 +64,8 @@ extension HausStore {
         _ content: String,
         to chatID: String,
         attachments: [ComposerAttachment],
+        replyToMessageID: String?,
+        replyPreview: MessageReplyReferencePresentation?,
         threadAnchorMessageID: String?,
         pendingChatID: String?
     ) async -> SendReceipt? {
@@ -73,7 +81,8 @@ extension HausStore {
                 chatID: pendingChatID,
                 content: content,
                 createdAt: .now,
-                nonce: nonce
+                nonce: nonce,
+                inlineReply: replyPreview
             )
         )
         sendError = nil
@@ -96,6 +105,7 @@ extension HausStore {
                     content: content,
                     nonce: nonce,
                     attachmentIds: uploadedAttachments.map(\.id),
+                    replyToMessageId: replyToMessageID,
                     thread: threadAnchorMessageID.map(ChatThreadInput.init(anchorMessageId:))
                 )
             )

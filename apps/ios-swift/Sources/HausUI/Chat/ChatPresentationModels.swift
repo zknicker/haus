@@ -87,12 +87,49 @@ public struct MessageAuthorPresentation: Identifiable, Hashable, Sendable {
     }
 }
 
+/// The compact parent snapshot shown above an inline reply. It is intentionally
+/// a presentation value: the Server's reply reference has already resolved its
+/// author against the same directory snapshot used by the message row.
+public struct MessageReplyReferencePresentation: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let author: MessageAuthorPresentation
+    public let content: String
+    public let createdAt: Date
+    public let sequence: Int?
+
+    public init(
+        id: String,
+        author: MessageAuthorPresentation,
+        content: String,
+        createdAt: Date,
+        sequence: Int? = nil
+    ) {
+        self.id = id
+        self.author = author
+        self.content = content
+        self.createdAt = createdAt
+        self.sequence = sequence
+    }
+
+    public var excerpt: String {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Attachment" : trimmed
+    }
+}
+
 public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let id: String
     public let author: MessageAuthorPresentation
     public let content: String
     public let createdAt: Date
+    /// The Server sequence is available for durable Chat rows and lets a
+    /// parent jump stop paging as soon as the referenced history range has
+    /// been exhausted. Synthetic rows leave it nil.
+    public let sequence: Int?
     public let attachments: [MessageAttachmentPresentation]
+    /// The direct parent context for an inline reply, when this message was
+    /// posted in a Channel or DM as a reply to another message.
+    public let inlineReply: MessageReplyReferencePresentation?
     public let thread: ThreadPreviewPresentation?
     public let task: TaskPresentation?
     /// The Ask this Message asks, when its body is one. The marker beneath the
@@ -115,6 +152,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         content: String,
         createdAt: Date,
         attachments: [MessageAttachmentPresentation] = [],
+        sequence: Int? = nil,
+        inlineReply: MessageReplyReferencePresentation? = nil,
         thread: ThreadPreviewPresentation? = nil,
         task: TaskPresentation? = nil,
         ask: AskPresentation? = nil,
@@ -137,6 +176,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.content = body
         self.createdAt = createdAt
         self.attachments = attachments
+        self.sequence = sequence
+        self.inlineReply = inlineReply
         self.thread = thread
         self.task = task
         self.ask = ask

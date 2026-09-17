@@ -226,6 +226,9 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     public let createdAt: Date
     public let id: String
     public let nonce: String
+    /// The direct parent and chain root for an inline reply, when this Message
+    /// was sent in a Channel or DM as a reply to another Message.
+    public let reply: ChatMessageReply?
     public let runID: String?
     public let sequence: Int
     public let serverID: String
@@ -245,6 +248,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case createdAt
         case id
         case nonce
+        case reply
         case runID = "runId"
         case sequence
         case serverID = "serverId"

@@ -1,5 +1,6 @@
 import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
 import { formatAskSuffix, formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
+import { formatInlineReplyContext } from '../inline-reply-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
 
@@ -33,7 +34,7 @@ export function formatHistoryLine(message: AgentCliMessage): string {
         ...(message.replyCount !== undefined ? [`replyCount=${message.replyCount}`] : []),
         ...(message.replyTarget ? [`replyTarget=${message.replyTarget}`] : []),
     ];
-    return `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${messageSuffixes(message)}`;
+    return `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${messageSuffixes(message)}${formatInlineReplyContext(message.reply)}`;
 }
 
 export function formatDeliveryEnvelope(
@@ -47,7 +48,7 @@ export function formatDeliveryEnvelope(
         `time=${formatLocalTime(message.created_at)}`,
         `type=${message.sender.type}`,
     ];
-    const envelope = `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${messageSuffixes(message)}`;
+    const envelope = `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${messageSuffixes(message)}${formatInlineReplyContext(message.reply)}`;
     return threadFollowReactivated
         ? `${formatThreadFollowRestoration(target)}\n${envelope}`
         : envelope;

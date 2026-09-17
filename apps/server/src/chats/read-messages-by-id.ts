@@ -13,6 +13,7 @@ import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
+import { readInlineReplyContexts } from './reply-context.ts';
 
 /**
  * Reads named Messages the way the Chat transcript reads a page: the same
@@ -61,12 +62,13 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [attachments, tasks, causes, bodies, reactions] = await Promise.all([
+    const [attachments, tasks, causes, bodies, reactions, replies] = await Promise.all([
         readMessageAttachments(db, serverId, foundIds),
         listMessageTaskMap(db, serverId, foundIds),
         readMessageCauses(db, serverId, foundIds),
         readMessageBodies(db, serverId, foundIds),
         readChatMessageReactions(db, serverId, foundIds),
+        readInlineReplyContexts(db, serverId, rows),
     ]);
     return new Map(
         rows.map((row) => [
@@ -78,6 +80,7 @@ export async function readMessagesById(
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
                     reactions: reactions.get(row.id),
+                    reply: replies.get(row.id) ?? null,
                 }),
                 task: tasks.get(row.id) ?? null,
             },

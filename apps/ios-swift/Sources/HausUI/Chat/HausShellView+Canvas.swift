@@ -78,6 +78,7 @@ extension HausShellView {
                             onOpenThread(chat, message)
                         },
                         onSend: { await onSend(selectedDestination, $0, $1) },
+                        onSendInlineReply: inlineReplySender(for: selectedDestination),
                         onOpenAttachment: onOpenAttachment,
                         onOpenAgent: openAgent,
                         hasOlderMessages: selectedDestination.durableChat.map(hasOlderMessages) ?? false,
@@ -136,6 +137,15 @@ extension HausShellView {
             .drawerPan(isOpen: drawerPresented) { pan in
                 handleDrawerPan(pan, drawerWidth: drawerWidth)
             }
+        }
+    }
+
+    private func inlineReplySender(
+        for destination: ChatDestination
+    ) -> ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)? {
+        guard let onSendInlineReply else { return nil }
+        return { content, attachments, reference in
+            await onSendInlineReply(destination, content, attachments, reference)
         }
     }
 }

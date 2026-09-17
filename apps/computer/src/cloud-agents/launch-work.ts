@@ -15,6 +15,7 @@ export interface CloudAgentStartRequest {
     /** The provider prompt. It stays on this Computer and never reaches Server. */
     instructions: string;
     nonce: string;
+    replyToMessageId?: string;
     repository: string;
     startingRef: string | null;
     target: string;

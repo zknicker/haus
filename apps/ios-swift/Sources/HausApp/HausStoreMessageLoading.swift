@@ -92,9 +92,11 @@ extension HausStore {
         var shouldReloadActiveCloudAgentWork = false
         var shouldReloadOpenAsks = false
         var shouldReloadTasks = false
+        var inlineRefreshChatIDs: Set<String> = []
         for event in events {
             guard event.serverID == serverID else { continue }
             guard chatEventReplay.receive(event) else { continue }
+            inlineRefreshChatIDs.formUnion(inlineReplyRefreshChatIDs(for: event))
 
             switch event.type {
             case .messageCreated:
@@ -154,6 +156,9 @@ extension HausStore {
             if openChatID == chatID {
                 await markChatReadIfNeeded(chatID: chatID)
             }
+        }
+        if !inlineRefreshChatIDs.isEmpty {
+            await refreshInlineReplies(for: inlineRefreshChatIDs)
         }
         if shouldReloadChats {
             try? await reloadChats(serverID: serverID)

@@ -1,4 +1,11 @@
-import type { AgentAvailability, Ask, CloudAgentWork, MessageCause, TaskLabel } from '@haus/api';
+import type {
+    AgentAvailability,
+    Ask,
+    ChatMessage,
+    CloudAgentWork,
+    MessageCause,
+    TaskLabel,
+} from '@haus/api';
 import type { MessageTask, TaskOrigin } from '../tasks/task-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
 
@@ -99,6 +106,8 @@ export interface TranscriptMessage {
     id: string;
     metadata?: TranscriptMessageMetadata;
     reactions?: TranscriptMessageReaction[];
+    /** The bounded direct parent/root context for an inline reply. */
+    reply?: ChatMessage['reply'];
     sender: string;
     senderType: 'agent' | 'system' | 'user';
     sourceSessionId?: string | null;

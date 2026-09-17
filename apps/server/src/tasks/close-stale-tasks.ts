@@ -12,8 +12,8 @@ const staleMs = TASK_IN_REVIEW_STALE_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * Closes every `in_review` task nobody has touched for the stale window: the
- * task row itself unchanged, and its Thread — the one anchored on the task
- * message — without a new message. Review that went quiet is finished work
+ * task row itself unchanged, and its inline reply chain and anchored Thread
+ * without a new message. Review that went quiet is finished work
  * nobody said so about, and `closed` is reversible: a human reopens it through
  * the ordinary update path.
  *
@@ -117,6 +117,19 @@ function staleTaskFilter(quietBefore: Date) {
     return and(
         eq(messageTasksTable.status, 'in_review'),
         lt(messageTasksTable.updatedAt, quietBefore),
+        sql`not exists (
+            select 1 from chat_messages inline_message
+            join chat_messages task_message
+              on task_message.server_id = ${messageTasksTable.serverId}
+             and task_message.id = ${messageTasksTable.messageId}
+            where inline_message.server_id = ${messageTasksTable.serverId}
+              and inline_message.chat_id = ${messageTasksTable.chatId}
+              and inline_message.reply_to_message_id is not null
+              and inline_message.reply_root_message_id = coalesce(
+                  task_message.reply_root_message_id, task_message.id
+              )
+              and inline_message.created_at >= ${quietBefore}
+        )`,
         sql`not exists (
             select 1
             from chat_messages stale_message

@@ -1,5 +1,5 @@
 import type { ChatMessage } from '@haus/api';
-import { and, desc, eq, getTableColumns, lt } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, lt, or } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -17,6 +17,7 @@ import { ChatNotFoundError, requireChatAccess } from './chat-access.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
+import { readInlineReplyContexts, resolveInlineReplyParent } from './reply-context.ts';
 
 export async function listChatMessages(
     db: HausDatabase,
@@ -25,6 +26,7 @@ export async function listChatMessages(
         beforeSequence?: number;
         chatId: string;
         limit: number;
+        replyRootMessageId?: string;
         serverId: string;
     }
 ): Promise<{
@@ -54,6 +56,20 @@ export async function listChatMessages(
 
     if (input.beforeSequence !== undefined) {
         predicates.push(lt(chatMessagesTable.sequence, input.beforeSequence));
+    }
+    if (input.replyRootMessageId) {
+        const { root } = await resolveInlineReplyParent(db, {
+            chatId: input.chatId,
+            replyToMessageId: input.replyRootMessageId,
+            serverId: input.serverId,
+        });
+        const inChain = or(
+            eq(chatMessagesTable.id, root.id),
+            eq(chatMessagesTable.replyRootMessageId, root.id)
+        );
+        if (inChain) {
+            predicates.push(inChain);
+        }
     }
 
     const newestFirst = await db
@@ -96,12 +112,14 @@ export async function listChatMessages(
         causeByMessageId,
         bodyByMessageId,
         reactionsByMessageId,
+        replyByMessageId,
     ] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         listMessageTaskMap(db, input.serverId, messageIds),
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
+        readInlineReplyContexts(db, input.serverId, messageRows),
     ]);
     const messages = messageRows.map((message) => ({
         ...toChatMessage(message, {
@@ -110,6 +128,7 @@ export async function listChatMessages(
             body: bodyByMessageId.get(message.id),
             cause: causeByMessageId.get(message.id),
             reactions: reactionsByMessageId.get(message.id),
+            reply: replyByMessageId.get(message.id) ?? null,
         }),
         task: taskByMessageId.get(message.id) ?? null,
     }));

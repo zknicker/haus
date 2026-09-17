@@ -25,11 +25,6 @@ import {
     getTranscriptItemKey,
     groupAgentItems,
 } from './chat-transcript-item-utils.ts';
-import {
-    ChatTranscriptMessageContent,
-    renderTranscriptMessageAttachments,
-} from './chat-transcript-message.tsx';
-import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 import type {
     ConversationMessageLayout,
     TranscriptEntry,
@@ -56,6 +51,14 @@ import {
     resolveMentionAgentId,
     TurnHeader,
 } from './chat-transcript-turn-header.tsx';
+import { UserTurnItem, useLiveEdgeMessageEnter } from './chat-transcript-user-turn-item.tsx';
+import {
+    InlineReplyAction,
+    InlineReplyHoverProvider,
+    InlineReplyMessageSurface,
+    useInlineReplyHoverState,
+} from './inline-reply-action.tsx';
+import { InlineReplyTurnHeader } from './inline-reply-preview.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
@@ -65,24 +68,13 @@ import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-mess
 import type { TranscriptActiveReply, TranscriptActorProfile } from './transcript-contract.ts';
 import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 
-// Raft-style geometry: the name line plus the first message line read as one
-// tight block the avatar sits centered against. Rows wash on hover so the
-// hovered message reads as one unit (Discord-style); the bleed margins let
-// the wash span the full chat width past the viewport's px-5 gutter. The
-// wash also holds while a bar-owned popover (the emoji picker) is open, so
-// moving the pointer into the portaled popover doesn't unwash the row.
+// Quote and message share a wash that stays visible inside portaled action menus.
 const turnInteractionClassName =
-    'group/turn hover:bg-background-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-background-hover';
-// Stock action buttons are composer-sized; transcript rows want the compact
-// footprint with slightly smaller glyphs.
+    'chat-transcript-turn group/turn hover:bg-background-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-background-hover';
+// Transcript actions use smaller buttons and glyphs than the composer.
 const turnActionClassName = 'size-7 [&_svg]:size-4';
-// The actions bar is a floating pill straddling the hovered message's top
-// edge (Discord-style): elevated surface, instant reveal so it tracks the
-// row wash, and inert while hidden so it never intercepts clicks meant for
-// the row above. It stays open only for keyboard focus (data-focus-visible)
-// and while its emoji picker popover is open (aria-expanded) — plain focus
-// left behind by a click must not hold it, or the bar sticks after the
-// pointer leaves.
+// Hidden actions cannot intercept clicks. Only keyboard focus and open menus
+// hold the bar after hover; ordinary click focus would leave it stuck open.
 const turnActionsClassName = cn(
     // Deliberately quiet: a bright overlay bg or a drop shadow pops far too
     // loud in light mode, and surface-secondary reads too grey there — the
@@ -207,55 +199,67 @@ function UserTurnPresentation({
             isLocalTimelineMessageMetadata(item.row.message.metadata)
     );
     const lastMessageRow = hasPendingMessage ? null : getLastMessageRow(entry.items);
+    const inlineReplyHover = useInlineReplyHoverState(entry.items, lastMessageRow);
 
-    // Every human turn — the app owner's included — shares the same
-    // left-aligned Slack-style roster row as agents: avatar, name header,
-    // plain text. No right-anchored self bubbles.
     return (
-        <ChatMessage.Assistant
-            className={cn(transcriptTurnGeometry.row, lastMessageRow && turnInteractionClassName)}
-        >
-            <TurnAvatar
-                avatarUrl={actorProfile?.avatarUrl}
-                deleted={actorProfile?.deleted}
-                name={displayName}
-            />
-            <ChatMessage.Body className={transcriptTurnGeometry.body}>
-                {layout.showHumanIdentity ? (
-                    <TurnHeader
+        <InlineReplyHoverProvider state={inlineReplyHover}>
+            <div className={cn('relative -mx-5 px-5', lastMessageRow && turnInteractionClassName)}>
+                <InlineReplyTurnHeader items={entry.items} />
+                <ChatMessage.Assistant
+                    className={cn(transcriptTurnGeometry.row, 'static')}
+                    onMouseLeave={inlineReplyHover.clear}
+                >
+                    <TurnAvatar
+                        avatarUrl={actorProfile?.avatarUrl}
                         deleted={actorProfile?.deleted}
-                        displayName={displayName}
-                        onClick={
-                            entry.actor && context?.onActorClick && !actorProfile?.deleted
-                                ? () => context.onActorClick?.(entry.actor)
-                                : undefined
-                        }
-                        timestamp={entry.timestamp}
+                        name={displayName}
                     />
-                ) : null}
-                {entry.items.map((item) => (
-                    <UserTurnItem from="user" item={item} key={getTranscriptItemKey(item)} />
-                ))}
-                {lastMessageRow ? (
-                    <ChatMessageActions className={turnActionsClassName} data-turn-actions="">
-                        <MessageReactionActions
-                            className={turnActionClassName}
-                            row={lastMessageRow}
-                        />
-                        {context?.onToggleReaction ? (
-                            <Separator className="h-4 self-center" orientation="vertical" />
+                    <ChatMessage.Body className={transcriptTurnGeometry.body}>
+                        {layout.showHumanIdentity ? (
+                            <TurnHeader
+                                deleted={actorProfile?.deleted}
+                                displayName={displayName}
+                                onClick={
+                                    entry.actor && context?.onActorClick && !actorProfile?.deleted
+                                        ? () => context.onActorClick?.(entry.actor)
+                                        : undefined
+                                }
+                                timestamp={entry.timestamp}
+                            />
                         ) : null}
-                        <TranscriptMessageActions
-                            value={getMessageCopyText(context, lastMessageRow.message)}
-                        />
-                        <ThreadMessageActions
-                            className={turnActionClassName}
-                            row={lastMessageRow}
-                        />
-                    </ChatMessageActions>
-                ) : null}
-            </ChatMessage.Body>
-        </ChatMessage.Assistant>
+                        {entry.items.map((item) => (
+                            <UserTurnItem
+                                from="user"
+                                item={item}
+                                key={getTranscriptItemKey(item)}
+                            />
+                        ))}
+                        {lastMessageRow ? (
+                            <ChatMessageActions
+                                className={turnActionsClassName}
+                                data-turn-actions=""
+                            >
+                                <MessageReactionActions
+                                    className={turnActionClassName}
+                                    row={lastMessageRow}
+                                />
+                                {context?.onToggleReaction ? (
+                                    <Separator className="h-4 self-center" orientation="vertical" />
+                                ) : null}
+                                <TranscriptMessageActions
+                                    value={getMessageCopyText(context, lastMessageRow.message)}
+                                />
+                                <ThreadMessageActions
+                                    className={turnActionClassName}
+                                    row={lastMessageRow}
+                                />
+                                <InlineReplyAction className={turnActionClassName} />
+                            </ChatMessageActions>
+                        ) : null}
+                    </ChatMessage.Body>
+                </ChatMessage.Assistant>
+            </div>
+        </InlineReplyHoverProvider>
     );
 }
 
@@ -401,6 +405,7 @@ function AgentTurnPresentation({
     const turnActive = isActiveTurn(items, activeReply, lastMessage);
     const turnRunId = items.map(getItemRunId).find((value) => value !== null) ?? null;
     const copyValue = lastMessage?.content ?? getActiveReplyText(items);
+    const inlineReplyHover = useInlineReplyHoverState(items, lastMessageRow);
     const [inspectOpen, setInspectOpen] = React.useState(false);
     const [inspectMounted, setInspectMounted] = React.useState(false);
     const openTurnDetails = React.useCallback(() => {
@@ -423,6 +428,7 @@ function AgentTurnPresentation({
             {lastMessageRow ? (
                 <ThreadMessageActions className={turnActionClassName} row={lastMessageRow} />
             ) : null}
+            <InlineReplyAction className={turnActionClassName} />
             <ActionTooltip label="View turn details">
                 <ChatMessage.Action
                     aria-label="View turn details"
@@ -450,73 +456,84 @@ function AgentTurnPresentation({
 
     return (
         <MessageContextActionsProvider onViewTurnDetails={openTurnDetails}>
-            <ChatMessage.Assistant
-                className={cn(
-                    transcriptTurnGeometry.row,
-                    turnInteractionClassName,
-                    !showIdentity && followsRuntimeNotice && 'mt-0'
-                )}
-            >
-                <AgentTurnProfileAvatar
-                    actorId={actorId}
-                    chatId={chatId}
-                    displayName={displayName}
-                    profile={actorProfile}
-                    profilePaneChatId={profilePaneChatId}
-                    serverId={turnDetails?.serverId}
-                />
-                <ChatMessage.Body className={transcriptTurnGeometry.body}>
-                    {showIdentity ? (
-                        <TurnHeader
-                            cause={causeMarkHidden ? null : getTurnCause(items)}
-                            composerId={composerId}
-                            deleted={actorProfile?.deleted}
-                            displayName={displayName}
-                            mentionAgentId={resolveMentionAgentId(
-                                actorId,
-                                actorProfile?.kind,
-                                canRequestMention && Boolean(composerId) && !actorProfile?.deleted
-                            )}
-                            sessionMark={getTurnSessionMark(
-                                items,
-                                sessionMarks,
-                                turnDetails?.serverId
-                            )}
-                            timestamp={entry.timestamp}
-                        />
-                    ) : null}
-                    {visibleSegments.map((segment, index) => (
-                        <AgentTurnSegment
+            <InlineReplyHoverProvider state={inlineReplyHover}>
+                <div className={cn('relative -mx-5 px-5', turnInteractionClassName)}>
+                    <InlineReplyTurnHeader items={items} />
+                    <ChatMessage.Assistant
+                        className={cn(
+                            transcriptTurnGeometry.row,
+                            'static',
+                            !showIdentity && followsRuntimeNotice && 'mt-0'
+                        )}
+                        onMouseLeave={inlineReplyHover.clear}
+                    >
+                        <AgentTurnProfileAvatar
+                            actorId={actorId}
                             chatId={chatId}
-                            currentSessionKey={currentSessionKey}
-                            defaultOpenWorkGroups={defaultOpenWorkGroups}
-                            key={segment.key}
-                            revealNarration={turnActive}
-                            segment={segment}
-                            turnActive={turnActive && index === visibleSegments.length - 1}
-                            turnCompletedAt={turnCompletedAt}
-                            turnStartedAt={turnStartedAt}
-                            turnStopped={turnStopped}
+                            displayName={displayName}
+                            profile={actorProfile}
+                            profilePaneChatId={profilePaneChatId}
+                            serverId={turnDetails?.serverId}
                         />
-                    ))}
-                    <ChatMessageActions className={turnActionsClassName} data-turn-actions="">
-                        {turnActions}
-                    </ChatMessageActions>
-                </ChatMessage.Body>
-                {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
-                {inspectMounted && turnDetails ? (
-                    <ServerTurnDetailsDrawer
-                        access={turnDetails.access}
-                        agentAvatarUrl={actorProfile?.avatarUrl ?? null}
-                        agentId={actorId}
-                        agentName={displayName}
-                        onOpenChange={setInspectOpen}
-                        open={inspectOpen}
-                        runId={turnRunId}
-                        serverId={turnDetails.serverId}
-                    />
-                ) : null}
-            </ChatMessage.Assistant>
+                        <ChatMessage.Body className={transcriptTurnGeometry.body}>
+                            {showIdentity ? (
+                                <TurnHeader
+                                    cause={causeMarkHidden ? null : getTurnCause(items)}
+                                    composerId={composerId}
+                                    deleted={actorProfile?.deleted}
+                                    displayName={displayName}
+                                    mentionAgentId={resolveMentionAgentId(
+                                        actorId,
+                                        actorProfile?.kind,
+                                        canRequestMention &&
+                                            Boolean(composerId) &&
+                                            !actorProfile?.deleted
+                                    )}
+                                    sessionMark={getTurnSessionMark(
+                                        items,
+                                        sessionMarks,
+                                        turnDetails?.serverId
+                                    )}
+                                    timestamp={entry.timestamp}
+                                />
+                            ) : null}
+                            {visibleSegments.map((segment, index) => (
+                                <AgentTurnSegment
+                                    chatId={chatId}
+                                    currentSessionKey={currentSessionKey}
+                                    defaultOpenWorkGroups={defaultOpenWorkGroups}
+                                    key={segment.key}
+                                    revealNarration={turnActive}
+                                    segment={segment}
+                                    turnActive={turnActive && index === visibleSegments.length - 1}
+                                    turnCompletedAt={turnCompletedAt}
+                                    turnStartedAt={turnStartedAt}
+                                    turnStopped={turnStopped}
+                                />
+                            ))}
+                            <ChatMessageActions
+                                className={turnActionsClassName}
+                                data-turn-actions=""
+                            >
+                                {turnActions}
+                            </ChatMessageActions>
+                        </ChatMessage.Body>
+                        {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
+                        {inspectMounted && turnDetails ? (
+                            <ServerTurnDetailsDrawer
+                                access={turnDetails.access}
+                                agentAvatarUrl={actorProfile?.avatarUrl ?? null}
+                                agentId={actorId}
+                                agentName={displayName}
+                                onOpenChange={setInspectOpen}
+                                open={inspectOpen}
+                                runId={turnRunId}
+                                serverId={turnDetails.serverId}
+                            />
+                        ) : null}
+                    </ChatMessage.Assistant>
+                </div>
+            </InlineReplyHoverProvider>
         </MessageContextActionsProvider>
     );
 }
@@ -732,62 +749,6 @@ function isWorkspaceChangesItem(item: TranscriptItem) {
     );
 }
 
-function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item: TranscriptItem }) {
-    const animateLiveEnter = useLiveEdgeMessageEnter(item);
-    const context = useTranscriptRenderContextOptional();
-
-    if (item.kind !== 'row' || item.row.kind !== 'message') {
-        return null;
-    }
-
-    const message = item.row.message;
-    const pending = isLocalTimelineMessageMetadata(message.metadata);
-    const attachments = context?.renderMessageAttachments
-        ? context.renderMessageAttachments(message)
-        : renderTranscriptMessageAttachments(message.attachments);
-    const body = context?.renderMessageContent ? (
-        context.renderMessageContent(message)
-    ) : (
-        <ChatTranscriptMessageContent message={message} textClassName="text-current" />
-    );
-
-    if (!body) {
-        return null;
-    }
-
-    const block = (
-        <TranscriptMessageBlock
-            {...(pending ? { animate: { opacity: 0.7, scale: 1, y: 0 } } : {})}
-            animateEnter={pending || animateLiveEnter}
-            attachments={attachments}
-            data-slot={pending ? 'pending-chat-message' : undefined}
-            from={from}
-        >
-            {body}
-        </TranscriptMessageBlock>
-    );
-
-    return pending ? block : <ThreadMessageSurface row={item.row}>{block}</ThreadMessageSurface>;
-}
-
-// Whether this item is a message landing at the transcript's live edge right
-// now; such messages animate in instead of popping. Always false outside the
-// transcript (the turn drawer).
-function useLiveEdgeMessageEnter(item: TranscriptItem) {
-    const context = useTranscriptRenderContextOptional();
-
-    if (!(context && item.kind === 'row' && item.row.kind === 'message')) {
-        return false;
-    }
-
-    const timestampMs = Date.parse(item.row.message.timestamp);
-
-    return context.shouldAnimateItemEnter(
-        getTranscriptItemKey(item),
-        Number.isNaN(timestampMs) ? null : timestampMs
-    );
-}
-
 function AgentTurnItem({
     chatId,
     currentSessionKey,
@@ -821,9 +782,10 @@ function AgentTurnItem({
     }
 
     if (item.kind === 'row' && item.row.kind === 'message') {
+        const row = item.row;
         // A streaming post is the turn's contribution mid-edit: reveal its
         // text like a live reply and keep partial widget fences hidden.
-        const streaming = revealNarration && isStreamingPostRow(item.row);
+        const streaming = revealNarration && isStreamingPostRow(row);
 
         if (streaming) {
             // A streaming post is not durable yet (a silent turn discards
@@ -831,33 +793,33 @@ function AgentTurnItem({
             return (
                 <AssistantReplyBody
                     animateEnter
-                    content={getActiveReplyDisplayText(item.row.message.content)}
-                    revealKey={item.row.id}
+                    content={getActiveReplyDisplayText(row.message.content)}
+                    revealKey={row.id}
                     revealText
-                    slotKey={getItemRunId(item) ?? item.row.id}
+                    slotKey={getItemRunId(item) ?? row.id}
                 />
             );
         }
 
-        const narration = revealNarration && isActivityBackedMessageRow(item.row);
+        const narration = revealNarration && isActivityBackedMessageRow(row);
 
         return (
-            <ThreadMessageSurface row={item.row}>
+            <InlineReplyMessageSurface row={row}>
                 <AssistantReplyBody
-                    message={item.row.message}
+                    message={row.message}
                     {...(narration
                         ? {
                               animateEnter: true,
-                              revealKey: item.row.id,
+                              revealKey: row.id,
                               revealText: true,
-                              slotKey: getItemRunId(item) ?? item.row.id,
+                              slotKey: getItemRunId(item) ?? row.id,
                           }
                         : // A finished reply that never streamed here (fast turn,
                           // another device's turn) still lands at the live edge —
                           // it enters like any new message instead of popping.
                           { animateEnter: animateLiveEnter })}
                 />
-            </ThreadMessageSurface>
+            </InlineReplyMessageSurface>
         );
     }
 

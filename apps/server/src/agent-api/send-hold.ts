@@ -9,32 +9,24 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInboxExactVisibilityTable,
-    agentMessageDraftsTable,
     agentsTable,
     chatMessagesTable,
     chatsTable,
 } from '../postgres/schema.ts';
 import { messageSelection, toAgentMessages } from './message-view.ts';
+import { clearAgentDraft, readDraft, requireDraft, saveDraft } from './send-draft-state.ts';
+import { AgentSendModeError, requireContent, validateMode } from './send-mode-validation.ts';
 
-const draftTtlMs = 10 * 60 * 1000;
 const maxHoldMessages = 12;
 
-export class AgentSendModeError extends Error {
-    constructor(
-        message: string,
-        readonly code: string,
-        readonly status: number
-    ) {
-        super(message);
-        this.name = 'AgentSendModeError';
-    }
-}
+export { AgentSendModeError, clearAgentDraft };
 
 export interface AgentSendModeInput {
     attachmentIds: string[];
     content?: string;
     continueAnyway: boolean;
     nonce: string;
+    replyToMessageId?: string;
     sendDraft: boolean;
 }
 
@@ -52,6 +44,11 @@ export async function prepareAgentSend(
             outgoing: {
                 attachmentIds: committed.attachmentIds,
                 content: input.content ?? committed.content,
+                ...(input.replyToMessageId !== undefined
+                    ? { replyToMessageId: input.replyToMessageId }
+                    : committed.replyToMessageId
+                      ? { replyToMessageId: committed.replyToMessageId }
+                      : {}),
             },
         };
     }
@@ -62,6 +59,7 @@ export async function prepareAgentSend(
         : {
               attachmentIds: input.attachmentIds,
               content: requireContent(input.content),
+              ...(input.replyToMessageId ? { replyToMessageId: input.replyToMessageId } : {}),
               reholdCount: draft?.reholdCount ?? 0,
           };
     if (input.continueAnyway && outgoing.reholdCount < 2) {
@@ -95,18 +93,6 @@ export async function prepareAgentSend(
             state: 'held' as const,
         },
     };
-}
-
-export async function clearAgentDraft(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
-    await db
-        .delete(agentMessageDraftsTable)
-        .where(
-            and(
-                eq(agentMessageDraftsTable.serverId, runner.serverId),
-                eq(agentMessageDraftsTable.agentId, runner.agentId),
-                eq(agentMessageDraftsTable.chatId, chatId)
-            )
-        );
 }
 
 async function resolveHold(
@@ -183,63 +169,6 @@ async function resolveHold(
     };
 }
 
-async function readDraft(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    chatId: string,
-    generation: number
-) {
-    const [draft] = await db
-        .select()
-        .from(agentMessageDraftsTable)
-        .where(
-            and(
-                eq(agentMessageDraftsTable.serverId, runner.serverId),
-                eq(agentMessageDraftsTable.agentId, runner.agentId),
-                eq(agentMessageDraftsTable.sessionGeneration, generation),
-                eq(agentMessageDraftsTable.chatId, chatId)
-            )
-        )
-        .limit(1);
-    if (!draft) {
-        return null;
-    }
-    if (Date.now() - draft.savedAt.getTime() >= draftTtlMs) {
-        await clearAgentDraft(db, runner, chatId);
-        return null;
-    }
-    return draft;
-}
-
-async function saveDraft(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    chatId: string,
-    generation: number,
-    draft: { attachmentIds: string[]; content: string; reholdCount: number }
-) {
-    await db
-        .insert(agentMessageDraftsTable)
-        .values({
-            agentId: runner.agentId,
-            attachmentIds: draft.attachmentIds,
-            chatId,
-            content: draft.content,
-            reholdCount: draft.reholdCount,
-            serverId: runner.serverId,
-            sessionGeneration: generation,
-        })
-        .onConflictDoUpdate({
-            set: { ...draft, savedAt: new Date() },
-            target: [
-                agentMessageDraftsTable.serverId,
-                agentMessageDraftsTable.agentId,
-                agentMessageDraftsTable.sessionGeneration,
-                agentMessageDraftsTable.chatId,
-            ],
-        });
-}
-
 async function readCommittedSend(
     db: HausDatabase,
     runner: ResolvedRunner,
@@ -251,6 +180,7 @@ async function readCommittedSend(
             authorAgentId: chatMessagesTable.authorAgentId,
             content: chatMessagesTable.content,
             id: chatMessagesTable.id,
+            replyToMessageId: chatMessagesTable.replyToMessageId,
         })
         .from(chatMessagesTable)
         .where(
@@ -267,49 +197,11 @@ async function readCommittedSend(
     const attachmentIds = (
         (await readMessageAttachments(db, runner.serverId, [message.id])).get(message.id) ?? []
     ).map(({ id }) => id);
-    return { attachmentIds, content: message.content };
-}
-
-function validateMode(input: AgentSendModeInput) {
-    if (input.continueAnyway && !input.sendDraft) {
-        throw new AgentSendModeError(
-            'continueAnyway requires sendDraft.',
-            'SEND_DRAFT_ANYWAY_REQUIRES_SEND_DRAFT',
-            400
-        );
-    }
-    if (input.sendDraft && input.content !== undefined) {
-        throw new AgentSendModeError(
-            'sendDraft does not accept content.',
-            'SEND_DRAFT_STDIN_UNSUPPORTED',
-            400
-        );
-    }
-    if (input.sendDraft && input.attachmentIds.length > 0) {
-        throw new AgentSendModeError(
-            'sendDraft does not accept attachment ids.',
-            'SEND_DRAFT_ATTACHMENTS_UNSUPPORTED',
-            400
-        );
-    }
-}
-
-function requireContent(content: string | undefined) {
-    if (!content?.trim()) {
-        throw new AgentSendModeError('Message content is required.', 'MISSING_CONTENT', 400);
-    }
-    return content;
-}
-
-function requireDraft(draft: Awaited<ReturnType<typeof readDraft>>) {
-    if (!draft) {
-        throw new AgentSendModeError(
-            'No saved draft exists for this target.',
-            'SEND_DRAFT_NOT_FOUND',
-            404
-        );
-    }
-    return draft;
+    return {
+        attachmentIds,
+        content: message.content,
+        replyToMessageId: message.replyToMessageId ?? undefined,
+    };
 }
 
 async function readAgentHandle(db: HausDatabase, runner: ResolvedRunner) {

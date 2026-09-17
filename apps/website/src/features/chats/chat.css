@@ -109,18 +109,24 @@
     /* The message scroller cannot hand HeroUI ScrollShadow the ref it needs. */
     .scroll-fade-b {
         --scroll-fade-size: 2rem;
+        --scroll-fade-inset: 0rem;
         -webkit-mask-image: linear-gradient(
             to bottom,
             #000 0,
             #000 calc(100% - var(--scroll-fade-size)),
-            transparent 100%
+            transparent calc(100% - var(--scroll-fade-inset))
         );
         mask-image: linear-gradient(
             to bottom,
             #000 0,
             #000 calc(100% - var(--scroll-fade-size)),
-            transparent 100%
+            transparent calc(100% - var(--scroll-fade-inset))
         );
+    }
+
+    .scroll-fade-b.thread-conversation-viewport {
+        --scroll-fade-size: 4rem;
+        --scroll-fade-inset: 0.75rem;
     }
 
     .scrollbar-gutter-stable {

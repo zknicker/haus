@@ -55,6 +55,7 @@ extension HausStore {
                 content: body,
                 createdAt: anchor.createdAt,
                 attachments: [],
+                sequence: anchor.sequence,
                 ask: askPresentation(anchor.body),
                 visualBody: fenced
             )
