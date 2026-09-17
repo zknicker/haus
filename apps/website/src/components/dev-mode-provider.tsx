@@ -2,9 +2,8 @@ import { createContext, type PropsWithChildren, useContext, useEffect, useState 
 import { getDesktopBridge } from '../lib/desktop-bridge.ts';
 
 /**
- * Dev mode reveals runtime internals in the UI — currently the raw prompt an
- * agent turn received, in the turn drawer. Toggled from the desktop app's
- * Developer menu; persisted per device.
+ * Dev Mode reveals message routing decisions and runtime details. Toggled
+ * from Command-K or the desktop Developer menu; persisted per device.
  */
 
 interface DevModeContextValue {

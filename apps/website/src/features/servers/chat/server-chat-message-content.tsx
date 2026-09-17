@@ -3,6 +3,8 @@ import type { useHumanDirectory } from '../../../hooks/servers/use-human-directo
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
+import { isLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';
+import { MessageRoutingDebug } from '../../chats/routing/message-routing-debug.tsx';
 import {
     applyAgentMentionAppearance,
     applyChatMentionAppearance,
@@ -21,11 +23,13 @@ export function ServerChatMessageContent({
     message,
     onOpenArtifact,
     onReferenceActivate,
+    serverId,
 }: {
     agentsById: ReadonlyMap<string, Agent>;
     chatsById: ReadonlyMap<string, Chat>;
     humans: HumanDirectory;
     message: TranscriptMessage;
+    serverId: string;
     onOpenArtifact: (target: HausResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
 }) {
@@ -65,10 +69,15 @@ export function ServerChatMessageContent({
             onReferenceActivate={onReferenceActivate}
         />
     ) : (
-        <ChatMarkdownText
-            content={content}
-            mentions={mentions}
-            onReferenceActivate={onReferenceActivate}
-        />
+        <>
+            <ChatMarkdownText
+                content={content}
+                mentions={mentions}
+                onReferenceActivate={onReferenceActivate}
+            />
+            {isLocalTimelineMessageMetadata(message.metadata) ? null : (
+                <MessageRoutingDebug messageId={message.id} serverId={serverId} />
+            )}
+        </>
     );
 }

@@ -6,7 +6,8 @@ import {
 } from '../../chats/chat-read-visibility.ts';
 import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
-import { type ChatTranscriptInput, useChatTranscript } from './use-chat-transcript.tsx';
+import type { ChatTranscriptInput } from './chat-transcript-input.ts';
+import { useChatTranscript } from './use-chat-transcript.tsx';
 
 export { useChatTranscript } from './use-chat-transcript.tsx';
 

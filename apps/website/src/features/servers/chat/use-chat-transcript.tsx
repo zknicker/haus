@@ -1,4 +1,3 @@
-import type { ChatMessage, ThreadSummary } from '@haus/api';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
@@ -11,11 +10,8 @@ import type {
     TranscriptMessageRow,
     TranscriptRenderContextValue,
 } from '../../chats/chat-transcript-render-context.tsx';
-import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
-import type { InlineReplyNavigation } from '../../chats/transcript-reply-contract.ts';
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
-import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import {
     emptyChatAgents,
@@ -23,6 +19,7 @@ import {
     emptyChatThreads,
     useStableChatMessageRows,
 } from './chat-message-projection.ts';
+import type { ChatTranscriptInput } from './chat-transcript-input.ts';
 import { MessageAttachments } from './message-attachments.tsx';
 import { PendingMessageAttachments, projectPendingChatMessageRows } from './pending-messages.tsx';
 import { ServerChatMessageContent } from './server-chat-message-content.tsx';
@@ -30,29 +27,6 @@ import type { PendingChatMessage } from './use-pending-messages.ts';
 
 const conversationLayout = { showAgentIdentity: true, showHumanIdentity: true } as const;
 const emptyPendingMessages: readonly PendingChatMessage[] = [];
-
-export interface ChatTranscriptInput {
-    /** Hides the header automation mark when a context card already states it. */
-    causeMarkHidden?: boolean;
-    chatId: string;
-    /** The Channel or DM this transcript belongs to; a Thread names its parent. */
-    conversationChatId?: string;
-    messages: readonly ChatMessage[] | undefined;
-    onOpenArtifact: (target: HausResourceTarget) => void;
-    onOpenInlineReply?: InlineReplyNavigation;
-    onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
-    onReferenceActivate?: ReferenceActivation;
-    onSelectInlineReply?: (message: ChatMessage) => void;
-    onStartDm?: (userId: string) => void;
-    pendingMessages?: readonly PendingChatMessage[];
-    replyTargetMessageId?: string;
-    serverId: string;
-    /** Hides one Message's task chip when a metadata panel already states it. */
-    taskChipHiddenMessageId?: string;
-    threads?: readonly ThreadSummary[];
-    turnDetailsAccess?: 'journal' | 'summary';
-    viewerUserId?: string;
-}
 
 /** Rows and render context retain identity across unchanged refetches to avoid rerendering every turn. */
 export function useChatTranscript({
@@ -249,6 +223,7 @@ export function useChatTranscript({
                         message={message}
                         onOpenArtifact={onOpenArtifact}
                         onReferenceActivate={onReferenceActivate}
+                        serverId={serverId}
                     />
                 ),
                 causeMarkHidden,
