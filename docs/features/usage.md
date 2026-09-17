@@ -131,3 +131,17 @@ volume, not authoritative subscription allowance. Claude allowance comes from Cl
 structured SDK usage response, with the OAuth usage endpoint retained only as a guarded bootstrap
 fallback. Grok allowance follows the [official Grok Build billing
 implementation](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-shell/src/extensions/billing.rs).
+
+## Runtime sign-in issues
+
+A native execution authentication failure becomes a Computer-owned issue scoped to that runtime.
+Computer persists the issue and reports its kind and observation time in its existing inventory;
+Server shares that sanitized status with the App. Raw provider errors and credentials stay local.
+Agent hover cards, profile pages, and profile panes show the issue for their assigned Computer and
+runtime, with a link to Computer settings. The Computer page owns native sign-in instructions.
+Other runtimes on the same Computer remain unaffected.
+
+After signing in on the named Computer, retry the Agent request. A successful turn using that
+runtime clears the issue. Inventory discovery, an interrupted turn, and a usage refresh do not
+prove execution authentication succeeded and cannot clear it. An older in-flight turn cannot
+overwrite a newer observation. Historical failures remain in activity history.
