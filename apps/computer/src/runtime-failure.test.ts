@@ -23,3 +23,15 @@ test('classifies transient failures for bounded retry', () => {
         expect(isRetryableRuntimeFailure(kind)).toBe(true);
     }
 });
+
+test('classifies the plain ACP bootstrap error without leaking its raw message', () => {
+    expect(
+        classifyRuntimeFailure({
+            message: 'ACP session initialization failed: Authentication required',
+        })
+    ).toBe('authentication');
+    expect(classifyRuntimeFailure({ cause: { message: 'Authentication required' } })).toBe(
+        'authentication'
+    );
+    expect(classifyRuntimeFailure({ message: 'Something else failed' })).toBe('unknown');
+});
