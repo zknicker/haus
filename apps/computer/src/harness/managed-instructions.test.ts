@@ -94,7 +94,7 @@ test('the @Mentions section separates display name from the stable name', () => 
     );
 });
 
-test('replies keep the received target while Task updates use the Task Thread', () => {
+test('task updates follow the requesting conversation', () => {
     const prompt = renderAgentInstructions({
         agentId: 'agt_prompt_test',
         agentName: 'Cove',
@@ -110,7 +110,9 @@ test('replies keep the received target while Task updates use the Task Thread', 
     expect(prompt).toContain(
         'To reply to any message, always reuse the exact `target` from the received message.'
     );
-    expect(prompt).toContain("Post updates in the task's thread:");
+    expect(prompt).toContain(
+        '3. **Keep the conversation together.** Continue each request in the chat or thread where it was asked'
+    );
     expect(prompt).not.toContain('Deliver the final result there unless');
 });
 

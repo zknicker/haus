@@ -211,8 +211,7 @@ test('fingerprint is stable per composed text', () => {
 // decision rule again. Anything that needs action beyond a reply is claimed
 // before the first tool call, so a second Agent cannot start work another
 // Agent already holds. Haus keeps `closed` and the stale-close window, and
-// diverges in exactly one place: same-turn completion is answered in the chat
-// that asked and goes straight to `done` instead of parking in `in_review`.
+// keeps conversation routing separate from same-turn completion status.
 test('claims before acting and closes same-turn work without parking it', () => {
     const { instructions } = composeAgentInstructions(facts);
 
@@ -240,15 +239,13 @@ test('claims before acting and closes same-turn work without parking it', () => 
     // Haus's own status set and stale window survive as additive text.
     expect(instructions).toContain('Haus adds `closed` (reversible)');
     expect(instructions).toContain('When done, set status to `in_review` so a human can validate');
-    // The same-turn reply lands in the chat that asked, which overrides workflow
-    // step 3's "post updates in the task's thread" for work that ends this turn.
     expect(instructions).toContain(
-        'Haus diverges once: for a message you claimed and fully finished in the same turn, reply in the chat where the request was made, not its thread, and set it `done` rather than parking it in `in_review`'
+        "**Keep the conversation together.** Continue each request in the chat or thread where it was asked, from acknowledgment to result, following the human's lead as the conversation develops."
     );
     expect(instructions).toContain(
-        'the thread and `in_review` are for progress notes, questions, and work that outlives the turn'
+        'For a message you claimed and fully finished in the same turn, set it `done` rather than parking it in `in_review`.'
     );
     expect(instructions).toContain(
-        `An \`in_review\` task whose thread stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so if you are still waiting on someone, nudge in the task's thread rather than letting it go quiet.`
+        `An \`in_review\` task whose conversation stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation.`
     );
 });

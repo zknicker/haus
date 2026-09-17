@@ -1,6 +1,24 @@
 import { expect, test } from 'bun:test';
 import { getManualTopic, searchManualTopics } from './index.ts';
 
+test('inline reply guidance is discoverable and separates attention from ownership', () => {
+    const topic = getManualTopic('replies');
+    expect(topic?.body).toContain('--reply-to <messageId>');
+    expect(topic?.body).toContain('A task still has one assignee');
+    expect(topic?.body).toContain('Task completion preserves that participation');
+    expect(topic?.body).toContain('haus message unfollow');
+    expect(
+        searchManualTopics('inline replies', { limit: 5, scope: 'all' }).map(({ id }) => id)
+    ).toContain('replies');
+});
+
+test('cloud work keeps implementation details and requester outcomes in their conversations', () => {
+    const body = getManualTopic('cloud-agents')?.body;
+    expect(body).toContain('The work thread holds implementation details and revisions.');
+    expect(body).toContain('back to the requester’s conversation');
+    expect(body).toContain('following their lead when they join the work thread');
+});
+
 test('publishes the Agent reference topic as the Agent-creation contract', () => {
     const agent = getManualTopic('agent');
 

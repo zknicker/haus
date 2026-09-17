@@ -82,6 +82,29 @@ test('keeps an in_review task whose Thread was answered two days ago', async () 
     });
 });
 
+test('a recent inline follow-up keeps review open while unrelated channel activity does not', async () => {
+    const active = await createTask('Review the reply flow', 'inline-active', 'in_review');
+    const quiet = await createTask('Review an unrelated change', 'inline-quiet', 'in_review');
+    await backdate(active.messageId, daysBeforeSweep(9));
+    await backdate(quiet.messageId, daysBeforeSweep(9));
+    await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'I have one follow-up on this review.',
+        nonce: 'inline-review-followup',
+        replyToMessageId: active.messageId,
+        serverId,
+    });
+    await harness.sql`
+        update chat_messages set created_at = ${daysBeforeSweep(2)}
+        where nonce = 'inline-review-followup' and server_id = ${serverId}
+    `;
+
+    const events = await closeStaleInReviewTasks(connection.db, sweptAt);
+    expect(events.map((event) => event.messageId)).not.toContain(active.messageId);
+    expect(await readTask(active.messageId)).toMatchObject({ status: 'in_review' });
+    expect(await readTask(quiet.messageId)).toMatchObject({ status: 'closed' });
+});
+
 test('leaves an in_progress task alone however long it has been quiet', async () => {
     const task = await createTask('Long-running migration', 'stale-in-progress', 'in_progress');
     await backdate(task.messageId, daysBeforeSweep(30));

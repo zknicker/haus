@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { AgentInboxItem } from './agent-inbox-item.ts';
 import {
     composeInboxDrain,
     composeInboxNotice,
@@ -6,7 +7,6 @@ import {
     formatAskSuffix,
     formatAskTag,
 } from './inbox-format.ts';
-import type { AgentInboxItem } from './launch.ts';
 
 test('projects structured inbox rows into the specified drain envelope', () => {
     expect(
@@ -18,7 +18,7 @@ test('projects structured inbox rows into the specified drain envelope', () => {
             '[target=#general msg=first time=2026-07-26 20:00:00 type=human] @zach — Product owner: Ship it',
             '',
             'Respond as appropriate. Complete all your work before stopping.',
-            "Reply in the channel or create/reply in a thread as appropriate; use each message's `target` and `msg` fields to choose the exact target.",
+            "Each message's `target` identifies the conversation where it was asked.",
         ].join('\n')
     );
 });
@@ -208,7 +208,7 @@ test('leaves an ordinary text message envelope free of an Ask marker', () => {
             '[target=#general msg=first time=2026-07-27 00:00:00 type=human] @zach: Ship it',
             '',
             'Respond as appropriate. Complete all your work before stopping.',
-            "Reply in the channel or create/reply in a thread as appropriate; use each message's `target` and `msg` fields to choose the exact target.",
+            "Each message's `target` identifies the conversation where it was asked.",
         ].join('\n')
     );
 });

@@ -69,4 +69,34 @@ struct MessageTimelineScrollTargetTests {
             MessageTimelineScrollTarget.resolve(target: "m1", messageIDs: []) == .waiting
         )
     }
+
+    @Test func pagesWhenAReplyParentSequencePrecedesLoadedHistory() {
+        #expect(
+            MessageTimelineScrollTarget.shouldLoadOlder(
+                targetSequence: 4,
+                loadedMessageSequences: [8, 9],
+                hasOlderMessages: true
+            )
+        )
+    }
+
+    @Test func stopsPagingWhenTheParentSequenceIsInLoadedHistoryRange() {
+        #expect(
+            !MessageTimelineScrollTarget.shouldLoadOlder(
+                targetSequence: 8,
+                loadedMessageSequences: [8, 9],
+                hasOlderMessages: true
+            )
+        )
+    }
+
+    @Test func pagesWithoutASequenceUntilHistoryEnds() {
+        #expect(
+            MessageTimelineScrollTarget.shouldLoadOlder(
+                targetSequence: nil,
+                loadedMessageSequences: [8, 9],
+                hasOlderMessages: true
+            )
+        )
+    }
 }

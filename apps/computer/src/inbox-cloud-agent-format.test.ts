@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
+import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
-import type { AgentInboxItem } from './launch.ts';
 
 test('projects a settled Cloud Agent Run with the evidence its Agent must inspect', () => {
     const attention = item({

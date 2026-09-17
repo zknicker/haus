@@ -19,5 +19,10 @@ test('cloud work teaches automatic inbox delivery without a backup reminder', ()
     expect(section).toContain('a later turn if you are busy');
     expect(section).toContain('You do not need to set a reminder or poll');
     expect(section).toContain('haus cloud-agent send --work <workId>');
-    expect(section).toContain("Post useful results in the work's thread.");
+    expect(section).toContain(
+        'The work thread is the place for implementation details and revisions.'
+    );
+    expect(section).toContain('keep the requester informed where they asked for the work');
+    expect(section).toContain('bring back a concise outcome with a link to the work');
+    expect(section).toContain('Follow their lead when they join the work thread.');
 });

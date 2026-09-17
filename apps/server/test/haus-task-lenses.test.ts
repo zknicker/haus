@@ -102,7 +102,7 @@ test('the default lens hides background claims and counts them', async () => {
     ]);
 });
 
-test("the claimant's own Thread reply promotes it onto the default lens", async () => {
+test("the claimant's own Thread reply leaves it in the background lens", async () => {
     const server = await createServer('lens-promotes');
     const claimed = await sendMessage(server, 'Trace the reconnect path');
     const agentId = await seedAgentClaim(server, claimed);
@@ -110,8 +110,8 @@ test("the claimant's own Thread reply promotes it onto the default lens", async 
     await replyInThreadAsAgent(server, claimed, agentId);
 
     const listed = await owner.trpc.task.list.query({ serverId: server.id });
-    expect(listed.backgroundCount).toBe(0);
-    expect(listed.tasks[0]?.task).toMatchObject({ origin: 'claimed', tier: 'tracked' });
+    expect(listed.backgroundCount).toBe(1);
+    expect(listed.tasks).toEqual([]);
 });
 
 // Everyone else's chatter is the thing a Thread is for. A background claim is

@@ -155,10 +155,7 @@ export async function answerInChat(
     });
 }
 
-/**
- * One tool-shaped operation on the run's activity ledger, back-stamped so the
- * finishing-reply comparison is deterministic.
- */
+/** Record one tool-shaped operation on the run's activity ledger. */
 export async function recordRunOperation(
     db: HausDatabase,
     claim: BackgroundClaim,
@@ -186,11 +183,7 @@ export async function recordRunOperation(
         );
 }
 
-/**
- * A Thread reply on the claim's anchor, from whoever the caller names. Only
- * the assignee's own replies are evidence about the claim, so every test says
- * out loud who is talking.
- */
+/** A Thread reply on the claim's anchor, from whoever the caller names. */
 export async function replyInThread(
     db: HausDatabase,
     claim: BackgroundClaim,
@@ -256,7 +249,7 @@ export async function readTask(db: HausDatabase, claim: BackgroundClaim) {
 export function turnSummary(
     agentId: string,
     runId: string,
-    status: 'completed' | 'failed' = 'completed'
+    status: 'completed' | 'failed' | 'interrupted' = 'completed'
 ): AgentTurnSummary {
     return {
         activity: { operations: [] },

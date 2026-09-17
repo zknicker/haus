@@ -2,6 +2,7 @@ import { beforeEach, expect, test } from 'bun:test';
 import { access, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { noticePath, writePendingNotice } from './delivery.ts';
 import {
     acceptRunInbox,
@@ -15,7 +16,6 @@ import {
     reofferPendingMessages,
     replacePendingInbox,
 } from './inbox-store.ts';
-import type { AgentInboxItem } from './launch.ts';
 
 let dataRoot: string;
 const location = () => ({

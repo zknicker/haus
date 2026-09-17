@@ -57,6 +57,7 @@ final class OptimisticMessageRowTests: XCTestCase {
             createdAt: Date(timeIntervalSince1970: 0),
             id: id,
             nonce: nonce,
+            reply: nil,
             runID: nil,
             sequence: 1,
             serverID: "server-1",

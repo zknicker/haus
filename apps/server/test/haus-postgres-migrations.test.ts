@@ -40,6 +40,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0039_agent_creation_message_detach',
             '0040_ask_options',
             '0041_haus_identity',
+            '0042_inline_replies',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },

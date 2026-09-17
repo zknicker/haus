@@ -49,6 +49,8 @@ describe('Haus OpenAPI contract', () => {
             '/api/agent/manual/search',
             '/api/agent/messages/search',
             '/api/agent/messages/{id}',
+            '/api/agent/messages/follow',
+            '/api/agent/messages/unfollow',
             '/api/agent/server',
             '/api/agent/channels/info',
             '/api/agent/channels/members',

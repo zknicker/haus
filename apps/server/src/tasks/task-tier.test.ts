@@ -7,7 +7,7 @@ const claimed: TaskTierRow = {
     status: 'in_progress',
     trackedAt: null,
 };
-const quiet = { assigneeThreadMessages: false, hasAsk: false };
+const quiet = { hasAsk: false };
 
 test('an untouched Agent claim is background', () => {
     expect(resolveTaskTier(claimed, quiet)).toBe('background');
@@ -19,11 +19,10 @@ test('a human-made task is always tracked', () => {
     expect(resolveTaskTier({ ...claimed, origin: 'converted' }, quiet)).toBe('tracked');
 });
 
-// A peer Agent or a bystander replying in the anchor's Thread is exactly the
-// noise a Thread exists to hold. Only the claimant working there, or an Ask,
-// says the claim needs watching.
-test('the assignee working in the Thread, or an Ask, makes it tracked', () => {
-    expect(resolveTaskTier(claimed, { ...quiet, assigneeThreadMessages: true })).toBe('tracked');
+// A Thread is a separate conversation surface. Its replies do not move task
+// bookkeeping onto a person's lens; an Ask still does.
+test('Thread replies do not promote a claim, while an Ask does', () => {
+    expect(resolveTaskTier(claimed, quiet)).toBe('background');
     expect(resolveTaskTier(claimed, { ...quiet, hasAsk: true })).toBe('tracked');
 });
 
