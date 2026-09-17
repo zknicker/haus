@@ -12,6 +12,7 @@ import {
     type HausServerApplication,
 } from '../src/haus-server-application.ts';
 import type { ClerkUsers } from '../src/identity/clerk-users.ts';
+import type { MessageRouter } from '../src/message-routing/jev.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -60,6 +61,7 @@ export async function startHausServerHarness(
         avatarGenerationLogger?: AvatarGenerationLogger;
         avatarImageProvider?: AvatarImageProvider;
         postgresIcuLocale?: string;
+        messageRouter?: MessageRouter;
     } = {}
 ): Promise<HausServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster({
@@ -102,6 +104,7 @@ export async function startHausServerHarness(
         const startApplication = async () => {
             const next = await createHausServerApplication({
                 appOrigin: harnessAppOrigin,
+                messageRouter: options.messageRouter,
                 avatarGenerationLogger: options.avatarGenerationLogger,
                 avatarImageProvider: options.avatarImageProvider,
                 attachmentRoot,

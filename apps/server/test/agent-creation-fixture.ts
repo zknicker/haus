@@ -10,6 +10,7 @@ import type {
     AvatarProviderRequest,
 } from '../src/avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../src/avatar-generation/service.ts';
+import type { MessageRouter } from '../src/message-routing/jev.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -23,7 +24,7 @@ const deterministicPng = Uint8Array.from(
 
 export type AvatarProviderMode = 'fail' | 'success' | 'unavailable';
 
-export function agentCreationFixture() {
+export function agentCreationFixture(messageRouter?: MessageRouter) {
     let harness: HausServerHarness;
     let owner: HausClient;
     let outsider: HausClient;
@@ -59,7 +60,7 @@ export function agentCreationFixture() {
     };
 
     beforeAll(async () => {
-        harness = await startHausServerHarness({ avatarImageProvider });
+        harness = await startHausServerHarness({ avatarImageProvider, messageRouter });
         owner = await signIn('user_agent_creation_owner', ['ada@haus.test']);
         outsider = await signIn('user_agent_creation_outsider', ['cass@haus.test']);
 

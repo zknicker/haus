@@ -41,10 +41,15 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0040_ask_options',
             '0041_haus_identity',
             '0042_inline_replies',
+            '0043_message-routing',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
         ]);
+        expect(
+            await upgraded`SELECT data_type, is_nullable FROM information_schema.columns
+            WHERE table_name = 'chat_messages' AND column_name = 'delivery_routing'`
+        ).toEqual([{ data_type: 'jsonb', is_nullable: 'YES' }]);
         const columns = await upgraded`SELECT is_nullable, column_default
             FROM information_schema.columns
             WHERE table_name = 'agent_turns' AND column_name = 'activity'`;
