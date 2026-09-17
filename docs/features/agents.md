@@ -237,3 +237,21 @@ retired Agent id.
 Completed onboarding does not depend on Cove remaining active. Retiring Cove
 keeps the onboarding Channel and history under this same retired-Agent
 contract, while the Server stays unlocked and never provisions a replacement.
+
+### Live turn inspection
+
+Expanded turns keep their Computer journal visible while refreshing. Reasoning renders inline;
+HeroUI Pro tool rows retain their expansion state as results arrive. Available evidence remains
+visible if a refresh fails, with a notice below the trace. There is no temporary semantic-history
+replacement or loading label. The trace renders only journal reasoning and tools; there is no
+alternate semantic-event renderer. Viewers without detail access see an access notice. Turn
+headlines and counts remain available from Server history.
+
+The open view owns ephemeral journal state. Activity websocket events and reconnects request a
+refresh; an open active turn also refreshes once a second while the page is visible, since reasoning
+deltas do not emit semantic activity events. Requests serialize and coalesce bursts into one trailing
+read. Closing the turn discards its relay, and settlement requests a final snapshot. Raw evidence
+never enters the persisted App query cache or Server storage.
+
+New trace entries fade in without height animation. Updates preserve the visible entry's scroll
+offset, including when reasoning grows above an expanded tool. Inspection does not follow the bottom.

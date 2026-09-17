@@ -1,12 +1,15 @@
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 
+const lastReasoningFlush = new WeakMap<ComputerExecutionJournal, number>();
+const reasoningFlushIntervalMs = 250;
+
 /**
  * Captures model reasoning into the Computer-local execution journal.
  *
  * The translated stream reports reasoning as `reasoning-start` / `reasoning-delta`
  * / `reasoning-end` triples keyed by a block `id`, with the delta text on `text`.
- * Deltas only mutate the in-memory document; the journal persists them when a
- * block ends, when a tool boundary writes, or when the turn finishes.
+ * Deltas flush at most four times a second so an open activity view can read
+ * ongoing reasoning. Block and tool boundaries also flush any trailing text.
  */
 export async function observeReasoningPart(
     part: Record<string, unknown>,
@@ -23,6 +26,11 @@ export async function observeReasoningPart(
     if (part.type === 'reasoning-delta') {
         if (typeof part.text === 'string') {
             journal.appendReasoning({ id, text: part.text });
+            const now = Date.now();
+            if (now - (lastReasoningFlush.get(journal) ?? 0) >= reasoningFlushIntervalMs) {
+                lastReasoningFlush.set(journal, now);
+                await journal.flushReasoning();
+            }
         }
         return;
     }

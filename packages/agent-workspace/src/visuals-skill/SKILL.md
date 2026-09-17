@@ -77,11 +77,14 @@ Rules:
 ## Visual runtime contract
 
 - The `visual` fence body renders in a sandboxed iframe with Haus's theme
-  tokens preloaded as CSS variables. Content width is about 700px; the body
+  tokens preloaded as CSS variables. Content fills the available message width; the body
   has 16px padding, the app font, 14px text, a card background, and native
   styling for bare form controls and `<table>` markup. Height is measured
-  automatically — let the document flow; no fixed heights, no
-  `position: fixed`.
+  automatically. Use responsive grids that fit the available width and wrap on
+  narrow screens. Let the document flow naturally; no fixed page heights,
+  viewport-height layouts, `position: fixed`, or authored vertical scroll
+  containers. The chat transcript owns vertical scrolling. Wide tables may
+  scroll horizontally.
 - No network: fetch/XHR, remote images, and fonts are blocked. Embed all
   data inline at generation time. One pinned exception: Chart.js
   (see design-system.md, Charts).

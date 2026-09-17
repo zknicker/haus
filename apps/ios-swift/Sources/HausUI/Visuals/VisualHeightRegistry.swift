@@ -5,10 +5,9 @@ import SwiftUI
 enum VisualHeights {
     /// Reserved until the frame reports, so a card never opens at zero.
     static let fallback: CGFloat = 240
-    /// Taller than this and the card collapses behind a "Show all" footer.
-    static let collapsed: CGFloat = 420
     static let minimum: CGFloat = 120
-    static let maximum: CGFloat = 1600
+    /// Resource guard for pathological documents, shared with the web.
+    static let maximum: CGFloat = 100_000
 
     static func clamp(_ value: CGFloat) -> CGFloat {
         min(maximum, max(minimum, value.rounded()))
@@ -23,7 +22,7 @@ struct VisualKey: Hashable {
     let ordinal: Int
 }
 
-/// Measured heights and collapse state for the visuals on one screen, owned by
+/// Measured heights for the visuals on one screen, owned by
 /// the screen rather than by the rows.
 ///
 /// Transcript rows are hosted in `UIHostingConfiguration` cells inside the
@@ -44,7 +43,6 @@ final class VisualHeightRegistry {
     private(set) var revision = 0
 
     private var heights: [VisualKey: CGFloat] = [:]
-    private var expanded: Set<VisualKey> = []
     private var hasPendingBump = false
 
     init() {}
@@ -68,20 +66,6 @@ final class VisualHeightRegistry {
         guard heights[key] != clamped else { return }
         heights[key] = clamped
         scheduleRevisionBump()
-    }
-
-    func isExpanded(_ key: VisualKey) -> Bool {
-        expanded.contains(key)
-    }
-
-    /// A tap, unlike a report, is one event and re-renders immediately.
-    func toggleExpanded(_ key: VisualKey) {
-        if expanded.contains(key) {
-            expanded.remove(key)
-        } else {
-            expanded.insert(key)
-        }
-        revision += 1
     }
 
     private func scheduleRevisionBump() {

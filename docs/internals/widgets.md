@@ -100,9 +100,15 @@ registration), with optional info-string text as the title:
   skill forbids Markdown tables in replies for the same reason.
 - **Presentation.** Prose and visuals render in authored order with three spacing
   units between segments. Attachments render once after the complete message.
-  Height fits content via a host-owned size reporter inside
-  the frame (clamped 120-1600px); visuals taller than 420px render collapsed
-  with a fade and a Show all toggle so large blocks do not shove scrollback.
+  Visuals fill the available message width. A host-owned size reporter measures
+  the body height, including changes after load and width changes, so reports
+  grow and shrink in normal transcript flow without collapse or a Show all toggle.
+  Heights apply immediately, without animation. The host validates the frame
+  source and accepts only positive finite measurements, with a 120px minimum
+  and a 100,000px resource guard for pathological documents. Until the first
+  report it reserves 240px. Ordinary reports have no nested vertical scrolling;
+  wide tables retain horizontal overflow. Authors must avoid fixed page heights,
+  viewport-height layouts, and vertical scroll containers.
   No pane promotion, and no bridge of any kind (no sendPrompt, no
   postMessage API for model content) — interactivity is within-iframe over
   embedded data.
@@ -118,7 +124,7 @@ registration), with optional info-string text as the title:
   design battery (`bun run eval:design`, `scripts/design-battery/RUBRIC.md`).
 - **iOS.** The Haus App on iPhone renders the same fences inline, through a
   Swift port of the same grammar and the same sandbox document — same CSP,
-  same base styles, same size reporter, same clamps and 420pt collapse — with
+  same base styles, same size reporter, and same natural-height policy — with
   `WKWebView.loadHTMLString(_, baseURL: nil)` standing in for the opaque-origin
   iframe. It has no browser to snapshot tokens off, so the published list is
   resolved from the app's own stylesheets at build time into a checked-in

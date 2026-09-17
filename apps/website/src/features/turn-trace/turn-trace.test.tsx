@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { AgentActivityTurn } from '../members/agent-profile/agent-activity-turns.ts';
 import { TurnTracePresentation } from './turn-trace.tsx';
 import { traceTextMaxChars } from './turn-trace-values.ts';
 
@@ -10,6 +9,7 @@ test('TurnTrace tells a member where execution detail lives', () => {
     const markup = render({ access: 'summary', presentation: null });
 
     assert.match(markup, /Execution details are available to owners and admins\./);
+    assert.doesNotMatch(markup, /data-trace-anchor|Started work/);
 });
 
 test('TurnTrace states why a journal could not be read without hiding the turn', () => {
@@ -22,7 +22,31 @@ test('TurnTrace states why a journal could not be read without hiding the turn',
     });
 
     assert.match(markup, /Detailed activity unavailable offline/);
-    assert.match(markup, /Started work/);
+    assert.doesNotMatch(markup, /Started work/);
+});
+
+test('TurnTrace shows reasoning inline without a disclosure, even before the first tool', () => {
+    const markup = render({
+        presentation: {
+            kind: 'available',
+            journal: {
+                ...journal([]),
+                status: 'running',
+                reasoning: [
+                    { id: 'thinking', startedAt: at(1), text: 'Inspecting the delivery queue.' },
+                ],
+            },
+        },
+    });
+    assert.match(markup, /Inspecting the delivery queue/);
+    assert.doesNotMatch(markup, /chain-of-thought__trigger|aria-expanded/);
+});
+
+test('TurnTrace does not flash a loading label or semantic replacement while the first relay is pending', () => {
+    const markup = renderToStaticMarkup(
+        <TurnTracePresentation access="journal" isPending presentation={null} />
+    );
+    assert.doesNotMatch(markup, /Loading|Started work|No activity/);
 });
 
 test('TurnTrace renders each tool kind with its own evidence', () => {
@@ -149,44 +173,12 @@ function render(input: {
             access={input.access ?? 'journal'}
             isPending={false}
             presentation={input.presentation}
-            turn={turn()}
         />
     );
 }
 
 function at(seconds: number) {
     return new Date(Date.UTC(2026, 2, 31, 15, 0, seconds)).toISOString();
-}
-
-function turn(): AgentActivityTurn {
-    return {
-        durationMs: 10_000,
-        endedAt: at(10),
-        events: [
-            {
-                agentId: 'agt_1',
-                category: 'starting_work',
-                id: 'evt-1',
-                occurredAt: at(0),
-                phase: 'completed',
-                position: 1,
-                producer: 'server',
-                producerId: 'srv_1',
-                producerSequence: 1,
-                runId: 'run_1',
-                serverId: 'srv_1',
-            },
-        ],
-        failureKind: null,
-        kind: 'settled',
-        messageCount: 1,
-        operationCount: 0,
-        operations: [],
-        outputProduced: true,
-        runId: 'run_1',
-        startedAt: at(0),
-        status: 'completed',
-    };
 }
 
 function tool(overrides: Partial<AgentExecutionJournalTool>): AgentExecutionJournalTool {

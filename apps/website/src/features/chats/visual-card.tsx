@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { agentHtmlSandbox } from '../../agent-html/sandbox.ts';
 import { agentHtmlColorScheme, agentHtmlTokenDeclarations } from '../../agent-html/tokens.ts';
-import { cn } from '../../lib/utils.ts';
 
 /**
  * Generative visual: model-authored HTML rendered in a sandboxed iframe.
@@ -30,9 +29,9 @@ const visualCsp = [
 ].join('; ');
 
 export const visualHeights = {
-    collapsed: 420,
     fallback: 240,
-    max: 1600,
+    // Resource guard for pathological documents, not an ordinary report limit.
+    max: 100_000,
     min: 120,
 } as const;
 
@@ -53,39 +52,18 @@ export function VisualCard({
     const tokensCss = useVisualTokens();
     const frameRef = React.useRef<HTMLIFrameElement | null>(null);
     const contentHeight = useReportedContentHeight(frameRef);
-    const [expanded, setExpanded] = React.useState(false);
-
-    const measured = contentHeight ?? visualHeights.fallback;
-    const collapsible = measured > visualHeights.collapsed;
-    const height = clampHeight(collapsible && !expanded ? visualHeights.collapsed : measured);
+    const height = clampHeight(contentHeight ?? visualHeights.fallback);
 
     return (
-        <div className="card-shell overflow-hidden border border-border bg-surface">
-            <div className="relative">
-                <iframe
-                    className="block w-full border-0 bg-transparent"
-                    ref={frameRef}
-                    sandbox={agentHtmlSandbox}
-                    srcDoc={buildVisualSrcDoc(displayHtml, tokensCss)}
-                    style={{ height, transition: 'height 200ms cubic-bezier(0.23, 1, 0.32, 1)' }}
-                    title={title ?? 'Visual'}
-                />
-                {collapsible && !expanded ? (
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
-                ) : null}
-            </div>
-            {collapsible ? (
-                <button
-                    className={cn(
-                        'block w-full border-border border-t px-3 py-1.5 text-center text-muted text-sm',
-                        'hover:bg-surface-hover hover:text-foreground'
-                    )}
-                    onClick={() => setExpanded((value) => !value)}
-                    type="button"
-                >
-                    {expanded ? 'Show less' : 'Show all'}
-                </button>
-            ) : null}
+        <div className="card-shell w-full min-w-0 overflow-hidden border border-border bg-surface">
+            <iframe
+                className="block w-full border-0 bg-transparent"
+                ref={frameRef}
+                sandbox={agentHtmlSandbox}
+                srcDoc={buildVisualSrcDoc(displayHtml, tokensCss)}
+                style={{ height }}
+                title={title ?? 'Visual'}
+            />
         </div>
     );
 }

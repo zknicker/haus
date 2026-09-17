@@ -1,4 +1,5 @@
 import { Chip } from '@heroui/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useTurnJournal } from '../../hooks/members/use-turn-journal.ts';
 import {
     getAgentActivityColor,
@@ -13,9 +14,9 @@ import {
     getActivityTurnPhase,
 } from '../members/agent-profile/agent-activity-turns.ts';
 import { TurnTraceNote } from './turn-trace-blocks.tsx';
-import { TurnTraceEvent } from './turn-trace-event.tsx';
 import { buildTurnTrace } from './turn-trace-model.ts';
 import { TurnTraceReasoning } from './turn-trace-reasoning.tsx';
+import { TurnTraceScroll } from './turn-trace-scroll.tsx';
 import { TurnTraceToolCall } from './turn-trace-tool.tsx';
 
 /** The turn's outcome at a glance, for surfaces that do not already say it. */
@@ -36,8 +37,8 @@ export function TurnTraceHeader({ turn }: { turn: AgentActivityTurn }) {
 }
 
 /**
- * What the Agent actually did, in order: the Server's semantic verbs merged
- * with the Computer's reasoning and tool calls. The journal is requested only
+ * What the Agent actually did, in order: the Computer's reasoning and tool calls.
+ * The journal is requested only
  * while this is mounted and open, and only for viewers Server allows.
  */
 export function TurnTrace({
@@ -74,7 +75,7 @@ export function TurnTrace({
             access={access}
             isPending={journal.isPending}
             presentation={presentation}
-            turn={turn}
+            refreshError={journal.refreshError}
         />
     );
 }
@@ -84,40 +85,48 @@ export function TurnTracePresentation({
     access,
     isPending,
     presentation,
-    turn,
+    refreshError = null,
 }: {
     access: TurnDetailAccess;
     isPending: boolean;
     presentation: TurnJournalPresentation | null;
-    turn: AgentActivityTurn | null;
+    refreshError?: string | null;
 }) {
-    const entries = buildTurnTrace({
-        journal: presentation?.kind === 'available' ? presentation.journal : null,
-        turn,
-    });
+    const reducedMotion = useReducedMotion();
+    const entries = buildTurnTrace(
+        access === 'journal' && presentation?.kind === 'available' ? presentation.journal : null
+    );
 
     return (
         <div className="grid min-w-0 gap-2">
             <TurnTraceNotice access={access} isPending={isPending} presentation={presentation} />
             {entries.length === 0 ? (
-                <TurnTraceNote>No activity was recorded for this turn.</TurnTraceNote>
+                presentation?.kind === 'available' && presentation.journal.status !== 'running' ? (
+                    <TurnTraceNote>No activity was recorded for this turn.</TurnTraceNote>
+                ) : null
             ) : (
-                <div className="grid min-w-0 gap-1">
-                    {entries.map((entry) =>
-                        entry.kind === 'event' ? (
-                            <TurnTraceEvent event={entry.event} key={entry.key} />
-                        ) : entry.kind === 'reasoning' ? (
-                            <TurnTraceReasoning
-                                isStreaming={entry.isStreaming}
+                <TurnTraceScroll>
+                    <AnimatePresence initial={false}>
+                        {entries.map((entry) => (
+                            <motion.div
+                                animate={{ opacity: 1 }}
+                                className="min-w-0"
+                                data-trace-anchor={entry.key}
+                                initial={{ opacity: 0 }}
                                 key={entry.key}
-                                reasoning={entry.reasoning}
-                            />
-                        ) : (
-                            <TurnTraceToolCall key={entry.key} tool={entry.tool} />
-                        )
-                    )}
-                </div>
+                                transition={{ duration: reducedMotion ? 0 : 0.15 }}
+                            >
+                                {entry.kind === 'reasoning' ? (
+                                    <TurnTraceReasoning reasoning={entry.reasoning} />
+                                ) : (
+                                    <TurnTraceToolCall tool={entry.tool} />
+                                )}
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </TurnTraceScroll>
             )}
+            {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
         </div>
     );
 }
@@ -135,7 +144,7 @@ function TurnTraceNotice({
         return <TurnTraceNote>Execution details are available to owners and admins.</TurnTraceNote>;
     }
     if (isPending && !presentation) {
-        return <TurnTraceNote>Loading detailed activity...</TurnTraceNote>;
+        return null;
     }
     if (!presentation || presentation.kind === 'available') {
         return null;

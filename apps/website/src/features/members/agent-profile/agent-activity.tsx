@@ -8,6 +8,7 @@ import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { useHausServerConnectionState } from '../../../lib/haus-server.tsx';
 import { TurnTrace } from '../../turn-trace/turn-trace.tsx';
+import { TurnTraceScroll } from '../../turn-trace/turn-trace-scroll.tsx';
 import {
     formatAgentActivityDiagnosticInfo,
     getAgentActivityColor,
@@ -115,57 +116,59 @@ function ActivityTurnHistory({
     const [expanded, setExpanded] = React.useState<ReadonlySet<string>>(new Set());
 
     return (
-        <Accordion
-            allowsMultipleExpanded
-            expandedKeys={expanded}
-            onExpandedChange={(keys) => setExpanded(new Set([...keys].map(String)))}
-            variant="surface"
-        >
-            {turns.map((turn) => {
-                const phase = getActivityTurnPhase(turn);
-                return (
-                    <Accordion.Item id={turn.runId} key={turn.runId}>
-                        <Accordion.Heading>
-                            <Accordion.Trigger>
-                                <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-left">
-                                    <time
-                                        className="shrink-0 text-muted text-sm tabular-nums"
-                                        dateTime={turn.startedAt}
-                                    >
-                                        {formatActivityTurnTime(turn.startedAt)}
-                                    </time>
-                                    <Chip
-                                        color={getAgentActivityColor(phase)}
-                                        size="sm"
-                                        variant="soft"
-                                    >
-                                        {getAgentActivityPhaseLabel(phase)}
-                                    </Chip>
-                                    <span className="font-medium text-foreground text-sm">
-                                        {formatActivityTurnHeadline(turn)}
+        <TurnTraceScroll>
+            <Accordion
+                allowsMultipleExpanded
+                expandedKeys={expanded}
+                onExpandedChange={(keys) => setExpanded(new Set([...keys].map(String)))}
+                variant="surface"
+            >
+                {turns.map((turn) => {
+                    const phase = getActivityTurnPhase(turn);
+                    return (
+                        <Accordion.Item id={turn.runId} key={turn.runId}>
+                            <Accordion.Heading>
+                                <Accordion.Trigger>
+                                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-left">
+                                        <time
+                                            className="shrink-0 text-muted text-sm tabular-nums"
+                                            dateTime={turn.startedAt}
+                                        >
+                                            {formatActivityTurnTime(turn.startedAt)}
+                                        </time>
+                                        <Chip
+                                            color={getAgentActivityColor(phase)}
+                                            size="sm"
+                                            variant="soft"
+                                        >
+                                            {getAgentActivityPhaseLabel(phase)}
+                                        </Chip>
+                                        <span className="font-medium text-foreground text-sm">
+                                            {formatActivityTurnHeadline(turn)}
+                                        </span>
+                                        <span className="text-muted text-sm">
+                                            {formatActivityTurnCounts(turn)}
+                                        </span>
                                     </span>
-                                    <span className="text-muted text-sm">
-                                        {formatActivityTurnCounts(turn)}
-                                    </span>
-                                </span>
-                                <Accordion.Indicator />
-                            </Accordion.Trigger>
-                        </Accordion.Heading>
-                        <Accordion.Panel>
-                            <Accordion.Body>
-                                <TurnTrace
-                                    access={access}
-                                    agentId={agentId}
-                                    enabled={expanded.has(turn.runId)}
-                                    runId={turn.runId}
-                                    serverId={serverId}
-                                    turn={turn}
-                                />
-                            </Accordion.Body>
-                        </Accordion.Panel>
-                    </Accordion.Item>
-                );
-            })}
-        </Accordion>
+                                    <Accordion.Indicator />
+                                </Accordion.Trigger>
+                            </Accordion.Heading>
+                            <Accordion.Panel>
+                                <Accordion.Body>
+                                    <TurnTrace
+                                        access={access}
+                                        agentId={agentId}
+                                        enabled={expanded.has(turn.runId)}
+                                        runId={turn.runId}
+                                        serverId={serverId}
+                                        turn={turn}
+                                    />
+                                </Accordion.Body>
+                            </Accordion.Panel>
+                        </Accordion.Item>
+                    );
+                })}
+            </Accordion>
+        </TurnTraceScroll>
     );
 }

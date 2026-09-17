@@ -162,6 +162,9 @@ test('no visuals skill file teaches a retired token name', () => {
 });
 
 test('visuals skill states the visual frame facts', () => {
+    expect(defaultVisualsSkill).toContain('available message width');
+    expect(defaultVisualsSkill).toContain('chat transcript owns vertical scrolling');
+    expect(defaultVisualsSkill).not.toContain('about 700px');
     expect(defaultVisualsSkill).toContain('16px padding');
     expect(defaultVisualsSkill).toContain('the app font');
     expect(defaultVisualsSkill).toContain('14px text');

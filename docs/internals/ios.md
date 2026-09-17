@@ -287,13 +287,14 @@ does.
 Height is the screen's, not the card's. Transcript rows are hosted in `UIHostingConfiguration` cells
 inside the flipped table, which re-hosts a row only when state above the table changes
 (`TranscriptListView.reconfigureVisibleRows`, driven from `updateUIView`) — a height measured inside
-a cell has nowhere to go. So `VisualHeightRegistry` holds measured heights and collapse state keyed
+a cell has nowhere to go. So `VisualHeightRegistry` holds measured heights keyed
 by message id and fence ordinal, exactly as `AttachmentImageTileRegistry` holds tile anchors, and
 `MessageTimelineView` and `ThreadDetailView` each own one. The screen's own body reads the
 registry's `revision`, which is what turns a frame's report into a re-render, a reconfigure, and a
-row at its new height. The clamps are the web's: 240pt reserved until the first report, [120, 1600]
-after it, collapse past 420pt behind a fade and a Show all footer. The first measurement is never
-animated — it is layout, not a transition — and later ones ease over 200ms.
+row at its new height. Cards fill the available message width and use natural document height,
+with 240pt reserved until the first report, a 120pt minimum, and a 100,000pt resource guard for
+pathological documents, matching the web. Height changes apply immediately without animation or
+collapse controls. The transcript owns vertical scrolling; wide tables still pan horizontally.
 
 An Agent-created Agent reaches the transcript as the creating Agent's own sentence and nothing else.
 The `--say` text is the Message body, so every surface that renders a body — the Chat transcript and
