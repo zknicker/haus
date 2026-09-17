@@ -181,3 +181,16 @@ would resolve the schema again at boot, under the development lifecycle.
   any of its values is parsed as an expression.
 - Rotate at the provider, update the 1Password item, redeploy, verify, revoke.
   Stable names mean no repository change.
+
+## Semantic channel addressing
+
+Semantic channel addressing runs for every Server when `HAUS_TYPESAFE_API_KEY` is
+configured; there is no per-Server flag or allowlist. Development resolves
+`op://Development/TypeSafe AI - Merchbase/credential`; Production resolves
+`op://Production/TypeSafe AI - Haus/credential`. The production item currently holds
+an operator-requested copy of the development credential, so both share provider
+quota and revocation. Test/release lifecycles resolve no credential. The existing
+environment renderer delivers the credential only to Server. Without a credential,
+normal deterministic delivery remains available.
+
+See [ADR 0030](../adr/0030-semantic-channel-addressing.md) for context disclosure and routing limits.

@@ -32,8 +32,9 @@ restore that fallback. Access still derives from the parent Chat.
 
 The existing inbox remains responsible for durable queuing, deduplication, idle and busy
 delivery, retries, reading, and session serialization. Reply context travels with message reads.
-No separate model judges who receives messages. Agents interpret ordinary mentioned follow-ups
-using their own continuous sessions and current work ownership.
+ADR 0030 adds semantic narrowing for unaddressed human top-level channel messages.
+Explicit replies and mentions retain these deterministic rules. Agents interpret delivered
+follow-ups using their own continuous sessions and current work ownership.
 
 A task is still one canonical message with one assignee. It belongs to one channel or DM;
 reply chains can contain several distinct requests, each with its own task. Tasks acquire no

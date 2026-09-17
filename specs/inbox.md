@@ -72,6 +72,11 @@ mark that names the wrong cause.
 
 ## Delivery planning (I1)
 
+Across all Servers with the TypeSafe credential configured, [ADR 0030](../docs/adr/0030-semantic-channel-addressing.md)
+permits semantic narrowing of unaddressed human top-level channel messages. The final
+recipient set is committed with the message; uncertain, failed or stale judgments retain
+ordinary delivery. This does not change explicit mention, reply, Thread or DM rules.
+
 A durable `message.created` is planned once by Server delivery
 (`apps/server/src/agent-delivery/`):
 
