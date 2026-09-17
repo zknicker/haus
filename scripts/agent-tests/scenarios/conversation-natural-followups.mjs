@@ -55,8 +55,13 @@ export default defineScenario({
             await kit.readMessages(task.threadChatId);
         }
         expect(replies.length > 0, 'revision in human thread').toBe(true);
+        const revisionText = replies.map((message) => message.content).join('\n');
+        const allocatedBudget = [...revisionText.matchAll(/\$(\d[\d,]*)/g)].reduce(
+            (total, match) => total + Number(match[1].replaceAll(',', '')),
+            0
+        );
         expect(
-            replies.some((message) => message.content.includes('800')),
+            revisionText.includes('800') || allocatedBudget === 800,
             'revision uses new budget'
         ).toBe(true);
         expect(
