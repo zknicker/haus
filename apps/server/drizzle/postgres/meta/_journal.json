@@ -302,6 +302,13 @@
       "when": 1789573000000,
       "tag": "0042_inline_replies",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1789671132253,
+      "tag": "0043_message-routing",
+      "breakpoints": true
     }
   ]
 }

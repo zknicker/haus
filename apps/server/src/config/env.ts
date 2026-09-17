@@ -65,6 +65,7 @@ const envSchema = z
             .transform(resolveHomePath),
         HAUS_COMPUTER_RELEASE_MANIFEST_URL: z.string().url().optional(),
         HAUS_DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
+        HAUS_TYPESAFE_API_KEY: z.string().min(1).optional(),
         HAUS_OPENAI_API_KEY: z.string().min(1).optional(),
         HAUS_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),
         HAUS_SERVER_PORT: z.coerce.number().int().positive().default(getDefaultHausServerPort()),
