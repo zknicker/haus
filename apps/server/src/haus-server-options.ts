@@ -2,6 +2,7 @@ import type { AvatarGenerationLogger, AvatarImageProvider } from './avatar-gener
 import type { SweepTimers } from './boot-sweep.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
+import type { MessageRouter } from './message-routing/jev.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
 
 /** PostgreSQL- and Clerk-backed Haus Server HTTP and WebSocket application. */
@@ -25,6 +26,7 @@ export interface HausServerApplicationOptions {
     computerReleaseManifestUrl?: string;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
+    messageRouter?: MessageRouter;
     /** Server-owned OpenAI key; omitted when avatar generation is unavailable. */
     openAiApiKey?: string;
     /** Exact identity of the running release; absent for an ordinary development Server. */

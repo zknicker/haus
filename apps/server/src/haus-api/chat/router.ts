@@ -11,6 +11,7 @@ import { listChatsProcedure } from './list.ts';
 import { listArchivedChatsProcedure } from './list-archived.ts';
 import { markChatReadProcedure } from './mark-read.ts';
 import { listMentionOptionsProcedure } from './mention-options.ts';
+import { readMessageRoutingProcedure } from './message-routing.ts';
 import { listChatMessagesProcedure } from './messages.ts';
 import { onCompositionProcedure } from './on-composition.ts';
 import { onChatEventProcedure } from './on-event.ts';
@@ -35,6 +36,7 @@ export const chatRouter = createRouter({
     markRead: markChatReadProcedure,
     mentionOptions: listMentionOptionsProcedure,
     messages: listChatMessagesProcedure,
+    messageRouting: readMessageRoutingProcedure,
     onComposition: onCompositionProcedure,
     onEvent: onChatEventProcedure,
     publishComposition: publishCompositionProcedure,

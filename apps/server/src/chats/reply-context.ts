@@ -1,4 +1,4 @@
-import type { ChatMessageReply, ChatMessageReplyReference } from '@haus/api';
+import type { ChatMessageReply, ChatMessageReplyReference, ChatSendInput } from '@haus/api';
 import { and, eq, ilike, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { escapeLike } from '../agent-api/resolve-target.ts';
@@ -241,4 +241,18 @@ export function messageIdPredicate(value: string) {
     return value.startsWith('msg_')
         ? eq(chatMessagesTable.id, value)
         : ilike(chatMessagesTable.id, `msg_${escapeLike(value)}%`);
+}
+
+export async function resolveChatReplyParent(
+    db: Pick<HausDatabase, 'select'>,
+    input: ChatSendInput,
+    chatId: string
+) {
+    return input.replyToMessageId
+        ? await resolveInlineReplyParent(db, {
+              chatId,
+              replyToMessageId: input.replyToMessageId,
+              serverId: input.serverId,
+          })
+        : null;
 }

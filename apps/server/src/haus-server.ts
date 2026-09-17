@@ -5,6 +5,7 @@ import {
     createHausServerApplication,
     type HausServerApplication,
 } from './haus-server-application.ts';
+import { createJevRouter } from './message-routing/jev.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
 import {
     logStartupBanner,
@@ -30,6 +31,9 @@ async function start() {
         databaseUrl: env.HAUS_DATABASE_URL,
         avatarImageProvider: createAvatarImageProvider(),
         openAiApiKey: env.HAUS_OPENAI_API_KEY,
+        messageRouter: env.HAUS_TYPESAFE_API_KEY
+            ? createJevRouter(env.HAUS_TYPESAFE_API_KEY)
+            : undefined,
         releaseIdentity: release,
         staticAppRoot: env.HAUS_STATIC_APP_ROOT,
     });

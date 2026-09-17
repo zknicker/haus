@@ -131,6 +131,7 @@ export async function createHausServerApplication(
         // operator's test fire: a test costs exactly what a real delivery does.
         const triggerRateLimiter = new TriggerRateLimiter();
         const createContext = createHausContextFactory({
+            messageRouter: options.messageRouter,
             agentDelivery,
             appOrigin: options.appOrigin,
             attachmentRoot,

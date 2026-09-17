@@ -1,4 +1,4 @@
-import type { MessageBodyKind } from '@haus/api';
+import type { MessageBodyKind, MessageRoutingAudit } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -13,6 +13,7 @@ import {
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
+import { bunJsonb } from './bun-jsonb.ts';
 import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
@@ -30,6 +31,7 @@ export const chatMessagesTable = pgTable(
         bodyKind: text('body_kind').notNull().default('text').$type<MessageBodyKind>(),
         chatId: text('chat_id').notNull(),
         content: text('content').notNull(),
+        deliveryRouting: bunJsonb('delivery_routing').$type<MessageRoutingAudit>(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         id: text('id').primaryKey(),
         nonce: text('nonce').notNull(),

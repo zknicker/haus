@@ -7,7 +7,13 @@ export const sendChatMessageProcedure = chatProcedure
     .input(chatSendInputSchema)
     .output(chatMessageReceiptSchema)
     .mutation(async ({ ctx, input }) => {
-        const result = await sendChatMessage(ctx.hausDb, ctx.member, input, ctx.agentDelivery);
+        const result = await sendChatMessage(
+            ctx.hausDb,
+            ctx.member,
+            input,
+            ctx.agentDelivery,
+            ctx.messageRouter
+        );
 
         for (const event of result.events) {
             emitDurableChatEvent({ audienceUserId: null, event });

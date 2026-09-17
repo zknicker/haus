@@ -8,6 +8,9 @@ import {
     attachmentMetadata,
     requireMessageAttachments,
 } from '../attachments/message-attachments.ts';
+import { applyMessageRouting } from '../message-routing/apply-message-routing.ts';
+import type { MessageRouter } from '../message-routing/jev.ts';
+import { prepareMessageRouting } from '../message-routing/route-human-message.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -28,7 +31,7 @@ import { toChatMessage } from './message-shape.ts';
 import {
     InvalidInlineReplyError,
     readInlineReplyContext,
-    resolveInlineReplyParent,
+    resolveChatReplyParent,
 } from './reply-context.ts';
 import { readExistingChatMessage, replayChatMessage } from './send-message-replay.ts';
 
@@ -57,8 +60,10 @@ export async function sendChatMessage(
     db: HausDatabase,
     member: HausUser | null,
     input: ChatSendInput,
-    agentDelivery: AgentDelivery
+    agentDelivery: AgentDelivery,
+    messageRouter?: MessageRouter
 ): Promise<SendChatMessageResult> {
+    const preparedRouting = await prepareMessageRouting(db, member, input, messageRouter);
     return await db.transaction(async (tx) => {
         // Server row first, then authorize: a send that started before a removal
         // must re-read membership behind it rather than commit past it.
@@ -222,12 +227,22 @@ export async function sendChatMessage(
 
         // Plan every Agent recipient under its Server-owned attention state in
         // this same transaction. The wire nudge remains separately recoverable.
-        const recipients = await planAgentMessageRecipients(tx, {
+        const plannedRecipients = await planAgentMessageRecipients(tx, {
             authorAgentId: null,
             chatId: writeChatId,
             content: input.content,
             messageId: message.id,
             serverId: input.serverId,
+        });
+        const recipients = await applyMessageRouting(tx, {
+            serverId: input.serverId,
+            chatId: writeChatId,
+            sequence: writeChat.lastMessageSequence,
+            prepared: preparedRouting,
+            chatKind: writeChat.kind,
+            isReply: Boolean(input.replyToMessageId),
+            messageId: message.id,
+            recipients: plannedRecipients,
         });
         for (const recipient of recipients) {
             await agentDelivery.enqueue(tx, {
@@ -271,18 +286,4 @@ export async function sendChatMessage(
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };
     });
-}
-
-async function resolveChatReplyParent(
-    db: Pick<HausDatabase, 'select'>,
-    input: ChatSendInput,
-    chatId: string
-) {
-    return input.replyToMessageId
-        ? await resolveInlineReplyParent(db, {
-              chatId,
-              replyToMessageId: input.replyToMessageId,
-              serverId: input.serverId,
-          })
-        : null;
 }

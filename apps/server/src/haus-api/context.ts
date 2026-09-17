@@ -6,6 +6,7 @@ import type { AvatarImageService } from '../avatar-generation/service.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
+import type { MessageRouter } from '../message-routing/jev.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { McpIconResolver } from '../server-mcp/icons.ts';
 import type { McpOAuthRelay } from '../server-mcp/oauth-relay.ts';
@@ -43,6 +44,7 @@ export interface HausContext {
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
+    messageRouter?: MessageRouter;
     postCommitWork: ServerPostCommitWork;
     /** HTTP Host header, used only to constrain localhost development procedures. */
     requestHost: string | null;
@@ -71,6 +73,7 @@ export interface HausContextDependencies {
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
+    messageRouter?: MessageRouter;
     postCommitWork: ServerPostCommitWork;
     runtime: EffectRuntime<never>;
     triggerRateLimiter: TriggerRateLimiter;
