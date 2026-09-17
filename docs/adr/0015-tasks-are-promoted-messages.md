@@ -14,6 +14,11 @@ Accepted (2026-07-22, WS5 of the Raft-alignment program; decision D8 in
 `specs/raft-alignment/README.md`, ruled 2026-07-20/21). Supersedes the retired
 pre-flip tracker (tasks/epics/T-numbers/dispatch).
 
+Amended 2026-09-16 by [ADR 0029](0029-inline-replies-preserve-conversation.md): explicit status
+updates complete tasks; run output no longer implies completion. Inline or Thread messages do
+not affect task tier. Work may continue in its channel or DM, with replies following the request.
+The earlier completion and Thread-tier rules below are historical.
+
 Amended 2026-09-08 by the background-claim decision recorded below: the claim
 rule returns, promotion stops creating the Thread, and claimed tasks carry a
 tier. Amended 2026-09-04 by ADR 0026 in one respect: the private assignment receipt

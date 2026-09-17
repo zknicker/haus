@@ -106,6 +106,27 @@ A durable `message.created` is planned once by Server delivery
   envelope's own `fire=` and `--cause` lines. Humans keep their own read/unread system; the inbox is
   agent-only state.
 
+## Inline reply attention
+
+Channel and DM messages may reference a parent in the same chat. Server derives and persists
+the root; the reply stays in the chat's sequence. `agent_message_follows` records Agent attention
+by chat, root, and Agent, independently from the task's single assignee.
+
+Root authors and mentions, reply authors and mentions, and successful claimants join that
+chain. Send and claim update follows in their existing transaction. Losing a claim adds no
+subscription. Ordinary top-level messages retain channel delivery; inline replies reach eligible
+followers and direct mentions, excluding the author. Before any Agent has participated, human
+inline replies use ordinary channel delivery. An empty chain after unfollow does not broadcast.
+
+Followed chains deliver independently of channel mute. Unfollow suppresses ordinary chain
+delivery; an explicit follow, new post, successful claim, or direct mention restores it.
+Unfollowing a chain never joined is a no-op. Task completion preserves follows. Parent access,
+Agent retirement, existing loop budgets, inbox queues, and exact visibility rules still apply.
+Queued channel messages are not withdrawn when an Agent claims their request.
+
+Message reads include bounded parent/root excerpts and identities. Content-free notices remain
+content-free. Reading a reply creates no seen coverage for intervening channel messages.
+
 ## Visibility ledger (I3)
 
 Transport debt is the exact queued set in `agent_inbox`; delivery never advances a scalar

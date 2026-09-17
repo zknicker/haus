@@ -1,8 +1,9 @@
 # Threads
 
 Raft-aligned thread model (T1/T2/T3/U5 in `specs/raft-alignment/README.md`). A thread is a
-sub-conversation anchored on one top-level message. Replying IS threading; inline replies
-(`parent_message_id`) do not exist.
+sub-conversation anchored on one channel or DM message. Inline replies stay in the parent
+conversation; choosing **Reply in thread** creates or continues a separate child conversation.
+[ADR 0029](../docs/adr/0029-inline-replies-preserve-conversation.md) separates the two actions.
 
 ## Model (T1)
 
@@ -16,7 +17,7 @@ sub-conversation anchored on one top-level message. Replying IS threading; inlin
 - Canonical `msg_<32 hex>` anchors use their first 8 hex characters. Existing non-canonical
   anchors use their exact full id so the target stays resolvable. Target grammar (D2, shared with
   the WS1 CLI): `#channel:<anchor-ref>` and `dm:@name:<anchor-ref>`.
-- First reply auto-creates the thread. No nesting: a thread chat cannot anchor another thread
+- First send to a thread target auto-creates the thread. No nesting: a thread chat cannot anchor another thread
   (anchors must live in a `channel`, `dm`, or `task` chat). Thread messages cannot become tasks.
 - Threads have **no membership of their own**. Access derives from the parent chat's
   participants; thread-chat participant rows are incidental author upserts, never authoritative.
@@ -46,7 +47,7 @@ restores ordinary delivery because the newer address supersedes the earlier unfo
 ## Immutability (T2)
 
 No message edit or delete paths, no tombstones, nothing anticipating redaction. Corrections are
-thread replies. The internal `updateStreamingMessage` in-flight mutation (pre-delivery
+new messages, either inline or in a thread. The internal `updateStreamingMessage` in-flight mutation (pre-delivery
 streaming) is not an edit path and stays. Chat-level `clear` remains a chat reset, unrelated to
 per-message redaction.
 
@@ -74,14 +75,14 @@ parent chat's `unread_count` includes followed-thread unreads for the reader.
   block stays attached to its own prose.
 - "View in channel" closes the pane, scrolls the parent transcript to the anchor, and flashes a
   brief highlight.
-- Message hover cluster: Reply in thread, Add Reaction, Save Message (placeholder). Right-click
+- Message hover cluster: Reply, Reply in thread, Add Reaction, Save Message (placeholder). Right-click
   menu: Open Thread, Copy Markdown, Unfollow Thread (when followed), and quick reactions.
 - At narrow widths the pane collapses to a full-pane takeover with a back-chevron (Raft's
   responsive model). DMs thread identically to channels.
 
 ## Flow
 
-- Human reply: `chat.send` carries the parent Chat id plus
+- Human thread reply: `chat.send` carries the parent Chat id plus
   `thread: { anchorMessageId }`; the owner of canonical chat state atomically ensures the child
   Thread and writes the message in its independent sequence domain. Hosted Server Threads use
   PostgreSQL and parent-derived human authorization. Local execution chat uses Runtime and the

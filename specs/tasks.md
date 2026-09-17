@@ -1,8 +1,8 @@
 # Tasks
 
 Chat-first tasks implement D8 from `specs/raft-alignment/README.md`. A task is one canonical hosted
-message plus Server-owned lifecycle metadata. Its deterministic child Thread is the work surface;
-all views are projections, never another conversation or content store.
+message plus Server-owned lifecycle metadata. Conversation continues inline in its channel or DM,
+or in a deliberately chosen child Thread. All task views project the canonical message and metadata.
 
 ## Hosted model
 
@@ -14,30 +14,26 @@ Thread itself does not exist until someone replies in it.
 
 `origin` is `composed` (a human composed the message as a task), `converted` (a human promoted an
 existing message), or `claimed` (an Agent claimed a message nobody had promoted). Reads derive two
-more fields. `tier` is `background` for a `claimed` task in `in_progress` or `done` whose assignee
-has said nothing in its Thread, that carries no Ask, and that has no `tracked_at` — anyone else's
-Thread replies are chatter and leave the tier alone; everything else is `tracked`,
+more fields. `tier` is `background` for a `claimed` task in `in_progress` or `done` that carries
+no Ask and has no `tracked_at`. Inline and Thread messages leave the tier alone; everything else is `tracked`,
 and only the default Board and List lenses distinguish them. `live` is true while the assignee
 Agent's in-flight run holds the task's message or Thread. `tracked_at` records what the current row
 cannot show — the status left `in_progress`/`done`, or the claiming run settled with the work open
-— so the tier predicate stays a pure function of one row plus two queried facts, and only ever
+— so the tier predicate stays a pure function of one row plus Ask evidence, and only ever
 moves a task from background to tracked.
 
-When the claiming run completes having posted at least one top-level message in the task's anchor
-Chat, Server sets the task `done` through the ordinary update path. Same-turn claimed work resolves
-without passing through `in_review`; a claim the run did not answer — and every claim held by a run
-that failed, was interrupted, or was stopped, restarted, or reset — stays `in_progress` and is
-stamped tracked.
+An explicit status update completes the task. Posting a message never sets it `done`. Same-turn
+work can finish directly without `in_review`; claims left open when a run settles remain
+`in_progress` and become tracked, including completed, failed, interrupted, and stopped runs.
 
 `task_labels` is the small Server task-label catalog; `message_task_labels` links catalog entries
 to tasks. Composite foreign keys keep task, message, Chat, assignee, and labels in one
 Server tenant. `chat_messages.task` and task-list reads project the same row.
 
-Only top-level Channel or DM messages can be promoted. Promotion is idempotent by canonical
+Channel or DM messages, including inline replies, can be promoted. Promotion is idempotent by canonical
 message identity. Atomic create uses the message nonce for replay and creates the message, task,
 and durable events in one transaction — not the Thread. Creation and promotion do not append a
-user-visible state-change message; the canonical task message is the record, and the Thread becomes
-the work surface once anyone replies. A task whose Thread was never needed still answers
+user-visible state-change message; the canonical task message is the record. A task whose Thread was never needed still answers
 `thread.get`, `chat.messages`, and its `threadSummary` as an empty Thread, so deep links keep
 working; deliberately following such a Thread materializes it, and the claimant's follow attaches
 the moment it appears.
@@ -54,6 +50,9 @@ message (ADR 0026).
   `expectedVersion`. An Agent can update lifecycle state only while it owns the task.
 - Claim is self-only. Task writes lock the Server before membership, Chat, and task rows. The
   first valid claimant wins; a second claimant cannot acquire ownership at the same version.
+- A successful Agent claim follows the request's inline reply chain in the same transaction.
+  A reply to a human's original request therefore reaches its claimant. Completion preserves
+  attention; subsequent work can be claimed on a later reply without reopening the old task.
 - Only the current assignee can unclaim.
 - Server Owners and Admins can reserve or clear assignment for an Agent or a human. A human
   assignee must have active Server membership and parent-Chat access; an Agent assignee must be

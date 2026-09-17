@@ -96,18 +96,18 @@ product-noun substitution.
 | Sending messages — blind-review seat | Raft-only paragraph dropped: `--reviewer-isolation` on `raft message send` / `task claim` / `task update`, `RAFT_REVIEWER_ISOLATION=1`, and the content-free held-state disclosure it implies | Deliberate — Raft-only mechanism: Haus's CLI has no such flag or env var and no blind-review seat to assign, so the paragraph would name an unreachable surface. `managed-instructions.test.ts` asserts the string never appears in the render |
 | Reminders | Haus drops Raft's "the receipt/fire system message is visible in that surface"; adds `--cause`, script reminders, and the `recipes/technique/reminder-cron` Manual pointer | Deliberate — ADR 0026 (a fire writes nothing to chat), ADR 0016, specs/automation-provenance.md |
 | Triggers | Haus-only section | Deliberate — ADR 0027, specs/triggers.md |
-| Cloud agents | Haus-only section | Deliberate — specs/cloud-agents.md |
-| Threads | Parity ("When replying to a message from a thread" vs Raft's "When you receive a message from a thread" is the only wording delta) | — |
+| Cloud agents | Haus-only section: automatic completion delivery, work-thread implementation and revisions, and coordinating Agent acknowledgment and concise outcome in the requester conversation, following the human into the work thread | Deliberate — specs/cloud-agents.md; cloud-agent instruction tests |
+| Threads | Haus keeps a request and its full answer in the requesting conversation, following the human into threads. Replaces the generic incoming-header-to-new-thread example with factual channel/DM target construction; retains read-before-reply, own-message threads, unfollow, and no nesting | Deliberate — operator-approved conversation policy and Fable review. Fixes conflicting guidance, not prompt-budget pressure. Natural tests motivate the change without proving the example caused each failure; rendered-prompt and repeated routing tests cover it |
 | Discovering people and channels | Parity | — |
 | Channel awareness | Parity | — |
 | Third-party app message safety | Raft-only section — Haus has no `type=third_party_app` sender kind | Deliberate — specs/messages.md sender kinds; revisit if Haus ever admits external app senders |
 | Capability and execution-surface selection | Parity for the section body and `#### Runtime tools and Server-managed MCP` (restored 2026-09-09), with three documented subtractions and one addition: the Agent Login inventory bullet and the `#### Raft Agent Login integrations` block are omitted, the surface-selection sentence drops ", an Agent Login integration" from its list of mechanisms a provider may be reachable through, the runtime-inventory bullet reads "It is not populated by the `haus` CLI" in place of Raft's "`raft integration list`", and Haus's MCP paragraph teaches discovery and invocation through the fixed `execute` tool, preserving the local-configuration troubleshooting boundary |  Deliberate — Raft-only mechanism: Haus has no Integrations or Agent Login surface, so naming one would teach a surface an Agent cannot reach; specs/mcp.md, ADR 0017; gated by `mcp-granted-lookup` / `mcp-revoked-honest-failure` |
 | Reading history | Parity | — |
 | Historical references | Parity | — |
-| Tasks — decision rule, status flow, workflow steps 1–3, `task create`, creating new tasks | Parity | — |
+| Tasks — decision rule, status flow, workflow steps 1–2, `task create`, creating new tasks | Parity | — |
 | Tasks — "A system notification about task changes" bullet | Dropped | Deliberate — ADR 0015: "Task state changes do not create receipt messages" |
 | Tasks — `closed` status | Additive sentence after Raft's status flow | Deliberate — ADR 0015 (reversible `closed`), specs/tasks.md |
-| Tasks — same-turn completion | One additive divergence sentence: finish in the same turn → reply in the chat where the request was made (not the task's thread) and set it `done`, do not park it in `in_review`; the thread carries progress notes, questions, and work that outlives the turn | Deliberate — the register's single Tasks divergence; keeps `in_review` meaningful without recreating the "never claim" hole, and overrides workflow step 3's Raft-verbatim "post updates in the task's thread" for same-turn work (Haus's two-tier background vs tracked task split) |
+| Tasks — conversation routing and same-turn completion | Haus's local conversation guidance continues each request where it was asked, following the human's lead, from acknowledgment to result. A separate sentence retains `done` for a claimed message fully finished in the same turn | Deliberate — operator-approved conversation policy. Workflow step 3 is intentionally replaced with the operator-approved positive conversation rule after live tests showed an additive exception still sent ordinary replies into threads. This is a behavior change, not a budget reduction. Claim authority, formal Asks, automation placement, and approval requirements retain their own contracts. Covered by `task-thread-routing`, `task-conversation-routing`, and harness instruction tests |
 | Tasks — stale close | Additive sentence: an `in_review` task silent for `TASK_IN_REVIEW_STALE_DAYS` is closed as stale by the Server | Deliberate — `apps/server/src/tasks/close-stale-tasks.ts` |
 | Tasks — `--assignee @peer`, receipts, Owners/Admins | Haus replaces Raft's "A server owner/admin may use `--assignee @someone-else`" with peer assignment plus receipt semantics | Deliberate — ADR 0015 amended by ADR 0026 |
 | Splitting tasks | Parity | — |
@@ -132,12 +132,27 @@ product-noun substitution.
 
 ## CLI output surfaces
 
+Inline-reply amendment (ADR 0029): Haus guidance under Sending messages teaches `--reply-to`
+for acknowledgments, progress, and answers before the preserved Raft examples. The Threads
+section distinguishes sending to a child-thread target. Attention mechanics
+live in the `replies` Manual topic. Task guidance names explicit status updates as completion
+and refers to review conversation activity rather than only thread activity. Fable reviewed
+the wording; existing Raft-verbatim guidance stays intact and the prompt budget is unchanged.
+Coverage: thread-instructions, CLI inline sends, and inline-reply-followups live scenario.
+The placement refinement followed a live trial where plain channel acknowledgments lost their
+reply ancestry. Natural conversation trials now assert root ancestry, not just channel placement.
+The final wording ties placement to where the incoming message arrived, after a fresh worker
+still chose a task thread for a channel calculation. Passing reruns do not erase that observed drift.
+
 The Agent CLI's own printed guidance is not part of Raft's prompt, but it teaches the same
 behaviours and is diffed here when it mirrors a Raft helper.
 
 | Surface | Difference | Status / owner |
 | --- | --- | --- |
-| `haus task claim` success hint | Raft's `formatClaimResults` prints a thread target per claimed task under "Follow up in each task's thread". Haus prints "Follow up on each task:" and, per task, `#N → reply in <target> when done (same-turn work); use the thread "<target>:<shortId>" for progress notes, questions, or work that outlives this turn.` | Deliberate — Raft has no background/tracked split, so its unconditional thread hint pushes a same-turn answer out of the chat that asked for it and strands the requester. Mirrors the Tasks same-turn divergence above; the thread target string is still printed verbatim so it can be copied |
+| `haus task claim` success receipt | Reports claim count, task numbers, and message IDs; omits follow-up routing advice | Deliberate — claiming establishes ownership. Canonical task location does not select the current conversation. Covered by agent-task-actions tests and natural routing evals |
+| `haus task create` success hint | Prints the task thread address as a reference | Deliberate — conversation placement follows the human request rather than a generic thread instruction |
+| Inbox delivery trailer | Identifies `target` as the requesting conversation; removes the independent invitation to choose a new thread | Deliberate — natural conversation evals exposed conflicting routing advice after the system-prompt policy changed; covered by inbox-format tests and `conversation-natural-followups` |
+| Cloud Agent manual and start receipt | Manual distinguishes implementation details from requester outcomes; receipt supplies the work-thread address as a reference | Deliberate — aligns required secondary guidance with the coordinating Agent policy; covered by manual/CLI tests and opt-in `cloud-conversation-handoff` |
 
 ## Open TODOs
 

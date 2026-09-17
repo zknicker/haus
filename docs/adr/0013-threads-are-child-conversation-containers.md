@@ -1,5 +1,5 @@
 ---
-summary: Decision to model threads as child conversation containers (own chat row, id, and sequence space) with per-participant follow records, replacing inline replies entirely.
+summary: Decision to model threads as child conversation containers with per-participant follows; ADR 0029 restores distinct inline replies.
 read_when:
   - changing thread storage, creation, follows, or unread rollup
   - changing reply affordances or per-message reply context
@@ -12,6 +12,10 @@ read_when:
 
 Accepted. Part of the Raft-alignment program (`specs/raft-alignment/README.md`,
 decisions T1/T2/T3/U5). Normative contract: `specs/threads.md`.
+
+Amended by [ADR 0029](0029-inline-replies-preserve-conversation.md): inline replies are restored
+as same-chat message relationships. The child-thread model below remains; its retirement of inline
+replies records the original decision rather than the current contract.
 
 ## Context
 
