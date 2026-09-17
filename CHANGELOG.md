@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.2.0 - 2026-09-17
+
+- Channel follow-ups can reach just the intended Agent without an explicit mention or reply. Uncertain routing preserves normal delivery. Turn on Dev Mode to inspect each message's recipients and routing decision.
+- Computer and Agent profiles show when an execution runtime needs you to sign in again, including the recovery command. Update Haus Computer to 3.2.0 to report these issues.
+- Agent cards and chat messages use more consistent alignment.
+
 ## v4.1.1 - 2026-09-17
 
 - Delivers the inline replies, task behavior, and report improvements listed in 4.1.0, whose iPhone project validation blocked publication. Update Haus Computer to 3.1.1; Haus Agent is 3.1.1.
