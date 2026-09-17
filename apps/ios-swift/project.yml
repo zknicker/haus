@@ -44,8 +44,8 @@ targets:
         # via explicit xcodebuild args from `bun run ios:release`; see
         # docs/operations/ios-testflight.md. Both values mirror the latest
         # published iOS target in releases.json via release:sync-versions.
-        CURRENT_PROJECT_VERSION: "30"
-        MARKETING_VERSION: 3.1.0
+        CURRENT_PROJECT_VERSION: "31"
+        MARKETING_VERSION: 3.2.0
         SWIFT_VERSION: "6.0"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1"
