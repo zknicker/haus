@@ -100,6 +100,8 @@ export const agentMessageDraftsTable = pgTable(
         chatId: text('chat_id').notNull(),
         content: text('content').notNull(),
         reholdCount: integer('rehold_count').notNull(),
+        /** Direct parent of a held inline reply, if any. */
+        replyToMessageId: text('reply_to_message_id'),
         savedAt: timestamp('saved_at', { withTimezone: true }).notNull().defaultNow(),
         serverId: text('server_id').notNull(),
         sessionGeneration: integer('session_generation').notNull(),
@@ -117,6 +119,15 @@ export const agentMessageDraftsTable = pgTable(
             columns: [table.serverId, table.chatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],
             name: 'agent_message_drafts_chat_fk',
+        }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.serverId, table.chatId, table.replyToMessageId],
+            foreignColumns: [
+                chatMessagesTable.serverId,
+                chatMessagesTable.chatId,
+                chatMessagesTable.id,
+            ],
+            name: 'agent_message_drafts_reply_parent_fk',
         }).onDelete('cascade'),
         check(
             'agent_message_drafts_shape',

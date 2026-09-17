@@ -18,6 +18,8 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     private let ghostTempo: HausGhostTempo
     let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
     let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
+    let onSendInlineReply:
+        ((ChatDestination, String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     let hasOlderMessages: (ChatPresentation) -> Bool
     let isLoadingOlderMessages: (ChatPresentation) -> Bool
@@ -82,6 +84,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         ghostTempo: HausGhostTempo = .calm,
         onOpenThread: @escaping (ChatPresentation, MessagePresentation) -> Void = { _, _ in },
         onSend: @escaping (ChatDestination, String, [ComposerAttachment]) async -> Bool,
+        onSendInlineReply: ((ChatDestination, String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)? = nil,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
@@ -118,6 +121,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.ghostTempo = ghostTempo
         self.onOpenThread = onOpenThread
         self.onSend = onSend
+        self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages

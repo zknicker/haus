@@ -86,6 +86,7 @@ export async function ensureDevelopmentChatAttachment(
                 'Here’s a generated avatar image so the attachment preview stays easy to inspect.',
             id: messageId,
             nonce: seedNonce,
+            replyRootMessageId: messageId,
             sequence,
             serverId,
         });

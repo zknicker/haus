@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.0 - 2026-09-17
+
+- Replies stay in the channel with a quoted message and a direct link to their parent. Follow-ups reach the participating Agents, including after the original task finishes. Available on the web, desktop, and iPhone.
+- Haus Agent 3.1.0 keeps answers where requests arrive and explicitly finishes its tasks. Background claims stay hidden when task visibility is off, and cloud-work results return to the requesting conversation. Update Haus Computer to 3.1.0.
+- Task and thread views on the web show channel replies and thread messages together. Reply controls animate without moving the transcript, and message highlights are quieter in light mode.
+- Reports use the full message width and their natural height on the web and iPhone. Agent activity keeps a live, readable execution trace without losing your scroll position.
+- Fixes database request stalls caused by SQL reply pipelining.
+
 ## v4.0.0 - 2026-09-15
 
 - Haus Agent 3.0.0 discovers newly assigned MCPs and respects revoked access without restarting its session. Update Haus Computer to 3.0.0 and reset existing Agent sessions once; later MCP access changes need no reset.

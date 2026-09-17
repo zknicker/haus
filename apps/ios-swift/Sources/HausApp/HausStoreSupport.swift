@@ -59,18 +59,27 @@ struct ChatMessagesInput: Encodable, Sendable {
     let chatId: String
     let limit: Int
     let beforeSequence: Int?
+    let replyRootMessageId: String?
 
-    init(serverId: String, chatId: String, limit: Int, beforeSequence: Int? = nil) {
+    init(
+        serverId: String,
+        chatId: String,
+        limit: Int,
+        beforeSequence: Int? = nil,
+        replyRootMessageId: String? = nil
+    ) {
         self.serverId = serverId
         self.chatId = chatId
         self.limit = limit
         self.beforeSequence = beforeSequence
+        self.replyRootMessageId = replyRootMessageId
     }
 
     private enum CodingKeys: String, CodingKey {
         case beforeSequence
         case chatId
         case limit
+        case replyRootMessageId
         case serverId
     }
 
@@ -79,6 +88,7 @@ struct ChatMessagesInput: Encodable, Sendable {
         try container.encodeIfPresent(beforeSequence, forKey: .beforeSequence)
         try container.encode(chatId, forKey: .chatId)
         try container.encode(limit, forKey: .limit)
+        try container.encodeIfPresent(replyRootMessageId, forKey: .replyRootMessageId)
         try container.encode(serverId, forKey: .serverId)
     }
 }
@@ -93,6 +103,7 @@ struct ChatSendInput: Encodable, Sendable {
     let content: String
     let nonce: String
     let attachmentIds: [String]
+    let replyToMessageId: String?
     let thread: ChatThreadInput?
 
     private enum CodingKeys: String, CodingKey {
@@ -100,6 +111,7 @@ struct ChatSendInput: Encodable, Sendable {
         case chatId
         case content
         case nonce
+        case replyToMessageId
         case serverId
         case thread
     }
@@ -110,6 +122,7 @@ struct ChatSendInput: Encodable, Sendable {
         try container.encode(chatId, forKey: .chatId)
         try container.encode(content, forKey: .content)
         try container.encode(nonce, forKey: .nonce)
+        try container.encodeIfPresent(replyToMessageId, forKey: .replyToMessageId)
         try container.encode(serverId, forKey: .serverId)
         try container.encodeIfPresent(thread, forKey: .thread)
     }
@@ -136,6 +149,8 @@ struct PendingChatMessage: Identifiable, Equatable, Sendable {
     let content: String
     let createdAt: Date
     let nonce: String
+    /// The selected parent snapshot shown while an inline reply is in flight.
+    let inlineReply: MessageReplyReferencePresentation?
     /// Adopted from the send receipt, before the page that carries the message
     /// is refetched. Nil until Server has named the message.
     var serverMessageID: String?

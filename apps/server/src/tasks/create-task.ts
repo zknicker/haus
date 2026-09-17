@@ -206,6 +206,7 @@ export async function createTask(
             authorAgentId: null,
             chatId: input.chatId,
             content: input.content,
+            messageId: message.id,
             serverId: input.serverId,
         });
         for (const recipient of recipients) {

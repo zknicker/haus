@@ -2,6 +2,7 @@
 // commentary. The DM is the Agent's standing chat, so this anchors on its head
 // and leaves it in place.
 
+import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
@@ -9,12 +10,13 @@ export default defineScenario({
     contract:
         'A plain DM question settles one turn that authors exactly one durable DM message, and that message carries the answer.',
     name: 'dm-single-concise-reply',
-    async run({ agents, expect, kit, log, settleTurn }) {
+    run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
         const [worker] = agents;
         const dmChatId = worker.dmChatId;
         if (!dmChatId) {
             throw new Error(`Agent @${worker.handle} has no Owner DM to send into.`);
         }
+        await kit.trackChat(dmChatId);
 
         const head = await kit.readHead(dmChatId);
         log('asking in the Owner DM');
@@ -29,5 +31,5 @@ export default defineScenario({
         const replies = kit.authoredBy(await kit.readMessages(dmChatId), worker.id, head);
         expect(replies, 'replies in the Owner DM').toHaveLength(1);
         expect(replies[0], 'DM answer').toContain('42');
-    },
+    }),
 });

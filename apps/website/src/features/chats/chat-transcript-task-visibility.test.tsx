@@ -31,7 +31,7 @@ test('a claimed task states nothing in Chat while the setting is off', () => {
     assert.doesNotMatch(markup, /Open thread/);
 });
 
-test('a claimed task with replies states its task in the Thread', () => {
+test('a claimed task with replies hides its task label when the setting is off', () => {
     const row = taskRow('msg_1', 'Rename the deploy script', {
         origin: 'claimed',
         status: 'in_progress',
@@ -41,10 +41,21 @@ test('a claimed task with replies states its task in the Thread', () => {
     );
 
     assert.match(markup, /2 replies/);
+    assert.match(markup, /aria-label="Open thread, 2 replies"/);
+    assert.doesNotMatch(markup, /message-task-chip/);
+    assert.doesNotMatch(markup, /Task #1/);
+    assert.doesNotMatch(markup, /0 replies/);
+});
+
+test('a claimed task with replies shows its task label when the setting is on', () => {
+    const row = taskRow('msg_1', 'Rename the deploy script', { origin: 'claimed' });
+    const markup = withTasksInChat(true, () =>
+        renderTranscript([{ ...row, thread: threadSummary(row.id, 2) }])
+    );
+
     assert.match(markup, /aria-label="Open thread, Task #1, 2 replies"/);
     assert.match(markup, /message-task-chip/);
     assert.match(markup, /Task #1/);
-    assert.doesNotMatch(markup, /0 replies/);
 });
 
 test('turning the setting on gives a claimed task the ordinary task surface', () => {

@@ -209,7 +209,7 @@ function canAppendUserMessage(entry: TranscriptTurnEntry, item: TranscriptItem) 
         return false;
     }
 
-    // A message carrying a task or a Thread owns a block beneath its prose.
+    // A task, Thread, or inline reply owns its own conversation context.
     // Merging it with a neighbour would stack that block against the wrong
     // message, so anything with attached work stands as its own row.
     const previous = entry.items.at(-1);
@@ -233,7 +233,7 @@ function hasAttachedWork(item: TranscriptItem) {
         return false;
     }
 
-    return Boolean(item.row.message.task) || Boolean(item.row.thread);
+    return Boolean(item.row.message.task || item.row.thread || item.row.message.reply);
 }
 
 export function getItemRunId(item: TranscriptItem) {

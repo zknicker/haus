@@ -4,6 +4,7 @@ import {
     Activity01Icon,
     BubbleChatIcon,
     Copy01Icon,
+    ReplyIcon,
     SmileIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
@@ -22,15 +23,18 @@ import { isThreadAnchorRow } from './thread-anchor.ts';
 export function MessageContextMenu({
     children,
     className,
+    onMessageHover,
     row,
 }: {
     children: React.ReactNode;
     className?: string;
+    onMessageHover?: () => void;
     row: TranscriptMessageRow;
 }) {
     const context = useTranscriptRenderContextOptional();
     const messageActions = useMessageContextActions();
     const canReply = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
+    const canReplyInline = Boolean(context?.onSelectInlineReply && isThreadAnchorRow(row));
     const canReact = Boolean(context?.onToggleReaction && isThreadAnchorRow(row));
 
     const onAction = (key: React.Key) => {
@@ -42,6 +46,10 @@ export function MessageContextMenu({
         }
         if (key === 'reply' && canReply) {
             context?.onOpenThread(row);
+            return;
+        }
+        if (key === 'reply-inline' && canReplyInline) {
+            context?.onSelectInlineReply?.(row.message);
             return;
         }
         if (key === 'details') {
@@ -63,6 +71,7 @@ export function MessageContextMenu({
             <ContextMenu.Trigger
                 className={cn('group/message-row relative block min-w-0 rounded-lg', className)}
                 data-message-id={row.message.id}
+                onMouseEnter={onMessageHover}
             >
                 {children}
             </ContextMenu.Trigger>
@@ -76,6 +85,12 @@ export function MessageContextMenu({
                         <Icon aria-hidden="true" icon={BubbleChatIcon} size={16} />
                         <Label>Reply in thread</Label>
                     </ContextMenu.Item>
+                    {canReplyInline ? (
+                        <ContextMenu.Item id="reply-inline" textValue="Reply">
+                            <Icon aria-hidden="true" icon={ReplyIcon} size={16} />
+                            <Label>Reply</Label>
+                        </ContextMenu.Item>
+                    ) : null}
                     {messageActions ? (
                         <ContextMenu.Item id="details" textValue="View turn details">
                             <Icon aria-hidden="true" icon={Activity01Icon} size={16} />

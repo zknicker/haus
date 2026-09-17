@@ -142,6 +142,16 @@ struct AuthenticatedHausView: View {
                             return true
                         }
                     },
+                    onSendInlineReply: { destination, content, attachments, reference in
+                        guard case .durableChat(let chat) = destination else { return false }
+                        return await store.send(
+                            content,
+                            to: chat.id,
+                            attachments: attachments,
+                            replyToMessageID: reference.id,
+                            replyPreview: reference
+                        )
+                    },
                     onOpenAttachment: { attachment in
                         try await store.downloadAttachment(attachment)
                     },

@@ -50,18 +50,22 @@ export async function appendSeedMessages(
     }
 
     const base = numbered.sequence - input.messages.length;
-    const rows = input.messages.map((message, index) => ({
-        authorAgentId: message.authorAgentId ?? null,
-        authorUserId: message.authorUserId ?? null,
-        bodyKind: message.bodyKind ?? ('text' as const),
-        chatId: input.chatId,
-        content: message.content,
-        createdAt: message.createdAt,
-        id: message.id ?? createOpaqueId('msg'),
-        nonce: message.nonce,
-        sequence: base + index + 1,
-        serverId: input.serverId,
-    }));
+    const rows = input.messages.map((message, index) => {
+        const id = message.id ?? createOpaqueId('msg');
+        return {
+            authorAgentId: message.authorAgentId ?? null,
+            authorUserId: message.authorUserId ?? null,
+            bodyKind: message.bodyKind ?? ('text' as const),
+            chatId: input.chatId,
+            content: message.content,
+            createdAt: message.createdAt,
+            id,
+            nonce: message.nonce,
+            replyRootMessageId: id,
+            sequence: base + index + 1,
+            serverId: input.serverId,
+        };
+    });
     await tx.insert(chatMessagesTable).values(rows);
 
     return rows.map((row) => ({ createdAt: row.createdAt, id: row.id, sequence: row.sequence }));

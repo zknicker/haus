@@ -1,9 +1,14 @@
 import type { CloudAgentBranch } from '@haus/api';
-import type { AgentCloudAgentWorkAttention, AgentInboxAsk, AgentInboxItem } from './launch.ts';
+import type {
+    AgentCloudAgentWorkAttention,
+    AgentInboxAsk,
+    AgentInboxItem,
+} from './agent-inbox-item.ts';
+import { formatInlineReplyContext } from './inline-reply-format.ts';
 
 const deliveryTrailer = [
     'Respond as appropriate. Complete all your work before stopping.',
-    "Reply in the channel or create/reply in a thread as appropriate; use each message's `target` and `msg` fields to choose the exact target.",
+    "Each message's `target` identifies the conversation where it was asked.",
 ].join('\n');
 
 /** Exact model-visible drain shape from specs/inbox.md. */
@@ -79,7 +84,7 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
     const mention = item.mentioned ? ' mentioned=true' : '';
     const envelope =
         `[target=${item.target} msg=${shortInboxId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${ask}${mention}] ` +
-        `${sender}: ${item.content}`;
+        `${sender}: ${item.content}${formatInlineReplyContext(item.reply)}`;
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
         : envelope;

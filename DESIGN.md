@@ -673,11 +673,29 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 - **Chat message width:** The transcript pane owns the horizontal gutter. Message bodies have
   no additional end padding, so text and thread previews use the space beside the avatar rail.
   Human and Agent message bodies use the full available width, without an Agent-only width cap.
+- **Inline replies:** A single muted line with a miniature author avatar and truncated excerpt sits
+  above the replying author. An elbow in the avatar rail connects the excerpt to the reply.
+  Each inline reply starts its own visual row; clicking the excerpt reveals its parent.
+  While composing, a compact “Replying to” header joins the editor into one rounded surface.
+  The recipient and cancel action remain visible; the original excerpt is available on hover.
+  The header uses the lighter background token, with cancel aligned above Send. The selected
+  message row, including its avatar and header, uses `--reply-highlight` (70% of accent-soft)
+  across the same area
+  as its hover background until the reply is canceled or sent.
+  The reply bar expands and fades in over 180ms and collapses over 120ms, without bounce.
+  The input corners morph on the same curve and timing as the bar, starting immediately
+  in both directions. Compact inputs keep a round curve throughout; reduced motion is instant.
+  The bar occupies the reserved transcript space above the input without changing layout or
+  scrolling messages. Its cancel button preserves pointer focus instead of flashing input focus;
+  keyboard focus remains available.
 - **Chat card backgrounds:** Thread/task previews and Cloud Agent cards share
   `nested-surface`: `rgb(189 189 219 / 10%)` in dark mode and solid `surface` in light mode.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
   Recalibrate it when those colors change. Message hover lightens the fill without dimming content;
-  clickable thread previews strengthen to 12% opacity on hover. Light keeps its existing hover fill.
+  clickable thread previews strengthen to 12% opacity on hover. Light-mode canvas rows use
+  `--background-hover`: a 50% `background-secondary` wash, including messages in task and thread views.
+- **Thread transcript fade:** Task and thread views fade messages over the final 4rem,
+  reaching transparency 0.75rem above the composer so content clears its rounded edges.
 - **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`. The sidebar updater keeps its primary opacity while pending because pending blocks presses there but also represents live status.
 - **Cursors:** Keep the desktop arrow on buttons and other app controls. Reserve the pointer for
   true hyperlinks and specialized cursors for an active manipulation such as dragging or resizing;

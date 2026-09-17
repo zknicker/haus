@@ -3,6 +3,8 @@ import SwiftUI
 enum ThreadTranscriptItem: Identifiable, Equatable {
     case anchor(MessagePresentation, hasReplies: Bool)
     case taskMetadata(TaskPresentation, hasReplies: Bool)
+    case inlineReplies
+    case threadHeader
     case reply(MessagePresentation)
     case pendingSend
 
@@ -10,6 +12,8 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         switch self {
         case .anchor(let message, _): "thread-anchor-\(message.id)"
         case .taskMetadata: "thread-task-metadata"
+        case .inlineReplies: "thread-inline-replies"
+        case .threadHeader: "thread-header"
         case .reply(let message): message.id
         case .pendingSend: "thread-pending-send"
         }
@@ -19,7 +23,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         switch self {
         case .pendingSend: true
         case .reply(let message): message.isPending
-        case .anchor, .taskMetadata: false
+        case .anchor, .taskMetadata, .inlineReplies, .threadHeader: false
         }
     }
 
@@ -33,12 +37,17 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     static func items(
         anchor: MessagePresentation,
         replies: [MessagePresentation],
-        pending: Bool
+        pending: Bool,
+        includesInlineReplies: Bool = false
     ) -> [ThreadTranscriptItem] {
         let hasReplies = !replies.isEmpty
         var items: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: hasReplies)]
         if let task = anchor.task {
             items.append(.taskMetadata(task, hasReplies: hasReplies))
+        }
+        if includesInlineReplies {
+            items.append(.inlineReplies)
+            items.append(.threadHeader)
         }
         items.append(contentsOf: replies.map(ThreadTranscriptItem.reply))
         if pending {

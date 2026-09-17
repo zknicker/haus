@@ -103,6 +103,7 @@ extension HausStore {
         let lifecycleRevisionAtStart = lifecycleRevision
         let snapshot = try await fetchServerSnapshot(serverID: serverID)
         apply(snapshot, lifecycleRevisionAtStart: lifecycleRevisionAtStart)
+        await refreshInlineReplies()
 
         // Every Chat surface on the user's stack is refetched eagerly, not just
         // the deepest one: a pushed Thread covers its parent Chat, and popping
@@ -128,6 +129,9 @@ extension HausStore {
     /// projections that field feeds, so a snapshot that changed nothing
     /// repaints nothing. `servers` is plain storage and guards its own write.
     private func apply(_ snapshot: ServerSnapshot, lifecycleRevisionAtStart: Int) {
+        if servers.first?.id != snapshot.servers.first?.id {
+            resetInlineReplyCache()
+        }
         if servers != snapshot.servers { servers = snapshot.servers }
         chats = snapshot.chats
         agents = snapshot.agents

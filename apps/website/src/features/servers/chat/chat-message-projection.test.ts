@@ -89,6 +89,7 @@ function message(id: string, content: string): ChatMessage {
         id,
         nonce: `nonce_${id}`,
         reactions: [],
+        reply: null,
         runId: null,
         sequence: Number(id.slice(-1)),
         serverId: 'srv_1',

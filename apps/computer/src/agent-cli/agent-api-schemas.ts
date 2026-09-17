@@ -1,5 +1,6 @@
 import {
     agentAutomationEventSchema,
+    chatMessageReplySchema,
     type HausAgentMessage,
     type HausAgentSendResponse,
     taskOrigins,
@@ -108,6 +109,7 @@ export const agentMessageSchema = z.object({
         .array(z.object({ actors: z.array(taskActorSchema), emoji: z.string() }))
         .optional(),
     replyCount: z.number().int().nonnegative().optional(),
+    reply: chatMessageReplySchema.nullable().optional(),
     replyTarget: z.string().min(1).optional(),
     role: z.enum(['user', 'assistant', 'system']),
     sender: z.object({

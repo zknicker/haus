@@ -32,9 +32,11 @@ import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 /** Message attachments become Thread metadata once replies exist. */
 export function ThreadMessageSurface({
     children,
+    onMessageHover,
     row,
 }: {
     children: React.ReactNode;
+    onMessageHover?: () => void;
     row: TranscriptMessageRow;
 }) {
     const context = useTranscriptRenderContextOptional();
@@ -49,12 +51,18 @@ export function ThreadMessageSurface({
     const anchored =
         context?.taskChipHiddenMessageId === row.message.id ? null : (row.message.task ?? null);
     const hasReplies = (getTranscriptMessageThread(row)?.replyCount ?? 0) > 0;
-    const task =
-        anchored && (hasReplies || taskVisibleInChat(anchored.origin, showTasks)) ? anchored : null;
+    const task = anchored && taskVisibleInChat(anchored.origin, showTasks) ? anchored : null;
     const marks = <ThreadSurfaceMarks row={row} task={task} work={null} />;
 
     return (
-        <MessageContextMenu className={cn(flashing && 'chat-thread-flash')} row={row}>
+        <MessageContextMenu
+            className={cn(
+                flashing && 'chat-thread-flash',
+                context?.replyTargetMessageId === row.message.id && 'chat-reply-target'
+            )}
+            onMessageHover={onMessageHover}
+            row={row}
+        >
             {children}
             <div className="flex flex-wrap items-center gap-1.5">
                 {canOpenThread ? null : marks}

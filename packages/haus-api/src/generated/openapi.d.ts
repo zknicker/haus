@@ -498,6 +498,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/messages/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Follow the inline reply chain rooted at a message. */
+        post: operations["followAgentMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/messages/unfollow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop following the inline reply chain rooted at a message. */
+        post: operations["unfollowAgentMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/server": {
         parameters: {
             query?: never;
@@ -1144,6 +1178,7 @@ export interface components {
             compositionId?: string;
             nonce?: string;
             cause?: string;
+            replyToMessageId?: string;
         };
         AgentCreateAgentRequest: {
             /** @default null */
@@ -1609,6 +1644,14 @@ export interface components {
             messageId: string;
             remove?: boolean;
         };
+        AgentMessageFollowRequest: {
+            messageId: string;
+            target: string;
+        };
+        AgentMessageFollowResponse: {
+            followed: boolean;
+            target: string;
+        };
         AgentReactionResponse: {
             message: components["schemas"]["AgentMessage"];
         };
@@ -1751,6 +1794,36 @@ export interface components {
             label: string | null;
             metadata: components["schemas"]["JsonObject"];
         };
+        ChatMessageReplyAuthorProfile: {
+            avatarUrl: string | null;
+            deleted: boolean;
+            description: string | null;
+            displayName: string;
+        };
+        ChatMessageReplyAuthor: {
+            /** @constant */
+            kind: "human";
+            userId: components["schemas"]["ParticipantId"];
+            profile?: components["schemas"]["ChatMessageReplyAuthorProfile"];
+        } | {
+            /** @constant */
+            kind: "agent";
+            agentId: components["schemas"]["AgentParticipantId"];
+            profile?: components["schemas"]["ChatMessageReplyAuthorProfile"];
+        };
+        ChatMessageReplyReference: {
+            id: components["schemas"]["MessageId"];
+            sequence: number;
+            author: components["schemas"]["ChatMessageReplyAuthor"];
+            content: string;
+            createdAt: components["schemas"]["Timestamp"];
+        };
+        ChatMessageReply: {
+            parentMessageId: components["schemas"]["MessageId"];
+            rootMessageId: components["schemas"]["MessageId"];
+            parent: components["schemas"]["ChatMessageReplyReference"];
+            root: components["schemas"]["ChatMessageReplyReference"];
+        };
         ChatMessage: {
             id: components["schemas"]["MessageId"];
             chat_id: components["schemas"]["ChatId"];
@@ -1772,6 +1845,7 @@ export interface components {
             cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
             agent_created?: components["schemas"]["MessageAgentCreated"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
+            reply?: components["schemas"]["ChatMessageReply"] | null;
         };
         MessageAsk: {
             id: string;
@@ -3012,6 +3086,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentApiError"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    followAgentMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentMessageFollowRequest"];
+            };
+        };
+        responses: {
+            /** @description Current inline reply follow state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentMessageFollowResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    unfollowAgentMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentMessageFollowRequest"];
+            };
+        };
+        responses: {
+            /** @description Current inline reply follow state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentMessageFollowResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

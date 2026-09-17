@@ -1,4 +1,4 @@
-// A task addressed to one Agent must be answered in the task Thread — not in
+// A task explicitly requested in a Thread must be answered in that Thread — not in
 // the parent channel — and the Agent must take the task while it works.
 
 import { defineScenario } from '../scenario.mjs';
@@ -6,7 +6,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A task addressed to one Agent is claimed by that Agent before it replies, answered by exactly one message in the task Thread, leaves the parent channel silent, and the reply carries the requested marker.',
+        'A task explicitly requested in its Thread is claimed by that Agent before it replies, answered in the task Thread, leaves the parent channel silent, and the reply carries the requested marker.',
     name: 'task-thread-routing',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
@@ -18,7 +18,7 @@ export default defineScenario({
 
         const created = await kit.sendTask(
             channel.id,
-            `@${worker.handle} Draft a two-sentence Bluebird launch blurb for independent bookstores. Include the exact marker ${token}.`
+            `@${worker.handle} Draft a two-sentence Bluebird launch blurb for independent bookstores. Include the exact marker ${token}. Keep this work in the task thread.`
         );
 
         const turn = await settleTurn(worker.id);
@@ -31,7 +31,7 @@ export default defineScenario({
         // A one-shot task may already be advanced past in_progress at settlement;
         // the contract is claim-before-reply, not catching the transient state.
         expect(
-            ['in_progress', 'in_review'].includes(task.status),
+            ['in_progress', 'in_review', 'done'].includes(task.status),
             `task status left todo (got ${task.status})`
         ).toBe(true);
         expect(task.assigneeAgentId, 'task assignee').toBe(worker.id);

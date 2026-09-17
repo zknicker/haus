@@ -52,7 +52,10 @@ facts and compatibility risks, not unresolved product decisions.
   the delegating Agent. Completion does not keep the launch turn open. The resumed Agent owns any
   follow-up and may post an ordinary Message when it has useful judgment to add.
   Cloud Agent instructions explicitly explain this automatic wake: the Agent does not need a
-  reminder or polling to learn when the work finishes. General reminder guidance is unchanged.
+  reminder or polling to learn when the work finishes. The work Thread holds implementation details
+  and revisions. The coordinating Agent keeps the requester informed where they asked for the work
+  and brings back a concise outcome with a link, following their lead when they join the work Thread.
+  General reminder guidance is unchanged.
 - **Provider-hosted lifecycle.** Cloud Agent work may outlive a turn, App session, or Computer
   connection. Computer reconciles provider state after reconnect and reports bounded observations
   to Server idempotently.

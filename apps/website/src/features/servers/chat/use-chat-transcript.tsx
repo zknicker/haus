@@ -13,6 +13,7 @@ import type {
 } from '../../chats/chat-transcript-render-context.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
+import type { InlineReplyNavigation } from '../../chats/transcript-reply-contract.ts';
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
@@ -27,10 +28,7 @@ import { PendingMessageAttachments, projectPendingChatMessageRows } from './pend
 import { ServerChatMessageContent } from './server-chat-message-content.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
-const conversationLayout = {
-    showAgentIdentity: true,
-    showHumanIdentity: true,
-} as const;
+const conversationLayout = { showAgentIdentity: true, showHumanIdentity: true } as const;
 const emptyPendingMessages: readonly PendingChatMessage[] = [];
 
 export interface ChatTranscriptInput {
@@ -41,10 +39,13 @@ export interface ChatTranscriptInput {
     conversationChatId?: string;
     messages: readonly ChatMessage[] | undefined;
     onOpenArtifact: (target: HausResourceTarget) => void;
+    onOpenInlineReply?: InlineReplyNavigation;
     onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
     onReferenceActivate?: ReferenceActivation;
+    onSelectInlineReply?: (message: ChatMessage) => void;
     onStartDm?: (userId: string) => void;
     pendingMessages?: readonly PendingChatMessage[];
+    replyTargetMessageId?: string;
     serverId: string;
     /** Hides one Message's task chip when a metadata panel already states it. */
     taskChipHiddenMessageId?: string;
@@ -60,10 +61,13 @@ export function useChatTranscript({
     conversationChatId,
     messages,
     onOpenArtifact,
-    onReferenceActivate,
+    onOpenInlineReply,
     onOpenThread,
+    onReferenceActivate,
+    onSelectInlineReply,
     onStartDm,
     pendingMessages = emptyPendingMessages,
+    replyTargetMessageId,
     serverId,
     taskChipHiddenMessageId,
     threads = emptyChatThreads,
@@ -195,6 +199,18 @@ export function useChatTranscript({
         },
         [lookupRef, onOpenThread]
     );
+    const handleSelectInlineReply = React.useCallback(
+        (message: TranscriptMessage) => {
+            const sourceMessage = lookupRef.current.messagesById.get(message.id);
+
+            if (!sourceMessage) {
+                return;
+            }
+
+            onSelectInlineReply?.(sourceMessage);
+        },
+        [lookupRef, onSelectInlineReply]
+    );
     const renderContext = React.useMemo(
         () =>
             ({
@@ -204,6 +220,7 @@ export function useChatTranscript({
                 conversationLayout,
                 defaultOpenWorkGroups: false,
                 flashMessageId: null,
+                replyTargetMessageId,
                 turnDetails: {
                     access: turnDetailsAccess,
                     serverId,
@@ -217,7 +234,9 @@ export function useChatTranscript({
                           }
                       }
                     : undefined,
+                onOpenInlineReply,
                 onOpenThread: handleOpenThread,
+                onSelectInlineReply: onSelectInlineReply ? handleSelectInlineReply : undefined,
                 onToggleReaction,
                 onUnfollowThread: () => undefined,
                 profilePaneChatId: chatId,
@@ -248,14 +267,18 @@ export function useChatTranscript({
             chatsById,
             conversationChatId,
             handleOpenThread,
+            handleSelectInlineReply,
             hoistedCloudAgentWork,
             humans,
             onOpenThread,
+            onOpenInlineReply,
             onOpenArtifact,
             onReferenceActivate,
             onStartDm,
+            onSelectInlineReply,
             onToggleReaction,
             renderMessageAttachments,
+            replyTargetMessageId,
             resolveActorProfile,
             serverId,
             sessionMarks,

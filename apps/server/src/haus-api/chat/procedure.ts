@@ -12,6 +12,7 @@ import {
 } from '../../chats/chat-access.ts';
 import { ChannelAgentNotFoundError, ChannelNameTakenError } from '../../chats/create-channel.ts';
 import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.ts';
+import { InvalidInlineReplyError } from '../../chats/reply-context.ts';
 import { ChatNonceConflictError, DirectThreadSendError } from '../../chats/send-message.ts';
 import { InvalidThreadAnchorError, NestedThreadError } from '../../threads/ensure-thread.ts';
 import { memberProcedure } from '../server/procedure.ts';
@@ -54,6 +55,10 @@ export const chatProcedure = memberProcedure.use(async ({ next }) => {
     }
 
     if (cause instanceof InvalidDmPeerError) {
+        throw new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
+    }
+
+    if (cause instanceof InvalidInlineReplyError) {
         throw new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
     }
 

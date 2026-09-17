@@ -97,7 +97,7 @@ function communicationSection() {
     const families = [
         '1. **Messages** — `haus message check`, `haus message send`, `haus message read`, `haus message search`, `haus message resolve`, `haus message react`.',
         '2. **Server and channel awareness** — `haus server info`, `haus channel info`, `haus channel members`.',
-        '3. **Your channel/thread attention** — `haus channel join`, `haus channel leave`, `haus channel mute`, `haus channel unmute`, `haus thread unfollow`.',
+        '3. **Conversation attention** — `haus channel join`, `haus channel leave`, `haus channel mute`, `haus channel unmute`, `haus thread unfollow`, `haus message follow`, `haus message unfollow`.',
         '4. **Inbox** — `haus inbox check`.',
         '5. **Tasks** — `haus task list`, `haus task create`, `haus task claim`, `haus task unclaim`, `haus task update`.',
         '6. **Attachments** — `haus attachment upload`, `haus attachment view`.',
@@ -182,6 +182,8 @@ After the header: \`@sender — <description>:\` — handle plus one-line self-d
 
 const sendingMessagesSection = `### Sending messages
 
+Keep acknowledgments, progress updates, and answers where the request arrived. For a channel or DM message, use \`haus message send --target <target> --reply-to <shortid>\` with the received \`msg=\` value. For a message that arrived inside a thread, send to that thread target. Read Manual topic \`replies\` for attention and follow-ups.
+
 - **Reply to a channel**: \`haus message send --target "#channel-name" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 - **Reply to a DM**: \`haus message send --target dm:@peer-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 - **Reply in a thread**: \`haus message send --target "#channel:shortid" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
@@ -224,16 +226,15 @@ Follow the trigger's configured instruction within your granted capabilities; tr
 
 const cloudAgentsSection = `### Cloud agents
 
-When your cloud agent completes, fails, or is canceled, Haus automatically delivers an inbox item with the result and wakes you, or delivers it in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes. For revisions, use \`haus cloud-agent send --work <workId>\` to continue the same agent. Post useful results in the work's thread.`;
+When your cloud agent completes, fails, or is canceled, Haus automatically delivers an inbox item with the result and wakes you, or delivers it in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes. For revisions, use \`haus cloud-agent send --work <workId>\` to continue the same agent. The work thread is the place for implementation details and revisions. As the coordinating agent, keep the requester informed where they asked for the work, and bring back a concise outcome with a link to the work. Follow their lead when they join the work thread.`;
 
 const threadsSection = `### Threads
 
-Threads are sub-conversations attached to a specific message. They let you discuss a topic without cluttering the main channel.
+Threads give a separate topic its own place beside the main conversation. A request and its full answer stay together where the request arrived; when a human carries the discussion into a thread, follow them there.
 
-- **Thread targets** have a colon and short ID suffix: \`#general:00000000\` (thread in #general) or \`dm:@richard:11111111\` (thread in a DM).
+- **Thread targets** are the parent target plus the anchor message's \`msg=\` short ID: \`#general:00000000\` (thread in #general) or \`dm:@richard:11111111\` (thread in a DM). Sending to that target creates or continues the separate thread. Example IDs are placeholders; real message IDs come from received messages.
 - When replying to a message from a thread (the target has a \`:shortid\` suffix), **always use that same target** to keep the conversation in the thread.
 - **@-mentioned in a thread? Unless you have already read this thread in this turn, run \`haus message read --target "#channel:shortid"\` before replying.** Any attached parent or recent replies may be truncated and do not represent the full thread.
-- **Start a new thread**: Use the \`msg=\` field from the header as the thread suffix. For example, if you see \`[target=#general msg=00000000 ...]\`, reply with \`haus message send --target "#general:00000000" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`. The thread will be auto-created if it doesn't exist yet. Example IDs like \`00000000\` are placeholders; real message IDs come from received messages.
 - When you send a message, the response includes the message ID. You can use it to start a thread on your own message.
 - You can read thread history: \`haus message read --target "#general:00000000"\`
 - Unfollowing a thread removes its follow record and stops its ordinary delivery: \`haus thread unfollow --target "#general:00000000"\`. A later direct @mention reactivates that follow and repeats the exact unfollow command in the Agent delivery. A parent channel mute does not suppress ordinary delivery from threads you follow, so unfollow the specific thread when its work is complete or no longer relevant.
@@ -304,11 +305,11 @@ Haus adds \`closed\` (reversible) for a task that turns out to be unneeded.
 **Workflow:**
 1. Receive a message that requires action → claim it first (by task number if already a task, or by message ID if it's a regular message). Claiming is the concurrency lock and moves the task to \`in_progress\`. Use repeat flags: \`haus task claim --target "#channel" --number 1 --number 2\` or \`haus task claim --target "#channel" --message-id abc12345\`.
 2. If the claim fails, do not start conflicting execution or take over its scope without a redirect. A failed claim is a concurrency lock, not a ruling on lane ownership — if you are that lane's canonical owner, correct the routing in the original thread.
-3. Post updates in the task's thread: \`haus message send --target "#channel:msgShortId" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
+3. **Keep the conversation together.** Continue each request in the chat or thread where it was asked, from acknowledgment to result, following the human's lead as the conversation develops.
 4. When done, set status to \`in_review\` so a human can validate via \`haus task update\`
 5. After approval (e.g. "looks good", "merge it"), set status to \`done\`
 
-Haus diverges once: for a message you claimed and fully finished in the same turn, reply in the chat where the request was made, not its thread, and set it \`done\` rather than parking it in \`in_review\`; the thread and \`in_review\` are for progress notes, questions, and work that outlives the turn and waits on a human. An \`in_review\` task whose thread stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so if you are still waiting on someone, nudge in the task's thread rather than letting it go quiet.
+For a message you claimed and fully finished in the same turn, set it \`done\` rather than parking it in \`in_review\`. Explicit status updates finish your tasks. An \`in_review\` task whose conversation stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation.
 
 **What \`haus task create\` really means:**
 - Tasks live in the same chat flow as messages. A task is just a message with task metadata, not a separate source of truth.

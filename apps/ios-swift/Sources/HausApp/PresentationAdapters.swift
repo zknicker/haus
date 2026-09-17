@@ -68,7 +68,7 @@ extension HausStore {
         return rows
     }
 
-    private func durableMessagePresentations(
+    func durableMessagePresentations(
         _ page: ChatMessagePage?, cloudAgentWork: [ThreadCloudAgentWork]
     ) -> [MessagePresentation] {
         guard let page else { return [] }
@@ -99,6 +99,10 @@ extension HausStore {
                 content: body,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(attachmentPresentation),
+                sequence: message.sequence,
+                inlineReply: message.reply.flatMap { reply in
+                    replyReferencePresentation(reply.parent)
+                },
                 thread: thread,
                 task: message.task.map(taskPresentation),
                 ask: askPresentation(message.body),
@@ -136,6 +140,7 @@ extension HausStore {
                 content: body,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(\.presentation),
+                inlineReply: message.inlineReply,
                 isPending: true,
                 richSegments: richMessageSegments(fenced.prose),
                 visualBody: fenced
@@ -195,6 +200,7 @@ extension HausStore {
             author: author,
             content: item.message.content,
             createdAt: item.message.createdAt,
+            sequence: item.message.sequence,
             thread: threadPresentation(item.threadSummary),
             task: taskPresentation(item.task)
         )

@@ -768,6 +768,46 @@ paths:
                 $ref: '#/components/schemas/AgentApiError'
         default:
           $ref: '#/components/responses/AgentError'
+  /api/agent/messages/follow:
+    post:
+      operationId: followAgentMessage
+      tags: [Agent CLI]
+      summary: Follow the inline reply chain rooted at a message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentMessageFollowRequest'
+      responses:
+        '200':
+          description: Current inline reply follow state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMessageFollowResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/messages/unfollow:
+    post:
+      operationId: unfollowAgentMessage
+      tags: [Agent CLI]
+      summary: Stop following the inline reply chain rooted at a message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentMessageFollowRequest'
+      responses:
+        '200':
+          description: Current inline reply follow state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMessageFollowResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/server:
     get:
       operationId: getAgentServerInfo
@@ -1648,6 +1688,8 @@ components:
         # The Trigger or Reminder fire this message answers, recorded as
         # message provenance. Optional: a send without it is ordinary.
         cause: { type: string, minLength: 1, maxLength: 200 }
+        # The direct parent of an inline reply. The Server derives the chain root.
+        replyToMessageId: { type: string, minLength: 1 }
     AgentCreateAgentRequest:
       type: object
       additionalProperties: false
@@ -2433,6 +2475,20 @@ components:
         emoji: { type: string, minLength: 1 }
         messageId: { type: string, minLength: 1 }
         remove: { type: boolean }
+    AgentMessageFollowRequest:
+      type: object
+      additionalProperties: false
+      required: [messageId, target]
+      properties:
+        messageId: { type: string, minLength: 1, maxLength: 200 }
+        target: { type: string, minLength: 1, maxLength: 200 }
+    AgentMessageFollowResponse:
+      type: object
+      additionalProperties: false
+      required: [followed, target]
+      properties:
+        followed: { type: boolean }
+        target: { type: string, minLength: 1, maxLength: 200 }
     AgentReactionResponse:
       type: object
       additionalProperties: false
@@ -2779,6 +2835,61 @@ components:
           type: [string, 'null']
         metadata:
           $ref: '#/components/schemas/JsonObject'
+    ChatMessageReplyAuthorProfile:
+      type: object
+      additionalProperties: false
+      required: [avatarUrl, deleted, description, displayName]
+      properties:
+        avatarUrl: { type: [string, 'null'] }
+        deleted: { type: boolean }
+        description: { type: [string, 'null'], maxLength: 500 }
+        displayName: { type: string, minLength: 1 }
+    ChatMessageReplyAuthor:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [kind, userId]
+          properties:
+            kind: { type: string, const: human }
+            userId: { $ref: '#/components/schemas/ParticipantId' }
+            profile: { $ref: '#/components/schemas/ChatMessageReplyAuthorProfile' }
+        - type: object
+          additionalProperties: false
+          required: [kind, agentId]
+          properties:
+            kind: { type: string, const: agent }
+            agentId: { $ref: '#/components/schemas/AgentParticipantId' }
+            profile: { $ref: '#/components/schemas/ChatMessageReplyAuthorProfile' }
+    ChatMessageReplyReference:
+      type: object
+      additionalProperties: false
+      required: [id, sequence, author, content, createdAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/MessageId'
+        sequence:
+          type: integer
+          minimum: 1
+        author:
+          $ref: '#/components/schemas/ChatMessageReplyAuthor'
+        content:
+          type: string
+          maxLength: 280
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+    ChatMessageReply:
+      type: object
+      additionalProperties: false
+      required: [parentMessageId, rootMessageId, parent, root]
+      properties:
+        parentMessageId:
+          $ref: '#/components/schemas/MessageId'
+        rootMessageId:
+          $ref: '#/components/schemas/MessageId'
+        parent:
+          $ref: '#/components/schemas/ChatMessageReplyReference'
+        root:
+          $ref: '#/components/schemas/ChatMessageReplyReference'
     ChatMessage:
       type: object
       additionalProperties: false
@@ -2852,6 +2963,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MessageReaction'
+        reply:
+          oneOf:
+            - $ref: '#/components/schemas/ChatMessageReply'
+            - type: 'null'
     MessageAsk:
       type: object
       additionalProperties: false

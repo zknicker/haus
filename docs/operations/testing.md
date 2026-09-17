@@ -285,6 +285,15 @@ bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes
 
 Repeat `--only` to run a small named subset in one process.
 
+Conversation routing has a natural-language lane: `--only conversation-natural-followups`
+checks a basic question, a planning request, and a human Thread follow-up without routing
+instructions in the requests. `--include-opt-in --only cloud-conversation-handoff` spends
+a real Cursor Cloud Agent run on a read-only Haus README review and checks the completion
+wake and outcome in the requesting Chat. It requires connected Cursor access to `zknicker/haus`.
+Both scenarios preserve every child conversation and all available execution journals,
+including resumed cloud turns, under `.context/agent-tests/evidence/<stamp>/` before cleanup.
+Repeat them with fresh Agents when evaluating routing changes; one clean run is limited evidence.
+
 Memory-refresh and response-efficiency probes are opt-in. They check same-session context
 retention with a current MEMORY.md read and bounded discovery for an unavailable MCP, using
 Computer execution journals rather than a flaky wall-clock threshold:

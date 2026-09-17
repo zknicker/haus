@@ -1,4 +1,5 @@
 import { channelColorSchema, channelIconSchema } from './channel-appearance.ts';
+import { chatMessageAuthorSchema, chatMessageReplySchema } from './chat-message-context.ts';
 
 export * from './channel-appearance.ts';
 
@@ -16,40 +17,8 @@ import * as receiptContracts from './chat-message-receipts.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
 export { idSchema } from './chat-contract-primitives.ts';
+export * from './chat-message-context.ts';
 export * from './chat-message-reactions.ts';
-export const chatMessageAuthorSchema = z.discriminatedUnion('kind', [
-    z
-        .object({
-            agentId: idSchema,
-            kind: z.literal('agent'),
-            profile: z
-                .object({
-                    avatarUrl: z.string().nullable(),
-                    deleted: z.boolean(),
-                    description: z.string().nullable(),
-                    displayName: z.string().min(1),
-                })
-                .strict()
-                .optional(),
-        })
-        .strict(),
-    z
-        .object({
-            kind: z.literal('human'),
-            profile: z
-                .object({
-                    avatarUrl: z.string().nullable(),
-                    deleted: z.boolean(),
-                    description: z.string().nullable(),
-                    displayName: z.string().min(1),
-                })
-                .strict()
-                .optional(),
-            userId: idSchema,
-        })
-        .strict(),
-]);
-
 export const chatMessageSchema = z
     .object({
         attachments: z.array(attachmentMetadataSchema).default([]),
@@ -63,6 +32,8 @@ export const chatMessageSchema = z
         id: idSchema,
         nonce: z.string().trim().min(1).max(128),
         reactions: z.array(reactionContracts.chatMessageReactionSchema).default([]),
+        /** Bounded direct-parent and chain-root context for an inline reply. */
+        reply: chatMessageReplySchema.nullable().default(null),
         /** The real Server-assigned Agent run; human messages are null. */
         runId: idSchema.nullable(),
         sequence: z.number().int().positive(),
@@ -115,6 +86,8 @@ const chatSendBaseSchema = z
         attachmentIds: z.array(idSchema).default([]),
         content: z.string().trim().max(32_000),
         nonce: z.string().trim().min(1).max(128),
+        /** The direct parent of an inline reply; the Server derives its root. */
+        replyToMessageId: idSchema.optional(),
         serverId: idSchema,
     })
     .strict();
@@ -289,6 +262,7 @@ export const chatMessagesInputSchema = z
         beforeSequence: z.number().int().positive().optional(),
         chatId: idSchema,
         limit: z.number().int().min(1).max(100).default(50),
+        replyRootMessageId: idSchema.optional(),
         serverId: idSchema,
     })
     .strict();

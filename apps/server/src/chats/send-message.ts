@@ -25,7 +25,12 @@ import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
 import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
 import { toChatMessage } from './message-shape.ts';
-import { readMessageRelations } from './read-message-relations.ts';
+import {
+    InvalidInlineReplyError,
+    readInlineReplyContext,
+    resolveInlineReplyParent,
+} from './reply-context.ts';
+import { readExistingChatMessage, replayChatMessage } from './send-message-replay.ts';
 
 export class ChatNonceConflictError extends Error {
     constructor() {
@@ -73,6 +78,11 @@ export async function sendChatMessage(
                       })
                   ).id
                 : input.chatId;
+        if ('chatId' in input && input.thread && input.replyToMessageId) {
+            throw new InvalidInlineReplyError(
+                'Inline replies cannot target a Thread; use either a thread or an inline reply.'
+            );
+        }
         const thread =
             'chatId' in input && input.thread
                 ? await ensureThread(tx, member, {
@@ -90,6 +100,7 @@ export async function sendChatMessage(
         if ('chatId' in input && !input.thread && writeChat.kind === 'thread') {
             throw new DirectThreadSendError();
         }
+        const replyParent = await resolveChatReplyParent(tx, input, targetChatId);
 
         await tx.execute(sql`
             select id from chats
@@ -97,64 +108,23 @@ export async function sendChatMessage(
             for update
         `);
 
-        const [existing] = await tx
-            .select({
-                authorAgentId: chatMessagesTable.authorAgentId,
-                authorUserId: chatMessagesTable.authorUserId,
-                bodyKind: chatMessagesTable.bodyKind,
-                chatId: chatMessagesTable.chatId,
-                content: chatMessagesTable.content,
-                createdAt: chatMessagesTable.createdAt,
-                eventCursor: chatEventsTable.cursor,
-                id: chatMessagesTable.id,
-                nonce: chatMessagesTable.nonce,
-                runId: chatMessagesTable.runId,
-                sequence: chatMessagesTable.sequence,
-                serverId: chatMessagesTable.serverId,
-                sessionGeneration: chatMessagesTable.sessionGeneration,
-            })
-            .from(chatMessagesTable)
-            .innerJoin(
-                chatEventsTable,
-                and(
-                    eq(chatEventsTable.serverId, chatMessagesTable.serverId),
-                    eq(chatEventsTable.messageId, chatMessagesTable.id),
-                    eq(chatEventsTable.type, 'message.created')
-                )
-            )
-            .where(
-                and(
-                    eq(chatMessagesTable.serverId, input.serverId),
-                    eq(chatMessagesTable.chatId, writeChatId),
-                    eq(chatMessagesTable.nonce, input.nonce)
-                )
-            )
-            .limit(1);
+        const existing = await readExistingChatMessage(
+            tx,
+            input.serverId,
+            writeChatId,
+            input.nonce
+        );
 
         if (existing) {
-            const existingRelations = await readMessageRelations(tx, input.serverId, existing.id);
-
-            if (
-                existing.authorUserId !== member.id ||
-                existing.content !== input.content ||
-                !sameIds(
-                    existingRelations.attachments.map((attachment) => attachment.id),
-                    input.attachmentIds
-                )
-            ) {
-                throw new ChatNonceConflictError();
-            }
-
-            return {
-                events: [],
-                receipt: {
-                    eventCursor: existing.eventCursor.toString(),
-                    idempotent: true,
-                    message: toChatMessage(existing, existingRelations),
-                    threadChatId: thread?.id ?? null,
-                },
-                wakes: [],
-            };
+            return await replayChatMessage(
+                tx,
+                member,
+                input,
+                existing,
+                thread?.id ?? null,
+                replyParent?.parent.id ?? null,
+                () => new ChatNonceConflictError()
+            );
         }
         await requireActiveDmPeer(tx, writeChat);
 
@@ -177,14 +147,17 @@ export async function sendChatMessage(
             throw new Error('Failed to allocate the Chat message sequence.');
         }
 
+        const messageId = createOpaqueId('msg');
         const [message] = await tx
             .insert(chatMessagesTable)
             .values({
                 authorUserId: member.id,
                 chatId: writeChatId,
                 content: input.content,
-                id: createOpaqueId('msg'),
+                id: messageId,
                 nonce: input.nonce,
+                replyRootMessageId: replyParent?.root.id ?? messageId,
+                replyToMessageId: replyParent?.parent.id ?? null,
                 sequence: updatedChat.sequence,
                 serverId: input.serverId,
             })
@@ -253,6 +226,7 @@ export async function sendChatMessage(
             authorAgentId: null,
             chatId: writeChatId,
             content: input.content,
+            messageId: message.id,
             serverId: input.serverId,
         });
         for (const recipient of recipients) {
@@ -288,7 +262,10 @@ export async function sendChatMessage(
                 eventCursor: event.cursor.toString(),
                 idempotent: false,
                 // A human send never creates a typed body; this Message is text.
-                message: toChatMessage(message, { attachments: attachmentMetadata(attachments) }),
+                message: toChatMessage(message, {
+                    attachments: attachmentMetadata(attachments),
+                    reply: await readInlineReplyContext(tx, input.serverId, message),
+                }),
                 threadChatId: thread?.id ?? null,
             },
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
@@ -296,6 +273,16 @@ export async function sendChatMessage(
     });
 }
 
-function sameIds(left: string[], right: string[]) {
-    return left.length === right.length && left.every((id, index) => id === right[index]);
+async function resolveChatReplyParent(
+    db: Pick<HausDatabase, 'select'>,
+    input: ChatSendInput,
+    chatId: string
+) {
+    return input.replyToMessageId
+        ? await resolveInlineReplyParent(db, {
+              chatId,
+              replyToMessageId: input.replyToMessageId,
+              serverId: input.serverId,
+          })
+        : null;
 }

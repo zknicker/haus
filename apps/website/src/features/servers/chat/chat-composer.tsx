@@ -24,6 +24,7 @@ import {
 } from './chat-composer-presentation.ts';
 import { ChatComposerRecovery } from './chat-composer-recovery.tsx';
 import { discardFailedChatDraft, restoreFailedChatDraft } from './chat-draft-store.ts';
+import { ChatInlineReplyReference, type ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 import { ComposerAttachments } from './composer-attachments.tsx';
 import { submitChatComposer } from './submit-chat-composer.ts';
 import { useChatDraft } from './use-chat-draft.ts';
@@ -35,7 +36,10 @@ export function ServerChatComposer({
     chatId,
     chatName,
     draftKey,
+    inlineReply,
     onMaterialized,
+    onInlineReplyCancel,
+    onInlineReplySent,
     onThreadCreated,
     pendingChatId,
     placeholder,
@@ -47,7 +51,10 @@ export function ServerChatComposer({
     chatId?: string;
     chatName: string;
     draftKey: string;
+    inlineReply?: ChatInlineReplyTarget | null;
     onMaterialized?: (chatId: string) => void;
+    onInlineReplyCancel?: () => void;
+    onInlineReplySent?: (messageId: string) => void;
     onThreadCreated?: (threadChatId: string) => void;
     /**
      * The transcript that shows this composer's sends while they are in flight.
@@ -105,6 +112,7 @@ export function ServerChatComposer({
 
     const send = useChatMessageSend();
     const upload = useUploadServerAttachment();
+    const activeInlineReply = thread ? null : inlineReply;
 
     useChatComposerFocusRequest(!thread, mentionComposer.focusTextEditor);
     useChatComposerInsertRequest(!thread, (text) => {
@@ -135,7 +143,9 @@ export function ServerChatComposer({
             draftKey,
             event,
             focusTextEditor: mentionComposer.focusTextEditor,
+            inlineReply: activeInlineReply,
             onMaterialized,
+            onInlineReplySent,
             onThreadCreated,
             pendingChatId,
             send,
@@ -165,6 +175,7 @@ export function ServerChatComposer({
             />
             <PromptInput
                 data-expanded={isExpanded || undefined}
+                data-replying={Boolean(activeInlineReply) || undefined}
                 layout="compact"
                 onSubmit={() => {
                     void handleSubmit();
@@ -172,6 +183,10 @@ export function ServerChatComposer({
                 value={draft}
                 variant={variant}
             >
+                <ChatInlineReplyReference
+                    onCancel={onInlineReplyCancel ?? (() => undefined)}
+                    target={activeInlineReply ?? null}
+                />
                 <PromptInput.Shell onMouseDown={handleShellMouseDown}>
                     <PromptInput.Content>
                         <ComposerAttachments

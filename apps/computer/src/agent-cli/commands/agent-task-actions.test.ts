@@ -61,12 +61,7 @@ test('a claim matches Raft follow-up guidance without rerouting replies', async 
         write: (text) => outputs.push(text),
     });
 
-    expect(outputs.join('')).toBe(
-        'Claim results (1 claimed):\n' +
-            '#7 (msg:1a2b3c4d): claimed\n' +
-            'Follow up on each task:\n' +
-            '#7 → reply in #general when done (same-turn work); use the thread "#general:1a2b3c4d" for progress notes, questions, or work that outlives this turn.\n'
-    );
+    expect(outputs.join('')).toBe('Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed\n');
     expect(outputs.join('')).not.toContain('Work it in thread target');
 });
 

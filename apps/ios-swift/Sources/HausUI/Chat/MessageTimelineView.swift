@@ -1,21 +1,23 @@
 import SwiftUI
 
 public struct MessageTimelineView: View {
-    private let messages: [MessagePresentation]
-    private let isMessageHistoryLoaded: Bool
+    let messages: [MessagePresentation]
+    let isMessageHistoryLoaded: Bool
     private let emptyStateDescription: String
     private let onOpenThread: (MessagePresentation) -> Void
+    private let allowsInlineReplies: Bool
+    private let onSelectInlineReply: (MessagePresentation) -> Void
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
-    private let hasOlderMessages: Bool
-    private let isLoadingOlderMessages: Bool
-    private let onLoadOlderMessages: (() async -> Bool)?
+    let hasOlderMessages: Bool
+    let isLoadingOlderMessages: Bool
+    let onLoadOlderMessages: (() async -> Bool)?
     /// The message ids the viewport is showing, whenever that set changes.
     /// Read acknowledgement is built on this: a message is read when it has
     /// been on screen, not when its page happened to load.
     private let onVisibleMessagesChange: ([String]) -> Void
 
-    @Binding private var scrollTargetMessageID: String?
+    @Binding var scrollTargetMessageID: String?
     /// Attachment presentation is the screen's, not the row's: rows are hosted
     /// in table cells with no view controller of their own, and the image
     /// viewer's transition has to outlive the cell it grew out of.
@@ -25,9 +27,12 @@ public struct MessageTimelineView: View {
     /// attachment tiles are: rows live in table cells the screen has to
     /// re-host. See `VisualHeightRegistry`.
     @State private var visualHeights = VisualHeightRegistry()
-    @State private var highlightedMessageID: String?
+    @State var highlightedMessageID: String?
     @State private var isNearNewest = true
-    @State private var reveal: TranscriptReveal?
+    @State var reveal: TranscriptReveal?
+    @State var pendingInlineReply: MessageReplyReferencePresentation?
+    @State var inlineReplyRevealAttempt = 0
+    @State var inlineReplyError: String?
     /// The transcript's opening settle runs inside the table (see
     /// `TranscriptListView.animatesEntrance`), so the flag is read here rather
     /// than through the `openingEntrance` modifier.
@@ -39,6 +44,8 @@ public struct MessageTimelineView: View {
         isMessageHistoryLoaded: Bool = true,
         emptyStateDescription: String = "Send a message to start the conversation.",
         onOpenThread: @escaping (MessagePresentation) -> Void,
+        allowsInlineReplies: Bool = false,
+        onSelectInlineReply: @escaping (MessagePresentation) -> Void = { _ in },
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
@@ -56,6 +63,8 @@ public struct MessageTimelineView: View {
         self.isMessageHistoryLoaded = isMessageHistoryLoaded
         self.emptyStateDescription = emptyStateDescription
         self.onOpenThread = onOpenThread
+        self.allowsInlineReplies = allowsInlineReplies
+        self.onSelectInlineReply = onSelectInlineReply
         self.onOpenAttachment = onOpenAttachment
         self.onOpenAgent = onOpenAgent
         self.hasOlderMessages = hasOlderMessages
@@ -117,13 +126,23 @@ public struct MessageTimelineView: View {
                     animatesEntrance: opensWithEntrance,
                     menuActions: { message in
                         guard !message.isPending else { return [] }
-                        return [
+                        var actions = [
                             TranscriptMenuAction(
                                 title: message.thread == nil ? "Reply in thread" : "Open thread",
                                 systemImage: "bubble.left.and.bubble.right",
                                 handler: { onOpenThread(message) }
                             )
                         ]
+                        if allowsInlineReplies {
+                            actions.append(
+                                TranscriptMenuAction(
+                                    title: "Reply",
+                                    systemImage: "arrowshape.turn.up.left",
+                                    handler: { onSelectInlineReply(message) }
+                                )
+                            )
+                        }
+                        return actions
                     },
                     row: { message in
                         timelineRow(message, indexByID: indexByID)
@@ -167,31 +186,34 @@ public struct MessageTimelineView: View {
             // A search can select a Chat whose page is still loading, so
             // the pending request is re-resolved when messages arrive.
             revealScrollTarget()
+            advanceInlineReplyReveal()
+        }
+        .onChange(of: hasOlderMessages) { _, _ in
+            advanceInlineReplyReveal()
+        }
+        .onChange(of: isLoadingOlderMessages) { _, _ in
+            advanceInlineReplyReveal()
+        }
+        .task(id: inlineReplyRevealAttempt) {
+            await resolvePendingInlineReply()
+        }
+        .alert("Message unavailable", isPresented: inlineReplyErrorPresented) {
+            Button("Retry") {
+                inlineReplyError = nil
+                inlineReplyRevealAttempt += 1
+            }
+            Button("Cancel", role: .cancel) {
+                inlineReplyError = nil
+                pendingInlineReply = nil
+            }
+        } message: {
+            Text(inlineReplyError ?? "The parent message could not be loaded.")
         }
         .task(id: highlightedMessageID) {
             guard highlightedMessageID != nil else { return }
             try? await Task.sleep(for: .milliseconds(1_500))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.45)) { highlightedMessageID = nil }
-        }
-    }
-
-    private func revealScrollTarget() {
-        guard let scrollTargetMessageID else { return }
-
-        switch MessageTimelineScrollTarget.resolve(
-            target: scrollTargetMessageID,
-            messageIDs: messages.map(\.id)
-        ) {
-        case .waiting:
-            return
-        case .unavailable:
-            // Paging older history to find an off-page message is out of scope.
-            self.scrollTargetMessageID = nil
-        case .reveal(let messageID):
-            self.scrollTargetMessageID = nil
-            reveal = TranscriptReveal(token: UUID(), id: messageID, animated: true)
-            highlightedMessageID = messageID
         }
     }
 
@@ -226,6 +248,7 @@ public struct MessageTimelineView: View {
             attachmentTiles: attachmentTiles,
             visualHeights: visualHeights,
             onOpenThread: { onOpenThread(message) },
+            onOpenInlineReply: requestInlineReply,
             onOpenAttachment: onOpenAttachment
         )
         .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)

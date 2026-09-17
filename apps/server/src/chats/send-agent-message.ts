@@ -1,9 +1,7 @@
 import type {
     AgentActivityEvent,
     AgentSendReceipt,
-    AttachmentMetadata,
     HausAgentMessage,
-    MessageBodyKind,
     ServerDurableEvent,
 } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
@@ -14,7 +12,6 @@ import { settleAskForReply } from '../asks/settle-ask.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
-    readMessageAttachments,
     requireAgentMessageAttachments,
 } from '../attachments/message-attachments.ts';
 import { type AttributedMessageCause, insertMessageCause } from '../automations/message-cause.ts';
@@ -27,6 +24,12 @@ import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { canonicalizeAgentMessageContentForPersistence } from './canonicalize-agent-references.ts';
 import { requireChatWritable } from './chat-access.ts';
+import { readInlineReplyContext, resolveInlineReplyParent } from './reply-context.ts';
+import {
+    readExistingAgentMessage,
+    replayAgentMessage,
+    toAgentCliMessage,
+} from './send-agent-message-replay.ts';
 
 const maxAgentMessageContentLength = 32_000;
 
@@ -41,6 +44,8 @@ export interface SendAgentMessageInput {
     chatId: string;
     content: string;
     nonce: string;
+    /** Optional direct parent of an inline reply; the Server derives its root. */
+    replyToMessageId?: string;
     runId: string;
     serverId: string;
     /** The grammar target the Agent believes it answered; recorded for fidelity. */
@@ -73,6 +78,13 @@ export async function sendAgentMessage(
             for update
         `);
         await requireChatWritable(tx, input);
+        const replyParent = input.replyToMessageId
+            ? await resolveInlineReplyParent(tx, {
+                  chatId: input.chatId,
+                  replyToMessageId: input.replyToMessageId,
+                  serverId: input.serverId,
+              })
+            : null;
         const [agent] = await tx
             .select({
                 description: agentsTable.description,
@@ -87,35 +99,7 @@ export async function sendAgentMessage(
             throw new Error('The Agent no longer exists.');
         }
 
-        const [existing] = await tx
-            .select({
-                authorAgentId: chatMessagesTable.authorAgentId,
-                bodyKind: chatMessagesTable.bodyKind,
-                content: chatMessagesTable.content,
-                createdAt: chatMessagesTable.createdAt,
-                cursor: chatEventsTable.cursor,
-                id: chatMessagesTable.id,
-                nonce: chatMessagesTable.nonce,
-                runId: chatMessagesTable.runId,
-                sequence: chatMessagesTable.sequence,
-            })
-            .from(chatMessagesTable)
-            .innerJoin(
-                chatEventsTable,
-                and(
-                    eq(chatEventsTable.serverId, chatMessagesTable.serverId),
-                    eq(chatEventsTable.messageId, chatMessagesTable.id),
-                    eq(chatEventsTable.type, 'message.created')
-                )
-            )
-            .where(
-                and(
-                    eq(chatMessagesTable.serverId, input.serverId),
-                    eq(chatMessagesTable.chatId, input.chatId),
-                    eq(chatMessagesTable.nonce, input.nonce)
-                )
-            )
-            .limit(1);
+        const existing = await readExistingAgentMessage(tx, input);
         const content =
             existing?.content === input.content
                 ? input.content
@@ -129,36 +113,14 @@ export async function sendAgentMessage(
         }
 
         if (existing) {
-            const existingAttachments =
-                (await readMessageAttachments(tx, input.serverId, [existing.id])).get(
-                    existing.id
-                ) ?? [];
-            if (
-                existing.authorAgentId !== input.agentId ||
-                existing.content !== content ||
-                existingAttachments.map(({ id }) => id).join('\0') !==
-                    input.attachmentIds.join('\0')
-            ) {
-                throw new AgentSendConflictError();
-            }
-            return {
-                activities: [],
-                events: [],
-                message: toAgentCliMessage(existing, {
-                    ...agent,
-                    agentId: input.agentId,
-                    attachments: existingAttachments,
-                    chatId: input.chatId,
-                }),
-                receipt: {
-                    chatId: input.chatId,
-                    idempotent: true,
-                    messageId: existing.id,
-                    sequence: existing.sequence,
-                    target: input.target,
-                },
-                wakes: [],
-            };
+            return await replayAgentMessage(
+                tx,
+                input,
+                agent,
+                existing,
+                content,
+                replyParent?.parent.id ?? null
+            );
         }
         const activities: AgentActivityEvent[] = [];
         const startedActivity = await appendServerAgentActivity(tx, {
@@ -189,14 +151,17 @@ export async function sendAgentMessage(
             throw new Error('Failed to allocate the Agent message sequence.');
         }
 
+        const messageId = createOpaqueId('msg');
         const [message] = await tx
             .insert(chatMessagesTable)
             .values({
                 authorAgentId: input.agentId,
                 chatId: input.chatId,
                 content,
-                id: createOpaqueId('msg'),
+                id: messageId,
                 nonce: input.nonce,
+                replyRootMessageId: replyParent?.root.id ?? messageId,
+                replyToMessageId: replyParent?.parent.id ?? null,
                 runId: input.runId,
                 sequence: updatedChat.sequence,
                 serverId: input.serverId,
@@ -255,6 +220,7 @@ export async function sendAgentMessage(
             authorAgentId: input.agentId,
             chatId: input.chatId,
             content,
+            messageId: message.id,
             serverId: input.serverId,
         });
         for (const recipient of recipients) {
@@ -321,6 +287,7 @@ export async function sendAgentMessage(
                 agentId: input.agentId,
                 attachments: attachmentMetadata(attachments),
                 chatId: input.chatId,
+                reply: await readInlineReplyContext(tx, input.serverId, message),
             }),
             receipt: {
                 chatId: input.chatId,
@@ -332,47 +299,6 @@ export async function sendAgentMessage(
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };
     });
-}
-
-function toAgentCliMessage(
-    message: {
-        bodyKind: MessageBodyKind;
-        content: string;
-        createdAt: Date;
-        id: string;
-        nonce: string;
-        sequence: number;
-    },
-    agent: {
-        agentId: string;
-        attachments: AttachmentMetadata[];
-        chatId: string;
-        description: string | null;
-        displayName: string;
-        handle: string;
-    }
-): HausAgentMessage {
-    return {
-        attachments: agent.attachments,
-        author: {
-            id: agent.agentId,
-            kind: 'agent',
-            label: agent.displayName,
-            metadata: {},
-        },
-        body_kind: message.bodyKind,
-        chat_id: agent.chatId,
-        content: message.content,
-        created_at: message.createdAt.toISOString(),
-        deleted_at: null,
-        delivery_id: null,
-        id: message.id,
-        metadata: {},
-        nonce: message.nonce,
-        role: 'assistant',
-        sender: { description: agent.description, handle: agent.handle, type: 'agent' },
-        sequence: message.sequence,
-    };
 }
 
 export class AgentSendConflictError extends Error {

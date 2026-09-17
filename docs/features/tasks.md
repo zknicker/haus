@@ -1,5 +1,5 @@
 ---
-summary: Hosted chat-first tasks — canonical messages with Server-owned lifecycle metadata, Thread work surfaces, and board/list lenses.
+summary: Hosted chat-first tasks — canonical messages with Server-owned lifecycle metadata, inline conversation, optional Threads, and board/list lenses.
 read_when:
   - changing task promotion, claiming, assignment, statuses, priorities, or labels
   - changing hosted task authorization, events, or Thread work surfaces
@@ -9,8 +9,8 @@ read_when:
 # Tasks
 
 A task is a canonical hosted Chat message promoted with task metadata. The message body is the
-task title verbatim, the child Thread anchored on that message is the work surface once anyone
-replies in it, and board/list views are lenses over the same message. Haus does not keep a
+task title verbatim, conversation continues inline or in a chosen child Thread, and board/list
+views are lenses over the same message. Haus does not keep a
 second task conversation or content store.
 
 Tasks never own Threads. A message gets a task, a message gets a Thread, and they meet only
@@ -31,24 +31,17 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
 - Status is `todo`, `in_progress`, `in_review`, `done`, or reversible `closed`.
 - Every task reads as one of two **tiers**, inferred from evidence rather than declared. A
   **background** task is an Agent's own claim — `origin` `claimed`, status `in_progress` or
-  `done`, nothing its claimant said in its Thread, no Ask against it, never sent to review, and not
-  left unfinished by its claiming run. It is an orchestration lock and a record. Everything else is
-  **tracked**. A background claim turns tracked the moment its own claimant posts in its Thread, an
-  Ask is raised against it, its status leaves `in_progress`/`done` — review, closure, a reopen — or
-  its claiming run settles with the work still open. Only the claimant's Thread messages count: a
-  peer Agent or a bystander replying there is the chatter a Thread exists to hold, and it must not
-  drag somebody's bookkeeping onto a person's Board. Leaving that status range persists the stamp, so
-  the tier only ever moves background to tracked and never flickers back.
-- When the claiming run *completes* having answered in the task's own Chat, Server sets the task
-  `done` through the ordinary update path. Only a finishing reply counts: the run's latest
-  top-level reply must come after its last tool-shaped activity event (or the run used no tools),
-  so an early "I'm on it" acknowledgment leaves the claim `in_progress` and tracked. Same-turn claimed work therefore finishes without
-  passing through `in_review`, because nobody has to look at it. A claim the run did not answer —
-  and every claim held by a run that failed, was interrupted, or was stopped, restarted, or reset
-  by a human — stays `in_progress` and becomes tracked, which is the case a person should see.
-  The Agent closing its own same-turn work is the primary path and this auto-resolve is a backstop:
-  every edge it cannot prove deliberately leaves the claim open and tracked rather than closing
-  work that may still be live.
+  `done`, no Ask against it, never sent to review, and not left unfinished by its claiming run.
+  Everything else is **tracked**. An Ask, a status outside `in_progress`/`done`, or an open claim
+  after settlement makes work tracked. Inline and Thread replies do not affect this choice.
+  The durable tracked stamp keeps the tier from flickering back.
+- Explicit task updates complete work. A message never completes a task by implication. Every
+  claim left open at settlement remains `in_progress` and becomes tracked, including when the
+  run completed normally, failed, was interrupted, or was stopped. Same-turn work can be set
+  directly to `done` without passing through review.
+- A successful claim subscribes its Agent to the request's inline replies. That includes human
+  replies to the original human message and persists after completion. A later request can have
+  its own task on its reply message; each task still has one assignee.
 - A task also reports `live`: true while its assignee Agent's in-flight run holds that task's
   message or Thread. Liveness is derived from the delivery ledger at read time; a run beginning
   and a run settling both emit `task.updated`, so nothing polls for it.
@@ -66,7 +59,7 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
 - Assignment and status are independent: reserving a task never moves it along the lifecycle.
   Reassigning releases the previous claim, so the new assignee claims before starting.
 - Done and closed tasks cannot be claimed, unclaimed, or assigned.
-- Server closes an `in_review` task that has gone quiet for 7 days — no new message in its Thread
+- Server closes an `in_review` task that has gone quiet for 7 days — no new message in its inline chain or Thread
   and no change to the task itself. The close runs through the ordinary update path, so it bumps
   the version and emits `task.updated` like any other status change. Nothing records that Server
   rather than a person closed it: the task carries no actor or reason for a status change, and a
@@ -90,14 +83,18 @@ canonical message materializes when someone first replies in it, under the same
 `cht_thr_<anchor>` id it always had. Until then the task still reports that `threadChatId`, the
 deep link still opens, and the Thread reads as what it is: no replies, nothing unread, nothing
 followed. Deliberately following such a Thread materializes it; nothing else does, and the
-claimant's follow is attached the moment the Thread appears. Opening a task opens that Thread.
+claimant's follow is attached the moment the Thread appears. Task inspection shows the canonical
+request and its inline conversation alongside a distinct Thread section. Reading the inline
+conversation uses the parent Chat's reply-chain filter and does not create a Thread.
 The Thread has no independent membership: Server membership and parent-Chat participation remain
 the sole access authority.
 
-Agents use the Task Thread for progress and execution discussion. Claiming a message does not
-reroute the originating conversation: replies reuse the exact target where the human's message
-arrived, while task-specific follow-up belongs in the Task Thread. A human-named delivery target
-always wins, and `here` means the human instruction message's target.
+Agents continue each request in the Chat or Thread where it was asked, from acknowledgment to
+result, following the human's lead as the conversation develops. This conversation guidance applies
+across turns independently of claiming and task status. A human-named delivery target always wins,
+and `here` means the human instruction message's target. Delegated Cloud Agent implementation and
+revisions live in the work Thread; the coordinating Agent keeps the requester informed and returns
+a concise outcome and link in their conversation.
 
 Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
 apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose
@@ -124,7 +121,7 @@ pre-scoped; Server-wide
 search opens from the contextual sidebar and finds tasks through their canonical Chat messages;
 the ordinary Chat composer sends messages only, while existing top-level messages can be promoted;
 the contextual sidebar owns saved views and label filters. Opening a task from either lens shows
-its Thread work surface in a dialog over the tasks page — `?task=<messageId>` owns the open task,
+its request, inline replies, and optional Thread as one chronological conversation in a dialog over the tasks page — `?task=<messageId>` owns the open task,
 so deep links and Back work — while "View in channel" and artifact opens navigate to the parent
 Chat. Inside a Chat, opening a task still uses the chat-owned Thread side pane. A Task Thread is
 titled by its task (`Task #4`) in both hosts and shows the current status, assignee, creator, and
@@ -157,10 +154,11 @@ The chip is a label in one button into the Thread. Before replies exist, visible
 content-width attachment with no reply count. Once replies exist, the Thread card carries the task
 metadata and reply previews together. Cloud Agent work in the Thread appears in that same card.
 
-**Chat hides empty Agent claims by default.** A task with `origin` `claimed` shows no attachment
-until its Thread has replies, unless the reader enables Show tasks in chat. A populated Thread
-always states its task metadata. Human-created tasks (`composed` or `converted`) remain visible
-before replies because a person made them deliberately. Tier remains a Board and List concern.
+**Chat hides Agent claim metadata by default.** A task with `origin` `claimed` shows no task
+label unless the reader enables Show tasks in chat, even when its Thread has replies. The Thread
+card still shows its reply count and previews and opens normally. Human-created tasks (`composed`
+or `converted`) remain visible because a person made them deliberately. Tier remains a Board and
+List concern. The opened Thread still shows the full task metadata above its anchor.
 
 The **Show tasks in chat** preference (Settings → Preferences → Chat) turns the claims back on, and
 with it every task reads the way a human-made one does. It is off by default and per device, stored
@@ -215,3 +213,8 @@ unknown. A missing reply is not approval, negative evidence, or completed work.
 
 Also excluded: task scheduling, attachments, deletion, dependencies, epics, generic
 workflow machinery, and generic taxonomy infrastructure.
+
+The focused conversation preserves each message’s original location. Channel replies stay in the
+channel; the composer posts in the Thread. Opening the view does not create a Thread, subscribe
+participants, or count channel replies as Thread messages. There is no separate inline-replies
+section. Thread views use the same combined conversation as task inspection.

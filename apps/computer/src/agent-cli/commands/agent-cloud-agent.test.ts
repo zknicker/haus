@@ -103,8 +103,23 @@ test('starts one Cloud Agent with the stdin instructions and the Agent’s own w
     });
     const printed = output.join('');
     expect(printed).toContain('Work ID: caw_1234567890abcdef');
-    expect(printed).toContain('target "#product:1a2b3c4d"');
+    expect(printed).toContain('Work thread: "#product:1a2b3c4d"');
     expect(printed).toContain('reaches your inbox');
+});
+
+test('starts a cloud card as an inline reply without changing its channel', async () => {
+    const seen: AgentApiRequest[] = [];
+    await runCloudAgentStart(args({ '--reply-to': '1a2b3c4d' }), {
+        client: requester(seen),
+        mintNonce: () => 'inline-cloud-nonce',
+        readStdin: () => Promise.resolve('Fix the reported failure.'),
+        stdinIsTty: false,
+        write: () => undefined,
+    });
+    expect(seen[0]?.body).toMatchObject({
+        replyToMessageId: '1a2b3c4d',
+        target: '#product',
+    });
 });
 
 test('a start with no instructions, a bad repository, or no ref fails or omits truthfully', async () => {

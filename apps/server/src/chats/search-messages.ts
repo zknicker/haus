@@ -17,6 +17,7 @@ import { visibleChats } from './chat-visibility.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
+import { readInlineReplyContexts } from './reply-context.ts';
 
 export async function searchChatMessages(
     db: HausDatabase,
@@ -55,6 +56,8 @@ export async function searchChatMessages(
             createdAt: chatMessagesTable.createdAt,
             id: chatMessagesTable.id,
             nonce: chatMessagesTable.nonce,
+            replyRootMessageId: chatMessagesTable.replyRootMessageId,
+            replyToMessageId: chatMessagesTable.replyToMessageId,
             runId: chatMessagesTable.runId,
             sequence: chatMessagesTable.sequence,
             serverId: chatMessagesTable.serverId,
@@ -113,11 +116,12 @@ export async function searchChatMessages(
         .limit(input.limit);
 
     const messageIds = rows.map((message) => message.id);
-    const [attachments, causes, bodies, reactions] = await Promise.all([
+    const [attachments, causes, bodies, reactions, replies] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
+        readInlineReplyContexts(db, input.serverId, rows),
     ]);
 
     return rows.map((message) => ({
@@ -127,6 +131,7 @@ export async function searchChatMessages(
             body: bodies.get(message.id),
             cause: causes.get(message.id),
             reactions: reactions.get(message.id),
+            reply: replies.get(message.id) ?? null,
         }),
         chatArchivedAt: message.chatArchivedAt?.toISOString() ?? null,
     }));

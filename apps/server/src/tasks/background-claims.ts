@@ -3,9 +3,8 @@ import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, messageTasksTable } from '../postgres/schema.ts';
 import { anchorMessageIdForThreadChatId } from '../threads/thread-id.ts';
-import { classifyRunReplyInChat } from './run-reply.ts';
 import { insertTaskEvent } from './task-events.ts';
-import { loadTaskTierEvidence, resolveTaskTier, taskTierEvidenceFor } from './task-tier.ts';
+import { loadTaskTierEvidence, taskTierEvidenceFor } from './task-tier.ts';
 
 type TaskWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
@@ -15,35 +14,21 @@ interface RunScope {
     serverId: string;
 }
 
-interface SettleScope extends RunScope {
-    /**
-     * Whether the turn ran to completion. A failed, interrupted, stopped, or
-     * reset run proves nothing about the work, so its replies are not read as
-     * an answer: those claims are stamped tracked instead of closed.
-     */
-    completed: boolean;
-}
-
 /**
- * Resolves the Agent's outstanding background claims when its run settles.
+ * Records the Agent's outstanding background claims when its run settles.
  *
- * A background claim is a lock the Agent took to do work inside one turn. If
- * the turn completed and finished with an answer in the task's own Chat — a
- * reply written after the run's last tool-shaped operation, not the "I'm on
- * it" acknowledgment that precedes deep work — the work is finished and Server
- * says so: the task becomes `done` without ever asking a human to review it.
- * If the run settled and the task is still open — no answer, an answer that
- * was only an acknowledgment, or a turn that failed, was interrupted, or was
- * killed before it could finish — the work outlived the turn, which is exactly
- * the thing a person should be able to see: the task is stamped tracked and
- * joins the ordinary Board and List from then on.
+ * A background claim is a lock the Agent took to do work inside one turn. A
+ * settled run never proves that the work is finished: only the Agent's explicit
+ * `done` mutation can close it. Any still-open claim is stamped tracked so a
+ * person can see work that outlived the run. An Ask already makes a claim
+ * tracked and needs no durable stamp here.
  *
- * Both outcomes emit `task.updated`, as does the liveness edge every settling
- * run crosses, so no client polls for either.
+ * Each changed claim emits `task.updated`, as does the liveness edge every
+ * settling run crosses, so no client polls for either.
  */
 export async function settleAgentBackgroundClaims(
     db: TaskWriter,
-    scope: SettleScope
+    scope: RunScope
 ): Promise<ServerDurableEvent[]> {
     const candidates = await db
         .select()
@@ -60,16 +45,13 @@ export async function settleAgentBackgroundClaims(
     const evidence = await loadTaskTierEvidence(db, scope.serverId, candidates);
     const changed = new Map<string, { chatId: string; messageId: string }>();
     for (const task of candidates) {
-        if (resolveTaskTier(task, taskTierEvidenceFor(evidence, task.messageId)) !== 'background') {
+        if (taskTierEvidenceFor(evidence, task.messageId).hasAsk) {
             continue;
         }
-        const answered =
-            scope.completed &&
-            (await classifyRunReplyInChat(db, scope, task.chatId)) === 'finishing';
         await db
             .update(messageTasksTable)
             .set({
-                ...(answered ? { status: 'done' as const } : { trackedAt: sql`now()` }),
+                trackedAt: sql`now()`,
                 updatedAt: sql`now()`,
                 version: sql`${messageTasksTable.version} + 1`,
             })

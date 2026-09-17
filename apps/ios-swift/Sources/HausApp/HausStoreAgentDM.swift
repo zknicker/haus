@@ -19,7 +19,8 @@ extension HausStore {
                 chatID: pendingKey,
                 content: content,
                 createdAt: .now,
-                nonce: nonce
+                nonce: nonce,
+                inlineReply: nil
             )
         )
         sendError = nil

@@ -12,6 +12,7 @@ import {
     writeAgentAuthoredMessage,
 } from '../chats/agent-authored-message.ts';
 import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
+import { resolveInlineReplyParent } from '../chats/reply-context.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -61,7 +62,12 @@ export async function createCloudAgentWork(
             tx,
             runner,
             plan,
-            { bodyKind: 'cloud-agent-work', content, nonce: input.nonce },
+            {
+                bodyKind: 'cloud-agent-work',
+                content,
+                nonce: input.nonce,
+                replyToMessageId: input.replyToMessageId,
+            },
             agentDelivery
         );
 
@@ -137,10 +143,18 @@ async function readWorkByNonce(
         serverId: runner.serverId,
     });
     const work = await findCloudAgentWorkByMessage(db, runner.serverId, message.id);
+    const reply = input.replyToMessageId
+        ? await resolveInlineReplyParent(db, {
+              chatId,
+              replyToMessageId: input.replyToMessageId,
+              serverId: runner.serverId,
+          })
+        : null;
     if (
         !work ||
         message.authorAgentId !== runner.agentId ||
         message.content !== content ||
+        message.replyToMessageId !== (reply?.parent.id ?? null) ||
         work.title !== input.title ||
         work.repository !== input.repository ||
         work.startingRef !== input.startingRef ||

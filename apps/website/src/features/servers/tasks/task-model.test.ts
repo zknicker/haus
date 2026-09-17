@@ -258,6 +258,7 @@ function item(overrides: { content?: string } = {}): TaskListItem {
             id: 'message_one',
             nonce: 'nonce_one',
             reactions: [],
+            reply: null,
             runId: null,
             sequence: 1,
             serverId: 'server_one',

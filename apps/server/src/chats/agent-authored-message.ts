@@ -12,6 +12,7 @@ import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { requireChatWritable } from './chat-access.ts';
 import { insertMessageCreatedEvent } from './message-created-event.ts';
+import { resolveInlineReplyParent } from './reply-context.ts';
 
 export interface AgentAuthoredMessageChat {
     kind: 'channel' | 'dm' | 'thread';
@@ -90,9 +91,16 @@ export async function writeAgentAuthoredMessage(
     db: HausDatabase,
     runner: ResolvedRunner,
     plan: AgentAuthoredMessagePlan,
-    input: { bodyKind: MessageBodyKind; content: string; nonce: string },
+    input: { bodyKind: MessageBodyKind; content: string; nonce: string; replyToMessageId?: string },
     agentDelivery: AgentDelivery
 ): Promise<AgentAuthoredMessage> {
+    const reply = input.replyToMessageId
+        ? await resolveInlineReplyParent(db, {
+              chatId: plan.chatId,
+              replyToMessageId: input.replyToMessageId,
+              serverId: runner.serverId,
+          })
+        : null;
     const [numbered] = await db
         .update(chatsTable)
         .set({
@@ -114,6 +122,8 @@ export async function writeAgentAuthoredMessage(
             content: input.content,
             id: createOpaqueId('msg'),
             nonce: input.nonce,
+            replyToMessageId: reply?.parent.id ?? null,
+            replyRootMessageId: reply?.root.id ?? null,
             runId: runner.runId,
             sequence: numbered.sequence,
             serverId: runner.serverId,
@@ -151,6 +161,7 @@ export async function writeAgentAuthoredMessage(
         authorAgentId: runner.agentId,
         chatId: plan.chatId,
         content: input.content,
+        messageId: message.id,
         serverId: runner.serverId,
     });
     for (const recipient of recipients) {
@@ -186,12 +197,19 @@ export async function writeAgentAuthoredMessage(
 export async function findAgentMessageByNonce(
     db: HausDatabase,
     input: { chatId: string; nonce: string; serverId: string }
-): Promise<{ authorAgentId: string | null; content: string; id: string; sequence: number } | null> {
+): Promise<{
+    authorAgentId: string | null;
+    content: string;
+    id: string;
+    sequence: number;
+    replyToMessageId: string | null;
+} | null> {
     const [message] = await db
         .select({
             authorAgentId: chatMessagesTable.authorAgentId,
             content: chatMessagesTable.content,
             id: chatMessagesTable.id,
+            replyToMessageId: chatMessagesTable.replyToMessageId,
             sequence: chatMessagesTable.sequence,
         })
         .from(chatMessagesTable)

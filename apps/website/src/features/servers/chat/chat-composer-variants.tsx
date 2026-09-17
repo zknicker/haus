@@ -1,10 +1,14 @@
 import { ServerChatComposer } from './chat-composer.tsx';
 import { agentDmDraftKey, chatDraftKey, threadDraftKey } from './chat-draft-store.ts';
+import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 
 export function ChatComposer(props: {
     agentDmId?: string;
     chatId: string;
     chatName: string;
+    inlineReply?: ChatInlineReplyTarget | null;
+    onInlineReplyCancel?: () => void;
+    onInlineReplySent?: (messageId: string) => void;
     onThreadCreated?: (threadChatId: string) => void;
     pendingChatId?: string;
     placeholder?: string;

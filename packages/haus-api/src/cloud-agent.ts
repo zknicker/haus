@@ -35,6 +35,7 @@ export const agentCloudAgentStartInputSchema = z
         nonce: z.string().trim().min(1).max(128),
         provider: cloudAgentProviderSchema,
         repository: cloudAgentRepositorySchema,
+        replyToMessageId: idSchema.optional(),
         startingRef: cloudAgentRefSchema.nullable().default(null),
         target: z.string().trim().min(1).max(200),
         title: cloudAgentTitleSchema,

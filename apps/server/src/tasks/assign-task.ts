@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { targetForChat } from '../agent-api/message-view.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
+import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentThreadFollowsTable,
@@ -147,6 +148,12 @@ export async function assignTask(
 
         const wakes: string[] = [];
         if (assignee.agentId) {
+            await followInlineReplyForMessage(tx, {
+                agentId: assignee.agentId,
+                chatId: task.chatId,
+                messageId: task.messageId,
+                serverId: input.serverId,
+            });
             // Follow first: thread delivery is gated on this row, so without it
             // the Agent would wake, claim, and then never see a single reply.
             // A Thread nobody has replied in has no row to point at yet; the

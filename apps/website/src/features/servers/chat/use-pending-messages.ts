@@ -1,4 +1,4 @@
-import type { AttachmentMetadata } from '@haus/api';
+import type { AttachmentMetadata, ChatMessageReply } from '@haus/api';
 import * as React from 'react';
 
 /**
@@ -15,6 +15,8 @@ export interface PendingChatMessage {
     messageId: string | null;
     /** The send nonce, and this row's stable local identity. */
     nonce: string;
+    /** The selected parent/root context, shown before the durable receipt lands. */
+    reply?: ChatMessageReply | null;
     /** Client submission time, reserved so confirmation never adds header geometry. */
     submittedAt: string;
 }

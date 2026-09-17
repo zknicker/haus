@@ -34,6 +34,11 @@ const START_COMMAND: SubCommand = {
     examples: [START_RECIPE],
     flags: [
         { description: 'Channel, DM, or thread target', name: '--target', valueName: '<target>' },
+        {
+            description: 'Message this card replies to inline',
+            name: '--reply-to',
+            valueName: '<messageId>',
+        },
         { description: 'Repository as owner/name', name: '--repo', valueName: '<owner/name>' },
         { description: 'Starting ref (branch, tag, or SHA)', name: '--ref', valueName: '<ref>' },
         { description: 'One-line title for the work', name: '--title', valueName: '<text>' },
@@ -43,7 +48,7 @@ const START_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runCloudAgentStart(args, defaultDeps()),
     summary: 'Delegate bounded work to a cloud agent; the instructions come from stdin',
-    usage: 'haus cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>',
+    usage: 'haus cloud-agent start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text>',
 };
 
 const SEND_COMMAND: SubCommand = {
@@ -164,6 +169,8 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
     const title = readTitle(args);
     const content = requiredValue(args, '--say');
     const startingRef = args.values['--ref']?.trim() || null;
+    const replyToMessageId =
+        args.values['--reply-to'] === undefined ? undefined : requiredValue(args, '--reply-to');
 
     const instructions = deps.stdinIsTty ? '' : await deps.readStdin();
     if (!instructions.trim()) {
@@ -183,6 +190,7 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
                 instructions: instructions.trimEnd(),
                 nonce: deps.mintNonce(),
                 repository,
+                ...(replyToMessageId ? { replyToMessageId } : {}),
                 startingRef,
                 target,
                 title,
@@ -198,8 +206,8 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
     ];
     lines.push(
         isThreadTarget(receipt.target)
-            ? `(discussion continues in "${receipt.target}")`
-            : `(discussion continues in this message's thread, target "${receipt.target}:${shortMessageId(receipt.messageId)}")`
+            ? `Work thread: "${receipt.target}".`
+            : `Work thread: "${receipt.target}:${shortMessageId(receipt.messageId)}".`
     );
     lines.push('The result reaches your inbox when the run settles; post what you learn yourself.');
     deps.write(`${lines.join('\n')}\n`);

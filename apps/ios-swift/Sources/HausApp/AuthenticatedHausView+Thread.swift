@@ -68,6 +68,7 @@ extension AuthenticatedHausView {
                 guard let chatID = resolvedThreadChatID(for: thread) else { return false }
                 return await store.loadOlderMessages(chatID: chatID)
             },
+            inlineReplies: inlineReplies(for: thread),
             onOpenAgent: openAgentFromThread,
             onCancelCloudAgent: store.canManageServer ? { workID in
                 try await store.cancelCloudAgent(workID: workID)
@@ -83,6 +84,44 @@ extension AuthenticatedHausView {
 
     func resolvedThreadChatID(for thread: ThreadSelection) -> String? {
         thread.resolvedChatID(selectedThread: selectedThread, store: store)
+    }
+
+    /// Task inspection keeps the task's canonical parent anchor and exposes
+    /// its parent Chat's inline chain beside the separate child Thread.
+    private func inlineReplies(for thread: ThreadSelection) -> ThreadInlineReplies? {
+        guard thread.anchor.task != nil else { return nil }
+        let rootMessageID = thread.anchor.id
+        let parentChatID = thread.parentChatID
+        return ThreadInlineReplies(
+            id: rootMessageID,
+            messages: {
+                store.inlineReplyPresentations(
+                    chatID: parentChatID,
+                    rootMessageID: rootMessageID
+                )
+            },
+            isLoaded: {
+                store.hasLoadedInlineReplies(rootMessageID: rootMessageID)
+            },
+            isLoading: {
+                store.isLoadingInlineReplies(rootMessageID: rootMessageID)
+            },
+            hasOlder: {
+                store.hasOlderInlineReplies(rootMessageID: rootMessageID)
+            },
+            load: {
+                await store.loadInlineReplies(
+                    chatID: parentChatID,
+                    rootMessageID: rootMessageID
+                )
+            },
+            loadOlder: {
+                await store.loadOlderInlineReplies(
+                    chatID: parentChatID,
+                    rootMessageID: rootMessageID
+                )
+            }
+        )
     }
 
     /// The Thread's follow state, read from the parent page's summary. A Thread

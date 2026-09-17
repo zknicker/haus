@@ -105,7 +105,7 @@ export async function runTaskCreate(args: ParsedArgs, deps: TaskDeps): Promise<n
             `Created task #${task.number} [${task.status}] in ${task.target ?? target}. Message ID: ${task.message.id}`
     );
     deps.write(
-        `${lines.join('\n')}\nProgress updates belong in the task's thread: use target "${target}:${shortMessageId(response.tasks[0]?.message.id ?? '')}".\n`
+        `${lines.join('\n')}\nTask thread: "${target}:${shortMessageId(response.tasks[0]?.message.id ?? '')}".\n`
     );
     return 0;
 }
@@ -134,13 +134,7 @@ export async function runTaskClaim(args: ParsedArgs, deps: TaskDeps): Promise<nu
     const claims = response.claimed.map(
         (task) => `#${task.number} (msg:${shortMessageId(task.message.id)}): claimed`
     );
-    const followUps = response.claimed.map((task) => {
-        const taskTarget = task.target ?? target;
-        return `#${task.number} → reply in ${taskTarget} when done (same-turn work); use the thread "${taskTarget}:${shortMessageId(task.message.id)}" for progress notes, questions, or work that outlives this turn.`;
-    });
-    deps.write(
-        `Claim results (${response.claimed.length} claimed):\n${claims.join('\n')}\nFollow up on each task:\n${followUps.join('\n')}\n`
-    );
+    deps.write(`Claim results (${response.claimed.length} claimed):\n${claims.join('\n')}\n`);
     return 0;
 }
 

@@ -9,6 +9,7 @@ const cloudAgentStartSchema = z.object({
     instructions: z.string().trim().min(1),
     nonce: z.string().trim().min(1),
     repository: z.string().trim().min(1),
+    replyToMessageId: z.string().trim().min(1).optional(),
     startingRef: z.string().trim().min(1).nullable(),
     target: z.string().trim().min(1),
     title: z.string().trim().min(1),

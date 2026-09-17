@@ -22,6 +22,7 @@ function message(id: string, sequence: number): ChatMessage {
         id,
         nonce: `nonce_${id}`,
         reactions: [],
+        reply: null,
         runId: null,
         sequence,
         serverId: 'srv_one',

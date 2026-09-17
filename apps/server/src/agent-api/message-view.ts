@@ -2,6 +2,7 @@ import type { HausAgentMessage, MessageBodyKind } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { readAsksForMessages } from '../asks/ask-shape.ts';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
+import { readInlineReplyContexts } from '../chats/reply-context.ts';
 import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -26,6 +27,8 @@ export interface MessageRow {
     createdAt: Date;
     id: string;
     nonce: string;
+    replyRootMessageId: string | null;
+    replyToMessageId: string | null;
     sequence: number;
 }
 
@@ -38,6 +41,8 @@ export const messageSelection = {
     createdAt: chatMessagesTable.createdAt,
     id: chatMessagesTable.id,
     nonce: chatMessagesTable.nonce,
+    replyRootMessageId: chatMessagesTable.replyRootMessageId,
+    replyToMessageId: chatMessagesTable.replyToMessageId,
     sequence: chatMessagesTable.sequence,
 };
 
@@ -105,6 +110,7 @@ export async function toAgentMessages(
     const humanById = new Map(humans.map((human) => [human.id, human]));
     const attachmentsByMessage = await readMessageAttachments(db, serverId, messageIds);
     const reactionsByMessage = await readMessageReactions(db, serverId, messageIds);
+    const repliesByMessage = await readInlineReplyContexts(db, serverId, rows);
     return rows.map((row) => {
         const agent = row.authorAgentId ? agentById.get(row.authorAgentId) : undefined;
         const human = row.authorUserId ? humanById.get(row.authorUserId) : undefined;
@@ -139,6 +145,7 @@ export async function toAgentMessages(
             nonce: row.nonce,
             role: agent ? 'assistant' : 'user',
             reactions: reactionsByMessage.get(row.id) ?? [],
+            reply: repliesByMessage.get(row.id) ?? null,
             sender: {
                 description: agent?.description ?? human?.description ?? null,
                 handle,

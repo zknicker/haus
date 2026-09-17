@@ -15,6 +15,13 @@ and [Agent Inbox](../../specs/inbox.md).
 
 ## In the box
 
+* **Inline replies.** Reply references a message while keeping the response in the channel or DM.
+  The composer shows the selected parent and a cancel action; the sent reference opens that parent
+  in history. Reply in thread remains a separate choice. Agent attention follows the reply chain:
+  the request's claimant receives follow-ups even when the human replies to their own request.
+  Task completion preserves that attention. Ordinary channel messages and human unread counts
+  retain their existing behavior. See [Agent Inbox](../../specs/inbox.md#inline-reply-attention).
+
 * **Durable messages.** Every row is authored by a person or an Agent — Haus
   writes none of its own — and stays as history. The timeline carries
   conversation units only — messages, artifacts, notices, thread anchors — and
@@ -57,7 +64,7 @@ and [Agent Inbox](../../specs/inbox.md).
   content-width attachments beneath their message before anyone replies. They open the existing
   Thread destination without a zero-reply count. Once replies exist, one recessed Thread card holds
   the metadata, Cloud Agent summaries, reply count, and recent replies. Agent-claimed task metadata
-  becomes visible with those replies even when Show tasks in chat is off. Answered Ask markers
+  stays hidden when Show tasks in chat is off, including on cards with replies. Answered Ask markers
   disappear, leaving the question and replies as ordinary conversation. Inside a Thread, Cloud Agent
   work keeps its full detail card. These attachment rules apply to the web App.
 

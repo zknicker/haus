@@ -2,8 +2,8 @@ import * as React from 'react';
 import type { TaskOrigin } from './task-presentation.ts';
 
 /**
- * Per-device preference for showing Agent claims before their Thread has replies.
- * Populated Threads always state their task; human-created tasks remain visible.
+ * Per-device preference for showing Agent claims in the Chat transcript.
+ * Thread replies do not override it; human-created tasks remain visible.
  * An external store keeps the preference shared without a transcript provider.
  */
 const storageKey = 'haus.chat.showTasks';

@@ -2,7 +2,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { seedCoveWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
-import type { AgentTurnActivitySummary, CloudAgentBranch } from '@haus/api';
+import type { AgentTurnActivitySummary } from '@haus/api';
 import type { TraceCarrier } from '@haus/effect';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { AgentActivityRun } from './agent-activity-run.ts';
@@ -12,6 +12,7 @@ import {
     seedOrdinaryWorkspace,
 } from './agent-configuration.ts';
 import { parseInbox } from './agent-inbox-input.ts';
+import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
 import type { AgentTurnTimings } from './agent-turn-timings.ts';
@@ -61,51 +62,6 @@ export interface AgentStartCommand {
     traceContext?: { traceparent: string };
     type: 'start';
     webAccess?: 'fetch-only' | 'search' | 'search-only';
-}
-
-export interface AgentInboxItem {
-    ask?: AgentInboxAsk;
-    chatId: string;
-    cloudAgentWork?: AgentCloudAgentWorkAttention;
-    content: string;
-    createdAt: string;
-    id: string;
-    mentioned?: boolean;
-    message?: Record<string, unknown>;
-    senderDescription?: string;
-    senderHandle: string;
-    senderType: 'agent' | 'human' | 'system' | 'trigger';
-    sequence: number;
-    target: string;
-    task?: {
-        assigneeAgentId: string | null;
-        assigneeUserId: string | null;
-        messageId: string;
-        number: number;
-        priority: 'high' | 'low' | 'medium' | 'none' | 'urgent';
-        status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
-    };
-    threadFollowReactivated?: boolean;
-}
-
-/** The inbox projection of an Ask: who owes the answer, and whether it is still owed. */
-export interface AgentInboxAsk {
-    addresseeHandle: string | null;
-    status: 'answered' | 'open';
-}
-
-/** A settled Cloud Agent Run's terminal attention for the delegating Agent. */
-export interface AgentCloudAgentWorkAttention {
-    branches: CloudAgentBranch[];
-    errorCode: string | null;
-    provider: 'cursor';
-    providerUrl: string | null;
-    repository: string;
-    runId: string;
-    status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';
-    summary: string | null;
-    title: string;
-    workId: string;
 }
 
 /** Server→Computer command to terminate the named in-flight run. */

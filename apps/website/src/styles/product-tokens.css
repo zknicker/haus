@@ -106,7 +106,7 @@
     }
 
     :root[data-theme='light'] {
-        --background-hover: var(--background-secondary);
+        --background-hover: color-mix(in oklab, var(--background-secondary) 50%, transparent);
 
         /*
          * White, and the hairline below draws the edge. Fill alone could never

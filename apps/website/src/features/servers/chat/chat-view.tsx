@@ -5,6 +5,7 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
+import { useChatMessageNavigation } from '../../../hooks/servers/use-chat-message-navigation.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
@@ -12,23 +13,22 @@ import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
-import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
-import { AgentProfilePanel } from '../agent-profile-panel.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
 import { ChatAgentComposition, hasAgentComposition } from './agent-composition.tsx';
-import { ArchivedChannelBar } from './archived-channel-bar.tsx';
-import { ChatComposer } from './chat-composer-variants.tsx';
-import { ChatFilesPanel } from './chat-files.tsx';
 import { mergeTaskAnchor } from './chat-message-model.ts';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
+import { ChatViewFooter } from './chat-view-footer.tsx';
+import { ChatViewSidePanel, shouldTakeOverChatSidePanel } from './chat-view-side-panel.tsx';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
+import { useChatInlineReply } from './use-chat-inline-reply.ts';
 import { useChatReferenceActivation } from './use-chat-reference-activation.ts';
+import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-selection.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
 import { useVisibleChatSequence } from './use-visible-chat-sequence.ts';
 
@@ -39,11 +39,7 @@ export function ChatView({
     server,
 }: {
     chat: Chat;
-    initialTask?: {
-        message: ChatMessage;
-        summary: ThreadSummary;
-        threadChatId: string;
-    };
+    initialTask?: ChatInitialTask;
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
 }) {
@@ -52,24 +48,19 @@ export function ChatView({
     const agentLifecycles = useAgentLifecycle();
     const artifactState = useChatArtifactPanel(chat.id);
     const activeSidePane = useChatSidePane(chat.id);
-    const [threadSelection, setThreadSelection] = React.useState<{
-        anchor: ChatMessage;
-        initialSummary: ThreadSummary | null;
-        initialThreadChatId?: string;
-    } | null>(() =>
-        initialTask
-            ? {
-                  anchor: initialTask.message,
-                  initialSummary: initialTask.summary,
-                  initialThreadChatId: initialTask.threadChatId,
-              }
-            : null
-    );
-    // Below this, an open side pane takes over the content area. Deliberately
-    // low: squashing the chat beside an open pane beats hiding it, so takeover
-    // is reserved for genuinely narrow windows.
+    const [threadSelection, setThreadSelection] = useChatThreadSelection(chat.id, initialTask);
+    // Keep chat beside an open pane until the window is narrow enough
+    // that the pane needs to take over the content area.
     const threadTakeover = useViewportBelow(1024);
     const messages = useChatMessages(chat.serverId, chat.id);
+    const { clearInlineReply, clearSentInlineReply, inlineReply, selectInlineReply } =
+        useChatInlineReply(chat.id);
+    const { revealMessage } = useChatMessageNavigation({
+        chatId: chat.id,
+        fetchOlderHistory: messages.fetchOlderHistory,
+        hasOlderHistory: messages.hasOlderHistory,
+        messages: messages.data?.messages,
+    });
     const pendingMessages = usePendingChatMessages(chat.id, messages.data?.messages);
     const sourceMessages = messages.data?.messages;
     const anchorMessage = initialTask?.message;
@@ -117,15 +108,9 @@ export function ChatView({
                 : null,
         [threadSelection, transcriptMessages]
     );
-    const initialThreadChatId = initialTask?.threadChatId;
     const threadAnchorId = searchParams.get('thread');
     const threadCloseRequestedRef = React.useRef(false);
     const restoredThreadAnchorRef = React.useRef<string | null>(null);
-    React.useEffect(() => {
-        if (initialThreadChatId) {
-            setChatSidePane(chat.id, 'thread');
-        }
-    }, [chat.id, initialThreadChatId]);
     React.useEffect(() => {
         if (!threadAnchorId) {
             restoredThreadAnchorRef.current = null;
@@ -144,7 +129,13 @@ export function ChatView({
         }
         setThreadSelection({ anchor, initialSummary: null });
         setChatSidePane(chat.id, 'thread');
-    }, [chat.id, threadAnchorId, threadSelection?.anchor.id, transcriptMessages]);
+    }, [
+        chat.id,
+        setThreadSelection,
+        threadAnchorId,
+        threadSelection?.anchor.id,
+        transcriptMessages,
+    ]);
     const closeThread = React.useCallback(() => {
         threadCloseRequestedRef.current = true;
         setSearchParams(
@@ -173,20 +164,14 @@ export function ChatView({
             );
             setChatSidePane(chat.id, 'thread');
         },
-        [chat.id, setSearchParams]
+        [chat.id, setSearchParams, setThreadSelection]
     );
     const viewThreadInChannel = () => {
-        const anchorId = threadSelection?.anchor.id;
+        const anchor = threadSelection?.anchor;
         closeThread();
-        if (!anchorId) {
-            return;
+        if (anchor) {
+            revealMessage({ id: anchor.id, sequence: anchor.sequence });
         }
-        window.requestAnimationFrame(() => {
-            const element = document.querySelector(`[data-message-id="${CSS.escape(anchorId)}"]`);
-            element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element?.classList.add('chat-thread-flash');
-            window.setTimeout(() => element?.classList.remove('chat-thread-flash'), 1500);
-        });
     };
     // The chat-scoped pane and Thread share the side panel. The latest
     // artifact opener wins and reveals the pane.
@@ -218,32 +203,13 @@ export function ChatView({
             turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
         />
     ) : null;
-    const sidePanel = (
-        <>
-            <ChatArtifactPanel
-                agentId={chat.peerAgentId ?? ''}
-                open={artifactState.visible}
-                serverId={chat.serverId}
-                state={artifactState}
-                takeover={threadTakeover}
-            />
-            <AgentProfilePanel chatId={chat.id} server={server} takeover={threadTakeover} />
-            <ChatFilesPanel
-                messages={messages.data?.messages}
-                onClose={filesPane.close}
-                open={filesPane.visible}
-                takeover={threadTakeover}
-            />
-            {threadPanel}
-        </>
-    );
-    const sidePanelTakeover = Boolean(
-        threadTakeover &&
-            ((activeSidePane === 'artifact' && artifactState.visible) ||
-                (activeSidePane === 'files' && filesPane.visible) ||
-                activeSidePane === 'profile' ||
-                (activeSidePane === 'thread' && threadPanel))
-    );
+    const sidePanelTakeover = shouldTakeOverChatSidePanel({
+        activePane: activeSidePane,
+        artifactVisible: artifactState.visible,
+        filesVisible: filesPane.visible,
+        hasThread: Boolean(threadPanel),
+        takeover: threadTakeover,
+    });
     return (
         <section
             aria-label={chatName}
@@ -260,7 +226,17 @@ export function ChatView({
                     server={server}
                 />
             </PageTopbar>
-            <ShellSidePane takeover={sidePanelTakeover}>{sidePanel}</ShellSidePane>
+            <ShellSidePane takeover={sidePanelTakeover}>
+                <ChatViewSidePanel
+                    artifactState={artifactState}
+                    chat={chat}
+                    filesPane={filesPane}
+                    messages={messages.data?.messages}
+                    server={server}
+                    takeover={threadTakeover}
+                    threadPanel={threadPanel}
+                />
+            </ShellSidePane>
             <ChatDetailFrame
                 activeReplies={[]}
                 chatId={chat.id}
@@ -280,39 +256,28 @@ export function ChatView({
                     </EmptyState>
                 }
                 error={messages.error}
+                fetchOlderHistory={() => {
+                    void messages.fetchOlderHistory();
+                }}
                 footer={
-                    <>
-                        {ensureDm.error && !peerRetired ? (
-                            <p className="px-9 text-danger text-sm">{ensureDm.error.message}</p>
-                        ) : null}
-                        <span className="sr-only" data-testid="read-state">
-                            {read.data ? `Read through ${read.data.sequence}` : ''}
-                        </span>
-                        {chat.archivedAt ? (
-                            <ArchivedChannelBar
-                                canManage={server.role === 'owner' || server.role === 'admin'}
-                                chat={chat}
-                            />
-                        ) : peerRetired ? (
-                            <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-sm">
-                                {chatName} has been retired. You can read this conversation, but you
-                                can’t send new messages.
-                            </p>
-                        ) : (
-                            <ChatComposer
-                                agentDmId={chat.peerAgentId ?? undefined}
-                                chatId={chat.id}
-                                chatName={chatName}
-                                pendingChatId={chat.id}
-                                serverId={chat.serverId}
-                            />
-                        )}
-                    </>
+                    <ChatViewFooter
+                        chat={chat}
+                        chatName={chatName}
+                        ensureDmError={ensureDm.error}
+                        inlineReply={inlineReply}
+                        onInlineReplyCancel={clearInlineReply}
+                        onInlineReplySent={clearSentInlineReply}
+                        peerRetired={peerRetired}
+                        readSequence={read.data?.sequence}
+                        server={server}
+                    />
                 }
+                hasOlderHistory={messages.hasOlderHistory}
                 hasTransientTimelineContent={
                     hasAgentComposition(chat.id, agentLifecycles) || pendingMessages.length > 0
                 }
                 historyLoaded={Boolean(messages.data)}
+                isFetchingOlderHistory={messages.isFetchingOlderHistory}
                 isPending={messages.isPending}
                 rowCount={transcriptMessages?.length ?? 0}
                 timelineContent={(scrollContentRef) => (
@@ -323,11 +288,14 @@ export function ChatView({
                         }
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}
+                        onOpenInlineReply={revealMessage}
                         onOpenThread={openThread}
                         onReferenceActivate={handleReferenceActivate}
+                        onSelectInlineReply={selectInlineReply}
                         onStartDm={startDm}
                         onVisibleSequenceChange={visibleRead.onSequenceChange}
                         pendingMessages={pendingMessages}
+                        replyTargetMessageId={inlineReply?.messageId}
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}
                         threads={messages.data?.threads}

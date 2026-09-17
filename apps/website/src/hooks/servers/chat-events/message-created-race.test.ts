@@ -3,6 +3,7 @@ import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import { createTRPCQueryUtils, getQueryKey } from '@trpc/react-query';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { queryClientDefaultOptions, queryPolicy } from '../../../lib/query-policy.ts';
+import { chatMessagesQueryKey } from '../use-chat-messages.ts';
 import { threadMessagesQueryKey } from '../use-thread-messages.ts';
 import { messageEvent } from './chat-event-fixtures.ts';
 import { invalidateMessageCreated } from './use-message-created-events.ts';
@@ -15,7 +16,7 @@ test.each([
     const input = { chatId: 'juniper', serverId: 'server_one' };
     const queryKey =
         kind === 'chat'
-            ? getQueryKey(hausTrpc.chat.messages, input, 'query')
+            ? chatMessagesQueryKey(input.serverId, input.chatId)
             : threadMessagesQueryKey(input.serverId, input.chatId);
     const olderResponse = Promise.withResolvers<number[]>();
     let reads = 0;
@@ -74,7 +75,7 @@ test.each([
 test('a message arriving during the first open transcript request starts a fresh read', async () => {
     const queryClient = new QueryClient({ defaultOptions: queryClientDefaultOptions });
     const input = { chatId: 'juniper', serverId: 'server_one' };
-    const queryKey = getQueryKey(hausTrpc.chat.messages, input, 'query');
+    const queryKey = chatMessagesQueryKey(input.serverId, input.chatId);
     const olderResponse = Promise.withResolvers<number[]>();
     let reads = 0;
     const observer = new QueryObserver(queryClient, {

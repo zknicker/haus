@@ -576,8 +576,6 @@ export class AgentDelivery {
         }
         const runScope = {
             agentId: summary.agentId,
-            // Only a turn that ran to completion can close a claim it answered.
-            completed: summary.status === 'completed',
             runId: summary.runId,
             serverId,
         };
@@ -1147,9 +1145,7 @@ export class AgentDelivery {
 }
 
 /**
- * A run a human killed — Stop, Restart, or Reset — settles like a failed turn:
- * nothing it managed to say counts as an answer, so the background claims it
- * still holds are stamped tracked instead of closed.
+ * A stopped run leaves its open claims visible for recovery.
  */
 function killedRun(
     input: { agentId: string; serverId: string },
@@ -1157,7 +1153,6 @@ function killedRun(
 ) {
     return {
         agentId: input.agentId,
-        completed: false,
         runId: state.activeRunId ?? '',
         serverId: input.serverId,
     };
@@ -1383,6 +1378,7 @@ async function buildInboxItems(
                   }
                 : {}),
             ...(apiMessage ? { message: apiMessage } : {}),
+            ...(apiMessage?.reply ? { reply: apiMessage.reply } : {}),
             ...(row.mentioned ? { mentioned: true } : {}),
             ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
             ...(apiMessage?.sender.description

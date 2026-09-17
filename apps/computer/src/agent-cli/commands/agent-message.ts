@@ -24,9 +24,15 @@ import {
     requiredValue,
     valuesFor,
 } from './agent-command-utils.ts';
+import { MESSAGE_ATTENTION_SUBCOMMANDS } from './agent-message-attention.ts';
+import {
+    HEREDOC_RECIPE,
+    heredocError,
+    optionalCause,
+    validateDraftOptions,
+} from './agent-message-input.ts';
 import { messageSearchSubcommand } from './agent-message-search.ts';
 
-const HEREDOC_RECIPE = `haus message send --target "#general" <<'HAUSMSG'\nBody with "quotes", $vars, \`backticks\`.\nHAUSMSG`;
 const MAX_MESSAGE_CHECK_ROUNDS = 50;
 
 interface MessageDeps {
@@ -39,6 +45,7 @@ interface MessageDeps {
 }
 
 export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
+    ...MESSAGE_ATTENTION_SUBCOMMANDS,
     {
         allowExtraPositionals: true,
         examples: [
@@ -51,6 +58,11 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
                 name: '--target',
                 valueName: '<target>',
                 description: 'Channel, DM, or thread target',
+            },
+            {
+                name: '--reply-to',
+                valueName: '<messageId>',
+                description: 'Reply inline to a message in this channel or DM',
             },
             {
                 name: '--attachment-id',
@@ -70,7 +82,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runSend(args, defaultDeps()),
         summary: 'Send a message body read only from stdin',
-        usage: 'haus message send --target <t> [--attachment-id <id> ...] [--cause <fireId>] [--send-draft] [--anyway]',
+        usage: 'haus message send --target <t> [--reply-to <messageId>] [--attachment-id <id> ...] [--cause <fireId>] [--send-draft] [--anyway]',
     },
     {
         examples: [
@@ -214,19 +226,10 @@ export async function runSend(args: ParsedArgs, deps: MessageDeps): Promise<numb
     const sendDraft = Boolean(args.flags['--send-draft']);
     const continueAnyway = Boolean(args.flags['--anyway']);
     const attachmentIds = valuesFor(args, '--attachment-id');
+    const replyToMessageId =
+        args.values['--reply-to'] === undefined ? undefined : requiredValue(args, '--reply-to');
     const cause = optionalCause(args);
-    if (continueAnyway && !sendDraft) {
-        throw new AgentCliError(
-            'SEND_DRAFT_ANYWAY_REQUIRES_SEND_DRAFT',
-            '--anyway requires --send-draft.'
-        );
-    }
-    if (sendDraft && attachmentIds.length > 0) {
-        throw new AgentCliError(
-            'SEND_DRAFT_ATTACHMENTS_UNSUPPORTED',
-            '--send-draft does not accept --attachment-id.'
-        );
-    }
+    validateDraftOptions({ attachmentIds, continueAnyway, replyToMessageId, sendDraft });
     const stdin = deps.stdinIsTty ? '' : await deps.readStdin();
     if (sendDraft && stdin.trim()) {
         throw new AgentCliError(
@@ -247,6 +250,7 @@ export async function runSend(args: ParsedArgs, deps: MessageDeps): Promise<numb
             body: {
                 ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
                 ...(cause ? { cause } : {}),
+                ...(replyToMessageId ? { replyToMessageId } : {}),
                 ...(deps.compositionId ? { compositionId: deps.compositionId } : {}),
                 ...(sendDraft ? {} : { content: stdin }),
                 ...(continueAnyway ? { continueAnyway: true } : {}),
@@ -313,27 +317,6 @@ export async function runReact(args: ParsedArgs, deps: MessageDeps): Promise<num
         `${remove ? 'Removed' : 'Reacted'} ${emoji} ${remove ? 'from' : 'to'} msg ${shortMessageId(response.message.id)}.\n`
     );
     return 0;
-}
-
-/**
- * `--cause` names the trigger or reminder fire this message answers. Only its
- * presence and non-emptiness are checked here; the Server owns fire existence,
- * ownership, and kind, and its INVALID_ARG message passes straight through.
- */
-function optionalCause(args: ParsedArgs): string | undefined {
-    const raw = args.values['--cause'];
-    if (raw === undefined) {
-        return undefined;
-    }
-    const cause = raw.trim();
-    if (!cause) {
-        throw new AgentCliError('INVALID_ARG', '--cause requires a fire id.');
-    }
-    return cause;
-}
-
-function heredocError(code: string, message: string): AgentCliError {
-    return new AgentCliError(code, message, { nextAction: HEREDOC_RECIPE });
 }
 
 function defaultDeps(): MessageDeps {
