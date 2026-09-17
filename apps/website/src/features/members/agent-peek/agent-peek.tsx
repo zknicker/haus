@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { agentProfileRoute } from '../../servers/server-routes.ts';
+import { AgentRuntimeIssue } from '../agent-runtime-issue.tsx';
 import { AgentPeekAutomations } from './agent-peek-automations.tsx';
 import { AgentPeekChats } from './agent-peek-chats.tsx';
 import { AgentPeekIdentity } from './agent-peek-identity.tsx';
@@ -48,6 +49,7 @@ export function AgentPeek({
                     padding, so nothing here wraps them in a second one. */}
 
             <AgentPeekIdentity agent={agent} server={server} />
+            <AgentRuntimeIssue agent={agent} />
             <AgentPeekNow
                 agent={agent}
                 onOpenActivity={() => openProfile('activity')}

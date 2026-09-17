@@ -30,9 +30,11 @@ import {
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
+import { messageOf, writeTrace } from './launch-trace.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
+import { reportRuntimeOutcome } from './runtime-issues.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
 import { writeHausWrapper } from './wrapper.ts';
 
@@ -307,6 +309,15 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
         await activity.close(result.status);
     }
 
+    await reportRuntimeOutcome(
+        {
+            dataRoot: options.dataRoot,
+            runtimeId: command.runtimeId,
+            startedAt,
+            ...result,
+        },
+        options.runtime
+    );
     return reportTurn(options, {
         messageCount: proxy.sendCount(),
         activity: activity.snapshot(),
@@ -655,15 +666,4 @@ async function runRealRuntime(
             tokenUsage: error instanceof HarnessTurnFailedError ? error.tokenUsage : null,
         };
     }
-}
-
-async function writeTrace(input: RuntimeExecutionInput, content: string) {
-    // Raw traces are Computer-local; only the compact summary leaves.
-    await writeFile(join(input.dirs.runtime, `turn-${input.command.runId}.log`), content, {
-        mode: 0o600,
-    });
-}
-
-function messageOf(error: unknown) {
-    return error instanceof Error ? error.message : String(error);
 }

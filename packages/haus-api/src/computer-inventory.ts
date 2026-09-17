@@ -108,6 +108,18 @@ export const computerInventorySchema = z
         cloudAgentProviders: z.array(cloudAgentProviderReadinessSchema).max(10).optional(),
         importableSkills: z.array(importableSkillSchema).max(1000).optional(),
         name: z.string().trim().min(1).max(100).optional(),
+        runtimeIssues: z
+            .array(
+                z
+                    .object({
+                        runtimeId: z.enum(['codex', 'claude-code', 'grok-build', 'pi']),
+                        kind: z.literal('authentication'),
+                        observedAt: timestampSchema,
+                    })
+                    .strict()
+            )
+            .max(4)
+            .optional(),
         runtimes: z.array(computerRuntimeSchema).max(50),
     })
     .strict();

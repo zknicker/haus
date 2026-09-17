@@ -614,6 +614,17 @@
         "manualPromise": 0,
         "timer": 0
       }
+    },
+    "apps/computer/src/runtime-issues.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Finite atomic runtime observation writes serialize per file and release the queue entry after settlement; failures propagate to the caller.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
     }
   },
   "staticRuntimeCeilings": {}

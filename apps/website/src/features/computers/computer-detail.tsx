@@ -12,6 +12,7 @@ import { CloudAgentCapabilityCard } from './cloud-agent-capability-card.tsx';
 import { ComputerActions } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
 import { ComputerInventoryRefresh } from './computer-inventory-refresh.tsx';
+import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
 import { ComputerSystemLog } from './computer-system-log-card.tsx';
 import {
     computerHealthColor,
@@ -116,6 +117,7 @@ export function ComputerDetail({
                 title={computerLabel(computer)}
             />
 
+            <ComputerRuntimeIssues computerId={computerId} serverId={serverId} />
             <section>
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header className="flex items-start justify-between gap-3">

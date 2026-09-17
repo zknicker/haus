@@ -9,7 +9,7 @@ export type RuntimeFailureKind =
     | 'unknown';
 
 export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
-    const message = error instanceof Error ? `${error.name} ${error.message}` : String(error);
+    const message = runtimeErrorMessage(error);
     const normalized = message.toLowerCase();
     if (
         /not logged in|sign.?in required|unauthorized|authentication|invalid api key|oauth|\\b401\\b/u.test(
@@ -50,4 +50,17 @@ export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
 
 export function isRetryableRuntimeFailure(kind: RuntimeFailureKind): boolean {
     return !['authentication', 'configuration', 'input'].includes(kind);
+}
+
+// ACP error parts arrive as plain objects rather than native Error instances.
+function runtimeErrorMessage(error: unknown, depth = 0): string {
+    if (depth > 4 || !error || typeof error !== 'object') {
+        return typeof error === 'string' ? error : '';
+    }
+    const value = error as { name?: unknown; message?: unknown; cause?: unknown };
+    return [
+        typeof value.name === 'string' ? value.name : '',
+        typeof value.message === 'string' ? value.message : '',
+        runtimeErrorMessage(value.cause, depth + 1),
+    ].join(' ');
 }

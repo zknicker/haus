@@ -4,6 +4,7 @@ import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
+import { AgentRuntimeIssue } from '../agent-runtime-issue.tsx';
 import {
     AgentActivity,
     AgentAutomations,
@@ -65,6 +66,7 @@ export function AgentProfilePage({
                 <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
                     <PageColumn>
                         <AgentHeader agent={agent} onDeleted={onDeleted} server={server} />
+                        <AgentRuntimeIssue agent={agent} />
                         <AgentTabContent agent={agent} server={server} tab={tab} />
                     </PageColumn>
                 </div>

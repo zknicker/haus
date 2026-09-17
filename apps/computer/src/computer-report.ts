@@ -6,6 +6,7 @@ import {
     listImportableSkills,
 } from './host-skills.ts';
 import { detectFullInventory } from './inventory.ts';
+import { readRuntimeIssues } from './runtime-issues.ts';
 
 export async function sendEffectiveComputerReport({
     send,
@@ -23,6 +24,7 @@ export async function sendEffectiveComputerReport({
         agents: agents.map(toReportedAgentState),
         inventory: {
             ...(await detectFullInventory()),
+            runtimeIssues: await readRuntimeIssues(dataRoot),
             agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
             agentSkills: await listAgentSkillReports(dataRoot, serverId),
             importableSkills: await listImportableSkills(),
