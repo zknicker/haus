@@ -14,6 +14,7 @@ import {
     formatAgentActivityEvent,
     getAgentActivityColor,
 } from './agent-profile/agent-activity-model.ts';
+import { AgentRuntimeIssue } from './agent-runtime-issue.tsx';
 
 export function AgentHoverCard({
     agentId,
@@ -92,39 +93,35 @@ function AgentHoverCardContent({
         <div className="flex min-w-0 flex-col gap-3">
             <header className="flex min-w-0 items-center gap-3">
                 <AgentAvatar agent={value} className="shrink-0" size={44} />
-                <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-0.5">
                     <div className="flex min-w-0 items-baseline gap-1.5">
-                        <strong className="truncate font-semibold text-base text-foreground">
+                        <strong className="truncate font-semibold text-foreground text-lg leading-tight">
                             {value.displayName}
                         </strong>
-                        <span className="shrink-0 text-muted text-sm">
+                        <span className="shrink-0 text-muted text-sm leading-tight">
                             · {availabilityLabel(value.availability)}
                         </span>
                     </div>
-                    {/* What the Agent is generally for. It sat in the
-                        transcript header until the header went back to a name
-                        and a time; this is where a reader asks for it. */}
                     {value.description ? (
-                        <span className="min-w-0 truncate text-muted text-sm">
+                        <span className="min-w-0 truncate text-muted text-sm leading-tight">
                             {value.description}
                         </span>
                     ) : null}
-                    {effectiveExecution.kind === 'effective' && execution ? (
-                        <AgentExecutionChips
-                            modelLabel={execution.model}
-                            reasoningEffort={effectiveExecution.reasoningEffort}
-                            runtimeId={effectiveExecution.runtimeId}
-                            runtimeLabel={execution.runtime}
-                        />
-                    ) : (
-                        <span className="text-muted text-xs">
-                            {effectiveExecution.kind === 'unavailable'
-                                ? effectiveExecution.label
-                                : null}
-                        </span>
-                    )}
                 </div>
             </header>
+            {effectiveExecution.kind === 'effective' && execution ? (
+                <AgentExecutionChips
+                    modelLabel={execution.model}
+                    reasoningEffort={effectiveExecution.reasoningEffort}
+                    runtimeId={effectiveExecution.runtimeId}
+                    runtimeLabel={execution.runtime}
+                />
+            ) : (
+                <span className="text-muted text-xs">
+                    {effectiveExecution.kind === 'unavailable' ? effectiveExecution.label : null}
+                </span>
+            )}
+            <AgentRuntimeIssue agent={value} />
             <Separator />
             <section className="flex min-w-0 flex-col gap-2">
                 <h3 className="font-semibold text-muted text-xs uppercase tracking-wider">
