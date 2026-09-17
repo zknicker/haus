@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.1.1 - 2026-09-17
+
+- Delivers the inline replies, task behavior, and report improvements listed in 4.1.0, whose iPhone project validation blocked publication. Update Haus Computer to 3.1.1; Haus Agent is 3.1.1.
+- Haus for iPhone 3.2.1 includes the generated project correction required to publish inline replies.
+
 ## v4.1.0 - 2026-09-17
 
 - Replies stay in the channel with a quoted message and a direct link to their parent. Follow-ups reach the participating Agents, including after the original task finishes. Available on the web, desktop, and iPhone.
