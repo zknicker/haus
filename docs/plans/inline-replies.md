@@ -7,7 +7,7 @@ read_when:
 
 # Inline replies and background work
 
-Status: accepted and implemented in the worktree. Deterministic integration checks pass; live Agent behavior verification remains a release gate. Fable review is recorded below.
+Status: implemented and verified for Haus 4.1.0. The release checks below record current proof and retained failures. Fable review is recorded below.
 Product changes require no new routing model or execution-session architecture.
 ## Outcome
 
@@ -288,9 +288,9 @@ gate. `eval:prompt` passed 5/6 in `.context/agent-tests/20260916T193057/summary.
 silence in channel and DM, addressed mention, multi-chat drain, and injection resistance passed.
 The concise DM turn produced one durable message but none in the requesting DM. Its original
 report did not preserve the other destination or execution journal, so the scenario now retains
-full routing evidence for diagnosis. This remains a release blocker pending diagnosis and repeat
-proof; a passing focused channel run does not override it. The implementation is uncommitted
-and has not been deployed.
+full routing evidence for diagnosis. At that checkpoint this blocked release pending diagnosis and repeat
+proof; a passing focused channel run could not override it. The follow-up below records the
+subsequent diagnosis and full-suite result.
 
 Two fresh diagnostic DM repeats passed (`20260916T193526`, `20260916T193648`), without a
 further prompt change. The first captured reply explicitly links the incoming request. The
@@ -311,3 +311,24 @@ The original DM failure did not reproduce. These runs provide a clean current su
 but do not establish the cause of that earlier failure or prove it fixed. Retain its report and
 the richer failure capture; no speculative prompt or routing change was made. Axiom was not
 connected in this session; evidence came from local journals and canonical Server records.
+
+### Release verification, September 17
+
+The full `bun run check` passed through the approved operator environment, including production
+builds. Its first attempt passed tests but the build hit a 1Password authorization timeout; the
+entire gate was rerun. Focused browser checks passed 3/3. Swift host tests passed 82 XCTest and
+12 Swift Testing cases. The release workflow owns the native archive and publication proof.
+
+Final-prompt basic channel answers, complex planning, and human-thread revisions passed in
+`20260916T192524`, `20260917T154812`, and `20260917T155147`. Post-completion replies to the
+original human request passed in `20260916T192524`, `20260917T155147`, and `20260917T155519`,
+including owner delivery, unrelated-Agent silence, reply ancestry, and explicit task completion.
+These meet the three-trial smoke gate for the central placement and follow-up behaviors. The
+real cloud run above remains the provider proof and predates the final wording refinement.
+
+Retained failures: `20260917T154124` overlapped a source merge and Computer restart, invalidating
+that clean-trial assumption. `20260917T154413` routed correctly but the budget oracle rejected
+$500+$100+$200 because it required literal 800. The oracle now accepts that exact allocation
+without changing routing assertions. A later launch failed before execution on the same
+1Password timeout. No prompt or routing changes were made for these results. The original DM
+failure remains unexplained despite the clean full-suite result and seven passing repeats.
