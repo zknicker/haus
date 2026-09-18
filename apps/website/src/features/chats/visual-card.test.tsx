@@ -1,6 +1,18 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { buildVisualSrcDoc, VisualCard, visualChartJsUrl } from './visual-card.tsx';
+import {
+    buildVisualSrcDoc,
+    VisualCard,
+    visualChartJsUrl,
+    visualD3Url,
+    visualTopojsonClientUrl,
+    visualUsAtlasStatesUrl,
+    visualWorldAtlasCountriesUrl,
+} from './visual-card.tsx';
+
+/** The policy the sandbox document actually carries, read off its meta tag. */
+const cspOf = (doc: string) =>
+    doc.match(/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/)?.[1] ?? '';
 
 test('renders a sandboxed opaque-origin iframe around the visual body', () => {
     const markup = renderToStaticMarkup(
@@ -16,16 +28,51 @@ test('renders a sandboxed opaque-origin iframe around the visual body', () => {
     expect(markup).toContain('&lt;h1&gt;Weekly sales&lt;/h1&gt;');
 });
 
-test('the sandbox document pins external sources to the Chart.js CDN', () => {
+test('the sandbox document pins external sources to the exact CDN files', () => {
     const doc = buildVisualSrcDoc('<div>chart</div>', '');
 
     expect(doc).toContain('Content-Security-Policy');
-    expect(doc).toContain("default-src 'none'");
-    expect(doc).toContain(
-        "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/"
+    expect(cspOf(doc)).toBe(
+        [
+            "default-src 'none'",
+            "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/" +
+                ' https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js' +
+                ' https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js',
+            "style-src 'unsafe-inline'",
+            'img-src data: blob:',
+            'font-src data:',
+            'connect-src https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json' +
+                ' https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json',
+            "form-action 'none'",
+            "base-uri 'none'",
+        ].join('; ')
     );
-    expect(doc).toContain("connect-src 'none'");
-    expect(visualChartJsUrl.startsWith('https://cdn.jsdelivr.net/npm/chart.js@4.5.1/')).toBe(true);
+});
+
+test('the sandbox CSP names no other origin and no wildcard', () => {
+    const csp = cspOf(buildVisualSrcDoc('<div>map</div>', ''));
+
+    expect(csp.match(/https?:\/\/[^\s;]+/g)).toEqual([
+        'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/',
+        visualD3Url,
+        visualTopojsonClientUrl,
+        visualUsAtlasStatesUrl,
+        visualWorldAtlasCountriesUrl,
+    ]);
+    expect(csp).not.toContain('*');
+    expect(csp).not.toContain('unsafe-eval');
+});
+
+test('every allowed CDN resource is pinned to an exact version and path', () => {
+    for (const url of [
+        visualChartJsUrl,
+        visualD3Url,
+        visualTopojsonClientUrl,
+        visualUsAtlasStatesUrl,
+        visualWorldAtlasCountriesUrl,
+    ]) {
+        expect(url).toMatch(/^https:\/\/cdn\.jsdelivr\.net\/npm\/[\w.-]+@\d+\.\d+\.\d+\/[\w./-]+$/);
+    }
 });
 
 test('the sandbox fallback uses HeroUI body typography', () => {

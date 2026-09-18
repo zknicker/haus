@@ -5,25 +5,40 @@ import { agentHtmlColorScheme, agentHtmlTokenDeclarations } from '../../agent-ht
 /**
  * Generative visual: model-authored HTML rendered in a sandboxed iframe.
  * Containment mirrors the html-preview posture — opaque origin, srcDoc,
- * scripts allowed, never allow-same-origin — plus a CSP that pins the only
- * allowed external source to the Chart.js CDN entry below. Treat the body as
+ * scripts allowed, never allow-same-origin — plus a CSP that pins every
+ * allowed external source to the exact CDN files below. Treat the body as
  * attacker-controlled; nothing from the fence may reach the app origin.
  */
 
 /**
- * The one allowed external script, pinned by version. Bumping the pin is a
- * deliberate supply-chain decision: update the skill guidance and this CSP
- * together (docs/internals/widgets.md).
+ * The allowed external scripts, pinned by version. Bumping a pin — or adding
+ * one — is a deliberate supply-chain decision: update the skill guidance and
+ * this CSP together (docs/internals/widgets.md).
  */
 export const visualChartJsUrl = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js';
+export const visualD3Url = 'https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js';
+export const visualTopojsonClientUrl =
+    'https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js';
+
+/**
+ * The allowed `fetch` targets: map topology, pinned to the exact atlas file.
+ * A choropleth needs real geometry, and these are the only two responses the
+ * frame may read — `connect-src` is otherwise the exfiltration channel, so it
+ * lists files, never an origin.
+ */
+export const visualUsAtlasStatesUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json';
+export const visualWorldAtlasCountriesUrl =
+    'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json';
 
 const visualCsp = [
     "default-src 'none'",
-    `script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/`,
+    // Chart.js keeps its versioned-directory prefix; the map libraries are
+    // narrowed all the way to the file.
+    `script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/ ${visualD3Url} ${visualTopojsonClientUrl}`,
     "style-src 'unsafe-inline'",
     'img-src data: blob:',
     'font-src data:',
-    "connect-src 'none'",
+    `connect-src ${visualUsAtlasStatesUrl} ${visualWorldAtlasCountriesUrl}`,
     "form-action 'none'",
     "base-uri 'none'",
 ].join('; ');
