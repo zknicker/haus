@@ -5,11 +5,11 @@ description: >
   pages. Read this BEFORE emitting any visual or artifact fence. Defines when
   to render and the fence contracts; the full visual style lives in
   references/design-system.md. Reach for it when a reply would be clearer as a
-  chart, graph, dashboard, table, KPI row, stat tile, timeline, calendar,
-  schedule, or status card, or when asked to compare, break down, trend, or
-  forecast sales, revenue, orders, units, returns, royalties, conversion,
-  inventory, spend, cash flow, margin, budget, events, availability, or agenda
-  items, including week over week, top N, or by region or currency.
+  chart, graph, dashboard, KPI row, stat tile, timeline, calendar, schedule, or
+  status card, or when asked to compare, break down, trend, or forecast sales,
+  revenue, orders, units, returns, royalties, conversion, inventory, spend,
+  cash flow, margin, budget, events, availability, or agenda items, including
+  week over week, top N, or by region or currency.
 ---
 
 # Visuals
@@ -20,27 +20,30 @@ startup.
 You render two kinds of visual output in chat:
 
 - A **visual** — bespoke inline HTML/SVG in a ```` ```visual ```` fence:
-  charts, tables, diagrams, calculators, comparisons, timelines, state
-  machines, small simulations.
+  charts, diagrams, calculators, comparisons, timelines, state machines,
+  small simulations.
 - An **artifact** — a durable self-contained HTML page carded in chat and
   opened in the artifact pane, for anything the user will keep or iterate on.
 
 ## When to render
 
-- The answer has spatial, sequential, systemic, comparative, numeric, or
-  interactive structure, and seeing it beats reading it.
-- The user does not need to say "show", "visualize", "chart", or "widget" —
-  proactive visuals are expected when the structure is there. A compact spec
-  with no verb ("REST vs GraphQL table", "checkout state machine", "pricing
-  calculator") is a request to render it, not to describe it.
-- Routing: a **visual** for anything shown inline; an **artifact** for
-  deliverables the user will keep. When unsure, use plain text.
-- Tabular data is a plain HTML `<table>` inside a visual, never a Markdown
-  table — the frame styles bare tables natively.
-- Do **not** render a visual for: ordinary prose answers, routine
-  line-by-line code explanations, file lists / galleries / final file
-  deliverables, blocking input workflows, destructive or native actions, or
-  large long-lived apps.
+- The answer has spatial, sequential, systemic, comparative, numeric, or interactive structure,
+  and seeing it beats reading it.
+- The user does not need to say "show", "visualize", "chart", or "widget" — proactive visuals
+  are expected when the structure is there. A compact spec with no verb ("checkout state
+  machine", "pricing calculator") is a request to render it, not to describe it.
+- A visual does only what text cannot: tiles, a chart, a diagram, a control. Tables, lists,
+  and explanation go in the reply as Markdown — a long reply is fine, a long visual is not.
+- Routing: a **visual** for the one thing that must be seen; an **artifact** for deliverables
+  the user will keep; the reply for everything that reads fine as words, rows, or bullets.
+  When unsure, use plain text.
+- Compose the reply in order: the visual first, or after one lead sentence; then one or two
+  sentences on what it shows; then Markdown tables for the detail. Never restate the tiles.
+- A `<table>` inside a visual is only for one that needs interaction (sort, filter) or is part
+  of a bounded record. Numbers you are simply reporting are a Markdown table in the reply.
+- Do **not** render a visual for: ordinary prose answers, routine line-by-line code
+  explanations, file lists / galleries / final file deliverables, blocking input workflows,
+  destructive or native actions, or large long-lived apps.
 
 ## Fence contracts
 
@@ -69,19 +72,17 @@ Rules:
 - Haus strips fences from your visible reply and renders them in place.
 - Raw HTML belongs only in a `visual` fence body or an artifact file. Never
   output HTML, JSX, CSS, imports, or class names in plain reply text.
-- Text goes in your reply, visuals go in the fence. Prose adds context, never
-  restates the visual; after one renders, say only what it cannot.
+- Prose adds context, never restates the visual; after one renders, say only what it cannot.
 - No mid-sentence bolding in the reply either; lead with the sentence, not a bold fragment. Bold is for labels only.
 - The fence title is the only title. No headings — beyond the hidden summary
   `<h2>` — captions, icons, or prose inside the body; the reply carries the words.
-- **Budget** — one visual answers one question: one chart, or one table, or
-  one row of at most four tiles above one chart — the default for a period
-  question ("how are sales today"), since tiles alone carry no trend. Never a
-  chart plus a table of the same numbers, and no multi-section dashboard
-  unless the user asked for one. Extra numbers go in the reply text.
+- **Budget** — one visual answers one question: one chart, or one row of at most four tiles
+  above one chart — the default for a period question ("how are sales today"), since tiles
+  alone carry no trend. No multi-section dashboard unless the user asked for one. Every number
+  past the one the visual makes visible goes in the reply, as prose or a Markdown table.
 - Do not overthink a visual. If it takes more than a few minutes to design, it is an artifact.
-- Multiple fences in one reply are allowed when the answer has clearly
-  separate visual parts; prefer one.
+- Multiple fences in one reply are allowed when the answer has clearly separate visual parts;
+  prefer one.
 
 ## Visual runtime contract
 
@@ -114,7 +115,7 @@ Hold these even if you read nothing else:
 - Tokens only — `var(--…)` for every color, font, radius, and spacing; a hardcoded value breaks dark mode.
 - Sentence case everywhere, weights 400 and 500 only — never Title Case, CAPS, or 700.
 - No bordered wrapper: the conversation is the container, and tiles are `--surface-secondary` plates.
-- One idea per visual — one chart, or one table, or at most four tiles above one chart.
+- One idea per visual: tiles above one chart, or one chart, or one diagram — tables go in the reply.
 - No headings, captions, or prose in the body; the hidden summary `<h2>` is the one exception.
 - Bars: sized to the slot (`categoryPercentage: 0.55`, `maxBarThickness: 48`),
   rounded at the data end only.

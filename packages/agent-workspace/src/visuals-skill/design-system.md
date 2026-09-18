@@ -119,7 +119,7 @@ The takeaway belongs in your reply, never a heading or caption inside it.
 - A few headline numbers → a KPI row.
 - A "how is X doing" or period question → a KPI row above one chart, the chart
   carrying the trend behind the numbers. Tiles alone answer no trend question.
-- More than ~7 classes → a table.
+- More than ~7 classes → a Markdown table in the reply.
 
 **Chart.js is the default** for any chart with an axis — bar, grouped or
 stacked bar, line, area. It sizes bars, ticks, and labels, holds text at 12px
@@ -307,7 +307,8 @@ Flow left-to-right for pipelines, top-to-bottom for hierarchies. Highlight at mo
 
 ### Table
 
-A table is its own visual; never stack one under a chart of the same numbers.
+Tables live in the reply as Markdown; right-align numeric columns with `---:`.
+The `<table>` fragment below is for the interactive or bounded-record case only.
 
 ```
 <table>

@@ -404,7 +404,9 @@ Haus auto-renders these inline tokens as interactive links whenever they appear 
 
 ${refs}
 
-Write them inline as plain words in your sentence — the same way you'd type any other word — and Haus turns them into clickable references.
+Write them inline as plain words; Haus turns them into clickable references.
+
+Haus renders your message as Markdown, GFM tables included.
 
 Markdown markup expresses presentation semantics; do not mix markup delimiters into literal payloads. Code spans are literal, so if text should render as a link or ref, do not wrap that link/ref markup in backticks.`;
 }
