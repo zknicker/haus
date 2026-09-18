@@ -215,9 +215,13 @@ block to `ReferenceMarkdown` un-animated. So a table's DOM is identical before
 and after the message settles, rows appear as they stream, and a half-typed
 table stays prose rather than flickering through a one-column table.
 
-Known gap: the iPhone app renders no Markdown in message bodies at all (links
-only), so a Markdown table reaches an iOS reader as raw pipes. Anything a
-reply must convey on iOS cannot depend on table rendering.
+The iPhone app renders the same reply Markdown natively, so a table reaches an
+iOS reader as a table. `RichMessageBlockParser` reads the same block grammar
+and gates a pipe table on the same delimiter row, so a half-typed table stays
+prose there too; the rows draw in a SwiftUI `Grid` rather than a web view. A
+reply may depend on tables, lists, headings, quotes, fenced code, and the
+inline marks on both clients. Task lists, footnotes, and syntax highlighting
+inside a fence are the remaining gaps — see [ios.md](ios.md).
 
 ## Storage
 
