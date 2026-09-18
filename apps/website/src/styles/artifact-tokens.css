@@ -103,14 +103,16 @@
      * the app's own usage chart (features/stats) reads the same names.
      *
      * Ordered to survive grayscale and the red/green pairing rule: sky and red
-     * first (the positive/negative pair), emerald and violet next, stone last
-     * for baselines and "no data".
+     * first (the positive/negative pair), emerald and violet next, zinc last
+     * for baselines and "no data". The neutral is zinc, not stone: every other
+     * neutral in the system (`--muted-foreground`, `--border-strong`,
+     * `--surface-secondary`) is cool, and a warm gray reads brown beside them.
      */
     --chart-1: var(--color-sky-400);
     --chart-2: var(--color-red-400);
     --chart-3: var(--color-emerald-400);
     --chart-4: var(--color-violet-400);
-    --chart-5: var(--color-stone-400);
+    --chart-5: var(--color-zinc-400);
 
     /*
      * Layout. Two corners and two spacing ramps, all derived from HeroUI so a
@@ -154,5 +156,5 @@
     --chart-2: var(--color-red-600);
     --chart-3: var(--color-emerald-600);
     --chart-4: var(--color-violet-600);
-    --chart-5: var(--color-stone-500);
+    --chart-5: var(--color-zinc-500);
 }

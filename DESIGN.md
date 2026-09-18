@@ -37,7 +37,7 @@ colors:
     chart-2: "#FF6467"
     chart-3: "#00D492"
     chart-4: "#A684FF"
-    chart-5: "#A6A09B"
+    chart-5: "#9F9FA9"
     eclipse: "#18181B"
     snow: "#FCFCFC"
     white: "#FFFFFF"
@@ -112,7 +112,7 @@ colors:
     chart-2: "#E7000B"
     chart-3: "#009966"
     chart-4: "#7F22FE"
-    chart-5: "#79716B"
+    chart-5: "#71717B"
     eclipse: "#18181B"
     snow: "#FCFCFC"
     white: "#FFFFFF"
@@ -232,7 +232,7 @@ components:
     series2: "#E7000B"
     series3: "#009966"
     series4: "#7F22FE"
-    series5: "#79716B"
+    series5: "#71717B"
   field:
     backgroundColor: "#FFFFFF"
     borderColor: "#DEDEDE"
@@ -321,7 +321,7 @@ sitting on it rather than by tinting the ground. `--sidebar-surface` and
 | `chart-2` | `#E7000B` | `#FF6467` | `Light: = Tailwind red-600; Dark: = Tailwind red-400` | `--chart-2` | Second chart series color | Categorical series 2 — red. |
 | `chart-3` | `#009966` | `#00D492` | `Light: = Tailwind emerald-600; Dark: = Tailwind emerald-400` | `--chart-3` | Third chart series color | Categorical series 3 — emerald. |
 | `chart-4` | `#7F22FE` | `#A684FF` | `Light: = Tailwind violet-600; Dark: = Tailwind violet-400` | `--chart-4` | Fourth chart series color | Categorical series 4 — violet. |
-| `chart-5` | `#79716B` | `#A6A09B` | `Light: = Tailwind stone-500; Dark: = Tailwind stone-400` | `--chart-5` | Fifth chart series color | Categorical series 5 — stone. The neutral, for baselines and "no data". |
+| `chart-5` | `#71717B` | `#9F9FA9` | `Light: = Tailwind zinc-500; Dark: = Tailwind zinc-400` | `--chart-5` | Fifth chart series color | Categorical series 5 — zinc, the neutral, for baselines and "no data". Cool, like every other neutral in the system. |
 | `eclipse` | `#18181B` | `#18181B` | `oklch(21.03% 0.0059 285.89)` | `--eclipse` | Prefer the HeroUI token for eclipse. | Near-black neutral. Slightly softer than pure black for dark surfaces. |
 | `snow` | `#FCFCFC` | `#FCFCFC` | `oklch(99.11% 0 0)` | `--snow` | Prefer the HeroUI token for snow. | Off-white neutral. Slightly softer than pure white for backgrounds. |
 | `white` | `#FFFFFF` | `#FFFFFF` | `oklch(100% 0 0)` | `--white` | Prefer the HeroUI token for white. | Pure white. Used as a base primitive for light theme surfaces and backgrounds. |
@@ -727,9 +727,9 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   profile, not to every message it writes, and what a message *is* states itself below the header,
   where its lifecycle can be followed.
 - **Charts:** Use `--chart-1` through `--chart-5` for multi-series charts. They are a categorical
-  palette — sky, red, emerald, violet, stone — so independent series separate by hue rather than by
+  palette — sky, red, emerald, violet, zinc — so independent series separate by hue rather than by
   lightness, and they survive grayscale. Dark uses the Tailwind 400 step and light the 600 step
-  (stone-500). The app's usage chart and agent-authored visuals share these five.
+  (zinc-500). The app's usage chart and agent-authored visuals share these five.
 
 ## Do's and Don'ts
 - Do use semantic HeroUI and Tailwind tokens as implementation handles; use raw values in this file for reference, QA, and migration only.

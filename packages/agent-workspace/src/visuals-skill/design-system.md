@@ -41,7 +41,7 @@ spacing, and never write `prefers-color-scheme` — the host injects the theme.
 | `--success` `--warning` `--error` | Status marks, dots, strokes |
 | `--success-bg` `--warning-bg` `--error-bg` | Status chips and callout tints |
 | `--success-foreground` `--warning-foreground` `--error-foreground` | Text on the matching tint |
-| `--chart-1` … `--chart-5` | Series marks: sky, red, emerald, violet, stone |
+| `--chart-1` … `--chart-5` | Series marks: sky, red, emerald, violet, zinc |
 | `--chart-grid` | Gridlines and baselines |
 | `--chart-label` | Axis and tick text |
 | `--radius` | Controls, chips, inputs, nested plates |
