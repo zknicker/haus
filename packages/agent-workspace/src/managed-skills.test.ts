@@ -162,10 +162,17 @@ test('no visuals skill file teaches a retired token name', () => {
 });
 
 test('visuals skill states the visual frame facts', () => {
-    expect(defaultVisualsSkill).toContain('available message width');
+    expect(defaultVisualsSkill).toContain('renders inline in the reply column');
     expect(defaultVisualsSkill).toContain('chat transcript owns vertical scrolling');
     expect(defaultVisualsSkill).not.toContain('about 700px');
-    expect(defaultVisualsSkill).toContain('16px padding');
+    // The frame stopped being a card: transparent, unbordered, no side gutter
+    // of its own. An agent that still reads "already a card" draws a card in a
+    // card, so the retired wording is pinned out.
+    expect(defaultVisualsSkill).toContain('transparent, with no border');
+    expect(defaultVisualsSkill).toContain('no side padding');
+    expect(defaultVisualsSkill).toContain('The conversation is the container');
+    expect(defaultVisualsSkill).not.toContain('already a card');
+    expect(defaultVisualsSkill).not.toContain('16px padding');
     expect(defaultVisualsSkill).toContain('the app font');
     expect(defaultVisualsSkill).toContain('14px text');
     // The description ends with the words users actually type, so the skill

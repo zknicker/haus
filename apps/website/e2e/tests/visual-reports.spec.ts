@@ -2,7 +2,7 @@ import { createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 import { visualReportMessage } from '../support/visual-report.ts';
 
-test('inline reports use message width and grow and shrink with their document', async ({
+test('inline reports track the reply column and grow and shrink with their document', async ({
     page,
 }) => {
     const { server, session } = await createTestServer(page, {
@@ -39,6 +39,10 @@ test('inline reports use message width and grow and shrink with their document',
             })
             .toBeLessThanOrEqual(1);
     };
+    // No shell, so no border to subtract: the frame is the reply column itself,
+    // capped at the prose measure (max-w-[46rem]).
+    const proseMeasure = 736;
+    const rowsByViewport = new Map<number, number>();
     for (const width of [1440, 800, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await assertHeight();
@@ -46,14 +50,18 @@ test('inline reports use message width and grow and shrink with their document',
             frame: element.getBoundingClientRect().width,
             message: element.closest('.chat-reply-segments')?.getBoundingClientRect().width,
         }));
-        expect(geometry.frame).toBeCloseTo((geometry.message ?? 0) - 2, 0);
+        expect(geometry.frame).toBeCloseTo(Math.min(geometry.message ?? 0, proseMeasure), 0);
         const rows = await report
             .locator('.kpis article')
             .evaluateAll(
                 (cards) => new Set(cards.map((card) => card.getBoundingClientRect().top)).size
             );
-        expect(rows).toBe(width === 1440 ? 1 : 2);
+        rowsByViewport.set(width, rows);
     }
+    // The document reflows inside the frame: at 1440 the frame is the 736px
+    // cap, at 800 it is the narrower column, so the same five tiles take more
+    // rows. Exact counts would pin the sidebar's default width as well.
+    expect(rowsByViewport.get(1440)).toBeLessThan(rowsByViewport.get(800) ?? 0);
     await report.getByRole('button', { name: 'Tall report', exact: true }).click();
     await assertHeight();
     await expect
