@@ -93,12 +93,14 @@ registration), with optional info-string text as the title:
   only the taught names — never HeroUI names, never hardcoded colors — which is
   what makes them wear Haus's look in both schemes.
 - **Native elements.** Bare markup renders native. The sandbox base
-  stylesheet styles `<table>` to match the app's `ui/table.tsx` look (hairline
-  row dividers, muted cells, hover tint, styled `tfoot`/`caption`), and
-  `input`, `select`, `textarea`, `button` and `input[type=range]` on HeroUI's
-  field and outline-button metrics, expressed in published tokens. So an agent
-  writes plain HTML and gets Haus chrome with no per-visual CSS. The visuals
-  skill forbids Markdown tables in replies for the same reason.
+  stylesheet styles `<table>` with hairline row dividers, muted cells, a hover
+  tint and styled `tfoot`/`caption`, and `input`, `select`, `textarea`,
+  `button` and `input[type=range]` on HeroUI's field and outline-button
+  metrics, expressed in published tokens. So an agent writes plain HTML and
+  gets Haus chrome with no per-visual CSS. The table half of that look is
+  mirrored for reply Markdown by `.chat-markdown table` in
+  `apps/website/src/styles/default-theme.css`, so the same rows read the same
+  whichever half of the message they land in.
 - **Presentation.** Prose and visuals render in authored order with three spacing
   units between segments. Attachments render once after the complete message.
   A visual is not a card: the host draws no shell at all — a plain block, a
@@ -186,6 +188,36 @@ the schema) is stripped from the visible reply and produces no activity; the
 prose still delivers. While an assistant is streaming, open `visual` fences
 render progressively and `artifact` fences are hidden until the turn
 completes.
+
+## Reply composition
+
+The visual and the prose around it split by what each does well. A visual
+carries only what text cannot — tiles, a chart, a diagram, a control — and
+tables, lists and explanation stay in the reply as Markdown. A `<table>`
+inside a visual is for one that needs interaction or belongs to a bounded
+record, not for numbers the agent is simply reporting. The visuals skill
+(`packages/agent-workspace/src/visuals-skill/SKILL.md`) states the rule and
+the order a composed reply takes: visual, a sentence or two on what it shows,
+then the detail tables.
+
+Reply Markdown renders through `features/mentions/reference-markdown.tsx` →
+HeroUI `Markdown` with `remark-gfm`, so GFM tables work, and that component
+wraps every `<table>` in an `overflow-x-auto` scroller — the same thing
+`wrapWideTables` does inside the sandbox, so a wide table scrolls instead of
+widening the transcript column.
+
+While a message is still streaming, `features/chats/chat-markdown-text.tsx`
+renders through its own block parser
+(`features/chats/chat-markdown-blocks.ts`) so text can animate in. That parser
+recognizes a GFM pipe table once its delimiter row has arrived and its cell
+count matches the header — the same gate remark-gfm applies — and hands that
+block to `ReferenceMarkdown` un-animated. So a table's DOM is identical before
+and after the message settles, rows appear as they stream, and a half-typed
+table stays prose rather than flickering through a one-column table.
+
+Known gap: the iPhone app renders no Markdown in message bodies at all (links
+only), so a Markdown table reaches an iOS reader as raw pipes. Anything a
+reply must convey on iOS cannot depend on table rendering.
 
 ## Storage
 
