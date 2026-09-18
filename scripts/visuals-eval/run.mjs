@@ -166,7 +166,7 @@ try {
         for (const [index, visual] of visuals.entries()) {
             const slug = index === 0 ? item.slug : `${item.slug}-${index + 1}`;
             await writeFile(path.join(outDir, `${slug}.visual.html`), visual.html);
-            const files = await renderer.render({ html: visual.html, outDir, slug });
+            const { files } = await renderer.render({ html: visual.html, outDir, slug });
             captures.push({
                 files,
                 item: {

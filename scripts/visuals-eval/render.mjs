@@ -57,11 +57,25 @@ export const createVisualRenderer = async ({ width = 736 } = {}) => {
         viewport: { height: 1200, width: width + 160 },
     });
 
+    // Anything a visual logs as an error — a thrown script, a blocked resource,
+    // a CSP refusal — is a finding, so collect it here once and hand it back
+    // with the render instead of leaving it in a console nobody reads.
+    const consoleErrors = [];
+    page.on('console', (message) => {
+        if (message.type() === 'error') {
+            consoleErrors.push(message.text());
+        }
+    });
+    page.on('pageerror', (error) => consoleErrors.push(String(error)));
+
     return {
         close: () => browser.close(),
         render: async ({ html, outDir, slug }) => {
+            const errors = [];
             const files = {};
+            const heights = {};
             for (const scheme of schemes) {
+                consoleErrors.length = 0;
                 await page.setContent(
                     hostPage({ scheme, tokensCss: tokensCssFor(scheme), width }),
                     { waitUntil: 'domcontentloaded' }
@@ -82,8 +96,12 @@ export const createVisualRenderer = async ({ width = 736 } = {}) => {
                 const file = `${slug}-${scheme}.png`;
                 await page.locator('#shell').screenshot({ path: path.join(outDir, file) });
                 files[scheme] = file;
+                heights[scheme] = await page.evaluate(
+                    () => document.getElementById('frame').getBoundingClientRect().height
+                );
+                errors.push(...consoleErrors.map((text) => `${scheme}: ${text}`));
             }
-            return files;
+            return { errors, files, heights };
         },
     };
 };
