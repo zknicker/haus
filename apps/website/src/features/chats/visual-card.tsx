@@ -55,7 +55,12 @@ export function VisualCard({
     const height = clampHeight(contentHeight ?? visualHeights.fallback);
 
     return (
-        <div className="card-shell w-full min-w-0 overflow-hidden border border-border bg-surface">
+        // No shell: the visual is a transparent block in the reply column, so
+        // the conversation is its container and a card inside it would read as
+        // a card in a card. The cap is a drawn figure's measure — the same one
+        // narration and legacy widget rows use — not the reply column, which
+        // runs wider (ADR 0031).
+        <div className="w-full min-w-0 max-w-[46rem]">
             <iframe
                 className="block w-full border-0 bg-transparent"
                 ref={frameRef}
@@ -87,7 +92,7 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
         // like another product. HeroUI's own Checkbox and Slider fill with
         // `--accent`, so the frame's emphasis role is what they inherit.
         'body { accent-color: var(--accent, currentColor); }',
-        'body { margin: 0; padding: 16px; background: transparent; color: var(--foreground, inherit); font-family: var(--font-sans, system-ui, sans-serif); font-size: var(--app-ui-font-size, 14px); line-height: 1.5; -webkit-font-smoothing: antialiased; }',
+        'body { margin: 0; padding: 8px 0; background: transparent; color: var(--foreground, inherit); font-family: var(--font-sans, system-ui, sans-serif); font-size: var(--app-ui-font-size, 14px); line-height: 1.5; -webkit-font-smoothing: antialiased; }',
         // Plain <table> markup wears the app's ui/table.tsx look, so agents
         // render tabular data as bare HTML tables and get native theming.
         'table { width: 100%; border-collapse: collapse; caption-side: bottom; font-size: var(--app-ui-font-size, 14px); }',
@@ -102,7 +107,7 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
         // nothing left to offset. Both halves verified in WebKit and Chromium.
         'caption { position: sticky; left: 0; width: max-content; max-width: 100%; margin-top: 12px; color: var(--muted-foreground); text-align: left; }',
         // Bare form controls otherwise render as the browser's, which reads as
-        // another product inside a Haus card. These five carry HeroUI's field
+        // another product inside a Haus reply. These five carry HeroUI's field
         // and outline-button metrics in published tokens — the field radius
         // tier, a hairline edge, the surface behind it, the control pad — so an
         // agent gets native-looking controls out of plain markup and never
@@ -122,10 +127,10 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
 }
 
 // Host-owned plumbing, not a fence capability: reports the document height so
-// the card can fit content inside the clamp. The parent trusts nothing else
+// the host can fit content inside the clamp. The parent trusts nothing else
 // from the frame and clamps whatever arrives.
 const sizeReporterScript = `(function () {
-    // The card's frame does not scroll, so a table wider than the body would
+    // The frame does not scroll, so a table wider than the body would
     // simply be cut off. Each table gets its own horizontal scroller before the
     // first size report; table layout itself is untouched, so a narrow table
     // still spans the full width.

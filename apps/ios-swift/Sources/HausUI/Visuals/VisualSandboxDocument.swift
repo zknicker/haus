@@ -82,7 +82,7 @@ public enum VisualSandboxDocument {
     private static let baseStyles = """
     * { box-sizing: border-box; }
     body { accent-color: var(--accent, currentColor); }
-    body { margin: 0; padding: 16px; background: transparent; color: var(--foreground, inherit); font-family: var(--font-sans, system-ui, sans-serif); font-size: var(--app-ui-font-size, 14px); line-height: 1.5; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
+    body { margin: 0; padding: 8px 0; background: transparent; color: var(--foreground, inherit); font-family: var(--font-sans, system-ui, sans-serif); font-size: var(--app-ui-font-size, 14px); line-height: 1.5; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
     table { width: 100%; border-collapse: collapse; caption-side: bottom; font-size: var(--app-ui-font-size, 14px); }
     th { padding: 8px 12px; text-align: left; vertical-align: middle; font-weight: 500; color: var(--foreground); line-height: 1.1; }
     td { padding: 8px 12px; vertical-align: middle; color: var(--muted-foreground); line-height: 1.2; }
@@ -98,12 +98,12 @@ public enum VisualSandboxDocument {
     """
 
     // Host-owned plumbing, not a fence capability: reports the document height
-    // so the card can fit content inside its clamp. The web channel stays for
+    // so the host can fit content inside its clamp. The web channel stays for
     // parity with the iframe; the WebKit handler is what the native card reads.
     // The parent trusts nothing else from the frame and clamps what arrives.
     private static let sizeReporterScript = """
     (function () {
-    // The card's frame does not scroll, so a table wider than the body would
+    // The frame does not scroll, so a table wider than the body would
     // simply be cut off. Each table gets its own horizontal scroller before the
     // first size report; table layout itself is untouched, so a narrow table
     // still spans the full width.
