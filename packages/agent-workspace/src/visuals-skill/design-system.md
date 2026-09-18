@@ -1,8 +1,7 @@
 # Haus visuals — design system
 
-Everything you render — inline visuals and artifact pages — wears the app's
-theme. Almost every decision below is already a token; spend them instead of
-inventing values and the output is native in both schemes.
+Everything you render — inline visuals and artifact pages — wears the app's theme. Almost
+every decision below is already a token; spend them instead of inventing values.
 
 ## Philosophy
 
@@ -13,7 +12,6 @@ inventing values and the output is native in both schemes.
   for meaning (status, series, one emphasis), never for "this is a UI".
 - **Sentence case, two weights** — 400/500, never Title Case, CAPS, or 700.
 - **One idea per visual** — a second legend means a second visual.
-- **Words in the reply** — no title, caption, or prose inside a visual.
 - **The conversation is the container** — no bordered box around it; tiles are plates.
 
 ## Tokens
@@ -66,19 +64,20 @@ spacing, and never write `prefers-color-scheme` — the host injects the theme.
   returns up is `--error-bg`. `--warning-bg` is for stale or missing states
   (not synced, no data), never for a drop. Every chip carries a label, never
   color alone.
+- **Grid** — columns take `minmax(0, 1fr)`; a bare `1fr` floors at the content
+  width, so one long label blows the column instead of truncating.
 - **Sections** — `--gap-lg` between, `--gap-sm` within.
 - Width `100%`; no nested scrolling and no reserved empty space.
 
 ## Native elements
 
-In a `visual` fence the frame already styles bare `input`, `select`,
-`textarea`, `button`, `input[type=range]`, and `table`, sets `accent-color`,
-and scrolls wide tables. Write the bare tag — a hand-built control looks alien.
+In a `visual` fence the frame already styles bare `input`, `select`, `textarea`,
+`button`, `input[type=range]`, and `table`, sets `accent-color`, and scrolls wide tables.
+Write the bare tag — a hand-built control looks alien.
 
 ## Typography
 
-The base body size is **14px** (`var(--app-ui-font-size)`, line-height 1.5) —
-the frame sets it on `body`, so plain text is already right.
+The base body size is **14px** (`var(--app-ui-font-size)`, line-height 1.5) — the frame sets it on `body`, so plain text is already right.
 
 - Body text: 14px, line-height 1.5. Emphasized body: 14px weight 500.
 - Title / section labels: 15–16px, weight 500.
@@ -87,6 +86,9 @@ the frame sets it on `body`, so plain text is already right.
 - Display values: 24–36px, weight 500, line-height at least 1.08 so glyphs
   don't crop; never past 42px in a visual. Compact and rounded — whole
   dollars, 12.9K, $4.2M; never cents in a tile.
+- Round every number that reaches the screen — `Math.round`, `toFixed(n)`, or
+  `toLocaleString()` — computed values, table cells, and Chart.js tooltip callbacks
+  included. A range slider sets `step`. Negative currency reads `-$5M`, never `$-5M`.
 - `font-variant-numeric: tabular-nums` only where numbers align vertically:
   table columns, axis ticks. Tile values stay proportional. Never a switch to
   mono; letter spacing 0 or positive, names in `code style`, not bold.
@@ -94,8 +96,7 @@ the frame sets it on `body`, so plain text is already right.
 
 ### Text fitting
 
-Font metrics vary by platform. Before putting text in a fixed box or hand-drawn
-SVG, check it fits: `chars × budget + 2 × padding ≤ box width`.
+Font metrics vary by platform. Before putting text in a fixed box or hand-drawn SVG, check it fits: `chars × budget + 2 × padding ≤ box width`.
 
 | Font size | Budget per character |
 | --- | --- |
@@ -104,8 +105,7 @@ SVG, check it fits: `chars × budget + 2 × padding ≤ box width`.
 | 14px | ~7.3px |
 | 16px | ~8.4px |
 
-If it doesn't fit: shorten the label, drop a size, or widen the box. Keep 4px
-minimum between text and any container edge.
+If it doesn't fit: shorten the label, drop a size, or widen the box. Keep 4px minimum between text and any container edge.
 
 ## Charts
 
@@ -133,11 +133,20 @@ Canvas cannot read `var()`. Read tokens once at the top of the script:
 
 **Marks**
 
-- Bars: at most 32px thick (`maxBarThickness: 32`), rounded at the data end
+- Bars: at most 24px thick (`maxBarThickness: 24`), rounded at the data end
   only — the baseline stays square. Never fill the slot; the band's leftover
-  is air, which `categoryPercentage: 0.7` below already does.
+  is air, which `categoryPercentage: 0.7` below already does. A horizontal bar
+  chart wants a wrapper at least `bars × 40 + 80` pixels tall, and 12 or fewer
+  categories take `ticks: { autoSkip: false, maxRotation: 45 }` so no label
+  silently drops.
 - Lines: 2px, round joins, straight segments (`tension: 0`); no fill
-  underneath unless the area is the point.
+  underneath unless the area is the point, and then at ~10%
+  (`color-mix(in srgb, var(--chart-1) 10%, transparent)`).
+- Touching marks never share an edge. Chart.js cuts the 2px gap out of the mark
+  rather than stroking it: `borderWidth: 2, borderColor: 'transparent',
+  borderSkipped: false` on stacked datasets; grouped bars already get their air
+  from `barPercentage: 0.9`. A line's end dot carries the same ring, there as a
+  real `pointBorderColor` in the backdrop — `--background` inline, `--surface` on a card.
 - Gridlines and axes: solid horizontal hairlines in `--chart-grid` only — no
   vertical lines, axis box, or plot border. A dashed stroke is reserved for a
   reference line (average, target), which gets a legend entry.
@@ -147,6 +156,9 @@ Canvas cannot read `var()`. Read tokens once at the top of the script:
 - Legend: skip it for a single series. For 2+ turn Chart.js's legend off and
   build one — 10px swatches beside 12px `--muted-foreground` text, cornered at
   `calc(var(--radius) / 3)`; `--radius` would round a 10px box into a dot.
+- Tooltips: a multi-series chart sets `interaction: { mode: 'index', intersect: false }`
+  so one tooltip lists every series at that x. A tooltip never gates a value — hover-only
+  numbers are gone in a screenshot; the labelled point, the ticks, and the fallback carry them.
 - Text never wears the series color.
 
 **Color**
@@ -159,7 +171,9 @@ baseline — is `--chart-1` versus `--chart-5`, the neutral that also draws
 baselines, targets, and "no data": blue against gray, never blue against blue.
 Emphasis has one form: the emphasized mark in `--chart-1`, everything else in
 `--chart-5` — and the period the question is about (today, yesterday, this
-week) is always the emphasized mark. Never pair `--chart-2` with `--chart-3`.
+week) is always the emphasized mark. Diverging — above and below a baseline —
+is `--chart-1` against `--chart-2` with `--chart-5` at the midpoint. Never pair
+`--chart-2` with `--chart-3`.
 
 Closing a hand-drawn `<svg>`: bottom `y + height` plus descenders clears the
 viewBox by 8px, nothing exceeds its width, connectors stop at edges not centers.
@@ -193,9 +207,11 @@ Plates on the page, not cards on a card: no border, no `--radius-card`.
 
 ### Bar chart
 
-Two series, so a hand-built legend; drop it for one. Keep `animation: false`.
+Two series, so a hand-built legend; drop it for one. Keep `animation: false`, and
+open with the hidden `<h2>`.
 
 ```
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Last week's revenue beat the prior week every day but Tuesday.</h2>
 <div style="display:flex;gap:16px;margin-bottom:8px">
   <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-1)"></span>Last week</span>
   <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-5)"></span>Prior week</span>
@@ -213,15 +229,16 @@ new Chart(document.getElementById('wk'), {
   data: {
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     datasets: [
-      { label: 'Last week', data: [1061, 1014, 884, 1015, 866, 938, 1162], backgroundColor: c1, borderRadius: 4, maxBarThickness: 32 },
-      { label: 'Prior week', data: [932, 1162, 858, 983, 741, 732, 1137], backgroundColor: c5, borderRadius: 4, maxBarThickness: 32 }
+      { label: 'Last week', data: [1061, 1014, 884, 1015, 866, 938, 1162], backgroundColor: c1, borderRadius: 4, maxBarThickness: 24 },
+      { label: 'Prior week', data: [932, 1162, 858, 983, 741, 732, 1137], backgroundColor: c5, borderRadius: 4, maxBarThickness: 24 }
     ]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
-    plugins: { legend: { display: false }, tooltip: { enabled: true } },
+    interaction: { intersect: false, mode: 'index' },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: $${Math.round(c.parsed.y).toLocaleString()}` } } },
     datasets: { bar: { categoryPercentage: 0.7, barPercentage: 0.9 } },
     scales: {
       x: { grid: { display: false }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 } } },
@@ -285,8 +302,7 @@ A shape beside a number: no axes, no text, nothing to fit.
 </div>
 ```
 
-Flow left-to-right for pipelines, top-to-bottom for hierarchies. Highlight at
-most one node. Past 9 nodes, group into labeled clusters.
+Flow left-to-right for pipelines, top-to-bottom for hierarchies. Highlight at most one node. Past 9 nodes, group into labeled clusters.
 
 ### Table
 
@@ -356,5 +372,8 @@ tokens — not the frame's base styles — so they style their own elements:
 - A chart's `<svg>` or `<canvas>` gets `role="img"` and an `aria-label` stating
   the takeaway, not the type, and a `<canvas>` keeps the numbers as its
   fallback text. Decorative SVG is `aria-hidden`, icon-only controls labeled.
+- A visual opens with a visually hidden `<h2>` holding a one-sentence summary
+  (`position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)`)
+  — the one heading the no-headings rule allows.
 - Status is never color alone: a tint takes its paired `-foreground` and a
   label.

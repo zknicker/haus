@@ -181,3 +181,43 @@ test('visuals skill states the visual frame facts', () => {
         expect(defaultVisualsSkill.split('\n---\n')[0]).toContain(trigger);
     }
 });
+
+/**
+ * The design system is a second file read, and a model that skips it still
+ * writes a visual. The non-negotiables block is the floor that survives that
+ * skip, so it has to exist and has to sit ahead of the pointer that asks for
+ * the second read.
+ */
+test('visuals skill states the non-negotiables before the design-system pointer', () => {
+    expect(defaultVisualsSkill).toContain('## Non-negotiables');
+    expect(defaultVisualsSkill.indexOf('## Non-negotiables')).toBeLessThan(
+        defaultVisualsSkill.indexOf('Required: read the design system')
+    );
+    expect(defaultVisualsSkill).toContain('`maxBarThickness: 24`');
+    expect(defaultVisualsSkill).toContain('Round every number that reaches the screen');
+    expect(defaultVisualsSkill).toContain('No mid-sentence bolding in the reply');
+    // Text on the surface is the raw role token; `--error-foreground` is text
+    // on the matching tint and lands near-invisible on the page.
+    expect(defaultVisualsSkill).toContain('`var(--error)` message inline');
+});
+
+test('visuals design system sizes every bar at 24px', () => {
+    const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
+
+    expect(designSystem).not.toContain('maxBarThickness: 32');
+    expect(designSystem).toContain('maxBarThickness: 24');
+});
+
+test('visuals design system carries the hidden summary heading and the rounding rule', () => {
+    const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
+
+    // Stated as a rule and opened with in the bar fragment, so the house style
+    // carries it into anything copied from it.
+    expect(designSystem).toContain('the one heading the no-headings rule allows');
+    expect(designSystem).toContain(
+        '<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">'
+    );
+    expect(designSystem).toContain('Round every number that reaches the screen');
+    expect(designSystem).toContain('`-$5M`, never `$-5M`');
+    expect(designSystem).toContain("interaction: { intersect: false, mode: 'index' }");
+});
