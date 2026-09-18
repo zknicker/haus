@@ -138,6 +138,7 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
     expect(prompt).toContain('### Capability and execution-surface selection');
     expect(prompt).toContain("The human's explicit choice of surface is part of that fit.");
     expect(prompt).toContain('### Formatting — URLs in non-English text');
+    expect(prompt).toContain('Haus renders your message as Markdown, GFM tables included');
     expect(prompt).not.toContain('### Preparing native action cards');
     expect(prompt).not.toContain('## Security');
 

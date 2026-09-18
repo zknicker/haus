@@ -201,6 +201,41 @@ test('visuals skill states the non-negotiables before the design-system pointer'
     expect(defaultVisualsSkill).toContain('`var(--error)` message inline');
 });
 
+/**
+ * The skill used to send every table into the visual frame, which made a reply
+ * a caption and a visual a wall. The split is now the other way round, and it
+ * is the whole point of the composition rules — so both halves are pinned,
+ * including the retired ban, which an agent would still obey if it survived
+ * anywhere in the file. Pins run against flowed text: these sentences are
+ * wrapped in the source and rewrapping them must not silently drop a pin.
+ */
+test('visuals skill sends tables to the reply and keeps the visual to one idea', () => {
+    const flowed = flowText(defaultVisualsSkill);
+
+    expect(flowed).toContain('A visual does only what text cannot');
+    expect(flowed).toContain('Tables, lists, and explanation go in the reply');
+    expect(flowed).toContain(
+        'tiles above one chart, or one chart, or one diagram — tables go in the reply'
+    );
+    expect(flowed).toContain('then Markdown tables for the detail');
+    expect(flowed).not.toContain('never a Markdown table');
+    // The description drives skill matching, so a table request must stop
+    // pulling the visuals skill in on the word alone.
+    expect(flowText(defaultVisualsSkill.split('\n---\n')[0] ?? '')).not.toContain('table');
+});
+
+test('visuals design system puts tables in the reply', () => {
+    const designSystem = flowText(visualsSkillFiles['references/design-system.md'] ?? '');
+
+    expect(designSystem).toContain('Tables live in the reply as Markdown');
+    expect(designSystem).toContain('More than ~7 classes → a Markdown table in the reply');
+    expect(designSystem).not.toContain('A table is its own visual');
+});
+
+function flowText(text: string) {
+    return text.replace(/\s+/gu, ' ');
+}
+
 test('visuals design system sizes bars to the slot', () => {
     const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
 

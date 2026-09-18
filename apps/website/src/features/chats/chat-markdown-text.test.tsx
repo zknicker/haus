@@ -177,6 +177,80 @@ test('ChatMarkdownText renders Haus resource links', () => {
     expect(markup).toContain('preview.html');
 });
 
+const tableContent = [
+    '| Week | Revenue |',
+    '| --- | ---: |',
+    '| Sep 1 | $1,240 |',
+    '| Sep 8 | $1,610 |',
+].join('\n');
+
+test('ChatMarkdownText renders a settled Markdown table', () => {
+    const markup = renderToStaticMarkup(<ChatMarkdownText content={tableContent} />);
+
+    expect(markup).toContain('<table>');
+    expect(markup).toContain('<th');
+    expect(markup).toContain('Revenue');
+    expect(markup).toContain('$1,610');
+    expect(markup).toContain('chat-markdown-table');
+});
+
+test('ChatMarkdownText renders a streaming Markdown table the same way', () => {
+    const markup = renderToStaticMarkup(
+        <ChatMarkdownText
+            animatedRanges={[{ end: tableContent.length, id: 'range-1', start: 0 }]}
+            content={tableContent}
+        />
+    );
+
+    expect(markup).toContain('<table>');
+    expect(markup).toContain('<th');
+    expect(markup).toContain('Revenue');
+    expect(markup).toContain('$1,610');
+    expect(markup).not.toContain('| Sep 8 |');
+    // Streaming prose runs at `my-0`, so without its own block margin the
+    // table would sit flush against the text and then jump apart at settle.
+    expect(markup).toContain('my-3');
+});
+
+test('ChatMarkdownText keeps GFM column alignment in both render paths', () => {
+    const settled = renderToStaticMarkup(<ChatMarkdownText content={tableContent} />);
+    const streaming = renderToStaticMarkup(
+        <ChatMarkdownText
+            animatedRanges={[{ end: tableContent.length, id: 'range-1', start: 0 }]}
+            content={tableContent}
+        />
+    );
+
+    for (const markup of [settled, streaming]) {
+        expect(markup).toContain('text-align:right');
+    }
+});
+
+test('ChatMarkdownText keeps a table without its delimiter row as prose', () => {
+    const markup = renderToStaticMarkup(
+        <ChatMarkdownText
+            animatedRanges={[{ end: 4, id: 'range-1', start: 0 }]}
+            content={'| Week | Revenue |'}
+        />
+    );
+
+    expect(markup).not.toContain('<table');
+    expect(markup).toContain('<p');
+    expect(markup).toContain('Revenue |');
+});
+
+test('ChatMarkdownText keeps table pipes literal inside fenced text', () => {
+    const markup = renderToStaticMarkup(
+        <ChatMarkdownText
+            animatedRanges={[{ end: 3, id: 'range-1', start: 0 }]}
+            content={`\`\`\`\n${tableContent}\n\`\`\``}
+        />
+    );
+
+    expect(markup).not.toContain('<table');
+    expect(markup).toContain('| Week | Revenue |');
+});
+
 test('ChatMarkdownText keeps heading markers literal inside fenced text', () => {
     const markup = renderToStaticMarkup(<ChatMarkdownText content={'```\n# Test\n```'} />);
 
