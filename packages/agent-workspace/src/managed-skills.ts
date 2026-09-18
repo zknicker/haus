@@ -6,6 +6,7 @@ import chartsMd from './visuals-skill/charts.md' with { type: 'text' };
 import componentsMd from './visuals-skill/components.md' with { type: 'text' };
 import designSystemMd from './visuals-skill/design-system.md' with { type: 'text' };
 import diagramsMd from './visuals-skill/diagrams.md' with { type: 'text' };
+import { visualsSkillFragmentFiles } from './visuals-skill/fragments.ts';
 import iconsMd from './visuals-skill/icons.md' with { type: 'text' };
 import { visualsSkillIconFiles, visualsSkillIconManifest } from './visuals-skill/icons.ts';
 import pagesMd from './visuals-skill/pages.md' with { type: 'text' };
@@ -16,14 +17,22 @@ export const visualsSkillId = 'visuals';
 export const defaultVisualsSkill: string = visualsSkillMd;
 
 export const visualsSkillFiles: Record<string, string> = {
-    // The core is always read; each topic module is the one extra read for what
-    // the agent is making, and carries that topic's copy-ready fragments.
+    // The core is always read; one topic module follows it and points at the
+    // one fragment file to copy.
     'references/design-system.md': designSystemMd,
     'references/charts.md': chartsMd,
     'references/components.md': componentsMd,
     'references/diagrams.md': diagramsMd,
     'references/pages.md': pagesMd,
     'references/icons.md': iconsMd,
+    // One fragment per file: a module's index points at the one to copy, so a
+    // turn never reads every fence the skill ships.
+    ...Object.fromEntries(
+        Object.entries(visualsSkillFragmentFiles).map(([file, markdown]) => [
+            `references/fragments/${file}`,
+            markdown,
+        ])
+    ),
     'references/icons/manifest.json': `${JSON.stringify({ icons: visualsSkillIconManifest }, null, 2)}\n`,
     ...Object.fromEntries(
         Object.entries(visualsSkillIconFiles).map(([file, svg]) => [`assets/icons/${file}`, svg])

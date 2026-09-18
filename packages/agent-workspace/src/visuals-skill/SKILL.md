@@ -127,10 +127,10 @@ Hold these even if you read nothing else:
 
 ## ⚠️ Required: read the design system before you design
 
-**Unless the user has given you very explicit, precise styling instructions for
-this specific output, you MUST read [references/design-system.md](references/design-system.md)
-before writing visual or artifact markup**, and then the ONE module for what you
-are making. Nothing is too simple, too static, or too small to need it.
+**Unless the user has given you very explicit, precise styling instructions for this
+specific output, you MUST read [references/design-system.md](references/design-system.md)
+before writing visual or artifact markup**, then the ONE module for what you are making,
+then the ONE fragment its index points at. Nothing is too small for it.
 
 | Making | Also read |
 | --- | --- |
@@ -138,8 +138,8 @@ are making. Nothing is too simple, too static, or too small to need it.
 | Flows, trees, sequences, timelines, state machines | [references/diagrams.md](references/diagrams.md) |
 | Tiles, cards, status lists, meters, calculators, tables | [references/components.md](references/components.md) |
 | An artifact page | [references/pages.md](references/pages.md) |
-| Any output with icon-shaped spots | [references/icons.md](references/icons.md) |
 
-Each module ends in copy-ready fragments — the house style. Copy the nearest one
-and change the data. Icons come from the shipped library (`assets/icons/`, indexed
-in `references/icons/manifest.json`), inlined, never drawn or replaced with emoji.
+Each module opens with an index mapping what you are making to ONE file under
+`references/fragments/` — two at most. Read it and change its data; the fragments
+are the house style, and improvising is how five agents look five ways. Icons come
+from the shipped library: [references/icons.md](references/icons.md).

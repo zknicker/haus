@@ -1,8 +1,30 @@
 # Haus visuals — charts
 
-Read [design-system.md](design-system.md) first; this module adds the chart
-rules and the copy-ready fragments. Every fragment below is a complete `visual`
-fence body: change the data, keep the structure.
+Read [design-system.md](design-system.md) first. This module carries the chart
+rules and an index of copy-ready fragments. Read the ONE fragment file the
+index points at — two at most — and change its data. The fragments are the
+house style; improvising from the prose is how five agents produce five looks.
+
+## Fragment index
+
+| The question | Read |
+| --- | --- |
+| "How is X doing", any period question | [kpi-row](fragments/kpi-row.md) above [emphasis-bar](fragments/emphasis-bar.md) |
+| This one against its own history | [emphasis-bar](fragments/emphasis-bar.md) |
+| This period against the prior one | [grouped-bar](fragments/grouped-bar.md) |
+| How big is each, ranked, top N | [ranked-horizontal-bar](fragments/ranked-horizontal-bar.md) |
+| How did it move over time | [trend-line](fragments/trend-line.md) |
+| How did the volume build up | [area](fragments/area.md) |
+| How do two to four independent series compare | [multi-line](fragments/multi-line.md) |
+| How does the mix shift over time | [stacked-bar](fragments/stacked-bar.md) |
+| What share of the whole, at a glance | [donut](fragments/donut.md) |
+| Who is above and below a baseline | [diverging-bar](fragments/diverging-bar.md) |
+| What changed per item, before → after | [dumbbell](fragments/dumbbell.md) |
+| Where two measures relate | [scatter-bubble](fragments/scatter-bubble.md) |
+| Which weekday-by-week cells run hot | [heat-map](fragments/heat-map.md) |
+| Where in the US it sells | [map-us-states](fragments/map-us-states.md) |
+| Where in the world it sells | [map-world-countries](fragments/map-world-countries.md) |
+| A shape beside a number | [sparkline](fragments/sparkline.md) |
 
 ## Is it a chart?
 
@@ -14,50 +36,39 @@ fence body: change the data, keep the structure.
 | "How is X doing", any period question | A KPI row above one chart |
 | More than ~7 classes | A Markdown table in the reply |
 
-Then pick the mark from the question, not from the data shape:
-
-| The question | The mark | Color job |
-| --- | --- | --- |
-| How big is each, ranked | Ranked horizontal bar | Sequential |
-| How did it move over time | Line; area when one series and the volume is the point | Sequential |
-| This period against last | Grouped bar | `--chart-1` vs `--chart-5` |
-| This one against its history | Emphasis bar | `--chart-1` vs `--chart-5` |
-| How do independent series compare | Grouped bar, multi-line | Categorical |
-| How does the mix shift | Stacked bar | Categorical |
-| What share of the whole, at a glance | Donut, ≤6 slices | Sequential |
-| Who is above and below a baseline | Diverging bar | `--chart-1` / `--chart-2` |
-| What changed per item, before → after | Dumbbell | One hue, two steps |
-| Where two measures relate | Scatter or bubble | One hue |
-| Which day-by-week cells run hot | Heat map | Sequential |
-| Where on the map it sells | Choropleth | Sequential |
-| A shape beside a number | Sparkline | One hue |
-
 Lead with the answer: annotate the one notable point — never a number on every
 point. Label the endpoint or the extreme; ticks and tooltips carry the rest.
 The takeaway belongs in your reply, never a heading or caption inside the visual.
 
 ## Color by job
 
-- **Sequential** — one hue in steps, for anything ordered or measured by size.
-  Steps come from `color-mix(in srgb, var(--chart-1) 45%, transparent)` in CSS;
-  on canvas use the alpha helper in the area fragment below.
-- **Categorical** — `--chart-1` through `--chart-4`, in that order, for
-  genuinely independent series. Five hues is the ceiling. Color follows the
-  entity: filtering a series out never re-deals the others' colors.
+- **Sequential** — one hue in steps, for anything ordered, ranked, or measured
+  by size, and for the parts of one whole. Steps come from
+  `color-mix(in srgb, var(--chart-1) 60%, transparent)` in CSS; on canvas use
+  the alpha helper in the area fragment. Three steps is the usual ladder:
+  100%, 60%, 35%.
+- **Categorical** — for genuinely independent series, in this order:
+  `--chart-1` blue, then `--chart-4` violet, then `--chart-3` green, then
+  `--chart-2` red **last**, only once there are four. `--chart-5` zinc is the
+  neutral for context, baselines, "other", and "no data". Red enters last
+  because red reads as a verdict; at four series add direct end labels so hue
+  is not carrying the whole load.
 - **Emphasis** — the emphasized mark `--chart-1`, everything else `--chart-5`.
   The period the question is about (today, this week) is always the emphasized
   mark.
 - **Comparison pair** — this week against last, actual against baseline:
   `--chart-1` against `--chart-5`. Blue against gray, never blue against blue.
-- **Diverging** — above and below a baseline: `--chart-1` one way, `--chart-2`
-  the other, `--chart-5` at the zero line. Equal steps on each arm if you tint
-  them. Never use `--chart-2` and `--chart-3` as a two-color pair; red against
-  green is the one pairing a color-blind reader cannot split.
-- **Status colors are reserved.** `--success` / `--warning` / `--error` mean
-  good, stale, bad. A plain identity series never borrows them, and a series
-  color never implies a verdict.
+- **Parts of one whole** — a stacked share, a donut — is not categorical. It is
+  one hue in sequential steps, because the slices are one measure cut up, not
+  several independent things.
+- **Red means negative.** `--chart-2` and `--error` are for the losing side of
+  a diverging bar, a breached budget, a drop. A plain identity series does not
+  borrow them, and `--success` / `--warning` / `--error` keep meaning good,
+  stale, bad.
 - If reordering the categories would change the meaning — funnel stages, tiers,
   age bands — they are ordered, so use a sequential ramp, not separate hues.
+- Color follows the entity: filtering a series out never re-deals the others'
+  colors.
 
 **Series-count ladder**
 
@@ -65,7 +76,7 @@ The takeaway belongs in your reply, never a heading or caption inside the visual
 | --- | --- |
 | 1 | No legend. One label on the point that matters |
 | 2–3 | Custom HTML legend, values in the legend labels |
-| 4 | Legend or direct end labels; past this, lines need dash patterns too |
+| 4 | Red enters here, so add direct end labels beside the legend |
 | 5+ | Stop. Emphasize one against `--chart-5`, or send it to a table |
 
 ## Marks
@@ -95,8 +106,8 @@ The takeaway belongs in your reply, never a heading or caption inside the visual
 - **Zero, but not a third of the plot empty.** Keep `beginAtZero: true` and add
   an explicit `max` just above the data when the automatic ceiling leaves the
   top of the chart bare — `suggestedMax` only raises a ceiling, it never lowers
-  one. Scatter is the exception: both scales take
-  `grace: '10%'` so no point sits on an edge.
+  one. Scatter is the exception: both scales take `grace: '10%'` so no point
+  sits on an edge.
 - Text never wears the series color. When a mark needs naming in place, put a
   small dot in the series color beside `--muted-foreground` text.
 
@@ -146,9 +157,9 @@ need no scale engine at all.
   Any URL outside the list under Maps is blocked. `visual` fence only — an
   artifact page has no network and draws its charts as inline SVG.
 - The canvas needs a positioned wrapper with an explicit height, because
-  `responsive: true` measures the parent: `<div style="position:relative;height:260px">`.
-  That height includes the tick band, not just the plot. A horizontal bar chart
-  wants `bars × 40 + 80` pixels.
+  `responsive: true` measures the parent:
+  `<div style="position:relative;height:260px">`. That height includes the tick
+  band, not just the plot. A horizontal bar chart wants `bars × 40 + 80` pixels.
 - Always `responsive: true, maintainAspectRatio: false, animation: false`.
 - The canvas carries `role="img"`, an `aria-label` stating the takeaway, and
   the numbers as its fallback text between the tags.
@@ -159,700 +170,6 @@ const css = getComputedStyle(document.documentElement);
 const token = (name) => css.getPropertyValue(name).trim();
 const [c1, c5, grid, label, font] =
   ['--chart-1', '--chart-5', '--chart-grid', '--chart-label', '--font-sans'].map(token);
-```
-
-## Before closing the fence
-
-- [ ] One idea. Tiles above one chart, or one chart — the rest is reply text.
-- [ ] Hidden summary `<h2>` first, `role="img"` + `aria-label` + fallback text
-      on the canvas.
-- [ ] No heading, caption, or prose in the body. No bordered wrapper.
-- [ ] Every color, radius, pad, and gap is a `var(--…)`. No hex, no `rgb()`
-      except the one the alpha helper computes for canvas.
-- [ ] `animation: false`; Chart.js's own legend off.
-- [ ] Every number rounded — ticks, labels, tooltips.
-- [ ] Exactly one label on the chart, on the mark the question is about.
-- [ ] Y axis from zero, one y-axis, horizontal hairlines only.
-- [ ] Legend only past one series, with values in the labels.
-- [ ] A label that will not fit moves outside the bar or drops to the tooltip;
-      it is never cropped by `overflow: hidden`.
-- [ ] Status colors mean status. Series colors mean identity.
-
-## Fragments
-
-### Emphasis bar
-
-One series, one question: the asked-about period in `--chart-1`, its history in
-`--chart-5`, and the single label on the mark that answers it.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Last week brought in $8,100, the shop's best week since July.</h2>
-<div style="position:relative;height:250px">
-  <canvas id="weeks" role="img" aria-label="Weekly revenue across eight weeks, last week the highest at $8,100">Weekly revenue: $6,180, $5,940, $6,720, $6,410, $7,050, $6,880, $7,320, $8,100.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, c5, grid, label, ink, font] = ['--chart-1', '--chart-5', '--chart-grid', '--chart-label', '--foreground', '--font-sans'].map(token);
-const weeks = ['Jul 21', 'Jul 28', 'Aug 4', 'Aug 11', 'Aug 18', 'Aug 25', 'Sep 1', 'Sep 8'];
-const revenue = [6180, 5940, 6720, 6410, 7050, 6880, 7320, 8100];
-const focus = revenue.length - 1;
-const money = (value) => '$' + Math.round(value).toLocaleString();
-const callout = {
-  id: 'callout',
-  afterDatasetsDraw(chart) {
-    const bar = chart.getDatasetMeta(0).data[focus];
-    const ctx = chart.ctx;
-    ctx.save();
-    ctx.fillStyle = ink;
-    ctx.font = '500 12px ' + font;
-    ctx.textAlign = 'center';
-    ctx.fillText(money(revenue[focus]), bar.x, bar.y - 8);
-    ctx.restore();
-  }
-};
-new Chart(document.getElementById('weeks'), {
-  type: 'bar',
-  data: { labels: weeks, datasets: [{ data: revenue, backgroundColor: revenue.map((_, index) => (index === focus ? c1 : c5)), borderRadius: 4, maxBarThickness: 48 }] },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    layout: { padding: { top: 20 } },
-    interaction: { intersect: false, mode: 'index' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => money(item.parsed.y) } } },
-    datasets: { bar: { barPercentage: 0.9, categoryPercentage: 0.55 } },
-    scales: {
-      x: { grid: { display: false }, border: { display: false }, ticks: { autoSkip: false, color: label, font: { family: font, size: 12 }, maxRotation: 45 } },
-      y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 5, callback: (value) => money(value) } }
-    }
-  },
-  plugins: [callout]
-});
-</script>
-```
-
-### Grouped bar
-
-This period against the prior one: two series, so a hand-built legend.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Last week's revenue beat the prior week every day but Tuesday.</h2>
-<div style="display:flex;gap:16px;margin-bottom:8px">
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-1)"></span>Last week $6,940</span>
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-5)"></span>Prior week $6,545</span>
-</div>
-<div style="position:relative;height:250px">
-  <canvas id="wk" role="img" aria-label="Daily revenue, last week ahead of the prior week every day but Tuesday">Last week $6,940, prior week $6,545.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, c5, grid, label, font] = ['--chart-1', '--chart-5', '--chart-grid', '--chart-label', '--font-sans'].map(token);
-const money = (value) => '$' + Math.round(value).toLocaleString();
-new Chart(document.getElementById('wk'), {
-  type: 'bar',
-  data: {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [
-      { label: 'Last week', data: [1061, 1014, 884, 1015, 866, 938, 1162], backgroundColor: c1, borderRadius: 4, maxBarThickness: 48 },
-      { label: 'Prior week', data: [932, 1162, 858, 983, 741, 732, 1137], backgroundColor: c5, borderRadius: 4, maxBarThickness: 48 }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    interaction: { intersect: false, mode: 'index' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => item.dataset.label + ': ' + money(item.parsed.y) } } },
-    datasets: { bar: { barPercentage: 0.9, categoryPercentage: 0.55 } },
-    scales: {
-      x: { grid: { display: false }, border: { display: false }, ticks: { autoSkip: false, color: label, font: { family: font, size: 12 } } },
-      y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 5, callback: (value) => money(value) } }
-    }
-  }
-});
-</script>
-```
-
-### Stacked bar
-
-How the mix shifts. Categorical colors in order, the 2px separation cut out of
-the mark, and each series' total in the legend so no bar needs a number on it.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">The US carries about 78% of revenue every month, and all three marketplaces grew into September.</h2>
-<div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:8px">
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-1)"></span>US $27.5K</span>
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-2)"></span>GB $4.3K</span>
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-3)"></span>DE $3.6K</span>
-</div>
-<div style="position:relative;height:250px">
-  <canvas id="mix" role="img" aria-label="Monthly revenue split by marketplace, the US holding about 78% of the total every month">US $27.5K, GB $4.3K, DE $3.6K over six months.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, c2, c3, grid, label, font] = ['--chart-1', '--chart-2', '--chart-3', '--chart-grid', '--chart-label', '--font-sans'].map(token);
-const money = (value) => '$' + Math.round(value).toLocaleString();
-const series = { DE: [520, 560, 610, 590, 640, 700], GB: [640, 710, 680, 720, 760, 810], US: [4120, 4380, 4650, 4410, 4820, 5130] };
-const bar = (name, color) => ({ backgroundColor: color, borderColor: 'transparent', borderSkipped: false, borderWidth: 2, data: series[name], label: name, maxBarThickness: 48 });
-const stackTop = { ...bar('DE', c3), borderRadius: { topLeft: 4, topRight: 4 } };
-new Chart(document.getElementById('mix'), {
-  type: 'bar',
-  data: { labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], datasets: [bar('US', c1), bar('GB', c2), stackTop] },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    interaction: { intersect: false, mode: 'index' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => item.dataset.label + ': ' + money(item.parsed.y) } } },
-    datasets: { bar: { barPercentage: 0.9, categoryPercentage: 0.55 } },
-    scales: {
-      x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { autoSkip: false, color: label, font: { family: font, size: 12 } } },
-      y: { stacked: true, beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 5, callback: (value) => money(value) } }
-    }
-  }
-});
-</script>
-```
-
-### Ranked horizontal bar
-
-Top N, sorted, value at the bar end. The value axis goes away entirely — the
-numbers are on the bars, so gridlines would only add noise. Long names truncate
-in the tick and come back whole in the tooltip.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">The grandson baseball tee leads the last seven days at $234, about 17% ahead of the next product.</h2>
-<div style="position:relative;height:400px">
-  <canvas id="top" role="img" aria-label="Top eight products by revenue over seven days, led by the grandson baseball tee at $234">Top products: $234, $200, $160, $160, $92, $85, $85, $81.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, label, ink, font] = ['--chart-1', '--chart-label', '--foreground', '--font-sans'].map(token);
-const rows = [
-  { revenue: 234, title: "That's My Grandson Out There Baseball Grandma" },
-  { revenue: 200, title: 'Mama Bee Shirt Family Bee First Bee Day Outfits' },
-  { revenue: 160, title: 'Family Bee Shirts Dad Daddy First Bee Day Outfit' },
-  { revenue: 160, title: 'Mermaid Security Shirt Swimmer Dad Merdad Trident' },
-  { revenue: 92, title: 'Halloween Ghost Reading Read More Books Librarian' },
-  { revenue: 85, title: 'I Need Baseball And Jesus Sports Mom Gift' },
-  { revenue: 85, title: "I'm Not Gay I'm Super Gay LGBT Pride Rainbow" },
-  { revenue: 81, title: 'Boss Of The Toss Funny Cornhole Gifts For Men' }
-];
-const money = (value) => '$' + Math.round(value).toLocaleString();
-const clip = (text) => (text.length > 30 ? text.slice(0, 29) + '…' : text);
-const ends = {
-  id: 'ends',
-  afterDatasetsDraw(chart) {
-    const ctx = chart.ctx;
-    ctx.save();
-    ctx.fillStyle = ink;
-    ctx.font = '500 12px ' + font;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    for (const [index, bar] of chart.getDatasetMeta(0).data.entries()) {
-      ctx.fillText(money(rows[index].revenue), bar.x + 8, bar.y);
-    }
-    ctx.restore();
-  }
-};
-new Chart(document.getElementById('top'), {
-  type: 'bar',
-  data: { labels: rows.map((row) => row.title), datasets: [{ data: rows.map((row) => row.revenue), backgroundColor: c1, borderRadius: 4, maxBarThickness: 48 }] },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    layout: { padding: { right: 52 } },
-    interaction: { intersect: false, mode: 'index' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => money(item.parsed.x) } } },
-    datasets: { bar: { barPercentage: 0.9, categoryPercentage: 0.7 } },
-    scales: {
-      x: { display: false, beginAtZero: true },
-      y: { grid: { display: false }, border: { display: false }, ticks: { autoSkip: false, color: label, font: { family: font, size: 12 }, callback: (value, index) => clip(rows[index].title) } }
-    }
-  },
-  plugins: [ends]
-});
-</script>
-```
-
-### Trend line
-
-One series with a dashed average reference line. The reference gets a legend
-entry — a dashed stroke means nothing unnamed — and the endpoint carries the
-one label, ringed in the backdrop so it sits above the line.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Revenue finished the 30 days at $1,088, about 11% above the period average of $976.</h2>
-<div style="display:flex;gap:16px;margin-bottom:8px">
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:2px;border-radius:calc(var(--radius) / 3);background:var(--chart-1)"></span>Daily revenue</span>
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:2px;border-radius:calc(var(--radius) / 3);background:var(--chart-5)"></span>30-day average $976</span>
-</div>
-<div style="position:relative;height:250px">
-  <canvas id="trend" role="img" aria-label="Daily revenue over 30 days, ending at $1,088 against a $976 average">Daily revenue ranged $654 to $1,434 and ended at $1,088; the average was $976.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, c5, grid, label, ink, ground, font] = ['--chart-1', '--chart-5', '--chart-grid', '--chart-label', '--foreground', '--background', '--font-sans'].map(token);
-const days = ['Aug 17', 'Aug 18', 'Aug 19', 'Aug 20', 'Aug 21', 'Aug 22', 'Aug 23', 'Aug 24', 'Aug 25', 'Aug 26', 'Aug 27', 'Aug 28', 'Aug 29', 'Aug 30', 'Aug 31', 'Sep 1', 'Sep 2', 'Sep 3', 'Sep 4', 'Sep 5', 'Sep 6', 'Sep 7', 'Sep 8', 'Sep 9', 'Sep 10', 'Sep 11', 'Sep 12', 'Sep 13', 'Sep 14', 'Sep 15'];
-const revenue = [811, 654, 925, 1086, 1434, 1281, 873, 922, 991, 704, 856, 1073, 1049, 812, 744, 918, 1002, 869, 1124, 1288, 947, 806, 878, 1035, 1160, 902, 831, 1009, 1213, 1088];
-const money = (value) => '$' + Math.round(value).toLocaleString();
-const average = Math.round(revenue.reduce((sum, value) => sum + value, 0) / revenue.length);
-const last = revenue.length - 1;
-const endLabel = {
-  id: 'endLabel',
-  afterDatasetsDraw(chart) {
-    const point = chart.getDatasetMeta(0).data[last];
-    const ctx = chart.ctx;
-    ctx.save();
-    ctx.fillStyle = ink;
-    ctx.font = '500 12px ' + font;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(money(revenue[last]), point.x + 10, point.y);
-    ctx.restore();
-  }
-};
-new Chart(document.getElementById('trend'), {
-  type: 'line',
-  data: {
-    labels: days,
-    datasets: [
-      { label: 'Daily revenue', data: revenue, borderColor: c1, borderWidth: 2, tension: 0, pointRadius: revenue.map((_, index) => (index === last ? 4 : 0)), pointHoverRadius: 4, pointBackgroundColor: c1, pointBorderColor: ground, pointBorderWidth: 2, hitRadius: 12 },
-      { label: '30-day average', data: revenue.map(() => average), borderColor: c5, borderWidth: 2, borderDash: [4, 4], tension: 0, pointRadius: 0, pointHoverRadius: 0 }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    layout: { padding: { right: 52 } },
-    interaction: { intersect: false, mode: 'index' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => item.dataset.label + ': ' + money(item.parsed.y) } } },
-    scales: {
-      x: { grid: { display: false }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxRotation: 0, maxTicksLimit: 6 } },
-      y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 5, callback: (value) => money(value) } }
-    }
-  },
-  plugins: [endLabel]
-});
-</script>
-```
-
-### Multi-line
-
-Up to four independent series in categorical order, named at the line end by a
-dot in the series color beside neutral text — the text never wears the color.
-Past four series, add dash patterns or split the chart.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Harvest tees hold the lowest ACOS at 17%, while the holiday push climbed to 41% over the last eight weeks.</h2>
-<div style="position:relative;height:260px">
-  <canvas id="acos" role="img" aria-label="Weekly ACOS for four campaigns, harvest tees lowest at 17% and holiday push highest at 41%">Week 8 ACOS: harvest tees 17%, bee family 24%, dog lovers 31%, holiday push 41%.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, c2, c3, c4, grid, label, muted, ground, font] = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-grid', '--chart-label', '--muted-foreground', '--background', '--font-sans'].map(token);
-const campaigns = [
-  { color: c1, name: 'Harvest tees', values: [24, 23, 21, 22, 20, 19, 18, 17] },
-  { color: c2, name: 'Bee family', values: [21, 22, 24, 23, 25, 24, 25, 24] },
-  { color: c3, name: 'Dog lovers', values: [29, 28, 30, 29, 31, 30, 32, 31] },
-  { color: c4, name: 'Holiday push', values: [33, 34, 36, 35, 38, 39, 40, 41] }
-];
-const percent = (value) => Math.round(value) + '%';
-const endNames = {
-  id: 'endNames',
-  afterDatasetsDraw(chart) {
-    const ctx = chart.ctx;
-    ctx.save();
-    ctx.font = '12px ' + font;
-    ctx.textBaseline = 'middle';
-    for (const [index, campaign] of campaigns.entries()) {
-      const point = chart.getDatasetMeta(index).data.at(-1);
-      ctx.fillStyle = campaign.color;
-      ctx.beginPath();
-      ctx.arc(point.x + 10, point.y, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = muted;
-      ctx.textAlign = 'left';
-      ctx.fillText(campaign.name, point.x + 18, point.y);
-    }
-    ctx.restore();
-  }
-};
-new Chart(document.getElementById('acos'), {
-  type: 'line',
-  data: {
-    labels: ['Jul 21', 'Jul 28', 'Aug 4', 'Aug 11', 'Aug 18', 'Aug 25', 'Sep 1', 'Sep 8'],
-    datasets: campaigns.map((campaign) => ({ label: campaign.name, data: campaign.values, borderColor: campaign.color, borderWidth: 2, tension: 0, pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: campaign.color, pointBorderColor: ground, pointBorderWidth: 2, hitRadius: 12 }))
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    layout: { padding: { right: 108 } },
-    interaction: { intersect: false, mode: 'index' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => item.dataset.label + ': ' + percent(item.parsed.y) } } },
-    scales: {
-      x: { grid: { display: false }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxRotation: 0, maxTicksLimit: 8 } },
-      y: { beginAtZero: true, max: 50, grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, stepSize: 10, callback: (value) => percent(value) } }
-    }
-  },
-  plugins: [endNames]
-});
-</script>
-```
-
-### Area
-
-One series where the volume is the point. Canvas cannot parse `color-mix()`, so
-paint the token onto a 1px canvas and read the pixel back — the one helper that
-works whether the theme resolves the token to hex or to `oklch()`.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Royalties totalled $5,791 over the 30 days and ended the period at $218 a day.</h2>
-<div style="position:relative;height:240px">
-  <canvas id="royalties" role="img" aria-label="Daily royalties over 30 days, totalling $5,791 and ending at $218">Daily royalties ran $121 to $283 and totalled $5,791.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, grid, label, ground, font] = ['--chart-1', '--chart-grid', '--chart-label', '--background', '--font-sans'].map(token);
-const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-const fade = (color, alpha) => {
-  probe.clearRect(0, 0, 1, 1);
-  probe.fillStyle = color;
-  probe.fillRect(0, 0, 1, 1);
-  const pixel = probe.getImageData(0, 0, 1, 1).data;
-  return 'rgba(' + pixel[0] + ', ' + pixel[1] + ', ' + pixel[2] + ', ' + alpha + ')';
-};
-const days = ['Aug 17', 'Aug 18', 'Aug 19', 'Aug 20', 'Aug 21', 'Aug 22', 'Aug 23', 'Aug 24', 'Aug 25', 'Aug 26', 'Aug 27', 'Aug 28', 'Aug 29', 'Aug 30', 'Aug 31', 'Sep 1', 'Sep 2', 'Sep 3', 'Sep 4', 'Sep 5', 'Sep 6', 'Sep 7', 'Sep 8', 'Sep 9', 'Sep 10', 'Sep 11', 'Sep 12', 'Sep 13', 'Sep 14', 'Sep 15'];
-const royalties = [166, 128, 181, 219, 283, 243, 121, 184, 213, 127, 191, 206, 242, 165, 149, 188, 204, 174, 231, 259, 192, 161, 176, 209, 236, 183, 168, 205, 245, 218];
-const money = (value) => '$' + Math.round(value).toLocaleString();
-new Chart(document.getElementById('royalties'), {
-  type: 'line',
-  data: { labels: days, datasets: [{ label: 'Royalties', data: royalties, borderColor: c1, borderWidth: 2, tension: 0, fill: true, backgroundColor: fade(c1, 0.1), pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: c1, pointBorderColor: ground, pointBorderWidth: 2, hitRadius: 12 }] },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    interaction: { intersect: false, mode: 'index' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => money(item.parsed.y) } } },
-    scales: {
-      x: { grid: { display: false }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxRotation: 0, maxTicksLimit: 6 } },
-      y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 5, callback: (value) => money(value) } }
-    }
-  }
-});
-</script>
-```
-
-### Donut
-
-Part-to-whole at a glance, never for comparing close values — two slices within
-a few percent of each other are a ranked bar. Six slices is the ceiling, the
-total sits in the middle, and the percentages live in the legend.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Tees are 58% of the 1,450 units sold over the 30 days; everything else trails well behind.</h2>
-<div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--gap-lg)">
-  <div style="position:relative;width:200px;height:200px;flex:0 0 auto">
-    <canvas id="mixdonut" role="img" aria-label="Unit mix over 30 days: tees 58%, hoodies 17%, tanks 11%, mugs 8%, totes 6%">Tees 841, hoodies 247, tanks 160, mugs 116, totes 86.</canvas>
-    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
-      <div style="font-size:24px;font-weight:500;line-height:1.1">1,450</div>
-      <div style="font-size:12px;color:var(--muted-foreground)">units</div>
-    </div>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:var(--gap-xs) var(--gap-sm);flex:1 1 260px">
-    <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-1)"></span>Tees 58%</span>
-    <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 80%, transparent)"></span>Hoodies 17%</span>
-    <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 62%, transparent)"></span>Tanks 11%</span>
-    <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 46%, transparent)"></span>Mugs 8%</span>
-    <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 33%, transparent)"></span>Totes 6%</span>
-  </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, ground] = ['--chart-1', '--background'].map(token);
-const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-const fade = (color, alpha) => {
-  probe.clearRect(0, 0, 1, 1);
-  probe.fillStyle = color;
-  probe.fillRect(0, 0, 1, 1);
-  const pixel = probe.getImageData(0, 0, 1, 1).data;
-  return 'rgba(' + pixel[0] + ', ' + pixel[1] + ', ' + pixel[2] + ', ' + alpha + ')';
-};
-const slices = [
-  { name: 'Tees', units: 841 },
-  { name: 'Hoodies', units: 247 },
-  { name: 'Tanks', units: 160 },
-  { name: 'Mugs', units: 116 },
-  { name: 'Totes', units: 86 }
-];
-const total = slices.reduce((sum, slice) => sum + slice.units, 0);
-new Chart(document.getElementById('mixdonut'), {
-  type: 'doughnut',
-  data: { labels: slices.map((slice) => slice.name), datasets: [{ data: slices.map((slice) => slice.units), backgroundColor: [1, 0.8, 0.62, 0.46, 0.33].map((alpha) => fade(c1, alpha)), borderColor: ground, borderWidth: 2 }] },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    cutout: '62%',
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => item.label + ': ' + Math.round(item.parsed).toLocaleString() + ' units, ' + Math.round((item.parsed / total) * 100) + '%' } } }
-  }
-});
-</script>
-```
-
-### Scatter and bubble
-
-Two measures against each other, one bubble per campaign sized by units.
-`grace: '10%'` keeps air on every side without forcing ugly end ticks, each
-point is ringed in the backdrop, and the hover radius is one a finger could
-hit. Scatter has no series to name, so the one label goes on the extreme.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Spend and ACOS barely track each other: the two biggest spenders sit at opposite ends of efficiency.</h2>
-<div style="position:relative;height:280px">
-  <canvas id="spend" role="img" aria-label="Campaign spend against ACOS, with the largest spender also the least efficient at 41%">Harvest tees $410 at 17%, bee family $530 at 24%, dog lovers $290 at 31%, holiday push $780 at 41%, cornhole $160 at 28%, mermaid $240 at 22%.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, grid, label, ink, ground, font] = ['--chart-1', '--chart-grid', '--chart-label', '--foreground', '--background', '--font-sans'].map(token);
-const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-const fade = (color, alpha) => {
-  probe.clearRect(0, 0, 1, 1);
-  probe.fillStyle = color;
-  probe.fillRect(0, 0, 1, 1);
-  const pixel = probe.getImageData(0, 0, 1, 1).data;
-  return 'rgba(' + pixel[0] + ', ' + pixel[1] + ', ' + pixel[2] + ', ' + alpha + ')';
-};
-const campaigns = [
-  { acos: 17, name: 'Harvest tees', spend: 410, units: 96 },
-  { acos: 24, name: 'Bee family', spend: 530, units: 88 },
-  { acos: 31, name: 'Dog lovers', spend: 290, units: 41 },
-  { acos: 41, name: 'Holiday push', spend: 780, units: 74 },
-  { acos: 28, name: 'Cornhole', spend: 160, units: 24 },
-  { acos: 22, name: 'Mermaid', spend: 240, units: 47 }
-];
-const worst = campaigns.reduce((leader, campaign) => (campaign.acos > leader.acos ? campaign : leader));
-const callout = {
-  id: 'callout',
-  afterDatasetsDraw(chart) {
-    const index = campaigns.indexOf(worst);
-    const point = chart.getDatasetMeta(0).data[index];
-    const ctx = chart.ctx;
-    ctx.save();
-    ctx.fillStyle = ink;
-    ctx.font = '500 12px ' + font;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(worst.name + ' ' + worst.acos + '%', point.x - point.options.radius - 8, point.y + 5);
-    ctx.restore();
-  }
-};
-new Chart(document.getElementById('spend'), {
-  type: 'bubble',
-  data: { datasets: [{ label: 'Campaigns', data: campaigns.map((campaign) => ({ campaign: campaign.name, r: Math.max(6, Math.round(Math.sqrt(campaign.units) * 1.4)), x: campaign.spend, y: campaign.acos })), backgroundColor: fade(c1, 0.55), borderColor: ground, borderWidth: 2, hoverBackgroundColor: c1 }] },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    interaction: { intersect: false, mode: 'nearest' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => item.raw.campaign + ': $' + Math.round(item.raw.x).toLocaleString() + ' spend, ' + Math.round(item.raw.y) + '% ACOS' } } },
-    scales: {
-      x: { grace: '10%', grid: { display: false }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 6, callback: (value) => '$' + Math.round(value).toLocaleString() } },
-      y: { grace: '10%', grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 5, callback: (value) => Math.round(value) + '%' } }
-    }
-  },
-  plugins: [callout]
-});
-</script>
-```
-
-### Diverging bar
-
-Movement above and below a baseline: `--chart-1` for up, `--chart-2` for down,
-and a `--chart-5` line at zero. The axis is the change, not the level, so the
-label says so.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Four products gained on last week and two lost; the mermaid tee swung furthest, down $84.</h2>
-<div style="position:relative;height:320px">
-  <canvas id="delta" role="img" aria-label="Revenue change against last week per product, four up and two down, the mermaid tee furthest down at minus $84">Grandson tee +$62, bee family +$48, cornhole +$31, ghost reading +$12, dog lovers -$37, mermaid -$84.</canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, c2, c5, grid, label, font] = ['--chart-1', '--chart-2', '--chart-5', '--chart-grid', '--chart-label', '--font-sans'].map(token);
-const rows = [
-  { change: 62, title: 'Grandson baseball tee' },
-  { change: 48, title: 'Bee family tee' },
-  { change: 31, title: 'Cornhole tee' },
-  { change: 12, title: 'Ghost reading tee' },
-  { change: -37, title: 'Dog lovers tee' },
-  { change: -84, title: 'Mermaid security tee' }
-];
-const signed = (value) => (value === 0 ? '$0' : (value < 0 ? '-$' : '+$') + Math.abs(Math.round(value)).toLocaleString());
-new Chart(document.getElementById('delta'), {
-  type: 'bar',
-  data: { labels: rows.map((row) => row.title), datasets: [{ data: rows.map((row) => row.change), backgroundColor: rows.map((row) => (row.change < 0 ? c2 : c1)), borderRadius: 4, maxBarThickness: 48 }] },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    interaction: { intersect: false, mode: 'index' },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => signed(item.parsed.x) + ' against last week' } } },
-    datasets: { bar: { barPercentage: 0.9, categoryPercentage: 0.7 } },
-    scales: {
-      x: { grid: { color: (context) => (context.tick.value === 0 ? c5 : grid), lineWidth: (context) => (context.tick.value === 0 ? 1.5 : 1) }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 7, callback: (value) => signed(value) } },
-      y: { grid: { display: false }, border: { display: false }, ticks: { autoSkip: false, color: label, font: { family: font, size: 12 } } }
-    }
-  }
-});
-</script>
-```
-
-### Dumbbell
-
-Before against after, one row per item. No scale engine needed: HTML positions
-both dots as a percentage of the row, so the labels stay real text at real
-sizes. The connector is the story — length is the change.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Four of five products gained units after the September price cut; only the mermaid tee slipped.</h2>
-<div style="display:flex;gap:16px;margin-bottom:10px">
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:50%;background:color-mix(in srgb, var(--chart-1) 38%, transparent)"></span>August</span>
-  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:50%;background:var(--chart-1)"></span>September</span>
-</div>
-<div style="display:grid;gap:var(--gap-sm)" id="dumbbell"></div>
-<script>
-const rows = [
-  { after: 148, before: 96, name: 'Grandson baseball tee' },
-  { after: 121, before: 88, name: 'Bee family tee' },
-  { after: 74, before: 41, name: 'Dog lovers tee' },
-  { after: 39, before: 24, name: 'Cornhole tee' },
-  { after: 38, before: 47, name: 'Mermaid security tee' }
-];
-const max = Math.ceil(Math.max(...rows.flatMap((row) => [row.before, row.after])) / 20) * 20;
-const at = (value) => (value / max) * 100;
-const host = document.getElementById('dumbbell');
-for (const row of rows) {
-  const line = document.createElement('div');
-  line.style.cssText = 'display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 52px;align-items:center;gap:var(--gap-sm)';
-  const name = document.createElement('div');
-  name.style.cssText = 'font-size:12px;color:var(--muted-foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-  name.textContent = row.name;
-  name.title = row.name;
-  const track = document.createElement('div');
-  track.style.cssText = 'position:relative;height:16px';
-  const low = Math.min(at(row.before), at(row.after));
-  const span = Math.abs(at(row.after) - at(row.before));
-  track.innerHTML = '<div style="position:absolute;top:7px;left:0;right:0;height:1px;background:var(--border)"></div>'
-    + '<div style="position:absolute;top:6.5px;left:' + low + '%;width:' + span + '%;height:3px;border-radius:2px;background:color-mix(in srgb, var(--chart-1) 45%, transparent)"></div>'
-    + '<div style="position:absolute;top:2px;left:calc(' + at(row.before) + '% - 6px);width:12px;height:12px;border-radius:50%;background:color-mix(in srgb, var(--chart-1) 38%, transparent)"></div>'
-    + '<div style="position:absolute;top:2px;left:calc(' + at(row.after) + '% - 6px);width:12px;height:12px;border-radius:50%;background:var(--chart-1);border:2px solid var(--background)"></div>';
-  const delta = row.after - row.before;
-  const change = document.createElement('div');
-  change.style.cssText = 'justify-self:end;padding:1px 6px;border-radius:var(--radius);font-size:12px;font-variant-numeric:tabular-nums';
-  change.style.background = delta < 0 ? 'var(--error-bg)' : 'var(--success-bg)';
-  change.style.color = delta < 0 ? 'var(--error-foreground)' : 'var(--success-foreground)';
-  change.textContent = (delta < 0 ? '-' : '+') + Math.abs(delta);
-  line.append(name, track, change);
-  host.append(line);
-}
-</script>
-```
-
-### Heat map
-
-Weekday against week, in pure HTML and CSS — a grid of cells needs no chart
-library and keeps every label as real text. Five sequential steps of one hue,
-plus a plate for a zero cell, and a scale legend so the steps mean something.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Fridays and Saturdays carry the week — every Saturday lands in the top two bands, and Mondays and Tuesdays sit at the bottom of the range.</h2>
-<div style="display:grid;grid-template-columns:34px repeat(6, minmax(0, 1fr));gap:3px;font-size:11px" id="heat"></div>
-<div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--muted-foreground)">
-  <span>Fewer units</span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 14%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 32%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 52%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 74%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 96%, transparent)"></span>
-  <span>More</span>
-</div>
-<script>
-const weeks = ['Aug 11', 'Aug 18', 'Aug 25', 'Sep 1', 'Sep 8', 'Sep 15'];
-const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const units = [
-  [38, 41, 36, 44, 39, 42],
-  [34, 36, 39, 37, 41, 35],
-  [42, 45, 40, 47, 44, 0],
-  [47, 51, 46, 53, 49, 0],
-  [63, 68, 57, 71, 66, 0],
-  [72, 79, 64, 77, 73, 0],
-  [48, 52, 44, 51, 46, 0]
-];
-const steps = [14, 32, 52, 74, 96];
-// Band across the observed range, not from zero: scaling a 34–79 spread against
-// zero would push every cell into the middle two steps and waste the ramp.
-const seen = units.flat().filter((value) => value > 0);
-const low = Math.min(...seen);
-const high = Math.max(...seen);
-const host = document.getElementById('heat');
-const cell = (style, text, title) => {
-  const box = document.createElement('div');
-  box.style.cssText = style;
-  box.textContent = text;
-  if (title) { box.title = title; }
-  host.append(box);
-};
-cell('', '');
-for (const week of weeks) {
-  cell('text-align:center;color:var(--muted-foreground);padding-bottom:2px', week);
-}
-for (const [row, day] of days.entries()) {
-  cell('display:flex;align-items:center;color:var(--muted-foreground)', day);
-  for (const [column, week] of weeks.entries()) {
-    const value = units[row][column];
-    const band = Math.min(steps.length - 1, Math.floor(((value - low) / (high - low + 1)) * steps.length));
-    const fill = value === 0 ? 'var(--surface-secondary)' : 'color-mix(in srgb, var(--chart-1) ' + steps[band] + '%, transparent)';
-    cell('height:30px;border-radius:calc(var(--radius) / 3);background:' + fill, '', day + ' ' + week + ': ' + (value === 0 ? 'no data yet' : value + ' units'));
-  }
-}
-</script>
-```
-
-### Sparkline
-
-A shape beside a number: no axes, no text, nothing to fit. About a dozen points
-is the useful range — fewer reads as noise, more turns to mush.
-
-```html
-<svg width="100%" height="32" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label="Orders climbing over the last 14 days">
-  <polyline points="0,27 10,24 20,28 30,21 40,23 50,17 60,19 70,13 80,15 90,10 100,12 110,7 120,4" fill="none" stroke="var(--chart-1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-</svg>
 ```
 
 ## Maps
@@ -874,8 +191,6 @@ simply not load:
 | `https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json` | US states topology |
 | `https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json` | World countries topology |
 
-Rules:
-
 - **Never hand-draw coordinates.** A shape you invent is a country that does
   not exist. Project real topology or use a bar chart.
 - **Key by the topology's own ids**, which are stable where names are not:
@@ -885,175 +200,29 @@ Rules:
   `properties.name`. Match on the id and show the name.
 - **Borders are the backdrop**, not ink: stroke every feature in `--background`
   at about 0.75px, so shapes separate without a cage of lines.
-- Fill is the sequential ramp, banded across the values you actually have —
-  scaling from zero puts every country in the lightest step. A place with no
-  data takes `--surface-secondary`, and the legend says so.
+- Fill is the sequential ramp in **equal-count** bands, not equal-width ones.
+  Revenue by place is always skewed; a linear ramp leaves forty states in the
+  lightest step. A place with no data takes `--surface-secondary`, and the
+  legend says so.
 - Each feature gets a `<title>` so hovering names the place and its value, and
   the `<svg>` gets `role="img"` with an `aria-label` carrying the takeaway.
 - **The fetch can fail.** Catch it and render a plate that states the answer in
   words. A visual that renders nothing is worse than one that renders a
   sentence.
 
-### Choropleth, US states
+## Before closing the fence
 
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">California leads US revenue over the 30 days at $3,447, ahead of Texas at $2,079 and Florida at $1,970.</h2>
-<div id="usmap" style="min-height:120px"></div>
-<div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--muted-foreground)">
-  <span>Less revenue</span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 14%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 32%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 52%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 74%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 96%, transparent)"></span>
-  <span>More</span>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, ground] = ['--chart-1', '--background'].map(token);
-const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-const fade = (color, alpha) => {
-  probe.clearRect(0, 0, 1, 1);
-  probe.fillStyle = color;
-  probe.fillRect(0, 0, 1, 1);
-  const pixel = probe.getImageData(0, 0, 1, 1).data;
-  return 'rgba(' + pixel[0] + ', ' + pixel[1] + ', ' + pixel[2] + ', ' + alpha + ')';
-};
-// Keyed by the atlas's own FIPS ids, not by state name.
-const revenue = {
-  '01': 508, '02': 64, '04': 550, '05': 261, '06': 3447, '08': 486, '09': 281, '10': 89,
-  '11': 53, '12': 1970, '13': 1143, '15': 129, '16': 165, '17': 1254, '18': 698, '19': 223,
-  '20': 302, '21': 336, '22': 341, '23': 146, '24': 428, '25': 569, '26': 679, '27': 396,
-  '28': 267, '29': 629, '30': 107, '31': 189, '32': 221, '33': 126, '34': 795, '35': 156,
-  '36': 1967, '37': 749, '38': 76, '39': 853, '40': 278, '41': 394, '42': 1229, '44': 109,
-  '45': 527, '46': 90, '47': 672, '48': 2079, '49': 270, '50': 47, '51': 797, '53': 633,
-  '54': 141, '55': 569, '56': 46
-};
-const steps = [0.14, 0.32, 0.52, 0.74, 0.96];
-// Equal-count bands, not equal-width: revenue by place is always skewed, and a
-// linear ramp would leave forty states in the lightest step.
-const sorted = Object.values(revenue).sort((first, second) => first - second);
-const at = (fraction) => sorted[Math.floor(fraction * (sorted.length - 1))];
-const cuts = [at(0.2), at(0.4), at(0.6), at(0.8)];
-const money = (value) => '$' + Math.round(value).toLocaleString();
-const host = document.getElementById('usmap');
-const fill = (value) =>
-  value ? fade(c1, steps[cuts.filter((cut) => value > cut).length]) : 'var(--surface-secondary)';
-const stateless = () => {
-  const plate = document.createElement('div');
-  plate.style.cssText = 'background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md);color:var(--muted-foreground);font-size:13px';
-  plate.textContent = 'Map geometry could not load. California leads at $3,447, then Texas $2,079 and Florida $1,970.';
-  host.append(plate);
-};
-fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json')
-  .then((response) => response.json())
-  .then((topology) => {
-    const states = topojson.feature(topology, topology.objects.states);
-    const path = d3.geoPath(d3.geoAlbersUsa().fitSize([700, 420], states));
-    const svg = d3
-      .select(host)
-      .append('svg')
-      .attr('viewBox', '0 0 700 420')
-      .attr('role', 'img')
-      .attr('aria-label', 'US revenue by state over 30 days, California highest at $3,447')
-      .style('display', 'block')
-      .style('width', '100%')
-      .style('height', 'auto');
-    svg
-      .selectAll('path')
-      .data(states.features)
-      .join('path')
-      .attr('d', path)
-      .attr('fill', (feature) => fill(revenue[feature.id]))
-      .attr('stroke', ground)
-      .attr('stroke-width', 0.75)
-      .append('title')
-      .text((feature) => feature.properties.name + ': ' + money(revenue[feature.id] ?? 0));
-  })
-  .catch(stateless);
-</script>
-```
-
-### Choropleth, world countries
-
-Antarctica is dropped — it is a third of the projection's height and never has
-data. Three marketplaces means most of the map is "no sales", which is itself
-the answer, so the legend names that step.
-
-```html
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">The US is 94% of revenue over the 30 days; Germany and the United Kingdom are the only other marketplaces selling.</h2>
-<div id="worldmap" style="min-height:120px"></div>
-<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--muted-foreground)">
-  <span>Less revenue</span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 35%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 65%, transparent)"></span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 96%, transparent)"></span>
-  <span style="margin-right:var(--gap-sm)">More</span>
-  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:var(--surface-secondary)"></span>
-  <span>No sales</span>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script>
-const css = getComputedStyle(document.documentElement);
-const token = (name) => css.getPropertyValue(name).trim();
-const [c1, ground] = ['--chart-1', '--background'].map(token);
-const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-const fade = (color, alpha) => {
-  probe.clearRect(0, 0, 1, 1);
-  probe.fillStyle = color;
-  probe.fillRect(0, 0, 1, 1);
-  const pixel = probe.getImageData(0, 0, 1, 1).data;
-  return 'rgba(' + pixel[0] + ', ' + pixel[1] + ', ' + pixel[2] + ', ' + alpha + ')';
-};
-// Numeric ISO 3166-1 ids, the atlas's own keys: US, Germany, United Kingdom.
-const revenue = { '276': 1058, '826': 866, '840': 27954 };
-// Three values, so three equal-count bands — and the lightest still has to read
-// against a dark ground, which is why the ramp starts at 35% and not at 14%.
-const steps = [0.35, 0.65, 0.96];
-const sorted = Object.values(revenue).sort((first, second) => first - second);
-const at = (fraction) => sorted[Math.floor(fraction * (sorted.length - 1))];
-const cuts = [at(1 / 3), at(2 / 3)];
-const money = (value) => '$' + Math.round(value).toLocaleString();
-const host = document.getElementById('worldmap');
-const fill = (value) =>
-  value ? fade(c1, steps[cuts.filter((cut) => value > cut).length]) : 'var(--surface-secondary)';
-const stateless = () => {
-  const plate = document.createElement('div');
-  plate.style.cssText = 'background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md);color:var(--muted-foreground);font-size:13px';
-  plate.textContent = 'Map geometry could not load. US $27,954, Germany $1,058, United Kingdom $866 over the 30 days.';
-  host.append(plate);
-};
-fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json')
-  .then((response) => response.json())
-  .then((topology) => {
-    const world = topojson.feature(topology, topology.objects.countries);
-    const countries = world.features.filter((feature) => feature.id !== '010');
-    const shown = { features: countries, type: 'FeatureCollection' };
-    const path = d3.geoPath(d3.geoNaturalEarth1().fitSize([700, 340], shown));
-    const svg = d3
-      .select(host)
-      .append('svg')
-      .attr('viewBox', '0 0 700 340')
-      .attr('role', 'img')
-      .attr('aria-label', 'Revenue by marketplace over 30 days: the US $27,954, Germany $1,058, the United Kingdom $866')
-      .style('display', 'block')
-      .style('width', '100%')
-      .style('height', 'auto');
-    svg
-      .selectAll('path')
-      .data(countries)
-      .join('path')
-      .attr('d', path)
-      .attr('fill', (feature) => fill(revenue[feature.id]))
-      .attr('stroke', ground)
-      .attr('stroke-width', 0.75)
-      .append('title')
-      .text((feature) => feature.properties.name + ': ' + (revenue[feature.id] ? money(revenue[feature.id]) : 'no sales'));
-  })
-  .catch(stateless);
-</script>
-```
+- [ ] One idea. Tiles above one chart, or one chart — the rest is reply text.
+- [ ] Hidden summary `<h2>` first, `role="img"` + `aria-label` + fallback text
+      on the canvas.
+- [ ] No heading, caption, or prose in the body. No bordered wrapper.
+- [ ] Every color, radius, pad, and gap is a `var(--…)`. No hex, no `rgb()`
+      except the one the alpha helper computes for canvas.
+- [ ] `animation: false`; Chart.js's own legend off.
+- [ ] Every number rounded — ticks, labels, tooltips.
+- [ ] Exactly one label on the chart, on the mark the question is about.
+- [ ] Y axis from zero, one y-axis, hairlines on the value axis only.
+- [ ] Legend only past one series, with values in the labels.
+- [ ] A label that will not fit moves outside the bar or drops to the tooltip;
+      it is never cropped by `overflow: hidden`.
+- [ ] Red only where red means negative. Status colors mean status.
