@@ -143,12 +143,16 @@ test('visuals skill states the non-negotiables before the design-system pointer'
 test('visuals skill sends tables to the reply and keeps the visual to one idea', () => {
     const flowed = flowText(defaultVisualsSkill);
 
-    expect(flowed).toContain('A visual does only what text cannot');
-    expect(flowed).toContain('Tables, lists, and explanation go in the reply');
+    expect(flowed).toContain('show the essential inline; explain the rest in the reply');
+    expect(flowed).toContain('write it as a Markdown table in the reply');
+    // Placement only, as Claude's widget guidance does: nothing about reply
+    // length or order, which read as an instruction to add tables.
+    expect(flowed).not.toContain('a long reply is fine');
+    expect(flowed).not.toContain('Compose the reply in order');
     expect(flowed).toContain(
-        'tiles above one chart, or one chart, or one diagram — tables go in the reply'
+        'tiles above one chart, or one chart, or one diagram — no table inside it'
     );
-    expect(flowed).toContain('then Markdown tables for the detail');
+    expect(flowed).not.toContain('then Markdown tables for the detail');
     expect(flowed).not.toContain('never a Markdown table');
     // The description drives skill matching, so a table request must stop
     // pulling the visuals skill in on the word alone.

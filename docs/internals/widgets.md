@@ -236,14 +236,14 @@ completes.
 
 ## Reply composition
 
-The visual and the prose around it split by what each does well. A visual
-carries only what text cannot — tiles, a chart, a diagram, a control — and
-tables, lists and explanation stay in the reply as Markdown. A `<table>`
-inside a visual is for one that needs interaction or belongs to a bounded
-record, not for numbers the agent is simply reporting. The visuals skill
-(`packages/agent-workspace/src/visuals-skill/SKILL.md`) states the rule and
-the order a composed reply takes: visual, a sentence or two on what it shows,
-then the detail tables.
+The skill says where things go and nothing about how much to write, the way
+Claude Code's widget guidance does: the visual shows the essential, the reply
+explains the rest, and a table is Markdown in the reply rather than markup in
+the visual. A `<table>` inside a visual is for one that needs interaction or
+belongs to a bounded record. The skill deliberately prescribes no reply length
+and no reply order — an earlier version did ("a long reply is fine", "then
+Markdown tables for the detail") and agents read it as an instruction to add
+tables to every answer.
 
 Reply Markdown renders through `features/mentions/reference-markdown.tsx` →
 HeroUI `Markdown` with `remark-gfm`, so GFM tables work, and that component
