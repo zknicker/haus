@@ -193,7 +193,7 @@ test('visuals skill states the non-negotiables before the design-system pointer'
     expect(defaultVisualsSkill.indexOf('## Non-negotiables')).toBeLessThan(
         defaultVisualsSkill.indexOf('Required: read the design system')
     );
-    expect(defaultVisualsSkill).toContain('`maxBarThickness: 24`');
+    expect(defaultVisualsSkill).toContain('`maxBarThickness: 48`');
     expect(defaultVisualsSkill).toContain('Round every number that reaches the screen');
     expect(defaultVisualsSkill).toContain('No mid-sentence bolding in the reply');
     // Text on the surface is the raw role token; `--error-foreground` is text
@@ -201,11 +201,12 @@ test('visuals skill states the non-negotiables before the design-system pointer'
     expect(defaultVisualsSkill).toContain('`var(--error)` message inline');
 });
 
-test('visuals design system sizes every bar at 24px', () => {
+test('visuals design system sizes bars to the slot', () => {
     const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
 
-    expect(designSystem).not.toContain('maxBarThickness: 32');
-    expect(designSystem).toContain('maxBarThickness: 24');
+    expect(designSystem).not.toContain('maxBarThickness: 24');
+    expect(designSystem).toContain('maxBarThickness: 48');
+    expect(designSystem).toContain('categoryPercentage: 0.55');
 });
 
 test('visuals design system carries the hidden summary heading and the rounding rule', () => {

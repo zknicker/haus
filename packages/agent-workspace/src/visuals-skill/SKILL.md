@@ -116,7 +116,8 @@ Hold these even if you read nothing else:
 - No bordered wrapper: the conversation is the container, and tiles are `--surface-secondary` plates.
 - One idea per visual — one chart, or one table, or at most four tiles above one chart.
 - No headings, captions, or prose in the body; the hidden summary `<h2>` is the one exception.
-- Bars: `maxBarThickness: 24`, rounded at the data end only, `categoryPercentage: 0.7`.
+- Bars: sized to the slot (`categoryPercentage: 0.55`, `maxBarThickness: 48`),
+  rounded at the data end only.
 - Emphasis: the period the question asks about is `--chart-1`, every other mark is `--chart-5`.
 - Chip color = direction × whether up is good; `--warning-bg` only for stale or missing, never a drop.
 - Round every number that reaches the screen — whole dollars in tiles, never cents.

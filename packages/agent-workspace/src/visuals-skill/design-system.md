@@ -133,9 +133,10 @@ Canvas cannot read `var()`. Read tokens once at the top of the script:
 
 **Marks**
 
-- Bars: at most 24px thick (`maxBarThickness: 24`), rounded at the data end
-  only — the baseline stays square. Never fill the slot; the band's leftover
-  is air, which `categoryPercentage: 0.7` below already does. A horizontal bar
+- Bars: sized to the slot — `categoryPercentage: 0.55` leaves the band's
+  leftover as air at any count, and `maxBarThickness: 48` only stops a
+  handful of bars going fat. Rounded at the data end only; the baseline
+  stays square. A horizontal bar
   chart wants a wrapper at least `bars × 40 + 80` pixels tall, and 12 or fewer
   categories take `ticks: { autoSkip: false, maxRotation: 45 }` so no label
   silently drops.
@@ -229,8 +230,8 @@ new Chart(document.getElementById('wk'), {
   data: {
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     datasets: [
-      { label: 'Last week', data: [1061, 1014, 884, 1015, 866, 938, 1162], backgroundColor: c1, borderRadius: 4, maxBarThickness: 24 },
-      { label: 'Prior week', data: [932, 1162, 858, 983, 741, 732, 1137], backgroundColor: c5, borderRadius: 4, maxBarThickness: 24 }
+      { label: 'Last week', data: [1061, 1014, 884, 1015, 866, 938, 1162], backgroundColor: c1, borderRadius: 4, maxBarThickness: 48 },
+      { label: 'Prior week', data: [932, 1162, 858, 983, 741, 732, 1137], backgroundColor: c5, borderRadius: 4, maxBarThickness: 48 }
     ]
   },
   options: {
@@ -239,7 +240,7 @@ new Chart(document.getElementById('wk'), {
     animation: false,
     interaction: { intersect: false, mode: 'index' },
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: $${Math.round(c.parsed.y).toLocaleString()}` } } },
-    datasets: { bar: { categoryPercentage: 0.7, barPercentage: 0.9 } },
+    datasets: { bar: { categoryPercentage: 0.55, barPercentage: 0.9 } },
     scales: {
       x: { grid: { display: false }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 } } },
       y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 5, callback: (v) => '$' + v.toLocaleString() } }
