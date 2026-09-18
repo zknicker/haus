@@ -64,15 +64,31 @@ registration), with optional info-string text as the title:
   `allow-same-origin`, no browser storage
   (`apps/website/src/features/chats/visual-card.tsx`). A CSP meta locks the document
   down: `default-src 'none'`, inline scripts/styles allowed, `img-src
-  data: blob:` only, `connect-src 'none'` (no exfil channel).
-- **CDN allowlist.** One pinned external source: Chart.js `4.5.1` via
-  jsdelivr (`visualChartJsUrl`). Pinning the exact version in the CSP keeps
-  the supply-chain surface a single immutable artifact; a version bump is a
-  deliberate change that updates the CSP and the visuals skill together. The
-  skill makes Chart.js the default for any chart with an axis — it sizes bars,
-  ticks, and labels better than hand-plotted SVG can — and keeps inline SVG
-  for sparklines and axis-free marks, so an offline app degrades to
-  script-less markup.
+  data: blob:` only, and a `connect-src` that names two files and nothing else
+  (see the allowlist below).
+- **CDN allowlist.** Five pinned resources, all on jsdelivr, all at an exact
+  version and an exact path — the constants live beside the CSP in
+  `visual-card.tsx` and are mirrored in `VisualSandboxDocument.swift`:
+  - `visualChartJsUrl` — Chart.js `4.5.1`, the default for any chart with an
+    axis; it sizes bars, ticks, and labels better than hand-plotted SVG can,
+    while inline SVG stays the answer for sparklines and axis-free marks.
+  - `visualD3Url` — D3 `7.9.0`, and `visualTopojsonClientUrl` —
+    topojson-client `3.1.0`: the projection and topology pair a map needs.
+  - `visualUsAtlasStatesUrl` — us-atlas `3.0.1` `states-10m.json`, and
+    `visualWorldAtlasCountriesUrl` — world-atlas `2.0.2`
+    `countries-110m.json`: the whole of `connect-src`. A choropleth needs real
+    geometry; hand-drawn state or country outlines are always wrong, so the
+    fence fetches the topology instead of inventing coordinates.
+
+  Pinning the exact version keeps each entry a single immutable artifact, and
+  `connect-src` lists files rather than an origin because it is the fence's
+  only outbound channel and the body is attacker-controlled. Adding a sixth
+  resource takes four steps: exact version, exact path, a test pin on both
+  platforms (`visual-card.test.tsx` and `AgentHtmlTokensTests.swift` assert the
+  assembled policy character for character), and a note in
+  [ADR 0032](../adr/0032-visual-sandbox-allows-pinned-map-resources.md). A
+  version bump is the same decision, and updates the CSP and the visuals skill
+  together. An offline app degrades to script-less markup.
 - **Theming.** The iframe cannot read app styles, so the host snapshots the
   token list (`apps/website/src/agent-html/tokens.ts`) off computed styles and
   injects it as `:root`, re-snapshotting on theme change. The taught vocabulary
