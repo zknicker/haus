@@ -29,6 +29,7 @@ Then pick the mark from the question, not from the data shape:
 | What changed per item, before → after | Dumbbell | One hue, two steps |
 | Where two measures relate | Scatter or bubble | One hue |
 | Which day-by-week cells run hot | Heat map | Sequential |
+| Where on the map it sells | Choropleth | Sequential |
 | A shape beside a number | Sparkline | One hue |
 
 Lead with the answer: annotate the one notable point — never a number on every
@@ -142,8 +143,8 @@ marks with no axis text; HTML and CSS are for heat maps and dumbbells, which
 need no scale engine at all.
 
 - Pinned to `https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js`.
-  Any other URL is blocked. `visual` fence only — an artifact page has no
-  network and draws its charts as inline SVG.
+  Any URL outside the list under Maps is blocked. `visual` fence only — an
+  artifact page has no network and draws its charts as inline SVG.
 - The canvas needs a positioned wrapper with an explicit height, because
   `responsive: true` measures the parent: `<div style="position:relative;height:260px">`.
   That height includes the tick band, not just the plot. A horizontal bar chart
@@ -852,4 +853,207 @@ is the useful range — fewer reads as noise, more turns to mush.
 <svg width="100%" height="32" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label="Orders climbing over the last 14 days">
   <polyline points="0,27 10,24 20,28 30,21 40,23 50,17 60,19 70,13 80,15 90,10 100,12 110,7 120,4" fill="none" stroke="var(--chart-1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
 </svg>
+```
+
+## Maps
+
+A choropleth is a sequential chart whose categories happen to be places. Reach
+for one only when the geography is the question — "where are we selling" — and
+not to decorate a number three marketplaces could carry in a bar.
+
+The geometry is real, fetched, and pinned. These five URLs are the entire
+allowed network surface of a `visual` fence, and any other URL is blocked by
+the frame's CSP — a hand-drawn coastline or a lookup to some other atlas will
+simply not load:
+
+| URL | What it is |
+| --- | --- |
+| `https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js` | Chart.js |
+| `https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js` | D3, for projection and path |
+| `https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js` | TopoJSON → GeoJSON |
+| `https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json` | US states topology |
+| `https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json` | World countries topology |
+
+Rules:
+
+- **Never hand-draw coordinates.** A shape you invent is a country that does
+  not exist. Project real topology or use a bar chart.
+- **Key by the topology's own ids**, which are stable where names are not:
+  US states carry a two-digit FIPS string id (`'06'` California) and
+  `properties.name`; world countries carry a numeric ISO 3166-1 string id
+  (`'840'` the United States, `'826'` the United Kingdom, `'276'` Germany) and
+  `properties.name`. Match on the id and show the name.
+- **Borders are the backdrop**, not ink: stroke every feature in `--background`
+  at about 0.75px, so shapes separate without a cage of lines.
+- Fill is the sequential ramp, banded across the values you actually have —
+  scaling from zero puts every country in the lightest step. A place with no
+  data takes `--surface-secondary`, and the legend says so.
+- Each feature gets a `<title>` so hovering names the place and its value, and
+  the `<svg>` gets `role="img"` with an `aria-label` carrying the takeaway.
+- **The fetch can fail.** Catch it and render a plate that states the answer in
+  words. A visual that renders nothing is worse than one that renders a
+  sentence.
+
+### Choropleth, US states
+
+```html
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">California leads US revenue over the 30 days at $3,447, ahead of Texas at $2,079 and Florida at $1,970.</h2>
+<div id="usmap" style="min-height:120px"></div>
+<div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--muted-foreground)">
+  <span>Less revenue</span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 14%, transparent)"></span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 32%, transparent)"></span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 52%, transparent)"></span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 74%, transparent)"></span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 96%, transparent)"></span>
+  <span>More</span>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script>
+const css = getComputedStyle(document.documentElement);
+const token = (name) => css.getPropertyValue(name).trim();
+const [c1, ground] = ['--chart-1', '--background'].map(token);
+const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+const fade = (color, alpha) => {
+  probe.clearRect(0, 0, 1, 1);
+  probe.fillStyle = color;
+  probe.fillRect(0, 0, 1, 1);
+  const pixel = probe.getImageData(0, 0, 1, 1).data;
+  return 'rgba(' + pixel[0] + ', ' + pixel[1] + ', ' + pixel[2] + ', ' + alpha + ')';
+};
+// Keyed by the atlas's own FIPS ids, not by state name.
+const revenue = {
+  '01': 508, '02': 64, '04': 550, '05': 261, '06': 3447, '08': 486, '09': 281, '10': 89,
+  '11': 53, '12': 1970, '13': 1143, '15': 129, '16': 165, '17': 1254, '18': 698, '19': 223,
+  '20': 302, '21': 336, '22': 341, '23': 146, '24': 428, '25': 569, '26': 679, '27': 396,
+  '28': 267, '29': 629, '30': 107, '31': 189, '32': 221, '33': 126, '34': 795, '35': 156,
+  '36': 1967, '37': 749, '38': 76, '39': 853, '40': 278, '41': 394, '42': 1229, '44': 109,
+  '45': 527, '46': 90, '47': 672, '48': 2079, '49': 270, '50': 47, '51': 797, '53': 633,
+  '54': 141, '55': 569, '56': 46
+};
+const steps = [0.14, 0.32, 0.52, 0.74, 0.96];
+// Equal-count bands, not equal-width: revenue by place is always skewed, and a
+// linear ramp would leave forty states in the lightest step.
+const sorted = Object.values(revenue).sort((first, second) => first - second);
+const at = (fraction) => sorted[Math.floor(fraction * (sorted.length - 1))];
+const cuts = [at(0.2), at(0.4), at(0.6), at(0.8)];
+const money = (value) => '$' + Math.round(value).toLocaleString();
+const host = document.getElementById('usmap');
+const fill = (value) =>
+  value ? fade(c1, steps[cuts.filter((cut) => value > cut).length]) : 'var(--surface-secondary)';
+const stateless = () => {
+  const plate = document.createElement('div');
+  plate.style.cssText = 'background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md);color:var(--muted-foreground);font-size:13px';
+  plate.textContent = 'Map geometry could not load. California leads at $3,447, then Texas $2,079 and Florida $1,970.';
+  host.append(plate);
+};
+fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json')
+  .then((response) => response.json())
+  .then((topology) => {
+    const states = topojson.feature(topology, topology.objects.states);
+    const path = d3.geoPath(d3.geoAlbersUsa().fitSize([700, 420], states));
+    const svg = d3
+      .select(host)
+      .append('svg')
+      .attr('viewBox', '0 0 700 420')
+      .attr('role', 'img')
+      .attr('aria-label', 'US revenue by state over 30 days, California highest at $3,447')
+      .style('display', 'block')
+      .style('width', '100%')
+      .style('height', 'auto');
+    svg
+      .selectAll('path')
+      .data(states.features)
+      .join('path')
+      .attr('d', path)
+      .attr('fill', (feature) => fill(revenue[feature.id]))
+      .attr('stroke', ground)
+      .attr('stroke-width', 0.75)
+      .append('title')
+      .text((feature) => feature.properties.name + ': ' + money(revenue[feature.id] ?? 0));
+  })
+  .catch(stateless);
+</script>
+```
+
+### Choropleth, world countries
+
+Antarctica is dropped — it is a third of the projection's height and never has
+data. Three marketplaces means most of the map is "no sales", which is itself
+the answer, so the legend names that step.
+
+```html
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">The US is 94% of revenue over the 30 days; Germany and the United Kingdom are the only other marketplaces selling.</h2>
+<div id="worldmap" style="min-height:120px"></div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--muted-foreground)">
+  <span>Less revenue</span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 35%, transparent)"></span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 65%, transparent)"></span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:color-mix(in srgb, var(--chart-1) 96%, transparent)"></span>
+  <span style="margin-right:var(--gap-sm)">More</span>
+  <span style="width:14px;height:14px;border-radius:calc(var(--radius) / 3);background:var(--surface-secondary)"></span>
+  <span>No sales</span>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script>
+const css = getComputedStyle(document.documentElement);
+const token = (name) => css.getPropertyValue(name).trim();
+const [c1, ground] = ['--chart-1', '--background'].map(token);
+const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+const fade = (color, alpha) => {
+  probe.clearRect(0, 0, 1, 1);
+  probe.fillStyle = color;
+  probe.fillRect(0, 0, 1, 1);
+  const pixel = probe.getImageData(0, 0, 1, 1).data;
+  return 'rgba(' + pixel[0] + ', ' + pixel[1] + ', ' + pixel[2] + ', ' + alpha + ')';
+};
+// Numeric ISO 3166-1 ids, the atlas's own keys: US, Germany, United Kingdom.
+const revenue = { '276': 1058, '826': 866, '840': 27954 };
+// Three values, so three equal-count bands — and the lightest still has to read
+// against a dark ground, which is why the ramp starts at 35% and not at 14%.
+const steps = [0.35, 0.65, 0.96];
+const sorted = Object.values(revenue).sort((first, second) => first - second);
+const at = (fraction) => sorted[Math.floor(fraction * (sorted.length - 1))];
+const cuts = [at(1 / 3), at(2 / 3)];
+const money = (value) => '$' + Math.round(value).toLocaleString();
+const host = document.getElementById('worldmap');
+const fill = (value) =>
+  value ? fade(c1, steps[cuts.filter((cut) => value > cut).length]) : 'var(--surface-secondary)';
+const stateless = () => {
+  const plate = document.createElement('div');
+  plate.style.cssText = 'background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md);color:var(--muted-foreground);font-size:13px';
+  plate.textContent = 'Map geometry could not load. US $27,954, Germany $1,058, United Kingdom $866 over the 30 days.';
+  host.append(plate);
+};
+fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json')
+  .then((response) => response.json())
+  .then((topology) => {
+    const world = topojson.feature(topology, topology.objects.countries);
+    const countries = world.features.filter((feature) => feature.id !== '010');
+    const shown = { features: countries, type: 'FeatureCollection' };
+    const path = d3.geoPath(d3.geoNaturalEarth1().fitSize([700, 340], shown));
+    const svg = d3
+      .select(host)
+      .append('svg')
+      .attr('viewBox', '0 0 700 340')
+      .attr('role', 'img')
+      .attr('aria-label', 'Revenue by marketplace over 30 days: the US $27,954, Germany $1,058, the United Kingdom $866')
+      .style('display', 'block')
+      .style('width', '100%')
+      .style('height', 'auto');
+    svg
+      .selectAll('path')
+      .data(countries)
+      .join('path')
+      .attr('d', path)
+      .attr('fill', (feature) => fill(revenue[feature.id]))
+      .attr('stroke', ground)
+      .attr('stroke-width', 0.75)
+      .append('title')
+      .text((feature) => feature.properties.name + ': ' + (revenue[feature.id] ? money(revenue[feature.id]) : 'no sales'));
+  })
+  .catch(stateless);
+</script>
 ```

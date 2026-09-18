@@ -32,6 +32,9 @@ try {
         const { errors, files, heights } = await renderer.render({
             html: fragment.html,
             outDir,
+            // A map fetches its own topology, so its real height only arrives
+            // after the network settles.
+            ready: fragment.html.includes('fetch(') ? 'network' : 'paint',
             slug: fragment.slug,
         });
         const short = Object.entries(heights)
