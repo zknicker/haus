@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 public struct MessageTimelineView: View {
     let messages: [MessagePresentation]
     let isMessageHistoryLoaded: Bool
@@ -142,6 +146,20 @@ public struct MessageTimelineView: View {
                                 )
                             )
                         }
+                        #if canImport(UIKit)
+                        // A body is drawn block by block now, and a selection
+                        // cannot cross two text views — so copying the whole
+                        // message is the row's job rather than a long drag.
+                        if !message.prose.isEmpty {
+                            actions.append(
+                                TranscriptMenuAction(
+                                    title: "Copy text",
+                                    systemImage: "doc.on.doc",
+                                    handler: { UIPasteboard.general.string = message.prose }
+                                )
+                            )
+                        }
+                        #endif
                         return actions
                     },
                     row: { message in

@@ -8,8 +8,10 @@ import AppKit
 
 #if canImport(UIKit)
 typealias PlatformFont = UIFont
+typealias PlatformColor = UIColor
 #elseif canImport(AppKit)
 typealias PlatformFont = NSFont
+typealias PlatformColor = NSColor
 #endif
 
 /// The vertical metrics of the system font behind a `Font.TextStyle`.
@@ -49,6 +51,11 @@ enum PlatformTextMetrics {
             )
         )
     }
+
+    /// The vertical metrics of a font already in hand. A heading sets the body
+    /// style at its own size, so the capsule geometry inside it has to be
+    /// measured from that font rather than from the text style's.
+    static func metrics(of font: PlatformFont) -> PlatformFontMetrics { measure(font) }
 
     /// The system font a text style resolves to at this Dynamic Type size and
     /// legibility weight.

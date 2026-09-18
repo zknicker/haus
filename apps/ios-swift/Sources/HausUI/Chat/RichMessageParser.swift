@@ -25,18 +25,50 @@ public enum RichMessageParser {
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?
     ) -> [RichMessageSegment] {
         guard let expression = referenceExpression else { return [.text(content)] }
+        let links = markdownLinks(in: content, expression: expression)
+        let protected = RichMessageInlineMarkdown.protectedSpans(
+            in: content,
+            links: links.map(\.range)
+        )
         var segments: [RichMessageSegment] = []
-        var cursor = content.startIndex
-
-        for link in markdownLinks(in: content, expression: expression)
-        where link.range.lowerBound >= cursor {
-            appendAutolinked(content[cursor..<link.range.lowerBound], into: &segments)
-            append(link, in: content, resolve: resolve, into: &segments)
-            cursor = link.range.upperBound
+        for run in RichMessageInlineMarkdown.runs(in: content, protected: protected) {
+            append(
+                run,
+                links: links,
+                protected: protected,
+                in: content,
+                resolve: resolve,
+                into: &segments
+            )
         }
-
-        appendAutolinked(content[cursor...], into: &segments)
         return segments.isEmpty ? [.text(content)] : segments
+    }
+
+    /// One emphasis run, with the spans emphasis had to step over put back:
+    /// a code span as its literal contents, a Markdown link as the chip or
+    /// anchor it names, and the prose between them autolinked as ever. The
+    /// run's marks ride along, so a chip inside `**bold**` is still a chip and
+    /// the words around it are still bold.
+    private static func append(
+        _ run: RichMessageInlineMarkdown.Run,
+        links: [MarkdownLink],
+        protected: [RichMessageInlineMarkdown.Protected],
+        in content: String,
+        resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?,
+        into segments: inout [RichMessageSegment]
+    ) {
+        var cursor = run.text.startIndex
+        for span in protected
+        where span.range.lowerBound >= cursor && span.range.upperBound <= run.text.endIndex {
+            appendAutolinked(run.text[cursor..<span.range.lowerBound], style: run.style, into: &segments)
+            if let code = span.code {
+                append(text: code, style: run.style.union(.code), into: &segments)
+            } else if let link = links.first(where: { $0.range == span.range }) {
+                append(link, in: content, style: run.style, resolve: resolve, into: &segments)
+            }
+            cursor = span.range.upperBound
+        }
+        appendAutolinked(run.text[cursor...], style: run.style, into: &segments)
     }
 
     /// A one-line preview of a message: every visual fence reads as the visual's
@@ -152,6 +184,7 @@ public enum RichMessageParser {
     private static func append(
         _ link: MarkdownLink,
         in content: String,
+        style: RichInlineStyle,
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?,
         into segments: inout [RichMessageSegment]
     ) {
@@ -161,7 +194,7 @@ public enum RichMessageParser {
         case .link(let target):
             segments.append(.link(text: link.text, target: target))
         case .verbatim:
-            append(text: content[link.range], into: &segments)
+            append(text: content[link.range], style: style, into: &segments)
         }
     }
 
@@ -184,6 +217,7 @@ public enum RichMessageParser {
     /// Markdown autolinks them.
     private static func appendAutolinked(
         _ slice: Substring,
+        style: RichInlineStyle,
         into segments: inout [RichMessageSegment]
     ) {
         guard !slice.isEmpty else { return }
@@ -193,7 +227,7 @@ public enum RichMessageParser {
                 target: String(slice[url]),
                 text: String(slice[url])
             ) else { continue }
-            append(text: slice[cursor..<url.lowerBound], into: &segments)
+            append(text: slice[cursor..<url.lowerBound], style: style, into: &segments)
             segments.append(.reference(RichReferencePresentation(
                 id: target.id,
                 kind: target.kind,
@@ -202,18 +236,22 @@ public enum RichMessageParser {
             )))
             cursor = url.upperBound
         }
-        append(text: slice[cursor..<slice.endIndex], into: &segments)
+        append(text: slice[cursor..<slice.endIndex], style: style, into: &segments)
     }
 
     /// Prose reaches the renderer as few runs as possible: an image's Markdown
     /// is still the same sentence as the words around it, so it joins the text
     /// run beside it rather than starting another.
-    private static func append(text: Substring, into segments: inout [RichMessageSegment]) {
+    private static func append(
+        text: Substring,
+        style: RichInlineStyle,
+        into segments: inout [RichMessageSegment]
+    ) {
         guard !text.isEmpty else { return }
-        if case .text(let previous) = segments.last {
-            segments[segments.count - 1] = .text(previous + text)
+        if case .text(let previous, let previousStyle) = segments.last, previousStyle == style {
+            segments[segments.count - 1] = .text(previous + text, style: style)
             return
         }
-        segments.append(.text(String(text)))
+        segments.append(.text(String(text), style: style))
     }
 }

@@ -18,6 +18,10 @@ struct RichMessageTextView: UIViewRepresentable {
         let textStyle: Font.TextStyle
         let dynamicTypeSize: DynamicTypeSize
         let legibilityWeight: LegibilityWeight?
+        /// How the block this run belongs to sets its words before the
+        /// author's own marks: a heading's step of size and weight, a quote's
+        /// muted ink, or the body exactly as it was.
+        var appearance: RichMessageTextAppearance = .body
     }
 
     let content: Content
@@ -96,7 +100,8 @@ struct RichMessageTextView: UIViewRepresentable {
                 segments: content.segments,
                 textStyle: content.textStyle,
                 dynamicTypeSize: content.dynamicTypeSize,
-                legibilityWeight: content.legibilityWeight
+                legibilityWeight: content.legibilityWeight,
+                appearance: content.appearance
             )
             view.accessibilityLabel = RichMessageAttributedText
                 .accessibilityLabel(for: content.segments)

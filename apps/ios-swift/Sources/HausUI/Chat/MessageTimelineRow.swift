@@ -50,7 +50,7 @@ struct MessageTimelineRow: View {
                         )
                     }
 
-                    RichMessageContentView(segments: message.richSegments)
+                    RichMessageContentView(blocks: message.richBlocks)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else if let inlineReply = message.inlineReply {
                     InlineReplyPreview(

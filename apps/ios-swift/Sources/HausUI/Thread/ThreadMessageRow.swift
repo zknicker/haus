@@ -40,7 +40,7 @@ struct ThreadMessageRow: View {
 
                 if !message.prose.isEmpty {
                     RichMessageContentView(
-                        segments: message.richSegments,
+                        blocks: message.richBlocks,
                         textStyle: emphasized ? .body : .subheadline
                     )
                     .foregroundStyle(.primary)

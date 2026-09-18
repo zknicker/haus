@@ -40,6 +40,16 @@ enum RichReferenceChipInk {
     #if canImport(UIKit)
     static var bodyText: UIColor { .label }
 
+    /// Quoted words read a step back from the body, the way the App's
+    /// blockquote takes `--muted`.
+    static var mutedText: UIColor { .secondaryLabel }
+
+    /// The tint a code span sits on. The App mixes 7% of the foreground into
+    /// whatever surface the span lands on rather than naming a flat token, so
+    /// the phone takes the system fill that resolves the same way in both
+    /// schemes.
+    static var codeGround: UIColor { .quaternarySystemFill }
+
     /// A link this client does not chip reads in the system's own link ink, the
     /// nearest thing iOS has to the App's anchor color.
     static var linkText: UIColor { .link }
@@ -118,6 +128,8 @@ enum RichReferenceChipInk {
     // macOS hosts the package for `swift test` only; the stand-in body draws
     // labels without their marks, so these are the light values, flat.
     static var bodyText: NSColor { .labelColor }
+    static var mutedText: NSColor { .secondaryLabelColor }
+    static var codeGround: NSColor { .quaternaryLabelColor }
     static var linkText: NSColor { .linkColor }
 
     static func brandTint(_ brand: ReferenceBrandInk) -> NSColor { NSColor(brand.color) }

@@ -108,7 +108,7 @@ extension HausStore {
                 ask: askPresentation(message.body),
                 cloudAgents: cloudAgentPresentation(message.body).map { [$0] } ?? [],
                 threadCloudAgents: cloudAgentPresentations(cloudAgentWork.filter { $0.anchorMessageId == message.id }),
-                richSegments: richMessageSegments(fenced.prose),
+                richBlocks: richMessageBlocks(fenced.prose),
                 visualBody: fenced
             )
         }
@@ -142,7 +142,7 @@ extension HausStore {
                 attachments: message.attachments.map(\.presentation),
                 inlineReply: message.inlineReply,
                 isPending: true,
-                richSegments: richMessageSegments(fenced.prose),
+                richBlocks: richMessageBlocks(fenced.prose),
                 visualBody: fenced
             )
         }
@@ -157,8 +157,8 @@ extension HausStore {
         )
     }
 
-    private func richMessageSegments(_ content: String) -> [RichMessageSegment] {
-        RichMessageParser.parse(content) { kind, id, fallback in
+    private func richMessageBlocks(_ content: String) -> [RichMessageBlock] {
+        RichMessageBlockParser.blocks(content) { kind, id, fallback in
             switch kind {
             case .agent:
                 guard let agent = agentsByID[id] else { return nil }

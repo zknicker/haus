@@ -138,7 +138,9 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let isPending: Bool
     public let cloudAgents: [CloudAgentPresentation]
     public let threadCloudAgents: [CloudAgentPresentation]
-    public let richSegments: [RichMessageSegment]
+    /// What the row draws: the prose read as Markdown blocks, each carrying the
+    /// inline run — words, chips, links — the transcript has always drawn.
+    public let richBlocks: [RichMessageBlock]
     /// What the row says with its ```visual fences taken out — the web's
     /// placement, where every text segment concatenates into one prose block
     /// above the cards.
@@ -160,7 +162,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         isPending: Bool = false,
         cloudAgents: [CloudAgentPresentation] = [],
         threadCloudAgents: [CloudAgentPresentation] = [],
-        richSegments: [RichMessageSegment]? = nil,
+        richBlocks: [RichMessageBlock]? = nil,
         visualBody: VisualMessageBody? = nil
     ) {
         // Trim consistently for Chat and Thread bodies.
@@ -184,7 +186,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.isPending = isPending
         self.cloudAgents = cloudAgents
         self.threadCloudAgents = threadCloudAgents
-        // Segments handed in were parsed from whatever body the caller resolved,
+        // Blocks handed in were parsed from whatever body the caller resolved,
         // so they are trusted when they describe this one; a trim that changes
         // the string leaves them describing a body that no longer exists, so it
         // falls back to a parse with no identity to resolve. An adapter that can
@@ -192,9 +194,9 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         // trimmed body still renders its mentions as chips.
         self.prose = fenced.prose
         self.visuals = fenced.visuals
-        self.richSegments = body == content
-            ? richSegments ?? RichMessageParser.parse(fenced.prose) { _, _, _ in nil }
-            : RichMessageParser.parse(fenced.prose) { _, _, _ in nil }
+        self.richBlocks = body == content
+            ? richBlocks ?? RichMessageBlockParser.blocks(fenced.prose) { _, _, _ in nil }
+            : RichMessageBlockParser.blocks(fenced.prose) { _, _, _ in nil }
     }
 
     /// The resolved body together with its fence split. An adapter that needs

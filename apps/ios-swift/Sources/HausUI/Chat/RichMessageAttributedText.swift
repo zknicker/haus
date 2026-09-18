@@ -67,23 +67,26 @@ enum RichMessageAttributedText {
         segments: [RichMessageSegment],
         textStyle: Font.TextStyle,
         dynamicTypeSize: DynamicTypeSize,
-        legibilityWeight: LegibilityWeight?
+        legibilityWeight: LegibilityWeight?,
+        appearance: RichMessageTextAppearance = .body
     ) -> NSAttributedString {
-        make(
+        let font = appearance.font(
+            base: PlatformTextMetrics.font(
+                for: textStyle,
+                dynamicTypeSize: dynamicTypeSize,
+                legibilityWeight: legibilityWeight
+            )
+        )
+        return make(
             segments: segments,
-            font: PlatformTextMetrics.font(
-                for: textStyle,
-                dynamicTypeSize: dynamicTypeSize,
-                legibilityWeight: legibilityWeight
-            ),
-            metrics: PlatformTextMetrics.metrics(
-                for: textStyle,
-                dynamicTypeSize: dynamicTypeSize,
-                legibilityWeight: legibilityWeight
-            ),
+            font: font,
+            metrics: PlatformTextMetrics.metrics(of: font),
             // Medium, not the App's 700: bold read as distracting in running text on
             // the phone. Bold Text still adds a step above it.
-            referenceWeight: legibilityWeight == .bold ? .bold : .medium
+            referenceWeight: legibilityWeight == .bold ? .bold : .medium,
+            bodyColor: appearance.isMuted
+                ? RichReferenceChipInk.mutedText
+                : RichReferenceChipInk.bodyText
         )
     }
 
@@ -92,7 +95,8 @@ enum RichMessageAttributedText {
         segments: [RichMessageSegment],
         font: PlatformFont,
         metrics: PlatformFontMetrics,
-        referenceWeight: PlatformFont.Weight = .medium
+        referenceWeight: PlatformFont.Weight = .medium,
+        bodyColor: PlatformColor = RichReferenceChipInk.bodyText
     ) -> NSAttributedString {
         let geometry = RichReferenceMarkGeometry(metrics: metrics)
         // The same point size as the body, only heavier: SF's ascent and
@@ -104,16 +108,8 @@ enum RichMessageAttributedText {
         let body = NSMutableAttributedString()
         for segment in segments {
             switch segment {
-            case .text(let run):
-                body.append(
-                    NSAttributedString(
-                        string: run,
-                        attributes: [
-                            .font: font,
-                            .foregroundColor: RichReferenceChipInk.bodyText,
-                        ]
-                    )
-                )
+            case .text(let run, let style):
+                body.append(textRun(run, style: style, font: font, color: bodyColor))
             case .reference(let reference):
                 body.append(
                     referenceRun(reference, geometry: geometry, font: referenceFont)
@@ -125,12 +121,34 @@ enum RichMessageAttributedText {
         return body
     }
 
+    /// One run of words wearing the marks the author wrote: bold and italic as
+    /// traits of the block's own face, a code span in the system monospace on
+    /// its own faint plate, and a struck run with the system's own line.
+    private static func textRun(
+        _ run: String,
+        style: RichInlineStyle,
+        font: PlatformFont,
+        color: PlatformColor
+    ) -> NSAttributedString {
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: style.font(base: font),
+            .foregroundColor: color,
+        ]
+        if style.contains(.strikethrough) {
+            attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+        }
+        if style.contains(.code) {
+            attributes[.backgroundColor] = RichReferenceChipInk.codeGround
+        }
+        return NSAttributedString(string: run, attributes: attributes)
+    }
+
     /// The body read aloud: its words, with each mention named by kind so the
     /// capsule's meaning survives without it.
     static func accessibilityLabel(for segments: [RichMessageSegment]) -> String {
         segments.map { segment in
             switch segment {
-            case .text(let run):
+            case .text(let run, _):
                 run
             case .reference(let reference):
                 "\(reference.kind.referenceKindLabel) reference, \(reference.label)"

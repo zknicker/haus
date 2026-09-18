@@ -118,7 +118,10 @@ public struct ComposerMentionQuery: Equatable, Sendable {
 }
 
 public enum RichMessageSegment: Hashable, Sendable {
-    case text(String)
+    /// Words, and the marks the author wrote around them. An unstyled run is
+    /// the common case, so the marks default to none and `.text("hello")`
+    /// still reads as plain prose.
+    case text(String, style: RichInlineStyle = [])
     case reference(RichReferencePresentation)
     /// A Markdown link this client does not chip — a `haus://` resource, a
     /// `mailto:` address, a target naming no scheme at all. The App renders
