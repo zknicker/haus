@@ -138,8 +138,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let isPending: Bool
     public let cloudAgents: [CloudAgentPresentation]
     public let threadCloudAgents: [CloudAgentPresentation]
-    /// What the row draws: the prose read as Markdown blocks, each carrying the
-    /// inline run — words, chips, links — the transcript has always drawn.
+    /// What the row draws: the prose read as Markdown blocks.
     public let richBlocks: [RichMessageBlock]
     /// What the row says with its ```visual fences taken out — the web's
     /// placement, where every text segment concatenates into one prose block
