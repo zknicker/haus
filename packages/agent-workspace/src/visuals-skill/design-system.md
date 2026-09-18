@@ -52,7 +52,8 @@ Nothing outside this table is published; an unlisted name resolves to nothing.
 | `--success` `--warning` `--error` | Status marks, dots, strokes, and status text on the page |
 | `--success-bg` `--warning-bg` `--error-bg` | Status chips and callout tints |
 | `--success-foreground` `--warning-foreground` `--error-foreground` | Text on the matching tint, and nowhere else |
-| `--chart-1` … `--chart-5` | Series marks: sky, red, emerald, violet, zinc |
+| `--chart-1` … `--chart-4` | Series marks, in categorical order: `--chart-1` blue, `--chart-4` violet, `--chart-3` green, `--chart-2` red last — red reads as a verdict |
+| `--chart-5` | The neutral series: context, baselines, "other", "no data" |
 | `--chart-grid` | Gridlines and baselines |
 | `--chart-label` | Axis and tick text |
 | `--radius` | Controls, chips, inputs, nested plates |
