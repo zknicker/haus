@@ -1,31 +1,32 @@
 import { expect, test } from 'bun:test';
 import { agentHtmlTokenNames } from '../../../apps/website/src/agent-html/tokens.ts';
-import {
-    extractFragments,
-    fragmentModules,
-} from '../../../scripts/visuals-eval/skill-fragments.mjs';
+import { extractFragment, fragmentFiles } from '../../../scripts/visuals-eval/skill-fragments.mjs';
 import { visualsSkillFiles } from './managed-skills.ts';
 
 /**
  * The fragments are the highest-leverage text in the skill: a model copies one
  * far more faithfully than it follows a rule, so a fragment that breaks a rule
- * ships that break five ways at once. These checks run over the fences as they
- * are seeded, not over a separate copy.
+ * ships that break five ways at once. These checks walk `references/fragments/`
+ * as it is seeded, not a separate copy.
  */
-// The same module list the renderer walks, so a module that grows a fragment
-// cannot be linted by one and skipped by the other.
-const fragments = fragmentModules.flatMap((name: string) =>
-    extractFragments(visualsSkillFiles[`references/${name}`] ?? '', name)
-);
+const source = (slug: string) => visualsSkillFiles[`references/fragments/${slug}.md`] ?? '';
+const fragments = fragmentFiles()
+    .map((file: string) => extractFragment(visualsSkillFiles[`references/fragments/${file}`], file))
+    .filter((fragment: { html: string } | null) => fragment !== null);
 const visualFragments = fragments.filter((fragment) => fragment.kind === 'visual');
 const chartFragments = visualFragments.filter((fragment) => fragment.html.includes('<canvas'));
 const publishedTokens = new Set<string>([...agentHtmlTokenNames, '--chart-grid', '--chart-label']);
 
-test('the skill ships fragments for every module that carries them', () => {
-    expect(visualFragments.length).toBeGreaterThanOrEqual(20);
+test('the skill ships a fragment file for every shape it teaches', () => {
+    expect(fragments.length).toBe(fragmentFiles().length);
+    expect(visualFragments.length).toBeGreaterThanOrEqual(25);
     expect(chartFragments.length).toBeGreaterThanOrEqual(9);
-    for (const name of ['charts.md', 'diagrams.md', 'components.md', 'pages.md']) {
-        expect(fragments.some((fragment) => fragment.module === name)).toBe(true);
+    for (const fragment of fragments) {
+        // Heading, then a few lines on when to use it and what to change, then
+        // the fence. A fence with no guidance above it is a snippet, not a
+        // fragment worth copying.
+        const guidance = source(fragment.slug).split('```html')[0].trim();
+        expect(guidance.split('\n').length, fragment.slug).toBeGreaterThan(2);
     }
 });
 
@@ -50,7 +51,7 @@ test('no fragment names a token the frame does not publish', () => {
 
 test('the only heading in a visual fragment is the hidden summary', () => {
     for (const fragment of visualFragments) {
-        for (const [tag] of fragment.html.matchAll(/<h([1-6])\b[^>]*>/giu)) {
+        for (const [tag] of fragment.html.matchAll(/<h[1-6]\b[^>]*>/giu)) {
             expect(tag, fragment.slug).toContain('clip-path:inset(50%)');
         }
     }

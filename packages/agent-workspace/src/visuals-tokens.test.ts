@@ -1,17 +1,14 @@
 import { expect, test } from 'bun:test';
 import { agentHtmlTokenNames } from '../../../apps/website/src/agent-html/tokens.ts';
+import { fragmentFiles, skillModules } from '../../../scripts/visuals-eval/skill-fragments.mjs';
 import { defaultVisualsSkill, visualsSkillFiles } from './managed-skills.ts';
 
-const skillModules = [
-    'design-system.md',
-    'charts.md',
-    'diagrams.md',
-    'components.md',
-    'pages.md',
-    'icons.md',
-];
 const moduleSource = (name: string) => visualsSkillFiles[`references/${name}`] ?? '';
-const everySkillSource = () => [defaultVisualsSkill, ...skillModules.map(moduleSource)];
+const everySkillSource = () => [
+    defaultVisualsSkill,
+    ...skillModules.map(moduleSource),
+    ...fragmentFiles().map((file: string) => moduleSource(`fragments/${file}`)),
+];
 
 /**
  * The taught vocabulary is a published contract: `agent-html/tokens.ts` emits

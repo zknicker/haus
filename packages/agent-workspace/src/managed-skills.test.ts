@@ -2,24 +2,19 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fragmentFiles, skillModules } from '../../../scripts/visuals-eval/skill-fragments.mjs';
 import {
     defaultVisualsSkill,
     seedFactoryManagedSkills,
     visualsSkillFiles,
 } from './managed-skills.ts';
 
-/** The topic modules, in reading order. The core is always read; one module follows. */
-const skillModules = [
-    'design-system.md',
-    'charts.md',
-    'diagrams.md',
-    'components.md',
-    'pages.md',
-    'icons.md',
-];
-
 const moduleSource = (name: string) => visualsSkillFiles[`references/${name}`] ?? '';
-const everySkillSource = () => [defaultVisualsSkill, ...skillModules.map(moduleSource)];
+const everySkillSource = () => [
+    defaultVisualsSkill,
+    ...skillModules.map(moduleSource),
+    ...fragmentFiles().map((file: string) => moduleSource(`fragments/${file}`)),
+];
 
 let skillsDir = '';
 
@@ -53,13 +48,34 @@ test('restores visuals without removing authored or stale factory skills', async
     ).resolves.toContain('# Haus visuals — design system');
 });
 
-test('every visuals module seeds into references/', async () => {
+test('every visuals module and fragment seeds into references/', async () => {
     await seedFactoryManagedSkills(skillsDir);
 
     for (const name of skillModules) {
         await expect(
             readFile(join(skillsDir, 'visuals', 'references', name), 'utf8')
         ).resolves.toContain('# Haus visuals');
+    }
+    for (const file of fragmentFiles()) {
+        await expect(
+            readFile(join(skillsDir, 'visuals', 'references', 'fragments', file), 'utf8')
+        ).resolves.toContain('```html');
+    }
+});
+
+/**
+ * A fragment nothing points at is a fragment nothing reads, and a link to a
+ * file that does not seed is a dead read. Both halves are pinned because the
+ * index tables are the whole navigation story now.
+ */
+test('every fragment is reachable from a module index', () => {
+    const indexes = skillModules.map(moduleSource).join('\n');
+
+    for (const file of fragmentFiles()) {
+        expect(indexes, file).toContain(`(fragments/${file})`);
+    }
+    for (const [, link] of indexes.matchAll(/\(fragments\/([a-z0-9-]+\.md)\)/gu)) {
+        expect(fragmentFiles(), link).toContain(link);
     }
 });
 
@@ -164,7 +180,32 @@ test('visuals charts module sizes bars to the slot', () => {
     }
     expect(charts).toContain('maxBarThickness: 48');
     expect(charts).toContain('categoryPercentage: 0.55');
-    expect(charts).toContain("interaction: { intersect: false, mode: 'index' }");
+    expect(moduleSource('fragments/grouped-bar.md')).toContain(
+        "interaction: { intersect: false, mode: 'index' }"
+    );
+});
+
+/**
+ * Red last is the rule the palette validator left standing: the tokens pass on
+ * contrast, but red as 'series two' reads as a verdict. The order is stated in
+ * the core's token table and in the charts module, and no fragment may put
+ * `--chart-2` on a series before `--chart-4` and `--chart-3` are spent.
+ */
+test('visuals teaches red as the last categorical hue', () => {
+    expect(moduleSource('design-system.md')).toContain('`--chart-2` red last');
+    expect(flowText(moduleSource('charts.md'))).toContain(
+        '`--chart-1` blue, then `--chart-4` violet, then `--chart-3` green, then `--chart-2` red **last**'
+    );
+    // A fragment reaching for a third hue has spent violet first: `--chart-2`
+    // beside `--chart-3` without `--chart-4` is red as series two. Red alone is
+    // the diverging and over-budget case, which is what red is for.
+    for (const file of fragmentFiles()) {
+        const fragment = moduleSource(`fragments/${file}`);
+        if (!(fragment.includes('--chart-2') && fragment.includes('--chart-3'))) {
+            continue;
+        }
+        expect(fragment, file).toContain('--chart-4');
+    }
 });
 
 test('visuals design system carries the hidden summary heading and the rounding rule', () => {
