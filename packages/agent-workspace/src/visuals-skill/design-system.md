@@ -14,7 +14,7 @@ inventing values and the output is native in both schemes.
 - **Sentence case, two weights** — 400/500, never Title Case, CAPS, or 700.
 - **One idea per visual** — a second legend means a second visual.
 - **Words in the reply** — no title, caption, or prose inside a visual.
-- **The frame is the card** — no bordered box inside it; tiles are plates.
+- **The conversation is the container** — no bordered box around it; tiles are plates.
 
 ## Tokens
 
@@ -54,9 +54,9 @@ spacing, and never write `prefers-color-scheme` — the host injects the theme.
 
 ## Layout
 
-- **Card, tile, panel** — the frame is already the card, so tiles and plates
-  take `--surface-secondary`, `--radius`, `--pad-md`, no border. A bordered
-  `--surface` card at `--radius-card` is for artifact pages only.
+- **Card, tile, panel** — the visual sits straight on the conversation: tiles
+  and plates take `--surface-secondary`, `--radius`, `--pad-md`, no border. A
+  bordered `--surface` card at `--radius-card` is for a bounded object only.
 - **Tile row** — a grid with `gap: var(--gap-sm)`; at most 4 tiles per row.
 - **Nested plate** — `--surface-secondary` and `--radius`; a plate on a plate
   goes `--surface-tertiary`. Three levels of nesting is the ceiling.
@@ -170,7 +170,7 @@ Copy these and change the data. They are the house style.
 
 ### KPI row
 
-Plates on the card, not cards on the card: no border, no `--radius-card`.
+Plates on the page, not cards on a card: no border, no `--radius-card`.
 ```
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--gap-sm)">
   <div style="background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md)">

@@ -84,18 +84,18 @@ Rules:
 ## Visual runtime contract
 
 - The `visual` fence body renders in a sandboxed iframe with Haus's theme
-  tokens preloaded as CSS variables. Content fills the available message width; the body
-  has 16px padding, the app font, 14px text, a card background, and native
-  styling for bare form controls and `<table>` markup. Height is measured
-  automatically. Use responsive grids that fit the available width and wrap on
-  narrow screens. Let the document flow naturally; no fixed page heights,
-  viewport-height layouts, `position: fixed`, or authored vertical scroll
-  containers. The chat transcript owns vertical scrolling. Wide tables may
-  scroll horizontally.
-- **The frame is already a card.** On the transcript your body sits inside a
-  1px `--border`, `--radius-card`, `--surface` box with 16px padding — so
-  never draw a bordered card or panel inside a visual. Tiles and plates are
-  `--surface-secondary` with `--radius` and no border.
+  tokens preloaded as CSS variables. It renders inline in the reply column
+  (~46rem wide), transparent, with no border; the body has the app font,
+  14px text, no side padding, and native styling for bare form controls and
+  `<table>` markup. Height is measured automatically.
+  The chat transcript owns vertical scrolling. Use responsive grids that fit
+  the column and wrap on narrow screens. Let the document flow naturally; no
+  fixed page heights, viewport-height layouts, `position: fixed`, or authored
+  vertical scroll containers. Wide tables may scroll horizontally.
+- **The conversation is the container.** Your body sits directly on the
+  transcript page — no frame, no card around it — so never wrap a visual in a
+  bordered box. Tiles and plates are `--surface-secondary` with `--radius` and
+  no border. A bordered `--surface` card is for a bounded object only.
 - No network: fetch/XHR, remote images, and fonts are blocked. Embed all
   data inline at generation time. One pinned exception: Chart.js
   (see design-system.md, Charts).
