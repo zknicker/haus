@@ -101,10 +101,39 @@ catalog does not carry — the box renders the hash, so the glyph never changes 
 
 A stored body's edge whitespace is never layout. `MessagePresentation.body(content:)`
 is the single presentation boundary that decides what a row says, and it trims leading and trailing
-whitespace and newlines there, so both the row's `content` and its `richSegments` derive from the
+whitespace and newlines there, so both the row's `content` and its `richBlocks` derive from the
 same trimmed body — an Agent reply ending in a newline no longer pays a blank text line of gap
 before the next row or before its thread card. The persisted Markdown is untouched, and interior
 blank lines stay exactly as written.
+
+A message body is Markdown, and the phone reads the block grammar the App renders for a settled
+reply. `RichMessageBlockParser` splits the trimmed prose into blocks — paragraphs, ATX headings,
+ordered and unordered lists with nesting, blockquotes, fenced code, thematic breaks, and GFM pipe
+tables — and `RichMessageParser` still owns everything inside one, now extended with `**bold**`,
+`*italic*`, `~~strikethrough~~`, and `` `code` ``. Two precedences make it predictable: a code span
+and a Markdown link are opaque to the emphasis scan, so markup inside backticks stays literal and an
+address full of underscores stays an address; and reference chips, ordinary anchors, and bare-URL
+autolinks resolve inside every block, marks included. It is a line scanner rather than a grammar
+because it re-runs on every streamed chunk — an unterminated fence is a code block to the end of what
+has arrived, and a header row full of pipes stays a paragraph until its delimiter row lands, so a
+table appears once and then grows a row at a time instead of reflowing. A single newline is still a
+line break, the way `remark-breaks` makes it one on the App.
+
+Blocks draw as a `VStack` of `RichMessageBlockView`, and every run of running text — prose, headings,
+list rows, quoted prose — goes through the same TextKit body the chips need, so selection, copy, the
+row's context menu, and link taps are exactly what they were. A table is a native `Grid` inside a
+horizontal `ScrollView` rather than another `WKWebView`, because a web view per table in a scrolling
+transcript is a content process per table: hairline rules between rows, a medium-weight muted column
+label with no fill behind it, 12×8pt cells, tabular digits, and the `:---` / `:---:` / `---:`
+alignment the delimiter row declares, with each body cell naming its column to VoiceOver. Cells draw
+with `Text` over an `AttributedString`, not the TextKit view, because a column's width is decided by
+what its cells ask for and the text view answers that with the whole paragraph on one line — so a
+chip inside a cell keeps its identity ink and its weight and loses only its painted mark. Headings
+are section labels rather than titles: the App's 19/17/13px ladder over a 14px body compresses to one
+step above the phone's 17pt body for `#` and `##` and to body size below that, semibold throughout.
+Fenced code sits on the App's secondary surface at the control corner and scrolls rather than wraps.
+Task lists, footnotes, setext headings, backslash escapes outside a table cell, and syntax
+highlighting inside a fence are deliberately not modelled.
 
 Image attachments render inline as media tiles rather than file rows: the timeline downloads
 through the same authenticated attachment route Quick Look uses, decodes a downsampled ImageIO
@@ -245,7 +274,7 @@ port of the shared grammar in `packages/haus-api/src/widgets/visual/contracts.ts
 patterns, matched over UTF-16 so cursor arithmetic lands where JavaScript's does — and it runs once
 per message, in `MessagePresentation`'s initializer. A message therefore carries two bodies: `prose`,
 every text segment concatenated and trimmed into the one block that sits above the cards, and
-`visuals`, the fences in the order they were written. `richSegments` parse from `prose`, so a fence
+`visuals`, the fences in the order they were written. `richBlocks` parse from `prose`, so a fence
 can never leak into the transcript as raw HTML, and neither can it leak into a preview line —
 `RichMessageParser.oneLinePreview` substitutes each fence with its fallback text (explicit title,
 else the document `<title>`, else the first heading, else "Visual"). The Nth fence is a visual's
