@@ -13,7 +13,7 @@ struct MessageBodyTrimmingTests {
         let message = presentation(content: "  Ready when you are.\n\n")
 
         #expect(message.content == "Ready when you are.")
-        #expect(message.richSegments == [.text("Ready when you are.")])
+        #expect(message.richBlocks == [.paragraph([.text("Ready when you are.")])])
     }
 
     @Test func keepsInteriorParagraphBreaks() {
@@ -28,7 +28,7 @@ struct MessageBodyTrimmingTests {
     @Test func keepsResolvedSegmentsWhenTrimmingChangesTheBody() {
         let stored = "Handing this to [@Cove](agent://agt_cove)\n\n"
         let body = MessagePresentation.body(content: stored)
-        let resolved = RichMessageParser.parse(body) { kind, id, _ in
+        let resolved = RichMessageBlockParser.blocks(body) { kind, id, _ in
             RichReferencePresentation(
                 id: id,
                 kind: kind,
@@ -37,10 +37,10 @@ struct MessageBodyTrimmingTests {
             )
         }
 
-        let message = presentation(content: body, richSegments: resolved)
+        let message = presentation(content: body, richBlocks: resolved)
 
         #expect(message.content == "Handing this to [@Cove](agent://agt_cove)")
-        guard case let .reference(reference) = message.richSegments.last else {
+        guard case let .reference(reference) = message.richBlocks.flatMap(\.segments).last else {
             Issue.record("expected a trailing resolved reference")
             return
         }
@@ -52,7 +52,7 @@ struct MessageBodyTrimmingTests {
         let message = presentation(content: "Meet Tiny.\n")
 
         #expect(message.content == "Meet Tiny.")
-        #expect(message.richSegments == [.text("Meet Tiny.")])
+        #expect(message.richBlocks == [.paragraph([.text("Meet Tiny.")])])
     }
 
     /// The regression itself, measured rather than reasoned about: the rendered
@@ -69,7 +69,7 @@ struct MessageBodyTrimmingTests {
     @MainActor
     private func renderedBodyHeight(_ message: MessagePresentation) -> Int? {
         let renderer = ImageRenderer(
-            content: RichMessageContentView(segments: message.richSegments)
+            content: RichMessageContentView(blocks: message.richBlocks)
                 .frame(width: 280, alignment: .leading)
         )
         return renderer.cgImage?.height
@@ -77,14 +77,14 @@ struct MessageBodyTrimmingTests {
 
     private func presentation(
         content: String,
-        richSegments: [RichMessageSegment]? = nil
+        richBlocks: [RichMessageBlock]? = nil
     ) -> MessagePresentation {
         MessagePresentation(
             id: "message_1",
             author: MessageAuthorPresentation(id: "agt_cove", name: "Cove", avatarURL: nil),
             content: content,
             createdAt: Date(timeIntervalSince1970: 0),
-            richSegments: richSegments
+            richBlocks: richBlocks
         )
     }
 
