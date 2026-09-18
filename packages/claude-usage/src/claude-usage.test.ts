@@ -5,9 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     ClaudeUsageAuthError,
     getClaudeUsage,
-    loadClaudeCredentials,
     normalizeClaudeUsageResponse,
-    parseClaudeCredentialsDocument,
     resolveClaudeCredentialsPath,
 } from './index.ts';
 
@@ -17,86 +15,6 @@ afterEach(async () => {
     await Promise.all(
         tempDirs.splice(0).map(async (tempDir) => rm(tempDir, { force: true, recursive: true }))
     );
-});
-
-describe('loadClaudeCredentials', () => {
-    it('prefers a current macOS Keychain session over a stale credential file', async () => {
-        const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
-        tempDirs.push(tempDir);
-        const credentialsPath = resolveClaudeCredentialsPath({ homeDir: tempDir });
-        await mkdir(path.dirname(credentialsPath), { recursive: true });
-        await writeFile(
-            credentialsPath,
-            JSON.stringify({
-                claudeAiOauth: {
-                    accessToken: 'stale-file-token',
-                    expiresAt: Date.parse('2026-08-13T00:00:00.000Z'),
-                },
-            })
-        );
-
-        const loaded = await loadClaudeCredentials({
-            homeDir: tempDir,
-            now: new Date('2026-08-14T00:00:00.000Z'),
-            platform: 'darwin',
-            readKeychain: async () =>
-                JSON.stringify({
-                    claudeAiOauth: {
-                        accessToken: 'current-keychain-token',
-                        expiresAt: Date.parse('2026-08-15T00:00:00.000Z'),
-                    },
-                }),
-        });
-
-        expect(loaded?.source).toBe('keychain');
-        expect(loaded?.credentials.accessToken).toBe('current-keychain-token');
-    });
-
-    it('falls back past expired credentials instead of sending them', async () => {
-        const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
-        tempDirs.push(tempDir);
-        const credentialsPath = resolveClaudeCredentialsPath({ homeDir: tempDir });
-        await mkdir(path.dirname(credentialsPath), { recursive: true });
-        await writeFile(
-            credentialsPath,
-            JSON.stringify({
-                claudeAiOauth: {
-                    accessToken: 'expired-token',
-                    expiresAt: Date.parse('2026-08-13T00:00:00.000Z'),
-                },
-            })
-        );
-
-        const loaded = await loadClaudeCredentials({
-            environment: { CLAUDE_CODE_OAUTH_TOKEN: 'environment-token' },
-            homeDir: tempDir,
-            now: new Date('2026-08-14T00:00:00.000Z'),
-            platform: 'linux',
-            readKeychain: async () => null,
-        });
-
-        expect(loaded?.source).toBe('environment');
-    });
-});
-
-describe('parseClaudeCredentialsDocument', () => {
-    it('parses the Claude Code credential file shape', () => {
-        const parsed = parseClaudeCredentialsDocument({
-            claudeAiOauth: {
-                accessToken: 'access-token',
-                expiresAt: 1234,
-                refreshToken: 'refresh-token',
-                subscriptionType: 'claude_max',
-            },
-        });
-
-        expect(parsed.credentials).toEqual({
-            accessToken: 'access-token',
-            expiresAt: 1234,
-            refreshToken: 'refresh-token',
-            subscriptionType: 'claude_max',
-        });
-    });
 });
 
 describe('normalizeClaudeUsageResponse', () => {
@@ -248,6 +166,31 @@ describe('getClaudeUsage', () => {
         ).rejects.toBeInstanceOf(ClaudeUsageAuthError);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('names the refresh as the remedy for an expired session instead of calling the API', async () => {
+        const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
+        tempDirs.push(tempDir);
+        const fetchMock = vi.fn<typeof fetch>();
+
+        await expect(
+            getClaudeUsage({
+                fetch: fetchMock,
+                homeDir: tempDir,
+                now: new Date('2026-08-14T00:00:00.000Z'),
+                platform: 'darwin',
+                readKeychain: async () =>
+                    JSON.stringify({
+                        claudeAiOauth: {
+                            accessToken: 'expired-keychain-token',
+                            expiresAt: Date.parse('2026-08-13T00:00:00.000Z'),
+                            refreshToken: 'keychain-refresh-token',
+                        },
+                    }),
+            })
+        ).rejects.toThrow('Run `claude` once to refresh it.');
+
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it('preserves provider retry timing on rate limits', async () => {

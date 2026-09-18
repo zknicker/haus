@@ -103,7 +103,6 @@
     "apps/website/src/features/servers/chat/chat-topbar.tsx": 439,
     "apps/website/src/features/servers/chat/chat-view.tsx": 309,
     "apps/website/src/hooks/agents/current-agent-activity.test.ts": 368,
-    "packages/claude-usage/src/claude-usage.test.ts": 310,
     "packages/haus-api/src/agent-runner.ts": 529,
     "packages/haus-api/src/agent.ts": 435,
     "packages/haus-api/src/chat.ts": 546,

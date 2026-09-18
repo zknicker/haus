@@ -141,7 +141,13 @@ Agent hover cards, profile pages, and profile panes show the issue for their ass
 runtime, with a link to Computer settings. The Computer page owns native sign-in instructions.
 Other runtimes on the same Computer remain unaffected.
 
-After signing in on the named Computer, retry the Agent request. A successful turn using that
-runtime clears the issue. Inventory discovery, an interrupted turn, and a usage refresh do not
-prove execution authentication succeeded and cannot clear it. An older in-flight turn cannot
+An expired sign-in reads differently from a missing one, and the message says which. Claude Code's
+access token lasts about eight hours and only the `claude` CLI can trade its refresh token for a
+new one: an Agent's isolated home reaches no login of its own, so Haus cannot do it on the
+operator's behalf. That failure therefore asks for `claude` to be run once on the named Computer,
+while a Computer that was never signed in asks for a sign-in.
+
+After signing in — or refreshing — on the named Computer, retry the Agent request. A successful
+turn using that runtime clears the issue. Inventory discovery, an interrupted turn, and a usage
+refresh do not prove execution authentication succeeded and cannot clear it. An older in-flight turn cannot
 overwrite a newer observation. Historical failures remain in activity history.

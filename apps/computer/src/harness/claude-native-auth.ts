@@ -50,5 +50,15 @@ export async function claudeNativeEnvironment(
             'Claude Code authentication required. Sign in to Claude Code on this Computer, then retry the Agent.'
         );
     }
+    // The access token lives about eight hours and only the `claude` CLI can
+    // spend the refresh token for a new one — an Agent home cannot, and leaving
+    // the variable out does not help either, because Claude Code reaches no
+    // login at all from a home that is not the host's. So name the one command
+    // that fixes it rather than sending someone to sign in again.
+    if (loaded.expired) {
+        throw new ClaudeUsageAuthError(
+            'Claude Code authentication expired. Run `claude` once on this Computer to refresh it, then retry the Agent.'
+        );
+    }
     return { CLAUDE_CODE_OAUTH_TOKEN: loaded.credentials.accessToken };
 }

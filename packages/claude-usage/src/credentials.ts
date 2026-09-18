@@ -53,69 +53,45 @@ export function parseClaudeCredentialsDocument(input: unknown): {
     };
 }
 
+/**
+ * Resolve the host's Claude Code login, first usable credential wins.
+ *
+ * The access token lives about eight hours; the `claude` CLI trades the refresh
+ * token for a new one on its next run. An expired credential that still carries
+ * a refresh token is therefore a stale login, not a missing one: it comes back
+ * with `expired: true` and the caller decides what that is worth. Only a login
+ * nothing can revive — no credential at all, or an expired one without a
+ * refresh token — is null.
+ */
 export async function loadClaudeCredentials(
     options: ClaudeCredentialsLoadOptions = {}
 ): Promise<ClaudeLoadedCredentials | null> {
-    const credentialsPath = resolveClaudeCredentialsPath(options);
+    const now = options.now ?? new Date();
     const keychainFirst = (options.platform ?? process.platform) === 'darwin';
+    const readSources = keychainFirst
+        ? [loadKeychainCredentials, loadFileCredentials, loadEnvironmentCredentials]
+        : [loadFileCredentials, loadKeychainCredentials, loadEnvironmentCredentials];
 
-    if (keychainFirst) {
-        const keychain = await loadKeychainCredentials(options);
-        if (keychain && !credentialsExpired(keychain.credentials, options.now)) {
-            return keychain;
+    let refreshable: ClaudeLoadedCredentials | null = null;
+    for (const readSource of readSources) {
+        const candidate = await readSource(options, now);
+        if (!candidate) {
+            continue;
+        }
+        if (!candidate.expired) {
+            return candidate;
+        }
+        if (!refreshable && candidate.credentials.refreshToken) {
+            refreshable = candidate;
         }
     }
 
-    try {
-        const raw = await readFile(credentialsPath, 'utf8');
-        const parsed = parseClaudeCredentialsDocument(JSON.parse(raw));
-
-        const loaded: ClaudeLoadedCredentials = {
-            credentials: parsed.credentials,
-            document: parsed.document,
-            path: credentialsPath,
-            source: 'file',
-        };
-        if (!credentialsExpired(loaded.credentials, options.now)) {
-            return loaded;
-        }
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-            if (error instanceof SyntaxError || error instanceof z.ZodError) {
-                throw new ClaudeUsageParseError(`Invalid Claude credentials at ${credentialsPath}`);
-            }
-
-            throw error;
-        }
-    }
-
-    if (!keychainFirst) {
-        const keychain = await loadKeychainCredentials(options);
-        if (keychain && !credentialsExpired(keychain.credentials, options.now)) {
-            return keychain;
-        }
-    }
-
-    const token = options.environment?.CLAUDE_CODE_OAUTH_TOKEN?.trim();
-    if (!token) {
-        return null;
-    }
-
-    return {
-        credentials: {
-            accessToken: token,
-            expiresAt: null,
-            refreshToken: null,
-            subscriptionType: null,
-        },
-        document: null,
-        path: null,
-        source: 'environment',
-    };
+    return refreshable;
 }
 
 async function loadKeychainCredentials(
-    options: ClaudeCredentialsLoadOptions
+    options: ClaudeCredentialsLoadOptions,
+    now: Date
 ): Promise<ClaudeLoadedCredentials | null> {
     if (options.useKeychain === false) {
         return null;
@@ -131,6 +107,7 @@ async function loadKeychainCredentials(
         return {
             credentials: parsed.credentials,
             document: parsed.document,
+            expired: credentialsExpired(parsed.credentials, now),
             path: null,
             source: 'keychain',
         };
@@ -142,7 +119,61 @@ async function loadKeychainCredentials(
     }
 }
 
-function credentialsExpired(credentials: ClaudeCredentials, now = new Date()): boolean {
+async function loadFileCredentials(
+    options: ClaudeCredentialsLoadOptions,
+    now: Date
+): Promise<ClaudeLoadedCredentials | null> {
+    const credentialsPath = resolveClaudeCredentialsPath(options);
+    let raw: string;
+    try {
+        raw = await readFile(credentialsPath, 'utf8');
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return null;
+        }
+        throw error;
+    }
+
+    try {
+        const parsed = parseClaudeCredentialsDocument(JSON.parse(raw));
+        return {
+            credentials: parsed.credentials,
+            document: parsed.document,
+            expired: credentialsExpired(parsed.credentials, now),
+            path: credentialsPath,
+            source: 'file',
+        };
+    } catch (error) {
+        if (error instanceof SyntaxError || error instanceof z.ZodError) {
+            throw new ClaudeUsageParseError(`Invalid Claude credentials at ${credentialsPath}`);
+        }
+        throw error;
+    }
+}
+
+function loadEnvironmentCredentials(
+    options: ClaudeCredentialsLoadOptions
+): Promise<ClaudeLoadedCredentials | null> {
+    const token = options.environment?.CLAUDE_CODE_OAUTH_TOKEN?.trim();
+    if (!token) {
+        return Promise.resolve(null);
+    }
+
+    return Promise.resolve({
+        credentials: {
+            accessToken: token,
+            expiresAt: null,
+            refreshToken: null,
+            subscriptionType: null,
+        },
+        document: null,
+        expired: false,
+        path: null,
+        source: 'environment',
+    });
+}
+
+function credentialsExpired(credentials: ClaudeCredentials, now: Date): boolean {
     return credentials.expiresAt !== null && credentials.expiresAt <= now.getTime();
 }
 

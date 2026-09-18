@@ -10,6 +10,8 @@ export type ClaudeCredentialsSource = 'environment' | 'file' | 'keychain' | 'man
 export interface ClaudeLoadedCredentials {
     credentials: ClaudeCredentials;
     document: Record<string, unknown> | null;
+    /** The access token is past its expiry; only `claude` itself can refresh it. */
+    expired: boolean;
     path: string | null;
     source: ClaudeCredentialsSource;
 }

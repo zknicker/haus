@@ -91,6 +91,7 @@ export async function getClaudeUsage(
         ? {
               credentials: options.credentials,
               document: null,
+              expired: false,
               path: null,
               source: 'manual' as const,
           }
@@ -99,6 +100,13 @@ export async function getClaudeUsage(
     if (!loaded) {
         throw new ClaudeUsageAuthError(
             'Claude credentials were not found. Run `claude` to log in first.'
+        );
+    }
+
+    // Usage reporting has no way to spend a refresh token; the CLI owns that.
+    if (loaded.expired) {
+        throw new ClaudeUsageAuthError(
+            'Claude access token expired. Run `claude` once to refresh it.'
         );
     }
 
