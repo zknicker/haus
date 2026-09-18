@@ -291,7 +291,8 @@ a cell has nowhere to go. So `VisualHeightRegistry` holds measured heights keyed
 by message id and fence ordinal, exactly as `AttachmentImageTileRegistry` holds tile anchors, and
 `MessageTimelineView` and `ThreadDetailView` each own one. The screen's own body reads the
 registry's `revision`, which is what turns a frame's report into a re-render, a reconfigure, and a
-row at its new height. Cards fill the available message width and use natural document height,
+row at its new height. A visual draws no shell — transparent, unbordered, filling the message
+column, the same inline frame as the web (ADR 0031) — and uses natural document height,
 with 240pt reserved until the first report, a 120pt minimum, and a 100,000pt resource guard for
 pathological documents, matching the web. Height changes apply immediately without animation or
 collapse controls. The transcript owns vertical scrolling; wide tables still pan horizontally.

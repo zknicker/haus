@@ -101,7 +101,12 @@ registration), with optional info-string text as the title:
   skill forbids Markdown tables in replies for the same reason.
 - **Presentation.** Prose and visuals render in authored order with three spacing
   units between segments. Attachments render once after the complete message.
-  Visuals fill the available message width. A host-owned size reporter measures
+  A visual is not a card: the host draws no shell at all — a plain block, a
+  transparent iframe, the document's only inset 8px of vertical breathing room
+  — capped at the prose measure (`max-w-[46rem]`) and left-aligned with the
+  text above it, so the conversation is the container and a tile inside a
+  visual reads as a plate on the page rather than a card in a card (ADR 0031).
+  A host-owned size reporter measures
   the body height, including changes after load and width changes, so reports
   grow and shrink in normal transcript flow without collapse or a Show all toggle.
   Heights apply immediately, without animation. The host validates the frame
@@ -119,7 +124,10 @@ registration), with optional info-string text as the title:
   curated icon assets), written against the published token names in
   `artifact-tokens.css`; DESIGN.md carries the app-side reference. The
   managed prompt keeps a three-line pointer: the surfaces exist and the
-  skill is a mandatory read before emitting any fence (ADR 0012). Skill
+  skill is a mandatory read before emitting any fence (ADR 0012). The design
+  system's first rule follows the frame: the conversation is the container, so
+  a bordered `--surface` card is drawn only for a bounded object, never as a
+  wrapper. Skill
   sources are markdown files under
   `packages/agent-workspace/src/visuals-skill/`; quality is tuned with the
   design battery (`bun run eval:design`, `scripts/design-battery/RUBRIC.md`).
