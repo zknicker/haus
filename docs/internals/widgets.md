@@ -69,9 +69,10 @@ registration), with optional info-string text as the title:
   jsdelivr (`visualChartJsUrl`). Pinning the exact version in the CSP keeps
   the supply-chain surface a single immutable artifact; a version bump is a
   deliberate change that updates the CSP and the visuals skill together. The
-  skill steers toward inline SVG first, so the CDN is an escape hatch for
-  genuinely interactive charts, and an offline app degrades to script-less
-  markup.
+  skill makes Chart.js the default for any chart with an axis — it sizes bars,
+  ticks, and labels better than hand-plotted SVG can — and keeps inline SVG
+  for sparklines and axis-free marks, so an offline app degrades to
+  script-less markup.
 - **Theming.** The iframe cannot read app styles, so the host snapshots the
   token list (`apps/website/src/agent-html/tokens.ts`) off computed styles and
   injects it as `:root`, re-snapshotting on theme change. The taught vocabulary

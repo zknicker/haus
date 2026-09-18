@@ -1,26 +1,25 @@
 # Haus visuals — design system
 
 Everything you render — inline visuals and artifact pages — wears the app's
-theme. Almost every decision below is already a token; spend the tokens
-instead of inventing values and the output is native in both schemes for free.
+theme. Almost every decision below is already a token; spend them instead of
+inventing values and the output is native in both schemes.
 
 ## Philosophy
 
 - **Seamless** — a visual is part of the app, not a slide dropped into it.
-- **Flat** — hairlines and fills carry structure; no shadows, gradients,
-  glass, glow, or decorative fills.
+- **Flat** — hairlines and fills only; no shadow, gradient, glass, or glow.
 - **Compact** — app density, not deck density.
 - **Ink over hue** — `--foreground` and gray do the work; color is reserved
   for meaning (status, series, one emphasis), never for "this is a UI".
-- **Sentence case, two weights** — 400 and 500. Never Title Case, ALL CAPS,
-  600, or 700.
+- **Sentence case, two weights** — 400/500, never Title Case, CAPS, or 700.
 - **One idea per visual** — a second legend means a second visual.
+- **Words in the reply** — no title, caption, or prose inside a visual.
+- **The frame is the card** — no bordered box inside it; tiles are plates.
 
 ## Tokens
 
-The frame preloads these on `:root`. Never hardcode a color, font stack,
-radius, or spacing value, and never write `prefers-color-scheme` — the host
-injects the active theme.
+The frame preloads these on `:root`. Never hardcode a color, font, radius, or
+spacing, and never write `prefers-color-scheme` — the host injects the theme.
 
 | Token | Role |
 | --- | --- |
@@ -55,23 +54,26 @@ injects the active theme.
 
 ## Layout
 
-- **Card, tile, panel** — `--surface`, 1px `--border`, `--radius-card`,
-  `--pad-md`.
-- **Tile row** — a grid with `gap: var(--gap-sm)`; at most 5 tiles per row.
+- **Card, tile, panel** — the frame is already the card, so tiles and plates
+  take `--surface-secondary`, `--radius`, `--pad-md`, no border. A bordered
+  `--surface` card at `--radius-card` is for artifact pages only.
+- **Tile row** — a grid with `gap: var(--gap-sm)`; at most 4 tiles per row.
 - **Nested plate** — `--surface-secondary` and `--radius`; a plate on a plate
   goes `--surface-tertiary`. Three levels of nesting is the ceiling.
 - **Chip, badge, pill** — a status or accent `-bg` tint with the matching
   `-foreground` text, `--radius`. Never bare colored text, never a solid fill.
+  Delta color = direction × whether up is good: revenue up is `--success-bg`,
+  returns up is `--error-bg`. `--warning-bg` is for stale or missing states
+  (not synced, no data), never for a drop. Every chip carries a label, never
+  color alone.
 - **Sections** — `--gap-lg` between, `--gap-sm` within.
 - Width `100%`; no nested scrolling and no reserved empty space.
 
 ## Native elements
 
 In a `visual` fence the frame already styles bare `input`, `select`,
-`textarea`, `button`, `input[type=range]`, and `table` to match the app, sets
-`accent-color`, and wraps a wide table in its own scroller. Write the bare tag
-and add inline style only to change width or alignment — a hand-built control
-looks alien beside the real ones.
+`textarea`, `button`, `input[type=range]`, and `table`, sets `accent-color`,
+and scrolls wide tables. Write the bare tag — a hand-built control looks alien.
 
 ## Typography
 
@@ -83,15 +85,17 @@ the frame sets it on `body`, so plain text is already right.
 - Secondary text, dense table cells, and code: 12–13px.
 - Metadata and compact labels: 11–12px. No font-size below 11px.
 - Display values: 24–36px, weight 500, line-height at least 1.08 so glyphs
-  don't crop; never past 42px in a visual.
-- Numbers use `font-variant-numeric: tabular-nums`, never a switch to mono.
-  Letter spacing 0 or positive; names go in `code style`, not bold.
+  don't crop; never past 42px in a visual. Compact and rounded — whole
+  dollars, 12.9K, $4.2M; never cents in a tile.
+- `font-variant-numeric: tabular-nums` only where numbers align vertically:
+  table columns, axis ticks. Tile values stay proportional. Never a switch to
+  mono; letter spacing 0 or positive, names in `code style`, not bold.
 - In inline SVG, set `svg text { font-family: var(--font-sans) }`.
 
 ### Text fitting
 
-Font metrics vary by platform. Before putting text in a fixed box or SVG,
-check it fits: `chars × budget + 2 × padding ≤ box width`.
+Font metrics vary by platform. Before putting text in a fixed box or hand-drawn
+SVG, check it fits: `chars × budget + 2 × padding ≤ box width`.
 
 | Font size | Budget per character |
 | --- | --- |
@@ -99,49 +103,66 @@ check it fits: `chars × budget + 2 × padding ≤ box width`.
 | 12px | ~6.3px |
 | 14px | ~7.3px |
 | 16px | ~8.4px |
-| 20px | ~10.5px |
 
 If it doesn't fit: shorten the label, drop a size, or widen the box. Keep 4px
 minimum between text and any container edge.
 
 ## Charts
 
-Lead with the answer: a headline number or one-line takeaway above the chart
-beats a caption below, and the notable point gets annotated on the chart
-itself rather than described in prose.
+Lead with the answer: annotate the one notable point — never a number on every
+point. Label the endpoint or the extreme; ticks and tooltips carry the rest.
+The takeaway belongs in your reply, never a heading or caption inside it.
+
+**Is it a chart?**
+
+- One number → a stat tile. Never a one-bar chart or a two-slice pie.
+- A few headline numbers → a KPI row.
+- A "how is X doing" or period question → a KPI row above one chart, the chart
+  carrying the trend behind the numbers. Tiles alone answer no trend question.
+- More than ~7 classes → a table.
+
+**Chart.js is the default** for any chart with an axis — bar, grouped or
+stacked bar, line, area. It sizes bars, ticks, and labels, holds text at 12px
+at any width where hand-sized SVG text drifts, and gives tooltips free. Pinned
+to `https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js`, any
+other URL blocked, `visual` fence only. Hand-drawn inline SVG is for sparklines,
+meters, and tiny marks with no axis text.
+
+Canvas cannot read `var()`. Read tokens once at the top of the script:
+`getComputedStyle(document.documentElement).getPropertyValue('--chart-1').trim()`.
 
 **Marks**
 
-- Bars: at most 24px thick, rounded at the data end only — the baseline stays
-  square (draw the path, or `rx` on a rect that extends past the axis).
-- Lines: 2px, round joins; no fill underneath unless the area is the point.
-- Gridlines: horizontal hairlines in `--chart-grid` only — no vertical lines,
-  axis box, or plot border.
-- One y-axis, starting at zero. Ticks and axis text in `--chart-label`, 11–12px.
-- Legend: 10px squares at `--radius` beside `--muted-foreground` text; skip it
-  for a single series.
+- Bars: at most 32px thick (`maxBarThickness: 32`), rounded at the data end
+  only — the baseline stays square. Never fill the slot; the band's leftover
+  is air, which `categoryPercentage: 0.7` below already does.
+- Lines: 2px, round joins, straight segments (`tension: 0`); no fill
+  underneath unless the area is the point.
+- Gridlines and axes: solid horizontal hairlines in `--chart-grid` only — no
+  vertical lines, axis box, or plot border. A dashed stroke is reserved for a
+  reference line (average, target), which gets a legend entry.
+- One y-axis, from zero, always labeled — format the ticks with their unit.
+  Ticks and axis text in `--chart-label`, 11–12px; a date axis names the
+  month at least once.
+- Legend: skip it for a single series. For 2+ turn Chart.js's legend off and
+  build one — 10px swatches beside 12px `--muted-foreground` text, cornered at
+  `calc(var(--radius) / 3)`; `--radius` would round a 10px box into a dot.
 - Text never wears the series color.
 
 **Color**
 
 Sequential is the default: one hue in opacity steps via
-`color-mix(in srgb, var(--chart-1) 45%, transparent)`. Categorical
-(`--chart-1` through `--chart-4`, in order) is for genuinely independent
-series, 5 hues maximum; past that use line style, not more color. To emphasize
-one value, keep it at full hue and drop the rest — to a tint of the same hue,
-or to `--chart-5`, the neutral that also draws baselines, targets, and "no
-data". Never pair `--chart-2` with `--chart-3` (red with green) in one chart.
+`color-mix(in srgb, var(--chart-1) 45%, transparent)`. Categorical (`--chart-1`
+through `--chart-4`, in order) is for genuinely independent series, 5 hues
+maximum. A comparison pair — this week against last week, actual against
+baseline — is `--chart-1` versus `--chart-5`, the neutral that also draws
+baselines, targets, and "no data": blue against gray, never blue against blue.
+Emphasis has one form: the emphasized mark in `--chart-1`, everything else in
+`--chart-5` — and the period the question is about (today, yesterday, this
+week) is always the emphasized mark. Never pair `--chart-2` with `--chart-3`.
 
-Before closing an `<svg>`: the bottom-most `y + height` plus descenders
-(~0.25em) clears the viewBox by 8px, nothing exceeds its width, an 8px gutter
-separates marks from labels (rightmost get `text-anchor="end"`), and
-connectors stop at box edges computed against the border, not the center.
-
-Inline SVG is the default: crisp, script-free, and it streams. Chart.js is the
-one allowed external — pinned to
-`https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js`, any other
-URL blocked — for hover tooltips, many series, or scales that are real work by
-hand, and only inside a `visual` fence.
+Closing a hand-drawn `<svg>`: bottom `y + height` plus descenders clears the
+viewBox by 8px, nothing exceeds its width, connectors stop at edges not centers.
 
 ## Fragments
 
@@ -149,45 +170,75 @@ Copy these and change the data. They are the house style.
 
 ### KPI row
 
+Plates on the card, not cards on the card: no border, no `--radius-card`.
 ```
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--gap-sm)">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--pad-md)">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--gap-sm)">
+  <div style="background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md)">
     <div style="font-size:12px;color:var(--muted-foreground)">Revenue</div>
-    <div style="margin-top:2px;font-size:26px;font-weight:500;line-height:1.15;font-variant-numeric:tabular-nums">$102,676</div>
+    <div style="margin-top:2px;font-size:26px;font-weight:500;line-height:1.15">$102.7K</div>
     <span style="display:inline-block;margin-top:var(--gap-xs);padding:1px 8px;border-radius:var(--radius);font-size:12px;background:var(--success-bg);color:var(--success-foreground)">↑ 12.8%</span>
   </div>
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--pad-md)">
-    <div style="font-size:12px;color:var(--muted-foreground)">Churn</div>
-    <div style="margin-top:2px;font-size:26px;font-weight:500;line-height:1.15;font-variant-numeric:tabular-nums">2.4%</div>
-    <span style="display:inline-block;margin-top:var(--gap-xs);padding:1px 8px;border-radius:var(--radius);font-size:12px;background:var(--error-bg);color:var(--error-foreground)">↑ 0.3 pts</span>
+  <div style="background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md)">
+    <div style="font-size:12px;color:var(--muted-foreground)">Returns</div>
+    <div style="margin-top:2px;font-size:26px;font-weight:500;line-height:1.15">184</div>
+    <span style="display:inline-block;margin-top:var(--gap-xs);padding:1px 8px;border-radius:var(--radius);font-size:12px;background:var(--error-bg);color:var(--error-foreground)">↑ 6.2%</span>
+  </div>
+  <div style="background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md)">
+    <div style="font-size:12px;color:var(--muted-foreground)">Today</div>
+    <div style="margin-top:2px;font-size:26px;font-weight:500;line-height:1.15">—</div>
+    <span style="display:inline-block;margin-top:var(--gap-xs);padding:1px 8px;border-radius:var(--radius);font-size:12px;background:var(--warning-bg);color:var(--warning-foreground)">Not synced yet</span>
   </div>
 </div>
 ```
 
 ### Bar chart
 
+Two series, so a hand-built legend; drop it for one. Keep `animation: false`.
+
 ```
-<h2 style="margin:0 0 2px;font-size:15px;font-weight:500">Weekly sales</h2>
-<p style="margin:0 0 var(--gap-sm);color:var(--muted-foreground)">Wednesday carried the week.</p>
-<svg viewBox="0 0 640 232" width="100%" role="img" aria-label="Weekly sales, peaking Wednesday at 128">
-  <line x1="0" y1="184" x2="640" y2="184" stroke="var(--chart-grid)"/>
-  <line x1="0" y1="112" x2="640" y2="112" stroke="var(--chart-grid)"/>
-  <line x1="0" y1="40" x2="640" y2="40" stroke="var(--chart-grid)"/>
-  <path d="M34 104a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v80h-24z" fill="color-mix(in srgb, var(--chart-1) 45%, transparent)"/>
-  <path d="M125 120a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v64h-24z" fill="color-mix(in srgb, var(--chart-1) 45%, transparent)"/>
-  <path d="M217 68a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v116h-24z" fill="var(--chart-1)"/>
-  <path d="M308 100a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v84h-24z" fill="color-mix(in srgb, var(--chart-1) 45%, transparent)"/>
-  <path d="M399 84a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v100h-24z" fill="color-mix(in srgb, var(--chart-1) 45%, transparent)"/>
-  <path d="M491 144a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v40h-24z" fill="color-mix(in srgb, var(--chart-1) 45%, transparent)"/>
-  <path d="M582 148a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v36h-24z" fill="color-mix(in srgb, var(--chart-1) 45%, transparent)"/>
-  <text x="229" y="56" text-anchor="middle" font-size="12" fill="var(--foreground)">128</text>
-  <text x="46" y="204" text-anchor="middle" font-size="12" fill="var(--chart-label)">Mon</text>
-  <text x="137" y="204" text-anchor="middle" font-size="12" fill="var(--chart-label)">Tue</text>
-  <text x="229" y="204" text-anchor="middle" font-size="12" fill="var(--chart-label)">Wed</text>
-  <text x="320" y="204" text-anchor="middle" font-size="12" fill="var(--chart-label)">Thu</text>
-  <text x="411" y="204" text-anchor="middle" font-size="12" fill="var(--chart-label)">Fri</text>
-  <text x="503" y="204" text-anchor="middle" font-size="12" fill="var(--chart-label)">Sat</text>
-  <text x="594" y="204" text-anchor="middle" font-size="12" fill="var(--chart-label)">Sun</text>
+<div style="display:flex;gap:16px;margin-bottom:8px">
+  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-1)"></span>Last week</span>
+  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)"><span style="width:10px;height:10px;border-radius:calc(var(--radius) / 3);background:var(--chart-5)"></span>Prior week</span>
+</div>
+<div style="position:relative;height:260px">
+  <canvas id="wk" role="img" aria-label="Daily revenue, last week ahead of the prior week every day but Tuesday">Last week $6,940, prior week $6,545.</canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<script>
+const css = getComputedStyle(document.documentElement);
+const token = (name) => css.getPropertyValue(name).trim();
+const [c1, c5, grid, label, font] = ['--chart-1', '--chart-5', '--chart-grid', '--chart-label', '--font-sans'].map(token);
+new Chart(document.getElementById('wk'), {
+  type: 'bar',
+  data: {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [
+      { label: 'Last week', data: [1061, 1014, 884, 1015, 866, 938, 1162], backgroundColor: c1, borderRadius: 4, maxBarThickness: 32 },
+      { label: 'Prior week', data: [932, 1162, 858, 983, 741, 732, 1137], backgroundColor: c5, borderRadius: 4, maxBarThickness: 32 }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    plugins: { legend: { display: false }, tooltip: { enabled: true } },
+    datasets: { bar: { categoryPercentage: 0.7, barPercentage: 0.9 } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 } } },
+      y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: label, font: { family: font, size: 12 }, maxTicksLimit: 5, callback: (v) => '$' + v.toLocaleString() } }
+    }
+  }
+});
+</script>
+```
+
+### Sparkline
+
+A shape beside a number: no axes, no text, nothing to fit.
+
+```
+<svg width="100%" height="32" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label="Orders climbing over the last 14 days">
+  <polyline points="0,27 10,24 20,28 30,21 40,23 50,17 60,19 70,13 80,15 90,10 100,12 110,7 120,4" fill="none" stroke="var(--chart-1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
 </svg>
 ```
 
@@ -195,11 +246,11 @@ Copy these and change the data. They are the house style.
 
 ```
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap-sm)">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--pad-md)">
+  <div style="background:var(--surface-secondary);border-radius:var(--radius);padding:var(--pad-md)">
     <div style="font-size:15px;font-weight:500">Starter</div>
     <div style="margin-top:2px;color:var(--muted-foreground)">$0 · 1 seat · community support</div>
   </div>
-  <div style="background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius-card);padding:calc(var(--pad-md) - 1px)">
+  <div style="background:var(--surface-secondary);border:2px solid var(--accent);border-radius:var(--radius);padding:calc(var(--pad-md) - 2px)">
     <div style="display:flex;align-items:center;gap:var(--gap-xs)">
       <span style="font-size:15px;font-weight:500">Team</span>
       <span style="padding:1px 6px;border-radius:var(--radius);font-size:11px;background:var(--accent-bg);color:var(--accent-foreground)">Recommended</span>
@@ -239,6 +290,8 @@ most one node. Past 9 nodes, group into labeled clusters.
 
 ### Table
 
+A table is its own visual; never stack one under a chart of the same numbers.
+
 ```
 <table>
   <caption>Spend by channel, June 2026</caption>
@@ -252,17 +305,15 @@ most one node. Past 9 nodes, group into labeled clusters.
 
 ## Icons
 
-Read [icons.md](icons.md), search `references/icons/manifest.json`, and inline
-the SVG from `assets/icons/` with `currentColor`. A 16–18px leading icon beside
-a title reads as native app chrome; 24px is the hard ceiling, and a spot that
-wants a bigger glyph wants typography instead.
+Read [icons.md](icons.md), search `references/icons/manifest.json`, inline the
+SVG from `assets/icons/` with `currentColor`. 16–18px beside a title reads as
+native chrome; 24px is the ceiling — a bigger glyph wants typography instead.
 
 ## Streaming order
 
 Scripts run only once the markup is complete: static HTML/SVG with inline
-`style="..."` first, then inlined data, then `<script>` last, never
-referencing elements below it. Keep any `<style>` block under ~15 lines, skip
-comments, and in SVG put `<defs>` before the marks.
+`style="..."` first, then inlined data, then `<script>` last, never referencing
+elements below it. Keep `<style>` under ~15 lines; in SVG `<defs>` before marks.
 
 ## Artifact pages
 
@@ -271,10 +322,10 @@ tokens — not the frame's base styles — so they style their own elements:
 
 - The page owns its ground: `--background` on the body, `--surface` panels,
   `--surface-secondary` nested. The only surface where you set a background.
-- Assume it renders offline from a snapshot: `data:` URIs for small images,
-  charts as inline SVG, nothing fetched.
-- Prose column ~48rem; tables and dashboards may go full width. One
-  `<h1>`-level title, then sentence-case section titles at 15–16px weight 500.
+- Renders offline from a snapshot: `data:` URIs for small images, charts as
+  inline SVG, nothing fetched.
+- Prose column ~48rem; tables and dashboards may go full width. One `<h1>`,
+  then sentence-case section titles at 15–16px weight 500.
 - Operational, not editorial: dense sections, hairline dividers, right-aligned
   numbers, mono for timestamps and ids.
 
@@ -302,8 +353,8 @@ tokens — not the frame's base styles — so they style their own elements:
 
 ## Accessibility
 
-- A chart `<svg>` gets `role="img"` and an `aria-label` stating the takeaway,
-  not the chart type. Decorative SVG gets `aria-hidden="true"`, and icon-only
-  controls get an `aria-label`.
-- Status is never color alone — pair the tint with a label, glyph, or value,
-  and use the paired `-foreground` token on every tint.
+- A chart's `<svg>` or `<canvas>` gets `role="img"` and an `aria-label` stating
+  the takeaway, not the type, and a `<canvas>` keeps the numbers as its
+  fallback text. Decorative SVG is `aria-hidden`, icon-only controls labeled.
+- Status is never color alone: a tint takes its paired `-foreground` and a
+  label.

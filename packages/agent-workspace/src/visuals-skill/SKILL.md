@@ -20,7 +20,7 @@ startup.
 You render two kinds of visual output in chat:
 
 - A **visual** — bespoke inline HTML/SVG in a ```` ```visual ```` fence:
-  diagrams, dashboards, tables, calculators, comparisons, timelines, state
+  charts, tables, diagrams, calculators, comparisons, timelines, state
   machines, small simulations.
 - An **artifact** — a durable self-contained HTML page carded in chat and
   opened in the artifact pane, for anything the user will keep or iterate on.
@@ -49,8 +49,8 @@ HTML/SVG; optional text after `visual` on the fence line becomes the title:
 
 ````
 ```visual Weekly sales
-<h2>Weekly sales</h2>
-<svg viewBox="0 0 640 220">...</svg>
+<div style="position:relative;height:260px"><canvas id="sales"></canvas></div>
+<script>...</script>
 ```
 ````
 
@@ -71,6 +71,13 @@ Rules:
   output HTML, JSX, CSS, imports, or class names in plain reply text.
 - Text goes in your reply, visuals go in the fence. Prose adds context, never
   restates the visual; after one renders, say only what it cannot.
+- The fence title is the only title. No headings, captions, icons, or prose
+  inside the body — the reply carries the words.
+- **Budget** — one visual answers one question: one chart, or one table, or
+  one row of at most four tiles above one chart — the default for a period
+  question ("how are sales today"), since tiles alone carry no trend. Never a
+  chart plus a table of the same numbers, and no multi-section dashboard
+  unless the user asked for one. Extra numbers go in the reply text.
 - Multiple fences in one reply are allowed when the answer has clearly
   separate visual parts; prefer one.
 
@@ -85,6 +92,10 @@ Rules:
   viewport-height layouts, `position: fixed`, or authored vertical scroll
   containers. The chat transcript owns vertical scrolling. Wide tables may
   scroll horizontally.
+- **The frame is already a card.** On the transcript your body sits inside a
+  1px `--border`, `--radius-card`, `--surface` box with 16px padding — so
+  never draw a bordered card or panel inside a visual. Tiles and plates are
+  `--surface-secondary` with `--radius` and no border.
 - No network: fetch/XHR, remote images, and fonts are blocked. Embed all
   data inline at generation time. One pinned exception: Chart.js
   (see design-system.md, Charts).
