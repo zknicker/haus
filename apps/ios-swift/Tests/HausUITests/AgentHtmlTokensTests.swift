@@ -81,12 +81,63 @@ import Testing
             scheme: .light,
             typography: .web
         )
-        #expect(document.contains("default-src 'none'"))
-        #expect(document.contains("https://cdn.jsdelivr.net/npm/chart.js@4.5.1/"))
         #expect(document.contains("color-scheme: light"))
         #expect(document.contains("--chart-1:"))
         #expect(document.contains("hausVisualSize"))
         // The model body parses last, so a partial one still renders.
         #expect(document.range(of: "<p>hi</p>")!.lowerBound > document.range(of: "</head>")!.lowerBound)
+    }
+
+    /// The exact policy, character for character, kept in step with the web
+    /// card's `visual-card.test.tsx`: every external source is one pinned file.
+    @Test func documentCarriesTheExactPinnedPolicy() {
+        let expected = [
+            "default-src 'none'",
+            "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/"
+                + " https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+                + " https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js",
+            "style-src 'unsafe-inline'",
+            "img-src data: blob:",
+            "font-src data:",
+            "connect-src https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json"
+                + " https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json",
+            "form-action 'none'",
+            "base-uri 'none'",
+        ].joined(separator: "; ")
+
+        #expect(sandboxCsp() == expected)
+    }
+
+    @Test func sandboxPolicyNamesNoOtherOriginAndNoWildcard() {
+        let csp = sandboxCsp()
+        let origins = csp.split(separator: " ")
+            .filter { $0.hasPrefix("https://") || $0.hasPrefix("http://") }
+            .map { $0.replacingOccurrences(of: ";", with: "") }
+
+        #expect(origins == [
+            "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/",
+            VisualSandboxDocument.d3URL,
+            VisualSandboxDocument.topojsonClientURL,
+            VisualSandboxDocument.usAtlasStatesURL,
+            VisualSandboxDocument.worldAtlasCountriesURL,
+        ])
+        #expect(!csp.contains("*"))
+        #expect(!csp.contains("unsafe-eval"))
+    }
+
+    /// The policy the sandbox document actually carries, read off its meta tag.
+    private func sandboxCsp() -> String {
+        let document = VisualSandboxDocument.make(
+            html: "<p>hi</p>",
+            scheme: .light,
+            typography: .web
+        )
+        let opening = "<meta http-equiv=\"Content-Security-Policy\" content=\""
+        guard let start = document.range(of: opening),
+              let end = document.range(of: "\">", range: start.upperBound..<document.endIndex)
+        else {
+            return ""
+        }
+        return String(document[start.upperBound..<end.lowerBound])
     }
 }

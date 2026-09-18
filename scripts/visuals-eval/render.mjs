@@ -70,7 +70,12 @@ export const createVisualRenderer = async ({ width = 736 } = {}) => {
 
     return {
         close: () => browser.close(),
-        render: async ({ html, outDir, slug }) => {
+        // `ready: 'network'` is the opt-in for a visual that fetches its own
+        // data — a choropleth pulling pinned map topology, say. Its first size
+        // report lands before the fetch does, so the capture waits for the
+        // network to go quiet and lets the ResizeObserver's second report
+        // resize the frame. Everything else keeps the plain paint wait.
+        render: async ({ html, outDir, ready = 'paint', slug }) => {
             const errors = [];
             const files = {};
             const heights = {};
@@ -91,6 +96,9 @@ export const createVisualRenderer = async ({ width = 736 } = {}) => {
                         timeout: 15_000,
                     })
                     .catch(() => null);
+                if (ready === 'network') {
+                    await page.waitForLoadState('networkidle').catch(() => null);
+                }
                 // Chart.js paints on its own frame after the size report.
                 await page.waitForTimeout(500);
                 const file = `${slug}-${scheme}.png`;

@@ -11,14 +11,26 @@ import Foundation
 /// Treat the body as attacker-controlled. Containment is the load, not the
 /// markup: `WKWebView.loadHTMLString(_, baseURL: nil)` gives the document an
 /// opaque origin — the native answer to the web's sandboxed iframe — the data
-/// store is non-persistent, and the CSP below pins the only reachable external
-/// source to the Chart.js CDN entry.
+/// store is non-persistent, and the CSP below pins every reachable external
+/// source to an exact CDN file.
 public enum VisualSandboxDocument {
-    /// The one allowed external script, pinned by version. Bumping the pin is a
-    /// deliberate supply-chain decision shared with the web card and the seeded
-    /// skill guidance (docs/internals/widgets.md).
+    /// The allowed external scripts, pinned by version. Bumping a pin — or
+    /// adding one — is a deliberate supply-chain decision shared with the web
+    /// card and the seeded skill guidance (docs/internals/widgets.md).
     public static let chartJsURL =
         "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+    public static let d3URL = "https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+    public static let topojsonClientURL =
+        "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"
+
+    /// The allowed `fetch` targets: map topology, pinned to the exact atlas
+    /// file. A choropleth needs real geometry, and these are the only two
+    /// responses the frame may read — `connect-src` is otherwise the
+    /// exfiltration channel, so it lists files, never an origin.
+    public static let usAtlasStatesURL =
+        "https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json"
+    public static let worldAtlasCountriesURL =
+        "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json"
 
     /// The WebKit handler the frame posts its measured height to, beside the
     /// web's `postMessage` channel.
@@ -60,13 +72,16 @@ public enum VisualSandboxDocument {
             .joined(separator: "\n")
     }
 
+    // Chart.js keeps its versioned-directory prefix; the map libraries are
+    // narrowed all the way to the file.
     private static let csp = [
         "default-src 'none'",
-        "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/",
+        "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/"
+            + " \(d3URL) \(topojsonClientURL)",
         "style-src 'unsafe-inline'",
         "img-src data: blob:",
         "font-src data:",
-        "connect-src 'none'",
+        "connect-src \(usAtlasStatesURL) \(worldAtlasCountriesURL)",
         "form-action 'none'",
         "base-uri 'none'",
     ].joined(separator: "; ")
