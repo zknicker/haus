@@ -53,6 +53,29 @@ export function ChatMarkdownText({
             );
         }
 
+        // A table has no inline-animated form: the streaming renderer paints
+        // spans of text, and a row of cells is not text. Rendering it through
+        // the settled path means the DOM a row arrives in is the DOM it keeps,
+        // so the message never reflows when the animation window closes. The
+        // block margins are part of that: streaming prose runs at `my-0` and
+        // the scroller's own margin is scoped to the settled block layout, so
+        // without them the table would sit flush against the text until settle
+        // and then push it 12px apart.
+        if (block.kind === 'table') {
+            return (
+                <ReferenceMarkdown
+                    chatId={chatId}
+                    className="chat-markdown my-3 text-base first:mt-0 last:mb-0"
+                    content={block.text}
+                    key={`table:${block.start}`}
+                    mentions={sliceMentions(mentions, block.start, block.start + block.text.length)}
+                    onReferenceActivate={onReferenceActivate}
+                    previewReferences
+                    serverId={serverId}
+                />
+            );
+        }
+
         if (block.text.trim().length === 0) {
             return null;
         }

@@ -93,8 +93,10 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
         // `--accent`, so the frame's emphasis role is what they inherit.
         'body { accent-color: var(--accent, currentColor); }',
         'body { margin: 0; padding: 8px 0; background: transparent; color: var(--foreground, inherit); font-family: var(--font-sans, system-ui, sans-serif); font-size: var(--app-ui-font-size, 14px); line-height: 1.5; -webkit-font-smoothing: antialiased; }',
-        // Plain <table> markup wears the app's ui/table.tsx look, so agents
-        // render tabular data as bare HTML tables and get native theming.
+        // Plain <table> markup wears the same look a Markdown table gets in
+        // the reply around it (`.chat-markdown table` in default-theme.css),
+        // so the interactive or bounded-record table a visual is for and the
+        // detail table in the reply read as one message.
         'table { width: 100%; border-collapse: collapse; caption-side: bottom; font-size: var(--app-ui-font-size, 14px); }',
         'th { padding: 8px 12px; text-align: left; vertical-align: middle; font-weight: 500; color: var(--foreground); line-height: 1.1; }',
         'td { padding: 8px 12px; vertical-align: middle; color: var(--muted-foreground); line-height: 1.2; }',

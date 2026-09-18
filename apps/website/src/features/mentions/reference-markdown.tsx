@@ -53,6 +53,17 @@ export const ReferenceMarkdown = React.memo(
                             {children}
                         </ReferenceLink>
                     ),
+                    // A wide table overflows the prose measure and would
+                    // otherwise widen the whole transcript column. The visual
+                    // frame solves this by wrapping tables in a scroller
+                    // (`wrapWideTables` in visual-card.tsx); a Markdown table
+                    // in the reply gets the same treatment, so both halves of
+                    // a message handle width the same way.
+                    table: ({ children }) => (
+                        <div className="chat-markdown-table max-w-full overflow-x-auto">
+                            <table>{children}</table>
+                        </div>
+                    ),
                 }}
             >
                 {prepared.content}

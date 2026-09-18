@@ -506,8 +506,79 @@
     }
 
     /* Remove when HeroUI scopes its last-child reset to the final Markdown block. */
-    .chat-markdown > .markdown__block:not(:last-child) > :is(p, ul, ol):last-child {
+    .chat-markdown
+        > .markdown__block:not(:last-child)
+        > :is(p, ul, ol, .chat-markdown-table):last-child {
         margin-bottom: calc(var(--spacing, 0.25rem) * 3);
+    }
+
+    /*
+     * A reply carries its tabular detail as a Markdown table, often right
+     * beside a visual. HeroUI's stock Markdown table draws a full 1px cell
+     * grid and fills `th` with `--surface-secondary`, which reads as a second
+     * product next to the frame. These rules give the reply the frame's table
+     * exactly (visual-card.tsx): hairline row rules instead of a grid, an
+     * unfilled header, muted cells, a hover tint. Same layer as HeroUI's own
+     * component rules and imported after them, so equal specificity wins on
+     * source order.
+     *
+     * Block spacing moves to the scroller `reference-markdown.tsx` wraps every
+     * table in, so a table has one source of margin rather than two.
+     */
+    .chat-markdown table {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: collapse;
+    }
+
+    .chat-markdown .chat-markdown-table {
+        margin-bottom: calc(var(--spacing, 0.25rem) * 3);
+    }
+
+    .chat-markdown .chat-markdown-table:last-child {
+        margin-bottom: 0;
+    }
+
+    .chat-markdown :is(th, td) {
+        padding: calc(var(--spacing, 0.25rem) * 2) calc(var(--spacing, 0.25rem) * 3);
+        border: none;
+        text-align: start;
+        vertical-align: middle;
+    }
+
+    .chat-markdown th {
+        background-color: transparent;
+        color: var(--foreground);
+        font-weight: 500;
+    }
+
+    .chat-markdown td {
+        color: var(--muted-foreground);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .chat-markdown tr {
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    }
+
+    .chat-markdown tbody tr:hover {
+        background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
+    }
+
+    /*
+     * GFM alignment (`---:`, `:---:`) reaches the DOM as inline `text-align`
+     * today, which outranks the `text-align: start` above on its own. Older
+     * mdast-util-to-hast emits an `align` attribute instead, and that is a
+     * presentational hint every author rule outranks — which would silently
+     * flatten every right-aligned number column back to start. These two rules
+     * cost nothing and keep the numbers aligned either way.
+     */
+    .chat-markdown :is(th, td)[align='right'] {
+        text-align: right;
+    }
+
+    .chat-markdown :is(th, td)[align='center'] {
+        text-align: center;
     }
 
     .markdown__inline-code {
