@@ -217,6 +217,29 @@ struct RichMessageMarkdownTests {
 
     // MARK: - Drawing
 
+    /// A code span's plate belongs to the layout manager. `.backgroundColor`
+    /// fills the whole line fragment for a run that wraps, which painted a grey
+    /// bar from the span's last word out to the right margin — so the span is
+    /// marked for `RichReferenceLayoutManager` and carries no background of its
+    /// own.
+    @Test func marksACodeSpanForTheLayoutManagerRatherThanFillingItsLine() {
+        let body = RichMessageAttributedText.make(
+            segments: [.text("run "), .text("haus agents logs", style: .code)],
+            font: .systemFont(ofSize: 17),
+            metrics: RichReferenceMetricsFixture.sanFrancisco(pointSize: 17)
+        )
+        let whole = NSRange(location: 0, length: body.length)
+
+        var marked = NSRange(location: 0, length: 0)
+        #expect(body.attribute(.hausCodeSpan, at: 4, longestEffectiveRange: &marked, in: whole) != nil)
+        #expect(marked == NSRange(location: 4, length: "haus agents logs".count))
+        #expect(body.attribute(.hausCodeSpan, at: 0, effectiveRange: nil) == nil)
+
+        body.enumerateAttribute(.backgroundColor, in: whole) { value, _, _ in
+            #expect(value == nil)
+        }
+    }
+
     /// A body that uses every block kind has to draw as more than a paragraph.
     /// The measurement is the point: a `Grid` that resolved to no columns, or a
     /// horizontal scroll view that reported no height, would still type-check.

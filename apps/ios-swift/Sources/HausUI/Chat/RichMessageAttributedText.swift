@@ -11,6 +11,10 @@ import AppKit
 extension NSAttributedString.Key {
     /// Carries the `RichReferenceRun` a capsule is drawn behind.
     static let hausReference = NSAttributedString.Key("hausReference")
+    /// Marks a code span. Its plate is drawn by the layout manager rather than
+    /// by `.backgroundColor`, so it hugs the span's glyphs instead of filling
+    /// the line fragment a wrapped span leaves behind.
+    static let hausCodeSpan = NSAttributedString.Key("hausCodeSpan")
 }
 
 /// One mention as the text engine sees it: the identity the mark is drawn from
@@ -138,7 +142,7 @@ enum RichMessageAttributedText {
             attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
         }
         if style.contains(.code) {
-            attributes[.backgroundColor] = RichReferenceChipInk.codeGround
+            attributes[.hausCodeSpan] = true
         }
         return NSAttributedString(string: run, attributes: attributes)
     }

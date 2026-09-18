@@ -91,13 +91,21 @@ enum RichMessageInlineText {
         style: RichInlineStyle,
         appearance: RichMessageTextAppearance
     ) -> Font {
-        var font = Font.system(
-            textStyle,
-            design: style.contains(.code) ? .monospaced : .default,
-            weight: style.contains(.bold)
-                ? .semibold
-                : appearance.weight.map { Font.Weight($0) } ?? .regular
-        )
+        let design: Font.Design = style.contains(.code) ? .monospaced : .default
+        let weight: Font.Weight = style.contains(.bold)
+            ? .semibold
+            : appearance.weight.map { Font.Weight($0) } ?? .regular
+        // A heading's step above the body is a factor, not another text style,
+        // so its size has to be resolved and multiplied rather than named.
+        var font = appearance.scale == 1
+            ? Font.system(textStyle, design: design, weight: weight)
+            : Font.system(
+                size: (PlatformTextMetrics
+                    .font(for: textStyle, dynamicTypeSize: .large)
+                    .pointSize * appearance.scale).rounded(),
+                weight: weight,
+                design: design
+            )
         if style.contains(.italic) { font = font.italic() }
         return font
     }
