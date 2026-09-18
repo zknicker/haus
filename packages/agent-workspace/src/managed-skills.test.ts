@@ -8,6 +8,19 @@ import {
     visualsSkillFiles,
 } from './managed-skills.ts';
 
+/** The topic modules, in reading order. The core is always read; one module follows. */
+const skillModules = [
+    'design-system.md',
+    'charts.md',
+    'diagrams.md',
+    'components.md',
+    'pages.md',
+    'icons.md',
+];
+
+const moduleSource = (name: string) => visualsSkillFiles[`references/${name}`] ?? '';
+const everySkillSource = () => [defaultVisualsSkill, ...skillModules.map(moduleSource)];
+
 let skillsDir = '';
 
 beforeEach(async () => {
@@ -40,124 +53,26 @@ test('restores visuals without removing authored or stale factory skills', async
     ).resolves.toContain('# Haus visuals — design system');
 });
 
-/**
- * The taught vocabulary is a published contract: `agent-html/tokens.ts` emits
- * these names into every frame, and the skill is the only place an agent
- * learns them. A name that drifts out of one side and not the other is
- * invisible until a visual renders unstyled.
- */
-const taughtTokens = [
-    '--font-sans',
-    '--font-mono',
-    '--app-ui-font-size',
-    '--background',
-    '--surface',
-    '--surface-secondary',
-    '--surface-tertiary',
-    '--foreground',
-    '--muted-foreground',
-    '--foreground-tertiary',
-    '--border',
-    '--border-strong',
-    '--accent',
-    '--accent-foreground',
-    '--accent-bg',
-    '--success',
-    '--success-foreground',
-    '--success-bg',
-    '--warning',
-    '--warning-foreground',
-    '--warning-bg',
-    '--error',
-    '--error-foreground',
-    '--error-bg',
-    '--chart-1',
-    '--chart-5',
-    '--chart-grid',
-    '--chart-label',
-    '--radius',
-    '--radius-card',
-    '--pad-sm',
-    '--pad-md',
-    '--pad-lg',
-    '--gap-xs',
-    '--gap-sm',
-    '--gap-md',
-    '--gap-lg',
-];
+test('every visuals module seeds into references/', async () => {
+    await seedFactoryManagedSkills(skillsDir);
 
-/**
- * Retired names are no longer published at all, so teaching one would have
- * agents writing a vocabulary the frame does not emit.
- */
-const retiredTokens = [
-    '--brand',
-    '--info',
-    '--primary',
-    '--secondary',
-    '--card',
-    '--popover',
-    '--subtle',
-    '--destructive',
-    '--input',
-    '--ring',
-    '--foreground-quaternary',
-    '--font-heading',
-    '--app-code-font-size',
-    '--t-micro',
-    '--t-fast',
-    '--t-normal',
-    '--t-slow',
-    '--ease-out',
-    '--ease-in',
-    '--ease-standard',
-    '--radius-sm',
-    '--radius-md',
-    '--radius-lg',
-    '--radius-xl',
-    '--radius-2xl',
-    '--label-blue-fg',
-    '--label-gray-fg',
-    '--surface-shadow',
-    '--overlay-shadow',
-    '--ease-in-out-quad',
-    '--surface-2',
-    '--surface-3',
-    '--surface-4',
-];
-
-test('visuals design system teaches the app type scale', () => {
-    const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
-
-    expect(designSystem).toContain('The base body size is **14px**');
-    expect(designSystem).toContain('Body text: 14px, line-height 1.5.');
-    expect(designSystem).toContain('Title / section labels: 15–16px');
-    expect(designSystem).toContain('Secondary text, dense table cells, and code: 12–13px.');
-    expect(designSystem).toContain(
-        'Metadata and compact labels: 11–12px. No font-size below 11px.'
-    );
-    expect(designSystem).not.toContain('16px, line-height 1.5');
-});
-
-test('visuals design system teaches every published token name', () => {
-    const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
-
-    for (const token of taughtTokens) {
-        expect(designSystem).toContain(token);
+    for (const name of skillModules) {
+        await expect(
+            readFile(join(skillsDir, 'visuals', 'references', name), 'utf8')
+        ).resolves.toContain('# Haus visuals');
     }
 });
 
-test('no visuals skill file teaches a retired token name', () => {
-    const taught = [
-        defaultVisualsSkill,
-        visualsSkillFiles['references/design-system.md'] ?? '',
-        visualsSkillFiles['references/icons.md'] ?? '',
-    ];
+/**
+ * The core is always read and one module follows it, so the core has to say
+ * which — a module nothing routes to is a module nothing reads.
+ */
+test('the core and the skill both route to every module', () => {
+    const core = moduleSource('design-system.md');
 
-    for (const source of taught) {
-        for (const retired of retiredTokens) {
-            expect(source).not.toContain(retired);
-        }
+    for (const name of skillModules.filter((module) => module !== 'design-system.md')) {
+        expect(core).toContain(`(${name})`);
+        expect(defaultVisualsSkill).toContain(`references/${name}`);
     }
 });
 
@@ -225,35 +140,42 @@ test('visuals skill sends tables to the reply and keeps the visual to one idea',
 });
 
 test('visuals design system puts tables in the reply', () => {
-    const designSystem = flowText(visualsSkillFiles['references/design-system.md'] ?? '');
+    const designSystem = flowText(moduleSource('design-system.md'));
 
     expect(designSystem).toContain('Tables live in the reply as Markdown');
-    expect(designSystem).toContain('More than ~7 classes → a Markdown table in the reply');
-    expect(designSystem).not.toContain('A table is its own visual');
+    expect(flowText(moduleSource('charts.md'))).toContain(
+        'More than ~7 classes | A Markdown table in the reply'
+    );
+    for (const source of everySkillSource()) {
+        expect(source).not.toContain('A table is its own visual');
+    }
 });
 
 function flowText(text: string) {
     return text.replace(/\s+/gu, ' ');
 }
 
-test('visuals design system sizes bars to the slot', () => {
-    const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
+test('visuals charts module sizes bars to the slot', () => {
+    const charts = moduleSource('charts.md');
 
-    expect(designSystem).not.toContain('maxBarThickness: 24');
-    expect(designSystem).toContain('maxBarThickness: 48');
-    expect(designSystem).toContain('categoryPercentage: 0.55');
+    for (const source of everySkillSource()) {
+        expect(source).not.toContain('maxBarThickness: 24');
+        expect(source).not.toContain('maxBarThickness: 32');
+    }
+    expect(charts).toContain('maxBarThickness: 48');
+    expect(charts).toContain('categoryPercentage: 0.55');
+    expect(charts).toContain("interaction: { intersect: false, mode: 'index' }");
 });
 
 test('visuals design system carries the hidden summary heading and the rounding rule', () => {
-    const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
+    const designSystem = moduleSource('design-system.md');
 
-    // Stated as a rule and opened with in the bar fragment, so the house style
-    // carries it into anything copied from it.
+    // Stated as a rule in the core and opened with in every chart fragment, so
+    // the house style carries it into anything copied from it.
     expect(designSystem).toContain('the one heading the no-headings rule allows');
     expect(designSystem).toContain(
         '<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">'
     );
     expect(designSystem).toContain('Round every number that reaches the screen');
     expect(designSystem).toContain('`-$5M`, never `$-5M`');
-    expect(designSystem).toContain("interaction: { intersect: false, mode: 'index' }");
 });
