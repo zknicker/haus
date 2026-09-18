@@ -447,6 +447,39 @@ The battery chat is intentionally left unarchived for transcript
 inspection. Rerun the loop after skill-text, token, or executor-model
 changes (PRD-86, ADR 0012).
 
+## Visuals Eval
+
+`bun run eval:visuals --model <runtime>/<model> [--reasoning <effort>]` is the
+design battery's offline sibling, for iterating on the visuals skill without a
+stack. It needs no dev server, no website, and no MCP: the prompts in
+`scripts/visuals-eval/prompts.mjs` carry a fixed MerchBase sales payload
+(`scripts/visuals-eval/fixtures/merchbase-sales.json`) inline, so the only
+variables are the seeded skill text and the model.
+
+Each prompt is one turn on the same harness agent the Computer executor builds
+(the default `--runner harness` lane) — same harness package, the same
+`seedFactoryManagedSkills` visuals skill, the same auth-profile symlinks —
+with instructions reduced to the product's
+`## Visuals` pointer plus an Outputs rule that puts the fence in the reply body
+(`scripts/visuals-eval/instructions.mjs`; `instructions.test.ts` pins the
+pointer against `renderAgentInstructions` so it cannot drift). The runner
+extracts the ```visual fence, renders it through the real
+`buildVisualSrcDoc` frame inside a mirror of the chat card shell, and
+screenshots dark and light with Playwright.
+
+Per run it writes `<slug>-{dark,light}.png`, `<slug>.reply.md`,
+`<slug>.visual.html`, `<slug>.trace.jsonl` (every tool call, so you can see
+whether the model read `references/design-system.md`), `usage.json`, and
+`contact-sheet.html` under `scripts/visuals-eval/output/` (gitignored).
+`--only <slug>` runs a subset, `--width` sets the card width (default 820),
+and `--out-dir` redirects the run. `--runner direct` swaps the pinned bridge
+for the `claude` or `codex` CLI installed on this machine, for model ids the
+bridge rejects; it keeps the same temp agent root, skills, instructions and
+prompt, so only the executable differs. `--skill-dir <dir>` overrides the
+seeded `SKILL.md`, `design-system.md`, or `icons.md` from a variant on disk,
+which is how one revision of the skill text is measured against another.
+The verdict is human, same as the design battery.
+
 ## Keeping Suites Current
 
 * Add tests with the feature or bug fix, not in a later cleanup.
