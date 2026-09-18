@@ -32,7 +32,7 @@ export const resolveRunConfig = () => {
         runnerId === 'harness' || directRuntimeIds.includes(runtimeId),
         `--runner direct drives ${directRuntimeIds.join(' and ')} only; received ${runtimeId}`
     );
-    const width = Number(flagValue('--width') ?? 820);
+    const width = Number(flagValue('--width') ?? 736);
     assert(Number.isFinite(width) && width > 0, '--width expects a positive number');
     const skillDirFlag = flagValue('--skill-dir');
     const onlyFilter = flagValue('--only');

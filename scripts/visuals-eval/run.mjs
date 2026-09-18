@@ -13,7 +13,7 @@
 // this machine, for model ids a pinned bridge rejects.
 //
 // Usage: bun run eval:visuals --model <runtime>/<model> [--reasoning <effort>]
-//        [--runner harness|direct] [--only <slug>] [--width 820]
+//        [--runner harness|direct] [--only <slug>] [--width 736]
 //        [--skill-dir <dir>] [--out-dir <dir>]
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

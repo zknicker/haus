@@ -50,7 +50,7 @@ export const buildVisualDocument = ({ html, scheme }) => {
     return buildVisualSrcDoc(html, tokensCssFor(scheme));
 };
 
-export const createVisualRenderer = async ({ width = 820 } = {}) => {
+export const createVisualRenderer = async ({ width = 736 } = {}) => {
     const browser = await chromium.launch();
     const page = await browser.newPage({
         deviceScaleFactor: 2,
@@ -88,18 +88,17 @@ export const createVisualRenderer = async ({ width = 820 } = {}) => {
     };
 };
 
-// Mirrors VisualCard's shell (visual-card.tsx) and `.card-shell` in
-// default-theme.css: hairline border, surface fill, the card radius tier.
-// Exported so other hosts (the visuals lab) draw the same shell instead of
-// guessing at it.
+// Mirrors VisualCard (visual-card.tsx): no shell at all — a plain block at
+// the reply column's width, a transparent iframe, the app background showing
+// through. Exported so other hosts (the visuals lab) draw the same frame
+// instead of guessing at it.
 export function hostPage({ scheme, tokensCss, width }) {
     return `<!doctype html><html><head><meta charset="utf-8"><style>
 :root { color-scheme: ${scheme};
 ${tokensCss}
 }
 body { margin: 0; padding: 48px; background: var(--background); }
-#shell { width: ${width}px; overflow: hidden; border: 1px solid var(--border);
-  background: var(--surface); border-radius: var(--radius-card); }
+#shell { width: ${width}px; }
 #frame { display: block; width: 100%; border: 0; background: transparent; }
 </style></head><body>
 <div id="shell"><iframe id="frame" sandbox="${agentHtmlSandbox}" style="height: ${visualHeights.fallback}px"></iframe></div>
