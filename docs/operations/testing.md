@@ -475,10 +475,34 @@ whether the model read `references/design-system.md`), `usage.json`, and
 and `--out-dir` redirects the run. `--runner direct` swaps the pinned bridge
 for the `claude` or `codex` CLI installed on this machine, for model ids the
 bridge rejects; it keeps the same temp agent root, skills, instructions and
-prompt, so only the executable differs. `--skill-dir <dir>` overrides the
-seeded `SKILL.md`, `design-system.md`, or `icons.md` from a variant on disk,
+prompt, so only the executable differs. `--skill-dir <dir>` overrides any of the
+seeded markdown from a variant on disk — `SKILL.md`, a module such as
+`design-system.md` or `charts.md`, or a `fragments/` directory of its own —
 which is how one revision of the skill text is measured against another.
 The verdict is human, same as the design battery.
+
+## Fragment Render
+
+`bun run eval:fragments` renders the visuals skill's own copy-ready fragments,
+the other half of the same problem: a model copies a fragment far more
+faithfully than it follows a rule, so a fragment that renders wrong ships that
+defect through every model at once. It reads every file under the skill's
+`fragments/` directory (`scripts/visuals-eval/skill-fragments.mjs`), renders each
+through the same `createVisualRenderer` frame at 736px in dark and light, and
+writes the PNGs plus an `index.html` contact sheet under
+`scripts/visuals-eval/output/fragments/<stamp>/` (gitignored).
+
+Unlike the two batteries it is not purely a dev tool: it exits non-zero when a
+fragment logs a console error or reports a height under 60px, so a fragment
+whose script throws cannot sit in the skill unnoticed. It needs a browser and
+the network — Chart.js and the map atlases are fetched, as they are in the
+product — so it stays out of `check:fast`. Run it after editing any fragment,
+and read the contact sheet: "it rendered" is not "it looks right".
+
+The static half does run in `check:fast`:
+`packages/agent-workspace/src/visuals-fragments.test.ts` lints the same fences
+for published token names, hardcoded colors, stray headings, bordered plates,
+canvas accessibility, and the Chart.js floor.
 
 ## Keeping Suites Current
 

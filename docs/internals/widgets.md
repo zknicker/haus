@@ -138,17 +138,46 @@ registration), with optional info-string text as the title:
   embedded data.
 - **Taste layer.** One seeded `visuals` skill owns everything the agent
   renders — when to render, the visual and artifact fence contracts, and the
-  full design system (`references/design-system.md`, `references/icons.md`,
-  curated icon assets), written against the published token names in
-  `artifact-tokens.css`; DESIGN.md carries the app-side reference. The
-  managed prompt keeps a three-line pointer: the surfaces exist and the
-  skill is a mandatory read before emitting any fence (ADR 0012). The design
-  system's first rule follows the frame: the conversation is the container, so
-  a bordered `--surface` card is drawn only for a bounded object, never as a
-  wrapper. Skill
-  sources are markdown files under
-  `packages/agent-workspace/src/visuals-skill/`; quality is tuned with the
-  design battery (`bun run eval:design`, `scripts/design-battery/RUBRIC.md`).
+  design system and the curated icon assets, written against the published
+  token names in `artifact-tokens.css`; DESIGN.md carries the app-side
+  reference. The managed prompt keeps a three-line pointer: the surfaces exist
+  and the skill is a mandatory read before emitting any fence (ADR 0012). The
+  design system's first rule follows the frame: the conversation is the
+  container, so a bordered `--surface` card is drawn only for a bounded object,
+  never as a wrapper. Skill sources are markdown files under
+  `packages/agent-workspace/src/visuals-skill/`.
+- **Three reads, not one file.** `references/design-system.md` is the core every
+  render reads — philosophy, tokens, layout, typography, streaming,
+  accessibility — ending in a routing table to the ONE module for what is being
+  made: `charts.md`, `diagrams.md`, `components.md`, `pages.md`, or `icons.md`.
+  A module carries rules and an index, and the index points at the ONE file
+  under `references/fragments/` to copy. So a chart turn reads the core, one
+  module, and one fragment — SKILL.md at 145 lines, the core at 164, charts.md
+  at 228, a fragment at 30 to 90 — instead of one file carrying every fence the
+  skill ships.
+- **Fragments.** One copy-ready `visual` fence body per file, with a few lines
+  above it on when to use it and what to change. They carry more of the house
+  style than the prose does: a model copies a fragment far more faithfully than
+  it follows a rule, so every form the product expects to be asked for has one —
+  the chart family from emphasis bar through choropleth, the diagram family, the
+  component family. `bun run eval:fragments` renders every one of them through
+  the real frame in both schemes, writes a contact sheet under
+  `scripts/visuals-eval/output/fragments/`, and fails on a console error or a
+  collapsed height. `packages/agent-workspace/src/visuals-fragments.test.ts`
+  lints the same fences statically: published tokens only, no hardcoded colors,
+  no visible heading but the hidden summary, a bordered box only as a record
+  card, and every Chart.js fence holding animation off, its own legend off, and
+  formatted ticks and tooltips. `managed-skills.test.ts` pins the other
+  direction — every fragment file seeds, and every fragment is reachable from a
+  module index. Quality is tuned with the visuals battery (`bun run
+  eval:visuals`) and the design battery (`bun run eval:design`,
+  `scripts/design-battery/RUBRIC.md`).
+- **Series color.** Categorical order is `--chart-1` blue, `--chart-4` violet,
+  `--chart-3` green, `--chart-2` red last, with `--chart-5` zinc as the neutral.
+  Red enters last because red reads as a verdict; the parts of one whole — a
+  stacked share, a donut — are one hue in sequential steps rather than
+  categorical hues at all. The tokens themselves pass a colour-vision check;
+  the ordering rule is about meaning, not contrast.
 - **iOS.** The Haus App on iPhone renders the same fences inline, through a
   Swift port of the same grammar and the same sandbox document — same CSP,
   same base styles, same size reporter, and same natural-height policy — with
