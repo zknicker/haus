@@ -20,6 +20,13 @@ const asks = {
         'Hey @Juniper this is our new home for ops. I just gave you an MCP to take a look at sales, want to test it out? How are sales today?',
     'week-over-week':
         "can u display last week's US sales as a bar chart vs the prior week? then give me the numbers",
+    'top-products':
+        'which designs actually earned me anything this past week? show me the top ones',
+    'marketplace-share':
+        'how much of the last 30 days came from each marketplace — US vs UK vs Germany?',
+    'weekday-pattern':
+        'is there a day of the week that reliably sells better? show me the last month week by week',
+    'marketplace-map': 'show me where in the world these sold over the last 30 days',
 };
 
 /** `ask` is the human line alone; `prompt` is that line plus the data block. */

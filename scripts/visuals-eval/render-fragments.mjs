@@ -43,7 +43,7 @@ try {
         results.push({ ...fragment, errors: [...errors, ...short], files, heights });
         const flag = errors.length + short.length > 0 ? '✗' : '·';
         process.stdout.write(
-            `${flag} ${fragment.module} — ${fragment.name} (${Object.values(heights)
+            `${flag} ${fragment.slug} — ${fragment.name} (${Object.values(heights)
                 .map((height) => Math.round(height))
                 .join('/')}px)\n`
         );
@@ -70,11 +70,14 @@ if (failed.length > 0) {
 function contactSheet(rendered) {
     const safe = (text) =>
         text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-    const modules = [...new Set(rendered.map((result) => result.module))];
-    const body = modules
-        .map((module) => {
-            const rows = rendered
-                .filter((result) => result.module === module)
+    const body = [
+        {
+            rows: rendered,
+            title: `${rendered.length} fragments`,
+        },
+    ]
+        .map((group) => {
+            const rows = group.rows
                 .map(
                     (result) => `<figure${result.errors.length > 0 ? ' class="bad"' : ''}>
   <figcaption>${safe(result.name)}${
@@ -87,7 +90,7 @@ function contactSheet(rendered) {
 </figure>`
                 )
                 .join('\n');
-            return `<section><h2>${safe(module)}</h2>\n${rows}\n</section>`;
+            return `<section><h2>${safe(group.title)}</h2>\n${rows}\n</section>`;
         })
         .join('\n');
 
