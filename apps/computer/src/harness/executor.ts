@@ -816,7 +816,7 @@ export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRe
     };
 }
 
-function createHarnessForRuntime(
+export function createHarnessForRuntime(
     runtimeId: string,
     modelId: string,
     reasoningEffort: AgentReasoningEffort,

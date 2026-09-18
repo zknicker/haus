@@ -1,0 +1,467 @@
+{
+  "asOf": "2026-09-15T08:32:39-07:00",
+  "timezone": "America/Los_Angeles",
+  "today": {
+    "date": "2026-09-15",
+    "revenue": 0,
+    "royalties": 0,
+    "sold": 0,
+    "returned": 0,
+    "cancelled": 0,
+    "net": 0,
+    "note": "not synced \u2014 last metadata sync was 2026-09-14T22:06:46 PT (10:06pm last night); today's feed has not landed yet"
+  },
+  "lastCompleteDay": {
+    "date": "2026-09-14",
+    "marketplace": "US",
+    "revenue": 750.49,
+    "royalties": 155.44,
+    "sold": 39,
+    "returned": 4,
+    "cancelled": 0,
+    "net": 35
+  },
+  "series30d": {
+    "rows": [
+      {
+        "date": "2026-08-17",
+        "revenue": 810.62,
+        "royalties": 165.59,
+        "sold": 42,
+        "returned": 4,
+        "cancelled": 0,
+        "net": 38
+      },
+      {
+        "date": "2026-08-18",
+        "revenue": 653.56,
+        "royalties": 127.68,
+        "sold": 36,
+        "returned": 6,
+        "cancelled": 0,
+        "net": 30
+      },
+      {
+        "date": "2026-08-19",
+        "revenue": 925.31,
+        "royalties": 181.21,
+        "sold": 51,
+        "returned": 3,
+        "cancelled": 0,
+        "net": 48
+      },
+      {
+        "date": "2026-08-20",
+        "revenue": 1085.86,
+        "royalties": 218.72,
+        "sold": 57,
+        "returned": 4,
+        "cancelled": 0,
+        "net": 53
+      },
+      {
+        "date": "2026-08-21",
+        "revenue": 1434.49,
+        "royalties": 283.09,
+        "sold": 79,
+        "returned": 4,
+        "cancelled": 0,
+        "net": 75
+      },
+      {
+        "date": "2026-08-22",
+        "revenue": 1280.95,
+        "royalties": 242.76,
+        "sold": 72,
+        "returned": 7,
+        "cancelled": 1,
+        "net": 64
+      },
+      {
+        "date": "2026-08-23",
+        "revenue": 873.4,
+        "royalties": 121.39,
+        "sold": 48,
+        "returned": 13,
+        "cancelled": 2,
+        "net": 33
+      },
+      {
+        "date": "2026-08-24",
+        "revenue": 921.74,
+        "royalties": 183.68,
+        "sold": 56,
+        "returned": 7,
+        "cancelled": 9,
+        "net": 40
+      },
+      {
+        "date": "2026-08-25",
+        "revenue": 991.41,
+        "royalties": 213.09,
+        "sold": 52,
+        "returned": 6,
+        "cancelled": 0,
+        "net": 46
+      },
+      {
+        "date": "2026-08-26",
+        "revenue": 704.14,
+        "royalties": 126.96,
+        "sold": 39,
+        "returned": 8,
+        "cancelled": 1,
+        "net": 30
+      },
+      {
+        "date": "2026-08-27",
+        "revenue": 855.79,
+        "royalties": 191.01,
+        "sold": 56,
+        "returned": 3,
+        "cancelled": 10,
+        "net": 43
+      },
+      {
+        "date": "2026-08-28",
+        "revenue": 1073.48,
+        "royalties": 205.96,
+        "sold": 61,
+        "returned": 8,
+        "cancelled": 4,
+        "net": 49
+      },
+      {
+        "date": "2026-08-29",
+        "revenue": 1049.26,
+        "royalties": 241.69,
+        "sold": 57,
+        "returned": 2,
+        "cancelled": 1,
+        "net": 54
+      },
+      {
+        "date": "2026-08-30",
+        "revenue": 1057.66,
+        "royalties": 219.6,
+        "sold": 56,
+        "returned": 4,
+        "cancelled": 1,
+        "net": 51
+      },
+      {
+        "date": "2026-08-31",
+        "revenue": 931.85,
+        "royalties": 196.75,
+        "sold": 54,
+        "returned": 2,
+        "cancelled": 3,
+        "net": 49
+      },
+      {
+        "date": "2026-09-01",
+        "revenue": 1161.85,
+        "royalties": 237.28,
+        "sold": 60,
+        "returned": 4,
+        "cancelled": 0,
+        "net": 56
+      },
+      {
+        "date": "2026-09-02",
+        "revenue": 857.52,
+        "royalties": 172.2,
+        "sold": 45,
+        "returned": 1,
+        "cancelled": 0,
+        "net": 44
+      },
+      {
+        "date": "2026-09-03",
+        "revenue": 983.42,
+        "royalties": 205.1,
+        "sold": 51,
+        "returned": 7,
+        "cancelled": 0,
+        "net": 44
+      },
+      {
+        "date": "2026-09-04",
+        "revenue": 741.35,
+        "royalties": 154.25,
+        "sold": 41,
+        "returned": 4,
+        "cancelled": 1,
+        "net": 36
+      },
+      {
+        "date": "2026-09-05",
+        "revenue": 731.89,
+        "royalties": 156.48,
+        "sold": 38,
+        "returned": 4,
+        "cancelled": 0,
+        "net": 34
+      },
+      {
+        "date": "2026-09-06",
+        "revenue": 1137.26,
+        "royalties": 240.58,
+        "sold": 61,
+        "returned": 3,
+        "cancelled": 1,
+        "net": 57
+      },
+      {
+        "date": "2026-09-07",
+        "revenue": 1061.19,
+        "royalties": 245.14,
+        "sold": 56,
+        "returned": 0,
+        "cancelled": 1,
+        "net": 55
+      },
+      {
+        "date": "2026-09-08",
+        "revenue": 1014.13,
+        "royalties": 227.56,
+        "sold": 52,
+        "returned": 3,
+        "cancelled": 1,
+        "net": 48
+      },
+      {
+        "date": "2026-09-09",
+        "revenue": 884.04,
+        "royalties": 189.96,
+        "sold": 48,
+        "returned": 3,
+        "cancelled": 1,
+        "net": 44
+      },
+      {
+        "date": "2026-09-10",
+        "revenue": 1014.78,
+        "royalties": 237.96,
+        "sold": 53,
+        "returned": 1,
+        "cancelled": 0,
+        "net": 52
+      },
+      {
+        "date": "2026-09-11",
+        "revenue": 866.27,
+        "royalties": 182.71,
+        "sold": 46,
+        "returned": 6,
+        "cancelled": 2,
+        "net": 38
+      },
+      {
+        "date": "2026-09-12",
+        "revenue": 937.86,
+        "royalties": 201.61,
+        "sold": 49,
+        "returned": 4,
+        "cancelled": 0,
+        "net": 45
+      },
+      {
+        "date": "2026-09-13",
+        "revenue": 1161.97,
+        "royalties": 265.77,
+        "sold": 63,
+        "returned": 3,
+        "cancelled": 3,
+        "net": 57
+      },
+      {
+        "date": "2026-09-14",
+        "revenue": 750.49,
+        "royalties": 155.44,
+        "sold": 39,
+        "returned": 4,
+        "cancelled": 0,
+        "net": 35
+      },
+      {
+        "date": "2026-09-15",
+        "revenue": 0,
+        "royalties": 0,
+        "sold": 0,
+        "returned": 0,
+        "cancelled": 0,
+        "net": 0
+      }
+    ],
+    "totals": {
+      "cancelled": 42,
+      "net": 1348,
+      "returned": 128,
+      "revenue": 27953.54,
+      "royalties": 5791.22,
+      "sold": 1518
+    }
+  },
+  "summary30d": [
+    {
+      "currencyCode": "EUR",
+      "unitsSold": 61,
+      "unitsCancelled": 1,
+      "unitsReturned": 8,
+      "netUnits": 52,
+      "revenue": 1058.42,
+      "royalties": 112.35
+    },
+    {
+      "currencyCode": "GBP",
+      "unitsSold": 55,
+      "unitsCancelled": 0,
+      "unitsReturned": 5,
+      "netUnits": 50,
+      "revenue": 866.05,
+      "royalties": 136.36
+    },
+    {
+      "currencyCode": "USD",
+      "unitsSold": 1518,
+      "unitsCancelled": 42,
+      "unitsReturned": 128,
+      "netUnits": 1348,
+      "revenue": 27953.54,
+      "royalties": 5791.22
+    }
+  ],
+  "byMarketplaceYesterday": [
+    {
+      "groupValue": "US",
+      "currencyCode": "USD",
+      "units": 39,
+      "netUnits": 35,
+      "revenue": 750.49,
+      "royalties": 155.44
+    },
+    {
+      "groupValue": "GB",
+      "currencyCode": "GBP",
+      "units": 2,
+      "netUnits": 2,
+      "revenue": 30.56,
+      "royalties": 4.22
+    },
+    {
+      "groupValue": "DE",
+      "currencyCode": "EUR",
+      "units": 2,
+      "netUnits": 2,
+      "revenue": 33.9,
+      "royalties": 4.08
+    }
+  ],
+  "byProductTypeYesterday": [
+    {
+      "groupValue": "HOUSE_BRAND",
+      "currencyCode": "USD",
+      "units": 38,
+      "netUnits": 34,
+      "revenue": 715.5,
+      "royalties": 147.69
+    },
+    {
+      "groupValue": "STANDARD_PULLOVER_HOODIE",
+      "currencyCode": "USD",
+      "units": 1,
+      "netUnits": 1,
+      "revenue": 34.99,
+      "royalties": 7.75
+    },
+    {
+      "groupValue": "HOUSE_BRAND",
+      "currencyCode": "GBP",
+      "units": 2,
+      "netUnits": 2,
+      "revenue": 30.56,
+      "royalties": 4.22
+    },
+    {
+      "groupValue": "HOUSE_BRAND",
+      "currencyCode": "EUR",
+      "units": 2,
+      "netUnits": 2,
+      "revenue": 33.9,
+      "royalties": 4.08
+    }
+  ],
+  "topAsins7d": [
+    {
+      "title": "That's My Grandson Out There Gift Women Baseball Grandma",
+      "asin": "B082Z184NZ",
+      "revenue": 233.87,
+      "royalties": 45.98,
+      "netUnits": 11
+    },
+    {
+      "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits",
+      "asin": "B08KCQL6VB",
+      "revenue": 199.9,
+      "royalties": 52.8,
+      "netUnits": 10
+    },
+    {
+      "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday",
+      "asin": "B09BLS5NRG",
+      "revenue": 159.92,
+      "royalties": 42.24,
+      "netUnits": 8
+    },
+    {
+      "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident",
+      "asin": "B081GHR7RC",
+      "revenue": 159.6,
+      "royalties": 42,
+      "netUnits": 8
+    },
+    {
+      "title": "Halloween Ghost Reading Read More Books Librarian Teacher",
+      "asin": "B0DDZPDF14",
+      "revenue": 91.91,
+      "royalties": 20.48,
+      "netUnits": 5
+    },
+    {
+      "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross",
+      "asin": "B082Z3P2V8",
+      "revenue": 84.75,
+      "royalties": 8.28,
+      "netUnits": 2
+    },
+    {
+      "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny",
+      "asin": "B07XHVB7CH",
+      "revenue": 84.75,
+      "royalties": 8.15,
+      "netUnits": 4
+    },
+    {
+      "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss",
+      "asin": "B0DHLQ94MM",
+      "revenue": 80.97,
+      "royalties": 12.24,
+      "netUnits": 3
+    },
+    {
+      "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid",
+      "asin": "B08NW6MKQV",
+      "revenue": 79.96,
+      "royalties": 21.12,
+      "netUnits": 4
+    },
+    {
+      "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner",
+      "asin": "B07KWRMN3C",
+      "revenue": 79.92,
+      "royalties": 21.08,
+      "netUnits": 4
+    }
+  ]
+}
