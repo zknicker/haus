@@ -102,7 +102,6 @@
     "@cursor/sdk@1.0.30": "patches/@cursor%2Fsdk@1.0.30.patch",
     "@ai-sdk/harness-codex@1.0.115": "patches/@ai-sdk%2Fharness-codex@1.0.115.patch",
     "@ai-sdk/harness-claude-code@1.0.117": "patches/@ai-sdk%2Fharness-claude-code@1.0.117.patch",
-    "@ai-sdk/harness-pi@1.0.115": "patches/@ai-sdk%2Fharness-pi@1.0.115.patch",
     "@ai-sdk/harness-grok-build@1.0.50": "patches/@ai-sdk%2Fharness-grok-build@1.0.50.patch",
     "@ai-sdk/harness-acp@1.0.51": "patches/@ai-sdk%2Fharness-acp@1.0.51.patch"
   },
