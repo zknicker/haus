@@ -1,6 +1,24 @@
 import { expect, test } from 'bun:test';
 import { classifyRuntimeFailure } from '../runtime-failure.ts';
-import { claudeNativeEnvironment } from './claude-native-auth.ts';
+import { claudeNativeEnvironment, createComputerClaudeCode } from './claude-native-auth.ts';
+
+test('the resolved host credential is what authenticates the adapter', async () => {
+    const credential = { CLAUDE_CODE_OAUTH_TOKEN: 'test-native-token' };
+    const seen: unknown[] = [];
+    const createAdapter = ((adapterSettings: { auth?: unknown }) => {
+        seen.push(adapterSettings.auth);
+        return { doStart: () => 'started' };
+    }) as any;
+
+    await createComputerClaudeCode({ effort: 'medium', maxTurns: 50 }, {
+        createAdapter,
+        readEnvironment: async () => credential,
+    } as any).doStart({ sandboxSession: { spawn: () => undefined } } as any);
+
+    // Anything else — including 'direct' — sends the adapter looking for the
+    // host subscription itself, spending its rotating refresh token.
+    expect(seen.at(-1)).toEqual(credential);
+});
 
 test('hands the current native login to an isolated Claude process without copying its credential document', async () => {
     let accessToken = 'test-native-token';

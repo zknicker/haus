@@ -7,9 +7,7 @@ import {
     webToolNames,
 } from './runtime-web-tools.ts';
 
-const claudeCodeToolNames = Object.keys(
-    createClaudeCode({ effort: 'medium', model: 'claude-opus-4-8' }).builtinTools
-);
+const claudeCodeToolNames = Object.keys(createClaudeCode({ effort: 'medium' }).builtinTools);
 
 test('disables the web tools Claude Code actually exposes, in its own casing', () => {
     expect(

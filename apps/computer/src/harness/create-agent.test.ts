@@ -14,13 +14,14 @@ for (const webAccess of [null, 'search', 'fetch-only', 'search-only'] as const) 
                     agentId: 'agt_constructor',
                     env: {},
                     homeDir: '/tmp/haus-constructor/home',
+                    modelId: 'claude-fable-5-1',
                     runtime,
                     runtimeId: 'claude-code',
                     tools: {},
                     webAccess,
                     workspaceDir: '/tmp/haus-constructor/workspace',
                 },
-                { harness: createClaudeCode(), instructions: 'Test.', skills: [] }
+                { harness: createClaudeCode(), instructions: 'Test.' }
             )
         ).not.toThrow();
     });

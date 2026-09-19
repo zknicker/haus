@@ -25,7 +25,8 @@ liveTest(
         await mkdir(workspaceDir, { recursive: true });
 
         const agent = new HarnessAgent({
-            harness: createGrokBuild({ model: 'grok-4.6' }),
+            harness: createGrokBuild(),
+            model: 'grok-4.6',
             permissionMode: 'allow-all',
             sandbox: createLocalTrustedSandboxProvider({
                 authProfiles: ['grok-build'],

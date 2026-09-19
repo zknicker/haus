@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+import type { HarnessV1 } from '@ai-sdk/harness';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
+import { fingerprintHarnessBootstrap } from './bootstrap-refresh.ts';
 import {
     bridgeStoreDirForHost,
     validateComputerBridgeAssets,
@@ -13,14 +15,14 @@ for (const bridge of [
         bootstrapDir: '.harness-bootstrap/codex',
         harnessId: 'codex' as const,
         nativeHarness: createCodex(),
-        packageDependency: '"@openai/codex-sdk": "0.144.5"',
+        packageDependency: '"@openai/codex-sdk": "0.153.4"',
         verifyFragment: 'new Codex();',
     },
     {
         bootstrapDir: '.harness-bootstrap/claude-code',
         harnessId: 'claude-code' as const,
         nativeHarness: createClaudeCode(),
-        packageDependency: '"@anthropic-ai/claude-code"',
+        packageDependency: '"@anthropic-ai/claude-code": "2.1.257"',
         verifyFragment: './node_modules/.bin/claude --version',
     },
 ]) {
@@ -86,6 +88,60 @@ test('bridge packages share one cache across development and production Computer
 
 test('Computer embeds every packaged harness bridge asset', async () => {
     await expect(validateComputerBridgeAssets()).resolves.toBeUndefined();
+});
+
+// The published bridges pin vendor CLIs that predate the models Haus offers,
+// so Computer owns both manifests. Delete these three tests with the override.
+for (const bridge of [
+    {
+        harnessId: 'codex' as const,
+        nativeHarness: createCodex(),
+        // First Codex that serves `gpt-6-astra`; 0.152.1 and older answer 400.
+        pinned: '"@openai/codex-sdk": "0.153.4"',
+    },
+    {
+        harnessId: 'claude-code' as const,
+        nativeHarness: createClaudeCode(),
+        // `claude-fable-5-1` needs 2.1.251 or newer.
+        pinned: '"@anthropic-ai/claude-code": "2.1.257"',
+    },
+]) {
+    test(`Computer overrides the published ${bridge.harnessId} bridge vendor pin`, async () => {
+        const computerBootstrap = await withComputerBridgeBootstrap(
+            bridge.nativeHarness,
+            bridge.harnessId
+        ).getBootstrap?.();
+        const publishedBootstrap = await bridge.nativeHarness.getBootstrap?.();
+        const manifestOf = (bootstrap: typeof computerBootstrap) =>
+            bootstrap?.files?.find((file) => file.path.endsWith('/package.json'))?.content;
+
+        expect(manifestOf(computerBootstrap)).toContain(bridge.pinned);
+        expect(manifestOf(publishedBootstrap)).not.toContain(bridge.pinned);
+        // Only the manifest and its lockfile are Computer's; the bridge code
+        // itself must still be exactly what the adapter published.
+        expect(computerBootstrap?.files?.find((file) => file.path.endsWith('/bridge.mjs'))).toEqual(
+            publishedBootstrap?.files?.find((file) => file.path.endsWith('/bridge.mjs'))
+        );
+    });
+}
+
+test('the pinned vendor version is part of the bootstrap fingerprint', async () => {
+    const withPin = (pin: string) =>
+        fingerprintHarnessBootstrap({
+            harness: {
+                getBootstrap: () =>
+                    Promise.resolve({
+                        bootstrapDir: '.harness-bootstrap/codex',
+                        commands: [],
+                        files: [{ content: pin, path: '.harness-bootstrap/codex/package.json' }],
+                        harnessId: 'codex',
+                    }),
+            } as unknown as HarnessV1,
+        });
+
+    // A bumped pin must not reuse an install made from the previous one.
+    expect(await withPin('0.153.4')).not.toBe(await withPin('0.149.1'));
+    expect(await withPin('0.153.4')).toBe(await withPin('0.153.4'));
 });
 
 test('Codex bridge keeps recoverable transport errors distinct from failed turns', async () => {

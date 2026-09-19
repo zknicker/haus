@@ -12,16 +12,22 @@ test('Grok completion usage reaches Haus without leaking into the next turn', as
     const rootDir = await realpath(await mkdtemp(join(tmpdir(), 'haus-grok-usage-')));
     const runtime = makeDaemonRuntime();
     const binDir = join(rootDir, 'bin');
+    const homeDir = join(rootDir, 'home');
     await mkdir(binDir);
+    await mkdir(homeDir);
     await mkdir(join(rootDir, 'workspace'));
     const executable = join(binDir, 'grok');
     await writeFile(executable, fakeGrok);
     await chmod(executable, 0o755);
     const agent = new HarnessAgent({
-        harness: createGrokBuild({ model: 'grok-4.6' }),
+        harness: createGrokBuild(),
+        model: 'grok-4.6',
         permissionMode: 'allow-all',
         sandbox: createLocalTrustedSandboxProvider({
-            env: { PATH: `${binDir}:${process.env.PATH}` },
+            // The Agent home is what production hands every runtime; the
+            // harness materializes skills there, so it must stay in-root.
+            env: { HOME: homeDir, PATH: `${binDir}:${process.env.PATH}` },
+            homeDir,
             rootDir,
             runtime,
         }),
@@ -82,7 +88,12 @@ createInterface({ input: process.stdin }).on('line', (line) => {
     const request = JSON.parse(line);
     let result = {};
     if (request.method === 'initialize') {
-        result = { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
+        // The adapter authenticates before opening a session, so the stand-in
+        // advertises the same method the real Grok agent does.
+        result = { protocolVersion: 1, agentCapabilities: {},
+            authMethods: [{ id: 'xai.api_key', name: 'xAI API key' }] };
+    } else if (request.method === 'authenticate') {
+        result = {};
     } else if (request.method === 'session/new') {
         result = { sessionId: 'grok-session' };
     } else if (request.method === 'session/prompt') {
