@@ -114,39 +114,6 @@ public enum VisualFence {
         )
     }
 
-    /// The web's `visualFallbackText`: explicit title, else the document
-    /// `<title>`, else the first h1-h3 text, else "Visual".
-    public static func fallbackText(html: String, title: String?) -> String {
-        let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !trimmed.isEmpty {
-            return String(trimmed.prefix(fallbackTextLimit))
-        }
-        if let documentTitle = tagText(html, matching: titleExpression) {
-            return documentTitle
-        }
-        return tagText(html, matching: headingExpression) ?? "Visual"
-    }
-
-    /// Message content with every visual fence collapsed to its fallback text,
-    /// so a one-line preview reads the visual's name instead of its markup.
-    public static func previewText(_ content: String) -> String {
-        let segments = split(content)
-        guard segments.contains(where: { if case .visual = $0 { return true } else { return false } })
-        else {
-            return content
-        }
-        return segments.map { segment in
-            switch segment {
-            case let .text(text):
-                text
-            case let .visual(html, _, title):
-                fallbackText(html: html, title: title)
-            }
-        }.joined()
-    }
-
-    private static let fallbackTextLimit = 500
-
     /// The tag that opens a visual: exactly three backticks and the word.
     private static let visualFenceTag = Array("```visual".unicodeScalars)
 
@@ -225,7 +192,10 @@ public enum VisualFence {
         )
     }
 
-    /// The first run of three or more backticks on a body line: the terminator.
+    /// The terminator: the first run of three or more backticks that ends a body
+    /// line or is followed by whitespace. The word boundary is what keeps a run
+    /// inside markup — a visual that draws the fence syntax it is teaching —
+    /// from closing the fence early.
     private static func closingRun(
         _ scalars: [Unicode.Scalar],
         _ from: Int,
@@ -241,7 +211,7 @@ public enum VisualFence {
 
             var end = index
             while end < to, scalars[end] == "`" { end += 1 }
-            if end - index >= 3 { return (index, end) }
+            if end - index >= 3, end == to || isSpace(scalars[end]) { return (index, end) }
             index = end
         }
 
@@ -304,40 +274,8 @@ public enum VisualFence {
         return String(view)
     }
 
-    private static let titleExpression = try? NSRegularExpression(
-        pattern: #"<title[^>]*>([\s\S]*?)</title>"#,
-        options: [.caseInsensitive]
-    )
-
-    private static let headingExpression = try? NSRegularExpression(
-        pattern: #"<h[1-3][^>]*>([\s\S]*?)</h[1-3]>"#,
-        options: [.caseInsensitive]
-    )
-
     private static func visual(title: String, html: String, isOpen: Bool) -> VisualFenceSegment {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         return .visual(html: html, isOpen: isOpen, title: trimmed.isEmpty ? nil : trimmed)
-    }
-
-    private static func tagText(_ html: String, matching expression: NSRegularExpression?) -> String? {
-        guard let expression else { return nil }
-        let source = html as NSString
-        guard
-            let match = expression.firstMatch(
-                in: html,
-                range: NSRange(location: 0, length: source.length)
-            ),
-            match.range(at: 1).location != NSNotFound
-        else {
-            return nil
-        }
-        let inner = source.substring(with: match.range(at: 1))
-        guard !inner.isEmpty else { return nil }
-
-        let text = inner
-            .replacingOccurrences(of: "<[^>]*>", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return text.isEmpty ? nil : String(text.prefix(fallbackTextLimit))
     }
 }

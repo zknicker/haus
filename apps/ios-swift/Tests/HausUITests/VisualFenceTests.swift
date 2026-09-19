@@ -163,6 +163,24 @@ struct VisualFenceTests {
         }
     }
 
+    /// A terminator ends a line or has whitespace after it. Without that word
+    /// boundary a visual that draws the fence syntax it teaches would cut its
+    /// own body in half at the first backtick run inside its markup.
+    @Test func doesNotTerminateTheBodyOnABacktickRunInsideMarkup() {
+        #expect(
+            VisualFence.split(
+                "```visual Fence syntax\n<code>```visual Weekly sales</code>\n<p>Then this.</p>\n```\nDone."
+            ) == [
+                .visual(
+                    html: "<code>```visual Weekly sales</code>\n<p>Then this.</p>",
+                    isOpen: false,
+                    title: "Fence syntax"
+                ),
+                .text("\nDone."),
+            ]
+        )
+    }
+
     @Test func splitsTwoClosedFencesWithProseBetweenThem() {
         let segments = VisualFence.split(
             "A\n```visual One\n<p>1</p>\n```\nmid\n```visual Two\n<p>2</p>\n```\nend"
@@ -246,62 +264,6 @@ struct VisualFenceTests {
         #expect(body.visuals.map(\.id) == [1, 2, 3])
         #expect(body.visuals.map(\.title) == ["A", "B", "C"])
         #expect(body.visuals.map(\.isOpen) == [false, false, true])
-    }
-
-    // MARK: - fallbackText
-
-    @Test func fallbackPrefersTheExplicitTitle() {
-        #expect(VisualFence.fallbackText(html: "<h2>Ranked</h2>", title: "Chart") == "Chart")
-    }
-
-    @Test func fallbackUsesTheDocumentTitleNext() {
-        #expect(
-            VisualFence.fallbackText(html: "<title>Doc title</title><h1>Heading</h1>", title: nil)
-                == "Doc title"
-        )
-    }
-
-    @Test func fallbackUsesTheFirstHeadingWithInnerTagsStripped() {
-        #expect(
-            VisualFence.fallbackText(html: "<h3><em>Ranked</em> teams</h3>", title: nil)
-                == "Ranked teams"
-        )
-        #expect(
-            VisualFence.fallbackText(html: "<h2>Multi\n  line   text</h2>", title: nil)
-                == "Multi line text"
-        )
-    }
-
-    @Test func fallbackSkipsAWhitespaceOnlyTitleTag() {
-        #expect(
-            VisualFence.fallbackText(html: "<title>   </title><h1>Heading</h1>", title: nil)
-                == "Heading"
-        )
-    }
-
-    @Test func fallbackIgnoresAWhitespaceOnlyExplicitTitle() {
-        #expect(VisualFence.fallbackText(html: "<p>x</p>", title: "   ") == "Visual")
-    }
-
-    @Test func fallbackIsGenericWhenNothingNamesTheVisual() {
-        #expect(
-            VisualFence.fallbackText(html: #"<svg viewBox="0 0 10 10"></svg>"#, title: nil)
-                == "Visual"
-        )
-    }
-
-    @Test func fallbackMatchesTagsCaseInsensitively() {
-        #expect(VisualFence.fallbackText(html: #"<TITLE class="a">Upper</TITLE>"#, title: nil) == "Upper")
-    }
-
-    @Test func fallbackCapsTextAtFiveHundredCharacters() {
-        let longHeading = "<h1>\(String(repeating: "a", count: 600))</h1>"
-
-        #expect(VisualFence.fallbackText(html: longHeading, title: nil).count == 500)
-        #expect(
-            VisualFence.fallbackText(html: "<p>x</p>", title: String(repeating: "z", count: 600))
-                .count == 500
-        )
     }
 }
 

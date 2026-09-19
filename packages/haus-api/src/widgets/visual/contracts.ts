@@ -52,7 +52,13 @@ const visualFenceTag = '```visual';
 
 /** A backtick or tilde run opening a fenced block of some other language. */
 const enclosingFenceOpenPattern = /^[ \t]{0,3}(`{3,}|~{3,})/u;
-const closingRunPattern = /`{3,}/u;
+
+/**
+ * The terminator: a backtick run that ends a body line or is followed by
+ * whitespace. The word boundary is what keeps a run inside markup — a visual
+ * that draws the fence syntax it is teaching — from closing the fence early.
+ */
+const closingRunPattern = /`{3,}(?=\s|$)/u;
 
 /**
  * Split message content into prose and visual-fence segments, in order.
@@ -190,7 +196,9 @@ function readVisualFence(content: string, opener: number, openerLineEnd: number)
 function closesEnclosingFence(line: string, enclosingRun: string) {
     const match = /^[ \t]{0,3}(`{3,}|~{3,})[ \t]*\r?$/u.exec(line)?.[1];
 
-    return match !== undefined && match[0] === enclosingRun[0] && match.length >= enclosingRun.length;
+    return (
+        match !== undefined && match[0] === enclosingRun[0] && match.length >= enclosingRun.length
+    );
 }
 
 function lineEndIndex(content: string, from: number) {

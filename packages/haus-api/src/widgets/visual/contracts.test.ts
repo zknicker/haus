@@ -139,13 +139,34 @@ describe('visual widget contracts', () => {
         ]);
     });
 
-    test('ignores an opener inside a fenced block that documents the syntax', () => {
-        const fourBacktick = 'The contract:\n\n````\n```visual Weekly sales\n<h1>Sales</h1>\n```\n````\n\nThat is it.';
-        const language = 'Like so:\n```md\n```visual Weekly sales\n<h1>Sales</h1>\n```\n```\nClear?';
-
-        expect(splitVisualFences(fourBacktick)).toEqual([
-            { kind: 'text', text: fourBacktick },
+    /**
+     * A terminator ends a line or has whitespace after it. Without that word
+     * boundary a visual that draws the fence syntax it teaches would cut its own
+     * body in half at the first backtick run inside its markup.
+     */
+    test('a backtick run inside markup does not terminate the body', () => {
+        expect(
+            splitVisualFences(
+                '```visual Fence syntax\n<code>```visual Weekly sales</code>\n<p>Then this.</p>\n```\nDone.'
+            )
+        ).toEqual([
+            {
+                html: '<code>```visual Weekly sales</code>\n<p>Then this.</p>',
+                kind: 'visual',
+                open: false,
+                title: 'Fence syntax',
+            },
+            { kind: 'text', text: '\nDone.' },
         ]);
+    });
+
+    test('ignores an opener inside a fenced block that documents the syntax', () => {
+        const fourBacktick =
+            'The contract:\n\n````\n```visual Weekly sales\n<h1>Sales</h1>\n```\n````\n\nThat is it.';
+        const language =
+            'Like so:\n```md\n```visual Weekly sales\n<h1>Sales</h1>\n```\n```\nClear?';
+
+        expect(splitVisualFences(fourBacktick)).toEqual([{ kind: 'text', text: fourBacktick }]);
         expect(splitVisualFences(language)).toEqual([{ kind: 'text', text: language }]);
     });
 
