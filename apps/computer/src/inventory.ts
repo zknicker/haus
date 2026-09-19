@@ -11,15 +11,19 @@ type ComputerRuntime = ComputerInventory['runtimes'][number];
  * provider credentials — model availability, never secrets.
  */
 const knownRuntimes: ComputerRuntime[] = [
+    // The App offers the first model of a runtime as its default, so a new
+    // model joins the end until someone decides it should lead.
     supportedRuntime('codex', [
         { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
         { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
         { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },
+        { id: 'gpt-6-astra', label: 'GPT-6 Astra' },
     ]),
     supportedRuntime('claude-code', [
         { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
         { id: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
         { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
+        { id: 'claude-fable-5-1', label: 'Claude Fable 5.1' },
     ]),
     supportedRuntime('pi', [{ id: 'pi', label: 'Pi' }]),
     supportedRuntime('grok-build', [
