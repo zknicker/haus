@@ -43,52 +43,160 @@ export function visualFallbackText(props: { html?: unknown; title?: unknown }): 
     return heading ?? 'Visual';
 }
 
-/**
- * The ```visual fence grammar, shared by Runtime (final-content parsing) and
- * the app (live streaming render): an optional info-string title after the
- * tag, then the raw HTML body up to the closing fence. A trailing unclosed
- * fence is a mid-stream visual whose body is still growing.
- */
-export const closedVisualFencePattern =
-    /^```visual(?:[ \t]+([^\n]*?))?[ \t]*\n([\s\S]*?)\n[ \t]*```[ \t]*$/gmu;
-export const openVisualFencePattern = /^```visual(?:[ \t]+([^\n]*?))?[ \t]*(?:\n([\s\S]*))?$/mu;
-
 export type VisualFenceSegment =
     | { kind: 'text'; text: string }
     | { html: string; kind: 'visual'; open: boolean; title?: string };
 
+/** The tag that opens a visual: exactly three backticks and the word. */
+const visualFenceTag = '```visual';
+
+/** A backtick or tilde run opening a fenced block of some other language. */
+const enclosingFenceOpenPattern = /^[ \t]{0,3}(`{3,}|~{3,})/u;
+const closingRunPattern = /`{3,}/u;
+
 /**
  * Split message content into prose and visual-fence segments, in order.
- * Closed fences yield complete visuals; a trailing unclosed fence yields an
- * open visual with the partial body streamed so far.
+ * Closed fences yield complete visuals; an unclosed fence yields an open
+ * visual with the partial body streamed so far.
+ *
+ * The grammar is deliberately forgiving about where the fence sits, because
+ * one missing newline used to turn a whole answer into raw markup: the tag
+ * opens a fence at the start of a line *or* glued to the end of a sentence
+ * ("…a $964 run rate.```visual Sales"), and the body ends at the first
+ * backtick run of a body line, whether that run stands alone or is glued to
+ * the markup ("</script>```"). Text on either side of the fence stays prose.
+ *
+ * It stays strict about what a fence is. Whitespace in front of the tag means
+ * prose ("a ```visual fence" and an indented block both read as text), a
+ * backtick in front means a longer fence or inline code, the info word must be
+ * exactly `visual`, and a tag inside another fenced block — the ```` ```` ````
+ * examples the visuals skill itself ships — belongs to that block.
  */
 export function splitVisualFences(content: string): VisualFenceSegment[] {
     const segments: VisualFenceSegment[] = [];
+    let textStart = 0;
     let cursor = 0;
+    let enclosingRun: string | null = null;
 
-    for (const match of content.matchAll(closedVisualFencePattern)) {
-        const index = match.index ?? 0;
-        if (index > cursor) {
-            segments.push({ kind: 'text', text: content.slice(cursor, index) });
+    while (cursor <= content.length) {
+        const lineEnd = lineEndIndex(content, cursor);
+        const line = content.slice(cursor, lineEnd);
+        // A fence only opens or closes at a true line start; after a closing
+        // run the cursor sits mid-line, and the rest of that line is prose.
+        const startsLine = cursor === 0 || content[cursor - 1] === '\n';
+
+        if (enclosingRun) {
+            if (startsLine && closesEnclosingFence(line, enclosingRun)) {
+                enclosingRun = null;
+            }
+            cursor = lineEnd + 1;
+            continue;
         }
-        segments.push(visualSegment(match[1], match[2] ?? '', false));
-        cursor = index + match[0].length;
+
+        const opener = findVisualOpener(content, cursor, line);
+
+        if (opener === null) {
+            if (startsLine) {
+                enclosingRun = enclosingFenceOpenPattern.exec(line)?.[1] ?? null;
+            }
+            cursor = lineEnd + 1;
+            continue;
+        }
+
+        if (opener > textStart) {
+            segments.push({ kind: 'text', text: content.slice(textStart, opener) });
+        }
+
+        const fence = readVisualFence(content, opener, lineEnd);
+        segments.push(visualSegment(fence.title, fence.html, fence.open));
+        textStart = fence.end;
+        cursor = fence.end;
     }
 
-    // Only the tail past the last closed fence can hold an unclosed fence.
-    const tail = content.slice(cursor);
-    const open = tail.match(openVisualFencePattern);
-
-    if (open && typeof open.index === 'number') {
-        if (open.index > 0) {
-            segments.push({ kind: 'text', text: tail.slice(0, open.index) });
-        }
-        segments.push(visualSegment(open[1], open[2] ?? '', true));
-    } else if (tail.length > 0) {
-        segments.push({ kind: 'text', text: tail });
+    if (textStart < content.length) {
+        segments.push({ kind: 'text', text: content.slice(textStart) });
     }
 
     return segments;
+}
+
+/** The absolute index of the first real fence opener on this line, if any. */
+function findVisualOpener(content: string, lineStart: number, line: string): number | null {
+    let from = 0;
+
+    while (from <= line.length) {
+        const index = line.indexOf(visualFenceTag, from);
+
+        if (index < 0) {
+            return null;
+        }
+
+        const absolute = lineStart + index;
+        const before = absolute === 0 ? '\n' : (content[absolute - 1] ?? '\n');
+        const after = line[index + visualFenceTag.length];
+        const opensFence = before === '\n' || !/[\s`]/u.test(before);
+        const wordEnds = after === undefined || /\s/u.test(after);
+
+        if (opensFence && wordEnds) {
+            return absolute;
+        }
+
+        from = index + 1;
+    }
+
+    return null;
+}
+
+/**
+ * The fence that starts at `opener`: its title, its body, and the index the
+ * message resumes at. The body ends at the first backtick run of a body line —
+ * on its own line the run drops the newline before it, glued to the markup it
+ * keeps that line — and anything after the run on that line is prose again.
+ */
+function readVisualFence(content: string, opener: number, openerLineEnd: number) {
+    const title = content.slice(opener + visualFenceTag.length, openerLineEnd).trim();
+
+    if (openerLineEnd >= content.length) {
+        return { end: content.length, html: '', open: true, title };
+    }
+
+    const bodyStart = openerLineEnd + 1;
+    let lineStart = bodyStart;
+
+    while (lineStart <= content.length) {
+        const lineEnd = lineEndIndex(content, lineStart);
+        const line = content.slice(lineStart, lineEnd);
+        const run = closingRunPattern.exec(line);
+
+        if (run) {
+            const closer = lineStart + run.index;
+            const ownLine = line.slice(0, run.index).trim().length === 0;
+            const bodyEnd = ownLine ? Math.max(bodyStart, lineStart - 1) : closer;
+
+            return {
+                end: closer + run[0].length,
+                html: content.slice(bodyStart, bodyEnd),
+                open: false,
+                title,
+            };
+        }
+
+        lineStart = lineEnd + 1;
+    }
+
+    return { end: content.length, html: content.slice(bodyStart), open: true, title };
+}
+
+function closesEnclosingFence(line: string, enclosingRun: string) {
+    const match = /^[ \t]{0,3}(`{3,}|~{3,})[ \t]*\r?$/u.exec(line)?.[1];
+
+    return match !== undefined && match[0] === enclosingRun[0] && match.length >= enclosingRun.length;
+}
+
+function lineEndIndex(content: string, from: number) {
+    const index = content.indexOf('\n', from);
+
+    return index < 0 ? content.length : index;
 }
 
 function visualSegment(title: string | undefined, html: string, open: boolean): VisualFenceSegment {

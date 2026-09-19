@@ -82,6 +82,83 @@ describe('visual widget contracts', () => {
         expect(splitVisualFences(content)).toEqual([{ kind: 'text', text: content }]);
     });
 
+    /**
+     * The bytes a real eval run produced: Grok glued the opener to the end of
+     * its last sentence. The fence is still a fence — the alternative is the
+     * whole chart dumped into the transcript as raw markup.
+     */
+    test('recovers a fence the model glued to the end of a sentence', () => {
+        const segments = splitVisualFences(
+            'Monday closed at **$750**, a soft day against a **$964** daily run rate.```visual Sales through Sep 14\n<h2>Sales</h2>\n<div>bars</div>\n```\n\nMCP is up. Check back after the morning sync.'
+        );
+
+        expect(segments).toEqual([
+            {
+                kind: 'text',
+                text: 'Monday closed at **$750**, a soft day against a **$964** daily run rate.',
+            },
+            {
+                html: '<h2>Sales</h2>\n<div>bars</div>',
+                kind: 'visual',
+                open: false,
+                title: 'Sales through Sep 14',
+            },
+            { kind: 'text', text: '\n\nMCP is up. Check back after the morning sync.' },
+        ]);
+    });
+
+    test('a glued opener streams as an open visual, the way a line-start one does', () => {
+        expect(splitVisualFences('Sales today.```visual Today')).toEqual([
+            { kind: 'text', text: 'Sales today.' },
+            { html: '', kind: 'visual', open: true, title: 'Today' },
+        ]);
+        expect(splitVisualFences('Sales today.```visual Today\n<div>par')).toEqual([
+            { kind: 'text', text: 'Sales today.' },
+            { html: '<div>par', kind: 'visual', open: true, title: 'Today' },
+        ]);
+    });
+
+    test('closes a fence whose terminator is glued to the last body line', () => {
+        expect(
+            splitVisualFences('```visual Sales\n<div>x</div>\n<script>draw()</script>```\nDone.')
+        ).toEqual([
+            {
+                html: '<div>x</div>\n<script>draw()</script>',
+                kind: 'visual',
+                open: false,
+                title: 'Sales',
+            },
+            { kind: 'text', text: '\nDone.' },
+        ]);
+    });
+
+    test('a terminator with trailing text closes the fence and the rest is prose', () => {
+        expect(splitVisualFences('```visual\n<p>1</p>\n``` and that is the week.')).toEqual([
+            { html: '<p>1</p>', kind: 'visual', open: false },
+            { kind: 'text', text: ' and that is the week.' },
+        ]);
+    });
+
+    test('ignores an opener inside a fenced block that documents the syntax', () => {
+        const fourBacktick = 'The contract:\n\n````\n```visual Weekly sales\n<h1>Sales</h1>\n```\n````\n\nThat is it.';
+        const language = 'Like so:\n```md\n```visual Weekly sales\n<h1>Sales</h1>\n```\n```\nClear?';
+
+        expect(splitVisualFences(fourBacktick)).toEqual([
+            { kind: 'text', text: fourBacktick },
+        ]);
+        expect(splitVisualFences(language)).toEqual([{ kind: 'text', text: language }]);
+    });
+
+    test('ignores a fence tag inside inline code or a longer backtick run', () => {
+        for (const content of [
+            'The tag is `` ```visual `` and the body is raw HTML.',
+            'Write ````visual for a four-backtick block.',
+            'Ask me to.```visualize it and nothing renders.\n<p>x</p>',
+        ]) {
+            expect(splitVisualFences(content), content).toEqual([{ kind: 'text', text: content }]);
+        }
+    });
+
     test('keeps plain content as one text segment', () => {
         expect(splitVisualFences('No fences here.')).toEqual([
             { kind: 'text', text: 'No fences here.' },
