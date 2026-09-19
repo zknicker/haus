@@ -54,6 +54,21 @@ registration), with optional info-string text as the title:
   `packages/haus-api/src/widgets/visual/contracts.ts`). Body limit 60k
   chars; an empty body strips as invalid. Fallback text is the info-string
   title, else the document `<title>`, else the first h1-h3.
+- **Where the fence may sit.** The grammar is forgiving about position and
+  strict about identity, because one missing newline used to hand a whole
+  chart to the transcript as raw markup. The tag opens a fence at the start of
+  a line *or* glued to the end of prose (`…a $964 run rate.`` ```visual Sales ``),
+  and the body ends at the first backtick run of a body line, whether that run
+  stands alone or is glued to the markup (`</script>```); text on either side
+  stays prose. Whitespace in front of the tag still reads as prose, a backtick
+  in front is a longer fence or inline code, the info word must be exactly
+  `visual`, and a tag inside another fenced block — the four-backtick examples
+  the visuals skill ships — belongs to that block. The skill still instructs
+  agents to start the fence on its own line: tolerance in the parser, clarity
+  in the instruction. The `artifact` fence reads mid-line on both ends too
+  (`features/servers/chat/artifact-message.tsx`), and the iOS parser
+  (`apps/ios-swift/Sources/HausUI/Visuals/VisualFence.swift`) mirrors the web
+  grammar case for case.
 - **Persistence.** The durable message content IS the visual: the fence stays
   in the message body and the transcript splits it out at render time — there
   is no separate widget-render snapshot. Live and durable replies render

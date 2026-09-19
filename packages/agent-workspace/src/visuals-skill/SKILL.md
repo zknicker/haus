@@ -65,6 +65,7 @@ fence containing exactly one JSON object — no comments, no trailing commas:
 
 Rules:
 
+- Start the fence on its own line, never glued to the end of a sentence.
 - Haus strips fences from your visible reply and renders them in place.
 - Raw HTML belongs only in a `visual` fence body or an artifact file. Never
   output HTML, JSX, CSS, imports, or class names in plain reply text.
