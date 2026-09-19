@@ -12,7 +12,7 @@ export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
     const message = runtimeErrorMessage(error);
     const normalized = message.toLowerCase();
     if (
-        /not logged in|sign.?in required|unauthorized|authentication|invalid api key|oauth|\\b401\\b/u.test(
+        /not logged in|sign.?in required|unauthorized|authentication|invalid api key|oauth|\b401\b/u.test(
             normalized
         )
     ) {
@@ -26,13 +26,13 @@ export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
         return 'configuration';
     }
     if (
-        /context window|too many tokens|input .*too large|payload too large|\\b413\\b/u.test(
+        /context window|too many tokens|input .*too large|payload too large|\b413\b/u.test(
             normalized
         )
     ) {
         return 'input';
     }
-    if (/rate.?limit|too many requests|quota|\\b429\\b/u.test(normalized)) {
+    if (/rate.?limit|too many requests|quota|\b429\b/u.test(normalized)) {
         return 'rate-limit';
     }
     if (/timed out|timeout/u.test(normalized)) {
