@@ -68,13 +68,11 @@ struct VisualFenceTests {
         #expect(VisualFence.split(leadingSpace) == [.text(leadingSpace)])
     }
 
-    /// The closed pattern needs a newline before the closing fence, and an
-    /// opener followed immediately by ``` has none — so the ``` is body text of
-    /// an open visual, not a terminator.
-    @Test func readsAnOpenerFollowedImmediatelyByAFenceAsAnOpenVisual() {
-        #expect(
-            VisualFence.split("```visual\n```") == [.visual(html: "```", isOpen: true, title: nil)]
-        )
+    /// The first backtick run of a body line terminates the fence, even on the
+    /// first body line: an opener followed immediately by ``` closes on an empty
+    /// body rather than keeping the terminator as markup.
+    @Test func readsAnOpenerFollowedImmediatelyByAFenceAsAClosedEmptyVisual() {
+        #expect(VisualFence.split("```visual\n```") == [.visual(html: "", isOpen: false, title: nil)])
     }
 
     @Test func closesAFenceWithAnEmptyBodyWhenABlankLinePrecedesTheTerminator() {
@@ -90,12 +88,79 @@ struct VisualFenceTests {
         ])
     }
 
-    /// The terminator line allows only spaces and tabs after the backticks.
-    @Test func rejectsATerminatorLineWithTrailingProse() {
+    /// A terminator with trailing text still closes; the trailing text is prose.
+    @Test func closesOnATerminatorLineWithTrailingProse() {
         #expect(
-            VisualFence.split("```visual\n<p>1</p>\n``` trailing")
-                == [.visual(html: "<p>1</p>\n``` trailing", isOpen: true, title: nil)]
+            VisualFence.split("```visual\n<p>1</p>\n``` trailing") == [
+                .visual(html: "<p>1</p>", isOpen: false, title: nil),
+                .text(" trailing"),
+            ]
         )
+    }
+
+    // MARK: - split, tolerance for a fence the model glued to its prose
+
+    /// The bytes a real eval run produced: the opener glued to the end of the
+    /// last sentence. The fence is still a fence — the alternative is the whole
+    /// chart dumped into the transcript as raw markup.
+    @Test func recoversAFenceGluedToTheEndOfASentence() {
+        let segments = VisualFence.split(
+            "Monday closed at **$750**, a soft day.```visual Sales through Sep 14\n<h2>Sales</h2>\n<div>bars</div>\n```\n\nMCP is up."
+        )
+
+        #expect(segments == [
+            .text("Monday closed at **$750**, a soft day."),
+            .visual(
+                html: "<h2>Sales</h2>\n<div>bars</div>",
+                isOpen: false,
+                title: "Sales through Sep 14"
+            ),
+            .text("\n\nMCP is up."),
+        ])
+    }
+
+    @Test func streamsAGluedOpenerTheWayALineStartOneStreams() {
+        #expect(VisualFence.split("Sales today.```visual Today") == [
+            .text("Sales today."),
+            .visual(html: "", isOpen: true, title: "Today"),
+        ])
+        #expect(VisualFence.split("Sales today.```visual Today\n<div>par") == [
+            .text("Sales today."),
+            .visual(html: "<div>par", isOpen: true, title: "Today"),
+        ])
+    }
+
+    @Test func closesAFenceWhoseTerminatorIsGluedToTheLastBodyLine() {
+        #expect(
+            VisualFence.split("```visual Sales\n<div>x</div>\n<script>draw()</script>```\nDone.")
+                == [
+                    .visual(
+                        html: "<div>x</div>\n<script>draw()</script>",
+                        isOpen: false,
+                        title: "Sales"
+                    ),
+                    .text("\nDone."),
+                ]
+        )
+    }
+
+    @Test func ignoresAnOpenerInsideAFencedBlockThatDocumentsTheSyntax() {
+        let fourBacktick =
+            "The contract:\n\n````\n```visual Weekly sales\n<h1>Sales</h1>\n```\n````\n\nThat is it."
+        let language = "Like so:\n```md\n```visual Weekly sales\n<h1>Sales</h1>\n```\n```\nClear?"
+
+        #expect(VisualFence.split(fourBacktick) == [.text(fourBacktick)])
+        #expect(VisualFence.split(language) == [.text(language)])
+    }
+
+    @Test func ignoresAFenceTagInsideInlineCodeOrALongerBacktickRun() {
+        for content in [
+            "The tag is `` ```visual `` and the body is raw HTML.",
+            "Write ````visual for a four-backtick block.",
+            "Ask me to.```visualize it and nothing renders.\n<p>x</p>",
+        ] {
+            #expect(VisualFence.split(content) == [.text(content)])
+        }
     }
 
     @Test func splitsTwoClosedFencesWithProseBetweenThem() {
