@@ -847,7 +847,7 @@ export function createHarnessForRuntime(
                 { storeDir }
             ) as HarnessV1<ToolSet>;
         case 'grok-build':
-            return createGrokBuild() as HarnessV1<ToolSet>;
+            return createGrokBuild({ reasoningEffort }) as HarnessV1<ToolSet>;
         case 'pi':
             return createPi({
                 thinkingLevel: reasoningEffort,
