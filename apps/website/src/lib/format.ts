@@ -72,11 +72,11 @@ export function formatRelativeTime(value: string | null | undefined, now = Date.
 }
 
 export function titleCase(value: string) {
-    return value
-        .split(titleCaseSplitPattern)
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
+	return value
+		.split(titleCaseSplitPattern)
+		.filter(Boolean)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+		.join(' ');
 }
 
 export function truncate(value: string, maxLength: number) {
