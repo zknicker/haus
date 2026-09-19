@@ -5,16 +5,27 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
+// Each adapter ships a bridge manifest pinning its vendor CLI, and those pins
+// trail the models Haus offers: at @ai-sdk/harness-codex 1.0.115 the bridge
+// still pins @openai/codex-sdk 0.149.1, which answers `gpt-6-astra` with
+// "requires a newer version of Codex" (0.153.0 is the first that serves it),
+// and at @ai-sdk/harness-claude-code 1.0.117 it pins @anthropic-ai/claude-code
+// 2.1.245, which rejects `claude-fable-5-1` below 2.1.251. So Computer owns the
+// manifest and lockfile for both bridges and takes only the adapter's bridge
+// code from the package. DELETE these overrides — and go back to importing both
+// files from the package — once the published bridges pin vendors at or above
+// those floors. The bridge recipe is content-fingerprinted, so changing a pin
+// here invalidates every stored bootstrap on its own.
+import claudeCodePackage from '../../assets/harness-bridges/claude-code/package.json' with {
+    type: 'text',
+};
+import claudeCodeLockfile from '../../assets/harness-bridges/claude-code/pnpm-lock.yaml' with {
+    type: 'text',
+};
 import codexPackage from '../../assets/harness-bridges/codex/package.json' with { type: 'text' };
 import codexLockfile from '../../assets/harness-bridges/codex/pnpm-lock.yaml' with { type: 'text' };
 // @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
 import claudeCodeBridge from '../../node_modules/@ai-sdk/harness-claude-code/dist/bridge/index.mjs' with {
-    type: 'text',
-};
-import claudeCodePackage from '../../node_modules/@ai-sdk/harness-claude-code/dist/bridge/package.json' with {
-    type: 'text',
-};
-import claudeCodeLockfile from '../../node_modules/@ai-sdk/harness-claude-code/dist/bridge/pnpm-lock.yaml' with {
     type: 'text',
 };
 // @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
