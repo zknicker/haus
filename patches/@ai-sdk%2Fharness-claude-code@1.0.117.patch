@@ -1,0 +1,81 @@
+diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
+index 6792ce0961034e992b3f5f4367d316680dec2cf3..d3d789f24cf285141de8c77684baa504ad6f616e 100644
+--- a/dist/bridge/index.mjs
++++ b/dist/bridge/index.mjs
+@@ -1622,6 +1622,7 @@ async function runTurn(start, turn) {
+   };
+   let turnUsage;
+   let totalCostUsd;
++  let planUsage;
+   let emittedTerminalError = false;
+   let emittedTerminalFinish = false;
+   const emitTerminalError = (message) => {
+@@ -1697,6 +1698,12 @@ async function runTurn(start, turn) {
+           }
+           queryInput.observeResult();
+           if (!queryInput.hasActiveUserMessages()) {
++            if (start.env?.HAUS_CLAUDE_USAGE_REFRESH === "1") {
++              try {
++                planUsage = await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
++              } catch {
++              }
++            }
+             queryInput.close();
+             break;
+           }
+@@ -1736,10 +1743,11 @@ async function runTurn(start, turn) {
+     type: "finish",
+     finishReason: { unified: "stop", raw: "stop" },
+     totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
+-    ...totalCostUsd !== void 0 || lastClaudeSessionId !== void 0 ? {
++    ...totalCostUsd !== void 0 || lastClaudeSessionId !== void 0 || planUsage !== void 0 ? {
+       harnessMetadata: {
+         "claude-code": {
+           ...totalCostUsd !== void 0 ? { costUsd: totalCostUsd } : {},
++          ...planUsage !== void 0 ? { planUsage } : {},
+           // The conversation this turn belongs to, resumable outside the
+           // SDK with `claude --resume <sessionId>` and captured by the
+           // adapter for exact cross-process resume.
+diff --git a/src/bridge/index.ts b/src/bridge/index.ts
+index 26465987ea151162335a86af0added3e66b11f76..4e9f9d168dff51aa5e31b8d482594e768dad5216 100644
+--- a/src/bridge/index.ts
++++ b/src/bridge/index.ts
+@@ -547,6 +547,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+   };
+   let turnUsage: Record<string, unknown> | undefined;
+   let totalCostUsd: number | undefined;
++  let planUsage: Record<string, unknown> | undefined;
+   let emittedTerminalError = false;
+   let emittedTerminalFinish = false;
+ 
+@@ -648,6 +649,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+           }
+           queryInput.observeResult();
+           if (!queryInput.hasActiveUserMessages()) {
++            if (start.env?.HAUS_CLAUDE_USAGE_REFRESH === '1') {
++              try {
++                planUsage =
++                  await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
++              } catch {
++                // Usage evidence is auxiliary; never fail an Agent turn for it.
++              }
++            }
+             queryInput.close();
+             break;
+           }
+@@ -709,11 +718,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+     type: 'finish',
+     finishReason: { unified: 'stop', raw: 'stop' },
+     totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
+-    ...(totalCostUsd !== undefined || lastClaudeSessionId !== undefined
++    ...(totalCostUsd !== undefined ||
++    lastClaudeSessionId !== undefined ||
++    planUsage !== undefined
+       ? {
+           harnessMetadata: {
+             'claude-code': {
+               ...(totalCostUsd !== undefined ? { costUsd: totalCostUsd } : {}),
++              ...(planUsage !== undefined ? { planUsage } : {}),
+               // The conversation this turn belongs to, resumable outside the
+               // SDK with `claude --resume <sessionId>` and captured by the
+               // adapter for exact cross-process resume.

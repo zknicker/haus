@@ -1,8 +1,8 @@
 diff --git a/dist/index.js b/dist/index.js
-index c890d7093..a1a227c66 100644
+index 3ac42debf696ece30398ac1726d053cf2506c44a..cfb82d186bbe6b646c7ddba7426b1e8ddaae4234 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -457,6 +457,15 @@ async function registerCustomProviders({
+@@ -520,6 +520,15 @@ async function registerCustomProviders({
      if (!baseUrl) {
        continue;
      }
@@ -18,12 +18,12 @@ index c890d7093..a1a227c66 100644
      await register({
        registries,
        provider,
-@@ -464,7 +473,8 @@ async function registerCustomProviders({
-       config: {
+@@ -528,7 +537,8 @@ async function registerCustomProviders({
          apiKey,
          baseUrl,
--        authHeader: true
-+        authHeader: true,
+         authHeader: true,
+-        ...headers ? { headers } : {}
++        ...headers ? { headers } : {},
 +        ...models ? { models } : {}
        }
      });

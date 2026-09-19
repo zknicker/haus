@@ -1,0 +1,266 @@
+diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
+index 9770d846a1c76534879f6cf90963208e84efbd32..a42fdfe7aca9b4f52a2cc70f45cf142c3b1c64e1 100644
+--- a/dist/bridge/index.mjs
++++ b/dist/bridge/index.mjs
+@@ -949,6 +949,23 @@ function captureACPStream({ stream }) {
+     }
+   };
+ }
++function readGrokTurnUsage(usage) {
++  if (!isRecord2(usage)) return void 0;
++  for (const field of ["inputTokens", "outputTokens", "totalTokens"]) {
++    if (!Number.isSafeInteger(usage[field]) || usage[field] < 0) return void 0;
++  }
++  for (const field of ["cachedReadTokens", "cacheCreationTokens", "reasoningTokens"]) {
++    if (usage[field] != null && (!Number.isSafeInteger(usage[field]) || usage[field] < 0)) return void 0;
++  }
++  return {
++    inputTokens: usage.inputTokens,
++    outputTokens: usage.outputTokens,
++    totalTokens: usage.totalTokens,
++    cachedReadTokens: usage.cachedReadTokens,
++    cachedWriteTokens: usage.cacheCreationTokens,
++    thoughtTokens: usage.reasoningTokens
++  };
++}
+ function getRawSessionUpdate({ message }) {
+   const record = message;
+   if (record.method !== "session/update" || !isRecord2(record.params)) {
+@@ -3783,6 +3800,11 @@ async function runTurn(start, turn) {
+     removeCorrelationInvocation: emitStreamEvent.removeHostToolCorrelationInvocation
+   };
+   activeHostToolRelay.bindTurn({ turn: relayTurn });
++  let markInterjectionReady;
++  const interjectionReady = new Promise((resolve) => {
++    markInterjectionReady = resolve;
++  });
++  let acceptingInterjections = true;
+   try {
+     const promptMeta = createOutputSchemaPromptMeta({ start });
+     const startPrompt = () => promptActiveSession({
+@@ -3810,6 +3832,25 @@ async function runTurn(start, turn) {
+     } else {
+       void startPrompt();
+     }
++    if (bridgeType === "grok-build") {
++      void (async () => {
++        for await (const message of turn.experimental_userMessages) {
++          try {
++            await interjectionReady;
++            if (!acceptingInterjections || connection == null) {
++              throw new Error("Grok turn ended before interjection.");
++            }
++            await connection.agent.request("_x.ai/interject", {
++              sessionId: activeSession.sessionId,
++              text: message.text
++            });
++            message.accept();
++          } catch (error) {
++            message.reject(error);
++          }
++        }
++      })();
++    }
+     if (turn.abortSignal.aborted) {
+       await cancel();
+     } else {
+@@ -3837,6 +3878,8 @@ async function runTurn(start, turn) {
+         });
+       }
+       if (message.kind === "session_update") {
++        markInterjectionReady?.();
++        markInterjectionReady = void 0;
+         const captured = streamCapture?.takeForUpdate({
+           update: message.update
+         });
+@@ -3852,9 +3895,17 @@ async function runTurn(start, turn) {
+       for (const rawValue of streamCapture?.drainRawValues() ?? []) {
+         emitStreamEvent.raw({ rawValue });
+       }
++      if (bridgeType === "grok-build" && message.kind === "stop" && message.response.usage == null) {
++        const usage = readGrokTurnUsage(message.response._meta?.usage);
++        if (usage != null) {
++          message = { ...message, response: { ...message.response, usage } };
++        }
++      }
+       if (emitStreamEvent.message({ message })) return;
+     }
+   } finally {
++    acceptingInterjections = false;
++    markInterjectionReady?.();
+     if (activeQuestionRequest?.turn === turn) {
+       activeQuestionRequest = void 0;
+     }
+@@ -3925,7 +3976,7 @@ async function ensureSession({
+     }
+   });
+   child = spawn(
+-    `${implementationDir}/${implementation.executablePath}`,
++    implementation.local ? implementation.executablePath : `${implementationDir}/${implementation.executablePath}`,
+     [...implementation.args],
+     {
+       cwd: workDir,
+@@ -4321,11 +4372,12 @@ async function readImplementationDescriptor({
+   const value = await new Response(text, {
+     headers: { "content-type": "application/json" }
+   }).json();
+-  if (!isRecord7(value) || typeof value.executablePath !== "string" || typeof value.privateHome !== "boolean" || !Array.isArray(value.args) || !value.args.every((item) => typeof item === "string") || !Array.isArray(value.envKeys) || !value.envKeys.every((item) => typeof item === "string")) {
++  if (!isRecord7(value) || typeof value.executablePath !== "string" || typeof value.local !== "boolean" || typeof value.privateHome !== "boolean" || !Array.isArray(value.args) || !value.args.every((item) => typeof item === "string") || !Array.isArray(value.envKeys) || !value.envKeys.every((item) => typeof item === "string")) {
+     throw new Error("Invalid ACP implementation descriptor.");
+   }
+   return {
+     executablePath: value.executablePath,
++    local: value.local,
+     privateHome: value.privateHome,
+     args: value.args,
+     envKeys: value.envKeys
+diff --git a/dist/bridge/package.json b/dist/bridge/package.json
+index 40387def2f1bc8da5ad7c4de15696eee0642d527..7e0dae9df04ad5dd642db041222a50de171afee9 100644
+--- a/dist/bridge/package.json
++++ b/dist/bridge/package.json
+@@ -3,6 +3,7 @@
+   "version": "0.0.0",
+   "private": true,
+   "type": "module",
++  "packageManager": "pnpm@10.32.1",
+   "dependencies": {
+     "@agentclientprotocol/sdk": "1.4.0",
+     "@modelcontextprotocol/sdk": "1.30.0",
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 3bb6054752f78c8942bb9696072c921cbada74e7..7761f498728df0954952ed28b493dbd7cbaea2ce 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -133,7 +133,10 @@ type ACPInstallCommandSource = {
+     readonly type: 'install-command';
+     readonly command: string;
+ };
+-type ACPSource = ACPNpmSimpleSource | ACPNpmLockedSource | ACPInstallCommandSource;
++type ACPLocalSource = {
++    readonly type: 'local';
++};
++type ACPSource = ACPLocalSource | ACPNpmSimpleSource | ACPNpmLockedSource | ACPInstallCommandSource;
+ type ACPAuthentication = {
+     readonly methodId: string;
+     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
+diff --git a/dist/index.js b/dist/index.js
+index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..8d473fa95288d40a54b4c2b60fd3dd3e78c32e8a 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -12,7 +12,12 @@ import {
+   harnessV1DiagnosticFromBridgeFrame
+ } from "@ai-sdk/harness";
+ import { HarnessBridgeCapabilityUnsupportedError } from "@ai-sdk/harness/bridge";
++import acpBridge from "./bridge/index.mjs" with { type: "text" };
++import acpHostToolMcp from "./bridge/host-tool-mcp.mjs" with { type: "text" };
++import acpPackageJson from "./bridge/package.json" with { type: "text" };
++import acpPnpmLock from "./bridge/pnpm-lock.yaml" with { type: "text" };
+ import {
++  experimental_createBridgeUserMessageSubmitter,
+   applyCredentialForwarding,
+   createBridgeToken,
+   createBridgeErrorHandler,
+@@ -232,6 +237,7 @@ function validateACPV1Implementation(implementation) {
+     }
+   } else if (source.type === "npm-simple") {
+     validateNpmSimpleSource({ source });
++  } else if (source.type === "local") {
+   } else if (source.command.trim().length === 0) {
+     throw new Error("ACP source.command must not be empty.");
+   }
+@@ -269,7 +275,7 @@ function createImplementationManifest({
+   implementation
+ }) {
+   const { source } = implementation;
+-  if (source.type === "install-command") return void 0;
++  if (source.type === "install-command" || source.type === "local") return void 0;
+   if (source.type === "npm-locked") {
+     return source.packageJson;
+   }
+@@ -304,7 +310,8 @@ function createImplementationDescriptor({
+ }) {
+   return JSON.stringify(
+     {
+-      executablePath: implementation.source.type === "install-command" ? `home/.local/bin/${implementation.executable}` : `node_modules/.bin/${implementation.executable}`,
++      executablePath: implementation.source.type === "local" ? implementation.executable : implementation.source.type === "install-command" ? `home/.local/bin/${implementation.executable}` : `node_modules/.bin/${implementation.executable}`,
++      local: implementation.source.type === "local",
+       privateHome: implementation.source.type === "install-command",
+       args: implementation.args ?? [],
+       envKeys: getImplementationEnvironmentKeys({ implementation })
+@@ -333,6 +340,8 @@ function createImplementationIdentity({
+     type: source.type,
+     packageName: source.packageName,
+     ...source.packageVersion == null ? {} : { packageVersion: source.packageVersion }
++  } : source.type === "local" ? {
++    type: source.type
+   } : {
+     type: source.type,
+     command: source.command
+@@ -483,9 +492,16 @@ function sortValue({ value }) {
+ 
+ // src/v1/acp-v1-bootstrap.ts
+ import { createReadBridgeAsset } from "@ai-sdk/harness/utils";
+-var readBridgeAsset = createReadBridgeAsset({
++var embeddedBridgeAssets = {
++  "host-tool-mcp.mjs": acpHostToolMcp,
++  "index.mjs": acpBridge,
++  "package.json": acpPackageJson,
++  "pnpm-lock.yaml": acpPnpmLock
++};
++var readBridgeAssetFromDisk = createReadBridgeAsset({
+   resolveAssetUrl: (name) => new URL(`./bridge/${name}`, import.meta.url)
+ });
++var readBridgeAsset = async (name) => embeddedBridgeAssets[name] ?? await readBridgeAssetFromDisk(name);
+ function createACPBootstrap({
+   harnessId,
+   implementation
+@@ -562,15 +578,15 @@ function createACPBootstrap({
+         ],
+         commands: [
+           {
+-            command: "pnpm install --frozen-lockfile --store-dir .pnpm-store"
++            command: "pnpm install --ignore-workspace --frozen-lockfile --store-dir .pnpm-store"
+           },
+-          {
++          ...implementation.source.type === "local" ? [] : [{
+             command: createImplementationInstallCommand({
+               implementationDir: "implementation",
+               storeDir: "../.pnpm-store",
+               implementation
+             })
+-          }
++          }]
+         ]
+       };
+       return cachedBootstrap;
+@@ -2063,6 +2079,11 @@ function createSession({
+     const toolCallClassificationErrors = /* @__PURE__ */ new Map();
+     const activeQuestionRequests = /* @__PURE__ */ new Map();
+     const questionToolCallIdsByRequestId = /* @__PURE__ */ new Map();
++    const userMessageSubmitter = harnessId === "grok-build" ? experimental_createBridgeUserMessageSubmitter({
++      send: (message) => channel.send(message),
++      onResponse: (listener) => channel.on("user-message-response", listener),
++      onReconnect: (listener) => channel.onReconnect(listener)
++    }) : void 0;
+     const subscriptions = [];
+     const forward = (event) => {
+       if (event.type === "text-start" || event.type === "reasoning-start") {
+@@ -2109,6 +2130,7 @@ function createSession({
+     const settle = ({ error }) => {
+       if (settled) return;
+       settled = true;
++      userMessageSubmitter?.close(error);
+       cleanup();
+       if (error === void 0) resolveDone();
+       else rejectDone(error);
+@@ -2364,6 +2386,11 @@ function createSession({
+           toolResult: input.toolResult
+         });
+       },
++      ...userMessageSubmitter == null ? {} : {
++        submitUserMessage: async (text) => {
++          await userMessageSubmitter.submit(text);
++        }
++      },
+       done
+     };
+   };

@@ -1,8 +1,8 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 7c8c68768..b4ae3d66b 100644
+index 80e17085eaab30dc88747df1b423047165b6886a..b5697d98beb4041396ca691d5436cd572163cad6 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -876,9 +876,8 @@ function createEmitStreamEvent({
+@@ -930,9 +930,8 @@ function createEmitStreamEvent({
        return;
      }
      if (event.type === "error") {
@@ -15,10 +15,10 @@ index 7c8c68768..b4ae3d66b 100644
        return;
      }
 diff --git a/src/bridge/create-emit-stream-event.ts b/src/bridge/create-emit-stream-event.ts
-index 7fd6d8a27..0840331c0 100644
+index 337bbedc4a217dbab4542659314417ca55300508..1c46fcec378dd060d0ae7ced8b85af6c0a7ba03e 100644
 --- a/src/bridge/create-emit-stream-event.ts
 +++ b/src/bridge/create-emit-stream-event.ts
-@@ -96,9 +96,8 @@ export function createEmitStreamEvent({
+@@ -100,9 +100,8 @@ export function createEmitStreamEvent({
        return;
      }
      if (event.type === 'error') {

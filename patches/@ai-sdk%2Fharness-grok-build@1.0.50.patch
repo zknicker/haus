@@ -1,0 +1,16 @@
+diff --git a/dist/index.js b/dist/index.js
+index c9dd838e2780fa508e24511b79d53d77c80f9413..62b69873404a1582317201871b4d7c1fed7db188 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -501,10 +501,7 @@ function createGrokBuild(settings = {}) {
+       version: clientAppVersion
+     },
+     source: {
+-      type: "npm-locked",
+-      packageJson: GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON,
+-      pnpmLockYaml: GROK_BUILD_IMPLEMENTATION_PNPM_LOCK,
+-      pnpmWorkspaceYaml: GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE
++      type: "local"
+     },
+     executable: "grok",
+     args: [
