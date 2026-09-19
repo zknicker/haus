@@ -40,6 +40,39 @@ inside the three-day `minimumReleaseAge` window needs its package added to
 `frozenLockfile = false` is a temporary flip that gets restored in the same
 change. Rerun `bun run setup:worktree` afterwards.
 
+## Runtime Harness Upgrades
+
+The `@ai-sdk/harness*` packages version in lockstep: every adapter pins one
+exact `@ai-sdk/harness`, and `harness-grok-build` pins one exact
+`harness-acp`. Bump the whole set to versions that agree, and prefer the newest
+set whose transitive `ai`, `@ai-sdk/provider`, and `@ai-sdk/harness-acp` are
+themselves outside the three-day `minimumReleaseAge` window — the adapters are
+excluded from that hold in `bunfig.toml`, their transitive dependencies are not.
+
+Every adapter is patched locally, and each `patchedDependencies` key carries an
+exact version, so an upgrade regenerates all five patches with `bun patch`
+rather than renaming the files. The patch contents are contracts covered by
+`apps/computer/src/harness/bridge-bootstrap.test.ts`, which greps the built
+bridge text: if a patch silently stops applying, that test fails first.
+
+Each adapter also ships a bridge manifest pinning the vendor CLI it installs,
+and those pins trail the models Haus offers. Computer therefore owns the
+manifest and lockfile for both bridged runtimes in
+`apps/computer/assets/harness-bridges/<runtime>/`, taking only the bridge code
+from the package. Regenerate a lockfile with
+`corepack pnpm@10.32.1 install --ignore-workspace --lockfile-only` beside the
+edited manifest. Drop an override once the published bridge pins that vendor at
+or above the floor Haus needs; the bootstrap recipe is content-fingerprinted,
+so changing a pin re-runs every Agent's bridge install on its own.
+
+Adding a model is one entry in `apps/computer/src/inventory.ts`. Nothing
+validates a model id against the vendor, so prove a new one end to end through
+the harness lane before shipping it:
+
+```bash
+bun scripts/visuals-eval/run.mjs --model codex/<model> --runner harness --only week-over-week
+```
+
 ## Local Stack
 
 Run the managed development stack:

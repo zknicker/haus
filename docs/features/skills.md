@@ -12,6 +12,12 @@ Each Agent has one canonical, writable library. The harness and native skill
 paths read that exact directory, so an Agent never executes the operator's
 global skills or another Agent's library by accident.
 
+Every runtime reaches the library through its own native skill directory, which
+Computer links to the library when it prepares the Agent home. Computer never
+asks the harness to materialize a second copy: the harness only overwrites skill
+directories it owns, and the canonical library is not one of them. The turn
+prompt still names the library's skills so an Agent knows what it can activate.
+
 ## Importing
 
 An attached Computer reports compact metadata for skill bundles installed in
