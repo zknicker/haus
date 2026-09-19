@@ -5,7 +5,6 @@ import type {
     HarnessAgent,
     HarnessAgentResumeSessionState,
     HarnessAgentSession,
-    HarnessAgentSkill,
 } from '@ai-sdk/harness/agent';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
@@ -191,6 +190,7 @@ async function executeHarnessTurn(
     journal: ComputerExecutionJournal
 ): Promise<HarnessTurnResult> {
     const timings = input.turnTimings ?? new AgentTurnTimings();
+    // For the prompt's activation hints; runtimes read the library natively.
     const skills = await readAgentSkills(input.skillsDir);
     // A changed managed-instruction fingerprint restarts the adapter, preserving conversation.
     const { fingerprint: instructionFingerprint, instructions } = composeAgentInstructions({
@@ -203,7 +203,6 @@ async function executeHarnessTurn(
     });
     const harness = createHarnessForRuntime(
         input.runtimeId,
-        input.modelId,
         input.reasoningEffort,
         input.webAccess !== null,
         bridgeStoreDirForHost()
@@ -223,7 +222,6 @@ async function executeHarnessTurn(
     const agent = (effectiveInput.harnessAgentFactory ?? harnessAgentFactory)(effectiveInput, {
         harness,
         instructions,
-        skills,
     });
     let live: HarnessAgentSession | undefined;
     const instructionActivityKey = 'instructions';
@@ -791,7 +789,7 @@ function finishProjector(
 // Tests inject a fake Agent at this construction seam.
 export type HarnessAgentFactory = (
     input: HarnessTurnInput,
-    options: { harness: HarnessV1<ToolSet>; instructions: string; skills: HarnessAgentSkill[] }
+    options: { harness: HarnessV1<ToolSet>; instructions: string }
 ) => Pick<HarnessAgent, 'createSession' | 'stream'>;
 
 let harnessAgentFactory: HarnessAgentFactory = createHarnessAgent;
@@ -816,9 +814,13 @@ export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRe
     };
 }
 
+/**
+ * Builds the runtime adapter. The model is no longer an adapter setting: it
+ * rides on the Agent instead (`HarnessAgent`'s `model`), so one adapter serves
+ * every model on its runtime.
+ */
 export function createHarnessForRuntime(
     runtimeId: string,
-    modelId: string,
     reasoningEffort: AgentReasoningEffort,
     webAccess = false,
     storeDir?: string
@@ -830,7 +832,6 @@ export function createHarnessForRuntime(
                     // CLI-only output makes every send/check a tool call, so turns
                     // legitimately run long tool loops.
                     maxTurns: 50,
-                    model: modelId,
                     effort: reasoningEffort,
                 }),
                 'claude-code',
@@ -839,7 +840,6 @@ export function createHarnessForRuntime(
         case 'codex':
             return withComputerBridgeBootstrap(
                 createCodex({
-                    model: modelId,
                     reasoningEffort,
                     ...(webAccess ? { webSearch: true } : {}),
                 }),
@@ -847,10 +847,9 @@ export function createHarnessForRuntime(
                 { storeDir }
             ) as HarnessV1<ToolSet>;
         case 'grok-build':
-            return createGrokBuild({ model: modelId }) as HarnessV1<ToolSet>;
+            return createGrokBuild() as HarnessV1<ToolSet>;
         case 'pi':
             return createPi({
-                model: modelId,
                 thinkingLevel: reasoningEffort,
             }) as HarnessV1<ToolSet>;
         default:

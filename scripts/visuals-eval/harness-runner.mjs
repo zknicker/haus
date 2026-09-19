@@ -22,7 +22,6 @@ export const createHarnessRunner = ({
     modelId,
     reasoningEffort,
     runtimeId,
-    skills,
     workspaceDir,
 }) => {
     const runtime = makeDaemonRuntime();
@@ -31,6 +30,7 @@ export const createHarnessRunner = ({
             agentId: 'agt_visuals_eval',
             env: { PATH: [path.dirname(executable.path), executable.searchPath].join(':') },
             homeDir,
+            modelId,
             runtime,
             runtimeId,
             tools: {},
@@ -40,13 +40,11 @@ export const createHarnessRunner = ({
         {
             harness: createHarnessForRuntime(
                 runtimeId,
-                modelId,
                 reasoningEffort,
                 false,
                 bridgeStoreDirForHost()
             ),
             instructions: evalInstructions,
-            skills,
         }
     );
 

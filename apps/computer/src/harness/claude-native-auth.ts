@@ -3,20 +3,32 @@ import { ClaudeUsageAuthError, loadClaudeCredentials } from '@haus/claude-usage'
 
 type ClaudeSettings = Pick<
     NonNullable<Parameters<typeof createClaudeCode>[0]>,
-    'model' | 'effort' | 'maxTurns'
+    'effort' | 'maxTurns'
 >;
 
-/** Resolve the host login at each native start, keeping Agent homes isolated. */
-export function createComputerClaudeCode(settings: ClaudeSettings) {
+/**
+ * Resolve the host login at each native start, keeping Agent homes isolated.
+ *
+ * The credential rides the `auth` option as an isolated authentication
+ * environment. That is not a detail: given any other value the adapter goes
+ * looking for the host's Claude subscription itself and spends its rotating
+ * refresh token behind Computer's back, which then fails every turn with an
+ * OAuth 400. A supplied environment is the one shape it will not second-guess.
+ */
+export function createComputerClaudeCode(
+    settings: ClaudeSettings,
+    // Construction seam for boundary tests; production uses the real adapter.
+    { createAdapter = createClaudeCode, readEnvironment = claudeNativeEnvironment } = {}
+) {
     return {
-        ...createClaudeCode(settings),
+        ...createAdapter(settings),
         doStart: async (options: Parameters<ReturnType<typeof createClaudeCode>['doStart']>[0]) => {
-            const env = await claudeNativeEnvironment();
+            const env = await readEnvironment();
             const sandbox = options.sandboxSession;
             // The bridge persists turn settings; credentials belong only in its process environment.
             const spawn: typeof sandbox.spawn = (command) =>
                 sandbox.spawn({ ...command, env: { ...command.env, ...env } });
-            return createClaudeCode({ ...settings, auth: 'direct' }).doStart({
+            return createAdapter({ ...settings, auth: env }).doStart({
                 ...options,
                 sandboxSession: {
                     ...sandbox,

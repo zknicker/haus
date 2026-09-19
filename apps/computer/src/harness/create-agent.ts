@@ -1,6 +1,6 @@
 import { basename, dirname, join } from 'node:path';
 import type { HarnessV1 } from '@ai-sdk/harness';
-import { HarnessAgent, type HarnessAgentSkill } from '@ai-sdk/harness/agent';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { HarnessTurnInput } from './executor.ts';
 import { inactiveWebToolSettings } from './runtime-web-tools.ts';
@@ -8,23 +8,38 @@ import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 type AgentConstructionInput = Pick<
     HarnessTurnInput,
-    'agentId' | 'env' | 'homeDir' | 'runtime' | 'runtimeId' | 'tools' | 'webAccess' | 'workspaceDir'
+    | 'agentId'
+    | 'env'
+    | 'homeDir'
+    | 'modelId'
+    | 'runtime'
+    | 'runtimeId'
+    | 'tools'
+    | 'webAccess'
+    | 'workspaceDir'
 >;
 
+/**
+ * The Agent's skills are deliberately not handed to the harness. Every runtime
+ * reads its native skill directory, and `ensureNativeSkillLinks` already points
+ * those at the one canonical library, so asking the harness to materialize its
+ * own copies would write the library back over itself — which the harness now
+ * refuses, since it only overwrites skill directories it owns.
+ */
 export function createHarnessAgent(
     input: AgentConstructionInput,
-    options: { harness: HarnessV1<ToolSet>; instructions: string; skills: HarnessAgentSkill[] }
+    options: { harness: HarnessV1<ToolSet>; instructions: string }
 ): HarnessAgent {
     return new HarnessAgent({
         harness: options.harness,
         id: input.agentId,
         ...inactiveWebToolSettings(options.harness, input),
         instructions: options.instructions,
+        model: input.modelId,
         permissionMode: 'allow-all',
         sandbox: createLocalTrustedSandboxProvider(sandboxOptions(input)),
         // Anchor at the parent so the workDir remains visible to workspace browsing.
         sandboxConfig: { workDir: basename(input.workspaceDir) },
-        skills: options.skills,
         tools: input.tools,
     });
 }
