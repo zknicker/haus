@@ -98,6 +98,25 @@ for (const content of [
     });
 }
 
+/**
+ * The bytes a real eval run produced: the model glued the opener to the end of
+ * its last sentence. The reply has to read as prose, chart, prose — not as the
+ * chart's markup pasted into the transcript.
+ */
+test('a fence glued to the end of a sentence renders as a chart, not as markup', async () => {
+    const page = await renderReply(
+        'Monday closed at $750.```visual Sales through Sep 14\n<p>Chart</p>\n```\n\nMCP is up.'
+    );
+    const segments = page.locator('.chat-reply-segments > *');
+
+    expect(await segments.count()).toBe(3);
+    expect(await segments.nth(0).textContent()).toBe('Monday closed at $750.');
+    expect(await page.locator('iframe').getAttribute('title')).toBe('Sales through Sep 14');
+    expect(await segments.nth(2).textContent()).toBe('MCP is up.');
+    expect(await page.locator('.chat-reply-segments').textContent()).not.toContain('<p>Chart</p>');
+    await page.close();
+});
+
 test('an open streaming visual renders after its introduction without exposing its fence', async () => {
     const page = await renderReply('Introduction.\n\n```visual In progress\n<p>Partial');
     expect(await page.locator('iframe').getAttribute('title')).toBe('In progress');

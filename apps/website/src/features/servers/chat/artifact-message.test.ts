@@ -16,6 +16,21 @@ test('extracts valid artifact cards while preserving surrounding chat text', () 
     ]);
 });
 
+test('cards an artifact fence the model glued to its prose and to its JSON', () => {
+    const content =
+        'The report is ready.```artifact\n{"path":"reports/summary.html","title":"Summary"}```\nOpen it any time.';
+    const segments = splitArtifactFences(content).map(({ key: _, ...segment }) => segment);
+
+    expect(segments).toEqual([
+        { end: 20, kind: 'text', start: 0, text: 'The report is ready.' },
+        {
+            kind: 'artifact',
+            props: { path: 'reports/summary.html', title: 'Summary' },
+        },
+        { end: content.length, kind: 'text', start: 84, text: '\nOpen it any time.' },
+    ]);
+});
+
 test('keeps malformed artifact fences visible as ordinary message text', () => {
     const content = '```artifact\n{"path":"notes.txt"}\n```';
 

@@ -44,8 +44,14 @@ export function ArtifactMessage({
     );
 }
 
+/**
+ * The `artifact` fence already reads mid-line — a model that glues the opener
+ * to the end of a sentence still gets a card — and the terminator is now as
+ * forgiving as the visual one: it closes whether it stands on its own line or
+ * is glued to the end of the JSON. Text on either side stays message text.
+ */
 export function splitArtifactFences(content: string): ArtifactMessageSegment[] {
-    const fence = /```artifact[^\S\r\n]*\r?\n([\s\S]*?)\r?\n```/gu;
+    const fence = /```artifact[^\S\r\n]*\r?\n([\s\S]*?)\r?\n?[ \t]*```/gu;
     const segments: ArtifactMessageSegment[] = [];
     let cursor = 0;
 
