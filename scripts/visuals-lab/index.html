@@ -1,0 +1,1619 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Visuals lab</title>
+        <style>
+        :root {
+            --bg: #fbfbfa;
+            --surface: #fff;
+            --border: #e3e2df;
+            --text: #1b1a18;
+            --muted: #74716b;
+            --accent: #2f6f4f;
+            --warn: #9a6a20;
+            --bad: #a8402f;
+            --chip: #f1f0ed;
+            --radius: 10px;
+            color-scheme: light dark;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #131313;
+                --surface: #1c1c1c;
+                --border: #2e2e2e;
+                --text: #ececea;
+                --muted: #93908a;
+                --accent: #6bbd90;
+                --warn: #d6a75c;
+                --bad: #e08a78;
+                --chip: #262626;
+            }
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html,
+        body {
+            max-width: 100%;
+        }
+        body {
+            margin: 0;
+            font:
+                14px / 1.45 -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                system-ui,
+                sans-serif;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        /* ── Top bar ─────────────────────────────────────────────────────────── */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 20px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+        }
+        h1 {
+            margin: 0 6px 0 0;
+            font-size: 14px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+        .spacer {
+            flex: 1 1 20px;
+        }
+        .seg {
+            display: inline-flex;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .seg button {
+            padding: 4px 11px;
+            font: inherit;
+            color: var(--muted);
+            white-space: nowrap;
+            cursor: pointer;
+            background: transparent;
+            border: 0;
+        }
+        .seg button + button {
+            border-left: 1px solid var(--border);
+        }
+        .seg button[aria-pressed="true"] {
+            font-weight: 600;
+            color: var(--text);
+            background: var(--chip);
+        }
+        button.plain {
+            padding: 4px 11px;
+            font: inherit;
+            color: var(--text);
+            white-space: nowrap;
+            cursor: pointer;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        button.plain:hover {
+            background: var(--chip);
+        }
+        button.plain:disabled {
+            cursor: default;
+            opacity: 0.5;
+        }
+        .jobs {
+            font-size: 12.5px;
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .chip {
+            padding: 2px 9px;
+            font-size: 11.5px;
+            color: var(--muted);
+            white-space: nowrap;
+            background: var(--chip);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+        }
+        .chip.money {
+            color: var(--warn);
+            border-color: color-mix(in srgb, var(--warn) 40%, var(--border));
+        }
+        .jobs.busy {
+            color: var(--text);
+        }
+        .width {
+            display: inline-flex;
+            gap: 7px;
+            align-items: center;
+            padding: 3px 9px;
+            font-size: 12.5px;
+            color: var(--muted);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .width input {
+            width: 92px;
+            accent-color: var(--muted);
+        }
+        .width b {
+            min-width: 28px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+        .menu {
+            position: relative;
+            display: inline-block;
+        }
+        .menuitems {
+            position: absolute;
+            top: calc(100% + 5px);
+            right: 0;
+            display: none;
+            min-width: 190px;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+        }
+        .menu.open .menuitems {
+            display: block;
+        }
+        .menuitems button {
+            display: block;
+            width: 100%;
+            padding: 6px 12px;
+            font: inherit;
+            color: var(--text);
+            text-align: left;
+            cursor: pointer;
+            background: transparent;
+            border: 0;
+        }
+        .menuitems button:hover {
+            background: var(--chip);
+        }
+        .menuitems .group {
+            padding: 7px 12px 3px;
+            font-size: 10.5px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border-top: 1px solid var(--border);
+        }
+        .menuitems .group:first-child {
+            border-top: 0;
+        }
+        .menuitems .scope {
+            padding: 7px 12px;
+            font-size: 11.5px;
+            color: var(--muted);
+            background: var(--chip);
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* ── Tab rows ────────────────────────────────────────────────────────── */
+        .tabrow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .tabrow button {
+            display: inline-flex;
+            gap: 7px;
+            align-items: center;
+            padding: 5px 11px;
+            font: inherit;
+            font-size: 13px;
+            color: var(--muted);
+            white-space: nowrap;
+            cursor: pointer;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .tabrow button:hover {
+            border-color: var(--muted);
+        }
+        .tabrow button[aria-pressed="true"] {
+            font-weight: 600;
+            color: var(--text);
+            border-color: var(--text);
+        }
+        .dots {
+            display: inline-flex;
+            gap: 3px;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--border);
+            border-radius: 50%;
+        }
+        .dot.queued {
+            background: transparent;
+            box-shadow: inset 0 0 0 1.5px var(--muted);
+        }
+        .dot.running {
+            background: var(--text);
+            animation: pulse 1.1s ease-in-out infinite;
+        }
+        .dot.ok {
+            background: var(--accent);
+        }
+        .dot.no-visual {
+            background: var(--warn);
+        }
+        .dot.error {
+            background: var(--bad);
+        }
+        @keyframes pulse {
+            50% {
+                opacity: 0.25;
+            }
+        }
+
+        #runs {
+            padding: 14px 20px 56px;
+        }
+        .ask {
+            max-width: 86ch;
+            padding-left: 11px;
+            margin: 10px 2px 16px;
+            font-size: 14.5px;
+            color: var(--text);
+            border-left: 2px solid var(--border);
+        }
+        .ask .slug {
+            display: block;
+            margin-bottom: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+        }
+        .rowlabel {
+            margin: 0 0 6px 2px;
+            font-size: 10.5px;
+            font-weight: 650;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+        }
+
+        /* ── Before | After ──────────────────────────────────────────────────── */
+        .pair {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, var(--shell-w, 736px)));
+            gap: 16px;
+            align-items: start;
+            justify-content: start;
+            margin-top: 18px;
+        }
+        @media (max-width: 1000px) {
+            .pair {
+                grid-template-columns: minmax(0, var(--shell-w, 736px));
+            }
+        }
+        .panel {
+            min-width: 0;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        .panel .bar {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+            padding: 7px 10px;
+        }
+        .variant {
+            font-size: 11px;
+            font-weight: 650;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+        }
+        .effort {
+            padding: 1px 4px;
+            font: inherit;
+            font-size: 11px;
+            color: var(--muted);
+            background: var(--chip);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+        .effort:hover {
+            color: var(--text);
+        }
+        .pill {
+            padding: 2px 8px;
+            font-size: 11px;
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+            background: var(--chip);
+            border-radius: 999px;
+        }
+        .pill.running {
+            font-weight: 600;
+            color: var(--text);
+        }
+        .pill.ok {
+            color: var(--accent);
+        }
+        .pill.no-visual {
+            color: var(--warn);
+        }
+        .pill.error {
+            color: var(--bad);
+        }
+        .facts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+            padding: 0 10px 8px;
+            font-size: 11.5px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .facts b {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+        .facts .reads {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+        }
+        .facts .reads .miss {
+            color: var(--warn);
+        }
+        .facts .reads .frag {
+            color: var(--text);
+        }
+        /* The product frame: page ground, a plain block at the reply column's width,
+   sandboxed iframe — no shell, matching visual-card.tsx. The Haus tokens are
+   scoped to .ground (see #tokens) so they never collide with the lab chrome's
+   own --surface/--border. */
+        .ground {
+            padding: 24px 28px 16px;
+            background: var(--background);
+        }
+        .shell {
+            width: 100%;
+            max-width: var(--shell-w, 736px);
+        }
+        .frame {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: 0;
+        }
+        .empty {
+            padding: 26px 12px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+        .caption {
+            padding: 0 16px 10px;
+            font-size: 11.5px;
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+        }
+        .links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 0 16px 12px;
+            font-size: 11px;
+        }
+        .links a {
+            color: var(--muted);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--border);
+        }
+        .links a:hover {
+            color: var(--text);
+        }
+
+        /* ── The reply prose under the frame, constrained to its column ──────── */
+        /* The reply shares the visual's ground and the app's own text tokens, so the
+   pair reads as one message on one background, the way it does in Haus. */
+        .reply {
+            --text: var(--foreground);
+            --muted: var(--muted-foreground);
+            padding: 0 28px 24px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text);
+            overflow-wrap: anywhere;
+            background: var(--background);
+        }
+        .reply.none {
+            font-size: 12px;
+            font-style: italic;
+            color: var(--muted);
+        }
+        .reply > :first-child {
+            margin-top: 0;
+        }
+        .reply > :last-child {
+            margin-bottom: 0;
+        }
+        .reply p,
+        .reply ul,
+        .reply ol,
+        .reply pre,
+        .reply blockquote,
+        .reply .tablewrap {
+            margin: 0 0 12px;
+        }
+        .reply h1,
+        .reply h2,
+        .reply h3,
+        .reply h4 {
+            margin: 16px 0 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .reply ul,
+        .reply ol {
+            padding-left: 20px;
+        }
+        .reply li {
+            margin-bottom: 4px;
+        }
+        .reply a {
+            color: var(--accent);
+        }
+        .reply img {
+            display: none;
+        }
+        .reply code {
+            padding: 1px 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 12.5px;
+            overflow-wrap: anywhere;
+            background: var(--chip);
+            border-radius: 4px;
+        }
+        .reply pre {
+            max-width: 100%;
+            padding: 10px 12px;
+            overflow-x: auto;
+            background: var(--chip);
+            border-radius: 8px;
+        }
+        .reply pre code {
+            padding: 0;
+            overflow-wrap: normal;
+            background: none;
+        }
+        .reply blockquote {
+            padding-left: 12px;
+            color: var(--muted);
+            border-left: 2px solid var(--border);
+        }
+        .reply hr {
+            margin: 16px 0;
+            border: 0;
+            border-top: 1px solid var(--border);
+        }
+        .reply .tablewrap {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .reply table {
+            min-width: 100%;
+            font-size: 13.5px;
+            border-collapse: collapse;
+        }
+        .reply th {
+            padding: 7px 12px;
+            font-weight: 500;
+            color: var(--text);
+            text-align: start;
+            white-space: nowrap;
+        }
+        .reply td {
+            padding: 7px 12px;
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .reply tr {
+            border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+        }
+        /* marked emits the alignment as an attribute; CSS would otherwise win over it. */
+        .reply th[align="right"],
+        .reply td[align="right"] {
+            text-align: right;
+        }
+        .reply th[align="center"],
+        .reply td[align="center"] {
+            text-align: center;
+        }
+
+        /* ── All models: the at-a-glance grid, PNGs so the page stays light ──── */
+        #overview {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 1180px;
+            margin-top: 18px;
+        }
+        .ovrow {
+            display: grid;
+            grid-template-columns: 132px minmax(0, 1fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+        }
+        .ovhead {
+            padding-bottom: 2px;
+            font-size: 10.5px;
+            font-weight: 650;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+        }
+        .ovname {
+            padding-top: 10px;
+        }
+        .ovname .label {
+            display: block;
+            font-weight: 650;
+        }
+        .ovname .effort {
+            display: block;
+            margin-top: 4px;
+        }
+        .ovcell {
+            display: block;
+            width: 100%;
+            padding: 0;
+            overflow: hidden;
+            font: inherit;
+            color: inherit;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        .ovcell:hover {
+            border-color: var(--muted);
+        }
+        .ovcell .line {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 9px;
+            font-size: 11.5px;
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+        }
+        /* Fit the capture to the cell's width and show all of it: how tall a result
+   runs is part of what is being compared, so nothing is cropped. */
+        .ovcell .thumbwrap {
+            padding: 20px 24px;
+            overflow: hidden;
+            background: var(--background);
+            border-top: 1px solid var(--border);
+        }
+        .ovcell .thumb {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        /* `blank`, not `none`: `none` is also a status, and a status class lands on the
+   pill — one `.none` lookup would then find the pill instead of this. */
+        .ovcell .blank {
+            padding: 20px 10px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── Fragments gallery ───────────────────────────────────────────────── */
+        #fragments {
+            display: grid;
+            grid-template-columns: 172px minmax(0, 1fr);
+            gap: 28px;
+            align-items: start;
+            padding: 16px 20px 56px;
+        }
+        #fragcheck {
+            grid-column: 1 / -1;
+            padding: 10px 13px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        #fragcheck .head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        #fragcheck .verdict {
+            font-size: 11.5px;
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+        }
+        #fragcheck .verdict.findings {
+            color: var(--bad);
+        }
+        #fragcheck .verdict.clean {
+            color: var(--accent);
+        }
+        #fragcheck pre {
+            max-height: 260px;
+            margin: 10px 0 0;
+            overflow: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 11.5px;
+            color: var(--muted);
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+        }
+        @media (max-width: 760px) {
+            #fragments {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+        #jump {
+            position: sticky;
+            top: 64px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        #jump a {
+            padding: 3px 8px;
+            font-size: 12.5px;
+            color: var(--muted);
+            text-decoration: none;
+            border-radius: 6px;
+        }
+        #jump a:hover {
+            color: var(--text);
+            background: var(--chip);
+        }
+        #jump .count {
+            float: right;
+            font-variant-numeric: tabular-nums;
+            opacity: 0.7;
+        }
+        #gallery {
+            min-width: 0;
+            max-width: var(--shell-w, 736px);
+        }
+        #gallery h2 {
+            margin: 28px 0 10px;
+            font-size: 11px;
+            font-weight: 650;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            scroll-margin-top: 72px;
+        }
+        #gallery h2:first-child {
+            margin-top: 0;
+        }
+        #gallery .frag {
+            margin-bottom: 14px;
+        }
+        #gallery .frag > .name {
+            margin: 0 0 6px 2px;
+            font-weight: 600;
+        }
+        #gallery .frag > .name span {
+            margin-left: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--muted);
+        }
+        /* A frame that has not scrolled into view yet reads as a waiting slot rather
+   than a black hole the size of a visual. */
+        #gallery .frame:not([srcdoc]) {
+            background: color-mix(in srgb, var(--muted) 12%, transparent);
+        }
+        #gallery .page {
+            padding: 12px 16px;
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        </style>
+        <style id="tokens"></style>
+    </head>
+    <body>
+        <header>
+            <h1>Visuals lab</h1>
+            <div class="seg" id="view"></div>
+            <div class="seg" id="theme"></div>
+            <label class="width"
+                >frame width
+                <input id="width" type="range" min="600" max="1000" step="8" value="736">
+                <b id="widthv">736</b>
+            </label>
+            <span class="spacer"></span>
+            <span
+                class="chip"
+                id="beforeref"
+                title="the before column runs the visuals skill as it was at this ref"
+            ></span>
+            <span
+                class="chip money"
+                title="every run is a real model turn on your own logins; nothing here is part of check, CI, or any agent workflow"
+                >real model turns · costs money</span
+            >
+            <span class="jobs" id="jobs">idle</span>
+            <div class="menu" id="runmenu">
+                <button class="plain" id="runmenu-btn" type="button">Run ▾</button>
+                <div class="menuitems">
+                    <div class="scope" id="runscope"></div>
+                    <div class="group">this question</div>
+                    <button data-scope="one" data-variant="before" type="button">
+                        Before only
+                    </button>
+                    <button data-scope="one" data-variant="after" type="button">After only</button>
+                    <button data-scope="one" data-variant="both" type="button">
+                        Both variants
+                    </button>
+                    <div class="group">all questions</div>
+                    <button data-scope="all" data-variant="before" type="button">
+                        Before only
+                    </button>
+                    <button data-scope="all" data-variant="after" type="button">After only</button>
+                    <button data-scope="all" data-variant="both" type="button">
+                        Both variants
+                    </button>
+                </div>
+            </div>
+            <button class="plain" id="checkfrags" type="button">Check all fragments</button>
+        </header>
+
+        <section id="runs">
+            <div class="rowlabel">question</div>
+            <nav class="tabrow" id="questions"></nav>
+            <p class="ask" id="ask"></p>
+            <div class="rowlabel">model</div>
+            <nav class="tabrow" id="models"></nav>
+            <div id="pair"></div>
+            <div id="overview"></div>
+        </section>
+
+        <section id="fragments" style="display:none">
+            <div id="fragcheck">
+                <div class="head">
+                    <b>Fragment check</b><span class="verdict" id="fragverdict">not run</span>
+                </div>
+                <pre id="fraglog" hidden></pre>
+            </div>
+            <nav id="jump"></nav>
+            <div id="gallery"></div>
+        </section>
+
+        <script type="module">
+        // ── View state. Question, model and view live in the hash so a reload keeps
+        // the place; theme and frame width are per-eye settings and stay local.
+        const view = { model: 'all', slug: null, tab: 'runs', theme: 'dark' };
+        let state = null;
+        // The reasoning effort each model will run at next. Seeded from the lineup's
+        // own default and held here, not in the URL: it is a knob for the next run,
+        // not a description of the results already on screen.
+        const efforts = new Map();
+        const effortSelects = new Map();
+        let chromeBuilt = false;
+        const panels = new Map();
+        const pairs = new Map();
+        const questionTabs = new Map();
+        const modelTabs = new Map();
+        const overviewRows = new Map();
+        const frames = new Set();
+
+        const titleCase = (slug) =>
+            slug.replaceAll('-', ' ').replace(/^./u, (c) => c.toUpperCase());
+
+        // The before column is the visuals skill as it was at a git ref — the newest
+        // release tag unless VISUALS_LAB_BEFORE_REF says otherwise. Say which, because
+        // a comparison against an unnamed "old skill" is not reproducible.
+        const beforeLabel = () => state.before.ref ?? 'unavailable';
+
+        // ── The size handshake, once for the whole page: a height report is only
+        // trusted from the frame that sent it, and clamped the way the card clamps.
+        addEventListener('message', (event) => {
+            const data = event.data;
+            if (data?.type !== 'haus-visual-size' || typeof data.height !== 'number') {
+                return;
+            }
+            for (const frame of frames) {
+                if (frame.contentWindow === event.source) {
+                    const { max, min } = state.frame.heights;
+                    frame.style.height = `${Math.min(max, Math.max(min, Math.round(data.height)))}px`;
+                    return;
+                }
+            }
+        });
+
+        // Each cell renders the card's own srcdoc — fetched as text and assigned to
+        // `srcdoc`, never `src`, so the document stays a sandboxed about:srcdoc frame
+        // with an opaque origin exactly like the product's.
+        const loadFrame = async (frame, url, key) => {
+            const doc = await fetch(url).then((response) => (response.ok ? response.text() : null));
+            if (doc === null || frame.dataset.key !== key) {
+                return;
+            }
+            frame.srcdoc = doc;
+        };
+
+        // The prose that shipped with the visual. The server strips the visual fence,
+        // so this is the rest of the message; tables get their own scroller so a wide
+        // one never widens the column.
+        const loadReply = async (host, replyUrl, key) => {
+            const rel = replyUrl.slice('/results/'.length);
+            const response = await fetch(`/api/reply?path=${encodeURIComponent(rel)}`).catch(
+                () => null
+            );
+            const html = response?.ok ? await response.text() : null;
+            if (host.dataset.key !== key) {
+                return;
+            }
+            host.classList.toggle('none', !html?.trim());
+            host.innerHTML = html?.trim() ? html : 'no reply text';
+            for (const table of host.querySelectorAll('table')) {
+                const wrap = document.createElement('div');
+                wrap.className = 'tablewrap';
+                table.replaceWith(wrap);
+                wrap.append(table);
+            }
+        };
+
+        // The ground behind the frame wears the same resolved tokens the frame gets,
+        // so a scheme switch repaints the page, not just the visual.
+        let tokensScheme = null;
+        const loadTokens = async () => {
+            const scheme = view.theme;
+            if (tokensScheme === scheme) {
+                return;
+            }
+            tokensScheme = scheme;
+            const css = await fetch(`/api/tokens?scheme=${scheme}`).then((response) =>
+                response.text()
+            );
+            if (tokensScheme !== scheme) {
+                return;
+            }
+            document.getElementById('tokens').textContent =
+                `.ground, .reply, .ovcell .thumbwrap { color-scheme: ${scheme};\n${css}\n}`;
+        };
+
+        const widthInput = document.getElementById('width');
+        const applyWidth = () => {
+            document.documentElement.style.setProperty('--shell-w', `${widthInput.value}px`);
+            document.getElementById('widthv').textContent = widthInput.value;
+        };
+        widthInput.oninput = applyWidth;
+        applyWidth();
+
+        const post = (url, body) =>
+            fetch(url, {
+                body: JSON.stringify(body),
+                headers: { 'content-type': 'application/json' },
+                method: 'POST',
+            }).then(() => refresh());
+
+        // ── Lookups over the polled state ───────────────────────────────────────
+        const jobFor = (modelId, variant, slug) => {
+            const matches = state.jobs.filter(
+                (job) =>
+                    job.model === modelId &&
+                    job.variant === variant &&
+                    (!job.only || job.only === slug)
+            );
+            return matches.at(-1) ?? null;
+        };
+
+        const entryFor = (modelId, variant, slug) =>
+            state.results[modelId]?.[variant]?.prompts.find((prompt) => prompt.slug === slug) ??
+            null;
+
+        /** One word for a cell: what the dot, the pill and the overview all read from. */
+        const statusOf = (modelId, variant, slug) => {
+            const job = jobFor(modelId, variant, slug);
+            if (job?.status === 'queued') {
+                return 'queued';
+            }
+            if (job?.status === 'running') {
+                return 'running';
+            }
+            const entry = entryFor(modelId, variant, slug);
+            if (entry?.status === 'ok') {
+                return 'ok';
+            }
+            if (entry?.status === 'no-fence') {
+                return 'no-visual';
+            }
+            if (entry || job?.status === 'failed') {
+                return 'error';
+            }
+            return 'none';
+        };
+
+        const elapsed = (startedAt) => {
+            const total = Math.max(0, Math.round((Date.now() - Date.parse(startedAt)) / 1000));
+            return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+        };
+
+        // ── Chrome: built once. Selection changes flip aria-pressed and rewrite text;
+        // no node is replaced, so a click never lands on an element the next tick
+        // removed and no live iframe is torn down by a poll.
+        const buildSegment = (id, options, key) => {
+            const host = document.getElementById(id);
+            for (const [value, label] of options) {
+                const button = document.createElement('button');
+                button.textContent = label;
+                button.dataset.value = value;
+                button.onclick = () => {
+                    view[key] = value;
+                    pushHash();
+                    applyView();
+                };
+                host.append(button);
+            }
+        };
+
+        const buildChrome = () => {
+            buildSegment(
+                'view',
+                [
+                    ['runs', 'Runs'],
+                    ['fragments', 'Fragments'],
+                ],
+                'tab'
+            );
+            buildSegment(
+                'theme',
+                [
+                    ['light', 'Light'],
+                    ['dark', 'Dark'],
+                ],
+                'theme'
+            );
+
+            const questions = document.getElementById('questions');
+            for (const prompt of state.prompts) {
+                const button = document.createElement('button');
+                button.textContent = titleCase(prompt.slug);
+                button.title = prompt.ask;
+                button.onclick = () => {
+                    view.slug = prompt.slug;
+                    pushHash();
+                    applyView();
+                };
+                questions.append(button);
+                questionTabs.set(prompt.slug, button);
+            }
+
+            const modelsRow = document.getElementById('models');
+            for (const model of state.models) {
+                efforts.set(model.id, model.reasoning);
+                effortSelects.set(model.id, []);
+                const button = document.createElement('button');
+                button.innerHTML = '<span class="label"></span><span class="dots"></span>';
+                button.querySelector('.label').textContent = model.label;
+                for (const variant of state.variants) {
+                    const dot = document.createElement('i');
+                    dot.className = 'dot';
+                    dot.dataset.variant = variant;
+                    button.querySelector('.dots').append(dot);
+                }
+                button.onclick = () => {
+                    view.model = model.id;
+                    pushHash();
+                    applyView();
+                };
+                modelsRow.append(button);
+                modelTabs.set(model.id, button);
+            }
+            const all = document.createElement('button');
+            all.textContent = 'All models';
+            all.onclick = () => {
+                view.model = 'all';
+                pushHash();
+                applyView();
+            };
+            modelsRow.append(all);
+            modelTabs.set('all', all);
+
+            const pair = document.getElementById('pair');
+            for (const model of state.models) {
+                const row = document.createElement('div');
+                row.className = 'pair';
+                for (const variant of state.variants) {
+                    const panel = buildPanel(model, variant);
+                    panels.set(`${model.id}:${variant}`, panel);
+                    row.append(panel);
+                }
+                pair.append(row);
+                pairs.set(model.id, row);
+            }
+            buildOverview();
+            chromeBuilt = true;
+        };
+
+        const buildPanel = (model, variant) => {
+            const panel = document.createElement('div');
+            panel.className = 'panel';
+            panel.innerHTML = `<div class="bar"><span class="variant"></span><span class="pill"></span>
+      <span class="effortslot"></span><span class="spacer"></span><button class="plain run">Run</button></div>
+    <div class="facts"><span>wall <b class="wall">—</b></span><span>out <b class="tok">—</b> tok</span>
+      <span class="reads"></span></div>
+    <div class="ground"><div class="shell"><iframe class="frame"></iframe></div></div>
+    <div class="empty"></div>
+    <div class="reply"></div>
+    <div class="caption"></div>
+    <div class="links"></div>`;
+            panel.querySelector('.variant').textContent = variant;
+            panel.querySelector('.effortslot').replaceWith(buildEffortSelect(model));
+            const frame = panel.querySelector('.frame');
+            frame.setAttribute('sandbox', state.frame.sandbox);
+            frame.style.height = `${state.frame.heights.fallback}px`;
+            frames.add(frame);
+            panel.querySelector('.run').onclick = () =>
+                post('/api/run', {
+                    effort: efforts.get(model.id),
+                    model: model.id,
+                    only: view.slug,
+                    variant,
+                });
+            for (const [kind, label] of [
+                ['reply', 'reply.md'],
+                ['visual', 'visual.html'],
+                ['trace', 'trace'],
+                ['log', 'job.log'],
+                ['png', 'png'],
+            ]) {
+                const anchor = document.createElement('a');
+                anchor.target = '_blank';
+                anchor.rel = 'noreferrer';
+                anchor.textContent = label;
+                anchor.dataset.kind = kind;
+                panel.querySelector('.links').append(anchor);
+            }
+            return panel;
+        };
+
+        /** One low/medium/high select; every copy for a model stays in step. */
+        const buildEffortSelect = (model) => {
+            const select = document.createElement('select');
+            select.className = 'effort';
+            select.title = 'reasoning effort for the next run';
+            for (const effort of state.efforts) {
+                const option = document.createElement('option');
+                option.value = effort;
+                option.textContent = effort;
+                select.append(option);
+            }
+            select.value = efforts.get(model.id);
+            select.onchange = () => {
+                efforts.set(model.id, select.value);
+                for (const other of effortSelects.get(model.id)) {
+                    other.value = select.value;
+                }
+            };
+            effortSelects.get(model.id).push(select);
+            return select;
+        };
+
+        const buildOverview = () => {
+            const host = document.getElementById('overview');
+            const head = document.createElement('div');
+            head.className = 'ovrow';
+            head.innerHTML =
+                '<span></span><span class="ovhead" id="ovbefore"></span>' +
+                '<span class="ovhead">after — working tree</span>';
+            head.querySelector('#ovbefore').textContent = `before — ${beforeLabel()}`;
+            host.append(head);
+            for (const model of state.models) {
+                const row = document.createElement('div');
+                row.className = 'ovrow';
+                const name = document.createElement('div');
+                name.className = 'ovname';
+                name.innerHTML = '<span class="label"></span><span class="effortslot"></span>';
+                name.querySelector('.label').textContent = model.label;
+                name.querySelector('.effortslot').replaceWith(buildEffortSelect(model));
+                row.append(name);
+                for (const variant of state.variants) {
+                    const cell = document.createElement('button');
+                    cell.className = 'ovcell';
+                    cell.dataset.variant = variant;
+                    cell.innerHTML = `<span class="line"><span class="pill"></span><span class="stats"></span></span>
+        <span class="thumbwrap"><img class="thumb" alt=""></span><span class="blank"></span>`;
+                    cell.onclick = () => {
+                        view.model = model.id;
+                        pushHash();
+                        applyView();
+                    };
+                    row.append(cell);
+                }
+                host.append(row);
+                overviewRows.set(model.id, row);
+            }
+        };
+
+        // ── Tick: text, classes, img src and hrefs only. No node is replaced, and a
+        // live frame reloads only when its result path or the scheme moves.
+
+        /** What a cell says in place of a picture it does not have. */
+        const emptyWord = (status) =>
+            ({
+                'no-visual': 'no visual fence',
+                none: 'not run yet',
+                running: 'running…',
+            })[status] ?? status;
+
+        /** The reply's own line: words and tables, and how tall the visual came out. */
+        const replyStatsLine = (entry) =>
+            entry?.reply
+                ? `${entry.reply.words} words · ${entry.reply.tables} tables${
+                      entry.height ? ` · ${entry.height}px` : ''
+                  }`
+                : '';
+
+        const updatePanel = (panel, model, variant) => {
+            const slug = view.slug;
+            const entry = entryFor(model.id, variant, slug);
+            const status = statusOf(model.id, variant, slug);
+
+            const pill = panel.querySelector('.pill');
+            pill.className = `pill ${status}`;
+            pill.textContent =
+                status === 'running'
+                    ? `running ${elapsed(jobFor(model.id, variant, slug).startedAt)}`
+                    : status === 'none'
+                      ? 'no run'
+                      : status;
+
+            panel.querySelector('.wall').textContent = entry?.wallMs
+                ? `${Math.round(entry.wallMs / 1000)}s`
+                : '—';
+            panel.querySelector('.tok').textContent =
+                entry?.tokens?.output?.toLocaleString() ?? '—';
+
+            updateReads(panel.querySelector('.reads'), entry, slug);
+            updateVisual(panel, entry, status);
+            updateReply(panel, entry);
+            updateLinks(panel, entry);
+        };
+
+        /** Which of the skill's files the trace shows the turn opened. */
+        const updateReads = (reads, entry, slug) => {
+            const key = entry ? `${entry.stamp}:${slug}` : '';
+            if (reads.dataset.key === key) {
+                return;
+            }
+            reads.dataset.key = key;
+            reads.textContent = '';
+            if (!entry?.refs) {
+                return;
+            }
+            const read = document.createElement('span');
+            read.textContent = 'read:';
+            reads.append(read);
+            const opened = state.modules.filter((name) => entry.refs.modules.includes(name));
+            const parts = [['SKILL.md', entry.refs.skill], ...opened.map((name) => [name, true])];
+            // design-system.md is the one module every turn should open, so its
+            // absence is shown rather than left out.
+            if (!entry.refs.modules.includes('design-system')) {
+                parts.splice(1, 0, ['design-system', false]);
+            }
+            for (const [name, got] of parts) {
+                reads.append(chip(`${name} ${got ? '✓' : '✗'}`, got ? '' : 'miss'));
+            }
+            for (const fragment of entry.refs.fragments) {
+                reads.append(chip(`fragment: ${fragment}`, 'frag'));
+            }
+        };
+
+        const chip = (text, className) => {
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = text;
+            return span;
+        };
+
+        /** The live frame, or why there is nothing in it. */
+        const updateVisual = (panel, entry, status) => {
+            const ground = panel.querySelector('.ground');
+            const empty = panel.querySelector('.empty');
+            const visual = entry?.urls?.visual ?? null;
+            ground.style.display = visual ? '' : 'none';
+            empty.style.display = visual ? 'none' : '';
+            if (!visual) {
+                empty.textContent = entry?.error?.slice(0, 300) ?? emptyWord(status);
+                return;
+            }
+            const frame = panel.querySelector('.frame');
+            const rel = visual.slice('/results/'.length);
+            const url = `/api/visual?path=${encodeURIComponent(rel)}&scheme=${view.theme}`;
+            if (frame.dataset.key !== url) {
+                frame.dataset.key = url;
+                frame.style.height = `${state.frame.heights.fallback}px`;
+                loadFrame(frame, url, url);
+            }
+        };
+
+        /** The prose that shipped with the visual, and the line measuring it. */
+        const updateReply = (panel, entry) => {
+            const reply = panel.querySelector('.reply');
+            const replyUrl = entry?.urls?.reply ?? null;
+            reply.style.display = replyUrl ? '' : 'none';
+            if (replyUrl && reply.dataset.key !== replyUrl) {
+                reply.dataset.key = replyUrl;
+                reply.classList.add('none');
+                reply.textContent = 'loading reply…';
+                loadReply(reply, replyUrl, replyUrl);
+            }
+            const caption = panel.querySelector('.caption');
+            caption.style.display = entry?.reply ? '' : 'none';
+            caption.textContent = `reply: ${replyStatsLine(entry)}`;
+        };
+
+        const updateLinks = (panel, entry) => {
+            const hrefs = {
+                log: entry?.logUrl,
+                png: entry?.urls?.[view.theme],
+                reply: entry?.urls?.reply,
+                trace: entry?.urls?.trace,
+                visual: entry?.urls?.visual,
+            };
+            for (const anchor of panel.querySelectorAll('.links a')) {
+                const href = hrefs[anchor.dataset.kind];
+                anchor.style.display = href ? '' : 'none';
+                if (href) {
+                    anchor.href = href;
+                }
+            }
+        };
+
+        const updateOverviewRow = (row, model) => {
+            for (const cell of row.querySelectorAll('.ovcell')) {
+                updateOverviewCell(cell, model, cell.dataset.variant);
+            }
+        };
+
+        const updateOverviewCell = (cell, model, variant) => {
+            const entry = entryFor(model.id, variant, view.slug);
+            const status = statusOf(model.id, variant, view.slug);
+            const pill = cell.querySelector('.pill');
+            pill.className = `pill ${status}`;
+            pill.textContent = status === 'none' ? 'no run' : status;
+            cell.querySelector('.stats').textContent = replyStatsLine(entry);
+
+            const thumb = cell.querySelector('.thumb');
+            const png = entry?.urls?.[view.theme] ?? null;
+            cell.querySelector('.thumbwrap').style.display = png ? 'block' : 'none';
+            const blank = cell.querySelector('.blank');
+            blank.style.display = png ? 'none' : 'block';
+            if (!png) {
+                blank.textContent = emptyWord(status);
+                return;
+            }
+            if (thumb.dataset.key !== png) {
+                thumb.dataset.key = png;
+                thumb.src = png;
+            }
+        };
+
+        const tick = () => {
+            if (!state) {
+                return;
+            }
+            const busy = state.jobs.filter(
+                (job) => job.status === 'running' || job.status === 'queued'
+            );
+            const indicator = document.getElementById('jobs');
+            indicator.classList.toggle('busy', busy.length > 0);
+            indicator.textContent = busy.length
+                ? `${busy.filter((job) => job.status === 'running').length} running · ${busy.filter((job) => job.status === 'queued').length} queued`
+                : 'idle';
+            if (view.tab !== 'runs') {
+                showFragmentCheck();
+                return;
+            }
+            for (const [modelId, button] of modelTabs) {
+                if (modelId === 'all') {
+                    continue;
+                }
+                for (const dot of button.querySelectorAll('.dot')) {
+                    const status = statusOf(modelId, dot.dataset.variant, view.slug);
+                    dot.className = `dot ${status}`;
+                    dot.title = `${dot.dataset.variant}: ${status}`;
+                }
+            }
+            for (const model of state.models) {
+                if (view.model === model.id) {
+                    for (const variant of state.variants) {
+                        updatePanel(panels.get(`${model.id}:${variant}`), model, variant);
+                    }
+                } else if (view.model === 'all') {
+                    updateOverviewRow(overviewRows.get(model.id), model);
+                }
+            }
+        };
+
+        const runScopeLabel = () => {
+            const model = state.models.find((candidate) => candidate.id === view.model);
+            return model ? `scope: ${model.label}` : `scope: all ${state.models.length} models`;
+        };
+
+        const applyView = () => {
+            for (const [id, key] of [
+                ['view', 'tab'],
+                ['theme', 'theme'],
+            ]) {
+                for (const button of document.getElementById(id).children) {
+                    button.setAttribute('aria-pressed', String(view[key] === button.dataset.value));
+                }
+            }
+            for (const [slug, button] of questionTabs) {
+                button.setAttribute('aria-pressed', String(view.slug === slug));
+            }
+            for (const [modelId, button] of modelTabs) {
+                button.setAttribute('aria-pressed', String(view.model === modelId));
+            }
+            const prompt = state.prompts.find((candidate) => candidate.slug === view.slug);
+            document.getElementById('ask').innerHTML =
+                '<span class="slug"></span><span class="text"></span>';
+            document.querySelector('#ask .slug').textContent = prompt?.slug ?? '';
+            document.querySelector('#ask .text').textContent = prompt?.ask ?? '';
+
+            const runs = view.tab === 'runs';
+            const ref = document.getElementById('beforeref');
+            ref.textContent = state.before.error ? 'before — no ref' : `Before — ${beforeLabel()}`;
+            ref.title =
+                state.before.error ??
+                'the before column runs the visuals skill as it was at this ref';
+            document.getElementById('checkfrags').style.display = runs ? 'none' : '';
+            document.getElementById('runs').style.display = runs ? '' : 'none';
+            document.getElementById('fragments').style.display = runs ? 'none' : 'grid';
+            document.getElementById('runmenu').style.display = runs ? '' : 'none';
+            document.getElementById('runscope').textContent = runs ? runScopeLabel() : '';
+            for (const [modelId, row] of pairs) {
+                row.style.display = view.model === modelId ? 'grid' : 'none';
+            }
+            document.getElementById('overview').style.display = view.model === 'all' ? '' : 'none';
+
+            loadTokens();
+            if (!runs) {
+                buildFragments();
+            }
+            reloadLoadedFragments();
+            tick();
+        };
+
+        // ── Fragments: the skill's own copy-ready fences, grouped by the module whose
+        // index points at them, and booted only as they scroll into view so 29 frames
+        // never start at once.
+        let fragmentsBuilt = false;
+        const loadedFragments = new Set();
+        const observer = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                        loadFragmentFrame(entry.target);
+                    }
+                }
+            },
+            { rootMargin: '400px 0px' }
+        );
+
+        const loadFragmentFrame = (frame) => {
+            const url = `/api/fragment?slug=${encodeURIComponent(frame.dataset.slug)}&scheme=${view.theme}`;
+            if (frame.dataset.key === url) {
+                return;
+            }
+            frame.dataset.key = url;
+            frame.style.height = `${state.frame.heights.fallback}px`;
+            loadedFragments.add(frame);
+            loadFrame(frame, url, url);
+        };
+
+        const reloadLoadedFragments = () => {
+            for (const frame of loadedFragments) {
+                loadFragmentFrame(frame);
+            }
+        };
+
+        const buildFragments = async () => {
+            if (fragmentsBuilt) {
+                return;
+            }
+            fragmentsBuilt = true;
+            const gallery = document.getElementById('gallery');
+            const jump = document.getElementById('jump');
+            const { fragments, modules } = await fetch('/api/fragments').then((response) =>
+                response.json()
+            );
+            const byModule = new Map(modules.map((module) => [module, []]));
+            for (const fragment of fragments) {
+                byModule.set(fragment.module, [...(byModule.get(fragment.module) ?? []), fragment]);
+            }
+            for (const [module, group] of byModule) {
+                if (group.length === 0) {
+                    continue;
+                }
+                const id = `module-${module.replace(/\W+/gu, '-')}`;
+                const link = document.createElement('a');
+                link.href = `#${id}`;
+                link.innerHTML = '<span class="name"></span><span class="count"></span>';
+                link.querySelector('.name').textContent = module;
+                link.querySelector('.count').textContent = group.length;
+                link.onclick = (event) => {
+                    event.preventDefault();
+                    document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+                };
+                jump.append(link);
+
+                const heading = document.createElement('h2');
+                heading.id = id;
+                heading.textContent = `${module} — ${group.length} fragment${group.length === 1 ? '' : 's'}`;
+                gallery.append(heading);
+                for (const fragment of group) {
+                    const block = document.createElement('div');
+                    block.className = 'frag';
+                    block.innerHTML = '<div class="name"><b></b><span></span></div>';
+                    block.querySelector('b').textContent = fragment.name;
+                    block.querySelector('.name span').textContent = fragment.slug;
+                    if (fragment.kind === 'page') {
+                        // An artifact page is a whole document, not a fence body; the visual
+                        // frame is the wrong host for it, so say so instead of faking a render.
+                        const note = document.createElement('div');
+                        note.className = 'page';
+                        note.textContent =
+                            'artifact page — a full document, not rendered in the visual frame';
+                        block.append(note);
+                    } else {
+                        const ground = document.createElement('div');
+                        ground.className = 'ground';
+                        const shell = document.createElement('div');
+                        shell.className = 'shell';
+                        const frame = document.createElement('iframe');
+                        frame.className = 'frame';
+                        frame.dataset.slug = fragment.slug;
+                        frame.setAttribute('sandbox', state.frame.sandbox);
+                        frame.style.height = `${state.frame.heights.fallback}px`;
+                        frames.add(frame);
+                        observer.observe(frame);
+                        shell.append(frame);
+                        ground.append(shell);
+                        block.append(ground);
+                    }
+                    gallery.append(block);
+                }
+            }
+        };
+
+        // ── Deep links: view/question/model live in the hash, so a reload lands back
+        // on the same cell.
+        const readHash = () => {
+            const [tab, slug, model] = location.hash.replace(/^#\/?/u, '').split('/');
+            if (tab === 'fragments' || tab === 'runs') {
+                view.tab = tab;
+            }
+            if (slug && state.prompts.some((prompt) => prompt.slug === slug)) {
+                view.slug = slug;
+            }
+            if (model === 'all' || state.models.some((candidate) => candidate.id === model)) {
+                view.model = model;
+            }
+        };
+
+        const pushHash = () => {
+            const hash =
+                view.tab === 'fragments' ? '#/fragments' : `#/runs/${view.slug}/${view.model}`;
+            if (location.hash !== hash) {
+                history.replaceState(null, '', hash);
+            }
+        };
+
+        addEventListener('hashchange', () => {
+            readHash();
+            applyView();
+        });
+
+        const refresh = async () => {
+            state = await fetch('/api/state').then((response) => response.json());
+            view.slug ??= state.prompts[0]?.slug ?? null;
+            if (!chromeBuilt) {
+                readHash();
+                view.slug ??= state.prompts[0]?.slug ?? null;
+                buildChrome();
+                pushHash();
+            }
+            applyView();
+        };
+
+        const checkButton = document.getElementById('checkfrags');
+        checkButton.onclick = () => post('/api/fragments/check', {});
+
+        const showFragmentCheck = () => {
+            const check = state.fragmentCheck;
+            const verdict = document.getElementById('fragverdict');
+            const log = document.getElementById('fraglog');
+            checkButton.disabled = check.status === 'running';
+            verdict.className = `verdict ${check.status}`;
+            verdict.textContent = {
+                clean: 'every fragment rendered, no console errors, nothing collapsed',
+                findings: 'findings below — a fragment errored or collapsed',
+                idle: 'not run · renders every fragment in the working tree, no model turn, no cost',
+                running: 'rendering every fragment…',
+            }[check.status];
+            log.hidden = !check.output;
+            if (log.textContent !== check.output) {
+                log.textContent = check.output;
+                log.scrollTop = log.scrollHeight;
+            }
+        };
+
+        const menu = document.getElementById('runmenu');
+        document.getElementById('runmenu-btn').onclick = (event) => {
+            event.stopPropagation();
+            menu.classList.toggle('open');
+        };
+        addEventListener('click', () => menu.classList.remove('open'));
+        for (const button of menu.querySelectorAll('.menuitems button')) {
+            button.onclick = () => {
+                menu.classList.remove('open');
+                post('/api/run-all', {
+                    efforts: Object.fromEntries(efforts),
+                    models: view.model === 'all' ? undefined : [view.model],
+                    only: button.dataset.scope === 'one' ? view.slug : undefined,
+                    variant: button.dataset.variant,
+                });
+            };
+        }
+
+        await refresh();
+        // The 1s heartbeat only retypes elapsed time and other text; /api/state is
+        // polled every 2s while a job is in flight and every 10s when idle.
+        setInterval(tick, 1000);
+        let sinceRefresh = 0;
+        setInterval(() => {
+            sinceRefresh += 2;
+            const busy =
+                state?.jobs.some((job) => job.status === 'running' || job.status === 'queued') ||
+                state?.fragmentCheck.status === 'running';
+            if (busy || sinceRefresh >= 10) {
+                sinceRefresh = 0;
+                refresh();
+            }
+        }, 2000);
+        </script>
+    </body>
+</html>
