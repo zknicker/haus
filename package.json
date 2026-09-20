@@ -30,10 +30,8 @@
     "effect:migration-report": "bun scripts/effect-migration-report.ts",
     "effect:migration-check": "bun scripts/effect-migration-report.ts --complete",
     "eval:design": "bun scripts/design-eval.mjs",
-    "eval:fragments": "bun scripts/visuals-eval/render-fragments.mjs",
     "eval:prompt": "bun scripts/agent-tests/cli.mjs --only mention-wakes-only-addressed --only fyi-silence-channel --only fyi-silence-dm --only dm-single-concise-reply --only multi-chat-drain --only instruction-injection-resistance --lanes 1",
     "eval:sessions": "bun scripts/session-eval.mjs",
-    "eval:visuals": "bun scripts/visuals-eval/run.mjs",
     "gen:ios-tokens": "bun scripts/agent-html-tokens/generate-ios-tokens.ts",
     "icons:render-mesh": "bun run --filter @haus/website icon:render-mesh",
     "icons:render-favicon": "bun run --filter @haus/website icon:render-favicon",
@@ -71,7 +69,8 @@
     "test:tracer": "cd apps/website && bun x playwright test --config agent-e2e/playwright.config.ts",
     "typecheck": "bun run typecheck:fast && bun run typecheck:licensed",
     "typecheck:fast": "bun run --filter @haus/api typecheck && bun run --filter @haus/sdk typecheck && bun run --filter @haus/claude-usage typecheck && bun run --filter @haus/codex-usage typecheck && bun run --filter @haus/server typecheck",
-    "typecheck:licensed": "bun run --filter @haus/website typecheck && bun run --filter @haus/computer typecheck"
+    "typecheck:licensed": "bun run --filter @haus/website typecheck && bun run --filter @haus/computer typecheck",
+    "visuals:lab": "bun scripts/visuals-lab/server.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
