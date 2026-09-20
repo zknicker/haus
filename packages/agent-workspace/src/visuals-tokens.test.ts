@@ -1,6 +1,9 @@
 import { expect, test } from 'bun:test';
 import { agentHtmlTokenNames } from '../../../apps/website/src/agent-html/tokens.ts';
-import { fragmentFiles, skillModules } from '../../../scripts/visuals-eval/skill-fragments.mjs';
+import {
+    fragmentFiles,
+    skillModules,
+} from '../../../scripts/visuals-lab/engine/skill-fragments.mjs';
 import { defaultVisualsSkill, visualsSkillFiles } from './managed-skills.ts';
 
 const moduleSource = (name: string) => visualsSkillFiles[`references/${name}`] ?? '';

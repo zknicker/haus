@@ -8,10 +8,10 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveTokens } from '../agent-html-tokens/generate-ios-tokens.ts';
+import { resolveTokens } from '../../agent-html-tokens/generate-ios-tokens.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const websiteRequire = createRequire(path.join(here, '../../apps/website/package.json'));
+const websiteRequire = createRequire(path.join(here, '../../../apps/website/package.json'));
 const { chromium } = websiteRequire('@playwright/test');
 
 // visual-card.tsx resolves the active scheme through `agentHtmlColorScheme()`,
@@ -21,9 +21,9 @@ const { chromium } = websiteRequire('@playwright/test');
 globalThis.document ??= { documentElement: { dataset: { theme: 'dark' } } };
 
 const { buildVisualSrcDoc, visualHeights } = await import(
-    '../../apps/website/src/features/chats/visual-card.tsx'
+    '../../../apps/website/src/features/chats/visual-card.tsx'
 );
-const { agentHtmlSandbox } = await import('../../apps/website/src/agent-html/sandbox.ts');
+const { agentHtmlSandbox } = await import('../../../apps/website/src/agent-html/sandbox.ts');
 
 const schemes = ['dark', 'light'];
 const tokensCssByScheme = new Map(
@@ -116,9 +116,9 @@ export const createVisualRenderer = async ({ width = 736 } = {}) => {
 
 // Mirrors VisualCard (visual-card.tsx): no shell at all — a plain block at
 // the reply column's width, a transparent iframe, the app background showing
-// through. Exported so other hosts (the visuals lab) draw the same frame
-// instead of guessing at it.
-export function hostPage({ scheme, tokensCss, width }) {
+// through. The lab page draws its own ground around `buildVisualDocument`, so
+// this host is only for the screenshot.
+function hostPage({ scheme, tokensCss, width }) {
     return `<!doctype html><html><head><meta charset="utf-8"><style>
 :root { color-scheme: ${scheme};
 ${tokensCss}

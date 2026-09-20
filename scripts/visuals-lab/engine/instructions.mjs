@@ -1,6 +1,6 @@
-// Agent instructions for the visuals eval.
+// Agent instructions for a visuals lab run.
 //
-// The eval deliberately does NOT use composeAgentInstructions: the product
+// The lab deliberately does NOT use composeAgentInstructions: the product
 // prompt tells the Agent to publish through `haus message send`, and this
 // harness has no Haus server, no CLI, and no chat. Everything the Agent needs
 // here is the visuals pointer plus a replaced Outputs rule that puts the fence
@@ -19,4 +19,4 @@ const outputsSection = `## Outputs
 - Fences render directly in your reply: write the \`\`\`visual fence in the body of your final assistant message. There is no \`haus message send\` here and no haus CLI; do not try to run it.
 - Text goes in your reply, the visual goes in the fence.`;
 
-export const evalInstructions = `${visualsPointer}\n\n${outputsSection}`;
+export const labInstructions = `${visualsPointer}\n\n${outputsSection}`;

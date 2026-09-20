@@ -1,32 +1,27 @@
-// Standalone visuals eval: one agent turn per prompt, rendered through the
-// real visual frame.
+// One agent turn per battery prompt, rendered through the real visual frame.
 //
-// Unlike `eval:design` this runs NO Haus stack — no server, no website, no
-// MCP. It builds the same temp agent root the Computer executor builds (the
-// seeded visuals skill, the runtime-native skill links, the auth-profile
-// symlinks) and hands the sales data to the model inline, then captures
-// whatever ```visual fence comes back. What it measures is therefore the skill
-// text and the model, with the product's plumbing held constant.
+// This is the visuals lab's engine: `scripts/visuals-lab/server.mjs` spawns it.
+// It has no package script and is not meant to be driven by hand, because every
+// run is a real model turn on the developer's own logins and costs real money.
 //
-// Two lanes answer the same turn shape. `--runner harness` is the product's own
-// bridge and stays the default; `--runner direct` spawns the CLI installed on
-// this machine, for model ids a pinned bridge rejects.
-//
-// Usage: bun run eval:visuals --model <runtime>/<model> [--reasoning <effort>]
-//        [--runner harness|direct] [--only <slug>] [--width 736]
-//        [--skill-dir <dir>] [--out-dir <dir>]
+// Unlike `eval:design` it runs NO Haus stack — no server, no website, no MCP.
+// It builds the same temp agent root the Computer executor builds (the seeded
+// visuals skill, the runtime-native skill links, the auth-profile symlinks) and
+// hands the sales data to the model inline, then captures whatever ```visual
+// fence comes back. What it measures is therefore the skill text and the model,
+// with the product's plumbing held constant: every model runs the harness
+// bridge Haus itself ships.
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { ensureNativeSkillLinks } from '../../apps/computer/src/harness/native-skill-links.ts';
-import { readAgentSkills } from '../../apps/computer/src/harness/skills.ts';
-import { seedFactoryManagedSkills } from '../../packages/agent-workspace/src/index.ts';
+import { ensureNativeSkillLinks } from '../../../apps/computer/src/harness/native-skill-links.ts';
+import { readAgentSkills } from '../../../apps/computer/src/harness/skills.ts';
+import { seedFactoryManagedSkills } from '../../../packages/agent-workspace/src/index.ts';
 import {
     splitVisualFences,
     visualFallbackText,
-} from '../../packages/haus-api/src/widgets/visual/contracts.ts';
-import { writeContactSheet } from '../design-battery/contact-sheet.mjs';
-import { createDirectRunner } from './direct-runner.mjs';
+} from '../../../packages/haus-api/src/widgets/visual/contracts.ts';
+import { writeContactSheet } from '../../design-battery/contact-sheet.mjs';
 import { createHarnessRunner } from './harness-runner.mjs';
 import { createVisualRenderer } from './render.mjs';
 import { assert, resolveRunConfig } from './run-config.mjs';
@@ -42,7 +37,6 @@ const {
     outDir,
     reasoningEffort,
     runLabel,
-    runnerId,
     runtimeId,
     skillDir,
     stamp,
@@ -50,7 +44,7 @@ const {
 } = resolveRunConfig();
 await mkdir(outDir, { recursive: true });
 
-const agentRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'haus-visuals-eval-')));
+const agentRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'haus-visuals-lab-')));
 const homeDir = path.join(agentRoot, 'home');
 const skillsDir = path.join(agentRoot, 'skills');
 const workspaceDir = path.join(agentRoot, 'workspace');
@@ -59,24 +53,26 @@ for (const dir of [homeDir, path.join(agentRoot, 'runtime'), skillsDir, workspac
 }
 await seedFactoryManagedSkills(skillsDir);
 const skillOverrides = skillDir ? await overrideVisualsSkill(skillsDir, skillDir) : [];
-assert(
-    !skillDir || skillOverrides.length > 0,
-    `--skill-dir ${skillDir} carries none of SKILL.md, design-system.md, icons.md`
-);
 await ensureNativeSkillLinks(homeDir, skillsDir);
 const skills = await readAgentSkills(skillsDir);
 assert(skills.length > 0, `no skills seeded into ${skillsDir}`);
 
-const lane = { executable, homeDir, modelId, reasoningEffort, runtimeId, skills, workspaceDir };
-const runner = runnerId === 'direct' ? await createDirectRunner(lane) : createHarnessRunner(lane);
+const runner = createHarnessRunner({
+    executable,
+    homeDir,
+    modelId,
+    reasoningEffort,
+    runtimeId,
+    workspaceDir,
+});
 
 process.stdout.write(
-    `visuals eval: ${runLabel} · ${runnerId} runner · ${items.length} prompt(s) · skills ${skills.map((skill) => skill.name).join(', ')}\n`
+    `visuals lab: ${runLabel} · ${items.length} prompt(s) · skills ${skills.map((skill) => skill.name).join(', ')}\n`
 );
 process.stdout.write(
     skillDir
-        ? `skill variant: ${skillDir} (${skillOverrides.join(', ')})\n`
-        : 'skill variant: seeded default\n'
+        ? `skill revision: ${skillDir} (${skillOverrides.join(', ')})\n`
+        : 'skill revision: working tree\n'
 );
 
 const manifest = await createRunManifest({
@@ -84,7 +80,6 @@ const manifest = await createRunManifest({
     meta: {
         modelId,
         reasoningEffort,
-        runner: runnerId,
         runtimeId,
         skillDir,
         startedAt: new Date().toISOString(),
@@ -207,9 +202,9 @@ for (const failure of failures) {
 process.exit(failures.length > 0 ? 1 : 0);
 
 /**
- * The trace file, one JSON object per line. A lane that spawns a CLI keeps its
- * stderr as a final record: a refused flag or an expired login shows up nowhere
- * else, and a turn that produced no visual is usually explained there.
+ * The trace file, one JSON object per line, with any stderr as a final record:
+ * a refused flag or an expired login shows up nowhere else, and a turn that
+ * produced no visual is usually explained there.
  */
 function traceLines(turn) {
     const lines = turn.trace.map((entry) => `${JSON.stringify(entry)}\n`);

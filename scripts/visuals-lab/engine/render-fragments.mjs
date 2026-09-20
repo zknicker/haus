@@ -6,9 +6,10 @@
 // far more faithfully than it follows a rule, so a fragment that renders wrong
 // is a defect shipped five ways at once.
 //
-//     bun run eval:fragments
-//
-// Exits non-zero when a fragment logs a console error or collapses under 60px.
+// Driven by the visuals lab's "Check all fragments" button, which spawns it and
+// shows what it found; it has no package script. It costs nothing but a
+// browser — no model turn happens here. Exits non-zero when a fragment logs a
+// console error or collapses under 60px.
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +21,7 @@ const minHeight = 60;
 const width = Number(process.env.WIDTH ?? 736);
 
 const stamp = new Date().toISOString().replaceAll(/[:T]/gu, '-').slice(0, 19);
-const outDir = path.join(here, 'output/fragments', stamp);
+const outDir = path.join(here, '../results/fragments', stamp);
 await mkdir(outDir, { recursive: true });
 
 const fragments = readSkillFragments().filter((fragment) => fragment.kind === 'visual');

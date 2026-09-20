@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { renderAgentInstructions } from '../../apps/computer/src/harness/managed-instructions.ts';
+import { renderAgentInstructions } from '../../../apps/computer/src/harness/managed-instructions.ts';
 import { visualsPointer } from './instructions.mjs';
 
 test('the eval carries the product prompt visuals pointer verbatim', () => {

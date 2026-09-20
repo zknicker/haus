@@ -2,7 +2,10 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fragmentFiles, skillModules } from '../../../scripts/visuals-eval/skill-fragments.mjs';
+import {
+    fragmentFiles,
+    skillModules,
+} from '../../../scripts/visuals-lab/engine/skill-fragments.mjs';
 import {
     defaultVisualsSkill,
     seedFactoryManagedSkills,

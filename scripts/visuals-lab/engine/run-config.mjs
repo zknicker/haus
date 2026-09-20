@@ -1,9 +1,11 @@
-// The eval's command line: every flag is resolved and validated here so the
-// run script itself only deals with an already-legal configuration.
+// The run's command line: every flag is resolved and validated here so the run
+// script itself only deals with an already-legal configuration.
+//
+// Driven by the visuals lab (`bun run visuals:lab`), which spawns run.mjs with
+// these flags. There is no package script behind it.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveRuntimeById } from '../../apps/computer/src/runtime-discovery.ts';
-import { directRuntimeIds } from './direct-runner.mjs';
+import { resolveRuntimeById } from '../../../apps/computer/src/runtime-discovery.ts';
 import { visualsBattery } from './prompts.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -23,15 +25,6 @@ export const resolveRunConfig = () => {
         ['high', 'low', 'medium'].includes(reasoningEffort),
         `--reasoning expects low, medium or high; received ${reasoningEffort}`
     );
-    const runnerId = flagValue('--runner') ?? 'harness';
-    assert(
-        ['direct', 'harness'].includes(runnerId),
-        `--runner expects harness or direct; received ${runnerId}`
-    );
-    assert(
-        runnerId === 'harness' || directRuntimeIds.includes(runtimeId),
-        `--runner direct drives ${directRuntimeIds.join(' and ')} only; received ${runtimeId}`
-    );
     const width = Number(flagValue('--width') ?? 736);
     assert(Number.isFinite(width) && width > 0, '--width expects a positive number');
     const skillDirFlag = flagValue('--skill-dir');
@@ -46,7 +39,7 @@ export const resolveRunConfig = () => {
     );
 
     const stamp = new Date().toISOString().replaceAll(/[:T]/gu, '-').slice(0, 19);
-    const runLabel = `${runtimeId}/${modelId}-${reasoningEffort}-${runnerId}`;
+    const runLabel = `${runtimeId}/${modelId}-${reasoningEffort}`;
     const outDirFlag = flagValue('--out-dir');
     return {
         executable,
@@ -54,10 +47,9 @@ export const resolveRunConfig = () => {
         modelId,
         outDir: outDirFlag
             ? path.resolve(outDirFlag)
-            : path.join(here, 'output', `${stamp}-${slugify(runLabel)}`),
+            : path.join(here, '../results', `${stamp}-${slugify(runLabel)}`),
         reasoningEffort,
         runLabel,
-        runnerId,
         runtimeId,
         skillDir: skillDirFlag ? path.resolve(skillDirFlag) : null,
         stamp,

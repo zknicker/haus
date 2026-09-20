@@ -1,21 +1,18 @@
-// The harness lane: the same agent the Computer executor builds.
+// The turn runner: the same harness agent the Computer executor builds.
 //
-// This is what Haus actually runs, so it stays the eval's default. The bridge
-// installs and pins its own copy of each runtime, which is the whole reason the
-// direct lane exists beside it — a pinned bridge can reject a model id the
-// installed CLI already accepts.
+// This is what Haus actually runs, so it is the lab's only lane. The bridge
+// installs and pins its own copy of each runtime, which means a lab result is a
+// judgement about the product rather than about whichever CLI happens to be
+// installed on this Mac.
 import path from 'node:path';
-import { makeDaemonRuntime } from '../../apps/computer/src/daemon-runtime.ts';
-import { bridgeStoreDirForHost } from '../../apps/computer/src/harness/bridge-bootstrap.ts';
-import { createHarnessAgent } from '../../apps/computer/src/harness/create-agent.ts';
-import { createHarnessForRuntime } from '../../apps/computer/src/harness/executor.ts';
-import { readTokenUsage } from '../../apps/computer/src/harness/token-usage.ts';
-import { evalInstructions } from './instructions.mjs';
+import { makeDaemonRuntime } from '../../../apps/computer/src/daemon-runtime.ts';
+import { bridgeStoreDirForHost } from '../../../apps/computer/src/harness/bridge-bootstrap.ts';
+import { createHarnessAgent } from '../../../apps/computer/src/harness/create-agent.ts';
+import { createHarnessForRuntime } from '../../../apps/computer/src/harness/executor.ts';
+import { readTokenUsage } from '../../../apps/computer/src/harness/token-usage.ts';
+import { labInstructions } from './instructions.mjs';
 
-/**
- * Builds the runner for `--runner harness`. `runTurn` answers the same shape
- * the direct runner does, so the run script never branches on the lane.
- */
+/** Builds the runner one lab run drives: one `runTurn` per battery prompt. */
 export const createHarnessRunner = ({
     executable,
     homeDir,
@@ -27,7 +24,7 @@ export const createHarnessRunner = ({
     const runtime = makeDaemonRuntime();
     const agent = createHarnessAgent(
         {
-            agentId: 'agt_visuals_eval',
+            agentId: 'agt_visuals_lab',
             env: { PATH: [path.dirname(executable.path), executable.searchPath].join(':') },
             homeDir,
             modelId,
@@ -44,7 +41,7 @@ export const createHarnessRunner = ({
                 false,
                 bridgeStoreDirForHost()
             ),
-            instructions: evalInstructions,
+            instructions: labInstructions,
         }
     );
 
@@ -82,7 +79,8 @@ async function runTurn({ agent, prompt, timeoutMs }) {
             throw streamError;
         }
         // The bridge surfaces a failure as a stream error, so there is no
-        // stderr of its own to keep; the field stays for the shared shape.
+        // stderr of its own to keep; the field stays because the trace writer
+        // records one when there is one.
         return { costUsd: null, stderr: '', text: await result.text, trace, usage };
     } finally {
         await session.destroy();

@@ -1,6 +1,9 @@
 import { expect, test } from 'bun:test';
 import { agentHtmlTokenNames } from '../../../apps/website/src/agent-html/tokens.ts';
-import { extractFragment, fragmentFiles } from '../../../scripts/visuals-eval/skill-fragments.mjs';
+import {
+    extractFragment,
+    fragmentFiles,
+} from '../../../scripts/visuals-lab/engine/skill-fragments.mjs';
 import { visualsSkillFiles } from './managed-skills.ts';
 
 /**

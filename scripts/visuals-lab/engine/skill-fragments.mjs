@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 /** The skill directory this repo publishes, source of truth for every module. */
-export const skillDir = path.join(here, '../../packages/agent-workspace/src/visuals-skill');
+export const skillDir = path.join(here, '../../../packages/agent-workspace/src/visuals-skill');
 
 /** The topic modules, in reading order. They carry rules and an index, no fences. */
 export const skillModules = [
