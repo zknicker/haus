@@ -72,6 +72,11 @@ QuickJS child process. Haus supplies `tools.search({query})`, `tools.describe({n
 and invocation uses the same authenticated Server authority as ordinary MCP calls. The harness
 schema and description never contain the changing connection inventory.
 
+Server is the MCP client, so it picks one form of every tool result instead of forwarding both. A
+result carrying `structuredContent` reaches the Agent without the text block that duplicates it as
+serialized JSON; non-text content blocks and `isError` results arrive exactly as the upstream sent
+them, so an error keeps its message.
+
 Grants, revocations, new tools, and temporary outages do not change the harness catalog or reset
 its session. Search returns up to 50 matches plus the total; the Agent narrows its query when needed.
 Generated JavaScript has no runner token, MCP credentials, host environment, network, filesystem,

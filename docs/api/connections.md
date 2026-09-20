@@ -52,6 +52,11 @@ that tool's full schema; an unfiltered request returns the full granted catalog.
 Invocation resolves the tool, rechecks the grant, and invokes the upstream MCP from
 Server. Computer never receives MCP secrets, OAuth tokens, or upstream session state.
 
+Invocation returns the upstream tool result. When that result carries `structuredContent`, Server
+drops the text block holding the same JSON, because a server that returns structured output also
+serializes it for text-only clients and Haus reads the structured form. Non-text content blocks and
+`isError` results are returned untouched.
+
 Discovery runs concurrently with a five-second deadline for each granted connection. Unavailable
 connections contribute no tools to that search; healthy connections remain available. Invocation
 has a 30-second upstream deadline. Client cancellation interrupts the request through Computer
