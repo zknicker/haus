@@ -12,6 +12,7 @@ import { asMcpArguments, McpDeniedError } from './errors.ts';
 import { createMcpOAuthProvider } from './oauth.ts';
 import { secureMcpFetch } from './secure-fetch.ts';
 import { listAllTools, modelToolName } from './tool-catalog.ts';
+import { narrowMcpToolResult } from './tool-result.ts';
 import { runMcpUpstream } from './upstream-operation.ts';
 
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 5000;
@@ -125,17 +126,19 @@ export class McpRuntime {
             input.toolName
         );
         await this.requireGrant(input.serverId, input.agentId, resolved.connectionId);
-        return await this.runUpstream(
-            resolved.connectionId,
-            'invocation',
-            (client, signal) =>
-                client.callTool({
-                    arguments: asMcpArguments(input.args),
-                    name: resolved.upstreamName,
-                    options: { signal, timeout: this.invocationTimeoutMs },
-                }),
-            input.traceContext,
-            input.signal
+        return narrowMcpToolResult(
+            await this.runUpstream(
+                resolved.connectionId,
+                'invocation',
+                (client, signal) =>
+                    client.callTool({
+                        arguments: asMcpArguments(input.args),
+                        name: resolved.upstreamName,
+                        options: { signal, timeout: this.invocationTimeoutMs },
+                    }),
+                input.traceContext,
+                input.signal
+            )
         );
     }
     async closeConnection(connectionId: string): Promise<void> {
