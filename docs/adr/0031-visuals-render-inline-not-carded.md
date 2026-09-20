@@ -3,7 +3,7 @@ summary: Decision to render inline visuals as a transparent block in the reply c
 read_when:
   - changing the inline visual frame, its width, or its sandbox base styles
   - changing what the visuals skill teaches about cards, tiles, and plates
-  - changing the eval or lab host page that stands in for the transcript
+  - changing the visuals lab's host page that stands in for the transcript
 ---
 
 # ADR 0031: Visuals Render Inline, Not Carded
@@ -54,8 +54,8 @@ never as a wrapper. The ```` ```artifact ```` fence keeps its card: an
 artifact is a link to a durable page, which is a bounded object by
 definition.
 
-iOS mirrors the web frame, and the eval renderer's host page and the visuals
-lab mirror it in turn, so a rendered evaluation shows what the transcript
+iOS mirrors the web frame, and the visuals lab's renderer and page mirror it
+in turn, so a rendered evaluation shows what the transcript
 shows.
 
 ## Consequences
@@ -70,5 +70,5 @@ alternative is capping the reply column itself rather than widening visuals. His
 new frame, which is the intent — the fence body is the durable artifact, the
 frame never was.
 
-The eval host page's column default moves from 820px to 736px, so
+The lab host page's column default moves from 820px to 736px, so
 before/after render batteries are not pixel-comparable across this change.

@@ -69,5 +69,5 @@ and the visual renders without its map.
 
 Maps now arrive after the first size report, because the topology is fetched.
 The frame's `ResizeObserver` already re-reports the taller body, so the host
-resizes on its own; the eval renderer gained an opt-in `ready: 'network'` wait
+resizes on its own; the lab renderer gained an opt-in `ready: 'network'` wait
 so a captured screenshot shows the drawn map instead of an empty container.

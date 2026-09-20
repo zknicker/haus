@@ -178,17 +178,17 @@ registration), with optional info-string text as the title:
   style than the prose does: a model copies a fragment far more faithfully than
   it follows a rule, so every form the product expects to be asked for has one —
   the chart family from emphasis bar through choropleth, the diagram family, the
-  component family. `bun run eval:fragments` renders every one of them through
-  the real frame in both schemes, writes a contact sheet under
-  `scripts/visuals-eval/output/fragments/`, and fails on a console error or a
-  collapsed height. `packages/agent-workspace/src/visuals-fragments.test.ts`
+  component family. The visuals lab's "Check all fragments" button renders
+  every one of them through the real frame in both schemes, writes a contact
+  sheet under `scripts/visuals-lab/results/fragments/`, and reports console
+  errors and collapsed heights. `packages/agent-workspace/src/visuals-fragments.test.ts`
   lints the same fences statically: published tokens only, no hardcoded colors,
   no visible heading but the hidden summary, a bordered box only as a record
   card, and every Chart.js fence holding animation off, its own legend off, and
   formatted ticks and tooltips. `managed-skills.test.ts` pins the other
   direction — every fragment file seeds, and every fragment is reachable from a
-  module index. Quality is tuned with the visuals battery (`bun run
-  eval:visuals`) and the design battery (`bun run eval:design`,
+  module index. Quality is tuned in the visuals lab (`bun run visuals:lab`)
+  and with the design battery (`bun run eval:design`,
   `scripts/design-battery/RUBRIC.md`).
 - **Series color.** Categorical order is `--chart-1` blue, `--chart-4` violet,
   `--chart-3` green, `--chart-2` red last, with `--chart-5` zinc as the neutral.

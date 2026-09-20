@@ -5,6 +5,7 @@ read_when:
   - changing OpenAPI, Server stores, SDK, App e2e, or Computer execution behavior
   - adding or changing an agent-behavior scenario under scripts/agent-tests/
   - changing lint rules, source-size policy, or Quality CI gates
+  - changing the visuals lab, its battery, or how rendered visuals are judged
 ---
 
 # Testing
@@ -447,62 +448,51 @@ The battery chat is intentionally left unarchived for transcript
 inspection. Rerun the loop after skill-text, token, or executor-model
 changes (PRD-86, ADR 0012).
 
-## Visuals Eval
+## Visuals Lab
 
-`bun run eval:visuals --model <runtime>/<model> [--reasoning <effort>]` is the
-design battery's offline sibling, for iterating on the visuals skill without a
-stack. It needs no dev server, no website, and no MCP: the prompts in
-`scripts/visuals-eval/prompts.mjs` carry a fixed MerchBase sales payload
-(`scripts/visuals-eval/fixtures/merchbase-sales.json`) inline, so the only
-variables are the seeded skill text and the model.
+`bun run visuals:lab` starts the one in-repo tool for judging what the agents
+actually render. It is where a change to the visuals skill, a fragment, or the
+visual frame gets looked at before it ships: the same six operator asks, across
+the whole model lineup, with the skill as it is now beside the skill as it
+shipped. Open the URL it prints (port 4390 by default, `PORT` overrides).
 
-Each prompt is one turn on the same harness agent the Computer executor builds
-(the default `--runner harness` lane) — same harness package, the same
-`seedFactoryManagedSkills` visuals skill, the same auth-profile symlinks —
-with instructions reduced to the product's
-`## Visuals` pointer plus an Outputs rule that puts the fence in the reply body
-(`scripts/visuals-eval/instructions.mjs`; `instructions.test.ts` pins the
-pointer against `renderAgentInstructions` so it cannot drift). The runner
-extracts the ```visual fence, renders it through the real
-`buildVisualSrcDoc` frame inside a mirror of the chat card shell, and
-screenshots dark and light with Playwright.
+**Runs** is a question tab per battery prompt over a model tab per contender.
+Pick a model and you get **Before | After** side by side — each the live
+sandboxed frame the chat card would build, with the agent's reply rendered
+beneath it, plus what the turn cost in wall time and output tokens and which
+skill files the trace shows it opened. Pick **All models** and the same question
+becomes a one-row-per-model PNG grid for the at-a-glance read. **Fragments** is
+the skill's own copy-ready fences, grouped by the module whose index points at
+them, rendered live from the working tree; **Check all fragments** renders every
+one of them headlessly and reports console errors and collapsed heights.
 
-Per run it writes `<slug>-{dark,light}.png`, `<slug>.reply.md`,
-`<slug>.visual.html`, `<slug>.trace.jsonl` (every tool call, so you can see
-whether the model read `references/design-system.md`), `usage.json`, and
-`contact-sheet.html` under `scripts/visuals-eval/output/` (gitignored).
-`--only <slug>` runs a subset, `--width` sets the card width (default 820),
-and `--out-dir` redirects the run. `--runner direct` swaps the pinned bridge
-for the `claude` or `codex` CLI installed on this machine, for model ids the
-bridge rejects; it keeps the same temp agent root, skills, instructions and
-prompt, so only the executable differs. `--skill-dir <dir>` overrides any of the
-seeded markdown from a variant on disk — `SKILL.md`, a module such as
-`design-system.md` or `charts.md`, or a `fragments/` directory of its own —
-which is how one revision of the skill text is measured against another.
-The verdict is human, same as the design battery.
+*After* is the working tree. *Before* is the visuals skill as it was at a git
+ref, materialized out of git rather than kept as a snapshot that could rot — the
+newest `v*` tag reachable from `HEAD` unless `VISUALS_LAB_BEFORE_REF` names
+another. The header says which ref the column stands for. A revision's markdown
+replaces the seeded skill wholesale, so a ref from before `fragments/` existed
+runs without today's fences rather than beside them. Each model's reasoning
+effort is a select beside its Run button, defaulting to medium; every model runs
+the harness bridge Haus itself ships, so a result is a judgement about the
+product. Runs land in `scripts/visuals-lab/results/` (gitignored).
 
-## Fragment Render
+The verdict is human. Judge a rendered cell against
+`scripts/design-battery/RUBRIC.md` and the Non-negotiables in
+`packages/agent-workspace/src/visuals-skill/SKILL.md`, revise the skill sources,
+and rerun the cell. "It rendered" is not "it looks right".
 
-`bun run eval:fragments` renders the visuals skill's own copy-ready fragments,
-the other half of the same problem: a model copies a fragment far more
-faithfully than it follows a rule, so a fragment that renders wrong ships that
-defect through every model at once. It reads every file under the skill's
-`fragments/` directory (`scripts/visuals-eval/skill-fragments.mjs`), renders each
-through the same `createVisualRenderer` frame at 736px in dark and light, and
-writes the PNGs plus an `index.html` contact sheet under
-`scripts/visuals-eval/output/fragments/<stamp>/` (gitignored).
+**Pressing Run spends real money.** Every cell is a real model turn on the
+developer's own provider logins. Nothing in the lab is part of `check`, CI, or
+any agent workflow, and it has no `eval:`, `test:`, or `check:` script by
+design. This is a human-driven tool. Agents do not run it unless a person asks
+for a visuals comparison.
 
-Unlike the two batteries it is not purely a dev tool: it exits non-zero when a
-fragment logs a console error or reports a height under 60px, so a fragment
-whose script throws cannot sit in the skill unnoticed. It needs a browser and
-the network — Chart.js and the map atlases are fetched, as they are in the
-product — so it stays out of `check:fast`. Run it after editing any fragment,
-and read the contact sheet: "it rendered" is not "it looks right".
-
-The static half does run in `check:fast`:
+The parts that do run in `check:fast` are the static ones:
 `packages/agent-workspace/src/visuals-fragments.test.ts` lints the same fences
 for published token names, hardcoded colors, stray headings, bordered plates,
-canvas accessibility, and the Chart.js floor.
+canvas accessibility, and the Chart.js floor;
+`packages/agent-workspace/src/managed-skills.test.ts` pins that every fragment
+seeds and is reachable from a module index.
 
 ## Keeping Suites Current
 

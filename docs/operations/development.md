@@ -66,12 +66,12 @@ or above the floor Haus needs; the bootstrap recipe is content-fingerprinted,
 so changing a pin re-runs every Agent's bridge install on its own.
 
 Adding a model is one entry in `apps/computer/src/inventory.ts`. Nothing
-validates a model id against the vendor, so prove a new one end to end through
-the harness lane before shipping it:
-
-```bash
-bun scripts/visuals-eval/run.mjs --model codex/<model> --runner harness --only week-over-week
-```
+validates a model id against the vendor, so prove a new one end to end before
+shipping it: start the visuals lab (`bun run visuals:lab`) and run the new
+model on one question. It drives the same harness bridge the Computer executor
+does, so a model id the bridge rejects fails there rather than in front of a
+user. That is a real model turn and costs money — see [Testing](testing.md),
+"Visuals Lab".
 
 ## Local Stack
 
