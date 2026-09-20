@@ -49,6 +49,26 @@ test('reuses one client and forwards signals through paginated discovery and inv
     expect(state.closeCount).toBe(1);
 });
 
+test('invocation hands the Agent the structured form without its duplicate text copy', async () => {
+    const structuredContent = { orders: [{ id: 'ord_1' }] };
+    const { client } = makeClient('Structured', {
+        call: async () => ({
+            content: [{ text: JSON.stringify(structuredContent), type: 'text' }],
+            isError: false,
+            structuredContent,
+        }),
+    });
+    const runtime = new McpRuntime(grantDb('connection-structured', 'echo'), effectRuntime, {
+        clientFactory: async () => client,
+    });
+    expect(await invoke(runtime, 'connection-structured')).toEqual({
+        content: [],
+        isError: false,
+        structuredContent,
+    });
+    await runtime.close();
+});
+
 test('isolates failed discovery while preserving healthy tool order', async () => {
     const slowList = Promise.withResolvers<unknown>();
     const first = makeClient('First');
