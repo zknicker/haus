@@ -6,6 +6,12 @@ import type { HarnessTurnInput } from './executor.ts';
 import { inactiveWebToolSettings } from './runtime-web-tools.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
+/**
+ * Grok spills MCP output past 20 KiB to a session file the Agent then spends a
+ * turn reading back. Claude Code inlines roughly 100 KiB, so Grok gets the same.
+ */
+const GROK_MCP_OUTPUT_BYTES = 102_400;
+
 type AgentConstructionInput = Pick<
     HarnessTurnInput,
     | 'agentId'
@@ -53,6 +59,7 @@ export function sandboxOptions(input: AgentConstructionInput) {
             env: {
                 ...input.env,
                 GROK_HOME: join(input.homeDir, '.grok'),
+                GROK_MAX_MCP_OUTPUT_BYTES: String(GROK_MCP_OUTPUT_BYTES),
                 HOME: input.homeDir,
             },
             homeDir: input.homeDir,
