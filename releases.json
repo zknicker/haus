@@ -1090,5 +1090,16 @@
       "computer": "4.0.1",
       "agent": null
     }
+  },
+  {
+    "version": "5.0.2",
+    "date": "2026-09-21",
+    "targets": {
+      "server": "4.0.2",
+      "app": null,
+      "ios": null,
+      "computer": "4.0.2",
+      "agent": "3.3.1"
+    }
   }
 ]
