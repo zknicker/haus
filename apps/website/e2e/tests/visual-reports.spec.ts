@@ -43,7 +43,7 @@ test('inline reports track the reply column and grow and shrink with their docum
     // capped at the prose measure (max-w-[46rem]).
     const proseMeasure = 736;
     const rowsByViewport = new Map<number, number>();
-    for (const width of [1440, 800, 1440]) {
+    for (const width of [1440, 400, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await assertHeight();
         const geometry = await frame.evaluate((element) => ({
@@ -59,17 +59,18 @@ test('inline reports track the reply column and grow and shrink with their docum
         rowsByViewport.set(width, rows);
     }
     // The document reflows inside the frame: at 1440 the frame is the 736px
-    // cap, at 800 it is the narrower column, so the same five tiles take more
+    // cap, at 400 it is the narrower column, so the same five tiles take more
     // rows. Exact counts would pin the sidebar's default width as well.
-    expect(rowsByViewport.get(1440)).toBeLessThan(rowsByViewport.get(800) ?? 0);
+    expect(rowsByViewport.get(1440)).toBeLessThan(rowsByViewport.get(400) ?? 0);
     await report.getByRole('button', { name: 'Tall report', exact: true }).click();
     await assertHeight();
     await expect
         .poll(() => frame.evaluate((element) => element.clientHeight))
         .toBeGreaterThan(2200);
+    const shortHeight = (await frame.evaluate((element) => element.clientHeight)) - 2160;
     await report.getByRole('button', { name: 'Short report', exact: true }).click();
     await assertHeight();
-    await expect.poll(() => frame.evaluate((element) => element.clientHeight)).toBeLessThan(420);
+    await expect.poll(() => frame.evaluate((element) => element.clientHeight)).toBe(shortHeight);
     await expect(page.getByRole('button', { name: 'Show all', exact: true })).toHaveCount(0);
     const overflow = await report.locator('[data-haus-table-scroll]').evaluate((element) => ({
         x: element.scrollWidth > element.clientWidth,
@@ -97,7 +98,7 @@ test('inline reports track the reply column and grow and shrink with their docum
     await report.locator('#details').evaluate((element) => {
         element.style.height = '40px';
     });
-    await expect.poll(() => frame.evaluate((element) => element.clientHeight)).toBeLessThan(420);
+    await expect.poll(() => frame.evaluate((element) => element.clientHeight)).toBe(shortHeight);
     await expect
         .poll(() =>
             viewport.evaluate((element) =>
