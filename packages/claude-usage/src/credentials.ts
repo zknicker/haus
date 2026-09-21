@@ -67,10 +67,8 @@ export async function loadClaudeCredentials(
     options: ClaudeCredentialsLoadOptions = {}
 ): Promise<ClaudeLoadedCredentials | null> {
     const now = options.now ?? new Date();
-    const keychainFirst = (options.platform ?? process.platform) === 'darwin';
-    const readSources = keychainFirst
-        ? [loadKeychainCredentials, loadFileCredentials, loadEnvironmentCredentials]
-        : [loadFileCredentials, loadKeychainCredentials, loadEnvironmentCredentials];
+    // Match the execution adapter's file-first discovery, including on macOS.
+    const readSources = [loadFileCredentials, loadKeychainCredentials, loadEnvironmentCredentials];
 
     let refreshable: ClaudeLoadedCredentials | null = null;
     for (const readSource of readSources) {

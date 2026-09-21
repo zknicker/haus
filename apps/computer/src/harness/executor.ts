@@ -6,6 +6,7 @@ import type {
     HarnessAgentResumeSessionState,
     HarnessAgentSession,
 } from '@ai-sdk/harness/agent';
+import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
@@ -31,7 +32,6 @@ import {
 } from './activity-projector.ts';
 import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
 import { bridgeStoreDirForHost, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
-import { createComputerClaudeCode } from './claude-native-auth.ts';
 import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
 import {
     type ComputerExecutionJournal,
@@ -828,7 +828,7 @@ export function createHarnessForRuntime(
     switch (runtimeId) {
         case 'claude-code':
             return withComputerBridgeBootstrap(
-                createComputerClaudeCode({
+                createClaudeCode({
                     // CLI-only output makes every send/check a tool call, so turns
                     // legitimately run long tool loops.
                     maxTurns: 50,
