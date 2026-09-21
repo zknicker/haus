@@ -44,6 +44,16 @@ inside the three-day `minimumReleaseAge` window needs its package added to
 `frozenLockfile = false` is a temporary flip that gets restored in the same
 change. Rerun `bun run setup:worktree` afterwards.
 
+The paired `react-aria-components@1.21.1` and `react-stately@3.50.0` patches
+separate preview cards from tooltips in the open-overlay registry. Without
+them, hovering a copy button's tooltip dismisses its enclosing HoverCard.
+Cards still share their own exclusivity group, and ordinary tooltips retain
+theirs; hover travel, delays, and keyboard behavior remain dependency-owned.
+Remove both patches when upstream supports tooltips inside PreviewTrigger
+without closing the preview. Verify with
+`bun run --filter @haus/website test:app runtime-issue-hover.spec.ts` after
+restarting Vite so it rebuilds optimized dependencies.
+
 ## Runtime Harness Upgrades
 
 The `@ai-sdk/harness*` packages version in lockstep: every adapter pins one
