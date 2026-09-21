@@ -106,6 +106,9 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
             }
         });
         await page.goto(`/s/live-turn/agents/${agent.id}/activity`);
+        for (const part of ['.accordion__panel', '.accordion__indicator']) {
+            await expect(page.locator(part)).toHaveCSS('transition-duration', '0s');
+        }
         await page.locator('.accordion__trigger').click();
         await expect(page.getByText('Inspecting the active queue.', { exact: true })).toBeVisible();
         const inspected = page.locator('[data-trace-anchor="tool:call_2"]');
