@@ -1,8 +1,23 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 6792ce0961034e992b3f5f4367d316680dec2cf3..d3d789f24cf285141de8c77684baa504ad6f616e 100644
+index 6792ce0961034e992b3f5f4367d316680dec2cf3..8e1e515c8ab99cc6b15abc6c40df3bbed59ba264 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -1622,6 +1622,7 @@ async function runTurn(start, turn) {
+@@ -232,7 +232,13 @@ async function runBridge(options) {
+   };
+   const writeStartConfig = async (start) => {
+     try {
+-      const serialized = JSON.stringify(start);
++      // The host resolves fresh credentials on start and resume; never persist them.
++      const persisted = { ...start };
++      if (start.env != null) {
++        const { AI_GATEWAY_API_KEY, ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, CLAUDE_CODE_OAUTH_TOKEN, ...environment } = start.env;
++        persisted.env = environment;
++      }
++      const serialized = JSON.stringify(persisted);
+       await writeFile(startConfigPath, serialized);
+       if (!existsSync(rerunStartConfigPath)) {
+         await writeFile(rerunStartConfigPath, serialized);
+@@ -1622,6 +1628,7 @@ async function runTurn(start, turn) {
    };
    let turnUsage;
    let totalCostUsd;
@@ -10,7 +25,7 @@ index 6792ce0961034e992b3f5f4367d316680dec2cf3..d3d789f24cf285141de8c77684baa504
    let emittedTerminalError = false;
    let emittedTerminalFinish = false;
    const emitTerminalError = (message) => {
-@@ -1697,6 +1698,12 @@ async function runTurn(start, turn) {
+@@ -1697,6 +1704,12 @@ async function runTurn(start, turn) {
            }
            queryInput.observeResult();
            if (!queryInput.hasActiveUserMessages()) {
@@ -23,7 +38,7 @@ index 6792ce0961034e992b3f5f4367d316680dec2cf3..d3d789f24cf285141de8c77684baa504
              queryInput.close();
              break;
            }
-@@ -1736,10 +1743,11 @@ async function runTurn(start, turn) {
+@@ -1736,10 +1749,11 @@ async function runTurn(start, turn) {
      type: "finish",
      finishReason: { unified: "stop", raw: "stop" },
      totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
