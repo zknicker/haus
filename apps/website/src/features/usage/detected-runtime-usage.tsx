@@ -162,27 +162,16 @@ function runtimeColumns(
                 const staleAt = staleUsageTimestamp(item, now);
                 if (item.issue) {
                     return (
-                        <div className="flex flex-col items-end gap-1">
-                            <RuntimeIssueHelp
-                                computerName={computerName}
-                                issue={item.issue}
-                                runtimeId={item.id}
-                                title={item.title}
-                            />
-                            {item.capturedAt && (
-                                <span className="text-muted text-xs">
-                                    Last updated {formatTimestamp(item.capturedAt)}
-                                </span>
-                            )}
-                        </div>
+                        <RuntimeIssueHelp
+                            computerName={computerName}
+                            issue={item.issue}
+                            runtimeId={item.id}
+                            title={item.title}
+                        />
                     );
                 }
                 if (staleAt) {
-                    return (
-                        <span className="text-muted text-sm">
-                            Last updated {formatTimestamp(staleAt)}
-                        </span>
-                    );
+                    return null;
                 }
                 if (item.window?.resetsAt) {
                     return (
