@@ -332,17 +332,21 @@ async function executeHarnessTurn(
             }
             // Only creation rejection invalidates native resume state.
             const parkedState = await parked.stop();
-            const refresh = () =>
-                harnessBootstrapRefresh({
-                    abortSignal: input.signal,
-                    harness,
-                    provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
-                    sessionId,
-                    workDir: basename(input.workspaceDir),
-                });
-            if (refreshBootstrap) {
-                await timings.measure('bootstrap', refresh);
-            }
+            const refresh = async () => {
+                if (!refreshBootstrap) {
+                    return;
+                }
+                await timings.measure('bootstrap', () =>
+                    harnessBootstrapRefresh({
+                        abortSignal: input.signal,
+                        harness,
+                        provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
+                        sessionId,
+                        workDir: basename(input.workspaceDir),
+                    })
+                );
+            };
+            await refresh();
             effectiveResumeFrom = parkedState;
         }
         const phase = createTurnPhaseLog(input);
