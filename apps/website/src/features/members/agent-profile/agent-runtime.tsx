@@ -1,4 +1,4 @@
-import type { Agent, ComputerInventory } from '@haus/api';
+import { type Agent, agentReasoningEffortLabels, type ComputerInventory } from '@haus/api';
 import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
@@ -56,6 +56,12 @@ export function AgentRuntime({
                                 ? execution.runtimeLabel
                                 : `${execution.runtimeLabel} · not installed`
                         }
+                    />
+                    <Separator />
+                    <ExecutionRow
+                        color="default"
+                        label="Reasoning effort"
+                        value={agentReasoningEffortLabels[agent.desiredReasoningEffort]}
                     />
                     {agent.status === 'applied' ? null : (
                         <>

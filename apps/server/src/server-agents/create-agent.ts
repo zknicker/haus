@@ -84,7 +84,7 @@ export async function createAgentInTransaction(
         computerId: input.computerId,
         serverId: input.serverId,
     });
-    assertRuntimeModelReported(inventory, input.runtimeId, input.modelId);
+    assertRuntimeModelReported(inventory, input.runtimeId, input.modelId, input.reasoningEffort);
 
     const avatarId = avatar ? createAvatarId() : null;
     if (avatar && avatarId) {

@@ -6,10 +6,6 @@ import type {
     HarnessAgentResumeSessionState,
     HarnessAgentSession,
 } from '@ai-sdk/harness/agent';
-import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { createCodex } from '@ai-sdk/harness-codex';
-import { createGrokBuild } from '@ai-sdk/harness-grok-build';
-import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@haus/agent-workspace';
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
@@ -31,7 +27,7 @@ import {
     createHarnessActivityProjector,
 } from './activity-projector.ts';
 import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
-import { bridgeStoreDirForHost, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
+import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
 import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
 import {
     type ComputerExecutionJournal,
@@ -39,6 +35,7 @@ import {
 } from './execution-journal.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
+import { createHarnessForRuntime } from './runtime-harness.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
@@ -224,7 +221,8 @@ async function executeHarnessTurn(
         input.runtimeId,
         input.reasoningEffort,
         input.webAccess !== null,
-        bridgeStoreDirForHost()
+        bridgeStoreDirForHost(),
+        input.modelId
     );
     const bootstrapFingerprint = await fingerprintHarnessBootstrap({
         abortSignal: input.signal,
@@ -320,7 +318,8 @@ async function executeHarnessTurn(
                 key: instructionActivityKey,
             });
         }
-        if (resumeFrom && refreshBootstrap) {
+        const reasoningChanged = session.effectiveReasoningEffort !== input.reasoningEffort;
+        if (resumeFrom && (refreshBootstrap || reasoningChanged)) {
             let parked: HarnessAgentSession;
             try {
                 parked = await agent.createSession({
@@ -341,7 +340,9 @@ async function executeHarnessTurn(
                     sessionId,
                     workDir: basename(input.workspaceDir),
                 });
-            await timings.measure('bootstrap', refresh);
+            if (refreshBootstrap) {
+                await timings.measure('bootstrap', refresh);
+            }
             effectiveResumeFrom = parkedState;
         }
         const phase = createTurnPhaseLog(input);
@@ -495,6 +496,7 @@ async function executeHarnessTurn(
         if (observation.aborted) {
             await writeAgentSessionState(input.agentRoot, {
                 ...session,
+                effectiveReasoningEffort: input.reasoningEffort,
                 cumulativeTokenUsage: normalizedUsage.cumulative,
                 hausAgentStatus: hausAgentVersionDrift ? 'failed' : session.hausAgentStatus,
                 resumeState: resumeState as Record<string, unknown>,
@@ -508,6 +510,7 @@ async function executeHarnessTurn(
             bootstrapFingerprint,
             cumulativeTokenUsage: normalizedUsage.cumulative,
             effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
+            effectiveReasoningEffort: input.reasoningEffort,
             generation: session.generation,
             hausAgentAppliedAt:
                 hausAgentVersionDrift && appliesHausAgentVersion
@@ -773,49 +776,6 @@ export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRe
     return () => {
         harnessBootstrapRefresh = previous;
     };
-}
-
-/**
- * Builds the runtime adapter. The model is no longer an adapter setting: it
- * rides on the Agent instead (`HarnessAgent`'s `model`), so one adapter serves
- * every model on its runtime.
- */
-export function createHarnessForRuntime(
-    runtimeId: string,
-    reasoningEffort: AgentReasoningEffort,
-    webAccess = false,
-    storeDir?: string
-): HarnessV1<ToolSet> {
-    switch (runtimeId) {
-        case 'claude-code':
-            return withComputerBridgeBootstrap(
-                createClaudeCode({
-                    // CLI-only output makes every send/check a tool call, so turns
-                    // legitimately run long tool loops.
-                    maxTurns: 50,
-                    effort: reasoningEffort,
-                }),
-                'claude-code',
-                { storeDir }
-            ) as HarnessV1<ToolSet>;
-        case 'codex':
-            return withComputerBridgeBootstrap(
-                createCodex({
-                    reasoningEffort,
-                    ...(webAccess ? { webSearch: true } : {}),
-                }),
-                'codex',
-                { storeDir }
-            ) as HarnessV1<ToolSet>;
-        case 'grok-build':
-            return createGrokBuild({ reasoningEffort }) as HarnessV1<ToolSet>;
-        case 'pi':
-            return createPi({
-                thinkingLevel: reasoningEffort,
-            }) as HarnessV1<ToolSet>;
-        default:
-            throw new Error(`Unsupported runtime "${runtimeId}".`);
-    }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

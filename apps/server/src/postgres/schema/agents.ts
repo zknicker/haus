@@ -107,11 +107,11 @@ export const agentsTable = pgTable(
         unique('agents_creation_message_key').on(table.serverId, table.creationMessageId),
         check(
             'agents_reasoning_effort',
-            sql`${table.desiredReasoningEffort} in ('low', 'medium', 'high')`
+            sql`${table.desiredReasoningEffort} in ('default', 'low', 'medium', 'high', 'xhigh', 'max')`
         ),
         check(
             'agents_effective_reasoning_effort',
-            sql`${table.effectiveReasoningEffort} is null or ${table.effectiveReasoningEffort} in ('low', 'medium', 'high')`
+            sql`${table.effectiveReasoningEffort} is null or ${table.effectiveReasoningEffort} in ('default', 'low', 'medium', 'high', 'xhigh', 'max')`
         ),
         check('agents_factory_kind', sql`${table.factoryKind} in ('ordinary', 'cove')`),
         check(

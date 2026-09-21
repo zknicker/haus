@@ -1,4 +1,4 @@
-import type { ComputerInventory } from '@haus/api';
+import type { AgentReasoningEffort, ComputerInventory } from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
 import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
@@ -70,5 +70,24 @@ function supportedRuntime(
     if (!runtime) {
         throw new Error(`Missing supported Computer runtime ${id}.`);
     }
-    return { ...runtime, models };
+    return {
+        ...runtime,
+        models: models.map((model) => ({
+            ...model,
+            defaultReasoningEffort:
+                id === 'claude-code' && model.id === 'claude-haiku-4-5' ? 'default' : 'medium',
+            reasoningEfforts: reasoningEffortsForModel(id, model.id),
+        })),
+    };
+}
+
+/** The installed AI SDK adapters expose settings, not per-model capability discovery. */
+export function reasoningEffortsForModel(
+    runtimeId: ComputerRuntimeId,
+    modelId: string
+): AgentReasoningEffort[] {
+    if (runtimeId === 'claude-code' && modelId === 'claude-haiku-4-5') {
+        return ['default'];
+    }
+    return ['low', 'medium', 'high', 'xhigh', 'max'];
 }

@@ -1755,7 +1755,7 @@ components:
         idempotent: { type: boolean }
         messageId: { type: string, minLength: 1 }
         modelId: { type: string }
-        reasoningEffort: { type: string, enum: [low, medium, high] }
+        reasoningEffort: { type: string, enum: [default, low, medium, high, xhigh, max] }
         runtimeId: { type: string }
         sequence: { type: integer, minimum: 1 }
         target: { type: string, minLength: 1 }

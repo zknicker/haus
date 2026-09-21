@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
 import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './cloud-agent-shared.ts';
 
@@ -9,8 +10,18 @@ export const computerModelSchema = z
     .object({
         id: z.string().trim().min(1).max(128),
         label: z.string().trim().min(1).max(200),
+        defaultReasoningEffort: agentReasoningEffortSchema.optional(),
+        reasoningEfforts: z.array(agentReasoningEffortSchema).min(1).max(6).optional(),
     })
-    .strict();
+    .strict()
+    .refine(
+        (model) =>
+            !model.defaultReasoningEffort ||
+            (model.reasoningEfforts ?? ['low', 'medium', 'high']).includes(
+                model.defaultReasoningEffort
+            ),
+        'The default reasoning effort must be supported by the model.'
+    );
 
 export const computerRuntimeSchema = z
     .object({

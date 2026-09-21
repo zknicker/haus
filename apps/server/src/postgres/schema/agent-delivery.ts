@@ -62,7 +62,7 @@ export const agentDeliveryTable = pgTable(
         ),
         check(
             'agent_delivery_active_run_reasoning_effort',
-            sql`${table.activeRunReasoningEffort} is null or ${table.activeRunReasoningEffort} in ('low', 'medium', 'high')`
+            sql`${table.activeRunReasoningEffort} is null or ${table.activeRunReasoningEffort} in ('default', 'low', 'medium', 'high', 'xhigh', 'max')`
         ),
     ]
 );

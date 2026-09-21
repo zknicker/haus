@@ -1,4 +1,8 @@
-import type { ComputerInventory } from '@haus/api';
+import {
+    type AgentReasoningEffort,
+    type ComputerInventory,
+    modelReasoningEfforts,
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
@@ -47,7 +51,8 @@ export async function resolveAssignedComputer(
 export function assertRuntimeModelReported(
     inventory: ComputerInventory | null,
     runtimeId: string,
-    modelId: string
+    modelId: string,
+    reasoningEffort?: AgentReasoningEffort
 ): void {
     if (!inventory) {
         throw new AgentConfigDeniedError(
@@ -63,9 +68,15 @@ export function assertRuntimeModelReported(
         );
     }
 
-    if (!runtime.models.some((model) => model.id === modelId)) {
+    const model = runtime.models.find((candidate) => candidate.id === modelId);
+    if (!model) {
         throw new AgentConfigDeniedError(
             `The runtime "${runtimeId}" does not report the model "${modelId}" on this Computer.`
+        );
+    }
+    if (reasoningEffort && !modelReasoningEfforts(model).includes(reasoningEffort)) {
+        throw new AgentConfigDeniedError(
+            `The model "${modelId}" on "${runtimeId}" does not support reasoning effort "${reasoningEffort}".`
         );
     }
 }

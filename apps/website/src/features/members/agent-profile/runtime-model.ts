@@ -1,9 +1,15 @@
-import type { Agent, ComputerInventory } from '@haus/api';
+import {
+    type Agent,
+    type AgentReasoningEffort,
+    type ComputerInventory,
+    modelReasoningEfforts,
+} from '@haus/api';
 
 type Runtime = ComputerInventory['runtimes'][number];
 
 export interface RuntimeConfigDraft {
     modelId: string;
+    reasoningEffort: AgentReasoningEffort;
     runtimeId: string;
 }
 
@@ -46,6 +52,10 @@ export function isRuntimeConfigDraftAvailable(draft: RuntimeConfigDraft, runtime
     return Boolean(
         runtimes
             .find((runtime) => runtime.id === draft.runtimeId)
-            ?.models.some((model) => model.id === draft.modelId)
+            ?.models.some(
+                (model) =>
+                    model.id === draft.modelId &&
+                    modelReasoningEfforts(model).includes(draft.reasoningEffort)
+            )
     );
 }

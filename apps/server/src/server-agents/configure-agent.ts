@@ -1,4 +1,9 @@
-import type { Agent, AgentActivityEvent, ConfigureAgentInput } from '@haus/api';
+import {
+    type Agent,
+    type AgentActivityEvent,
+    type ConfigureAgentInput,
+    reasoningChangeResetsSession,
+} from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { recordSessionRotation } from '../agent-delivery/session-rotation.ts';
@@ -85,9 +90,13 @@ export async function configureAgent(
             computerId: agent.computerId,
             serverId: input.serverId,
         });
-        assertRuntimeModelReported(inventory, input.runtimeId, input.modelId);
-
         const desiredReasoningEffort = input.reasoningEffort ?? agent.desiredReasoningEffort;
+        assertRuntimeModelReported(
+            inventory,
+            input.runtimeId,
+            input.modelId,
+            desiredReasoningEffort
+        );
         const changed =
             agent.desiredRuntimeId !== input.runtimeId ||
             agent.desiredModelId !== input.modelId ||
@@ -99,7 +108,12 @@ export async function configureAgent(
             (delivery?.activeRunModelId !== input.modelId ||
                 delivery.activeRunRuntimeId !== input.runtimeId ||
                 delivery.activeRunReasoningEffort !== desiredReasoningEffort);
-        const rotateNow = changed && !hasActiveRun;
+        const rotateNow =
+            !hasActiveRun &&
+            (agent.desiredRuntimeId !== input.runtimeId ||
+                agent.desiredModelId !== input.modelId ||
+                (reasoningChangeResetsSession(input.runtimeId) &&
+                    agent.desiredReasoningEffort !== desiredReasoningEffort));
 
         const [configured] = await tx
             .update(agentsTable)

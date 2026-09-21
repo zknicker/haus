@@ -1,4 +1,4 @@
-import type { Agent } from '@haus/api';
+import { type Agent, modelDefaultReasoningEffort } from '@haus/api';
 import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 
 /**
@@ -22,7 +22,7 @@ export function resolveAgentCreationDefaults(
     return {
         computerId: computer?.id ?? '',
         modelId: model?.id ?? '',
-        reasoningEffort: cove?.desiredReasoningEffort ?? 'medium',
+        reasoningEffort: cove?.desiredReasoningEffort ?? modelDefaultReasoningEffort(model ?? {}),
         runtimeId: runtime?.id ?? '',
     } satisfies Pick<
         AgentCreationSubmitValues,

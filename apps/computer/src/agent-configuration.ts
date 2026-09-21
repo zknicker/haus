@@ -5,6 +5,7 @@ import {
     type AgentConfigureCommand,
     type AgentReasoningEffort,
     agentConfigureCommandSchema,
+    agentReasoningEffortSchema,
     type ComputerInventory,
     type CoveApplyCommand,
 } from '@haus/api';
@@ -178,7 +179,7 @@ function isAppliedConfiguration(value: unknown): value is AppliedAgentConfigurat
 }
 
 function isReasoningEffort(value: unknown): value is AgentReasoningEffort {
-    return value === 'low' || value === 'medium' || value === 'high';
+    return agentReasoningEffortSchema.safeParse(value).success;
 }
 
 function isAgentSeedConfiguration(value: unknown): value is AgentSeedConfiguration {

@@ -1,4 +1,4 @@
-import type { Agent, AgentCommand } from '@haus/api';
+import { type Agent, type AgentCommand, reasoningChangeResetsSession } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
@@ -38,6 +38,14 @@ export async function rotateDeferredConfiguration(
             config.desiredReasoningEffort === input.activeRunReasoningEffort)
     ) {
         return null;
+    }
+
+    if (
+        config.desiredModelId === input.activeRunModelId &&
+        config.desiredRuntimeId === input.activeRunRuntimeId &&
+        !reasoningChangeResetsSession(config.desiredRuntimeId)
+    ) {
+        return { agentId: input.agentId, config };
     }
 
     const [rotated] = await db

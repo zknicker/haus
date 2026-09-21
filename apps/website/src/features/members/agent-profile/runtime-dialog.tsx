@@ -1,9 +1,10 @@
-import type { Agent, ComputerInventory } from '@haus/api';
+import { type Agent, type ComputerInventory, reasoningChangeResetsSession } from '@haus/api';
 import { Button, Description, Form, Label, ListBox, Modal, Select } from '@heroui/react';
 import { CpuIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
+import { ReasoningSelect, supportedReasoningEffort } from '../reasoning-select.tsx';
 import { isRuntimeConfigDraftAvailable, type RuntimeConfigDraft } from './runtime-model.ts';
 
 type Runtime = ComputerInventory['runtimes'][number];
@@ -60,8 +61,11 @@ function RuntimeConfigForm({
         runtimes.find((runtime) => runtime.id === agent.desiredRuntimeId) ?? null;
     const [runtimeId, setRuntimeId] = React.useState(agent.desiredRuntimeId);
     const [modelId, setModelId] = React.useState(agent.desiredModelId);
+    const [preferredEffort, setPreferredEffort] = React.useState(agent.desiredReasoningEffort);
     const selectedRuntime = runtimes.find((runtime) => runtime.id === runtimeId) ?? null;
-    const draft = { modelId, runtimeId };
+    const selectedModel = selectedRuntime?.models.find((model) => model.id === modelId);
+    const reasoningEffort = supportedReasoningEffort(selectedModel, preferredEffort);
+    const draft = { modelId, runtimeId, reasoningEffort };
     const canSave = isRuntimeConfigDraftAvailable(draft, runtimes) && !pending;
     const models = selectedRuntime?.models ?? [];
     const modelIsInstalled = models.some((model) => model.id === modelId);
@@ -82,7 +86,7 @@ function RuntimeConfigForm({
                 </Modal.Icon>
                 <Modal.Heading>Runtime Config</Modal.Heading>
                 <p className="mt-1.5 text-muted text-sm leading-5">
-                    Choose the installed runtime and model this Agent uses.
+                    Choose the runtime, model, and reasoning effort this Agent uses.
                 </p>
             </Modal.Header>
             <Modal.Body>
@@ -181,6 +185,16 @@ function RuntimeConfigForm({
                             </ListBox>
                         </Select.Popover>
                     </Select>
+                    <ReasoningSelect
+                        model={selectedModel}
+                        onChange={setPreferredEffort}
+                        value={reasoningEffort}
+                    />
+                    <Description>
+                        {reasoningChangeResetsSession(runtimeId)
+                            ? 'Changes apply on the next turn. Grok requires a new session when reasoning effort changes.'
+                            : 'Reasoning changes apply on the next turn and preserve conversation context.'}
+                    </Description>
                     <SettingsRowError>{error}</SettingsRowError>
                 </Form>
             </Modal.Body>

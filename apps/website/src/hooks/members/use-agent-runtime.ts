@@ -1,3 +1,4 @@
+import type { ConfigureAgentInput } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { withSavingToast } from '../../lib/saving-toast.ts';
 import { refreshAgent } from './agent-refresh.ts';
@@ -10,7 +11,9 @@ export function useAgentRuntime(serverId: string, agentId: string) {
 
     return {
         ...mutation,
-        save: async (draft: { modelId: string; runtimeId: string }) => {
+        save: async (
+            draft: Pick<ConfigureAgentInput, 'modelId' | 'runtimeId' | 'reasoningEffort'>
+        ) => {
             await withSavingToast(() => mutation.mutateAsync({ agentId, serverId, ...draft }));
         },
     };

@@ -17,6 +17,7 @@ import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creati
 import { resolveAgentCreationDefaults } from './agent-creation-defaults.ts';
 import { createAgentHandle } from './agent-handle.ts';
 import { InventorySelect } from './inventory-select.tsx';
+import { ReasoningSelect, supportedReasoningEffort } from './reasoning-select.tsx';
 
 export type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 
@@ -100,7 +101,7 @@ export function AgentCreationForm({
                 displayName: name,
                 handle: createAgentHandle(name, agents),
                 modelId: model.id,
-                reasoningEffort,
+                reasoningEffort: supportedReasoningEffort(model, reasoningEffort),
                 runtimeId: runtime.id,
             });
             onCreated(result.agentId);
@@ -198,16 +199,10 @@ export function AgentCreationForm({
                             value={model?.id ?? ''}
                         />
                     </div>
-                    <InventorySelect
-                        label="Reasoning effort"
-                        onChange={(value) => {
-                            if (isReasoningEffort(value)) {
-                                setReasoningEffort(value);
-                            }
-                        }}
-                        options={reasoningOptions}
-                        placeholder="Select reasoning effort"
-                        value={reasoningEffort}
+                    <ReasoningSelect
+                        model={model}
+                        onChange={setReasoningEffort}
+                        value={supportedReasoningEffort(model, reasoningEffort)}
                     />
                     {avatarError || error ? (
                         <Alert status="danger">
@@ -231,14 +226,4 @@ export function AgentCreationForm({
             </Modal.Footer>
         </>
     );
-}
-
-const reasoningOptions = [
-    { id: 'low', label: 'Low' },
-    { id: 'medium', label: 'Medium' },
-    { id: 'high', label: 'High' },
-] as const;
-
-function isReasoningEffort(value: string): value is AgentReasoningEffort {
-    return value === 'low' || value === 'medium' || value === 'high';
 }

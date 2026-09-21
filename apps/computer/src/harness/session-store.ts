@@ -1,5 +1,6 @@
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { AgentReasoningEffort } from '@haus/api';
 
 /**
  * One global persistent session per Agent (ADR 0011/0019), stored Computer-local
@@ -13,6 +14,7 @@ export interface AgentSessionState {
     bootstrapFingerprint: string | null;
     cumulativeTokenUsage: AgentSessionTokenUsage | null;
     effectiveModel: { modelId: string; runtimeId: string };
+    effectiveReasoningEffort?: AgentReasoningEffort;
     generation: number;
     hausAgentAppliedAt: string | null;
     hausAgentStatus: 'current' | 'failed' | 'pending';
