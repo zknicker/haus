@@ -21,7 +21,7 @@ clients recover through durable reads.
 | Hosted durable subscription | Haus Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Haus Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent activity journal | Haus Server | Durable semantic execution metadata plus live current-state projection |
-| Hosted Agent lifecycle hub | Haus Server | Volatile working/reading/sending/settled projection for presence and send composition |
+| Hosted Agent lifecycle hub | Haus Server | Volatile working/reading/sending/settled projection for presence and committed-send recovery |
 | App subscriptions | Haus App | tRPC notification transport, catch-up cursors, and focused query invalidation |
 
 `server.updated` is Server-scoped: `server.onUpdate` takes a Server id, checks
@@ -147,11 +147,20 @@ a provisional Agent response from this transport.
 
 Hosted Agent lifecycle events are also volatile and membership-checked. The
 Server projects `working` when a run is dispatched, `reading` when Computer
-acceptance arrives and after a send commits, `sending` around the Agent's
-message-send request, and `settled` from the Computer's terminal turn proof.
+acceptance arrives, `sending` after the Agent's message commits followed immediately
+by `working`, and `settled` from the Computer's terminal turn proof.
 The App maps every active phase to coarse Agent `working` availability. Settlement invalidates the durable Agent list,
 delivery state, and activity reads. Reconnect recovers from those reads rather
 than replaying lifecycle events.
+
+Agent message rows render only from durable transcript reads. The App never renders
+the lifecycle event's text as a temporary message: the following `working` event
+can arrive before the durable notification's batched refresh. A confirmed `sending`
+event also cancels and invalidates that Server's transcript reads, and invalidates
+its Chat list and search as a fallback for a missed message notification. This
+fallback includes mounted parent transcripts because lifecycle events do not name
+a Thread's parent Chat. Inactive transcripts remain stale until opened. The normal
+`message.created` listener retains its precise Chat and parent invalidation.
 
 Semantic Agent activity is written before broadcast. Computer frames carry a narrow category,
 phase, run id, per-run sequence, timestamp, and optional canonical safe tool reference. They never
