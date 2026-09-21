@@ -73,7 +73,7 @@ report.
 
 Each runtime row uses its provider snapshot's capture time, independently of the Computer's report
 time. After 30 minutes, or once a displayed allowance window has reset, the row labels its retained
-numbers **Usage out of date** and shows **Last updated** instead of an upcoming reset date. A
+numbers **Usage out of date** and omits the reset date. Runtime rows do not show capture timestamps. A
 snapshot the Computer has already reported as retained is labelled immediately rather than waiting
 for that 30-minute mark, since it is known to be out of date rather than guessed to be.
 
@@ -168,7 +168,14 @@ The warning describes the last Haus authentication failure, not the runtime's cu
 If the runtime already works on the Computer, retry the Agent request. Sign in there only if the
 runtime also asks for a login.
 
-After signing in — or refreshing — on the named Computer, retry the Agent request. A successful
-turn using that runtime clears the issue. Inventory discovery, an interrupted turn, and a usage
-refresh do not prove execution authentication succeeded and cannot clear it. An older in-flight turn cannot
-overwrite a newer observation. Historical failures remain in activity history.
+For Claude Code, reconnecting Computer or selecting **Refresh** beside Runtimes rechecks the native
+CLI's `auth status`. A successful command reporting `loggedIn: true` clears the saved authentication
+warning and publishes the new inventory. This checks the current login without running an Agent
+or spending model tokens. Missing, failed, timed-out, and malformed checks retain the warning.
+Ordinary reports after Agent turns do not perform this check, so a new execution failure remains
+visible even if the CLI still reports a local login. A later execution authentication failure
+restores the warning.
+
+A successful Agent turn also clears its runtime's issue. Usage refresh alone and interrupted turns
+do not clear it. A check or turn that started before a newer observation cannot overwrite it.
+Historical failures remain in activity history; refreshing authentication does not replay failed work.
