@@ -1,16 +1,12 @@
 import { expect, test } from 'bun:test';
 import type { UsageOverview } from '@haus/api';
-import {
-    buildRuntimeRow,
-    type RuntimeUsageRow,
-    staleUsageLabel,
-    staleUsageTimestamp,
-} from './runtime-usage-row.ts';
+import { buildRuntimeRow, type RuntimeUsageRow, staleUsageTimestamp } from './runtime-usage-row.ts';
 
 const row: RuntimeUsageRow = {
     capturedAt: '2026-09-08T14:00:00.000Z',
     fiveHourWindow: null,
     id: 'claude-code',
+    issue: null,
     stale: null,
     status: '',
     title: 'Claude Code',
@@ -84,13 +80,11 @@ test('a runtime that has never reported usage reads as signed out', () => {
     const usage = usageWithCodexWindows([]);
     const signedOut = { ...usage, claude: providerError('claude', 'auth') };
 
-    expect(buildRuntimeRow('claude-code', signedOut, null).status).toBe(
-        'Signed out on this Computer'
-    );
+    expect(buildRuntimeRow('claude-code', signedOut, null).issue).toBe('authentication');
     expect(
-        buildRuntimeRow('codex', { ...usage, codex: providerError('codex', 'auth') }, null).status
-    ).toBe('Signed out on this Computer');
-    expect(buildRuntimeRow('grok-build', usage, null).status).toBe('Signed out on this Computer');
+        buildRuntimeRow('codex', { ...usage, codex: providerError('codex', 'auth') }, null).issue
+    ).toBe('authentication');
+    expect(buildRuntimeRow('grok-build', usage, null).issue).toBe('authentication');
 });
 
 test('a runtime whose login expired keeps its retained meters and reads as signed out', () => {
@@ -103,7 +97,7 @@ test('a runtime whose login expired keeps its retained meters and reads as signe
 
     expect(built.window).toMatchObject({ label: 'Weekly Limit', usedPercent: 28 });
     expect(built.stale).toEqual({ at: '2026-08-14T15:15:00.000Z', code: 'auth' });
-    expect(staleUsageLabel(built)).toBe('Signed out on this Computer');
+    expect(built.issue).toBe('authentication');
     // The stale stamp already names the sign-out, so the limit cell stays
     // generic rather than repeating it in the adjacent column.
     expect(built.status).toBe('Plan limits unavailable');
@@ -122,7 +116,7 @@ test('a runtime retained past a request failure keeps the generic stale copy', (
     );
 
     expect(built.status).toBe('Plan limits unavailable');
-    expect(staleUsageLabel(built)).toBe('Usage out of date');
+    expect(built.issue).toBe('usage');
 });
 
 test('a non-authentication failure keeps the generic unavailable copy', () => {

@@ -59,7 +59,7 @@ test('a runtime that has never reported usage reads as signed out', () => {
         />
     );
 
-    expect(markup).toContain('Signed out on this Computer');
+    expect(markup).toContain('Sign-in required');
     expect(markup).not.toContain('Plan limits unavailable');
 });
 
@@ -96,7 +96,7 @@ test('a retained snapshot whose login expired keeps its meters and reads as sign
     );
 
     expect(markup).toContain('28%');
-    expect(markup).toContain('Signed out on this Computer');
+    expect(markup).toContain('Sign-in required');
     expect(markup).not.toContain('Usage out of date');
     expect(markup).toContain('Last updated');
 });
@@ -122,8 +122,8 @@ test('a retained snapshot kept past a request failure keeps the generic stale co
     );
 
     expect(markup).toContain('13%');
-    expect(markup).toContain('Usage out of date');
-    expect(markup).not.toContain('Signed out on this Computer');
+    expect(markup).toContain('Usage unavailable');
+    expect(markup).not.toContain('Sign-in required');
 });
 
 test('a fresh snapshot with no retention stamp carries no stale copy', () => {
@@ -153,8 +153,9 @@ test('a signed-out retained row names the sign-out once', () => {
         stale: { at: '2026-08-14T15:15:00.000Z', code: 'auth' },
     });
 
-    expect(markup.split('Signed out on this Computer')).toHaveLength(2);
-    expect(markup).toContain('Plan limits unavailable');
+    expect(markup.split('Sign-in required')).toHaveLength(2);
+    expect(markup).toContain('Codex: how to fix sign-in');
+    expect(markup).toContain('button--icon-only');
 });
 
 function renderCodexWindows(
@@ -183,3 +184,25 @@ function renderCodexWindows(
         />
     );
 }
+
+test('execution authentication issues override successful usage and stay scoped to their runtime', () => {
+    const markup = renderToStaticMarkup(
+        <DetectedRuntimeUsage
+            computerName="Zach’s Mac mini"
+            detectedRuntimeIds={['codex', 'claude-code']}
+            piAgentCount={null}
+            runtimeIssues={[
+                {
+                    runtimeId: 'codex',
+                    kind: 'authentication',
+                    observedAt: new Date().toISOString(),
+                },
+            ]}
+            usage={usageFixture}
+        />
+    );
+    expect(markup).toContain('Codex: how to fix sign-in');
+    expect(markup).toContain('Claude Code: usage details');
+    expect(markup.split('Sign-in required')).toHaveLength(2);
+    expect(markup).toContain('13%');
+});

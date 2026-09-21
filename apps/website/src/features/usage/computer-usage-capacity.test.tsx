@@ -99,7 +99,7 @@ test('renders only detected runtime cards without token details', () => {
     // page, so both share one header, surface, and row treatment.
     expect(markup).toContain('data-slot="data-grid"');
     expect(markup).toContain('Weekly limit');
-    expect(markup).toContain('Resets');
+    expect(markup).toContain('Details');
     // A weekly meter per runtime, plus a burst meter only where the runtime has
     // a 5-hour window; the runtime without one gets an inert track instead of a
     // zero-value bar that would announce "0%".

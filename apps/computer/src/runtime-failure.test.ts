@@ -52,3 +52,15 @@ test('classifies the plain ACP bootstrap error without leaking its raw message',
     );
     expect(classifyRuntimeFailure({ message: 'Something else failed' })).toBe('unknown');
 });
+
+test('invalid Claude credentials require operator action instead of repeated retries', () => {
+    for (const message of [
+        'Invalid Claude credentials in Keychain',
+        'Claude authentication failed: invalid credentials in Keychain',
+        'Claude authentication failed: invalid credentials in credential file',
+    ]) {
+        const kind = classifyRuntimeFailure(new Error(message));
+        expect(kind).toBe('authentication');
+        expect(isRetryableRuntimeFailure(kind)).toBe(false);
+    }
+});

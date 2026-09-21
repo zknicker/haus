@@ -137,3 +137,22 @@ describe('parseClaudeCredentialsDocument', () => {
         });
     });
 });
+
+it.each([
+    'not-json',
+    '{"claudeAiOauth":{}}',
+])('treats unusable Keychain credentials as an authentication failure: %s', async (raw) => {
+    await expect(
+        loadClaudeCredentials({ platform: 'darwin', readKeychain: async () => raw })
+    ).rejects.toMatchObject({ name: 'ClaudeUsageAuthError' });
+});
+
+it('treats an invalid credential file as an authentication failure', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
+    tempDirs.push(tempDir);
+    const credentialsPath = path.join(tempDir, 'credentials.json');
+    await writeFile(credentialsPath, '{}');
+    await expect(
+        loadClaudeCredentials({ credentialsPath, useKeychain: false })
+    ).rejects.toMatchObject({ name: 'ClaudeUsageAuthError' });
+});
