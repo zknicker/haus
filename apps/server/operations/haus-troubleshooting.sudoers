@@ -1,0 +1,17 @@
+# Install as /etc/sudoers.d/haus-troubleshooting, root:wheel, mode 0440.
+# Exact argument lists keep these grants scoped to Haus.
+Cmnd_Alias HAUS_DIAGNOSTICS = \
+    /usr/bin/tail -n 1000 /Users/zknicker/srv/haus/logs/server.log, \
+    /usr/bin/tail -n 1000 /Users/zknicker/srv/haus/logs/server.error.log, \
+    /usr/bin/tail -n 1000 /Users/zknicker/srv/haus/logs/tunnel.log, \
+    /usr/bin/tail -n 1000 /Users/zknicker/srv/haus/logs/tunnel.error.log, \
+    /bin/launchctl print system/com.haus.server, \
+    /bin/launchctl print system/com.haus.tunnel, \
+    /usr/sbin/lsof -nP -iTCP\:18791, \
+    /usr/sbin/lsof -nP -iTCP\:5438, \
+    /usr/sbin/lsof -nP -iTCP\:20242, \
+    /usr/bin/sample haus-server 5 -file /dev/stdout
+Cmnd_Alias HAUS_RECOVERY = \
+    /bin/launchctl kickstart -k system/com.haus.server, \
+    /bin/launchctl kickstart -k system/com.haus.tunnel
+zknicker ALL=(root) NOPASSWD: HAUS_DIAGNOSTICS, HAUS_RECOVERY

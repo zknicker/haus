@@ -144,10 +144,11 @@ of making an unrelated Development-vault read part of signing or publication.
 
 The hosted Server never invokes Varlock. `config/server.env` is the delivered
 runtime copy, rendered fresh on every deploy by
-`scripts/render-server-env.ts` from exactly the names the Server's typed env
-module validates — the delivered set — then read back names-only by
+`scripts/render-server-env.ts` from the names the Server's typed env module
+validates plus explicit native Bun startup flags, then read back names-only by
 `scripts/verify-deployed-secrets.ts` against that same set, which both derive
-from `deliveredEnvironmentNames` in `scripts/lib/env-schema.ts`. A deploy-time
+from `deliveredEnvironmentNames` in `scripts/lib/env-schema.ts`. Required public
+flags are checked for presence just like required secrets. A deploy-time
 credential such as `HAUS_DATABASE_MIGRATION_URL` is production-required in the
 schema and deliberately outside the delivered set: the deploy job resolves it
 for itself and the running Server never receives it. The contract comes from the deploy

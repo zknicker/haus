@@ -61,7 +61,7 @@ export function collectDeliveryIssues(
     }
 
     for (const item of items) {
-        if (!(deliveredSet.has(item.name) && item.isSensitive && item.isRequiredInProduction)) {
+        if (!(deliveredSet.has(item.name) && item.isRequiredInProduction)) {
             continue;
         }
         const entry = delivered.get(item.name);
@@ -95,7 +95,7 @@ function main() {
     }
 
     console.log(
-        `Delivered Server environment matches the contract (${entries.length} of ${deliveredSet.size} contract names delivered, none stale, every production-required secret present).`
+        `Delivered Server environment matches the contract (${entries.length} of ${deliveredSet.size} contract names delivered, none stale, every production-required value present).`
     );
 }
 

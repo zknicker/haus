@@ -16,9 +16,9 @@ const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const schemaItems = readSchemaItems(join(repositoryRoot, '.env.schema'));
 const deliveredSet = deliveredEnvironmentNames(repositoryRoot);
 
-// What production actually resolves: the required credentials plus the two
-// origins. Every other delivered name is optional and simply absent.
+// Required credentials and the native Bun flag, plus public app configuration.
 const productionFixture: NodeJS.ProcessEnv = {
+    BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING: '1',
     HAUS_APP_ORIGIN: 'https://haus.example',
     HAUS_CLERK_SECRET_KEY: 'sk_live_fixture',
     HAUS_DATABASE_URL: 'postgres://haus_runtime:fixture@127.0.0.1:5432/haus',
@@ -51,6 +51,26 @@ const item = (name: string, overrides: Partial<SchemaItem> = {}): SchemaItem => 
 });
 
 describe('the delivered-environment guard, against a rendered fixture', () => {
+    test('rejects a missing public Bun startup flag', () => {
+        const { BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING, ...withoutFlag } = productionFixture;
+        const guard = runGuard(renderFixture(withoutFlag));
+        expect(guard.exitCode).toBe(1);
+        expect(guard.stderr.toString()).toContain(
+            'BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING is required in production but is missing'
+        );
+    });
+
+    test('rejects an empty public Bun startup flag', () => {
+        const entries = readRenderedEnvironment(renderFixture(productionFixture)).map((entry) =>
+            entry.name === 'BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING'
+                ? { ...entry, isEmpty: true }
+                : entry
+        );
+        expect(collectDeliveryIssues(schemaItems, deliveredSet, entries)).toEqual([
+            'BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING is required in production but was delivered with an empty value.',
+        ]);
+    });
+
     // The regression this guard shipped with: HAUS_DATABASE_MIGRATION_URL and
     // HAUS_POSTGRES_ADMIN_PASSWORD are production-required schema items the
     // renderer deliberately never delivers, and judging delivery against the
@@ -91,16 +111,14 @@ describe('the delivered-environment guard, against a rendered fixture', () => {
     test('every production-required name it does demand is one the renderer writes', () => {
         const demanded = schemaItems
             .filter(
-                (candidate) =>
-                    candidate.isSensitive &&
-                    candidate.isRequiredInProduction &&
-                    deliveredSet.has(candidate.name)
+                (candidate) => candidate.isRequiredInProduction && deliveredSet.has(candidate.name)
             )
             .map((candidate) => candidate.name);
 
         expect(demanded).toContain('HAUS_CLERK_SECRET_KEY');
         expect(demanded).toContain('HAUS_DATABASE_URL');
         expect(demanded).toContain('HAUS_OPENAI_API_KEY');
+        expect(demanded).toContain('BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING');
         expect(demanded).not.toContain('HAUS_DATABASE_MIGRATION_URL');
         expect(demanded).not.toContain('HAUS_POSTGRES_ADMIN_PASSWORD');
     });

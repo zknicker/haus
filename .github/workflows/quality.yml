@@ -26,7 +26,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.3.5'
+          bun-version: '1.4.2'
 
       # The licensed @hugeicons-pro scope 401s without its key, so the install
       # itself needs a real credential. It is an @internal schema item, resolved

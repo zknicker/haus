@@ -71,6 +71,11 @@ export function deliverableNames(items: SchemaItem[]): Set<string> {
 /** The Server's consumer-side contract: the typed env module it validates. */
 export const serverEnvModulePath = 'apps/server/src/config/env.ts';
 
+/** Consumed by Bun before the Server's JavaScript environment validation runs. */
+export const serverRuntimeEnvironmentNames = new Set([
+    'BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING',
+]);
+
 /** The names a Server built from this module source validates at startup. */
 export function serverEnvironmentNames(moduleSource: string): string[] {
     const body = moduleSource.slice(moduleSource.indexOf('const envSchema'));
@@ -83,7 +88,7 @@ function readServerEnvModule(repositoryRoot: string): string {
 
 /**
  * The delivered name set: exactly the names `render-server-env.ts` writes into
- * `config/server.env`, which is exactly what the Server validates at startup.
+ * `config/server.env`: application configuration plus native runtime flags.
  *
  * It is deliberately narrower than `deliverableNames`. A deploy-time credential
  * — the migration login, the container admin password — is a schema item the
@@ -92,7 +97,10 @@ function readServerEnvModule(repositoryRoot: string): string {
  * set here so the guard can never demand a name the renderer refuses to write.
  */
 export function deliveredEnvironmentNames(repositoryRoot: string): Set<string> {
-    return new Set(serverEnvironmentNames(readServerEnvModule(repositoryRoot)));
+    return new Set([
+        ...serverEnvironmentNames(readServerEnvModule(repositoryRoot)),
+        ...serverRuntimeEnvironmentNames,
+    ]);
 }
 
 /** One `KEY=value` line of a rendered environment file, value never exposed. */

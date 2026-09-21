@@ -4,7 +4,7 @@
   "version": "3.0.0",
   "type": "module",
   "main": "electron/main.cjs",
-  "packageManager": "bun@1.3.5",
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "vite",
     "build": "bun run check:browser-dependencies && vite build",

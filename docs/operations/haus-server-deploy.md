@@ -63,8 +63,9 @@ The self-hosted `Deploy Haus Server` workflow:
    `activate` skips asset download and installation
 7. renders `config/server.env` from the workflow revision's `.env.schema` under
    `varlock run`, mode `0600` plus one ACL entry granting `_haus_server` read,
-   after proving the released Server reads exactly the names that contract
-   delivers, retrying a transient 1Password failure up to three times because
+   after proving the released Server's application names match the contract,
+   also delivering the explicit native Bun startup flags, retrying a transient
+   1Password failure up to three times because
    resolving is idempotent
 8. runs the candidate's migration program under `varlock run`, with the
    migration credential resolved from 1Password, and records the exact
