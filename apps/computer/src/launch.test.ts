@@ -273,7 +273,7 @@ test('reports a failed turn when the runtime is not installed', async () => {
     expect(turnFrames[0]).toMatchObject({ messageCount: 0, status: 'failed' });
 });
 
-test('the launch injects Server-owned MCP tools into the real Harness boundary', async () => {
+test('the launch injects Server MCP and Computer Browser tools into the real Harness boundary', async () => {
     const attachment: Attachment = {
         computerId: 'cmp_launchtest0000000',
         credential: 'launch-test-credential',
@@ -357,7 +357,7 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
     expect(turn.status).toBe('completed');
-    expect(Object.keys(tools)).toEqual(['execute']);
+    expect(Object.keys(tools)).toEqual(['execute', 'browser']);
     expect(invocationResult).toMatchObject({ result: 'server:granted' });
 });
 

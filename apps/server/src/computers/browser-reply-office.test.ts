@@ -113,10 +113,10 @@ function browserSettings(
         result: {
             kind: 'settings',
             value: {
-                application: null,
                 configured: false,
                 enabled: false,
-                profileName: 'default',
+                connection: null,
+                browsers: [],
                 status: null,
                 updatedAt: null,
             },

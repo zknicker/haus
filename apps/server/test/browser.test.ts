@@ -78,7 +78,7 @@ test('only an Owner or Admin can relay Browser settings to this Server Computer'
     const computerReply = answerNextBrowserRequest(socket);
     await expect(owner.trpc.browser.get.query({ computerId, serverId })).resolves.toMatchObject({
         enabled: false,
-        profileName: 'default',
+        connection: null,
     });
     await computerReply;
 
@@ -107,10 +107,10 @@ function answerNextBrowserRequest(connection: WebSocket) {
                         result: {
                             kind: 'settings',
                             value: {
-                                application: null,
+                                browsers: [],
                                 configured: false,
                                 enabled: false,
-                                profileName: 'default',
+                                connection: null,
                                 status: null,
                                 updatedAt: null,
                             },

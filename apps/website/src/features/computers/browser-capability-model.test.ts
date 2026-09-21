@@ -2,87 +2,36 @@ import { expect, test } from 'bun:test';
 import type { AgentRuntimeBrowserSettings } from '@haus/api';
 import { browserCapabilityView } from './browser-capability-model.ts';
 
-const baseSettings = {
-    application: { path: '/Applications/Google Chrome.app', version: '128.0.0.0' },
-    configured: true,
-    enabled: true,
-    profileName: 'default',
+const settings: AgentRuntimeBrowserSettings = {
+    connection: null,
+    configured: false,
+    enabled: false,
+    browsers: [],
     status: null,
-    updatedAt: '2026-09-09T16:00:00.000Z',
-} satisfies AgentRuntimeBrowserSettings;
+    updatedAt: null,
+};
 
-test('shows Chrome as available but not configured before the first save', () => {
-    const view = browserCapabilityView({
-        settings: { ...baseSettings, configured: false, enabled: false, updatedAt: null },
-    });
-
-    expect(view).toMatchObject({
+test('configuration remains available when no compatible browser is running', () => {
+    expect(browserCapabilityView({ settings })).toMatchObject({
         canConfigure: true,
         canEnable: false,
         status: 'not-configured',
-        statusLabel: 'Not configured',
     });
-    expect(view.description).toContain('Google Chrome is available');
 });
 
-test('only reports Ready when configured Browser health is observed', () => {
-    const view = browserCapabilityView({
-        settings: {
-            ...baseSettings,
-            status: {
-                browserVersion: '128.0.0.0',
-                cdpState: 'healthy',
-                checkedAt: '2026-09-09T16:00:00.000Z',
-                pid: 123,
-                pressureSince: null,
-                reason: null,
-                resources: {
-                    browserCpuPercent: 2,
-                    browserRssBytes: 100,
-                    gpuCpuPercent: 1,
-                    gpuRssBytes: 50,
-                },
-                restartBudget: { automaticRestartLimit: 3, automaticRestartsInWindow: 0 },
-                running: true,
-                state: 'healthy',
-                uptimeSeconds: 60,
-            },
-        },
-    });
-
-    expect(view).toMatchObject({
+test('unavailable browser can disconnect, but cannot reconnect until discovered', () => {
+    const saved = {
+        ...settings,
+        connection: { applicationPath: '/Chrome.app', userDataDir: '/shared' },
+        configured: true,
+        enabled: true,
+    };
+    expect(browserCapabilityView({ settings: saved })).toMatchObject({
         canDisable: true,
-        canOpen: true,
-        canRestart: true,
-        status: 'ready',
-        statusLabel: 'Ready',
+        status: 'attention',
     });
-});
-
-test('separates a saved but disabled Browser from initial setup', () => {
-    const view = browserCapabilityView({
-        settings: { ...baseSettings, enabled: false },
-    });
-
-    expect(view).toMatchObject({
-        canConfigure: true,
-        canEnable: true,
-        canOpen: false,
-        status: 'off',
-        statusLabel: 'Off',
-    });
-});
-
-test('does not offer setup when Chrome is unavailable', () => {
-    const view = browserCapabilityView({
-        settings: { ...baseSettings, application: null, configured: false, enabled: false },
-    });
-
-    expect(view).toMatchObject({
-        canConfigure: false,
+    expect(browserCapabilityView({ settings: { ...saved, enabled: false } })).toMatchObject({
         canEnable: false,
-        status: 'unavailable',
-        statusLabel: 'Unavailable',
+        statusLabel: 'Disconnected',
     });
-    expect(view.description).toContain('was not detected');
 });

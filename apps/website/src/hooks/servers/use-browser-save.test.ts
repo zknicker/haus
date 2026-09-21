@@ -8,11 +8,23 @@ test('Browser saves retain the selected Server and Computer route', () => {
                 computerId: 'cmp_selected000000',
                 serverId: 'srv_selected000000',
             },
-            { enabled: true, profileName: 'work' }
+            {
+                enabled: true,
+                connection: {
+                    applicationPath: '/Applications/Google Chrome.app',
+                    userDataDir: '/shared',
+                },
+            }
         )
     ).toEqual({
         computerId: 'cmp_selected000000',
         serverId: 'srv_selected000000',
-        settings: { enabled: true, profileName: 'work' },
+        settings: {
+            enabled: true,
+            connection: {
+                applicationPath: '/Applications/Google Chrome.app',
+                userDataDir: '/shared',
+            },
+        },
     });
 });
