@@ -16,7 +16,7 @@ test('keeps a Computer plan snapshot visible while the Computer is offline', () 
     expect(markup).not.toContain('5h Limit');
     expect(markup).toContain('13%');
     expect(markup).toContain('Usage out of date');
-    expect(markup).toContain('Last updated');
+    expect(markup).not.toContain('Last updated');
     expect(markup).not.toContain('Pi');
 });
 

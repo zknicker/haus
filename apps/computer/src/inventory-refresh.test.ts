@@ -27,3 +27,33 @@ test('manual refresh discovers a runtime installed after the initial inventory',
         await rm(root, { recursive: true, force: true });
     }
 });
+
+test('manual refresh reports failure if the refreshed health cannot be published', async () => {
+    const { handleInventoryRefresh } = await import('./inventory-refresh.ts');
+    const frames: unknown[] = [];
+    const work: Promise<unknown>[] = [];
+    handleInventoryRefresh(
+        { requestId: 'req_status', type: 'inventory-refresh-request' },
+        {
+            send: (frame) => {
+                frames.push(frame);
+                return true;
+            },
+            track: (promise) => {
+                work.push(promise);
+                return promise;
+            },
+            refreshUsage: async () => {},
+            refreshReport: () => Promise.reject(new Error('fixture report unavailable')),
+        }
+    );
+    await Promise.all(work);
+    expect(frames).toEqual([
+        {
+            error: 'Could not refresh runtime status on this Computer.',
+            requestId: 'req_status',
+            status: 'failed',
+            type: 'inventory-refresh-result',
+        },
+    ]);
+});

@@ -100,7 +100,7 @@ test('a retained snapshot whose usage login expired keeps its meters without an 
     expect(markup).toContain('Usage unavailable');
     expect(markup).not.toContain('Authentication failed');
     expect(markup).not.toContain('Usage out of date');
-    expect(markup).toContain('Last updated');
+    expect(markup).not.toContain('Last updated');
 });
 
 test('a retained snapshot kept past a request failure keeps the generic stale copy', () => {
@@ -208,4 +208,5 @@ test('execution authentication issues override successful usage and stay scoped 
     expect(markup).toContain('Claude Code: usage details');
     expect(markup.split('Authentication failed')).toHaveLength(2);
     expect(markup).toContain('13%');
+    expect(markup).not.toContain('Last updated');
 });
