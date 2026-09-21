@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v5.0.2 - 2026-09-21
+
+- Haus Agent 3.3.1 preserves inline replies when a send pauses to show unread messages, fixing repeated Server errors when replying with a short message ID.
+
 ## v5.0.1 - 2026-09-21
 
 - Haus Computer 4.0.1 clears old Claude authentication warnings when reconnecting or refreshing Runtimes confirms that Claude is signed in. Retrying an Agent is no longer required to clear the warning.
