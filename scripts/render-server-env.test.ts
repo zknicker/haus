@@ -9,13 +9,20 @@ import {
     readRenderedEnvironmentNames,
     readSchemaItems,
 } from './lib/env-schema.ts';
-import { assertContractsAgree, shellQuote } from './render-server-env.ts';
+import { assertContractsAgree, renderEnvironmentFile, shellQuote } from './render-server-env.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const schemaItems = readSchemaItems(join(repositoryRoot, '.env.schema'));
 
 describe('the delivered Server environment', () => {
-    test('names every value the Server validates, and nothing else', () => {
+    test('delivers Bun startup flags alongside the application configuration', () => {
+        const { contents } = renderEnvironmentFile([...deliveredEnvironmentNames(repositoryRoot)], {
+            BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING: '1',
+        });
+        expect(contents).toContain("BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING='1'");
+    });
+
+    test('delivers only runtime contract names, excluding deploy credentials', () => {
         const names = [...deliveredEnvironmentNames(repositoryRoot)];
         const deliverable = deliverableNames(schemaItems);
 
@@ -57,6 +64,16 @@ describe('the delivered Server environment', () => {
 
 describe('the released contract guard', () => {
     const released = ['HAUS_APP_ORIGIN', 'HAUS_CLERK_SECRET_KEY'];
+
+    test('accepts native Bun flags absent from the released JavaScript env module', () => {
+        expect(() =>
+            assertContractsAgree(
+                released,
+                [...released, 'BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING'],
+                'a'.repeat(40)
+            )
+        ).not.toThrow();
+    });
 
     test('passes when the released Server reads what this revision delivers', () => {
         expect(() => assertContractsAgree(released, [...released], 'a'.repeat(40))).not.toThrow();
