@@ -2,10 +2,9 @@ import type { ComputerRuntimeId, UsageOverview, UsageStale } from '@haus/api';
 import { type DisplayPlanWindow, selectWindow } from './runtime-plan-windows.ts';
 
 type ProviderUsageState = UsageOverview['claude'] | UsageOverview['codex'] | UsageOverview['grok'];
+export type RuntimeIssue = 'authentication' | 'usage';
 type CodexWindows = Extract<UsageOverview['codex'], { status: 'ok' }>['snapshot']['windows'];
 
-const SIGNED_OUT = 'Signed out on this Computer';
-const OUT_OF_DATE = 'Usage out of date';
 /** Mirrors `SESSION_WINDOW_MAX_SECONDS` in `@haus/codex-usage`. */
 const SESSION_WINDOW_MAX_SECONDS = 21_600;
 
@@ -13,6 +12,7 @@ export interface RuntimeUsageRow {
     capturedAt: string | null;
     fiveHourWindow: DisplayPlanWindow | null;
     id: ComputerRuntimeId;
+    issue: RuntimeIssue | null;
     /** Present when the Computer is showing last-known numbers, and why. */
     stale: UsageStale | null;
     status: string;
@@ -33,8 +33,9 @@ export function buildRuntimeRow(
             capturedAt: codex.status === 'ok' ? codex.snapshot.capturedAt : null,
             fiveHourWindow: codex.status === 'ok' ? codexBurstWindow(codex.snapshot.windows) : null,
             id,
+            issue: usageIssue(codex),
             stale: retainedReason(codex),
-            status: planStatus(codex, 'Plan limits unavailable'),
+            status: 'Plan limits unavailable',
             title,
             // The weekly column is the weekly window or nothing. Falling back to
             // the session window here labelled a 5-hour burst allowance "Weekly
@@ -55,8 +56,9 @@ export function buildRuntimeRow(
                     ? selectWindow(claude.snapshot.windows, 'current-session', '5h')
                     : null,
             id,
+            issue: usageIssue(claude),
             stale: retainedReason(claude),
-            status: planStatus(claude, 'Plan limits unavailable'),
+            status: 'Plan limits unavailable',
             title,
             window:
                 claude.status === 'ok'
@@ -75,8 +77,9 @@ export function buildRuntimeRow(
             capturedAt: grok.status === 'ok' ? grok.snapshot.capturedAt : null,
             fiveHourWindow: null,
             id,
+            issue: usageIssue(grok),
             stale: retainedReason(grok),
-            status: planStatus(grok, 'Weekly limit unavailable'),
+            status: 'Weekly limit unavailable',
             title,
             window:
                 grok.status === 'ok'
@@ -91,6 +94,7 @@ export function buildRuntimeRow(
         capturedAt: null,
         fiveHourWindow: null,
         id,
+        issue: null,
         stale: null,
         status: piAgentSummary(piAgentCount),
         title,
@@ -116,29 +120,13 @@ export function staleUsageTimestamp(row: RuntimeUsageRow, now: number): string |
     return now - Date.parse(row.capturedAt) >= 30 * 60_000 || expiredWindow ? row.capturedAt : null;
 }
 
-/**
- * An expired login is a fixable state rather than a freshness accident, so the
- * row names it in the same slot the generic staleness note would use.
- */
-export function staleUsageLabel(row: RuntimeUsageRow): string {
-    return row.stale?.code === 'auth' ? SIGNED_OUT : OUT_OF_DATE;
-}
-
-/**
- * A runtime that has never reported names its expired login here, since it has
- * no retained snapshot and so no stale stamp in the Runtime cell. A retained
- * snapshot does carry that stamp, so this cell stays generic rather than
- * printing "Signed out on this Computer" twice in one row.
- */
-function planStatus(state: ProviderUsageState, unavailable: string): string {
-    if (state.status === 'error') {
-        return state.error.code === 'auth' ? SIGNED_OUT : unavailable;
-    }
-    return unavailable;
-}
-
 function retainedReason(state: ProviderUsageState): UsageStale | null {
     return state.status === 'ok' ? (state.stale ?? null) : null;
+}
+
+function usageIssue(state: ProviderUsageState): RuntimeIssue | null {
+    const code = state.status === 'error' ? state.error.code : state.stale?.code;
+    return code ? (code === 'auth' ? 'authentication' : 'usage') : null;
 }
 
 /**

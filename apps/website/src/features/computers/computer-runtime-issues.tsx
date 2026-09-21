@@ -1,6 +1,7 @@
 import { Alert } from '@heroui/react';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { computerLabel } from './presentation.ts';
 import { runtimeIssueLabel, runtimeLoginCommand } from './runtime-issue-model.ts';
 
@@ -12,8 +13,12 @@ export function ComputerRuntimeIssues({
     serverId: string;
 }) {
     const computers = useComputers(serverId);
+    const usage = useUsage(serverId);
     const computer = computers.data?.find(({ id }) => id === computerId);
-    if (!computer) {
+    if (
+        !computer ||
+        usage.data?.computers.some((item) => item.computerId === computerId && item.usage)
+    ) {
         return null;
     }
     return (

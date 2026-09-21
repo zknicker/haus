@@ -1,14 +1,14 @@
-import type { ComputerRuntimeId, UsageOverview } from '@haus/api';
-import { Button, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
+import type { ComputerInventory, ComputerRuntimeId, UsageOverview } from '@haus/api';
+import { Button, Chip, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { ProviderMark } from '../../components/provider-mark.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
+import { RuntimeIssueHelp } from './runtime-issue.tsx';
 import { type DisplayPlanWindow, usageColor } from './runtime-plan-windows.ts';
 import {
     buildRuntimeRow,
     type RuntimeUsageRow,
     runtimeOrder,
-    staleUsageLabel,
     staleUsageTimestamp,
 } from './runtime-usage-row.ts';
 
@@ -24,16 +24,26 @@ export function DetectedRuntimeUsage({
     onViewPiUsage,
     piAgentCount,
     usage,
+    runtimeIssues = [],
+    computerName = 'this Computer',
 }: {
     detectedRuntimeIds: ComputerRuntimeId[];
     onViewPiUsage?: () => void;
     piAgentCount: number | null;
     usage: UsageOverview;
+    runtimeIssues?: ComputerInventory['runtimeIssues'];
+    computerName?: string;
 }) {
     const detected = new Set(detectedRuntimeIds);
     const rows = runtimeOrder
         .filter((id) => detected.has(id))
-        .map((id) => buildRuntimeRow(id, usage, piAgentCount));
+        .map((id) => {
+            const row = buildRuntimeRow(id, usage, piAgentCount);
+            if (runtimeIssues.some((issue) => issue.runtimeId === id)) {
+                row.issue = 'authentication';
+            }
+            return row;
+        });
 
     if (rows.length === 0) {
         return <p className="text-muted text-sm">No runtimes detected.</p>;
@@ -42,7 +52,7 @@ export function DetectedRuntimeUsage({
     return (
         <DataGrid
             aria-label="Runtimes on this Computer"
-            columns={runtimeColumns(Date.now(), onViewPiUsage)}
+            columns={runtimeColumns(Date.now(), computerName, onViewPiUsage)}
             contentClassName="min-w-160"
             data={rows}
             getRowId={(item) => item.id}
@@ -71,6 +81,7 @@ export function DetectedRuntimeUsageSkeleton({
 
 function runtimeColumns(
     now: number,
+    computerName: string,
     onViewPiUsage?: () => void
 ): DataGridColumn<RuntimeUsageRow>[] {
     return [
@@ -79,9 +90,22 @@ function runtimeColumns(
                 <div className="flex min-w-0 items-center gap-3">
                     <ProviderMark className="size-5 shrink-0 text-muted" provider={item.id} />
                     <div className="min-w-0">
-                        <p className="truncate font-medium">{item.title}</p>
-                        {staleUsageTimestamp(item, now) && (
-                            <p className="text-muted text-xs">{staleUsageLabel(item)}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-medium">{item.title}</p>
+                            {item.issue && (
+                                <Chip
+                                    color={item.issue === 'authentication' ? 'danger' : 'warning'}
+                                    size="sm"
+                                    variant="soft"
+                                >
+                                    {item.issue === 'authentication'
+                                        ? 'Sign-in required'
+                                        : 'Usage unavailable'}
+                                </Chip>
+                            )}
+                        </div>
+                        {!item.issue && staleUsageTimestamp(item, now) && (
+                            <p className="text-muted text-xs">Usage out of date</p>
                         )}
                     </div>
                 </div>
@@ -96,7 +120,9 @@ function runtimeColumns(
                 item.window ? (
                     <UsageMeter label={`${item.title} ${item.window.label}`} window={item.window} />
                 ) : (
-                    <span className="truncate text-muted text-sm">{item.status}</span>
+                    <span className="truncate text-muted text-sm">
+                        {item.issue ? '—' : item.status}
+                    </span>
                 ),
             header: 'Weekly limit',
             id: 'limit',
@@ -134,6 +160,23 @@ function runtimeColumns(
             align: 'end',
             cell: (item) => {
                 const staleAt = staleUsageTimestamp(item, now);
+                if (item.issue) {
+                    return (
+                        <div className="flex flex-col items-end gap-1">
+                            <RuntimeIssueHelp
+                                computerName={computerName}
+                                issue={item.issue}
+                                runtimeId={item.id}
+                                title={item.title}
+                            />
+                            {item.capturedAt && (
+                                <span className="text-muted text-xs">
+                                    Last updated {formatTimestamp(item.capturedAt)}
+                                </span>
+                            )}
+                        </div>
+                    );
+                }
                 if (staleAt) {
                     return (
                         <span className="text-muted text-sm">
@@ -154,7 +197,7 @@ function runtimeColumns(
                     </Button>
                 ) : null;
             },
-            header: 'Resets',
+            header: 'Details',
             id: 'resets',
             minWidth: 150,
         },
