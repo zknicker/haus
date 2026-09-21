@@ -1046,5 +1046,16 @@
       "computer": "3.2.0",
       "agent": null
     }
+  },
+  {
+    "version": "4.3.0",
+    "date": "2026-09-21",
+    "targets": {
+      "server": "3.3.0",
+      "app": null,
+      "ios": { "version": "3.3.0", "buildNumber": 33 },
+      "computer": "3.3.0",
+      "agent": "3.2.0"
+    }
   }
 ]
