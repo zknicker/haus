@@ -86,10 +86,15 @@ indicator conditionally shows an enforced 5-hour window; model-specific windows 
 comparative surface. A runtime whose snapshot carries no weekly window shows no weekly meter: a
 5-hour allowance stays in the 5-hour column rather than standing in for a weekly one, and a session
 window too long to be a 5-hour allowance is reported as unavailable rather than mislabelled. A
-runtime that has never reported usage and has no login reads **Signed out on this Computer** in
-place of its meters. A runtime whose login later expires keeps its last known meters and labels
-them **Signed out on this Computer** rather than with the generic out-of-date note. Either clears
-when the owner signs in to that runtime on the Computer and the next snapshot arrives.
+runtime with a missing, expired, or unusable login shows a **Sign-in required** badge beside its
+name. A help icon in the Details column reveals instructions on hover or keyboard focus for
+signing in on that Computer, including a copyable
+runtime-specific command. Computer-reported execution issues take precedence over successful
+usage reads. Last-known meters remain visible with their capture time. A plan-usage failure alone
+shows **Usage unavailable** with details, without claiming execution is blocked. Runtime rows own
+these notices; a Computer without a usage report retains the standalone execution warning.
+Malformed Claude credential documents are authentication failures, distinct from malformed usage
+responses, so they surface here and stop automatic turn retries.
 Authentication and raw provider responses remain Computer-local.
 
 Cloud Agent usage is per-Run rather than per-window. Each terminal Run observation carries the
