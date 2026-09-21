@@ -50,7 +50,9 @@ export function createHarnessAgent(
     });
 }
 
-export function sandboxOptions(input: AgentConstructionInput) {
+export function sandboxOptions(
+    input: AgentConstructionInput
+): Parameters<typeof createLocalTrustedSandboxProvider>[0] {
     const rootDir = dirname(input.workspaceDir);
     const profile = authProfileFor(input.runtimeId);
     if (input.runtimeId === 'grok-build') {
