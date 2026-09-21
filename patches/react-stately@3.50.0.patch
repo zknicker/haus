@@ -1,0 +1,63 @@
+diff --git a/dist/private/tooltip/useTooltipTriggerState.cjs b/dist/private/tooltip/useTooltipTriggerState.cjs
+index 92fae38b7036bbdb82558b80ec3a8b1c80943184..13f04dceb9aa74185221702591cdedc58ad54757 100644
+--- a/dist/private/tooltip/useTooltipTriggerState.cjs
++++ b/dist/private/tooltip/useTooltipTriggerState.cjs
+@@ -36,13 +36,13 @@ function $aa006296c94ee187$export$4d40659c25ecb50b(props = {}) {
+     let closeTimeout = (0, $4ZRdi$react.useRef)(null);
+     let closeCallback = (0, $4ZRdi$react.useRef)(close);
+     let ensureTooltipEntry = ()=>{
+-        $aa006296c94ee187$var$tooltips[id] = hideTooltip;
++        $aa006296c94ee187$var$tooltips[id] = {hideTooltip, group: props.UNSTABLE_tooltipGroup};
+     };
+     let closeOpenTooltips = ()=>{
+-        for(let hideTooltipId in $aa006296c94ee187$var$tooltips)if (hideTooltipId !== id) {
++        for(let hideTooltipId in $aa006296c94ee187$var$tooltips)if (hideTooltipId !== id && $aa006296c94ee187$var$tooltips[hideTooltipId].group === props.UNSTABLE_tooltipGroup) {
+             // Close other open tooltips instantly (no exit animation), since they are being
+             // replaced by this one during the warmup period.
+-            $aa006296c94ee187$var$tooltips[hideTooltipId](true, true);
++            $aa006296c94ee187$var$tooltips[hideTooltipId].hideTooltip(true, true);
+             delete $aa006296c94ee187$var$tooltips[hideTooltipId];
+         }
+     };
+diff --git a/dist/private/tooltip/useTooltipTriggerState.js b/dist/private/tooltip/useTooltipTriggerState.js
+index aa219bc48c33326dca12dbdfec894ef6e83372fe..34560fd80756ca5e97b6939f331252c834b033d6 100644
+--- a/dist/private/tooltip/useTooltipTriggerState.js
++++ b/dist/private/tooltip/useTooltipTriggerState.js
+@@ -30,13 +30,13 @@ function $d881726242c7a389$export$4d40659c25ecb50b(props = {}) {
+     let closeTimeout = (0, $9hT9S$useRef)(null);
+     let closeCallback = (0, $9hT9S$useRef)(close);
+     let ensureTooltipEntry = ()=>{
+-        $d881726242c7a389$var$tooltips[id] = hideTooltip;
++        $d881726242c7a389$var$tooltips[id] = {hideTooltip, group: props.UNSTABLE_tooltipGroup};
+     };
+     let closeOpenTooltips = ()=>{
+-        for(let hideTooltipId in $d881726242c7a389$var$tooltips)if (hideTooltipId !== id) {
++        for(let hideTooltipId in $d881726242c7a389$var$tooltips)if (hideTooltipId !== id && $d881726242c7a389$var$tooltips[hideTooltipId].group === props.UNSTABLE_tooltipGroup) {
+             // Close other open tooltips instantly (no exit animation), since they are being
+             // replaced by this one during the warmup period.
+-            $d881726242c7a389$var$tooltips[hideTooltipId](true, true);
++            $d881726242c7a389$var$tooltips[hideTooltipId].hideTooltip(true, true);
+             delete $d881726242c7a389$var$tooltips[hideTooltipId];
+         }
+     };
+diff --git a/dist/private/tooltip/useTooltipTriggerState.mjs b/dist/private/tooltip/useTooltipTriggerState.mjs
+index c8362fa2b32ff072f339b783c26f1a6ce8205d55..708ee9418f874b5969527571c271c29637a75de0 100644
+--- a/dist/private/tooltip/useTooltipTriggerState.mjs
++++ b/dist/private/tooltip/useTooltipTriggerState.mjs
+@@ -30,13 +30,13 @@ function $3834487504f4fc00$export$4d40659c25ecb50b(props = {}) {
+     let closeTimeout = (0, $auOuY$useRef)(null);
+     let closeCallback = (0, $auOuY$useRef)(close);
+     let ensureTooltipEntry = ()=>{
+-        $3834487504f4fc00$var$tooltips[id] = hideTooltip;
++        $3834487504f4fc00$var$tooltips[id] = {hideTooltip, group: props.UNSTABLE_tooltipGroup};
+     };
+     let closeOpenTooltips = ()=>{
+-        for(let hideTooltipId in $3834487504f4fc00$var$tooltips)if (hideTooltipId !== id) {
++        for(let hideTooltipId in $3834487504f4fc00$var$tooltips)if (hideTooltipId !== id && $3834487504f4fc00$var$tooltips[hideTooltipId].group === props.UNSTABLE_tooltipGroup) {
+             // Close other open tooltips instantly (no exit animation), since they are being
+             // replaced by this one during the warmup period.
+-            $3834487504f4fc00$var$tooltips[hideTooltipId](true, true);
++            $3834487504f4fc00$var$tooltips[hideTooltipId].hideTooltip(true, true);
+             delete $3834487504f4fc00$var$tooltips[hideTooltipId];
+         }
+     };

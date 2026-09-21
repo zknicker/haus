@@ -1,0 +1,36 @@
+diff --git a/dist/private/PreviewTrigger.cjs b/dist/private/PreviewTrigger.cjs
+index 251cc80c63b26333bbcc747c3c5a34745f3e7e24..5a16b7a3b0721c50a50e0008f0c5b73bff62c5cb 100644
+--- a/dist/private/PreviewTrigger.cjs
++++ b/dist/private/PreviewTrigger.cjs
+@@ -36,6 +36,7 @@ $parcel$export(module.exports, "PreviewTrigger", function () { return $d080a2b6a
+ function $d080a2b6a6742393$export$60a5cf113499de66(props) {
+     let state = (0, $3aRaU$reactstatelyuseTooltipTriggerState.useTooltipTriggerState)({
+         ...props,
++        UNSTABLE_tooltipGroup: 'preview',
+         delay: props.delay ?? 600,
+         closeDelay: props.closeDelay ?? 200
+     });
+diff --git a/dist/private/PreviewTrigger.js b/dist/private/PreviewTrigger.js
+index 283827a8d268b0e15ef08a9138f1e18206a4c68a..c6a2f9c7052f53f97ec045a3b6c45c05a37f3b81 100644
+--- a/dist/private/PreviewTrigger.js
++++ b/dist/private/PreviewTrigger.js
+@@ -27,6 +27,7 @@ function $7e17edf2fd1a9983$export$60a5cf113499de66(props) {
+     var _props_delay, _props_closeDelay;
+     let state = (0, $gmnOE$useTooltipTriggerState)({
+         ...props,
++        UNSTABLE_tooltipGroup: 'preview',
+         delay: (_props_delay = props.delay) !== null && _props_delay !== void 0 ? _props_delay : 600,
+         closeDelay: (_props_closeDelay = props.closeDelay) !== null && _props_closeDelay !== void 0 ? _props_closeDelay : 200
+     });
+diff --git a/dist/private/PreviewTrigger.mjs b/dist/private/PreviewTrigger.mjs
+index e5dcf3c4cae5b1eb41d179ae709eddd99e2f20b6..baca374a0a5ee5e059c6cab1e31f0f03e87b8621 100644
+--- a/dist/private/PreviewTrigger.mjs
++++ b/dist/private/PreviewTrigger.mjs
+@@ -26,6 +26,7 @@ import {useTooltipTriggerState as $evW8Q$useTooltipTriggerState} from "react-sta
+ function $32e5dbc959387ef1$export$60a5cf113499de66(props) {
+     let state = (0, $evW8Q$useTooltipTriggerState)({
+         ...props,
++        UNSTABLE_tooltipGroup: 'preview',
+         delay: props.delay ?? 600,
+         closeDelay: props.closeDelay ?? 200
+     });
