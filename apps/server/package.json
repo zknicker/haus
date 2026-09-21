@@ -2,7 +2,7 @@
   "name": "@haus/server",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.3.5",
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "bun --watch src/haus-server.ts",
     "bootstrap:haus": "bun src/haus-server-bootstrap.ts",

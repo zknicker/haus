@@ -2,7 +2,7 @@
   "name": "@haus/codex-usage",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.3.5",
+  "packageManager": "bun@1.4.2",
   "exports": {
     ".": "./src/index.ts",
     "./credentials": "./src/credentials.ts"
