@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.3.0 - 2026-09-21
+
+- Agent visuals appear inline with replies, and Markdown tables render on the web, desktop, and iPhone. Visuals and reports still render when an Agent omits a newline around their markup.
+- Haus Agent 3.2.0 gains chart, diagram, and interactive component examples, including maps with real country and US state boundaries. Update Haus Computer to 3.3.0 to receive the new guidance.
+- Haus Computer offers GPT-6 Astra and Claude Fable 5.1, tells you how to refresh an expired Claude sign-in, and respects the selected reasoning effort for Grok. Agents receive structured MCP results, including larger inline results in Grok.
+- Haus for iPhone 3.3.0 renders Markdown headings, lists, quotes, code, and tables as native message blocks, with inline code backgrounds that fit their text.
+
 ## v4.2.0 - 2026-09-17
 
 - Channel follow-ups can reach just the intended Agent without an explicit mention or reply. Uncertain routing preserves normal delivery. Turn on Dev Mode to inspect each message's recipients and routing decision.
