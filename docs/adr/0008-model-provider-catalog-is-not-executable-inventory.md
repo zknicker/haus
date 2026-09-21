@@ -19,7 +19,19 @@ choices; executable models are the model records available for agent turns after
 ready. This keeps Settings -> Models useful for setup without polluting agent model pickers with
 every provider Haus may support.
 
-## Decision
+## Current Computer inventory
+
+Haus Computer reports installed execution runtimes and a maintained model list from
+`apps/computer/src/inventory.ts`. Each model carries its selectable `reasoningEfforts` and concrete
+`defaultReasoningEffort`. These are Haus's explicit settings, not inferred native CLI defaults.
+Server validates Agent configuration against the assigned Computer's report, and App consumes
+that same report for creation and Setup. AI SDK's installed harness adapters define accepted
+runtime settings but do not expose per-model capability discovery. New model entries therefore
+need their native capability checked before joining the inventory.
+
+The provider-setup terminology below describes the earlier local Runtime architecture.
+
+## Original decision
 
 Runtime exposes a provider catalog for add-provider flows, an enabled provider list for configured
 user choices, provider access state for credentials and host setup, and `/models` for executable

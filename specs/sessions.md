@@ -68,6 +68,11 @@ Sessions never rotate because of age or idleness. A new session starts only on:
      onboarding seed for Cove, and only `visuals` today.
    Session reset and Full reset rotate the agent token. Restart does not.
 
+Reasoning-effort changes apply on the next turn without rotating the session, except Grok Build:
+its ACP adapter includes effort in resume compatibility and requires a fresh session. The active turn
+keeps its frozen effort. Computer restarts the parked native process with the saved resume state
+and the latest effort, preserving conversation context while refreshing constructor-only settings.
+
 Managed instruction, Cove factory-guidance, or Harness bootstrap drift does not rotate the session.
 The AI SDK Harness supplies current composed instructions on every accepted turn. Bootstrap drift or
 an explicit Restart additionally parks the adapter, installs the current bootstrap, and resumes the

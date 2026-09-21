@@ -30,8 +30,12 @@ that connection reports its durable receipt, preventing a rollback to an older C
 leaving a stale Current label.
 
 When runtime, model, or reasoning effort changes during an active turn, Server preserves that turn's
-frozen configuration through settlement. It then rotates the Agent session and applies the complete
-new configuration before the next turn starts.
+frozen configuration through settlement, then applies the latest saved configuration before the
+next turn starts. Runtime or model changes rotate the Agent session; effort-only changes preserve
+the generation and conversation except for Grok Build, whose ACP adapter includes effort in its
+resume compatibility identity and requires rotation. Computer stops a parked native process when its applied effort
+differs (or is unknown), then resumes its saved session with a newly configured adapter. The new
+effort remains fixed throughout that turn, including tool continuations.
 
 ## Turn And Delivery Observability
 
@@ -343,6 +347,17 @@ credential. Sign-in expires after five minutes and offers a fresh link through r
 `disconnect` cancels pending sign-in and forgets the stored credential; the key stays revocable
 from Cursor's dashboard. Haus never starts sign-in during an Agent turn. This contract uses
 Computer protocol 21 so an older Computer cannot fall back to opening its own browser.
+
+Computer protocol 23 adds per-model `reasoningEfforts` and `defaultReasoningEffort` to inventory and supports `default`,
+`low`, `medium`, `high`, `xhigh`, and `max`. Computer maintains the capability list beside its
+model inventory; AI SDK adapter settings define the runtime's accepted vocabulary, but do not
+provide a per-model discovery API. Claude Haiku has only `default`; Pi's alias uses its adapter's
+thinking budgets, with the native model determining their effect. Inventories predating this
+field retain the original low/medium/high contract. Server validates explicit creation and
+configuration choices against the assigned Computer's report. Configurable models report a concrete
+default (currently Haus's Medium), which the App selects when a prior choice is unsupported.
+`default` is reserved for models without an effort control, shown as Not configurable; it omits
+the effort setting at the adapter boundary. An applied value records the requested policy, not measured thinking.
 
 The Agent profile pane is the human's canonical edit surface. `agent.update`, `agent.configure`, and
 the avatar mutations on the Server `agent` tRPC router remain the Owner/Admin path for every field,

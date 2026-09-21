@@ -75,7 +75,14 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Activity and Automations are what the marks on an Agent's messages link to: a
   fire mark opens the automation, a session mark opens Activity. See
   [Chat](chat.md#in-the-box) for the marks themselves.
-- The header edits identity; Setup edits desired model and runtime configuration.
+- The header edits identity; Setup edits desired model, runtime, and reasoning effort.
+  Effort choices come from the assigned Computer's model inventory. Changing models preserves
+  a supported choice and otherwise selects the model's concrete default. Haus currently defaults
+  configurable models to Medium; there is no Runtime default option. Models without an effort
+  control show Not configurable. Existing Agents retain their saved effort until edited.
+  Effort changes apply on the next turn, preserving session context. The running turn keeps its
+  original effort; multiple edits before the next turn use the latest saved value. Grok Build
+  requires a new session for effort changes; Setup states this exception before saving.
 - Overview's glance strip names the Agent's assigned Computer with its health and, for operators,
   opens that Computer's detail for remediation; it never substitutes another Computer.
 - Skills are independent Agent-owned copies. An Owner or Admin imports a host
