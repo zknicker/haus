@@ -4,11 +4,11 @@ import { Readable } from 'node:stream';
 import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect, Exit, Scope } from 'effect';
+import { sandboxProcessOwner } from './sandbox-process-owner.ts';
 
 const TERMINATION_GRACE_MS = 1000;
 const TERMINATION_POLL_MS = 10;
 const GROUP_REAP_INTERVAL_MS = 1000;
-
 export interface SandboxProcessOptions {
     abortSignal?: AbortSignal;
     command: string;
@@ -39,6 +39,8 @@ export function createSandboxProcessRegistry(options: {
     resolveWorkingDirectory(value: string): string;
     runtime: EffectRuntime<never>;
 }) {
+    const owner = sandboxProcessOwner(options.runtime);
+    owner.assertOpen();
     const processes = new Set<TrackedProcess>();
     const scope = options.runtime.runSync(Scope.make());
     let closePromise: Promise<void> | null = null;
@@ -50,9 +52,13 @@ export function createSandboxProcessRegistry(options: {
     );
 
     const close = () => {
-        closePromise ??= settle(options.runtime, Scope.close(scope, Exit.succeed(undefined)));
+        closePromise ??= settle(
+            options.runtime,
+            Scope.close(scope, Exit.succeed(undefined))
+        ).finally(() => owner.remove(close));
         return closePromise;
     };
+    owner.add(close);
 
     return {
         destroy: close,
@@ -60,10 +66,12 @@ export function createSandboxProcessRegistry(options: {
             const cwd = options.resolveWorkingDirectory(
                 spawnOptions.workingDirectory ?? options.defaultWorkingDirectory
             );
+            owner.assertOpen();
             if (closePromise) {
                 throw new Error('Sandbox session is closed.');
             }
             await mkdir(cwd, { recursive: true });
+            owner.assertOpen();
             if (closePromise) {
                 throw new Error('Sandbox session is closed.');
             }

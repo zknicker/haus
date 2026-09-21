@@ -27,6 +27,11 @@ import {
     markTerminalUnlinked,
 } from './attachment-recovery.ts';
 import {
+    drainAttachmentDaemon,
+    stopAttachmentProcess,
+    withAttachmentShutdown,
+} from './attachment-shutdown.ts';
+import {
     getOrCreatePendingAttachment,
     readPendingAttachment,
     removePendingAttachment,
@@ -387,8 +392,8 @@ async function main(args: string[]) {
                         serverId: attachment.serverId,
                     })
                 );
-                try {
-                    return await runAttachmentDaemon(runtime, {
+                return withAttachmentShutdown(daemonWork, runtime, attachment.serverId, () =>
+                    runAttachmentDaemon(runtime, {
                         attachmentExists: async () => (await readAttachment(target)) !== null,
                         connect: () => {
                             // Best-effort prewarm; tests on this path never spawn real installs.
@@ -402,10 +407,8 @@ async function main(args: string[]) {
                         markTerminalUnlinked: () => markTerminalUnlinked(dataRoot, attachment),
                         oneshot: process.env.HAUS_COMPUTER_ONESHOT === '1',
                         validate: () => validate(attachment),
-                    });
-                } finally {
-                    await daemonWork.close();
-                }
+                    })
+                );
             },
             {
                 telemetryRelay: {
@@ -728,11 +731,7 @@ async function startAttachmentDaemon(attachment: Attachment) {
         return;
     }
     if (plan.kind === 'restart') {
-        try {
-            process.kill(plan.pid, 'SIGTERM');
-        } catch {
-            // It exited after identity verification; replacement still proceeds.
-        }
+        await stopAttachmentProcess(plan.pid);
     }
     const entrypoint = computerAttachmentDaemonEntrypoint(attachment.serverId, {
         watch: process.env.HAUS_COMPUTER_WATCH_ATTACHMENT_DAEMON === '1',
@@ -766,13 +765,9 @@ async function startAttachmentDaemon(attachment: Attachment) {
 
 async function stopAttachmentDaemon(attachment: Attachment) {
     const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
-    try {
-        const pid = await attachmentDaemonProcesses.verifiedPid(marker, attachment.serverId);
-        if (pid) {
-            process.kill(pid, 'SIGTERM');
-        }
-    } catch {
-        // A stopped or stale attachment daemon is already isolated from the other attachments.
+    const pid = await attachmentDaemonProcesses.verifiedPid(marker, attachment.serverId);
+    if (pid) {
+        await stopAttachmentProcess(pid);
     }
     await rm(attachmentDaemonPath(attachment), { force: true });
 }
@@ -818,21 +813,18 @@ async function stopResidentService() {
 }
 
 async function restartAfterUpdate() {
+    await drainAttachmentDaemon();
     for (const attachment of await listAttachments()) {
-        try {
-            const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
-            const pid = await attachmentDaemonProcesses.verifiedPid(marker, attachment.serverId);
-            if (pid && pid !== process.pid) {
-                process.kill(pid, 'SIGTERM');
-            }
-        } catch {
-            // A missing attachment daemon is already ready for the resident restart.
+        const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
+        const pid = await attachmentDaemonProcesses.verifiedPid(marker, attachment.serverId);
+        if (pid && pid !== process.pid) {
+            await stopAttachmentProcess(pid);
         }
         await rm(attachmentDaemonPath(attachment), { force: true });
     }
     await installResidentService();
     if (process.env.HAUS_COMPUTER_ATTACHMENT_DAEMON === '1') {
-        setTimeout(() => process.exit(0), 100);
+        process.exit(0);
     }
 }
 
@@ -1048,7 +1040,7 @@ async function connect(
         socket.addEventListener('error', () => {
             heartbeat?.dispose();
         });
-        socket.addEventListener('message', (event) => {
+        const handleMessage = (event: MessageEvent) => {
             const frame = JSON.parse(String(event.data)) as { type?: string };
             const heartbeatConfiguration = parseComputerHeartbeatConfiguration(frame);
             if (heartbeatConfiguration) {
@@ -1470,6 +1462,11 @@ async function connect(
                     start: startAgent,
                 }).catch(reportStateError)
             );
+        };
+        socket.addEventListener('message', (event) => {
+            if (!daemonWork.isClosing) {
+                handleMessage(event);
+            }
         });
         socket.addEventListener('open', () => {
             opened = true;

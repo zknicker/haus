@@ -40,6 +40,7 @@ import {
 import { composeAgentInstructions } from './instructions.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
+import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
 import {
     type AgentSessionState,
@@ -49,6 +50,7 @@ import {
 } from './session-store.ts';
 import { readAgentSkills } from './skills.ts';
 import { createNoticeDelivery } from './steer-inbox-notice.ts';
+import { createNoticeCoordinator, deliverStoredNotice } from './stored-notice.ts';
 import {
     addTokenUsage,
     type HarnessTokenUsage,
@@ -164,7 +166,23 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
                 runtimeId: input.runtimeId,
             });
             const restartRequested = await isSessionRestartRequested(input.agentRoot);
-            const result = await executeHarnessTurn(input, session, restartRequested, journal);
+            const lease = harnessSessionOwner(input.runtime).begin(input.agentRoot);
+            let result: HarnessTurnResult;
+            try {
+                result = await executeHarnessTurn(input, session, restartRequested, journal, lease);
+            } catch (error) {
+                if (!(lease.stopping && input.signal?.aborted)) {
+                    throw error;
+                }
+                result = {
+                    aborted: true,
+                    claudePlanUsage: null,
+                    contextTokens: null,
+                    tokenUsage: null,
+                };
+            } finally {
+                lease.finish();
+            }
             if (restartRequested && !result.aborted) {
                 await clearSessionRestartRequest(input.agentRoot);
             }
@@ -187,7 +205,8 @@ async function executeHarnessTurn(
     input: HarnessTurnInput,
     session: AgentSessionState,
     restartRequested: boolean,
-    journal: ComputerExecutionJournal
+    journal: ComputerExecutionJournal,
+    lease: HarnessSessionLease
 ): Promise<HarnessTurnResult> {
     const timings = input.turnTimings ?? new AgentTurnTimings();
     // For the prompt's activation hints; runtimes read the library natively.
@@ -231,6 +250,9 @@ async function executeHarnessTurn(
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom =
             (session.resumeState as HarnessAgentResumeSessionState | null) ?? undefined;
+        lease.prepare(resumeFrom, (state, abortSignal) =>
+            agent.createSession({ abortSignal, resumeFrom: state, sessionId })
+        );
         let effectiveResumeFrom = resumeFrom;
         let factoryGuidanceNotice: string | null = null;
         let factoryGuidanceRefreshPending =
@@ -335,6 +357,9 @@ async function executeHarnessTurn(
                     sessionId,
                 });
             live = await timings.measure('session_create', createSession);
+            lease.attach(live, (state, abortSignal) =>
+                agent.createSession({ abortSignal, resumeFrom: state, sessionId })
+            );
             await phase('session ready');
         } catch (error) {
             await phase('session creation failed');
@@ -344,6 +369,14 @@ async function executeHarnessTurn(
             throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
         }
 
+        if (lease.stopping) {
+            await writeAgentSessionState(input.agentRoot, {
+                ...session,
+                resumeState: await lease.checkpoint(),
+                runtimeSessionId: live.sessionId,
+            });
+            return { aborted: true, claudePlanUsage: null, contextTokens: null, tokenUsage: null };
+        }
         const isColdStart = !live.isResume;
         const coldInbox = isColdStart
             ? input.inboxDelivery === 'concrete'
@@ -448,8 +481,12 @@ async function executeHarnessTurn(
             noticeCoordinator.close();
             await storedNoticeDelivery;
         }
-        // Detach parks the runtime so the next delivery reattaches to this Agent daemon.
-        const resumeState = await live.detach();
+        if (lease.stopping) {
+            // Let cancellation reach the SDK's idle boundary before stopping the runtime.
+            await turn.consumeStream();
+        }
+        const resumeState = await lease.checkpoint();
+        observation = { ...observation, aborted: observation.aborted || lease.stopping };
         const normalizedUsage = normalizeRuntimeUsage(
             input.runtimeId,
             observation.tokenUsage,
@@ -498,6 +535,9 @@ async function executeHarnessTurn(
                 hausAgentStatus: 'failed',
             });
         }
+        if (live || !lease.stopping) {
+            lease.discard();
+        }
         await live?.destroy().catch(() => undefined);
         if (error instanceof HarnessTurnFailedError) {
             const normalizedUsage = normalizeRuntimeUsage(
@@ -541,85 +581,6 @@ async function clearPendingCoveGuidanceRefresh(agentRoot: string): Promise<void>
 
 function coveGuidanceRefreshReceiptPath(agentRoot: string): string {
     return join(agentRoot, 'runtime', 'cove-guidance-refresh.json');
-}
-
-async function deliverStoredNotice(
-    agentRoot: string,
-    deliver: (notice: string) => Promise<boolean>,
-    onDelivered?: (receipt: StoredNoticeReceipt) => void,
-    onReady?: () => void
-) {
-    try {
-        const value = JSON.parse(await readFile(pendingNoticePath(agentRoot), 'utf8')) as {
-            notice?: unknown;
-            receipt?: unknown;
-        };
-        if (typeof value.notice === 'string') {
-            const accepted = deliver(value.notice);
-            onReady?.();
-            if (!(await accepted)) {
-                return;
-            }
-            const receipt = parseStoredNoticeReceipt(value.receipt);
-            if (receipt) {
-                onDelivered?.(receipt);
-            }
-        }
-    } catch (cause) {
-        if (!(isRecord(cause) && cause.code === 'ENOENT')) {
-            throw cause;
-        }
-    } finally {
-        onReady?.();
-    }
-}
-
-function createNoticeCoordinator(deliver: (notice: string) => Promise<boolean>) {
-    const pending: Array<{
-        notice: string;
-        resolve: (accepted: boolean) => void;
-    }> = [];
-    let closed = false;
-    return {
-        close() {
-            closed = true;
-            for (const entry of pending.splice(0)) {
-                entry.resolve(false);
-            }
-        },
-        enqueue(notice: string): Promise<boolean> {
-            if (closed) {
-                return Promise.resolve(false);
-            }
-            return new Promise((resolve) => pending.push({ notice, resolve }));
-        },
-        async flush() {
-            const entries = pending.splice(0);
-            for (const [index, entry] of entries.entries()) {
-                try {
-                    entry.resolve(await deliver(entry.notice));
-                } catch (error) {
-                    entry.resolve(false);
-                    for (const remaining of entries.slice(index + 1)) {
-                        remaining.resolve(false);
-                    }
-                    throw error;
-                }
-            }
-        },
-    };
-}
-
-function parseStoredNoticeReceipt(value: unknown): StoredNoticeReceipt | null {
-    if (!(isRecord(value) && typeof value.runId === 'string' && Array.isArray(value.workIds))) {
-        return null;
-    }
-    const workIds = value.workIds.filter((id): id is string => typeof id === 'string');
-    return workIds.length === value.workIds.length ? { runId: value.runId, workIds } : null;
-}
-
-function pendingNoticePath(agentRoot: string) {
-    return join(agentRoot, 'runtime', 'pending-notice.json');
 }
 
 /** Observes execution evidence and terminal state; durable replies leave through the CLI. */

@@ -1,6 +1,10 @@
+import { settle } from '@haus/effect';
+import { Data, Effect } from 'effect';
 import { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
+import { stopSandboxProcesses } from './harness/sandbox-process-owner.ts';
+import { harnessSessionOwner } from './harness/session-lifecycle.ts';
 
 export interface AttachmentFrameSender {
     send(frame: unknown): boolean;
@@ -22,7 +26,7 @@ export class AttachmentDaemonWork {
     private readonly writers = new Set<Promise<unknown>>();
 
     constructor(
-        runtime: DaemonRuntime,
+        private readonly runtime: DaemonRuntime,
         readonly cloudAgents?: CloudAgentWorkSupervisor
     ) {
         this.agentWork = new AgentWorkCoordinator(runtime);
@@ -60,17 +64,69 @@ export class AttachmentDaemonWork {
         return [...this.writers];
     }
 
+    get isClosing(): boolean {
+        return this.closing;
+    }
+
     close(): Promise<void> {
         if (this.closePromise) {
             return this.closePromise;
         }
         this.closing = true;
-        this.sender = null;
+        const sessions = harnessSessionOwner(this.runtime);
+        sessions.beginShutdown();
         this.agentWork.abortAll();
-        this.closePromise = Promise.allSettled([
-            ...this.writerSnapshot(),
-            this.cloudAgents?.close(),
-        ]).then(() => undefined);
+        this.closePromise = (async () => {
+            try {
+                await settle(
+                    this.runtime,
+                    Effect.tryPromise({
+                        catch: (cause) => new AttachmentShutdownForeignError({ cause }),
+                        try: async (signal) => {
+                            const results = await Promise.allSettled([
+                                ...this.writerSnapshot(),
+                                this.cloudAgents?.close(),
+                            ]);
+                            const failures = results.flatMap((result) =>
+                                result.status === 'rejected' ? [result.reason] : []
+                            );
+                            try {
+                                await sessions.close(signal);
+                            } catch (error) {
+                                failures.push(error);
+                            }
+                            if (failures.length) {
+                                throw new AggregateError(
+                                    failures,
+                                    'Computer work did not drain cleanly.'
+                                );
+                            }
+                        },
+                    }).pipe(
+                        Effect.timeoutFail({
+                            duration: '20 seconds',
+                            onTimeout: () =>
+                                new AttachmentShutdownForeignError({
+                                    cause: new Error(
+                                        'Computer shutdown timed out before all session state was saved.'
+                                    ),
+                                }),
+                        })
+                    ),
+                    { mapFailure: (failure) => failure.cause }
+                );
+            } finally {
+                try {
+                    await stopSandboxProcesses(this.runtime);
+                } finally {
+                    this.sender = null;
+                }
+            }
+        })();
         return this.closePromise;
     }
 }
+
+class AttachmentShutdownForeignError extends Data.TaggedError('AttachmentShutdownForeignError')<{
+    readonly cause: unknown;
+}> {}
