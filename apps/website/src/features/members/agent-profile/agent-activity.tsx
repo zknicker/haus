@@ -119,6 +119,7 @@ function ActivityTurnHistory({
         <TurnTraceScroll>
             <Accordion
                 allowsMultipleExpanded
+                className="accordion--activity-history"
                 expandedKeys={expanded}
                 onExpandedChange={(keys) => setExpanded(new Set([...keys].map(String)))}
                 variant="surface"

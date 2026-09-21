@@ -1044,6 +1044,13 @@
         font-weight: 600;
     }
 
+    /* Execution details arrive after expansion; do not animate a changing height. */
+    .accordion--activity-history .accordion__panel,
+    .accordion--activity-history .accordion__indicator {
+        transition: none;
+        will-change: auto;
+    }
+
     /*
      * Stock ChatTool sets its three section labels in 10px ALL CAPS with extra
      * tracking. DESIGN.md has no all-caps tier, and a turn trace stacks these
