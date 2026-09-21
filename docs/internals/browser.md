@@ -1,61 +1,62 @@
 ---
-summary: Managed Chrome supervision and Browser host-tool execution.
+summary: Connection-only Chrome discovery and Browser host-tool execution.
 read_when:
-  - changing Browser settings, supervision, profiles, or agent-browser forwarding
+  - changing Browser settings, discovery, or agent-browser forwarding
+  - debugging shared browser access on a Computer
 ---
-
 # Browser
 
-Browser is a first-party host tool, not an external integration or MCP server.
-Each Haus Computer attachment supervises one visible Chrome instance with a
-durable named profile under that attachment's `browser/profiles` directory.
-Profiles and processes never cross Server attachments. Agents assigned to the
-same Computer use that Computer's Browser profile and signed-in accounts; the
-Browser is not selected per Agent.
+Browser connects Agents to an existing automation-enabled Chrome on their Computer.
+The entry point is Computer → Chrome → Configure. Select a discovered browser and
+connect; the modal shows its installation path, version, profile directory, and
+availability. Refresh reruns discovery. Agents share that browser's accounts and
+tabs. Browser selection belongs to the Computer attachment, not each Agent.
 
-The implementation lives under `apps/computer/src/browser/`. It detects Chrome,
-owns the launch contract, adopts only matching managed processes, serializes
-commands through one FIFO, and exposes settings, Open, and Restart through the
-typed Computer attachment protocol. Failures degrade Browser without blocking
-Computer startup.
+Haus never launches, restarts, terminates, or creates a profile for Chrome. The
+external owner is responsible for startup and recovery. Disconnecting Haus only
+removes Agent access through the Browser tool; Chrome and its profile remain
+untouched. A fresh Computer requires external browser setup before connecting.
 
-Browser configuration has two independent concerns. `profileName` selects the
-durable Chrome user-data directory under the attachment; it is the browser
-identity whose cookies and signed-in accounts Agents on that Computer share.
-`enabled` is the desired supervision state: turning it on starts managed Chrome,
-and turning it off stops supervision and closes the managed browser without
-deleting the profile. Haus supplies the launch contract and fixed flags; the
-profile name does not install Chrome or create a Google account.
-The first setup dialog preselects Browser enabled, so saving the default profile
-can immediately move the row into its observed lifecycle state; operators can
-turn it off before saving if they only want to persist the profile first.
+## Discovery and identity
 
-The Computer detects supported Google Chrome installations when it answers the
-live `browser.get` request. The response's `application` contains the detected
-path and version, or `null` when supported Chrome was not found. This is not part
-of `ComputerInventory`: inventory is the periodic runtime and Cloud Agent
-report, while Chrome discovery and browser process health are attachment-local
-and volatile. `configured` means that Browser settings have been saved at least
-once; it does not mean Chrome is running. `status` is the fresh observation for
-the matching managed profile, and `healthy` is the only state that renders the
-green `Ready` badge.
+Computer detects Chrome Stable in `/Applications` and the user's `Applications`
+directory. It discovers root Chrome processes with a dedicated user-data directory
+and `--remote-debugging-port=0`. Ordinary personal Chrome profiles and helper
+processes are not connectable. Old Haus-managed profile directories are excluded
+from discovery, including other Server attachments' profiles.
 
-The Computer detail therefore presents these states separately: unavailable
-when the Computer cannot answer or Chrome is not detected; available but not
-configured with a `Configure` action; saved but off with an ellipsis menu; and
-configured plus healthy with a green `Ready` badge and the same ellipsis menu.
-Starting, recovering, stopped, or unhealthy process states keep their own
-status badge rather than claiming readiness.
+Browser labels come from the discovered profile directory name. The menu includes
+full profile and installation paths to distinguish profiles with the same name.
+Discovery does not infer lifecycle ownership from process names or directory
+conventions. The browser must already be running; its installation alone is
+insufficient.
 
-The App always calls authenticated Server tRPC. The Server verifies current
-Server membership plus Owner or Admin authority, verifies the selected Computer
-belongs to that Server, and relays the operation to that Computer's outbound
-socket. The Computer detail is the Browser settings surface, so every request
-has an explicit Computer target. Browser has no separate settings navigation
-page; its former URL redirects to Computers. The browser never connects to a
-Computer directly.
+Computer validates the loopback CDP endpoint against the profile's
+`DevToolsActivePort` target identity. Every command resolves the endpoint afresh,
+so the external owner can recover Chrome with a new port. Unavailable connections
+remain saved and can always be disconnected. Connecting or changing selection
+requires a freshly discovered, available browser.
 
-Enabling Browser starts supervision for that attachment. Disabling it stops
-supervision, closes the managed browser, and may interrupt Agents using it,
-without deleting the profile. Browser availability is attachment-level rather
-than a per-tool Agent grant.
+## Ownership and execution
+
+The implementation lives under `apps/computer/src/browser/`. Server authorizes
+Owner/Admin settings requests and relays them to the explicit Computer target;
+the App never connects directly to a Computer. The Browser protocol exposes only
+get and save operations. Browser failure does not block Computer startup.
+
+The `browser` host tool forwards page commands to a host-installed `agent-browser`
+CLI with the selected CDP endpoint and an Agent-specific session. Commands use one
+FIFO per connection. Connection overrides and browser-wide lifecycle commands are
+rejected. Other clients do not participate in Haus's FIFO; Agents must create and
+operate their own tabs. The tool resolves the current connection each time and
+rejects queued calls whose connection has changed.
+
+## Saved settings
+
+Settings persist `enabled`, a nullable `connection` containing `applicationPath`
+and `userDataDir`, and `updatedAt`. No browser profile or cookies are copied.
+
+Previously saved external connections retain their selection. Older Haus-managed
+settings become disabled with no selection, requiring the operator to select an
+externally managed browser. Migration never starts or stops Chrome and never moves
+or deletes existing profile data.
