@@ -11,7 +11,7 @@ export function agentRuntimeIssue(
 
 export function runtimeIssueLabel(runtimeId: string) {
     const label = computerRuntimeCatalog.find(({ id }) => id === runtimeId)?.label ?? runtimeId;
-    return `${label} sign-in required`;
+    return `${label} authentication failed`;
 }
 
 export function runtimeLoginCommand(runtimeId: string): string | null {

@@ -99,7 +99,7 @@ function runtimeColumns(
                                     variant="soft"
                                 >
                                     {item.issue === 'authentication'
-                                        ? 'Sign-in required'
+                                        ? 'Authentication failed'
                                         : 'Usage unavailable'}
                                 </Chip>
                             )}

@@ -126,7 +126,8 @@ function retainedReason(state: ProviderUsageState): UsageStale | null {
 
 function usageIssue(state: ProviderUsageState): RuntimeIssue | null {
     const code = state.status === 'error' ? state.error.code : state.stale?.code;
-    return code ? (code === 'auth' ? 'authentication' : 'usage') : null;
+    // Usage reads do not exercise the adapter's native login refresh.
+    return code ? 'usage' : null;
 }
 
 /**

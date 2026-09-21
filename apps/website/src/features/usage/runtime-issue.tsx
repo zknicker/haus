@@ -23,7 +23,7 @@ export function RuntimeIssueHelp({
         <HoverCard openDelay={250}>
             <HoverCard.Trigger>
                 <Button
-                    aria-label={`${title}: ${issue === 'authentication' ? 'how to fix sign-in' : 'usage details'}`}
+                    aria-label={`${title}: ${issue === 'authentication' ? 'authentication details' : 'usage details'}`}
                     isIconOnly
                     size="sm"
                     variant="ghost"
@@ -38,16 +38,17 @@ export function RuntimeIssueHelp({
             >
                 <h3 className="font-medium text-sm">
                     {issue === 'authentication'
-                        ? `${title} sign-in required`
+                        ? `${title} authentication failed`
                         : `${title} usage unavailable`}
                 </h3>
                 <div className="mt-2 grid gap-3 text-sm">
                     {issue === 'authentication' ? (
                         <>
-                            <p>Haus couldn’t use the saved credentials on {computerName}.</p>
+                            <p>Haus’s last authentication attempt failed on {computerName}.</p>
                             <p className="text-muted">
-                                Open a terminal on that Computer and sign in again
-                                {command ? ' with:' : '.'}
+                                Retry the Agent’s request if the runtime already works on that
+                                Computer. If it also asks you to sign in there, open a terminal
+                                {command ? ' and run:' : ' and sign in.'}
                             </p>
                             {command && <CodeSnippet lines={command} />}
                             <p className="text-muted">
