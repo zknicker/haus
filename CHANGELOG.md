@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v5.0.1 - 2026-09-21
+
+- Haus Computer 4.0.1 clears old Claude authentication warnings when reconnecting or refreshing Runtimes confirms that Claude is signed in. Retrying an Agent is no longer required to clear the warning.
+- Runtime rows no longer show “Last updated” timestamps, keeping usage and sign-in details compact.
+
 ## v5.0.0 - 2026-09-21
 
 - Agents can use an existing Chrome instance with its signed-in accounts. Browser settings show the installation, version, and profile path. Haus no longer starts, restarts, or creates Chrome profiles; previous managed setups must connect to a running Chrome instance explicitly. Update Haus Computer to 4.0.0 and Haus for iPhone to 3.3.1 (build 34) for the new connection contract.
