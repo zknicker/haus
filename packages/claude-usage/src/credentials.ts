@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { z } from 'zod';
-import { ClaudeUsageParseError } from './errors.ts';
+import { ClaudeUsageAuthError } from './errors.ts';
 import type {
     ClaudeCredentials,
     ClaudeCredentialsLoadOptions,
@@ -113,7 +113,9 @@ async function loadKeychainCredentials(
         };
     } catch (error) {
         if (error instanceof SyntaxError || error instanceof z.ZodError) {
-            throw new ClaudeUsageParseError('Invalid Claude credentials in Keychain');
+            throw new ClaudeUsageAuthError(
+                'Claude authentication failed: invalid credentials in Keychain'
+            );
         }
         throw error;
     }
@@ -145,7 +147,9 @@ async function loadFileCredentials(
         };
     } catch (error) {
         if (error instanceof SyntaxError || error instanceof z.ZodError) {
-            throw new ClaudeUsageParseError(`Invalid Claude credentials at ${credentialsPath}`);
+            throw new ClaudeUsageAuthError(
+                'Claude authentication failed: invalid credentials in credential file'
+            );
         }
         throw error;
     }

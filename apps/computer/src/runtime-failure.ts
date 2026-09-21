@@ -12,7 +12,7 @@ export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
     const message = runtimeErrorMessage(error);
     const normalized = message.toLowerCase();
     if (
-        /not logged in|sign.?in required|unauthorized|authentication|invalid api key|oauth|\b401\b/u.test(
+        /not logged in|sign.?in required|unauthorized|authentication|invalid (?:api key|\w+ credentials)|oauth|\b401\b/u.test(
             normalized
         )
     ) {
