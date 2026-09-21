@@ -2,8 +2,19 @@ import { expect, test } from 'bun:test';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { detectInventory } from './inventory.ts';
+import { detectInventory, reasoningEffortsForModel } from './inventory.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
+
+test('reports effort capabilities for the runtime and concrete model', () => {
+    expect(reasoningEffortsForModel('claude-code', 'claude-opus-4-8')).toEqual([
+        'low',
+        'medium',
+        'high',
+        'xhigh',
+        'max',
+    ]);
+    expect(reasoningEffortsForModel('claude-code', 'claude-haiku-4-5')).toEqual(['default']);
+});
 
 test('finds the native Grok install with a minimal background-service PATH', async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), 'haus-grok-home-'));
@@ -45,7 +56,7 @@ test('discovers a runtime from the Computer search path and verifies the executa
         const inventory = detectInventory({ searchPath: root });
 
         expect(inventory.runtimes.map((runtime) => runtime.id)).toEqual(['codex', 'grok-build']);
-        expect(inventory.runtimes.at(-1)?.models).toEqual([
+        expect(inventory.runtimes.at(-1)?.models.map(({ id, label }) => ({ id, label }))).toEqual([
             { id: 'grok-4.6', label: 'Grok 4.6' },
             { id: 'grok-4.5', label: 'Grok 4.5' },
         ]);

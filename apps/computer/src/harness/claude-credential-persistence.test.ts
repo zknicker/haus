@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
-import { createHarnessForRuntime } from './executor.ts';
+import { createHarnessForRuntime } from './runtime-harness.ts';
 
 test('the shipped Claude bridge keeps live credentials out of both recovery files', async () => {
     const bootstrap = await createHarnessForRuntime('claude-code', 'medium').getBootstrap?.();

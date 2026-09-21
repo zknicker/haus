@@ -30,13 +30,13 @@ test('resolves only the Agent desired runtime and model', () => {
 test('allows saving only a model reported by the selected runtime', () => {
     expect(
         isRuntimeConfigDraftAvailable(
-            { modelId: 'claude-opus-4-1', runtimeId: 'claude-code' },
+            { modelId: 'claude-opus-4-1', runtimeId: 'claude-code', reasoningEffort: 'medium' },
             runtimes
         )
     ).toBe(true);
     expect(
         isRuntimeConfigDraftAvailable(
-            { modelId: 'gpt-5.6-sol', runtimeId: 'claude-code' },
+            { modelId: 'gpt-5.6-sol', runtimeId: 'claude-code', reasoningEffort: 'medium' },
             runtimes
         )
     ).toBe(false);

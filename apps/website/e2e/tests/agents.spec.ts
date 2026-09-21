@@ -11,7 +11,12 @@ const inventory = {
             label: 'Codex',
             models: [
                 { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
-                { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
+                {
+                    id: 'gpt-5.6-terra',
+                    label: 'GPT-5.6 Terra',
+                    defaultReasoningEffort: 'medium',
+                    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+                },
             ],
         },
     ],
@@ -72,14 +77,19 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(page.getByText('Applies when Computer reconnects')).toBeVisible();
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     const runtimeDialog = page.getByRole('dialog', { name: 'Runtime Config' });
+    await expect(runtimeDialog.getByLabel('Reasoning effort')).toContainText('Medium');
     await runtimeDialog.getByLabel('Model').click();
     await page.getByRole('option', { name: 'GPT-5.6 Terra' }).click();
+    await runtimeDialog.getByLabel('Reasoning effort').click();
+    await page.getByRole('option', { name: 'Max', exact: true }).click();
     await runtimeDialog.getByRole('button', { name: 'Save' }).click();
     await expect(runtimeDialog).toBeHidden();
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
+    await expect(page.getByText('Max', { exact: true })).toBeVisible();
     // The tab is in the URL, so a reload comes back to Setup rather than Overview.
     await page.reload();
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
+    await expect(page.getByText('Max', { exact: true })).toBeVisible();
 
     // Deletion requires the exact Agent name. Cancel leaves this isolated
     // e2e Agent intact for the adjacent DM and contract assertions.

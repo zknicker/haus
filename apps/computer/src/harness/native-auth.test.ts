@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
-import { createHarnessForRuntime } from './executor.ts';
+import { createHarnessForRuntime } from './runtime-harness.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 const runtime = makeDaemonRuntime();

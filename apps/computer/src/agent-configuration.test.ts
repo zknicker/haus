@@ -28,7 +28,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
         agentName: 'Scout',
         factoryKind: 'ordinary',
         modelId: 'gpt-5.6-sol',
-        reasoningEffort: 'high',
+        reasoningEffort: 'max',
         runtimeId: 'codex',
         sessionGeneration: 1,
         sessionResetKind: 'full',
@@ -61,7 +61,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
             hausAgentVersion: null,
             missingResources: [],
             modelId: 'gpt-5.6-sol',
-            reasoningEffort: 'high',
+            reasoningEffort: 'max',
             runtimeId: 'codex',
         },
     ]);
@@ -69,7 +69,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
         readAppliedAgentConfiguration(
             join(dataRoot, 'servers', 'srv_configuration', 'agents', command.agentId)
         )
-    ).resolves.toMatchObject({ reasoningEffort: 'high' });
+    ).resolves.toMatchObject({ reasoningEffort: 'max' });
     for (const directory of ['home', 'runtime', 'skills', 'workspace']) {
         expect(
             (

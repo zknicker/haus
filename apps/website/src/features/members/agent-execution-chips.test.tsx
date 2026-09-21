@@ -19,7 +19,7 @@ test('combines runtime and model while presenting the exact reasoning scale', ()
     expect(markup.match(/chip--sm/g)).toHaveLength(2);
     expect(markup).toContain('Codex · GPT-5.6 Terra');
     expect(markup).toContain('aria-label="Runtime: Codex; model: GPT-5.6 Terra"');
-    expect(markup).toContain('Medium<span class="sr-only">, 2 of 3</span>');
+    expect(markup).toContain('Medium');
     expect(markup).toContain('data-reasoning-effort="medium"');
     expect(markup).toContain('text-reasoning-medium');
     expect(markup).toContain('<svg');

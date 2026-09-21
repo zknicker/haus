@@ -78,7 +78,7 @@ interface Seed {
     userId: string;
 }
 
-async function seedAgent(): Promise<Seed> {
+async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
     const db = connection.db;
     const userId = createOpaqueId('usr');
     const serverId = createOpaqueId('srv');
@@ -106,7 +106,7 @@ async function seedAgent(): Promise<Seed> {
     await db.insert(agentsTable).values({
         computerId,
         desiredModelId: 'fake-model',
-        desiredRuntimeId: 'fake',
+        desiredRuntimeId: runtimeId,
         displayName: 'Ada',
         handle: agentHandle,
         homeTimezone: 'UTC',
@@ -2009,8 +2009,12 @@ test('defers a public Agent configuration change until the active run settles', 
     });
 });
 
-test('defers a reasoning-effort change until the active run settles', async () => {
-    const seed = await seedAgent();
+test.each([
+    'fake',
+    'grok-build',
+])('defers %s effort changes until settlement', async (runtimeId) => {
+    const seed = await seedAgent(runtimeId);
+    const expectedGeneration = runtimeId === 'grok-build' ? 2 : 1;
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
@@ -2022,7 +2026,7 @@ test('defers a reasoning-effort change until the active run settles', async () =
             reportedInventory: {
                 runtimes: [
                     {
-                        id: 'fake',
+                        id: runtimeId,
                         label: 'Fake',
                         models: [{ id: 'fake-model', label: 'Fake model' }],
                     },
@@ -2055,7 +2059,7 @@ test('defers a reasoning-effort change until the active run settles', async () =
             agentId: seed.agentId,
             modelId: 'fake-model',
             reasoningEffort: 'high',
-            runtimeId: 'fake',
+            runtimeId,
             serverId: seed.serverId,
         }
     );
@@ -2064,11 +2068,7 @@ test('defers a reasoning-effort change until the active run settles', async () =
     expect(configured.agent).toMatchObject({ desiredReasoningEffort: 'high' });
     expect(transport.framesOfType('stop')).toEqual([]);
     expect(transport.framesOfType('agent-configure')).toEqual([]);
-    const [generationBeforeSettlement] = await connection.db
-        .select({ sessionGeneration: agentsTable.sessionGeneration })
-        .from(agentsTable)
-        .where(eq(agentsTable.id, seed.agentId));
-    expect(generationBeforeSettlement?.sessionGeneration).toBe(1);
+    expect(await readRotations(seed.agentId)).toEqual([]);
 
     await delivery.onTurnSettled(
         seed.computerId,
@@ -2079,14 +2079,14 @@ test('defers a reasoning-effort change until the active run settles', async () =
     expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
         modelId: 'fake-model',
         reasoningEffort: 'high',
-        runtimeId: 'fake',
-        sessionGeneration: 2,
+        runtimeId,
+        sessionGeneration: expectedGeneration,
     });
     const [generationAfterSettlement] = await connection.db
         .select({ sessionGeneration: agentsTable.sessionGeneration })
         .from(agentsTable)
         .where(eq(agentsTable.id, seed.agentId));
-    expect(generationAfterSettlement?.sessionGeneration).toBe(2);
+    expect(generationAfterSettlement?.sessionGeneration).toBe(expectedGeneration);
 });
 
 test('applies deferred configuration at Stop without auto-starting, then starts explicitly', async () => {
