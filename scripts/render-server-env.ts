@@ -9,8 +9,8 @@
  * thing that writes the copy — under `varlock run` with VARLOCK_ENV=production,
  * so every value arrives already resolved from 1Password.
  *
- * It writes exactly the names the Server's typed env module validates, and
- * nothing else. It never prints a value.
+ * It writes the Server's typed configuration and native runtime flags.
+ * It never prints a value.
  *
  * The contract travels with the repository, not with the artifact: this runs
  * from a checkout of the workflow's own revision, because the release being
@@ -27,6 +27,7 @@ import {
     readSchemaItems,
     serverEnvironmentNames,
     serverEnvModulePath,
+    serverRuntimeEnvironmentNames,
 } from './lib/env-schema.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -61,7 +62,11 @@ function readReleasedEnvModule(revision: string) {
 export function assertContractsAgree(released: string[], current: string[], revision: string) {
     const releasedSet = new Set(released);
     const currentSet = new Set(current);
-    const missing = current.filter((name) => !releasedSet.has(name));
+    // Native Bun flags are consumed before JavaScript starts and cannot appear
+    // in the released application's typed env module. Compare application names.
+    const missing = current.filter(
+        (name) => !(releasedSet.has(name) || serverRuntimeEnvironmentNames.has(name))
+    );
     const extra = released.filter((name) => !currentSet.has(name));
 
     if (missing.length === 0 && extra.length === 0) {
@@ -139,7 +144,7 @@ function main() {
     const deliverable = deliverableNames(readSchemaItems(join(repositoryRoot, '.env.schema')));
     const names = [...deliveredEnvironmentNames(repositoryRoot)];
 
-    if (names.length === 0) {
+    if (names.every((name) => serverRuntimeEnvironmentNames.has(name))) {
         throw new Error(
             'No names were extracted from the Server typed env module; refusing to render an empty environment.'
         );
