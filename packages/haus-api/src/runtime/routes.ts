@@ -100,8 +100,6 @@ export const agentRuntimeRoutes = {
     models: '/models',
     binding: (id: string) => `/bindings/${id}`,
     bindings: '/bindings',
-    browserOpen: '/browser/open',
-    browserRestart: '/browser/restart',
     browserSettings: '/browser/settings',
     discordBinding: (id: string) => `/bindings/discord/${encodeURIComponent(id)}`,
     discordBindings: '/bindings/discord',

@@ -337,83 +337,7 @@ export const agentRuntimeThinkingLevelSchema = z.enum([
 
 const agentRuntimeJsonRecordSchema = z.record(z.string(), z.unknown());
 
-export const agentRuntimeBrowserStateSchema = z.enum([
-    'stopped',
-    'starting',
-    'healthy',
-    'pressured',
-    'unresponsive',
-    'recovering',
-    'degraded',
-]);
-
-export const agentRuntimeBrowserProfileNameSchema = z
-    .string()
-    .trim()
-    .regex(
-        /^[a-z0-9][a-z0-9-]{0,63}$/,
-        'Profile name must be a lowercase slug (letters, digits, hyphens).'
-    );
-
-export const agentRuntimeBrowserStatusSchema = z
-    .object({
-        browserVersion: z.string().trim().min(1).nullable(),
-        cdpState: z.enum(['healthy', 'unreachable', 'unknown']),
-        checkedAt: z.string().datetime(),
-        pid: z.number().int().positive().nullable(),
-        pressureSince: z.string().datetime().nullable(),
-        reason: z.string().trim().min(1).nullable(),
-        resources: z
-            .object({
-                browserCpuPercent: z.number().nullable(),
-                browserRssBytes: z.number().int().nullable(),
-                gpuCpuPercent: z.number().nullable(),
-                gpuRssBytes: z.number().int().nullable(),
-            })
-            .strict(),
-        restartBudget: z
-            .object({
-                automaticRestartLimit: z.number().int().min(0),
-                automaticRestartsInWindow: z.number().int().min(0),
-            })
-            .strict(),
-        running: z.boolean(),
-        state: agentRuntimeBrowserStateSchema,
-        uptimeSeconds: z.number().int().min(0).nullable(),
-    })
-    .strict();
-
-export const agentRuntimeBrowserSettingsSchema = z
-    .object({
-        application: z
-            .object({
-                path: z.string().trim().min(1),
-                version: z.string().trim().min(1).nullable(),
-            })
-            .strict()
-            .nullable(),
-        configured: z.boolean(),
-        enabled: z.boolean(),
-        profileName: agentRuntimeBrowserProfileNameSchema,
-        status: agentRuntimeBrowserStatusSchema.nullable(),
-        updatedAt: z.string().datetime().nullable(),
-    })
-    .strict();
-
-export const agentRuntimeSaveBrowserSettingsSchema = z
-    .object({
-        enabled: z.boolean().optional(),
-        profileName: agentRuntimeBrowserProfileNameSchema.optional(),
-    })
-    .strict();
-
-export const agentRuntimeBrowserActionResultSchema = z
-    .object({
-        message: z.string().trim().min(1).nullable(),
-        ok: z.boolean(),
-        status: agentRuntimeBrowserStatusSchema.nullable(),
-    })
-    .strict();
+export * from './browser.ts';
 
 export const agentRuntimeAgentEngineConfigSchema = z.record(z.string(), z.unknown());
 
@@ -1852,11 +1776,6 @@ export type AgentRuntimeCapabilityHealthState = z.infer<
 export type AgentRuntimeRefreshCapabilities = z.infer<typeof agentRuntimeRefreshCapabilitiesSchema>;
 export type PlatformInboundMode = z.infer<typeof agentRuntimeInboundModeSchema>;
 export type AgentRuntimeInfo = z.infer<typeof agentRuntimeInfoSchema>;
-export type AgentRuntimeBrowserState = z.infer<typeof agentRuntimeBrowserStateSchema>;
-export type AgentRuntimeBrowserStatus = z.infer<typeof agentRuntimeBrowserStatusSchema>;
-export type AgentRuntimeBrowserSettings = z.infer<typeof agentRuntimeBrowserSettingsSchema>;
-export type AgentRuntimeSaveBrowserSettings = z.infer<typeof agentRuntimeSaveBrowserSettingsSchema>;
-export type AgentRuntimeBrowserActionResult = z.infer<typeof agentRuntimeBrowserActionResultSchema>;
 export type AgentRuntimeBinding = z.infer<typeof agentRuntimeBindingSchema>;
 export type AgentRuntimeBindingList = z.infer<typeof agentRuntimeBindingListSchema>;
 export type AgentRuntimeBindingMatch = z.infer<typeof agentRuntimeBindingMatchSchema>;

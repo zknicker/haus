@@ -18,6 +18,7 @@ import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
 import type { AgentTurnTimings } from './agent-turn-timings.ts';
 import { computerEntrypoint } from './build-identity.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
+import { createComputerTools } from './computer-tools.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
 import {
@@ -35,7 +36,6 @@ import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
-import { createServerMcpTools } from './server-mcp-tools.ts';
 import { writeHausWrapper } from './wrapper.ts';
 
 export interface Attachment {
@@ -296,10 +296,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       activity,
                       registerNoticeSink: options.registerNoticeSink,
                       runtime: options.runtime,
-                      tools: createServerMcpTools({
-                          proxyToken,
-                          proxyUrl: proxy.url,
-                      }),
+                      tools: createComputerTools({ host, options, command }),
                       signal: options.signal,
                   });
     } finally {

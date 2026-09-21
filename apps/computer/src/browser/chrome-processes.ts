@@ -1,51 +1,9 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import { type BrowserLaunchContract, isProfileCompatible } from './launch-contract.ts';
-import type { ManagedChromeMatch, ProcessListReader, ProcessRecord } from './types.ts';
+import type { ProcessListReader, ProcessRecord } from './types.ts';
 
 const execFileAsync = promisify(execFile);
-
-// Root discovery matches only Haus's exact executable and user-data
-// directory. Personal Chrome processes are never candidates.
-export function locateManagedChrome(
-    processes: ProcessRecord[],
-    contract: BrowserLaunchContract
-): ManagedChromeMatch | null {
-    const root = processes.find((record) => isManagedRoot(record, contract));
-    if (!root) {
-        return null;
-    }
-
-    const gpu = processes
-        .filter(
-            (record) =>
-                record.parentPid === root.pid && record.command.includes('--type=gpu-process')
-        )
-        .reduce<ProcessRecord | null>(
-            (best, record) => (best && best.cpuPercent >= record.cpuPercent ? best : record),
-            null
-        );
-    return { gpu, root };
-}
-
-function isManagedRoot(record: ProcessRecord, contract: BrowserLaunchContract): boolean {
-    if (record.command.includes('--type=')) {
-        return false;
-    }
-    return (
-        record.command.includes(contract.executablePath) &&
-        (record.command.includes(`--user-data-dir=${contract.userDataDir}`) ||
-            record.command.includes(`--user-data-dir ${contract.userDataDir}`))
-    );
-}
-
-export function isCompatibleManagedRoot(
-    match: ManagedChromeMatch,
-    contract: BrowserLaunchContract
-): boolean {
-    return isProfileCompatible(match.root.command, contract);
-}
 
 export class SystemProcessList implements ProcessListReader {
     async read(): Promise<ProcessRecord[]> {

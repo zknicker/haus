@@ -1,5 +1,4 @@
 import {
-    agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
 } from '@haus/api';
@@ -18,6 +17,4 @@ export const browserGetInputSchema = browserTargetSchema;
 export const browserSaveInputSchema = browserTargetSchema
     .extend({ settings: agentRuntimeSaveBrowserSettingsSchema })
     .strict();
-export const browserActionInputSchema = browserTargetSchema;
 export const browserSettingsOutputSchema = agentRuntimeBrowserSettingsSchema;
-export const browserActionOutputSchema = agentRuntimeBrowserActionResultSchema;

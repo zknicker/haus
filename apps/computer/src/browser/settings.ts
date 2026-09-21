@@ -1,53 +1,73 @@
-import { execFile } from 'node:child_process';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
-
 import {
-    type AgentRuntimeBrowserActionResult,
     type AgentRuntimeBrowserSettings,
     type AgentRuntimeSaveBrowserSettings,
-    agentRuntimeBrowserActionResultSchema,
-    agentRuntimeBrowserProfileNameSchema,
+    agentRuntimeBrowserConnectionSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
-import { detectChromeApplications } from './chrome-detection.ts';
+import { discoverBrowsers } from './discovery.ts';
 import { getBrowserService, reconcileBrowserService } from './service.ts';
-
-const execFileAsync = promisify(execFile);
-const defaultBrowserProfileName = 'default';
 
 const storedBrowserConfigSchema = z
     .object({
         enabled: z.boolean(),
-        profileName: agentRuntimeBrowserProfileNameSchema.default(defaultBrowserProfileName),
+        connection: agentRuntimeBrowserConnectionSchema.nullable(),
         updatedAt: z.iso.datetime({ offset: true }).nullable(),
     })
     .strict();
-
 type BrowserConfig = z.infer<typeof storedBrowserConfigSchema>;
+
+// Preserve the on-disk contract, but never resume ownership of a managed profile.
+const oldBrowserConfigSchema = z
+    .object({
+        enabled: z.boolean(),
+        profileName: z.string().optional(),
+        connection: z
+            .discriminatedUnion('kind', [
+                z
+                    .object({
+                        kind: z.literal('managed'),
+                        applicationPath: z.string().nullable(),
+                        profileName: z.string(),
+                    })
+                    .strict(),
+                agentRuntimeBrowserConnectionSchema
+                    .extend({ kind: z.literal('existing') })
+                    .strict(),
+            ])
+            .optional(),
+        updatedAt: z.iso.datetime({ offset: true }).nullable(),
+    })
+    .strict()
+    .refine((value) => value.profileName !== undefined || value.connection !== undefined)
+    .transform(
+        (value): BrowserConfig => ({
+            enabled: value.connection?.kind === 'existing' && value.enabled,
+            connection:
+                value.connection?.kind === 'existing'
+                    ? {
+                          applicationPath: value.connection.applicationPath,
+                          userDataDir: value.connection.userDataDir,
+                      }
+                    : null,
+            updatedAt: value.updatedAt,
+        })
+    );
 
 export async function getComputerBrowserSettings(
     root: string
 ): Promise<AgentRuntimeBrowserSettings> {
     const config = await readBrowserConfig(root);
     const service = getBrowserService();
-    const [application] =
-        service?.root === root ? [service.application] : await detectChromeApplications();
-
     return agentRuntimeBrowserSettingsSchema.parse({
-        application: application ? { path: application.path, version: application.version } : null,
-        configured: config.updatedAt !== null,
-        enabled: config.enabled,
-        profileName: config.profileName,
-        status:
-            service?.root === root && service.profileName === config.profileName
-                ? await service.supervisor.status()
-                : null,
-        updatedAt: config.updatedAt,
+        ...(await discoverBrowsers(root)),
+        ...config,
+        configured: config.connection !== null,
+        status: service?.root === root ? await service.observer.status() : null,
     });
 }
 
@@ -61,17 +81,36 @@ export async function saveComputerBrowserSettings(
         root,
         async () => {
             const current = await readBrowserConfig(root);
-            const next = {
+            const next: BrowserConfig = {
                 enabled: parsed.enabled ?? current.enabled,
-                profileName: parsed.profileName ?? current.profileName,
+                connection: parsed.connection ?? current.connection,
                 updatedAt: new Date().toISOString(),
-            } satisfies BrowserConfig;
+            };
+            if (next.enabled || parsed.connection) {
+                const connection = next.connection;
+                const { browsers } = await discoverBrowsers(root);
+                if (
+                    !(
+                        connection &&
+                        browsers.some(
+                            (browser) =>
+                                browser.available &&
+                                browser.userDataDir === connection.userDataDir &&
+                                browser.applicationPath === connection.applicationPath
+                        )
+                    )
+                ) {
+                    throw new Error(
+                        'Select an available browser. Start it with its current owner, then refresh.'
+                    );
+                }
+            }
             await writeBrowserConfig(root, next);
             return next;
         },
         runtime
     );
-    return await getComputerBrowserSettings(root);
+    return getComputerBrowserSettings(root);
 }
 
 export async function reconcileComputerBrowser(
@@ -81,79 +120,23 @@ export async function reconcileComputerBrowser(
     await reconcileBrowserService(root, () => readBrowserConfig(root), runtime);
 }
 
-export async function openComputerBrowser(
-    root: string,
-    runtime: EffectRuntime<never>
-): Promise<AgentRuntimeBrowserActionResult> {
-    const service = await requireBrowserService(root, runtime);
-    await service.supervisor.startBrowser();
-    await activateChrome();
-    return agentRuntimeBrowserActionResultSchema.parse({
-        message: null,
-        ok: true,
-        status: await service.supervisor.status(),
-    });
-}
-
-export async function restartComputerBrowser(
-    root: string,
-    runtime: EffectRuntime<never>
-): Promise<AgentRuntimeBrowserActionResult> {
-    const service = await requireBrowserService(root, runtime);
-    await service.supervisor.restartBrowser();
-    return agentRuntimeBrowserActionResultSchema.parse({
-        message: null,
-        ok: true,
-        status: await service.supervisor.status(),
-    });
-}
-
-async function requireBrowserService(root: string, runtime: EffectRuntime<never>) {
-    await reconcileComputerBrowser(root, runtime);
-    const service = getBrowserService();
-    if (service?.root !== root) {
-        throw new Error('Browser is unavailable on this Computer.');
-    }
-    return service;
-}
-
 async function readBrowserConfig(root: string): Promise<BrowserConfig> {
     try {
-        return storedBrowserConfigSchema.parse(
-            JSON.parse(await readFile(settingsPath(root), 'utf8'))
-        );
+        return z
+            .union([storedBrowserConfigSchema, oldBrowserConfigSchema])
+            .parse(JSON.parse(await readFile(join(root, 'settings.json'), 'utf8')));
     } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
             throw error;
         }
-        return {
-            enabled: false,
-            profileName: defaultBrowserProfileName,
-            updatedAt: null,
-        };
+        return { enabled: false, connection: null, updatedAt: null };
     }
 }
 
 async function writeBrowserConfig(root: string, config: BrowserConfig): Promise<void> {
     await mkdir(root, { mode: 0o700, recursive: true });
-    const destination = settingsPath(root);
+    const destination = join(root, 'settings.json');
     const temporary = `${destination}.${process.pid}.tmp`;
     await writeFile(temporary, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
     await rename(temporary, destination);
-}
-
-function settingsPath(root: string) {
-    return join(root, 'settings.json');
-}
-
-async function activateChrome(): Promise<void> {
-    try {
-        await execFileAsync(
-            '/usr/bin/osascript',
-            ['-e', 'tell application "Google Chrome" to activate'],
-            { timeout: 5000 }
-        );
-    } catch {
-        // Activation is best-effort; the browser is running either way.
-    }
 }

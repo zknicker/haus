@@ -7,8 +7,8 @@ import { BrowserSettingsDialog } from './browser-settings-dialog.tsx';
 import {
     type BrowserSettingsDraft,
     createDraft,
+    draftError,
     hasDraftChanges,
-    normalizeDraft,
     toSaveInput,
 } from './browser-settings-model.ts';
 import { BrowserRow, BrowserStatusChip } from './browser-settings-row.tsx';
@@ -21,20 +21,16 @@ type BrowserSettingsControlRender = (control: {
 
 export function BrowserSettingsCard({
     error,
-    isActionPending = false,
     isLoading = false,
     isSaving = false,
-    onOpenBrowser,
-    onRestartBrowser,
+    onRefresh,
     onSave,
     settings,
 }: {
     error?: string | null;
-    isActionPending?: boolean;
     isLoading?: boolean;
     isSaving?: boolean;
-    onOpenBrowser: () => Promise<unknown> | undefined;
-    onRestartBrowser: () => Promise<unknown> | undefined;
+    onRefresh: () => void;
     onSave: (input: AgentRuntimeSaveBrowserSettings) => Promise<unknown> | undefined;
     settings: BrowserSettings | null;
 }) {
@@ -68,6 +64,7 @@ export function BrowserSettingsCard({
         <BrowserSettingsControl
             error={error}
             isSaving={isSaving}
+            onRefresh={onRefresh}
             onSave={onSave}
             settings={currentSettings}
         >
@@ -75,11 +72,8 @@ export function BrowserSettingsCard({
                 const view = browserCapabilityView({ error, settings: currentSettings });
                 return (
                     <BrowserRow
-                        isActionPending={isActionPending}
                         isSaving={isSaving}
                         onConfigure={openSettingsDialog}
-                        onOpenBrowser={onOpenBrowser}
-                        onRestartBrowser={onRestartBrowser}
                         onToggle={(enabled) => requestSave({ enabled })}
                         settings={currentSettings}
                         view={view}
@@ -90,19 +84,16 @@ export function BrowserSettingsCard({
     );
 }
 
-/**
- * Owns the draft and the settings dialog. Opening and restarting Chrome are
- * the Computer page row's actions, not this control's — they reach `BrowserRow`
- * straight from the card.
- */
 export function BrowserSettingsControl({
     children,
     error,
     isSaving,
     onSave,
+    onRefresh,
     settings,
 }: {
     children: BrowserSettingsControlRender;
+    onRefresh: () => void;
     error?: string | null;
     isSaving: boolean;
     onSave: (input: AgentRuntimeSaveBrowserSettings) => Promise<unknown> | undefined;
@@ -118,19 +109,23 @@ export function BrowserSettingsControl({
     }, [settings, settingsDialogOpen]);
 
     const currentSettings = settings;
-    const normalized = normalizeDraft(draft);
+    const normalized = draft;
     const hasChanges = hasDraftChanges(currentSettings, normalized);
-    const missingProfileName = normalized.profileName.length === 0;
-    const canSave = !missingProfileName && (hasChanges || !currentSettings.configured);
-    const setupError = missingProfileName ? 'Set a profile name before saving.' : null;
+    const setupError = draftError(currentSettings, normalized);
+    const canSave = !setupError && (hasChanges || !currentSettings.configured);
 
     function openSettingsDialog(nextDraft?: Partial<BrowserSettingsDraft>) {
         setDraft({ ...createDraft(currentSettings), ...nextDraft });
+        onRefresh();
         setSettingsDialogOpen(true);
     }
 
     function requestSave(input: AgentRuntimeSaveBrowserSettings) {
-        void onSave(input);
+        void onSave(input)?.then((result) => {
+            if (result !== undefined) {
+                setSettingsDialogOpen(false);
+            }
+        });
     }
 
     return (
@@ -144,6 +139,7 @@ export function BrowserSettingsControl({
                 isSaving={isSaving}
                 onDraftChange={setDraft}
                 onOpenChange={setSettingsDialogOpen}
+                onRefresh={onRefresh}
                 onSave={() => requestSave(toSaveInput(currentSettings, normalized))}
                 open={settingsDialogOpen}
                 settings={currentSettings}

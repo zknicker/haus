@@ -7,11 +7,6 @@ export interface ProcessRecord {
     rssBytes: number;
 }
 
-export interface ManagedChromeMatch {
-    gpu: ProcessRecord | null;
-    root: ProcessRecord;
-}
-
 export type CdpProbeState = 'healthy' | 'unknown' | 'unreachable';
 
 export interface CdpSnapshot {
@@ -30,46 +25,6 @@ export interface ChromeApplication {
     version: string | null;
 }
 
-export interface BrowserResourceSample {
-    browserCpuPercent: number | null;
-    browserRssBytes: number | null;
-    gpuCpuPercent: number | null;
-    gpuRssBytes: number | null;
-}
-
-export interface BrowserObservation {
-    cdp: CdpSnapshot;
-    contractCompatible: boolean;
-    lockHeld: boolean;
-    pid: number | null;
-    resources: BrowserResourceSample;
-    running: boolean;
-    uptimeSeconds: number | null;
-}
-
-export const stoppedBrowserObservation: BrowserObservation = {
-    cdp: { latencyMs: null, state: 'unknown' },
-    contractCompatible: true,
-    lockHeld: false,
-    pid: null,
-    resources: {
-        browserCpuPercent: null,
-        browserRssBytes: null,
-        gpuCpuPercent: null,
-        gpuRssBytes: null,
-    },
-    running: false,
-    uptimeSeconds: null,
-};
-
-export interface BrowserLifecycleControl {
-    attachment(): Promise<CdpAttachment>;
-    observe(): Promise<BrowserObservation>;
-    restart(): Promise<void>;
-    start(): Promise<void>;
-    stop(): Promise<void>;
-}
-
 export interface ProcessListReader {
     read(): Promise<ProcessRecord[]>;
 }
@@ -79,8 +34,7 @@ export interface CdpProber {
     probe(userDataDir: string): Promise<CdpSnapshot>;
 }
 
-export interface ChromeProcessControl {
-    isAlive(pid: number): boolean;
-    signal(pid: number, signal: 'SIGKILL' | 'SIGTERM'): void;
-    spawnDetached(executablePath: string, args: string[]): number;
+export interface BrowserTarget {
+    executablePath: string;
+    userDataDir: string;
 }

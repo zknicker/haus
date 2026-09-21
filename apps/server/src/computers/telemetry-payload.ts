@@ -28,14 +28,7 @@ const metricNames = new Set([
     'effect_fiber_failures',
     'effect_fiber_lifetimes',
 ]);
-const operations = new Set([
-    'agent.turn',
-    'browser.get',
-    'browser.save',
-    'browser.open',
-    'browser.restart',
-    ...spanNames,
-]);
+const operations = new Set(['agent.turn', 'browser.get', 'browser.save', ...spanNames]);
 const outcomes = new Set([
     'success',
     'failure',

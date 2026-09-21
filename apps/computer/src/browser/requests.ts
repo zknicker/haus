@@ -5,12 +5,7 @@ import {
     browserResultSchema,
 } from '@haus/api';
 import { type EffectRuntime, tracePromise } from '@haus/effect';
-import {
-    getComputerBrowserSettings,
-    openComputerBrowser,
-    restartComputerBrowser,
-    saveComputerBrowserSettings,
-} from './settings.ts';
+import { getComputerBrowserSettings, saveComputerBrowserSettings } from './settings.ts';
 
 export function parseBrowserRequest(value: unknown): BrowserRequest | null {
     const parsed = browserRequestSchema.safeParse(value);
@@ -53,22 +48,10 @@ async function runBrowserOperation(
                   kind: 'settings' as const,
                   value: await getComputerBrowserSettings(root),
               }
-            : request.operation.kind === 'save'
-              ? {
-                    kind: 'settings' as const,
-                    value: await saveComputerBrowserSettings(
-                        root,
-                        request.operation.input,
-                        runtime
-                    ),
-                }
-              : {
-                    kind: 'action' as const,
-                    value:
-                        request.operation.kind === 'open'
-                            ? await openComputerBrowser(root, runtime)
-                            : await restartComputerBrowser(root, runtime),
-                };
+            : {
+                  kind: 'settings' as const,
+                  value: await saveComputerBrowserSettings(root, request.operation.input, runtime),
+              };
 
     return browserResultSchema.parse({
         requestId: request.requestId,

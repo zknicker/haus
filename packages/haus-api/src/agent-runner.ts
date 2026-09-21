@@ -23,7 +23,6 @@ import {
 import { idSchema } from './chat.ts';
 import { computerInventoryRefreshRequestSchema } from './computer-inventory-refresh.ts';
 import {
-    agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
 } from './runtime/contracts.ts';
@@ -193,7 +192,7 @@ export const serverDeleteCommandSchema = z
 export type ServerDeleteCommand = z.infer<typeof serverDeleteCommandSchema>;
 
 /**
- * Authenticated Browser request for one Computer attachment. Settings and lifecycle
+ * Authenticated Browser request for one Computer attachment. Connection settings
  * go through Server; the App never accesses the Computer socket.
  */
 export const browserRequestSchema = z
@@ -206,8 +205,6 @@ export const browserRequestSchema = z
                     kind: z.literal('save'),
                 })
                 .strict(),
-            z.object({ kind: z.literal('open') }).strict(),
-            z.object({ kind: z.literal('restart') }).strict(),
         ]),
         requestId: idSchema,
         traceContext: traceCarrierSchema.optional(),
@@ -246,20 +243,11 @@ export const browserResultSchema = z
         error: z.string().trim().min(1).max(500).optional(),
         requestId: idSchema,
         result: z
-            .discriminatedUnion('kind', [
-                z
-                    .object({
-                        kind: z.literal('settings'),
-                        value: agentRuntimeBrowserSettingsSchema,
-                    })
-                    .strict(),
-                z
-                    .object({
-                        kind: z.literal('action'),
-                        value: agentRuntimeBrowserActionResultSchema,
-                    })
-                    .strict(),
-            ])
+            .object({
+                kind: z.literal('settings'),
+                value: agentRuntimeBrowserSettingsSchema,
+            })
+            .strict()
             .optional(),
         type: z.literal('browser-result'),
     })

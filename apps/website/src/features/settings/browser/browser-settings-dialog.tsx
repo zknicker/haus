@@ -1,15 +1,12 @@
 import type { AgentRuntimeBrowserSettings } from '@haus/api';
-import { Button, FieldError, Input, Separator, TextField, Tooltip } from '@heroui/react';
+import { Button, Separator, Switch, Tooltip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { BrowserIcon, InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Dispatch, SetStateAction } from 'react';
+import { ArrowReloadHorizontalIcon, BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
-import { BrowserComputerGroup } from './browser-computer-rows.tsx';
-import { BROWSER_DIALOG_FORM_ID, BrowserDialog, BrowserLockSwitch } from './browser-dialog.tsx';
+import { BROWSER_DIALOG_FORM_ID, BrowserDialog } from './browser-dialog.tsx';
+import { BrowserExistingFields } from './browser-existing-fields.tsx';
 import type { BrowserSettingsDraft } from './browser-settings-model.ts';
-
-type BrowserSettings = AgentRuntimeBrowserSettings;
 
 export function BrowserSettingsDialog({
     canSave,
@@ -18,6 +15,7 @@ export function BrowserSettingsDialog({
     isSaving,
     onDraftChange,
     onOpenChange,
+    onRefresh,
     onSave,
     open,
     setupError,
@@ -27,16 +25,17 @@ export function BrowserSettingsDialog({
     draft: BrowserSettingsDraft;
     error?: string | null;
     isSaving: boolean;
-    onDraftChange: Dispatch<SetStateAction<BrowserSettingsDraft>>;
+    onDraftChange: (draft: BrowserSettingsDraft) => void;
     onOpenChange: (open: boolean) => void;
+    onRefresh: () => void;
     onSave: () => void;
     open: boolean;
     setupError?: string | null;
-    settings: BrowserSettings;
+    settings: AgentRuntimeBrowserSettings;
 }) {
     return (
         <BrowserDialog
-            description="Set up the shared Chrome profile Agents use on this Computer."
+            description="Connect Agents to an existing Chrome browser on this Computer."
             footer={
                 <Button
                     form={BROWSER_DIALOG_FORM_ID}
@@ -44,109 +43,77 @@ export function BrowserSettingsDialog({
                     isPending={isSaving}
                     type="submit"
                 >
-                    {settings.configured ? 'Save' : 'Set up Browser'}
+                    {settings.configured ? 'Save' : 'Connect'}
                 </Button>
             }
             icon={BrowserIcon}
             onOpenChange={onOpenChange}
             onSubmit={() => {
-                if (canSave) {
+                if (canSave && !isSaving) {
                     onSave();
                 }
             }}
             open={open}
             title="Browser"
-            titleSuffix="Tool"
         >
-            {/* Two groups: what the operator sets, then what the machine
-                reports. Every row is a title and one control or value, so the
-                gap between groups and their titles carry the hierarchy. */}
-            <div className="grid gap-6">
-                <ItemCardGroup variant="transparent">
-                    <ItemCardGroup.Header>
-                        <ItemCardGroup.Title>Browser</ItemCardGroup.Title>
-                    </ItemCardGroup.Header>
-                    <ItemCardGroup className="overflow-hidden">
-                        <ItemCard>
-                            <ItemCard.Content>
-                                <ItemCard.Title>Enable Browser</ItemCard.Title>
-                            </ItemCard.Content>
-                            <ItemCard.Action>
-                                <BrowserLockSwitch
-                                    aria-label={`${draft.enabled ? 'Disable' : 'Enable'} Browser`}
-                                    checked={draft.enabled}
-                                    disabled={isSaving}
-                                    locked={!(settings.application || draft.enabled)}
-                                    lockTooltip="Install Google Chrome on this Computer before enabling Browser."
-                                    onCheckedChange={(enabled) =>
-                                        onDraftChange((current) => ({ ...current, enabled }))
-                                    }
-                                />
-                            </ItemCard.Action>
-                        </ItemCard>
-                        <Separator />
-                        <ItemCard>
-                            {/* Content stacks its children in a column, so the
-                                title and its affordance share one row of their
-                                own. */}
-                            <ItemCard.Content>
-                                <div className="flex items-center gap-0.5">
-                                    <ItemCard.Title>Profile name</ItemCard.Title>
-                                    {/* What a profile is costs three sentences
-                                        to explain and is read once. It sits
-                                        behind an affordance rather than on the
-                                        row, where it would outweigh every other
-                                        line in the sheet. */}
-                                    <Tooltip delay={0}>
-                                        <Button
-                                            aria-label="About profile names"
-                                            isIconOnly
-                                            size="sm"
-                                            type="button"
-                                            variant="ghost"
-                                        >
-                                            <Icon icon={InformationCircleIcon} size={14} />
-                                        </Button>
-                                        <Tooltip.Content placement="top">
-                                            Agents on this Computer share this profile’s cookies and
-                                            signed-in accounts. Lowercase letters, digits, and
-                                            hyphens. A new name starts a separate profile without
-                                            deleting the old one.
-                                        </Tooltip.Content>
-                                    </Tooltip>
-                                </div>
-                            </ItemCard.Content>
-                            <ItemCard.Action>
-                                <TextField
-                                    aria-label="Browser profile name"
-                                    className="w-56 max-w-full"
+            <div className="grid grid-cols-1 gap-6">
+                <ItemCardGroup className="overflow-hidden">
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Allow Agent access</ItemCard.Title>
+                        </ItemCard.Content>
+                        <ItemCard.Action className="flex items-center gap-2">
+                            <Tooltip delay={0}>
+                                <Button
+                                    aria-label="Refresh browsers"
                                     isDisabled={isSaving}
-                                    isInvalid={Boolean(setupError)}
-                                    onChange={(profileName) =>
-                                        onDraftChange((current) => ({ ...current, profileName }))
-                                    }
-                                    value={draft.profileName}
-                                    variant="secondary"
+                                    isIconOnly
+                                    onPress={onRefresh}
+                                    size="sm"
+                                    variant="ghost"
                                 >
-                                    <Input
-                                        autoComplete="off"
-                                        className="font-mono"
-                                        placeholder="default"
-                                        spellCheck={false}
-                                    />
-                                    {setupError ? <FieldError>{setupError}</FieldError> : null}
-                                </TextField>
-                            </ItemCard.Action>
-                        </ItemCard>
-                    </ItemCardGroup>
+                                    <Icon icon={ArrowReloadHorizontalIcon} size={16} />
+                                </Button>
+                                <Tooltip.Content>Refresh browsers</Tooltip.Content>
+                            </Tooltip>
+                            <Switch
+                                aria-label={`${draft.enabled ? 'Disconnect' : 'Connect'} Browser`}
+                                isDisabled={isSaving}
+                                isSelected={draft.enabled}
+                                onChange={(enabled) => onDraftChange({ ...draft, enabled })}
+                            >
+                                <Switch.Content>
+                                    <Switch.Control>
+                                        <Switch.Thumb />
+                                    </Switch.Control>
+                                </Switch.Content>
+                            </Switch>
+                        </ItemCard.Action>
+                    </ItemCard>
+                    <Separator />
+                    <BrowserExistingFields
+                        connection={draft.connection}
+                        isSaving={isSaving}
+                        onChange={(connection) => onDraftChange({ ...draft, connection })}
+                        settings={settings}
+                    />
+                    <Separator />
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Description className="whitespace-normal">
+                                Agents share this browser’s accounts and tabs. Its current owner
+                                keeps it running; disconnecting Haus leaves it open.
+                            </ItemCard.Description>
+                            {settings.browsers.length ? null : (
+                                <ItemCard.Description className="whitespace-normal">
+                                    No compatible running browsers found. Start Chrome with browser
+                                    automation enabled, then refresh.
+                                </ItemCard.Description>
+                            )}
+                        </ItemCard.Content>
+                    </ItemCard>
                 </ItemCardGroup>
-
-                <BrowserComputerGroup settings={settings} />
-
-                {/* The save failure belongs with the button that caused it, so
-                    it is one line at the end of the body rather than a boxed
-                    alert repeating the word "failed". */}
-                <SettingsRowError>{error}</SettingsRowError>
+                <SettingsRowError>{setupError ?? error}</SettingsRowError>
             </div>
         </BrowserDialog>
     );

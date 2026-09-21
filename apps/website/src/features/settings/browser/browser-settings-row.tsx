@@ -8,20 +8,14 @@ import type { BrowserCapabilityView } from '../../computers/browser-capability-m
 type BrowserSettings = AgentRuntimeBrowserSettings;
 
 export function BrowserRow({
-    isActionPending,
     isSaving,
     onConfigure,
-    onOpenBrowser,
-    onRestartBrowser,
     onToggle,
     settings,
     view,
 }: {
-    isActionPending: boolean;
     isSaving: boolean;
     onConfigure: () => void;
-    onOpenBrowser: () => Promise<unknown> | undefined;
-    onRestartBrowser: () => Promise<unknown> | undefined;
     onToggle: (enabled: boolean) => void;
     settings: BrowserSettings;
     view: BrowserCapabilityView;
@@ -38,11 +32,8 @@ export function BrowserRow({
             <ItemCard.Action>
                 {settings.configured ? (
                     <BrowserActionsMenu
-                        isActionPending={isActionPending}
                         isSaving={isSaving}
                         onConfigure={onConfigure}
-                        onOpenBrowser={onOpenBrowser}
-                        onRestartBrowser={onRestartBrowser}
                         onToggle={onToggle}
                         view={view}
                     />
@@ -62,19 +53,13 @@ export function BrowserRow({
 }
 
 function BrowserActionsMenu({
-    isActionPending,
     isSaving,
     onConfigure,
-    onOpenBrowser,
-    onRestartBrowser,
     onToggle,
     view,
 }: {
-    isActionPending: boolean;
     isSaving: boolean;
     onConfigure: () => void;
-    onOpenBrowser: () => Promise<unknown> | undefined;
-    onRestartBrowser: () => Promise<unknown> | undefined;
     onToggle: (enabled: boolean) => void;
     view: BrowserCapabilityView;
 }) {
@@ -93,38 +78,14 @@ function BrowserActionsMenu({
                     >
                         <Label>Configure</Label>
                     </Dropdown.Item>
-                    {view.canOpen ? (
-                        <Dropdown.Item
-                            id="open"
-                            isDisabled={isSaving || isActionPending}
-                            onAction={() => {
-                                void onOpenBrowser()?.catch(() => undefined);
-                            }}
-                            textValue="Open Chrome"
-                        >
-                            <Label>Open Chrome</Label>
-                        </Dropdown.Item>
-                    ) : null}
-                    {view.canRestart ? (
-                        <Dropdown.Item
-                            id="restart"
-                            isDisabled={isSaving || isActionPending}
-                            onAction={() => {
-                                void onRestartBrowser()?.catch(() => undefined);
-                            }}
-                            textValue="Restart Chrome"
-                        >
-                            <Label>Restart Chrome</Label>
-                        </Dropdown.Item>
-                    ) : null}
                     {view.canEnable ? (
                         <Dropdown.Item
                             id="enable"
                             isDisabled={isSaving}
                             onAction={() => onToggle(true)}
-                            textValue="Turn on Browser"
+                            textValue="Connect Browser"
                         >
-                            <Label>Turn on Browser</Label>
+                            <Label>Connect Browser</Label>
                         </Dropdown.Item>
                     ) : null}
                     {view.canDisable ? (
@@ -132,10 +93,9 @@ function BrowserActionsMenu({
                             id="disable"
                             isDisabled={isSaving}
                             onAction={() => onToggle(false)}
-                            textValue="Turn off Browser"
-                            variant="danger"
+                            textValue="Disconnect Browser"
                         >
-                            <Label>Turn off Browser</Label>
+                            <Label>Disconnect Browser</Label>
                         </Dropdown.Item>
                     ) : null}
                 </Dropdown.Menu>
@@ -166,11 +126,9 @@ function statusColor(status: BrowserCapabilityView['status']) {
         case 'ready':
             return 'success' as const;
         case 'not-configured':
-        case 'starting':
         case 'attention':
             return 'warning' as const;
         case 'off':
-        case 'not-running':
         case 'unavailable':
             return 'default' as const;
     }

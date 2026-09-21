@@ -1,36 +1,64 @@
-import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@haus/api';
-
-type BrowserSettings = AgentRuntimeBrowserSettings;
+import type {
+    AgentRuntimeBrowserConnection,
+    AgentRuntimeBrowserSettings,
+    AgentRuntimeSaveBrowserSettings,
+} from '@haus/api';
 
 export interface BrowserSettingsDraft {
+    connection: AgentRuntimeBrowserConnection | null;
     enabled: boolean;
-    profileName: string;
 }
 
-export function createDraft(settings: BrowserSettings | null): BrowserSettingsDraft {
+export function createDraft(settings: AgentRuntimeBrowserSettings | null): BrowserSettingsDraft {
+    const available = settings?.browsers.find((browser) => browser.available);
     return {
         enabled: settings?.configured ? settings.enabled : true,
-        profileName: settings?.profileName ?? '',
-    };
-}
-
-export function normalizeDraft(draft: BrowserSettingsDraft): BrowserSettingsDraft {
-    return {
-        enabled: draft.enabled,
-        profileName: draft.profileName.trim(),
+        connection:
+            settings?.connection ??
+            (available
+                ? { applicationPath: available.applicationPath, userDataDir: available.userDataDir }
+                : null),
     };
 }
 
 export function toSaveInput(
-    _settings: BrowserSettings,
+    settings: AgentRuntimeBrowserSettings,
     draft: BrowserSettingsDraft
 ): AgentRuntimeSaveBrowserSettings {
+    const changed = JSON.stringify(draft.connection) !== JSON.stringify(settings.connection);
     return {
         enabled: draft.enabled,
-        profileName: draft.profileName,
+        ...(changed && draft.connection ? { connection: draft.connection } : {}),
     };
 }
 
-export function hasDraftChanges(settings: BrowserSettings, draft: BrowserSettingsDraft) {
-    return draft.enabled !== settings.enabled || draft.profileName !== settings.profileName;
+export function hasDraftChanges(
+    settings: AgentRuntimeBrowserSettings,
+    draft: BrowserSettingsDraft
+) {
+    return (
+        draft.enabled !== settings.enabled ||
+        JSON.stringify(draft.connection) !== JSON.stringify(settings.connection)
+    );
+}
+
+export function draftError(
+    settings: AgentRuntimeBrowserSettings,
+    draft: BrowserSettingsDraft
+): string | null {
+    if (!draft.enabled) {
+        return null;
+    }
+    const connection = draft.connection;
+    if (!connection) {
+        return 'Select a running browser before connecting.';
+    }
+    return settings.browsers.some(
+        (browser) =>
+            browser.available &&
+            browser.applicationPath === connection.applicationPath &&
+            browser.userDataDir === connection.userDataDir
+    )
+        ? null
+        : 'Start this browser with its current owner, then refresh.';
 }
