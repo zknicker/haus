@@ -16,13 +16,11 @@ import {
 import { TranscriptRenderRowItem } from './chat-transcript-rows.tsx';
 
 export function ChatTranscriptPresentation({
-    composition,
     leadingContent,
     renderContext,
     rows,
     scrollContentRef,
 }: {
-    composition?: React.ReactNode;
     leadingContent?: React.ReactNode;
     renderContext: TranscriptRenderContextValue;
     rows: TranscriptRow[];
@@ -56,7 +54,6 @@ export function ChatTranscriptPresentation({
                             </MessageScrollerItem>
                         )
                     )}
-                    {composition}
                 </MessageScrollerContent>
             </div>
         </TranscriptRenderProvider>

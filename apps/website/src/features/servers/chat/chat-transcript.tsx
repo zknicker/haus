@@ -12,12 +12,10 @@ import { useChatTranscript } from './use-chat-transcript.tsx';
 export { useChatTranscript } from './use-chat-transcript.tsx';
 
 export function ChatTranscript({
-    composition,
     onVisibleSequenceChange,
     scrollContentRef,
     ...input
 }: ChatTranscriptInput & {
-    composition?: React.ReactNode;
     onVisibleSequenceChange?: (sequence: number | undefined) => void;
     scrollContentRef?: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -43,7 +41,6 @@ export function ChatTranscript({
 
     return (
         <ChatTranscriptPresentation
-            composition={composition}
             leadingContent={
                 downloadError ? (
                     <p className="px-2 text-danger text-sm">{downloadError}</p>

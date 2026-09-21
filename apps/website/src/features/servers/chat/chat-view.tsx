@@ -16,9 +16,7 @@ import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
-import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
-import { ChatAgentComposition, hasAgentComposition } from './agent-composition.tsx';
 import { mergeTaskAnchor } from './chat-message-model.ts';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
@@ -45,7 +43,6 @@ export function ChatView({
 }) {
     const filesPane = useChatFilesPane(chat.id);
     const [searchParams, setSearchParams] = useSearchParams();
-    const agentLifecycles = useAgentLifecycle();
     const artifactState = useChatArtifactPanel(chat.id);
     const activeSidePane = useChatSidePane(chat.id);
     const [threadSelection, setThreadSelection] = useChatThreadSelection(chat.id, initialTask);
@@ -273,9 +270,7 @@ export function ChatView({
                     />
                 }
                 hasOlderHistory={messages.hasOlderHistory}
-                hasTransientTimelineContent={
-                    hasAgentComposition(chat.id, agentLifecycles) || pendingMessages.length > 0
-                }
+                hasTransientTimelineContent={pendingMessages.length > 0}
                 historyLoaded={Boolean(messages.data)}
                 isFetchingOlderHistory={messages.isFetchingOlderHistory}
                 isPending={messages.isPending}
@@ -283,9 +278,6 @@ export function ChatView({
                 timelineContent={(scrollContentRef) => (
                     <ChatTranscript
                         chatId={chat.id}
-                        composition={
-                            <ChatAgentComposition chatId={chat.id} serverId={chat.serverId} />
-                        }
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}
                         onOpenInlineReply={revealMessage}

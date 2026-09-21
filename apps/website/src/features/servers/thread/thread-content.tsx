@@ -19,7 +19,6 @@ import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
-import { ChatAgentComposition } from '../chat/agent-composition.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
 import { pendingThreadReplyKey, usePendingChatMessages } from '../chat/use-pending-messages.ts';
 import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
@@ -240,10 +239,6 @@ export function ThreadContent({
                                         </TranscriptRenderProvider>
                                     </MessageScrollerItem>
                                 ))}
-                                <ChatAgentComposition
-                                    chatId={threadChatId}
-                                    serverId={chat.serverId}
-                                />
                             </MessageScrollerContent>
                         </MessageScrollerViewport>
                     </MessageScroller>

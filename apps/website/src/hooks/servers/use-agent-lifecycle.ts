@@ -1,31 +1,20 @@
 import type { Agent, AgentLifecycleEvent } from '@haus/api';
+import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { recoverAgentMessage } from './agent-message-recovery.ts';
 
 export type AgentLifecycles = ReadonlyMap<string, AgentLifecycleEvent>;
 
-const compositionLifetimeMs = 12_000;
 const emptyLifecycles: AgentLifecycles = new Map();
 
 export function useAgentLifecycleEvents(serverId: string | undefined): AgentLifecycles {
+    const queryClient = useQueryClient();
     const utils = hausTrpc.useUtils();
-    const expiryTimersRef = React.useRef(
-        new Map<string, ReturnType<typeof globalThis.setTimeout>>()
-    );
     const [state, setState] = React.useState<{
         events: Map<string, AgentLifecycleEvent>;
         serverId: string | undefined;
     }>({ events: new Map(), serverId });
-
-    React.useEffect(
-        () => () => {
-            for (const timer of expiryTimersRef.current.values()) {
-                globalThis.clearTimeout(timer);
-            }
-            expiryTimersRef.current.clear();
-        },
-        []
-    );
 
     hausTrpc.agent.onLifecycle.useSubscription(
         { serverId: serverId ?? '' },
@@ -35,11 +24,6 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
                 if (event.serverId !== serverId) {
                     return;
                 }
-                const existingTimer = expiryTimersRef.current.get(event.agentId);
-                if (existingTimer) {
-                    globalThis.clearTimeout(existingTimer);
-                    expiryTimersRef.current.delete(event.agentId);
-                }
                 setState((current) => {
                     const events =
                         current.serverId === serverId
@@ -48,23 +32,7 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
                     events.set(event.agentId, event);
                     return { events, serverId };
                 });
-                if (event.phase === 'sending') {
-                    const timer = globalThis.setTimeout(() => {
-                        setState((current) => {
-                            if (
-                                current.serverId !== event.serverId ||
-                                current.events.get(event.agentId) !== event
-                            ) {
-                                return current;
-                            }
-                            const events = new Map(current.events);
-                            events.delete(event.agentId);
-                            return { ...current, events };
-                        });
-                        expiryTimersRef.current.delete(event.agentId);
-                    }, compositionExpiryDelay(event.emittedAt));
-                    expiryTimersRef.current.set(event.agentId, timer);
-                }
+                void recoverAgentMessage(event, utils, queryClient);
                 utils.agent.list.setData({ serverId: event.serverId }, (agents) =>
                     agents ? projectAgentAvailability(agents, event) : agents
                 );
@@ -104,10 +72,6 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
     );
 
     return state.serverId === serverId ? state.events : emptyLifecycles;
-}
-
-export function compositionExpiryDelay(emittedAt: string, now = Date.now()) {
-    return Math.max(0, compositionLifetimeMs - (now - new Date(emittedAt).getTime()));
 }
 
 export function projectAgentAvailability(
