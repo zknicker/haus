@@ -11,13 +11,32 @@ export function handleInventoryRefresh(
         send(frame: unknown): boolean;
         track<T>(work: Promise<T>): Promise<T>;
         refreshUsage(): Promise<void>;
+        refreshReport(): Promise<void>;
     }
 ): boolean {
     const request = computerInventoryRefreshRequestSchema.safeParse(frame);
     if (!request.success) {
         return false;
     }
-    void input.track(refreshRuntimeInventory(request.data.requestId).then(input.send));
+    void input.track(
+        refreshRuntimeInventory(request.data.requestId).then(async (result) => {
+            if (result.status === 'refreshed') {
+                try {
+                    await input.refreshReport();
+                } catch (error) {
+                    reportStateError(error);
+                    input.send({
+                        error: 'Could not refresh runtime status on this Computer.',
+                        requestId: result.requestId,
+                        status: 'failed',
+                        type: 'inventory-refresh-result',
+                    });
+                    return;
+                }
+            }
+            input.send(result);
+        })
+    );
     if (process.env.HAUS_COMPUTER_USAGE_DISABLED !== '1') {
         void input.track(input.refreshUsage().catch(reportStateError));
     }

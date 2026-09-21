@@ -6,7 +6,22 @@ import {
     listImportableSkills,
 } from './host-skills.ts';
 import { detectFullInventory } from './inventory.ts';
+import { refreshRuntimeAuthentication } from './runtime-auth-refresh.ts';
 import { readRuntimeIssues } from './runtime-issues.ts';
+
+export function createComputerReporter(dataRoot: string) {
+    return async (
+        send: (frame: unknown) => boolean,
+        serverId: string,
+        computerName: string,
+        recheckAuthentication = false
+    ) => {
+        if (recheckAuthentication) {
+            await refreshRuntimeAuthentication({ dataRoot });
+        }
+        await sendEffectiveComputerReport({ send, serverId, computerName, dataRoot });
+    };
+}
 
 export async function sendEffectiveComputerReport({
     send,

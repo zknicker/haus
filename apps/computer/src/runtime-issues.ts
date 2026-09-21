@@ -20,10 +20,24 @@ export async function recordRuntimeOutcome(input: {
     status: 'completed' | 'failed' | 'interrupted';
     failureKind?: RuntimeFailureKind;
 }) {
-    if (!computerRuntimeCatalog.some(({ id }) => id === input.runtimeId)) {
+    if (input.status !== 'completed' && input.failureKind !== 'authentication') {
         return;
     }
-    if (input.status !== 'completed' && input.failureKind !== 'authentication') {
+    await recordRuntimeAuthentication({
+        dataRoot: input.dataRoot,
+        runtimeId: input.runtimeId,
+        checkedAt: input.startedAt,
+        issue: input.failureKind === 'authentication' ? 'authentication' : null,
+    });
+}
+
+export async function recordRuntimeAuthentication(input: {
+    dataRoot: string;
+    runtimeId: string;
+    checkedAt: string;
+    issue: 'authentication' | null;
+}) {
+    if (!computerRuntimeCatalog.some(({ id }) => id === input.runtimeId)) {
         return;
     }
     const root = join(input.dataRoot, 'runtime-health');
@@ -33,7 +47,13 @@ export async function recordRuntimeOutcome(input: {
         .catch(() => undefined)
         .then(async () => {
             const current = await readObservation(path);
-            if (current && current.checkedAt > input.startedAt) {
+            if (
+                current &&
+                (current.checkedAt > input.checkedAt ||
+                    (current.checkedAt === input.checkedAt &&
+                        current.issue === 'authentication' &&
+                        input.issue === null))
+            ) {
                 return;
             }
             await mkdir(root, { recursive: true });
@@ -41,8 +61,8 @@ export async function recordRuntimeOutcome(input: {
             await writeFile(
                 temporary,
                 JSON.stringify({
-                    checkedAt: input.startedAt,
-                    issue: input.failureKind === 'authentication' ? 'authentication' : null,
+                    checkedAt: input.checkedAt,
+                    issue: input.issue,
                 }),
                 { mode: 0o600 }
             );

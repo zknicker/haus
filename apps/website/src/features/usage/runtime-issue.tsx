@@ -52,8 +52,9 @@ export function RuntimeIssueHelp({
                             </p>
                             {command && <CodeSnippet lines={command} />}
                             <p className="text-muted">
-                                Then retry the Agent’s request. A successful turn clears the
-                                execution warning.
+                                {runtimeId === 'claude-code'
+                                    ? 'Then refresh Runtimes to recheck the login and clear this warning. Retry the Agent’s request to resume its work.'
+                                    : 'Then retry the Agent’s request. A successful turn clears the execution warning.'}
                             </p>
                         </>
                     ) : (

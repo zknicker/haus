@@ -49,7 +49,7 @@ import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
 import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { readComputerName } from './computer-name.ts';
-import { reportStateError, sendEffectiveComputerReport } from './computer-report.ts';
+import { createComputerReporter, reportStateError } from './computer-report.ts';
 import { applyCoveConfiguration, parseCoveApplyCommand } from './cove-configuration.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, purgeServerPartition, readRunMarker, writeRunMarker } from './delivery.ts';
@@ -139,6 +139,7 @@ interface AttachResponse {
 }
 
 const dataRoot = process.env.HAUS_COMPUTER_DATA_ROOT ?? join(homedir(), '.haus', 'computer');
+const sendComputerReport = createComputerReporter(dataRoot);
 const sendUsageReport = createUsageReporter(dataRoot);
 const serverOrigin = process.env.HAUS_SERVER_ORIGIN ?? 'https://haus.chat';
 const { findAttachment, listAttachments, readAttachment } = createAttachmentStore(dataRoot);
@@ -1092,7 +1093,7 @@ async function connect(
                     });
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
-                            sendComputerReport(sendFrame, attachment.serverId, computerName),
+                            sendComputerReport(sendFrame, attachment.serverId, computerName, true),
                             sendSystemEventReport(sendFrame, attachment.serverId),
                         ]);
                         const acceptedImports = await listAcceptedHostSkillImports(
@@ -1134,6 +1135,8 @@ async function connect(
                     send: sendFrame,
                     track: trackWriter,
                     refreshUsage: () => sendUsageReport(sendFrame, 'refresh'),
+                    refreshReport: () =>
+                        sendComputerReport(sendFrame, attachment.serverId, computerName, true),
                 })
             ) {
                 return;
@@ -1657,10 +1660,6 @@ async function handleStartCommand(input: {
 }
 
 type SendComputerFrame = (frame: unknown) => boolean;
-
-async function sendComputerReport(send: SendComputerFrame, serverId: string, computerName: string) {
-    await sendEffectiveComputerReport({ send, serverId, computerName, dataRoot });
-}
 
 async function sendSystemEventReport(send: SendComputerFrame, serverId: string) {
     const events = await readAttachmentManagementEvents(dataRoot, serverId);

@@ -31,9 +31,10 @@ export function ComputerRuntimeIssues({
                         <Alert.Content>
                             <Alert.Title>{runtimeIssueLabel(issue.runtimeId)}</Alert.Title>
                             <Alert.Description>
-                                Sign in on {computerLabel(computer)}, then retry the Agent's
-                                request. This notice clears after a successful turn using this
-                                runtime.
+                                Sign in on {computerLabel(computer)}.{' '}
+                                {issue.runtimeId === 'claude-code'
+                                    ? 'Refresh Runtimes to recheck the login and clear this warning, then retry the Agent’s request.'
+                                    : 'Then retry the Agent’s request. This notice clears after a successful turn using this runtime.'}
                             </Alert.Description>
                             {command ? <CodeSnippet lines={command} /> : null}
                         </Alert.Content>
