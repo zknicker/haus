@@ -125,6 +125,39 @@ test('a Computer failure reaches settings as a message, not a stuck request', as
     await computerReply;
 });
 
+test('sign-in links and cancellation relay through the authorized Computer capability', async () => {
+    const waiting = {
+        accountEmail: null,
+        expiresAt: null,
+        provider: 'cursor',
+        ready: false,
+        reason: 'not-connected',
+        signIn: {
+            status: 'waiting',
+            url: 'https://cursor.com/loginDeepControl?uuid=test',
+            expiresAt: '2026-09-21T18:00:00.000Z',
+        },
+    };
+    const target = { computerId, provider: 'cursor' as const, serverId };
+    const started = answerNextCapabilityRequest(socket, 'connect', waiting);
+    expect(await owner.trpc.cloudAgentProvider.connect.mutate(target)).toEqual(waiting);
+    await started;
+    const cancelled = answerNextCapabilityRequest(socket, 'cancel-sign-in', {
+        accountEmail: null,
+        expiresAt: null,
+        provider: 'cursor',
+        ready: false,
+        reason: 'not-connected',
+    });
+    expect(
+        (await owner.trpc.cloudAgentProvider.cancelSignIn.mutate(target)).signIn
+    ).toBeUndefined();
+    await cancelled;
+    await expect(member.trpc.cloudAgentProvider.cancelSignIn.mutate(target)).rejects.toThrow(
+        /Owner or Admin/i
+    );
+});
+
 test('only an Owner or Admin can connect a Computer to a Cloud Agent provider', async () => {
     await expect(
         member.trpc.cloudAgentProvider.get.query({ computerId, provider: 'cursor', serverId })

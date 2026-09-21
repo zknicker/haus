@@ -157,7 +157,7 @@ test('Computer inventory reports Cloud Agent provider readiness on the current p
             runtimes: [],
         }).cloudAgentProviders
     ).toHaveLength(1);
-    expect(computerProtocolVersion).toBe(20);
+    expect(computerProtocolVersion).toBe(21);
 });
 
 test('a Cloud Agent capability state names exactly one of ready or a reason', () => {
@@ -187,6 +187,36 @@ test('a Cloud Agent capability state names exactly one of ready or a reason', ()
             }).reason
         ).toBe(reason);
     }
+});
+
+test('sign-in links only accept the trusted Cursor HTTPS website', () => {
+    const state = {
+        accountEmail: null,
+        expiresAt: null,
+        provider: 'cursor',
+        ready: false,
+        reason: 'not-connected',
+    };
+    const signIn = { status: 'waiting', expiresAt: '2026-09-21T18:00:00.000Z' };
+    for (const url of [
+        'not a URL',
+        'javascript:alert(1)',
+        'http://cursor.com/login',
+        'https://cursor.com.evil.test/login',
+        'https://user:secret@cursor.com/login',
+        'https://cursor.com:444/login',
+    ]) {
+        expect(
+            cloudAgentCapabilityStateSchema.safeParse({ ...state, signIn: { ...signIn, url } })
+                .success
+        ).toBe(false);
+    }
+    expect(
+        cloudAgentCapabilityStateSchema.safeParse({
+            ...state,
+            signIn: { ...signIn, url: 'https://cursor.com/loginDeepControl?uuid=test' },
+        }).success
+    ).toBe(true);
 });
 
 test('the capability request rides the Computer command union and answers with one shape', () => {

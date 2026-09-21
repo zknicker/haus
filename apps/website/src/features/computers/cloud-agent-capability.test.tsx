@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CloudAgentCapabilityRow } from './cloud-agent-capability-card.tsx';
 import {
     cloudAgentCapabilityView,
     reportedCloudAgentCapability,
 } from './cloud-agent-capability-model.ts';
+import { CloudAgentCapabilityRow } from './cloud-agent-capability-row.tsx';
+import { cloudAgentSignInView } from './cloud-agent-sign-in-model.ts';
 
 const connected = {
     accountEmail: 'delegate@example.com',
@@ -120,4 +121,56 @@ test('the Computer report renders the row before the settings read answers', () 
     ).toEqual(unready('expired'));
     expect(reportedCloudAgentCapability({ runtimes: [] })).toBeNull();
     expect(reportedCloudAgentCapability(null)).toBeNull();
+});
+
+test('a pending sign-in can be resumed after closing or reloading settings', () => {
+    const view = cloudAgentCapabilityView({
+        isConnecting: false,
+        isOffline: false,
+        state: {
+            ...unready('not-connected'),
+            signIn: {
+                status: 'waiting',
+                url: 'https://cursor.com/loginDeepControl',
+                expiresAt: '2026-09-21T18:00:00.000Z',
+            },
+        },
+    });
+    expect(view.canConnect).toBe(true);
+    expect(render(view)).toContain('Continue sign-in');
+    expect(render(view)).not.toContain('browser window on that Computer');
+});
+
+test('offline wins over an in-flight sign-in and failures explain recovery', () => {
+    expect(
+        cloudAgentCapabilityView({
+            isConnecting: true,
+            isOffline: true,
+            state: unready('not-connected'),
+        }).status
+    ).toBe('unavailable');
+    const view = cloudAgentCapabilityView({
+        isConnecting: false,
+        isOffline: false,
+        state: {
+            ...unready('not-connected'),
+            signIn: {
+                status: 'failed',
+                message: 'This sign-in expired. Try again to get a new link.',
+            },
+        },
+    });
+    expect(view.canConnect).toBe(true);
+    expect(view.description).toContain('expired');
+});
+
+test('recovered Computer state supersedes a lost connect response', () => {
+    expect(
+        cloudAgentSignInView({
+            isOffline: false,
+            isStarting: false,
+            error: new Error('Lost response'),
+            state: connected,
+        })
+    ).toEqual({ status: 'connected', email: connected.accountEmail });
 });

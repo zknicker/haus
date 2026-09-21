@@ -21,36 +21,18 @@ test('accepts one capability reply only from its requested Computer', async () =
     await expect(pending).resolves.toEqual(reply.result);
 });
 
-test('read expires after ten seconds while connect gets five minutes of virtual time', async () => {
+test('reads and connect requests time out after ten seconds, without waiting for approval', async () => {
     const { office, frames } = createOffice();
-    const read = office.request(computerId, get);
-    const readReply = capability(requestId(frames));
-    const readFailure = read.catch((error: unknown) => error);
-    const connect = office.request(computerId, {
-        operation: { kind: 'connect' },
-        provider: 'cursor',
-    });
-    const connectReply = capability(requestId(frames));
-
-    await runtime.runPromise(TestClock.adjust(10_000));
-    expect(await readFailure).toEqual(
-        new Error('The Computer did not answer the Cloud Agent request.')
-    );
-    expect(office.accept(computerId, readReply)).toBe(false);
-    expect(office.accept(computerId, connectReply)).toBe(true);
-    await expect(connect).resolves.toEqual(connectReply.result);
-
-    const expires = office.request(computerId, {
-        operation: { kind: 'connect' },
-        provider: 'cursor',
-    });
-    const expiredReply = capability(requestId(frames));
-    const connectFailure = expires.catch((error: unknown) => error);
-    await runtime.runPromise(TestClock.adjust(300_000));
-    expect(await connectFailure).toEqual(
-        new Error('The Computer did not answer the Cloud Agent request.')
-    );
-    expect(office.accept(computerId, expiredReply)).toBe(false);
+    for (const kind of ['get', 'connect', 'cancel-sign-in'] as const) {
+        const pending = office.request(computerId, { operation: { kind }, provider: 'cursor' });
+        const reply = capability(requestId(frames));
+        const failure = pending.catch((error: unknown) => error);
+        await runtime.runPromise(TestClock.adjust(10_000));
+        expect(await failure).toEqual(
+            new Error('The Computer did not answer the Cloud Agent request.')
+        );
+        expect(office.accept(computerId, reply)).toBe(false);
+    }
 });
 
 test('disconnect rejects only that Computer and removes its pending reply', async () => {

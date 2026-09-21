@@ -1,4 +1,5 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterAll, afterEach, expect, test } from 'bun:test';
+import { makeTestRuntime } from '@haus/effect';
 import { detectFullInventory } from '../inventory.ts';
 import {
     parseCloudAgentCapabilityRequest,
@@ -6,11 +7,16 @@ import {
 } from './capability-requests.ts';
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import { createRecordedCursorTransport, recordedAuth } from './cursor/recorded-transport.ts';
+import { closeProviderSignIns } from './provider-sign-in.ts';
 import { setCloudAgentProvider } from './registry.ts';
+
+const runtime = makeTestRuntime();
+afterAll(() => runtime.dispose());
 
 const restores: Array<() => void> = [];
 
-afterEach(() => {
+afterEach(async () => {
+    await closeProviderSignIns(runtime);
     while (restores.length > 0) {
         restores.pop()?.();
     }
@@ -39,7 +45,7 @@ test('the capability request parses only its own frame', () => {
 test('connecting stores the credential with Cursor and reports the account back', async () => {
     installDisconnectedCursor();
 
-    expect((await runCloudAgentCapabilityRequest(request('get'))).result).toEqual({
+    expect((await runCloudAgentCapabilityRequest(request('get'), runtime)).result).toEqual({
         accountEmail: null,
         expiresAt: null,
         provider: 'cursor',
@@ -47,7 +53,7 @@ test('connecting stores the credential with Cursor and reports the account back'
         reason: 'not-connected',
     });
 
-    const connected = await runCloudAgentCapabilityRequest(request('connect'));
+    const connected = await runCloudAgentCapabilityRequest(request('connect'), runtime);
     expect(connected.result).toEqual({
         accountEmail: 'delegate@example.com',
         expiresAt: '2026-12-03T21:03:33.000Z',
@@ -57,10 +63,12 @@ test('connecting stores the credential with Cursor and reports the account back'
     });
     expect(connected.error).toBeUndefined();
 
-    expect((await runCloudAgentCapabilityRequest(request('disconnect'))).result?.ready).toBe(false);
+    expect(
+        (await runCloudAgentCapabilityRequest(request('disconnect'), runtime)).result?.ready
+    ).toBe(false);
 });
 
-test('a refused login answers with one bounded error, never a credential', async () => {
+test('a refused login answers with a retryable state, never raw authentication details', async () => {
     const transport = createRecordedCursorTransport({ auth: recordedAuth.loggedOut });
     restores.push(
         setCloudAgentProvider(
@@ -71,11 +79,12 @@ test('a refused login answers with one bounded error, never a credential', async
         )
     );
 
-    const result = await runCloudAgentCapabilityRequest(request('connect'));
-    expect(result.result).toBeUndefined();
-    expect(result.error?.length).toBeLessThanOrEqual(500);
-    expect(result.error?.length).toBeGreaterThan(400);
-    expect(result.error).toStartWith('Login cancelled.');
+    const result = await runCloudAgentCapabilityRequest(request('connect'), runtime);
+    expect(result.result?.signIn).toEqual({
+        status: 'failed',
+        message: 'Could not complete Cursor sign-in. Try again.',
+    });
+    expect(result.error).toBeUndefined();
 });
 
 test('the Computer inventory reports Cursor readiness truthfully', async () => {
@@ -84,7 +93,7 @@ test('the Computer inventory reports Cursor readiness truthfully', async () => {
         { provider: 'cursor', ready: false, reason: 'not-connected' },
     ]);
 
-    await runCloudAgentCapabilityRequest(request('connect'));
+    await runCloudAgentCapabilityRequest(request('connect'), runtime);
     expect((await detectFullInventory()).cloudAgentProviders).toEqual([
         { provider: 'cursor', ready: true, reason: null },
     ]);
