@@ -1579,7 +1579,7 @@ test('ChatTranscript keeps an ordinary Agent header to a name and a time', () =>
     assert.doesNotMatch(markup, /text-trigger-mark/);
     // No description tagline: what an Agent is generally for belongs to its
     // hover card and profile, not to every message it writes.
-    const header = /max-w-full items-baseline gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
+    const header = /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
     assert.equal(header.replace(/<[^>]*>/g, ''), 'Blippy12:00 pm');
 });
 
