@@ -11,23 +11,13 @@ export interface CloudAgentCapabilityView {
 /**
  * The Cloud Agent capability row reads from the Computer's own report, so it
  * says what that machine can actually do rather than what this browser
- * assumes. Connecting is the App's own in-flight state: the Computer is
- * running the provider's browser sign-in and has not answered yet.
+ * assumes. Computer owns the ongoing sign-in so reloading Settings keeps it.
  */
 export function cloudAgentCapabilityView(input: {
     isConnecting: boolean;
     isOffline: boolean;
     state: CloudAgentCapabilityState | null;
 }): CloudAgentCapabilityView {
-    if (input.isConnecting) {
-        return {
-            canConnect: false,
-            canDisconnect: false,
-            description: 'Finish signing in to Cursor in the browser window on that Computer.',
-            status: 'connecting',
-            statusLabel: 'Connecting',
-        };
-    }
     if (input.isOffline || !input.state) {
         return {
             canConnect: false,
@@ -35,6 +25,17 @@ export function cloudAgentCapabilityView(input: {
             description: 'Reconnect this Computer to manage its Cloud Agent access.',
             status: 'unavailable',
             statusLabel: 'Unavailable',
+        };
+    }
+    if (input.isConnecting || input.state.signIn?.status === 'waiting') {
+        return {
+            canConnect: !input.isConnecting,
+            canDisconnect: false,
+            description: input.isConnecting
+                ? 'Preparing your sign-in link…'
+                : 'Finish signing in to Cursor on this device. Haus will connect automatically.',
+            status: 'connecting',
+            statusLabel: input.isConnecting ? 'Connecting' : 'Awaiting sign-in',
         };
     }
     if (input.state.ready) {
@@ -59,11 +60,18 @@ export function cloudAgentCapabilityView(input: {
         canConnect: true,
         canDisconnect: input.state.reason === 'expired',
         description:
-            input.state.reason === 'expired'
-                ? 'This Computer’s Cursor key expired. Connect again to renew it.'
-                : 'Connect this Computer to Cursor so Agents can delegate work to Cloud Agents.',
+            input.state.signIn?.status === 'failed'
+                ? input.state.signIn.message
+                : input.state.reason === 'expired'
+                  ? 'This Computer’s Cursor key expired. Connect again to renew it.'
+                  : 'Connect this Computer to Cursor so Agents can delegate work to Cloud Agents.',
         status: 'not-connected',
-        statusLabel: input.state.reason === 'expired' ? 'Expired' : 'Not connected',
+        statusLabel:
+            input.state.signIn?.status === 'failed'
+                ? 'Sign-in incomplete'
+                : input.state.reason === 'expired'
+                  ? 'Expired'
+                  : 'Not connected',
     };
 }
 
@@ -96,7 +104,7 @@ function connectedDescription(state: CloudAgentCapabilityState): string {
     if (!state.expiresAt) {
         return `${account} ${assignment} Cloud Agent work bills to that Cursor plan.`;
     }
-    return `${account} ${assignment} The key renews by ${new Intl.DateTimeFormat(undefined, {
+    return `${account} ${assignment} Reconnect by ${new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
     }).format(new Date(state.expiresAt))}.`;
 }

@@ -28,12 +28,8 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
         async cancel(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<void> {
             await transport.cancelRun(requireAddress(ref), signal);
         },
-        async connect(options: { onLoginUrl?: (url: string) => void } = {}) {
-            return readinessOf(
-                await run(() =>
-                    transport.login(options.onLoginUrl ? { onLoginUrl: options.onLoginUrl } : {})
-                )
-            );
+        async connect(options = {}) {
+            return readinessOf(await run(() => transport.login(options)));
         },
         async disconnect() {
             await run(() => transport.logout());

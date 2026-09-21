@@ -1,10 +1,8 @@
 import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@haus/api';
 import { cloudAgentCapabilityRequestSchema, cloudAgentCapabilityResultSchema } from '@haus/api';
-import {
-    cloudAgentCapabilityState,
-    cloudAgentProvider,
-    readCloudAgentReadiness,
-} from './registry.ts';
+import type { EffectRuntime } from '@haus/effect';
+import { providerSignIn } from './provider-sign-in.ts';
+import { cloudAgentCapabilityState, cloudAgentProvider } from './registry.ts';
 
 export function parseCloudAgentCapabilityRequest(
     value: unknown
@@ -15,22 +13,23 @@ export function parseCloudAgentCapabilityRequest(
 
 /**
  * The Computer side of the Cloud Agent capability row in Computer settings.
- * `connect` runs the provider's own browser sign-in here, on the machine that
- * owns the credential store; nothing about the credential travels back. Only a
+ * `connect` returns a sign-in link while Computer waits for approval and owns
+ * the credential store. No credential travels back. Only a
  * human action in settings reaches this path, never an Agent turn.
  */
 export async function runCloudAgentCapabilityRequest(
-    request: CloudAgentCapabilityRequest
+    request: CloudAgentCapabilityRequest,
+    runtime: EffectRuntime<never>
 ): Promise<CloudAgentCapabilityResult> {
     const provider = cloudAgentProvider();
     try {
         if (provider.provider !== request.provider) {
             throw new Error(`This Computer has no ${request.provider} Cloud Agent provider.`);
         }
-        const readiness = await resolve(request.operation.kind);
+        const state = await resolve(request.operation.kind);
         return cloudAgentCapabilityResultSchema.parse({
             requestId: request.requestId,
-            result: cloudAgentCapabilityState(provider, readiness),
+            result: state,
             type: 'cloud-agent-capability-result',
         });
     } catch (error) {
@@ -41,14 +40,18 @@ export async function runCloudAgentCapabilityRequest(
         });
     }
 
-    function resolve(kind: CloudAgentCapabilityRequest['operation']['kind']) {
+    async function resolve(kind: CloudAgentCapabilityRequest['operation']['kind']) {
+        const signIn = providerSignIn(runtime, provider);
         switch (kind) {
             case 'get':
-                return readCloudAgentReadiness(provider);
+                return signIn.get();
             case 'connect':
-                return provider.connect();
+                return signIn.connect();
+            case 'cancel-sign-in':
+                return signIn.cancel();
             case 'disconnect':
-                return provider.disconnect();
+                await signIn.cancel();
+                return cloudAgentCapabilityState(provider, await provider.disconnect());
         }
     }
 }

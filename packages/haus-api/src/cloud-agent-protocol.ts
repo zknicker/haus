@@ -38,8 +38,8 @@ export type CloudAgentReconcileCommand = z.infer<typeof cloudAgentReconcileComma
  * One authenticated Server request against this Computer's Cloud Agent
  * provider access, shaped like the Browser request for the same reason: the
  * App never touches a Computer socket, and provider credentials never leave
- * the machine. `connect` runs the provider's own browser login on the
- * Computer and stores the key in the provider's credential store; `disconnect`
+ * the machine. `connect` returns the sign-in link while Computer waits for
+ * approval and stores the key in the provider's credential store; `disconnect`
  * forgets it. Haus never opens that flow during an Agent turn.
  */
 export const cloudAgentCapabilityRequestSchema = z
@@ -47,6 +47,7 @@ export const cloudAgentCapabilityRequestSchema = z
         operation: z.discriminatedUnion('kind', [
             z.object({ kind: z.literal('get') }).strict(),
             z.object({ kind: z.literal('connect') }).strict(),
+            z.object({ kind: z.literal('cancel-sign-in') }).strict(),
             z.object({ kind: z.literal('disconnect') }).strict(),
         ]),
         provider: cloudAgentProviderSchema,

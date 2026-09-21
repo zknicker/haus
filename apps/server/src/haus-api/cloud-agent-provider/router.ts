@@ -16,10 +16,11 @@ import {
 
 /**
  * Cloud Agent provider access on one Computer. `connect` runs the provider's
- * own browser sign-in on that Computer; Server relays the request and never
+ * sign-in on that Computer and returns its browser link; Server never
  * sees, stores, or forwards the credential it mints.
  */
 export const cloudAgentProviderRouter = createRouter({
+    cancelSignIn: actionProcedure('cancel-sign-in'),
     connect: actionProcedure('connect'),
     disconnect: actionProcedure('disconnect'),
     get: memberProcedure
@@ -28,7 +29,7 @@ export const cloudAgentProviderRouter = createRouter({
         .query(({ ctx, input }) => relay(ctx, input, { kind: 'get' })),
 });
 
-function actionProcedure(kind: 'connect' | 'disconnect') {
+function actionProcedure(kind: 'connect' | 'disconnect' | 'cancel-sign-in') {
     return memberProcedure
         .input(cloudAgentProviderActionInputSchema)
         .output(cloudAgentProviderOutputSchema)

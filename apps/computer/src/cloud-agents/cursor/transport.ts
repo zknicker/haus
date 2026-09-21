@@ -108,7 +108,10 @@ export interface CursorTransport {
     authStatus(): Promise<CursorAuth>;
     cancelRun(address: CursorRunAddress, signal?: AbortSignal): Promise<void>;
     /** Cursor's browser sign-in. Only a human action in settings reaches this. */
-    login(options: { onLoginUrl?: (url: string) => void }): Promise<CursorAuth>;
+    login(options: {
+        onLoginUrl?: (url: string) => void;
+        signal?: AbortSignal;
+    }): Promise<CursorAuth>;
     logout(): Promise<void>;
     readRun(address: CursorRunAddress, signal?: AbortSignal): Promise<CursorRunReading>;
     /** Starts another Run on the existing provider Agent; never creates an Agent. */

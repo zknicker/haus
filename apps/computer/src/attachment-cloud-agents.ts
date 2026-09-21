@@ -7,11 +7,13 @@ import {
     parseCloudAgentReconcileCommand,
 } from './cloud-agents/frames.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
+import type { DaemonRuntime } from './daemon-runtime.ts';
 
 /** Adapts attachment frames to the daemon-owned Cloud Agent capability. */
 export function handleCloudAgentFrame(
     frame: unknown,
     options: {
+        runtime: DaemonRuntime;
         cloudAgents?: CloudAgentWorkSupervisor;
         track(operation: Promise<void>): Promise<void>;
         send(frame: unknown): boolean;
@@ -40,7 +42,7 @@ export function handleCloudAgentFrame(
         return false;
     }
     void options.track(
-        runCloudAgentCapabilityRequest(capability)
+        runCloudAgentCapabilityRequest(capability, options.runtime)
             .then(async (result) => {
                 options.send(result);
                 if (capability.operation.kind !== 'get') {

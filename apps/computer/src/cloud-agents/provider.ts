@@ -74,7 +74,10 @@ export interface CloudAgentProvider {
      * credential where the provider keeps it. Only an explicit human action in
      * Computer settings reaches this; an Agent turn never does.
      */
-    connect(options?: { onLoginUrl?: (url: string) => void }): Promise<CloudAgentReadiness>;
+    connect(options?: {
+        onLoginUrl?: (url: string) => void;
+        signal?: AbortSignal;
+    }): Promise<CloudAgentReadiness>;
     /** Forgets the stored credential. The provider-side key stays revocable. */
     disconnect(): Promise<CloudAgentReadiness>;
     readonly provider: 'cursor';

@@ -1,24 +1,26 @@
-import { Button, Chip, Dropdown, Label, toast } from '@heroui/react';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Icon } from '../../components/ui/icon.tsx';
+import { toast } from '@heroui/react';
+import { ItemCardGroup } from '@heroui-pro/react';
+import { useState } from 'react';
 import {
+    useCloudAgentCancelSignIn,
     useCloudAgentCapability,
     useCloudAgentConnect,
     useCloudAgentDisconnect,
 } from '../../hooks/servers/use-cloud-agent-capability.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import {
-    type CloudAgentCapabilityView,
     cloudAgentCapabilityView,
     reportedCloudAgentCapability,
 } from './cloud-agent-capability-model.ts';
+import { CloudAgentCapabilityRow } from './cloud-agent-capability-row.tsx';
+import { CloudAgentSignInDialog } from './cloud-agent-sign-in-dialog.tsx';
+import { cloudAgentSignInView } from './cloud-agent-sign-in-model.ts';
 
 /**
  * Cloud Agent provider access on this Computer — a capability of the machine,
  * beside its runtimes, not a runtime itself. The two stay separate because
  * Cursor's CLI and its SDK use different credential stores even for one
- * account. Connecting opens Cursor's own browser sign-in on the Computer.
+ * account. The Computer owns sign-in; the App opens its link on this device.
  */
 export function CloudAgentCapabilityCard({
     computerId,
@@ -34,25 +36,45 @@ export function CloudAgentCapabilityCard({
     const capability = useCloudAgentCapability(target, Boolean(computer) && !isOffline);
     const connect = useCloudAgentConnect(target);
     const disconnect = useCloudAgentDisconnect(target);
+    const cancel = useCloudAgentCancelSignIn(target);
+    const [signInOpen, setSignInOpen] = useState(false);
+    const state =
+        capability.data ?? reportedCloudAgentCapability(computer?.reportedInventory ?? null);
 
     const view = cloudAgentCapabilityView({
         isConnecting: connect.isPending,
         isOffline,
-        state: capability.data ?? reportedCloudAgentCapability(computer?.reportedInventory ?? null),
+        state,
     });
 
     const handleConnect = async () => {
+        setSignInOpen(true);
+        cancel.reset();
+        if (state?.signIn?.status === 'waiting') {
+            return;
+        }
         try {
-            const state = await connect.mutateAsync(target);
-            toast.success('Cursor connected', {
-                description: state.accountEmail
-                    ? `This Computer signs in as ${state.accountEmail}.`
-                    : 'This Computer can now start Cloud Agents.',
-            });
-        } catch (error) {
-            toast.danger('Couldn’t connect Cursor', { description: errorMessage(error) });
+            await connect.mutateAsync(target);
+        } catch {
+            // The dialog keeps the mutation error beside its retry action.
         }
     };
+
+    const handleCancel = async () => {
+        try {
+            await cancel.mutateAsync(target);
+            setSignInOpen(false);
+        } catch {
+            // Keep the dialog open so cancellation can be retried.
+        }
+    };
+
+    const signInView = cloudAgentSignInView({
+        isOffline,
+        isStarting: connect.isPending,
+        error: connect.error,
+        state,
+    });
 
     const handleDisconnect = async () => {
         try {
@@ -80,92 +102,25 @@ export function CloudAgentCapabilityCard({
                     />
                 </ItemCardGroup>
             </ItemCardGroup>
+            {signInOpen ? (
+                <CloudAgentSignInDialog
+                    computerName={computer?.name ?? 'this Computer'}
+                    error={
+                        cancel.error
+                            ? errorMessage(cancel.error)
+                            : capability.error
+                              ? 'Could not check sign-in status. Haus will retry automatically.'
+                              : null
+                    }
+                    isCancelling={cancel.isPending}
+                    onCancel={handleCancel}
+                    onClose={() => setSignInOpen(false)}
+                    onRetry={handleConnect}
+                    view={signInView}
+                />
+            ) : null}
         </section>
     );
-}
-
-export function CloudAgentCapabilityRow({
-    isDisconnecting,
-    onConnect,
-    onDisconnect,
-    view,
-}: {
-    isDisconnecting: boolean;
-    onConnect: () => void;
-    onDisconnect: () => void;
-    view: CloudAgentCapabilityView;
-}) {
-    return (
-        <ItemCard>
-            <ItemCard.Content>
-                <ItemCard.Title>
-                    Cursor Cloud Agents
-                    <Chip
-                        className="ms-2 align-middle"
-                        color={statusColor(view.status)}
-                        size="sm"
-                        variant="soft"
-                    >
-                        {view.statusLabel}
-                    </Chip>
-                </ItemCard.Title>
-                <ItemCard.Description>{view.description}</ItemCard.Description>
-            </ItemCard.Content>
-            <ItemCard.Action>
-                <div className="flex items-center gap-2">
-                    {view.status === 'ready' ? null : (
-                        <Button
-                            isDisabled={!view.canConnect}
-                            isPending={view.status === 'connecting'}
-                            onPress={onConnect}
-                            size="sm"
-                            variant="secondary"
-                        >
-                            Connect
-                        </Button>
-                    )}
-                    {view.canDisconnect ? (
-                        <Dropdown>
-                            <Button
-                                aria-label="Cursor Cloud Agents actions"
-                                isIconOnly
-                                size="sm"
-                                variant="ghost"
-                            >
-                                <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
-                            </Button>
-                            <Dropdown.Popover placement="bottom end">
-                                <Dropdown.Menu>
-                                    <Dropdown.Item
-                                        id="disconnect"
-                                        isDisabled={isDisconnecting}
-                                        onAction={onDisconnect}
-                                        textValue="Disconnect Cursor"
-                                        variant="danger"
-                                    >
-                                        <Label>Disconnect Cursor</Label>
-                                    </Dropdown.Item>
-                                </Dropdown.Menu>
-                            </Dropdown.Popover>
-                        </Dropdown>
-                    ) : null}
-                </div>
-            </ItemCard.Action>
-        </ItemCard>
-    );
-}
-
-function statusColor(status: CloudAgentCapabilityView['status']) {
-    switch (status) {
-        case 'ready':
-            return 'success' as const;
-        case 'connecting':
-            return 'accent' as const;
-        case 'not-connected':
-            return 'warning' as const;
-        case 'unavailable':
-            return 'default' as const;
-    }
 }
 
 function errorMessage(error: unknown) {

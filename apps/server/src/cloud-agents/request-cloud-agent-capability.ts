@@ -17,8 +17,8 @@ export class CloudAgentCapabilityDeniedError extends Error {
  * Reads or changes one Computer's Cloud Agent provider access. Server carries
  * no provider credential and stores none: it verifies authority, verifies the
  * Computer belongs to this Server, and relays the operation to that Computer's
- * outbound socket, exactly as Browser settings do. The browser sign-in happens
- * on the Computer, and only the resulting readiness comes back.
+ * outbound socket. Computer supplies a public sign-in link for the App's
+ * browser and reports completion; the credential stays on Computer.
  */
 export async function requestCloudAgentCapability(
     db: HausDatabase,

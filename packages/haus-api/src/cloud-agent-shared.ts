@@ -202,6 +202,35 @@ export const cloudAgentCapabilityStateSchema = z
         provider: cloudAgentProviderSchema,
         ready: z.boolean(),
         reason: cloudAgentUnreadyReasonSchema.nullable(),
+        signIn: z
+            .discriminatedUnion('status', [
+                z
+                    .object({
+                        status: z.literal('waiting'),
+                        url: z
+                            .url()
+                            .max(4096)
+                            .refine((value) => {
+                                if (!URL.canParse(value)) {
+                                    return false;
+                                }
+                                const url = new URL(value);
+                                return (
+                                    url.protocol === 'https:' &&
+                                    url.hostname === 'cursor.com' &&
+                                    !url.username &&
+                                    !url.password &&
+                                    !url.port
+                                );
+                            }),
+                        expiresAt: cloudAgentTimestampSchema,
+                    })
+                    .strict(),
+                z
+                    .object({ status: z.literal('failed'), message: z.string().min(1).max(500) })
+                    .strict(),
+            ])
+            .optional(),
     })
     .strict()
     .refine((value) => value.ready !== Boolean(value.reason), {

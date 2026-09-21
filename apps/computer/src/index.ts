@@ -1086,8 +1086,7 @@ async function connect(
             if (bootstrap) {
                 sendFrame({ type: 'heartbeat-negotiate' });
                 if (bootstrap.mode === 'ordinary') {
-                    // Provider-hosted work outlives this socket, so observations
-                    // ride it back up as soon as the ordinary protocol is live.
+                    // Reattach observations for provider work that outlived the socket.
                     daemonWork.cloudAgents?.attach((observation) => {
                         sendFrame({ observation, type: 'cloud-agent-observation' });
                     });
@@ -1151,6 +1150,7 @@ async function connect(
             }
             if (
                 handleCloudAgentFrame(frame, {
+                    runtime,
                     cloudAgents: daemonWork.cloudAgents,
                     track: trackWriter,
                     send: sendFrame,

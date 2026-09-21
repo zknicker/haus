@@ -15,7 +15,7 @@ import {
 
 interface CursorSdk {
     Agent: typeof CursorAgentApi;
-    Cursor: typeof CursorApi;
+    Cursor: Pick<typeof CursorApi, 'auth'>;
 }
 
 /**
@@ -73,11 +73,13 @@ export function createCursorSdkTransport(
             await Agent.cancelRun(address.runId, { agentId: address.agentId, runtime: 'cloud' });
             signal?.throwIfAborted();
         },
-        async login(options: { onLoginUrl?: (url: string) => void }): Promise<CursorAuth> {
+        async login(options: {
+            onLoginUrl?: (url: string) => void;
+            signal?: AbortSignal;
+        }): Promise<CursorAuth> {
             const { Cursor } = await load();
-            const result = await Cursor.auth.login(
-                options.onLoginUrl ? { onLoginUrl: options.onLoginUrl } : {}
-            );
+            options.signal?.throwIfAborted();
+            const result = await Cursor.auth.login({ ...options, openBrowser: false });
             return {
                 connected: true,
                 email: result.email ?? null,

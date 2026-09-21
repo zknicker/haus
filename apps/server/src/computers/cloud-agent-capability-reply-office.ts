@@ -38,8 +38,7 @@ export class CloudAgentCapabilityReplyOffice {
             requestId: reply.requestId,
             type: 'cloud-agent-capability-request',
         });
-        // Connecting waits for the human to finish the provider's browser sign-in.
-        const timeoutMs = input.operation.kind === 'connect' ? 300_000 : 10_000;
+        const timeoutMs = 10_000;
         return settle(
             this.options.runtime,
             Effect.raceFirst(
