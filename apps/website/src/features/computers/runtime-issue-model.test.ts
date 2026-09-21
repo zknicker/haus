@@ -36,7 +36,7 @@ test('only agents using the affected Computer runtime show its issue', () => {
     ).toBeNull();
 });
 test('recovery copy names the runtime and its native login command', () => {
-    expect(runtimeIssueLabel('grok-build')).toBe('Grok Build sign-in required');
+    expect(runtimeIssueLabel('grok-build')).toBe('Grok Build authentication failed');
     expect(runtimeLoginCommand('grok-build')).toBe('grok login');
     expect(runtimeLoginCommand('pi')).toBeNull();
 });

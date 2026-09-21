@@ -43,7 +43,7 @@ test('refuses a session window too long to be a 5-hour allowance', () => {
     expect(markup).not.toContain('5-hour limit, 17% used.');
 });
 
-test('a runtime that has never reported usage reads as signed out', () => {
+test('a failed usage login does not claim the runtime cannot authenticate', () => {
     const markup = renderToStaticMarkup(
         <DetectedRuntimeUsage
             detectedRuntimeIds={['claude-code']}
@@ -59,11 +59,12 @@ test('a runtime that has never reported usage reads as signed out', () => {
         />
     );
 
-    expect(markup).toContain('Sign-in required');
+    expect(markup).toContain('Usage unavailable');
+    expect(markup).not.toContain('Authentication failed');
     expect(markup).not.toContain('Plan limits unavailable');
 });
 
-test('a retained snapshot whose login expired keeps its meters and reads as signed out', () => {
+test('a retained snapshot whose usage login expired keeps its meters without an execution warning', () => {
     const markup = renderToStaticMarkup(
         <DetectedRuntimeUsage
             detectedRuntimeIds={['claude-code']}
@@ -96,7 +97,8 @@ test('a retained snapshot whose login expired keeps its meters and reads as sign
     );
 
     expect(markup).toContain('28%');
-    expect(markup).toContain('Sign-in required');
+    expect(markup).toContain('Usage unavailable');
+    expect(markup).not.toContain('Authentication failed');
     expect(markup).not.toContain('Usage out of date');
     expect(markup).toContain('Last updated');
 });
@@ -123,7 +125,7 @@ test('a retained snapshot kept past a request failure keeps the generic stale co
 
     expect(markup).toContain('13%');
     expect(markup).toContain('Usage unavailable');
-    expect(markup).not.toContain('Sign-in required');
+    expect(markup).not.toContain('Authentication failed');
 });
 
 test('a fresh snapshot with no retention stamp carries no stale copy', () => {
@@ -146,15 +148,16 @@ test('a fresh snapshot with no retention stamp carries no stale copy', () => {
     expect(markup).toContain('Resets');
 });
 
-test('a signed-out retained row names the sign-out once', () => {
+test('a retained row reports the usage failure once', () => {
     // The Runtime cell's stale stamp owns that copy. The limit cell used to
     // repeat it, printing the same sentence in two adjacent columns.
     const markup = renderCodexWindows([], {
         stale: { at: '2026-08-14T15:15:00.000Z', code: 'auth' },
     });
 
-    expect(markup.split('Sign-in required')).toHaveLength(2);
-    expect(markup).toContain('Codex: how to fix sign-in');
+    expect(markup.split('Usage unavailable')).toHaveLength(2);
+    expect(markup).not.toContain('Authentication failed');
+    expect(markup).toContain('Codex: usage details');
     expect(markup).toContain('button--icon-only');
 });
 
@@ -201,8 +204,8 @@ test('execution authentication issues override successful usage and stay scoped 
             usage={usageFixture}
         />
     );
-    expect(markup).toContain('Codex: how to fix sign-in');
+    expect(markup).toContain('Codex: authentication details');
     expect(markup).toContain('Claude Code: usage details');
-    expect(markup.split('Sign-in required')).toHaveLength(2);
+    expect(markup.split('Authentication failed')).toHaveLength(2);
     expect(markup).toContain('13%');
 });

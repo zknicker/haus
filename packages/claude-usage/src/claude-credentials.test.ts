@@ -17,6 +17,26 @@ afterEach(async () => {
 });
 
 describe('loadClaudeCredentials', () => {
+    it('reads a current credential file without requiring macOS Keychain access', async () => {
+        const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
+        tempDirs.push(tempDir);
+        const credentialsPath = path.join(tempDir, 'credentials.json');
+        await writeFile(
+            credentialsPath,
+            JSON.stringify({
+                claudeAiOauth: { accessToken: 'file-token', expiresAt: Date.now() + 60_000 },
+            })
+        );
+        const loaded = await loadClaudeCredentials({
+            credentialsPath,
+            platform: 'darwin',
+            readKeychain: () => {
+                throw Object.assign(new Error('User interaction is not allowed'), { code: 36 });
+            },
+        });
+        expect(loaded?.credentials.accessToken).toBe('file-token');
+    });
+
     it('prefers a current macOS Keychain session over a stale credential file', async () => {
         const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
         tempDirs.push(tempDir);
@@ -142,8 +162,14 @@ it.each([
     'not-json',
     '{"claudeAiOauth":{}}',
 ])('treats unusable Keychain credentials as an authentication failure: %s', async (raw) => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
+    tempDirs.push(tempDir);
     await expect(
-        loadClaudeCredentials({ platform: 'darwin', readKeychain: async () => raw })
+        loadClaudeCredentials({
+            homeDir: tempDir,
+            platform: 'darwin',
+            readKeychain: async () => raw,
+        })
     ).rejects.toMatchObject({ name: 'ClaudeUsageAuthError' });
 });
 

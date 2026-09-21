@@ -76,18 +76,18 @@ test('a Codex weekly window stays in the weekly column', () => {
     expect(built.fiveHourWindow).toBeNull();
 });
 
-test('a runtime that has never reported usage reads as signed out', () => {
+test('usage authentication failures do not imply execution authentication failed', () => {
     const usage = usageWithCodexWindows([]);
     const signedOut = { ...usage, claude: providerError('claude', 'auth') };
 
-    expect(buildRuntimeRow('claude-code', signedOut, null).issue).toBe('authentication');
+    expect(buildRuntimeRow('claude-code', signedOut, null).issue).toBe('usage');
     expect(
         buildRuntimeRow('codex', { ...usage, codex: providerError('codex', 'auth') }, null).issue
-    ).toBe('authentication');
-    expect(buildRuntimeRow('grok-build', usage, null).issue).toBe('authentication');
+    ).toBe('usage');
+    expect(buildRuntimeRow('grok-build', usage, null).issue).toBe('usage');
 });
 
-test('a runtime whose login expired keeps its retained meters and reads as signed out', () => {
+test('an expired usage login keeps its retained meters and reports unavailable usage', () => {
     const usage = usageWithCodexWindows([]);
     const built = buildRuntimeRow(
         'claude-code',
@@ -97,8 +97,8 @@ test('a runtime whose login expired keeps its retained meters and reads as signe
 
     expect(built.window).toMatchObject({ label: 'Weekly Limit', usedPercent: 28 });
     expect(built.stale).toEqual({ at: '2026-08-14T15:15:00.000Z', code: 'auth' });
-    expect(built.issue).toBe('authentication');
-    // The stale stamp already names the sign-out, so the limit cell stays
+    expect(built.issue).toBe('usage');
+    // The stale stamp already names the failure, so the limit cell stays
     // generic rather than repeating it in the adjacent column.
     expect(built.status).toBe('Plan limits unavailable');
     // Retention is knowledge, not a freshness guess: the row says so at once.
