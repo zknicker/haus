@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v5.0.0 - 2026-09-21
+
+- Agents can use an existing Chrome instance with its signed-in accounts. Browser settings show the installation, version, and profile path. Haus no longer starts, restarts, or creates Chrome profiles; previous managed setups must connect to a running Chrome instance explicitly. Update Haus Computer to 4.0.0 and Haus for iPhone to 3.3.1 (build 34) for the new connection contract.
+- Cursor Cloud Agent sign-in can finish on another device, with a sign-in link and cancellation in Computer settings.
+- Haus Agent 3.3.0 uses native runtime authentication without copying Claude credentials into recovery files. Usage lookup failures no longer incorrectly ask you to sign in again.
+- Hover cards stay open when a tooltip appears inside them.
+
 ## v4.3.1 - 2026-09-21
 
 - Haus Server fixes a database-client stall that could leave requests waiting indefinitely while PostgreSQL remained healthy.
