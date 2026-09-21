@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v4.3.1 - 2026-09-21
+
+- Haus Server fixes a database-client stall that could leave requests waiting indefinitely while PostgreSQL remained healthy.
+- Agent replies recover when a live notification is missed, and activity history opens immediately.
+- Runtime sign-in warnings include recovery guidance. Haus Computer 3.3.1 recognizes invalid Claude credentials as sign-in failures instead of generic turn errors.
+
 ## v4.3.0 - 2026-09-21
 
 - Agent visuals appear inline with replies, and Markdown tables render on the web, desktop, and iPhone. Visuals and reports still render when an Agent omits a newline around their markup.
