@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import { resolveInlineReplyParent } from '../chats/reply-context.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentMessageDraftsTable } from '../postgres/schema.ts';
@@ -58,6 +59,13 @@ export async function saveDraft(
         replyToMessageId?: string;
     }
 ) {
+    const replyParent = draft.replyToMessageId
+        ? await resolveInlineReplyParent(db, {
+              chatId,
+              replyToMessageId: draft.replyToMessageId,
+              serverId: runner.serverId,
+          })
+        : null;
     await db
         .insert(agentMessageDraftsTable)
         .values({
@@ -66,7 +74,7 @@ export async function saveDraft(
             chatId,
             content: draft.content,
             reholdCount: draft.reholdCount,
-            replyToMessageId: draft.replyToMessageId ?? null,
+            replyToMessageId: replyParent?.parent.id ?? null,
             serverId: runner.serverId,
             sessionGeneration: generation,
         })
@@ -75,7 +83,7 @@ export async function saveDraft(
                 attachmentIds: draft.attachmentIds,
                 content: draft.content,
                 reholdCount: draft.reholdCount,
-                replyToMessageId: draft.replyToMessageId ?? null,
+                replyToMessageId: replyParent?.parent.id ?? null,
                 savedAt: new Date(),
             },
             target: [
