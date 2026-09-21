@@ -142,7 +142,6 @@
         "timer": 0
       }
     },
-
     "apps/computer/src/daemon-runtime.ts": {
       "disposition": "effect-owned",
       "reason": "This is the Computer composition root that creates and disposes the single daemon Effect runtime.",
@@ -183,7 +182,7 @@
         "abortController": 0,
         "catchAndIgnore": 2,
         "finallyBlock": 2,
-        "manualPromise": 2,
+        "manualPromise": 1,
         "timer": 0
       }
     },
@@ -226,9 +225,9 @@
       "risks": {
         "abortController": 1,
         "catchAndIgnore": 0,
-        "finallyBlock": 3,
+        "finallyBlock": 2,
         "manualPromise": 1,
-        "timer": 1
+        "timer": 0
       }
     },
     "apps/computer/src/launch.ts": {
@@ -580,6 +579,50 @@
         "catchAndIgnore": 1,
         "finallyBlock": 1,
         "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/attachment-daemon-work.ts": {
+      "disposition": "effect-owned",
+      "reason": "The attachment runtime bounds accepted work and SDK session checkpoints with an Effect deadline; final cleanup reaps every owned sandbox process before releasing routing.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/attachment-shutdown.ts": {
+      "disposition": "external-adapter",
+      "reason": "Node signal and PID adapters join one finite daemon drain. The terminal disposal deadline is outside the Effect runtime because that runtime is being disposed; timeout and polling timers are cleared or bounded.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 2,
+        "manualPromise": 2,
+        "timer": 3
+      }
+    },
+    "apps/computer/src/harness/session-lifecycle.ts": {
+      "disposition": "external-adapter",
+      "reason": "Finite AI SDK detach and stop calls share a checkpoint with the turn writer. The attachment runtime owns shutdown admission, cancellation, deadline, and sandbox reaping.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/harness/stored-notice.ts": {
+      "disposition": "external-adapter",
+      "reason": "The executor owns this finite foreign notice-delivery queue and always closes it when the turn settles; unresolved callback Promises are settled on close.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
         "timer": 0
       }
     }
