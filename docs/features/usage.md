@@ -86,15 +86,17 @@ indicator conditionally shows an enforced 5-hour window; model-specific windows 
 comparative surface. A runtime whose snapshot carries no weekly window shows no weekly meter: a
 5-hour allowance stays in the 5-hour column rather than standing in for a weekly one, and a session
 window too long to be a 5-hour allowance is reported as unavailable rather than mislabelled. A
-runtime with a missing, expired, or unusable login shows a **Sign-in required** badge beside its
+runtime whose last authentication attempt failed shows an **Authentication failed** badge beside its
 name. A help icon in the Details column reveals instructions on hover or keyboard focus for
 signing in on that Computer, including a copyable
 runtime-specific command. Computer-reported execution issues take precedence over successful
-usage reads. Last-known meters remain visible with their capture time. A plan-usage failure alone
-shows **Usage unavailable** with details, without claiming execution is blocked. Runtime rows own
+usage reads. Last-known meters remain visible with their capture time. A plan-usage failure alone,
+including an expired usage credential, shows **Usage unavailable** with details, without claiming
+execution is blocked. Runtime rows own
 these notices; a Computer without a usage report retains the standalone execution warning.
 Malformed Claude credential documents are authentication failures, distinct from malformed usage
-responses, so they surface here and stop automatic turn retries.
+responses. The usage reader checks the credential file before macOS Keychain, matching the execution
+adapter's discovery order; a valid file does not require interactive Keychain access.
 Authentication and raw provider responses remain Computer-local.
 
 Cloud Agent usage is per-Run rather than per-window. Each terminal Run observation carries the
@@ -146,11 +148,21 @@ Agent hover cards, profile pages, and profile panes show the issue for their ass
 runtime, with a link to Computer settings. The Computer page owns native sign-in instructions.
 Other runtimes on the same Computer remain unaffected.
 
-An expired sign-in reads differently from a missing one, and the message says which. Claude Code's
-access token lasts about eight hours and only the `claude` CLI can trade its refresh token for a
-new one: an Agent's isolated home reaches no login of its own, so Haus cannot do it on the
-operator's behalf. That failure therefore asks for `claude` to be run once on the named Computer,
-while a Computer that was never signed in asks for a sign-in.
+AI SDK's native adapters own execution authentication for Claude Code and Grok Build, including
+host subscription discovery, token refresh, and saving rotated credentials. Haus does not inject
+its own Claude access token or reject an expired token before the adapter can refresh it. Agent
+workspaces remain isolated while authentication is resolved on the host.
+
+The Claude adapter patch also removes credential environment variables from its bundled bridge's
+persisted start settings, while leaving the live message intact. Resumed turns receive freshly
+resolved credentials from the host. The shared persistence code is bundled into this adapter, so
+the patch targets that shipped bundle. Remove it when upstream stops persisting credentials;
+the same behavior is still present in version 1.0.121. A regression exercises the shipped
+persistence function and checks both recovery files.
+
+The warning describes the last Haus authentication failure, not the runtime's current login state.
+If the runtime already works on the Computer, retry the Agent request. Sign in there only if the
+runtime also asks for a login.
 
 After signing in — or refreshing — on the named Computer, retry the Agent request. A successful
 turn using that runtime clears the issue. Inventory discovery, an interrupted turn, and a usage
