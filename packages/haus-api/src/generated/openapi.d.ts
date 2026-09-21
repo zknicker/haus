@@ -1225,7 +1225,7 @@ export interface components {
             messageId: string;
             modelId: string;
             /** @enum {string} */
-            reasoningEffort: "low" | "medium" | "high";
+            reasoningEffort: "default" | "low" | "medium" | "high" | "xhigh" | "max";
             runtimeId: string;
             sequence: number;
             target: string;
