@@ -10,6 +10,10 @@ read_when:
 
 ## Worktree Setup
 
+Use Bun `1.4.2`, matching the package manifests, cloud bootstrap, and CI/release
+jobs. Server and Computer binaries embed the Bun version used to compile them;
+changing the host's Bun executable does not upgrade an already published artifact.
+
 Run the checked-in setup command in every fresh checkout or worktree:
 
 ```bash

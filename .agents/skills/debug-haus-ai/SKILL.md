@@ -33,6 +33,13 @@ conventions. Prefer deterministic tests and seeded fixtures over noisy hosted or
 
 ## Start With Existing Telemetry
 
+For a hosted Server outage, HTTP 503, or database-health failure, first read
+[Hosted Haus troubleshooting](../../../docs/operations/haus-server-troubleshooting.md).
+It owns the Mac mini SSH route, Production-vault key recovery, scoped sudo policy,
+and direct process/database checks. Inspect installed grants with `sudo -n -l`;
+never infer root access from SSH access or treat a staged policy as installed.
+Capture logs and pool/lock evidence before an authorized service restart.
+
 For runtime incidents and performance investigations, use the `axiom-ops` skill and query Axiom
 before declaring timing or failure evidence missing. Read `docs/internals/observability.md` for
 the current trace and privacy contract. Discover dataset schemas; bound queries by incident time,

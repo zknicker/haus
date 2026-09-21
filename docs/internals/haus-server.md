@@ -97,15 +97,19 @@ transaction still holds it, which strands that transaction's Server row lock and
 wedges every later durable write. Keeping the two off one pool holds the
 invariant; the split goes away when Bun isolates reserved connections.
 
-The environment contract also disables Bun 1.3.5's automatic SQL pipelining
-with `BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING=1`. Mixing cached and uncached
-queries can otherwise mismatch results and leave requests pending forever
-([upstream fix](https://github.com/oven-sh/bun/pull/33627)). This flag must be set
-before Bun starts; changing `process.env` inside the Server is too late. Keep
-prepared statements enabled: disabling preparation changes JSON parameter
-encoding. Remove the flag after adopting the upstream fix and passing
-`haus-postgres-concurrency.test.ts`. `bun run dev` and `bun run test:server`
-resolve the flag through Varlock.
+The repository pins Bun 1.4.2, which includes the
+[SQL query-ordering fix](https://github.com/oven-sh/bun/pull/33627).
+Development and tests run with automatic SQL pipelining enabled, covered by
+`haus-postgres-concurrency.test.ts`. Production retains
+`BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING=1` for rollback to artifacts
+embedding Bun 1.3.5. Remove it when those artifacts are no longer rollback
+targets. Bun reads this flag before JavaScript starts. Prepared statements stay
+enabled because disabling preparation changes JSON parameter encoding.
+
+Production's renderer includes native Bun flags separately from the typed
+application environment. The delivery guard requires this public flag just as
+it requires credentials. Declaring it in `.env.schema` alone does not deliver
+it to the hosted process; it must reach `config/server.env` before restart.
 
 PostgreSQL owns the hosted collaboration tables
 (`apps/server/src/postgres/schema/`):

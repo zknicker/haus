@@ -264,7 +264,7 @@ Haus Server promotion remains a separate manual operation in
 ## Cursor Cloud specific instructions
 
 The Cloud Agent environment is repository-managed via `.cursor/environment.json`,
-`.cursor/install.sh`, and `.cursor/start.sh`. The install step provisions Bun `1.3.5`
+`.cursor/install.sh`, and `.cursor/start.sh`. The install step provisions Bun `1.4.2`
 and PostgreSQL 16, then runs `bun run setup:worktree` (frozen `bun install` + HeroUI Pro
 artifact download). `start.sh` seeds fleet agents on every boot. The full stack
 (`bun run dev`) auto-starts in the `dev-stack` terminal.
