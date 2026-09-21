@@ -165,6 +165,18 @@ per assigned Agent. The session spans every Chat and does not rotate because
 of age or idle time. A settled turn parks its harness state for the next
 delivery; a Computer restart resumes that stored state.
 
+On SIGTERM, SIGINT, or an update restart, the attachment daemon closes admission,
+cancels active turns, and waits for their AI SDK streams to settle before calling
+`session.stop()`. Parked sessions are reattached and stopped through the same SDK
+contract. Computer saves each returned opaque resume state without rotating the
+generation or discarding conversation context, then reaps all owned sandbox process
+groups before exiting. Ordinary turn completion still uses `session.detach()`.
+
+Shutdown allows 20 seconds for session checkpoints and accepted writers, then
+forces process cleanup and reports a failure if state could not be saved. The
+replacement daemon waits for the old PID to exit; a timeout blocks replacement.
+Forced OS termination and power loss cannot perform this graceful checkpoint.
+
 Initial creation, runtime or model switch, and manual session reset start a
 fresh session. If the harness rejects stored resume state, Computer discards
 only that state, advances the generation, and cold-starts once. The Agent then
