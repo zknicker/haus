@@ -142,50 +142,7 @@
         "timer": 0
       }
     },
-    "apps/computer/src/browser/command-queue.ts": {
-      "disposition": "external-adapter",
-      "reason": "The browser supervisor owns the queue; the Promise only bridges an abortable waiter to its platform-facing API.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/browser/lifecycle.ts": {
-      "disposition": "external-adapter",
-      "reason": "BrowserSupervisor owns the child process; this module adapts operating-system process signals and a bounded grace timer.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/browser/service.ts": {
-      "disposition": "effect-owned",
-      "reason": "The daemon runtime owns browser supervision, and the finalizer releases the exclusive browser profile lock.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/browser/supervisor-test-support.ts": {
-      "disposition": "test-support",
-      "reason": "Deterministic browser-supervisor fixtures expose deferred Promises and timers only to lifecycle tests.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 2,
-        "timer": 1
-      }
-    },
+
     "apps/computer/src/daemon-runtime.ts": {
       "disposition": "effect-owned",
       "reason": "This is the Computer composition root that creates and disposes the single daemon Effect runtime.",
