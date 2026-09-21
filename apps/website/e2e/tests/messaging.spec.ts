@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type { Locator } from '@playwright/test';
-import { createAgentThreadSender } from '../support/agent-thread.ts';
+import { verifyAgentThreadRecovery } from '../support/agent-thread-recovery.ts';
 import {
     clerkSessionFile,
     readClerkSessionFixture,
@@ -365,52 +365,7 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
 
 test('an Agent reply reaches an already-open Thread live and after reconnect', async ({ page }) => {
     test.setTimeout(60_000);
-    await signInAsClerkHuman(page);
-    await page.goto('/s/hosted-messages');
-    await openChannel(page, 'all');
-
-    const anchorText = 'Agent delivery anchor';
-    const composer = page.getByRole('textbox', { name: 'Message all' });
-    await composer.fill(anchorText);
-    await page.getByRole('button', { name: 'Send' }).click();
-    await expect(page.getByText(anchorText, { exact: true })).toBeVisible();
-
-    // The human only OPENS the Thread; the Agent authors every reply through the
-    // Server -> Computer path exactly as task clarifications and reminder
-    // follow-ups arrive.
-    const anchorArticle = page
-        .getByText(anchorText, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await openMessageThread(anchorArticle);
-    const panel = page.getByRole('complementary', { name: 'Thread' });
-    await expect(panel).toBeVisible();
-
-    const { databaseUrl, token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
-        databaseUrl: string;
-        token: string;
-    };
-    const agent = await createAgentThreadSender({ anchorText, databaseUrl, token });
-
-    // A live Agent reply renders in the already-open Thread with no refresh.
-    await agent.send('Agent thread clarification', 'e2e-agent-thread-live');
-    await expect(panel.getByText('Agent thread clarification', { exact: true })).toBeVisible();
-
-    // A reply that lands while the Thread is closed must appear on reopen.
-    await panel.getByRole('button', { name: 'Close thread' }).click();
-    await agent.send('Agent reply while the thread was closed', 'e2e-agent-thread-closed');
-    await expect(page.getByRole('button', { name: /2 replies/u })).toBeVisible();
-    await page.getByRole('button', { name: /2 replies/u }).click();
-    await expect(
-        panel.getByText('Agent reply while the thread was closed', { exact: true })
-    ).toBeVisible();
-
-    // A reply authored while the App is offline is recovered on reconnect.
-    await page.context().setOffline(true);
-    await agent.send('Agent reply sent while the App was offline', 'e2e-agent-thread-offline');
-    await page.context().setOffline(false);
-    await expect(
-        panel.getByText('Agent reply sent while the App was offline', { exact: true })
-    ).toBeVisible();
+    await verifyAgentThreadRecovery(page);
 });
 
 test('Agent-authored typed references render as interactive Agent and Chat chips', async ({

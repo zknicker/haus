@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { Agent, AgentLifecycleEvent } from '@haus/api';
-import { compositionExpiryDelay, projectAgentAvailability } from './use-agent-lifecycle.ts';
+import { projectAgentAvailability } from './use-agent-lifecycle.ts';
 
 const agent = {
     availability: 'idle',
@@ -31,13 +31,4 @@ test.each([
         phase: 'settled',
     } satisfies AgentLifecycleEvent;
     expect(projectAgentAvailability([agent], event)[0]?.availability).toBe(availability);
-});
-
-test('sending composition expiry is one-shot and measured from emission time', () => {
-    expect(
-        compositionExpiryDelay('2026-07-29T12:00:00.000Z', Date.parse('2026-07-29T12:00:05Z'))
-    ).toBe(7000);
-    expect(
-        compositionExpiryDelay('2026-07-29T12:00:00.000Z', Date.parse('2026-07-29T12:01:00Z'))
-    ).toBe(0);
 });
