@@ -321,19 +321,28 @@ the Cursor runtime harness even when both belong to one Cursor account. Each Com
 its inventory as `cloudAgentProviders: [{ provider, ready, reason }]`, where an unready reason is
 `not-connected`, `expired`, or `provider-unavailable`.
 
-`cloudAgentProvider.get`, `cloudAgentProvider.connect`, and `cloudAgentProvider.disconnect` each
-take `{ computerId, provider, serverId }` and answer with the Computer's own
-`{ accountEmail, expiresAt, provider, ready, reason }`. Server verifies current membership plus
-Owner or Admin authority, verifies the Computer belongs to that Server, and relays a
-`cloud-agent-capability-request` over that Computer's outbound socket, which answers with
-`cloud-agent-capability-result` — the same shape [Browser](../internals/browser.md) uses, for the
-same reason: the App never touches a Computer socket.
+`cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect` take
+`{ computerId, provider, serverId }` and answer with the Computer's own
+`{ accountEmail, expiresAt, provider, ready, reason, signIn? }`. Server verifies current membership
+plus Owner or Admin authority and that the Computer belongs to that Server, then relays a
+`cloud-agent-capability-request` over its outbound socket. The Computer answers with
+`cloud-agent-capability-result`; the App never touches a Computer socket.
 
-`connect` runs the provider's own browser sign-in on the Computer and stores the key in the
-provider's credential store; `disconnect` forgets it, and the key stays revocable from the
-provider's dashboard. Server holds no provider credential and stores none — only readiness and the
-account it resolves to cross the boundary. Connecting waits up to five minutes because a human
-finishes the flow, and Haus never opens it during an Agent turn.
+`connect` starts one Computer-owned sign-in and returns as soon as Cursor supplies the browser
+link. Repeated connects reuse the active attempt. The optional `signIn` is either
+`{ status: "waiting", url, expiresAt }` or `{ status: "failed", message }`. The App opens the
+HTTPS Cursor link on the user's current device and reads `get` every second while waiting.
+Computer polls Cursor for approval and stores the resulting key in Cursor's credential store.
+No browser opens on Computer, and no code needs to be pasted back. Only the public sign-in link,
+expiry, bounded status, and account metadata cross Server; credentials and the login verifier
+remain on Computer. Sign-in state is held in memory and never written to Server records.
+
+Closing the dialog preserves sign-in and lets the user resume it from the row, including after
+an App reload. `cancelSignIn` aborts the provider wait; it does not disconnect an existing
+credential. Sign-in expires after five minutes and offers a fresh link through retry.
+`disconnect` cancels pending sign-in and forgets the stored credential; the key stays revocable
+from Cursor's dashboard. Haus never starts sign-in during an Agent turn. This contract uses
+Computer protocol 21 so an older Computer cannot fall back to opening its own browser.
 
 The Agent profile pane is the human's canonical edit surface. `agent.update`, `agent.configure`, and
 the avatar mutations on the Server `agent` tRPC router remain the Owner/Admin path for every field,

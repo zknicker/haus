@@ -30,10 +30,14 @@ out to `/s/:slug/usage`; the dashboard stays its own page rather than becoming a
   ledgers are not shown on this surface.
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
-  Cloud Agents** row: Not connected, Connecting, Expired, Ready, or Unavailable, with **Connect** on
-  the row and **Disconnect** behind its overflow menu once connected. Connecting runs Cursor's own
-  browser sign-in on that Computer; Haus never opens it during an Agent turn, and no provider
-  credential reaches Server. Cloud Agent access is separate from the Cursor runtime because the
+  Cloud Agents** row, with **Connect** on the row and **Disconnect** behind its overflow menu
+  once connected. Connect opens a compact dialog with **Continue in Cursor** and **Copy sign-in
+  link**. Sign-in happens in the user's local browser while Computer waits for approval and
+  stores the credential. Haus updates automatically when connected; no code needs to be pasted.
+  Closing the dialog preserves the pending flow, and **Continue sign-in** reopens it. **Cancel
+  sign-in** stops the wait, while expiry or failure offers **Try again**. Offline Computers
+  cannot start sign-in. Haus never starts it during an Agent turn, and no provider credential
+  reaches Server. Cloud Agent access is separate from the Cursor runtime because the
   Cursor CLI and the Cursor SDK use different credential stores even for one account.
 
 The atomic Haus token reporting unit is Agent × runtime × model, with input, output, cache-read,

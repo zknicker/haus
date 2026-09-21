@@ -374,8 +374,9 @@ sets it is connected and carries no expiry Haus can date.
 Haus reuses provider-native state already present on the Computer. It does not scrape Cursor's
 Keychain entries, copy credentials into Server, or invent a Haus credential format.
 `Cursor.auth.login()` is Cursor's supported one-time bootstrap when SDK authorization is absent; it
-opens Cursor's browser flow and stores a revocable, expiring user API key in the SDK credential
-store. In its disconnected state, Computer settings presents Cursor Cloud Agent as an optional
+supplies a Cursor sign-in link and stores a revocable, expiring user API key in the SDK credential
+store after approval. Haus disables Computer-local browser launch and opens the link on the user's
+current device. Computer polls Cursor for completion; no code needs to be pasted back. In its disconnected state, Computer settings presents Cursor Cloud Agent as an optional
 capability available to connect. An explicit human action starts the provider-owned browser flow;
 Haus never opens it during an Agent turn.
 
@@ -461,13 +462,17 @@ repository is usable only when the Cursor account has the required source-contro
 
 Computer settings report Cursor runtime and Cursor Cloud Agent as separate capabilities even when
 they use the same Cursor account. Cursor appears alongside other detected execution runtimes, and
-the Cloud Agent capability is one row beside them reading Not connected, Connecting, Expired, Ready,
-or Unavailable, with Connect on the row and Disconnect behind its overflow menu once connected.
+the Cloud Agent capability is one row beside them with Connect and Disconnect behind its overflow
+menu once connected. Pending sign-in can be resumed from the row. The dialog offers Continue in
+Cursor, Copy sign-in link, cancellation, automatic completion, and retry after expiry or failure.
 
-The App reaches it through `cloudAgentProvider.get`, `.connect`, and `.disconnect`, which Server
+The App reaches it through `cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect`, which Server
 authorizes to Owners and Admins and relays to the selected Computer over the attachment protocol —
 the same shape Browser settings use. No provider credential exists on Server to store or leak; only
-readiness and the account it resolves to cross the boundary.
+readiness, account metadata, and the public sign-in link cross the boundary. The link and status
+are ephemeral Computer state, with a five-minute lifetime and one active attempt per provider.
+The App polls the capability only while waiting; closing or reloading the App preserves the
+Computer-owned attempt. Computer protocol 21 requires this headless sign-in contract.
 Haus reports per-Agent and per-Run tokens and optional cost available through the public SDK; it
 does not claim personal plan capacity, remaining allowance, or reset time because Cursor exposes no
 supported public personal-account surface for them. Interactive CLI `/usage` reports activity and
