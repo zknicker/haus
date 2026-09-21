@@ -56,3 +56,65 @@ test('terminal shutdown aborts active runs and waits for accepted writers', asyn
     expect(settled).toBe(true);
     await runtime.dispose();
 });
+
+test('shutdown deadline still reaps sandbox owners and reports the incomplete checkpoint', async () => {
+    const { makeTestRuntime } = await import('@haus/effect');
+    const { TestClock } = await import('effect');
+    const { sandboxProcessOwner } = await import('./harness/sandbox-process-owner.ts');
+    const runtime = makeTestRuntime();
+    const work = new AttachmentDaemonWork(runtime);
+    let reaped = false;
+    sandboxProcessOwner(runtime).add(async () => {
+        reaped = true;
+    });
+    work.track(new Promise(() => {}));
+    const result = work.close().then(
+        () => null,
+        (error: unknown) => error
+    );
+    await runtime.runPromise(TestClock.adjust('20 seconds'));
+    expect(await result).toBeInstanceOf(Error);
+    expect(String(await result)).toContain('timed out');
+    expect(reaped).toBe(true);
+    expect(work.send({ type: 'late' })).toBe(false);
+    await runtime.dispose();
+});
+
+test('shutdown drains an accepted reset before considering its old parked session', async () => {
+    const { mkdtemp, rm } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const { harnessSessionOwner } = await import('./harness/session-lifecycle.ts');
+    const { resolveTurnSession, writeAgentSessionState, readAgentSessionState } = await import(
+        './harness/session-store.ts'
+    );
+    const root = await mkdtemp(join(tmpdir(), 'haus-shutdown-reset-'));
+    const runtime = makeDaemonRuntime();
+    const work = new AttachmentDaemonWork(runtime);
+    const state = resolveTurnSession(null, { generation: 1, modelId: 'test', runtimeId: 'test' });
+    const parked = {
+        type: 'resume-session',
+        specificationVersion: 'harness-v1',
+        harnessId: 'test',
+        data: {},
+    } as const;
+    await writeAgentSessionState(root, { ...state, resumeState: parked });
+    const lease = harnessSessionOwner(runtime).begin(root);
+    lease.attach({ detach: async () => parked, stop: async () => parked }, async () => {
+        throw new Error('must not resurrect the reset session');
+    });
+    await lease.checkpoint();
+    lease.finish();
+    const gate = Promise.withResolvers<void>();
+    const reset = { ...state, generation: 2 };
+    work.track(gate.promise.then(() => writeAgentSessionState(root, reset)));
+    try {
+        const closing = work.close();
+        gate.resolve();
+        await closing;
+        expect(await readAgentSessionState(root)).toEqual(reset);
+    } finally {
+        await runtime.dispose();
+        await rm(root, { force: true, recursive: true });
+    }
+});
