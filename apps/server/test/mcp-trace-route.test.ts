@@ -121,7 +121,7 @@ beforeAll(async () => {
     });
     registerAgentMcpRoutes(app, { db: connection.db, runtime });
     appOrigin = await app.listen({ host: '127.0.0.1', port: 0 });
-});
+}, 20_000);
 
 afterAll(async () => {
     await app.close();

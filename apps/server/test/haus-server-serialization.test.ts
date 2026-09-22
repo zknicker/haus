@@ -68,17 +68,24 @@ test('a send already in flight cannot commit after the author is removed', async
         });
         await Bun.sleep(120);
 
-        send = author.trpc.chat.send.mutate({
-            chatId: allChatId,
-            content: 'Slipped past removal',
-            nonce,
-            serverId,
-        });
+        send = Promise.allSettled([
+            author.trpc.chat.send.mutate({
+                chatId: allChatId,
+                content: 'Slipped past removal',
+                nonce,
+                serverId,
+            }),
+        ]);
         await Bun.sleep(120);
     });
 
     await expect(removal).resolves.toMatchObject({ userId: authorUserId });
-    await expect(send).rejects.toThrow(/not a member/i);
+    await expect(send).resolves.toMatchObject([
+        {
+            status: 'rejected',
+            reason: { message: expect.stringMatching(/not a member/i) },
+        },
+    ]);
 
     const [stored] = await harness.sql`
         select count(*)::int as total from chat_messages
@@ -110,16 +117,23 @@ test('a read marker already in flight cannot commit after the reader is removed'
         });
         await Bun.sleep(120);
 
-        markRead = reader.trpc.chat.markRead.mutate({
-            chatId: allChatId,
-            sequence: 1,
-            serverId,
-        });
+        markRead = Promise.allSettled([
+            reader.trpc.chat.markRead.mutate({
+                chatId: allChatId,
+                sequence: 1,
+                serverId,
+            }),
+        ]);
         await Bun.sleep(120);
     });
 
     await expect(removal).resolves.toMatchObject({ userId: readerUserId });
-    await expect(markRead).rejects.toThrow(/not a member/i);
+    await expect(markRead).resolves.toMatchObject([
+        {
+            status: 'rejected',
+            reason: { message: expect.stringMatching(/not a member/i) },
+        },
+    ]);
 
     const [reads] = await harness.sql`
         select count(*)::int as total from chat_reads
@@ -143,15 +157,22 @@ test('a rename already in flight cannot commit after the member is removed', asy
         });
         await Bun.sleep(120);
 
-        rename = editor.trpc.server.rename.mutate({
-            displayName: 'Unauthorized rename',
-            serverId,
-        });
+        rename = Promise.allSettled([
+            editor.trpc.server.rename.mutate({
+                displayName: 'Unauthorized rename',
+                serverId,
+            }),
+        ]);
         await Bun.sleep(120);
     });
 
     await expect(removal).resolves.toMatchObject({ userId: editorUserId });
-    await expect(rename).rejects.toThrow(/not a member/i);
+    await expect(rename).resolves.toMatchObject([
+        {
+            status: 'rejected',
+            reason: { message: expect.stringMatching(/not a member/i) },
+        },
+    ]);
     await expect(owner.trpc.server.bySlug.query({ slug })).resolves.toMatchObject({
         displayName: 'Serialize HQ',
     });

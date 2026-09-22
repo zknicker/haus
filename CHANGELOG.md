@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v5.1.0 - 2026-09-22
+
+- Agents offer the reasoning levels supported by their selected model, including Extra high and Max where available. Haus Agent 3.4.0 applies changes on the next turn while preserving the conversation, except for Grok Build, which starts a new session. Update Haus Computer to 4.1.0 and Haus for iPhone to 3.3.2 (build 35) for the expanded reasoning contract.
+- Haus Computer stops and saves Agent sessions before restarting, preventing leftover runtime processes.
+- Chats scroll to newly sent messages and restore their position when returning from the background or settings.
+
 ## v5.0.2 - 2026-09-21
 
 - Haus Agent 3.3.1 preserves inline replies when a send pauses to show unread messages, fixing repeated Server errors when replying with a short message ID.
