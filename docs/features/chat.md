@@ -119,13 +119,18 @@ and [Agent Inbox](../../specs/inbox.md).
   reply lands in.
   Attachment bytes never ride message-list payloads.
   Hosted attachments are not Chat artifacts.
-* **Sending.** A human send is instant. The draft leaves the composer the
-  moment it is sent, the composer stays enabled for the next message, and an
-  app-local pending message carries the text at the tail of the transcript until
-  the durable message arrives. Pending and durable messages pass through the same
-  transcript grouping, so rapid sends keep the same avatar and name structure when
-  they commit. Each pending message is matched to its durable message by send nonce;
-  a failed send drops its pending message and keeps the failed content,
+* **Sending.** A human send is instant, and it looks sent. The draft leaves the
+  composer the moment it is sent, the composer stays enabled for the next message,
+  and an app-local pending message carries the text at the tail of the transcript
+  until the durable message arrives. The pending row renders at full weight,
+  through the same surface, grouping, and header the durable message will use, and
+  wears no pending treatment of any kind — no dimming, no notice. It shares the
+  durable message's transcript identity through the send nonce, so confirmation
+  replaces the row's content without remounting it or moving anything on screen;
+  the row carries the Server's own creation time as soon as the receipt names it.
+  The only thing confirmation adds is the hover action island, which cannot anchor
+  a reaction or a copy target until the message is durable.
+  A failed send drops its pending message and keeps the failed content,
   attachments, and mention metadata available for recovery. Newer text entered
   while that send was in flight remains in the current draft; failed sends and
   newer work are recovered independently. Drafts are app-local and scoped to

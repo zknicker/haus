@@ -21,11 +21,11 @@ Chats are Haus's shared conversation surfaces.
   skeleton cards.
 - Transcript loading is indicated outside the transcript body, using the shared app spinner
   in the chat screen chrome.
-- When transcript rows first arrive for a normal chat load, durable history mounts without
-  transcript entrance motion.
+- Chat messages carry no entrance motion. Every row — durable history on load, a human send,
+  an Agent reply arriving at the live edge — paints at full weight in the frame it mounts.
 - When a new Haus chat moves from the optimistic `/chats/new` draft route to the real
-  `/chats/:chatId` route, rows already visible in the draft must not replay entrance
-  animation after reconciliation.
+  `/chats/:chatId` route, rows already visible in the draft must not change appearance
+  after reconciliation.
 - Optimistic draft rows are app-local presentation state. They reconcile to the real chat
   route without becoming a separate durable transcript source.
 
