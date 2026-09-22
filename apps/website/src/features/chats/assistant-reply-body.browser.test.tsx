@@ -43,6 +43,38 @@ for (const list of ['- One\n- Two', '1. One\n2. Two']) {
     });
 }
 
+for (const content of [
+    '1. **First** item\n2. **Second** item',
+    '1. **First** item\n\n2. **Second** item',
+    '- **First** item\n\n- **Second** item',
+    '1. **First** item\n   - **Nested** item\n   - **Another** item\n2. **Second** item',
+    '1. **First** item\n\n   Another paragraph.\n\n   - **Nested** item\n\n2. **Second** item',
+]) {
+    test(`list markers share the first text line: ${JSON.stringify(content)}`, async () => {
+        const page = await renderReply(content);
+        const metrics = await page.locator('.markdown li').evaluateAll((items) =>
+            items.map((item) => {
+                const text = item.querySelector('strong');
+                const list = item.parentElement;
+                if (!(text && list)) {
+                    throw new Error('Missing list text or parent.');
+                }
+                return {
+                    textOffset: text.getBoundingClientRect().top - item.getBoundingClientRect().top,
+                    lineHeight: Number.parseFloat(getComputedStyle(item).lineHeight),
+                    indent: item.getBoundingClientRect().left - list.getBoundingClientRect().left,
+                };
+            })
+        );
+        expect(metrics.length).toBe([...content.matchAll(/\*\*/gu)].length / 2);
+        for (const metric of metrics) {
+            expect(metric.textOffset).toBeLessThan(metric.lineHeight / 2);
+            expect(metric.indent).toBeGreaterThanOrEqual(20);
+        }
+        await page.close();
+    });
+}
+
 test('visuals retain their authored position and paragraph-sized gaps on both sides', async () => {
     const page = await renderReply(
         'Before chart.\n\n```visual First chart\n<p>Chart one</p>\n```\n\nAfter chart.\n\n```visual Second chart\n<p>Chart two</p>\n```'
