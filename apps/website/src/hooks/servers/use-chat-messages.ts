@@ -53,10 +53,9 @@ export function chatMessagesQueryOptions(
         getNextPageParam: (lastPage: ChatMessagePage) => lastPage.nextBeforeSequence ?? undefined,
         initialPageParam: undefined as number | undefined,
         queryFn: async ({ pageParam }) =>
-            await client.chat.messages.query({
-                ...input,
-                ...(pageParam === undefined ? {} : { beforeSequence: pageParam }),
-            }),
+            await client.chat.messages.query(
+                pageParam === undefined ? input : { ...input, beforeSequence: pageParam }
+            ),
         queryKey,
     });
 }
@@ -109,6 +108,7 @@ export function mergeChatMessagePages(
     return {
         messages: [...messagesById.values()].sort((left, right) => left.sequence - right.sequence),
         nextBeforeSequence: oldestPage?.nextBeforeSequence ?? null,
+        nextAfterSequence: pages[0]?.nextAfterSequence ?? null,
         threads: [...threadsByAnchor.values()],
     };
 }

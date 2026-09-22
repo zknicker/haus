@@ -72,6 +72,7 @@ public enum ThreadFollowPatch {
         return ChatMessagePage(
             messages: page.messages,
             nextBeforeSequence: page.nextBeforeSequence,
+            nextAfterSequence: page.nextAfterSequence,
             threads: page.threads.map { thread in
                 thread.threadChatID == threadChatID ? thread.following(followed) : thread
             }

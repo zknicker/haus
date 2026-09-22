@@ -14,9 +14,7 @@ public struct ChatScreenView: View {
         ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
-    private let hasOlderMessages: Bool
-    private let isLoadingOlderMessages: Bool
-    private let onLoadOlderMessages: () async -> Bool
+    private let history: MessageHistoryNavigation
     private let mentionOptions: [MentionOptionPresentation]
     private let onLoadMentionOptions: () async -> Void
     private let contentInsets: EdgeInsets
@@ -53,9 +51,7 @@ public struct ChatScreenView: View {
             return localURL
         },
         onOpenAgent: @escaping (String) -> Void = { _ in },
-        hasOlderMessages: Bool = false,
-        isLoadingOlderMessages: Bool = false,
-        onLoadOlderMessages: @escaping () async -> Bool = { false },
+        history: MessageHistoryNavigation = .init(),
         mentionOptions: [MentionOptionPresentation] = [],
         onLoadMentionOptions: @escaping () async -> Void = {},
         contentInsets: EdgeInsets = EdgeInsets(),
@@ -78,9 +74,7 @@ public struct ChatScreenView: View {
         self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
         self.onOpenAgent = onOpenAgent
-        self.hasOlderMessages = hasOlderMessages
-        self.isLoadingOlderMessages = isLoadingOlderMessages
-        self.onLoadOlderMessages = onLoadOlderMessages
+        self.history = history
         self.mentionOptions = mentionOptions
         self.onLoadMentionOptions = onLoadMentionOptions
         self.contentInsets = contentInsets
@@ -168,9 +162,7 @@ public struct ChatScreenView: View {
             onSelectInlineReply: selectInlineReply,
             onOpenAttachment: onOpenAttachment,
             onOpenAgent: onOpenAgent,
-            hasOlderMessages: hasOlderMessages,
-            isLoadingOlderMessages: isLoadingOlderMessages,
-            onLoadOlderMessages: onLoadOlderMessages,
+            history: history,
             scrollTargetMessageID: $scrollTargetMessageID,
             onVisibleMessagesChange: onVisibleMessagesChange
         )

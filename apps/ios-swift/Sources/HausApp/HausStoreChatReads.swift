@@ -31,6 +31,7 @@ extension HausStore {
     /// deepest surface acknowledges, which is the gate in
     /// `markChatReadIfNeeded`.
     func reportVisibleMessages(chatID: String, messageIDs: [String]) {
+        advanceHistoryViewport(chatID: chatID, messageIDs: messageIDs)
         guard let serverID = activeServer?.id,
               let sequence = highestVisibleSequence(chatID: chatID, messageIDs: messageIDs)
         else { return }

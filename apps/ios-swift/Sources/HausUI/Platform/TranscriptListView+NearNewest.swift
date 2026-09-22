@@ -15,14 +15,12 @@ private let settleFallbackDelay: TimeInterval = 0.4
 
 extension TranscriptListCoordinator {
     func settleAppend(
-        view: TranscriptListView<Item, Row, Accessory>,
         table: UITableView,
-        previousItems: [Item],
         appended: Int,
-        wasNearNewest: Bool
+        behavior: TranscriptAppendBehavior
     ) {
         let rest = CGPoint(x: 0, y: -table.contentInset.top)
-        switch view.onAppend(previousItems, view.items, wasNearNewest) {
+        switch behavior {
         case .snapToNewest:
             endSettling()
             table.contentOffset = rest
@@ -50,8 +48,9 @@ extension TranscriptListCoordinator {
         table: UITableView
     ) {
         guard let reveal = view.reveal, reveal.token != handledRevealToken else { return }
-        handledRevealToken = reveal.token
         guard let index = items.lastIndex(where: { $0.id == reveal.id }) else { return }
+        table.layoutIfNeeded()
+        handledRevealToken = reveal.token
         // The newest item's home is the resting edge, not the viewport center.
         guard index < items.count - 1 else {
             let rest = CGPoint(x: 0, y: -table.contentInset.top)

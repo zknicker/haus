@@ -15,13 +15,11 @@ public struct ThreadDetailView: View {
     /// answer control, because no reply can be sent to settle one.
     private let isReadOnly: Bool
     let onSend: (String, [ComposerAttachment]) async -> Bool
-    private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    let hasOlderReplies: Bool
-    let isLoadingOlderReplies: Bool
-    let onLoadOlderReplies: (() async -> Bool)?
+    let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
+    let history: MessageHistoryNavigation
     let inlineReplies: ThreadInlineReplies?
-    private let onOpenAgent: (String) -> Void
-    private let onCancelCloudAgent: ((String) async throws -> Void)?
+    let onOpenAgent: (String) -> Void
+    let onCancelCloudAgent: ((String) async throws -> Void)?
     /// Nil until Server has a Thread row to follow.
     private let follow: ThreadFollow?
     /// The reply ids the transcript is showing. Read acknowledgement is built
@@ -31,13 +29,14 @@ public struct ThreadDetailView: View {
 
     @State private var draft = ""
     @State private var isNearNewest = true
+    @State private var reveal: TranscriptReveal?
     /// Same ownership rule as the Chat timeline: the screen presents, the rows
     /// only ask.
-    @State private var attachmentPreview: AttachmentPreview?
-    @State private var attachmentTiles = AttachmentImageTileRegistry()
+    @State var attachmentPreview: AttachmentPreview?
+    @State var attachmentTiles = AttachmentImageTileRegistry()
     /// Visual heights are the screen's for the same structural reason attachment
     /// tiles are; see `VisualHeightRegistry`.
-    @State private var visualHeights = VisualHeightRegistry()
+    @State var visualHeights = VisualHeightRegistry()
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -57,9 +56,7 @@ public struct ThreadDetailView: View {
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
         },
-        hasOlderReplies: Bool = false,
-        isLoadingOlderReplies: Bool = false,
-        onLoadOlderReplies: (() async -> Bool)? = nil,
+        history: MessageHistoryNavigation = .init(),
         inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCancelCloudAgent: ((String) async throws -> Void)? = nil,
@@ -73,9 +70,7 @@ public struct ThreadDetailView: View {
         self.isReadOnly = isReadOnly
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
-        self.hasOlderReplies = hasOlderReplies
-        self.isLoadingOlderReplies = isLoadingOlderReplies
-        self.onLoadOlderReplies = onLoadOlderReplies
+        self.history = history
         self.inlineReplies = inlineReplies
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
@@ -97,9 +92,7 @@ public struct ThreadDetailView: View {
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
         },
-        hasOlderReplies: Bool = false,
-        isLoadingOlderReplies: Bool = false,
-        onLoadOlderReplies: (() async -> Bool)? = nil,
+        history: MessageHistoryNavigation = .init(),
         inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCancelCloudAgent: ((String) async throws -> Void)? = nil,
@@ -113,9 +106,7 @@ public struct ThreadDetailView: View {
         self.isReadOnly = isReadOnly
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
-        self.hasOlderReplies = hasOlderReplies
-        self.isLoadingOlderReplies = isLoadingOlderReplies
-        self.onLoadOlderReplies = onLoadOlderReplies
+        self.history = history
         self.inlineReplies = inlineReplies
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
@@ -130,7 +121,8 @@ public struct ThreadDetailView: View {
             anchor: anchor,
             replies: replies,
             pending: pending,
-            includesInlineReplies: inlineReplies != nil
+            includesInlineReplies: inlineReplies != nil,
+            inlineReplies: inlineReplyMessages
         )
         // The Ask a reply here would settle, read in the screen's body so an
         // Ask posted as a reply takes over the moment its Message lands.
@@ -185,6 +177,9 @@ public struct ThreadDetailView: View {
             tiles: attachmentTiles,
             onOpen: onOpenAttachment
         )
+        .onChange(of: ([anchor] + inlineReplyMessages + replies).map(\.id)) { _, ids in
+            visualHeights.retain(messageIDs: Set(ids))
+        }
         .navigationTitle("Thread")
         .hausInlineNavigationTitle()
         .toolbar {
@@ -210,13 +205,13 @@ public struct ThreadDetailView: View {
                 items: items,
                 topInset: proxy.safeAreaInsets.top,
                 bottomInset: proxy.safeAreaInsets.bottom,
-                showsAccessory: (hasOlderReplies && onLoadOlderReplies != nil)
-                    || inlineReplies?.hasOlder() == true,
+                showsAccessory: history.hasOlder
+                    || inlineReplies?.hasOlder() == true || inlineReplies?.hasNewer() == true,
                 onAppend: { previousItems, items, isNearNewest in
                     // Anchor and task rows can precede the first fetched reply page.
                     switch ThreadReplyReveal.onLatestReplyChange(
                         previousLatestID: previousItems.last(where: { $0.replyID != nil })?.replyID,
-                        isNearBottom: isNearNewest,
+                        isNearBottom: isNearNewest && history.followsLatest,
                         latestIsPending: items.last?.isPending == true
                     ) {
                     case .settle: .snapToNewest
@@ -224,7 +219,7 @@ public struct ThreadDetailView: View {
                     case .stay: .stay
                     }
                 },
-                reveal: nil,
+                reveal: reveal,
                 isNearNewest: $isNearNewest,
                 onContentTap: { isComposerFocused = false },
                 onVisibleItems: onVisibleMessagesChange,
@@ -239,60 +234,21 @@ public struct ThreadDetailView: View {
             // Same soft top edge as the Chat timeline, under the navigation
             // bar instead of the chat header.
             .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
-        }
-    }
-
-    @ViewBuilder
-    private func threadRow(
-        _ item: ThreadTranscriptItem,
-        answerableAskMessageID: String?
-    ) -> some View {
-        switch item {
-        case .anchor(let message, let hasReplies):
-            messageRow(message, emphasized: true, answerableAskMessageID: answerableAskMessageID)
-                .padding(.bottom, hasReplies ? 2 : 0)
-        case .taskMetadata(let task, let hasReplies):
-            ThreadTaskMetadataView(task: task)
-                .padding(.top, 12)
-                .padding(.bottom, hasReplies ? 2 : 0)
-        case .inlineReplies:
-            if let inlineReplies {
-                ThreadInlineRepliesRegion(
-                    config: inlineReplies,
-                    onOpenAttachment: onOpenAttachment,
-                    attachmentPreview: $attachmentPreview,
-                    attachmentTiles: attachmentTiles,
-                    visualHeights: visualHeights,
-                    onOpenAgent: onOpenAgent
-                )
+            .overlay(alignment: .bottom) {
+                if !isNearNewest || history.hasNewer {
+                    GlassChromeButton(.icon(.arrowDown), label: "Scroll to latest reply") {
+                        Task {
+                            let id = history.hasNewer ? await history.loadLatest() : replyProvider().last?.id
+                            if let id {
+                                reveal = TranscriptReveal(token: UUID(), id: id, animated: !history.hasNewer)
+                            }
+                        }
+                    }
+                    .padding(.bottom, 10)
+                    .safeAreaPadding(.bottom)
+                }
             }
-        case .threadHeader:
-            ThreadRegionHeader(title: "Thread")
-        case .reply(let message):
-            messageRow(message, answerableAskMessageID: answerableAskMessageID)
-                .padding(.top, 10)
-        case .pendingSend:
-            ThreadPendingSendRow()
         }
-    }
-
-    private func messageRow(
-        _ message: MessagePresentation,
-        emphasized: Bool = false,
-        answerableAskMessageID: String?
-    ) -> ThreadMessageRow {
-        ThreadMessageRow(
-            message: message,
-            emphasized: emphasized,
-            onOpenAttachment: onOpenAttachment,
-            preview: $attachmentPreview,
-            tiles: attachmentTiles,
-            visualHeights: visualHeights,
-            onOpenAgent: onOpenAgent,
-            onCancelCloudAgent: onCancelCloudAgent,
-            answerableAskMessageID: answerableAskMessageID,
-            onAnswerAsk: answerAsk
-        )
     }
 
 }

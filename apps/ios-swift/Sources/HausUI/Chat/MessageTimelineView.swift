@@ -13,9 +13,7 @@ public struct MessageTimelineView: View {
     private let onSelectInlineReply: (MessagePresentation) -> Void
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
-    let hasOlderMessages: Bool
-    let isLoadingOlderMessages: Bool
-    let onLoadOlderMessages: (() async -> Bool)?
+    let history: MessageHistoryNavigation
     /// The message ids the viewport is showing, whenever that set changes.
     /// Read acknowledgement is built on this: a message is read when it has
     /// been on screen, not when its page happened to load.
@@ -34,9 +32,9 @@ public struct MessageTimelineView: View {
     @State var highlightedMessageID: String?
     @State private var isNearNewest = true
     @State var reveal: TranscriptReveal?
-    @State var pendingInlineReply: MessageReplyReferencePresentation?
-    @State var inlineReplyRevealAttempt = 0
-    @State var inlineReplyError: String?
+    @State var historyRevealTarget: MessageHistoryRevealTarget?
+    @State var historyRevealAttempt = 0
+    @State var historyRevealError: String?
     /// The transcript's opening settle runs inside the table (see
     /// `TranscriptListView.animatesEntrance`), so the flag is read here rather
     /// than through the `openingEntrance` modifier.
@@ -55,9 +53,7 @@ public struct MessageTimelineView: View {
             return localURL
         },
         onOpenAgent: @escaping (String) -> Void = { _ in },
-        hasOlderMessages: Bool = false,
-        isLoadingOlderMessages: Bool = false,
-        onLoadOlderMessages: (() async -> Bool)? = nil,
+        history: MessageHistoryNavigation = .init(),
         scrollTargetMessageID: Binding<String?> = .constant(nil),
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
@@ -71,9 +67,7 @@ public struct MessageTimelineView: View {
         self.onSelectInlineReply = onSelectInlineReply
         self.onOpenAttachment = onOpenAttachment
         self.onOpenAgent = onOpenAgent
-        self.hasOlderMessages = hasOlderMessages
-        self.isLoadingOlderMessages = isLoadingOlderMessages
-        self.onLoadOlderMessages = onLoadOlderMessages
+        self.history = history
     }
 
     /// The transcript sits on `TranscriptListView` — the flipped-table
@@ -112,11 +106,11 @@ public struct MessageTimelineView: View {
                     items: messages,
                     topInset: proxy.safeAreaInsets.top,
                     bottomInset: proxy.safeAreaInsets.bottom,
-                    showsAccessory: hasOlderMessages && onLoadOlderMessages != nil,
+                    showsAccessory: history.hasOlder,
                     onAppend: { _, items, isNearNewest in
                         switch MessageTimelineTailScroll.decide(
                             hadMessages: true,
-                            isNearBottom: isNearNewest,
+                            isNearBottom: isNearNewest && history.followsLatest,
                             isLatestPending: items.last?.isPending == true
                         ) {
                         case .ignore: .stay
@@ -179,11 +173,9 @@ public struct MessageTimelineView: View {
         // The scroll clearance the composer reserves arrives as this view's bottom safe
         // area, so the button rides above the glass instead of under it.
         .overlay(alignment: .bottom) {
-            if !isNearNewest {
+            if !isNearNewest || history.hasNewer {
                 GlassChromeButton(.icon(.arrowDown), label: "Scroll to latest message") {
-                    reveal = messages.last.map {
-                        TranscriptReveal(token: UUID(), id: $0.id, animated: true)
-                    }
+                    requestHistoryReveal(.latest)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .padding(.bottom, 10)
@@ -197,35 +189,27 @@ public struct MessageTimelineView: View {
             tiles: attachmentTiles,
             onOpen: onOpenAttachment
         )
-        .onChange(of: scrollTargetMessageID, initial: true) { _, _ in
-            revealScrollTarget()
+        .onChange(of: scrollTargetMessageID, initial: true) { _, target in
+            if let target { requestHistoryReveal(.message(target)) }
         }
-        .onChange(of: messages.map(\.id)) { _, _ in
-            // A search can select a Chat whose page is still loading, so
-            // the pending request is re-resolved when messages arrive.
-            revealScrollTarget()
-            advanceInlineReplyReveal()
+        .task(id: historyRevealAttempt) {
+            await resolveHistoryReveal()
         }
-        .onChange(of: hasOlderMessages) { _, _ in
-            advanceInlineReplyReveal()
-        }
-        .onChange(of: isLoadingOlderMessages) { _, _ in
-            advanceInlineReplyReveal()
-        }
-        .task(id: inlineReplyRevealAttempt) {
-            await resolvePendingInlineReply()
-        }
-        .alert("Message unavailable", isPresented: inlineReplyErrorPresented) {
+        .alert("Message unavailable", isPresented: historyRevealErrorPresented) {
             Button("Retry") {
-                inlineReplyError = nil
-                inlineReplyRevealAttempt += 1
+                historyRevealError = nil
+                historyRevealAttempt += 1
             }
             Button("Cancel", role: .cancel) {
-                inlineReplyError = nil
-                pendingInlineReply = nil
+                historyRevealError = nil
+                historyRevealTarget = nil
+                scrollTargetMessageID = nil
             }
         } message: {
-            Text(inlineReplyError ?? "The parent message could not be loaded.")
+            Text(historyRevealError ?? "The message could not be loaded.")
+        }
+        .onChange(of: messages.map(\.id)) { _, ids in
+            visualHeights.retain(messageIDs: Set(ids))
         }
         .task(id: highlightedMessageID) {
             guard highlightedMessageID != nil else { return }
@@ -237,11 +221,11 @@ public struct MessageTimelineView: View {
 
     @ViewBuilder
     private var loadOlderAccessory: some View {
-        if let onLoadOlderMessages {
+        if history.hasOlder {
             TranscriptLoadOlderButton(
                 title: "Load older messages",
-                isLoading: isLoadingOlderMessages,
-                onLoad: onLoadOlderMessages
+                isLoading: history.isLoading,
+                onLoad: history.loadOlder
             )
         }
     }

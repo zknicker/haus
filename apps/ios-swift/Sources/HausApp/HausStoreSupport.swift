@@ -59,6 +59,8 @@ struct ChatMessagesInput: Encodable, Sendable {
     let chatId: String
     let limit: Int
     let beforeSequence: Int?
+    let afterSequence: Int?
+    let aroundMessageId: String?
     let replyRootMessageId: String?
 
     init(
@@ -66,17 +68,23 @@ struct ChatMessagesInput: Encodable, Sendable {
         chatId: String,
         limit: Int,
         beforeSequence: Int? = nil,
+        afterSequence: Int? = nil,
+        aroundMessageId: String? = nil,
         replyRootMessageId: String? = nil
     ) {
         self.serverId = serverId
         self.chatId = chatId
         self.limit = limit
         self.beforeSequence = beforeSequence
+        self.afterSequence = afterSequence
+        self.aroundMessageId = aroundMessageId
         self.replyRootMessageId = replyRootMessageId
     }
 
     private enum CodingKeys: String, CodingKey {
         case beforeSequence
+        case afterSequence
+        case aroundMessageId
         case chatId
         case limit
         case replyRootMessageId
@@ -86,6 +94,8 @@ struct ChatMessagesInput: Encodable, Sendable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(beforeSequence, forKey: .beforeSequence)
+        try container.encodeIfPresent(afterSequence, forKey: .afterSequence)
+        try container.encodeIfPresent(aroundMessageId, forKey: .aroundMessageId)
         try container.encode(chatId, forKey: .chatId)
         try container.encode(limit, forKey: .limit)
         try container.encodeIfPresent(replyRootMessageId, forKey: .replyRootMessageId)

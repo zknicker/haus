@@ -11,6 +11,8 @@ public struct ThreadInlineReplies {
     public let hasOlder: () -> Bool
     public let load: () async -> Bool
     public let loadOlder: () async -> Bool
+    public let hasNewer: () -> Bool
+    public let loadNewer: () async -> Bool
 
     public init(
         id: String,
@@ -19,7 +21,9 @@ public struct ThreadInlineReplies {
         isLoading: @escaping () -> Bool,
         hasOlder: @escaping () -> Bool,
         load: @escaping () async -> Bool,
-        loadOlder: @escaping () async -> Bool
+        loadOlder: @escaping () async -> Bool,
+        hasNewer: @escaping () -> Bool = { false },
+        loadNewer: @escaping () async -> Bool = { false }
     ) {
         self.id = id
         self.messages = messages
@@ -28,6 +32,8 @@ public struct ThreadInlineReplies {
         self.hasOlder = hasOlder
         self.load = load
         self.loadOlder = loadOlder
+        self.hasNewer = hasNewer
+        self.loadNewer = loadNewer
     }
 }
 
@@ -36,16 +42,11 @@ public struct ThreadInlineReplies {
 /// sending remains the separate dedicated Thread composer below.
 struct ThreadInlineRepliesRegion: View {
     let config: ThreadInlineReplies
-    let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    @Binding var attachmentPreview: AttachmentPreview?
-    let attachmentTiles: AttachmentImageTileRegistry
-    let visualHeights: VisualHeightRegistry
-    let onOpenAgent: (String) -> Void
+    let isEmpty: Bool
     @State private var loadError: String?
     @State private var loadAttempt = 0
 
     var body: some View {
-        let messages = config.messages()
         VStack(alignment: .leading, spacing: 8) {
             ThreadRegionHeader(title: "Inline replies", detail: "Read only")
             if let loadError {
@@ -60,7 +61,7 @@ struct ThreadInlineRepliesRegion: View {
                     }
                     .font(.caption.weight(.semibold))
                 }
-            } else if config.isLoading() && messages.isEmpty {
+            } else if config.isLoading() && isEmpty {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
@@ -68,22 +69,10 @@ struct ThreadInlineRepliesRegion: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            } else if config.isLoaded() && messages.isEmpty {
+            } else if config.isLoaded() && isEmpty {
                 Text("No inline replies yet.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-
-            ForEach(messages) { message in
-                ThreadMessageRow(
-                    message: message,
-                    onOpenAttachment: onOpenAttachment,
-                    preview: $attachmentPreview,
-                    tiles: attachmentTiles,
-                    visualHeights: visualHeights,
-                    onOpenAgent: onOpenAgent
-                )
-                .padding(.top, 4)
             }
         }
         .padding(.top, 12)
@@ -137,11 +126,18 @@ extension ThreadDetailView {
                     onLoad: inlineReplies.loadOlder
                 )
             }
-            if let onLoadOlderReplies {
+            if let inlineReplies, inlineReplies.hasNewer() {
+                TranscriptLoadOlderButton(
+                    title: "Load newer inline replies",
+                    isLoading: inlineReplies.isLoading(),
+                    onLoad: inlineReplies.loadNewer
+                )
+            }
+            if history.hasOlder {
                 TranscriptLoadOlderButton(
                     title: "Load older replies",
-                    isLoading: isLoadingOlderReplies,
-                    onLoad: onLoadOlderReplies
+                    isLoading: history.isLoading,
+                    onLoad: history.loadOlder
                 )
             }
         }

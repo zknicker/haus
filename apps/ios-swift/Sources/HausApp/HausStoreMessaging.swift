@@ -75,6 +75,10 @@ extension HausStore {
 
         let nonce = UUID().uuidString.lowercased()
         let pendingChatID = pendingChatID ?? chatID
+        if messagesByChatID[pendingChatID]?.nextAfterSequence != nil {
+            guard await loadHistory(chatID: pendingChatID, direction: .latest) else { return nil }
+        }
+        historyNavigation.followingLatest[pendingChatID] = true
         pendingMessagesByChatID[pendingChatID, default: []].append(
             PendingChatMessage(
                 attachments: attachments,

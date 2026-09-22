@@ -93,7 +93,8 @@ final class HausStore {
     /// Whether the app is frontmost. A transcript on a backgrounded phone is
     /// not being read, so nothing acknowledges until it returns.
     @ObservationIgnored var isForegrounded = true
-    var olderMessageLoadsInFlight: Set<String> = []
+    var historyLoadsInFlight: Set<String> = []
+    @ObservationIgnored var historyNavigation = ChatHistoryNavigationState()
     /// Live SSE events accumulate here for one short window before the existing
     /// batch applier runs; the catch-up walk already arrives batched.
     @ObservationIgnored var liveChatEvents = ChatEventCoalescer()

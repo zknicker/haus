@@ -120,7 +120,7 @@ where Item.ID == String {
     /// it.
     var view: TranscriptListView<Item, Row, Accessory>?
     var items: [Item] = []
-    private var showsAccessory = false
+    var showsAccessory = false
     private var appliedInsets: UIEdgeInsets?
     var handledRevealToken: UUID?
     /// The row whose context menu is open, kept directly because the
@@ -149,55 +149,9 @@ where Item.ID == String {
         scheduleNearNewestSync(table)
     }
 
-    func update(view: TranscriptListView<Item, Row, Accessory>, table: UITableView) {
-        self.view = view
-
-        let update = TranscriptListUpdate.classify(
-            old: items.map(\.id),
-            new: view.items.map(\.id)
-        )
-        let accessoryChanged = showsAccessory != view.showsAccessory
-        let wasNearNewest = nearNewest.countsAsNear(distance: distanceFromNewest(table))
-        let previousItems = items
-        let oldCount = items.count
-        items = view.items
-        showsAccessory = view.showsAccessory
-
-        applyInsets(view: view, table: table, wasNearNewest: wasNearNewest)
-
-        switch update {
-        case .refresh where !accessoryChanged:
-            break
-        case .append(let appended) where !accessoryChanged:
-            UIView.performWithoutAnimation {
-                table.insertRows(
-                    at: (0..<appended).map { IndexPath(row: $0, section: 0) },
-                    with: .none
-                )
-                table.layoutIfNeeded()
-            }
-            settleAppend(view: view, table: table, previousItems: previousItems, appended: appended, wasNearNewest: wasNearNewest)
-        case .prepend(let prepended) where !accessoryChanged:
-            UIView.performWithoutAnimation {
-                table.insertRows(
-                    at: (oldCount..<oldCount + prepended).map { IndexPath(row: $0, section: 0) },
-                    with: .none
-                )
-            }
-        default:
-            table.reloadData()
-        }
-
-        reconfigureVisibleRows(table: table)
-        performReveal(view: view, table: table)
-        // Covers every path above — a reset's `reloadData`, an inset change, an
-        // append's settle — with one reading taken after all of them.
-        scheduleNearNewestSync(table)
-    }
-
     // MARK: Anchoring
 
-    private func applyInsets(
+    func applyInsets(
         view: TranscriptListView<Item, Row, Accessory>,
         table: UITableView,
         wasNearNewest: Bool
@@ -226,7 +180,7 @@ where Item.ID == String {
     /// Hosting configurations capture SwiftUI state by value, so every SwiftUI
     /// update re-hosts the rows that are on screen; off-screen rows pick up
     /// current state when they dequeue.
-    private func reconfigureVisibleRows(table: UITableView) {
+    func reconfigureVisibleRows(table: UITableView) {
         for indexPath in table.indexPathsForVisibleRows ?? [] {
             guard let cell = table.cellForRow(at: indexPath) else { continue }
             configure(cell: cell, at: indexPath)

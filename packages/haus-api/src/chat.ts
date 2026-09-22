@@ -257,20 +257,20 @@ export type ChatMessageReceipt = z.infer<typeof chatMessageReceiptSchema>;
 export const chatMessageReactionReceiptSchema = messageReceipts.reaction;
 export type ChatMessageReactionReceipt = z.infer<typeof chatMessageReactionReceiptSchema>;
 
-export const chatMessagesInputSchema = z
-    .object({
-        beforeSequence: z.number().int().positive().optional(),
-        chatId: idSchema,
-        limit: z.number().int().min(1).max(100).default(50),
-        replyRootMessageId: idSchema.optional(),
-        serverId: idSchema,
-    })
-    .strict();
+/**
+ * Cursor selectors stay in the browser-safe chat contract entrypoint.
+ * Their implementation lives separately to keep this shared module small.
+ */
+export {
+    type ChatMessagesInput,
+    chatMessagesInputSchema,
+} from './chat-messages-input.ts';
 
 export const chatMessagePageSchema = z
     .object({
         messages: z.array(chatMessageSchema),
         nextBeforeSequence: z.number().int().positive().nullable(),
+        nextAfterSequence: z.number().int().nonnegative().nullable(),
         threads: z.array(threadSummarySchema),
     })
     .strict();

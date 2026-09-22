@@ -81,12 +81,7 @@ extension HausShellView {
                         onSendInlineReply: inlineReplySender(for: selectedDestination),
                         onOpenAttachment: onOpenAttachment,
                         onOpenAgent: openAgent,
-                        hasOlderMessages: selectedDestination.durableChat.map(hasOlderMessages) ?? false,
-                        isLoadingOlderMessages: selectedDestination.durableChat.map(isLoadingOlderMessages) ?? false,
-                        onLoadOlderMessages: {
-                            guard let chat = selectedDestination.durableChat else { return false }
-                            return await onLoadOlderMessages(chat)
-                        },
+                        history: selectedDestination.durableChat.map(messageHistory) ?? .init(),
                         mentionOptions: mentionOptions(selectedDestination),
                         onLoadMentionOptions: { await loadMentionOptions(selectedDestination) },
                         contentInsets: proxy.safeAreaInsets,

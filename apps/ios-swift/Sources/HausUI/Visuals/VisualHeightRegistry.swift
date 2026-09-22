@@ -68,6 +68,10 @@ final class VisualHeightRegistry {
         scheduleRevisionBump()
     }
 
+    func retain(messageIDs: Set<String>) {
+        heights = heights.filter { messageIDs.contains($0.key.messageID) }
+    }
+
     private func scheduleRevisionBump() {
         guard !hasPendingBump else { return }
         hasPendingBump = true

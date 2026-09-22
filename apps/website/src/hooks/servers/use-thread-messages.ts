@@ -25,10 +25,9 @@ export function useThreadMessages(serverId: string | undefined, threadChatId: st
         getNextPageParam: (lastPage) => lastPage.nextBeforeSequence ?? undefined,
         initialPageParam: undefined as number | undefined,
         queryFn: async ({ pageParam }) =>
-            await utils.client.chat.messages.query({
-                ...input,
-                ...(pageParam === undefined ? {} : { beforeSequence: pageParam }),
-            }),
+            await utils.client.chat.messages.query(
+                pageParam === undefined ? input : { ...input, beforeSequence: pageParam }
+            ),
         queryKey,
     });
     const messages = React.useMemo(

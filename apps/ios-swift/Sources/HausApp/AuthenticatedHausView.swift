@@ -155,9 +155,7 @@ struct AuthenticatedHausView: View {
                     onOpenAttachment: { attachment in
                         try await store.downloadAttachment(attachment)
                     },
-                    hasOlderMessages: { store.hasOlderMessages(chatID: $0.id) },
-                    isLoadingOlderMessages: { store.isLoadingOlderMessages(chatID: $0.id) },
-                    onLoadOlderMessages: { await store.loadOlderMessages(chatID: $0.id) },
+                    messageHistory: { store.messageHistory(chatID: $0.id) },
                     searchMessages: { query in
                         try await store.searchMessagePresentations(query: query)
                     },

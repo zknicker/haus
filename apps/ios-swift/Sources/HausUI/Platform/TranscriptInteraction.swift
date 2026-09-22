@@ -1,6 +1,6 @@
 import Foundation
 
-enum TranscriptAppendBehavior {
+enum TranscriptAppendBehavior: Equatable {
     /// Show the newest item immediately — a send the reader just made.
     case snapToNewest
     /// Ease the newest item in — a delivery while the reader is at the tail.

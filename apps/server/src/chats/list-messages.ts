@@ -1,14 +1,9 @@
-import type { ChatMessage } from '@haus/api';
-import { and, desc, eq, getTableColumns, lt, or } from 'drizzle-orm';
+import type { ChatMessage, ChatMessagesInput } from '@haus/api';
+import { eq, or, type SQL } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    chatMessagesTable,
-    serverMembershipsTable,
-    usersTable,
-} from '../postgres/schema.ts';
+import { chatMessagesTable } from '../postgres/schema.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import { requireThreadAccess } from '../threads/resolve-thread-access.ts';
@@ -18,45 +13,14 @@ import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 import { readInlineReplyContexts, resolveInlineReplyParent } from './reply-context.ts';
+import { ChatMessageNotFoundError, selectMessagePage } from './select-message-page.ts';
 
-export async function listChatMessages(
-    db: HausDatabase,
-    member: HausUser | null,
-    input: {
-        beforeSequence?: number;
-        chatId: string;
-        limit: number;
-        replyRootMessageId?: string;
-        serverId: string;
-    }
-): Promise<{
-    messages: ChatMessage[];
-    nextBeforeSequence: number | null;
-    threads: Awaited<ReturnType<typeof listThreadSummaries>>;
-}> {
-    try {
-        await requireChatAccess(db, member, input);
-    } catch (cause) {
-        if (!(cause instanceof ChatNotFoundError)) {
-            throw cause;
-        }
-        // A task Thread nobody has replied in has no Chat row yet. It is still
-        // addressable by its derived id, and it reads as what it is: empty.
-        await requireThreadAccess(db, member, {
-            serverId: input.serverId,
-            threadChatId: input.chatId,
-        });
-        return { messages: [], nextBeforeSequence: null, threads: [] };
-    }
-
-    const predicates = [
+async function buildMessagePredicates(db: HausDatabase, input: ChatMessagesInput) {
+    const predicates: SQL<unknown>[] = [
         eq(chatMessagesTable.serverId, input.serverId),
         eq(chatMessagesTable.chatId, input.chatId),
     ];
 
-    if (input.beforeSequence !== undefined) {
-        predicates.push(lt(chatMessagesTable.sequence, input.beforeSequence));
-    }
     if (input.replyRootMessageId) {
         const { root } = await resolveInlineReplyParent(db, {
             chatId: input.chatId,
@@ -72,39 +36,44 @@ export async function listChatMessages(
         }
     }
 
-    const newestFirst = await db
-        .select({
-            ...getTableColumns(chatMessagesTable),
-            authorAgentAvatarId: agentsTable.avatarId,
-            authorAgentDescription: agentsTable.description,
-            authorAgentDisplayName: agentsTable.displayName,
-            authorAgentRetiredAt: agentsTable.retiredAt,
-            authorUserAvatarId: usersTable.avatarId,
-            authorUserDescription: usersTable.description,
-            authorUserDisplayName: usersTable.displayName,
-            authorUserRevokedAt: serverMembershipsTable.revokedAt,
-        })
-        .from(chatMessagesTable)
-        .leftJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, chatMessagesTable.serverId),
-                eq(agentsTable.id, chatMessagesTable.authorAgentId)
-            )
-        )
-        .leftJoin(usersTable, eq(usersTable.id, chatMessagesTable.authorUserId))
-        .leftJoin(
-            serverMembershipsTable,
-            and(
-                eq(serverMembershipsTable.serverId, chatMessagesTable.serverId),
-                eq(serverMembershipsTable.userId, chatMessagesTable.authorUserId)
-            )
-        )
-        .where(and(...predicates))
-        .orderBy(desc(chatMessagesTable.sequence))
-        .limit(input.limit + 1);
-    const hasOlderMessages = newestFirst.length > input.limit;
-    const messageRows = newestFirst.slice(0, input.limit).reverse();
+    return predicates;
+}
+
+export async function listChatMessages(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: ChatMessagesInput
+): Promise<{
+    messages: ChatMessage[];
+    nextAfterSequence: number | null;
+    nextBeforeSequence: number | null;
+    threads: Awaited<ReturnType<typeof listThreadSummaries>>;
+}> {
+    try {
+        await requireChatAccess(db, member, input);
+    } catch (cause) {
+        if (!(cause instanceof ChatNotFoundError)) {
+            throw cause;
+        }
+        // A task Thread nobody has replied in has no Chat row yet. It is still
+        // addressable by its derived id, and it reads as what it is: empty.
+        await requireThreadAccess(db, member, {
+            serverId: input.serverId,
+            threadChatId: input.chatId,
+        });
+        if (input.aroundMessageId !== undefined) {
+            throw new ChatMessageNotFoundError();
+        }
+        return { messages: [], nextAfterSequence: null, nextBeforeSequence: null, threads: [] };
+    }
+
+    const predicates = await buildMessagePredicates(db, input);
+    const {
+        messages: messageRows,
+        nextAfterSequence,
+        nextBeforeSequence,
+    } = await selectMessagePage(db, predicates, input);
+
     const messageIds = messageRows.map((message) => message.id);
     const [
         attachmentsByMessageId,
@@ -135,7 +104,8 @@ export async function listChatMessages(
 
     return {
         messages,
-        nextBeforeSequence: hasOlderMessages ? (messages[0]?.sequence ?? null) : null,
+        nextAfterSequence,
+        nextBeforeSequence,
         threads: await listThreadSummaries(db, member, {
             anchorMessageIds: messages.map((message) => message.id),
             parentChatId: input.chatId,

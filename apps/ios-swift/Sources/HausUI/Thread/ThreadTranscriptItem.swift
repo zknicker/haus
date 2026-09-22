@@ -3,7 +3,8 @@ import SwiftUI
 enum ThreadTranscriptItem: Identifiable, Equatable {
     case anchor(MessagePresentation, hasReplies: Bool)
     case taskMetadata(TaskPresentation, hasReplies: Bool)
-    case inlineReplies
+    case inlineReplies(isEmpty: Bool)
+    case inlineReply(MessagePresentation)
     case threadHeader
     case reply(MessagePresentation)
     case pendingSend
@@ -13,6 +14,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         case .anchor(let message, _): "thread-anchor-\(message.id)"
         case .taskMetadata: "thread-task-metadata"
         case .inlineReplies: "thread-inline-replies"
+        case .inlineReply(let message): "thread-inline-reply-\(message.id)"
         case .threadHeader: "thread-header"
         case .reply(let message): message.id
         case .pendingSend: "thread-pending-send"
@@ -23,6 +25,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         switch self {
         case .pendingSend: true
         case .reply(let message): message.isPending
+        case .inlineReply(let message): message.isPending
         case .anchor, .taskMetadata, .inlineReplies, .threadHeader: false
         }
     }
@@ -38,7 +41,8 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         anchor: MessagePresentation,
         replies: [MessagePresentation],
         pending: Bool,
-        includesInlineReplies: Bool = false
+        includesInlineReplies: Bool = false,
+        inlineReplies: [MessagePresentation] = []
     ) -> [ThreadTranscriptItem] {
         let hasReplies = !replies.isEmpty
         var items: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: hasReplies)]
@@ -46,7 +50,8 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
             items.append(.taskMetadata(task, hasReplies: hasReplies))
         }
         if includesInlineReplies {
-            items.append(.inlineReplies)
+            items.append(.inlineReplies(isEmpty: inlineReplies.isEmpty))
+            items.append(contentsOf: inlineReplies.map(ThreadTranscriptItem.inlineReply))
             items.append(.threadHeader)
         }
         items.append(contentsOf: replies.map(ThreadTranscriptItem.reply))

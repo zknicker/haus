@@ -6,6 +6,8 @@ extension HausStore {
     /// keep their marker until they finish; their generation check prevents an
     /// old response from repopulating the new Server's cache.
     func resetInlineReplyCache() {
+        historyNavigation = ChatHistoryNavigationState()
+        historyLoadsInFlight.removeAll()
         inlineReplyCacheGeneration += 1
         inlineReplyPagesByRootID.removeAll()
         inlineReplyChatIDByRootID.removeAll()
@@ -40,16 +42,7 @@ extension HausStore {
                 }
             }
             guard inlineReplyChatIDByRootID[rootMessageID] == chatID else { continue }
-            let generation = inlineReplyCacheGeneration
-            let previous = inlineReplyPagesByRootID.removeValue(forKey: rootMessageID)
-            let loaded = await loadInlineReplies(chatID: chatID, rootMessageID: rootMessageID)
-            if !loaded,
-               generation == inlineReplyCacheGeneration,
-               inlineReplyPagesByRootID[rootMessageID] == nil,
-               let previous
-            {
-                inlineReplyPagesByRootID[rootMessageID] = previous
-            }
+            await loadInlineReplies(chatID: chatID, rootMessageID: rootMessageID, refresh: true)
         }
     }
 
@@ -79,10 +72,11 @@ extension HausStore {
     }
 
     @discardableResult
-    func loadInlineReplies(chatID: String, rootMessageID: String) async -> Bool {
+    func loadInlineReplies(chatID: String, rootMessageID: String, refresh: Bool = false) async -> Bool {
         guard let serverID = activeServer?.id else { return false }
         inlineReplyChatIDByRootID[rootMessageID] = chatID
-        if inlineReplyPagesByRootID[rootMessageID] != nil { return true }
+        historyNavigation.inlineRetention.touch(rootMessageID)
+        if !refresh, inlineReplyPagesByRootID[rootMessageID] != nil { return true }
         let generation = inlineReplyCacheGeneration
         guard inlineReplyLoadsInFlight.insert(rootMessageID).inserted else {
             // A route task and its region can start together. Wait for the
@@ -115,7 +109,17 @@ extension HausStore {
                   activeServer?.id == serverID,
                   inlineReplyCacheGeneration == generation
             else { return false }
-            inlineReplyPagesByRootID[rootMessageID] = page
+            var window = ChatHistoryWindow(page: inlineReplyPagesByRootID[rootMessageID] ?? page)
+            window.refresh(latest: page, followingLatest: false)
+            inlineReplyPagesByRootID[rootMessageID] = window.page
+            let evictions = historyNavigation.inlineRetention.evictions(
+                cachedIDs: Set(inlineReplyPagesByRootID.keys),
+                protectedIDs: inlineReplyLoadsInFlight.union([rootMessageID])
+            )
+            for id in evictions {
+                inlineReplyPagesByRootID.removeValue(forKey: id)
+                inlineReplyChatIDByRootID.removeValue(forKey: id)
+            }
             return true
         } catch is CancellationError {
             return false
@@ -128,22 +132,27 @@ extension HausStore {
 
     @discardableResult
     func loadOlderInlineReplies(chatID: String, rootMessageID: String) async -> Bool {
+        await loadInlineReplyPage(chatID: chatID, rootMessageID: rootMessageID, older: true)
+    }
+
+    func loadInlineReplyPage(chatID: String, rootMessageID: String, older: Bool) async -> Bool {
         guard let serverID = activeServer?.id,
               let current = inlineReplyPagesByRootID[rootMessageID],
-              let beforeSequence = current.nextBeforeSequence,
+              let cursor = older ? current.nextBeforeSequence : current.nextAfterSequence,
               inlineReplyLoadsInFlight.insert(rootMessageID).inserted
         else { return false }
         let generation = inlineReplyCacheGeneration
         defer { inlineReplyLoadsInFlight.remove(rootMessageID) }
 
         do {
-            let older: ChatMessagePage = try await client.query(
+            let page: ChatMessagePage = try await client.query(
                 "chat.messages",
                 input: ChatMessagesInput(
                     serverId: serverID,
                     chatId: chatID,
                     limit: 50,
-                    beforeSequence: beforeSequence,
+                    beforeSequence: older ? cursor : nil,
+                    afterSequence: older ? nil : cursor,
                     replyRootMessageId: rootMessageID
                 )
             )
@@ -151,8 +160,9 @@ extension HausStore {
                   activeServer?.id == serverID,
                   inlineReplyCacheGeneration == generation
             else { return false }
-            inlineReplyPagesByRootID[rootMessageID] = inlineReplyPagesByRootID[rootMessageID, default: current]
-                .merging(older: older)
+            var window = ChatHistoryWindow(page: current)
+            if older { window.prepend(page) } else { window.append(page) }
+            inlineReplyPagesByRootID[rootMessageID] = window.page
             return true
         } catch is CancellationError {
             return false

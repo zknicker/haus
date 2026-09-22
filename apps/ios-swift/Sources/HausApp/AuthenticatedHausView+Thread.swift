@@ -62,12 +62,7 @@ extension AuthenticatedHausView {
             onOpenAttachment: { attachment in
                 try await store.downloadAttachment(attachment)
             },
-            hasOlderReplies: resolvedThreadChatID(for: thread).map(store.hasOlderMessages) ?? false,
-            isLoadingOlderReplies: resolvedThreadChatID(for: thread).map(store.isLoadingOlderMessages) ?? false,
-            onLoadOlderReplies: {
-                guard let chatID = resolvedThreadChatID(for: thread) else { return false }
-                return await store.loadOlderMessages(chatID: chatID)
-            },
+            history: resolvedThreadChatID(for: thread).map { store.messageHistory(chatID: $0) } ?? .init(),
             inlineReplies: inlineReplies(for: thread),
             onOpenAgent: openAgentFromThread,
             onCancelCloudAgent: store.canManageServer ? { workID in
@@ -120,6 +115,10 @@ extension AuthenticatedHausView {
                     chatID: parentChatID,
                     rootMessageID: rootMessageID
                 )
+            },
+            hasNewer: { store.inlineReplyPagesByRootID[rootMessageID]?.nextAfterSequence != nil },
+            loadNewer: {
+                await store.loadInlineReplyPage(chatID: parentChatID, rootMessageID: rootMessageID, older: false)
             }
         )
     }

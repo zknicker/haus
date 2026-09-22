@@ -21,9 +21,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     let onSendInlineReply:
         ((ChatDestination, String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    let hasOlderMessages: (ChatPresentation) -> Bool
-    let isLoadingOlderMessages: (ChatPresentation) -> Bool
-    let onLoadOlderMessages: (ChatPresentation) async -> Bool
+    let messageHistory: (ChatPresentation) -> MessageHistoryNavigation
     private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
     private let loadArchivedChannels: @Sendable () async throws -> [ArchivedChannelPresentation]
     private let restoreArchivedChannel: @Sendable (ArchivedChannelPresentation) async throws -> Void
@@ -89,9 +87,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
         },
-        hasOlderMessages: @escaping (ChatPresentation) -> Bool = { _ in false },
-        isLoadingOlderMessages: @escaping (ChatPresentation) -> Bool = { _ in false },
-        onLoadOlderMessages: @escaping (ChatPresentation) async -> Bool = { _ in false },
+        messageHistory: @escaping (ChatPresentation) -> MessageHistoryNavigation = { _ in .init() },
         searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation] = { _ in [] },
         loadArchivedChannels: @escaping @Sendable () async throws -> [ArchivedChannelPresentation] = { [] },
         restoreArchivedChannel: @escaping @Sendable (ArchivedChannelPresentation) async throws -> Void = { _ in },
@@ -123,9 +119,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.onSend = onSend
         self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
-        self.hasOlderMessages = hasOlderMessages
-        self.isLoadingOlderMessages = isLoadingOlderMessages
-        self.onLoadOlderMessages = onLoadOlderMessages
+        self.messageHistory = messageHistory
         self.searchMessages = searchMessages
         self.loadArchivedChannels = loadArchivedChannels
         self.restoreArchivedChannel = restoreArchivedChannel
