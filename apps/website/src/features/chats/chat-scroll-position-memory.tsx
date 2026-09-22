@@ -30,6 +30,7 @@ export function ChatScrollPositionMemory({
         rememberedChatScrollPositions.get(chatId) ?? null
     );
     const restoredRef = React.useRef(false);
+    const backgroundPositionRef = React.useRef<ChatScrollPosition | null>(null);
 
     React.useLayoutEffect(() => {
         initialPositionRef.current = rememberedChatScrollPositions.get(chatId) ?? null;
@@ -87,7 +88,43 @@ export function ChatScrollPositionMemory({
     }, [enabled, scroller, viewportRef]);
 
     React.useEffect(() => {
-        if (!(enabled && restoredRef.current)) {
+        const suspend = () => {
+            if (enabled && restoredRef.current && !backgroundPositionRef.current) {
+                backgroundPositionRef.current = rememberedChatScrollPositions.get(chatId) ?? {
+                    atEnd: !scrollable.end,
+                    messageId: null,
+                };
+            }
+        };
+        const resume = () => {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+            const position = backgroundPositionRef.current;
+            backgroundPositionRef.current = null;
+            if (position?.atEnd) {
+                scroller.scrollToEnd({ behavior: 'instant' });
+            }
+        };
+        const visibilityChanged = () => {
+            if (document.visibilityState === 'hidden') {
+                suspend();
+            } else {
+                resume();
+            }
+        };
+        window.addEventListener('blur', suspend);
+        window.addEventListener('focus', resume);
+        document.addEventListener('visibilitychange', visibilityChanged);
+        return () => {
+            window.removeEventListener('blur', suspend);
+            window.removeEventListener('focus', resume);
+            document.removeEventListener('visibilitychange', visibilityChanged);
+        };
+    }, [chatId, enabled, scrollable.end, scroller]);
+
+    React.useEffect(() => {
+        if (!(enabled && restoredRef.current) || backgroundPositionRef.current) {
             return;
         }
 

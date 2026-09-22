@@ -80,8 +80,8 @@ export function ChatDetailFrame({
                                     // The conversation hugs the composer — the
                                     // bottom padding (96px) is static clearance
                                     // for a two-row floating status stack. New
-                                    // sends append here without re-anchoring the
-                                    // viewport, so the history above stays put.
+                                    // sends resume following the bottom once
+                                    // their optimistic rows have committed.
                                     className="px-5 pt-4 pb-24"
                                     onScroll={handleScroll}
                                     ref={viewportRef}

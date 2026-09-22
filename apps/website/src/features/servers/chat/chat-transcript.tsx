@@ -6,6 +6,7 @@ import {
 } from '../../chats/chat-read-visibility.ts';
 import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
+import { ChatSendScroll } from './chat-send-scroll.tsx';
 import type { ChatTranscriptInput } from './chat-transcript-input.ts';
 import { useChatTranscript } from './use-chat-transcript.tsx';
 
@@ -40,15 +41,18 @@ export function ChatTranscript({
     }
 
     return (
-        <ChatTranscriptPresentation
-            leadingContent={
-                downloadError ? (
-                    <p className="px-2 text-danger text-sm">{downloadError}</p>
-                ) : undefined
-            }
-            renderContext={renderContext}
-            rows={rows}
-            scrollContentRef={scrollContentRef}
-        />
+        <>
+            <ChatTranscriptPresentation
+                leadingContent={
+                    downloadError ? (
+                        <p className="px-2 text-danger text-sm">{downloadError}</p>
+                    ) : undefined
+                }
+                renderContext={renderContext}
+                rows={rows}
+                scrollContentRef={scrollContentRef}
+            />
+            <ChatSendScroll messages={input.pendingMessages} />
+        </>
     );
 }
