@@ -44,6 +44,21 @@ export const inboxAskSchema = z
 
 export type InboxAsk = z.infer<typeof inboxAskSchema>;
 
+/** Why an item is addressed to this Agent personally rather than ambiently. */
+export const addressedReasonSchema = z.enum(['dm', 'mention', 'routing']);
+
+export type AddressedReason = z.infer<typeof addressedReasonSchema>;
+
+/** One chat holding queued work no row of the current frame represents. */
+export const unreadElsewhereSchema = z
+    .object({
+        count: z.number().int().positive(),
+        target: z.string().trim().min(1).max(200),
+    })
+    .strict();
+
+export type UnreadElsewhere = z.infer<typeof unreadElsewhereSchema>;
+
 /** One Server-owned message envelope durably accepted into a Computer inbox. */
 export const agentInboxItemSchema = z
     .object({
@@ -51,6 +66,9 @@ export const agentInboxItemSchema = z
         content: z.string().max(32_000),
         createdAt: timestampSchema,
         id: idSchema,
+        /** This item names the Agent personally: a DM, an @mention, or a committed Jev narrow. */
+        addressed: z.boolean().optional(),
+        addressedReason: addressedReasonSchema.optional(),
         ask: inboxAskSchema.optional(),
         /** Typed Server attention; unlike a Chat message, it has no message cursor. */
         cloudAgentWork: cloudAgentWorkAttentionSchema.optional(),

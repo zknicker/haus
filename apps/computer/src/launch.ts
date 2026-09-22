@@ -6,13 +6,21 @@ import type { AgentTurnActivitySummary } from '@haus/api';
 import type { TraceCarrier } from '@haus/effect';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { AgentActivityRun } from './agent-activity-run.ts';
+import type {
+    AgentNoticeCommand,
+    AgentResetCommand,
+    AgentRestartCommand,
+    AgentStartCommand,
+    AgentStopCommand,
+    AgentTurnFrame,
+    ServerDeleteCommand,
+} from './agent-commands.ts';
 import {
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,
     seedOrdinaryWorkspace,
 } from './agent-configuration.ts';
-import { parseInbox } from './agent-inbox-input.ts';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
+import { parseDrainItemIds, parseInbox, parseUnreadElsewhere } from './agent-inbox-input.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
 import type { AgentTurnTimings } from './agent-turn-timings.ts';
@@ -46,86 +54,16 @@ export interface Attachment {
     slug: string;
 }
 
-/** Server→Computer launch command kept local so the Computer artifact is self-contained. */
-export interface AgentStartCommand {
-    /** Server-owned Agent facts the Computer composes into the system prompt. */
-    agentDescription?: string;
-    agentId: string;
-    agentName?: string;
-    chatId: string;
-    homeTimezone?: string;
-    inbox?: AgentInboxItem[];
-    inboxDelivery: 'concrete' | 'notice';
-    modelId: string;
-    runId: string;
-    runtimeId: string;
-    sessionGeneration: number;
-    totalPending: number;
-    traceContext?: { traceparent: string };
-    type: 'start';
-    webAccess?: 'fetch-only' | 'search' | 'search-only';
-}
-
-/** Server→Computer command to terminate the named in-flight run. */
-export interface AgentStopCommand {
-    agentId: string;
-    runId: string;
-    type: 'stop';
-}
-
-/** Server→Computer command to refresh instructions without rotating context. */
-export interface AgentRestartCommand {
-    agentId: string;
-    type: 'agent-restart';
-}
-
-/** Server→Computer command to rotate one Agent's local execution state. */
-export interface AgentResetCommand {
-    agentId: string;
-    kind: 'full' | 'session';
-    sessionGeneration: number;
-    type: 'agent-reset';
-}
-
-/** Server→Computer notice that a busy Agent has queued work. */
-export interface AgentNoticeCommand {
-    agentId: string;
-    inbox: AgentInboxItem[];
-    runId: string;
-    totalPending: number;
-    type: 'notice';
-}
-
-/** Server-scoped instruction to erase this attachment's local partition. */
-export interface ServerDeleteCommand {
-    type: 'server-delete';
-}
-
-/** The compact turn summary the Computer pushes up after a launch settles. */
-export interface AgentTurnFrame {
-    activity: AgentTurnActivitySummary;
-    agentId: string;
-    endedAt: string;
-    failureKind?: RuntimeFailureKind;
-    messageCount: number;
-    modelId: string;
-    /** Whether the turn produced any durable send — governs safe requeue. */
-    outputProduced: boolean;
-    runId: string;
-    runtimeId: string;
-    startedAt: string;
-    status: 'completed' | 'failed' | 'interrupted';
-    summary: string;
-    tokenUsage: {
-        cacheReadTokens: number;
-        cacheWriteTokens: number;
-        inputTokens: number;
-        outputTokens: number;
-        totalTokens: number;
-    } | null;
-    type: 'turn';
-    visibleMessages: Array<{ chatId: string; id: string; sequence: number }>;
-}
+export type {
+    AgentNoticeCommand,
+    AgentResetCommand,
+    AgentRestartCommand,
+    AgentStartCommand,
+    AgentStopCommand,
+    AgentTurnFrame,
+    ServerDeleteCommand,
+    UnreadElsewhere,
+} from './agent-commands.ts';
 
 export interface RunAgentLaunchOptions {
     attachment: Attachment;
@@ -353,7 +291,10 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
         }
     }
     const inbox = parseInbox(frame.inbox);
-    if (!inbox) {
+    const drainItemIds = parseDrainItemIds(frame.drainItemIds);
+    const warmDrainItemIds = parseDrainItemIds(frame.warmDrainItemIds);
+    const unreadElsewhere = parseUnreadElsewhere(frame.unreadElsewhere);
+    if (!(inbox && drainItemIds && warmDrainItemIds && unreadElsewhere)) {
         return null;
     }
     if (
@@ -390,6 +331,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
             : {}),
         ...(typeof frame.agentName === 'string' ? { agentName: frame.agentName } : {}),
         chatId: frame.chatId as string,
+        drainItemIds,
         ...(typeof frame.homeTimezone === 'string' ? { homeTimezone: frame.homeTimezone } : {}),
         inbox,
         inboxDelivery: frame.inboxDelivery as 'concrete' | 'notice',
@@ -400,6 +342,8 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
         totalPending: frame.totalPending,
         ...(traceContext ? { traceContext } : {}),
         type: 'start',
+        unreadElsewhere,
+        warmDrainItemIds,
         ...(webAccess ? { webAccess } : {}),
     };
 }
@@ -503,13 +447,17 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
     ) {
         return null;
     }
+    const unreadElsewhere = parseUnreadElsewhere(frame.unreadElsewhere);
+    if (!unreadElsewhere) {
+        return null;
+    }
     return {
         agentId: frame.agentId,
         inbox: parseInbox(frame.inbox) ?? [],
         runId: frame.runId,
         totalPending: frame.totalPending,
-
         type: 'notice',
+        unreadElsewhere,
     };
 }
 

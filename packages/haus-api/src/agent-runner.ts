@@ -1,11 +1,12 @@
+import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
 import { agentExecutionJournalRequestSchema } from './agent-execution-journal.ts';
-import { agentInboxItemSchema } from './agent-inbox.ts';
 import {
     cloudAgentCancelCommandSchema,
     cloudAgentCapabilityRequestSchema,
     cloudAgentReconcileCommandSchema,
 } from './cloud-agent-protocol.ts';
 
+export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
 export * from './agent-inbox.ts';
 export * from './cloud-agent-protocol.ts';
@@ -29,29 +30,6 @@ import {
 import { traceCarrierSchema } from './trace-context.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
-/** Server→Computer launch command; Computer mints authority instead of receiving it. */
-export const agentStartCommandSchema = z
-    .object({
-        agentId: idSchema,
-        agentDescription: z.string().max(10_000).optional(),
-        agentName: z.string().trim().min(1).max(64).optional(),
-        chatId: idSchema,
-        homeTimezone: z.string().trim().min(1).max(128).optional(),
-        inbox: z.array(agentInboxItemSchema).max(100).default([]),
-        /** Bodies are projected only for typed system attention or crash replay. */
-        inboxDelivery: z.enum(['concrete', 'notice']),
-        modelId: z.string().trim().min(1).max(128),
-        runId: idSchema,
-        runtimeId: z.string().trim().min(1).max(64),
-        sessionGeneration: z.number().int().positive(),
-        totalPending: z.number().int().nonnegative(),
-        traceContext: traceCarrierSchema.optional(),
-        type: z.literal('start'),
-        webAccess: z.enum(['fetch-only', 'search', 'search-only']).optional(),
-    })
-    .strict();
-
-export type AgentStartCommand = z.infer<typeof agentStartCommandSchema>;
 
 /**
  * Terminates the named in-flight run on the Computer. A human Stop persists
@@ -164,23 +142,6 @@ export const reminderScriptCommandSchema = z
     .strict();
 
 export type ReminderScriptCommand = z.infer<typeof reminderScriptCommandSchema>;
-
-/**
- * Work landed for a busy Agent. The full envelopes are accepted into the
- * Computer's durable inbox; only their content-free metadata projection is
- * injected into the live model turn.
- */
-export const agentNoticeCommandSchema = z
-    .object({
-        agentId: idSchema,
-        inbox: z.array(agentInboxItemSchema).min(1).max(100),
-        runId: idSchema,
-        totalPending: z.number().int().positive(),
-        type: z.literal('notice'),
-    })
-    .strict();
-
-export type AgentNoticeCommand = z.infer<typeof agentNoticeCommandSchema>;
 
 /** Best-effort instruction to erase this Server attachment's Computer-local state. */
 export const serverDeleteCommandSchema = z
