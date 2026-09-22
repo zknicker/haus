@@ -168,8 +168,9 @@ test('ChatTranscript animates only local optimistic user messages', () => {
     assert.match(markup, /data-slot="chat-message-assistant"/);
     assert.match(markup, /data-slot="pending-chat-message"/);
     assert.doesNotMatch(markup, /aria-label="Copy message"/);
-    // Every message shares the left roster; the optimistic row still animates.
-    assert.match(markup, /style="transform-origin:bottom left;opacity:0;transform/);
+    // A send is instant: no entrance motion and no dimmed pending treatment.
+    assert.doesNotMatch(markup, /opacity:0/);
+    assert.doesNotMatch(markup, /transform-origin/);
 });
 
 test('ChatTranscript renders chat markdown headings and inline markup in message text', () => {
@@ -1696,7 +1697,6 @@ function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderCo
         onToggleReaction: () => undefined,
         onUnfollowThread: () => undefined,
         repliedRunIds: new Set(),
-        shouldAnimateItemEnter: () => false,
         threadActionsEnabled: false,
         ...overrides,
     };

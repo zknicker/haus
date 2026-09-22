@@ -35,8 +35,18 @@ test('rapid sends queue as separate pending rows in send order', () => {
 test('a pending row retires only when its own durable message lands', () => {
     send('nonce_1', 'first');
     send('nonce_2', 'second');
-    settlePendingChatMessage({ chatId, messageId: 'msg_1', nonce: 'nonce_1' });
-    settlePendingChatMessage({ chatId, messageId: 'msg_2', nonce: 'nonce_2' });
+    settlePendingChatMessage({
+        chatId,
+        createdAt: '2026-08-14T14:41:00.000Z',
+        messageId: 'msg_1',
+        nonce: 'nonce_1',
+    });
+    settlePendingChatMessage({
+        chatId,
+        createdAt: '2026-08-14T14:41:00.000Z',
+        messageId: 'msg_2',
+        nonce: 'nonce_2',
+    });
 
     dropDeliveredPendingChatMessages(chatId, new Set(['msg_1']));
 
@@ -63,7 +73,12 @@ test('an unsettled row survives an unrelated transcript refresh', () => {
 
 test('a landed row is hidden in the same render that reports it', () => {
     send('nonce_1', 'first');
-    settlePendingChatMessage({ chatId, messageId: 'msg_1', nonce: 'nonce_1' });
+    settlePendingChatMessage({
+        chatId,
+        createdAt: '2026-08-14T14:41:00.000Z',
+        messageId: 'msg_1',
+        nonce: 'nonce_1',
+    });
 
     expect(visiblePendingChatMessages(readPendingChatMessages(chatId), new Set(['msg_1']))).toEqual(
         []
@@ -106,7 +121,12 @@ test('a first reply keeps its row while the Thread it created is still loading',
     reply('nonce_1', 'first reply');
     // The receipt named the Thread, but its replies query has not resolved yet,
     // so the Thread transcript still reports no delivered messages.
-    settlePendingChatMessage({ chatId: threadKey, messageId: 'msg_reply', nonce: 'nonce_1' });
+    settlePendingChatMessage({
+        chatId: threadKey,
+        createdAt: '2026-08-14T14:41:00.000Z',
+        messageId: 'msg_reply',
+        nonce: 'nonce_1',
+    });
 
     expect(visiblePendingChatMessages(readPendingChatMessages(threadKey), new Set())).toHaveLength(
         1
@@ -115,7 +135,12 @@ test('a first reply keeps its row while the Thread it created is still loading',
 
 test('a first reply retires once the new Thread transcript carries it', () => {
     reply('nonce_1', 'first reply');
-    settlePendingChatMessage({ chatId: threadKey, messageId: 'msg_reply', nonce: 'nonce_1' });
+    settlePendingChatMessage({
+        chatId: threadKey,
+        createdAt: '2026-08-14T14:41:00.000Z',
+        messageId: 'msg_reply',
+        nonce: 'nonce_1',
+    });
 
     dropDeliveredPendingChatMessages(threadKey, new Set(['msg_reply']));
 

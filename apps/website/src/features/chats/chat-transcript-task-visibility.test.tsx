@@ -220,7 +220,6 @@ function renderTranscript(
         onOpenThread: () => undefined,
         onUnfollowThread: () => undefined,
         repliedRunIds: new Set(),
-        shouldAnimateItemEnter: () => false,
         threadActionsEnabled: true,
         ...overrides,
     };

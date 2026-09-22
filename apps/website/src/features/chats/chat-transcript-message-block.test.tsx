@@ -5,7 +5,6 @@ import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 test('message text leads one compactly spaced attachment group', () => {
     const markup = renderToStaticMarkup(
         <TranscriptMessageBlock
-            animateEnter={false}
             attachments={<div data-slot="attachment">Preview</div>}
             from="assistant"
         >

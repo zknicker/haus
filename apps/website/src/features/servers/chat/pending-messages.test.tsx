@@ -3,12 +3,17 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { isLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';
 import type { ProjectedChatMessageRow } from './chat-message-model.ts';
-import { PendingMessageAttachments, projectPendingChatMessageRows } from './pending-messages.tsx';
+import {
+    PendingMessageAttachments,
+    projectPendingChatMessageRows,
+    renderPendingMessageAttachments,
+} from './pending-messages.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 const pending: PendingChatMessage = {
     attachments: [],
     content: 'Sending this right now.',
+    createdAt: null,
     messageId: null,
     nonce: 'nonce_1',
     submittedAt: '2026-08-14T14:41:00.000Z',
@@ -78,6 +83,35 @@ test('an attaching send names its files while the bytes upload', () => {
 
     expect(markup).toContain('notes.pdf');
     expect(markup).not.toContain('data-slot="attachment-group"');
+});
+
+test('a settled send never sorts ahead of a later one still in flight', () => {
+    // The Server's clock ran ahead of this client's, so the first send's
+    // receipt time is later than the second send's submission time.
+    const rows = projectPendingChatMessageRows(
+        [
+            { ...pending, createdAt: '2026-08-14T14:41:06.000Z' },
+            { ...pending, content: 'And this one too.', nonce: 'nonce_2' },
+        ],
+        'usr_zach'
+    );
+
+    const entry = buildTranscriptEntries({ rows })[0];
+    const ordered =
+        entry?.kind === 'turn'
+            ? entry.items.map((item) =>
+                  item.kind === 'row' && item.row.kind === 'message' ? item.row.message.content : ''
+              )
+            : [];
+
+    expect(ordered).toEqual(['Sending this right now.', 'And this one too.']);
+});
+
+test('a send with no files renders no attachment slot at all', () => {
+    // An empty media slot is height the durable row does not have, so the row
+    // would visibly shrink the moment the Server confirmed it.
+    expect(renderPendingMessageAttachments(pending)).toBeNull();
+    expect(renderToStaticMarkup(renderPendingMessageAttachments(pending))).toBe('');
 });
 
 function userRow(input: {

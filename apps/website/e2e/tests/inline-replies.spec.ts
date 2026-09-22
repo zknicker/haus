@@ -23,9 +23,11 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
     await signInAsClerkHuman(page);
     await page.goto('/s/reply-preview');
     await openChannel(page, server.channels[0].name ?? 'all');
-    const rootRow = page.locator(
-        `[data-slot="message-scroller-item"][data-message-id="${root.message.id}"]`
-    );
+    // A turn's scroller id is its own identity, not a message id, so the row is
+    // the one holding this message rather than the one named after it.
+    const rootRow = page
+        .locator('[data-slot="message-scroller-item"]')
+        .filter({ has: page.locator(`[data-message-id="${root.message.id}"]`) });
     await rootRow.hover();
     const initialMessageBox = await rootRow.boundingBox();
     const initialComposerBox = await page.locator('.prompt-input').boundingBox();
