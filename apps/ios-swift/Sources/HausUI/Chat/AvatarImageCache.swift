@@ -1,5 +1,4 @@
 import Foundation
-import ImageIO
 
 #if canImport(UIKit)
 import UIKit
@@ -23,7 +22,7 @@ final class AvatarImageCache {
     static let shared = AvatarImageCache()
 
     private let images = NSCache<NSURL, PlatformImageBox>()
-    private var loads: [URL: Task<Data?, Never>] = [:]
+    private var loads: [URL: Task<PlatformImageBox?, Never>] = [:]
     /// Every avatar this process has decoded at least once. `images` is an
     /// `NSCache` and drops entries under pressure; without this set a recycled
     /// row would read "no avatar", raster initials over an avatar it had
@@ -45,13 +44,12 @@ final class AvatarImageCache {
         }
         guard resolvedURLs.contains(url) else { return nil }
         guard let data = Self.byteCache.cachedResponse(for: URLRequest(url: url))?.data,
-              let decoded = Self.decode(data)
+              let decoded = AvatarImageDecoder.decodeCachedBytes(data)
         else {
             resolvedURLs.remove(url)
             return nil
         }
-        store(decoded, for: url)
-        return decoded.image
+        return store(decoded, for: url).image
     }
 
     func load(
@@ -62,33 +60,35 @@ final class AvatarImageCache {
             return cached
         }
 
-        let task: Task<Data?, Never>
         if let active = loads[url] {
-            task = active
-        } else {
-            let request = fetch ?? Self.fetch
-            task = Task { await request(url) }
-            loads[url] = task
+            return await active.value?.image
         }
-
-        guard let data = await task.value else {
-            loads[url] = nil
-            return nil
+        let request = fetch ?? Self.fetch
+        let task = Task { () -> PlatformImageBox? in
+            defer { loads[url] = nil }
+            guard let data = await request(url),
+                  let decoded = await AvatarImageDecoder.decode(data)
+            else { return nil }
+            return store(decoded, for: url)
         }
-        loads[url] = nil
-
-        guard let decoded = Self.decode(data) else { return nil }
-        store(decoded, for: url)
-        return decoded.image
+        loads[url] = task
+        return await task.value?.image
     }
 
-    private func store(_ decoded: (image: AvatarPlatformImage, pixelCost: Int), for url: URL) {
+    private func store(_ decoded: DecodedAvatarBitmap, for url: URL) -> PlatformImageBox {
+        #if canImport(UIKit)
+        let image = UIImage(cgImage: decoded.image)
+        #elseif canImport(AppKit)
+        let image = NSImage(cgImage: decoded.image, size: .zero)
+        #endif
+        let box = PlatformImageBox(image: image)
         images.setObject(
-            PlatformImageBox(image: decoded.image),
+            box,
             forKey: url as NSURL,
             cost: decoded.pixelCost
         )
         resolvedURLs.insert(url)
+        return box
     }
 
     /// Avatars get their own byte cache because `URLSession.shared` caches for
@@ -126,23 +126,7 @@ final class AvatarImageCache {
         }
     }
 
-    private static func decode(_ data: Data) -> (image: AvatarPlatformImage, pixelCost: Int)? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let cgImage = CGImageSourceCreateImageAtIndex(
-                  source,
-                  0,
-                  [kCGImageSourceShouldCacheImmediately: true] as CFDictionary
-              )
-        else { return nil }
-
-        #if canImport(UIKit)
-        let image = UIImage(cgImage: cgImage)
-        #elseif canImport(AppKit)
-        let image = NSImage(cgImage: cgImage, size: .zero)
-        #endif
-        return (image, cgImage.width * cgImage.height * 4)
-    }
-
+    @MainActor
     private final class PlatformImageBox {
         let image: AvatarPlatformImage
         init(image: AvatarPlatformImage) { self.image = image }

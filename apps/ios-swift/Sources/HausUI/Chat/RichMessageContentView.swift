@@ -19,12 +19,13 @@ struct RichMessageContentView: View {
     @State private var loadedAvatarURLs: Set<URL> = []
 
     var body: some View {
+        let revision = markRevision
         VStack(alignment: .leading, spacing: Self.blockSpacing) {
             ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
                 RichMessageBlockView(
                     block: block,
                     textStyle: textStyle,
-                    markRevision: markRevision
+                    markRevision: revision
                 )
                 .padding(.top, headingInset(for: block, at: index))
             }

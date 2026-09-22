@@ -119,6 +119,23 @@ struct RichMessageTextView: UIViewRepresentable {
 final class RichMessageUITextView: UITextView {
     var content: RichMessageTextView.Content?
     var markRevision = 0
+    private var measuredSizes: [(proposal: CGSize, result: CGSize)] = []
+
+    override var attributedText: NSAttributedString! {
+        didSet { measuredSizes.removeAll(keepingCapacity: true) }
+    }
+
+    override func sizeThatFits(_ size: CGSize) -> CGSize {
+        if let cached = measuredSizes.first(where: { $0.proposal == size }) {
+            return cached.result
+        }
+        let result = super.sizeThatFits(size)
+        // SwiftUI probes multiple widths while sizing a self-sizing table cell.
+        // Keep that small working set until the attributed body changes.
+        if measuredSizes.count == 4 { measuredSizes.removeFirst() }
+        measuredSizes.append((size, result))
+        return result
+    }
 
     /// A long press on a row opens the transcript's own menu, which
     /// `TranscriptListView` vends from `UITableViewDelegate`. A selectable text
