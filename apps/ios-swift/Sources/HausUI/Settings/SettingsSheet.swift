@@ -4,6 +4,7 @@ import HausModels
 public enum SettingsRoute: Hashable {
     case profile
     case agent(id: String)
+    case agentRuntime(id: String)
     case server
     case people
     case computers
@@ -37,11 +38,11 @@ public enum AppearancePreference: String, CaseIterable, Hashable, Sendable {
 
 public struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
-    private let persistence: SettingsPersistence
-    private let cloudAgentActions: CloudAgentSettingsActions
-    @State private var data: SettingsData
-    @State private var path: [SettingsRoute]
-    @State private var avatarGenerator: AvatarGeneratorSheet?
+    let persistence: SettingsPersistence
+    let cloudAgentActions: CloudAgentSettingsActions
+    @State var data: SettingsData
+    @State var path: [SettingsRoute]
+    @State var avatarGenerator: AvatarGeneratorSheet?
     @Binding private var appearance: AppearancePreference
 
     /// - Parameter initialPath: screens the sheet opens already pushed to, so a
@@ -116,91 +117,7 @@ public struct SettingsSheet: View {
         }
     }
 
-    @ViewBuilder
-    private func destination(for route: SettingsRoute) -> some View {
-        switch route {
-        case .profile:
-            HumanProfileView(
-                person: data.viewer,
-                onEditDescription: { ownerID, title in
-                    path.append(.description(ownerID: ownerID, title: title))
-                },
-                onSave: { updated in
-                    let saved = try await persistence.saveHumanProfile(
-                        updated.id,
-                        updated.displayName,
-                        updated.handle,
-                        updated.description
-                    )
-                    updateViewer(saved)
-                    return saved
-                },
-                onSaveAvatar: { payload in
-                    let saved = try await persistence.saveHumanAvatar(data.viewer.id, payload)
-                    await MainActor.run {
-                        updateViewer(saved)
-                    }
-                }
-            )
-        case .agent(let id):
-            if let agent = data.agents.first(where: { $0.id == id }) {
-                AgentProfileView(
-                    agent: agent,
-                    onEditDescription: { ownerID, title in
-                        path.append(.description(ownerID: ownerID, title: title))
-                    },
-                    onSave: { updated in
-                        let saved = try await persistence.saveAgentProfile(
-                            updated.id,
-                            updated.displayName,
-                            updated.description
-                        )
-                        updateAgent(saved)
-                        return saved
-                    },
-                    onSaveAvatar: { payload in
-                        let saved = try await persistence.saveAgentAvatar(agent.id, payload)
-                        await MainActor.run {
-                            updateAgent(saved)
-                        }
-                    },
-                    onOpenAvatarGenerator: {
-                        avatarGenerator = AvatarGeneratorSheet(
-                            agentID: agent.id,
-                            agentName: agent.displayName
-                        )
-                    }
-                )
-            } else {
-                SettingsUnavailableView(title: "Agent profile")
-            }
-        case .server:
-            ServerDetailsView(server: data.server)
-        case .people:
-            ServerPeopleView(members: data.members)
-        case .computers:
-            ServerComputersView(computers: data.computers)
-        case .cloudAgents:
-            CloudAgentSettingsView(
-                computers: data.computers,
-                canManage: ["owner", "admin"].contains(data.server.role.lowercased()),
-                actions: cloudAgentActions
-            )
-        case .appInfo:
-            AppInfoView()
-        case .description(let ownerID, let title):
-            DescriptionEditorView(
-                title: title,
-                value: currentDescription(ownerID: ownerID),
-                onSave: { updatedValue in
-                    try await saveDescription(ownerID: ownerID, value: updatedValue)
-                    path.removeLast()
-                }
-            )
-        }
-    }
-
-    private func updateViewer(_ viewer: SettingsPerson) {
+    func updateViewer(_ viewer: SettingsPerson) {
         data = SettingsData(
             server: data.server,
             viewer: viewer,
@@ -210,7 +127,7 @@ public struct SettingsSheet: View {
         )
     }
 
-    private func updateAgent(_ agent: SettingsAgent) {
+    func updateAgent(_ agent: SettingsAgent) {
         let agents = data.agents.map { $0.id == agent.id ? agent : $0 }
         data = SettingsData(
             server: data.server,
@@ -223,14 +140,14 @@ public struct SettingsSheet: View {
 
     /// Reads the description live from `data` rather than a route-carried
     /// snapshot, so the editor always opens with the latest saved value.
-    private func currentDescription(ownerID: String) -> String {
+    func currentDescription(ownerID: String) -> String {
         if data.viewer.id == ownerID {
             return data.viewer.description
         }
         return data.agents.first(where: { $0.id == ownerID })?.description ?? ""
     }
 
-    private func saveDescription(ownerID: String, value: String) async throws {
+    func saveDescription(ownerID: String, value: String) async throws {
         if data.viewer.id == ownerID {
             let viewer = data.viewer
             let draft = SettingsPerson(
@@ -266,7 +183,8 @@ public struct SettingsSheet: View {
             avatarURL: agent.avatarURL,
             presence: agent.presence,
             initials: agent.initials,
-            canGenerateAvatar: agent.canGenerateAvatar
+            canGenerateAvatar: agent.canGenerateAvatar,
+            runtimeConfiguration: agent.runtimeConfiguration
         )
         let saved = try await persistence.saveAgentProfile(
             draft.id,
@@ -277,7 +195,7 @@ public struct SettingsSheet: View {
     }
 }
 
-private struct AvatarGeneratorSheet: Identifiable {
+struct AvatarGeneratorSheet: Identifiable {
     let agentID: String
     let agentName: String
 

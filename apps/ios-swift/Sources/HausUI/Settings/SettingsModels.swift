@@ -1,10 +1,8 @@
 import Foundation
 import HausModels
 
-/// Presentation data for the native settings sheet.
-///
-/// The Server remains the source of truth. These small value types keep the SwiftUI
-/// surface independent from transport/client response shapes and make previews cheap.
+/// Presentation data for the native settings sheet. The Server remains the source
+/// of truth; these value types keep SwiftUI independent from transport response shapes.
 public struct SettingsServer: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
@@ -29,7 +27,6 @@ public struct SettingsServer: Identifiable, Hashable, Sendable {
         self.agentCount = agentCount
     }
 }
-
 public struct SettingsPerson: Identifiable, Hashable, Sendable {
     public let id: String
     public let displayName: String
@@ -69,7 +66,6 @@ public struct SettingsPerson: Identifiable, Hashable, Sendable {
         return String(letters).uppercased()
     }
 }
-
 public struct SettingsAgent: Identifiable, Hashable, Sendable {
     public let id: String
     public let displayName: String
@@ -84,6 +80,7 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
     /// Haus's own factory Agents keep a product-owned avatar the Server
     /// refuses to replace, so only an ordinary Agent offers the generator.
     public let canGenerateAvatar: Bool
+    public let runtimeConfiguration: SettingsAgentRuntimeConfiguration?
 
     public init(
         id: String,
@@ -96,7 +93,8 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
         avatarURL: URL? = nil,
         presence: AgentPresence = .idle,
         initials: String? = nil,
-        canGenerateAvatar: Bool = true
+        canGenerateAvatar: Bool = true,
+        runtimeConfiguration: SettingsAgentRuntimeConfiguration? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -109,6 +107,7 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
         self.presence = presence
         self.initials = initials ?? Self.makeInitials(from: displayName)
         self.canGenerateAvatar = canGenerateAvatar
+        self.runtimeConfiguration = runtimeConfiguration
     }
 
     private static func makeInitials(from name: String) -> String {
@@ -125,6 +124,7 @@ public func settingsRuntimeDisplayName(_ slug: String) -> String {
     case "codex": "Codex"
     case "claude-code", "claude_code": "Claude Code"
     case "pi": "Pi"
+    case "grok-build", "grok_build": "Grok Build"
     default: slug
     }
 }
@@ -171,16 +171,13 @@ public struct SettingsData: Hashable, Sendable {
     }
 }
 
-/// Server-backed profile mutations owned by the app/client layer.
-///
-/// The settings views deliberately do not know about tRPC, authentication, or
-/// transport errors. Callers provide narrow mutation seams and return the
-/// canonical value from the Server after a successful write. Avatar payloads
-/// have already been resized and validated by `AvatarPhotoPicker`.
+/// Server-backed profile mutations owned by the app/client layer. Settings views
+/// receive narrow seams and canonical Server values; avatar payloads are already validated.
 public struct SettingsPersistence: Sendable {
     public let generateAgentAvatar: @Sendable (String, String) async throws -> AvatarImagePayload
     public let saveHumanProfile: @Sendable (String, String, String?, String) async throws -> SettingsPerson
     public let saveAgentProfile: @Sendable (String, String, String) async throws -> SettingsAgent
+    public let saveAgentRuntime: @Sendable (String, AgentRuntimeConfiguration) async throws -> SettingsAgent
     public let saveHumanAvatar: @Sendable (String, AvatarImagePayload) async throws -> SettingsPerson
     public let saveAgentAvatar: @Sendable (String, AvatarImagePayload) async throws -> SettingsAgent
 
@@ -188,12 +185,14 @@ public struct SettingsPersistence: Sendable {
         generateAgentAvatar: @escaping @Sendable (String, String) async throws -> AvatarImagePayload,
         saveHumanProfile: @escaping @Sendable (String, String, String?, String) async throws -> SettingsPerson,
         saveAgentProfile: @escaping @Sendable (String, String, String) async throws -> SettingsAgent,
+        saveAgentRuntime: @escaping @Sendable (String, AgentRuntimeConfiguration) async throws -> SettingsAgent,
         saveHumanAvatar: @escaping @Sendable (String, AvatarImagePayload) async throws -> SettingsPerson,
         saveAgentAvatar: @escaping @Sendable (String, AvatarImagePayload) async throws -> SettingsAgent
     ) {
         self.generateAgentAvatar = generateAgentAvatar
         self.saveHumanProfile = saveHumanProfile
         self.saveAgentProfile = saveAgentProfile
+        self.saveAgentRuntime = saveAgentRuntime
         self.saveHumanAvatar = saveHumanAvatar
         self.saveAgentAvatar = saveAgentAvatar
     }
@@ -232,6 +231,7 @@ public struct SettingsPersistence: Sendable {
                 canGenerateAvatar: agent.canGenerateAvatar
             )
         },
+        saveAgentRuntime: { _, _ in SettingsFixtures.cove },
         saveHumanAvatar: { _, _ in
             SettingsFixtures.viewer
         },

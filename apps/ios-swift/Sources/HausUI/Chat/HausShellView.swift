@@ -23,6 +23,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     let messageHistory: (ChatPresentation) -> MessageHistoryNavigation
     private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
+    private let searchRecoveryRevision: Int
     private let loadArchivedChannels: @Sendable () async throws -> [ArchivedChannelPresentation]
     private let restoreArchivedChannel: @Sendable (ArchivedChannelPresentation) async throws -> Void
     /// Sheet-only inputs arrive as closures so the sheet body that draws them
@@ -89,6 +90,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         },
         messageHistory: @escaping (ChatPresentation) -> MessageHistoryNavigation = { _ in .init() },
         searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation] = { _ in [] },
+        searchRecoveryRevision: Int = 0,
         loadArchivedChannels: @escaping @Sendable () async throws -> [ArchivedChannelPresentation] = { [] },
         restoreArchivedChannel: @escaping @Sendable (ArchivedChannelPresentation) async throws -> Void = { _ in },
         newChannelAgents: @escaping () -> [NewChannelAgentPresentation] = { [] },
@@ -121,6 +123,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.onOpenAttachment = onOpenAttachment
         self.messageHistory = messageHistory
         self.searchMessages = searchMessages
+        self.searchRecoveryRevision = searchRecoveryRevision
         self.loadArchivedChannels = loadArchivedChannels
         self.restoreArchivedChannel = restoreArchivedChannel
         self.newChannelAgents = newChannelAgents
@@ -189,6 +192,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                 ServerSearchView(
                     chats: durableChats,
                     searchMessages: searchMessages,
+                    searchRecoveryRevision: searchRecoveryRevision,
                     onSelectChat: { open($0) },
                     onSelectMessage: openSearchResult
                 )

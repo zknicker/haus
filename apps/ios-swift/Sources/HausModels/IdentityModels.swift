@@ -143,7 +143,7 @@ public enum AgentAvailability: String, Codable, Sendable {
     case working
 }
 
-public enum AgentReasoningEffort: String, Codable, CaseIterable, Sendable, Equatable {
+public enum AgentReasoningEffort: String, Codable, CaseIterable, Sendable, Equatable, Hashable {
     case `default`
     case low
     case medium
@@ -181,6 +181,7 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
     public let displayName: String
     public let dmChatID: String?
     public let effectiveModelID: String?
+    public let effectiveReasoningEffort: AgentReasoningEffort?
     public let effectiveReportedAt: Date?
     public let effectiveRuntimeID: String?
     public let factoryKind: AgentFactoryKind
@@ -203,6 +204,7 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
         case displayName
         case dmChatID = "dmChatId"
         case effectiveModelID = "effectiveModelId"
+        case effectiveReasoningEffort
         case effectiveReportedAt
         case effectiveRuntimeID = "effectiveRuntimeId"
         case factoryKind

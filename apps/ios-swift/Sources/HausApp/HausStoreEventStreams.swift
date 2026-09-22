@@ -9,6 +9,7 @@ import OSLog
 extension HausStore {
     func startEventStreams(serverID: String) {
         stopEventStreams()
+        agentMessageRecovery.beginSession()
         if chatEventServerID != serverID {
             chatEventServerID = serverID
             chatEventReplay.reset()

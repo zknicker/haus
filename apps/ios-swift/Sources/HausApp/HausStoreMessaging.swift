@@ -206,6 +206,7 @@ extension HausStore {
             "chat.list",
             input: ServerScopedInput(serverId: serverID)
         )
+        guard activeServer?.id == serverID else { return }
         // Events, sends, and reads all land here, and most of those reads come
         // back byte-identical. A freshly decoded equal value is still a write
         // Observation reports, which is what reshuffled the sidebar mid-gesture;

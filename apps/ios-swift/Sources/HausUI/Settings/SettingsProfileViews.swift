@@ -160,6 +160,7 @@ struct AgentProfileView: View {
     let onSave: (SettingsAgent) async throws -> SettingsAgent
     let onSaveAvatar: @Sendable (AvatarImagePayload) async throws -> Void
     let onOpenAvatarGenerator: () -> Void
+    let onOpenRuntimeConfiguration: () -> Void
     @State private var name: String
     @State private var savedName: String
     @State private var isSaving = false
@@ -170,13 +171,15 @@ struct AgentProfileView: View {
         onEditDescription: @escaping (String, String) -> Void,
         onSave: @escaping (SettingsAgent) async throws -> SettingsAgent = { $0 },
         onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in },
-        onOpenAvatarGenerator: @escaping () -> Void = {}
+        onOpenAvatarGenerator: @escaping () -> Void = {},
+        onOpenRuntimeConfiguration: @escaping () -> Void = {}
     ) {
         self.agent = agent
         self.onEditDescription = onEditDescription
         self.onSave = onSave
         self.onSaveAvatar = onSaveAvatar
         self.onOpenAvatarGenerator = onOpenAvatarGenerator
+        self.onOpenRuntimeConfiguration = onOpenRuntimeConfiguration
         _name = State(initialValue: agent.displayName)
         _savedName = State(initialValue: agent.displayName)
     }
@@ -193,7 +196,6 @@ struct AgentProfileView: View {
                         handle: "@\(agent.handle)",
                         onSaveAvatar: onSaveAvatar
                     )
-
                     if agent.canGenerateAvatar {
                         AgentAvatarGeneratorEntry(onOpen: onOpenAvatarGenerator)
                     }
@@ -228,13 +230,10 @@ struct AgentProfileView: View {
                     }
                 }
 
-                SettingsSection("Execution") {
-                    SettingsListGroup {
-                        ValueRow("Runtime", value: agent.runtime, icon: .terminal)
-                        ValueRow("Model", value: agent.model, icon: .agents)
-                        ValueRow("Status", value: agent.status, icon: .settings, showsDivider: false)
-                    }
-                }
+                AgentExecutionSettingsSection(
+                    agent: agent,
+                    onOpenRuntimeConfiguration: onOpenRuntimeConfiguration
+                )
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -293,7 +292,8 @@ struct AgentProfileView: View {
                 avatarURL: agent.avatarURL,
                 presence: agent.presence,
                 initials: agent.initials,
-                canGenerateAvatar: agent.canGenerateAvatar
+                canGenerateAvatar: agent.canGenerateAvatar,
+                runtimeConfiguration: agent.runtimeConfiguration
             )
             let saved = try await onSave(draft)
             name = saved.displayName

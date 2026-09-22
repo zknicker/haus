@@ -75,6 +75,9 @@ struct ServerSearchView: View {
 
     private let chats: [ChatPresentation]
     private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
+    /// The Store advances this only after a committed Agent message. A mounted
+    /// non-empty query then reruns; an unmounted sheet owns no search work.
+    private let searchRecoveryRevision: Int
     private let onSelectChat: (ChatPresentation) -> Void
     /// Returns `false` when the result's Chat is no longer in the directory, so
     /// the sheet can report the failure instead of dismissing into nothing.
@@ -91,11 +94,13 @@ struct ServerSearchView: View {
     init(
         chats: [ChatPresentation],
         searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation],
+        searchRecoveryRevision: Int = 0,
         onSelectChat: @escaping (ChatPresentation) -> Void,
         onSelectMessage: @escaping (MessageSearchResultPresentation) -> Bool
     ) {
         self.chats = chats
         self.searchMessages = searchMessages
+        self.searchRecoveryRevision = searchRecoveryRevision
         self.onSelectChat = onSelectChat
         self.onSelectMessage = onSelectMessage
     }
@@ -121,7 +126,7 @@ struct ServerSearchView: View {
                     Text(selectionError ?? "Try again.")
                 }
         }
-        .task(id: "\(query)|\(retryToken)") {
+        .task(id: "\(query)|\(retryToken)|\(searchRecoveryRevision)") {
             await runSearch(for: query)
         }
         .presentationDetents([.large])

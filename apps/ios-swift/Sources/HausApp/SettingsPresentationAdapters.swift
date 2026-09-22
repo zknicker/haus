@@ -26,6 +26,13 @@ extension HausStore {
                     description: description
                 )
             },
+            saveAgentRuntime: { [weak self] agentID, configuration in
+                guard let self else { throw CancellationError() }
+                return try await self.saveAgentRuntime(
+                    agentID: agentID,
+                    configuration: configuration
+                )
+            },
             saveHumanAvatar: { [weak self] userID, payload in
                 guard let self else { throw CancellationError() }
                 return try await self.saveHumanAvatar(userID: userID, payload: payload)
@@ -104,6 +111,10 @@ extension HausStore {
             )
         }
         guard let viewer = people.first(where: { $0.id == directory.viewerUserID }) else { return nil }
+        let computersByID = Dictionary(
+            (computers ?? []).map { ($0.id, $0) },
+            uniquingKeysWith: { current, _ in current }
+        )
 
         return SettingsData(
             server: SettingsServer(
@@ -117,7 +128,32 @@ extension HausStore {
             viewer: viewer,
             members: people,
             agents: agents.map { agent in
-                SettingsAgent(
+                let computer = computersByID[agent.computerID]
+                let desiredConfiguration = AgentRuntimeConfiguration(
+                    modelID: agent.desiredModelID,
+                    reasoningEffort: agent.desiredReasoningEffort ?? .medium,
+                    runtimeID: agent.desiredRuntimeID
+                )
+                let effectiveConfiguration: AgentRuntimeConfiguration? = if let modelID = agent.effectiveModelID,
+                                                                              let reasoningEffort = agent.effectiveReasoningEffort,
+                                                                              let runtimeID = agent.effectiveRuntimeID {
+                    AgentRuntimeConfiguration(
+                        modelID: modelID,
+                        reasoningEffort: reasoningEffort,
+                        runtimeID: runtimeID
+                    )
+                } else {
+                    nil
+                }
+                let runtimeConfiguration = SettingsAgentRuntimeConfiguration(
+                    desired: desiredConfiguration,
+                    effective: effectiveConfiguration,
+                    runtimes: computer?.reportedInventory?.runtimes.map(SettingsRuntime.init) ?? [],
+                    computerHealth: computer?.health,
+                    status: agent.status,
+                    canEdit: canManageServer
+                )
+                return SettingsAgent(
                     id: agent.id,
                     displayName: agent.displayName,
                     handle: agent.handle,
@@ -127,7 +163,8 @@ extension HausStore {
                     status: availability(for: agent).rawValue.capitalized,
                     avatarURL: resolvedAvatarURL(agent.avatarURL),
                     presence: settingsPresence(availability(for: agent)),
-                    canGenerateAvatar: agent.factoryKind == .ordinary
+                    canGenerateAvatar: agent.factoryKind == .ordinary,
+                    runtimeConfiguration: runtimeConfiguration
                 )
             },
             computers: computers?.map(computerPresentation)

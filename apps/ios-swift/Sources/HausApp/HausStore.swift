@@ -99,6 +99,10 @@ final class HausStore {
     /// batch applier runs; the catch-up walk already arrives batched.
     @ObservationIgnored var liveChatEvents = ChatEventCoalescer()
     @ObservationIgnored var liveChatEventFlush: Task<Void, Never>?
+    /// Recovery state invalidates mounted Chat reads when an Agent message has
+    /// committed and supplies the revision that mounted Server search observes.
+    @ObservationIgnored var agentMessageRecovery = AgentMessageRecoveryState()
+    var agentMessageSearchRevision = 0
     // Internal so the foreground refresh can live with the rest of the
     // realtime plumbing it drives.
     var foregroundRefreshInFlight = false

@@ -69,6 +69,7 @@ extension HausStore {
         }
         guard let ticket = historyNavigation.requests.begin(chatID: chatID, policy: policy) else { return false }
         historyLoadsInFlight.insert(chatID)
+        let readToken = agentMessageRecovery.beginRead(serverID: serverID, chatID: chatID)
         defer {
             if let refresh = historyNavigation.requests.finish(ticket, chatID: chatID) {
                 historyLoadsInFlight.remove(chatID)
@@ -86,6 +87,7 @@ extension HausStore {
                 )
             )
             guard !Task.isCancelled, activeServer?.id == serverID,
+                  agentMessageRecovery.accepts(readToken, activeServerID: activeServer?.id),
                   historyNavigation.requests.isCurrent(ticket, chatID: chatID) else {
                 return false
             }
@@ -113,7 +115,8 @@ extension HausStore {
         } catch is CancellationError {
             return false
         } catch {
-            guard historyNavigation.requests.isCurrent(ticket, chatID: chatID) else { return false }
+            guard agentMessageRecovery.accepts(readToken, activeServerID: activeServer?.id),
+                  historyNavigation.requests.isCurrent(ticket, chatID: chatID) else { return false }
             sendError = error.localizedDescription
             Self.logger.error("Loading history failed: \(error.localizedDescription, privacy: .public)")
             return false

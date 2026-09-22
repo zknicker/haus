@@ -95,6 +95,30 @@ extension HausStore {
         return agent
     }
 
+    func saveAgentRuntime(
+        agentID: String,
+        configuration: AgentRuntimeConfiguration
+    ) async throws -> SettingsAgent {
+        guard let serverID = activeServer?.id else {
+            throw HausStoreError.profileUnavailable
+        }
+        let updated: AgentSummary = try await client.mutation(
+            "agent.configure",
+            input: ConfigureAgentInput(
+                agentID: agentID,
+                modelID: configuration.modelID,
+                reasoningEffort: configuration.reasoningEffort,
+                runtimeID: configuration.runtimeID,
+                serverID: serverID
+            )
+        )
+        agents = agents.map { $0.id == updated.id ? updated : $0 }
+        guard let agent = settingsData?.agents.first(where: { $0.id == agentID }) else {
+            throw HausStoreError.profileUnavailable
+        }
+        return agent
+    }
+
     func saveHumanAvatar(
         userID: String,
         payload: AvatarImagePayload

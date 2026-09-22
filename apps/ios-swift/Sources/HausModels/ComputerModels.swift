@@ -26,14 +26,34 @@ public enum ComputerUpdatePhase: String, Codable, Sendable, Equatable {
 }
 
 public struct ComputerModelSummary: Codable, Sendable, Equatable {
+    public let defaultReasoningEffort: AgentReasoningEffort?
     public let id: String
     public let label: String
+    public let reasoningEfforts: [AgentReasoningEffort]?
+
+    public init(
+        id: String,
+        label: String,
+        defaultReasoningEffort: AgentReasoningEffort? = nil,
+        reasoningEfforts: [AgentReasoningEffort]? = nil
+    ) {
+        self.defaultReasoningEffort = defaultReasoningEffort
+        self.id = id
+        self.label = label
+        self.reasoningEfforts = reasoningEfforts
+    }
 }
 
 public struct ComputerRuntimeSummary: Codable, Sendable, Equatable {
     public let id: String
     public let label: String
     public let models: [ComputerModelSummary]
+
+    public init(id: String, label: String, models: [ComputerModelSummary]) {
+        self.id = id
+        self.label = label
+        self.models = models
+    }
 }
 
 /// Sanitized inventory reported by a Computer. The Server may add skill fields;

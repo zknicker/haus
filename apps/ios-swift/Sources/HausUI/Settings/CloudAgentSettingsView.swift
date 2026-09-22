@@ -3,6 +3,7 @@ import HausModels
 
 public enum CloudAgentConnectionOperation: String, Sendable {
     case get, connect, disconnect
+    case cancelSignIn
 }
 
 public struct CloudAgentSettingsActions: Sendable {
@@ -48,7 +49,7 @@ struct CloudAgentSettingsView: View {
             } header: {
                 Text("Computers")
             } footer: {
-                Text("Connect opens Cursor sign-in on the selected Computer. Finish signing in there; credentials stay on that Computer. Its agents can then use Cursor from any Haus device.")
+                Text("Connect opens a short-lived Cursor sign-in link. Credentials stay on the selected Computer, and its agents can use Cursor from any Haus device.")
             }
         }
         .navigationTitle("Cloud agents")
@@ -64,6 +65,7 @@ private struct CursorConnectionRow: View {
     @State private var operation: CloudAgentConnectionOperation?
     @State private var failure: String?
     @State private var confirmDisconnect = false
+    @State private var showsSignIn = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -74,10 +76,7 @@ private struct CursorConnectionRow: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             if let email = capability?.accountEmail { Text(email).font(.subheadline) }
-            if operation == .connect {
-                Label("Finish signing in on \(computer.name)…", systemImage: "arrow.up.forward.app")
-                    .font(.subheadline)
-            } else if let failure {
+            if let failure {
                 Text(failure).font(.caption).foregroundStyle(.red)
             } else if let reason = capability?.reason {
                 Text(reasonLabel(reason)).font(.caption).foregroundStyle(.secondary)
@@ -89,8 +88,8 @@ private struct CursorConnectionRow: View {
                     if canManage {
                         if capability?.ready == true {
                             Button("Disconnect", role: .destructive) { confirmDisconnect = true }
-                        } else if let capability, capability.reason != "provider-unavailable" {
-                            Button("Connect Cursor") { Task { await perform(.connect) } }
+                        } else if capability?.reason != "provider-unavailable" {
+                            Button("Connect Cursor") { showsSignIn = true }
                         }
                     }
                     Button("Refresh") { Task { await perform(.get) } }
@@ -101,6 +100,15 @@ private struct CursorConnectionRow: View {
         .padding(.vertical, 4)
         .task(id: computer.isHealthy) {
             if computer.isHealthy { await perform(.get) }
+        }
+        .sheet(isPresented: $showsSignIn) {
+            CloudAgentSignInView(
+                computerID: computer.id,
+                computerName: computer.name,
+                isOnline: computer.isHealthy,
+                capability: $capability,
+                actions: actions
+            )
         }
         .confirmationDialog("Disconnect Cursor on \(computer.name)?", isPresented: $confirmDisconnect) {
             Button("Disconnect", role: .destructive) { Task { await perform(.disconnect) } }
@@ -119,7 +127,7 @@ private struct CursorConnectionRow: View {
         } catch is CancellationError {
             return
         } catch {
-            failure = "Could not \(requested == .get ? "check Cursor" : requested.rawValue). Check that this Computer is online and try again."
+            failure = "Could not \(requested == .get ? "check Cursor" : requested == .cancelSignIn ? "cancel sign-in" : requested.rawValue). Check that this Computer is online and try again."
         }
     }
 
