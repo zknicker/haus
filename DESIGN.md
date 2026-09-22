@@ -447,6 +447,10 @@ giving chat messages a 22.75px line height at the shared 14px base size.
 Chat paragraphs and lists retain three spacing units between Markdown blocks.
 The theme corrects HeroUI’s last-child reset within its per-block wrappers; the
 reply layout uses the same gap around inline visuals.
+Markdown lists place markers outside the text with a six-spacing-unit start gutter,
+so compact lists, lists separated by blank lines, and nested lists keep their markers
+beside the first line. Remove this theme correction when HeroUI Pro supplies that layout;
+its current Markdown CSS still uses inside markers as of beta.10.
 Inline code uses a 7% foreground tint over its surrounding surface, keeping it distinct
 when a message is hovered in either theme. Fenced code blocks retain their stock background.
 
