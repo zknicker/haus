@@ -13,11 +13,12 @@ import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
 import { Cause, Data, Effect, Exit, Stream } from 'effect';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
+import type { UnreadElsewhere } from '../agent-commands.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
-import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
+
 import {
     claimClaudeSdkUsageRefresh,
     saveClaudePlanUsageSnapshot,
@@ -57,6 +58,7 @@ import {
     usageContextTokens,
 } from './token-usage.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
+import { attestComposedDrain, composeTurnPrompt } from './turn-prompt.ts';
 
 /** Drives one isolated, persistent Codex, Claude Code, Grok Build, or Pi Agent session. */
 export interface HarnessTurnInput {
@@ -65,6 +67,8 @@ export interface HarnessTurnInput {
     agentName: string;
     agentRoot: string;
     dataRoot: string;
+    /** Inbox identities drainable on any start; the warm set needs a live session. */
+    drainItemIds: string[];
     env: Record<string, string>;
     factoryKind: 'cove' | 'ordinary';
     /** Per-turn construction seam for boundary tests; production uses the default Harness Agent. */
@@ -81,12 +85,15 @@ export interface HarnessTurnInput {
     runId: string;
     runtime: DaemonRuntime;
     runtimeId: string;
+    serverId: string;
     sessionGeneration: number;
     signal?: AbortSignal;
     skillsDir: string;
     tools: ToolSet;
     totalPending: number;
     turnTimings?: AgentTurnTimings;
+    unreadElsewhere: UnreadElsewhere[];
+    warmDrainItemIds: string[];
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspaceDir: string;
 }
@@ -382,28 +389,15 @@ async function executeHarnessTurn(
             });
             return { aborted: true, claudePlanUsage: null, contextTokens: null, tokenUsage: null };
         }
-        const isColdStart = !live.isResume;
-        const coldInbox = isColdStart
-            ? input.inboxDelivery === 'concrete'
-                ? composeInboxDrain(input.inbox, input.homeTimezone)
-                : composeInboxNotice(input.inbox, input.totalPending)
-            : null;
-        const warmNotice =
-            !isColdStart && input.inboxDelivery === 'notice'
-                ? composeInboxNotice(input.inbox, input.totalPending)
-                : null;
-        const resetContext =
-            session.generation === 1
-                ? null
-                : 'Fresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact — MEMORY.md is your recovery point.';
-        const coldStart = resetContext ? `Start.\n${resetContext}` : 'Start.';
-        const turnContent = isColdStart
-            ? coldInbox
-                ? [resetContext, coldInbox].filter(Boolean).join('\n\n')
-                : coldStart
-            : input.inboxDelivery === 'concrete'
-              ? composeInboxDrain(input.inbox, input.homeTimezone)
-              : (warmNotice ?? 'Resume the interrupted turn.');
+        const prompt = composeTurnPrompt(input, {
+            isColdStart: !live.isResume,
+            sessionGeneration: session.generation,
+        });
+        // A notice-lane drain is composed here, not served by the Server, so the
+        // Computer attests it exactly as a pull does and clears it from the
+        // local notice projection before any stored notice can repeat it.
+        await attestComposedDrain(input, prompt.drained);
+        const turnContent = prompt.turnContent;
         const turn = await agent.stream({
             abortSignal: input.signal,
             prompt: projectMessageForAgent({
@@ -412,14 +406,14 @@ async function executeHarnessTurn(
             }),
             session: live,
         });
+        const primaryNotice = prompt.notice;
         const deliverNotice = createNoticeDelivery(
             live,
             input.runtime,
             input.agentRoot,
-            warmNotice ?? (input.inboxDelivery === 'notice' ? coldInbox : null)
+            primaryNotice
         );
         const noticeCoordinator = createNoticeCoordinator(deliverNotice);
-        const primaryNotice = warmNotice ?? (input.inboxDelivery === 'notice' ? coldInbox : null);
         const deliverAtSafeBoundary = async (notice: string) =>
             notice === primaryNotice
                 ? await deliverNotice(notice)

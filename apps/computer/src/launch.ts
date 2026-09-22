@@ -219,6 +219,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                           dataRoot: options.dataRoot,
                           dirs,
                           runtime: options.runtime,
+                          serverId: options.attachment.serverId,
                           signal: options.signal,
                       }),
                   }
@@ -234,6 +235,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       activity,
                       registerNoticeSink: options.registerNoticeSink,
                       runtime: options.runtime,
+                      serverId: options.attachment.serverId,
                       tools: createComputerTools({ host, options, command }),
                       signal: options.signal,
                   });
@@ -514,6 +516,7 @@ interface RuntimeExecutionInput {
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtime: DaemonRuntime;
+    serverId: string;
     signal?: AbortSignal;
     turnTimings?: AgentTurnTimings;
 }
@@ -578,6 +581,7 @@ async function runRealRuntime(
             modelId: command.modelId,
             reasoningEffort:
                 (await readAppliedAgentConfiguration(input.agentRoot))?.reasoningEffort ?? 'medium',
+            drainItemIds: command.drainItemIds ?? [],
             inbox: command.inbox ?? [],
             inboxDelivery: command.inboxDelivery,
             onStoredNoticeDelivered: input.onStoredNoticeDelivered,
@@ -588,8 +592,11 @@ async function runRealRuntime(
             runtimeId: command.runtimeId,
             sessionGeneration: command.sessionGeneration,
             signal: input.signal,
+            serverId: input.serverId,
             skillsDir: input.dirs.skills,
             totalPending: command.totalPending,
+            unreadElsewhere: command.unreadElsewhere ?? [],
+            warmDrainItemIds: command.warmDrainItemIds ?? [],
             webAccess: command.webAccess ?? null,
             workspaceDir: input.dirs.workspace,
             tools: input.tools,

@@ -216,7 +216,7 @@ type TestTurnOverrides = Partial<HarnessTurnInput> & {
 
 function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
     const { activity, onActivity, ...inputOverrides } = overrides;
-    return {
+    const input: HarnessTurnInput = {
         activity:
             activity ??
             new AgentActivityRun(runtime, ({ category, phase }) =>
@@ -254,9 +254,18 @@ function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
         totalPending: 1,
         webAccess: null,
         workspaceDir: join(agentRoot, 'workspace'),
+        drainItemIds: [],
+        serverId: 'srv_executor_test',
+        unreadElsewhere: [],
+        warmDrainItemIds: [],
         ...inputOverrides,
         tools: overrides.tools ?? {},
     };
+    // A concrete frame drains everything it carries; the Server sets the same
+    // ids on the wire, so the default keeps these turns behaving as they did.
+    return inputOverrides.drainItemIds || input.inboxDelivery !== 'concrete'
+        ? input
+        : { ...input, drainItemIds: input.inbox.map((item) => item.id) };
 }
 
 async function readSession(): Promise<AgentSessionState> {
@@ -1316,5 +1325,37 @@ test('a resumed DM greeting is not followed by its stale notice from prior task 
         '[target=dm:@operator msg=dm_greet time=2026-08-03 20:01:00 type=human] @operator: Hey Blippy!'
     );
     expect(streamedPrompts.at(-1)).not.toContain('avatar');
+    expect(sentUserMessages).toEqual([]);
+});
+
+test('an alive session drains a human message that a cold start only notices', async () => {
+    const channel = {
+        chatId: 'cht_product',
+        content: 'Standup moved to ten.',
+        createdAt: '2026-09-20T09:00:00.000Z',
+        id: 'msg_standup',
+        senderHandle: 'operator',
+        senderType: 'human' as const,
+        sequence: 3,
+        target: '#product',
+    };
+    const warmDrain = turnInput({
+        inbox: [channel],
+        inboxDelivery: 'notice',
+        totalPending: 1,
+        warmDrainItemIds: [channel.id],
+    });
+
+    await runHarnessTurn(warmDrain);
+    expect(streamedPrompts.at(-1)).toContain('[Haus inbox notice:');
+    expect(streamedPrompts.at(-1)).not.toContain('Standup moved to ten.');
+
+    // The session is parked, so the next turn resumes it: the same frame now
+    // drains the body instead of noticing it, and injects no second notice.
+    await runHarnessTurn(warmDrain);
+
+    expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({ type: 'resume-session' });
+    expect(streamedPrompts.at(-1)).toContain('Standup moved to ten.');
+    expect(streamedPrompts.at(-1)).not.toContain('[Haus inbox notice:');
     expect(sentUserMessages).toEqual([]);
 });

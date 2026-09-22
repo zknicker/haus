@@ -117,6 +117,7 @@ test('a pending notice carries durable envelopes but persists only model-safe no
         runId: 'run_x',
         totalPending: 3,
         type: 'notice',
+        unreadElsewhere: [],
     });
 
     await writePendingNotice(dataRoot, {

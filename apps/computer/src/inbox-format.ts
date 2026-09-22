@@ -1,4 +1,5 @@
 import type { CloudAgentBranch } from '@haus/api';
+import type { UnreadElsewhere } from './agent-commands.ts';
 import type {
     AgentCloudAgentWorkAttention,
     AgentInboxAsk,
@@ -22,6 +23,21 @@ export function composeInboxDrain(items: AgentInboxItem[], homeTimezone = 'UTC')
         ...items.map((item) => formatEnvelope(item, homeTimezone)),
         '',
         deliveryTrailer,
+    ].join('\n');
+}
+
+/**
+ * Raft's per-wake digest of queued work the frame itself does not carry. It is
+ * counts only, it advances nothing, and an empty list renders nothing at all.
+ */
+export function formatUnreadElsewhere(entries: UnreadElsewhere[]): string | null {
+    if (entries.length === 0) {
+        return null;
+    }
+    return [
+        'You also have unread messages in other channels:',
+        ...entries.map((entry) => `- ${entry.target}: ${entry.count} unread`),
+        'Use the inbox/read commands at a natural breakpoint if you choose to inspect those targets.',
     ].join('\n');
 }
 
