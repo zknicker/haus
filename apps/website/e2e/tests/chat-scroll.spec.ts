@@ -1,11 +1,5 @@
 import type { Locator } from '@playwright/test';
-import {
-    assertOpaqueId,
-    createTestServer,
-    openChannel,
-    openSection,
-    runPsql,
-} from '../support/server.ts';
+import { assertOpaqueId, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('human sends jump to latest; agent messages preserve following across background and settings', async ({
@@ -95,7 +89,7 @@ test('human sends jump to latest; agent messages preserve following across backg
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(viewport).toHaveCount(0);
     await sendAgent('Agent while in settings');
-    await openSection(page, 'Chat');
+    await page.getByRole('row', { name: 'Back to chat', exact: true }).click();
     await expect(page.getByText('Agent while in settings', { exact: true })).toBeAttached();
     await atBottom(viewport);
 
@@ -113,7 +107,7 @@ test('human sends jump to latest; agent messages preserve following across backg
         .poll(() => viewport.evaluate((element) => element.scrollTop))
         .toBeCloseTo(readingTop, 0);
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await openSection(page, 'Chat');
+    await page.getByRole('row', { name: 'Back to chat', exact: true }).click();
     await expect.poll(() => distanceFromEnd(viewport)).toBeGreaterThan(300);
 
     async function agentSender() {
