@@ -278,6 +278,14 @@ chat's last message, and the author name resolves exactly as a message author
 does in the chat timeline. The app already invalidates `chat.list` on
 `message.created`, so the line refreshes with the timeline.
 
+`chat.messages` returns chronological Message rows in a bounded window. With no
+selector it returns the newest window; `beforeSequence` and `afterSequence` are
+exclusive cursors for older and newer windows, and `aroundMessageId` returns a
+centered window containing that Message. `nextBeforeSequence` and
+`nextAfterSequence` are nullable, direction-specific cursors computed against
+the active Chat and inline-reply filter, so callers can traverse either way
+without gaps or duplicates.
+
 ## Chat Appearance
 
 Channel icon and color are durable Haus chat metadata on the `Chat` record

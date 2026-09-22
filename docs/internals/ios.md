@@ -61,7 +61,11 @@ images live in a process-wide `NSCache`, and the bytes behind them persist acros
 cache's own `URLSession`/`URLCache` on disk, fetched with `returnCacheDataElseLoad`. Immutability is
 the license to ignore the Server's freshness headers — nothing the Server says can make a stored
 avatar wrong — so a cold launch paints identities the human has already seen instead of holding
-initials until the network answers.
+initials until the network answers. Concurrent loads share the complete fetch, decode, and cache
+insertion, so rows awaiting one URL receive one image instance. `AvatarImageDecoder` downsamples
+to at most 384 pixels on the concurrent executor, covering the 84pt profile avatar at 3x without
+retaining a full-resolution source for every small identity mark. Synchronous recovery after decoded
+cache eviction uses the same bounded decoder over cached bytes.
 An ordinary Agent's profile may call the same Server-owned `avatar.generate` procedure as the desktop
 App with one short concept, from a capsule directly under the avatar it changes. A factory Agent does
 not offer it: the Server refuses to replace Cove's product-owned artwork, so `SettingsAgent` carries
@@ -756,9 +760,21 @@ that "Projected Server state" block, and a projection must read its observable i
 cache check so a cached answer leaves the calling view subscribed to exactly what a rebuilt one
 would. Optimistic rows adopt the canonical Server message id from the send receipt, so a pending
 row's presentation id is a real Server id from that moment and its ForEach identity never changes
-when the durable row arrives. Chat and Thread timelines page older history through the existing
-`beforeSequence` cursor, merge overlapping pages by message id in Server sequence order, and preserve
-the prior top row as the scroll anchor. The Swift prototype keeps one in-memory cursor per active
+when the durable row arrives. Chat and Thread timelines keep a 200-message window in Server sequence
+order. `chat.messages` reads 50 rows using exclusive `beforeSequence`, `afterSequence`, or
+`aroundMessageId` selectors. Moving either direction evicts the opposite edge and leaves a cursor
+for reloading it. UIKit reuses visible cells; a surviving visible row and its pixel offset anchor
+window changes. New events update overlapping rows while reading older history, without joining
+disconnected ranges. Returning to latest replaces the window when needed.
+
+The Store retains six recently used Chat windows, protecting mounted, sending, and loading Chats.
+Filtered inline-reply windows have the same 200-message bound and a separate six-root cache.
+Derived message projections and visual-height measurements are retired with evicted history.
+Search and reply-reference jumps fetch a page around the target instead of walking every older page.
+History requests carry identities so a superseded response cannot overwrite a newer navigation.
+Deploy the Server paging contract before distributing this iOS build: older Servers reject the new
+forward and around-message selectors. Older iOS builds ignore the added response cursor.
+The Swift prototype keeps one in-memory event cursor per active
 Server, walks `chat.events` from that cursor on reconnect, and refetches loaded affected Chat pages.
 The SSE connection is established before recovery, while buffered live events are consumed only after
 the walk completes, so events arriving during recovery are not missed. A cold start seeds the cursor
@@ -800,7 +816,8 @@ debounce and each result is resolved against the canonical chat directory. A Ser
 degrades the message section alone and leaves chat matches usable. Selecting a message result selects
 its Chat, scrolls the loaded page to that message, and highlights it briefly; a result whose Chat has
 left the directory reports a failure alert in the sheet instead of dismissing into an unrelated Chat,
-and a message outside the loaded pages is not chased with a speculative fetch. Archived channels load
+and a message outside the loaded window is fetched by its authorized `aroundMessageId` selector.
+A failed lookup offers retry without walking the entire transcript. Archived channels load
 through `chat.listArchived` and restore through `chat.unarchiveChannel`, and a successful restore
 dismisses the sheet and selects the restored channel through the same pending-selection wait a newly
 created channel uses, because both reappear only on the next Server chat list. Channel creation uses
@@ -1088,7 +1105,11 @@ without relaying out. Avatar presence is `AvatarImageCache`'s answer alone, neve
 the cache restores an evicted avatar from its disk bytes and only reports absence once those are
 gone too, so a recycled row cannot flip a drawn avatar back to initials. Row height comes from the
 representable's `sizeThatFits` at the proposed width, which is what `UIHostingConfiguration` asks
-for inside the self-sizing transcript cells. A long press belongs to the row, not the text: the text
+for inside the self-sizing transcript cells. Each text view retains up to four proposal-size results
+until its attributed text changes. This avoids repeated TextKit measurement during SwiftUI's width
+probes while still invalidating for content, Dynamic Type, and Bold Text changes. Reference-mark
+revision is computed once per message body, rather than scanning every block for every block.
+A long press belongs to the row, not the text: the text
 view refuses its own long-press recognizers so `TranscriptListView`'s context menu wins, leaving
 double-tap word selection intact. The body carries an accessibility label naming each reference's
 kind, and the text view's value is suppressed so VoiceOver reads the sentence once, as

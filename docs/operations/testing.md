@@ -85,7 +85,7 @@ that matches multiple rows, run the union of their required proof.
 | --- | --- | --- |
 | Documentation only | `bun run docs:list`; inspect changed links and rendered Markdown | Run code gates only when documented generated output or executable examples changed. |
 | App copy, tokens, or CSS only | `bun run lint`; typecheck when TS or TSX changed | Run a scoped App e2e only when an existing browser contract covers the changed behavior. |
-| iPhone app models, presentation, or interaction | `swift test` from `apps/ios-swift`; build the app target for a Simulator destination | Drive the Simulator when the change is a gesture, layout, or chrome treatment that a unit test cannot show. |
+| iPhone app models, presentation, or interaction | `swift test` from `apps/ios-swift`; build the app target for a Simulator destination | For UIKit text layout or rendering performance, run the [HausRenderingTests Simulator target](../../apps/ios-swift/README.md#local-checks). Drive the Simulator when the change is a gesture, layout, or chrome treatment that a unit test cannot show. |
 | React presentation, view model, or local interaction | Focused behavior test; website typecheck | Use the website gate for shared primitives or several features. |
 | React query, mutation, cache, realtime, optimistic UI, or shared state | Focused regression plus website gate | Add scoped App e2e for reload, reconnect, navigation, or a complete user flow. |
 | Route tree, persistent shell, navigation, side pane, or layout-critical behavior | Website gate plus scoped App e2e | Use the full App e2e suite for broad shell or cross-flow changes. |

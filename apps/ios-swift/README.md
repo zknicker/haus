@@ -7,7 +7,7 @@ does not introduce a mobile backend.
 The prototype currently proves production Google sign-in, Server discovery,
 channels and Agent DMs, real message history, live Chat event refresh, Agent
 lifecycle presence, optimistic Chat and Thread sends with draft recovery,
-cursor-based older-history loading, foreground snapshot recovery, Server-backed
+bounded bidirectional history loading, foreground snapshot recovery, Server-backed
 People and Computers, the native sidebar and composer, and one sheet-local
 settings navigation stack backed by Server profile data.
 
@@ -33,6 +33,22 @@ Run the complete package test suite from this directory:
 ```bash
 swift test
 ```
+
+UIKit rendering checks run in Simulator, because `swift test` on macOS excludes that code:
+
+```bash
+xcodebuild -project Haus.xcodeproj -scheme Haus -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:HausRenderingTests -parallel-testing-enabled NO test
+```
+
+`SimulatorTests` covers text measurement invalidation, shared avatar decoding, and repeatable
+transcript rendering benchmarks. The benchmarks use 24 fixed Markdown messages and measure ten
+transcript remounts or forty scroll-layout steps per sample. They isolate native layout work from
+authentication and network latency; they do not measure device frame rate. The long-history fixture
+uses 1,000 variable-length Markdown messages and renders 200 at a time, checking cell reuse while
+switching windows and scrolling. Separate tests verify pixel anchoring and a direct distant-message
+lookup. Pure model tests traverse all 1,000 messages in both directions and check cursor recovery,
+cache eviction, and stale-request rejection. Compare the same
+Simulator, build configuration, and fixture before and after a change.
 
 `HausJSON.decoder()` and `HausJSON.encoder()` are the production coding
 factories. Haus timestamps are ISO-8601 strings with an explicit offset and
