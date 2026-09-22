@@ -96,6 +96,10 @@ keeps its header, Close, and Open profile controls outside its Agent query bound
 * Keep primary Server destinations code-split, but share their cached module
   loaders between router navigation and preloading. The persistent shell warms
   them while idle; sidebar-row hover warms the destination before selection.
+  Channel and existing DM rows also warm Chat detail and paginated history on
+  hover or keyboard focus. Preloads use the mounted query's options and cache,
+  retain loaded history pages, and respect realtime invalidation. An implicit
+  DM only warms route code; navigating or preloading must not create a Chat.
 * Treat empty synced database results as valid rendered states.
 * Keep `/s/*` on the Haus Server route tree. It may mount Server hooks and
   Computer-backed capability surfaces, but it must not invent direct execution
