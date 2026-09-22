@@ -66,6 +66,17 @@ struct VisualHeightRegistryTests {
         #expect(registry.revision == 1)
     }
 
+    @Test func evictsMeasurementsOutsideTheLoadedHistoryWindow() {
+        let registry = VisualHeightRegistry()
+        for index in 0..<1_000 {
+            registry.report(300, for: VisualKey(messageID: "message-\(index)", ordinal: 0))
+        }
+        registry.retain(messageIDs: Set((800..<1_000).map { "message-\($0)" }))
+        #expect(registry.height(VisualKey(messageID: "message-799", ordinal: 0)) == nil)
+        #expect(registry.height(VisualKey(messageID: "message-800", ordinal: 0)) == 300)
+        #expect(registry.height(VisualKey(messageID: "message-999", ordinal: 0)) == 300)
+    }
+
     @Test func naturalHeightGrowsAndShrinksWithAResourceGuard() {
         let registry = VisualHeightRegistry()
         for height: CGFloat in [700, 2400, 300] {

@@ -8,11 +8,13 @@ test('chat pages merge oldest-first while preserving the newest duplicate row', 
         {
             messages: [message('msg_new', 3), newestDuplicate],
             nextBeforeSequence: 2,
+            nextAfterSequence: null,
             threads: [thread('msg_new', 1)],
         },
         {
             messages: [message('msg_old', 1), message('msg_duplicate', 2, 'older copy')],
             nextBeforeSequence: null,
+            nextAfterSequence: 2,
             threads: [thread('msg_new', 0)],
         },
     ]);
@@ -21,6 +23,7 @@ test('chat pages merge oldest-first while preserving the newest duplicate row', 
     expect(merged?.messages.find(({ id }) => id === 'msg_duplicate')).toBe(newestDuplicate);
     expect(merged?.threads).toEqual([thread('msg_new', 1)]);
     expect(merged?.nextBeforeSequence).toBeNull();
+    expect(merged?.nextAfterSequence).toBeNull();
 });
 
 function message(id: string, sequence: number, content = id): ChatMessage {

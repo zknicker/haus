@@ -56,6 +56,7 @@ final class ThreadFollowModelsTests: XCTestCase {
         XCTAssertEqual(ThreadFollowPatch.followed(threadChatID: "cht_other", in: patched), false)
         XCTAssertEqual(patched.messages, page.messages)
         XCTAssertEqual(patched.nextBeforeSequence, page.nextBeforeSequence)
+        XCTAssertEqual(patched.nextAfterSequence, page.nextAfterSequence)
         XCTAssertEqual(patched.threads.map(\.threadChatID), page.threads.map(\.threadChatID))
         XCTAssertEqual(patched.threads.map(\.replyCount), page.threads.map(\.replyCount))
     }
@@ -89,6 +90,7 @@ final class ThreadFollowModelsTests: XCTestCase {
         ChatMessagePage(
             messages: [],
             nextBeforeSequence: 7,
+            nextAfterSequence: 8,
             threads: [
                 summary(anchorMessageID: "msg_anchor", threadChatID: "cht_thread", followed: followed),
                 summary(anchorMessageID: "msg_other", threadChatID: "cht_other", followed: false),

@@ -4,6 +4,7 @@ import {
     channelUpdateInputSchema,
     chatMarkReadInputSchema,
     chatMessageSchema,
+    chatMessagesInputSchema,
     chatSendInputSchema,
     serverdurableeventSchema,
 } from './chat.ts';
@@ -50,6 +51,26 @@ test('Chat reads derive the reader from the verified Clerk member', () => {
             sequence: 4,
             serverId: 'srv_main',
         })
+    ).toThrow();
+});
+
+test('Chat history selectors are mutually exclusive and accept the zero after cursor', () => {
+    const base = { chatId: 'cht_all', serverId: 'srv_main' };
+    expect(chatMessagesInputSchema.parse(base)).toMatchObject(base);
+    expect(chatMessagesInputSchema.parse({ ...base, afterSequence: 0 })).toMatchObject({
+        afterSequence: 0,
+    });
+    expect(chatMessagesInputSchema.parse({ ...base, beforeSequence: 4 })).toMatchObject({
+        beforeSequence: 4,
+    });
+    expect(chatMessagesInputSchema.parse({ ...base, aroundMessageId: 'msg_anchor' })).toMatchObject(
+        { aroundMessageId: 'msg_anchor' }
+    );
+    expect(() =>
+        chatMessagesInputSchema.parse({ ...base, afterSequence: 2, beforeSequence: 4 })
+    ).toThrow();
+    expect(() =>
+        chatMessagesInputSchema.parse({ ...base, afterSequence: 2, aroundMessageId: 'msg_anchor' })
     ).toThrow();
 });
 
