@@ -88,6 +88,19 @@ targets:
         path: scripts/install-precompiled-icon.sh
         basedOnDependencyAnalysis: false
 
+  HausRenderingTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SimulatorTests
+    dependencies:
+      - package: HausIOS
+        product: HausUI
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        SWIFT_VERSION: "6.0"
+
 schemes:
   Haus:
     build:
@@ -97,3 +110,5 @@ schemes:
       config: Debug
     test:
       config: Debug
+      targets:
+        - HausRenderingTests
