@@ -32,6 +32,12 @@ presence used by the desktop App; `settled` immediately projects the terminal id
 state. The app separately subscribes to semantic Agent activity and presents current plus recent work
 from the existing `agent.activeActivity`, `agent.onActivity`, and `agent.activityHistory` contracts.
 
+A `sending` lifecycle event also recovers committed messages when the durable message notification
+was missed. Recovery refreshes the visible Chat and any covered parent transcript, the Chat list,
+and active message search. Older reads cannot replace the recovered snapshot. Other lifecycle phases
+only update activity; foreground and reconnect recovery remain independent fallback paths. Message
+rows always come from Server reads, never from lifecycle text.
+
 Debug builds mirror the web App's local authentication flow. When launched with
 `HAUS_DEV_SERVER_ORIGIN` and `HAUS_CLERK_PUBLISHABLE_KEY`, the app requests the existing
 localhost-only `dev.createClerkSignInToken` ticket, activates it through Clerk's native SDK, and calls
@@ -54,6 +60,20 @@ the shared handle grammar for immediate feedback, while `member.updateProfile` c
 `serverId` and Server remains authoritative for cross-human/Agent uniqueness. The app also reads
 Computers through the existing `computer.list`
 contract; an unavailable or role-denied Computer snapshot does not block the rest of Settings.
+
+Owners and Admins can edit an Agent's runtime, model, and reasoning in its Settings profile through
+`agent.configure`. Choices come from its assigned Computer's reported inventory. The native reasoning
+contract includes `default`, `low`, `medium`, `high`, `xhigh`, and `max`; `default` means the model is
+not configurable, rather than an extra automatic-effort choice. A model change keeps a supported
+effort or selects the model's concrete default. The editor explains next-turn application and the
+session reset required by runtime/model changes or a Grok Build reasoning change.
+
+Cloud Agent settings use `cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect`.
+Computer owns the Cursor sign-in attempt and credentials. The phone presents the Server-reported
+sign-in link, checks progress while the screen is active, and supports cancellation and retry after
+failure or expiry. Returning from the browser refreshes the attempt; leaving the screen does not
+cancel it. A later visit can resume the pending attempt on the same Computer.
+
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
 An avatar URL names immutable bytes, and `AvatarImageCache` treats it that way twice over: decoded
