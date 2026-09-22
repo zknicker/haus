@@ -382,7 +382,12 @@ inbox. Human **Start** resumes the current session and drains that work.
   arrive through `message check` or a bounded concrete resume batch. The Computer already has
   the full socket-delivered envelope; content-free describes the runtime input, not the
   Computer transport. Notice flushing copies the daemon's gating: only at tool boundaries,
-  never while compacting or with outstanding tool uses.
+  never while compacting or with outstanding tool uses. Two carve-outs restore Raft's own
+  behavior ([ADR 0033](../../docs/adr/0033-addressed-messages-ride-the-wake.md)): a wake that
+  **resumes a live session** drains human bodies as full envelopes, matching Raft's alive-idle
+  wake, and a **cold start** drains the items addressed to this Agent — a DM, an @mention, or a
+  committed Jev narrow — beside the content-free notice of everything else. A busy Agent's
+  mid-turn traffic stays content-free without exception.
 - **I3 — Exact model visibility plus a verified contiguous boundary.** Server pending rows are
   exact transport debt. Every path that exposes a message to the model records its exact identity
   for the active run; settlement makes that visibility authoritative for later turns. An optional
@@ -477,7 +482,7 @@ section; `## Chat History` tool teaching; all prompt-taught tool catalogs.
 | Trigger delivery | `New message received:` + envelopes + Raft's two-line trailer; unseen rows of the triggering chat ride along as additional envelopes |
 | Envelope | `[target=… msg=… time=… type=…] @sender — <description>: …` (+ `[task #N status=… assignee=…]`, attachment suffix) |
 | Mid-turn traffic | Content-free inbox notices, Raft row format (first/latest msg, sender, `· task/thread/dm/mention` tags) |
-| Unread elsewhere | Nothing pushed; `haus inbox check` (notice rows only when they change) |
+| Unread elsewhere | Per-target counts for chats no row of the frame represents, appended to every wake; `haus inbox check` for the rest (notice rows only when they change) |
 | Identity/roster/description | Not pushed; `server info` / `channel info` pulls (D6) |
 | Current time | Envelope timestamps only; home-timezone rule lives in the prompt |
 | Freshness | Attested sends: bounded catch-up + revise / `--send-draft` / silent / `--anyway` paths. Drafts are held **server-side** — a decided divergence: shipped Raft parks drafts client-side (tmpdir, 10-min TTL, client-supplied cursors) on an API its own manifest calls interim |
@@ -640,7 +645,8 @@ deployment, so intermediate brokenness is not a constraint.
   visibility ledger per I3 (exact identities plus a verified contiguous boundary, wake-advances-nothing contract
   test), `inbox check` + `message check` — **replacing WS1's honest stubs** (haus-cli.md §7
   marks them; their outputs teach that cursor semantics arrive with WS4) — read-only inbox card
-  on agent detail per I4; retire pushed "Unread elsewhere". Security note riding the program:
+  on agent detail per I4; retire pushed "Unread elsewhere" (restored as Raft's per-wake count
+  digest by ADR 0033). Security note riding the program:
   PRD-105 (cross-agent FS isolation; token custody is contract-level until it lands) is a named
   WS6 blocker.
 - **WS5 — Tasks + reminders + affordances.** D8 tasks (with board view, priorities, labels),

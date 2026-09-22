@@ -29,7 +29,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 
 | Kind (`source`) | What it is | Identity | Lane |
 | --- | --- | --- | --- |
-| `human` | An ordinary Chat delivery of a durable message | The message id | Notice |
+| `human` | An ordinary Chat delivery of a durable message | The message id | Notice; concrete when addressed on a cold start, or on any wake of a live session |
 | `cloud_agent_work` | One settled Cloud Agent Run's terminal attention for the Agent that delegated it | The Run id | Concrete |
 | `task_assignment` | A direct task assignment to this Agent | The assignment identity | Concrete |
 | `reminder` | One reminder fire | The fire id | Concrete |
@@ -105,11 +105,26 @@ A durable `message.created` is planned once by Server delivery
   same notice in its live turn. Concrete work — a settled Cloud Agent Run, an automation fire, a
   task assignment — is the typed exception: an idle recipient receives the item's own envelope as
   the prompt of a distinct turn; a busy recipient receives only the content-free notice at a safe
-  boundary, then the still-queued item in the next turn. One drain never mixes the lanes, and a
-  concrete drain never mixes kinds, so each concrete item earns its own dedicated wake. An automation
+  boundary, then the still-queued item in the next turn. A concrete drain never mixes kinds, so each
+  concrete item earns its own dedicated wake, and a human drain never shares a run with a fire, which
+  is what keeps the sole-fire cause inference readable. An automation
   fire's envelope prints `msg=-`, since a fire has no Chat message to address; its id rides the
   envelope's own `fire=` and `--cause` lines. Humans keep their own read/unread system; the inbox is
   agent-only state.
+- **Human bodies ride the wake in two cases** ([ADR 0033](../docs/adr/0033-addressed-messages-ride-the-wake.md)).
+  A human item is *addressed* when it is a DM, a personal @mention, or a Jev routing that committed
+  the message to exactly this Agent ([ADR 0030](../docs/adr/0030-semantic-channel-addressing.md));
+  the reason is decided once at enqueue and stored on the row. The Server marks eligibility on the
+  start frame — `drainItemIds` for any start, `warmDrainItemIds` for a start that resumes a live
+  session — and the Computer picks the lane, because only it knows whether the harness session
+  resumed. A resumed session drains every eligible human body; a cold start drains only the
+  addressed ones and notices the rest in the same prompt. A busy Agent still receives only the
+  content-free notice. Existing row and character budgets apply unchanged, and the Computer attests
+  what it composed as exact run visibility, exactly as a pull does.
+- **Every wake ends with the unread-elsewhere digest.** The frame carries per-chat counts of queued
+  work no row of that frame represents: a chat with a notice row states its own pending count and is
+  left out, while a drained item represents only itself, so same-chat work past the drain budget
+  still surfaces as a count. Counts advance nothing and are never bodies.
 
 ## Inline reply attention
 
@@ -245,6 +260,10 @@ turn starts when its creator sends the working brief.
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/haus-agent-creation.test.ts` |
 | Agent instructions teach notice, pull, silence, and deferral semantics without losing required capabilities | `apps/computer/src/harness/managed-instructions.test.ts` |
+| A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
+| A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
+| Addressing is decided at enqueue and survives stale or uncertain routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
+| The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
 
 ## Presentation split (I1/I4)
 

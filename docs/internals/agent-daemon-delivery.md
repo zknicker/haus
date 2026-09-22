@@ -99,6 +99,16 @@ the turn-shape spec. Server also preserves whether this Agent was personally
 mentioned as immutable per-recipient attention metadata; delivery suppression and model
 visibility do not infer from that flag.
 
+Server also marks which inbox rows may be drained into the run's prompt:
+`drainItemIds` on any start, `warmDrainItemIds` only when the harness session
+resumes. Server cannot pick between them — it parks sessions between turns and
+does not know whether the next `createSession` resumes or cold-starts — so the
+Computer decides the lane from `isResume` and attests what it composed through
+the same run-visible-messages channel a pull uses. A resumed session drains every
+eligible human body; a cold start drains only the addressed ones and notices the
+rest in the same prompt (ADR 0033). Every start and notice frame also carries
+`unreadElsewhere`, per-chat counts for work no row of that frame represents.
+
 A fresh session uses its initial content-free notice as the first prompt;
 `Start.` is used only when no delivery is pending. A reset recovery line
 precedes whichever first prompt applies. A different notice arriving during
@@ -294,6 +304,8 @@ message and its composition id.
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
 | Exact message envelopes and content-free notices | `apps/computer/src/inbox-format.test.ts` |
+| Session continuity picks the drain lane; a composed drain attests and consumes itself | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
+| Addressed drains, warm drain candidates, and the unread digest partition | `apps/server/test/agent-inbox-lanes.test.ts`, `apps/server/test/agent-inbox-digest.test.ts` |
 | Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |
 | Live notice injection cannot race accepted-run consumption | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | Pipe and redirected-file input reach the managed Agent CLI | `apps/computer/src/agent-cli/stdin.test.ts` |

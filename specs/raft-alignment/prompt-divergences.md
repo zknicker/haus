@@ -87,7 +87,7 @@ product-noun substitution.
 | CRITICAL RULES | Parity | — |
 | Startup step 1 | Parity (restored 2026-09-09) | — |
 | Startup step 2 | Parity: "Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well." | — |
-| Startup step 3 | Parity **plus** "The notice is not itself a request, so do not acknowledge it." | Deliberate — specs/inbox.md §Golden flow ("a notice is not a request") |
+| Startup step 3 | Parity **plus** "The notice is not itself a request, so do not acknowledge it." Its opening condition ("If there is no concrete incoming message to handle but this turn includes a Haus inbox notice") stays Raft-verbatim even though a turn may now carry both concrete envelopes and a notice: Raft's own wakes are hybrid and carry this exact wording, so a Haus-only clarification here would be the divergence | Deliberate — specs/inbox.md §Golden flow ("a notice is not a request"); ADR 0033 |
 | Startup step 4 | Parity **plus** "Haus exception: an explicit FYI / no-response-needed message settles silently, with no send at all." | Deliberate — specs/inbox.md coverage row ("Agent instructions teach notice, pull, silence, and deferral semantics"); gated by `fyi-silence-channel` / `fyi-silence-dm` in `bun run eval:prompt` |
 | Startup step 5 | Parity (restored 2026-09-09) | — |
 | Post-startup IMPORTANT note | Parity | — |
@@ -152,6 +152,7 @@ behaviours and is diffed here when it mirrors a Raft helper.
 | `haus task claim` success receipt | Reports claim count, task numbers, and message IDs; omits follow-up routing advice | Deliberate — claiming establishes ownership. Canonical task location does not select the current conversation. Covered by agent-task-actions tests and natural routing evals |
 | `haus task create` success hint | Prints the task thread address as a reference | Deliberate — conversation placement follows the human request rather than a generic thread instruction |
 | Inbox delivery trailer | Identifies `target` as the requesting conversation; removes the independent invitation to choose a new thread | Deliberate — natural conversation evals exposed conflicting routing advice after the system-prompt policy changed; covered by inbox-format tests and `conversation-natural-followups` |
+| Unread-elsewhere digest | Raft-verbatim text restored as turn input: "You also have unread messages in other channels:", one `- <target>: N unread` line per chat, then "Use the inbox/read commands at a natural breakpoint if you choose to inspect those targets." Haus appends it to every wake — cold, warm, concrete and busy | Deliberate — ADR 0033, specs/inbox.md §Delivery planning. It is turn input, not composed prompt text, so the 40,200-character prompt budget is untouched; covered by `apps/computer/src/harness/turn-prompt.test.ts` |
 | Cloud Agent manual and start receipt | Manual distinguishes implementation details from requester outcomes; receipt supplies the work-thread address as a reference | Deliberate — aligns required secondary guidance with the coordinating Agent policy; covered by manual/CLI tests and opt-in `cloud-conversation-handoff` |
 
 ## Open TODOs
@@ -160,6 +161,17 @@ None. The last three unowned rewrites — startup steps 1 and 5 and the closing 
 Communication style — were restored to Raft's wording on 2026-09-09. Every remaining divergence is
 *Deliberate* with a named owner: a Haus product decision, or a Raft-only mechanism that has no
 Haus surface to point at.
+
+## Turn input, not prompt text
+
+The composed system prompt is unchanged by ADR 0033. Two facts about what the model now receives
+are recorded here because they change what the Agent reads at the top of a turn:
+
+- A wake may carry concrete envelopes **and** a content-free notice in the same prompt, and the
+  drain always precedes the notice. Raft delivers the same hybrid, so startup step 3 keeps Raft's
+  wording without a Haus carve-out.
+- The unread-elsewhere digest closes every wake. It is the last block of the turn input, never part
+  of the system prompt, so it neither consumes nor raises the prompt budget.
 
 ## Keeping this current
 
