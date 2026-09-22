@@ -1,6 +1,7 @@
 import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
+import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
@@ -19,6 +20,7 @@ export function AgentDmNavigationRow({
     selectedChatId: string | undefined;
     slug: string;
 }) {
+    const { focusRef, preload } = usePreloadChat(agent.serverId, chat?.id);
     const href = chat ? serverChatRoute(slug, chat.id) : serverAgentDmRoute(slug, agent.id);
     const unreadCount = chat?.unreadCount ?? 0;
 
@@ -29,6 +31,8 @@ export function AgentDmNavigationRow({
             isCurrent={
                 agent.id === selectedAgentDmId || Boolean(chat && chat.id === selectedChatId)
             }
+            onHoverStart={preload}
+            ref={focusRef}
             textValue={agent.displayName}
         >
             <DmNavigationContextMenu

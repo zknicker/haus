@@ -1,8 +1,10 @@
 import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
-import type * as React from 'react';
+import { mergeRefs } from '@react-aria/utils';
+import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
+import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
@@ -31,6 +33,8 @@ export function ChatNavigationRow({
     slug: string;
     style?: React.CSSProperties;
 }) {
+    const { focusRef, preload } = usePreloadChat(chat.serverId, chat.id);
+    const rowRef = React.useMemo(() => mergeRefs(ref, focusRef), [focusRef, ref]);
     return (
         <Sidebar.MenuItem
             aria-describedby={ariaDescribedBy}
@@ -38,7 +42,8 @@ export function ChatNavigationRow({
             href={serverChatRoute(slug, chat.id)}
             id={chat.id}
             isCurrent={chat.id === selectedChatId}
-            ref={ref}
+            onHoverStart={preload}
+            ref={rowRef}
             style={style}
             textValue={name}
         >

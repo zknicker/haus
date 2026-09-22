@@ -1,5 +1,5 @@
 import type { ChatMessage, ThreadSummary } from '@haus/api';
-import { type InfiniteData, useInfiniteQuery } from '@tanstack/react-query';
+import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import { type HausOutputs, hausTrpc } from '../../lib/haus-server.tsx';
@@ -16,34 +16,9 @@ export function useChatMessages(
     options?: ChatMessagesOptions
 ) {
     const utils = hausTrpc.useUtils();
-    const input = {
-        chatId: chatId ?? '',
-        limit: 50,
-        ...(options?.replyRootMessageId ? { replyRootMessageId: options.replyRootMessageId } : {}),
-        serverId: serverId ?? '',
-    };
-    const queryKey = chatMessagesQueryKey(
-        input.serverId,
-        input.chatId,
-        options?.replyRootMessageId
-    );
-    const query = useInfiniteQuery<
-        ChatMessagePage,
-        Error,
-        InfiniteData<ChatMessagePage>,
-        typeof queryKey,
-        number | undefined
-    >({
-        ...queryPolicy.syncedSnapshot,
+    const query = useInfiniteQuery({
+        ...chatMessagesQueryOptions(utils.client, serverId ?? '', chatId ?? '', options),
         enabled: serverId !== undefined && chatId !== undefined,
-        getNextPageParam: (lastPage) => lastPage.nextBeforeSequence ?? undefined,
-        initialPageParam: undefined as number | undefined,
-        queryFn: async ({ pageParam }) =>
-            await utils.client.chat.messages.query({
-                ...input,
-                ...(pageParam === undefined ? {} : { beforeSequence: pageParam }),
-            }),
-        queryKey,
     });
     const data = React.useMemo(() => mergeChatMessagePages(query.data?.pages), [query.data?.pages]);
 
@@ -54,6 +29,36 @@ export function useChatMessages(
         hasOlderHistory: Boolean(query.hasNextPage),
         isFetchingOlderHistory: query.isFetchingNextPage,
     };
+}
+
+export function chatMessagesQueryOptions(
+    client: ReturnType<typeof hausTrpc.createClient>,
+    serverId: string,
+    chatId: string,
+    options?: ChatMessagesOptions
+) {
+    const input = {
+        chatId,
+        limit: 50,
+        ...(options?.replyRootMessageId ? { replyRootMessageId: options.replyRootMessageId } : {}),
+        serverId,
+    };
+    const queryKey = chatMessagesQueryKey(
+        input.serverId,
+        input.chatId,
+        options?.replyRootMessageId
+    );
+    return infiniteQueryOptions({
+        ...queryPolicy.syncedSnapshot,
+        getNextPageParam: (lastPage: ChatMessagePage) => lastPage.nextBeforeSequence ?? undefined,
+        initialPageParam: undefined as number | undefined,
+        queryFn: async ({ pageParam }) =>
+            await client.chat.messages.query({
+                ...input,
+                ...(pageParam === undefined ? {} : { beforeSequence: pageParam }),
+            }),
+        queryKey,
+    });
 }
 
 type ChatMessagePage = HausOutputs['chat']['messages'];
