@@ -43,6 +43,9 @@ export interface InboxItemRow {
     threadFollowReactivated: boolean;
 }
 
+/** The digest is a hint, not an index: a long tail of chats stays bounded. */
+const maxUnreadElsewhereChats = 50;
+
 /** The one projection every queue read returns, so a new column lands once. */
 const inboxItemColumns = {
     addressedReason: agentInboxTable.addressedReason,
@@ -164,6 +167,32 @@ export async function countQueuedNoticeItems(db: HausDatabase, agentId: string):
         .from(agentInboxTable)
         .where(and(queuedFor(agentId), ne(agentInboxTable.source, 'onboarding')));
     return row?.total ?? 0;
+}
+
+/** Per-chat queued counts behind the unread-elsewhere digest. */
+export async function countQueuedItemsByChat(
+    db: HausDatabase,
+    input: { agentId: string; excludeChatIds: string[]; excludeItemIds: string[] }
+): Promise<Array<{ chatId: string; count: number }>> {
+    const rows = await db
+        .select({ chatId: agentInboxTable.chatId, total: sql<number>`count(*)::int` })
+        .from(agentInboxTable)
+        .where(
+            and(
+                queuedFor(input.agentId),
+                ne(agentInboxTable.source, 'onboarding'),
+                input.excludeChatIds.length > 0
+                    ? notInArray(agentInboxTable.chatId, input.excludeChatIds)
+                    : undefined,
+                input.excludeItemIds.length > 0
+                    ? notInArray(agentInboxTable.id, input.excludeItemIds)
+                    : undefined
+            )
+        )
+        .groupBy(agentInboxTable.chatId)
+        .orderBy(agentInboxTable.chatId)
+        .limit(maxUnreadElsewhereChats);
+    return rows.map((row) => ({ chatId: row.chatId, count: row.total }));
 }
 
 /**

@@ -37,12 +37,19 @@ import {
 } from './deferred-configuration.ts';
 import {
     type AgentConfigureRequest,
-    type AgentDispatchConfig,
     listComputerAgents,
     readAgentDispatchConfig,
     reconcileConfigureFrame,
 } from './dispatch-config.ts';
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
+import {
+    boundedCompatibleRows,
+    chatIdsOf,
+    isAddressedHumanRow,
+    maxDrainRows,
+    noticeWindow,
+    startFrame,
+} from './drain-selection.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
@@ -51,6 +58,7 @@ import { isBackedOff, maxDeliveryFailures, nextRetryAt } from './retry-policy.ts
 import { recordSessionRotation } from './session-rotation.ts';
 import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
+import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
 /** The Server→Computer wire, narrowed to what durable delivery needs. */
 export interface DeliveryTransport {
@@ -90,10 +98,6 @@ export interface EnqueueInput {
     source?: string;
     threadFollowReactivated?: boolean;
 }
-
-/** Bounds one drain so the composed prompt stays well under command/env limits. */
-const maxDrainRows = 50;
-const maxDrainChars = 24_000;
 
 /**
  * Server-owned durable Agent delivery. PostgreSQL owns all run, stop, and pending-inbox state, so a restarted Server or reconnecting Computer resumes
@@ -962,7 +966,12 @@ export class AgentDelivery {
                         runId: state.activeRunId,
                         totalPending: await store.countQueuedNoticeItems(tx, agentId),
                         type: 'notice',
-                        unreadElsewhere: [],
+                        unreadElsewhere: await readUnreadElsewhere(tx, {
+                            agentId,
+                            drainedItemIds: [],
+                            representedChatIds: chatIdsOf(pending),
+                            serverId: state.serverId,
+                        }),
                     },
                     serverId: state.serverId,
                 };
@@ -996,6 +1005,10 @@ export class AgentDelivery {
         const concrete = isConcreteSource(first.source);
         const selected = boundedCompatibleRows(candidates, first.source);
         let noticeRows: store.InboxItemRow[] = [];
+        // The Server decides what may be drained; the Computer decides the lane,
+        // because only it knows whether the harness session is still alive.
+        let drainRows = selected;
+        let warmDrainRows: store.InboxItemRow[] = [];
         if (concrete) {
             await store.attachQueuedItemsToRun(tx, {
                 agentId,
@@ -1003,6 +1016,10 @@ export class AgentDelivery {
                 runId,
             });
         } else {
+            drainRows = selected.filter(isAddressedHumanRow);
+            warmDrainRows = selected.filter(
+                (row) => row.source === 'human' && !isAddressedHumanRow(row)
+            );
             noticeRows = noticeWindow(
                 (await store.listQueuedItems(tx, agentId, 1000)).filter(
                     (row) => !isConcreteSource(row.source)
@@ -1047,7 +1064,7 @@ export class AgentDelivery {
                 ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
                 agentName: config.agentName,
                 chatId,
-                drainItemIds: concrete ? selected.map((row) => row.dedupeKey) : [],
+                drainItemIds: drainRows.map((row) => row.dedupeKey),
                 homeTimezone: config.homeTimezone,
                 inbox: await buildInboxItems(tx, concrete ? selected : noticeRows),
                 inboxDelivery: concrete ? 'concrete' : 'notice',
@@ -1055,10 +1072,15 @@ export class AgentDelivery {
                 runId,
                 runtimeId: config.desiredRuntimeId,
                 sessionGeneration: config.sessionGeneration,
-                totalPending: concrete ? 0 : await store.countQueuedNoticeItems(tx, agentId),
+                totalPending: await store.countQueuedNoticeItems(tx, agentId),
                 type: 'start',
-                unreadElsewhere: [],
-                warmDrainItemIds: [],
+                unreadElsewhere: await readUnreadElsewhere(tx, {
+                    agentId,
+                    drainedItemIds: [...drainRows, ...warmDrainRows].map((row) => row.id),
+                    representedChatIds: chatIdsOf(noticeRows),
+                    serverId: state.serverId,
+                }),
+                warmDrainItemIds: warmDrainRows.map((row) => row.dedupeKey),
             },
             serverId: state.serverId,
         };
@@ -1161,89 +1183,6 @@ function emitTaskEvents(events: ServerDurableEvent[]): void {
     for (const event of events) {
         emitDurableChatEvent({ audienceUserId: null, event });
     }
-}
-
-async function startFrame(
-    db: HausDatabase,
-    state: AgentDeliveryRow,
-    config: Pick<
-        AgentDispatchConfig,
-        'agentDescription' | 'agentName' | 'homeTimezone' | 'sessionGeneration'
-    >
-): Promise<AgentCommand> {
-    const runRows = state.activeRunId
-        ? await store.listInboxItemsForRun(db, {
-              agentId: state.agentId,
-              runId: state.activeRunId,
-          })
-        : [];
-    const noticeRows =
-        runRows.length === 0 && state.activeRunId
-            ? (
-                  await store.listNoticedItemsForRun(db, {
-                      agentId: state.agentId,
-                      runId: state.activeRunId,
-                  })
-              ).filter((row) => row.source !== 'onboarding')
-            : [];
-    return {
-        agentId: state.agentId,
-        ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
-        agentName: config.agentName,
-        chatId: state.activeRunChatId ?? '',
-        drainItemIds: runRows.map((row) => row.dedupeKey),
-        homeTimezone: config.homeTimezone,
-        inbox: await buildInboxItems(db, runRows.length > 0 ? runRows : noticeRows),
-        inboxDelivery: runRows.length > 0 ? 'concrete' : 'notice',
-        modelId: state.activeRunModelId ?? '',
-        runId: state.activeRunId ?? '',
-        runtimeId: state.activeRunRuntimeId ?? '',
-        sessionGeneration: config.sessionGeneration,
-        totalPending:
-            runRows.length > 0 ? 0 : await store.countQueuedNoticeItems(db, state.agentId),
-        type: 'start',
-        unreadElsewhere: [],
-        warmDrainItemIds: [],
-    };
-}
-
-/**
- * One drain never mixes the lanes, and a concrete drain never mixes kinds: a
- * fire, a task assignment, a Cloud Agent result, and Cove's bootstrap each earn
- * their own dedicated wake, which is also what keeps the sole-fire cause
- * inference readable (specs/inbox.md).
- */
-function boundedCompatibleRows(rows: store.InboxItemRow[], source: string) {
-    const selected: store.InboxItemRow[] = [];
-    let chars = 0;
-    for (const row of rows) {
-        if (isConcreteSource(source) ? row.source !== source : isConcreteSource(row.source)) {
-            continue;
-        }
-        const nextChars = chars + row.content.length;
-        if (selected.length > 0 && (selected.length >= maxDrainRows || nextChars > maxDrainChars)) {
-            break;
-        }
-        selected.push(row);
-        chars = nextChars;
-    }
-    return selected;
-}
-
-function noticeWindow(
-    queued: store.InboxItemRow[],
-    mustInclude: store.InboxItemRow[]
-): store.InboxItemRow[] {
-    const selected = new Map(mustInclude.map((row) => [row.id, row]));
-    for (const row of queued) {
-        if (selected.size >= maxDrainRows) {
-            break;
-        }
-        selected.set(row.id, row);
-    }
-    return [...selected.values()].sort(
-        (left, right) => left.createdAt.getTime() - right.createdAt.getTime()
-    );
 }
 
 async function attachSummaryVisibility(
