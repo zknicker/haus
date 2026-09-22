@@ -43,6 +43,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0042_inline_replies',
             '0043_message-routing',
             '0044_model-reasoning-efforts',
+            '0045_addressed_inbox',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
@@ -70,6 +71,9 @@ test('upgrades the preceding production schema without replaying migrations', as
                 condeferrable, condeferred
             FROM pg_constraint WHERE conname = 'agents_created_by_agent_fk'`;
         expect(createdByAgentFk).toMatchObject({ condeferrable: true, condeferred: true });
+        const [addressedReason] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
+            FROM pg_constraint WHERE conname = 'agent_inbox_addressed_reason'`;
+        expect(addressedReason.definition).toContain("'routing'");
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([]);
     } finally {
         await upgraded?.close();
