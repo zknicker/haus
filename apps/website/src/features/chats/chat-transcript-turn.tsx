@@ -51,7 +51,7 @@ import {
     resolveMentionAgentId,
     TurnHeader,
 } from './chat-transcript-turn-header.tsx';
-import { UserTurnItem, useLiveEdgeMessageEnter } from './chat-transcript-user-turn-item.tsx';
+import { UserTurnItem } from './chat-transcript-user-turn-item.tsx';
 import {
     InlineReplyAction,
     InlineReplyHoverProvider,
@@ -198,7 +198,11 @@ function UserTurnPresentation({
             item.row.kind === 'message' &&
             isLocalTimelineMessageMetadata(item.row.message.metadata)
     );
-    const lastMessageRow = hasPendingMessage ? null : getLastMessageRow(entry.items);
+    const lastMessageRow = getLastMessageRow(entry.items);
+    // A send the Server has not confirmed yet cannot anchor a reaction or a
+    // copy target, so its turn withholds the action island. The island is
+    // absolute and invisible until hover, so confirmation moves nothing.
+    const actionsRow = hasPendingMessage ? null : lastMessageRow;
     const inlineReplyHover = useInlineReplyHoverState(entry.items, lastMessageRow);
 
     return (
@@ -234,24 +238,24 @@ function UserTurnPresentation({
                                 key={getTranscriptItemKey(item)}
                             />
                         ))}
-                        {lastMessageRow ? (
+                        {actionsRow ? (
                             <ChatMessageActions
                                 className={turnActionsClassName}
                                 data-turn-actions=""
                             >
                                 <MessageReactionActions
                                     className={turnActionClassName}
-                                    row={lastMessageRow}
+                                    row={actionsRow}
                                 />
                                 {context?.onToggleReaction ? (
                                     <Separator className="h-4 self-center" orientation="vertical" />
                                 ) : null}
                                 <TranscriptMessageActions
-                                    value={getMessageCopyText(context, lastMessageRow.message)}
+                                    value={getMessageCopyText(context, actionsRow.message)}
                                 />
                                 <ThreadMessageActions
                                     className={turnActionClassName}
-                                    row={lastMessageRow}
+                                    row={actionsRow}
                                 />
                                 <InlineReplyAction className={turnActionClassName} />
                             </ChatMessageActions>
@@ -760,8 +764,6 @@ function AgentTurnItem({
     item: TranscriptItem;
     revealNarration?: boolean;
 }) {
-    const animateLiveEnter = useLiveEdgeMessageEnter(item);
-
     if (item.kind === 'activeReply') {
         return (
             <AssistantReplyBody
@@ -792,7 +794,6 @@ function AgentTurnItem({
             // it), so it offers no thread affordances.
             return (
                 <AssistantReplyBody
-                    animateEnter
                     content={getActiveReplyDisplayText(row.message.content)}
                     revealKey={row.id}
                     revealText
@@ -809,15 +810,11 @@ function AgentTurnItem({
                     message={row.message}
                     {...(narration
                         ? {
-                              animateEnter: true,
                               revealKey: row.id,
                               revealText: true,
                               slotKey: getItemRunId(item) ?? row.id,
                           }
-                        : // A finished reply that never streamed here (fast turn,
-                          // another device's turn) still lands at the live edge —
-                          // it enters like any new message instead of popping.
-                          { animateEnter: animateLiveEnter })}
+                        : {})}
                 />
             </InlineReplyMessageSurface>
         );

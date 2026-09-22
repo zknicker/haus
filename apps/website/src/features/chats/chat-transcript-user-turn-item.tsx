@@ -1,4 +1,3 @@
-import { getTranscriptItemKey } from './chat-transcript-item-utils.ts';
 import {
     ChatTranscriptMessageContent,
     renderTranscriptMessageAttachments,
@@ -10,7 +9,6 @@ import { InlineReplyMessageSurface } from './inline-reply-action.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 
 export function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item: TranscriptItem }) {
-    const animateLiveEnter = useLiveEdgeMessageEnter(item);
     const context = useTranscriptRenderContextOptional();
 
     if (item.kind !== 'row' || item.row.kind !== 'message') {
@@ -18,7 +16,6 @@ export function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item:
     }
 
     const message = item.row.message;
-    const pending = isLocalTimelineMessageMetadata(message.metadata);
     const attachments = context?.renderMessageAttachments
         ? context.renderMessageAttachments(message)
         : renderTranscriptMessageAttachments(message.attachments);
@@ -32,39 +29,22 @@ export function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item:
         return null;
     }
 
-    const block = (
-        <TranscriptMessageBlock
-            {...(pending ? { animate: { opacity: 0.7, scale: 1, y: 0 } } : {})}
-            animateEnter={pending || animateLiveEnter}
-            attachments={attachments}
-            data-slot={pending ? 'pending-chat-message' : undefined}
-            from={from}
-        >
-            {body}
-        </TranscriptMessageBlock>
-    );
-
-    return pending ? (
-        block
-    ) : (
-        <InlineReplyMessageSurface row={item.row}>{block}</InlineReplyMessageSurface>
-    );
-}
-
-// Whether this item is a message landing at the transcript's live edge right
-// now; such messages animate in instead of popping. Always false outside the
-// transcript (the turn drawer).
-export function useLiveEdgeMessageEnter(item: TranscriptItem) {
-    const context = useTranscriptRenderContextOptional();
-
-    if (!(context && item.kind === 'row' && item.row.kind === 'message')) {
-        return false;
-    }
-
-    const timestampMs = Date.parse(item.row.message.timestamp);
-
-    return context.shouldAnimateItemEnter(
-        getTranscriptItemKey(item),
-        Number.isNaN(timestampMs) ? null : timestampMs
+    // A send renders exactly as it will once the Server confirms it, through
+    // the same surface, so the confirmation swap changes no DOM and no pixels.
+    // The data-slot is the only trace, and it is a test hook, not a treatment.
+    return (
+        <InlineReplyMessageSurface row={item.row}>
+            <TranscriptMessageBlock
+                attachments={attachments}
+                data-slot={
+                    isLocalTimelineMessageMetadata(message.metadata)
+                        ? 'pending-chat-message'
+                        : undefined
+                }
+                from={from}
+            >
+                {body}
+            </TranscriptMessageBlock>
+        </InlineReplyMessageSurface>
     );
 }

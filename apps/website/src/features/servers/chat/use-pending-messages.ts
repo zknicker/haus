@@ -11,6 +11,8 @@ export interface PendingChatMessage {
     /** Composer-local metadata; the bytes are still uploading behind this row. */
     attachments: readonly AttachmentMetadata[];
     content: string;
+    /** The Server's creation time from the send receipt; null until it lands. */
+    createdAt: string | null;
     /** The durable id from the send receipt; null until the send resolves. */
     messageId: string | null;
     /** The send nonce, and this row's stable local identity. */
@@ -79,24 +81,31 @@ export function readPendingChatMessages(chatId: string): readonly PendingChatMes
 
 export function addPendingChatMessage(
     chatId: string,
-    message: Omit<PendingChatMessage, 'messageId' | 'submittedAt'>
+    message: Omit<PendingChatMessage, 'createdAt' | 'messageId' | 'submittedAt'>
 ) {
     writePendingChatMessages(chatId, [
         ...readPendingChatMessages(chatId),
-        { ...message, messageId: null, submittedAt: new Date().toISOString() },
+        { ...message, createdAt: null, messageId: null, submittedAt: new Date().toISOString() },
     ]);
 }
 
-/** Records the durable id a send returned so the row can retire on arrival. */
+/**
+ * Records what the send receipt returned: the durable id, so the row can
+ * retire on arrival, and the Server's creation time, so the row already shows
+ * the timestamp the durable message will carry.
+ */
 export function settlePendingChatMessage(input: {
     chatId: string;
+    createdAt: string;
     messageId: string;
     nonce: string;
 }) {
     writePendingChatMessages(
         input.chatId,
         readPendingChatMessages(input.chatId).map((message) =>
-            message.nonce === input.nonce ? { ...message, messageId: input.messageId } : message
+            message.nonce === input.nonce
+                ? { ...message, createdAt: input.createdAt, messageId: input.messageId }
+                : message
         )
     );
 }

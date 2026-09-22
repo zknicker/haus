@@ -21,7 +21,10 @@ import {
 } from './chat-message-projection.ts';
 import type { ChatTranscriptInput } from './chat-transcript-input.ts';
 import { MessageAttachments } from './message-attachments.tsx';
-import { PendingMessageAttachments, projectPendingChatMessageRows } from './pending-messages.tsx';
+import {
+    projectPendingChatMessageRows,
+    renderPendingMessageAttachments,
+} from './pending-messages.tsx';
 import { ServerChatMessageContent } from './server-chat-message-content.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
@@ -136,7 +139,7 @@ export function useChatTranscript({
             const pendingMessage = lookupRef.current.pendingById.get(message.id);
 
             if (pendingMessage) {
-                return <PendingMessageAttachments attachments={pendingMessage.attachments} />;
+                return renderPendingMessageAttachments(pendingMessage);
             }
 
             return sourceMessage?.attachments.length ? (
@@ -230,7 +233,6 @@ export function useChatTranscript({
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
                 sessionMarks,
-                shouldAnimateItemEnter: () => false,
                 taskChipHiddenMessageId,
                 threadActionsEnabled: Boolean(onOpenThread),
                 viewerUserId,

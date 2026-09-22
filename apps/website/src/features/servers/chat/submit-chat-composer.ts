@@ -119,6 +119,7 @@ export async function submitChatComposer({
         if (pendingChatId) {
             settlePendingChatMessage({
                 chatId: pendingChatId,
+                createdAt: receipt.message.createdAt,
                 messageId: receipt.message.id,
                 nonce,
             });

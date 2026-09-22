@@ -81,7 +81,26 @@ export function getTranscriptItemKey(item: TranscriptItem) {
 
     const replyRunId = getDurableReplyRunId(item.row);
 
-    return replyRunId ? `reply:${replyRunId}` : item.row.id;
+    if (replyRunId) {
+        return `reply:${replyRunId}`;
+    }
+
+    const sendNonce = getUserSendNonce(item.row);
+
+    return sendNonce ? `send:${sendNonce}` : item.row.id;
+}
+
+// The pending row a human send draws and the durable message it becomes share
+// one key, so the row keeps its DOM identity — and its geometry — across the
+// confirmation swap instead of unmounting and remounting.
+function getUserSendNonce(row: TranscriptRow) {
+    if (row.kind !== 'message' || row.message.senderType !== 'user') {
+        return null;
+    }
+
+    const nonce = row.message.sendNonce?.trim();
+
+    return nonce ? nonce : null;
 }
 
 // The streamed reply and the durable assistant message it becomes share one

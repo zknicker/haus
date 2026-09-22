@@ -110,6 +110,12 @@ export interface TranscriptMessage {
     reply?: ChatMessage['reply'];
     sender: string;
     senderType: 'agent' | 'system' | 'user';
+    /**
+     * The client send nonce this message carries. It is known before the send
+     * resolves, so the pending row and the durable message it becomes share
+     * one transcript identity.
+     */
+    sendNonce?: string | null;
     sourceSessionId?: string | null;
     sourceSessionKey: string;
     task?:

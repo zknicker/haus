@@ -86,6 +86,7 @@ export function projectChatMessage(
             hausAgentId: agentId,
             reactions: message.reactions,
             reply: message.reply,
+            sendNonce: message.nonce,
             task: messageTask(message.task, directories.handleByAgentId, directories.humans),
             timestamp: message.createdAt,
         },

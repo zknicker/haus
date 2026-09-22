@@ -98,12 +98,6 @@ export interface TranscriptRenderContextValue {
      */
     sessionMarks?: ReadonlyMap<string, SessionMark>;
     /**
-     * Whether an item mounting now lands at the live edge and should animate
-     * in. False for everything present at first render and for older history
-     * pages loading in.
-     */
-    shouldAnimateItemEnter: (key: string, timestampMs: number | null) => boolean;
-    /**
      * The one Message whose task chip a surrounding panel already states. A
      * Thread opened on a Task names it in the header and states its status,
      * assignee, and creator in the metadata panel above the anchor, so the

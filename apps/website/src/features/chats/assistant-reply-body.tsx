@@ -15,7 +15,6 @@ import { useRevealedText } from './use-revealed-text.ts';
 import { VisualCard } from './visual-card.tsx';
 
 export function AssistantReplyBody(props: {
-    animateEnter?: boolean;
     content?: string;
     message?: TranscriptMessage;
     revealKey?: string;
@@ -40,7 +39,6 @@ export function AssistantReplyBody(props: {
 
     return (
         <TranscriptMessageBlock
-            animateEnter={props.animateEnter ?? false}
             attachments={attachments}
             className={phase === 'commentary' ? 'opacity-85' : undefined}
             data-message-phase={phase ?? undefined}
