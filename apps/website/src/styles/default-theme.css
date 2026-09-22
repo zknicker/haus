@@ -505,6 +505,13 @@
         transition: none;
     }
 
+    /* Inside markers strand loose-list paragraphs below their numbers (Pro beta.9/10).
+     * Remove when upstream Markdown uses outside markers with a matching gutter. */
+    .markdown :is(ul, ol) {
+        list-style-position: outside;
+        padding-inline-start: calc(var(--spacing) * 6);
+    }
+
     /* Remove when HeroUI scopes its last-child reset to the final Markdown block. */
     .chat-markdown
         > .markdown__block:not(:last-child)
