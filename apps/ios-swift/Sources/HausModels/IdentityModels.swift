@@ -144,9 +144,12 @@ public enum AgentAvailability: String, Codable, Sendable {
 }
 
 public enum AgentReasoningEffort: String, Codable, CaseIterable, Sendable, Equatable {
+    case `default`
     case low
     case medium
     case high
+    case xhigh
+    case max
 }
 
 public enum AgentStatus: String, Codable, Sendable {
