@@ -211,6 +211,7 @@ export async function createTask(
         });
         for (const recipient of recipients) {
             await agentDelivery.enqueue(tx, {
+                addressedReason: recipient.addressedReason,
                 agentId: recipient.agentId,
                 chatId: input.chatId,
                 content: input.content,

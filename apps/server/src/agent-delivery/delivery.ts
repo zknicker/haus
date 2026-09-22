@@ -1,23 +1,16 @@
 import type {
+    AddressedReason,
     Agent,
     AgentActivityEvent,
     AgentCommand,
-    AgentInboxItem,
     AgentTurnSummary,
-    CloudAgentWorkAttention,
     ReminderScriptCommand,
     ReminderScriptResult,
     ServerDurableEvent,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import {
-    messageSelection,
-    targetForChat as targetForAgentChat,
-    toAgentMessages,
-} from '../agent-api/message-view.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -32,7 +25,6 @@ import type { AgentConfigurationRotation } from '../server-agents/configure-agen
 import { recordAgentTurnSummary } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
-import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
@@ -52,8 +44,8 @@ import {
 } from './dispatch-config.ts';
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
+import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
-import { inboxSender } from './inbox-sender.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { isBackedOff, maxDeliveryFailures, nextRetryAt } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
@@ -83,6 +75,8 @@ interface DispatchOptions {
 }
 
 export interface EnqueueInput {
+    /** Why this item names the Agent personally; null is an ambient delivery. */
+    addressedReason?: AddressedReason | null;
     agentId: string;
     chatId: string;
     content: string;
@@ -132,6 +126,7 @@ export class AgentDelivery {
         const source = input.source ?? 'human';
         await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
         await store.enqueueInboxItem(tx, {
+            addressedReason: input.addressedReason ?? null,
             agentId: input.agentId,
             chatId: input.chatId,
             content: input.content,
@@ -967,6 +962,7 @@ export class AgentDelivery {
                         runId: state.activeRunId,
                         totalPending: await store.countQueuedNoticeItems(tx, agentId),
                         type: 'notice',
+                        unreadElsewhere: [],
                     },
                     serverId: state.serverId,
                 };
@@ -1051,6 +1047,7 @@ export class AgentDelivery {
                 ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
                 agentName: config.agentName,
                 chatId,
+                drainItemIds: concrete ? selected.map((row) => row.dedupeKey) : [],
                 homeTimezone: config.homeTimezone,
                 inbox: await buildInboxItems(tx, concrete ? selected : noticeRows),
                 inboxDelivery: concrete ? 'concrete' : 'notice',
@@ -1060,6 +1057,8 @@ export class AgentDelivery {
                 sessionGeneration: config.sessionGeneration,
                 totalPending: concrete ? 0 : await store.countQueuedNoticeItems(tx, agentId),
                 type: 'start',
+                unreadElsewhere: [],
+                warmDrainItemIds: [],
             },
             serverId: state.serverId,
         };
@@ -1192,6 +1191,7 @@ async function startFrame(
         ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
         agentName: config.agentName,
         chatId: state.activeRunChatId ?? '',
+        drainItemIds: runRows.map((row) => row.dedupeKey),
         homeTimezone: config.homeTimezone,
         inbox: await buildInboxItems(db, runRows.length > 0 ? runRows : noticeRows),
         inboxDelivery: runRows.length > 0 ? 'concrete' : 'notice',
@@ -1202,6 +1202,8 @@ async function startFrame(
         totalPending:
             runRows.length > 0 ? 0 : await store.countQueuedNoticeItems(db, state.agentId),
         type: 'start',
+        unreadElsewhere: [],
+        warmDrainItemIds: [],
     };
 }
 
@@ -1298,96 +1300,5 @@ async function attachSummaryVisibility(
         messages: visibleMessages,
         runId: state.activeRunId,
         serverId: state.serverId,
-    });
-}
-
-async function buildInboxItems(
-    db: HausDatabase,
-    rows: store.InboxItemRow[]
-): Promise<AgentInboxItem[]> {
-    const serverId = rows[0]?.serverId;
-    const messageIds = rows.map((row) => row.dedupeKey).filter((id) => id.startsWith('msg_'));
-    const messageRows =
-        serverId && messageIds.length > 0
-            ? await db
-                  .select(messageSelection)
-                  .from(chatMessagesTable)
-                  .where(
-                      and(
-                          eq(chatMessagesTable.serverId, serverId),
-                          inArray(chatMessagesTable.id, messageIds)
-                      )
-                  )
-            : [];
-    const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
-    const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
-    const cloudAgentWorkByRun =
-        serverId && rows.some((row) => row.source === 'cloud_agent_work')
-            ? await readCloudAgentWorkAttentions(
-                  db,
-                  serverId,
-                  rows
-                      .filter((row) => row.source === 'cloud_agent_work')
-                      .map((row) => row.dedupeKey)
-              )
-            : new Map<string, CloudAgentWorkAttention>();
-    const sequenceByMessageId = new Map(
-        messageRows.map((message) => [message.id, message.sequence])
-    );
-    const taskByMessage = serverId
-        ? await listMessageTaskMap(
-              db,
-              serverId,
-              rows.map((row) => row.dedupeKey)
-          )
-        : new Map();
-    const targetByChatId = new Map<string, string>();
-    for (const chatId of new Set(rows.map((row) => row.chatId))) {
-        targetByChatId.set(
-            chatId,
-            serverId ? await targetForAgentChat(db, serverId, chatId) : '#unknown'
-        );
-    }
-    return rows.map((row) => {
-        const cloudAgentWork =
-            row.source === 'cloud_agent_work' ? cloudAgentWorkByRun.get(row.dedupeKey) : undefined;
-        if (row.source === 'cloud_agent_work' && !cloudAgentWork) {
-            throw new Error(`Cloud Agent attention ${row.dedupeKey} is missing.`);
-        }
-        const attention = cloudAgentWork;
-        const target = targetByChatId.get(row.chatId) ?? '#unknown';
-        const apiMessage = apiMessageById.get(row.dedupeKey);
-        const sender = inboxSender({
-            source: row.source,
-            target,
-            attention: Boolean(attention),
-            message: apiMessage,
-        });
-        return {
-            chatId: row.chatId,
-            content: attention ? '' : row.content,
-            createdAt: row.createdAt.toISOString(),
-            id: row.dedupeKey,
-            ...(cloudAgentWork ? { cloudAgentWork } : {}),
-            ...(apiMessage?.ask
-                ? {
-                      ask: {
-                          addresseeHandle: apiMessage.ask.addressee_handle,
-                          status: apiMessage.ask.status,
-                      },
-                  }
-                : {}),
-            ...(apiMessage ? { message: apiMessage } : {}),
-            ...(apiMessage?.reply ? { reply: apiMessage.reply } : {}),
-            ...(row.mentioned ? { mentioned: true } : {}),
-            ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
-            ...(apiMessage?.sender.description
-                ? { senderDescription: apiMessage.sender.description }
-                : {}),
-            ...sender,
-            sequence: attention ? 0 : (sequenceByMessageId.get(row.dedupeKey) ?? 1),
-            ...(taskByMessage.get(row.dedupeKey) ? { task: taskByMessage.get(row.dedupeKey) } : {}),
-            target,
-        };
     });
 }

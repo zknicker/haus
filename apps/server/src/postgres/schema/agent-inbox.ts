@@ -153,6 +153,11 @@ export const agentInboxTable = pgTable(
     {
         /** When the Computer acknowledged the run carrying this row. */
         acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+        /**
+         * Why this item names the Agent personally rather than ambiently, decided
+         * once when delivery is planned. Null is an ordinary ambient delivery.
+         */
+        addressedReason: text('addressed_reason').$type<'dm' | 'mention' | 'routing'>(),
         agentId: text('agent_id').notNull(),
         chatId: text('chat_id').notNull(),
         content: text('content').notNull(),
@@ -209,6 +214,16 @@ export const agentInboxTable = pgTable(
         index('agent_inbox_notice_run_idx')
             .on(table.agentId, table.noticeRunId)
             .where(sql`${table.state} <> 'seen'`),
+        // Addressed work drains on a cold start, so the planner filters the live
+        // queue on it as cheaply as it filters on state.
+        index('agent_inbox_addressed_idx')
+            .on(table.serverId, table.agentId)
+            .where(sql`${table.addressedReason} is not null and ${table.state} <> 'seen'`),
+        check(
+            'agent_inbox_addressed_reason',
+            sql`${table.addressedReason} is null
+                or ${table.addressedReason} in ('dm', 'mention', 'routing')`
+        ),
         check('agent_inbox_id_shape', sql`${table.id} ~ '^inb_[A-Za-z0-9_-]{16}$'`),
         check('agent_inbox_state', sql`${table.state} in ('queued', 'accepted', 'served', 'seen')`),
     ]

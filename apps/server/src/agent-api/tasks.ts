@@ -2,7 +2,10 @@ import type { AgentActivityEvent, ServerDurableEvent, TaskClaimConflict } from '
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
+import {
+    type AgentMessageRecipientPlan,
+    planAgentMessageRecipients,
+} from '../agent-delivery/message-recipients.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
@@ -196,6 +199,9 @@ export async function createAgentTasks(
             });
             if (assigneeAgentId && assigneeAgentId !== runner.agentId) {
                 recipients.push({
+                    // The assignment's own concrete item carries the personal
+                    // attention; the canonical task message stays ambient.
+                    addressedReason: null,
                     agentId: assigneeAgentId,
                     mentioned: false,
                     threadFollowReactivated: false,
@@ -203,6 +209,7 @@ export async function createAgentTasks(
             }
             for (const recipient of dedupeRecipients(recipients)) {
                 await agentDelivery.enqueue(tx, {
+                    addressedReason: recipient.addressedReason,
                     agentId: recipient.agentId,
                     chatId,
                     content: title.trim(),
@@ -728,20 +735,12 @@ async function replayAgentTasks(
     );
 }
 
-function dedupeRecipients(
-    recipients: Array<{
-        agentId: string;
-        mentioned: boolean;
-        threadFollowReactivated: boolean;
-    }>
-) {
-    const byAgent = new Map<
-        string,
-        { agentId: string; mentioned: boolean; threadFollowReactivated: boolean }
-    >();
+function dedupeRecipients(recipients: AgentMessageRecipientPlan[]) {
+    const byAgent = new Map<string, AgentMessageRecipientPlan>();
     for (const recipient of recipients) {
         const current = byAgent.get(recipient.agentId);
         byAgent.set(recipient.agentId, {
+            addressedReason: recipient.addressedReason ?? current?.addressedReason ?? null,
             agentId: recipient.agentId,
             mentioned: Boolean(current?.mentioned || recipient.mentioned),
             threadFollowReactivated: Boolean(

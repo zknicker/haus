@@ -92,7 +92,14 @@ async function planInlineReplyRecipients(
             ? followedByAgent.get(agent.id) === true || isMentioned
             : !muted.has(agent.id) || isMentioned;
         return receives
-            ? [{ agentId: agent.id, mentioned: isMentioned, threadFollowReactivated: false }]
+            ? [
+                  {
+                      addressedReason: isMentioned ? ('mention' as const) : null,
+                      agentId: agent.id,
+                      mentioned: isMentioned,
+                      threadFollowReactivated: false,
+                  },
+              ]
             : [];
     });
 }

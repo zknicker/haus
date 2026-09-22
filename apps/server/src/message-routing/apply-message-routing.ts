@@ -49,7 +49,11 @@ export async function applyMessageRouting(db: HausDatabase, input: RoutingCommit
                 ? recipients.filter((row) => row.agentId === decision.agentId)
                 : [];
         const narrowed = !stale && decision.kind === 'narrow' && selected.length === 1;
-        finalRecipients = narrowed ? selected : recipients;
+        // A committed narrow is addressing: the surviving Agent is the sole
+        // conversational addressee, which is what a cold start drains on.
+        finalRecipients = narrowed
+            ? selected.map((row) => ({ ...row, addressedReason: 'routing' as const }))
+            : recipients;
         audit = judgedAudit(prepared, finalRecipients, stale, narrowed);
     }
     await db

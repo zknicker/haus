@@ -246,6 +246,7 @@ export async function sendChatMessage(
         });
         for (const recipient of recipients) {
             await agentDelivery.enqueue(tx, {
+                addressedReason: recipient.addressedReason,
                 agentId: recipient.agentId,
                 chatId: writeChatId,
                 content: input.content,

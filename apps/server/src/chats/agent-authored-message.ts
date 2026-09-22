@@ -166,6 +166,7 @@ export async function writeAgentAuthoredMessage(
     });
     for (const recipient of recipients) {
         await agentDelivery.enqueue(db, {
+            addressedReason: recipient.addressedReason,
             agentId: recipient.agentId,
             chatId: plan.chatId,
             content: input.content,

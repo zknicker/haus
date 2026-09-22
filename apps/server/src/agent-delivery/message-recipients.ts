@@ -1,3 +1,4 @@
+import type { AddressedReason } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -11,6 +12,11 @@ import {
 import { planInlineReplyMessage } from './inline-reply-recipients.ts';
 
 export interface AgentMessageRecipientPlan {
+    /**
+     * Why this delivery names the Agent personally: a DM, an @mention, or a
+     * committed Jev narrow. Null is an ordinary ambient delivery.
+     */
+    addressedReason: AddressedReason | null;
     agentId: string;
     mentioned: boolean;
     threadFollowReactivated: boolean;
@@ -169,6 +175,7 @@ export async function planAgentMessageRecipients(
         }
         return [
             {
+                addressedReason: isMentioned ? 'mention' : null,
                 agentId,
                 mentioned: isMentioned,
                 threadFollowReactivated: reactivated.has(agentId),
@@ -197,7 +204,9 @@ async function activeDmRecipient(
             )
         )
         .limit(1);
-    return agent ? [{ agentId, mentioned: false, threadFollowReactivated: false }] : [];
+    return agent
+        ? [{ addressedReason: 'dm', agentId, mentioned: false, threadFollowReactivated: false }]
+        : [];
 }
 
 async function activeDmThreadRecipient(
@@ -253,6 +262,7 @@ async function activeDmThreadRecipient(
     }
     return [
         {
+            addressedReason: 'dm',
             agentId: input.agentId,
             mentioned,
             threadFollowReactivated: reactivated,

@@ -1,4 +1,4 @@
-import type { AgentReasoningEffort } from '@haus/api';
+import type { AddressedReason, AgentReasoningEffort } from '@haus/api';
 import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -29,6 +29,8 @@ export interface AgentDeliveryRow {
 }
 
 export interface InboxItemRow {
+    /** Why this item names the Agent personally; null is an ambient delivery. */
+    addressedReason: AddressedReason | null;
     chatId: string;
     content: string;
     createdAt: Date;
@@ -40,6 +42,21 @@ export interface InboxItemRow {
     source: string;
     threadFollowReactivated: boolean;
 }
+
+/** The one projection every queue read returns, so a new column lands once. */
+const inboxItemColumns = {
+    addressedReason: agentInboxTable.addressedReason,
+    chatId: agentInboxTable.chatId,
+    content: agentInboxTable.content,
+    createdAt: agentInboxTable.createdAt,
+    dedupeKey: agentInboxTable.dedupeKey,
+    id: agentInboxTable.id,
+    mentioned: agentInboxTable.mentioned,
+    noticeRunId: agentInboxTable.noticeRunId,
+    serverId: agentInboxTable.serverId,
+    source: agentInboxTable.source,
+    threadFollowReactivated: agentInboxTable.threadFollowReactivated,
+} as const;
 
 export async function readAgentServerId(db: HausDatabase, agentId: string): Promise<string | null> {
     const [row] = await db
@@ -92,6 +109,7 @@ export async function setStopped(
 export async function enqueueInboxItem(
     db: HausDatabase,
     input: {
+        addressedReason?: AddressedReason | null;
         agentId: string;
         chatId: string;
         content: string;
@@ -106,6 +124,7 @@ export async function enqueueInboxItem(
     await db
         .insert(agentInboxTable)
         .values({
+            addressedReason: input.addressedReason ?? null,
             agentId: input.agentId,
             chatId: input.chatId,
             content: input.content,
@@ -241,18 +260,7 @@ export async function listInboxItemsForRun(
     input: { agentId: string; runId: string }
 ): Promise<InboxItemRow[]> {
     return await db
-        .select({
-            chatId: agentInboxTable.chatId,
-            content: agentInboxTable.content,
-            createdAt: agentInboxTable.createdAt,
-            dedupeKey: agentInboxTable.dedupeKey,
-            id: agentInboxTable.id,
-            mentioned: agentInboxTable.mentioned,
-            noticeRunId: agentInboxTable.noticeRunId,
-            serverId: agentInboxTable.serverId,
-            source: agentInboxTable.source,
-            threadFollowReactivated: agentInboxTable.threadFollowReactivated,
-        })
+        .select(inboxItemColumns)
         .from(agentInboxTable)
         .where(
             and(
@@ -270,18 +278,7 @@ export async function listQueuedItems(
     limit: number
 ): Promise<InboxItemRow[]> {
     return await db
-        .select({
-            chatId: agentInboxTable.chatId,
-            content: agentInboxTable.content,
-            createdAt: agentInboxTable.createdAt,
-            dedupeKey: agentInboxTable.dedupeKey,
-            id: agentInboxTable.id,
-            mentioned: agentInboxTable.mentioned,
-            noticeRunId: agentInboxTable.noticeRunId,
-            serverId: agentInboxTable.serverId,
-            source: agentInboxTable.source,
-            threadFollowReactivated: agentInboxTable.threadFollowReactivated,
-        })
+        .select(inboxItemColumns)
         .from(agentInboxTable)
         .where(queuedFor(agentId))
         .orderBy(...inboxOrder())
@@ -295,18 +292,7 @@ export async function listQueuedConcreteItems(
     limit: number
 ): Promise<InboxItemRow[]> {
     return await db
-        .select({
-            chatId: agentInboxTable.chatId,
-            content: agentInboxTable.content,
-            createdAt: agentInboxTable.createdAt,
-            dedupeKey: agentInboxTable.dedupeKey,
-            id: agentInboxTable.id,
-            mentioned: agentInboxTable.mentioned,
-            noticeRunId: agentInboxTable.noticeRunId,
-            serverId: agentInboxTable.serverId,
-            source: agentInboxTable.source,
-            threadFollowReactivated: agentInboxTable.threadFollowReactivated,
-        })
+        .select(inboxItemColumns)
         .from(agentInboxTable)
         .where(and(queuedFor(agentId), inArray(agentInboxTable.source, [...concreteInboxSources])))
         .orderBy(...inboxOrder())
@@ -318,18 +304,7 @@ export async function listNoticedItemsForRun(
     input: { agentId: string; runId: string }
 ): Promise<InboxItemRow[]> {
     return await db
-        .select({
-            chatId: agentInboxTable.chatId,
-            content: agentInboxTable.content,
-            createdAt: agentInboxTable.createdAt,
-            dedupeKey: agentInboxTable.dedupeKey,
-            id: agentInboxTable.id,
-            mentioned: agentInboxTable.mentioned,
-            noticeRunId: agentInboxTable.noticeRunId,
-            serverId: agentInboxTable.serverId,
-            source: agentInboxTable.source,
-            threadFollowReactivated: agentInboxTable.threadFollowReactivated,
-        })
+        .select(inboxItemColumns)
         .from(agentInboxTable)
         .where(and(queuedFor(input.agentId), eq(agentInboxTable.startNoticeRunId, input.runId)))
         .orderBy(...inboxOrder());
@@ -340,18 +315,7 @@ export async function listOfferedItemsForRun(
     input: { agentId: string; runId: string }
 ): Promise<InboxItemRow[]> {
     return await db
-        .select({
-            chatId: agentInboxTable.chatId,
-            content: agentInboxTable.content,
-            createdAt: agentInboxTable.createdAt,
-            dedupeKey: agentInboxTable.dedupeKey,
-            id: agentInboxTable.id,
-            mentioned: agentInboxTable.mentioned,
-            noticeRunId: agentInboxTable.noticeRunId,
-            serverId: agentInboxTable.serverId,
-            source: agentInboxTable.source,
-            threadFollowReactivated: agentInboxTable.threadFollowReactivated,
-        })
+        .select(inboxItemColumns)
         .from(agentInboxTable)
         .where(and(queuedFor(input.agentId), eq(agentInboxTable.noticeRunId, input.runId)))
         .orderBy(...inboxOrder());
@@ -365,18 +329,7 @@ export async function listInboxItemsByDedupeKeys(
         return [];
     }
     return await db
-        .select({
-            chatId: agentInboxTable.chatId,
-            content: agentInboxTable.content,
-            createdAt: agentInboxTable.createdAt,
-            dedupeKey: agentInboxTable.dedupeKey,
-            id: agentInboxTable.id,
-            mentioned: agentInboxTable.mentioned,
-            noticeRunId: agentInboxTable.noticeRunId,
-            serverId: agentInboxTable.serverId,
-            source: agentInboxTable.source,
-            threadFollowReactivated: agentInboxTable.threadFollowReactivated,
-        })
+        .select(inboxItemColumns)
         .from(agentInboxTable)
         .where(
             and(
@@ -423,18 +376,7 @@ export async function listQueuedMessageItems(
     limit: number
 ): Promise<InboxItemRow[]> {
     return await db
-        .select({
-            chatId: agentInboxTable.chatId,
-            content: agentInboxTable.content,
-            createdAt: agentInboxTable.createdAt,
-            dedupeKey: agentInboxTable.dedupeKey,
-            id: agentInboxTable.id,
-            mentioned: agentInboxTable.mentioned,
-            noticeRunId: agentInboxTable.noticeRunId,
-            serverId: agentInboxTable.serverId,
-            source: agentInboxTable.source,
-            threadFollowReactivated: agentInboxTable.threadFollowReactivated,
-        })
+        .select(inboxItemColumns)
         .from(agentInboxTable)
         .where(
             and(queuedFor(agentId), notInArray(agentInboxTable.source, [...bodilessInboxSources]))
@@ -536,18 +478,7 @@ export async function listUnnoticedQueuedItems(
     limit: number
 ): Promise<InboxItemRow[]> {
     return await db
-        .select({
-            chatId: agentInboxTable.chatId,
-            content: agentInboxTable.content,
-            createdAt: agentInboxTable.createdAt,
-            dedupeKey: agentInboxTable.dedupeKey,
-            id: agentInboxTable.id,
-            mentioned: agentInboxTable.mentioned,
-            noticeRunId: agentInboxTable.noticeRunId,
-            serverId: agentInboxTable.serverId,
-            source: agentInboxTable.source,
-            threadFollowReactivated: agentInboxTable.threadFollowReactivated,
-        })
+        .select(inboxItemColumns)
         .from(agentInboxTable)
         .where(and(queuedFor(agentId), isNull(agentInboxTable.noticeRunId)))
         .orderBy(...inboxOrder())

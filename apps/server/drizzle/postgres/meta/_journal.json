@@ -316,6 +316,13 @@
       "when": 1790027553075,
       "tag": "0044_model-reasoning-efforts",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790107960981,
+      "tag": "0045_addressed_inbox",
+      "breakpoints": true
     }
   ]
 }
