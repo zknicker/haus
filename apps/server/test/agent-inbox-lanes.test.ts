@@ -74,3 +74,32 @@ test('a resent active run reproduces the same drain sets and digest', async () =
     expect(resent?.warmDrainItemIds).toEqual(first?.warmDrainItemIds ?? []);
     expect(resent?.unreadElsewhere).toEqual(first?.unreadElsewhere ?? []);
 });
+
+test('a resend does not widen the drain sets past the drain budget', async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const body = 'x'.repeat(10_000);
+    const ids: string[] = [];
+    for (let index = 0; index < 3; index += 1) {
+        ids.push(
+            await deliverHuman(connection.db, delivery, seed, {
+                chatId: seed.channelId,
+                content: body,
+            })
+        );
+    }
+
+    // All three ride the notice rows; only the two inside the 24,000-character
+    // budget may become bodies.
+    const first = await wake();
+    expect(first?.inbox.map((item) => item.id)).toEqual(ids);
+    expect(first?.warmDrainItemIds).toEqual(ids.slice(0, 2));
+
+    await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
+    await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
+
+    const resent = transport.framesOfType('start').at(-1);
+    expect(resent?.runId).toBe(first?.runId ?? '');
+    expect(resent?.warmDrainItemIds).toEqual(first?.warmDrainItemIds ?? []);
+    expect(resent?.drainItemIds).toEqual(first?.drainItemIds ?? []);
+});

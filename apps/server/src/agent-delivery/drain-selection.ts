@@ -44,7 +44,7 @@ export async function startFrame(
         ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
         agentName: config.agentName,
         chatId: state.activeRunChatId ?? '',
-        drainItemIds: [...runRows, ...noticeRows.filter(isAddressedHumanRow)].map(
+        drainItemIds: [...runRows, ...humanDrainSets(noticeRows).drainRows].map(
             (row) => row.dedupeKey
         ),
         homeTimezone: config.homeTimezone,
@@ -62,9 +62,7 @@ export async function startFrame(
             representedChatIds: chatIdsOf(noticeRows),
             serverId: state.serverId,
         }),
-        warmDrainItemIds: noticeRows
-            .filter((row) => row.source === 'human' && !isAddressedHumanRow(row))
-            .map((row) => row.dedupeKey),
+        warmDrainItemIds: humanDrainSets(noticeRows).warmDrainRows.map((row) => row.dedupeKey),
     };
 }
 
@@ -89,6 +87,23 @@ export function boundedCompatibleRows(rows: store.InboxItemRow[], source: string
         chars = nextChars;
     }
     return selected;
+}
+
+/**
+ * The two drain sets a notice-lane frame offers, derived from the rows that
+ * frame carries. Both the first dispatch and every resend compute them from the
+ * same persisted notice window, so a replayed run composes the prompt the ledger
+ * expects; the drain budget still bounds how much of it may become bodies.
+ */
+export function humanDrainSets(noticeRows: store.InboxItemRow[]) {
+    const drainable = boundedCompatibleRows(
+        noticeRows.filter((row) => row.source === 'human'),
+        'human'
+    );
+    return {
+        drainRows: drainable.filter(isAddressedHumanRow),
+        warmDrainRows: drainable.filter((row) => !isAddressedHumanRow(row)),
+    };
 }
 
 /**

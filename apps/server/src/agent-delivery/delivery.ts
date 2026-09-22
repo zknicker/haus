@@ -45,7 +45,7 @@ import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import {
     boundedCompatibleRows,
     chatIdsOf,
-    isAddressedHumanRow,
+    humanDrainSets,
     maxDrainRows,
     noticeWindow,
     startFrame,
@@ -1016,10 +1016,6 @@ export class AgentDelivery {
                 runId,
             });
         } else {
-            drainRows = selected.filter(isAddressedHumanRow);
-            warmDrainRows = selected.filter(
-                (row) => row.source === 'human' && !isAddressedHumanRow(row)
-            );
             noticeRows = noticeWindow(
                 (await store.listQueuedItems(tx, agentId, 1000)).filter(
                     (row) => !isConcreteSource(row.source)
@@ -1032,6 +1028,10 @@ export class AgentDelivery {
                 itemIds: noticeRows.map((row) => row.id),
                 runId,
             });
+            // Derived from the rows this frame carries, not from the candidate
+            // slice, so a resend rebuilding from those same persisted rows
+            // reproduces exactly these two sets.
+            ({ drainRows, warmDrainRows } = humanDrainSets(noticeRows));
         }
         const chatId = first.chatId;
         // Freeze execution configuration onto the run so every resend uses these values.
