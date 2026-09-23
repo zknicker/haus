@@ -15,6 +15,8 @@ const visibleEventsSchema = z.object({
         )
         .min(1)
         .max(100),
+    /** A drain the turn prompt carried: exact visibility only, rows stay offered. */
+    composed: z.boolean().optional(),
 });
 
 export function registerAgentInboxRoutes(app: FastifyInstance, db: HausDatabase) {
@@ -54,7 +56,9 @@ export function registerAgentInboxRoutes(app: FastifyInstance, db: HausDatabase)
             );
         }
         try {
-            return await attestAgentEvents(db, runner, body.data.messages);
+            return await attestAgentEvents(db, runner, body.data.messages, {
+                composed: body.data.composed === true,
+            });
         } catch (cause) {
             return sendAgentReadError(reply, cause);
         }

@@ -77,11 +77,19 @@ export async function pullAgentEvents(db: HausDatabase, runner: ResolvedRunner) 
     });
 }
 
-/** Attests exact bodies returned by the Computer-local inbox cache to the active turn. */
+/**
+ * Attests exact bodies the Computer put in front of the model to the active
+ * turn. A pull receipt — the Computer-local `message check` cache — also serves
+ * the rows it returned, as a Server pull does. A composed receipt covers a drain
+ * the turn prompt itself carried and records exact visibility only, before the
+ * model streams: its rows stay offered to the run so a resend recomputes the
+ * same drain sets (ADR 0033), and settlement attaches and sees them.
+ */
 export async function attestAgentEvents(
     db: HausDatabase,
     runner: ResolvedRunner,
-    identities: Array<{ chatId: string; id: string; sequence: number }>
+    identities: Array<{ chatId: string; id: string; sequence: number }>,
+    options: { composed?: boolean } = {}
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
@@ -90,11 +98,6 @@ export async function attestAgentEvents(
             throw new Error('The Agent run is no longer active.');
         }
         const requested = new Map(identities.map((identity) => [identity.id, identity]));
-        const [pending, attached] = await Promise.all([
-            listQueuedMessageItems(tx, runner.agentId, 1000),
-            listInboxItemsForRun(tx, { agentId: runner.agentId, runId: runner.runId }),
-        ]);
-        const selected = [...pending, ...attached].filter((row) => requested.has(row.dedupeKey));
         const messages: Awaited<ReturnType<typeof resolveAgentMessage>>[] = [];
         // History and hold results are model-visible even when mute prevented a pending row.
         for (const identity of requested.values()) {
@@ -104,16 +107,9 @@ export async function attestAgentEvents(
             }
             messages.push(message);
         }
-        await attachQueuedItemsToRun(tx, {
-            agentId: runner.agentId,
-            itemIds: pending.filter((row) => requested.has(row.dedupeKey)).map((row) => row.id),
-            runId: runner.runId,
-        });
-        await markInboxItemsServed(tx, {
-            agentId: runner.agentId,
-            itemIds: selected.map((row) => row.id),
-            runId: runner.runId,
-        });
+        if (!options.composed) {
+            await serveReceiptRows(tx, runner, requested);
+        }
         await recordExactMessagesServed(tx, {
             agentId: runner.agentId,
             messages: messages.map((message) => ({ chatId: message.chat_id, id: message.id })),
@@ -121,6 +117,29 @@ export async function attestAgentEvents(
             serverId: runner.serverId,
         });
         return { accepted: messages.map((message) => message.id) };
+    });
+}
+
+async function serveReceiptRows(
+    tx: HausDatabase,
+    runner: ResolvedRunner,
+    requested: Map<string, unknown>
+) {
+    const [pending, attached] = await Promise.all([
+        listQueuedMessageItems(tx, runner.agentId, 1000),
+        listInboxItemsForRun(tx, { agentId: runner.agentId, runId: runner.runId }),
+    ]);
+    await attachQueuedItemsToRun(tx, {
+        agentId: runner.agentId,
+        itemIds: pending.filter((row) => requested.has(row.dedupeKey)).map((row) => row.id),
+        runId: runner.runId,
+    });
+    await markInboxItemsServed(tx, {
+        agentId: runner.agentId,
+        itemIds: [...pending, ...attached]
+            .filter((row) => requested.has(row.dedupeKey))
+            .map((row) => row.id),
+        runId: runner.runId,
     });
 }
 
