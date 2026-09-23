@@ -33,10 +33,10 @@ colors:
     field-foreground: "#FCFCFC"
     field-placeholder: "#A0A0A0"
     black: "#000000"
-    chart-1: "#00BCFF"
-    chart-2: "#FF6467"
-    chart-3: "#00D492"
-    chart-4: "#A684FF"
+    chart-1: "#3987E5"
+    chart-2: "#D95926"
+    chart-3: "#199E70"
+    chart-4: "#C98500"
     chart-5: "#9F9FA9"
     eclipse: "#18181B"
     snow: "#FCFCFC"
@@ -108,11 +108,11 @@ colors:
     field-foreground: "#18181B"
     field-placeholder: "#727272"
     black: "#000000"
-    chart-1: "#0084D1"
-    chart-2: "#E7000B"
-    chart-3: "#009966"
-    chart-4: "#7F22FE"
-    chart-5: "#71717B"
+    chart-1: "#2A78D6"
+    chart-2: "#EB6834"
+    chart-3: "#1BAF7A"
+    chart-4: "#EDA100"
+    chart-5: "#9F9FA9"
     eclipse: "#18181B"
     snow: "#FCFCFC"
     white: "#FFFFFF"
@@ -228,11 +228,11 @@ components:
     component: "Card"
     shadow: "0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06)"
   chart:
-    series1: "#0084D1"
-    series2: "#E7000B"
-    series3: "#009966"
-    series4: "#7F22FE"
-    series5: "#71717B"
+    series1: "#2A78D6"
+    series2: "#EB6834"
+    series3: "#1BAF7A"
+    series4: "#EDA100"
+    series5: "#9F9FA9"
   field:
     backgroundColor: "#FFFFFF"
     borderColor: "#DEDEDE"
@@ -317,11 +317,11 @@ sitting on it rather than by tinting the ground. `--sidebar-surface` and
 | `field-foreground` | `#18181B` | `#FCFCFC` | `var(--foreground)` | `--field-foreground` | Field text color | Text color inside form fields. |
 | `field-placeholder` | `#727272` | `#A0A0A0` | `= muted` | `--field-placeholder` | Field placeholder text color | Placeholder text color in form fields. |
 | `black` | `#000000` | `#000000` | `oklch(0% 0 0)` | `--black` | Prefer the HeroUI token for black. | Pure black. Used as a base primitive for dark theme foreground elements. |
-| `chart-1` | `#0084D1` | `#00BCFF` | `Light: = Tailwind sky-600; Dark: = Tailwind sky-400` | `--chart-1` | First chart series color | Categorical series 1 — sky. With series 2, the positive/negative pair. |
-| `chart-2` | `#E7000B` | `#FF6467` | `Light: = Tailwind red-600; Dark: = Tailwind red-400` | `--chart-2` | Second chart series color | Categorical series 2 — red. |
-| `chart-3` | `#009966` | `#00D492` | `Light: = Tailwind emerald-600; Dark: = Tailwind emerald-400` | `--chart-3` | Third chart series color | Categorical series 3 — emerald. |
-| `chart-4` | `#7F22FE` | `#A684FF` | `Light: = Tailwind violet-600; Dark: = Tailwind violet-400` | `--chart-4` | Fourth chart series color | Categorical series 4 — violet. |
-| `chart-5` | `#71717B` | `#9F9FA9` | `Light: = Tailwind zinc-500; Dark: = Tailwind zinc-400` | `--chart-5` | Fifth chart series color | Categorical series 5 — zinc, the neutral, for baselines and "no data". Cool, like every other neutral in the system. |
+| `chart-1` | `#2A78D6` | `#3987E5` | `Claude dataviz categorical slot 1 (blue), per scheme` | `--chart-1` | First chart series color | Categorical series 1 — blue. First series in every chart. |
+| `chart-2` | `#EB6834` | `#D95926` | `Claude dataviz categorical slot 2 (orange), per scheme` | `--chart-2` | Second chart series color | Categorical series 2 — orange. |
+| `chart-3` | `#1BAF7A` | `#199E70` | `Claude dataviz categorical slot 3 (aqua), per scheme` | `--chart-3` | Third chart series color | Categorical series 3 — aqua. |
+| `chart-4` | `#EDA100` | `#C98500` | `Claude dataviz categorical slot 4 (yellow), per scheme` | `--chart-4` | Fourth chart series color | Categorical series 4 — yellow. The last series slot; the order never cycles. |
+| `chart-5` | `#9F9FA9` | `#9F9FA9` | `Light: = zinc-400, same as dark; 2.5:1 on the light background by design; Dark: = Tailwind zinc-400` | `--chart-5` | Neutral, not a fifth series | Baselines, de-emphasis, and "no data". Cool, like every other neutral in the system. |
 | `eclipse` | `#18181B` | `#18181B` | `oklch(21.03% 0.0059 285.89)` | `--eclipse` | Prefer the HeroUI token for eclipse. | Near-black neutral. Slightly softer than pure black for dark surfaces. |
 | `snow` | `#FCFCFC` | `#FCFCFC` | `oklch(99.11% 0 0)` | `--snow` | Prefer the HeroUI token for snow. | Off-white neutral. Slightly softer than pure white for backgrounds. |
 | `white` | `#FFFFFF` | `#FFFFFF` | `oklch(100% 0 0)` | `--white` | Prefer the HeroUI token for white. | Pure white. Used as a base primitive for light theme surfaces and backgrounds. |
@@ -380,7 +380,7 @@ and no synonyms:
 | Borders | `--border`, `--border-strong` |
 | Emphasis | `--accent`, `--accent-foreground`, `--accent-bg` |
 | Status | `--success`, `--warning`, `--error`, each with `-foreground` and `-bg` |
-| Charts | `--chart-1..5`, `--chart-grid`, `--chart-label` |
+| Charts | `--chart-1..4` (series), `--chart-5` (neutral), `--chart-grid`, `--chart-label` |
 | Layout | `--radius`, `--radius-card`, `--pad-sm/md/lg`, `--gap-xs/sm/md/lg` |
 
 Four of those groups are more than an alias:
@@ -391,8 +391,9 @@ Four of those groups are more than an alias:
 - **Emphasis is the app's accent**, in the same three-part shape as a status
   group: the hue, the ink that reads on its tint, and the tint. Emphasis and
   informational callouts are one role, so there is no separate brand hue.
-- **`--chart-1..5`** is the categorical palette in the table above, replacing
-  HeroUI Pro's accent lightness ramp.
+- **`--chart-1..4`** is the categorical palette in the table above, replacing
+  HeroUI Pro's accent lightness ramp; `--chart-5` is the neutral beside it, not
+  a fifth series.
 - **Layout** derives from HeroUI: `--radius` is the fields tier
   (`calc(var(--radius) * 1.5)`, 9px) because a visual is mostly control-sized
   boxes, and `--radius-card` is the shell tier (`min(32px, ×3)`, 18px). Pads
@@ -412,8 +413,8 @@ plain markup and never hand-rolls chrome. Bare `<table>` markup is styled the
 same way.
 
 These land on `:root`, so they are global rather than frame-scoped: the app's
-own usage chart (`features/stats/use-usage-spend.ts`) draws the same five
-series. A few published names resolve through a host role the frame reads
+own usage chart (`features/stats/use-usage-spend.ts`) draws from the same
+five names. A few published names resolve through a host role the frame reads
 instead: `--accent-foreground`, `--success-foreground` and
 `--warning-foreground` take HeroUI's `-soft-foreground` values (HeroUI declares
 the base names in `@layer base` for solid chips), and `--radius` reads the
@@ -733,10 +734,14 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   message has them — nothing else. What an Agent is generally for belongs to its hover card and
   profile, not to every message it writes, and what a message *is* states itself below the header,
   where its lifecycle can be followed.
-- **Charts:** Use `--chart-1` through `--chart-5` for multi-series charts. They are a categorical
-  palette — sky, red, emerald, violet, zinc — so independent series separate by hue rather than by
-  lightness, and they survive grayscale. Dark uses the Tailwind 400 step and light the 600 step
-  (zinc-500). The app's usage chart and agent-authored visuals share these five.
+- **Charts:** A chart is hand-drawn inline SVG, never a charting library. Series take `--chart-1`
+  through `--chart-4` in order (blue, orange, aqua, yellow) and the order never cycles; `--chart-5`
+  is the neutral for baselines and de-emphasis. Independent series separate by hue rather than by
+  lightness, and they hold up under color vision deficiency in both schemes. One y-axis per chart by default:
+  two units mean two paired panels, and a second axis only when the reader asked for bars and a
+  line on one plot, both axes then drawn from zero. Bars are 24px at most with a 4px radius on the data end only,
+  the grid is a hairline on horizontals alone, and labels are 12px. The app's usage chart and
+  agent-authored visuals share the same tokens.
 
 ## Do's and Don'ts
 - Do use semantic HeroUI and Tailwind tokens as implementation handles; use raw values in this file for reference, QA, and migration only.
