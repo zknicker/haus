@@ -1,6 +1,10 @@
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness';
 // Computer pins codex-acp and, through a pnpm override, the Codex CLI it drives.
 // The ACP bridge itself is @ai-sdk/harness-acp's, carrying Haus's steering patch.
+// codex-acp's own pnpm patch puts app-server's per-request token usage on the wire.
+import codexAcpPatch from '../../assets/harness-bridges/codex/codex-acp.patch' with {
+    type: 'text',
+};
 import codexAcpPackage from '../../assets/harness-bridges/codex/package.json' with { type: 'text' };
 import codexAcpLockfile from '../../assets/harness-bridges/codex/pnpm-lock.yaml' with {
     type: 'text',
@@ -10,6 +14,7 @@ import { bridgePnpm, retriedOnce } from './bridge-pnpm.ts';
 export const codexAcpImplementationFiles: ReadonlyArray<{ content: string; name: string }> = [
     { content: codexAcpPackage as unknown as string, name: 'package.json' },
     { content: codexAcpLockfile, name: 'pnpm-lock.yaml' },
+    { content: codexAcpPatch, name: 'codex-acp.patch' },
 ];
 
 /**
@@ -67,6 +72,11 @@ async function readCodexAcpBootstrap(
         ],
         files: [
             ...bootstrap.files,
+            // harness-acp writes only the manifest and lockfile; the lockfile pins this patch.
+            {
+                content: codexAcpPatch,
+                path: `${bootstrap.bootstrapDir}/implementation/codex-acp.patch`,
+            },
             {
                 content: 'haus-computer-v1\n',
                 path: `${bootstrap.bootstrapDir}/haus-computer-owner`,

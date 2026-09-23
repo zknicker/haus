@@ -39,6 +39,13 @@ test('codex-acp is pinned together with the Codex CLI it drives', async () => {
     expect(manifest).toContain('"@openai/codex": "0.155.1"');
     expect(lockfile).toContain("'@agentclientprotocol/codex-acp@1.12.0'");
     expect(lockfile).toContain("'@openai/codex@0.155.1'");
+    // The patch puts per-request token usage on the wire; the frozen lockfile pins its hash.
+    const patch = bootstrap?.files.find(
+        (file) => file.path === '.harness-bootstrap/codex/implementation/codex-acp.patch'
+    )?.content;
+    expect(manifest).toContain('"@agentclientprotocol/codex-acp@1.12.0": "codex-acp.patch"');
+    expect(lockfile).toContain('path: codex-acp.patch');
+    expect(patch).toContain('"haus/threadTokenUsage": {');
 });
 
 test('both Codex installs share the machine store and gate on a runnable Codex CLI', async () => {

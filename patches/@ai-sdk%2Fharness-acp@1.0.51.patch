@@ -1,11 +1,57 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 9770d846a1c76534879f6cf90963208e84efbd32..7505d920167b6bcd987b55b0c8d389439db56b06 100644
+index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf41ccd23f 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -949,6 +949,23 @@ function captureACPStream({ stream }) {
+@@ -949,6 +949,69 @@ function captureACPStream({ stream }) {
      }
    };
  }
++var CODEX_TOKEN_FIELDS = ["totalTokens", "inputTokens", "cachedInputTokens", "outputTokens", "reasoningOutputTokens"];
++var codexThreadTokenTotals = /* @__PURE__ */ new Map();
++function readCodexTokenCount(value) {
++  if (!isRecord2(value)) return void 0;
++  for (const field of CODEX_TOKEN_FIELDS) {
++    if (!Number.isSafeInteger(value[field]) || value[field] < 0) return void 0;
++  }
++  return value;
++}
++function subtractCodexTokenCount(minuend, subtrahend) {
++  const result = {};
++  for (const field of CODEX_TOKEN_FIELDS) {
++    result[field] = minuend[field] - subtrahend[field];
++    if (result[field] < 0) return void 0;
++  }
++  return result;
++}
++function createCodexTurnUsage({ sessionId }) {
++  let baseline;
++  let total = codexThreadTokenTotals.get(sessionId);
++  return {
++    // codex-acp (Haus patch) sends app-server's thread-cumulative total and the
++    // request's own usage on every usage_update. A repeated total is a re-send.
++    observe(update) {
++      const reported = update._meta?.["haus/threadTokenUsage"];
++      const reportedTotal = readCodexTokenCount(reported?.total);
++      const reportedLast = readCodexTokenCount(reported?.last);
++      if (reportedTotal == null || reportedLast == null) return;
++      if (reportedTotal.totalTokens === total?.totalTokens) return;
++      baseline ??= total ?? subtractCodexTokenCount(reportedTotal, reportedLast);
++      total = reportedTotal;
++      codexThreadTokenTotals.set(sessionId, reportedTotal);
++    },
++    // The turn spends the thread total's growth, not only the final request.
++    usage() {
++      const turn = baseline == null || total == null ? void 0 : subtractCodexTokenCount(total, baseline);
++      return turn == null ? void 0 : {
++        totalTokens: turn.totalTokens,
++        inputTokens: turn.inputTokens,
++        cachedReadTokens: turn.cachedInputTokens,
++        outputTokens: turn.outputTokens,
++        thoughtTokens: turn.reasoningOutputTokens
++      };
++    }
++  };
++}
 +function readGrokTurnUsage(usage) {
 +  if (!isRecord2(usage)) return void 0;
 +  for (const field of ["inputTokens", "outputTokens", "totalTokens"]) {
@@ -26,7 +72,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..7505d920167b6bcd987b55b0c8d38943
  function getRawSessionUpdate({ message }) {
    const record = message;
    if (record.method !== "session/update" || !isRecord2(record.params)) {
-@@ -3783,6 +3800,11 @@ async function runTurn(start, turn) {
+@@ -3783,6 +3846,12 @@ async function runTurn(start, turn) {
      removeCorrelationInvocation: emitStreamEvent.removeHostToolCorrelationInvocation
    };
    activeHostToolRelay.bindTurn({ turn: relayTurn });
@@ -35,10 +81,11 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..7505d920167b6bcd987b55b0c8d38943
 +    markInterjectionReady = resolve;
 +  });
 +  let acceptingInterjections = true;
++  const codexTurnUsage = bridgeType === "codex" ? createCodexTurnUsage({ sessionId: activeSession.sessionId }) : void 0;
    try {
      const promptMeta = createOutputSchemaPromptMeta({ start });
      const startPrompt = () => promptActiveSession({
-@@ -3810,6 +3832,52 @@ async function runTurn(start, turn) {
+@@ -3810,6 +3879,52 @@ async function runTurn(start, turn) {
      } else {
        void startPrompt();
      }
@@ -91,16 +138,19 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..7505d920167b6bcd987b55b0c8d38943
      if (turn.abortSignal.aborted) {
        await cancel();
      } else {
-@@ -3837,6 +3905,8 @@ async function runTurn(start, turn) {
+@@ -3837,6 +3952,11 @@ async function runTurn(start, turn) {
          });
        }
        if (message.kind === "session_update") {
 +        markInterjectionReady?.();
 +        markInterjectionReady = void 0;
++        if (message.update.sessionUpdate === "usage_update") {
++          codexTurnUsage?.observe(message.update);
++        }
          const captured = streamCapture?.takeForUpdate({
            update: message.update
          });
-@@ -3852,9 +3922,17 @@ async function runTurn(start, turn) {
+@@ -3852,9 +3972,21 @@ async function runTurn(start, turn) {
        for (const rawValue of streamCapture?.drainRawValues() ?? []) {
          emitStreamEvent.raw({ rawValue });
        }
@@ -110,6 +160,10 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..7505d920167b6bcd987b55b0c8d38943
 +          message = { ...message, response: { ...message.response, usage } };
 +        }
 +      }
++      const codexUsage = message.kind === "stop" ? codexTurnUsage?.usage() : void 0;
++      if (codexUsage != null) {
++        message = { ...message, response: { ...message.response, usage: codexUsage } };
++      }
        if (emitStreamEvent.message({ message })) return;
      }
    } finally {
@@ -118,7 +172,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..7505d920167b6bcd987b55b0c8d38943
      if (activeQuestionRequest?.turn === turn) {
        activeQuestionRequest = void 0;
      }
-@@ -3925,7 +4003,7 @@ async function ensureSession({
+@@ -3925,7 +4057,7 @@ async function ensureSession({
      }
    });
    child = spawn(
@@ -127,7 +181,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..7505d920167b6bcd987b55b0c8d38943
      [...implementation.args],
      {
        cwd: workDir,
-@@ -4321,11 +4399,12 @@ async function readImplementationDescriptor({
+@@ -4321,11 +4453,12 @@ async function readImplementationDescriptor({
    const value = await new Response(text, {
      headers: { "content-type": "application/json" }
    }).json();
