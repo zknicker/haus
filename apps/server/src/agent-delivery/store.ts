@@ -118,27 +118,17 @@ export async function enqueueInboxItem(
         content: string;
         createdAt?: Date;
         dedupeKey: string;
+        expectsReply?: number | null | undefined;
         mentioned?: boolean;
         serverId: string;
         source: string;
         threadFollowReactivated?: boolean;
     }
 ): Promise<void> {
+    // Omitted optional fields take their column defaults.
     await db
         .insert(agentInboxTable)
-        .values({
-            addressedReason: input.addressedReason ?? null,
-            agentId: input.agentId,
-            chatId: input.chatId,
-            content: input.content,
-            ...(input.createdAt ? { createdAt: input.createdAt } : {}),
-            dedupeKey: input.dedupeKey,
-            id: createOpaqueId('inb'),
-            mentioned: input.mentioned ?? false,
-            serverId: input.serverId,
-            source: input.source,
-            threadFollowReactivated: input.threadFollowReactivated ?? false,
-        })
+        .values({ ...input, id: createOpaqueId('inb') })
         .onConflictDoNothing();
 }
 

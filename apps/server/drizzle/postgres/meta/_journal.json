@@ -330,6 +330,13 @@
       "when": 1790186234100,
       "tag": "0046_received_message_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790193578980,
+      "tag": "0047_expects_reply",
+      "breakpoints": true
     }
   ]
 }

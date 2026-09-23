@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import type { AgentMessageRecipientPlan } from '../src/agent-delivery/message-recipients.ts';
 import { applyMessageRouting } from '../src/message-routing/apply-message-routing.ts';
 import { readRoutingAgents } from '../src/message-routing/context.ts';
@@ -143,10 +144,34 @@ test('a narrow at the gate marks the surviving recipient addressed', async () =>
         {
             addressedReason: 'routing',
             agentId: winner,
+            expectsReply: null,
             mentioned: false,
             threadFollowReactivated: false,
         },
     ]);
+});
+
+test('the reply judgment rides every recipient and the audit, unless the snapshot went stale', async () => {
+    const channel = await seedChannel();
+    const winner = channel.agentIds[0] ?? '';
+    const judged = await preparedNarrow(channel, winner);
+    const withReply = { ...judged, decision: { ...judged.decision, expectsReply: 0.07 } };
+    const uncertain = {
+        ...judged,
+        decision: { expectsReply: 0.07, kind: 'broadcast', reason: 'uncertain' },
+    } satisfies PreparedMessageRouting;
+
+    expect((await commit(channel, withReply)).map((row) => row.expectsReply)).toEqual([0.07]);
+    expect((await commit(channel, uncertain)).map((row) => row.expectsReply)).toEqual([0.07, 0.07]);
+    const [audit] = await connection.db
+        .select({ routing: chatMessagesTable.deliveryRouting })
+        .from(chatMessagesTable)
+        .where(eq(chatMessagesTable.id, channel.messageId));
+    expect(audit?.routing?.expectsReply).toBe(0.07);
+
+    const stale = { ...withReply, sequence: channel.sequence + 1 };
+    const staleRecipients = await commit(channel, stale);
+    expect(staleRecipients.every((row) => row.expectsReply === null)).toBe(true);
 });
 
 test('a stale or uncertain routing judgment leaves every row unaddressed', async () => {

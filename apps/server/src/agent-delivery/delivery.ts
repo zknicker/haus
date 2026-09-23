@@ -93,6 +93,7 @@ export interface EnqueueInput {
     createdAt?: Date;
     /** Idempotency key; a duplicate delivery of the same message is a no-op. */
     dedupeKey: string;
+    expectsReply?: number | null | undefined;
     mentioned?: boolean;
     sequence?: number;
     serverId: string;
@@ -130,18 +131,7 @@ export class AgentDelivery {
     async enqueue(tx: HausDatabase, input: EnqueueInput): Promise<void> {
         const source = input.source ?? 'human';
         await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
-        await store.enqueueInboxItem(tx, {
-            addressedReason: input.addressedReason ?? null,
-            agentId: input.agentId,
-            chatId: input.chatId,
-            content: input.content,
-            ...(input.createdAt ? { createdAt: input.createdAt } : {}),
-            dedupeKey: input.dedupeKey,
-            mentioned: input.mentioned,
-            serverId: input.serverId,
-            source,
-            threadFollowReactivated: input.threadFollowReactivated,
-        });
+        await store.enqueueInboxItem(tx, { ...input, source });
         // Fresh work re-enables delivery. Human intent also releases the
         // Agent-authored chain ceiling even when older Agent rows precede it.
         await store.clearDeliveryFailures(tx, input.agentId);

@@ -7,6 +7,7 @@ import {
     integer,
     pgTable,
     primaryKey,
+    real,
     text,
     timestamp,
     uniqueIndex,
@@ -88,6 +89,8 @@ export const agentInboxExactVisibilityTable = pgTable(
             foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
             name: 'agent_inbox_exact_visibility_message_fk',
         }).onDelete('cascade'),
+        // Chat engagement reads one run's visibility at a time (ADR 0034).
+        index('agent_inbox_exact_visibility_run_idx').on(table.agentId, table.servedRunId),
         check('agent_inbox_exact_visibility_generation', sql`${table.sessionGeneration} > 0`),
     ]
 );
@@ -163,6 +166,12 @@ export const agentInboxTable = pgTable(
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
+        /**
+         * Jev's probability that the message calls for a reply from its addressed
+         * Agents, asked with the routing judgment. Null when no judgment ran or it
+         * did not answer. Used only to suppress the Chat typing presentation.
+         */
+        expectsReply: real('expects_reply'),
         id: text('id').primaryKey(),
         /** Whether this Agent was personally named when the immutable message was planned. */
         mentioned: boolean('mentioned').notNull().default(false),
@@ -223,6 +232,11 @@ export const agentInboxTable = pgTable(
             'agent_inbox_addressed_reason',
             sql`${table.addressedReason} is null
                 or ${table.addressedReason} in ('dm', 'mention', 'routing')`
+        ),
+        check(
+            'agent_inbox_expects_reply',
+            sql`${table.expectsReply} is null
+                or (${table.expectsReply} >= 0 and ${table.expectsReply} <= 1)`
         ),
         check('agent_inbox_id_shape', sql`${table.id} ~ '^inb_[A-Za-z0-9_-]{16}$'`),
         check('agent_inbox_state', sql`${table.state} in ('queued', 'accepted', 'served', 'seen')`),
