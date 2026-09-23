@@ -1,6 +1,7 @@
 import { Chip } from '@heroui/react';
 import { AnimatePresence } from 'motion/react';
 import * as React from 'react';
+import { DisclosureGroupStateContext } from 'react-aria-components';
 import type { TurnJournalSnapshot } from '../../hooks/members/turn-journal-relay.ts';
 import { useTurnJournal } from '../../hooks/members/use-turn-journal.ts';
 import {
@@ -108,44 +109,55 @@ export function TurnTracePresentation({
     );
 
     return (
-        <div className="grid min-w-0 gap-2">
-            <TurnTraceNotice access={access} isPending={isPending} presentation={presentation} />
-            {entries.length === 0 ? (
-                presentation?.kind === 'available' && presentation.journal.status !== 'running' ? (
-                    <TurnTraceNote>No activity was recorded for this turn.</TurnTraceNote>
-                ) : null
-            ) : (
-                // The relay answers after the row or drawer has opened, so the
-                // trace grows into place instead of landing at full height.
-                <TurnTraceReveal className="min-w-0">
-                    <TurnTraceScroll>
-                        <AnimatePresence initial={false}>
-                            {entries.map((entry) => (
-                                <TurnTraceReveal
-                                    className="min-w-0"
-                                    data-trace-anchor={entry.key}
-                                    key={entry.key}
-                                >
-                                    {entry.kind === 'event' ? (
-                                        <TurnTraceNote>
-                                            {formatAgentActivityEvent(entry.event)}
-                                        </TurnTraceNote>
-                                    ) : entry.kind === 'reasoning' ? (
-                                        <TurnTraceReasoning
-                                            isStreaming={entry.isStreaming}
-                                            reasoning={entry.reasoning}
-                                        />
-                                    ) : (
-                                        <TurnTraceToolCall tool={entry.tool} />
-                                    )}
-                                </TurnTraceReveal>
-                            ))}
-                        </AnimatePresence>
-                    </TurnTraceScroll>
-                </TurnTraceReveal>
-            )}
-            {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
-        </div>
+        // Every tool row is its own disclosure. Inside the Activity tab's
+        // accordion, React Aria would otherwise enrol each one in the turn
+        // rows' group: the group's keys would decide a call's state, so a
+        // failed call would not open on its own there as it does in the drawer.
+        <DisclosureGroupStateContext.Provider value={null}>
+            <div className="grid min-w-0 gap-2">
+                <TurnTraceNotice
+                    access={access}
+                    isPending={isPending}
+                    presentation={presentation}
+                />
+                {entries.length === 0 ? (
+                    presentation?.kind === 'available' &&
+                    presentation.journal.status !== 'running' ? (
+                        <TurnTraceNote>No activity was recorded for this turn.</TurnTraceNote>
+                    ) : null
+                ) : (
+                    // The relay answers after the row or drawer has opened, so the
+                    // trace grows into place instead of landing at full height.
+                    <TurnTraceReveal className="min-w-0">
+                        <TurnTraceScroll>
+                            <AnimatePresence initial={false}>
+                                {entries.map((entry) => (
+                                    <TurnTraceReveal
+                                        className="min-w-0"
+                                        data-trace-anchor={entry.key}
+                                        key={entry.key}
+                                    >
+                                        {entry.kind === 'event' ? (
+                                            <TurnTraceNote>
+                                                {formatAgentActivityEvent(entry.event)}
+                                            </TurnTraceNote>
+                                        ) : entry.kind === 'reasoning' ? (
+                                            <TurnTraceReasoning
+                                                isStreaming={entry.isStreaming}
+                                                reasoning={entry.reasoning}
+                                            />
+                                        ) : (
+                                            <TurnTraceToolCall tool={entry.tool} />
+                                        )}
+                                    </TurnTraceReveal>
+                                ))}
+                            </AnimatePresence>
+                        </TurnTraceScroll>
+                    </TurnTraceReveal>
+                )}
+                {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
+            </div>
+        </DisclosureGroupStateContext.Provider>
     );
 }
 
