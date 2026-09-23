@@ -1,3 +1,4 @@
+import { formatInboxTargetRow } from '../../inbox-target-row.ts';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { agentInboxCheckResponseSchema } from '../agent-api-schemas.ts';
 import type { SubCommand } from '../subcommand.ts';
@@ -25,14 +26,7 @@ export async function runInboxCheck(deps: InboxDeps): Promise<number> {
         deps.write('No pending messages.\n');
         return 0;
     }
-    const lines = response.rows.map((row) => {
-        const tags = [
-            ...(row.thread ? [' · thread'] : []),
-            ...(row.dm ? [' · dm'] : []),
-            ...(row.mentioned ? [' · you were mentioned'] : []),
-        ].join('');
-        return `${row.target}  pending: ${row.pendingCount} message${row.pendingCount === 1 ? '' : 's'} · first msg=${row.firstShortId} · latest sender @${row.latestSender} · latest msg=${row.latestShortId}${tags}`;
-    });
+    const lines = response.rows.map(formatInboxTargetRow);
     lines.push('Read pending bodies with haus message check.');
     deps.write(`${lines.join('\n')}\n`);
     return 0;

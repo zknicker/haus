@@ -1,10 +1,8 @@
 import type { CloudAgentBranch } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
-import type {
-    AgentCloudAgentWorkAttention,
-    AgentInboxAsk,
-    AgentInboxItem,
-} from './agent-inbox-item.ts';
+import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
+import { formatAskMarker } from './inbox-ask-format.ts';
+import { formatInboxTargetRow } from './inbox-target-row.ts';
 import { formatInlineReplyContext } from './inline-reply-format.ts';
 
 const deliveryTrailer = [
@@ -63,14 +61,17 @@ export function composeInboxNotice(
         if (!(first && latest)) {
             throw new Error('Inbox notice target cannot be empty.');
         }
-        return [
+        return formatInboxTargetRow({
+            ask: latest.ask ?? null,
+            cloudAgentResult: ordered.some(isAttention),
+            firstShortId: shortInboxId(first.id),
+            latestSender: latest.senderHandle,
+            latestShortId: shortInboxId(latest.id),
+            mentioned: ordered.some((item) => item.mentioned),
+            pendingCount: ordered.length,
             target,
-            `  pending: ${ordered.length} ${plural(ordered.length, ordered.some(isAttention) ? 'work item' : 'message')}`,
-            ` · first msg=${shortInboxId(first.id)}`,
-            ` · latest sender @${latest.senderHandle}`,
-            ` · latest msg=${shortInboxId(latest.id)}`,
-            noticeTag(target, ordered),
-        ].join('');
+            taskNumber: latest.task?.number ?? null,
+        });
     });
     return [
         '[Haus inbox notice:',
@@ -138,34 +139,6 @@ function formatCloudAgentBranch(branch: CloudAgentBranch): string {
     return `${branch.repository}:${branch.branch}${url}${diff}`;
 }
 
-/**
- * One owner of Ask presentation. The delivery envelope, the drain envelope, and
- * the busy notice read the same status and addressee; only the grammar differs.
- */
-export function formatAskSuffix(ask: AgentInboxAsk): string {
-    return ` [ask status=${ask.status}${askAddressee(ask)}]`;
-}
-
-/** The notice tag: content-free, and shaped like the `task #N` tag beside it. */
-export function formatAskTag(ask: AgentInboxAsk): string {
-    return `ask ${ask.status}${askAddressee(ask)}`;
-}
-
-/** The drain marker: compressed like the `task=#N:status:assignee` marker beside it. */
-export function formatAskMarker(ask: AgentInboxAsk): string {
-    const handle = askHandle(ask);
-    return ` ask=${ask.status}${handle ? `:${handle}` : ''}`;
-}
-
-function askAddressee(ask: AgentInboxAsk): string {
-    const handle = askHandle(ask);
-    return handle ? ` to=${handle}` : '';
-}
-
-function askHandle(ask: AgentInboxAsk): string | null {
-    return ask.addresseeHandle ? `@${ask.addresseeHandle}` : null;
-}
-
 export function formatThreadFollowRestoration(target: string): string {
     return [
         `[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in ${target}.]`,
@@ -194,18 +167,6 @@ function formatLocalTime(timestamp: string, homeTimezone: string): string {
     const value = (type: Intl.DateTimeFormatPartTypes) =>
         parts.find((part) => part.type === type)?.value ?? '';
     return `${value('year')}-${value('month')}-${value('day')} ${value('hour')}:${value('minute')}:${value('second')}`;
-}
-
-function noticeTag(target: string, items: AgentInboxItem[]): string {
-    const latest = items.at(-1);
-    const tags = [
-        target.startsWith('dm:') ? 'dm' : target.includes(':') ? 'thread' : null,
-        latest?.task ? `task #${latest.task.number}` : null,
-        latest?.ask ? formatAskTag(latest.ask) : null,
-        items.some((item) => item.cloudAgentWork) ? 'cloud agent result' : null,
-        items.some((item) => item.mentioned) ? 'you were mentioned' : null,
-    ].filter(Boolean);
-    return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';
 }
 
 /**

@@ -1,12 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
-import {
-    composeInboxDrain,
-    composeInboxNotice,
-    formatAskMarker,
-    formatAskSuffix,
-    formatAskTag,
-} from './inbox-format.ts';
+import { formatAskMarker, formatAskSuffix, formatAskTag } from './inbox-ask-format.ts';
+import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
 
 test('projects structured inbox rows into the specified drain envelope', () => {
     expect(

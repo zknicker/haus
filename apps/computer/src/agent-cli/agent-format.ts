@@ -1,5 +1,6 @@
 import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
-import { formatAskSuffix, formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
+import { formatAskSuffix } from '../inbox-ask-format.ts';
+import { formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
 import { formatInlineReplyContext } from '../inline-reply-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';

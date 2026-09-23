@@ -168,15 +168,23 @@ export type AgentCliAutomationEvent = z.infer<typeof agentAutomationEventSchema>
 export const agentInboxCheckResponseSchema = z.object({
     rows: z.array(
         z.object({
+            // An older Server omits the work facts; its rows print untagged.
+            ask: z
+                .object({
+                    addresseeHandle: z.string().min(1).nullable(),
+                    status: z.enum(['answered', 'open']),
+                })
+                .nullable()
+                .default(null),
             chatId: z.string().min(1),
-            dm: z.boolean(),
+            cloudAgentResult: z.boolean().default(false),
             firstShortId: z.string().min(1),
             latestSender: z.string().min(1),
             latestShortId: z.string().min(1),
             mentioned: z.boolean(),
             pendingCount: z.number().int().positive(),
             target: z.string().min(1),
-            thread: z.boolean(),
+            taskNumber: z.number().int().positive().nullable().default(null),
         })
     ),
     totalPending: z.number().int().nonnegative(),

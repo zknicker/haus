@@ -1,8 +1,10 @@
 import type { AgentAutomationEvent } from '@haus/api';
 import { recordExactMessagesServed } from '../agent-delivery/cursors.ts';
+import { buildInboxItems } from '../agent-delivery/inbox-items.ts';
 import {
     attachQueuedItemsToRun,
     listInboxItemsForRun,
+    listQueuedItems,
     listQueuedMessageItems,
     markInboxItemsServed,
     readDeliveryState,
@@ -122,38 +124,46 @@ export async function attestAgentEvents(
     });
 }
 
+/**
+ * `haus inbox check`: the busy notice's own rows and facts, read without
+ * advancing anything. Each row carries the work facts the notice tags a target
+ * with, derived from the same envelopes, so the CLI and the notice print one
+ * row shape (`apps/computer/src/inbox-target-row.ts`).
+ */
 export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner) {
-    const pending = await listQueuedMessageItems(db, runner.agentId, 1000);
-    const groups = new Map<string, typeof pending>();
-    for (const row of pending) {
-        groups.set(row.chatId, [...(groups.get(row.chatId) ?? []), row]);
-    }
-    const rows = await Promise.all(
-        [...groups.entries()].map(async ([chatId, messages]) => {
-            const first = messages[0];
-            const latest = messages.at(-1) ?? first;
-            const target = await targetForChat(db, runner.serverId, chatId);
-            return {
-                chatId,
-                dm: target.startsWith('dm:'),
-                firstShortId: shortId(first.dedupeKey),
-                latestSender: sourceHandle(latest.source),
-                latestShortId: shortId(latest.dedupeKey),
-                mentioned: messages.some((message) => message.mentioned),
-                pendingCount: messages.length,
-                target,
-                thread: target.includes(':') && !target.startsWith('dm:'),
-            };
-        })
+    const pending = (await listQueuedItems(db, runner.agentId, 1000)).filter(
+        (row) => row.source !== 'onboarding'
     );
-    return { rows, totalPending: pending.length };
-}
-
-function sourceHandle(source: string) {
-    if (source.startsWith('agent:')) {
-        return source.slice('agent:'.length);
+    const items = await buildInboxItems(db, pending);
+    const groups = new Map<string, typeof items>();
+    for (const item of items) {
+        groups.set(item.chatId, [...(groups.get(item.chatId) ?? []), item]);
     }
-    return source === 'task_assignment' ? 'haus' : source;
+    const rows = [...groups.entries()].flatMap(([chatId, group]) => {
+        const first = group[0];
+        const latest = group.at(-1);
+        if (!(first && latest)) {
+            return [];
+        }
+        return [
+            {
+                ask: latest.ask ?? null,
+                chatId,
+                cloudAgentResult: group.some((item) => item.cloudAgentWork !== undefined),
+                // Released Computers still read these two; current ones derive them from `target`.
+                dm: latest.target.startsWith('dm:'),
+                firstShortId: shortId(first.id),
+                latestSender: latest.senderHandle,
+                latestShortId: shortId(latest.id),
+                mentioned: group.some((item) => item.mentioned === true),
+                pendingCount: group.length,
+                target: latest.target,
+                taskNumber: latest.task?.number ?? null,
+                thread: latest.target.includes(':') && !latest.target.startsWith('dm:'),
+            },
+        ];
+    });
+    return { rows, totalPending: pending.length };
 }
 
 /**
@@ -169,14 +179,17 @@ function typedSenderHandle(source: string): AgentAutomationEvent['senderHandle']
 }
 
 /**
- * The short id `haus inbox` prints in a target's `first msg=`/`latest msg=`
- * slot. A Trigger or Reminder fire has no Chat message behind it, so it prints
- * `-` — the same slot the Agent's envelope header renders for a fire — instead
- * of a fire id the Agent would spend a failed `--message-id` command on.
+ * The short id `haus inbox check` prints in a target's `first msg=`/`latest
+ * msg=` slot, by the rule the notice's `shortInboxId` applies to the same item.
+ * A Trigger or Reminder fire and a Cloud Agent Run have no Chat message behind
+ * them, so they print `-`; a task assignment prints the task message it hands
+ * over, which is the id the Agent can actually address.
  */
 function shortId(id: string) {
-    if (/^(?:rmf|trf)_/u.test(id)) {
+    if (/^(?:car|rmf|trf)_/u.test(id)) {
         return '-';
     }
-    return id.startsWith('msg_') ? id.slice(4, 12) : id;
+    const assignment = /^task-assign:(?<messageId>[^:]+):/u.exec(id);
+    const subject = assignment?.groups?.messageId ?? id;
+    return subject.replace(/^[a-z]+_/u, '').slice(0, 8) || '-';
 }
