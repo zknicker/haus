@@ -120,9 +120,14 @@ Computer.
 
 Computer also records normalized token counts from each completed Haus Agent turn. The compact
 turn summary carries the Agent, runtime, model, input, output, and cache counts to Server; prompts,
-transcripts, and raw provider events remain Computer-local. Codex reports the usage of each
-turn's final model request (codex-acp answers a prompt with app-server's `ThreadTokenUsage.last`
-and does not send a turn total), so a Codex turn that makes several model requests undercounts.
+transcripts, and raw provider events remain Computer-local. A Codex turn reports every model
+request it made. Upstream codex-acp answers a prompt with only the final request's usage
+(app-server's `ThreadTokenUsage.last`), so Computer's pnpm patch to codex-acp
+(`assets/harness-bridges/codex/codex-acp.patch`) adds app-server's `last` and thread-cumulative
+`total` to each `usage_update` as `_meta["haus/threadTokenUsage"]`. The ACP adapter patch reports
+the turn as the growth of that thread total: from the previous turn's total, or, in a fresh bridge
+process, from the first update's total minus its own request. A re-sent total is not a request.
+A Codex turn without those updates keeps codex-acp's last-request usage.
 Grok Build reports full turn totals in the prompt response's `_meta.usage` object. The ACP adapter
 patch maps those counts into standard finish usage, including cache counts, without adding
 reasoning tokens a second time. Sibling token fields describe only the last model call and are

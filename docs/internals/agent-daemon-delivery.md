@@ -158,7 +158,10 @@ bring back a next-turn prompt variant before it joins the runtime table in
 those exact visibility receipts prevent a redundant wake for already-read work.
 Rejected steering also preserves the notice without changing the primary turn's
 outcome. Unexpected failures while the SDK still has an active turn emit an
-`inbox-notice-deferred` warning; already-ended turns need no warning.
+`inbox-notice-deferred` warning; already-ended turns need no warning. A notice the runtime
+accepted logs one `inbox-notice-injected` line on Computer (Agent, run, runtime, and `elapsedMs`
+since the notice file was written), and Server logs one `inbox-notice-acked` line per consumed
+`notice-ack` (`noticedItems` is null when the ack names a run that is no longer accepted).
 
 Computer reconciles every model-visible message through one exact-identity
 consume point. Accepted run inboxes and successful Agent API responses

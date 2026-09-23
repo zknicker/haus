@@ -76,7 +76,10 @@ Claude Code bridge manifest and lockfile in
 from the package. Codex has no adapter-owned pin: `harness-bridges/codex/` is the
 implementation Computer installs behind `harness-acp` — an exact
 `@agentclientprotocol/codex-acp` plus a pnpm override pinning the `@openai/codex`
-CLI it drives (`gpt-6-astra` needs 0.153.0 or newer). Regenerate a lockfile with
+CLI it drives (`gpt-6-astra` needs 0.153.0 or newer), and `codex-acp.patch`, a pnpm patch
+that sends per-request token usage (see [Usage](../features/usage.md)). Rebuild the patch
+with `pnpm patch` / `pnpm patch-commit --patches-dir .` when bumping codex-acp. Regenerate a
+lockfile with
 `corepack pnpm@10.32.1 install --ignore-workspace --lockfile-only` beside the
 edited manifest. Drop an override once the published bridge pins that vendor at
 or above the floor Haus needs; the bootstrap recipe is content-fingerprinted,

@@ -51,7 +51,12 @@ inference.
    sends and turn lifecycle come from Server write boundaries.
 2. **Known tools** map through an explicit registry owned by the Computer activity projector.
    Provider-specific Codex, Claude, and Pi identities have fixture-backed mappings. Haus-owned
-   host tools declare their category at registration.
+   host tools declare their category at registration. codex-acp names only shell calls
+   (`exec_command`, the `bash` builtin); Computer declares its fixed-title unnamed calls as
+   builtins, so an ACP `edit` call titled `Editing files` is `apply_patch` (`editing_files`) and
+   `Compact conversation` is the reserved `compaction`. A provider-executed builtin whose input
+   fails its schema keeps that builtin's category: a file read Codex parsed out of a shell command
+   arrives as `exec_command` without its command and is still `running_command`.
 3. **Unknown and MCP tools** default to `using_tool`. Their names, descriptions, and inputs are not
    parsed for intent. A tool named `search` does not prove web search; `cat` inside a shell command
    does not turn a shell event into file reading.
@@ -124,7 +129,11 @@ Harness tool call/result
 ```
 
 The **Agent execution journal** is keyed by `runId` and retains tool-call ids, exact observed tool
-identity, inputs, outputs, errors, timings, and the turn's model reasoning blocks. Tool payloads are
+identity, inputs, outputs, errors, timings, and the turn's model reasoning blocks. A tool's timing
+runs from the observed tool call to its result. The ACP adapter holds a runtime tool call for up
+to a second while it checks whether the call is a host-tool invocation echoed back; Codex calls
+that codex-acp does not tag as MCP are Codex's own and skip that window, so their steps span the
+real start and completion. Tool payloads are
 read from the translated stream's `output` field, and a failed call keeps the `tool-error` the
 runtime reported rather than a synthetic stream failure. Reasoning is stored per block id with its
 start and end timestamps, capped at 64,000 characters per block and 1,000 blocks per turn
