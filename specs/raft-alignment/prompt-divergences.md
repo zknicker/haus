@@ -76,14 +76,17 @@ the rest render `includeStdinNotificationSection: false` with `"poll"`, which sw
 step 3's closing sentence and omits `## Message Notifications`. (Raft's third style, `notice`,
 is also a mid-turn body — "While you are busy … the daemon may write an inbox notice like" — so
 it is not the variant for a runtime that cannot be written to mid-turn.) Haus had rendered the
-`direct` variant for every runtime, promising mid-turn notices to Codex and Grok Build, whose
-harnesses cannot steer a live turn, so their busy notices wait for the next turn.
+`direct` variant for every runtime, promising mid-turn notices to Codex, whose adapter runs
+`codex exec` with stdin closed and cannot steer a live turn, so its busy notices wait for the next
+turn.
 
 `supportsMidTurnNotices` in `apps/computer/src/harness/runtime-harness.ts` is the single source
-(Claude Code and Pi steer; Codex and Grok Build do not), threaded through
-`composeAgentInstructions` as the render input's `midTurnNotices`.
+(Claude Code and Pi steer natively; Grok Build steers through Haus's `@ai-sdk/harness-acp` patch,
+which sends `_x.ai/interject`; Codex does not), threaded through `composeAgentInstructions` as the
+render input's `midTurnNotices`. The first cut on 2026-09-23 grouped Grok Build with Codex; it was
+corrected the same day, and Grok Build's prompt is byte-identical to Claude Code's.
 
-| Field | Mid-turn runtimes (Claude Code, Pi) | Next-turn runtimes (Codex, Grok Build) |
+| Field | Mid-turn runtimes (Claude Code, Grok Build, Pi) | Next-turn runtime (Codex) |
 | --- | --- | --- |
 | Startup step 3 closing sentence | Unchanged: Raft's stdin sentence | "Haus will automatically start a new turn when new messages arrive." — Raft's poll sentence, with "restart you" corrected because the Haus session stays alive across turns on every runtime |
 | Startup step 3 notice handling | Unchanged | Kept, where Raft's poll variant drops it: every Haus wake can carry a notice (ADR 0033), so the notice contract still applies |

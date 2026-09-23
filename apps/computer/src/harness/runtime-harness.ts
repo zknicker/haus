@@ -9,12 +9,14 @@ import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 
 /**
  * Whether a runtime's harness can steer a live turn (`submitUserMessage`), so a busy inbox
- * notice lands mid-turn. Codex and Grok Build cannot; their notices wait for the next turn,
- * and the composed prompt must promise only what the runtime delivers (Raft's
- * `supportsStdinNotification`).
+ * notice lands mid-turn and the composed prompt may promise it (Raft's
+ * `supportsStdinNotification`). The harness signals this only per turn, after the prompt is
+ * composed, so the list is kept here. Grok Build steers through Haus's @ai-sdk/harness-acp
+ * patch (`_x.ai/interject`, gated in bridge-bootstrap.ts). Codex cannot: its adapter runs
+ * `codex exec` with stdin closed, so its notices wait for the next turn.
  */
 export function supportsMidTurnNotices(runtimeId: string): boolean {
-    return runtimeId === 'claude-code' || runtimeId === 'pi';
+    return runtimeId === 'claude-code' || runtimeId === 'grok-build' || runtimeId === 'pi';
 }
 
 /**

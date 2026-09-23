@@ -207,14 +207,22 @@ test('does not append retired model-family operational instructions', () => {
 test.each([
     { midTurn: true, runtimeId: 'claude-code' },
     { midTurn: true, runtimeId: 'pi' },
+    { midTurn: true, runtimeId: 'grok-build' },
     { midTurn: false, runtimeId: 'codex' },
-    { midTurn: false, runtimeId: 'grok-build' },
 ])('composes the notice wording $runtimeId can honor', ({ midTurn, runtimeId }) => {
     const { instructions } = composeAgentInstructions({ ...facts, runtimeId });
 
     expect(instructions.includes('## Message Notifications')).toBe(midTurn);
     expect(instructions.includes('into the current turn')).toBe(midTurn);
     expect(instructions.includes('delivered at the start of your next turn')).toBe(!midTurn);
+});
+
+// Grok Build steers through the patched ACP bridge (`_x.ai/interject`), so it gets the
+// exact mid-turn prompt Claude Code does.
+test('Grok Build composes the same prompt as Claude Code', () => {
+    expect(composeAgentInstructions({ ...facts, runtimeId: 'grok-build' }).instructions).toBe(
+        composeAgentInstructions(facts).instructions
+    );
 });
 
 test('fingerprint is stable per composed text', () => {

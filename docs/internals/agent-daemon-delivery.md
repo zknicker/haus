@@ -137,12 +137,15 @@ tool boundary with no other tool call still in flight, using AI SDK Harness's ac
 `experimental_steerTurn` API. The harness reports compaction only after it completes, so no
 compaction gate exists.
 Computer acknowledges only successful runtime acceptance, never a local queue write.
-If steering is unsupported, as with the current Codex adapter, or no safe boundary
+Claude Code and Pi steer natively; Grok Build steers through Haus's `@ai-sdk/harness-acp` patch,
+which forwards the message as an `_x.ai/interject` request (`validateComputerBridgeAssets`
+refuses a bridge without it). Codex is the only runtime that cannot: its adapter runs `codex exec`
+with stdin closed. If steering is unsupported or no safe boundary
 remains, the durable notice stays unacknowledged. Server wakes the same Agent session
 again after settlement. The composed system prompt follows the same capability
-(`supportsMidTurnNotices` beside the runtime table): Claude Code and Pi are told a notice may
-arrive mid-turn, while Codex and Grok Build are told pending messages arrive at the start of the
-next turn. The Agent can still pull its inbox during the active turn;
+(`supportsMidTurnNotices` beside the runtime table): Claude Code, Grok Build, and Pi are told a
+notice may arrive mid-turn, while Codex is told pending messages arrive at the start of the next
+turn. The Agent can still pull its inbox during the active turn;
 those exact visibility receipts prevent a redundant wake for already-read work.
 Rejected steering also preserves the notice without changing the primary turn's
 outcome. Unexpected failures while the SDK still has an active turn emit an
