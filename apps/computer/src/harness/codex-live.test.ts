@@ -9,6 +9,7 @@ import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
 import { createHarnessForRuntime } from './runtime-harness.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
+import { readTokenUsage } from './token-usage.ts';
 
 // Opt-in: each case spends real Codex quota. Run with
 // HAUS_RUN_LIVE_CODEX_TEST=1 bun test apps/computer/src/harness/codex-live.test.ts
@@ -34,9 +35,15 @@ liveTest(
             });
             let delivered = false;
             const toolNames: string[] = [];
+            const observedAt = new Map<string, number>();
+            const durations: number[] = [];
             for await (const part of result.fullStream) {
                 if (part.type === 'tool-call') {
                     toolNames.push(part.toolName);
+                    observedAt.set(part.toolCallId, Date.now());
+                }
+                if (part.type === 'tool-result' && part.toolName === 'bash') {
+                    durations.push(Date.now() - (observedAt.get(part.toolCallId) ?? Date.now()));
                 }
                 if (part.type === 'tool-call' && !delivered) {
                     await session.experimental_steerTurn(
@@ -49,7 +56,54 @@ liveTest(
             expect(delivered).toBe(true);
             // codex-acp's `exec_command` resolves to the common `bash` builtin Activity names.
             expect(toolNames).toContain('bash');
+            // The call surfaces when `sleep 5` starts, not with its result.
+            expect(Math.max(...durations)).toBeGreaterThan(3000);
             expect((await result.text).trim()).toBe('INTERJECTED');
+        });
+    },
+    180_000
+);
+
+liveTest(
+    `codex-acp names an apply_patch step and counts every model request${skipReason}`,
+    async () => {
+        await withCodexAgent({}, async (agent, session) => {
+            const result = await agent.stream({
+                abortSignal: AbortSignal.timeout(120_000),
+                prompt: 'Use your apply_patch tool to create notes.txt containing the word hi. Then reply with exactly DONE and nothing else.',
+                session,
+            });
+            const toolNames: string[] = [];
+            let lastRequestTokens = 0;
+            let turnUsage: ReturnType<typeof readTokenUsage> = null;
+            let turnTokens = 0;
+            for await (const part of result.fullStream) {
+                if (part.type === 'tool-call') {
+                    toolNames.push(part.toolName);
+                }
+                if (
+                    part.type === 'raw' &&
+                    isRecord(part.rawValue) &&
+                    'stopReason' in part.rawValue
+                ) {
+                    lastRequestTokens = readQuotaTokens(part.rawValue);
+                }
+                if (part.type === 'finish') {
+                    turnUsage = readTokenUsage(part.totalUsage);
+                    const raw = part.totalUsage.raw;
+                    turnTokens = typeof raw?.totalTokens === 'number' ? raw.totalTokens : 0;
+                }
+            }
+
+            expect((await result.text).trim()).toBe('DONE');
+            expect(toolNames).toContain('apply_patch');
+            expect(toolNames.filter((name) => name.startsWith('acp_tool_'))).toEqual([]);
+            expect(
+                (turnUsage?.inputTokens ?? 0) + (turnUsage?.cacheReadTokens ?? 0)
+            ).toBeGreaterThan(1000);
+            // The patch call and the reply are separate model requests; the turn counts both.
+            expect(lastRequestTokens).toBeGreaterThan(0);
+            expect(turnTokens).toBeGreaterThan(lastRequestTokens);
         });
     },
     180_000
@@ -159,4 +213,16 @@ async function checkLocalCodex(): Promise<
     return exitCode === 0 && /logged in/i.test(`${stdout}\n${stderr}`)
         ? { available: true }
         : { available: false, reason: 'local codex login is unavailable' };
+}
+
+/** codex-acp's own last-request count, which the prompt response still carries. */
+function readQuotaTokens(response: Record<string, unknown>): number {
+    const meta = isRecord(response._meta) ? response._meta : {};
+    const quota = isRecord(meta.quota) ? meta.quota : {};
+    const count = isRecord(quota.token_count) ? quota.token_count : {};
+    return typeof count.totalTokens === 'number' ? count.totalTokens : 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
