@@ -18,7 +18,6 @@ import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
-
 import {
     claimClaudeSdkUsageRefresh,
     saveClaudePlanUsageSnapshot,
@@ -221,6 +220,7 @@ async function executeHarnessTurn(
         agentName: input.agentName,
         homeTimezone: input.homeTimezone,
         initialRole: input.initialRole,
+        runtimeId: input.runtimeId,
         webAccess: input.webAccess,
         workspacePath: input.workspaceDir,
     });

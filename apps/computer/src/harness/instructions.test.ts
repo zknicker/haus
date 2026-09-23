@@ -12,6 +12,7 @@ const facts = {
     agentName: 'Cove',
     homeTimezone: 'America/Los_Angeles',
     initialRole: 'the operator’s right hand',
+    runtimeId: 'claude-code',
     webAccess: null,
     workspacePath: '/home/agt_cove/workspace',
 } as const;
@@ -199,6 +200,21 @@ test('does not append retired model-family operational instructions', () => {
     expect(instructions).not.toContain('## Tool-Use Enforcement');
     expect(instructions).not.toContain('## Execution Discipline');
     expect(instructions).not.toContain('## Operational Directives');
+});
+
+// Only harnesses that implement turn steering take a busy notice mid-turn
+// (steer-inbox-notice.ts); the rest must not be promised one.
+test.each([
+    { midTurn: true, runtimeId: 'claude-code' },
+    { midTurn: true, runtimeId: 'pi' },
+    { midTurn: false, runtimeId: 'codex' },
+    { midTurn: false, runtimeId: 'grok-build' },
+])('composes the notice wording $runtimeId can honor', ({ midTurn, runtimeId }) => {
+    const { instructions } = composeAgentInstructions({ ...facts, runtimeId });
+
+    expect(instructions.includes('## Message Notifications')).toBe(midTurn);
+    expect(instructions.includes('into the current turn')).toBe(midTurn);
+    expect(instructions.includes('delivered at the start of your next turn')).toBe(!midTurn);
 });
 
 test('fingerprint is stable per composed text', () => {

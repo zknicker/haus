@@ -9,6 +9,7 @@ test('the eval carries the product prompt visuals pointer verbatim', () => {
         homeTimezone: 'America/Los_Angeles',
         hostname: 'computer.test',
         initialRole: null,
+        midTurnNotices: true,
         os: 'macOS',
         runtimeVersion: 'test',
         webAccess: null,

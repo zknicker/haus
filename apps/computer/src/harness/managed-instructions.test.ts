@@ -1,15 +1,10 @@
 import { expect, test } from 'bun:test';
-import { renderAgentInstructions } from './managed-instructions.ts';
+import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';
 
-const efficiencyPrompt = renderAgentInstructions({
+const efficiencyPrompt = renderPrompt({
     agentId: 'agt_efficiency',
     agentName: 'Marlow',
     homeTimezone: 'America/New_York',
-    hostname: 'computer.test',
-    initialRole: null,
-    os: 'macOS',
-    runtimeVersion: 'test',
-    webAccess: null,
     workspacePath: '/workspace',
 });
 
@@ -46,17 +41,7 @@ test('an explicitly requested unavailable MCP does not trigger local configurati
 });
 
 test('the Agent prompt preserves the notice-to-pull contract', () => {
-    const prompt = renderAgentInstructions({
-        agentId: 'agt_prompt_test',
-        agentName: 'Cove',
-        homeTimezone: 'UTC',
-        hostname: 'computer.test',
-        initialRole: null,
-        os: 'macOS',
-        runtimeVersion: 'test',
-        webAccess: null,
-        workspacePath: '/workbench',
-    });
+    const prompt = renderPrompt();
 
     expect(prompt).toContain('The notice is not itself a request');
     expect(prompt).toContain('`haus message check` reads locally cached bodies');
@@ -84,6 +69,33 @@ test('the Agent prompt preserves the notice-to-pull contract', () => {
     );
 });
 
+test('only a runtime that can steer a live turn is promised mid-turn notices', () => {
+    // Raft's per-driver variants: `direct` for stdin-capable drivers, no notification section
+    // and a next-turn delivery sentence otherwise. Wake notices reach every runtime, so step 3
+    // keeps its notice handling either way.
+    const midTurn = renderPrompt({ midTurnNotices: true });
+    const nextTurn = renderPrompt({ midTurnNotices: false });
+
+    expect(midTurn).toContain('## Message Notifications');
+    expect(midTurn).toContain('into your current turn');
+    expect(nextTurn).not.toContain('## Message Notifications');
+    expect(nextTurn).not.toContain('into the current turn');
+    expect(nextTurn).not.toContain('into your current turn');
+    expect(nextTurn).not.toContain('while your process stays alive');
+    expect(nextTurn).toContain(
+        'If there is neither a concrete message nor an inbox notice, stop and wait. Haus will automatically start a new turn when new messages arrive.'
+    );
+    expect(nextTurn).toContain(
+        'messages that arrive while you are working are delivered at the start of your next turn'
+    );
+    for (const prompt of [midTurn, nextTurn]) {
+        expect(prompt).toContain('The notice is not itself a request, so do not acknowledge it.');
+        expect(prompt).toContain(
+            'if you choose not to read, that is a deferral to report honestly'
+        );
+    }
+});
+
 test('the @Mentions section separates display name from the stable name', () => {
     // Raft parity (`buildMentionsSection`, Computer 1.0.16). Haus renders one
     // name today, so the bullet reads as a tautology per-agent — it still has to
@@ -95,17 +107,7 @@ test('the @Mentions section separates display name from the stable name', () => 
 });
 
 test('task updates follow the requesting conversation', () => {
-    const prompt = renderAgentInstructions({
-        agentId: 'agt_prompt_test',
-        agentName: 'Cove',
-        homeTimezone: 'UTC',
-        hostname: 'computer.test',
-        initialRole: null,
-        os: 'macOS',
-        runtimeVersion: 'test',
-        webAccess: null,
-        workspacePath: '/workbench',
-    });
+    const prompt = renderPrompt();
 
     expect(prompt).toContain(
         'To reply to any message, always reuse the exact `target` from the received message.'
@@ -117,17 +119,7 @@ test('task updates follow the requesting conversation', () => {
 });
 
 test('keeps current Raft instruction precedence without an Agent-creation policy', () => {
-    const prompt = renderAgentInstructions({
-        agentId: 'agt_prompt_test',
-        agentName: 'Cove',
-        homeTimezone: 'UTC',
-        hostname: 'computer.test',
-        initialRole: null,
-        os: 'macOS',
-        runtimeVersion: 'test',
-        webAccess: null,
-        workspacePath: '/workbench',
-    });
+    const prompt = renderPrompt();
 
     expect(prompt).toContain('## How these instructions apply');
     expect(prompt).toContain(
@@ -148,17 +140,7 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
 });
 
 test('teaches Raft-aligned claim conflicts, assignment receipts, and message quality', () => {
-    const prompt = renderAgentInstructions({
-        agentId: 'agt_prompt_test',
-        agentName: 'Cove',
-        homeTimezone: 'UTC',
-        initialRole: null,
-        os: 'macOS',
-        runtimeVersion: 'test',
-        webAccess: null,
-        hostname: 'computer.test',
-        workspacePath: '/workbench',
-    });
+    const prompt = renderPrompt();
 
     expect(prompt).toContain(
         'A failed claim is a concurrency lock, not a ruling on lane ownership'
@@ -202,16 +184,10 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
 });
 
 test('keeps the managed prompt within its reviewed size budget', () => {
-    const prompt = renderAgentInstructions({
-        agentId: 'agt_prompt_test',
-        agentName: 'Cove',
+    const prompt = renderPrompt({
         homeTimezone: 'America/Los_Angeles',
         initialRole: 'the operator’s right hand',
-        os: 'macOS',
-        runtimeVersion: 'test',
         webAccess: 'search',
-        hostname: 'computer.test',
-        workspacePath: '/workbench',
     });
 
     // A reviewed ratchet, not a runtime limit: no adapter enforces a prompt length. Raft-verbatim
@@ -228,17 +204,7 @@ test('keeps the managed prompt within its reviewed size budget', () => {
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
-    const prompt = renderAgentInstructions({
-        agentId: 'agt_prompt_test',
-        agentName: 'Cove',
-        homeTimezone: 'UTC',
-        hostname: 'computer.test',
-        initialRole: null,
-        os: 'macOS',
-        runtimeVersion: 'test',
-        webAccess: null,
-        workspacePath: '/workbench',
-    });
+    const prompt = renderPrompt();
 
     // The fire itself is silent in chat; the Agent's own message carries the
     // provenance, and it lands top-level in the anchor chat.
@@ -267,17 +233,7 @@ test('teaches automation provenance without an envelope tutorial', () => {
 });
 
 test('pins the rendered visuals and artifact fence contract', () => {
-    const prompt = renderAgentInstructions({
-        agentId: 'agt_prompt_test',
-        agentName: 'Cove',
-        homeTimezone: 'UTC',
-        hostname: 'computer.test',
-        initialRole: null,
-        os: 'macOS',
-        runtimeVersion: 'test',
-        webAccess: null,
-        workspacePath: '/workbench',
-    });
+    const prompt = renderPrompt();
 
     // The prompt keeps only the pointer; the visuals skill owns the contracts.
     expect(prompt).toContain('## Visuals');
@@ -295,3 +251,19 @@ test('pins the rendered visuals and artifact fence contract', () => {
         'Artifact fences render a card the reader clicks to open in the artifact pane; nothing auto-opens.'
     );
 });
+
+function renderPrompt(overrides: Partial<AgentPromptRenderInput> = {}) {
+    return renderAgentInstructions({
+        agentId: 'agt_prompt_test',
+        agentName: 'Cove',
+        homeTimezone: 'UTC',
+        hostname: 'computer.test',
+        initialRole: null,
+        midTurnNotices: true,
+        os: 'macOS',
+        runtimeVersion: 'test',
+        webAccess: null,
+        workspacePath: '/workbench',
+        ...overrides,
+    });
+}

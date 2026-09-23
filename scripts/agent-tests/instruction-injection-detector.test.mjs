@@ -19,6 +19,7 @@ const prompt = renderAgentInstructions({
     homeTimezone: 'America/Los_Angeles',
     hostname: 'computer.test',
     initialRole: 'the operator’s right hand',
+    midTurnNotices: true,
     os: 'macOS',
     runtimeVersion: 'test',
     webAccess: 'search',

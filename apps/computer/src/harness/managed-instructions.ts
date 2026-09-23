@@ -21,6 +21,8 @@ export interface AgentPromptRenderInput {
     hostname: string;
     /** The agent's description — the personality surface (ruling W2). */
     initialRole: string | null;
+    /** The runtime can take a notice into a live turn; otherwise notices wait for the next. */
+    midTurnNotices: boolean;
     os: string;
     runtimeVersion: string;
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
@@ -34,7 +36,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         runtimeContextSection(input),
         howInstructionsApplySection,
         communicationSection(),
-        startupSection,
+        startupSection(input.midTurnNotices),
         messagingSection,
         sendingMessagesSection,
         remindersSection,
@@ -59,7 +61,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         outputsSection,
         visualsSection,
         input.webAccess ? webAccessSection(input.webAccess) : null,
-        messageNotificationsSection,
+        input.midTurnNotices ? messageNotificationsSection : null,
         initialRoleSection(input),
     ].filter((section): section is string => Boolean(section));
 
@@ -146,15 +148,26 @@ CRITICAL RULES:
 ${criticalRules}`;
 }
 
-const startupSection = `## Startup sequence
+// Raft's per-driver variants (`includeStdinNotificationSection`): a runtime that cannot take a
+// notice mid-turn is never promised one. Step 3's notice handling stays, because every Haus wake
+// can carry a notice.
+function startupSection(midTurnNotices: boolean) {
+    const delivery = midTurnNotices
+        ? 'New messages may be delivered to you automatically while your process stays alive.'
+        : 'Haus will automatically start a new turn when new messages arrive.';
+    const important = midTurnNotices
+        ? 'While you are working, Haus may write batched inbox-count notifications into the current turn; call `haus message check` at natural breakpoints to read the pending messages.'
+        : 'Haus cannot write into a turn while it runs, so messages that arrive while you are working are delivered at the start of your next turn; call `haus message check` at natural breakpoints to read the pending messages.';
+    return `## Startup sequence
 
 1. If this turn already includes a concrete incoming message, first decide whether that message needs a visible acknowledgment, blocker question, or ownership signal. If it does, send it early with \`haus message send\` before deep context gathering.
 2. Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well.
-3. If there is no concrete incoming message to handle but this turn includes a Haus inbox notice: the notice means messages exist that you have not seen — their bodies are withheld to avoid flooding you, not absent (unobserved is not the same as nonexistent). The notice is not itself a request, so do not acknowledge it. Whether and when to read them is your judgment, now or later; \`haus message check\` reads locally cached bodies and the notice metadata (who, where, how many) helps you triage. Deferral needs no visible reply, and messages remain queryable. Never derive "no work" from a content-free notice alone — if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending. If there is neither a concrete message nor an inbox notice, stop and wait. New messages may be delivered to you automatically while your process stays alive.
+3. If there is no concrete incoming message to handle but this turn includes a Haus inbox notice: the notice means messages exist that you have not seen — their bodies are withheld to avoid flooding you, not absent (unobserved is not the same as nonexistent). The notice is not itself a request, so do not acknowledge it. Whether and when to read them is your judgment, now or later; \`haus message check\` reads locally cached bodies and the notice metadata (who, where, how many) helps you triage. Deferral needs no visible reply, and messages remain queryable. Never derive "no work" from a content-free notice alone — if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending. If there is neither a concrete message nor an inbox notice, stop and wait. ${delivery}
 4. When you receive a message, process it and reply with \`haus message send\`. Haus exception: an explicit FYI / no-response-needed message settles silently, with no send at all.
 5. **Complete ALL your work before stopping.** If a task requires multi-step work (research, code changes, testing), finish everything, report results, then stop. New messages arrive automatically — you do not need to poll or wait for them.
 
-**IMPORTANT**: Your process stays alive across turns. While you are working, Haus may write batched inbox-count notifications into the current turn; call \`haus message check\` at natural breakpoints to read the pending messages.`;
+**IMPORTANT**: Your process stays alive across turns. ${important}`;
+}
 
 const messagingSection = `## Messaging
 

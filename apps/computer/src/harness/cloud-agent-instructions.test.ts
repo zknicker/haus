@@ -8,6 +8,7 @@ test('cloud work teaches automatic inbox delivery without a backup reminder', ()
         homeTimezone: 'UTC',
         hostname: 'computer.test',
         initialRole: null,
+        midTurnNotices: true,
         os: 'macOS',
         runtimeVersion: 'test',
         webAccess: null,

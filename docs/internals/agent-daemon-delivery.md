@@ -125,7 +125,10 @@ tool boundary using AI SDK Harness's acknowledged `experimental_steerTurn` API.
 Computer acknowledges only successful runtime acceptance, never a local queue write.
 If steering is unsupported, as with the current Codex adapter, or no safe boundary
 remains, the durable notice stays unacknowledged. Server wakes the same Agent session
-again after settlement. The Agent can still pull its inbox during the active turn;
+again after settlement. The composed system prompt follows the same capability
+(`supportsMidTurnNotices` beside the runtime table): Claude Code and Pi are told a notice may
+arrive mid-turn, while Codex and Grok Build are told pending messages arrive at the start of the
+next turn. The Agent can still pull its inbox during the active turn;
 those exact visibility receipts prevent a redundant wake for already-read work.
 Rejected steering also preserves the notice without changing the primary turn's
 outcome. Unexpected failures while the SDK still has an active turn emit an

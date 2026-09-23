@@ -8,6 +8,16 @@ import type { AgentReasoningEffort } from '@haus/api';
 import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 
 /**
+ * Whether a runtime's harness can steer a live turn (`submitUserMessage`), so a busy inbox
+ * notice lands mid-turn. Codex and Grok Build cannot; their notices wait for the next turn,
+ * and the composed prompt must promise only what the runtime delivers (Raft's
+ * `supportsStdinNotification`).
+ */
+export function supportsMidTurnNotices(runtimeId: string): boolean {
+    return runtimeId === 'claude-code' || runtimeId === 'pi';
+}
+
+/**
  * Applies the Agent's reasoning policy at the native runtime boundary.
  */
 export function createHarnessForRuntime(

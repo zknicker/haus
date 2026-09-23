@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { hostname, release, type } from 'node:os';
 import computerPackage from '../../package.json' with { type: 'json' };
 import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';
+import { supportsMidTurnNotices } from './runtime-harness.ts';
 
 /**
  * Ported composition seam (Runtime's `agent-instructions.ts` +
@@ -19,6 +20,8 @@ export interface AgentInstructionFacts {
     agentName: string;
     homeTimezone: string;
     initialRole: string | null;
+    /** Selects the notice wording the runtime can honor. */
+    runtimeId: string;
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspacePath: string;
 }
@@ -35,6 +38,7 @@ export function composeAgentInstructions(facts: AgentInstructionFacts): Composed
         homeTimezone: facts.homeTimezone,
         hostname: hostname(),
         initialRole: facts.initialRole,
+        midTurnNotices: supportsMidTurnNotices(facts.runtimeId),
         os: `${type()} ${release()}`,
         runtimeVersion: process.env.HAUS_COMPUTER_PRODUCT_VERSION ?? computerPackage.version,
         webAccess: facts.webAccess,

@@ -384,8 +384,10 @@ CLI family #11 **Manual** — `raft manual get`, `raft manual search` (both take
   (`npm i -g @botiverse/raft`, `raft agent login --server <url> --agent <id> --profile-slug <slug>`,
   then `raft --profile <slug> …`).
 - **shell**: `posix` (heredoc `<<'SLOCKMSG'`) vs `powershell` (here-string variant).
-- **messageNotificationStyle**: `direct` vs `notice` — two different `## Message Notifications`
-  bodies keyed on whether the runtime supports stdin injection mid-turn.
+- **messageNotificationStyle**: `direct` vs `notice` — two different mid-turn
+  `## Message Notifications` bodies, both rendered only when `includeStdinNotificationSection`
+  is set. Raft 1.0.16's non-stdin drivers pass `poll` with `includeStdinNotificationSection:
+  false`, which renders no `## Message Notifications` section at all.
 - **includeStdinNotificationSection**: flips startup step 3 wording and "New messages may be
   delivered… while your process stays alive" vs "The daemon will automatically restart you when
   new messages arrive."
