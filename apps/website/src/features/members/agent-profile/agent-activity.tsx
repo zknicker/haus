@@ -131,8 +131,10 @@ function ActivityTurnHistory({
                             <Accordion.Heading>
                                 <Accordion.Trigger>
                                     <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-left">
+                                        {/* The trigger is medium weight for the
+                                            headline; time and counts are body text. */}
                                         <time
-                                            className="shrink-0 text-muted text-sm tabular-nums"
+                                            className="shrink-0 font-normal text-muted text-sm tabular-nums"
                                             dateTime={turn.startedAt}
                                         >
                                             {formatActivityTurnTime(turn.startedAt)}
@@ -147,7 +149,7 @@ function ActivityTurnHistory({
                                         <span className="font-medium text-foreground text-sm">
                                             {formatActivityTurnHeadline(turn)}
                                         </span>
-                                        <span className="text-muted text-sm">
+                                        <span className="font-normal text-muted text-sm">
                                             {formatActivityTurnCounts(turn)}
                                         </span>
                                     </span>

@@ -1059,6 +1059,18 @@
     }
 
     /*
+     * ChatTool sets its trigger and error text in `xs`, which DESIGN.md
+     * reserves for chips and badges. A call's name is a row title and its error
+     * is the reason someone opened the trace, so both take the body step.
+     */
+    .chat-tool__trigger,
+    .chat-tool__trigger-label,
+    .chat-tool__error {
+        font-size: var(--text-sm);
+        line-height: var(--text-sm--line-height);
+    }
+
+    /*
      * Stock ChatTool sets its three section labels in 10px ALL CAPS with extra
      * tracking. DESIGN.md has no all-caps tier, and a turn trace stacks these
      * labels beside its own plain muted ones — "Command", "File", "Exit code"
