@@ -101,7 +101,7 @@
     "apps/website/src/features/servers/chat/chat-search.tsx": 338,
     "apps/website/src/features/servers/chat/chat-topbar.tsx": 439,
     "apps/website/src/features/servers/chat/chat-view.tsx": 301,
-    "apps/website/src/hooks/agents/current-agent-activity.test.ts": 368,
+    "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
     "packages/haus-api/src/agent-runner.ts": 478,
     "packages/haus-api/src/agent.ts": 435,
     "packages/haus-api/src/chat.ts": 546,

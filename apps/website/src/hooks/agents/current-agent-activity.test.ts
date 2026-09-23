@@ -8,7 +8,6 @@ import {
     mergeCurrentAgentActivityLiveEvent,
     projectCurrentAgentActivitySnapshot,
     reconcileCurrentAgentActivity,
-    splitCurrentAgentActivity,
 } from './current-agent-activity.ts';
 
 function activity(overrides: Partial<AgentCurrentActivity> = {}): AgentCurrentActivity {
@@ -318,21 +317,6 @@ test('stale events cannot roll back a newer current category', () => {
     const stale = activity({ id: 'aev_one', position: 1 });
 
     expect(applyCurrentAgentActivityEvent([current], stale)).toEqual([current]);
-});
-
-test('the strip renders four rows and counts the remaining active runs', () => {
-    const activities = Array.from({ length: 5 }, (_, index) =>
-        activity({
-            agentId: `agt_${index + 1}`,
-            id: `aev_${index + 1}`,
-            runId: `run_${index + 1}`,
-        })
-    );
-
-    expect(splitCurrentAgentActivity(activities)).toEqual({
-        hiddenCount: 1,
-        visible: activities.slice(0, 4),
-    });
 });
 
 test('semantic activity labels use the product catalog', () => {

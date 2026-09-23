@@ -13,7 +13,6 @@ import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
-import { SidebarAgentActivityStrip } from '../../features/shell/sidebar-agent-activity-strip.tsx';
 import { SidebarSettingsAction } from '../../features/shell/sidebar-settings-action.tsx';
 import { HausUpdateFooterContainer } from '../../features/updates/haus-update-footer-container.tsx';
 import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
@@ -117,15 +116,7 @@ export function ServerLayout() {
                                                 <ShellSidebar
                                                     activePage={activeSidebarPage}
                                                     footer={
-                                                        <div className="flex w-full flex-col gap-2">
-                                                            <SidebarAgentActivityStrip
-                                                                serverId={server.data.id}
-                                                                slug={slug}
-                                                            />
-                                                            <HausUpdateFooterContainer
-                                                                slug={slug}
-                                                            />
-                                                        </div>
+                                                        <HausUpdateFooterContainer slug={slug} />
                                                     }
                                                     settingsAction={
                                                         <SidebarSettingsAction

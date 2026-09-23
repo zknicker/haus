@@ -141,17 +141,6 @@ export function mergeCurrentAgentActivityLiveEvent(
     };
 }
 
-export function splitCurrentAgentActivity(
-    activities: readonly CurrentAgentActivity[],
-    maximumRows = 4
-) {
-    const visible = activities.slice(0, maximumRows);
-    return {
-        hiddenCount: Math.max(0, activities.length - visible.length),
-        visible,
-    };
-}
-
 /** Semantic activity describes only Agents whose canonical availability is working. */
 export function filterCurrentAgentActivityByAvailability(
     activities: readonly CurrentAgentActivity[],
