@@ -126,7 +126,10 @@ export function TurnTracePresentation({
                                         {formatAgentActivityEvent(entry.event)}
                                     </TurnTraceNote>
                                 ) : entry.kind === 'reasoning' ? (
-                                    <TurnTraceReasoning reasoning={entry.reasoning} />
+                                    <TurnTraceReasoning
+                                        isStreaming={entry.isStreaming}
+                                        reasoning={entry.reasoning}
+                                    />
                                 ) : (
                                     <TurnTraceToolCall tool={entry.tool} />
                                 )}
