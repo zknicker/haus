@@ -18,6 +18,14 @@ export function publishAgentLifecycle(input: LifecycleEventInput) {
     return event;
 }
 
+/** Synchronous in-process observer, called as each lifecycle fact is published. */
+export function onAgentLifecycle(listener: (event: AgentLifecycleEvent) => void) {
+    emitter.on(eventName, listener);
+    return () => {
+        emitter.off(eventName, listener);
+    };
+}
+
 export async function* subscribeToAgentLifecycle(signal?: AbortSignal) {
     const iterator = signal ? on(emitter, eventName, { signal }) : on(emitter, eventName);
 

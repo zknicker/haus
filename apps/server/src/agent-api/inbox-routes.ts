@@ -1,6 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+import {
+    announceRunEngagements,
+    installChatEngagementProjector,
+} from '../agent-delivery/chat-engagement-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { attestAgentEvents, inspectAgentInbox, pullAgentEvents } from './inbox.ts';
 
@@ -19,7 +24,14 @@ const visibleEventsSchema = z.object({
     composed: z.boolean().optional(),
 });
 
-export function registerAgentInboxRoutes(app: FastifyInstance, db: HausDatabase) {
+export function registerAgentInboxRoutes(
+    app: FastifyInstance,
+    options: { db: HausDatabase; postCommitWork: ServerPostCommitWork }
+) {
+    const { db, postCommitWork } = options;
+    // Engagement starts on these reads and ends on the lifecycle facts (ADR 0034).
+    const uninstallProjector = installChatEngagementProjector(db, postCommitWork);
+    app.addHook('onClose', async () => uninstallProjector());
     app.get('/api/agent/events', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
         if (!runner) {
@@ -31,7 +43,11 @@ export function registerAgentInboxRoutes(app: FastifyInstance, db: HausDatabase)
             );
         }
         try {
-            return await pullAgentEvents(db, runner);
+            const pulled = await pullAgentEvents(db, runner);
+            void postCommitWork.run('chat.engagement.announce', () =>
+                announceRunEngagements(db, runner)
+            );
+            return pulled;
         } catch (cause) {
             return sendAgentReadError(reply, cause);
         }
@@ -56,9 +72,13 @@ export function registerAgentInboxRoutes(app: FastifyInstance, db: HausDatabase)
             );
         }
         try {
-            return await attestAgentEvents(db, runner, body.data.messages, {
+            const attested = await attestAgentEvents(db, runner, body.data.messages, {
                 composed: body.data.composed === true,
             });
+            void postCommitWork.run('chat.engagement.announce', () =>
+                announceRunEngagements(db, runner)
+            );
+            return attested;
         } catch (cause) {
             return sendAgentReadError(reply, cause);
         }

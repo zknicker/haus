@@ -100,7 +100,12 @@ export async function recordExactMessagesServed(
                 sessionGeneration: generation,
             })
             .onConflictDoUpdate({
-                set: { servedAt, servedRunId: input.runId },
+                // A receipt repeated by the same run keeps when that run first saw it.
+                set: {
+                    servedAt: sql`case when ${agentInboxExactVisibilityTable.servedRunId} = ${input.runId}
+                        then ${agentInboxExactVisibilityTable.servedAt} else excluded.served_at end`,
+                    servedRunId: input.runId,
+                },
                 target: [
                     agentInboxExactVisibilityTable.serverId,
                     agentInboxExactVisibilityTable.agentId,

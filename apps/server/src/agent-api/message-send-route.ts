@@ -1,6 +1,7 @@
 import { agentSendInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
+import { announceRunEngagements } from '../agent-delivery/chat-engagement-events.ts';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import { inferMessageCause } from '../automations/infer-message-cause.ts';
 import { MessageCauseError, resolveMessageCause } from '../automations/message-cause.ts';
@@ -97,6 +98,10 @@ export function registerAgentMessageSendRoute(
                 return { chatId, kind: 'sent' as const, result };
             });
             if (committed.kind === 'held') {
+                // The hold showed the run news it has now read and not answered.
+                void options.postCommitWork.run('chat.engagement.announce', () =>
+                    announceRunEngagements(options.db, runner)
+                );
                 return committed.response;
             }
             const { chatId, result } = committed;

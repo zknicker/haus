@@ -91,7 +91,7 @@ export function registerAgentApiRoutes(
         db: options.db,
         postCommitWork: options.postCommitWork,
     });
-    registerAgentInboxRoutes(app, options.db);
+    registerAgentInboxRoutes(app, options);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
     registerAgentReactionRoutes(app, options.db);
