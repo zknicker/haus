@@ -222,7 +222,11 @@ crash/no-output clears stale local visibility evidence and re-exposes the
 canonical envelopes to the replayed turn. History, search, direct reads, and
 freshness-hold results require a Server visibility receipt for any pending
 identities before Computer returns the bodies. `haus inbox check` lists
-pending target rows without draining.
+pending target rows without draining or advancing anything. Its rows are the busy
+notice's rows: the Server peek derives the task, Ask, Cloud Agent result, and mention
+facts from the same envelopes the notice uses, and the notice and the CLI print a
+target through one formatter (`apps/computer/src/inbox-target-row.ts`), as Raft prints
+both with one row formatter.
 
 ## Golden flow
 
@@ -253,6 +257,7 @@ turn starts when its creator sends the working brief.
 | --- | --- |
 | Pending work is the first notice prompt; no `Start.` race or duplicate injection | `apps/computer/src/harness/executor.test.ts` |
 | Notices contain no bodies and exact envelopes retain target/message identity | `apps/computer/src/inbox-format.test.ts` |
+| `haus inbox check` rows match the notice's rows and tags, and the peek advances nothing | `apps/computer/src/agent-cli/commands/agent-inbox.test.ts`, `apps/server/test/agent-inbox-check.test.ts` |
 | Local-first pull, exact visibility receipts, history/read consumption, and Server fallback | `apps/computer/src/proxy.test.ts` |
 | Stale notices cannot resurrect identities already made visible | `apps/computer/src/inbox-store.test.ts` |
 | Accepted work and pull evidence survive reconnect or replay correctly | `apps/computer/src/delivery.test.ts`, `apps/server/test/agent-delivery.test.ts` |
