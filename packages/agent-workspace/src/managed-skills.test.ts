@@ -127,7 +127,8 @@ test('visuals skill states the non-negotiables before the design-system pointer'
     expect(defaultVisualsSkill.indexOf('## Non-negotiables')).toBeLessThan(
         defaultVisualsSkill.indexOf('Required: read the design system')
     );
-    expect(defaultVisualsSkill).toContain('`maxBarThickness: 48`');
+    expect(flowText(defaultVisualsSkill)).toContain('**One y-axis by default.**');
+    expect(flowText(defaultVisualsSkill)).toContain('Bars are **at most 24px** wide');
     expect(defaultVisualsSkill).toContain('Round every number that reaches the screen');
     expect(defaultVisualsSkill).toContain('No mid-sentence bolding in the reply');
     // Text on the surface is the raw role token; `--error-foreground` is text
@@ -178,40 +179,109 @@ function flowText(text: string) {
     return text.replace(/\s+/gu, ' ');
 }
 
-test('visuals charts module sizes bars to the slot', () => {
-    const charts = moduleSource('charts.md');
+/**
+ * Charts are hand-written SVG: no library sizes a bar or reads a token for the
+ * agent. The cap and the derivation are the two rules a copied fragment cannot
+ * carry on its own, so both are pinned, along with the procedure that orders
+ * the work and the anti-pattern catalog that closes it.
+ */
+test('visuals teaches the SVG procedure, the 24px cap, and one axis', () => {
+    const marks = flowText(moduleSource('marks-and-anatomy.md'));
 
     for (const source of everySkillSource()) {
-        expect(source).not.toContain('maxBarThickness: 24');
-        expect(source).not.toContain('maxBarThickness: 32');
+        expect(source).not.toContain('maxBarThickness');
+        expect(source).not.toContain('categoryPercentage');
+        expect(source).not.toContain('animation: false');
     }
-    expect(charts).toContain('maxBarThickness: 48');
-    expect(charts).toContain('categoryPercentage: 0.55');
-    expect(moduleSource('fragments/grouped-bar.md')).toContain(
-        "interaction: { intersect: false, mode: 'index' }"
+    expect(defaultVisualsSkill).toContain('## Making a chart — do these in order');
+    expect(defaultVisualsSkill).toContain('references/anti-patterns.md');
+    expect(marks).toContain('**At most 24px** thick');
+    expect(marks).toContain('const barW = Math.min(24, slot * 0.6);');
+    expect(marks).toContain('**One y-axis by default.**');
+    expect(flowText(moduleSource('charts.md'))).toContain(
+        '[paired-panels](fragments/paired-panels.md)'
     );
+    expect(flowText(moduleSource('interaction.md'))).toContain('class="tip"');
+    // The viewBox fixes the geometry and the width fills the column; a pixel
+    // height beside it letterboxes the plot.
+    // A 736 viewBox is the 46rem reply column at 1:1, so chart text renders at
+    // the app's own 12px and 14px tiers instead of scaling with the column.
+    expect(defaultVisualsSkill).toContain(
+        '<svg viewBox="0 0 736 240" width="100%" role="img" aria-label="…" style="display:block">'
+    );
+    expect(marks).toContain('<svg viewBox="0 0 736 240" width="100%" role="img" aria-label=');
+    expect(marks).toContain('const W = 736, H = 240;');
+    expect(defaultVisualsSkill).not.toContain('0 0 640');
+    expect(marks).not.toContain('0 0 640');
+    expect(marks).toContain('Never set a pixel `height` beside a percentage width on a plot.');
+    expect(defaultVisualsSkill).not.toContain('height="240"');
+    expect(marks).not.toContain('height="240"');
+    expect(marks).not.toContain('fixed rendered height');
 });
 
 /**
- * Red last is the rule the palette validator left standing: the tokens pass on
- * contrast, but red as 'series two' reads as a verdict. The order is stated in
- * the core's token table and in the charts module, and no fragment may put
- * `--chart-2` on a series before `--chart-4` and `--chart-3` are spent.
+ * Tick selection is where models improvised: a rounded maximum plus a "drop to
+ * the next step" escape hatch left the step open, so one peak of $1,342 came
+ * back as $1.2K in 300s, $1.5K in 500s, and $1.2K in 400s. One algorithm and
+ * one label format close it. visuals-fragments.test.ts runs the snippet.
  */
-test('visuals teaches red as the last categorical hue', () => {
-    expect(moduleSource('design-system.md')).toContain('`--chart-2` red last');
-    expect(flowText(moduleSource('charts.md'))).toContain(
-        '`--chart-1` blue, then `--chart-4` violet, then `--chart-3` green, then `--chart-2` red **last**'
+test('visuals pins one tick algorithm and one tick format', () => {
+    const marks = moduleSource('marks-and-anatomy.md');
+    const recipe = [
+        'const niceStep = (peak, intervals = 5) => {  // 1, 2 or 5 × 10^k',
+        '  const raw = peak / intervals;',
+        '  const pow = 10 ** Math.floor(Math.log10(raw));',
+        '  const f = raw / pow;',
+        '  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * pow;',
+        '};',
+        'const peak = Math.max(...values);',
+        'const step = niceStep(peak);',
+        'const max = Math.ceil(peak / step) * step;',
+        'const ticks = Array.from({ length: Math.round(max / step) + 1 }, (_, i) => i * step);',
+    ].join('\n');
+    expect(marks).toContain(recipe);
+    expect(flowText(marks)).toContain(
+        'The step is always 1, 2 or 5 times a power of ten, the axis runs from zero to the first multiple of the step at or above the peak, which gives three to five intervals; never hand-pick a step.'
     );
-    // A fragment reaching for a third hue has spent violet first: `--chart-2`
-    // beside `--chart-3` without `--chart-4` is red as series two. Red alone is
-    // the diverging and over-budget case, which is what red is for.
-    for (const file of fragmentFiles()) {
-        const fragment = moduleSource(`fragments/${file}`);
-        if (!(fragment.includes('--chart-2') && fragment.includes('--chart-3'))) {
-            continue;
-        }
-        expect(fragment, file).toContain('--chart-4');
+    // Opus never opens this module, so the rule also rides its reading path.
+    expect(flowText(defaultVisualsSkill)).toContain('smallest at or above peak/5, and the axis');
+    expect(flowText(moduleSource('charts.md'))).toContain('peak/5, max = the first multiple of it');
+    expect(flowText(marks)).toContain('**One tick format per axis, chosen by the top tick.**');
+    expect(flowText(marks)).toContain(
+        'A diverging axis takes its step from the whole span, negative to positive, then mirrors the max on both sides.'
+    );
+    expect(flowText(marks)).toContain('`$1,500`, not `$1.5K`');
+    for (const source of everySkillSource()) {
+        expect(source).not.toContain('niceMax');
+        expect(flowText(source)).not.toContain('drop to the next step');
+        expect(flowText(source)).not.toContain('four intervals, five labels');
+    }
+});
+
+test('the anti-pattern catalog seeds beside the other modules', async () => {
+    await seedFactoryManagedSkills(skillsDir);
+
+    await expect(
+        readFile(join(skillsDir, 'visuals', 'references', 'anti-patterns.md'), 'utf8')
+    ).resolves.toContain('# Haus visuals — anti-patterns');
+});
+
+/**
+ * The categorical slots are validated as a set and in that order, so the order
+ * is the contract: numeric, never cycled, with red gone from the series
+ * vocabulary entirely. The old 'red last' wording is pinned out because an
+ * agent would still obey it if it survived anywhere.
+ */
+test('visuals teaches one fixed categorical order', () => {
+    expect(moduleSource('design-system.md')).toContain(
+        '`--chart-1` blue, `--chart-2` orange, `--chart-3` aqua, `--chart-4` yellow'
+    );
+    expect(flowText(moduleSource('charts.md'))).toContain(
+        '`--chart-1` blue, then `--chart-2` orange, then `--chart-3` aqua, then `--chart-4` yellow'
+    );
+    for (const source of everySkillSource()) {
+        expect(source).not.toContain('red last');
+        expect(source).not.toContain('red **last**');
     }
 });
 
