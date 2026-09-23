@@ -4,11 +4,11 @@ import { TextShimmer } from '@heroui-pro/react';
 import { BrainIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { motion, useReducedMotion } from 'motion/react';
 import * as React from 'react';
-import { Icon } from '../../components/ui/icon.tsx';
 import { springs } from '../../lib/springs.ts';
 import { cn } from '../../lib/utils.ts';
 import { parseThinkingSummary } from '../chats/chat-transcript-system-step.tsx';
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
+import { TurnTraceStep } from './turn-trace-blocks.tsx';
 
 /** Lines a long thought shows before it asks to be opened. */
 export const reasoningCollapsedLines = 6;
@@ -33,24 +33,17 @@ export function TurnTraceReasoning({
     const { body, title } = readReasoning(reasoning.text);
 
     return (
-        // The transparent border and padding match a ChatTool trigger's box,
-        // so this icon sits in the same column as each tool's status icon.
-        <div className="flex min-w-0 gap-2 border border-transparent px-3 py-2 text-sm">
-            <span className="flex h-5 shrink-0 items-center">
-                <Icon aria-hidden className="size-3.5 text-muted" icon={BrainIcon} />
-            </span>
-            <div className="grid min-w-0 max-w-prose flex-1 justify-items-start gap-1">
-                {title ? (
-                    isStreaming ? (
-                        <TextShimmer className="font-medium text-muted">{title}</TextShimmer>
-                    ) : (
-                        <p className="font-medium text-muted">{title}</p>
-                    )
-                ) : null}
-                {body ? <ReasoningBody body={body} /> : null}
-                {reasoning.truncated ? <p className="text-muted">(truncated)</p> : null}
-            </div>
-        </div>
+        <TurnTraceStep icon={BrainIcon}>
+            {title ? (
+                isStreaming ? (
+                    <TextShimmer className="font-medium text-muted">{title}</TextShimmer>
+                ) : (
+                    <p className="font-medium text-muted">{title}</p>
+                )
+            ) : null}
+            {body ? <ReasoningBody body={body} /> : null}
+            {reasoning.truncated ? <p className="text-muted">(truncated)</p> : null}
+        </TurnTraceStep>
     );
 }
 

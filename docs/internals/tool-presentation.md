@@ -38,8 +38,9 @@ Agent profile Activity tab.
 
 `turn-trace-model.ts` builds that column. Server semantic verbs stay out of it, since the
 journal already shows the work they summarize; the one exception is `received_message`,
-Server history no journal holds, which joins the column at its time as `Received a new
-message`. `turn-trace-tool-model.ts` classifies one journal tool by wire
+Server history no journal holds, which joins the column at its time as a `Received a new
+message` step. Reasoning and that step share `TurnTraceStep` (`turn-trace-blocks.tsx`), whose
+box matches a ChatTool trigger's so every step's icon sits in the tool status-icon column. `turn-trace-tool-model.ts` classifies one journal tool by wire
 name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `web`, `mcp`,
 `message`, `file-change`, `compaction`, `generic`) with typed fields;
 `turn-trace-tool-bodies.tsx` owns the body each kind earns. The harness's reserved

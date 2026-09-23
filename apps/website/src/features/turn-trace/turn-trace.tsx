@@ -1,4 +1,5 @@
 import { Chip } from '@heroui/react';
+import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence } from 'motion/react';
 import * as React from 'react';
 import { DisclosureGroupStateContext } from 'react-aria-components';
@@ -17,7 +18,7 @@ import {
     formatActivityTurnHeadline,
     getActivityTurnPhase,
 } from '../members/agent-profile/agent-activity-turns.ts';
-import { TurnTraceNote } from './turn-trace-blocks.tsx';
+import { TurnTraceNote, TurnTraceStep } from './turn-trace-blocks.tsx';
 import { buildTurnTrace } from './turn-trace-model.ts';
 import { TurnTraceReasoning } from './turn-trace-reasoning.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
@@ -138,9 +139,11 @@ export function TurnTracePresentation({
                                         key={entry.key}
                                     >
                                         {entry.kind === 'event' ? (
-                                            <TurnTraceNote>
-                                                {formatAgentActivityEvent(entry.event)}
-                                            </TurnTraceNote>
+                                            <TurnTraceStep icon={BubbleChatIcon}>
+                                                <p className="text-muted">
+                                                    {formatAgentActivityEvent(entry.event)}
+                                                </p>
+                                            </TurnTraceStep>
                                         ) : entry.kind === 'reasoning' ? (
                                             <TurnTraceReasoning
                                                 isStreaming={entry.isStreaming}

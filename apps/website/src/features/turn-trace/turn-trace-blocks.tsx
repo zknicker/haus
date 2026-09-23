@@ -1,6 +1,8 @@
 import { Button } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
+import type { IconSvgElement } from '@hugeicons/react';
 import * as React from 'react';
+import { Icon } from '../../components/ui/icon.tsx';
 import { clampTraceText } from './turn-trace-values.ts';
 
 const collapsedLineCount = 24;
@@ -66,4 +68,28 @@ export function TurnTraceFact({ label, value }: { label: string; value: string }
 
 export function TurnTraceNote({ children }: { children: React.ReactNode }) {
     return <p className="text-muted text-sm">{children}</p>;
+}
+
+/**
+ * A trace step that is not a tool call. The transparent border and padding
+ * match a ChatTool trigger's box, so its icon sits in each tool's status-icon
+ * column and its text on the tool labels' line.
+ */
+export function TurnTraceStep({
+    children,
+    icon,
+}: {
+    children: React.ReactNode;
+    icon: IconSvgElement;
+}) {
+    return (
+        <div className="flex min-w-0 gap-2 border border-transparent px-3 py-2 text-sm">
+            <span className="flex h-5 shrink-0 items-center">
+                <Icon aria-hidden className="size-3.5 text-muted" icon={icon} />
+            </span>
+            <div className="grid min-w-0 max-w-prose flex-1 justify-items-start gap-1">
+                {children}
+            </div>
+        </div>
+    );
 }
