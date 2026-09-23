@@ -9,19 +9,11 @@ import { createCodexAcp } from './codex-acp.ts';
 import { withCodexAcpBootstrap } from './codex-acp-bootstrap.ts';
 
 /**
- * Whether a runtime's harness can steer a live turn (`submitUserMessage`), so a busy inbox
- * notice lands mid-turn and the composed prompt may promise it (Raft's
- * `supportsStdinNotification`). The harness signals this only per turn, after the prompt is
- * composed, so the list is kept here. Grok Build steers through Haus's @ai-sdk/harness-acp
- * patch (`_x.ai/interject`, gated in bridge-bootstrap.ts). Codex cannot: its adapter runs
- * `codex exec` with stdin closed, so its notices wait for the next turn.
- */
-export function supportsMidTurnNotices(runtimeId: string): boolean {
-    return runtimeId === 'claude-code' || runtimeId === 'grok-build' || runtimeId === 'pi';
-}
-
-/**
- * Applies the Agent's reasoning policy at the native runtime boundary.
+ * Applies the Agent's reasoning policy at the native runtime boundary. Every runtime here
+ * steers a live turn (`submitUserMessage`), which the composed prompt promises: Claude Code
+ * and Pi natively, Grok Build and Codex through Haus's @ai-sdk/harness-acp patch
+ * (`_x.ai/interject` and `_session/steering`, gated in bridge-bootstrap.ts). A runtime
+ * that cannot steer needs its own prompt variant before it joins this table.
  */
 export function createHarnessForRuntime(
     runtimeId: string,

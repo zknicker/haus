@@ -68,34 +68,23 @@ fixed part of the budget, so restoring them raised the cap by exactly the restor
 | Startup steps 1 and 5 | Shortened wording that preserved the requirement | Raft's wording verbatim |
 | Communication style closing paragraph | Contractions expanded, "Self-check:" lead-in dropped | Raft's wording verbatim |
 
-## Per-driver notice variants restored on 2026-09-23
+## Per-driver notice variants, 2026-09-23
 
 Raft 1.0.16 picks its notice wording per driver from `supportsStdinNotification`: stdin-capable
 drivers render `includeStdinNotificationSection: true` with `messageNotificationStyle: "direct"`;
 the rest render `includeStdinNotificationSection: false` with `"poll"`, which swaps startup
 step 3's closing sentence and omits `## Message Notifications`. (Raft's third style, `notice`,
-is also a mid-turn body — "While you are busy … the daemon may write an inbox notice like" — so
-it is not the variant for a runtime that cannot be written to mid-turn.) Haus had rendered the
-`direct` variant for every runtime, promising mid-turn notices to Codex, whose adapter runs
-`codex exec` with stdin closed and cannot steer a live turn, so its busy notices wait for the next
-turn.
+is also a mid-turn body, so it is not a variant for a runtime that cannot be written to
+mid-turn.)
 
-`supportsMidTurnNotices` in `apps/computer/src/harness/runtime-harness.ts` is the single source
-(Claude Code and Pi steer natively; Grok Build steers through Haus's `@ai-sdk/harness-acp` patch,
-which sends `_x.ai/interject`; Codex does not), threaded through `composeAgentInstructions` as the
-render input's `midTurnNotices`. The first cut on 2026-09-23 grouped Grok Build with Codex; it was
-corrected the same day, and Grok Build's prompt is byte-identical to Claude Code's.
-
-| Field | Mid-turn runtimes (Claude Code, Grok Build, Pi) | Next-turn runtime (Codex) |
-| --- | --- | --- |
-| Startup step 3 closing sentence | Unchanged: Raft's stdin sentence | "Haus will automatically start a new turn when new messages arrive." — Raft's poll sentence, with "restart you" corrected because the Haus session stays alive across turns on every runtime |
-| Startup step 3 notice handling | Unchanged | Kept, where Raft's poll variant drops it: every Haus wake can carry a notice (ADR 0034), so the notice contract still applies |
-| Post-startup IMPORTANT note | Unchanged | "Your process stays alive across turns. Haus cannot write into a turn while it runs, so messages that arrive while you are working are delivered at the start of your next turn; call `haus message check` at natural breakpoints to read the pending messages." Raft's poll drivers carry a driver-specific per-turn-process note here instead; Haus's process is not per-turn |
-| `## Message Notifications` | Unchanged (`direct` variant plus Haus additions) | Omitted, as in Raft's poll variant. The Haus additions it carried ("do not acknowledge", locally cached bodies) remain in step 3 |
-
-The mid-turn render is byte-identical to the previous prompt, so the budget test, which renders
-that variant, is unchanged (40,173 of 40,200). The next-turn render is 39,129. Covered by
-`managed-instructions.test.ts` (both variants) and `instructions.test.ts` (one case per runtime).
+Haus briefly rendered a next-turn variant for Codex, whose adapter then ran `codex exec` with
+stdin closed. The same day Codex moved to codex-acp behind @ai-sdk/harness-acp, which steers a
+live turn through `_session/steering`, so every Haus runtime now steers (Claude Code and Pi
+natively, Grok Build and Codex through Haus's harness-acp patch) and every Agent gets the
+`direct` variant. The next-turn variant and its `supportsMidTurnNotices` switch were deleted; the
+rendered prompt is byte-identical to the mid-turn variant, so the budget test is unchanged. A
+runtime that cannot steer must bring its own variant back before it joins the runtime table in
+`apps/computer/src/harness/runtime-harness.ts`.
 
 ## Section-by-section register
 
@@ -116,10 +105,10 @@ product-noun substitution.
 | CRITICAL RULES | Parity | — |
 | Startup step 1 | Parity (restored 2026-09-09) | — |
 | Startup step 2 | Parity: "Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well." | — |
-| Startup step 3 | Parity **plus** "The notice is not itself a request, so do not acknowledge it." Next-turn runtimes swap the closing sentence per Raft's poll variant and keep the notice clause (see "Per-driver notice variants") Its opening condition ("If there is no concrete incoming message to handle but this turn includes a Haus inbox notice") stays Raft-verbatim even though a turn may now carry both concrete envelopes and a notice: Raft's own wakes are hybrid and carry this exact wording, so a Haus-only clarification here would be the divergence | Deliberate — specs/inbox.md §Golden flow ("a notice is not a request"); ADR 0034 |
+| Startup step 3 | Parity **plus** "The notice is not itself a request, so do not acknowledge it." Its opening condition ("If there is no concrete incoming message to handle but this turn includes a Haus inbox notice") stays Raft-verbatim even though a turn may now carry both concrete envelopes and a notice: Raft's own wakes are hybrid and carry this exact wording, so a Haus-only clarification here would be the divergence | Deliberate — specs/inbox.md §Golden flow ("a notice is not a request"); ADR 0033 |
 | Startup step 4 | Parity **plus** "Haus exception: an explicit FYI / no-response-needed message settles silently, with no send at all." | Deliberate — specs/inbox.md coverage row ("Agent instructions teach notice, pull, silence, and deferral semantics"); gated by `fyi-silence-channel` / `fyi-silence-dm` in `bun run eval:prompt` |
 | Startup step 5 | Parity (restored 2026-09-09) | — |
-| Post-startup IMPORTANT note | Parity for mid-turn runtimes; a next-turn note for runtimes that cannot steer a live turn | Deliberate — restores Raft's per-driver variants (see "Per-driver notice variants" above) |
+| Post-startup IMPORTANT note | Parity (Raft's stdin-capable variant; every Haus runtime steers a live turn) | — |
 | Messaging header spec | Haus adds `type=trigger`, the `@sender — <description>:` suffix, home-timezone `time=` semantics, and the assignee-receipt paragraph. Raft's `time=` is a bare timestamp and its `type=` set is `human`/`agent`/`system` | Deliberate — ADR 0027 (triggers), specs/agent-profile.md (description rides the envelope), specs/messages.md (local wall clock), ADR 0015 + ADR 0026 (assignment receipt) |
 | Sending messages | Parity, including the draft-recovery paths | — |
 | Sending messages — blind-review seat | Raft-only paragraph dropped: `--reviewer-isolation` on `raft message send` / `task claim` / `task update`, `RAFT_REVIEWER_ISOLATION=1`, and the content-free held-state disclosure it implies | Deliberate — Raft-only mechanism: Haus's CLI has no such flag or env var and no blind-review seat to assign, so the paragraph would name an unreachable surface. `managed-instructions.test.ts` asserts the string never appears in the render |
@@ -153,7 +142,7 @@ product-noun substitution.
 | Outputs | Haus-only section (fences, artifact cards, `haus://workspace/` links) | Deliberate — ADR 0003, ADR 0004, ADR 0010 |
 | Visuals | Haus-only section | Deliberate — ADR 0012 (design guidance is skill-carried) |
 | Web access | Haus-only section, rendered only when web access is granted | Deliberate — specs/tools.md |
-| Message Notifications | Haus adds "It is not itself a request, so do not acknowledge the notice" and describes `haus message check` as reading locally cached bodies. Rendered only for runtimes that can steer a live turn, as Raft's `direct` variant; next-turn runtimes get no section, as in Raft's `poll` variant. Raft's `notice` variant (a mid-turn body with an example notice) is not ported | Deliberate — specs/inbox.md (notice is not a request; Computer-local pull cache); per-driver variants restored 2026-09-23 |
+| Message Notifications | Haus adds "It is not itself a request, so do not acknowledge the notice" and describes `haus message check` as reading locally cached bodies. Rendered for every runtime as Raft's `direct` variant, since every Haus runtime steers a live turn (see "Per-driver notice variants"). Raft's `notice` variant (a mid-turn body with an example notice) is not ported | Deliberate — specs/inbox.md (notice is not a request; Computer-local pull cache) |
 | Initial role | Parity | — |
 | Runtime Profile Control | Raft-only section (daemon release notice injected as startup step 0) | Deliberate — Computer upgrades are operator-driven, ADR 0020 |
 | Workspace seed (`starter-kit.ts`) | Parity with `buildInitialMemoryMd`'s non-Cindy branch | — |

@@ -69,31 +69,18 @@ test('the Agent prompt preserves the notice-to-pull contract', () => {
     );
 });
 
-test('only a runtime that can steer a live turn is promised mid-turn notices', () => {
-    // Raft's per-driver variants: `direct` for stdin-capable drivers, no notification section
-    // and a next-turn delivery sentence otherwise. Wake notices reach every runtime, so step 3
-    // keeps its notice handling either way.
-    const midTurn = renderPrompt({ midTurnNotices: true });
-    const nextTurn = renderPrompt({ midTurnNotices: false });
+test('every runtime is promised mid-turn notices', () => {
+    // Raft's `direct` variant for stdin-capable drivers; every Haus runtime steers a live turn.
+    // Step 3 keeps its notice handling, because every Haus wake can carry a notice.
+    const prompt = renderPrompt();
 
-    expect(midTurn).toContain('## Message Notifications');
-    expect(midTurn).toContain('into your current turn');
-    expect(nextTurn).not.toContain('## Message Notifications');
-    expect(nextTurn).not.toContain('into the current turn');
-    expect(nextTurn).not.toContain('into your current turn');
-    expect(nextTurn).not.toContain('while your process stays alive');
-    expect(nextTurn).toContain(
-        'If there is neither a concrete message nor an inbox notice, stop and wait. Haus will automatically start a new turn when new messages arrive.'
+    expect(prompt).toContain('## Message Notifications');
+    expect(prompt).toContain('into your current turn');
+    expect(prompt).toContain(
+        'If there is neither a concrete message nor an inbox notice, stop and wait. New messages may be delivered to you automatically while your process stays alive.'
     );
-    expect(nextTurn).toContain(
-        'messages that arrive while you are working are delivered at the start of your next turn'
-    );
-    for (const prompt of [midTurn, nextTurn]) {
-        expect(prompt).toContain('The notice is not itself a request, so do not acknowledge it.');
-        expect(prompt).toContain(
-            'if you choose not to read, that is a deferral to report honestly'
-        );
-    }
+    expect(prompt).toContain('The notice is not itself a request, so do not acknowledge it.');
+    expect(prompt).toContain('if you choose not to read, that is a deferral to report honestly');
 });
 
 test('the @Mentions section separates display name from the stable name', () => {
@@ -259,7 +246,6 @@ function renderPrompt(overrides: Partial<AgentPromptRenderInput> = {}) {
         homeTimezone: 'UTC',
         hostname: 'computer.test',
         initialRole: null,
-        midTurnNotices: true,
         os: 'macOS',
         runtimeVersion: 'test',
         webAccess: null,

@@ -12,7 +12,6 @@ const facts = {
     agentName: 'Cove',
     homeTimezone: 'America/Los_Angeles',
     initialRole: 'the operator’s right hand',
-    runtimeId: 'claude-code',
     webAccess: null,
     workspacePath: '/home/agt_cove/workspace',
 } as const;
@@ -202,27 +201,14 @@ test('does not append retired model-family operational instructions', () => {
     expect(instructions).not.toContain('## Operational Directives');
 });
 
-// Only harnesses that implement turn steering take a busy notice mid-turn
-// (steer-inbox-notice.ts); the rest must not be promised one.
-test.each([
-    { midTurn: true, runtimeId: 'claude-code' },
-    { midTurn: true, runtimeId: 'pi' },
-    { midTurn: true, runtimeId: 'grok-build' },
-    { midTurn: false, runtimeId: 'codex' },
-])('composes the notice wording $runtimeId can honor', ({ midTurn, runtimeId }) => {
-    const { instructions } = composeAgentInstructions({ ...facts, runtimeId });
+// Every runtime steers a live turn (runtime-harness.ts), so every Agent is promised that a
+// busy notice may arrive mid-turn.
+test('composes the mid-turn notice wording', () => {
+    const { instructions } = composeAgentInstructions(facts);
 
-    expect(instructions.includes('## Message Notifications')).toBe(midTurn);
-    expect(instructions.includes('into the current turn')).toBe(midTurn);
-    expect(instructions.includes('delivered at the start of your next turn')).toBe(!midTurn);
-});
-
-// Grok Build steers through the patched ACP bridge (`_x.ai/interject`), so it gets the
-// exact mid-turn prompt Claude Code does.
-test('Grok Build composes the same prompt as Claude Code', () => {
-    expect(composeAgentInstructions({ ...facts, runtimeId: 'grok-build' }).instructions).toBe(
-        composeAgentInstructions(facts).instructions
-    );
+    expect(instructions).toContain('## Message Notifications');
+    expect(instructions).toContain('into the current turn');
+    expect(instructions).not.toContain('delivered at the start of your next turn');
 });
 
 test('fingerprint is stable per composed text', () => {

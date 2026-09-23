@@ -7,7 +7,6 @@ test('Threads keep the full answer with its request and describe target construc
         agentName: 'Test',
         homeTimezone: 'UTC',
         initialRole: null,
-        runtimeId: 'claude-code',
         webAccess: null,
         workspacePath: '/workspace',
     });
