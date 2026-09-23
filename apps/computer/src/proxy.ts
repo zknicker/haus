@@ -30,6 +30,7 @@ import {
 import { serveLocalAgentEvents } from './proxy-inbox.ts';
 import { mcpRequestHeaders, mcpRequestSignal, readProxyResponse } from './proxy-mcp.ts';
 import { isCommittedSend, isDefinitelyPreCommitFailure } from './proxy-send-outcome.ts';
+import { attestVisibleMessages } from './visibility-receipt.ts';
 
 const skillCreateSchema = z.object({
     content: z.string().min(1),
@@ -257,7 +258,7 @@ async function handleAuthorizedProxyRequest(
                 await recordRunVisibleMessages(location, activeRunId, visibleMessageIds);
             }
             const attested = activeRunId
-                ? await attestLocalEvents(input.serverOrigin, runnerToken, visibleMessageIds)
+                ? await attestVisibleMessages(input.serverOrigin, runnerToken, visibleMessageIds)
                 : null;
             if (!((activeRunId && attested) || isMessageMutation)) {
                 return Response.json(
@@ -291,37 +292,13 @@ async function handleAuthorizedProxyRequest(
     });
 }
 
-async function attestLocalEvents(
-    serverOrigin: string,
-    runnerToken: string,
-    messages: VisibleMessageIdentity[]
-): Promise<VisibleMessageIdentity[] | null> {
-    const response = await fetch(new URL('/api/agent/events/visible', serverOrigin), {
-        body: JSON.stringify({ messages }),
-        headers: {
-            authorization: `Bearer ${runnerToken}`,
-            'content-type': 'application/json',
-        },
-        method: 'POST',
-    }).catch(() => null);
-    if (!response?.ok) {
-        return null;
-    }
-    const body = (await response.json().catch(() => null)) as { accepted?: unknown } | null;
-    if (!Array.isArray(body?.accepted)) {
-        return null;
-    }
-    const accepted = new Set(body.accepted.filter((id): id is string => typeof id === 'string'));
-    return messages.filter((message) => accepted.has(message.id));
-}
-
 async function awaitBestEffortAttestation(
     serverOrigin: string,
     runnerToken: string,
     messages: VisibleMessageIdentity[]
 ): Promise<void> {
     await Promise.race([
-        attestLocalEvents(serverOrigin, runnerToken, messages),
+        attestVisibleMessages(serverOrigin, runnerToken, messages),
         new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
     ]);
 }

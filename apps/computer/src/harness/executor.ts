@@ -13,8 +13,6 @@ import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
 import { Cause, Data, Effect, Exit, Stream } from 'effect';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
-import type { UnreadElsewhere } from '../agent-commands.ts';
-import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
@@ -57,42 +55,30 @@ import {
     usageContextTokens,
 } from './token-usage.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
-import { attestComposedDrain, composeTurnPrompt } from './turn-prompt.ts';
+import { attestComposedDrain, composeTurnPrompt, type TurnDelivery } from './turn-prompt.ts';
 
 /** Drives one isolated, persistent Codex, Claude Code, Grok Build, or Pi Agent session. */
-export interface HarnessTurnInput {
+export interface HarnessTurnInput extends TurnDelivery {
     activity: AgentActivityRun;
-    agentId: string;
     agentName: string;
     agentRoot: string;
-    dataRoot: string;
-    /** Inbox identities drainable on any start; the warm set needs a live session. */
-    drainItemIds: string[];
     env: Record<string, string>;
     factoryKind: 'cove' | 'ordinary';
     /** Per-turn construction seam for boundary tests; production uses the default Harness Agent. */
     harnessAgentFactory?: HarnessAgentFactory;
     homeDir: string;
-    homeTimezone: string;
-    inbox: AgentInboxItem[];
-    inboxDelivery: 'concrete' | 'notice';
     initialRole: string | null;
     modelId: string;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     reasoningEffort: AgentReasoningEffort;
     registerNoticeSink?: NoticeSinkRegistrar;
-    runId: string;
     runtime: DaemonRuntime;
     runtimeId: string;
-    serverId: string;
     sessionGeneration: number;
     signal?: AbortSignal;
     skillsDir: string;
     tools: ToolSet;
-    totalPending: number;
     turnTimings?: AgentTurnTimings;
-    unreadElsewhere: UnreadElsewhere[];
-    warmDrainItemIds: string[];
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspaceDir: string;
 }
@@ -394,8 +380,9 @@ async function executeHarnessTurn(
             sessionGeneration: session.generation,
         });
         // A notice-lane drain is composed here, not served by the Server, so the
-        // Computer attests it exactly as a pull does and clears it from the
-        // local notice projection before any stored notice can repeat it.
+        // Computer attests it exactly as a pull does — to the Server before the
+        // model streams — and clears it from the local notice projection before
+        // any stored notice can repeat it.
         await attestComposedDrain(input, prompt.drained);
         const turnContent = prompt.turnContent;
         const turn = await agent.stream({

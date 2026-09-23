@@ -44,6 +44,7 @@ import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
+import { visibilityReceipt } from './visibility-receipt.ts';
 import { writeHausWrapper } from './wrapper.ts';
 
 export interface Attachment {
@@ -224,6 +225,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       }),
                   }
                 : await runRealRuntime({
+                      attestVisible: visibilityReceipt(options.serverOrigin, runner.runnerToken),
                       turnTimings: options.turnTimings,
                       agentEnv,
                       agentRoot,
@@ -262,7 +264,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
         ...result,
         summary:
             result.status === 'completed'
-                ? completedTurnSummary(proxy.sendCount())
+                ? `Sent ${proxy.sendCount()} message(s).`
                 : result.status === 'interrupted'
                   ? 'The Agent turn was interrupted.'
                   : `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`,
@@ -275,10 +277,6 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
             command.runId
         ),
     });
-}
-
-function completedTurnSummary(messageCount: number) {
-    return `Sent ${messageCount} message(s).`;
 }
 
 /** Validates a Server→Computer frame as a launch command. Fails closed to null. */
@@ -553,6 +551,7 @@ async function runFakeRuntime(
 async function runRealRuntime(
     input: RuntimeExecutionInput & {
         agentRoot: string;
+        attestVisible: ReturnType<typeof visibilityReceipt>;
         harnessAgentFactory?: HarnessAgentFactory;
         tools: import('@ai-sdk/provider-utils').ToolSet;
     }
@@ -567,6 +566,7 @@ async function runRealRuntime(
         const turn = await runHarnessTurn({
             turnTimings: input.turnTimings,
             agentId: command.agentId,
+            attestVisible: input.attestVisible,
             // The Server owns the Agent handle/description; sensible defaults keep
             // the managed contract intact when a facet is omitted.
             agentName: command.agentName ?? command.agentId,

@@ -1,13 +1,23 @@
 import type { UnreadElsewhere } from '../agent-commands.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { composeInboxDrain, composeInboxNotice, formatUnreadElsewhere } from '../inbox-format.ts';
-import { consumeVisibleMessages, recordRunVisibleMessages } from '../inbox-store.ts';
+import {
+    consumeVisibleMessages,
+    recordRunVisibleMessages,
+    type VisibleMessageIdentity,
+} from '../inbox-store.ts';
 import { renderedThreadContexts, threadContextVisibleMessages } from '../thread-context-format.ts';
 
 /** What the frame offers this turn, independent of how the turn was started. */
 export interface TurnDelivery {
     agentId: string;
+    /** Reports model-visible identities to the Server; null when it accepted none. */
+    attestVisible?(
+        identities: VisibleMessageIdentity[],
+        signal: AbortSignal
+    ): Promise<VisibleMessageIdentity[] | null>;
     dataRoot: string;
+    /** Inbox identities drainable on any start; the warm set needs a live session. */
     drainItemIds: string[];
     homeTimezone: string;
     inbox: AgentInboxItem[];
@@ -85,6 +95,12 @@ function openingPrompt(
  * items need it: concrete work is served the moment the Computer accepts the
  * run, and its identities address no Chat message. A rendered thread context
  * made its quoted messages visible too, as Raft's receipts for it record.
+ *
+ * The Server hears about them before the model streams, not at settlement:
+ * its freshness hold treats any message it has not seen served to this run as
+ * news, so a lagging receipt would hold the Agent's reply to its own wake
+ * message. The local record written first is the crash fallback that the
+ * turn summary replays.
  */
 export async function attestComposedDrain(
     input: TurnDelivery,
@@ -103,5 +119,38 @@ export async function attestComposedDrain(
         ...[...renderedThreadContexts(drained).values()].flatMap(threadContextVisibleMessages),
     ];
     await recordRunVisibleMessages(location, input.runId, identities);
+    await reportComposedVisibility(input, identities);
     await consumeVisibleMessages(location, identities);
+}
+
+// The Server refuses a receipt until it has processed the start ack, which
+// travels over the attachment socket rather than this request's connection.
+const receiptRetryDelaysMs = [0, 100, 300, 800];
+const receiptAttemptTimeoutMs = 2000;
+/** The Server's per-receipt cap; a full drain plus thread context can exceed it. */
+const receiptBatchSize = 100;
+
+async function reportComposedVisibility(
+    input: TurnDelivery,
+    identities: VisibleMessageIdentity[]
+): Promise<void> {
+    const attest = input.attestVisible;
+    if (!attest) {
+        return;
+    }
+    for (let start = 0; start < identities.length; start += receiptBatchSize) {
+        const batch = identities.slice(start, start + receiptBatchSize);
+        for (const delay of receiptRetryDelaysMs) {
+            if (delay > 0) {
+                await Bun.sleep(delay);
+            }
+            const accepted = await attest(
+                batch,
+                AbortSignal.timeout(receiptAttemptTimeoutMs)
+            ).catch(() => null);
+            if (accepted) {
+                break;
+            }
+        }
+    }
 }

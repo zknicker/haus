@@ -146,11 +146,79 @@ test('a composed drain records exact run visibility and consumes its notice rows
     }
 });
 
+test('a composed drain reaches the Server after its local fallback and before consumption', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-turn-prompt-'));
+    try {
+        const location = { agentId: 'agt_test', dataRoot, serverId: 'srv_test' };
+        const receipts: Array<{ consumed: string[]; ids: string[]; recorded: string[] }> = [];
+        const input = delivery({
+            // The first receipt races the start ack and is refused; the retry lands.
+            attestVisible: async (identities) => {
+                receipts.push({
+                    consumed: (await readPendingInboxState(location)).consumedMessageIds,
+                    ids: identities.map(({ id }) => id),
+                    recorded: (await readRunVisibleMessages(location, 'run_test')).map(
+                        ({ id }) => id
+                    ),
+                });
+                return receipts.length > 1 ? identities : null;
+            },
+            dataRoot,
+        });
+        await replacePendingInbox(location, input.inbox);
+
+        await attestComposedDrain(input, composeTurnPrompt(input, cold).drained);
+
+        expect(receipts).toEqual([
+            { consumed: [], ids: [dm.id], recorded: [dm.id] },
+            { consumed: [], ids: [dm.id], recorded: [dm.id] },
+        ]);
+        expect((await readPendingInboxState(location)).consumedMessageIds).toEqual([dm.id]);
+    } finally {
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('a refused receipt still composes and leaves the settlement fallback', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-turn-prompt-'));
+    try {
+        let attempts = 0;
+        const input = delivery({
+            attestVisible: () => {
+                attempts += 1;
+                return Promise.reject(new Error('Server unavailable'));
+            },
+            dataRoot,
+        });
+        const location = { agentId: input.agentId, dataRoot, serverId: input.serverId };
+        await replacePendingInbox(location, input.inbox);
+
+        await attestComposedDrain(input, [dm]);
+
+        expect(attempts).toBeGreaterThan(1);
+        expect(await readRunVisibleMessages(location, input.runId)).toEqual([
+            { chatId: dm.chatId, id: dm.id, sequence: dm.sequence },
+        ]);
+    } finally {
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
 test('a concrete drain is attested by acceptance, not by composition', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-turn-prompt-'));
     try {
-        const input = delivery({ dataRoot, inboxDelivery: 'concrete' });
+        const receipts: unknown[] = [];
+        const input = delivery({
+            attestVisible: async (identities) => {
+                receipts.push(identities);
+                return identities;
+            },
+            dataRoot,
+            inboxDelivery: 'concrete',
+        });
         await attestComposedDrain(input, [dm]);
+
+        expect(receipts).toEqual([]);
 
         expect(
             await readRunVisibleMessages(
