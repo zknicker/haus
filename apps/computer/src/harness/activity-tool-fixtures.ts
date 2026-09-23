@@ -26,6 +26,7 @@ export const computerNativeToolActivityFixtures = {
         write: 'editing_files',
     },
     codex: {
+        apply_patch: 'editing_files',
         bash: 'running_command',
         webSearch: 'searching_web',
     },

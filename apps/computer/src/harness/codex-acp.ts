@@ -1,5 +1,6 @@
 import { commonTool } from '@ai-sdk/harness';
 import { createACP } from '@ai-sdk/harness-acp';
+import { tool } from '@ai-sdk/provider-utils';
 import * as z from 'zod';
 import { codexAcpImplementationFiles } from './codex-acp-bootstrap.ts';
 
@@ -59,13 +60,27 @@ export function codexAcpEnvironment(settings: CodexAcpSettings): Record<string, 
 /**
  * Only the builtins Activity names. codex-acp tags shell calls with the tool
  * name `exec_command` and sends web searches with their query as raw input.
+ * A patch and a context compaction carry no tool name, only codex-acp's fixed
+ * ACP title and kind, so they resolve by title; any other unnamed call stays a
+ * generic tool.
  */
-const codexBuiltinTools = {
+export const codexBuiltinTools = {
+    apply_patch: {
+        ...tool({ inputSchema: z.looseObject({}) }),
+        title: 'Editing files',
+        toolUseKind: 'edit',
+    },
     bash: commonTool('bash', {
         inputSchema: z.looseObject({ command: z.string() }),
         nativeName: 'exec_command',
         toolUseKind: 'bash',
     }),
+    // The harness's reserved compaction name, which Activity already keeps silent.
+    compaction: {
+        ...tool({ inputSchema: z.looseObject({}) }),
+        title: 'Compact conversation',
+        toolUseKind: 'readonly',
+    },
     webSearch: commonTool('webSearch', {
         inputSchema: z.looseObject({ query: z.string() }),
         nativeName: 'web_search',

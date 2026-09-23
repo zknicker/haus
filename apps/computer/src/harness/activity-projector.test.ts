@@ -57,6 +57,7 @@ test('projects explicit adapter tool fixtures without inspecting tool inputs', a
             toolName: 'webSearch',
             category: 'searching_web',
         },
+        { runtimeId: 'codex', toolName: 'apply_patch', category: 'editing_files' },
     ] as const;
 
     for (const fixture of cases) {

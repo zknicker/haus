@@ -27,6 +27,7 @@ export type ComputerToolClassification = ComputerToolActivity | { outcome: 'skip
 export interface ComputerActivityRegistry {
     classify(input: {
         dynamic?: boolean;
+        invalid?: boolean;
         nativeName?: string;
         providerExecuted?: boolean;
         runtimeId: string;
@@ -48,6 +49,12 @@ export function createComputerActivityRegistry(): ComputerActivityRegistry {
                     ? { outcome: 'skip' }
                     : { category: synthetic, outcome: 'activity' };
             }
+            const known = knownToolCategory(input.runtimeId, input.toolName, input.nativeName);
+            // A runtime builtin whose input failed its schema is still that builtin
+            // (codex-acp sends a parsed file read as `exec_command` with no command).
+            if (known && input.invalid && input.providerExecuted) {
+                return { category: known, outcome: 'activity' };
+            }
             if (input.dynamic || isMcpName(input.toolName) || isMcpName(input.nativeName)) {
                 return { category: 'using_tool', outcome: 'activity' };
             }
@@ -59,7 +66,6 @@ export function createComputerActivityRegistry(): ComputerActivityRegistry {
                     ...(host.toolRef ? { toolRef: host.toolRef } : {}),
                 };
             }
-            const known = knownToolCategory(input.runtimeId, input.toolName, input.nativeName);
             return { category: known ?? 'using_tool', outcome: 'activity' };
         },
         registerHausHostTool(registration) {
@@ -94,7 +100,8 @@ export function createComputerActivityProjector(input: {
     registry: ComputerActivityRegistry;
     runtimeId: string;
 }) {
-    const pending = new Map<string, ComputerToolActivity>();
+    const calls: ToolCalls = { pending: new Map(), skipped: new Set() };
+    const { pending } = calls;
     return {
         async finish(phase: 'completed' | 'failed' | 'interrupted', error?: unknown) {
             if (pending.size > 0) {
@@ -113,6 +120,7 @@ export function createComputerActivityProjector(input: {
                 }
             }
             pending.clear();
+            calls.skipped.clear();
             await input.journal?.flushReasoning();
         },
         async observe(part: unknown) {
@@ -120,11 +128,11 @@ export function createComputerActivityProjector(input: {
                 return;
             }
             if (part.type === 'tool-call') {
-                await observeToolCall(part, input, pending);
+                await observeToolCall(part, input, calls);
                 return;
             }
             if (part.type === 'tool-result' || part.type === 'tool-error') {
-                await observeToolOutcome(part, input, pending);
+                await observeToolOutcome(part, input, calls);
                 return;
             }
             await observeReasoningPart(part, input.journal);
@@ -155,7 +163,7 @@ async function observeToolCall(
         registry: ComputerActivityRegistry;
         runtimeId: string;
     },
-    pending: Map<string, ComputerToolActivity>
+    calls: ToolCalls
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
@@ -164,14 +172,15 @@ async function observeToolCall(
     }
     await startToolActivity({
         activity: input.activity,
+        calls,
         classification: input.registry.classify({
             dynamic: part.dynamic === true,
+            invalid: part.invalid === true,
             nativeName: stringValue(part.nativeName),
             providerExecuted: part.providerExecuted === true,
             runtimeId: input.runtimeId,
             toolName,
         }),
-        pending,
         toolCallId,
     });
     await input.journal?.recordToolCall({
@@ -191,7 +200,7 @@ async function observeToolOutcome(
         registry: ComputerActivityRegistry;
         runtimeId: string;
     },
-    pending: Map<string, ComputerToolActivity>
+    calls: ToolCalls
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
@@ -200,8 +209,12 @@ async function observeToolOutcome(
     }
     await startToolActivity({
         activity: input.activity,
+        calls,
+        // A provider result need not repeat `providerExecuted`, so a skipped call
+        // stays skipped rather than being reclassified from its result.
         classification:
-            pending.get(toolCallId) ??
+            calls.pending.get(toolCallId) ??
+            (calls.skipped.has(toolCallId) ? ({ outcome: 'skip' } as const) : undefined) ??
             input.registry.classify({
                 dynamic: part.dynamic === true,
                 nativeName: stringValue(part.nativeName),
@@ -209,7 +222,6 @@ async function observeToolOutcome(
                 runtimeId: input.runtimeId,
                 toolName,
             }),
-        pending,
         toolCallId,
     });
     const failed = part.type === 'tool-error' || part.isError === true;
@@ -226,7 +238,8 @@ async function observeToolOutcome(
     if (isPreliminary) {
         return;
     }
-    if (pending.delete(toolCallId)) {
+    calls.skipped.delete(toolCallId);
+    if (calls.pending.delete(toolCallId)) {
         await input.activity.finish(toolActivityKey(toolCallId), failed ? 'failed' : 'completed');
     }
 }
@@ -234,19 +247,29 @@ async function observeToolOutcome(
 /** No-ops for a skipped tool, so its evidence reaches the journal alone. */
 async function startToolActivity(input: {
     activity: AgentActivityRun;
+    calls: ToolCalls;
     classification: ComputerToolClassification;
-    pending: Map<string, ComputerToolActivity>;
     toolCallId: string;
 }) {
-    if (input.classification.outcome === 'skip' || input.pending.has(input.toolCallId)) {
+    if (input.classification.outcome === 'skip') {
+        input.calls.skipped.add(input.toolCallId);
         return;
     }
-    input.pending.set(input.toolCallId, input.classification);
+    if (input.calls.pending.has(input.toolCallId)) {
+        return;
+    }
+    input.calls.pending.set(input.toolCallId, input.classification);
     await input.activity.start({
         category: input.classification.category,
         key: toolActivityKey(input.toolCallId),
         ...(input.classification.toolRef ? { toolRef: input.classification.toolRef } : {}),
     });
+}
+
+/** Open tool activities, and calls deliberately kept out of Activity until they settle. */
+interface ToolCalls {
+    pending: Map<string, ComputerToolActivity>;
+    skipped: Set<string>;
 }
 
 function toolActivityKey(toolCallId: string): string {

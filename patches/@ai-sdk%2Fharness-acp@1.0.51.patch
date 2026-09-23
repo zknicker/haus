@@ -1,8 +1,8 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf41ccd23f 100644
+index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c83963dea096 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -949,6 +949,69 @@ function captureACPStream({ stream }) {
+@@ -949,6 +949,75 @@ function captureACPStream({ stream }) {
      }
    };
  }
@@ -22,6 +22,12 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf
 +    if (result[field] < 0) return void 0;
 +  }
 +  return result;
++}
++// Host tools reach Codex over the MCP relay, and codex-acp tags every MCP call.
++// Any other Codex tool call is Codex's own, so it skips the host-tool
++// correlation window instead of surfacing up to a second late.
++function isCodexProviderToolCall(update) {
++  return update.sessionUpdate === "tool_call" && update._meta?.is_mcp_tool_call !== true;
 +}
 +function createCodexTurnUsage({ sessionId }) {
 +  let baseline;
@@ -72,7 +78,59 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf
  function getRawSessionUpdate({ message }) {
    const record = message;
    if (record.method !== "session/update" || !isRecord2(record.params)) {
-@@ -3783,6 +3846,12 @@ async function runTurn(start, turn) {
+@@ -1781,7 +1850,8 @@ function createHostToolCorrelation({
+   emitSemanticUpdate,
+   emitRawUpdate,
+   hostToolServerName,
+-  hostTools
++  hostTools,
++  isProviderToolCall
+ }) {
+   const invocations = /* @__PURE__ */ new Map();
+   const candidates = /* @__PURE__ */ new Map();
+@@ -1884,6 +1954,11 @@ function createHostToolCorrelation({
+           releasedToolCallIds.delete(toolCallId);
+         return;
+       }
++      if (buffered.length === 0 && !candidates.has(toolCallId) && isProviderToolCall?.(message.update) === true) {
++        if (!isTerminalToolUpdate(message)) releasedToolCallIds.add(toolCallId);
++        emitSemanticUpdate({ message, rawUpdate: preservedUpdate });
++        return;
++      }
+       buffered.push({ message, rawUpdate: preservedUpdate });
+       const candidate = candidates.get(toolCallId) ?? {
+         toolCallId,
+@@ -2253,7 +2328,8 @@ function createEmitStreamEvent({
+   emitToolCallCandidate,
+   builtinTools,
+   hostToolServerName,
+-  hostTools
++  hostTools,
++  isProviderToolCall
+ }) {
+   const translator = createACPStreamTranslator({
+     emit,
+@@ -2272,7 +2348,8 @@ function createEmitStreamEvent({
+       translator.raw({ rawValue: rawUpdate });
+     },
+     hostToolServerName,
+-    hostTools
++    hostTools,
++    isProviderToolCall
+   });
+   return {
+     message: ({ message, rawUpdate }) => {
+@@ -3757,7 +3834,8 @@ async function runTurn(start, turn) {
+     },
+     builtinTools: start.builtinTools,
+     hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
+-    hostTools: start.tools ?? []
++    hostTools: start.tools ?? [],
++    isProviderToolCall: bridgeType === "codex" ? isCodexProviderToolCall : void 0
+   });
+   if (bridgeConfiguration.askUserQuestionsRequestMethod != null) {
+     activeQuestionRequest = {
+@@ -3783,6 +3861,12 @@ async function runTurn(start, turn) {
      removeCorrelationInvocation: emitStreamEvent.removeHostToolCorrelationInvocation
    };
    activeHostToolRelay.bindTurn({ turn: relayTurn });
@@ -85,7 +143,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf
    try {
      const promptMeta = createOutputSchemaPromptMeta({ start });
      const startPrompt = () => promptActiveSession({
-@@ -3810,6 +3879,52 @@ async function runTurn(start, turn) {
+@@ -3810,6 +3894,52 @@ async function runTurn(start, turn) {
      } else {
        void startPrompt();
      }
@@ -138,7 +196,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf
      if (turn.abortSignal.aborted) {
        await cancel();
      } else {
-@@ -3837,6 +3952,11 @@ async function runTurn(start, turn) {
+@@ -3837,6 +3967,11 @@ async function runTurn(start, turn) {
          });
        }
        if (message.kind === "session_update") {
@@ -150,7 +208,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf
          const captured = streamCapture?.takeForUpdate({
            update: message.update
          });
-@@ -3852,9 +3972,21 @@ async function runTurn(start, turn) {
+@@ -3852,9 +3987,21 @@ async function runTurn(start, turn) {
        for (const rawValue of streamCapture?.drainRawValues() ?? []) {
          emitStreamEvent.raw({ rawValue });
        }
@@ -172,7 +230,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf
      if (activeQuestionRequest?.turn === turn) {
        activeQuestionRequest = void 0;
      }
-@@ -3925,7 +4057,7 @@ async function ensureSession({
+@@ -3925,7 +4072,7 @@ async function ensureSession({
      }
    });
    child = spawn(
@@ -181,7 +239,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..9932fc0b4935d26b2c1f0592e6d24cbf
      [...implementation.args],
      {
        cwd: workDir,
-@@ -4321,11 +4453,12 @@ async function readImplementationDescriptor({
+@@ -4321,11 +4468,12 @@ async function readImplementationDescriptor({
    const value = await new Response(text, {
      headers: { "content-type": "application/json" }
    }).json();

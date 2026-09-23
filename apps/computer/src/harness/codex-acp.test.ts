@@ -15,7 +15,12 @@ test('the runtime table drives Codex through codex-acp behind harness-acp', asyn
     );
 
     expect(harness.harnessId).toBe('codex');
-    expect(Object.keys(harness.builtinTools).sort()).toEqual(['bash', 'webSearch']);
+    expect(Object.keys(harness.builtinTools).sort()).toEqual([
+        'apply_patch',
+        'bash',
+        'compaction',
+        'webSearch',
+    ]);
     expect(bootstrap?.bootstrapDir).toBe('.harness-bootstrap/codex');
     expect(JSON.parse(descriptor?.content ?? '{}')).toMatchObject({
         args: [],
