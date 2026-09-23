@@ -2,6 +2,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import antiPatternsMd from './visuals-skill/anti-patterns.md' with { type: 'text' };
 import chartsMd from './visuals-skill/charts.md' with { type: 'text' };
 import componentsMd from './visuals-skill/components.md' with { type: 'text' };
 import designSystemMd from './visuals-skill/design-system.md' with { type: 'text' };
@@ -9,6 +10,8 @@ import diagramsMd from './visuals-skill/diagrams.md' with { type: 'text' };
 import { visualsSkillFragmentFiles } from './visuals-skill/fragments.ts';
 import iconsMd from './visuals-skill/icons.md' with { type: 'text' };
 import { visualsSkillIconFiles, visualsSkillIconManifest } from './visuals-skill/icons.ts';
+import interactionMd from './visuals-skill/interaction.md' with { type: 'text' };
+import marksAndAnatomyMd from './visuals-skill/marks-and-anatomy.md' with { type: 'text' };
 import pagesMd from './visuals-skill/pages.md' with { type: 'text' };
 import visualsSkillMd from './visuals-skill/SKILL.md' with { type: 'text' };
 
@@ -21,6 +24,9 @@ export const visualsSkillFiles: Record<string, string> = {
     // one fragment file to copy.
     'references/design-system.md': designSystemMd,
     'references/charts.md': chartsMd,
+    'references/marks-and-anatomy.md': marksAndAnatomyMd,
+    'references/interaction.md': interactionMd,
+    'references/anti-patterns.md': antiPatternsMd,
     'references/components.md': componentsMd,
     'references/diagrams.md': diagramsMd,
     'references/pages.md': pagesMd,

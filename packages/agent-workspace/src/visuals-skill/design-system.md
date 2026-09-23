@@ -9,7 +9,7 @@ This file is the core. Read it, then read the one module for what you are making
 
 | What you are making | Read |
 | --- | --- |
-| Any chart, plot, sparkline, heat map, or map | [charts.md](charts.md) |
+| Any chart, plot, sparkline, heat map, or map | [charts.md](charts.md), then [marks-and-anatomy.md](marks-and-anatomy.md), [interaction.md](interaction.md), and [anti-patterns.md](anti-patterns.md) |
 | A flow, tree, sequence, timeline, or state machine | [diagrams.md](diagrams.md) |
 | Tiles, cards, status lists, meters, calculators, tables | [components.md](components.md) |
 | A durable artifact page | [pages.md](pages.md) |
@@ -52,8 +52,8 @@ Nothing outside this table is published; an unlisted name resolves to nothing.
 | `--success` `--warning` `--error` | Status marks, dots, strokes, and status text on the page |
 | `--success-bg` `--warning-bg` `--error-bg` | Status chips and callout tints |
 | `--success-foreground` `--warning-foreground` `--error-foreground` | Text on the matching tint, and nowhere else |
-| `--chart-1` … `--chart-4` | Series marks, in categorical order: `--chart-1` blue, `--chart-4` violet, `--chart-3` green, `--chart-2` red last — red reads as a verdict |
-| `--chart-5` | The neutral series: context, baselines, "other", "no data" |
+| `--chart-1` … `--chart-4` | Series marks, in fixed categorical order: `--chart-1` blue, `--chart-2` orange, `--chart-3` aqua, `--chart-4` yellow. Numeric order, never cycled |
+| `--chart-5` | The neutral series: context, baselines, "other", "no data", the gray behind an emphasis mark |
 | `--chart-grid` | Gridlines and baselines |
 | `--chart-label` | Axis and tick text |
 | `--radius` | Controls, chips, inputs, nested plates |
@@ -77,10 +77,8 @@ status text takes the raw `--success` / `--warning` / `--error`.
   goes `--surface-tertiary`. Three levels of nesting is the ceiling.
 - **Chip, badge, pill** — a status or accent `-bg` tint with the matching
   `-foreground` text, `--radius`. Never bare colored text, never a solid fill.
-  Delta color = direction × whether up is good: revenue up is `--success-bg`,
-  returns up is `--error-bg`. `--warning-bg` is for stale or missing states
-  (not synced, no data), never for a drop. Every chip carries a label, never
-  color alone.
+  A tile's chip follows the tile grammar in [components](components.md): a
+  change, a ratio, or a status, and `--warning-bg` only for a status.
 - **Grid** — columns take `minmax(0, 1fr)`; a bare `1fr` floors at the content
   width, so one long label blows the column instead of truncating.
 - **Sections** — `--gap-lg` between, `--gap-sm` within.
@@ -102,10 +100,10 @@ The base body size is **14px** (`var(--app-ui-font-size)`, line-height 1.5) — 
 - Secondary text, dense table cells, and code: 12–13px.
 - Metadata and compact labels: 11–12px. No font-size below 11px.
 - Display values: 24–36px, weight 500, line-height at least 1.08 so glyphs
-  don't crop; never past 42px in a visual. Compact and rounded — whole
-  dollars, 12.9K, $4.2M; never cents in a tile.
+  don't crop; never past 42px in a visual. Whole through 9,999, compact from
+  10,000 (`$6,630`, `$14.4K`), never cents in a tile.
 - Round every number that reaches the screen — `Math.round`, `toFixed(n)`, or
-  `toLocaleString()` — computed values, table cells, and Chart.js tooltip callbacks
+  `toLocaleString()` — computed values, table cells, and tooltip readouts
   included. A range slider sets `step`. Negative currency reads `-$5M`, never `$-5M`.
 - `font-variant-numeric: tabular-nums` only where numbers align vertically:
   table columns, axis ticks. Tile values stay proportional. Never a switch to
@@ -139,6 +137,8 @@ a bounded record — the fragment is in [components.md](components.md).
 Scripts run only once the markup is complete: static HTML/SVG with inline
 `style="..."` first, then inlined data, then `<script>` last, never referencing
 elements below it. Keep `<style>` under ~15 lines; in SVG `<defs>` before marks.
+A chart draws its marks in the markup and keeps the script for the hover layer,
+so the chart is complete before a line of JavaScript runs.
 
 ## Accessibility
 
@@ -149,9 +149,9 @@ elements below it. Keep `<style>` under ~15 lines; in SVG `<defs>` before marks.
 <h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Last week's revenue beat the prior week every day but Tuesday.</h2>
 ```
 
-- A chart's `<svg>` or `<canvas>` gets `role="img"` and an `aria-label` stating
-  the takeaway, not the type, and a `<canvas>` keeps the numbers as its
-  fallback text. Decorative SVG is `aria-hidden`, icon-only controls labeled.
+- A chart's `<svg>` gets `role="img"`, an `aria-label` stating the takeaway
+  rather than the type, and a `<title>` as its first child. Decorative SVG is
+  `aria-hidden`, icon-only controls labeled.
 - Status is never color alone: a tint takes its paired `-foreground` and a
   label.
 - Invalid input in an interactive visual shows a 12–13px `var(--error)` message

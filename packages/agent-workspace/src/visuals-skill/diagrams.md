@@ -29,7 +29,8 @@ file the index points at and change its content.
 
 ## Hand-drawn SVG
 
-Chart.js owns anything with an axis; a diagram is hand-drawn SVG or plain HTML.
+A chart with an axis follows charts.md; a diagram is hand-drawn SVG or plain
+HTML and needs no scale.
 Three things break hand-drawn SVG, so check all three before closing the fence:
 
 - **Text fits.** `chars × budget + 2 × padding ≤ box width`, with 4px minimum

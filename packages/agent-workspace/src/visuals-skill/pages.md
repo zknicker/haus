@@ -14,9 +14,9 @@ holds; this module covers what changes. The skeleton is
 - **No base styles.** A page gets the tokens and nothing else, so it styles its
   own `body`, `table`, and form controls. The inline frame's defaults are not
   there.
-- **No network, ever.** Not even the Chart.js pin: an artifact renders offline
-  from a snapshot. `data:` URIs for small images, charts as inline SVG, all
-  data embedded at generation time.
+- **No network, ever.** Not even the pinned map atlases: an artifact renders
+  offline from a snapshot. `data:` URIs for small images, charts as inline SVG
+  drawn the same way as inline visuals, all data embedded at generation time.
 - **Headings come back.** One `<h1>`, then sentence-case section titles at
   15–16px weight 500. The no-headings rule is about inline visuals.
 - **Layout.** Prose column about 48rem; tables and dashboards may go full

@@ -23,11 +23,11 @@ fields, a status chip that carries a word.
       <span style="font-variant-numeric:tabular-nums">$4.18</span>
     </div>
     <div style="display:flex;justify-content:space-between;gap:var(--gap-sm);padding:6px 0;border-top:1px solid var(--border)">
-      <span style="color:var(--muted-foreground)">Units, last 7 days</span>
+      <span style="color:var(--muted-foreground)">Units · 7d</span>
       <span style="font-variant-numeric:tabular-nums">11</span>
     </div>
     <div style="display:flex;justify-content:space-between;gap:var(--gap-sm);padding:6px 0;border-top:1px solid var(--border)">
-      <span style="color:var(--muted-foreground)">Revenue, last 7 days</span>
+      <span style="color:var(--muted-foreground)">Revenue · 7d</span>
       <span style="font-variant-numeric:tabular-nums">$234</span>
     </div>
   </div>

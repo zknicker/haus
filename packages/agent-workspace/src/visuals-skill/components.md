@@ -34,15 +34,48 @@ it to the reply.
   `grid-template-columns: repeat(auto-fit, minmax(160px, 1fr))` and
   `gap: var(--gap-sm)`. Columns take `minmax(0, 1fr)`: a bare `1fr` floors at
   the content width, so one long label blows the column instead of truncating.
-- Label 12px `--muted-foreground`, value 24–36px weight 500 with `line-height`
-  at least 1.08, delta chip underneath. Values are compact and rounded — whole
-  dollars, `12.9K`, `$4.2M`, never cents.
+- Title 12px `--muted-foreground`, value 24–36px weight 500 with `line-height`
+  at least 1.08, then one chip or one secondary fact underneath.
 - Tiles alone answer no trend question. Either put one chart under the row, or
   give each tile a sparkline.
-- A delta chip's color is direction × whether up is good: revenue up is
-  `--success-bg`, returns up is `--error-bg`. `--warning-bg` is for stale or
-  missing states — not synced, no data — never for a drop. Every chip carries a
-  label; color never carries meaning alone.
+
+### Tile grammar
+
+Every tile is written the same way, so a row reads the same whichever model
+wrote it:
+
+- **Title**: the metric, sentence case: `Revenue`, `Units`, `Returns`. When the
+  tiles in one row cover different periods, every title names its period as
+  `Metric · period`, and the middle dot is the only separator. Periods come
+  from one list: `today`, `yesterday`, `7d`, `30d`, `MTD`, a date `Sep 14`, a
+  range `Sep 1–14` (en dash, no spaces). Months take three letters: `Sep`,
+  never `Sept`. No commas, no parentheses, no prefixed period
+  (`30-day revenue`), and no bare period as a title; `Today` alone titles only
+  the not-synced tile, whose value is `—`.
+- **Value**: whole numbers with thousands separators through 9,999, then
+  compact from 10,000 with at most one decimal and no trailing zero: `$6,630`,
+  `$14.4K`, `$28K`, `1.2M`. Percents take one decimal below 10 and none from
+  10: `6.0%`, `48%`. Negative money reads `-$100`. Never cents; a per-unit
+  price or royalty is the one exception.
+- **Chip**: at most one per tile, in exactly one of three shapes. Every chip is
+  a word or number with a tint, never color alone.
+  - *Change*: arrow, amount, `vs`, comparator: `↑ 6.0% vs prior 7d`. The
+    comparator is one of `prior 7d`, `prior 30d`, `prior day`, `prior week`,
+    `prior month`, `7d avg`, `30d avg`. A rate changes in `pts` (percentage
+    points, the difference between two rates: `6.5%` to `6.9%` is
+    `↑ 0.4 pts`, never `↑ 6%`) (`↑ 0.4 pts vs prior 7d`); a count under 20
+    changes by its difference (`↑ 4 vs prior 7d`); a change under 0.5% either
+    way reads
+    `flat vs prior 7d`. Color is direction × whether up is good: revenue up is
+    `--success-bg`, returns up is `--error-bg`, flat is the neutral chip.
+  - *Ratio*: `48% of $30K goal`, `92% of units`. Always the neutral chip,
+    `--surface-tertiary` with `--foreground` text, never a status tint.
+  - *Status*: `Not synced yet` or `No data`, on `--warning-bg`. This is the
+    only use of warning; a drop is a change chip, never warning.
+- **Secondary fact**: `39 sold · 4 returned` is not a chip. It is 12px
+  `--muted-foreground` text under the value, in place of a chip.
+- **Count**: at most four tiles. Add a `Today` tile only when the question is
+  about today; never pad a row with one.
 
 ## Meters and progress
 
