@@ -48,7 +48,9 @@ For a Haus Agent turn, input includes cached input: cache-read and cache-write
 break input down and are not added again. Processed tokens (a turn's total) are input plus output.
 Claude Code reports input this way. codex-acp reports input without its cached part, so the ACP
 adapter patch adds the cached count back for Codex turns; a Codex turn's processed tokens then
-equal the growth in Codex's own thread total.
+equal the growth in Codex's own thread total. Codex usage recorded before that fix undercounts
+input and is not corrected: daily rows mix turns from before and after it, and earlier rows also
+counted only a turn's last model request, so no reliable correction exists.
 
 ## Hosted data flow
 

@@ -32,14 +32,14 @@ Query: it is neither canonical collaboration state nor a durable App cache entry
 Haus shows turn activity twice, and the two must not converge. **Summary** is the
 high-level verb — `Thinking…`, `Ran a command`, `Sent a message` — in the transcript,
 avatar hover cards, the sidebar activity strip, and the inbox. **Detail** is
-`features/turn-trace/`: one chronological column merging the Server's semantic verbs with
-the Computer's reasoning blocks and tool calls, rendered by the turn-details drawer
-(`server-turn-details-drawer.tsx`) and the Agent profile Activity tab.
+`features/turn-trace/`: one chronological column of the Computer's reasoning blocks and
+tool calls, rendered by the turn-details drawer (`server-turn-details-drawer.tsx`) and the
+Agent profile Activity tab.
 
-`turn-trace-model.ts` builds that column. When the journal is readable it drops the verbs
-the journal already describes — the tool-shaped categories, plus `thinking` once reasoning
-blocks are present — so a command is not printed twice. With no journal every semantic
-event stands on its own. `turn-trace-tool-model.ts` classifies one journal tool by wire
+`turn-trace-model.ts` builds that column. Server semantic verbs stay out of it, since the
+journal already shows the work they summarize; the one exception is `received_message`,
+Server history no journal holds, which joins the column at its time as `Received a new
+message`. `turn-trace-tool-model.ts` classifies one journal tool by wire
 name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `web`, `mcp`,
 `message`, `file-change`, `compaction`, `generic`) with typed fields;
 `turn-trace-tool-bodies.tsx` owns the body each kind earns. The harness's reserved
@@ -92,7 +92,18 @@ BEM parts to the trace's own small muted role.
   through the transcript contract or the execution-journal path. They must not
   restore a direct Runtime fetch.
 - A tool body reads unknown payloads through `turn-trace-values.ts` and degrades to
-  JSON. No runtime result shape is trusted.
+  JSON. No runtime result shape is trusted. codex-acp's shell result is
+  `{ formatted_output, exit_code }`; an exit code shows only when non-zero. A
+  runtime file change (`fileChange`, folded from Codex's `apply_patch`) carries the
+  ACP edit result, one `{ type: 'diff', path, oldText, newText }` per file: a created
+  file shows its contents and a modified one its diff.
+- The AI SDK harness shows the Agent workspace relative: a path inside it loses the
+  workspace prefix, and a bare mention of the workspace itself reads `<workspace>`
+  (Haus's `@ai-sdk/harness` patch; upstream wrote `.`, which turned
+  `cwd is /…/workspace.` into `cwd is ..`). The journal stores that display text.
+- A step whose start and end arrived together shows no duration. Codex reports a
+  fast command's or patch's ACP start and completion in the same instant, and its
+  own measured duration for them is also zero, so there is no real span to state.
 - Nothing bounds a model- or MCP-authored payload, and every tool body in a trace
   mounts behind its disclosure at once, so text is clamped by character
   (`clampTraceText` / `clampTraceValue`) before it reaches a code block, a diff, or a

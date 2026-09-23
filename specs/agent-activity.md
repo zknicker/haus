@@ -28,6 +28,7 @@ the category is current.
 | --- | --- | --- |
 | `starting_work` | `Starting work…` | Server admits a turn to its assigned Computer |
 | `checking_messages` | `Checking messages…` | A structured Haus message check/read/search boundary runs |
+| `received_message` | `Received a new message…` | Server consumes a notice-ack that marks new queued work noticed by the run |
 | `thinking` | `Thinking…` | Harness reasoning starts; text stays out of Activity |
 | `updating_instructions` | `Updating instructions…` | A managed instruction or factory-guidance refresh runs |
 | `browsing` | `Browsing…` | A known Browser capability runs |
@@ -42,6 +43,11 @@ the category is current.
 Completed, failed, and interrupted phases appear in history with past-tense copy. The strip never adds a
 synthetic `Finished` row; the Agent leaves the strip when its turn settles.
 
+`received_message` is Server-owned history rather than work. The Server writes one completed event
+when it consumes a Computer notice-ack that marks queued work newly noticed by the accepted run; an
+ack naming only work the run already noticed, or a run that is no longer accepted, writes none. It
+never becomes the current strip label and never counts as a turn operation.
+
 ## Mapping evidence to activity
 
 Mapping is conservative and versioned. Prefer a less-specific truthful category over a specific
@@ -55,8 +61,10 @@ inference.
    (`exec_command`, the `bash` builtin); Computer declares its fixed-title unnamed calls as
    builtins, so an ACP `edit` call titled `Editing files` is `apply_patch` (`editing_files`) and
    `Compact conversation` is the reserved `compaction`. A provider-executed builtin whose input
-   fails its schema keeps that builtin's category: a file read Codex parsed out of a shell command
-   arrives as `exec_command` without its command and is still `running_command`.
+   fails its schema keeps that builtin's category. The one exception is a file read Codex parsed
+   out of a shell command: codex-acp sends it as an ACP `read` call named `exec_command` with no
+   command and the file in `locations`, so the projector reads that file from the raw ACP update
+   and records `reading_files`, journaling a `read` step of the workspace-relative file.
 3. **Unknown and MCP tools** default to `using_tool`. Their names, descriptions, and inputs are not
    parsed for intent. A tool named `search` does not prove web search; `cat` inside a shell command
    does not turn a shell event into file reading.
