@@ -1,4 +1,9 @@
-import type { AgentInboxItem, CloudAgentWorkAttention, HausAgentMessage } from '@haus/api';
+import type {
+    AgentInboxItem,
+    AgentThreadContext,
+    CloudAgentWorkAttention,
+    HausAgentMessage,
+} from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
     messageSelection,
@@ -11,14 +16,18 @@ import { chatMessagesTable } from '../postgres/schema.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { inboxSender } from './inbox-sender.ts';
 import type * as store from './store.ts';
+import { readThreadContexts, withoutVisibleThreads } from './thread-context.ts';
 
 /**
  * Renders queued rows as the canonical envelopes the Computer projects. Bodies
  * always ride the frame; which of them reach the model is the lane decision.
+ * A frame that may drain these rows names its Agent, so a Thread mention it has
+ * no visible context for carries that Thread's context package.
  */
 export async function buildInboxItems(
     db: HausDatabase,
-    rows: store.InboxItemRow[]
+    rows: store.InboxItemRow[],
+    drainAgentId?: string
 ): Promise<AgentInboxItem[]> {
     const serverId = rows[0]?.serverId;
     const messageIds = rows.map((row) => row.dedupeKey).filter((id) => id.startsWith('msg_'));
@@ -56,6 +65,13 @@ export async function buildInboxItems(
               rows.map((row) => row.dedupeKey)
           )
         : new Map();
+    const threadContexts = drainAgentId
+        ? await withoutVisibleThreads(db, {
+              agentId: drainAgentId,
+              contexts: await readThreadContexts(db, rows),
+              rows,
+          })
+        : new Map<string, AgentThreadContext>();
     const targetByChatId = new Map<string, string>();
     for (const chatId of new Set(rows.map((row) => row.chatId))) {
         targetByChatId.set(
@@ -73,6 +89,7 @@ export async function buildInboxItems(
             sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
             target: targetByChatId.get(row.chatId) ?? '#unknown',
             task: taskByMessage.get(row.dedupeKey),
+            threadContext: threadContexts.get(row.id),
         })
     );
 }
@@ -83,6 +100,7 @@ interface InboxItemFacets {
     sequence: number;
     target: string;
     task: AgentInboxItem['task'];
+    threadContext: AgentThreadContext | undefined;
 }
 
 function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInboxItem {
@@ -95,6 +113,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...(row.mentioned ? { mentioned: true } : {}),
         ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
         ...(facets.task ? { task: facets.task } : {}),
+        ...(facets.threadContext ? { threadContext: facets.threadContext } : {}),
         ...inboxSender({ attention, message: apiMessage, source: row.source, target }),
         chatId: row.chatId,
         content: attention ? '' : row.content,

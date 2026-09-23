@@ -115,7 +115,12 @@ export async function deliverHuman(
     db: HausDatabase,
     delivery: AgentDelivery,
     seed: Seed,
-    input: { addressedReason?: 'dm' | 'mention' | 'routing'; chatId: string; content?: string }
+    input: {
+        addressedReason?: 'dm' | 'mention' | 'routing';
+        chatId: string;
+        content?: string;
+        mentioned?: boolean;
+    }
 ): Promise<string> {
     const messageId = createOpaqueId('msg');
     messageSequence += 1;
@@ -134,6 +139,7 @@ export async function deliverHuman(
         chatId: input.chatId,
         content: input.content ?? 'hello',
         dedupeKey: messageId,
+        mentioned: input.mentioned ?? false,
         sequence: messageSequence,
         serverId: seed.serverId,
         source: 'human',

@@ -5,6 +5,7 @@ import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
+import { readThreadContexts, threadContextChars } from './thread-context.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
 /** Bounds one drain so the composed prompt stays well under command/env limits. */
@@ -39,16 +40,15 @@ export async function startFrame(
                   })
               ).filter((row) => row.source !== 'onboarding')
             : [];
+    const humanDrain = await humanDrainSets(db, noticeRows);
     return {
         agentId: state.agentId,
         ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
         agentName: config.agentName,
         chatId: state.activeRunChatId ?? '',
-        drainItemIds: [...runRows, ...humanDrainSets(noticeRows).drainRows].map(
-            (row) => row.dedupeKey
-        ),
+        drainItemIds: [...runRows, ...humanDrain.drainRows].map((row) => row.dedupeKey),
         homeTimezone: config.homeTimezone,
-        inbox: await buildInboxItems(db, runRows.length > 0 ? runRows : noticeRows),
+        inbox: await buildInboxItems(db, runRows.length > 0 ? runRows : noticeRows, state.agentId),
         inboxDelivery: runRows.length > 0 ? 'concrete' : 'notice',
         modelId: state.activeRunModelId ?? '',
         runId: state.activeRunId ?? '',
@@ -62,7 +62,7 @@ export async function startFrame(
             representedChatIds: chatIdsOf(noticeRows),
             serverId: state.serverId,
         }),
-        warmDrainItemIds: humanDrainSets(noticeRows).warmDrainRows.map((row) => row.dedupeKey),
+        warmDrainItemIds: humanDrain.warmDrainRows.map((row) => row.dedupeKey),
     };
 }
 
@@ -72,14 +72,18 @@ export async function startFrame(
  * their own dedicated wake, which is also what keeps the sole-fire cause
  * inference readable (specs/inbox.md).
  */
-export function boundedCompatibleRows(rows: store.InboxItemRow[], source: string) {
+export function boundedCompatibleRows(
+    rows: store.InboxItemRow[],
+    source: string,
+    extraChars: (row: store.InboxItemRow) => number = () => 0
+) {
     const selected: store.InboxItemRow[] = [];
     let chars = 0;
     for (const row of rows) {
         if (isConcreteSource(source) ? row.source !== source : isConcreteSource(row.source)) {
             continue;
         }
-        const nextChars = chars + row.content.length;
+        const nextChars = chars + row.content.length + extraChars(row);
         if (selected.length > 0 && (selected.length >= maxDrainRows || nextChars > maxDrainChars)) {
             break;
         }
@@ -93,13 +97,17 @@ export function boundedCompatibleRows(rows: store.InboxItemRow[], source: string
  * The two drain sets a notice-lane frame offers, derived from the rows that
  * frame carries. Both the first dispatch and every resend compute them from the
  * same persisted notice window, so a replayed run composes the prompt the ledger
- * expects; the drain budget still bounds how much of it may become bodies.
+ * expects; the drain budget still bounds how much of it may become bodies. A
+ * Thread mention's context package counts against that budget whether or not
+ * visibility later omits it, which keeps the sets identical on every resend.
  */
-export function humanDrainSets(noticeRows: store.InboxItemRow[]) {
-    const drainable = boundedCompatibleRows(
-        noticeRows.filter((row) => row.source === 'human'),
-        'human'
-    );
+export async function humanDrainSets(db: HausDatabase, noticeRows: store.InboxItemRow[]) {
+    const humanRows = noticeRows.filter((row) => row.source === 'human');
+    const contexts = await readThreadContexts(db, humanRows);
+    const drainable = boundedCompatibleRows(humanRows, 'human', (row) => {
+        const context = contexts.get(row.id);
+        return context ? threadContextChars(context) : 0;
+    });
     return {
         drainRows: drainable.filter(isAddressedHumanRow),
         warmDrainRows: drainable.filter((row) => !isAddressedHumanRow(row)),

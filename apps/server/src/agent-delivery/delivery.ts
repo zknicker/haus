@@ -1031,7 +1031,7 @@ export class AgentDelivery {
             // Derived from the rows this frame carries, not from the candidate
             // slice, so a resend rebuilding from those same persisted rows
             // reproduces exactly these two sets.
-            ({ drainRows, warmDrainRows } = humanDrainSets(noticeRows));
+            ({ drainRows, warmDrainRows } = await humanDrainSets(tx, noticeRows));
         }
         const chatId = first.chatId;
         // Freeze execution configuration onto the run so every resend uses these values.
@@ -1066,7 +1066,7 @@ export class AgentDelivery {
                 chatId,
                 drainItemIds: drainRows.map((row) => row.dedupeKey),
                 homeTimezone: config.homeTimezone,
-                inbox: await buildInboxItems(tx, concrete ? selected : noticeRows),
+                inbox: await buildInboxItems(tx, concrete ? selected : noticeRows, agentId),
                 inboxDelivery: concrete ? 'concrete' : 'notice',
                 modelId: config.desiredModelId,
                 runId,
