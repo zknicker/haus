@@ -127,12 +127,31 @@ test('trace content reveals on a no-bounce spring, and at once under reduced mot
     assert.ok(transition.opacity.duration <= 0.2);
 });
 
-test('the theme animates closing and never pins a closed tool body', () => {
-    // A turn row opens at once and closes on the stock transition.
+test('a turn row reopens on the same transition it closes with', () => {
+    // Only a row with nothing yet to measure opens at once; one holding a
+    // trace keeps the stock height transition both ways, and no open panel is
+    // promoted to its own layer.
     assert.match(
         theme,
-        /\.accordion--activity-history \.accordion__panel\[data-expanded='true'\] \{\s*transition: none;/
+        /\.accordion--activity-history\s+\.accordion__panel\[data-expanded='true'\]:not\(:has\(\[data-turn-trace\] > \*\)\) \{\s*transition: none;\s*\}/
     );
+    assert.match(
+        theme,
+        /\.accordion--activity-history \.accordion__panel\[data-expanded='true'\] \{\s*will-change: auto;\s*\}/
+    );
+    assert.doesNotMatch(theme, /\.accordion--activity-history[^{]*\{[^}]*will-change: (?!auto)/);
+
+    // A row opened before the relay answers holds an empty trace root; a
+    // closed row's retained trace keeps content there to measure.
+    const pending = renderToStaticMarkup(
+        <TurnTracePresentation access="journal" isPending presentation={null} />
+    );
+    assert.match(pending, /<div class="[^"]*" data-turn-trace="true"><\/div>/);
+    const retained = render(journal({ tools: [tool({ toolCallId: 'call-read' })] }));
+    assert.match(retained, /data-turn-trace="true"><div/);
+});
+
+test('the theme animates closing and never pins a closed tool body', () => {
     assert.doesNotMatch(theme, /\.accordion--activity-history \.accordion__indicator/);
     // ChatTool's closed body follows React Aria's animated height.
     assert.match(

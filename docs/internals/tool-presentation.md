@@ -71,8 +71,10 @@ the same safe renderer a message uses — `react-markdown` with no raw-HTML pass
 
 The trace owns its motion and disclosure state. A trace the relay answers after its view
 opened, and a step a live turn adds, grow into place (`turn-trace-reveal.tsx`); a view
-that closes keeps its last trace on screen, so a collapsing row animates the trace it
-showed and a reopened row shows it at once while the relay refreshes. Each tool row is
+that closes keeps its last trace, and reopening shows it while the relay refreshes. In the
+Activity tab, rows open and close with one animated height transition: a reopened row
+grows to the trace it kept exactly as a collapsing row shrinks from it, and only a row
+opened before its first trace arrives opens at once and lets the trace grow in. Each tool row is
 its own disclosure: the trace resets React Aria's disclosure-group context, so the
 Activity tab's turn accordion never owns a call's open state.
 

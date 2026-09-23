@@ -115,7 +115,9 @@ export function TurnTracePresentation({
         // rows' group: the group's keys would decide a call's state, so a
         // failed call would not open on its own there as it does in the drawer.
         <DisclosureGroupStateContext.Provider value={null}>
-            <div className="grid min-w-0 gap-2">
+            {/* The Activity tab animates a row's open only when this holds
+                something to measure (`default-theme.css`). */}
+            <div className="grid min-w-0 gap-2" data-turn-trace>
                 <TurnTraceNotice
                     access={access}
                     isPending={isPending}

@@ -1051,17 +1051,22 @@
         font-weight: 600;
     }
 
-    /*
-     * A turn row opens at once: its execution details arrive after expansion,
-     * and a stock height transition measures the panel before they do, then
-     * snaps when they land. The trace reveals its own height as it arrives
-     * (`turn-trace-reveal.tsx`). Closing is the stock transition, because
-     * everything it measures is already on screen.
-     */
+    /* An open turn can be thousands of pixels of trace; do not promote it. */
     .accordion--activity-history .accordion__panel[data-expanded='true'] {
-        transition: none;
-        /* An open turn can be thousands of pixels of trace; do not promote it. */
         will-change: auto;
+    }
+
+    /*
+     * A turn row opens and closes on the stock height transition, which
+     * measures the panel as it starts. A row opened before its trace has
+     * arrived holds nothing to measure: it opens at once instead, and the
+     * trace reveals its own height when the relay answers
+     * (`turn-trace-reveal.tsx`). A closed row keeps its last trace, so
+     * reopening it animates like closing.
+     */
+    .accordion--activity-history
+        .accordion__panel[data-expanded='true']:not(:has([data-turn-trace] > *)) {
+        transition: none;
     }
 
     /*
