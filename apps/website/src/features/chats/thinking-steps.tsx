@@ -12,23 +12,11 @@ import {
     useState,
 } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { springs } from '../../lib/springs.ts';
 import { cn } from '../../lib/utils.ts';
 
 type StepStatus = 'active' | 'complete' | 'pending' | 'failed';
 type StepIcon = HugeiconsIconProps['icon'];
-
-const springs = {
-    drawer: {
-        bounce: 0,
-        duration: 0.22,
-        type: 'spring' as const,
-    },
-    slow: {
-        bounce: 0.15,
-        duration: 0.24,
-        type: 'spring' as const,
-    },
-};
 
 const ThinkingStepsOpenContext = createContext(false);
 
