@@ -4,6 +4,7 @@ read_when:
   - changing websocket subscriptions or reconnect behavior
   - adding a durable event type or a new tRPC invalidation event
   - changing the composition stream, presence, or realtime recovery semantics
+  - changing chat engagement (typing) events or their recovery read
 ---
 
 # Realtime
@@ -22,6 +23,7 @@ clients recover through durable reads.
 | Hosted composition hub | Haus Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent activity journal | Haus Server | Durable semantic execution metadata plus live current-state projection |
 | Hosted Agent lifecycle hub | Haus Server | Volatile working/reading/sending/settled projection for presence and committed-send recovery |
+| Hosted chat engagement events | Haus Server | Volatile Chat-scoped typing facts, recovered from `chat.engagements`; no persistence or replay |
 | App subscriptions | Haus App | tRPC notification transport, catch-up cursors, and focused query invalidation |
 
 `server.updated` is Server-scoped: `server.onUpdate` takes a Server id, checks
@@ -145,6 +147,15 @@ cursor, and are never replayed. The subscriber's Chat access is rechecked for
 every delivery. The first-party App does not publish human draft text or render
 a provisional Agent response from this transport.
 
+Hosted chat engagement events are volatile and Chat-scoped
+([ADR 0034](../adr/0034-chat-engagement-shows-as-typing.md)). `chat.engagement.started`
+announces after the write that grants a run exact visibility of an unanswered human message
+commits; `chat.engagement.ended` (`sent`, `settled`, or `interrupted`) rides a committed Agent
+send into the Chat or terminal turn proof. `chat.onEngagement({ serverId, chatId })` checks Chat
+access at start and before every delivery. Nothing is persisted or replayed: the durable
+`chat.engagements` read derives the same set from delivery state, and the App invalidates it
+whenever the subscription starts or restarts, then patches it from live events.
+
 Hosted Agent lifecycle events are also volatile and membership-checked. The
 Server projects `working` when a run is dispatched, `reading` when Computer
 acceptance arrives, `sending` after the Agent's message commits followed immediately
@@ -170,8 +181,8 @@ uses one Server-scoped `agent.onActivity` subscription; `agent.activityHistory` 
 `agent.activeActivity` are the durable history and reconnect snapshot reads. Activity positions
 are assigned under the Server row lock and are never derived from producer timestamps.
 A Server `sending_message:completed` activity is committed with the Agent message and presents the
-run as `Finishing up…`. Terminal lifecycle proof owns both sidebar-row removal and the Agent's
-working-to-idle transition, keeping those surfaces synchronized. Trailing completion events preserve
+run as `Finishing up…`. Terminal lifecycle proof owns both current-activity removal and the
+Agent's working-to-idle transition, keeping those surfaces synchronized. Trailing completion events preserve
 the finishing state; a later started operation replaces it. A Server `received_message:completed`
 activity, committed when a notice-ack marks new work noticed by the run, is history only: it never
 replaces the current row.
@@ -225,6 +236,8 @@ Examples:
   or replayed (see [Agent Inbox](../../specs/inbox.md))
 * hosted Agent lifecycle (`working`, `reading`, `sending`, `settled`) projected
   to coarse busy/idle presence
+* chat engagement (`chat.engagement.started` / `ended`) projected to the typing
+  strip, recovered from `chat.engagements`, never replayed
 * short-lived hover/debug state
 * app-only invalidation hints
 

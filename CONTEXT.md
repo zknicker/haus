@@ -333,10 +333,11 @@ transition or semantic tool category. It is safe, summarized execution metadataâ
 message drafts, raw tool inputs or outputs, command contents, or private file contents.
 _Avoid_: Chat activity, typing indicator, raw execution trace
 
-**Agent activity strip**:
-The conditional Server-sidebar surface that shows the latest summarized Agent activity for each
-Agent currently doing work on that Server.
-_Avoid_: Agent roster, activity history, status feed
+**Chat engagement**:
+An Agent turn's hold on a Chat whose human messages it has read and not yet answered, shown to
+humans as typing above that Chat's composer. It ends when the Agent sends into the Chat or the
+turn settles.
+_Avoid_: typing state, composition, Agent activity
 
 **Agent activity history**:
 The Server-persisted chronological record of summarized Agent activity, including lifecycle changes

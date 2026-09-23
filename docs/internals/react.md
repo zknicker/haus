@@ -212,7 +212,7 @@ keeps its header, Close, and Open profile controls outside its Agent query bound
   avatar in chat opens a read-only peek pane beside the message
   (`hooks/pane/use-agent-profile-pane.ts`): one column, no tabs, and its only
   path to editing is its **Open profile** action. Every other surface — the
-  activity strip, the chat-rail context menu, the Computer page's Agent table,
+  Inbox's live Agent rows, the chat-rail context menu, the Computer page's Agent table,
   the command palette — navigates to the page.
 * Usage is a dashboard, not a member. It lives at `/s/:slug/usage` — it was the
   index of the deleted `/members` browser, which made a dashboard wear a

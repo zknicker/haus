@@ -321,8 +321,8 @@ companion `--kind`. Each fire an Agent acts on gets its own message; answers to
 different fires never share a Thread. See `specs/automation-provenance.md`.
 
 **Composition is not a CLI handoff (ADR 0023).** The CLI sends no composition identity, and durable
-messages need no provisional-row reconciliation. Haus does not infer Chat-scoped typing from
-inbox work or partial `message send` arguments.
+messages need no provisional-row reconciliation. Chat typing is Server-derived chat engagement
+from exact run visibility (ADR 0034), never from partial `message send` arguments or a CLI verb.
 
 ## 7. Verb surface and ownership
 
@@ -443,7 +443,7 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 | Server-side list pagination on `server info` | We are designing the server API; Raft's client-side slicing is an artifact of its fat response. |
 | Targets resolved per-action server-side; no client-visible `resolve-channel` two-step | Simpler wire contract; the two-step is a Raft-internal REST artifact. |
 | `HAUSMSG` delimiter | Naming parity with `RAFTMSG` (current npm), ours. |
-| Chat typing outside message sends | Haus does not infer typing from Agent work; the CLI has no composition id. |
+| Chat typing outside message sends | The Server derives typing from exact run visibility (ADR 0034); the CLI has no typing verb or composition id. |
 | `attachment upload` takes no `--target` (Raft's does) | Upload is decoupled from posting; the message send carries `--attachment-id`, so an upload never implies a visible post (WS5). |
 | Reminder and Trigger fires post no receipt in chat, and the Agent answers with `haus message send --cause <fireId>` | Not a divergence: Raft delivers a fire as a transient `msg=-` notice and a typed app inbox item, not a durable chat row, and the receipt sentence in its prompt was never corroborated. The divergence is `--cause`, which Raft has no equivalent of: a Haus answer names the exact fire it answers, and that provenance feeds the header mark, hover card, and Thread context card (ADR 0026). |
 | `reminder schedule` has no `--channel` anchor variant | The prompt teaches message anchors explicitly (anchorless reminders lose their context); Raft's `--channel` flag semantics are unverified in the wire layer (WS5). |

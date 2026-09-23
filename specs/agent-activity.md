@@ -1,7 +1,7 @@
 ---
-summary: Agent activity — Server-persisted semantic work history, the live sidebar strip, avatar status dots, and Computer-local detailed execution evidence.
+summary: Agent activity — Server-persisted semantic work history, the live current-activity projection on the Inbox, avatar status dots, and Computer-local detailed execution evidence.
 read_when:
-  - changing Agent activity events, presence dots, or the sidebar activity strip
+  - changing Agent activity events, presence dots, or the Inbox's live Agent rows
   - changing the Agent profile Activity tab or Turn Details drawer
   - changing Computer tool observation or the Server/Computer execution-evidence boundary
 ---
@@ -10,8 +10,8 @@ read_when:
 
 Agent activity answers two related questions without turning execution into Chat content:
 
-- **What is happening now?** The Agent activity strip and status dots project current unsettled
-  work.
+- **What is happening now?** The Inbox's live Agent rows and status dots project current
+  unsettled work.
 - **What happened before?** Agent activity history is a durable chronological list of summarized
   execution events.
 
@@ -40,13 +40,13 @@ the category is current.
 | `sending_message` | `Sending a message…` | Server begins the canonical Agent message-send boundary |
 | `working` | `Working…` | No narrower truthful category is current |
 
-Completed, failed, and interrupted phases appear in history with past-tense copy. The strip never adds a
-synthetic `Finished` row; the Agent leaves the strip when its turn settles.
+Completed, failed, and interrupted phases appear in history with past-tense copy. Current
+activity never adds a synthetic `Finished` row; the Agent leaves it when its turn settles.
 
 `received_message` is Server-owned history rather than work. The Server writes one completed event
 when it consumes a Computer notice-ack that marks queued work newly noticed by the accepted run; an
 ack naming only work the run already noticed, or a run that is no longer accepted, writes none. It
-never becomes the current strip label and never counts as a turn operation.
+never becomes the current activity label and never counts as a turn operation.
 
 ## Mapping evidence to activity
 
@@ -124,7 +124,7 @@ restores it after reload or reconnect. Journal and subscription events retain th
 The Inbox uses this timestamp for a locally ticking, second-resolution total-turn clock.
 
 Heartbeats and repeated identical current states are not persisted. Short adjacent events may be
-coalesced for the live strip, but every meaningful transition remains available in history.
+coalesced for live presentation, but every meaningful transition remains available in history.
 
 Activity events never contain reasoning text, model narration, draft messages, URLs, search terms,
 paths, commands, tool inputs or outputs, authorization data, or private file contents.
@@ -174,25 +174,21 @@ is owned by Linear PRD-216.
 
 ## Surfaces
 
-### Agent activity strip
+### Current activity
 
-The strip sits at the bottom of every Server sidebar and is absent from full-width destinations
-without a sidebar, including Search and Reminders.
+Current activity is the live projection of the Server's Agents with unsettled,
+Computer-accepted turns and each one's latest semantic label. The Inbox's **Happening now**
+rows render it with the turn clock ([Inbox](../docs/features/inbox.md)), and the sidebar's
+Haus mark quickens while any Agent works. There is no sidebar activity strip: which Chat an
+Agent is answering is the typing strip above that Chat's composer
+([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)), not Agent activity.
 
-- Membership is exactly the Server's Agents with unsettled, Computer-accepted turns.
-- Each row shows the Agent avatar with its ordinary global status dot plus the latest semantic
-  activity label.
-- Show at most four rows, then `N more working`.
-- Order is stable by turn start, oldest first. A category change does not reorder rows. Entry and
-  exit reflow with a restrained layout animation; reduced-motion users get no rerank motion.
-- Clicking a row opens that Agent's profile.
-- Settlement removes the row with a short fade. Status dots never pulse.
-
-The strip consumes live current-state projection, not the historical query. Reconnect obtains a
-current active-activity snapshot before applying later events. A semantic operation's
-`completed`, `failed`, or `interrupted` event falls back to `Working…`; only the Server's terminal turn event
-removes the Agent. Snapshot and live-event reconciliation preserves live events that arrive while
-an older snapshot request is still in flight.
+The projection consumes live events, not the historical query. Reconnect obtains a current
+active-activity snapshot before applying later events. A semantic operation's `completed`,
+`failed`, or `interrupted` event falls back to `Working…`; a committed Agent message reads
+`Finishing up…`; only the Server's terminal turn event removes the Agent. Snapshot and
+live-event reconciliation preserves live events that arrive while an older snapshot request
+is still in flight.
 
 ### Agent activity history
 
@@ -244,7 +240,7 @@ reference still opens the full Agent profile.
 
 - Server history remains readable while Computer is offline.
 - A missing live activity update falls back to `Working…` while the unsettled turn remains known.
-- Computer disconnect clears current strip membership through Agent availability reconciliation;
+- Computer disconnect clears current activity through Agent availability reconciliation;
   it does not delete durable history.
 - Unknown tools stay generic. Classification failure never blocks the turn or tool call.
 - Activity transport is best effort during a turn. Settlement must still record the terminal turn
@@ -254,6 +250,7 @@ reference still opens the full Agent profile.
 
 - Streaming model text or reasoning into Activity.
 - Guessing intent from arbitrary tool names, arguments, commands, or output.
-- Showing raw execution evidence in the sidebar or ordinary-member Activity views.
-- Treating activity as Chat history, typing state, or a promise that the Agent will reply.
+- Showing raw execution evidence in the Inbox or ordinary-member Activity views.
+- Treating activity as Chat history, typing state, or a promise that the Agent will reply. Typing
+  is chat engagement (ADR 0034), derived from delivery visibility rather than activity.
 - Defining retention or cleanup policy.

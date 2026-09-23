@@ -6,7 +6,7 @@ read_when:
   - changing exact model visibility, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
   - changing how the Server infers which fire caused an Agent's message
-  - changing Agent status surfaces derived from inbox delivery
+  - changing Agent status surfaces derived from inbox delivery, including chat engagement (typing)
 ---
 
 # Agent Inbox
@@ -123,6 +123,11 @@ A durable `message.created` is planned once by Server delivery
   what it composed as exact run visibility before the model streams, so the freshness hold never
   treats the message the Agent is answering as news. The composed receipt leaves inbox rows
   offered; settlement attaches them and advances `seen`, and the turn summary is its fallback.
+- **Reply expectation rides beside the addressed reason.** When ADR 0030's Jev judgment runs for a
+  message, its `expects_reply` Noul (0–1) is stored on every inbox row the message produces;
+  otherwise the column is null. It never affects recipients, drain lanes, or the Agent's prompt.
+  Its one reader is chat engagement, where a value at or below 0.2 keeps that message from
+  showing the Agent as typing ([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)).
 - **A Thread mention arrives with its Thread when the Agent cannot see it.** When a drainable
   human item is the first in its Thread to @mention this Agent, and the Agent has no model-visible
   context for that Thread this session (no verified boundary, no settled exact visibility), the
@@ -286,7 +291,8 @@ turn starts when its creator sends the working brief.
 ## Presentation split (I1/I4)
 
 Attaching accepted pending rows to the active run is a delivery fact, not a claim that the Agent is
-composing a reply. Chat renders only durable messages. Status dots, semantic Agent activity, and
+composing a reply. Chat renders only durable messages. The typing strip is a separate projection of
+exact run visibility, not of attachment ([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)). Status dots, semantic Agent activity, and
 detailed execution evidence remain separate Agent-level projections
 ([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
 targets, mutes, and follows on the Agent profile; humans steer attention by asking in Chat.

@@ -31,7 +31,7 @@ Query: it is neither canonical collaboration state nor a durable App cache entry
 
 Haus shows turn activity twice, and the two must not converge. **Summary** is the
 high-level verb — `Thinking…`, `Ran a command`, `Sent a message` — in the transcript,
-avatar hover cards, the sidebar activity strip, and the inbox. **Detail** is
+avatar hover cards, and the inbox. **Detail** is
 `features/turn-trace/`: one chronological column of the Computer's reasoning blocks and
 tool calls, rendered by the turn-details drawer (`server-turn-details-drawer.tsx`) and the
 Agent profile Activity tab.

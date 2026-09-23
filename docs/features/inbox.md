@@ -111,7 +111,7 @@ collision does is drop or add a prefix.
 - [Cloud Agent work](../../specs/cloud-agents.md) queued or running anywhere on the Server I can
   see, led by its provider glyph: the title, the Chat and Agent it came from as its preview, and its
   status disc with the elapsed time trailing — `Running · 25m`.
-- Agents currently in a turn, from the same data as the Agent activity strip
+- Agents currently in a turn, from the current Agent activity projection
   ([Agent Activity](../../specs/agent-activity.md)), each stating its current activity and total
   elapsed time for the turn, such as `Editing files · 3m 12s elapsed`. The clock ticks every second
   from the Server's recorded turn start and survives step changes, reloads, and reconnects.

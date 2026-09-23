@@ -3,6 +3,7 @@ summary: Agent chat experience — durable messages, artifacts, and channel/DM s
 read_when:
   - changing the main agent conversation experience
   - changing durable messages, composer behavior, or artifacts
+  - changing the typing strip above the composer
   - changing channel/DM structure, archiving, or chat appearance
 ---
 
@@ -138,6 +139,17 @@ and [Agent Inbox](../../specs/inbox.md).
   same way, including the first reply, whose pending row belongs to the anchor
   message until the Thread it creates exists. Pending rows are never written
   into durable chat history.
+* **Typing.** A strip above the composer of every channel, DM, and Thread names
+  the Agents answering it: "Juniper is typing…", "Juniper and Cove are
+  typing…", then "Juniper, Cove, and 1 other are typing…", with up to three
+  16px avatars and a three-dot pulse that respects reduced motion.
+  An Agent types while its accepted turn has read a human message here that is
+  newer than its own last message and was not judged to want no reply. A reply
+  into this Chat clears it at once; otherwise it clears when the turn ends, so a
+  turn that reads a Chat and stays silent types until it settles. The strip's
+  height is always reserved, so the composer never moves. Reloads and
+  reconnects recover it from `chat.engagements`
+  ([ADR 0034](../adr/0034-chat-engagement-shows-as-typing.md)).
 * **Scroll position.** Sending from the composer brings the conversation to the
   bottom, even when the human was reading older messages. Incoming Agent messages
   follow the bottom only when the reader was already following it. That choice

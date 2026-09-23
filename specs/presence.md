@@ -58,8 +58,7 @@ is no per-token churn.
   [Agent activity](agent-activity.md) stream owns `Checking messages…`, `Browsing…`, and other
   current-work categories.
 - A standing Agent presence rail or ticker: Agents and built-in DMs are
-  one-to-one, so the DM list already is the presence roster. The
-  bottom-of-sidebar Agent activity strip is the one exception — it renders only while an Agent is
-  mid-turn and disappears at
-  idle, so at rest the DM list remains the sole presence surface.
+  one-to-one, so the DM list already is the presence roster. Live work
+  appears on the Inbox, and Chat-scoped typing is chat engagement
+  ([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)), not presence.
 - Presence for external/observed participants.

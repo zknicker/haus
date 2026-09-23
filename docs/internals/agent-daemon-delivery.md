@@ -4,6 +4,7 @@ read_when:
   - changing Computer Agent execution or AI SDK Harness session lifecycle
   - changing Server-to-Computer Agent delivery or busy notices
   - changing accepted, served, or seen semantics, or the retained delivery ledger
+  - changing which visibility writes or lifecycle facts start and end chat engagement
   - changing Agent-authored chain limits or turn failure retry policy
 ---
 
@@ -311,7 +312,7 @@ phases from product boundaries:
 
 Lifecycle remains the coarse availability projection. ADR 0023 adds a separate semantic Agent
 activity journal: Computer maps known Harness and product boundaries into safe categories, Server
-persists them, and the sidebar strip projects the latest category for each unsettled Agent. Unknown
+persists them, and the Inbox projects the latest category for each unsettled Agent. Unknown
 and MCP tools remain generic. Neither lifecycle nor semantic activity carries arguments, command
 contents, model reasoning, draft messages, tool outputs, or private file contents.
 Instruction, Cove factory-guidance, or bootstrap drift adds an explicit `updating_instructions`
@@ -320,9 +321,12 @@ bootstrap errors.
 
 Computer separately records a detailed execution journal keyed by run, including tool outputs,
 tool errors, and model reasoning blocks. Owner/Admin inspection uses an authorized live relay;
-Server never persists that response. Chat does not project run-attached
-inbox work as typing. The `sending` composition bubble remains tied only to an explicit in-flight
-message and its composition id.
+Server never persists that response. Chat does not project run-attached inbox work as typing;
+typing is chat engagement, derived from the run's exact visibility of unanswered human messages
+and ended by a committed send into that Chat or by terminal turn proof
+([ADR 0034](../adr/0034-chat-engagement-shows-as-typing.md)). The composed receipt, mid-turn pulls,
+and a held send that shows news each announce engagement after they commit. The `sending`
+composition bubble remains tied only to an explicit in-flight message and its composition id.
 
 ## Invariant Tests
 

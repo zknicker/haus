@@ -44,8 +44,10 @@ rows at all.
   from Turn Details while Computer is online. Opening a Chat never performs that read.
 - Execution rows never become transcript units. The drawer is inspection UI attached to a durable
   message, not part of the conversation projection.
-- Live agent state (busy dot, activity strip text) is presence
-  ([presence.md](presence.md)), agent-scoped.
+- Live agent state (busy dot, current activity text) is presence
+  ([presence.md](presence.md)), agent-scoped. The typing strip above the composer is the one
+  Chat-scoped live signal, and it sits outside the timeline
+  ([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)).
 
 ## Boundaries
 
