@@ -282,6 +282,7 @@ test('pins the rendered visuals and artifact fence contract', () => {
     // The prompt keeps only the pointer; the visuals skill owns the contracts.
     expect(prompt).toContain('## Visuals');
     expect(prompt).toContain('read the visuals skill');
+    expect(prompt).toContain('get an inline visual (bespoke HTML/SVG) by default');
     expect(prompt).toContain(
         'Never output HTML, JSX, CSS, imports, or class names in plain message text.'
     );

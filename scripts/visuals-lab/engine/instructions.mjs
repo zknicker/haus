@@ -12,7 +12,7 @@
 
 export const visualsPointer = `## Visuals
 
-You can render inline visuals (bespoke HTML/SVG) and artifact pages in chat with tagged fences. Before emitting any visual or artifact fence, read the visuals skill — it defines when to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
+Numbers over time or across categories get an inline visual (bespoke HTML/SVG) by default; keepable deliverables get artifact pages. Before emitting either fence, read the visuals skill: it says when not to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
 
 const outputsSection = `## Outputs
 
