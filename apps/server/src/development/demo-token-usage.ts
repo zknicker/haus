@@ -52,10 +52,12 @@ export function demoTokenUsage(
             // before switching, which is what gives the breakdown a third row
             // and the chart a second runtime color family.
             const onLegacyStack = agentIndex === 1 && dayOffset >= USAGE_DAYS - 14;
-            const inputTokens = turnCount * 1450;
-            const outputTokens = turnCount * 430;
+            // Input includes cached input: cache read and write break it down,
+            // and a turn's total is input plus output (docs/features/usage.md).
             const cacheReadTokens = turnCount * 2100;
             const cacheWriteTokens = turnCount * 260;
+            const inputTokens = turnCount * 1450 + cacheReadTokens + cacheWriteTokens;
+            const outputTokens = turnCount * 430;
 
             rows.push({
                 agentId: agent.id,
@@ -67,7 +69,7 @@ export function demoTokenUsage(
                 outputTokens,
                 runtimeId: onLegacyStack ? 'claude-code' : 'codex',
                 serverId,
-                totalTokens: inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens,
+                totalTokens: inputTokens + outputTokens,
                 turnCount,
             });
         }

@@ -28,11 +28,10 @@ describe('demoTokenUsage', () => {
         ]);
     });
 
-    it('keeps totals consistent with their parts', () => {
+    it('follows the usage contract: input includes cached input, total is input plus output', () => {
         for (const row of rows) {
-            expect(row.totalTokens).toBe(
-                row.inputTokens + row.outputTokens + row.cacheReadTokens + row.cacheWriteTokens
-            );
+            expect(row.cacheReadTokens + row.cacheWriteTokens).toBeLessThanOrEqual(row.inputTokens);
+            expect(row.totalTokens).toBe(row.inputTokens + row.outputTokens);
             expect(row.turnCount).toBeGreaterThan(0);
         }
     });
