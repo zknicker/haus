@@ -120,8 +120,9 @@ Computer.
 
 Computer also records normalized token counts from each completed Haus Agent turn. The compact
 turn summary carries the Agent, runtime, model, input, output, and cache counts to Server; prompts,
-transcripts, and raw provider events remain Computer-local. Codex exposes session-cumulative
-counters, so Computer stores a per-session baseline and reports only each turn's delta.
+transcripts, and raw provider events remain Computer-local. Codex reports the usage of each
+turn's final model request (codex-acp answers a prompt with app-server's `ThreadTokenUsage.last`
+and does not send a turn total), so a Codex turn that makes several model requests undercounts.
 Grok Build reports full turn totals in the prompt response's `_meta.usage` object. The ACP adapter
 patch maps those counts into standard finish usage, including cache counts, without adding
 reasoning tokens a second time. Sibling token fields describe only the last model call and are

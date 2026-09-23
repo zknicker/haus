@@ -143,15 +143,18 @@ tool boundary with no other tool call still in flight, using AI SDK Harness's ac
 `experimental_steerTurn` API. The harness reports compaction only after it completes, so no
 compaction gate exists.
 Computer acknowledges only successful runtime acceptance, never a local queue write.
-Claude Code and Pi steer natively; Grok Build steers through Haus's `@ai-sdk/harness-acp` patch,
-which forwards the message as an `_x.ai/interject` request (`validateComputerBridgeAssets`
-refuses a bridge without it). Codex is the only runtime that cannot: its adapter runs `codex exec`
-with stdin closed. If steering is unsupported or no safe boundary
-remains, the durable notice stays unacknowledged. Server wakes the same Agent session
-again after settlement. The composed system prompt follows the same capability
-(`supportsMidTurnNotices` beside the runtime table): Claude Code, Grok Build, and Pi are told a
-notice may arrive mid-turn, while Codex is told pending messages arrive at the start of the next
-turn. The Agent can still pull its inbox during the active turn;
+Every runtime steers. Claude Code and Pi do so natively. Grok Build and Codex run behind
+`@ai-sdk/harness-acp`, whose Haus patch forwards the message as the agent's own steering request:
+`_x.ai/interject` for Grok Build, and `_session/steering` for Codex, which runs as
+[codex-acp](https://github.com/agentclientprotocol/codex-acp) over `codex app-server`
+(`validateComputerBridgeAssets` refuses either bridge without its request). Codex accepts a
+message only when codex-acp answers `injected`; a steer that reaches codex-acp after the turn
+ended starts a turn Haus does not own, so the bridge cancels that turn and rejects the message.
+If steering is unsupported, rejected, or no safe boundary remains, the durable notice stays
+unacknowledged. Server wakes the same Agent session again after settlement. The composed system
+prompt tells every Agent that a notice may arrive mid-turn; a runtime that cannot steer must
+bring back a next-turn prompt variant before it joins the runtime table in
+`apps/computer/src/harness/runtime-harness.ts`. The Agent can still pull its inbox during the active turn;
 those exact visibility receipts prevent a redundant wake for already-read work.
 Rejected steering also preserves the notice without changing the primary turn's
 outcome. Unexpected failures while the SDK still has an active turn emit an

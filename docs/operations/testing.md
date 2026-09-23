@@ -260,6 +260,15 @@ login before running:
 HAUS_RUN_LIVE_GROK_TEST=1 bun test apps/computer/src/harness/grok-build-live.test.ts
 ```
 
+The Codex live smoke runs only with its variable set and then checks `codex login status`. It
+drives the production runtime table through codex-acp: a steered message lands
+mid-turn, a Computer host tool answers over the harness MCP relay, and a stopped
+session resumes with its conversation.
+
+```sh
+HAUS_RUN_LIVE_CODEX_TEST=1 bun test apps/computer/src/harness/codex-live.test.ts
+```
+
 If manual validation creates real Haus chats, use an obvious temporary first
 message such as `Codex smoke <timestamp>: <purpose>`, record the created chat
 ids, and delete only those chats before finishing. If cleanup fails, report the

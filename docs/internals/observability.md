@@ -147,7 +147,6 @@ queueing/reasoning. Local journals remain the detailed tool evidence.
 provider execution policy. `haus.tokens.input`, `output`, `cache_read`, and `cache_write` carry
 the same normalized per-turn usage as the durable summary when available. A missing usage object
 omits all four; normalized counts inherit the runtime adapter's treatment of unavailable subfields.
-In particular, a first Codex cumulative observation establishes a baseline and omits per-turn usage.
 The relay accepts finite nonnegative timings through seven days, integral token counts through
 12 digits, and only the product's known reasoning settings. No content or new metric dimensions
 are exported.
