@@ -1,6 +1,10 @@
 import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
 import { formatAskSuffix } from '../inbox-ask-format.ts';
-import { formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
+import {
+    formatAttachmentSuffix,
+    formatThreadFollowRestoration,
+    shortInboxId,
+} from '../inbox-format.ts';
 import { formatInlineReplyContext } from '../inline-reply-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
@@ -89,26 +93,7 @@ export function shortMessageId(messageId: string): string {
  * work, then the Agent this Message created.
  */
 function messageSuffixes(message: AgentCliMessage): string {
-    return `${attachmentSuffix(message)}${taskSuffix(message)}${askSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}`;
-}
-
-function attachmentSuffix(message: AgentCliMessage): string {
-    if (message.attachments.length === 0) {
-        return '';
-    }
-    const described = message.attachments.flatMap((attachment) => {
-        const id = attachment.id;
-        const filename = attachment.filename;
-        return typeof id === 'string' && typeof filename === 'string'
-            ? [`${filename} (id:${id})`]
-            : [];
-    });
-    const count = message.attachments.length;
-    const noun = count === 1 ? 'attachment' : 'attachments';
-    if (described.length !== count) {
-        return ` [${count} ${noun}]`;
-    }
-    return ` [${count} ${noun}: ${described.join(', ')} — use haus attachment view to download]`;
+    return `${formatAttachmentSuffix(message.attachments)}${taskSuffix(message)}${askSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}`;
 }
 
 /** Task-messages ride every surface with their metadata suffix (D8). */

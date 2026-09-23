@@ -101,7 +101,7 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
     const mention = item.mentioned ? ' mentioned=true' : '';
     const envelope =
         `[target=${item.target} msg=${shortInboxId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${ask}${mention}] ` +
-        `${sender}: ${item.content}${formatInlineReplyContext(item.reply)}`;
+        `${sender}: ${item.content}${formatAttachmentSuffix(messageAttachments(item))}${formatInlineReplyContext(item.reply)}`;
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
         : envelope;
@@ -137,6 +137,35 @@ function formatCloudAgentBranch(branch: CloudAgentBranch): string {
         : '';
     const url = branch.pullRequestUrl ? ` pr=${branch.pullRequestUrl}` : '';
     return `${branch.repository}:${branch.branch}${url}${diff}`;
+}
+
+/**
+ * Raft's attachment suffix, from its one owner here: every envelope and history
+ * line that carries a Message's attachments prints them the same way. An
+ * attachment missing its id or filename is counted rather than guessed at.
+ */
+export function formatAttachmentSuffix(attachments: readonly unknown[]): string {
+    if (attachments.length === 0) {
+        return '';
+    }
+    const described = attachments.flatMap((attachment) => {
+        const record = attachment as { filename?: unknown; id?: unknown } | null;
+        return typeof record?.id === 'string' && typeof record.filename === 'string'
+            ? [`${record.filename} (id:${record.id})`]
+            : [];
+    });
+    const count = attachments.length;
+    const noun = count === 1 ? 'attachment' : 'attachments';
+    if (described.length !== count) {
+        return ` [${count} ${noun}]`;
+    }
+    return ` [${count} ${noun}: ${described.join(', ')} — use haus attachment view to download]`;
+}
+
+/** The drained item's cached canonical Message carries its attachments. */
+function messageAttachments(item: AgentInboxItem): readonly unknown[] {
+    const attachments = item.message?.attachments;
+    return Array.isArray(attachments) ? attachments : [];
 }
 
 export function formatThreadFollowRestoration(target: string): string {
