@@ -70,6 +70,10 @@ export function RoutingDecisionPanel({
                 <dd className="break-words text-right">{names(audit.candidateAgentIds)}</dd>
                 <dt className="text-muted">Excluded by Jev</dt>
                 <dd className="break-words text-right">{names(excluded)}</dd>
+                <dt className="text-muted">Reply expected</dt>
+                <dd className="text-right tabular-nums">
+                    {audit.expectsReply === null ? 'Not recorded' : percent(audit.expectsReply)}
+                </dd>
                 {audit.model ? (
                     <>
                         <dt className="text-muted">Model choice</dt>
