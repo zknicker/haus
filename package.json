@@ -103,7 +103,8 @@
     "@ai-sdk/harness-grok-build@1.0.50": "patches/@ai-sdk%2Fharness-grok-build@1.0.50.patch",
     "@ai-sdk/harness-acp@1.0.51": "patches/@ai-sdk%2Fharness-acp@1.0.51.patch",
     "react-stately@3.50.0": "patches/react-stately@3.50.0.patch",
-    "react-aria-components@1.21.1": "patches/react-aria-components@1.21.1.patch"
+    "react-aria-components@1.21.1": "patches/react-aria-components@1.21.1.patch",
+    "@ai-sdk/harness@1.0.113": "patches/@ai-sdk%2Fharness@1.0.113.patch"
   },
   "trustedDependencies": [
     "heroui-pro",

@@ -1,0 +1,26 @@
+diff --git a/dist/agent/index.js b/dist/agent/index.js
+index c587ec1c5bdf88a937d069746147e38ad044b00c..e0459e2f0f1464dcefbd1dee9d78ee6d81c1cfa1 100644
+--- a/dist/agent/index.js
++++ b/dist/agent/index.js
+@@ -1063,8 +1063,11 @@ function stripWorkDir(part, sessionWorkDir) {
+       return part;
+   }
+ }
++var WORKSPACE_TOKEN = "<workspace>";
+ function stripString(value, workDir) {
+-  return value.split(`${workDir}/`).join("").split(workDir).join(".");
++  // Haus: a bare workspace mention reads as a stable token, not ".", so text such
++  // as "cwd is /abs/workspace." does not become "cwd is ..".
++  return value.split(`${workDir}/`).join("").split(workDir).join(WORKSPACE_TOKEN);
+ }
+ function stripStreamingString({
+   value,
+@@ -1084,7 +1087,7 @@ function stripStreamingString({
+       if (remaining[followingIndex] === "/") {
+         remaining = remaining.slice(followingIndex + 1);
+       } else {
+-        output += ".";
++        output += WORKSPACE_TOKEN;
+         remaining = remaining.slice(followingIndex);
+       }
+       continue;

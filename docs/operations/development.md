@@ -63,8 +63,9 @@ set whose transitive `ai`, `@ai-sdk/provider`, and `@ai-sdk/harness-acp` are
 themselves outside the three-day `minimumReleaseAge` window — the adapters are
 excluded from that hold in `bunfig.toml`, their transitive dependencies are not.
 
-Every adapter is patched locally, and each `patchedDependencies` key carries an
-exact version, so an upgrade regenerates every adapter patch with `bun patch`
+Every adapter is patched locally, as is `@ai-sdk/harness` itself (its display
+text shows a bare workspace mention as `<workspace>` rather than `.`), and each
+`patchedDependencies` key carries an exact version, so an upgrade regenerates every adapter patch with `bun patch`
 rather than renaming the files. The patch contents are contracts covered by
 `apps/computer/src/harness/bridge-bootstrap.test.ts`, which greps the built
 bridge text: if a patch silently stops applying, that test fails first.

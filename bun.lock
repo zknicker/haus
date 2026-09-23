@@ -278,6 +278,7 @@
     "@ai-sdk/harness-acp@1.0.51": "patches/@ai-sdk%2Fharness-acp@1.0.51.patch",
     "@cursor/sdk@1.0.30": "patches/@cursor%2Fsdk@1.0.30.patch",
     "react-stately@3.50.0": "patches/react-stately@3.50.0.patch",
+    "@ai-sdk/harness@1.0.113": "patches/@ai-sdk%2Fharness@1.0.113.patch",
   },
   "overrides": {
     "@hono/node-server": "1.19.13",
