@@ -451,30 +451,28 @@ changes (PRD-86, ADR 0012).
 ## Visuals Lab
 
 `bun run visuals:lab` starts the one in-repo tool for judging what the agents
-actually render. It is where a change to the visuals skill, a fragment, or the
-visual frame gets looked at before it ships: the same six operator asks, across
-the whole model lineup, with the skill as it is now beside the skill as it
-shipped. Open the URL it prints (port 4390 by default, `PORT` overrides).
+actually render. It shows one thing: what each model renders with the visuals
+skill as it is in the working tree right now. It is where a change to the skill,
+a fragment, or the visual frame gets looked at before it ships. Open the URL it
+prints (port 4390 by default, `PORT` overrides).
 
 **Runs** is a question tab per battery prompt over a model tab per contender.
-Pick a model and you get **Before | After** side by side — each the live
-sandboxed frame the chat card would build, with the agent's reply rendered
-beneath it, plus what the turn cost in wall time and output tokens and which
-skill files the trace shows it opened. Pick **All models** and the same question
-becomes a one-row-per-model PNG grid for the at-a-glance read. **Fragments** is
-the skill's own copy-ready fences, grouped by the module whose index points at
-them, rendered live from the working tree; **Check all fragments** renders every
-one of them headlessly and reports console errors and collapsed heights.
+Pick a model and you get one cell: the live sandboxed frame the chat card would
+build, with the agent's reply rendered beneath it, plus what the turn cost in
+wall time and output tokens and which skill files the trace shows it opened.
+Pick **All models** and the same question becomes a one-row-per-model PNG grid
+for the at-a-glance read. **Fragments** is the skill's own copy-ready fences,
+grouped by the module whose index points at them, rendered live from the working
+tree; **Check all fragments** renders every one of them headlessly and reports
+console errors and collapsed heights.
 
-*After* is the working tree. *Before* is the visuals skill as it was at a git
-ref, materialized out of git rather than kept as a snapshot that could rot — the
-newest `v*` tag reachable from `HEAD` unless `VISUALS_LAB_BEFORE_REF` names
-another. The header says which ref the column stands for. A revision's markdown
-replaces the seeded skill wholesale, so a ref from before `fragments/` existed
-runs without today's fences rather than beside them. Each model's reasoning
-effort is a select beside its Run button, defaulting to medium; every model runs
-the harness bridge Haus itself ships, so a result is a judgement about the
-product. Runs land in `scripts/visuals-lab/results/` (gitignored).
+The question tabs are the battery the server hands the page, so adding a prompt
+to `scripts/visuals-lab/engine/prompts.mjs` shows up as a tab with no page edit.
+Each model's reasoning effort is a select beside its Run button, defaulting to
+medium; every model runs the harness bridge Haus itself ships, so a result is a
+judgement about the product. Runs land in
+`scripts/visuals-lab/results/<model>/<stamp>/` (gitignored), and a cell reads the
+newest run that carries that prompt, so a narrow rerun never hides the rest.
 
 The verdict is human. Judge a rendered cell against
 `scripts/design-battery/RUBRIC.md` and the Non-negotiables in
@@ -485,12 +483,14 @@ and rerun the cell. "It rendered" is not "it looks right".
 developer's own provider logins. Nothing in the lab is part of `check`, CI, or
 any agent workflow, and it has no `eval:`, `test:`, or `check:` script by
 design. This is a human-driven tool. Agents do not run it unless a person asks
-for a visuals comparison.
+for a visuals run.
 
 The parts that do run in `check:fast` are the static ones:
 `packages/agent-workspace/src/visuals-fragments.test.ts` lints the same fences
 for published token names, hardcoded colors, stray headings, bordered plates,
-canvas accessibility, and the Chart.js floor;
+and the SVG anatomy a hand-drawn chart needs: an accessible role, `aria`
+wiring and a title, a visible scale derivation rather than baked coordinates,
+and the shared hover layer;
 `packages/agent-workspace/src/managed-skills.test.ts` pins that every fragment
 seeds and is reachable from a module index.
 

@@ -24,22 +24,49 @@ truth for the rules: the seeded visuals skill
 
 ## Charts (bar, line, composed, sparkline, dashboard)
 
-- [ ] Series colors follow the categorical order (chart-1 blue first);
-      single-metric uses chart-1; comparable series use same-hue opacity.
-- [ ] Text never wears the series color.
+Every chart is hand-written inline SVG: there is no chart library, so the
+geometry is the agent's and these checks are about arithmetic as much as taste.
+
+- [ ] Series colors follow the fixed categorical order (chart-1 blue, chart-2
+      orange, chart-3 aqua, chart-4 yellow), never cycled; a single metric is
+      chart-1; emphasis is chart-1 against chart-5.
+- [ ] Status colors appear only for state, never as a series. Text never wears
+      the series color.
+- [ ] One y-axis unless the user asked for bars and a line together. Two
+      measures in different units are paired panels on a shared x axis; a
+      requested combo plot draws both axes from zero on nice maxima, with the
+      gridlines from the left axis alone.
+- [ ] Bars at most 24px thick with air left in the slot; rounded at the data end
+      only, square at the baseline; 2px surface gap between touching marks.
+- [ ] Coordinates derived from the data — marks land on their ticks at any point
+      count, and the fence carries its `<!-- scale: … -->` comment.
 - [ ] Horizontal gridlines only; muted 11–12px axis labels; legend only when
       >1 series.
-- [ ] Leads with the answer (headline number or takeaway above the chart).
-- [ ] Compact units (1.2k, $4.5M); deltas use success/error foregrounds.
+- [ ] Hover layer present: the canonical tooltip on a surface plate with a
+      hairline border, value first, and hit targets a finger can land on.
+- [ ] Leads with the answer (headline number or takeaway above the chart), with
+      one direct label, not a number on every point.
+- [ ] Values whole through 9,999, compact from 10,000 (`$14.4K`, `$28K`);
+      deltas use success/error foregrounds.
+- [ ] Nothing in the skill's anti-pattern catalog
+      (`packages/agent-workspace/src/visuals-skill/anti-patterns.md`) is present.
 
 ## Stat tiles / KPI rows
 
-- [ ] Label (12px muted) → value (24–32px, 500, tabular) → delta hierarchy.
-- [ ] Tiles are bordered or surface-filled, not shadowed cards.
+- [ ] Title sentence case; `Metric · period` only when tiles in one row cover
+      different periods, from the closed period list (`7d`, `30d`, `MTD`, …).
+- [ ] Value whole through 9,999, compact from 10,000 (`$6,630`, `$14.4K`),
+      proportional figures, never tabular; never cents.
+- [ ] At most one chip, in exactly one shape: change (`↑ 6.0% vs prior 7d`),
+      ratio (neutral, `48% of $30K goal`), or status (warning only).
+- [ ] Secondary fact, if present, is muted 12px text under the value, not a
+      chip.
+- [ ] Tiles are surface-secondary plates, not bordered or shadowed cards.
+- [ ] At most four tiles per row.
 
 ## Diagrams (flowchart)
 
-- [ ] Nodes on surface-3 with border-strong hairlines; consistent flow
+- [ ] Nodes on surface-tertiary with border-strong hairlines; consistent flow
       direction; even gaps; connectors stop at node edges.
 - [ ] Status is semantic only (success/warning/error); at most one
       highlighted node; the failure point is obvious at a glance.

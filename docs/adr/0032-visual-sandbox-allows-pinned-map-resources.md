@@ -15,6 +15,9 @@ visual sandbox ([ADR 0010](0010-widgets-use-tagged-fences.md)'s renderer, frame
 per [ADR 0031](0031-visuals-render-inline-not-carded.md)). The sandbox
 itself — opaque origin, `srcDoc`, never `allow-same-origin` — is unchanged.
 
+Amended by [ADR 0033](0033-agent-charts-are-hand-drawn-svg.md): Chart.js left
+the allowlist on 2026-09-22; the map resources are unchanged.
+
 ## Context
 
 A choropleth is the one chart shape an agent cannot fake. Bars, lines and

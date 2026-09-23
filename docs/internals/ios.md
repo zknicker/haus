@@ -305,7 +305,7 @@ else the document `<title>`, else the first heading, else "Visual"). The Nth fen
 identity; content only ever appends while a reply streams, so ordinals never reorder.
 
 `VisualSandboxDocument` is the same document the web builds: the same CSP with the same pinned
-Chart.js CDN entry, the same base stylesheet that gives bare `<table>` markup the app's table look,
+map CDN entries and no charting library (ADR 0033), the same base stylesheet that gives bare `<table>` markup the app's table look,
 the same host-owned size reporter, and the model body last so a partial one still parses. The
 opaque origin the web gets from a sandboxed iframe comes from `loadHTMLString(_, baseURL: nil)` on a
 non-persistent data store; the main frame scrolls nothing, previews no links, and its navigation

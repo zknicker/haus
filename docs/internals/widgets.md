@@ -45,7 +45,7 @@ registration), with optional info-string text as the title:
 ````markdown
 ```visual Weekly sales
 <h2>Weekly sales</h2>
-<svg viewBox="0 0 640 220">...</svg>
+<svg viewBox="0 0 736 220">...</svg>
 ```
 ````
 
@@ -84,12 +84,11 @@ registration), with optional info-string text as the title:
   down: `default-src 'none'`, inline scripts/styles allowed, `img-src
   data: blob:` only, and a `connect-src` that names two files and nothing else
   (see the allowlist below).
-- **CDN allowlist.** Five pinned resources, all on jsdelivr, all at an exact
+- **CDN allowlist.** Four pinned resources, all on jsdelivr, all at an exact
   version and an exact path — the constants live beside the CSP in
-  `visual-card.tsx` and are mirrored in `VisualSandboxDocument.swift`:
-  - `visualChartJsUrl` — Chart.js `4.5.1`, the default for any chart with an
-    axis; it sizes bars, ticks, and labels better than hand-plotted SVG can,
-    while inline SVG stays the answer for sparklines and axis-free marks.
+  `visual-card.tsx` and are mirrored in `VisualSandboxDocument.swift`. All four
+  are for maps: charts are hand-drawn SVG and load nothing
+  ([ADR 0033](../adr/0033-agent-charts-are-hand-drawn-svg.md)).
   - `visualD3Url` — D3 `7.9.0`, and `visualTopojsonClientUrl` —
     topojson-client `3.1.0`: the projection and topology pair a map needs.
   - `visualUsAtlasStatesUrl` — us-atlas `3.0.1` `states-10m.json`, and
@@ -100,7 +99,7 @@ registration), with optional info-string text as the title:
 
   Pinning the exact version keeps each entry a single immutable artifact, and
   `connect-src` lists files rather than an origin because it is the fence's
-  only outbound channel and the body is attacker-controlled. Adding a sixth
+  only outbound channel and the body is attacker-controlled. Adding a fifth
   resource takes four steps: exact version, exact path, a test pin on both
   platforms (`visual-card.test.tsx` and `AgentHtmlTokensTests.swift` assert the
   assembled policy character for character), and a note in
@@ -116,8 +115,9 @@ registration), with optional info-string text as the title:
   name is a breaking change, and a stored visual that references a removed name
   must be reauthored. Names resolve through
   `apps/website/src/styles/artifact-tokens.css`, mostly as aliases onto HeroUI
-  roles; the exceptions are the text tiers, the categorical `--chart-1..5`
-  (global, shared with the app's own usage chart), and the layout group, which
+  roles; the exceptions are the text tiers, the categorical `--chart-1..4` with
+  the `--chart-5` neutral (global, shared with the app's own usage chart), and
+  the layout group, which
   derives `--radius` from HeroUI's fields tier and the pads and gaps from
   `--spacing`. A few names read a different host role in the snapshot only:
   `--accent-foreground`, `--success-foreground` and `--warning-foreground` take
@@ -170,13 +170,15 @@ registration), with optional info-string text as the title:
   made: `charts.md`, `diagrams.md`, `components.md`, `pages.md`, or `icons.md`.
   A module carries rules and an index, and the index points at the ONE file
   under `references/fragments/` to copy. So a chart turn reads the core, one
-  module, and one fragment — SKILL.md at 145 lines, the core at 164, charts.md
-  at 228, a fragment at 30 to 90 — instead of one file carrying every fence the
-  skill ships.
-- **Fragments.** One copy-ready `visual` fence body per file, with a few lines
-  above it on when to use it and what to change. They carry more of the house
-  style than the prose does: a model copies a fragment far more faithfully than
-  it follows a rule, so every form the product expects to be asked for has one —
+  module, and one fragment, instead of one file carrying every fence the skill
+  ships. See the files themselves for their current length; the shape is what
+  is durable, not the counts.
+- **Fragments.** One worked `visual` fence body per file, with a few lines
+  above it on when to use it and what to change. A chart fragment shows its
+  scale derivation rather than baked pixel coordinates, because a model copies
+  a fragment far more faithfully than it follows a rule and fixed coordinates
+  get copied too. They carry more of the house style than the prose does, so
+  every form the product expects to be asked for has one —
   the chart family from emphasis bar through choropleth, the diagram family, the
   component family. The visuals lab's "Check all fragments" button renders
   every one of them through the real frame in both schemes, writes a contact
@@ -184,18 +186,21 @@ registration), with optional info-string text as the title:
   errors and collapsed heights. `packages/agent-workspace/src/visuals-fragments.test.ts`
   lints the same fences statically: published tokens only, no hardcoded colors,
   no visible heading but the hidden summary, a bordered box only as a record
-  card, and every Chart.js fence holding animation off, its own legend off, and
-  formatted ticks and tooltips. `managed-skills.test.ts` pins the other
+  card, and every chart fence carrying the SVG anatomy a hand-drawn chart needs
+  — an accessible role and title, a visible scale derivation rather than baked
+  coordinates, and the shared hover layer. `managed-skills.test.ts` pins the other
   direction — every fragment file seeds, and every fragment is reachable from a
   module index. Quality is tuned in the visuals lab (`bun run visuals:lab`)
   and with the design battery (`bun run eval:design`,
   `scripts/design-battery/RUBRIC.md`).
-- **Series color.** Categorical order is `--chart-1` blue, `--chart-4` violet,
-  `--chart-3` green, `--chart-2` red last, with `--chart-5` zinc as the neutral.
-  Red enters last because red reads as a verdict; the parts of one whole — a
-  stacked share, a donut — are one hue in sequential steps rather than
-  categorical hues at all. The tokens themselves pass a colour-vision check;
-  the ordering rule is about meaning, not contrast.
+- **Series color.** Categorical order is `--chart-1` blue, `--chart-2` orange,
+  `--chart-3` aqua, `--chart-4` yellow, taken in that order and never cycled,
+  with `--chart-5` zinc as the neutral for baselines and de-emphasis. Red is
+  not a series color at all now; it belongs to status. The parts of one whole,
+  a stacked share or a donut, are one hue in sequential steps rather than
+  categorical hues. The four slots are validated against `--surface` in both
+  schemes for adjacent-pair separation under color vision deficiency and for a
+  shared lightness band (ADR 0033).
 - **iOS.** The Haus App on iPhone renders the same fences inline, through a
   Swift port of the same grammar and the same sandbox document — same CSP,
   same base styles, same size reporter, and same natural-height policy — with
