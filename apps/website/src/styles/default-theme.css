@@ -1051,11 +1051,27 @@
         font-weight: 600;
     }
 
-    /* Execution details arrive after expansion; do not animate a changing height. */
-    .accordion--activity-history .accordion__panel,
-    .accordion--activity-history .accordion__indicator {
+    /*
+     * A turn row opens at once: its execution details arrive after expansion,
+     * and a stock height transition measures the panel before they do, then
+     * snaps when they land. The trace reveals its own height as it arrives
+     * (`turn-trace-reveal.tsx`). Closing is the stock transition, because
+     * everything it measures is already on screen.
+     */
+    .accordion--activity-history .accordion__panel[data-expanded='true'] {
         transition: none;
+        /* An open turn can be thousands of pixels of trace; do not promote it. */
         will-change: auto;
+    }
+
+    /*
+     * Stock ChatTool pins a closed body to `height: 0 !important`, which beats
+     * the collapse React Aria animates through `--disclosure-panel-height`: a
+     * call opened over 200ms and snapped shut. Following the variable makes
+     * closing the same transition as opening. Same layer, imported later.
+     */
+    .chat-tool__content:not([data-expanded='true']) {
+        height: var(--disclosure-panel-height, 0px) !important;
     }
 
     /*

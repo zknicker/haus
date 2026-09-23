@@ -1,5 +1,7 @@
 import { Chip } from '@heroui/react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as React from 'react';
+import type { TurnJournalSnapshot } from '../../hooks/members/turn-journal-relay.ts';
 import { useTurnJournal } from '../../hooks/members/use-turn-journal.ts';
 import {
     formatAgentActivityEvent,
@@ -17,6 +19,7 @@ import {
 import { TurnTraceNote } from './turn-trace-blocks.tsx';
 import { buildTurnTrace } from './turn-trace-model.ts';
 import { TurnTraceReasoning } from './turn-trace-reasoning.tsx';
+import { TurnTraceReveal } from './turn-trace-reveal.tsx';
 import { TurnTraceScroll } from './turn-trace-scroll.tsx';
 import { TurnTraceToolCall } from './turn-trace-tool.tsx';
 
@@ -57,14 +60,17 @@ export function TurnTrace({
     serverId: string;
     turn: AgentActivityTurn | null;
 }) {
-    const journal = useTurnJournal({
-        access,
-        agentId,
-        enabled,
-        live: turn?.kind === 'active',
+    const journal = useRetainedJournal(
         runId,
-        serverId,
-    });
+        useTurnJournal({
+            access,
+            agentId,
+            enabled,
+            live: turn?.kind === 'active',
+            runId,
+            serverId,
+        })
+    );
     const presentation = journal.presentation;
 
     if (!runId) {
@@ -96,7 +102,6 @@ export function TurnTracePresentation({
     presentation: TurnJournalPresentation | null;
     refreshError?: string | null;
 }) {
-    const reducedMotion = useReducedMotion();
     const entries = buildTurnTrace(
         access === 'journal' && presentation?.kind === 'available' ? presentation.journal : null,
         events
@@ -110,33 +115,34 @@ export function TurnTracePresentation({
                     <TurnTraceNote>No activity was recorded for this turn.</TurnTraceNote>
                 ) : null
             ) : (
-                <TurnTraceScroll>
-                    <AnimatePresence initial={false}>
-                        {entries.map((entry) => (
-                            <motion.div
-                                animate={{ opacity: 1 }}
-                                className="min-w-0"
-                                data-trace-anchor={entry.key}
-                                initial={{ opacity: 0 }}
-                                key={entry.key}
-                                transition={{ duration: reducedMotion ? 0 : 0.15 }}
-                            >
-                                {entry.kind === 'event' ? (
-                                    <TurnTraceNote>
-                                        {formatAgentActivityEvent(entry.event)}
-                                    </TurnTraceNote>
-                                ) : entry.kind === 'reasoning' ? (
-                                    <TurnTraceReasoning
-                                        isStreaming={entry.isStreaming}
-                                        reasoning={entry.reasoning}
-                                    />
-                                ) : (
-                                    <TurnTraceToolCall tool={entry.tool} />
-                                )}
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </TurnTraceScroll>
+                // The relay answers after the row or drawer has opened, so the
+                // trace grows into place instead of landing at full height.
+                <TurnTraceReveal className="min-w-0">
+                    <TurnTraceScroll>
+                        <AnimatePresence initial={false}>
+                            {entries.map((entry) => (
+                                <TurnTraceReveal
+                                    className="min-w-0"
+                                    data-trace-anchor={entry.key}
+                                    key={entry.key}
+                                >
+                                    {entry.kind === 'event' ? (
+                                        <TurnTraceNote>
+                                            {formatAgentActivityEvent(entry.event)}
+                                        </TurnTraceNote>
+                                    ) : entry.kind === 'reasoning' ? (
+                                        <TurnTraceReasoning
+                                            isStreaming={entry.isStreaming}
+                                            reasoning={entry.reasoning}
+                                        />
+                                    ) : (
+                                        <TurnTraceToolCall tool={entry.tool} />
+                                    )}
+                                </TurnTraceReveal>
+                            ))}
+                        </AnimatePresence>
+                    </TurnTraceScroll>
+                </TurnTraceReveal>
             )}
             {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
         </div>
@@ -162,4 +168,24 @@ function TurnTraceNotice({
         return null;
     }
     return <TurnTraceNote>{`${presentation.title} — ${presentation.description}`}</TurnTraceNote>;
+}
+
+/**
+ * A closed view stops asking its Computer, which empties the live snapshot.
+ * Keeping the last answer on screen lets a collapsing row animate the trace it
+ * showed, and lets a reopened row show it at once while the relay refreshes.
+ */
+function useRetainedJournal(runId: string | null, snapshot: TurnJournalSnapshot) {
+    const [retained, setRetained] = React.useState<{
+        runId: string | null;
+        snapshot: TurnJournalSnapshot;
+    } | null>(null);
+
+    if (snapshot.presentation && retained?.snapshot !== snapshot) {
+        setRetained({ runId, snapshot });
+    }
+    if (!snapshot.presentation && retained?.runId === runId && retained.snapshot.presentation) {
+        return retained.snapshot;
+    }
+    return snapshot;
 }
