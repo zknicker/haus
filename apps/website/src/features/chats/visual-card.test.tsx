@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
     buildVisualSrcDoc,
     VisualCard,
-    visualChartJsUrl,
     visualD3Url,
     visualTopojsonClientUrl,
     visualUsAtlasStatesUrl,
@@ -35,8 +34,7 @@ test('the sandbox document pins external sources to the exact CDN files', () => 
     expect(cspOf(doc)).toBe(
         [
             "default-src 'none'",
-            "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/" +
-                ' https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js' +
+            "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" +
                 ' https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js',
             "style-src 'unsafe-inline'",
             'img-src data: blob:',
@@ -53,7 +51,6 @@ test('the sandbox CSP names no other origin and no wildcard', () => {
     const csp = cspOf(buildVisualSrcDoc('<div>map</div>', ''));
 
     expect(csp.match(/https?:\/\/[^\s;]+/g)).toEqual([
-        'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/',
         visualD3Url,
         visualTopojsonClientUrl,
         visualUsAtlasStatesUrl,
@@ -65,7 +62,6 @@ test('the sandbox CSP names no other origin and no wildcard', () => {
 
 test('every allowed CDN resource is pinned to an exact version and path', () => {
     for (const url of [
-        visualChartJsUrl,
         visualD3Url,
         visualTopojsonClientUrl,
         visualUsAtlasStatesUrl,

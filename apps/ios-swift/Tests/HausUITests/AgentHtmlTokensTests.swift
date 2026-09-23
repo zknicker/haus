@@ -93,8 +93,7 @@ import Testing
     @Test func documentCarriesTheExactPinnedPolicy() {
         let expected = [
             "default-src 'none'",
-            "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/"
-                + " https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+            "script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
                 + " https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js",
             "style-src 'unsafe-inline'",
             "img-src data: blob:",
@@ -115,7 +114,6 @@ import Testing
             .map { $0.replacingOccurrences(of: ";", with: "") }
 
         #expect(origins == [
-            "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/",
             VisualSandboxDocument.d3URL,
             VisualSandboxDocument.topojsonClientURL,
             VisualSandboxDocument.usAtlasStatesURL,

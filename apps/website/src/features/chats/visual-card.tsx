@@ -11,11 +11,11 @@ import { agentHtmlColorScheme, agentHtmlTokenDeclarations } from '../../agent-ht
  */
 
 /**
- * The allowed external scripts, pinned by version. Bumping a pin — or adding
- * one — is a deliberate supply-chain decision: update the skill guidance and
- * this CSP together (docs/internals/widgets.md).
+ * The allowed external scripts, pinned by version. Charts are hand-drawn SVG
+ * with no library (ADR 0033), so these two exist only for maps. Bumping a pin —
+ * or adding one — is a deliberate supply-chain decision: update the skill
+ * guidance and this CSP together (docs/internals/widgets.md).
  */
-export const visualChartJsUrl = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js';
 export const visualD3Url = 'https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js';
 export const visualTopojsonClientUrl =
     'https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js';
@@ -32,9 +32,8 @@ export const visualWorldAtlasCountriesUrl =
 
 const visualCsp = [
     "default-src 'none'",
-    // Chart.js keeps its versioned-directory prefix; the map libraries are
-    // narrowed all the way to the file.
-    `script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.5.1/ ${visualD3Url} ${visualTopojsonClientUrl}`,
+    // The map libraries are narrowed all the way to the file.
+    `script-src 'unsafe-inline' ${visualD3Url} ${visualTopojsonClientUrl}`,
     "style-src 'unsafe-inline'",
     'img-src data: blob:',
     'font-src data:',
