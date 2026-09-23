@@ -98,9 +98,17 @@ liveTest(
             expect((await result.text).trim()).toBe('DONE');
             expect(toolNames).toContain('apply_patch');
             expect(toolNames.filter((name) => name.startsWith('acp_tool_'))).toEqual([]);
-            expect(
-                (turnUsage?.inputTokens ?? 0) + (turnUsage?.cacheReadTokens ?? 0)
-            ).toBeGreaterThan(1000);
+            // Input includes cached input, so the processed total is Codex's own turn total.
+            const usage = turnUsage ?? {
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0,
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+            };
+            expect(usage.inputTokens).toBeGreaterThan(1000);
+            expect(usage.inputTokens).toBeGreaterThanOrEqual(usage.cacheReadTokens);
+            expect(usage.totalTokens).toBe(turnTokens);
             // The patch call and the reply are separate model requests; the turn counts both.
             expect(lastRequestTokens).toBeGreaterThan(0);
             expect(turnTokens).toBeGreaterThan(lastRequestTokens);

@@ -44,6 +44,12 @@ The atomic Haus token reporting unit is Agent × runtime × model, with input, o
 and cache-write counts. Computer-local Claude Code and Grok Build ledgers are runtime × model
 because those runtime transcripts do not carry a Haus Agent id.
 
+For a Haus Agent turn, input includes cached input: cache-read and cache-write
+break input down and are not added again. Processed tokens (a turn's total) are input plus output.
+Claude Code reports input this way. codex-acp reports input without its cached part, so the ACP
+adapter patch adds the cached count back for Codex turns; a Codex turn's processed tokens then
+equal the growth in Codex's own thread total.
+
 ## Hosted data flow
 
 Computer settings includes **Refresh** beside Runtimes. Owners and Admins can ask an online

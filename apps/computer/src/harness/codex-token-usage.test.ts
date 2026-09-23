@@ -50,30 +50,31 @@ test('a Codex turn reports every model request, not only the last one', async ()
                 }
             }
         }
+        // Input includes cached input, as Claude Code reports it, so the total counts it.
         expect(usages).toEqual([
             // The thread already held 5,000 tokens; the baseline is total minus the first request.
             {
                 cacheReadTokens: 47_616,
                 cacheWriteTokens: 0,
-                inputTokens: 26_327,
+                inputTokens: 73_943,
                 outputTokens: 657,
-                totalTokens: 26_984,
+                totalTokens: 74_600,
             },
             // The re-sent total from the previous turn is not a request.
             {
                 cacheReadTokens: 48_640,
                 cacheWriteTokens: 0,
-                inputTokens: 2432,
+                inputTokens: 51_072,
                 outputTokens: 312,
-                totalTokens: 2744,
+                totalTokens: 51_384,
             },
             // Without the codex-acp patch the prompt response's last request stands.
             {
                 cacheReadTokens: 2,
                 cacheWriteTokens: 0,
-                inputTokens: 10,
+                inputTokens: 12,
                 outputTokens: 5,
-                totalTokens: 15,
+                totalTokens: 17,
             },
         ]);
     } finally {

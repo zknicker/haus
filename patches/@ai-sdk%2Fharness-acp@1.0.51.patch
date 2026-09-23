@@ -1,8 +1,8 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c83963dea096 100644
+index 9770d846a1c76534879f6cf90963208e84efbd32..942a6de105a6014d7f90bc41c09bf8418146190b 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -949,6 +949,75 @@ function captureACPStream({ stream }) {
+@@ -949,6 +949,81 @@ function captureACPStream({ stream }) {
      }
    };
  }
@@ -58,6 +58,12 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
 +    }
 +  };
 +}
++// codex-acp reports input without its cached part (app-server's input_tokens
++// minus cached_input_tokens). Haus counts input inclusive of cached input, as
++// Claude Code does, so a turn's total is input plus output.
++function withCodexCachedInput(usage) {
++  return usage == null ? void 0 : { ...usage, inputTokens: usage.inputTokens + (usage.cachedReadTokens ?? 0) };
++}
 +function readGrokTurnUsage(usage) {
 +  if (!isRecord2(usage)) return void 0;
 +  for (const field of ["inputTokens", "outputTokens", "totalTokens"]) {
@@ -78,7 +84,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
  function getRawSessionUpdate({ message }) {
    const record = message;
    if (record.method !== "session/update" || !isRecord2(record.params)) {
-@@ -1781,7 +1850,8 @@ function createHostToolCorrelation({
+@@ -1781,7 +1856,8 @@ function createHostToolCorrelation({
    emitSemanticUpdate,
    emitRawUpdate,
    hostToolServerName,
@@ -88,7 +94,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
  }) {
    const invocations = /* @__PURE__ */ new Map();
    const candidates = /* @__PURE__ */ new Map();
-@@ -1884,6 +1954,11 @@ function createHostToolCorrelation({
+@@ -1884,6 +1960,11 @@ function createHostToolCorrelation({
            releasedToolCallIds.delete(toolCallId);
          return;
        }
@@ -100,7 +106,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
        buffered.push({ message, rawUpdate: preservedUpdate });
        const candidate = candidates.get(toolCallId) ?? {
          toolCallId,
-@@ -2253,7 +2328,8 @@ function createEmitStreamEvent({
+@@ -2253,7 +2334,8 @@ function createEmitStreamEvent({
    emitToolCallCandidate,
    builtinTools,
    hostToolServerName,
@@ -110,7 +116,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
  }) {
    const translator = createACPStreamTranslator({
      emit,
-@@ -2272,7 +2348,8 @@ function createEmitStreamEvent({
+@@ -2272,7 +2354,8 @@ function createEmitStreamEvent({
        translator.raw({ rawValue: rawUpdate });
      },
      hostToolServerName,
@@ -120,7 +126,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
    });
    return {
      message: ({ message, rawUpdate }) => {
-@@ -3757,7 +3834,8 @@ async function runTurn(start, turn) {
+@@ -3757,7 +3840,8 @@ async function runTurn(start, turn) {
      },
      builtinTools: start.builtinTools,
      hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
@@ -130,7 +136,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
    });
    if (bridgeConfiguration.askUserQuestionsRequestMethod != null) {
      activeQuestionRequest = {
-@@ -3783,6 +3861,12 @@ async function runTurn(start, turn) {
+@@ -3783,6 +3867,12 @@ async function runTurn(start, turn) {
      removeCorrelationInvocation: emitStreamEvent.removeHostToolCorrelationInvocation
    };
    activeHostToolRelay.bindTurn({ turn: relayTurn });
@@ -143,7 +149,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
    try {
      const promptMeta = createOutputSchemaPromptMeta({ start });
      const startPrompt = () => promptActiveSession({
-@@ -3810,6 +3894,52 @@ async function runTurn(start, turn) {
+@@ -3810,6 +3900,52 @@ async function runTurn(start, turn) {
      } else {
        void startPrompt();
      }
@@ -196,7 +202,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
      if (turn.abortSignal.aborted) {
        await cancel();
      } else {
-@@ -3837,6 +3967,11 @@ async function runTurn(start, turn) {
+@@ -3837,6 +3973,11 @@ async function runTurn(start, turn) {
          });
        }
        if (message.kind === "session_update") {
@@ -208,7 +214,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
          const captured = streamCapture?.takeForUpdate({
            update: message.update
          });
-@@ -3852,9 +3987,21 @@ async function runTurn(start, turn) {
+@@ -3852,9 +3993,21 @@ async function runTurn(start, turn) {
        for (const rawValue of streamCapture?.drainRawValues() ?? []) {
          emitStreamEvent.raw({ rawValue });
        }
@@ -218,7 +224,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
 +          message = { ...message, response: { ...message.response, usage } };
 +        }
 +      }
-+      const codexUsage = message.kind === "stop" ? codexTurnUsage?.usage() : void 0;
++      const codexUsage = message.kind === "stop" && codexTurnUsage != null ? withCodexCachedInput(codexTurnUsage.usage() ?? message.response.usage) : void 0;
 +      if (codexUsage != null) {
 +        message = { ...message, response: { ...message.response, usage: codexUsage } };
 +      }
@@ -230,7 +236,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
      if (activeQuestionRequest?.turn === turn) {
        activeQuestionRequest = void 0;
      }
-@@ -3925,7 +4072,7 @@ async function ensureSession({
+@@ -3925,7 +4078,7 @@ async function ensureSession({
      }
    });
    child = spawn(
@@ -239,7 +245,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..29ba919c9c0646f2077380393ff8c839
      [...implementation.args],
      {
        cwd: workDir,
-@@ -4321,11 +4468,12 @@ async function readImplementationDescriptor({
+@@ -4321,11 +4474,12 @@ async function readImplementationDescriptor({
    const value = await new Response(text, {
      headers: { "content-type": "application/json" }
    }).json();
