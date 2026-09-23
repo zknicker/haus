@@ -35,6 +35,12 @@ export const messageRoutingAuditSchema = z
         choice: z.string().nullable(),
         threshold: z.number().min(0).max(1).nullable(),
         elapsedMs: z.number().int().nonnegative().nullable(),
+        /**
+         * Jev's probability that the message calls for a reply from its addressed
+         * Agents. Only suppresses the typing presentation; never routes. Audits
+         * written before the question existed read as null.
+         */
+        expectsReply: z.number().min(0).max(1).nullable().default(null),
     })
     .strict();
 export type MessageRoutingAudit = z.infer<typeof messageRoutingAuditSchema>;

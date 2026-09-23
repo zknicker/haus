@@ -70,6 +70,7 @@ export * from './automation.ts';
 export * from './avatar.ts';
 export * from './avatar-generation.ts';
 export * from './chat.ts';
+export * from './chat-engagement.ts';
 export * from './chat-last-message.ts';
 export * from './cloud-agent.ts';
 export * from './cloud-agent-shared.ts';
