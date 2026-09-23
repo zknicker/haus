@@ -109,14 +109,26 @@ eligible human body; a cold start drains only the addressed ones and notices the
 rest in the same prompt (ADR 0033). Every start and notice frame also carries
 `unreadElsewhere`, per-chat counts for work no row of that frame represents.
 
+A start frame's first human row that @mentions the Agent in a Thread carries a
+`threadContext` package when the Agent has no model-visible context for that
+Thread in its current session generation — no verified boundary and no settled
+exact visibility. The package names the parent and Thread targets and quotes
+the parent message and up to ten earlier replies, bounded to 4,000 quoted
+characters (Raft's `thread_join_context`). Drain selection reserves the
+package's size whether or not visibility omits it, so a resend rebuilds the
+same drain sets. The Computer renders it once per Thread target, before that
+mention's envelope, in cold and warm drains and never in a notice, and attests
+the quoted messages it showed whole alongside the drained bodies.
+
 A fresh session uses its initial content-free notice as the first prompt;
 `Start.` is used only when no delivery is pending. A reset recovery line
 precedes whichever first prompt applies. A different notice arriving during
 cold startup remains durable and is offered after that turn instead of racing
 a mid-turn injection. Idle and busy Agents durably receive full envelopes but
 project only target/count/id/sender metadata. Message bodies enter the model
-only through explicit `haus message check`, history/hold context, or the
-typed non-Chat system-attention lane. A committed action's concrete projection
+only through explicit `haus message check`, history/hold context, a composed
+start drain and its thread context package, or the typed non-Chat
+system-attention lane. A committed action's concrete projection
 includes its action identity, originating Chat, created Agent identity, and
 executed result; its result is never exposed by the ordinary message-check path.
 
@@ -310,6 +322,7 @@ message and its composition id.
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
 | Exact message envelopes and content-free notices | `apps/computer/src/inbox-format.test.ts` |
 | Session continuity picks the drain lane; a composed drain attests and consumes itself | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
+| A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |
 | Addressed drains, warm drain candidates, and the unread digest partition | `apps/server/test/agent-inbox-lanes.test.ts`, `apps/server/test/agent-inbox-digest.test.ts` |
 | Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |
 | Live notice injection cannot race accepted-run consumption | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/harness/executor.test.ts` |

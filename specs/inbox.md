@@ -121,6 +121,15 @@ A durable `message.created` is planned once by Server delivery
   addressed ones and notices the rest in the same prompt. A busy Agent still receives only the
   content-free notice. Existing row and character budgets apply unchanged, and the Computer attests
   what it composed as exact run visibility, exactly as a pull does.
+- **A Thread mention arrives with its Thread when the Agent cannot see it.** When a drainable
+  human item is the first in its Thread to @mention this Agent, and the Agent has no model-visible
+  context for that Thread this session (no verified boundary, no settled exact visibility), the
+  Server attaches a `threadContext` package: parent and Thread targets, the parent message, and
+  up to ten replies before the mention, within 4,000 quoted characters and marked `truncated` when
+  earlier replies are left out. The drain budget counts the package's size whether or not it is
+  omitted, so resends rebuild the same sets. The Computer renders it once per Thread target in
+  cold and warm drains, never in a content-free notice, and attests the quoted messages it
+  showed whole as exact run visibility (Raft's `thread_join_context`).
 - **Every wake ends with the unread-elsewhere digest.** The frame carries per-chat counts of queued
   work no row of that frame represents: a chat with a notice row states its own pending count and is
   left out, while a drained item represents only itself, so same-chat work past the drain budget
@@ -268,6 +277,7 @@ turn starts when its creator sends the working brief.
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
 | Addressing is decided at enqueue and survives stale or uncertain routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
+| A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
 
 ## Presentation split (I1/I4)
