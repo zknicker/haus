@@ -54,6 +54,7 @@ import { shouldRetryFailure } from './failure-policy.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
+import { consumeNoticeAck } from './notice-ack.ts';
 import { isBackedOff, maxDeliveryFailures, nextRetryAt } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import type { AgentDeliveryRow } from './store.ts';
@@ -452,25 +453,7 @@ export class AgentDelivery {
     }
 
     async onNoticeAck(input: { agentId: string; runId: string; workIds: string[] }) {
-        const serverId = await store.readAgentServerId(this.db, input.agentId);
-        if (!serverId) {
-            return;
-        }
-        await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, serverId);
-            const state = await store.readDeliveryState(tx, input.agentId);
-            if (state?.activeRunId !== input.runId || state.acceptedAt === null) {
-                return;
-            }
-            const queued = await store.listQueuedItems(tx, input.agentId, 1000);
-            await store.markInboxItemsNoticed(tx, {
-                agentId: input.agentId,
-                itemIds: queued
-                    .filter((row) => input.workIds.includes(row.dedupeKey))
-                    .map((row) => row.id),
-                runId: input.runId,
-            });
-        });
+        await consumeNoticeAck(this.db, this.runtime, input);
     }
 
     /** A run settled on the Computer: consume or requeue its work, then drain when eligible. */

@@ -55,7 +55,7 @@
     "apps/ios-swift/Tests/HausModelsTests/HausModelsTests.swift": 350,
     "apps/ios-swift/Tests/HausTransportTests/TRPCClientTests.swift": 443,
     "apps/server/src/agent-api/tasks.ts": 766,
-    "apps/server/src/agent-delivery/delivery.ts": 1243,
+    "apps/server/src/agent-delivery/delivery.ts": 1226,
     "apps/server/src/agent-delivery/store.ts": 789,
     "apps/server/src/chats/send-agent-message.ts": 317,
     "apps/server/src/computers/login-service.ts": 321,

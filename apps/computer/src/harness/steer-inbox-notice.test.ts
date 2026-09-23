@@ -1,12 +1,14 @@
 import { afterAll, afterEach, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessV1 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { makeLifecycleLoggerLayer } from '@haus/effect';
+import { ManagedRuntime } from 'effect';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
-import { steerInboxNotice } from './steer-inbox-notice.ts';
+import { createNoticeDelivery, steerInboxNotice } from './steer-inbox-notice.ts';
 
 const roots: string[] = [];
 const runtime = makeDaemonRuntime();
@@ -68,6 +70,56 @@ test('a notice attempted after SDK completion stays pending without changing the
         expect(await steerInboxNotice(fixture.session, 'late inbox message', runtime)).toBe(false);
     } finally {
         await fixture.close();
+    }
+});
+
+test('an injected notice logs its runtime, run, and wait since it was stored', async () => {
+    const fixture = await createTurn(() => Promise.resolve());
+    const logs: unknown[][] = [];
+    const logged = (...values: readonly unknown[]) => logs.push([...values]);
+    const loggingRuntime = ManagedRuntime.make(
+        makeLifecycleLoggerLayer({
+            debug: logged,
+            error: logged,
+            info: logged,
+            log: logged,
+            trace: logged,
+            warn: logged,
+        })
+    );
+    try {
+        const agentRoot = await mkdtemp(join(tmpdir(), 'haus-notice-'));
+        roots.push(agentRoot);
+        const noticePath = join(agentRoot, 'runtime', 'pending-notice.json');
+        await mkdir(join(agentRoot, 'runtime'));
+        await writeFile(noticePath, `${JSON.stringify({ notice: 'new inbox message' })}\n`);
+        const storedAt = new Date(Date.now() - 1500);
+        await utimes(noticePath, storedAt, storedAt);
+        const deliver = createNoticeDelivery(fixture.session, {
+            agentId: 'agt_notice',
+            agentRoot,
+            runId: 'run_notice',
+            runtime: loggingRuntime,
+            runtimeId: 'codex',
+        });
+
+        expect(await deliver('new inbox message')).toBe(true);
+        expect(logs).toHaveLength(1);
+        const [message, fields] = logs[0] as [string, Record<string, unknown>];
+        expect(message).toBe('Inbox notice injected into the running turn.');
+        expect(fields).toMatchObject({
+            agentId: 'agt_notice',
+            event: 'inbox-notice-injected',
+            runId: 'run_notice',
+            runtimeId: 'codex',
+        });
+        expect(fields.elapsedMs).toBeGreaterThanOrEqual(1500);
+        // A repeat of the delivered notice is not injected, so it logs nothing.
+        expect(await deliver('new inbox message')).toBe(true);
+        expect(logs).toHaveLength(1);
+    } finally {
+        await fixture.close();
+        await loggingRuntime.dispose();
     }
 });
 

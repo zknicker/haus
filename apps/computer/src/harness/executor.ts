@@ -392,12 +392,7 @@ async function executeHarnessTurn(
             session: live,
         });
         const primaryNotice = prompt.notice;
-        const deliverNotice = createNoticeDelivery(
-            live,
-            input.runtime,
-            input.agentRoot,
-            primaryNotice
-        );
+        const deliverNotice = createNoticeDelivery(live, input, primaryNotice);
         const noticeCoordinator = createNoticeCoordinator(deliverNotice);
         const deliverAtSafeBoundary = async (notice: string) =>
             notice === primaryNotice
