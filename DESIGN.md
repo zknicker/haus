@@ -718,15 +718,27 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 - **Forms:** Use HeroUI field components so `--field-background`, `--field-border`, `--field-foreground`, `--field-radius`, and field widths resolve consistently.
 - **Status:** Use semantic status tokens for actual meaning: success for positive outcomes, warning for caution, danger for destructive or critical states.
 - **Inline references:** Use the transparent HeroUI Chip shell with inherited font size, a tight internal line box, no outer padding, one `--spacing` gap, and an 18px identity mark, reduced to 16px for the compact three-sparkle Skill mark. Use a bold label with a dotted underline in the reference's identity color; reserve the underline space inside the label so truncation cannot clip it, and scale its dot size and spacing with the surrounding type. Optically raise the fixed-size mark by 1.5px to align it with the surrounding text. The three-sparkle glyph has extra inline-end whitespace in its official viewBox, so Skill chips alone pull that edge inward by half a spacing step; Agent and Channel spacing stays unchanged. Agent labels use accent, Skill labels use the mode-aware purple `--skill-reference` product token, and Channel labels use their configured Channel color; a colorless Channel falls back to foreground ink with a translucent foreground-wash mark, never `--default` or `--muted` — the sidebar row's hover and current fills are `--default`, so an opaque box built from it vanishes into the exact states meant to emphasize the row, and a wash composites over any fill. In the light theme only, the larger sidebar Channel mark uses a slightly quieter wash than compact reference and preview marks; dark uses one shared ground and one shared fill. The Channel mark, glyph, and label resolve per theme on `channel-icon-box` and `reference-chip--channel` in `default-theme.css`, with the always-dark preview keyed into the dark branch; Skill chips resolve on `reference-chip--skill`, and the contrast preview rebinds the Skill token to its dark value. Interactive references strengthen on hover and focus by moving away from their ground: light deepens, dark brightens. Rich previews compose HeroUI Pro HoverCard with immediate open and close; pointer-following updates the individual `translate` property directly so it never replaces React Aria placement transforms or coasts behind the cursor, and reduced motion stays anchored. The HoverCard trigger itself is middle-aligned so its wrapper cannot move a reference off the paragraph baseline. Channel and Skill previews use an always-dark contrast tone and a compact three-step surface inset, and both size to their content up to one shared maximum measure. The Channel's 18px mark and Skill's 16px mark sit inline in the title row beside a bold title and one muted `·` clause carrying what that kind knows about itself — a Channel's last activity, a Skill's kind — baseline-aligned to the title the way an Agent preview pairs its name and availability. Supporting content sits directly below. Channel previews render participant identities as an overlapping `EntityAvatar` stack there, each mark ringed in the card's own surface so the stack does not smear into one shape, with any remainder as a trailing muted count. Optically hang both mark columns — the identity row and the participant stack — one pixel toward the block/start edges so they share an edge and align with the supporting content, which keeps the true content edge. The paragraph owns leading; references should read as enhanced text, not standalone badges.
-- **Activity history:** Turn rows open and close immediately, including their chevrons.
-  Execution details arrive on demand, so their changing height must not compete with an
-  expansion transition. The scoped `accordion--activity-history` modifier owns this behavior.
-- **Turn trace:** The trace composes stock Pro chat primitives, so two of their defaults are
+- **Activity history:** A turn row opens at once and closes on the stock 200ms transition;
+  its chevron rotates both ways. Execution details arrive on demand, after the row has opened,
+  so the panel never animates toward a height measured before they land: the trace reveals its
+  own height when the relay answers, and a closed row keeps its last trace so closing animates
+  real content. The scoped `accordion--activity-history` modifier owns the open half.
+- **Turn trace:** The trace composes stock Pro chat primitives, so their defaults are
   corrected in `default-theme.css` rather than at the call site. `ChatTool`'s `Arguments`,
   `Result`, and error labels ship in 10px ALL CAPS with wide tracking; those three BEM parts
   take the same small muted role as the trace's own labels, because this page has no all-caps
-  tier. And the Turn details drawer carries code blocks and diffs, so `drawer__dialog--turn-details`
-  widens the right drawer to 32rem, capped at the viewport; every other drawer keeps the stock measure.
+  tier. Its trigger and error text ship at `xs`; a call's name is a row title, so both take `sm`.
+  Its closed body is pinned to `height: 0 !important`, which made a call open over 200ms and
+  snap shut; the body follows React Aria's animated height both ways instead. And the Turn
+  details drawer carries code blocks and diffs, so `drawer__dialog--turn-details` widens the
+  right drawer to 32rem, capped at the viewport; every other drawer keeps the stock measure.
+  Reasoning is a step in the same icon column as each call's status icon: the model's own
+  title in medium muted type, then its prose in muted `sm` at the prose measure, with the
+  transcript's Markdown block spacing. A long thought folds to six lines behind the
+  transcript's bottom fade and a Show more button. A step a live turn adds, and a trace the
+  relay answers after its row opened, grow into place on the shared no-bounce `drawer`
+  spring with the transcript's 180ms step fade, so rows below slide instead of jumping;
+  nothing slides or scales, and reduced motion places them at once.
 - **Tasks in Chat:** A task states itself in the header of the recessed Thread surface beneath its
   message and nowhere else; a task an Agent claimed for itself states nothing there at all unless
   the reader has turned **Show tasks in chat** on.

@@ -58,15 +58,22 @@ both pure and both proved on their own:
   product verb it is (`Sent a message with haus`), because that is activity that
   merely happens to be typed at a shell. The Command body still shows the original
   verbatim.
-- `turn-trace-reasoning-model.ts` names a reasoning block. Codex emits complete
-  summaries whose first line is the model's own title and whose start and end share a
-  millisecond, so a heading or whole-line bold phrase becomes the trigger and the rest
-  becomes the body. Without a title, a duration is reported only when the Agent
-  actually paused for a second or more; anything shorter is just `Thought`. A block
-  still streaming says `Thinking…`.
+- `turn-trace-reasoning.tsx` presents a reasoning block in place, with no disclosure.
+  Codex opens each summary with a bold title line, so that title leads (through the
+  transcript's `parseThinkingSummary`) and the rest is the body; untitled reasoning is
+  all body, with no invented label. A body longer than roughly ten prose lines folds
+  to six behind a Show more button, decided from the text so the fold never appears
+  late.
 
 Reasoning bodies are model-authored markdown and render through `ReferenceMarkdown`,
 the same safe renderer a message uses — `react-markdown` with no raw-HTML pass.
+
+The trace owns its motion and disclosure state. A trace the relay answers after its view
+opened, and a step a live turn adds, grow into place (`turn-trace-reveal.tsx`); a view
+that closes keeps its last trace on screen, so a collapsing row animates the trace it
+showed and a reopened row shows it at once while the relay refreshes. Each tool row is
+its own disclosure: the trace resets React Aria's disclosure-group context, so the
+Activity tab's turn accordion never owns a call's open state.
 
 Labels stay in sentence case. Stock `ChatTool` sets its `Arguments`, `Result`, and error
 labels in ALL CAPS, which `DESIGN.md` forbids; `default-theme.css` returns those three
@@ -108,7 +115,6 @@ BEM parts to the trace's own small muted role.
   mounts behind its disclosure at once, so text is clamped by character
   (`clampTraceText` / `clampTraceValue`) before it reaches a code block, a diff, or a
   stock `ChatTool` block. A line-count collapse alone does not bound one unbroken line.
-- Detail bodies compose the stock Pro chat primitives — `ChatTool` for a call,
-  `ChainOfThought` for reasoning, `ChatSource` for a citation — and the app's one
-  diff renderer for an edit. Source pills carry no third-party favicon, which
+- Detail bodies compose the stock Pro chat primitives — `ChatTool` for a call and
+  `ChatSource` for a citation — and the app's one diff renderer for an edit. Source pills carry no third-party favicon, which
   would leak every visited host to an icon service.
