@@ -1,5 +1,6 @@
 import { ChatSource, ChatSources } from '@heroui-pro/react';
 import { ChatTool } from '@heroui-pro/react/chat-tool';
+import type { ReactNode } from 'react';
 import { buildDiffHunks, countDiffStats } from '../../components/diff/diff-hunks.ts';
 import { DiffStatBadge, DiffView } from '../../components/diff/diff-view.tsx';
 import { codeLanguageForPath } from '../../lib/code-language.ts';
@@ -8,6 +9,7 @@ import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 import {
     clampTraceText,
     clampTraceValue,
+    readFileDiff,
     readHostname,
     readRecord,
     readShellOutput,
@@ -22,7 +24,7 @@ export function TurnTraceToolBody({ tool }: { tool: TurnTraceTool }) {
         case 'compaction':
             return <CompactionBody tool={tool} />;
         case 'file-change':
-            return tool.path ? <TurnTraceFact label="File" value={tool.path} /> : null;
+            return <FileChangeBody tool={tool} />;
         case 'file-edit':
             return <FileEditBody tool={tool} />;
         case 'file-read':
@@ -51,7 +53,7 @@ function ShellBody({ tool }: { tool: TurnTraceTool }) {
             ) : null}
             {shell.stdout ? <TurnTraceCode code={shell.stdout} label="Output" /> : null}
             {shell.stderr ? <TurnTraceCode code={shell.stderr} label="Standard error" /> : null}
-            {shell.exitCode === null ? null : (
+            {shell.exitCode === null || shell.exitCode === 0 ? null : (
                 <TurnTraceFact label="Exit code" value={String(shell.exitCode)} />
             )}
         </>
@@ -95,21 +97,46 @@ function FileWriteBody({ tool }: { tool: TurnTraceTool }) {
 }
 
 function FileEditBody({ tool }: { tool: TurnTraceTool }) {
+    return (
+        <FileDiffBody after={tool.newText ?? ''} before={tool.oldText ?? ''} path={tool.path}>
+            {tool.replaceAll ? (
+                <TurnTraceNote>Applied to every match in the file.</TurnTraceNote>
+            ) : null}
+        </FileDiffBody>
+    );
+}
+
+/** A runtime's own file change: its result carries the file's text before and after. */
+function FileChangeBody({ tool }: { tool: TurnTraceTool }) {
+    const diff = readFileDiff(tool.output, tool.path);
+    if (!diff) {
+        return tool.path ? <TurnTraceFact label="File" value={tool.path} /> : null;
+    }
+    if (tool.changeEvent === 'create') {
+        return <FileWriteBody tool={{ ...tool, content: diff.after }} />;
+    }
+    return <FileDiffBody after={diff.after} before={diff.before} path={tool.path} />;
+}
+
+function FileDiffBody(props: {
+    after: string;
+    before: string;
+    children?: ReactNode;
+    path: string | null;
+}) {
     // The diff is character-bounded before it is computed: `structuredPatch` is
     // superlinear, and a runtime can hand back an edit of any size.
-    const before = clampTraceText(tool.oldText ?? '').text;
-    const after = clampTraceText(tool.newText ?? '').text;
+    const before = clampTraceText(props.before).text;
+    const after = clampTraceText(props.after).text;
     const stats = countDiffStats(buildDiffHunks(before, after));
 
     return (
         <>
             <div className="flex min-w-0 items-baseline justify-between gap-3">
-                {tool.path ? <TurnTraceFact label="File" value={tool.path} /> : <span />}
+                {props.path ? <TurnTraceFact label="File" value={props.path} /> : <span />}
                 <DiffStatBadge additions={stats.additions} deletions={stats.deletions} />
             </div>
-            {tool.replaceAll ? (
-                <TurnTraceNote>Applied to every match in the file.</TurnTraceNote>
-            ) : null}
+            {props.children}
             <DiffView afterText={after} beforeText={before} />
         </>
     );

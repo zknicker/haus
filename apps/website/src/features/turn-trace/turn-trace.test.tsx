@@ -125,6 +125,75 @@ test('TurnTrace states what the runtime changed and compacted, not raw arguments
     assert.doesNotMatch(markup, /Used fileChange/);
 });
 
+test('TurnTrace shows the evidence codex-acp journals for a command, an edit, and a read', () => {
+    const markup = render({
+        presentation: {
+            journal: journal([
+                tool({
+                    endedAt: at(1),
+                    input: { command: 'date', cwd: '<workspace>' },
+                    output: { exit_code: 0, formatted_output: 'Wed Sep 23 13:47:04 EDT 2026\n' },
+                    toolCallId: 'call-date',
+                }),
+                tool({
+                    input: { command: 'false' },
+                    output: { exit_code: 2, formatted_output: 'boom\n' },
+                    toolCallId: 'call-false',
+                }),
+                tool({
+                    input: { event: 'create', path: 'probe-notes.txt' },
+                    nativeName: 'apply_patch',
+                    output: [
+                        {
+                            newText: 'alpha\n',
+                            oldText: null,
+                            path: 'probe-notes.txt',
+                            type: 'diff',
+                        },
+                    ],
+                    toolCallId: 'call-create',
+                    toolName: 'fileChange',
+                }),
+                tool({
+                    input: { event: 'modify', path: 'notes.md' },
+                    output: [
+                        {
+                            newText: 'after line\n',
+                            oldText: 'before line\n',
+                            path: 'notes.md',
+                            type: 'diff',
+                        },
+                    ],
+                    toolCallId: 'call-modify',
+                    toolName: 'fileChange',
+                }),
+                tool({
+                    input: { path: 'probe-notes.txt' },
+                    nativeName: 'bash',
+                    output: { exit_code: 0, formatted_output: 'read-back text\n' },
+                    toolCallId: 'call-read',
+                    toolName: 'read',
+                }),
+            ]),
+            kind: 'available',
+        },
+    });
+
+    assert.match(markup, /Wed Sep 23 13:47:04 EDT 2026/);
+    // Only a failing command states its exit code.
+    assert.equal(markup.match(/Exit code/g)?.length, 1);
+    assert.match(markup, /boom/);
+    // A step whose start and end arrived together claims no duration.
+    assert.doesNotMatch(markup, />0ms</);
+    assert.match(markup, /Created probe-notes\.txt/);
+    assert.match(markup, /alpha/);
+    assert.match(markup, /Modified notes\.md/);
+    assert.match(markup, /before line/);
+    assert.match(markup, /after line/);
+    assert.match(markup, /Read probe-notes\.txt/);
+    assert.match(markup, /read-back text/);
+});
+
 test('TurnTrace bounds a single unbroken line of tool output', () => {
     const markup = render({
         presentation: {

@@ -27,6 +27,12 @@ export function formatToolDuration(startedAt: string | null, completedAt: string
 
     const durationMs = Math.max(0, completedAtValue - startedAtValue);
 
+    // A runtime that reports a step's start and end together gives no duration
+    // to show; "0ms" would claim a measurement that was never made.
+    if (durationMs === 0) {
+        return null;
+    }
+
     if (durationMs < 1000) {
         return `${durationMs}ms`;
     }

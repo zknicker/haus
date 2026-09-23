@@ -22,13 +22,48 @@ export function readTraceText(value: unknown): string | null {
     if (!record) {
         return null;
     }
-    for (const key of ['output', 'text', 'stdout', 'content', 'message', 'result']) {
+    // `formatted_output` is codex-acp's shell result, beside its `exit_code`.
+    for (const key of [
+        'output',
+        'formatted_output',
+        'text',
+        'stdout',
+        'content',
+        'message',
+        'result',
+    ]) {
         const text = readTraceText(record[key]);
         if (text) {
             return text;
         }
     }
     return null;
+}
+
+export interface TurnTraceFileDiff {
+    readonly after: string;
+    readonly before: string;
+}
+
+/**
+ * An ACP edit result lists one `{ type: 'diff', path, oldText, newText }` per
+ * file; a created file has no `oldText`. Picks the entry for `path`, or the
+ * only entry when the step names no path.
+ */
+export function readFileDiff(value: unknown, path: string | null): TurnTraceFileDiff | null {
+    const entries = (Array.isArray(value) ? value : [value])
+        .map(readRecord)
+        .filter((entry) => entry?.type === 'diff' && typeof entry.newText === 'string');
+    const entry =
+        entries.find((candidate) => path !== null && candidate?.path === path) ??
+        (entries.length === 1 ? entries[0] : undefined);
+    if (!entry) {
+        return null;
+    }
+    return {
+        after: entry.newText as string,
+        before: typeof entry.oldText === 'string' ? entry.oldText : '',
+    };
 }
 
 /** Web results carry their citations inline; these become source pills. */
@@ -50,8 +85,9 @@ export function readTraceSources(value: unknown): Array<{ title: string; url: st
 
 export function readShellOutput(value: unknown): TurnTraceShellOutput {
     const record = readRecord(value);
+    const exitCode = record?.exitCode ?? record?.exit_code;
     return {
-        exitCode: typeof record?.exitCode === 'number' ? record.exitCode : null,
+        exitCode: typeof exitCode === 'number' ? exitCode : null,
         stderr: readString(record?.stderr),
         stdout: readTraceText(value),
     };
