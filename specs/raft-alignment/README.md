@@ -483,7 +483,7 @@ section; `## Chat History` tool teaching; all prompt-taught tool catalogs.
 | --- | --- |
 | First session turn | Pending notice/attention when present; otherwise `Start.` (+ one fresh-session line after resets) |
 | Trigger delivery | `New message received:` + envelopes + Raft's two-line trailer; unseen rows of the triggering chat ride along as additional envelopes |
-| Envelope | `[target=… msg=… time=… type=…] @sender — <description>: …` (+ `[task #N status=… assignee=…]`, attachment suffix) |
+| Envelope | `[target=… msg=… time=… type=…] @sender — <description>: …` + Raft's attachment suffix. Pulled and read envelopes add Raft's trailing `[task #N status=… assignee=…]`; a drained envelope compresses the same work facts inside its bracket (`task=#N:status:assignee`, `ask=…`, `mentioned=true`, haus-cli.md §4). Both may end with the `[Inline reply context]` block (ADR 0029) |
 | Mid-turn traffic | Content-free inbox notices, Raft row format (first/latest msg, sender, `· task/thread/dm/mention` tags) |
 | Unread elsewhere | Per-target counts for chats no row of the frame represents, appended to every wake; `haus inbox check` for the rest (notice rows only when they change) |
 | Identity/roster/description | Not pushed; `server info` / `channel info` pulls (D6) |

@@ -157,8 +157,10 @@ Rules:
   bracket instead of as trailing suffixes, in the same order:
   `task=#N:status:assignee` (`unassigned` when nobody owns it), then
   `ask=open|answered[:@handle]` (the addressee is omitted when the Ask has
-  none), then `mentioned=true`. Suffix and marker grammars share one
-  formatting owner (`apps/computer/src/inbox-format.ts`), except the
+  none), then `mentioned=true`. The attachment suffix is not a work fact and
+  stays a trailing suffix on the drain envelope too. Suffix and marker grammars
+  share one formatting owner (`apps/computer/src/inbox-format.ts`, with the Ask
+  grammar in `inbox-ask-format.ts`), except the
   Cloud Agent suffix, which is owned beside its schema in `@haus/api` because
   every layer prints it.
 - Every message also carries `body_kind` (`text | ask | cloud-agent-work`) on the
