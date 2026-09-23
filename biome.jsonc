@@ -17,7 +17,7 @@
       // Generated hugeicons geometry — one line of path data per family.
       "!apps/ios-swift/Sources/HausUI/Resources/*-icons.json",
       "!apps/server/dist",
-      "!apps/server/drizzle/meta",
+      "!apps/server/drizzle/postgres/meta",
       "!apps/website/dist",
       "!apps/website/src-tauri/gen/schemas",
       "!apps/website/src/components/charts",
