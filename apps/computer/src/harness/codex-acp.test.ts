@@ -63,7 +63,16 @@ test('both Codex installs share the machine store and gate on a runnable Codex C
         content: 'haus-computer-v1\n',
         path: '.harness-bootstrap/codex/haus-computer-owner',
     });
-    // Computer replaces only commands; the adapter's bridge ships unchanged.
+    // Computer replaces only these two adapter installs; a new adapter step must fail here
+    // rather than be dropped silently.
+    expect(nativeBootstrap?.commands).toEqual([
+        { command: 'pnpm install --ignore-workspace --frozen-lockfile --store-dir .pnpm-store' },
+        {
+            command:
+                'pnpm --dir implementation install --frozen-lockfile --prod --store-dir ../.pnpm-store',
+        },
+    ]);
+    // The adapter's files, bridge included, ship unchanged.
     for (const file of nativeBootstrap?.files ?? []) {
         expect(bootstrap?.files).toContainEqual(file);
     }
