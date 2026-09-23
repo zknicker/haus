@@ -3,6 +3,7 @@ import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ArchivedChannelBar } from './archived-channel-bar.tsx';
 import { ChatComposer } from './chat-composer-variants.tsx';
 import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
+import { ChatTypingIndicator } from './chat-typing-indicator.tsx';
 
 export function ChatViewFooter({
     chat,
@@ -44,16 +45,19 @@ export function ChatViewFooter({
                     new messages.
                 </p>
             ) : (
-                <ChatComposer
-                    agentDmId={chat.peerAgentId ?? undefined}
-                    chatId={chat.id}
-                    chatName={chatName}
-                    inlineReply={inlineReply}
-                    onInlineReplyCancel={onInlineReplyCancel}
-                    onInlineReplySent={onInlineReplySent}
-                    pendingChatId={chat.id}
-                    serverId={chat.serverId}
-                />
+                <>
+                    <ChatTypingIndicator chatId={chat.id} serverId={chat.serverId} />
+                    <ChatComposer
+                        agentDmId={chat.peerAgentId ?? undefined}
+                        chatId={chat.id}
+                        chatName={chatName}
+                        inlineReply={inlineReply}
+                        onInlineReplyCancel={onInlineReplyCancel}
+                        onInlineReplySent={onInlineReplySent}
+                        pendingChatId={chat.id}
+                        serverId={chat.serverId}
+                    />
+                </>
             )}
         </>
     );

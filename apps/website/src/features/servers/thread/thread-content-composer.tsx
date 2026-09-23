@@ -1,4 +1,5 @@
 import { ChatComposer } from '../chat/chat-composer-variants.tsx';
+import { ChatTypingIndicator } from '../chat/chat-typing-indicator.tsx';
 
 /** The dedicated Thread composer stays explicit while a Task is inspected. */
 export function ThreadContentComposer({
@@ -11,6 +12,7 @@ export function ThreadContentComposer({
     readOnly,
     serverId,
     task,
+    threadChatId,
 }: {
     chatId: string;
     chatName: string;
@@ -21,6 +23,8 @@ export function ThreadContentComposer({
     readOnly: boolean;
     serverId: string;
     task: boolean;
+    /** The Thread's own chat, which Agents engage; absent until the first reply. */
+    threadChatId: string | undefined;
 }) {
     if (readOnly) {
         return (
@@ -31,15 +35,18 @@ export function ThreadContentComposer({
     }
 
     return (
-        <ChatComposer
-            chatId={chatId}
-            chatName={chatName}
-            onThreadCreated={onThreadCreated}
-            pendingChatId={pendingChatId}
-            placeholder={task ? 'Reply in thread…' : 'Add a reply…'}
-            serverId={serverId}
-            thread={{ anchorMessageId }}
-            variant={composerVariant}
-        />
+        <>
+            <ChatTypingIndicator chatId={threadChatId} serverId={serverId} />
+            <ChatComposer
+                chatId={chatId}
+                chatName={chatName}
+                onThreadCreated={onThreadCreated}
+                pendingChatId={pendingChatId}
+                placeholder={task ? 'Reply in thread…' : 'Add a reply…'}
+                serverId={serverId}
+                thread={{ anchorMessageId }}
+                variant={composerVariant}
+            />
+        </>
     );
 }

@@ -256,6 +256,7 @@ export function ThreadContent({
                 readOnly={readOnly}
                 serverId={chat.serverId}
                 task={Boolean(anchor.task)}
+                threadChatId={threadChatId}
             />
         </div>
     );
