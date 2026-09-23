@@ -190,12 +190,15 @@ Haus surface to point at.
 
 ## Turn input, not prompt text
 
-The composed system prompt is unchanged by ADR 0033. Two facts about what the model now receives
-are recorded here because they change what the Agent reads at the top of a turn:
+The composed system prompt is unchanged by ADR 0033. These facts about what the model now
+receives are recorded here because they change what the Agent reads during a turn:
 
 - A wake may carry concrete envelopes **and** a content-free notice in the same prompt, and the
   drain always precedes the notice. Raft delivers the same hybrid, so startup step 3 keeps Raft's
   wording without a Haus carve-out.
+- Busy notices flush at a tool boundary only once no tool call is in flight. Raft also holds them
+  while compacting or reviewing; the harness exposes no in-progress compaction signal, so Haus
+  cannot, and a notice may land in the turn just before an automatic compaction.
 - The unread-elsewhere digest closes every wake. It is the last block of the turn input, never part
   of the system prompt, so it neither consumes nor raises the prompt budget.
 

@@ -381,8 +381,11 @@ inbox. Human **Start** resumes the current session and drains that work.
   pending count, first/latest msg ids, latest sender, `· task/thread/dm/mention` tags); bodies
   arrive through `message check` or a bounded concrete resume batch. The Computer already has
   the full socket-delivered envelope; content-free describes the runtime input, not the
-  Computer transport. Notice flushing copies the daemon's gating: only at tool boundaries,
-  never while compacting or with outstanding tool uses. Two carve-outs restore Raft's own
+  Computer transport. Notice flushing copies the daemon's gating as far as the harness lets
+  Haus observe it: only at a tool boundary with no tool call still in flight, so parallel calls
+  hold a notice until the last one resolves. Raft also holds flushes while compacting; the AI
+  SDK harness reports compaction only after it completes (a `compaction` part from Claude Code
+  and Pi, nothing from Codex), so Haus has no compaction gate. Two carve-outs restore Raft's own
   behavior ([ADR 0033](../../docs/adr/0033-addressed-messages-ride-the-wake.md)): a wake that
   **resumes a live session** drains human bodies as full envelopes, matching Raft's alive-idle
   wake, and a **cold start** drains the items addressed to this Agent — a DM, an @mention, or a

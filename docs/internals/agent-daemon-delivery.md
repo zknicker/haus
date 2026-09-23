@@ -121,7 +121,9 @@ includes its action identity, originating Chat, created Agent identity, and
 executed result; its result is never exposed by the ordinary message-check path.
 
 Busy notices queue behind the active turn and inject only after a completed
-tool boundary using AI SDK Harness's acknowledged `experimental_steerTurn` API.
+tool boundary with no other tool call still in flight, using AI SDK Harness's acknowledged
+`experimental_steerTurn` API. The harness reports compaction only after it completes, so no
+compaction gate exists.
 Computer acknowledges only successful runtime acceptance, never a local queue write.
 If steering is unsupported, as with the current Codex adapter, or no safe boundary
 remains, the durable notice stays unacknowledged. Server wakes the same Agent session

@@ -47,7 +47,7 @@ import {
 } from './session-store.ts';
 import { readAgentSkills } from './skills.ts';
 import { createNoticeDelivery } from './steer-inbox-notice.ts';
-import { createNoticeCoordinator, deliverStoredNotice } from './stored-notice.ts';
+import { createNoticeCoordinator, deliverStoredNotice, type ToolGate } from './stored-notice.ts';
 import {
     addTokenUsage,
     type HarnessTokenUsage,
@@ -442,7 +442,7 @@ async function executeHarnessTurn(
                             await storedNoticeReady.promise;
                             return await observeTurnStream(
                                 turn.fullStream,
-                                noticeCoordinator.flush,
+                                noticeCoordinator,
                                 projector,
                                 {
                                     onFirstPart: () => {
@@ -587,7 +587,7 @@ function coveGuidanceRefreshReceiptPath(agentRoot: string): string {
 /** Observes execution evidence and terminal state; durable replies leave through the CLI. */
 async function observeTurnStream(
     stream: AsyncIterable<unknown>,
-    onToolBoundary: (() => Promise<void>) | undefined,
+    toolCalls: ToolGate | undefined,
     projector: ReturnType<typeof createComputerActivityProjector> | undefined,
     {
         onFirstPart,
@@ -640,14 +640,13 @@ async function observeTurnStream(
                             return;
                         case 'tool-call':
                             onToolCall?.();
+                            toolCalls?.toolCallStarted(part);
                             await projector?.observe(part);
                             return;
                         case 'tool-error':
                         case 'tool-result':
                             await projector?.observe(part);
-                            if (part.preliminary !== true) {
-                                await onToolBoundary?.();
-                            }
+                            await toolCalls?.toolCallSettled(part);
                             return;
                         case 'finish-step':
                             contextTokens = usageContextTokens(part.usage) ?? contextTokens;

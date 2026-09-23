@@ -33,12 +33,46 @@ export async function deliverStoredNotice(
     }
 }
 
-export function createNoticeCoordinator(deliver: (notice: string) => Promise<boolean>) {
+/** A harness stream part that opens or resolves a tool call. */
+export interface ToolCallPart {
+    preliminary?: unknown;
+    toolCallId?: unknown;
+}
+
+/** Observes tool calls opening and resolving across a turn stream. */
+export interface ToolGate {
+    toolCallSettled(part: ToolCallPart): Promise<void>;
+    toolCallStarted(part: ToolCallPart): void;
+}
+
+/**
+ * Busy notices wait for a tool boundary with no tool call still in flight: with parallel tool
+ * calls, one result is not a safe boundary while its siblings run. The harness exposes no
+ * in-progress compaction signal, so compaction cannot gate this (specs/raft-alignment I2).
+ */
+export function createNoticeCoordinator(
+    deliver: (notice: string) => Promise<boolean>
+): ToolGate & { close(): void; enqueue(notice: string): Promise<boolean> } {
     const pending: Array<{
         notice: string;
         resolve: (accepted: boolean) => void;
     }> = [];
+    const inFlightToolCalls = new Set<unknown>();
     let closed = false;
+    const flush = async () => {
+        const entries = pending.splice(0);
+        for (const [index, entry] of entries.entries()) {
+            try {
+                entry.resolve(await deliver(entry.notice));
+            } catch (error) {
+                entry.resolve(false);
+                for (const remaining of entries.slice(index + 1)) {
+                    remaining.resolve(false);
+                }
+                throw error;
+            }
+        }
+    };
     return {
         close() {
             closed = true;
@@ -52,18 +86,16 @@ export function createNoticeCoordinator(deliver: (notice: string) => Promise<boo
             }
             return new Promise((resolve) => pending.push({ notice, resolve }));
         },
-        async flush() {
-            const entries = pending.splice(0);
-            for (const [index, entry] of entries.entries()) {
-                try {
-                    entry.resolve(await deliver(entry.notice));
-                } catch (error) {
-                    entry.resolve(false);
-                    for (const remaining of entries.slice(index + 1)) {
-                        remaining.resolve(false);
-                    }
-                    throw error;
-                }
+        toolCallStarted(part: ToolCallPart) {
+            inFlightToolCalls.add(part.toolCallId);
+        },
+        async toolCallSettled(part: ToolCallPart) {
+            if (part.preliminary === true) {
+                return;
+            }
+            inFlightToolCalls.delete(part.toolCallId);
+            if (inFlightToolCalls.size === 0) {
+                await flush();
             }
         },
     };
