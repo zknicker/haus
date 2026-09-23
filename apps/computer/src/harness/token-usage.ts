@@ -52,28 +52,6 @@ export function addTokenUsage(
     };
 }
 
-export function normalizeRuntimeUsage(
-    runtimeId: string,
-    observed: HarnessTokenUsage | null,
-    previous: HarnessTokenUsage | null
-): { cumulative: HarnessTokenUsage | null; turn: HarnessTokenUsage | null } {
-    if (runtimeId !== 'codex' || observed === null) {
-        return { cumulative: previous, turn: observed };
-    }
-    if (previous === null) {
-        return { cumulative: observed, turn: null };
-    }
-    if (tokenFields.some((field) => observed[field] < previous[field])) {
-        return { cumulative: observed, turn: observed };
-    }
-    const turn = emptyTokenUsage();
-    for (const field of tokenFields) {
-        turn[field] = observed[field] - previous[field];
-    }
-    turn.totalTokens = turn.inputTokens + turn.outputTokens;
-    return { cumulative: observed, turn };
-}
-
 /** Claude Code reports subscription rate limits through the turn's provider metadata. */
 export function readClaudePlanUsageMetadata(value: unknown): ClaudeUsageSnapshot | null {
     if (!isRecord(value)) {
@@ -96,18 +74,6 @@ export function readClaudePlanUsageMetadata(value: unknown): ClaudeUsageSnapshot
     } catch {
         return null;
     }
-}
-
-const tokenFields = ['cacheReadTokens', 'cacheWriteTokens', 'inputTokens', 'outputTokens'] as const;
-
-function emptyTokenUsage(): HarnessTokenUsage {
-    return {
-        cacheReadTokens: 0,
-        cacheWriteTokens: 0,
-        inputTokens: 0,
-        outputTokens: 0,
-        totalTokens: 0,
-    };
 }
 
 function tokenCount(value: unknown): number | null {

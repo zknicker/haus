@@ -26,7 +26,6 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
     await writeFile(
         join(effectiveAgentRoot, 'session.json'),
         JSON.stringify({
-            cumulativeTokenUsage: null,
             effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
             generation: 1,
             resumeState: null,

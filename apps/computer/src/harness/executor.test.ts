@@ -315,7 +315,14 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     // Second turn resumes: the stored resume state is handed back to the engine.
     expect(createSessionCalls[1]?.resumeFrom).toMatchObject({ type: 'resume-session' });
     expect((await readSession()).generation).toBe(1);
-    expect(second.tokenUsage).toEqual(first.tokenUsage);
+    // codex-acp reports each turn's own usage; nothing is diffed against a baseline.
+    expect(second.tokenUsage).toEqual({
+        cacheReadTokens: 16,
+        cacheWriteTokens: 4,
+        inputTokens: 20,
+        outputTokens: 10,
+        totalTokens: 30,
+    });
 });
 test('persists Claude plan limits emitted by the managed SDK turn', async () => {
     streamProviderMetadata = {
@@ -349,22 +356,13 @@ test('persists Claude plan limits emitted by the managed SDK turn', async () => 
     });
     expect((await readClaudePlanUsageState(agentRoot)).snapshot).toEqual(result.claudePlanUsage);
 });
-test('seeds a Codex cumulative baseline when upgrading an existing session', async () => {
+test('drops the retired codex exec usage baseline from a stored session', async () => {
     await runHarnessTurn(turnInput());
-    const { cumulativeTokenUsage: _removed, ...legacySession } = await readSession();
-    await writeFile(join(agentRoot, 'session.json'), `${JSON.stringify(legacySession)}\n`);
-    streamUsageScale = 2;
+    const legacy = { ...(await readSession()), cumulativeTokenUsage: { inputTokens: 999 } };
+    await writeFile(join(agentRoot, 'session.json'), `${JSON.stringify(legacy)}\n`);
 
-    const migrated = await runHarnessTurn(turnInput());
-
-    expect(migrated.tokenUsage).toBeNull();
-    expect((await readSession()).cumulativeTokenUsage).toEqual({
-        cacheReadTokens: 16,
-        cacheWriteTokens: 4,
-        inputTokens: 20,
-        outputTokens: 10,
-        totalTokens: 30,
-    });
+    expect((await runHarnessTurn(turnInput())).tokenUsage?.inputTokens).toBe(10);
+    expect(await readSession()).not.toHaveProperty('cumulativeTokenUsage');
 });
 test('refreshes a pre-fingerprint session once without rotating it', async () => {
     await runHarnessTurn(turnInput());

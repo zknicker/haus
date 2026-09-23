@@ -12,7 +12,6 @@ import type { AgentReasoningEffort } from '@haus/api';
  */
 export interface AgentSessionState {
     bootstrapFingerprint: string | null;
-    cumulativeTokenUsage: AgentSessionTokenUsage | null;
     effectiveModel: { modelId: string; runtimeId: string };
     effectiveReasoningEffort?: AgentReasoningEffort;
     generation: number;
@@ -37,7 +36,10 @@ const sessionFileName = 'session.json';
 export async function readAgentSessionState(agentRoot: string): Promise<AgentSessionState | null> {
     try {
         const raw = await readFile(join(agentRoot, sessionFileName), 'utf8');
-        const parsed = JSON.parse(raw) as AgentSessionState;
+        // `cumulativeTokenUsage` was the `codex exec` usage baseline; drop it on read.
+        const { cumulativeTokenUsage: _codexExecBaseline, ...parsed } = JSON.parse(
+            raw
+        ) as AgentSessionState & { cumulativeTokenUsage?: unknown };
         if (
             typeof parsed.generation === 'number' &&
             typeof parsed.effectiveModel?.modelId === 'string' &&
@@ -46,7 +48,6 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
             return {
                 ...parsed,
                 bootstrapFingerprint: parseFingerprint(parsed.bootstrapFingerprint),
-                cumulativeTokenUsage: parseTokenUsage(parsed.cumulativeTokenUsage),
                 hausAgentAppliedAt: parseTimestamp(parsed.hausAgentAppliedAt),
                 hausAgentStatus: parseHausAgentStatus(parsed.hausAgentStatus),
                 hausAgentVersion: parseSemver(parsed.hausAgentVersion),
@@ -88,7 +89,6 @@ export function resolveTurnSession(
     if (stored === null || modelChanged || stored.generation !== assigned.generation) {
         return {
             bootstrapFingerprint: null,
-            cumulativeTokenUsage: emptyTokenUsage(),
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
             hausAgentAppliedAt: null,
@@ -116,37 +116,4 @@ function parseSemver(value: unknown): string | null {
 
 function parseTimestamp(value: unknown): string | null {
     return typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : null;
-}
-
-function parseTokenUsage(value: unknown): AgentSessionTokenUsage | null {
-    if (!(value && typeof value === 'object')) {
-        return null;
-    }
-    const usage = value as Record<keyof AgentSessionTokenUsage, unknown>;
-    if (tokenUsageFields.every((field) => isTokenCount(usage[field]))) {
-        return usage as AgentSessionTokenUsage;
-    }
-    return null;
-}
-
-const tokenUsageFields = [
-    'cacheReadTokens',
-    'cacheWriteTokens',
-    'inputTokens',
-    'outputTokens',
-    'totalTokens',
-] as const;
-
-function isTokenCount(value: unknown): value is number {
-    return typeof value === 'number' && Number.isInteger(value) && value >= 0;
-}
-
-function emptyTokenUsage(): AgentSessionTokenUsage {
-    return {
-        cacheReadTokens: 0,
-        cacheWriteTokens: 0,
-        inputTokens: 0,
-        outputTokens: 0,
-        totalTokens: 0,
-    };
 }

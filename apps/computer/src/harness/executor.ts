@@ -49,7 +49,6 @@ import { createNoticeCoordinator, deliverStoredNotice, type ToolGate } from './s
 import {
     addTokenUsage,
     type HarnessTokenUsage,
-    normalizeRuntimeUsage,
     readClaudePlanUsageMetadata,
     readTokenUsage,
     usageContextTokens,
@@ -473,27 +472,20 @@ async function executeHarnessTurn(
         }
         const resumeState = await lease.checkpoint();
         observation = { ...observation, aborted: observation.aborted || lease.stopping };
-        const normalizedUsage = normalizeRuntimeUsage(
-            input.runtimeId,
-            observation.tokenUsage,
-            session.cumulativeTokenUsage
-        );
         if (observation.aborted) {
             await writeAgentSessionState(input.agentRoot, {
                 ...session,
                 effectiveReasoningEffort: input.reasoningEffort,
-                cumulativeTokenUsage: normalizedUsage.cumulative,
                 hausAgentStatus: hausAgentVersionDrift ? 'failed' : session.hausAgentStatus,
                 resumeState: resumeState as Record<string, unknown>,
                 runtimeSessionId: live.sessionId,
             });
             await input.activity.finish(instructionActivityKey, 'interrupted');
-            return { ...observation, tokenUsage: normalizedUsage.turn };
+            return observation;
         }
         const appliesHausAgentVersion = !hausAgentVersionDrift || hausAgentVersionCanApply;
         await writeAgentSessionState(input.agentRoot, {
             bootstrapFingerprint,
-            cumulativeTokenUsage: normalizedUsage.cumulative,
             effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
             effectiveReasoningEffort: input.reasoningEffort,
             generation: session.generation,
@@ -511,7 +503,7 @@ async function executeHarnessTurn(
             await clearPendingCoveGuidanceRefresh(input.agentRoot);
         }
         await input.activity.finish(instructionActivityKey, 'completed');
-        return { ...observation, tokenUsage: normalizedUsage.turn };
+        return observation;
     } catch (error) {
         await input.activity.finish(
             instructionActivityKey,
@@ -527,14 +519,6 @@ async function executeHarnessTurn(
             lease.discard();
         }
         await live?.destroy().catch(() => undefined);
-        if (error instanceof HarnessTurnFailedError) {
-            const normalizedUsage = normalizeRuntimeUsage(
-                input.runtimeId,
-                error.tokenUsage,
-                session.cumulativeTokenUsage
-            );
-            throw new HarnessTurnFailedError(normalizedUsage.turn, { cause: error.cause });
-        }
         throw error;
     }
 }
