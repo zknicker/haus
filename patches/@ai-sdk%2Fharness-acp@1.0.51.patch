@@ -1,5 +1,5 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 9770d846a1c76534879f6cf90963208e84efbd32..a42fdfe7aca9b4f52a2cc70f45cf142c3b1c64e1 100644
+index 9770d846a1c76534879f6cf90963208e84efbd32..7505d920167b6bcd987b55b0c8d389439db56b06 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
 @@ -949,6 +949,23 @@ function captureACPStream({ stream }) {
@@ -38,7 +38,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..a42fdfe7aca9b4f52a2cc70f45cf142c
    try {
      const promptMeta = createOutputSchemaPromptMeta({ start });
      const startPrompt = () => promptActiveSession({
-@@ -3810,6 +3832,25 @@ async function runTurn(start, turn) {
+@@ -3810,6 +3832,52 @@ async function runTurn(start, turn) {
      } else {
        void startPrompt();
      }
@@ -61,10 +61,37 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..a42fdfe7aca9b4f52a2cc70f45cf142c
 +        }
 +      })();
 +    }
++    if (bridgeType === "codex") {
++      void (async () => {
++        for await (const message of turn.experimental_userMessages) {
++          try {
++            await interjectionReady;
++            if (!acceptingInterjections || connection == null) {
++              throw new Error("Codex turn ended before steering.");
++            }
++            const steering = await connection.agent.request("_session/steering", {
++              sessionId: activeSession.sessionId,
++              prompt: [{ type: "text", text: message.text }]
++            });
++            if (steering?.outcome === "startedNewTurn") {
++              await connection?.agent.notify(acp5.methods.agent.session.cancel, {
++                sessionId: activeSession.sessionId
++              });
++            }
++            if (steering?.outcome !== "injected") {
++              throw new Error(`Codex steering was not injected (${String(steering?.outcome)}).`);
++            }
++            message.accept();
++          } catch (error) {
++            message.reject(error);
++          }
++        }
++      })();
++    }
      if (turn.abortSignal.aborted) {
        await cancel();
      } else {
-@@ -3837,6 +3878,8 @@ async function runTurn(start, turn) {
+@@ -3837,6 +3905,8 @@ async function runTurn(start, turn) {
          });
        }
        if (message.kind === "session_update") {
@@ -73,7 +100,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..a42fdfe7aca9b4f52a2cc70f45cf142c
          const captured = streamCapture?.takeForUpdate({
            update: message.update
          });
-@@ -3852,9 +3895,17 @@ async function runTurn(start, turn) {
+@@ -3852,9 +3922,17 @@ async function runTurn(start, turn) {
        for (const rawValue of streamCapture?.drainRawValues() ?? []) {
          emitStreamEvent.raw({ rawValue });
        }
@@ -91,7 +118,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..a42fdfe7aca9b4f52a2cc70f45cf142c
      if (activeQuestionRequest?.turn === turn) {
        activeQuestionRequest = void 0;
      }
-@@ -3925,7 +3976,7 @@ async function ensureSession({
+@@ -3925,7 +4003,7 @@ async function ensureSession({
      }
    });
    child = spawn(
@@ -100,7 +127,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..a42fdfe7aca9b4f52a2cc70f45cf142c
      [...implementation.args],
      {
        cwd: workDir,
-@@ -4321,11 +4372,12 @@ async function readImplementationDescriptor({
+@@ -4321,11 +4399,12 @@ async function readImplementationDescriptor({
    const value = await new Response(text, {
      headers: { "content-type": "application/json" }
    }).json();
@@ -143,7 +170,7 @@ index 3bb6054752f78c8942bb9696072c921cbada74e7..7761f498728df0954952ed28b493dbd7
      readonly methodId: string;
      readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
 diff --git a/dist/index.js b/dist/index.js
-index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..8d473fa95288d40a54b4c2b60fd3dd3e78c32e8a 100644
+index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..74930c27c5856ddaa15c31911536d99e6379a582 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -12,7 +12,12 @@ import {
@@ -236,7 +263,7 @@ index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..8d473fa95288d40a54b4c2b60fd3dd3e
      const toolCallClassificationErrors = /* @__PURE__ */ new Map();
      const activeQuestionRequests = /* @__PURE__ */ new Map();
      const questionToolCallIdsByRequestId = /* @__PURE__ */ new Map();
-+    const userMessageSubmitter = harnessId === "grok-build" ? experimental_createBridgeUserMessageSubmitter({
++    const userMessageSubmitter = harnessId === "grok-build" || harnessId === "codex" ? experimental_createBridgeUserMessageSubmitter({
 +      send: (message) => channel.send(message),
 +      onResponse: (listener) => channel.on("user-message-response", listener),
 +      onReconnect: (listener) => channel.onReconnect(listener)

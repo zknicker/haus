@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { HarnessV1 } from '@ai-sdk/harness';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { fingerprintHarnessBootstrap } from './bootstrap-refresh.ts';
 import {
@@ -11,13 +10,6 @@ import {
 } from './bridge-bootstrap.ts';
 
 for (const bridge of [
-    {
-        bootstrapDir: '.harness-bootstrap/codex',
-        harnessId: 'codex' as const,
-        nativeHarness: createCodex(),
-        packageDependency: '"@openai/codex-sdk": "0.153.4"',
-        verifyFragment: 'new Codex();',
-    },
     {
         bootstrapDir: '.harness-bootstrap/claude-code',
         harnessId: 'claude-code' as const,
@@ -65,7 +57,7 @@ for (const bridge of [
 }
 
 test('a shared store directory rides every install and is never wiped on retry', async () => {
-    const harness = withComputerBridgeBootstrap(createCodex(), 'codex', {
+    const harness = withComputerBridgeBootstrap(createClaudeCode(), 'claude-code', {
         storeDir: '/computer/agents/.harness-bridge-store',
     });
     const bootstrap = await harness.getBootstrap?.();
@@ -90,15 +82,9 @@ test('Computer embeds every packaged harness bridge asset', async () => {
     await expect(validateComputerBridgeAssets()).resolves.toBeUndefined();
 });
 
-// The published bridges pin vendor CLIs that predate the models Haus offers,
-// so Computer owns both manifests. Delete these three tests with the override.
+// The published bridge pins a vendor CLI that predates the models Haus offers,
+// so Computer owns the manifest. Delete this test with the override.
 for (const bridge of [
-    {
-        harnessId: 'codex' as const,
-        nativeHarness: createCodex(),
-        // First Codex that serves `gpt-6-astra`; 0.152.1 and older answer 400.
-        pinned: '"@openai/codex-sdk": "0.153.4"',
-    },
     {
         harnessId: 'claude-code' as const,
         nativeHarness: createClaudeCode(),
@@ -142,16 +128,6 @@ test('the pinned vendor version is part of the bootstrap fingerprint', async () 
     // A bumped pin must not reuse an install made from the previous one.
     expect(await withPin('0.153.4')).not.toBe(await withPin('0.149.1'));
     expect(await withPin('0.153.4')).toBe(await withPin('0.153.4'));
-});
-
-test('Codex bridge keeps recoverable transport errors distinct from failed turns', async () => {
-    const bootstrap = await withComputerBridgeBootstrap(createCodex(), 'codex').getBootstrap?.();
-    const bridge = bootstrap?.files?.find((file) => file.path.endsWith('/bridge.mjs'))?.content;
-
-    expect(bridge).toContain('codex stream warning');
-    expect(bridge).toContain('emitWarning');
-    expect(bridge).toContain('codex turn failed');
-    expect(bridge).toContain('emitError');
 });
 
 test('Claude Code bridge captures structured plan usage only when Computer leases a refresh', async () => {

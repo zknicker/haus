@@ -7,8 +7,8 @@ saveTextLockfile = true
 minimumReleaseAge = 259200
 minimumReleaseAgeExcludes = [
     "@ai-sdk/harness",
+    "@ai-sdk/harness-acp",
     "@ai-sdk/harness-claude-code",
-    "@ai-sdk/harness-codex",
     "@ai-sdk/harness-grok-build",
     "@ai-sdk/harness-pi",
     "@ai-sdk/mcp",

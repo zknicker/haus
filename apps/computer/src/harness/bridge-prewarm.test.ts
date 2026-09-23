@@ -36,13 +36,13 @@ describe('bridge store pre-warm', () => {
             expect(run.command).not.toContain('.pnpm-store &&');
         }
         const codexRun = runs.find((run) => run.cwd.endsWith('/codex'));
-        expect(codexRun?.command).toContain('new Codex();');
+        expect(codexRun?.command).toContain('resolve("@openai/codex/bin/codex.js")');
 
         const manifest = await readFile(
             join(agentsRoot, '.harness-bridge-prewarm', 'codex', 'package.json'),
             'utf8'
         );
-        expect(manifest).toContain('"@openai/codex-sdk"');
+        expect(manifest).toContain('"@agentclientprotocol/codex-acp"');
         expect(lines.filter((line) => line.includes('store warm'))).toHaveLength(runs.length);
     });
 

@@ -5,37 +5,34 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
-// Each adapter ships a bridge manifest pinning its vendor CLI, and those pins
-// trail the models Haus offers: at @ai-sdk/harness-codex 1.0.115 the bridge
-// still pins @openai/codex-sdk 0.149.1, which answers `gpt-6-astra` with
-// "requires a newer version of Codex" (0.153.0 is the first that serves it),
-// and at @ai-sdk/harness-claude-code 1.0.117 it pins @anthropic-ai/claude-code
-// 2.1.245, which rejects `claude-fable-5-1` below 2.1.251. So Computer owns the
-// manifest and lockfile for both bridges and takes only the adapter's bridge
-// code from the package. DELETE these overrides — and go back to importing both
-// files from the package — once the published bridges pin vendors at or above
-// those floors. The bridge recipe is content-fingerprinted, so changing a pin
-// here invalidates every stored bootstrap on its own.
+// The adapter ships a bridge manifest pinning its vendor CLI, and that pin
+// trails the models Haus offers: at @ai-sdk/harness-claude-code 1.0.117 it pins
+// @anthropic-ai/claude-code 2.1.245, which rejects `claude-fable-5-1` below
+// 2.1.251. So Computer owns the manifest and lockfile and takes only the
+// adapter's bridge code from the package. DELETE this override — and go back to
+// importing both files from the package — once the published bridge pins a
+// vendor at or above that floor. The bridge recipe is content-fingerprinted, so
+// changing a pin here invalidates every stored bootstrap on its own.
 import claudeCodePackage from '../../assets/harness-bridges/claude-code/package.json' with {
     type: 'text',
 };
 import claudeCodeLockfile from '../../assets/harness-bridges/claude-code/pnpm-lock.yaml' with {
     type: 'text',
 };
-import codexPackage from '../../assets/harness-bridges/codex/package.json' with { type: 'text' };
-import codexLockfile from '../../assets/harness-bridges/codex/pnpm-lock.yaml' with { type: 'text' };
 // @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
 import claudeCodeBridge from '../../node_modules/@ai-sdk/harness-claude-code/dist/bridge/index.mjs' with {
     type: 'text',
 };
-// @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
-import codexBridge from '../../node_modules/@ai-sdk/harness-codex/dist/bridge/index.mjs' with {
-    type: 'text',
-};
+import { installCommand, verifiedCommand } from './bridge-pnpm.ts';
+import { createCodexAcp } from './codex-acp.ts';
+import {
+    codexAcpImplementationCommand,
+    codexAcpImplementationFiles,
+} from './codex-acp-bootstrap.ts';
 
 const require = createRequire(import.meta.url);
-const bridgePnpmVersion = '10.32.1';
 
+/** Runtimes whose install Computer warms into the machine-wide store. */
 export type BridgeHarnessId = 'claude-code' | 'codex';
 const bridgeHarnessIds: readonly BridgeHarnessId[] = ['claude-code', 'codex'];
 
@@ -52,32 +49,14 @@ const bridgeSpecs = {
             'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
         ],
     },
-    codex: {
-        bootstrapDir: '.harness-bootstrap/codex',
-        files: [
-            { assetName: 'package.json', bootstrapName: 'package.json' },
-            { assetName: 'pnpm-lock.yaml', bootstrapName: 'pnpm-lock.yaml' },
-            { assetName: 'index.mjs', bootstrapName: 'bridge.mjs' },
-        ],
-        packageName: '@ai-sdk/harness-codex',
-        postInstallCommands: [
-            // Constructing Codex runs the SDK's platform-binary resolution —
-            // the exact path that breaks when the optional dependency is lost.
-            `node --input-type=module -e 'const { Codex } = await import("@openai/codex-sdk"); new Codex();'`,
-        ],
-    },
 } as const;
+type ComputerBridgeHarnessId = keyof typeof bridgeSpecs;
 
-const embeddedBridgeAssets: Record<BridgeHarnessId, Readonly<Record<string, string>>> = {
+const embeddedBridgeAssets: Record<ComputerBridgeHarnessId, Readonly<Record<string, string>>> = {
     'claude-code': {
         'index.mjs': claudeCodeBridge,
         'package.json': claudeCodePackage as unknown as string,
         'pnpm-lock.yaml': claudeCodeLockfile,
-    },
-    codex: {
-        'index.mjs': codexBridge,
-        'package.json': codexPackage as unknown as string,
-        'pnpm-lock.yaml': codexLockfile,
     },
 };
 
@@ -90,7 +69,7 @@ const embeddedBridgeAssets: Record<BridgeHarnessId, Readonly<Record<string, stri
  */
 export function withComputerBridgeBootstrap<T extends HarnessV1>(
     harness: T,
-    harnessId: BridgeHarnessId,
+    harnessId: ComputerBridgeHarnessId,
     { storeDir }: { storeDir?: string } = {}
 ): T {
     const spec = bridgeSpecs[harnessId];
@@ -126,6 +105,13 @@ export async function readBridgePrewarmPlans(
 > {
     return await Promise.all(
         harnessIds.map(async (harnessId) => {
+            if (harnessId === 'codex') {
+                return {
+                    command: codexAcpImplementationCommand,
+                    files: [...codexAcpImplementationFiles],
+                    harnessId,
+                };
+            }
             const spec = bridgeSpecs[harnessId];
             return {
                 command: (storeDir: string) =>
@@ -157,9 +143,7 @@ export async function readBridgePrewarmPlans(
 
 /** Release/doctor gate: embedded bridge files land where each adapter launches them. */
 export async function validateComputerBridgeAssets(): Promise<void> {
-    await Promise.all(
-        bridgeHarnessIds.map((harnessId) => readBridgeBootstrap(harnessId, bridgeSpecs[harnessId]))
-    );
+    await readBridgeBootstrap('claude-code', bridgeSpecs['claude-code']);
     const grokBuildBootstrap = await createGrokBuild().getBootstrap?.();
     const grokBuildDescriptor = grokBuildBootstrap?.files?.find(
         (file) => file.path === '.harness-bootstrap/grok-build/implementation/implementation.json'
@@ -172,41 +156,43 @@ export async function validateComputerBridgeAssets(): Promise<void> {
     ) {
         throw new Error('Grok Build must use the detected local executable.');
     }
-    const grokBuildBridge = grokBuildBootstrap?.files?.find(
-        (file) => file.path === '.harness-bootstrap/grok-build/bridge.mjs'
+    assertLiveUserMessageDelivery(grokBuildBootstrap, 'grok-build', '_x.ai/interject');
+    const codexBootstrap = await createCodexAcp({ webSearch: false }).getBootstrap?.();
+    if (
+        !codexBootstrap?.files?.some(
+            (file) =>
+                file.path === '.harness-bootstrap/codex/implementation/package.json' &&
+                file.content.includes('"@agentclientprotocol/codex-acp"')
+        )
+    ) {
+        throw new Error('Codex must install the pinned codex-acp implementation.');
+    }
+    assertLiveUserMessageDelivery(codexBootstrap, 'codex', '_session/steering');
+}
+
+/** Both ACP runtimes steer only through Haus's harness-acp patch. */
+function assertLiveUserMessageDelivery(
+    bootstrap: HarnessV1Bootstrap | undefined,
+    harnessId: 'codex' | 'grok-build',
+    method: string
+) {
+    const bridge = bootstrap?.files?.find(
+        (file) => file.path === `.harness-bootstrap/${harnessId}/bridge.mjs`
     );
     if (
         !(
-            grokBuildBridge?.content.includes('_x.ai/interject') &&
-            grokBuildBridge.content.includes('message.accept()')
+            bridge?.content.includes(`bridgeType === "${harnessId}"`) &&
+            bridge.content.includes(`connection.agent.request("${method}"`) &&
+            bridge.content.includes('message.accept()')
         )
     ) {
-        throw new Error('Grok Build bridge does not include live user-message delivery.');
+        throw new Error(`${harnessId} bridge does not include live user-message delivery.`);
     }
 }
 
-function installCommand(storeDir?: string) {
-    return `CI=true corepack pnpm@${bridgePnpmVersion} install --frozen-lockfile --store-dir ${storeDir ? `"${storeDir}"` : '.pnpm-store'}`;
-}
-
-/**
- * pnpm exits 0 even when an OPTIONAL dependency (the runtime's platform
- * binary) fails to download — observed live under concurrent first-time
- * bootstraps, leaving a bridge that fails every turn. Each post-install
- * command therefore doubles as the verification gate: on failure it retries
- * once from a clean slate, and if that also fails the bootstrap fails loudly.
- * A failed bootstrap writes no completion marker, so the next session start
- * re-runs it rather than keeping a broken bridge forever. A SHARED store is
- * never wiped on retry — other Agents hard-link from it concurrently.
- */
-function verifiedCommand(command: string, storeDir?: string) {
-    const wipe = storeDir ? 'node_modules' : 'node_modules .pnpm-store';
-    return `(${command}) || (rm -rf ${wipe} && ${installCommand(storeDir)} && (${command}))`;
-}
-
 async function readBridgeBootstrap(
-    harnessId: BridgeHarnessId,
-    spec: (typeof bridgeSpecs)[BridgeHarnessId],
+    harnessId: ComputerBridgeHarnessId,
+    spec: (typeof bridgeSpecs)[ComputerBridgeHarnessId],
     storeDir?: string
 ): Promise<HarnessV1Bootstrap> {
     return {
@@ -235,7 +221,11 @@ async function readBridgeBootstrap(
     };
 }
 
-async function readBridgeAsset(harnessId: BridgeHarnessId, packageName: string, name: string) {
+async function readBridgeAsset(
+    harnessId: ComputerBridgeHarnessId,
+    packageName: string,
+    name: string
+) {
     const embedded = embeddedBridgeAssets[harnessId][name];
     if (embedded?.length) {
         return embedded;
@@ -251,7 +241,7 @@ async function readBridgeAsset(harnessId: BridgeHarnessId, packageName: string, 
     throw new Error(`Harness bridge asset "${harnessId}/${name}" was not found.`);
 }
 
-function bridgeAssetRoots(harnessId: BridgeHarnessId, packageName: string) {
+function bridgeAssetRoots(harnessId: ComputerBridgeHarnessId, packageName: string) {
     const roots = [
         join(
             dirname(fileURLToPath(import.meta.url)),

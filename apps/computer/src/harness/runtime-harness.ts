@@ -1,11 +1,12 @@
 import type { HarnessV1 } from '@ai-sdk/harness';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { AgentReasoningEffort } from '@haus/api';
 import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
+import { createCodexAcp } from './codex-acp.ts';
+import { withCodexAcpBootstrap } from './codex-acp-bootstrap.ts';
 
 /**
  * Whether a runtime's harness can steer a live turn (`submitUserMessage`), so a busy inbox
@@ -45,12 +46,11 @@ export function createHarnessForRuntime(
                 { storeDir }
             ) as HarnessV1<ToolSet>;
         case 'codex':
-            return withComputerBridgeBootstrap(
-                createCodex({
+            return withCodexAcpBootstrap(
+                createCodexAcp({
                     reasoningEffort: reasoningEffort === 'default' ? undefined : reasoningEffort,
-                    ...(webAccess ? { webSearch: true } : {}),
+                    webSearch: webAccess,
                 }),
-                'codex',
                 { storeDir }
             ) as HarnessV1<ToolSet>;
         case 'grok-build':
