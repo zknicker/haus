@@ -120,7 +120,9 @@ A durable `message.created` is planned once by Server delivery
   resumed. A resumed session drains every eligible human body; a cold start drains only the
   addressed ones and notices the rest in the same prompt. A busy Agent still receives only the
   content-free notice. Existing row and character budgets apply unchanged, and the Computer attests
-  what it composed as exact run visibility, exactly as a pull does.
+  what it composed as exact run visibility before the model streams, so the freshness hold never
+  treats the message the Agent is answering as news. The composed receipt leaves inbox rows
+  offered; settlement attaches them and advances `seen`, and the turn summary is its fallback.
 - **A Thread mention arrives with its Thread when the Agent cannot see it.** When a drainable
   human item is the first in its Thread to @mention this Agent, and the Agent has no model-visible
   context for that Thread this session (no verified boundary, no settled exact visibility), the
@@ -276,6 +278,7 @@ turn starts when its creator sends the working brief.
 | Agent instructions teach notice, pull, silence, and deferral semantics without losing required capabilities | `apps/computer/src/harness/managed-instructions.test.ts` |
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
+| A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |
 | Addressing is decided at enqueue and survives stale or uncertain routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
 | A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |

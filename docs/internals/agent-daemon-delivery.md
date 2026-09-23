@@ -103,8 +103,14 @@ Server also marks which inbox rows may be drained into the run's prompt:
 `drainItemIds` on any start, `warmDrainItemIds` only when the harness session
 resumes. Server cannot pick between them — it parks sessions between turns and
 does not know whether the next `createSession` resumes or cold-starts — so the
-Computer decides the lane from `isResume` and attests what it composed through
-the same run-visible-messages channel a pull uses. A resumed session drains every
+Computer decides the lane from `isResume` and attests what it composed at
+composition, before the model streams: it records the identities as local run
+visibility, then posts a composed receipt (`POST /api/agent/events/visible` with
+`composed: true`) that records exact Server visibility for the run without
+serving the inbox rows, so a resend recomputes the same drain sets. The freshness
+hold therefore never shows the Agent the message its prompt already carried. The
+turn summary repeats the identities as the fallback for a refused receipt or a
+crash, and settlement attaches the rows and advances `seen`. A resumed session drains every
 eligible human body; a cold start drains only the addressed ones and notices the
 rest in the same prompt (ADR 0033). Every start and notice frame also carries
 `unreadElsewhere`, per-chat counts for work no row of that frame represents.
@@ -325,6 +331,7 @@ message and its composition id.
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
 | Exact message envelopes and content-free notices | `apps/computer/src/inbox-format.test.ts` |
 | Session continuity picks the drain lane; a composed drain attests and consumes itself | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
+| A composed drain reaches the Server before the model streams and exempts its messages from the freshness hold | `apps/computer/src/harness/composed-drain-receipt.test.ts`, `apps/computer/src/visibility-receipt.test.ts`, `apps/server/test/agent-composed-drain-visibility.test.ts` |
 | A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |
 | Addressed drains, warm drain candidates, and the unread digest partition | `apps/server/test/agent-inbox-lanes.test.ts`, `apps/server/test/agent-inbox-digest.test.ts` |
 | Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |

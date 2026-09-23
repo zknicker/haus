@@ -58,11 +58,15 @@ on the inbox row as `addressed_reason`. Draining an addressed message on a cold
 start is a Haus extension beyond Raft, taken because Haus Agents sleep between
 turns far more often than Raft's do.
 
-**The Computer attests what it composed.** A notice-lane drain is not served by
-the Server, so the Computer records those exact identities as run visibility and
-consumes them from its local notice projection — the same two steps a `message
-check` pull performs. Settlement then advances `seen` for them through the
-existing turn-summary path, and a crash before settlement replays them.
+**The Computer attests what it composed, at composition.** A notice-lane drain
+is not served by the Server, so the Computer records those exact identities as
+run visibility, posts them to the Server as a composed receipt before the model
+streams, and consumes them from its local notice projection. The composed
+receipt records exact visibility for the run and nothing else: the inbox rows
+stay offered, so a resend still recomputes the same drain sets, and settlement
+attaches them and advances `seen` through the existing turn-summary path. The
+turn summary is the fallback — a refused receipt or a crash before settlement
+still attests, or replays, the same identities.
 
 **Every wake reports the work it does not carry.** Each start and notice frame
 carries `unreadElsewhere`, per-chat counts rendered as Raft's own wording. The
@@ -83,6 +87,13 @@ in a chat this frame could not carry.
 `addressed_reason` also makes "was this item aimed at me?" queryable without
 reparsing the per-message routing audit, which is what a future typing or
 engagement signal (the surface ADR 0023 rejected) would need.
+
+Visibility has to reach the Server before the model can reply. The freshness
+hold on `haus message send` treats any peer message newer than `seen` that was
+not served to this run as news; a drained wake message attested only at
+settlement read as news, so every warm turn's first reply to it was held once
+behind a `--send-draft` round trip. The composed receipt closes that window, and
+the hold itself is unchanged.
 
 The costs are real. `isResume` is a proxy for Raft's ALIVE-IDLE: a session
 resumed after the Computer restarted reads as warm, and a session rotation forces
