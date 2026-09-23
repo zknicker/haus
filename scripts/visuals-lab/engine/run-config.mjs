@@ -6,6 +6,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveRuntimeById } from '../../../apps/computer/src/runtime-discovery.ts';
+import { stampFor } from '../paths.mjs';
 import { visualsBattery } from './prompts.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +30,7 @@ export const resolveRunConfig = () => {
     assert(Number.isFinite(width) && width > 0, '--width expects a positive number');
     const skillDirFlag = flagValue('--skill-dir');
     const onlyFilter = flagValue('--only');
-    const items = visualsBattery.filter((item) => !onlyFilter || item.slug.includes(onlyFilter));
+    const items = selectItems(onlyFilter);
     assert(items.length > 0, `--only ${onlyFilter} matched no battery items`);
 
     const executable = resolveRuntimeById(runtimeId);
@@ -38,7 +39,7 @@ export const resolveRunConfig = () => {
         `no installed executable for runtime "${runtimeId}"; install it or pick another --model`
     );
 
-    const stamp = new Date().toISOString().replaceAll(/[:T]/gu, '-').slice(0, 19);
+    const stamp = stampFor();
     const runLabel = `${runtimeId}/${modelId}-${reasoningEffort}`;
     const outDirFlag = flagValue('--out-dir');
     return {
@@ -56,6 +57,18 @@ export const resolveRunConfig = () => {
         width,
     };
 };
+
+/**
+ * `--only` is a substring filter, but a slug that is also a prefix of longer
+ * slugs would otherwise be impossible to run alone, so an exact slug wins.
+ */
+export function selectItems(onlyFilter, battery = visualsBattery) {
+    if (!onlyFilter) {
+        return battery;
+    }
+    const exact = battery.filter((item) => item.slug === onlyFilter);
+    return exact.length > 0 ? exact : battery.filter((item) => item.slug.includes(onlyFilter));
+}
 
 function parseModelFlag(value) {
     assert(value, 'pass --model <runtime>/<model>, e.g. --model grok-build/grok-4.6');

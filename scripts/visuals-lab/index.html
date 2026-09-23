@@ -189,17 +189,6 @@
         .menuitems button:hover {
             background: var(--chip);
         }
-        .menuitems .group {
-            padding: 7px 12px 3px;
-            font-size: 10.5px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            border-top: 1px solid var(--border);
-        }
-        .menuitems .group:first-child {
-            border-top: 0;
-        }
         .menuitems .scope {
             padding: 7px 12px;
             font-size: 11.5px;
@@ -297,22 +286,11 @@
             letter-spacing: 0.07em;
         }
 
-        /* ── Before | After ──────────────────────────────────────────────────── */
-        .pair {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, var(--shell-w, 736px)));
-            gap: 16px;
-            align-items: start;
-            justify-content: start;
-            margin-top: 18px;
-        }
-        @media (max-width: 1000px) {
-            .pair {
-                grid-template-columns: minmax(0, var(--shell-w, 736px));
-            }
-        }
+        /* ── One model's cell ────────────────────────────────────────────────── */
         .panel {
             min-width: 0;
+            max-width: var(--shell-w, 736px);
+            margin-top: 18px;
             overflow: hidden;
             background: var(--surface);
             border: 1px solid var(--border);
@@ -324,7 +302,7 @@
             align-items: center;
             padding: 7px 10px;
         }
-        .variant {
+        .panel .who {
             font-size: 11px;
             font-weight: 650;
             text-transform: uppercase;
@@ -563,17 +541,9 @@
         }
         .ovrow {
             display: grid;
-            grid-template-columns: 132px minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-columns: 132px minmax(0, 1fr);
             gap: 12px;
             align-items: start;
-        }
-        .ovhead {
-            padding-bottom: 2px;
-            font-size: 10.5px;
-            font-weight: 650;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
         }
         .ovname {
             padding-top: 10px;
@@ -762,11 +732,6 @@
             </label>
             <span class="spacer"></span>
             <span
-                class="chip"
-                id="beforeref"
-                title="the before column runs the visuals skill as it was at this ref"
-            ></span>
-            <span
                 class="chip money"
                 title="every run is a real model turn on your own logins; nothing here is part of check, CI, or any agent workflow"
                 >real model turns · costs money</span
@@ -776,22 +741,8 @@
                 <button class="plain" id="runmenu-btn" type="button">Run ▾</button>
                 <div class="menuitems">
                     <div class="scope" id="runscope"></div>
-                    <div class="group">this question</div>
-                    <button data-scope="one" data-variant="before" type="button">
-                        Before only
-                    </button>
-                    <button data-scope="one" data-variant="after" type="button">After only</button>
-                    <button data-scope="one" data-variant="both" type="button">
-                        Both variants
-                    </button>
-                    <div class="group">all questions</div>
-                    <button data-scope="all" data-variant="before" type="button">
-                        Before only
-                    </button>
-                    <button data-scope="all" data-variant="after" type="button">After only</button>
-                    <button data-scope="all" data-variant="both" type="button">
-                        Both variants
-                    </button>
+                    <button data-scope="one" type="button">this question</button>
+                    <button data-scope="all" type="button">all questions</button>
                 </div>
             </div>
             <button class="plain" id="checkfrags" type="button">Check all fragments</button>
@@ -803,7 +754,7 @@
             <p class="ask" id="ask"></p>
             <div class="rowlabel">model</div>
             <nav class="tabrow" id="models"></nav>
-            <div id="pair"></div>
+            <div id="panels"></div>
             <div id="overview"></div>
         </section>
 
@@ -830,7 +781,6 @@
         const effortSelects = new Map();
         let chromeBuilt = false;
         const panels = new Map();
-        const pairs = new Map();
         const questionTabs = new Map();
         const modelTabs = new Map();
         const overviewRows = new Map();
@@ -838,11 +788,6 @@
 
         const titleCase = (slug) =>
             slug.replaceAll('-', ' ').replace(/^./u, (c) => c.toUpperCase());
-
-        // The before column is the visuals skill as it was at a git ref — the newest
-        // release tag unless VISUALS_LAB_BEFORE_REF says otherwise. Say which, because
-        // a comparison against an unnamed "old skill" is not reproducible.
-        const beforeLabel = () => state.before.ref ?? 'unavailable';
 
         // ── The size handshake, once for the whole page: a height report is only
         // trusted from the frame that sent it, and clamped the way the card clamps.
@@ -928,30 +873,26 @@
             }).then(() => refresh());
 
         // ── Lookups over the polled state ───────────────────────────────────────
-        const jobFor = (modelId, variant, slug) => {
+        const jobFor = (modelId, slug) => {
             const matches = state.jobs.filter(
-                (job) =>
-                    job.model === modelId &&
-                    job.variant === variant &&
-                    (!job.only || job.only === slug)
+                (job) => job.model === modelId && (!job.only || job.only === slug)
             );
             return matches.at(-1) ?? null;
         };
 
-        const entryFor = (modelId, variant, slug) =>
-            state.results[modelId]?.[variant]?.prompts.find((prompt) => prompt.slug === slug) ??
-            null;
+        const entryFor = (modelId, slug) =>
+            state.results[modelId]?.prompts.find((prompt) => prompt.slug === slug) ?? null;
 
         /** One word for a cell: what the dot, the pill and the overview all read from. */
-        const statusOf = (modelId, variant, slug) => {
-            const job = jobFor(modelId, variant, slug);
+        const statusOf = (modelId, slug) => {
+            const job = jobFor(modelId, slug);
             if (job?.status === 'queued') {
                 return 'queued';
             }
             if (job?.status === 'running') {
                 return 'running';
             }
-            const entry = entryFor(modelId, variant, slug);
+            const entry = entryFor(modelId, slug);
             if (entry?.status === 'ok') {
                 return 'ok';
             }
@@ -1024,14 +965,9 @@
                 efforts.set(model.id, model.reasoning);
                 effortSelects.set(model.id, []);
                 const button = document.createElement('button');
-                button.innerHTML = '<span class="label"></span><span class="dots"></span>';
+                button.innerHTML =
+                    '<span class="label"></span><span class="dots"><i class="dot"></i></span>';
                 button.querySelector('.label').textContent = model.label;
-                for (const variant of state.variants) {
-                    const dot = document.createElement('i');
-                    dot.className = 'dot';
-                    dot.dataset.variant = variant;
-                    button.querySelector('.dots').append(dot);
-                }
                 button.onclick = () => {
                     view.model = model.id;
                     pushHash();
@@ -1050,26 +986,20 @@
             modelsRow.append(all);
             modelTabs.set('all', all);
 
-            const pair = document.getElementById('pair');
+            const host = document.getElementById('panels');
             for (const model of state.models) {
-                const row = document.createElement('div');
-                row.className = 'pair';
-                for (const variant of state.variants) {
-                    const panel = buildPanel(model, variant);
-                    panels.set(`${model.id}:${variant}`, panel);
-                    row.append(panel);
-                }
-                pair.append(row);
-                pairs.set(model.id, row);
+                const panel = buildPanel(model);
+                panels.set(model.id, panel);
+                host.append(panel);
             }
             buildOverview();
             chromeBuilt = true;
         };
 
-        const buildPanel = (model, variant) => {
+        const buildPanel = (model) => {
             const panel = document.createElement('div');
             panel.className = 'panel';
-            panel.innerHTML = `<div class="bar"><span class="variant"></span><span class="pill"></span>
+            panel.innerHTML = `<div class="bar"><span class="who"></span><span class="pill"></span>
       <span class="effortslot"></span><span class="spacer"></span><button class="plain run">Run</button></div>
     <div class="facts"><span>wall <b class="wall">—</b></span><span>out <b class="tok">—</b> tok</span>
       <span class="reads"></span></div>
@@ -1078,7 +1008,7 @@
     <div class="reply"></div>
     <div class="caption"></div>
     <div class="links"></div>`;
-            panel.querySelector('.variant').textContent = variant;
+            panel.querySelector('.who').textContent = model.label;
             panel.querySelector('.effortslot').replaceWith(buildEffortSelect(model));
             const frame = panel.querySelector('.frame');
             frame.setAttribute('sandbox', state.frame.sandbox);
@@ -1089,7 +1019,6 @@
                     effort: efforts.get(model.id),
                     model: model.id,
                     only: view.slug,
-                    variant,
                 });
             for (const [kind, label] of [
                 ['reply', 'reply.md'],
@@ -1132,13 +1061,6 @@
 
         const buildOverview = () => {
             const host = document.getElementById('overview');
-            const head = document.createElement('div');
-            head.className = 'ovrow';
-            head.innerHTML =
-                '<span></span><span class="ovhead" id="ovbefore"></span>' +
-                '<span class="ovhead">after — working tree</span>';
-            head.querySelector('#ovbefore').textContent = `before — ${beforeLabel()}`;
-            host.append(head);
             for (const model of state.models) {
                 const row = document.createElement('div');
                 row.className = 'ovrow';
@@ -1148,19 +1070,16 @@
                 name.querySelector('.label').textContent = model.label;
                 name.querySelector('.effortslot').replaceWith(buildEffortSelect(model));
                 row.append(name);
-                for (const variant of state.variants) {
-                    const cell = document.createElement('button');
-                    cell.className = 'ovcell';
-                    cell.dataset.variant = variant;
-                    cell.innerHTML = `<span class="line"><span class="pill"></span><span class="stats"></span></span>
+                const cell = document.createElement('button');
+                cell.className = 'ovcell';
+                cell.innerHTML = `<span class="line"><span class="pill"></span><span class="stats"></span></span>
         <span class="thumbwrap"><img class="thumb" alt=""></span><span class="blank"></span>`;
-                    cell.onclick = () => {
-                        view.model = model.id;
-                        pushHash();
-                        applyView();
-                    };
-                    row.append(cell);
-                }
+                cell.onclick = () => {
+                    view.model = model.id;
+                    pushHash();
+                    applyView();
+                };
+                row.append(cell);
                 host.append(row);
                 overviewRows.set(model.id, row);
             }
@@ -1185,16 +1104,16 @@
                   }`
                 : '';
 
-        const updatePanel = (panel, model, variant) => {
+        const updatePanel = (panel, model) => {
             const slug = view.slug;
-            const entry = entryFor(model.id, variant, slug);
-            const status = statusOf(model.id, variant, slug);
+            const entry = entryFor(model.id, slug);
+            const status = statusOf(model.id, slug);
 
             const pill = panel.querySelector('.pill');
             pill.className = `pill ${status}`;
             pill.textContent =
                 status === 'running'
-                    ? `running ${elapsed(jobFor(model.id, variant, slug).startedAt)}`
+                    ? `running ${elapsed(jobFor(model.id, slug).startedAt)}`
                     : status === 'none'
                       ? 'no run'
                       : status;
@@ -1302,14 +1221,9 @@
         };
 
         const updateOverviewRow = (row, model) => {
-            for (const cell of row.querySelectorAll('.ovcell')) {
-                updateOverviewCell(cell, model, cell.dataset.variant);
-            }
-        };
-
-        const updateOverviewCell = (cell, model, variant) => {
-            const entry = entryFor(model.id, variant, view.slug);
-            const status = statusOf(model.id, variant, view.slug);
+            const cell = row.querySelector('.ovcell');
+            const entry = entryFor(model.id, view.slug);
+            const status = statusOf(model.id, view.slug);
             const pill = cell.querySelector('.pill');
             pill.className = `pill ${status}`;
             pill.textContent = status === 'none' ? 'no run' : status;
@@ -1350,17 +1264,14 @@
                 if (modelId === 'all') {
                     continue;
                 }
-                for (const dot of button.querySelectorAll('.dot')) {
-                    const status = statusOf(modelId, dot.dataset.variant, view.slug);
-                    dot.className = `dot ${status}`;
-                    dot.title = `${dot.dataset.variant}: ${status}`;
-                }
+                const status = statusOf(modelId, view.slug);
+                const dot = button.querySelector('.dot');
+                dot.className = `dot ${status}`;
+                dot.title = status;
             }
             for (const model of state.models) {
                 if (view.model === model.id) {
-                    for (const variant of state.variants) {
-                        updatePanel(panels.get(`${model.id}:${variant}`), model, variant);
-                    }
+                    updatePanel(panels.get(model.id), model);
                 } else if (view.model === 'all') {
                     updateOverviewRow(overviewRows.get(model.id), model);
                 }
@@ -1394,18 +1305,13 @@
             document.querySelector('#ask .text').textContent = prompt?.ask ?? '';
 
             const runs = view.tab === 'runs';
-            const ref = document.getElementById('beforeref');
-            ref.textContent = state.before.error ? 'before — no ref' : `Before — ${beforeLabel()}`;
-            ref.title =
-                state.before.error ??
-                'the before column runs the visuals skill as it was at this ref';
             document.getElementById('checkfrags').style.display = runs ? 'none' : '';
             document.getElementById('runs').style.display = runs ? '' : 'none';
             document.getElementById('fragments').style.display = runs ? 'none' : 'grid';
             document.getElementById('runmenu').style.display = runs ? '' : 'none';
             document.getElementById('runscope').textContent = runs ? runScopeLabel() : '';
-            for (const [modelId, row] of pairs) {
-                row.style.display = view.model === modelId ? 'grid' : 'none';
+            for (const [modelId, panel] of panels) {
+                panel.style.display = view.model === modelId ? '' : 'none';
             }
             document.getElementById('overview').style.display = view.model === 'all' ? '' : 'none';
 
@@ -1594,7 +1500,6 @@
                     efforts: Object.fromEntries(efforts),
                     models: view.model === 'all' ? undefined : [view.model],
                     only: button.dataset.scope === 'one' ? view.slug : undefined,
-                    variant: button.dataset.variant,
                 });
             };
         }

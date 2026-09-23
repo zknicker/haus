@@ -11,22 +11,19 @@ import { stripVisualFences } from './reply-html.mjs';
 /** Where every run lands. Gitignored: these are big and disposable. */
 export const resultsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'results');
 
-/** The newest result per prompt, per model, per variant. */
-export const readResults = async (models, variants) => {
+/** The newest result per prompt, per model. */
+export const readResults = async (models) => {
     const results = {};
     for (const spec of models) {
-        results[spec.id] = {};
-        for (const variant of variants) {
-            results[spec.id][variant] = await latestRun(spec.id, variant);
-        }
+        results[spec.id] = await latestRun(spec.id);
     }
     return results;
 };
 
-const latestRun = async (model, variant) => {
+const latestRun = async (model) => {
     // Newest run per prompt, not per directory: a narrow `only` run must not
     // hide an older run's other prompts.
-    const dir = path.join(resultsDir, model, variant);
+    const dir = path.join(resultsDir, model);
     const stamps = await readdir(dir).catch(() => []);
     const bySlug = new Map();
     let newest = null;
@@ -36,7 +33,7 @@ const latestRun = async (model, variant) => {
         if (!manifest) {
             continue;
         }
-        const base = `/results/${model}/${variant}/${stamp}`;
+        const base = `/results/${model}/${stamp}`;
         const run = JSON.parse(manifest);
         newest ??= { ...run, logUrl: `${base}/job.log`, stamp };
         for (const prompt of run.prompts) {

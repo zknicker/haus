@@ -463,5 +463,545 @@
       "royalties": 21.08,
       "netUnits": 4
     }
-  ]
+  ],
+  "fxToUsd": {
+    "EUR": 1.08,
+    "GBP": 1.27,
+    "USD": 1
+  },
+  "dailyByMarketplace14d": {
+    "dates": [
+      "2026-09-02",
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-05",
+      "2026-09-06",
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10",
+      "2026-09-11",
+      "2026-09-12",
+      "2026-09-13",
+      "2026-09-14",
+      "2026-09-15"
+    ],
+    "end": "2026-09-15",
+    "series": [
+      {
+        "currencyCode": "USD",
+        "marketplace": "US",
+        "revenue": [
+          857.52, 983.42, 741.35, 731.89, 1137.26, 1061.19, 1014.13, 884.04,
+          1014.78, 866.27, 937.86, 1161.97, 750.49, 0
+        ],
+        "units": [45, 51, 41, 38, 61, 56, 52, 48, 53, 46, 49, 63, 39, 0]
+      },
+      {
+        "currencyCode": "GBP",
+        "marketplace": "GB",
+        "revenue": [
+          30.56, 45.84, 15.28, 30.56, 46.19, 31.12, 14.99, 30.56, 45.84, 30.98,
+          15.28, 31.44, 30.56, 0
+        ],
+        "units": [2, 3, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 2, 0]
+      },
+      {
+        "currencyCode": "EUR",
+        "marketplace": "DE",
+        "revenue": [
+          33.9, 34.12, 50.85, 16.95, 33.9, 51.2, 34.4, 33.9, 16.48, 50.85, 33.9,
+          34.62, 33.9, 0
+        ],
+        "units": [2, 2, 3, 1, 2, 3, 2, 2, 1, 3, 2, 2, 2, 0]
+      }
+    ],
+    "start": "2026-09-02"
+  },
+  "monthlyByMarketplace6m": {
+    "currencyCode": "USD",
+    "rows": [
+      {
+        "month": "2026-04",
+        "DE": 872.4,
+        "GB": 903.6,
+        "US": 24180.55
+      },
+      {
+        "month": "2026-05",
+        "DE": 941.8,
+        "GB": 1012.3,
+        "US": 25604.18
+      },
+      {
+        "month": "2026-06",
+        "DE": 1008.6,
+        "GB": 986.4,
+        "US": 26918.7
+      },
+      {
+        "month": "2026-07",
+        "DE": 1064.2,
+        "GB": 1058.7,
+        "US": 26310.44
+      },
+      {
+        "month": "2026-08",
+        "DE": 1121.5,
+        "GB": 1094.2,
+        "US": 29840.18
+      },
+      {
+        "month": "2026-09",
+        "DE": 531.54,
+        "GB": 545.21,
+        "US": 13304.02,
+        "partial": true
+      }
+    ]
+  },
+  "monthToDate": {
+    "byMarketplace": [
+      {
+        "currencyCode": "USD",
+        "marketplace": "US",
+        "revenue": 13304.02,
+        "revenueUsd": 13304.02,
+        "royalties": 2872.04,
+        "units": 702
+      },
+      {
+        "currencyCode": "GBP",
+        "marketplace": "GB",
+        "revenue": 429.3,
+        "revenueUsd": 545.21,
+        "royalties": 67.61,
+        "units": 28
+      },
+      {
+        "currencyCode": "EUR",
+        "marketplace": "DE",
+        "revenue": 492.17,
+        "revenueUsd": 531.54,
+        "royalties": 52.27,
+        "units": 29
+      }
+    ],
+    "daysElapsed": 15,
+    "daysInMonth": 30,
+    "month": "2026-09",
+    "revenueUsd": 14380.77,
+    "royaltiesUsd": 3014.36,
+    "through": "2026-09-15"
+  },
+  "monthlyGoal": {
+    "currencyCode": "USD",
+    "metric": "revenue",
+    "month": "2026-09",
+    "monthToDateRevenueUsd": 14380.77,
+    "target": 30000
+  },
+  "summary7d": {
+    "current": {
+      "netUnits": 319,
+      "revenue": 6629.54,
+      "royalties": 1461.01,
+      "unitsCancelled": 7,
+      "unitsReturned": 24,
+      "unitsSold": 350,
+      "end": "2026-09-14",
+      "start": "2026-09-08"
+    },
+    "prior": {
+      "netUnits": 326,
+      "revenue": 6674.48,
+      "royalties": 1411.03,
+      "unitsCancelled": 3,
+      "unitsReturned": 23,
+      "unitsSold": 352,
+      "end": "2026-09-07",
+      "start": "2026-09-01"
+    }
+  },
+  "netLast7d": {
+    "end": "2026-09-14",
+    "excludes": ["returned", "cancelled"],
+    "rows": [
+      {
+        "date": "2026-09-08",
+        "netRevenue": 936.12,
+        "netRoyalties": 210.06,
+        "netUnits": 48
+      },
+      {
+        "date": "2026-09-09",
+        "netRevenue": 810.37,
+        "netRoyalties": 174.13,
+        "netUnits": 44
+      },
+      {
+        "date": "2026-09-10",
+        "netRevenue": 995.63,
+        "netRoyalties": 233.47,
+        "netUnits": 52
+      },
+      {
+        "date": "2026-09-11",
+        "netRevenue": 715.61,
+        "netRoyalties": 150.93,
+        "netUnits": 38
+      },
+      {
+        "date": "2026-09-12",
+        "netRevenue": 861.3,
+        "netRoyalties": 185.15,
+        "netUnits": 45
+      },
+      {
+        "date": "2026-09-13",
+        "netRevenue": 1051.31,
+        "netRoyalties": 240.46,
+        "netUnits": 57
+      },
+      {
+        "date": "2026-09-14",
+        "netRevenue": 673.52,
+        "netRoyalties": 139.5,
+        "netUnits": 35
+      }
+    ],
+    "start": "2026-09-08"
+  },
+  "designWeekOverWeek": {
+    "currencyCode": "USD",
+    "priorWeek": {
+      "end": "2026-09-07",
+      "start": "2026-09-01"
+    },
+    "rows": [
+      {
+        "asin": "B082Z184NZ",
+        "netUnits": 11,
+        "netUnitsPrior": 7,
+        "revenue": 233.87,
+        "revenueChange": 85,
+        "revenuePrior": 148.87,
+        "title": "That's My Grandson Out There Gift Women Baseball Grandma"
+      },
+      {
+        "asin": "B08KCQL6VB",
+        "netUnits": 10,
+        "netUnitsPrior": 12,
+        "revenue": 199.9,
+        "revenueChange": -39.98,
+        "revenuePrior": 239.88,
+        "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits"
+      },
+      {
+        "asin": "B09BLS5NRG",
+        "netUnits": 8,
+        "netUnitsPrior": 6,
+        "revenue": 159.92,
+        "revenueChange": 39.98,
+        "revenuePrior": 119.94,
+        "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday"
+      },
+      {
+        "asin": "B081GHR7RC",
+        "netUnits": 8,
+        "netUnitsPrior": 13,
+        "revenue": 159.6,
+        "revenueChange": -99.75,
+        "revenuePrior": 259.35,
+        "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident"
+      },
+      {
+        "asin": "B0DDZPDF14",
+        "netUnits": 5,
+        "netUnitsPrior": 2,
+        "revenue": 91.91,
+        "revenueChange": 55.15,
+        "revenuePrior": 36.76,
+        "title": "Halloween Ghost Reading Read More Books Librarian Teacher"
+      },
+      {
+        "asin": "B082Z3P2V8",
+        "netUnits": 2,
+        "netUnitsPrior": 3,
+        "revenue": 84.75,
+        "revenueChange": -42.38,
+        "revenuePrior": 127.13,
+        "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross"
+      },
+      {
+        "asin": "B07XHVB7CH",
+        "netUnits": 4,
+        "netUnitsPrior": 5,
+        "revenue": 84.75,
+        "revenueChange": -21.19,
+        "revenuePrior": 105.94,
+        "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny"
+      },
+      {
+        "asin": "B0DHLQ94MM",
+        "netUnits": 3,
+        "netUnitsPrior": 1,
+        "revenue": 80.97,
+        "revenueChange": 53.98,
+        "revenuePrior": 26.99,
+        "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss"
+      },
+      {
+        "asin": "B08NW6MKQV",
+        "netUnits": 4,
+        "netUnitsPrior": 4,
+        "revenue": 79.96,
+        "revenueChange": 0,
+        "revenuePrior": 79.96,
+        "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid"
+      },
+      {
+        "asin": "B07KWRMN3C",
+        "netUnits": 4,
+        "netUnitsPrior": 5,
+        "revenue": 79.92,
+        "revenueChange": -19.98,
+        "revenuePrior": 99.9,
+        "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner"
+      }
+    ],
+    "thisWeek": {
+      "end": "2026-09-14",
+      "start": "2026-09-08"
+    }
+  },
+  "catalog30d": {
+    "currencyCode": "USD",
+    "rows": [
+      {
+        "asin": "B082Z184NZ",
+        "listPrice": 21.99,
+        "netUnits": 44,
+        "revenue": 967.56,
+        "royalties": 190.61,
+        "title": "That's My Grandson Out There Gift Women Baseball Grandma"
+      },
+      {
+        "asin": "B08KCQL6VB",
+        "listPrice": 19.99,
+        "netUnits": 41,
+        "revenue": 819.59,
+        "royalties": 216.37,
+        "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits"
+      },
+      {
+        "asin": "B09BLS5NRG",
+        "listPrice": 19.99,
+        "netUnits": 33,
+        "revenue": 659.67,
+        "royalties": 174.15,
+        "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday"
+      },
+      {
+        "asin": "B081GHR7RC",
+        "listPrice": 19.95,
+        "netUnits": 31,
+        "revenue": 618.45,
+        "royalties": 162.65,
+        "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident"
+      },
+      {
+        "asin": "B0DDZPDF14",
+        "listPrice": 18.38,
+        "netUnits": 19,
+        "revenue": 349.22,
+        "royalties": 77.88,
+        "title": "Halloween Ghost Reading Read More Books Librarian Teacher"
+      },
+      {
+        "asin": "B082Z3P2V8",
+        "listPrice": 28.25,
+        "netUnits": 9,
+        "revenue": 254.25,
+        "royalties": 24.92,
+        "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross"
+      },
+      {
+        "asin": "B07XHVB7CH",
+        "listPrice": 21.19,
+        "netUnits": 16,
+        "revenue": 339.04,
+        "royalties": 32.55,
+        "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny"
+      },
+      {
+        "asin": "B0DHLQ94MM",
+        "listPrice": 26.99,
+        "netUnits": 12,
+        "revenue": 323.88,
+        "royalties": 48.91,
+        "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss"
+      },
+      {
+        "asin": "B08NW6MKQV",
+        "listPrice": 19.99,
+        "netUnits": 15,
+        "revenue": 299.85,
+        "royalties": 79.16,
+        "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid"
+      },
+      {
+        "asin": "B07KWRMN3C",
+        "listPrice": 19.98,
+        "netUnits": 14,
+        "revenue": 279.72,
+        "royalties": 73.85,
+        "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner"
+      },
+      {
+        "asin": "B08QJ7L2MD",
+        "listPrice": 22.99,
+        "netUnits": 27,
+        "revenue": 620.73,
+        "royalties": 131.59,
+        "title": "Retro Sunset Camping Crew Funny Campfire Gift Outdoors"
+      },
+      {
+        "asin": "B09TZ5K8WQ",
+        "listPrice": 21.99,
+        "netUnits": 24,
+        "revenue": 527.76,
+        "royalties": 106.08,
+        "title": "Pickleball Grandma Dink Queen Funny Paddle Gift Women"
+      },
+      {
+        "asin": "B07M6PQR3T",
+        "listPrice": 24.99,
+        "netUnits": 18,
+        "revenue": 449.82,
+        "royalties": 84.57,
+        "title": "Sourdough Starter Club Baking Mom Funny Bread Lover Gift"
+      },
+      {
+        "asin": "B0BXN4VY61",
+        "listPrice": 17.99,
+        "netUnits": 22,
+        "revenue": 395.78,
+        "royalties": 91.82,
+        "title": "Teacher Off Duty Summer Break Beach Vibes Funny Gift"
+      },
+      {
+        "asin": "B08HH9D2KC",
+        "listPrice": 15.99,
+        "netUnits": 13,
+        "revenue": 207.87,
+        "royalties": 36.59,
+        "title": "Vintage 1985 Birthday 41st Retro Sun Gift Men Women"
+      },
+      {
+        "asin": "B0CQ2M7JVL",
+        "listPrice": 18.99,
+        "netUnits": 26,
+        "revenue": 493.74,
+        "royalties": 118.99,
+        "title": "Axolotl Squad Cute Kawaii Pink Amphibian Kids Gift Tee"
+      },
+      {
+        "asin": "B09KKV4N8P",
+        "listPrice": 21.99,
+        "netUnits": 11,
+        "revenue": 241.89,
+        "royalties": 48.62,
+        "title": "Crochet Hooker Funny Yarn Craft Grandma Knitting Gift"
+      },
+      {
+        "asin": "B07PQ8TRB9",
+        "listPrice": 34.99,
+        "netUnits": 9,
+        "revenue": 314.91,
+        "royalties": 68.97,
+        "title": "Pullover Hoodie Mountain Sunrise Hiker Trail Lover Gift"
+      },
+      {
+        "asin": "B0D4LG6XYH",
+        "listPrice": 32.99,
+        "netUnits": 7,
+        "revenue": 230.93,
+        "royalties": 47.8,
+        "title": "Sweatshirt Coffee Then Chaos Funny Mom Crewneck Gift"
+      },
+      {
+        "asin": "B08ZR5FKQ2",
+        "listPrice": 20.99,
+        "netUnits": 6,
+        "revenue": 125.94,
+        "royalties": 24.94,
+        "title": "Tank Top Gym Rat Lift Heavy Eat Tacos Funny Workout"
+      }
+    ]
+  },
+  "unitsByCategory30d": {
+    "rows": [
+      {
+        "category": "Standard T-Shirt",
+        "share": 67.4,
+        "units": 1102
+      },
+      {
+        "category": "Premium T-Shirt",
+        "share": 13,
+        "units": 213
+      },
+      {
+        "category": "Pullover Hoodie",
+        "share": 10.3,
+        "units": 168
+      },
+      {
+        "category": "Sweatshirt",
+        "share": 5.9,
+        "units": 96
+      },
+      {
+        "category": "Tank Top",
+        "share": 3.4,
+        "units": 55
+      }
+    ],
+    "totalUnits": 1634
+  },
+  "health": {
+    "cancellations7d": 7,
+    "cancellationsPrior7d": 3,
+    "returnRate7d": 6.9,
+    "returnRatePrior7d": 6.5,
+    "returns7d": 24,
+    "returnsPrior7d": 23,
+    "syncs": [
+      {
+        "detail": "today's orders have not landed yet",
+        "job": "Sales feed",
+        "lastRunAt": "2026-09-14T22:06:46-07:00",
+        "status": "stale"
+      },
+      {
+        "detail": "30 days imported",
+        "job": "Royalty report",
+        "lastRunAt": "2026-09-15T06:15:00-07:00",
+        "status": "ok"
+      },
+      {
+        "detail": "stalled mid-pass, 412 listings unchecked",
+        "job": "Listing metadata",
+        "lastRunAt": "2026-09-14T22:06:46-07:00",
+        "status": "stale"
+      },
+      {
+        "detail": "synced",
+        "job": "Ads report",
+        "lastRunAt": "2026-09-15T07:51:00-07:00",
+        "status": "ok"
+      }
+    ]
+  }
 }

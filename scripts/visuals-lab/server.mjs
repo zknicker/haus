@@ -12,7 +12,6 @@ import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { beforeRef } from './before-skill.mjs';
 import { visualsBattery } from './engine/prompts.mjs';
 // The real frame, straight from the product: the card's srcdoc builder, the
 // sandbox capability list, the height clamp, and the resolved theme tokens.
@@ -31,12 +30,10 @@ import { replyToHtml } from './reply-html.mjs';
 import { readResults, resultsDir } from './run-reader.mjs';
 
 const lab = path.dirname(fileURLToPath(import.meta.url));
-const variants = ['before', 'after'];
 const schemes = ['light', 'dark'];
 const port = Number(process.env.PORT ?? 4390);
 
 const readState = async () => ({
-    before: beforeLabel(),
     efforts,
     fragmentCheck,
     frame: { heights: visualHeights, sandbox: agentHtmlSandbox },
@@ -46,18 +43,8 @@ const readState = async () => ({
     // so the page never keeps its own copy of the skill's index.
     modules: skillModules.map(withoutExtension),
     prompts: visualsBattery.map((item) => ({ ask: item.ask, slug: item.slug })),
-    results: await readResults(models, variants),
-    variants,
+    results: await readResults(models),
 });
-
-/** The ref the "before" column stands for, or why the lab cannot read it. */
-const beforeLabel = () => {
-    try {
-        return { error: null, ref: beforeRef() };
-    } catch (error) {
-        return { error: String(error).slice(0, 200), ref: null };
-    }
-};
 
 // A fragment belongs to whichever module's index points at it — the gallery
 // groups by that rather than by the one directory they all share. Read at call
@@ -198,21 +185,15 @@ Bun.serve({
             POST: async (request) => {
                 const body = await request.json();
                 const spec = modelById(body.model);
-                if (!(spec && variants.includes(body.variant))) {
-                    return json({ error: 'unknown model or variant' }, 400);
+                if (!spec) {
+                    return json({ error: 'unknown model' }, 400);
                 }
-                return json({
-                    job: enqueue(spec.id, body.variant, body.only, effortFor(spec, body.effort)),
-                });
+                return json({ job: enqueue(spec.id, body.only, effortFor(spec, body.effort)) });
             },
         },
         '/api/run-all': {
             POST: async (request) => {
                 const body = await request.json().catch(() => ({}));
-                const wanted = body.variant === 'both' || !body.variant ? variants : [body.variant];
-                if (!wanted.every((variant) => variants.includes(variant))) {
-                    return json({ error: 'unknown variant' }, 400);
-                }
                 const specs = body.models?.length
                     ? body.models.map((id) => modelById(id))
                     : [...models];
@@ -220,15 +201,8 @@ Bun.serve({
                     return json({ error: 'unknown model' }, 400);
                 }
                 return json({
-                    jobs: wanted.flatMap((variant) =>
-                        specs.map((spec) =>
-                            enqueue(
-                                spec.id,
-                                variant,
-                                body.only,
-                                effortFor(spec, body.efforts?.[spec.id])
-                            )
-                        )
+                    jobs: specs.map((spec) =>
+                        enqueue(spec.id, body.only, effortFor(spec, body.efforts?.[spec.id]))
                     ),
                 });
             },

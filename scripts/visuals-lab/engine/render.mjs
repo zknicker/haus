@@ -99,7 +99,8 @@ export const createVisualRenderer = async ({ width = 736 } = {}) => {
                 if (ready === 'network') {
                     await page.waitForLoadState('networkidle').catch(() => null);
                 }
-                // Chart.js paints on its own frame after the size report.
+                // A visual's own script (the hover layer, a computed label)
+                // runs after the size report, so give it a frame to settle.
                 await page.waitForTimeout(500);
                 const file = `${slug}-${scheme}.png`;
                 await page.locator('#shell').screenshot({ path: path.join(outDir, file) });

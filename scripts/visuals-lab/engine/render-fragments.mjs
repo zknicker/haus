@@ -10,9 +10,10 @@
 // shows what it found; it has no package script. It costs nothing but a
 // browser — no model turn happens here. Exits non-zero when a fragment logs a
 // console error or collapses under 60px.
-import { mkdir, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { mkUniqueResultsDir, stampFor } from '../paths.mjs';
 import { createVisualRenderer } from './render.mjs';
 import { readSkillFragments } from './skill-fragments.mjs';
 
@@ -20,9 +21,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const minHeight = 60;
 const width = Number(process.env.WIDTH ?? 736);
 
-const stamp = new Date().toISOString().replaceAll(/[:T]/gu, '-').slice(0, 19);
-const outDir = path.join(here, '../results/fragments', stamp);
-await mkdir(outDir, { recursive: true });
+const stamp = stampFor();
+const outDir = await mkUniqueResultsDir(path.join(here, '../results/fragments'), stamp);
 
 const fragments = readSkillFragments().filter((fragment) => fragment.kind === 'visual');
 const renderer = await createVisualRenderer({ width });

@@ -18,6 +18,9 @@ export const skillDir = path.join(here, '../../../packages/agent-workspace/src/v
 export const skillModules = [
     'design-system.md',
     'charts.md',
+    'marks-and-anatomy.md',
+    'interaction.md',
+    'anti-patterns.md',
     'diagrams.md',
     'components.md',
     'pages.md',

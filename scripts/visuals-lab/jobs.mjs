@@ -4,11 +4,10 @@
 // Every queued job is a real model turn on this machine's own provider logins.
 // Five run at once and the rest wait, so a "run everything" press is bounded
 // by the queue rather than by how many processes Bun will start.
-import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { beforeRef, materializeBeforeSkill, repoRoot } from './before-skill.mjs';
 import { modelById } from './models.mjs';
+import { mkUniqueResultsDir, repoRoot, stampFor } from './paths.mjs';
 import { resultsDir } from './run-reader.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -23,7 +22,7 @@ let running = 0;
 /** The recent jobs the page shows; older ones fall off the end. */
 export const recentJobs = () => jobs.slice(-40);
 
-export const enqueue = (model, variant, only, effort) => {
+export const enqueue = (model, only, effort) => {
     const job = {
         effort,
         finishedAt: null,
@@ -33,7 +32,6 @@ export const enqueue = (model, variant, only, effort) => {
         outDir: null,
         startedAt: null,
         status: 'queued',
-        variant,
     };
     jobs.push(job);
     queue.push(job);
@@ -54,9 +52,7 @@ const pump = () => {
 
 const startJob = async (job) => {
     const spec = modelById(job.model);
-    const stamp = new Date().toISOString().replaceAll(/[:T]/gu, '-').slice(0, 19);
-    const outDir = path.join(resultsDir, job.model, job.variant, stamp);
-    await mkdir(outDir, { recursive: true });
+    const outDir = await mkUniqueResultsDir(path.join(resultsDir, job.model), stampFor());
     job.outDir = path.relative(resultsDir, outDir);
     job.startedAt = new Date().toISOString();
     job.status = 'running';
@@ -71,12 +67,6 @@ const startJob = async (job) => {
         '--reasoning',
         job.effort,
     ];
-    if (job.variant === 'before' && !(await addBeforeSkill(args, log))) {
-        job.finishedAt = new Date().toISOString();
-        job.status = 'failed';
-        await log.end();
-        return;
-    }
     if (job.only) {
         args.push('--only', job.only);
     }
@@ -89,24 +79,6 @@ const startJob = async (job) => {
     await log.end();
     job.finishedAt = new Date().toISOString();
     job.status = code === 0 ? 'done' : 'failed';
-};
-
-/**
- * Materializes the "before" skill and points the run at it. A ref the lab
- * cannot read fails this one cell with a readable message in its own log,
- * rather than taking down every queued run at once.
- */
-const addBeforeSkill = async (args, log) => {
-    try {
-        const before = await materializeBeforeSkill(beforeRef());
-        args.push('--skill-dir', before.dir);
-        log.write(`before: ${before.ref} (${before.sha.slice(0, 8)}) → ${before.dir}\n`);
-        log.write(`before carries: ${before.files.join(', ')}\n\n`);
-        return true;
-    } catch (error) {
-        log.write(`could not materialize the before skill: ${String(error)}\n`);
-        return false;
-    }
 };
 
 // The fragment check: the render-fragments engine over the working tree's own

@@ -8,7 +8,7 @@ import path from 'node:path';
 import { makeDaemonRuntime } from '../../../apps/computer/src/daemon-runtime.ts';
 import { bridgeStoreDirForHost } from '../../../apps/computer/src/harness/bridge-bootstrap.ts';
 import { createHarnessAgent } from '../../../apps/computer/src/harness/create-agent.ts';
-import { createHarnessForRuntime } from '../../../apps/computer/src/harness/executor.ts';
+import { createHarnessForRuntime } from '../../../apps/computer/src/harness/runtime-harness.ts';
 import { readTokenUsage } from '../../../apps/computer/src/harness/token-usage.ts';
 import { labInstructions } from './instructions.mjs';
 
@@ -39,7 +39,8 @@ export const createHarnessRunner = ({
                 runtimeId,
                 reasoningEffort,
                 false,
-                bridgeStoreDirForHost()
+                bridgeStoreDirForHost(),
+                modelId
             ),
             instructions: labInstructions,
         }

@@ -1,14 +1,12 @@
 // Swaps the seeded visuals skill's authored markdown for a revision kept on
-// disk, so one run can be measured against another revision of the skill text.
+// disk, so an ad-hoc `--skill-dir` run measures that revision's skill text
+// rather than the working tree's. It has no command of its own.
 //
-// Driven by the visuals lab (`bun run visuals:lab`), which materializes the
-// "before" revision out of a git ref. It has no command of its own.
-//
-// The variant directory IS the authored skill, not a patch on top of it: a
-// module or fragment the variant does not carry is removed from the seeded
-// copy rather than left behind. Otherwise a revision that predates
-// `fragments/` would run with today's fences sitting beside its old SKILL.md,
-// and the comparison would measure neither revision.
+// The directory IS the authored skill, not a patch on top of it: a module or
+// fragment it does not carry is removed from the seeded copy rather than left
+// behind. Otherwise a revision that predates `fragments/` would run with
+// today's fences sitting beside its old SKILL.md, and the run would measure
+// neither revision.
 //
 // Only the authored markdown is swapped; the generated icon manifest and SVG
 // assets always stay as `seedFactoryManagedSkills` wrote them.
@@ -45,7 +43,7 @@ export const overrideVisualsSkill = async (skillsDir, skillDir) => {
     return applied;
 };
 
-/** Mirrors the variant's `fragments/` into the seeded `references/fragments/`. */
+/** Mirrors the revision's `fragments/` into the seeded `references/fragments/`. */
 async function overrideFragments(root, fragmentsDir) {
     const target = path.join(root, 'references', 'fragments');
     const carried = existsSync(fragmentsDir)
