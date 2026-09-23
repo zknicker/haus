@@ -27,7 +27,12 @@ afterEach(async () => {
 });
 test('projects explicit adapter tool fixtures without inspecting tool inputs', async () => {
     const cases = [
-        { nativeName: 'shell', runtimeId: 'codex', toolName: 'bash', category: 'running_command' },
+        {
+            nativeName: 'exec_command',
+            runtimeId: 'codex',
+            toolName: 'bash',
+            category: 'running_command',
+        },
         {
             nativeName: 'Read',
             runtimeId: 'claude-code',

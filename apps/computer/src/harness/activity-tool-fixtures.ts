@@ -27,9 +27,7 @@ export const computerNativeToolActivityFixtures = {
     },
     codex: {
         bash: 'running_command',
-        shell: 'running_command',
         webSearch: 'searching_web',
-        web_search: 'searching_web',
     },
     'grok-build': {
         bash: 'running_command',

@@ -33,7 +33,11 @@ liveTest(
                 session,
             });
             let delivered = false;
+            const toolNames: string[] = [];
             for await (const part of result.fullStream) {
+                if (part.type === 'tool-call') {
+                    toolNames.push(part.toolName);
+                }
                 if (part.type === 'tool-call' && !delivered) {
                     await session.experimental_steerTurn(
                         'Change the final reply to exactly INTERJECTED and nothing else.'
@@ -43,6 +47,8 @@ liveTest(
             }
 
             expect(delivered).toBe(true);
+            // codex-acp's `exec_command` resolves to the common `bash` builtin Activity names.
+            expect(toolNames).toContain('bash');
             expect((await result.text).trim()).toBe('INTERJECTED');
         });
     },
@@ -67,6 +73,34 @@ liveTest(
             });
 
             expect(result.text.trim()).toBe('PROBE-7731');
+        });
+    },
+    180_000
+);
+
+liveTest(
+    `codex-acp resumes a stopped session with its conversation${skipReason}`,
+    async () => {
+        await withCodexAgent({}, async (agent, session) => {
+            await agent.generate({
+                abortSignal: AbortSignal.timeout(120_000),
+                prompt: 'Remember this exact code for my next message: HARBOR_7429. Reply only SAVED. Do not use tools.',
+                session,
+            });
+            // A stopped session is what a Computer restart or bootstrap refresh resumes.
+            const resumed = await agent.createSession({ resumeFrom: await session.stop() });
+            try {
+                const result = await agent.generate({
+                    abortSignal: AbortSignal.timeout(120_000),
+                    prompt: 'What was the exact code? Reply with only the code. Do not use tools.',
+                    session: resumed,
+                });
+
+                expect(resumed.isResume).toBe(true);
+                expect(result.text.trim()).toBe('HARBOR_7429');
+            } finally {
+                await resumed.destroy();
+            }
         });
     },
     180_000
