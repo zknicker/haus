@@ -2,6 +2,7 @@ import type { UnreadElsewhere } from '../agent-commands.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { composeInboxDrain, composeInboxNotice, formatUnreadElsewhere } from '../inbox-format.ts';
 import { consumeVisibleMessages, recordRunVisibleMessages } from '../inbox-store.ts';
+import { renderedThreadContexts, threadContextVisibleMessages } from '../thread-context-format.ts';
 
 /** What the frame offers this turn, independent of how the turn was started. */
 export interface TurnDelivery {
@@ -82,7 +83,8 @@ function openingPrompt(
 /**
  * Exact run visibility for bodies this turn composed itself. Only notice-lane
  * items need it: concrete work is served the moment the Computer accepts the
- * run, and its identities address no Chat message.
+ * run, and its identities address no Chat message. A rendered thread context
+ * made its quoted messages visible too, as Raft's receipts for it record.
  */
 export async function attestComposedDrain(
     input: TurnDelivery,
@@ -96,11 +98,10 @@ export async function attestComposedDrain(
         dataRoot: input.dataRoot,
         serverId: input.serverId,
     };
-    const identities = drained.map((item) => ({
-        chatId: item.chatId,
-        id: item.id,
-        sequence: item.sequence,
-    }));
+    const identities = [
+        ...drained.map((item) => ({ chatId: item.chatId, id: item.id, sequence: item.sequence })),
+        ...[...renderedThreadContexts(drained).values()].flatMap(threadContextVisibleMessages),
+    ];
     await recordRunVisibleMessages(location, input.runId, identities);
     await consumeVisibleMessages(location, identities);
 }

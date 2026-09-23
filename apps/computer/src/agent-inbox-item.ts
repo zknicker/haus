@@ -1,4 +1,4 @@
-import type { ChatMessageReply, CloudAgentBranch } from '@haus/api';
+import type { AgentThreadContext, ChatMessageReply, CloudAgentBranch } from '@haus/api';
 
 export interface AgentInboxItem {
     /** This item names the Agent personally: a DM, an @mention, or a committed Jev narrow. */
@@ -26,6 +26,8 @@ export interface AgentInboxItem {
         priority: 'high' | 'low' | 'medium' | 'none' | 'urgent';
         status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
     };
+    /** The Thread a mention arrived in, when the Agent has no visible context for it. */
+    threadContext?: AgentThreadContext;
     threadFollowReactivated?: boolean;
 }
 

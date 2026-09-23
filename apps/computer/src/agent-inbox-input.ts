@@ -1,4 +1,8 @@
-import { chatMessageReplySchema, cloudAgentWorkAttentionSchema } from '@haus/api';
+import {
+    agentThreadContextSchema,
+    chatMessageReplySchema,
+    cloudAgentWorkAttentionSchema,
+} from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
 
@@ -86,7 +90,8 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
     }
     const cloudAgentWork = parseCloudAgentWorkAttention(item.cloudAgentWork);
     const reply = chatMessageReplySchema.nullish().safeParse(item.reply);
-    if (!reply.success) {
+    const threadContext = agentThreadContextSchema.optional().safeParse(item.threadContext);
+    if (!(reply.success && threadContext.success)) {
         return null;
     }
     if (item.cloudAgentWork !== undefined && !cloudAgentWork) {
