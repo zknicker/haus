@@ -407,11 +407,8 @@ async function executeHarnessTurn(
             () => storedNoticeReady.resolve()
         );
         let observation: HarnessTurnResult;
-        const projector = createHarnessActivityProjector({
-            activity: input.activity,
-            journal,
-            runtimeId: input.runtimeId,
-        });
+        // The turn input carries the projector's activity run, runtime, and workspace.
+        const projector = createHarnessActivityProjector({ ...input, journal });
         try {
             observation = await settle(
                 input.runtime,
@@ -598,6 +595,7 @@ async function observeTurnStream(
                         await onFirstPart?.();
                     }
                     switch (part.type) {
+                        case 'raw':
                         case 'reasoning-delta':
                         case 'reasoning-end':
                         case 'reasoning-start':

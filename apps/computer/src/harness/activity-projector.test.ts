@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import {
-    classifyHausProxyBoundary,
     createComputerActivityProjector,
     createComputerActivityRegistry,
 } from './activity-projector.ts';
@@ -13,6 +12,7 @@ import {
     createComputerExecutionJournal,
     readComputerExecutionJournal,
 } from './execution-journal.ts';
+import { classifyHausProxyBoundary } from './haus-proxy-boundary.ts';
 
 const roots: string[] = [];
 const runtime = makeDaemonRuntime();

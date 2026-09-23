@@ -55,6 +55,7 @@ test('codex-acp tool calls get readable names, categories, and real durations', 
         ),
         journal,
         runtimeId: 'codex',
+        workspaceDir: join(rootDir, 'workspace'),
     });
     const session = await agent.createSession();
     try {
@@ -79,12 +80,23 @@ test('codex-acp tool calls get readable names, categories, and real durations', 
 
     expect(tools?.map(({ toolCallId, toolName }) => [toolCallId, toolName])).toEqual([
         ['exec-sleep', 'bash'],
-        ['exec-read', 'bash'],
+        // A read Codex parsed out of a command is a read of its file, not an empty command.
+        ['exec-read', 'read'],
         // The patch and the harness's file change for it are one step, named by the file.
         ['exec-patch', 'fileChange'],
         ['compact-1', 'compaction'],
         ['mcp-1', 'acp_tool_mcp-1'],
     ]);
+    expect(document?.tools.find((tool) => tool.toolCallId === 'exec-read')).toMatchObject({
+        input: { path: 'notes.txt' },
+        nativeName: 'bash',
+        output: { exit_code: 0, formatted_output: 'hi' },
+    });
+    // The harness shows workspace paths relative, and the bare workspace as a token.
+    expect(document?.tools[0]?.input).toEqual({
+        command: 'sleep 0.4 && echo "cwd is <workspace>."',
+        cwd: '<workspace>',
+    });
     expect(document?.tools.find((tool) => tool.toolCallId === 'exec-patch')).toMatchObject({
         input: { event: 'create', path: 'notes.txt' },
         nativeName: 'apply_patch',
@@ -95,9 +107,8 @@ test('codex-acp tool calls get readable names, categories, and real durations', 
     expect(events).toEqual([
         { category: 'running_command', phase: 'started' },
         { category: 'running_command', phase: 'completed' },
-        // A parsed file read carries no command, yet it is still Codex's shell.
-        { category: 'running_command', phase: 'started' },
-        { category: 'running_command', phase: 'completed' },
+        { category: 'reading_files', phase: 'started' },
+        { category: 'reading_files', phase: 'completed' },
         { category: 'editing_files', phase: 'started' },
         { category: 'editing_files', phase: 'completed' },
         { category: 'using_tool', phase: 'started' },
@@ -116,12 +127,12 @@ async function turn(sessionId) {
     const update = (value) => send({ method: 'session/update', params: { sessionId, update: value } });
     update({ sessionUpdate: 'tool_call', toolCallId: 'exec-sleep', status: 'in_progress',
         kind: 'execute', title: 'sleep 0.4', name: 'exec_command',
-        rawInput: { command: 'sleep 0.4', cwd: '.' } });
+        rawInput: { command: 'sleep 0.4 && echo "cwd is ' + process.cwd() + '."', cwd: process.cwd() } });
     await sleep(400);
     update({ sessionUpdate: 'tool_call_update', toolCallId: 'exec-sleep', name: 'exec_command',
         status: 'completed', rawOutput: { formatted_output: '', exit_code: 0 } });
     update({ sessionUpdate: 'tool_call', toolCallId: 'exec-read', status: 'in_progress',
-        kind: 'read', title: "Read file 'notes.txt'", locations: [{ path: 'notes.txt' }],
+        kind: 'read', title: "Read file 'notes.txt'", locations: [{ path: process.cwd() + '/notes.txt' }],
         name: 'exec_command' });
     update({ sessionUpdate: 'tool_call_update', toolCallId: 'exec-read', name: 'exec_command',
         status: 'completed', rawOutput: { formatted_output: 'hi', exit_code: 0 } });

@@ -1,5 +1,6 @@
 import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
+import { createAcpReadSteps } from './acp-read-steps.ts';
 import { knownToolCategory, syntheticHarnessToolActivity } from './activity-tool-fixtures.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { createFileChangeFold } from './file-change-fold.ts';
@@ -75,36 +76,19 @@ export function createComputerActivityRegistry(): ComputerActivityRegistry {
     };
 }
 
-export function classifyHausProxyBoundary(
-    method: string,
-    pathname: string
-): ComputerAgentActivityCategory | null {
-    if (
-        (method === 'GET' &&
-            (pathname === '/api/agent/events' ||
-                pathname === '/api/agent/history' ||
-                pathname === '/api/agent/messages/search' ||
-                /^\/api\/agent\/messages\/[^/]+$/u.test(pathname))) ||
-        (method === 'POST' && pathname === '/api/agent/messages/search')
-    ) {
-        return 'checking_messages';
-    }
-    if (/^\/api\/agent\/browser(?:\/|$)/u.test(pathname)) {
-        return 'browsing';
-    }
-    return null;
-}
-
 export function createComputerActivityProjector(input: {
     activity: AgentActivityRun;
     journal?: ComputerExecutionJournal;
     registry: ComputerActivityRegistry;
     runtimeId: string;
+    /** Absolute Agent workspace, so an ACP read's file journals workspace-relative. */
+    workspaceDir?: string;
 }) {
     const skipped = new Set<string>();
     const calls: ToolCalls = {
         fileChanges: createFileChangeFold(skipped),
         pending: new Map(),
+        reads: createAcpReadSteps(input.workspaceDir),
         skipped,
     };
     const { pending } = calls;
@@ -128,10 +112,15 @@ export function createComputerActivityProjector(input: {
             pending.clear();
             calls.skipped.clear();
             calls.fileChanges.clear();
+            calls.reads.clear();
             await input.journal?.flushReasoning();
         },
         async observe(part: unknown) {
             if (!isRecord(part) || typeof part.type !== 'string') {
+                return;
+            }
+            if (part.type === 'raw') {
+                calls.reads.observeRaw(part);
                 return;
             }
             if (part.type === 'tool-call') {
@@ -151,6 +140,7 @@ export function createHarnessActivityProjector(input: {
     activity: AgentActivityRun;
     journal: ComputerExecutionJournal;
     runtimeId: string;
+    workspaceDir?: string;
 }) {
     const registry = createComputerActivityRegistry();
     registry.registerHausHostTool({ category: 'browsing', name: 'browser', toolRef: 'browser' });
@@ -180,24 +170,27 @@ async function observeToolCall(
     if (await calls.fileChanges.observeCall({ part, toolCallId, toolName }, input.journal)) {
         return;
     }
+    const readPath = calls.reads.claim(toolCallId, part);
     await startToolActivity({
         activity: input.activity,
         calls,
-        classification: input.registry.classify({
-            dynamic: part.dynamic === true,
-            invalid: part.invalid === true,
-            nativeName: stringValue(part.nativeName),
-            providerExecuted: part.providerExecuted === true,
-            runtimeId: input.runtimeId,
-            toolName,
-        }),
+        classification: readPath
+            ? { category: 'reading_files', outcome: 'activity' }
+            : input.registry.classify({
+                  dynamic: part.dynamic === true,
+                  invalid: part.invalid === true,
+                  nativeName: stringValue(part.nativeName),
+                  providerExecuted: part.providerExecuted === true,
+                  runtimeId: input.runtimeId,
+                  toolName,
+              }),
         toolCallId,
     });
     await input.journal?.recordToolCall({
-        input: part.input,
-        nativeName: stringValue(part.nativeName),
+        input: readPath ? { path: readPath } : part.input,
+        nativeName: readPath ? toolName : stringValue(part.nativeName),
         toolCallId,
-        toolName,
+        toolName: calls.reads.journalName(toolCallId, toolName),
     });
 }
 
@@ -243,7 +236,10 @@ async function observeToolOutcome(
         output: part.type === 'tool-error' ? part.error : part.output,
         preliminary: isPreliminary,
         toolCallId,
-        toolName: calls.fileChanges.journalName(toolCallId, toolName),
+        toolName: calls.reads.journalName(
+            toolCallId,
+            calls.fileChanges.journalName(toolCallId, toolName)
+        ),
     });
     if (isPreliminary) {
         return;
@@ -280,6 +276,7 @@ async function startToolActivity(input: {
 interface ToolCalls {
     fileChanges: ReturnType<typeof createFileChangeFold>;
     pending: Map<string, ComputerToolActivity>;
+    reads: ReturnType<typeof createAcpReadSteps>;
     skipped: Set<string>;
 }
 

@@ -19,7 +19,7 @@ import {
 } from './agent-skills.ts';
 import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
-import { classifyHausProxyBoundary } from './harness/activity-projector.ts';
+import { classifyHausProxyBoundary } from './harness/haus-proxy-boundary.ts';
 import {
     type AgentInboxLocation,
     consumeServedAutomations,
