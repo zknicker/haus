@@ -1,7 +1,17 @@
-import type { AgentExecutionJournal, AgentExecutionJournalReasoning } from '@haus/api';
+import type {
+    AgentActivityEvent,
+    AgentExecutionJournal,
+    AgentExecutionJournalReasoning,
+} from '@haus/api';
 import { classifyTraceTool, type TurnTraceTool } from './turn-trace-tool-model.ts';
 
 export type TurnTraceEntry =
+    | {
+          readonly at: string;
+          readonly event: AgentActivityEvent;
+          readonly key: string;
+          readonly kind: 'event';
+      }
     | {
           readonly at: string;
           readonly isStreaming: boolean;
@@ -22,8 +32,14 @@ interface OrderedEntry {
     readonly time: number;
 }
 
-/** One rich trace, built only from the Computer's reasoning and tool evidence. */
-export function buildTurnTrace(journal: AgentExecutionJournal | null): TurnTraceEntry[] {
+/**
+ * One rich trace from the Computer's reasoning and tool evidence, plus the Server
+ * history no journal holds: a message the Agent received mid-turn.
+ */
+export function buildTurnTrace(
+    journal: AgentExecutionJournal | null,
+    events: readonly AgentActivityEvent[] = []
+): TurnTraceEntry[] {
     const reasoning = (journal?.reasoning ?? []).filter((block) => block.text.trim().length > 0);
     const ordered: OrderedEntry[] = [];
 
@@ -51,6 +67,17 @@ export function buildTurnTrace(journal: AgentExecutionJournal | null): TurnTrace
             },
             sequence: index,
             time: Date.parse(tool.startedAt),
+        });
+    }
+
+    for (const event of events) {
+        if (event.category !== 'received_message') {
+            continue;
+        }
+        ordered.push({
+            entry: { at: event.occurredAt, event, key: `event:${event.id}`, kind: 'event' },
+            sequence: event.position,
+            time: Date.parse(event.occurredAt),
         });
     }
 

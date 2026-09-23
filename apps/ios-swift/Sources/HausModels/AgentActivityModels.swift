@@ -3,6 +3,7 @@ import Foundation
 public enum AgentActivityCategory: String, Codable, Sendable {
     case startingWork = "starting_work"
     case checkingMessages = "checking_messages"
+    case receivedMessage = "received_message"
     case thinking
     case browsing
     case searchingWeb = "searching_web"

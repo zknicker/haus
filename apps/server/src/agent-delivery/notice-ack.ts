@@ -2,13 +2,16 @@ import type { AgentNoticeAck } from '@haus/api';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { publishCommittedAgentActivity } from './activity-events.ts';
 import * as store from './store.ts';
 
 /**
  * A Computer injected an inbox notice into a running turn: the named queued work
- * is now noticed by that run. An ack for a run that is no longer the Agent's
- * accepted run marks nothing. Each consumed ack logs one `inbox-notice-acked` line.
+ * is now noticed by that run, which records one completed `received_message`
+ * activity. An ack for a run that is no longer the Agent's accepted run marks
+ * nothing. Each consumed ack logs one `inbox-notice-acked` line.
  */
 export async function consumeNoticeAck(
     db: HausDatabase,
@@ -19,7 +22,7 @@ export async function consumeNoticeAck(
     if (!serverId) {
         return;
     }
-    const noticedItems = await db.transaction(async (tx) => {
+    const consumed = await db.transaction(async (tx) => {
         await lockServerRow(tx, serverId);
         const state = await store.readDeliveryState(tx, input.agentId);
         if (state?.activeRunId !== input.runId || state.acceptedAt === null) {
@@ -32,8 +35,24 @@ export async function consumeNoticeAck(
             itemIds: noticed.map((row) => row.id),
             runId: input.runId,
         });
-        return noticed.length;
+        // A notice window repeats work this run already noticed; only new work is received.
+        const received = noticed.filter((row) => row.noticeRunId !== input.runId);
+        const activity =
+            received.length > 0
+                ? await appendServerAgentActivity(tx, {
+                      agentId: input.agentId,
+                      category: 'received_message',
+                      phase: 'completed',
+                      runId: input.runId,
+                      serverId,
+                  })
+                : null;
+        return { activity, noticedItems: noticed.length };
     });
+    if (consumed?.activity) {
+        publishCommittedAgentActivity(consumed.activity);
+    }
+    const noticedItems = consumed?.noticedItems ?? null;
     if (runtime) {
         await settle(
             runtime,

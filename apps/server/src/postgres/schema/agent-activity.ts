@@ -72,7 +72,7 @@ export const agentActivityTable = pgTable(
         }).onDelete('cascade'),
         check(
             'agent_activity_category',
-            sql`${table.category} in ('starting_work', 'updating_instructions', 'checking_messages', 'thinking', 'browsing', 'searching_web', 'reading_files', 'editing_files', 'running_command', 'using_tool', 'sending_message', 'working')`
+            sql`${table.category} in ('starting_work', 'updating_instructions', 'checking_messages', 'received_message', 'thinking', 'browsing', 'searching_web', 'reading_files', 'editing_files', 'running_command', 'using_tool', 'sending_message', 'working')`
         ),
         check(
             'agent_activity_phase',

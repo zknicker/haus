@@ -27,6 +27,11 @@ test('formats semantic activity with centralized, safe copy', () => {
     ).toBe('Updated instructions');
     expect(
         formatAgentActivityEvent(
+            activityEvent({ category: 'received_message', phase: 'completed' })
+        )
+    ).toBe('Received a new message');
+    expect(
+        formatAgentActivityEvent(
             activityEvent({ category: 'using_tool', phase: 'failed', toolRef: 'search.web' })
         )
     ).toBe('Failed while using search.web');

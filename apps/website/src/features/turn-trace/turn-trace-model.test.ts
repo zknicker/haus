@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { AgentExecutionJournal } from '@haus/api';
+import type { AgentActivityEvent, AgentExecutionJournal } from '@haus/api';
 import { buildTurnTrace } from './turn-trace-model.ts';
 
 test('buildTurnTrace has only reasoning and tool rows, ordered by observed time', () => {
@@ -19,6 +19,36 @@ test('buildTurnTrace has only reasoning and tool rows, ordered by observed time'
     assert.deepEqual(
         entries.map((entry) => entry.key),
         ['reasoning:think-1', 'tool:call-1', 'reasoning:think-2', 'tool:call-2']
+    );
+});
+
+test('a message the Agent received mid-turn joins the trace at its time; other verbs do not', () => {
+    const event = (id: string, category: AgentActivityEvent['category'], seconds: number) =>
+        ({
+            agentId: 'agt_1',
+            category,
+            id,
+            occurredAt: at(seconds),
+            phase: 'completed',
+            position: seconds,
+            producer: 'server',
+            producerId: 'server',
+            producerSequence: seconds,
+            runId: 'run_1',
+            serverId: 'srv_1',
+        }) satisfies AgentActivityEvent;
+    const entries = buildTurnTrace(
+        journal({
+            tools: [
+                { startedAt: at(4), toolCallId: 'call-1', toolName: 'bash', status: 'completed' },
+                { startedAt: at(8), toolCallId: 'call-2', toolName: 'bash', status: 'completed' },
+            ],
+        }),
+        [event('aev_sent', 'sending_message', 5), event('aev_received', 'received_message', 6)]
+    );
+    assert.deepEqual(
+        entries.map((entry) => entry.key),
+        ['tool:call-1', 'event:aev_received', 'tool:call-2']
     );
 });
 

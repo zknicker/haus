@@ -2,6 +2,7 @@ import { Chip } from '@heroui/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useTurnJournal } from '../../hooks/members/use-turn-journal.ts';
 import {
+    formatAgentActivityEvent,
     getAgentActivityColor,
     getAgentActivityPhaseLabel,
     type TurnDetailAccess,
@@ -73,6 +74,7 @@ export function TurnTrace({
     return (
         <TurnTracePresentation
             access={access}
+            events={turn?.events}
             isPending={journal.isPending}
             presentation={presentation}
             refreshError={journal.refreshError}
@@ -83,18 +85,21 @@ export function TurnTrace({
 /** The rendered trace, split from the relay so its shape can be proved directly. */
 export function TurnTracePresentation({
     access,
+    events,
     isPending,
     presentation,
     refreshError = null,
 }: {
     access: TurnDetailAccess;
+    events?: AgentActivityTurn['events'];
     isPending: boolean;
     presentation: TurnJournalPresentation | null;
     refreshError?: string | null;
 }) {
     const reducedMotion = useReducedMotion();
     const entries = buildTurnTrace(
-        access === 'journal' && presentation?.kind === 'available' ? presentation.journal : null
+        access === 'journal' && presentation?.kind === 'available' ? presentation.journal : null,
+        events
     );
 
     return (
@@ -116,7 +121,11 @@ export function TurnTracePresentation({
                                 key={entry.key}
                                 transition={{ duration: reducedMotion ? 0 : 0.15 }}
                             >
-                                {entry.kind === 'reasoning' ? (
+                                {entry.kind === 'event' ? (
+                                    <TurnTraceNote>
+                                        {formatAgentActivityEvent(entry.event)}
+                                    </TurnTraceNote>
+                                ) : entry.kind === 'reasoning' ? (
                                     <TurnTraceReasoning reasoning={entry.reasoning} />
                                 ) : (
                                     <TurnTraceToolCall tool={entry.tool} />

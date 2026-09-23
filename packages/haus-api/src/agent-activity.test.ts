@@ -155,3 +155,37 @@ test('current activity finishes after a committed message until the turn settles
     });
     expect(projectAgentCurrentActivity(afterMessage, settled)).toBeNull();
 });
+
+test('a received message is history that never displaces current work or counts as an operation', () => {
+    const running = agentActivityEventSchema.parse({
+        agentId: frame.agentId,
+        category: 'running_command',
+        id: 'aev_running',
+        occurredAt: frame.occurredAt,
+        phase: 'started',
+        position: 1,
+        producer: 'computer',
+        producerId: 'cmp_one',
+        producerSequence: 1,
+        runId: frame.runId,
+        serverId: 'srv_one',
+    });
+    const received = agentActivityEventSchema.parse({
+        ...running,
+        category: 'received_message',
+        id: 'aev_received',
+        phase: 'completed',
+        position: 2,
+        producer: 'server',
+        producerId: 'server',
+    });
+
+    const current = projectAgentCurrentActivity(null, running);
+    expect(projectAgentCurrentActivity(current, received)).toEqual(current);
+    expect(projectAgentCurrentActivity(null, received)).toBeNull();
+    expect(
+        agentTurnActivitySummarySchema.safeParse({
+            operations: [{ category: 'received_message', completed: 1, failed: 0, interrupted: 0 }],
+        }).success
+    ).toBe(false);
+});

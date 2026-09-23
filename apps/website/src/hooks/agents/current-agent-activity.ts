@@ -17,6 +17,7 @@ const activityLabels: Record<AgentActivityEvent['category'], string> = {
     checking_messages: 'Checking messages…',
     editing_files: 'Editing files…',
     reading_files: 'Reading files…',
+    received_message: 'Received a new message…',
     running_command: 'Running a command…',
     searching_web: 'Searching the web…',
     sending_message: 'Sending a message…',

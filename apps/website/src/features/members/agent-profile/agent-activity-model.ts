@@ -32,6 +32,12 @@ const activityCopy: Record<AgentActivityCategory, ActivityCopy> = {
         interrupted: 'File reading was interrupted',
         started: 'Reading files…',
     },
+    received_message: {
+        completed: 'Received a new message',
+        failed: 'Failed to receive a new message',
+        interrupted: 'Receiving a new message was interrupted',
+        started: 'Received a new message…',
+    },
     running_command: {
         completed: 'Ran a command',
         failed: 'Failed to run a command',

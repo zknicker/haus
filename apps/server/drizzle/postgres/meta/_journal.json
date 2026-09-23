@@ -323,6 +323,13 @@
       "when": 1790107960981,
       "tag": "0045_addressed_inbox",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790186234100,
+      "tag": "0046_received_message_activity",
+      "breakpoints": true
     }
   ]
 }

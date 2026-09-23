@@ -14,6 +14,7 @@ const safeToolRefSchema = z
 export const agentActivityCategorySchema = z.enum([
     'starting_work',
     'checking_messages',
+    'received_message',
     'thinking',
     'updating_instructions',
     'browsing',
@@ -32,6 +33,7 @@ export const agentActivityPhaseSchema = z.enum(['started', 'completed', 'failed'
 export type AgentActivityPhase = z.infer<typeof agentActivityPhaseSchema>;
 
 export const agentTurnOperationCategorySchema = agentActivityCategorySchema.exclude([
+    'received_message',
     'sending_message',
     'starting_work',
     'thinking',
@@ -127,6 +129,10 @@ export function projectAgentCurrentActivity(
             : null);
     if (isAgentCurrentActivityTerminalEvent(event)) {
         return null;
+    }
+    // A noticed message is history, not work: it never displaces what the Agent is doing.
+    if (event.category === 'received_message') {
+        return previous;
     }
     if (previous && isAgentFinishingActivityEvent(previous) && event.phase !== 'started') {
         return previous;

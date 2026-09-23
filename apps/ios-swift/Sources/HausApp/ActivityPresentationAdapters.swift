@@ -50,6 +50,7 @@ private extension AgentActivityCategory {
         switch self {
         case .startingWork: "Starting work…"
         case .checkingMessages: "Checking messages…"
+        case .receivedMessage: "Received a new message…"
         case .thinking: "Thinking…"
         case .browsing: "Browsing…"
         case .searchingWeb: "Searching the web…"
@@ -66,6 +67,7 @@ private extension AgentActivityCategory {
         switch self {
         case .startingWork: "Started work"
         case .checkingMessages: "Checked messages"
+        case .receivedMessage: "Received a new message"
         case .thinking: "Finished thinking"
         case .browsing: "Finished browsing"
         case .searchingWeb: "Searched the web"
