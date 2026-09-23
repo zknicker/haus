@@ -2,6 +2,7 @@ import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import { knownToolCategory, syntheticHarnessToolActivity } from './activity-tool-fixtures.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
+import { createFileChangeFold } from './file-change-fold.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 
 export interface HausHostToolRegistration {
@@ -100,7 +101,12 @@ export function createComputerActivityProjector(input: {
     registry: ComputerActivityRegistry;
     runtimeId: string;
 }) {
-    const calls: ToolCalls = { pending: new Map(), skipped: new Set() };
+    const skipped = new Set<string>();
+    const calls: ToolCalls = {
+        fileChanges: createFileChangeFold(skipped),
+        pending: new Map(),
+        skipped,
+    };
     const { pending } = calls;
     return {
         async finish(phase: 'completed' | 'failed' | 'interrupted', error?: unknown) {
@@ -121,6 +127,7 @@ export function createComputerActivityProjector(input: {
             }
             pending.clear();
             calls.skipped.clear();
+            calls.fileChanges.clear();
             await input.journal?.flushReasoning();
         },
         async observe(part: unknown) {
@@ -170,6 +177,9 @@ async function observeToolCall(
     if (!(toolCallId && toolName)) {
         return;
     }
+    if (await calls.fileChanges.observeCall({ part, toolCallId, toolName }, input.journal)) {
+        return;
+    }
     await startToolActivity({
         activity: input.activity,
         calls,
@@ -204,7 +214,7 @@ async function observeToolOutcome(
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
-    if (!(toolCallId && toolName)) {
+    if (!(toolCallId && toolName) || calls.fileChanges.absorbsResult(toolCallId)) {
         return;
     }
     await startToolActivity({
@@ -233,7 +243,7 @@ async function observeToolOutcome(
         output: part.type === 'tool-error' ? part.error : part.output,
         preliminary: isPreliminary,
         toolCallId,
-        toolName,
+        toolName: calls.fileChanges.journalName(toolCallId, toolName),
     });
     if (isPreliminary) {
         return;
@@ -268,6 +278,7 @@ async function startToolActivity(input: {
 
 /** Open tool activities, and calls deliberately kept out of Activity until they settle. */
 interface ToolCalls {
+    fileChanges: ReturnType<typeof createFileChangeFold>;
     pending: Map<string, ComputerToolActivity>;
     skipped: Set<string>;
 }

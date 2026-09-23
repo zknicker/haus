@@ -80,11 +80,16 @@ test('codex-acp tool calls get readable names, categories, and real durations', 
     expect(tools?.map(({ toolCallId, toolName }) => [toolCallId, toolName])).toEqual([
         ['exec-sleep', 'bash'],
         ['exec-read', 'bash'],
-        ['exec-patch', 'apply_patch'],
-        [expect.stringMatching(/^harness-file-change-/), 'fileChange'],
+        // The patch and the harness's file change for it are one step, named by the file.
+        ['exec-patch', 'fileChange'],
         ['compact-1', 'compaction'],
         ['mcp-1', 'acp_tool_mcp-1'],
     ]);
+    expect(document?.tools.find((tool) => tool.toolCallId === 'exec-patch')).toMatchObject({
+        input: { event: 'create', path: 'notes.txt' },
+        nativeName: 'apply_patch',
+        status: 'completed',
+    });
     // The step spans the command, not the host-tool correlation window after it.
     expect(tools?.[0]?.durationMs).toBeGreaterThanOrEqual(350);
     expect(events).toEqual([
@@ -94,8 +99,6 @@ test('codex-acp tool calls get readable names, categories, and real durations', 
         { category: 'running_command', phase: 'started' },
         { category: 'running_command', phase: 'completed' },
         { category: 'editing_files', phase: 'started' },
-        { category: 'editing_files', phase: 'started' },
-        { category: 'editing_files', phase: 'completed' },
         { category: 'editing_files', phase: 'completed' },
         { category: 'using_tool', phase: 'started' },
         { category: 'using_tool', phase: 'completed' },

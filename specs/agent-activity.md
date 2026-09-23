@@ -62,8 +62,11 @@ inference.
    does not turn a shell event into file reading.
 4. **Harness-synthesized runtime events** arrive as reserved provider-executed tool calls:
    `fileChange` maps to `editing_files`, so a runtime whose only file-edit evidence is a file-change
-   event still reports file work. `compaction` maps to no activity at all — context compaction is
-   harness bookkeeping rather than agent work — while still landing in the execution journal. Both
+   event still reports file work. A `fileChange` that harness-acp tags with an already-seen ACP
+   tool call is that call's edit, not a second one: the source call (Codex's `apply_patch`) keeps
+   the edit's single activity, and a source step with no input of its own takes the first file's
+   name and path. A multi-file patch journals each further file as its own step without opening
+   more activity. `compaction` maps to no activity at all — context compaction is harness bookkeeping rather than agent work — while still landing in the execution journal. Both
    names stay generic when the call is not provider-executed, so a host or MCP tool cannot claim them.
 
 An optional tool label crosses only when it is a canonical Haus-controlled display identity.
