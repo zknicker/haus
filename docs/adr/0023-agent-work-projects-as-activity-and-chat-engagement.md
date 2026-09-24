@@ -18,6 +18,11 @@ Partly superseded 2026-09-23 by [ADR 0035](0035-chat-engagement-shows-as-typing.
 now show typing from run visibility, and the sidebar activity strip is removed. The split
 between the Server activity journal and the Computer execution journal stands.
 
+Proposed amendment 2026-09-24 (prototype, [ADR 0036](0036-agent-thoughts-surface-as-condensed-phrases.md)):
+behind `HAUS_AGENT_THOUGHTS`, the Computer may send one condensed, short status phrase per
+reasoning block. Raw reasoning still never leaves the Computer, and the phrase is announced to
+engaged Chats only, never persisted.
+
 ## Context
 
 Haus previously exposed ongoing Agent work primarily through one global status dot. Its durable

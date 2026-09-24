@@ -158,8 +158,14 @@ and [Agent Inbox](../../specs/inbox.md).
   Chat launches 😊. Other kinds launch nothing, activity from the Agent's runs
   elsewhere never launches here, and at most one face launches per 350ms (the
   reply and failure faces excepted); extras are dropped. Reduced motion fades
-  the face in place. The face is the whole signal: thought text never leaves
-  the Computer ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
+  the face in place. Reasoning text never leaves the Computer
+  ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
+  Prototype, local development only (`HAUS_AGENT_THOUGHTS`): when the engaging
+  run finishes a reasoning block, a short condensed phrase ("Checking Halloween
+  bid changes") appears in a glass bubble over that Agent's avatar, wobbles in,
+  holds about two seconds, and leaves; a newer thought replaces it, faces fly
+  above it, and the engagement ending clears it. Thoughts are never stored or
+  recovered ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
 * **Scroll position.** Sending from the composer brings the conversation to the
   bottom, even when the human was reading older messages. Incoming Agent messages
   follow the bottom only when the reader was already following it. That choice
