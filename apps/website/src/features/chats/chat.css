@@ -106,22 +106,53 @@
 }
 
 @layer utilities {
-    /* The message scroller cannot hand HeroUI ScrollShadow the ref it needs. */
+    /* The message scroller cannot hand HeroUI ScrollShadow the ref it needs.
+       The fade eases out and reaches transparent just above the edge, so a
+       line straddling it never shows as a hard cut; `.scroll-fade-blur`
+       softens the same band from behind. */
     .scroll-fade-b {
-        --scroll-fade-size: 2rem;
-        --scroll-fade-inset: 0rem;
-        -webkit-mask-image: linear-gradient(
+        --scroll-fade-size: 3rem;
+        --scroll-fade-inset: 0.25rem;
+        --scroll-fade-mask: linear-gradient(
             to bottom,
             #000 0,
             #000 calc(100% - var(--scroll-fade-size)),
+            rgb(0 0 0 / 0.72) calc(100% - var(--scroll-fade-size) * 0.66),
+            rgb(0 0 0 / 0.32) calc(100% - var(--scroll-fade-size) * 0.36),
+            rgb(0 0 0 / 0.08) calc(100% - var(--scroll-fade-size) * 0.14),
             transparent calc(100% - var(--scroll-fade-inset))
         );
-        mask-image: linear-gradient(
-            to bottom,
-            #000 0,
-            #000 calc(100% - var(--scroll-fade-size)),
-            transparent calc(100% - var(--scroll-fade-inset))
-        );
+        -webkit-mask-image: var(--scroll-fade-mask);
+        mask-image: var(--scroll-fade-mask);
+    }
+
+    /* Progressive blur: each layer blurs harder and owns a lower band. */
+    .scroll-fade-blur {
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        height: 2.5rem;
+        pointer-events: none;
+    }
+
+    .scroll-fade-blur > span {
+        position: absolute;
+        inset: 0;
+    }
+
+    .scroll-fade-blur > span:nth-child(1) {
+        backdrop-filter: blur(1px);
+        mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 55%, transparent 80%);
+    }
+
+    .scroll-fade-blur > span:nth-child(2) {
+        backdrop-filter: blur(2.5px);
+        mask-image: linear-gradient(to bottom, transparent 30%, #000 55%, #000 80%, transparent 100%);
+    }
+
+    .scroll-fade-blur > span:nth-child(3) {
+        backdrop-filter: blur(5px);
+        mask-image: linear-gradient(to bottom, transparent 55%, #000 80%, #000 100%);
     }
 
     .scroll-fade-b.thread-conversation-viewport {
