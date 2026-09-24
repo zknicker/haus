@@ -20,15 +20,17 @@ test('the header mark names its automation in that automation’s own ink', () =
     expect(trigger + reminder).not.toContain('text-danger');
 });
 
-test('the hover card previews the automation and links out to manage it', () => {
+test('the hover card previews the automation without management links', () => {
     const markup = render(<MessageCauseHoverContent cause={triggerCause()} />);
 
     expect(markup).toContain('Deploy finished');
-    expect(markup).toContain('Webhook');
-    expect(markup).toContain('Armed');
-    expect(markup).toContain('4m ago');
+    expect(markup).toContain('· Webhook');
+    expect(markup).toContain('Armed · Last fired 4m ago · 12 fires');
     expect(markup).toContain('Summarize the deploy in this DM; flag failures.');
-    expect(markup).toContain('/s/dev/agents/agt_blippy/automations');
+    expect(markup).toContain('haus-hover-card__identity');
+    // A preview, not a control panel: managing lives in Automations.
+    expect(markup).not.toContain('<a');
+    expect(markup).not.toContain('Manage in Automations');
 });
 
 test('a hover card says when Haus inferred the link rather than the Agent naming it', () => {
@@ -47,9 +49,10 @@ test('a hover card says when Haus inferred the link rather than the Agent naming
 test('a Reminder hover card trades the fire count for its cadence', () => {
     const markup = render(<MessageCauseHoverContent cause={reminderCause()} />);
 
-    expect(markup).toContain('Cadence');
-    expect(markup).toContain('Every Monday at 09:00');
-    expect(markup).not.toContain('Fires');
+    expect(markup).toContain('>Every Monday at 09:00</p>');
+    expect(markup).not.toContain('· Every Monday at 09:00');
+    expect(markup).toContain('Scheduled');
+    expect(markup).not.toContain('fires');
 });
 
 test('the Thread context card states the fire and offers its payload', () => {
@@ -83,20 +86,12 @@ test('an archived hover card states the snapshot and says the record is gone', (
 
     expect(markup).toContain('Deploy finished');
     expect(markup).toContain('Webhook');
-    expect(markup).toContain('This trigger has been archived.');
-    // The live rows, the standing instruction, and the way out to a record
-    // that no longer exists all go with it.
+    expect(markup).toContain('Archived · Fired 4m ago');
+    // The live facts and the standing instruction go with the record.
     expect(markup).not.toContain('Armed');
     expect(markup).not.toContain('Last fired');
-    expect(markup).not.toContain('Fires');
+    expect(markup).not.toContain('fires');
     expect(markup).not.toContain('Summarize the deploy in this DM; flag failures.');
-    expect(markup).not.toContain('Manage in Automations');
-});
-
-test('an archived hover card names the kind that was archived', () => {
-    expect(render(<MessageCauseHoverContent cause={archivedReminderCause()} />)).toContain(
-        'This reminder has been archived.'
-    );
 });
 
 test('an archived context card drops the status, the payload, and the way out', () => {

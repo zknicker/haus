@@ -30,7 +30,11 @@ function recordingUtils() {
                 systemLog: { invalidate: invalidate('computer.systemLog') },
             },
             invitation: { list: { invalidate: invalidate('invitation.list') } },
-            mcp: { list: { invalidate: invalidate('mcp.list') } },
+            mcp: {
+                list: { invalidate: invalidate('mcp.list') },
+                amazonProducts: { invalidate: invalidate('mcp.amazonProducts') },
+                amazonProductDetail: { invalidate: invalidate('mcp.amazonProductDetail') },
+            },
             member: {
                 get: { invalidate: invalidate('member.get') },
                 list: { invalidate: invalidate('member.list') },
@@ -175,10 +179,14 @@ test('an unknown slug falls back to refreshing every cached Server detail', () =
     expect(invalidated[0]).toEqual({ input: undefined, name: 'server.bySlug' });
 });
 
-test('MCP events stay confined to the connection list', () => {
+test('MCP events invalidate connections and their product previews', () => {
     const { invalidated, utils } = recordingUtils();
 
     createServerUpdateHandler(utils, 'server-one', 'team-room')({ scope: 'mcp' });
 
-    expect(names(invalidated)).toEqual(['mcp.list']);
+    expect(names(invalidated)).toEqual([
+        'mcp.list',
+        'mcp.amazonProducts',
+        'mcp.amazonProductDetail',
+    ]);
 });

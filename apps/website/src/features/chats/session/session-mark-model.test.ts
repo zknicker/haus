@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import {
     deriveSessionMarks,
     formatSessionDuration,
-    sessionRotationHoverRows,
+    sessionRotationHoverFacts,
     sessionRotationReasonLabel,
 } from './session-mark-model.ts';
 
@@ -71,11 +71,11 @@ test('durations stay coarse and drop the empty trailing unit', () => {
     expect(formatSessionDuration(2 * 86_400_000 + 4 * 3_600_000)).toBe('2d 4h');
 });
 
-test('the hover rows state the reason, the moment, and the session it replaced', () => {
+test('the hover facts state the moment and the session it replaced', () => {
     const now = Date.parse('2026-09-04T12:00:00.000Z');
 
     expect(
-        sessionRotationHoverRows(
+        sessionRotationHoverFacts(
             {
                 generation: 5,
                 previousDurationMs: 3 * 3_600_000,
@@ -84,22 +84,22 @@ test('the hover rows state the reason, the moment, and the session it replaced',
             },
             now
         )
-    ).toEqual([
-        { label: 'Reason', value: 'Settings changed' },
-        { label: 'When', value: '30m ago' },
-        { label: 'Previous session', value: '3h' },
-    ]);
+    ).toEqual(['30m ago', 'Previous session ran 3h']);
 });
 
-test('an unknown previous session is stated as unknown, not as zero', () => {
-    const rows = sessionRotationHoverRows({
-        generation: 2,
-        previousDurationMs: null,
-        reason: 'recovery',
-        rotatedAt: '2026-09-04T11:30:00.000Z',
-    });
+test('an unknown previous session is left out, not stated as zero', () => {
+    const now = Date.parse('2026-09-04T12:00:00.000Z');
+    const facts = sessionRotationHoverFacts(
+        {
+            generation: 2,
+            previousDurationMs: null,
+            reason: 'recovery',
+            rotatedAt: '2026-09-04T11:30:00.000Z',
+        },
+        now
+    );
 
-    expect(rows.at(-1)).toEqual({ label: 'Previous session', value: '—' });
+    expect(facts).toEqual(['30m ago']);
 });
 
 function agent(id: string, agentId: string, sessionGeneration: number | null) {

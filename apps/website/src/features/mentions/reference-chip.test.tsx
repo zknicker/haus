@@ -36,16 +36,16 @@ test('renders rich references with the shared HeroUI Chip shell', () => {
     expect(markup).not.toContain('--chip-bg');
     expect(markup).not.toContain('--reference-chip-color');
     expect(markup).toContain('Blippy');
-    expect(markup).not.toContain('data-slot="hover-card-trigger"');
+    expect(markup).not.toContain('data-slot="tooltip-trigger"');
     expect(markup).not.toContain('<button');
 });
 
-test('wraps transcript reference previews in HeroUI hover-card triggers', () => {
+test('wraps transcript reference previews in HeroUI tooltip triggers', () => {
     const markup = renderToStaticMarkup(
         <ReferenceChip id="agent://agent_blippy" kind="agent" label="Blippy" preview />
     );
 
-    expect(markup).toContain('data-slot="hover-card-trigger"');
+    expect(markup).toContain('data-slot="tooltip-trigger"');
     expect(markup).toContain('<button');
     expect(markup).toContain('aria-label="Preview Blippy"');
 });
@@ -118,14 +118,14 @@ test('previews Channels with activity beside the title and overlapping member av
 
     expect(markup).toContain('height:18px');
     expect(markup).toContain('width:18px');
-    expect(markup).toContain('flex-col gap-2');
-    expect(markup).toContain('reference-hover-card__identity');
+    expect(markup).toContain('flex-col gap-1.5');
+    expect(markup).toContain('haus-hover-card__identity');
     expect(markup).toContain('items-center gap-1.5');
     expect(markup).toContain('items-baseline gap-1.5');
-    expect(markup).toContain('text-base');
+    expect(markup).toContain('font-semibold text-foreground text-sm');
     expect(markup).toContain('#product');
     expect(markup).toContain('· Active 1d ago');
-    expect(markup).toContain('reference-hover-card__faces');
+    expect(markup).toContain('haus-hover-card__faces');
     expect(markup).toContain('Channel members');
     expect(markup).toContain('-space-x-2');
     expect(markup).toContain('ZK');
@@ -174,14 +174,14 @@ test('previews a Skill with a compact identity row and smaller mark', () => {
 
     expect(markup).toContain('size-[16px]');
     expect(markup.match(/<path/g)).toHaveLength(3);
-    expect(markup).toContain('flex-col gap-2');
-    expect(markup).toContain('reference-hover-card__identity');
+    expect(markup).toContain('flex-col gap-1.5');
+    expect(markup).toContain('haus-hover-card__identity');
     expect(markup).toContain('text-skill-reference');
     expect(markup).toContain('items-center gap-1.5');
     expect(markup).toContain('items-baseline gap-1.5');
     expect(markup).toContain('· Skill');
     expect(markup).toContain('Build polished interfaces with clear visual hierarchy.');
-    expect(markup).toContain('text-muted text-sm');
+    expect(markup).toContain('text-xs leading-normal text-muted');
     expect(markup).not.toContain('line-clamp');
     expect(markup).not.toContain('data-slot="separator"');
 });
@@ -218,7 +218,7 @@ test('gives non-navigable references a native preview control without activating
 
     expect(markup).toContain('<button');
     expect(markup).toContain('aria-label="Preview Design"');
-    expect(markup).toContain('data-slot="hover-card-trigger"');
+    expect(markup).toContain('data-slot="tooltip-trigger"');
     expect(markup).toContain('data-slot="chip"');
     expect(markup).toContain('chip--tertiary');
     expect(markup).toContain('chip--default');

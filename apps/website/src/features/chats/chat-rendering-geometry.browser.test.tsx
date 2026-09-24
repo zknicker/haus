@@ -213,7 +213,7 @@ test('reference labels align with surrounding text for activated and inert chips
             }
 
             const referenceNode =
-                chip.closest('[data-slot="hover-card-trigger"]') ??
+                chip.closest('[data-slot="tooltip-trigger"]') ??
                 (chip.parentElement instanceof HTMLButtonElement ? chip.parentElement : chip);
             const adjacentText = referenceNode.nextSibling;
 
@@ -268,9 +268,8 @@ test('reference labels align with surrounding text for activated and inert chips
     expect(metrics.activated.chipHeight).toBe(metrics.inert.chipHeight);
     expect(metrics.activated.lineHeight).toBe(metrics.inert.lineHeight);
     expect(Math.abs(metrics.activated.chipTop - metrics.inert.chipTop)).toBeLessThanOrEqual(0.5);
-    // Font metrics differ between the headless Linux browser and the macOS app.
-    // The wrapper alignment is the portable contract; these bounds still catch
-    // the five-pixel lift caused by the former baseline-aligned wrapper.
+    // Cross-platform font metrics vary; these bounds catch the former five-pixel
+    // lift from a baseline-aligned wrapper.
     expect(Math.abs(metrics.activated.labelTextOffset)).toBeLessThanOrEqual(2.25);
     expect(Math.abs(metrics.inert.labelTextOffset)).toBeLessThanOrEqual(2.25);
     expect(Math.abs(metrics.activated.markTextOffset)).toBeLessThanOrEqual(2.75);
@@ -307,6 +306,7 @@ test('cursor hover cards track and exit without motion', async () => {
         ></div>
     `);
 
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     const motion = await page.evaluate(() => {
         const card = document.getElementById('hover-card');
 
@@ -333,7 +333,7 @@ test('cursor hover cards track and exit without motion', async () => {
     await page.close();
 });
 
-test('contrast cursor hover cards stay dark in both app themes', async () => {
+test('hover cards stay dark glass in both app themes', async () => {
     const page = await newGeometryPage(`
         <style>
             :root {
@@ -347,15 +347,15 @@ test('contrast cursor hover cards stay dark in both app themes', async () => {
             }
         </style>
         <div class="light" id="light">
-            <div class="hover-card__content cursor-hover-card--contrast reference-hover-card">
-                <div class="reference-hover-card__identity">Channel</div>
-                <div class="reference-hover-card__faces"><span class="avatar"></span></div>
+            <div class="hover-card__content haus-hover-card dark">
+                <div class="haus-hover-card__identity">Channel</div>
+                <div class="haus-hover-card__faces"><span class="avatar"></span></div>
             </div>
         </div>
         <div class="dark" data-theme="dark" id="dark">
-            <div class="hover-card__content cursor-hover-card--contrast reference-hover-card">
-                <div class="reference-hover-card__identity">Skill</div>
-                <div class="reference-hover-card__faces"><span class="avatar"></span></div>
+            <div class="hover-card__content haus-hover-card dark">
+                <div class="haus-hover-card__identity">Skill</div>
+                <div class="haus-hover-card__faces"><span class="avatar"></span></div>
             </div>
         </div>
     `);
@@ -368,9 +368,9 @@ test('contrast cursor hover cards stay dark in both app themes', async () => {
             }
 
             const style = getComputedStyle(card);
-            const identity = card.querySelector('.reference-hover-card__identity');
-            const faces = card.querySelector('.reference-hover-card__faces');
-            const mark = card.querySelector('.reference-hover-card__faces .avatar');
+            const identity = card.querySelector('.haus-hover-card__identity');
+            const faces = card.querySelector('.haus-hover-card__faces');
+            const mark = card.querySelector('.haus-hover-card__faces .avatar');
             const cardBounds = card.getBoundingClientRect();
             const identityBounds = identity?.getBoundingClientRect();
             const facesBounds = faces?.getBoundingClientRect();
@@ -394,7 +394,7 @@ test('contrast cursor hover cards stay dark in both app themes', async () => {
 
     expect(appearances.dark).toEqual(appearances.light);
     expect(appearances.light).toEqual({
-        backgroundColor: 'oklch(0.2103 0.0059 285.89)',
+        backgroundColor: 'oklab(0.2103 0.00161537 -0.00567456 / 0.88)',
         color: 'oklch(0.9911 0 0)',
         colorScheme: 'dark',
         // Both mark columns start on the same optical edge, and each stacked

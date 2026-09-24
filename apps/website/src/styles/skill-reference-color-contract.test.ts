@@ -24,10 +24,7 @@ describe('Skill reference color contract', () => {
 
     test('shares that identity between the inline Chip and dark preview', () => {
         const chip = ruleBlock(themeCss, '\n    .chip.reference-chip--skill {');
-        const contrastCard = ruleBlock(
-            themeCss,
-            '\n    .hover-card__content.cursor-hover-card--contrast {'
-        );
+        const contrastCard = ruleBlock(themeCss, '\n    .hover-card__content.haus-hover-card {');
 
         expect(chip).toContain('--chip-fg: var(--skill-reference)');
         expect(contrastCard).toContain('--skill-reference: var(--color-purple-400)');

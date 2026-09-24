@@ -1,6 +1,17 @@
 import { expect, test } from 'bun:test';
 import { getManualTopic, searchManualTopics } from './index.ts';
 
+test('Amazon product guidance is discoverable without granting MCP access', () => {
+    expect(
+        searchManualTopics('Amazon ASIN RankWrangler', { limit: 5, scope: 'all' }).map(
+            ({ id }) => id
+        )
+    ).toContain('amazon-product-references');
+    const topic = getManualTopic('amazon-product-references');
+    expect(topic?.body).toContain('No special markup or lookup call is needed');
+    expect(topic?.body).toContain('explicit connection grant');
+});
+
 test('inline reply guidance is discoverable and separates attention from ownership', () => {
     const topic = getManualTopic('replies');
     expect(topic?.body).toContain('--reply-to <messageId>');

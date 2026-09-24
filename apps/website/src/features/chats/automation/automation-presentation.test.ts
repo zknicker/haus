@@ -9,7 +9,7 @@ import {
     formatUpcomingTime,
     messageCauseArchivedNote,
     messageCauseAttributionNote,
-    messageCauseHoverRows,
+    messageCauseHoverFacts,
 } from './automation-presentation.ts';
 
 const now = Date.parse('2026-09-03T12:00:00.000Z');
@@ -22,32 +22,34 @@ test('only a live automation status carries colour', () => {
     expect(automationStatusChip('fired')).toEqual({ color: 'default', label: 'Fired' });
 });
 
-test('a Trigger previews its kind, status, last fire, and fire count', () => {
-    expect(messageCauseHoverRows(triggerCause(), now)).toEqual([
-        { label: 'Kind', value: 'Webhook' },
-        { label: 'Status', value: 'Armed' },
-        { label: 'Last fired', value: '4m ago' },
-        { label: 'Fires', value: '12' },
+test('a Trigger previews its status, last fire, and fire count', () => {
+    expect(messageCauseHoverFacts(triggerCause(), now)).toEqual([
+        'Armed',
+        'Last fired 4m ago',
+        '12 fires',
     ]);
+    expect(
+        messageCauseHoverFacts(
+            { ...triggerCause(), live: { ...liveTrigger(), fireCount: 1 } },
+            now
+        ).at(-1)
+    ).toBe('1 fire');
 });
 
-test('a Reminder previews its cadence instead of a fire count', () => {
-    const rows = messageCauseHoverRows(reminderCause(), now);
-
-    expect(rows[0]).toEqual({ label: 'Cadence', value: 'Every Monday at 09:00' });
-    expect(rows.map((row) => row.label)).toEqual(['Cadence', 'Status', 'Last fired']);
+test('a Reminder previews no fire count', () => {
+    expect(messageCauseHoverFacts(reminderCause(), now)).toEqual([
+        'Scheduled',
+        'Last fired 7d ago',
+    ]);
 });
 
 test('an automation that has never fired says so rather than showing a date', () => {
     const cause: MessageCause = {
         ...triggerCause(),
-        live: { fireCount: 12, instruction: null, lastFiredAt: null, status: 'armed' },
+        live: { ...liveTrigger(), lastFiredAt: null },
     };
 
-    expect(messageCauseHoverRows(cause, now)).toContainEqual({
-        label: 'Last fired',
-        value: 'Never',
-    });
+    expect(messageCauseHoverFacts(cause, now)).toContain('Never fired');
 });
 
 test('a Trigger fire states its kind, when it fired, and its place in the history', () => {
@@ -102,14 +104,14 @@ test('a fire within the week reads by weekday and falls back to a date past it',
     expect(formatUpcomingTime('2026-10-07T13:00:00.000Z', now)).toMatch(/^Oct \d+/u);
 });
 
-test('an archived automation previews its snapshot and drops the live rows', () => {
-    expect(messageCauseHoverRows(archivedTriggerCause(), now)).toEqual([
-        { label: 'Kind', value: 'Webhook' },
-        { label: 'Fired', value: '4m ago' },
+test('an archived automation previews its snapshot and drops the live facts', () => {
+    expect(messageCauseHoverFacts(archivedTriggerCause(), now)).toEqual([
+        'Archived',
+        'Fired 4m ago',
     ]);
-    expect(messageCauseHoverRows(archivedReminderCause(), now)).toEqual([
-        { label: 'Cadence', value: 'Every Monday at 09:00' },
-        { label: 'Fired', value: '7d ago' },
+    expect(messageCauseHoverFacts(archivedReminderCause(), now)).toEqual([
+        'Archived',
+        'Fired 7d ago',
     ]);
 });
 
@@ -148,6 +150,15 @@ test('only an inferred cause explains itself', () => {
     );
 });
 
+function liveTrigger(): NonNullable<MessageCause['live']> {
+    return {
+        fireCount: 12,
+        instruction: 'Summarize the deploy in this DM; flag failures.',
+        lastFiredAt: '2026-09-03T11:56:00.000Z',
+        status: 'armed',
+    };
+}
+
 function triggerCause(): MessageCause {
     return {
         attribution: 'explicit',
@@ -155,12 +166,7 @@ function triggerCause(): MessageCause {
         firedAt: '2026-09-03T11:56:00.000Z',
         fireId: 'trf_12',
         kind: 'trigger',
-        live: {
-            fireCount: 12,
-            instruction: 'Summarize the deploy in this DM; flag failures.',
-            lastFiredAt: '2026-09-03T11:56:00.000Z',
-            status: 'armed',
-        },
+        live: liveTrigger(),
         ownerAgentId: 'agt_blippy',
         summary: 'Webhook',
         title: 'Deploy finished',

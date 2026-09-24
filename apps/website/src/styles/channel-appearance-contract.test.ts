@@ -26,7 +26,7 @@ function ruleBlock(selectorAnchor: string): string {
 
 describe('channel appearance contract', () => {
     const lightBox = ruleBlock('\n    .channel-icon-box {');
-    const darkBox = ruleBlock('.cursor-hover-card--contrast .channel-icon-box');
+    const darkBox = ruleBlock('.haus-hover-card .channel-icon-box');
     const lightSidebarBox = ruleBlock("[data-theme='light'] .channel-icon-box--sidebar");
 
     test('the mark resolves the configured palette per theme', () => {
@@ -42,7 +42,7 @@ describe('channel appearance contract', () => {
         // palette branch must be reachable from all three scopes.
         const darkSelectors = themeCss.slice(
             themeCss.indexOf("[data-theme='dark'] .channel-icon-box"),
-            themeCss.indexOf('.cursor-hover-card--contrast .channel-icon-box')
+            themeCss.indexOf('.haus-hover-card .channel-icon-box')
         );
         expect(darkSelectors).toContain('.dark .channel-icon-box');
     });

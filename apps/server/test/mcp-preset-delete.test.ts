@@ -22,9 +22,22 @@ afterAll(async () => {
     await harness?.close();
 });
 
+test('product previews require membership and a connected RankWrangler account', async () => {
+    const input = {
+        serverId,
+        products: [{ asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' as const }],
+    };
+    await expect(outsider.trpc.mcp.amazonProducts.query(input)).rejects.toThrow();
+    await expect(owner.trpc.mcp.amazonProducts.query(input)).resolves.toBeNull();
+    await expect(
+        owner.trpc.mcp.amazonProductDetail.query({ serverId, ...input.products[0] })
+    ).resolves.toBeNull();
+});
+
 test.each([
     'merchbase',
     'google-calendar',
+    'rankwrangler',
 ] as const)('deletes a %s account and its secrets without removing another account', async (preset) => {
     const first = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });
     const second = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });
