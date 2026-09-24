@@ -76,6 +76,7 @@ export interface HarnessTurnInput extends TurnDelivery {
     sessionGeneration: number;
     signal?: AbortSignal;
     skillsDir: string;
+    thoughts?: import('./thought-narrator.ts').AgentThoughtNarrator;
     tools: ToolSet;
     turnTimings?: AgentTurnTimings;
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
@@ -377,10 +378,9 @@ async function executeHarnessTurn(
             isColdStart: !live.isResume,
             sessionGeneration: session.generation,
         });
-        // A notice-lane drain is composed here, not served by the Server, so the
-        // Computer attests it exactly as a pull does — to the Server before the
-        // model streams — and clears it from the local notice projection before
-        // any stored notice can repeat it.
+        // A notice-lane drain is composed here, not served by the Server, so the Computer attests
+        // it exactly as a pull does — to the Server before the model streams — and clears it from
+        // the local notice projection before any stored notice can repeat it.
         await attestComposedDrain(input, prompt.drained);
         const turnContent = prompt.turnContent;
         const turn = await agent.stream({
@@ -407,7 +407,7 @@ async function executeHarnessTurn(
             () => storedNoticeReady.resolve()
         );
         let observation: HarnessTurnResult;
-        // The turn input carries the projector's activity run, runtime, and workspace.
+        // The turn input carries the projector's activity run, thoughts, runtime, and workspace.
         const projector = createHarnessActivityProjector({ ...input, journal });
         try {
             observation = await settle(

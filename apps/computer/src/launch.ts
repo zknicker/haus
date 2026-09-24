@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { seedCoveWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
 import type { AgentTurnActivitySummary } from '@haus/api';
 import type { TraceCarrier } from '@haus/effect';
-import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { AgentActivityRun } from './agent-activity-run.ts';
 import type {
     AgentNoticeCommand,
@@ -22,6 +21,7 @@ import {
 } from './agent-configuration.ts';
 import { parseDrainItemIds, parseInbox, parseUnreadElsewhere } from './agent-inbox-input.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
+import { createRunFrames } from './agent-run-frames.ts';
 import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
 import type { AgentTurnTimings } from './agent-turn-timings.ts';
 import { computerEntrypoint } from './build-identity.ts';
@@ -37,6 +37,12 @@ import {
     runHarnessTurn,
 } from './harness/executor.ts';
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
+import {
+    type AgentThoughtNarrator,
+    agentThoughtsEnabled,
+    createAgentThoughtNarrator,
+    sharedThoughtSummarizer,
+} from './harness/thought-narrator.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
@@ -150,25 +156,15 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     const { proxy, proxyToken } = host;
     proxy.setTraceContext(options.turnTraceContext);
     proxy.setOnCommittedSend(() => options.turnTimings?.recordSend());
-    let activitySequence = 0;
-    const sendActivity = (activity: ComputerAgentActivityUpdate) => {
-        const frame = {
-            agentId: command.agentId,
-            category: activity.category,
-            occurredAt: activity.occurredAt,
-            phase: activity.phase,
-            producerSequence: ++activitySequence,
-            runId: command.runId,
-            ...(activity.toolRef ? { toolRef: activity.toolRef } : {}),
-            type: 'agent-activity' as const,
-        };
-        try {
-            options.sendFrame(frame);
-        } catch {
-            // Disconnected activity presentation must not fail a model turn.
-        }
-    };
-    const activity = new AgentActivityRun(options.runtime, sendActivity);
+    const frames = createRunFrames({ ...command, sendFrame: options.sendFrame });
+    const activity = new AgentActivityRun(options.runtime, frames.activity);
+    const thoughts = agentThoughtsEnabled()
+        ? createAgentThoughtNarrator({
+              emit: frames.thought,
+              runtimeId: command.runtimeId,
+              summarizer: sharedThoughtSummarizer(),
+          })
+        : undefined;
     proxy.setActivityRun(activity);
     const tokenFile = join(dirs.runtime, 'proxy-token');
     const binDir = join(dirs.runtime, 'bin');
@@ -238,6 +234,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       registerNoticeSink: options.registerNoticeSink,
                       runtime: options.runtime,
                       serverId: options.attachment.serverId,
+                      thoughts,
                       tools: createComputerTools({ host, options, command }),
                       signal: options.signal,
                   });
@@ -245,6 +242,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
         await revokeRunner(options, runner.runnerId).catch(() => undefined);
         proxy.clearRunnerToken();
         proxy.setActivityRun(undefined);
+        thoughts?.close();
         await activity.close(result.status);
     }
 
@@ -553,6 +551,7 @@ async function runRealRuntime(
         agentRoot: string;
         attestVisible: ReturnType<typeof visibilityReceipt>;
         harnessAgentFactory?: HarnessAgentFactory;
+        thoughts?: AgentThoughtNarrator;
         tools: import('@ai-sdk/provider-utils').ToolSet;
     }
 ): Promise<{
@@ -586,6 +585,7 @@ async function runRealRuntime(
             inboxDelivery: command.inboxDelivery,
             onStoredNoticeDelivered: input.onStoredNoticeDelivered,
             activity: input.activity,
+            thoughts: input.thoughts,
             registerNoticeSink: input.registerNoticeSink,
             runtime: input.runtime,
             runId: command.runId,

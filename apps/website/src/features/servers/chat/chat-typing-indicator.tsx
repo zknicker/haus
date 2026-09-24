@@ -1,5 +1,6 @@
 import { ChatLoader } from '@heroui-pro/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentActivityListener } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
@@ -16,6 +17,8 @@ import {
     ChatTypingLaunches,
     useChatTypingLauncher,
 } from './chat-typing-launches.tsx';
+import type { ChatTypingThought } from './chat-typing-thought.ts';
+import { ChatTypingThoughtBubble, useChatTypingThought } from './chat-typing-thought-bubble.tsx';
 
 const maximumAvatars = 3;
 
@@ -46,7 +49,9 @@ export function ChatTypingIndicator({
         }
     });
 
-    return <ChatTypingStrip launcher={launcher} typists={typists} />;
+    const thought = useChatTypingThought(serverId, chatId, engagements);
+
+    return <ChatTypingStrip launcher={launcher} thought={thought} typists={typists} />;
 }
 
 /**
@@ -55,13 +60,18 @@ export function ChatTypingIndicator({
  */
 export function ChatTypingStrip({
     launcher,
+    thought = null,
     typists,
 }: {
     /** Faces launched from the dots; absent in static previews. */
     launcher?: ChatTypingLauncher;
+    /** A thinking Agent's condensed thought, shown over its avatar (prototype, ADR 0036). */
+    thought?: ChatTypingThought | null;
     typists: readonly ChatTypist[];
 }) {
     const reduceMotion = useReducedMotion() === true;
+    const ownStripRef = React.useRef<HTMLDivElement | null>(null);
+    const stripRef = launcher?.stripRef ?? ownStripRef;
     const label = formatChatTypingLabel(typists.map((typist) => typist.displayName));
     const transition = reduceMotion ? { duration: 0 } : { ...springs.moderate, bounce: 0 };
 
@@ -70,7 +80,7 @@ export function ChatTypingStrip({
             aria-live="polite"
             className="pointer-events-none relative flex h-8 shrink-0 items-center pr-4 pb-2 pl-11 text-muted text-sm"
             data-slot="chat-typing"
-            ref={launcher?.stripRef}
+            ref={stripRef}
         >
             <AnimatePresence initial={false}>
                 {label ? (
@@ -84,12 +94,17 @@ export function ChatTypingStrip({
                     >
                         <span aria-hidden="true" className="flex shrink-0 items-center gap-0.5">
                             {typists.slice(0, maximumAvatars).map((typist) => (
-                                <EntityAvatar
+                                <span
+                                    className="flex"
+                                    data-typist-avatar={typist.agentId}
                                     key={typist.agentId}
-                                    name={typist.displayName}
-                                    size={16}
-                                    src={typist.avatarUrl}
-                                />
+                                >
+                                    <EntityAvatar
+                                        name={typist.displayName}
+                                        size={16}
+                                        src={typist.avatarUrl}
+                                    />
+                                </span>
                             ))}
                         </span>
                         <span className="sr-only">{label}</span>
@@ -99,6 +114,7 @@ export function ChatTypingStrip({
                     </motion.div>
                 ) : null}
             </AnimatePresence>
+            <ChatTypingThoughtBubble stripRef={stripRef} thought={label ? thought : null} />
             {launcher ? (
                 <ChatTypingLaunches finish={launcher.finish} launches={launcher.launches} />
             ) : null}

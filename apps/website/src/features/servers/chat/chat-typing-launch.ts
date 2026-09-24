@@ -19,8 +19,9 @@ const startedFaces: Partial<Record<AgentActivityCategory, ChatTypingFace>> = {
 
 /**
  * The face for one committed activity event, or null. Only a started kind of
- * work launches; any failure launches the dizzy face. Thought text never
- * reaches the App (ADR 0023), so the face is the whole signal.
+ * work launches; any failure launches the dizzy face. Reasoning text never
+ * reaches the App (ADR 0023); only the prototype's condensed thought phrases
+ * do, as a separate bubble (ADR 0036).
  */
 export function resolveChatTypingFace(
     event: Pick<AgentActivityEvent, 'category' | 'phase'>

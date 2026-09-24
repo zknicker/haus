@@ -30,6 +30,17 @@
         --nested-surface-hover: rgb(from var(--nested-surface) r g b / 12%);
         --nested-surface-ring: none;
 
+        /*
+         * Glass for the typing strip's thought bubble (prototype, ADR 0036):
+         * translucent enough that the transcript blurs through it, with a
+         * hairline edge, a top-edge highlight, and a soft lift.
+         */
+        --thought-glass: rgb(52 50 47 / 50%);
+        --thought-glass-border: rgb(255 255 255 / 10%);
+        --thought-glass-shadow:
+            inset 0 1px 0 rgb(255 255 255 / 8%),
+            0 6px 20px -6px rgb(0 0 0 / 45%);
+
         --sender-1: var(--color-violet-400);
         --sender-2: var(--color-blue-400);
         --sender-3: var(--color-emerald-400);
@@ -133,6 +144,12 @@
          */
         --nested-surface-ring: inset 0 0 0 var(--hairline-width) var(--hairline);
 
+        --thought-glass: rgb(255 255 255 / 60%);
+        --thought-glass-border: rgb(0 0 0 / 8%);
+        --thought-glass-shadow:
+            inset 0 1px 0 rgb(255 255 255 / 70%),
+            0 6px 20px -8px rgb(0 0 0 / 18%);
+
         --sender-1: var(--color-violet-700);
         --sender-2: var(--color-blue-700);
         --sender-3: var(--color-emerald-700);
@@ -201,5 +218,7 @@
     --color-reminder-mark: var(--reminder-mark);
     --color-session-mark: var(--session-mark);
     --color-skill-reference: var(--skill-reference);
+    --color-thought-glass: var(--thought-glass);
+    --color-thought-glass-border: var(--thought-glass-border);
     --color-trigger-mark: var(--trigger-mark);
 }

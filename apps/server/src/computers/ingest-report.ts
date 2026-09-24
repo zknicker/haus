@@ -1,5 +1,4 @@
 import {
-    agentActivityFrameSchema,
     agentDeliveryAckSchema,
     agentEffectiveStateSchema,
     agentExecutionJournalResultSchema,
@@ -19,18 +18,17 @@ import {
     usageReportSchema,
 } from '@haus/api';
 import { z } from 'zod';
-import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { recordComputerAgentActivityWithStatus } from '../server-agents/agent-activity.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
+import { ingestAgentRunFrame } from './ingest-agent-run-frame.ts';
 import { recordComputerInventory } from './record-inventory.ts';
 import {
     recordComputerManagementEvents,
@@ -91,16 +89,7 @@ export async function ingestReport(
         return;
     }
 
-    const activity = agentActivityFrameSchema.safeParse(frame);
-    if (activity.success) {
-        const committed = await recordComputerAgentActivityWithStatus(db, {
-            computerId,
-            frame: activity.data,
-            serverId,
-        });
-        if (committed?.inserted) {
-            publishCommittedAgentActivity(committed.event);
-        }
+    if (await ingestAgentRunFrame(db, { computerId, frame, serverId })) {
         return;
     }
 

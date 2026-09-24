@@ -625,6 +625,17 @@
         "manualPromise": 1,
         "timer": 0
       }
+    },
+    "apps/computer/src/harness/thought-summarizer.ts": {
+      "disposition": "external-adapter",
+      "reason": "Prototype thought summarizer drives one warm `claude -p` stream-json child. Each request races a bounded timeout and resolves null; the child is killed on close, recycle, or idle, and its exit resolves any waiter, so nothing it owns can fail a turn.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 2,
+        "timer": 4
+      }
     }
   },
   "staticRuntimeCeilings": {}

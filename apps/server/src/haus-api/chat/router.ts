@@ -17,6 +17,7 @@ import { listChatMessagesProcedure } from './messages.ts';
 import { onCompositionProcedure } from './on-composition.ts';
 import { onChatEngagementProcedure } from './on-engagement.ts';
 import { onChatEventProcedure } from './on-event.ts';
+import { onChatThoughtProcedure } from './on-thought.ts';
 import { publishCompositionProcedure } from './publish-composition.ts';
 import { reactToChatMessageProcedure } from './react.ts';
 import { searchChatMessagesProcedure } from './search.ts';
@@ -42,6 +43,7 @@ export const chatRouter = createRouter({
     messageRouting: readMessageRoutingProcedure,
     onComposition: onCompositionProcedure,
     onEngagement: onChatEngagementProcedure,
+    onThought: onChatThoughtProcedure,
     onEvent: onChatEventProcedure,
     publishComposition: publishCompositionProcedure,
     react: reactToChatMessageProcedure,

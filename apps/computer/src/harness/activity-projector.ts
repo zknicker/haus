@@ -5,6 +5,7 @@ import { knownToolCategory, syntheticHarnessToolActivity } from './activity-tool
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { createFileChangeFold } from './file-change-fold.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
+import type { AgentThoughtNarrator } from './thought-narrator.ts';
 
 export interface HausHostToolRegistration {
     category: Exclude<ComputerAgentActivityCategory, 'starting_work' | 'thinking' | 'working'>;
@@ -81,6 +82,7 @@ export function createComputerActivityProjector(input: {
     journal?: ComputerExecutionJournal;
     registry: ComputerActivityRegistry;
     runtimeId: string;
+    thoughts?: AgentThoughtNarrator;
     /** Absolute Agent workspace, so an ACP read's file journals workspace-relative. */
     workspaceDir?: string;
 }) {
@@ -131,17 +133,17 @@ export function createComputerActivityProjector(input: {
                 await observeToolOutcome(part, input, calls);
                 return;
             }
+            input.thoughts?.observe(part);
             await observeReasoningPart(part, input.journal);
         },
     };
 }
 
-export function createHarnessActivityProjector(input: {
-    activity: AgentActivityRun;
-    journal: ComputerExecutionJournal;
-    runtimeId: string;
-    workspaceDir?: string;
-}) {
+export function createHarnessActivityProjector(
+    input: Omit<Parameters<typeof createComputerActivityProjector>[0], 'registry'> & {
+        journal: ComputerExecutionJournal;
+    }
+) {
     const registry = createComputerActivityRegistry();
     registry.registerHausHostTool({ category: 'browsing', name: 'browser', toolRef: 'browser' });
     registry.registerHausHostTool({
