@@ -11,9 +11,15 @@ import type { ThoughtSummarizer } from './thought-summarizer.ts';
 function harness(summarizer?: ThoughtSummarizer) {
     const thoughts: AgentThought[] = [];
     let clock = Date.parse('2026-09-24T12:00:00.000Z');
+    const timers = new Set<{ at: number; run: () => void }>();
     const narrator = createAgentThoughtNarrator({
         emit: (thought) => thoughts.push(thought),
         now: () => clock,
+        schedule: (run, ms) => {
+            const timer = { at: clock + ms, run };
+            timers.add(timer);
+            return () => timers.delete(timer);
+        },
         summarizer,
     });
     const block = (id: string, ...deltas: string[]) => {
@@ -26,6 +32,12 @@ function harness(summarizer?: ThoughtSummarizer) {
     return {
         advance: (ms: number) => {
             clock += ms;
+            for (const timer of [...timers]) {
+                if (timer.at <= clock) {
+                    timers.delete(timer);
+                    timer.run();
+                }
+            }
         },
         block,
         narrator,
@@ -53,17 +65,41 @@ describe('Agent thought narrator', () => {
         ]);
     });
 
-    test('admits at most one thought per run each interval and drops the rest', () => {
+    test('admits one thought per interval and holds only the newest block for the next', () => {
         const run = harness();
         run.block('r1', '**Planning memory read**');
-        run.advance(thoughtIntervalMs - 1);
+        run.advance(1000);
         run.block('r2', '**Checking task board**');
-        run.advance(1);
-        run.block('r3', '**Sending the reply**');
+        run.advance(1000);
+        run.block('r3', '**Reading sales chart**');
+        expect(run.thoughts.map((thought) => thought.text)).toEqual(['Planning memory read']);
+
+        run.advance(thoughtIntervalMs - 2000);
+        expect(run.thoughts.map((thought) => thought.text)).toEqual([
+            'Planning memory read',
+            'Reading sales chart',
+        ]);
+        expect(run.thoughts[1]?.at).toBe('2026-09-24T12:00:04.000Z');
+    });
+
+    test('releases a block at once when the interval has already passed', () => {
+        const run = harness();
+        run.block('r1', '**Planning memory read**');
+        run.advance(thoughtIntervalMs);
+        run.block('r2', '**Sending the reply**');
         expect(run.thoughts.map((thought) => thought.text)).toEqual([
             'Planning memory read',
             'Sending the reply',
         ]);
+    });
+
+    test('drops a waiting block on close', () => {
+        const run = harness();
+        run.block('r1', '**Planning memory read**');
+        run.block('r2', '**Checking task board**');
+        run.narrator.close();
+        run.advance(thoughtIntervalMs);
+        expect(run.thoughts.map((thought) => thought.text)).toEqual(['Planning memory read']);
     });
 
     test('skips untitled blocks under the minimum length', () => {
