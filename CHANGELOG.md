@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v5.2.0 - 2026-09-24
+
+- Chats show when an Agent is reading or replying, and Dev Mode explains whether a message was addressed to an Agent and why a reply is expected. A channel with one person and one Agent addresses that Agent automatically.
+- Haus Agent 3.5.0 receives addressed messages, unread context, attachments, and thread context together. Codex Agents can receive new notices during a turn without losing the work in progress. Update Haus Computer to 4.2.0 for these changes.
+- Agent activity shows received messages, readable reasoning, and more accurate Codex tool steps and token usage. Charts use SVG and the shared data visualization palette.
+- Haus for iPhone 3.4.0 (build 36) adds Agent settings, Cursor sign-in, and message recovery. Long chats load older and newer history as needed, with faster text and avatar rendering.
+
 ## v5.1.0 - 2026-09-22
 
 - Agents offer the reasoning levels supported by their selected model, including Extra high and Max where available. Haus Agent 3.4.0 applies changes on the next turn while preserving the conversation, except for Grok Build, which starts a new session. Update Haus Computer to 4.1.0 and Haus for iPhone to 3.3.2 (build 35) for the expanded reasoning contract.
