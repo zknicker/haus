@@ -691,7 +691,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   The input corners morph on the same curve and timing as the bar, starting immediately
   in both directions. Compact inputs keep a round curve throughout; reduced motion is instant.
   The bar occupies the reserved transcript space above the input without changing layout or
-  scrolling messages. The typing row rides above the bar in the same stack, so both stay visible. Its cancel button preserves pointer focus instead of flashing input focus;
+  scrolling messages. The typing row rides above the bar in the same stack, so both stay visible; while the bar is open the stack paints `background`, so transcript text never shows behind the typing row. Its cancel button preserves pointer focus instead of flashing input focus;
   keyboard focus remains available.
 - **Chat card backgrounds:** Thread/task previews and Cloud Agent cards share
   `nested-surface`: `rgb(189 189 219 / 10%)` in dark mode and solid `surface` in light mode.

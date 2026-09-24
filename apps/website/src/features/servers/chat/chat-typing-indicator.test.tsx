@@ -103,13 +103,18 @@ test('an open inline reply stacks under the typing row instead of covering it', 
     // grows beneath the typing row rather than overlaying its reserved slot.
     const stack = markup.indexOf('data-slot="chat-composer-stack"');
     const strip = markup.indexOf('data-slot="chat-typing"');
-    const reply = markup.indexOf('data-inline-reply-reference');
+    const reply = markup.indexOf('data-inline-reply-reference=""');
     expect(stack).toBeGreaterThan(-1);
     expect(strip).toBeGreaterThan(stack);
     expect(reply).toBeGreaterThan(strip);
     expect(markup.indexOf('Message planning')).toBeGreaterThan(reply);
     expect(markup.indexOf('Juniper is typing')).toBeGreaterThan(strip);
     expect(markup.match(/absolute[^"]*bottom-full/g)).toHaveLength(1);
+    // The stack rises over the transcript, so while the reply bar is mounted it
+    // paints the composer area's background behind the typing row.
+    expect(markup).toMatch(
+        /class="[^"]*has-\[\[data-inline-reply-reference\]\]:bg-background[^"]*" data-slot="chat-composer-stack"/
+    );
 });
 
 function renderFooter(inlineReply: ChatInlineReplyTarget | null) {
