@@ -158,11 +158,12 @@ and [Agent Inbox](../../specs/inbox.md).
   Chat launches 😊. Other kinds launch nothing, activity from the Agent's runs
   elsewhere never launches here, and at most one face launches per 350ms (the
   reply and failure faces excepted); extras are dropped. Reduced motion fades
-  the face in place. Reasoning text never leaves the Computer
+  the face in place. Reasoning text never reaches the Server
   ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
   Prototype, local development only (`HAUS_AGENT_THOUGHTS`): when the engaging
-  run finishes a reasoning block, a short condensed phrase ("Checking Halloween
-  bid changes") appears in a glass bubble over that Agent's avatar, wobbles in,
+  run finishes a reasoning block, a short phrase condensed on the Computer (a
+  Codex title, else Gemini 3.5 Flash-Lite) such as "Checking Halloween bid
+  changes" appears in a glass bubble over that Agent's avatar, wobbles in,
   holds about two seconds, and leaves; a newer thought replaces it, faces fly
   above it, and the engagement ending clears it. Thoughts are never stored or
   recovered ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).

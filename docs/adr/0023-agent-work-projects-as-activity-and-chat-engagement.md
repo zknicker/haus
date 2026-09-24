@@ -20,8 +20,8 @@ between the Server activity journal and the Computer execution journal stands.
 
 Proposed amendment 2026-09-24 (prototype, [ADR 0036](0036-agent-thoughts-surface-as-condensed-phrases.md)):
 behind `HAUS_AGENT_THOUGHTS`, the Computer may send one condensed, short status phrase per
-reasoning block. Raw reasoning still never leaves the Computer, and the phrase is announced to
-engaged Chats only, never persisted.
+reasoning block. Raw reasoning still never reaches the Server (excerpts go only to the Gemini
+summarizer), and the phrase is announced to engaged Chats only, never persisted.
 
 ## Context
 
