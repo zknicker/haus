@@ -41,7 +41,9 @@ A 38-block eval (six models, blind-graded) chose Flash-Lite for the best quality
 p95 1.6s, and one length overrun in 76 calls.
 
 Untitled blocks under 40 characters are skipped, and each run sends at most one thought every
-four seconds.
+four seconds. Blocks that finish inside that window wait in a single slot where the newest
+replaces any older one, and the survivor alone is summarized and sent when the window closes,
+so the bubble shows current work without a backlog.
 
 **Transport is volatile and Chat-scoped.** The Computer sends `agent-thought`
 `{ agentId, runId, text, at }`. The Server admits it with the same identity checks as an
