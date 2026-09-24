@@ -15,7 +15,7 @@
     },
     "apps/computer": {
       "name": "@haus/computer",
-      "version": "4.1.0",
+      "version": "4.2.0",
       "bin": {
         "haus-computer": "src/index.ts",
       },
