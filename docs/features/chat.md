@@ -167,6 +167,11 @@ and [Agent Inbox](../../specs/inbox.md).
   holds about two seconds, and leaves; a newer thought replaces it, faces fly
   above it, and the engagement ending clears it. Thoughts are never stored or
   recovered ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
+* **Composer overlay.** In channels, DMs, and Threads the composer floats over
+  the transcript, which scrolls behind it and fades out with a progressive blur
+  at the window's bottom edge. The transcript's end clearance, fade, and the
+  jump-to-latest button follow the composer's measured height (including the
+  typing row and an open reply bar), so the last message rests just above it.
 * **Scroll position.** Sending from the composer brings the conversation to the
   bottom, even when the human was reading older messages. Incoming Agent messages
   follow the bottom only when the reader was already following it. That choice
