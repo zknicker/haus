@@ -123,13 +123,15 @@ fire adds to the transcript. A message can also carry the session mark
 the fire mark comes first.
 
 **Hover card.** Hovering the mark opens a mouse-following card previewing that
-automation, in the style of the app's existing chip hover cards: the glyph and
-title, then labelled rows — kind, status, last fired, and fire count for a
-Trigger; cadence, status, and last fired for a reminder — then the `instruction`
-snippet, which is the Trigger's instruction or the reminder's script, and a
-**Manage in Automations** link to the owning Agent's Automations tab. The
-reminder's anchor note is not here; it belongs to the Thread context card, where
-there is room to quote it.
+automation, in the shared hover-card anatomy: the glyph, the title, and the
+Trigger's kind as its `·` clause (reminder cadence sits below the title); then one fact line —
+`Armed · Last fired 4m ago · 12 fires` for a Trigger, status and last fire for a
+reminder, `Archived · Fired 4m ago` once the record is gone — then the
+`instruction` snippet, clipped to two lines, which is the Trigger's instruction
+or the reminder's script. It is a preview, not a control: it carries no link.
+Managing the automation starts from the Thread context card or the owning
+Agent's Automations tab. The reminder's anchor note is not here; it belongs to
+the Thread context card, where there is room to quote it.
 
 **Thread context card.** Opening a caused message as a Thread renders a context
 card above the anchored message, from `automation.fireContext`: the glyph, the

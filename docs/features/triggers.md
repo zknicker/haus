@@ -94,7 +94,8 @@ Each row shows who created it — a person's handle, or the owning Agent.
 - **An archived Trigger keeps its mark.** Once the Trigger or the fire itself is
   gone — removed and later swept after 30 days, or a fire swept after 30 days —
   the mark still names what woke the Agent, and both provenance surfaces state
-  the snapshot (title, kind, fire time) plus "This trigger has been archived."
+  the snapshot (title, kind, fire time) and that it is archived — the hover card
+  as `Archived · Fired 4m ago`, the context card as "This trigger has been archived."
   A removed fire remains in the Agent-wide History drawer until retention ends;
   the active detail and live management link do not pretend it still exists.
 - **Bounded input.** A body is at most 64 KiB of storable text — valid UTF-8 with

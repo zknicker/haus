@@ -113,8 +113,9 @@ generation, and never on a rotation the Agent never spoke after. It renders in t
 message header in the session color, after a fire mark when a message carries both
 ([automation-provenance.md](automation-provenance.md)). Hovering it reads the
 rotation record — "New session", when, why, and how long the previous session ran
-— through `agent.sessionInfo({ serverId, agentId, generation })`, and links to the
-Agent's Activity tab, which holds the full history behind the mark.
+— through `agent.sessionInfo({ serverId, agentId, generation })`. The card is a
+preview and carries no link; the Agent's Activity tab holds the full history
+behind the mark.
 
 ## Knowledge and discretion
 

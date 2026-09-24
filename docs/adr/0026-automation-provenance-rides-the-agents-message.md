@@ -60,7 +60,7 @@ explains**, not through a log line in the conversation:
 - A **session reset** shows as a session mark in blue on the Agent's first
   message in a Chat after the reset, derived from the `session_generation`
   stamped on every Agent message, with a hover card naming when and why the
-  session rotated and a link to the Activity tab that holds the full record.
+  session rotated; the Activity tab holds the full record.
 
 A fire, an assignment, or a reset that never produces a message is invisible in
 Chat by design; the Automations tab, the task, and the Activity tab are where

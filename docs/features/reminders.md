@@ -57,11 +57,10 @@ schedule, so it fires even while the Agent's Computer is offline.
   seeing it is what starts its clock. The Agent's answers stay in the transcript
   as ordinary messages and keep their clock mark: title, cadence, and fire time are
   snapshotted onto the message, so the mark reads the same after the record
-  goes. Its hover card and Thread context card then state that snapshot plus
-  "This reminder has been archived.", and drop the live rows — status, fire
-  count, last fire, the script, the anchoring note — and the link into
-  Automations. A deleted reminder's run history reads as not found rather than
-  empty.
+  goes. Its hover card and Thread context card then state that snapshot and that
+  it is archived, and drop the live facts — status, fire count, last fire, the
+  script, the anchoring note — and the context card's link into Automations. A
+  deleted reminder's run history reads as not found rather than empty.
 - **Computer-local scripts.** A script payload is at most 16 KiB. The Server
   stores it but never runs or interprets it. The assigned Computer executes it
   once in the Agent workspace. Empty success stays quiet; output or failure

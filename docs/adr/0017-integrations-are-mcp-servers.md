@@ -38,7 +38,7 @@ client registration, optional pre-registered clients, refresh tokens, and author
 trust. A cross-origin authorization server requires explicit operator confirmation.
 Credential-bearing endpoints require HTTPS.
 
-Google Calendar and MerchBase are connection presets only. Server owns their immutable endpoints
+Google Calendar, MerchBase, and RankWrangler are connection presets. Server owns their immutable endpoints
 and auth defaults; they use the same generic path as custom connections.
 
 ## Other capability kinds

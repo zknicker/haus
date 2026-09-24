@@ -77,6 +77,13 @@ attachments are not part of this typed-link contract.
 
 ## Rendering
 
+The Amazon prototype recognizes bare uppercase ASINs and US Amazon product URLs
+in rendered prose without rewriting stored Markdown. This presentation-only
+exception needs no typed target migration: the ASIN plus US marketplace defines
+the identity. RankWrangler connection state gates enrichment, Server membership
+authorizes preview reads, and Agent MCP grants independently govern tool use.
+See [Rich References](../docs/features/rich-references.md#amazon-prototype).
+
 Haus renders recognized links as compact chips in the composer, transcript,
 prompt inspector, and other message surfaces. Rendering is presentation only:
 the markdown remains readable without Haus.
@@ -111,10 +118,11 @@ shows its initials; unknown Agents fall back to the generic Agent icon.
 
 Agent, Chat, and Skill references in transcript/read surfaces are focusable
 preview controls; composer references remain inert editor nodes. Hover and focus
-use HeroUI Pro HoverCard rather than a text-only Tooltip. It opens and closes
-without a hover delay. Fine mouse pointers offset the card directly toward the
-pointer without replacing HeroUI's anchor, collision, portal, or focus lifecycle. Keyboard focus, touch input, and
-reduced motion retain ordinary anchored placement. Agent previews resolve the
+use non-interactive HeroUI Tooltips with immediate open and close. Their bottom-left
+corner follows fine mouse pointers at +25px horizontally and -25px vertically,
+clamped inside the viewport. Leaving the trigger closes the preview immediately.
+Keyboard focus retains ordinary anchored placement. Reduced motion disables
+decorative product animation while preserving direct pointer positioning. Agent previews resolve the
 current Agent record and newest persisted activity lazily while open; Chat and
 Skill previews share one compact identity header — mark, title, and one muted
 `·` clause — and size to their content up to a shared maximum measure. A Chat

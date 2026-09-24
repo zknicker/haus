@@ -35,6 +35,39 @@ Asks, and Cloud Agent work messages.
 
 ## Product Rules
 
+### Amazon prototype
+
+With RankWrangler connected in Settings → Connections, Haus App resolves US
+Amazon product links and standalone uppercase ASINs into thumbnail-and-title
+chips. Labels use RankWrangler’s generated short name, falling back to the ASIN
+when unavailable. The chip uses RankWrangler’s transparent cutout thumbnail in an 18px box,
+without extra zoom or background blending. Missing or failed cutouts show a
+product icon. The hover card retains the full listing
+title. Hover or keyboard focus opens a compact glass card with a title of at most two lines, brand, and available price. The transparent product cutout floats beside it, tilted slightly, with a brief settling entrance and sparkle. Reduced motion disables the decoration. Clicking opens Amazon.
+
+ASIN recognition requires ten uppercase letters/digits beginning with B and
+containing a digit. Links support amazon.com `/dp/`, `/gp/product/`, and
+`/gp/aw/d/` product paths. Short links, other marketplaces, Etsy, code, and
+unrelated links are excluded. Stored Markdown stays unchanged; older messages
+gain the same presentation. Native iPhone product previews are not part of this
+prototype.
+
+Server membership authorizes preview reads through the connected RankWrangler
+account. Agent tool calls still require an explicit connection grant. Credentials
+stay on Server. Lookups share a bounded five-minute Server cache; account changes
+clear it and invalidate App reads. Chip reads request `get` with
+`include: ['shortName', 'cutoutThumbnail']`; market data loads only on preview with
+`include: ['marketData']`.
+Unknown products and unavailable connections preserve the original text/link.
+Removed listings show last-known data with a removal label. Missing prices and brands are omitted. An upstream detail failure leaves the thumbnail and title
+visible with an unavailable notice.
+
+The Agent Manual topic `amazon-product-references` explains the syntax and tool
+access. No system-prompt expansion or special Agent tool call is required for
+rendering.
+
+### Shared references
+
 - Markdown content is the source of truth.
 - Agent references bind to immutable Agent ids, not reusable handles. A reference
   to a deleted Agent stays attached to that historical identity even if a new
@@ -107,15 +140,19 @@ Asks, and Cloud Agent work messages.
 - Agent, Channel, and Skill references in transcript/read surfaces are
   keyboard-focusable preview controls. Composer chips remain editor content,
   not nested controls.
-  Hover or focus opens a HeroUI hover card immediately and leaving closes it
-  immediately. A fine mouse pointer moves that card directly with the reference
-  while keyboard, touch, and reduced-motion use stock anchored placement. Agent previews show identity, availability,
-  compact runtime/model/reasoning configuration, and newest durable
-  activity. Channel and Skill previews share one compact identity-header
-  grammar: a compact mark, a bold title, and one muted `·` clause baseline-aligned
-  to that title, over a tighter shared inset and one optical content edge. Both
-  cards size to their content up to one shared maximum measure. A Channel's clause
-  is its last-activity status; a Skill's clause is its kind. Channel previews show
+  Hover or focus opens a non-interactive HeroUI Tooltip immediately; leaving the
+  trigger closes it. Its bottom-left corner follows a fine mouse pointer at
+  +25px horizontally and -25px vertically, clamped inside the viewport. Keyboard
+  focus uses stock anchored placement. Reduced motion preserves direct pointer
+  placement and disables decorative animation. Every
+  hover card shares one always-dark glass material and one compact identity-header
+  grammar: a small mark, a bold title, and one muted `·` clause baseline-aligned
+  to that title, with dense supporting text below. Hover cards preview; they do
+  not link out to management or navigation. Agent previews show identity,
+  availability, a clipped description, compact runtime/model/reasoning
+  configuration, and newest durable activity. Channel, Skill, and fallback
+  reference cards size to their content up to one shared maximum measure. A
+  Channel's clause is its last-activity status; a Skill's clause is its kind. Channel previews show
   live participant faces below the title as a compact overlapping stack, each face
   ringed in the card's own surface, with any remainder as a trailing count. Skill
   previews place the full current description
