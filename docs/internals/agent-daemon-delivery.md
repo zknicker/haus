@@ -324,7 +324,7 @@ tool errors, and model reasoning blocks. Owner/Admin inspection uses an authoriz
 Server never persists that response. Chat does not project run-attached inbox work as typing;
 typing is chat engagement, derived from the run's exact visibility of unanswered human messages
 and ended by a committed send into that Chat or by terminal turn proof
-([ADR 0034](../adr/0034-chat-engagement-shows-as-typing.md)). The composed receipt, mid-turn pulls,
+([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)). The composed receipt, mid-turn pulls,
 and a held send that shows news each announce engagement after they commit. The `sending`
 composition bubble remains tied only to an explicit in-flight message and its composition id.
 

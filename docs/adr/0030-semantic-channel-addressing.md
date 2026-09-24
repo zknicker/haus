@@ -79,7 +79,7 @@ stored on every inbox row the message produces as `agent_inbox.expects_reply` (0
 the routing audit as `expectsReply`, and the Dev Mode popover shows it. It is null when no
 judgment ran — every bypass above — or when the judgment was stale, failed, timed out, or
 returned a malformed Noul. Its only reader is chat engagement, which a value at or below
-0.2 suppresses ([ADR 0034](0034-chat-engagement-shows-as-typing.md)). The model-facing
+0.2 suppresses ([ADR 0035](0035-chat-engagement-shows-as-typing.md)). The model-facing
 Agent prompt does not change.
 
 ## Rollout

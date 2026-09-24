@@ -376,7 +376,7 @@ inbox. Human **Start** resumes the current session and drains that work.
   sidebar, the same short status in DM topbars, and the deep execution trace in the agent detail
   panel. In-chat work-evidence groups retire. Read state stays internal (drives unread math,
   not presented as chat activity). Amended by
-  [ADR 0034](../../docs/adr/0034-chat-engagement-shows-as-typing.md): the sidebar strip is
+  [ADR 0035](../../docs/adr/0035-chat-engagement-shows-as-typing.md): the sidebar strip is
   removed, and a typing strip above the composer shows which Agents have read unanswered human
   messages in that Chat — a Haus extension, since Raft shows no in-chat typing.
 - **I2 — Ordinary wake and mid-turn traffic shown to the model are content-free notices.**

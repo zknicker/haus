@@ -131,7 +131,7 @@ A durable `message.created` is planned once by Server delivery
   message, its `expects_reply` Noul (0–1) is stored on every inbox row the message produces;
   otherwise the column is null. It never affects recipients, drain lanes, or the Agent's prompt.
   Its one reader is chat engagement, where a value at or below 0.2 keeps that message from
-  showing the Agent as typing ([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)).
+  showing the Agent as typing ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)).
 - **A Thread mention arrives with its Thread when the Agent cannot see it.** When a drainable
   human item is the first in its Thread to @mention this Agent, and the Agent has no model-visible
   context for that Thread this session (no verified boundary, no settled exact visibility), the
@@ -297,7 +297,7 @@ turn starts when its creator sends the working brief.
 
 Attaching accepted pending rows to the active run is a delivery fact, not a claim that the Agent is
 composing a reply. Chat renders only durable messages. The typing strip is a separate projection of
-exact run visibility, not of attachment ([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)). Status dots, semantic Agent activity, and
+exact run visibility, not of attachment ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)). Status dots, semantic Agent activity, and
 detailed execution evidence remain separate Agent-level projections
 ([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
 targets, mutes, and follows on the Agent profile; humans steer attention by asking in Chat.

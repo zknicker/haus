@@ -148,7 +148,7 @@ every delivery. The first-party App does not publish human draft text or render
 a provisional Agent response from this transport.
 
 Hosted chat engagement events are volatile and Chat-scoped
-([ADR 0034](../adr/0034-chat-engagement-shows-as-typing.md)). `chat.engagement.started`
+([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)). `chat.engagement.started`
 announces after the write that grants a run exact visibility of an unanswered human message
 commits; `chat.engagement.ended` (`sent`, `settled`, or `interrupted`) rides a committed Agent
 send into the Chat or terminal turn proof. `chat.onEngagement({ serverId, chatId })` checks Chat

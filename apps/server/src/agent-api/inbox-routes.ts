@@ -29,7 +29,7 @@ export function registerAgentInboxRoutes(
     options: { db: HausDatabase; postCommitWork: ServerPostCommitWork }
 ) {
     const { db, postCommitWork } = options;
-    // Engagement starts on these reads and ends on the lifecycle facts (ADR 0034).
+    // Engagement starts on these reads and ends on the lifecycle facts (ADR 0035).
     const uninstallProjector = installChatEngagementProjector(db, postCommitWork);
     app.addHook('onClose', async () => uninstallProjector());
     app.get('/api/agent/events', async (request, reply) => {

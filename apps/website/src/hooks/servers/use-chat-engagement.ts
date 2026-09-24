@@ -6,7 +6,7 @@ const noEngagements: readonly ChatEngagement[] = [];
 
 /**
  * The Agents engaged in one Chat — each has read a human message there and
- * not yet answered it (ADR 0034). This hook owns the whole cache: the durable
+ * not yet answered it (ADR 0035). This hook owns the whole cache: the durable
  * read is the initial and reconnect catch-up, and live events patch it exactly.
  */
 export function useChatEngagement(

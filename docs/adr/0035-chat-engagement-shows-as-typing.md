@@ -7,7 +7,7 @@ read_when:
   - reconsidering where live Agent work is presented to humans
 ---
 
-# ADR 0034: Chat engagement shows as typing
+# ADR 0035: Chat engagement shows as typing
 
 ## Status
 
@@ -24,7 +24,7 @@ composition. Its answer was a sidebar strip of per-Agent activity labels, which 
 human that an Agent was busy but never which conversation it was busy with.
 
 The delivery model has since gained the facts typing needs. Exact visibility receipts
-name the messages a run has actually been shown: the composed receipt (ADR 0033) lands
+name the messages a run has actually been shown: the composed receipt (ADR 0034) lands
 before the model streams, and mid-turn pulls and held sends record what they reveal.
 `addressed_reason` makes the aim of each inbox row queryable, and a committed Agent
 message is a precise, Chat-scoped end signal. The Chat target is therefore no longer a

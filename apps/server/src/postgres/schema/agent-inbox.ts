@@ -90,7 +90,7 @@ export const agentInboxExactVisibilityTable = pgTable(
             foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
             name: 'agent_inbox_exact_visibility_message_fk',
         }).onDelete('cascade'),
-        // Chat engagement reads one run's visibility at a time (ADR 0034).
+        // Chat engagement reads one run's visibility at a time (ADR 0035).
         index('agent_inbox_exact_visibility_run_idx').on(table.agentId, table.servedRunId),
         check('agent_inbox_exact_visibility_generation', sql`${table.sessionGeneration} > 0`),
     ]

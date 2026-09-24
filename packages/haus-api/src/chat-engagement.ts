@@ -3,7 +3,7 @@ import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
 /**
  * A Chat is engaged by an Agent while that Agent's active run has read a human
- * message there and has not yet answered it (ADR 0034). The App presents it as
+ * message there and has not yet answered it (ADR 0035). The App presents it as
  * typing. Engagement is volatile: it is derived from durable delivery state,
  * announced live, and recovered through `chat.engagements`, never replayed.
  */

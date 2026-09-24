@@ -1,8 +1,8 @@
 ---
-summary: Decision to project Agent work as durable semantic Server activity and Computer-local detailed execution evidence; its no-typing decision is superseded by ADR 0034.
+summary: Decision to project Agent work as durable semantic Server activity and Computer-local detailed execution evidence; its no-typing decision is superseded by ADR 0035.
 read_when:
   - changing Agent activity or status presentation
-  - revisiting why typing was once rejected (current typing contract is ADR 0034)
+  - revisiting why typing was once rejected (current typing contract is ADR 0035)
   - changing Server/Computer ownership of execution evidence
   - changing inbox visibility or Chat-scoped realtime events
 ---
@@ -14,7 +14,7 @@ read_when:
 Accepted 2026-08-11. Amends ADR 0014's work-status presentation and ADR 0019's execution
 evidence boundary without changing CLI-only output or Agent-global sessions.
 
-Partly superseded 2026-09-23 by [ADR 0034](0034-chat-engagement-shows-as-typing.md): Chats
+Partly superseded 2026-09-23 by [ADR 0035](0035-chat-engagement-shows-as-typing.md): Chats
 now show typing from run visibility, and the sidebar activity strip is removed. The split
 between the Server activity journal and the Computer execution journal stands.
 

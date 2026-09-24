@@ -19,7 +19,7 @@ export interface AgentMessageRecipientPlan {
      */
     addressedReason: AddressedReason | null;
     agentId: string;
-    /** Jev's reply-expectation judgment for a routed human message (ADR 0034). */
+    /** Jev's reply-expectation judgment for a routed human message (ADR 0035). */
     expectsReply?: number | null;
     mentioned: boolean;
     threadFollowReactivated: boolean;

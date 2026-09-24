@@ -149,7 +149,7 @@ and [Agent Inbox](../../specs/inbox.md).
   turn that reads a Chat and stays silent types until it settles. The strip's
   height is always reserved, so the composer never moves. Reloads and
   reconnects recover it from `chat.engagements`
-  ([ADR 0034](../adr/0034-chat-engagement-shows-as-typing.md)).
+  ([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)).
 * **Scroll position.** Sending from the composer brings the conversation to the
   bottom, even when the human was reading older messages. Incoming Agent messages
   follow the bottom only when the reader was already following it. That choice

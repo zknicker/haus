@@ -60,5 +60,5 @@ is no per-token churn.
 - A standing Agent presence rail or ticker: Agents and built-in DMs are
   one-to-one, so the DM list already is the presence roster. Live work
   appears on the Inbox, and Chat-scoped typing is chat engagement
-  ([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)), not presence.
+  ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)), not presence.
 - Presence for external/observed participants.

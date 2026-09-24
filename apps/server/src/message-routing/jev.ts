@@ -30,7 +30,7 @@ export interface RoutingState {
  * `expectsReply` rides the same request as the audience Choice: Jev's
  * probability that the message calls for a reply from its addressed Agents. It
  * never changes the routing outcome; it only lets the Chat typing presentation
- * stay quiet when a reply is clearly not wanted (ADR 0034).
+ * stay quiet when a reply is clearly not wanted (ADR 0035).
  */
 export type RoutingDecision = (
     | { kind: 'narrow'; agentId: string; confidence: number; probability: number }

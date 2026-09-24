@@ -181,7 +181,7 @@ Computer-accepted turns and each one's latest semantic label. The Inbox's **Happ
 rows render it with the turn clock ([Inbox](../docs/features/inbox.md)), and the sidebar's
 Haus mark quickens while any Agent works. There is no sidebar activity strip: which Chat an
 Agent is answering is the typing strip above that Chat's composer
-([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)), not Agent activity.
+([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)), not Agent activity.
 
 The projection consumes live events, not the historical query. Reconnect obtains a current
 active-activity snapshot before applying later events. A semantic operation's `completed`,
@@ -252,5 +252,5 @@ reference still opens the full Agent profile.
 - Guessing intent from arbitrary tool names, arguments, commands, or output.
 - Showing raw execution evidence in the Inbox or ordinary-member Activity views.
 - Treating activity as Chat history, typing state, or a promise that the Agent will reply. Typing
-  is chat engagement (ADR 0034), derived from delivery visibility rather than activity.
+  is chat engagement (ADR 0035), derived from delivery visibility rather than activity.
 - Defining retention or cleanup policy.

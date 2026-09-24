@@ -47,7 +47,7 @@ rows at all.
 - Live agent state (busy dot, current activity text) is presence
   ([presence.md](presence.md)), agent-scoped. The typing strip above the composer is the one
   Chat-scoped live signal, and it sits outside the timeline
-  ([ADR 0034](../docs/adr/0034-chat-engagement-shows-as-typing.md)).
+  ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)).
 
 ## Boundaries
 

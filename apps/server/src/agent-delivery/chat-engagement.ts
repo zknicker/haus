@@ -15,7 +15,7 @@ import {
 export const replySuppressionThreshold = 0.2;
 
 /**
- * Chat engagement (ADR 0034), derived only from durable delivery state so a
+ * Chat engagement (ADR 0035), derived only from durable delivery state so a
  * reload, reconnect, or resent turn reproduces it exactly. Agent A's run R
  * engages Chat C while R is accepted and unsettled and holds exact visibility
  * of a human message in C that is newer than A's last message in C and was not
