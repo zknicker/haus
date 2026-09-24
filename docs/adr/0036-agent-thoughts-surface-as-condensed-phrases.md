@@ -25,18 +25,22 @@ anything the Agent read.
 ## Decision
 
 **Condensed phrases may reach the Server; raw reasoning never does.** When a reasoning block
-ends, the Computer produces at most one phrase of at most eight words, in the Agent's own first
-person ("I'm checking last week's bids"; a phrase opening with an -ing verb gains "I'm"), no
+ends, the Computer produces at most one short line in the Agent's own first person, no
 trailing period, capped at 80 characters, with URLs, paths, emails, and token-like strings removed:
 
 1. A block that leads with a bold title (Codex reasoning summaries) uses the title as is, with no
    model call.
 2. Otherwise, reasoning from any harness (Claude Code, Grok, Pi, untitled Codex) is rewritten by
-   Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`, minimal thinking, temperature 0.2, at most 24
+   Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`, minimal thinking, temperature 0.8, at most 32
    output tokens) through the Gemini API with `HAUS_GEMINI_API_KEY`. One stateless request per
    block, first 3,000 characters only, four-second deadline; a failed or late answer drops the
-   thought. The block text goes only from the Computer to Google, never to the Server.
+   thought. Each request draws one opening style ("I'm…", a bare verb, "Now…", "I think…", a
+   short reaction, or the thing being worked on) so a run's lines vary; the answer keeps its own
+   voice, capped at ten words. The block text goes only from the Computer to Google, never to the Server.
 3. Without a key, a local heuristic takes the first sentence without narration filler.
+
+Titles and local lines that open with an -ing verb gain "I'm" ("Inspecting chart data" → "I'm
+inspecting chart data"), capped at eight words.
 
 A 38-block eval (six models, blind-graded) chose Flash-Lite for the best quality with p50 0.73s,
 p95 1.6s, and one length overrun in 76 calls.
