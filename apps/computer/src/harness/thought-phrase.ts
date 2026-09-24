@@ -20,7 +20,7 @@ export function extractThoughtTitle(reasoning: string): string | null {
     }
     const titles = [...text.matchAll(/^\*\*([^*\n]{2,}?)\*\*\s*$/gmu)].map((match) => match[1]);
     const title = titles.at(-1);
-    return title ? finishThoughtPhrase(title) : null;
+    return title ? finishThoughtPhrase(inFirstPerson(title)) : null;
 }
 
 /**
@@ -51,16 +51,29 @@ export function condenseThoughtLocally(reasoning: string): string | null {
     if (strippedModal && words[0]) {
         words[0] = presentParticiple(words[0]);
     }
-    return finishThoughtPhrase(words.join(' '));
+    return finishThoughtPhrase(inFirstPerson(words.join(' ')));
+}
+
+/**
+ * Gives a gerund-led title or condensation the Agent's voice: "Inspecting
+ * chart data" → "I'm inspecting chart data". Model answers keep their own voice.
+ */
+export function inFirstPerson(phrase: string): string {
+    const match = /^\s*([A-Za-z]{3,}ing)\b/u.exec(phrase);
+    return match
+        ? `I'm ${phrase.trimStart().charAt(0).toLowerCase()}${phrase.trimStart().slice(1)}`
+        : phrase;
 }
 
 /**
  * Normalizes any candidate — a title, a model's answer, or a local condensation
  * — into one plain line: no markup, quotes, URLs, or token-like strings, at most
- * eight words and 80 characters, capitalized, with no trailing period. A line
- * that opens with an -ing verb gains "I'm" so the Agent speaks for itself.
+ * `maxWords` words and 80 characters, capitalized, with no trailing period.
  */
-export function finishThoughtPhrase(candidate: string): string | null {
+export function finishThoughtPhrase(
+    candidate: string,
+    maxWords: number = thoughtPhraseMaxWords
+): string | null {
     const words = candidate
         // Typographic apostrophes are apostrophes: "app’s" must stay one word.
         .replace(/[‘’]/gu, "'")
@@ -71,10 +84,7 @@ export function finishThoughtPhrase(candidate: string): string | null {
         // Quote marks go; a plural possessive's trailing apostrophe ("charts'") stays.
         .map((word) => word.replace(/^'+/u, '').replace(/(?<![sS])'+$/u, ''))
         .filter((word) => word.length > 0);
-    if (/^[A-Za-z]{3,}ing$/u.test(words[0] ?? '')) {
-        words.splice(0, 1, "I'm", (words[0] ?? '').toLowerCase());
-    }
-    const kept = words.slice(0, thoughtPhraseMaxWords);
+    const kept = words.slice(0, maxWords);
     while (kept.length > 1 && danglingWords.has(kept.at(-1)?.toLowerCase() ?? '')) {
         kept.pop();
     }
@@ -146,6 +156,11 @@ const irregularParticiples: Record<string, string> = {
 
 const danglingWords = new Set([
     'a',
+    'because',
+    'but',
+    'if',
+    'is',
+    'was',
     'an',
     'and',
     'as',
