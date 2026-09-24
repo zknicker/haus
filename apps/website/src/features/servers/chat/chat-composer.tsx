@@ -176,7 +176,7 @@ export function ServerChatComposer({
                     requestAnimationFrame(mentionComposer.focusTextEditor);
                 }}
             />
-            {status ? <div aria-hidden="true" className="h-6 shrink-0" /> : null}
+            {status ? <div aria-hidden="true" className="h-8 shrink-0" /> : null}
             <PromptInput
                 data-expanded={isExpanded || undefined}
                 data-replying={Boolean(activeInlineReply) || undefined}

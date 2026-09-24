@@ -1,3 +1,4 @@
+import type { AgentActivityEvent } from '@haus/api';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
@@ -10,10 +11,14 @@ import {
     reconcileCurrentAgentActivity,
 } from './current-agent-activity.ts';
 
+export type AgentActivityListener = (event: AgentActivityEvent) => void;
+
 export interface CurrentAgentActivityContextValue {
     activities: readonly CurrentAgentActivity[];
     isSnapshotReady: boolean;
     serverId: string | undefined;
+    /** Hands each committed live event to transient presentation; never replays. */
+    subscribeToActivity: (listener: AgentActivityListener) => () => void;
 }
 
 const CurrentAgentActivityContext = React.createContext<CurrentAgentActivityContextValue | null>(
@@ -25,7 +30,10 @@ const CurrentAgentActivityContext = React.createContext<CurrentAgentActivityCont
  * for a persistent Server shell. Live events patch only this volatile cache;
  * Activity History remains an independent read and is never invalidated here.
  */
-export function useCurrentAgentActivity(serverId: string | undefined) {
+export function useCurrentAgentActivity(
+    serverId: string | undefined,
+    onEvent?: AgentActivityListener
+) {
     const utils = hausTrpc.useUtils();
     const [liveState, setLiveState] = React.useState<{
         byAgentId: ReadonlyMap<string, CurrentAgentActivityLiveOverlay>;
@@ -47,6 +55,7 @@ export function useCurrentAgentActivity(serverId: string | undefined) {
                 if (event.serverId !== serverId) {
                     return;
                 }
+                onEvent?.(event);
                 setLiveState((current) => {
                     const currentEvents =
                         current.serverId === event.serverId ? current.byAgentId : new Map();
@@ -89,7 +98,21 @@ export function AgentActivityProvider({
     children: React.ReactNode;
     serverId: string;
 }) {
-    const query = useCurrentAgentActivity(serverId);
+    const [listeners] = React.useState(() => new Set<AgentActivityListener>());
+    const subscribeToActivity = React.useCallback(
+        (listener: AgentActivityListener) => {
+            listeners.add(listener);
+            return () => {
+                listeners.delete(listener);
+            };
+        },
+        [listeners]
+    );
+    const query = useCurrentAgentActivity(serverId, (event) => {
+        for (const listener of listeners) {
+            listener(event);
+        }
+    });
     const agents = useAgents(serverId);
     const activities = React.useMemo(
         () =>
@@ -104,8 +127,9 @@ export function AgentActivityProvider({
             activities,
             isSnapshotReady: query.isSuccess && agents.isSuccess,
             serverId,
+            subscribeToActivity,
         }),
-        [activities, agents.isSuccess, query.isSuccess, serverId]
+        [activities, agents.isSuccess, query.isSuccess, serverId, subscribeToActivity]
     );
 
     return <CurrentAgentActivityContext value={value}>{children}</CurrentAgentActivityContext>;
@@ -114,4 +138,18 @@ export function AgentActivityProvider({
 /** Optional so shared identity components remain renderable in local previews. */
 export function useOptionalCurrentAgentActivity() {
     return React.use(CurrentAgentActivityContext);
+}
+
+/**
+ * Listens to the provider's one `agent.onActivity` stream for transient
+ * effects. Outside a provider it hears nothing. The latest listener is always
+ * called, so callers need not memoize it.
+ */
+export function useAgentActivityListener(listener: AgentActivityListener) {
+    const subscribe = React.use(CurrentAgentActivityContext)?.subscribeToActivity;
+    const latest = React.useRef(listener);
+    React.useLayoutEffect(() => {
+        latest.current = listener;
+    });
+    React.useEffect(() => subscribe?.((event) => latest.current(event)), [subscribe]);
 }
