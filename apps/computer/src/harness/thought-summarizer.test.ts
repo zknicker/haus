@@ -1,106 +1,84 @@
 import { describe, expect, test } from 'bun:test';
-import type { spawn } from 'node:child_process';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
-import { createClaudeCodeThoughtSummarizer, thoughtSummaryModel } from './thought-summarizer.ts';
+import { createGeminiThoughtSummarizer, thoughtSummaryModel } from './thought-summarizer.ts';
 
-function fakeClaude() {
-    const spawned: { args: string[]; child: FakeChild }[] = [];
-    const spawnProcess = ((_command: string, args: string[]) => {
-        const child = new FakeChild();
-        spawned.push({ args, child });
-        return child;
-    }) as unknown as typeof spawn;
-    return { spawned, spawnProcess };
+function fakeGemini(respond: (init: RequestInit) => Promise<Response>) {
+    const calls: { body: Record<string, unknown>; headers: Record<string, string>; url: string }[] =
+        [];
+    const fetcher = (async (url: string, init: RequestInit) => {
+        calls.push({
+            body: JSON.parse(String(init.body)),
+            headers: init.headers as Record<string, string>,
+            url,
+        });
+        return await respond(init);
+    }) as unknown as typeof fetch;
+    return { calls, fetcher };
 }
 
-class FakeChild extends EventEmitter {
-    readonly stdin = new PassThrough();
-    readonly stdout = new PassThrough();
-    readonly written: unknown[] = [];
-    killed = false;
+const answer = (text: string, extra: Record<string, unknown>[] = []) =>
+    Response.json({ candidates: [{ content: { parts: [...extra, { text }] } }] });
 
-    constructor() {
-        super();
-        this.stdin.setEncoding('utf8');
-        this.stdin.on('data', (chunk: string) => {
-            for (const line of chunk.split('\n').filter(Boolean)) {
-                this.written.push(JSON.parse(line));
-            }
+describe('Gemini thought summarizer', () => {
+    test('sends one bounded, minimal-thinking request and finishes the answer', async () => {
+        const gemini = fakeGemini(async () =>
+            answer('"Comparing Halloween bids to last week."', [{ text: 'hmm', thought: true }])
+        );
+        const summarizer = createGeminiThoughtSummarizer({
+            apiKey: 'test-key',
+            fetch: gemini.fetcher,
         });
-    }
-
-    answer(result: string) {
-        this.stdout.write(`${JSON.stringify({ type: 'assistant' })}\n`);
-        this.stdout.write(`${JSON.stringify({ result, subtype: 'success', type: 'result' })}\n`);
-    }
-
-    kill() {
-        this.killed = true;
-        return true;
-    }
-}
-
-describe('Claude Code thought summarizer', () => {
-    test('runs Haiku once, warm, and finishes its answer as a phrase', async () => {
-        const claude = fakeClaude();
-        const summarizer = createClaudeCodeThoughtSummarizer({
-            executable: '/bin/claude',
-            spawnProcess: claude.spawnProcess,
+        expect(await summarizer.summarize('The user wants the Halloween bids compared.')).toBe(
+            'Comparing Halloween bids to last week'
+        );
+        const [call] = gemini.calls;
+        expect(call?.url).toContain(`/models/${thoughtSummaryModel}:generateContent`);
+        expect(call?.headers['x-goog-api-key']).toBe('test-key');
+        expect(call?.body.generationConfig).toEqual({
+            maxOutputTokens: 24,
+            temperature: 0.2,
+            thinkingConfig: { thinkingLevel: 'minimal' },
         });
-        summarizer.warm();
-        const pending = summarizer.summarize('The user wants the Halloween bids compared.');
-        await Bun.sleep(0);
-        const [first] = claude.spawned;
-        expect(claude.spawned).toHaveLength(1);
-        expect(first?.args).toContain(thoughtSummaryModel);
-        expect(first?.args).toContain('--no-session-persistence');
-        expect(first?.child.written).toEqual([
+        expect(call?.body.contents).toEqual([
             {
-                message: {
-                    content:
-                        '<reasoning>\nThe user wants the Halloween bids compared.\n</reasoning>',
-                    role: 'user',
-                },
-                type: 'user',
+                parts: [
+                    {
+                        text: '<reasoning>\nThe user wants the Halloween bids compared.\n</reasoning>',
+                    },
+                ],
+                role: 'user',
             },
         ]);
-        first?.child.answer('"Comparing Halloween bids to last week."');
-        expect(await pending).toBe('Comparing Halloween bids to last week');
-        summarizer.close();
-        expect(first?.child.killed).toBe(true);
     });
 
-    test('drops a late answer and refuses new work until it lands', async () => {
-        const claude = fakeClaude();
-        const summarizer = createClaudeCodeThoughtSummarizer({
-            executable: '/bin/claude',
-            spawnProcess: claude.spawnProcess,
+    test('drops the thought on an error status, an empty answer, or a transport failure', async () => {
+        for (const respond of [
+            async () => new Response('quota', { status: 429 }),
+            async () => Response.json({ candidates: [{ content: { parts: [] } }] }),
+            async () => Response.json({ promptFeedback: { blockReason: 'OTHER' } }),
+            async () => {
+                throw new Error('offline');
+            },
+        ]) {
+            const summarizer = createGeminiThoughtSummarizer({
+                apiKey: 'k',
+                fetch: fakeGemini(respond).fetcher,
+            });
+            expect(await summarizer.summarize('some reasoning worth summarizing')).toBeNull();
+        }
+    });
+
+    test('drops an answer that misses the deadline', async () => {
+        const gemini = fakeGemini(
+            (init) =>
+                new Promise((_resolve, reject) => {
+                    init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+                })
+        );
+        const summarizer = createGeminiThoughtSummarizer({
+            apiKey: 'k',
+            fetch: gemini.fetcher,
             timeoutMs: 5,
         });
-        expect(await summarizer.summarize('first block of reasoning text')).toBeNull();
-        expect(await summarizer.summarize('second block while busy')).toBeNull();
-        const child = claude.spawned[0]?.child;
-        expect(child?.written).toHaveLength(1);
-
-        child?.answer('Late answer');
-        await Bun.sleep(0);
-        const next = summarizer.summarize('third block after the late answer');
-        await Bun.sleep(0);
-        child?.answer('Reading the chart');
-        expect(await next).toBe('Reading the chart');
-        summarizer.close();
-    });
-
-    test('a process that exits resolves the waiting request to null', async () => {
-        const claude = fakeClaude();
-        const summarizer = createClaudeCodeThoughtSummarizer({
-            executable: '/bin/claude',
-            spawnProcess: claude.spawnProcess,
-        });
-        const pending = summarizer.summarize('reasoning that never gets an answer');
-        claude.spawned[0]?.child.emit('exit', 1);
-        expect(await pending).toBeNull();
-        summarizer.close();
+        expect(await summarizer.summarize('slow reasoning block')).toBeNull();
     });
 });

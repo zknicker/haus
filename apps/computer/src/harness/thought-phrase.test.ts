@@ -63,6 +63,15 @@ describe('phrase finishing', () => {
         expect(finishThoughtPhrase('Sending it to the')).toBe('Sending it');
     });
 
+    test('keeps curly-apostrophe possessives as one word', () => {
+        expect(finishThoughtPhrase('Inspecting the app’s main window')).toBe(
+            "Inspecting the app's main window"
+        );
+        expect(finishThoughtPhrase('‘Verifying the build’s config’')).toBe(
+            "Verifying the build's config"
+        );
+    });
+
     test('never carries URLs, paths, emails, or opaque tokens', () => {
         expect(
             finishThoughtPhrase(
