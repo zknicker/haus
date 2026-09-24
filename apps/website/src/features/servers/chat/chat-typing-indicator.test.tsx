@@ -19,7 +19,7 @@ const chatId = 'chat_one';
 test('an idle strip is empty but keeps its reserved height', () => {
     const markup = renderToStaticMarkup(<ChatTypingStrip typists={[]} />);
     expect(markup).toContain('data-slot="chat-typing"');
-    expect(markup).toContain('h-6');
+    expect(markup).toContain('h-8');
     expect(markup).toContain('aria-live="polite"');
     expect(markup).not.toContain(' typing');
     expect(markup).not.toContain('chat-loader-dots');
