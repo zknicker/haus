@@ -167,8 +167,8 @@ export function getCursorHoverOffset({
     surfaceBounds?: Pick<DOMRect, 'bottom' | 'left' | 'right' | 'top'>;
     viewport?: { height: number; width: number };
 }) {
-    let x = clientX + 25 - (surfaceBounds?.left ?? bounds.left);
-    let y = clientY - 25 - (surfaceBounds?.bottom ?? bounds.top + bounds.height + 10);
+    let x = clientX + 15 - (surfaceBounds?.left ?? bounds.left);
+    let y = clientY - 15 - (surfaceBounds?.bottom ?? bounds.top + bounds.height + 10);
 
     if (surfaceBounds && viewport) {
         x = constrainToViewport(x, {

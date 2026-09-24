@@ -90,20 +90,6 @@ export function createAppRouter() {
                                                         'ServerDefaultPage'
                                                     ),
                                                 },
-                                                ...(import.meta.env.DEV
-                                                    ? [
-                                                          {
-                                                              path: 'hover-cards',
-                                                              lazy: lazyRoute(
-                                                                  () =>
-                                                                      import(
-                                                                          './features/hover-card-preview/hover-card-preview-page.tsx'
-                                                                      ),
-                                                                  'HoverCardPreviewPage'
-                                                              ),
-                                                          },
-                                                      ]
-                                                    : []),
                                                 {
                                                     path: 'search',
                                                     lazy: lazyRoute(
