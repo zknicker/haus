@@ -1,10 +1,10 @@
 /**
  * Pure phrase shaping for Agent thoughts (prototype, ADR 0036): one short,
- * present-tense status line per reasoning block. Raw reasoning stays on the
+ * first-person line per reasoning block ("I'm checking the bids"). Raw reasoning stays on the
  * Computer; only the phrase this module returns may leave it.
  */
 
-export const thoughtPhraseMaxWords = 7;
+export const thoughtPhraseMaxWords = 8;
 export const thoughtPhraseMaxLength = 80;
 /** Untitled blocks shorter than this carry too little to summarize. */
 export const thoughtMinimumReasoningLength = 40;
@@ -57,7 +57,8 @@ export function condenseThoughtLocally(reasoning: string): string | null {
 /**
  * Normalizes any candidate — a title, a model's answer, or a local condensation
  * — into one plain line: no markup, quotes, URLs, or token-like strings, at most
- * seven words and 80 characters, capitalized, with no trailing period.
+ * eight words and 80 characters, capitalized, with no trailing period. A line
+ * that opens with an -ing verb gains "I'm" so the Agent speaks for itself.
  */
 export function finishThoughtPhrase(candidate: string): string | null {
     const words = candidate
@@ -70,6 +71,9 @@ export function finishThoughtPhrase(candidate: string): string | null {
         // Quote marks go; a plural possessive's trailing apostrophe ("charts'") stays.
         .map((word) => word.replace(/^'+/u, '').replace(/(?<![sS])'+$/u, ''))
         .filter((word) => word.length > 0);
+    if (/^[A-Za-z]{3,}ing$/u.test(words[0] ?? '')) {
+        words.splice(0, 1, "I'm", (words[0] ?? '').toLowerCase());
+    }
     const kept = words.slice(0, thoughtPhraseMaxWords);
     while (kept.length > 1 && danglingWords.has(kept.at(-1)?.toLowerCase() ?? '')) {
         kept.pop();

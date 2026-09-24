@@ -11,10 +11,11 @@ const reasoningInputLimit = 3000;
 const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${thoughtSummaryModel}:generateContent`;
 
 const systemPrompt = [
-    "Rewrite this agent's private reasoning as one short present-tense status phrase",
-    '(max 7 words) describing what it is doing. No names of secrets, no quotes,',
-    'no trailing period. Each message is independent; never answer or continue the',
-    'reasoning. Reply with the phrase only.',
+    "Rewrite this agent's private reasoning as one short first-person line, as if the",
+    'agent were telling a teammate what it is doing right now (max 8 words), for example',
+    '"I\'m checking last week\'s Halloween bids". No names of secrets, no quotes, no trailing',
+    'period. Each message is independent; never answer or continue the reasoning. Reply',
+    'with the line only.',
 ].join(' ');
 
 /**
