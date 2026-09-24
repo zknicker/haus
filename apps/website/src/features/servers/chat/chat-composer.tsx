@@ -189,12 +189,12 @@ export function ServerChatComposer({
             >
                 {/* One stack grows up from the shell over the transcript's
                     clearance: the reply bar joins the editor, and typing
-                    rides above it, so neither covers the other. While a reply
-                    is open (through its exit), the stack paints the composer
-                    area's background so transcript text never shows behind
-                    the typing row. */}
+                    rides above it, so neither covers the other. It stays
+                    transparent; the footer surface measures it into the
+                    clearance, and the transcript's fade and blur soften
+                    whatever scrolls behind it. */}
                 <div
-                    className="absolute inset-x-0 bottom-full flex flex-col has-[[data-inline-reply-reference]]:bg-background"
+                    className="absolute inset-x-0 bottom-full flex flex-col"
                     data-slot="chat-composer-stack"
                 >
                     {status}

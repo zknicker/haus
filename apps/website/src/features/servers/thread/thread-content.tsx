@@ -13,6 +13,10 @@ import { useThreadFollow } from '../../../hooks/servers/use-thread-follow.ts';
 import { useThreadInlineReplies } from '../../../hooks/servers/use-thread-inline-replies.ts';
 import { useThreadMessages } from '../../../hooks/servers/use-thread-messages.ts';
 import { AutomationFireContextCard } from '../../chats/automation/automation-fire-context-card.tsx';
+import {
+    ChatFooterSurface,
+    chatFooterClearanceClassName,
+} from '../../chats/chat-footer-surface.tsx';
 import { getTranscriptEntrySequences } from '../../chats/chat-read-visibility.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
@@ -185,79 +189,86 @@ export function ThreadContent({
                         />
                     ) : null}
                 </div>
-                <MessageScrollerProvider autoScroll={false} defaultScrollPosition="start">
-                    <ThreadReadTracker
-                        active={active}
-                        chatId={messages.data ? threadChatId : undefined}
-                        sequenceByEntryId={replySequenceByEntryId}
-                        serverId={messages.data ? chat.serverId : undefined}
-                    />
-                    <MessageScroller>
-                        {/* px-5 matches the main chat viewport gutter so the
-                            rows' full-width hover bleed stays contained. */}
-                        <MessageScrollerViewport
-                            aria-label="Thread messages"
-                            className="thread-conversation-viewport px-5 py-4"
-                            data-testid="thread-conversation"
-                        >
-                            <MessageScrollerContent className="w-full gap-0">
-                                {/*
-                                 * Why the anchor was sent, above the anchor itself. A fire
-                                 * writes no transcript row, so this card is where the
-                                 * payload, the fire's place in the automation's history,
-                                 * and the automation's own state are read.
-                                 */}
-                                {anchor.cause ? (
-                                    <AutomationFireContextCard
-                                        messageId={anchor.id}
-                                        serverId={chat.serverId}
-                                    />
-                                ) : null}
-                                <ThreadConversationHistory
-                                    inline={inline.history}
-                                    thread={messages}
-                                />
-                                {conversation.map(({ entry, inParentChat }) => (
-                                    <MessageScrollerItem
-                                        className="![content-visibility:visible]"
-                                        key={entry.id}
-                                        messageId={entry.id}
-                                    >
-                                        <TranscriptRenderProvider
-                                            value={
-                                                inParentChat
-                                                    ? parentRenderContext
-                                                    : threadRenderContext
-                                            }
-                                        >
-                                            <TranscriptEntryView
-                                                activeReply={null}
-                                                conversationLayout={
-                                                    renderContext.conversationLayout
-                                                }
-                                                entry={entry}
-                                            />
-                                        </TranscriptRenderProvider>
-                                    </MessageScrollerItem>
-                                ))}
-                            </MessageScrollerContent>
-                        </MessageScrollerViewport>
-                    </MessageScroller>
-                    <ChatSendScroll messages={pendingReplies} />
-                </MessageScrollerProvider>
             </TranscriptRenderProvider>
-            <ThreadContentComposer
-                anchorMessageId={anchor.id}
-                chatId={chat.id}
-                chatName={titles.header}
-                composerVariant={composerVariant}
-                onThreadCreated={setCreatedThreadChatId}
-                pendingChatId={pendingThreadReplyKey(anchor.id)}
-                readOnly={readOnly}
-                serverId={chat.serverId}
-                task={Boolean(anchor.task)}
-                threadChatId={threadChatId}
-            />
+            <ChatFooterSurface
+                footer={
+                    <ThreadContentComposer
+                        anchorMessageId={anchor.id}
+                        chatId={chat.id}
+                        chatName={titles.header}
+                        composerVariant={composerVariant}
+                        onThreadCreated={setCreatedThreadChatId}
+                        pendingChatId={pendingThreadReplyKey(anchor.id)}
+                        readOnly={readOnly}
+                        serverId={chat.serverId}
+                        task={Boolean(anchor.task)}
+                        threadChatId={threadChatId}
+                    />
+                }
+            >
+                <TranscriptRenderProvider value={threadRenderContext}>
+                    <MessageScrollerProvider autoScroll={false} defaultScrollPosition="start">
+                        <ThreadReadTracker
+                            active={active}
+                            chatId={messages.data ? threadChatId : undefined}
+                            sequenceByEntryId={replySequenceByEntryId}
+                            serverId={messages.data ? chat.serverId : undefined}
+                        />
+                        <MessageScroller>
+                            {/* px-5 matches the main chat viewport gutter so the
+                            rows' full-width hover bleed stays contained. */}
+                            <MessageScrollerViewport
+                                aria-label="Thread messages"
+                                className={`px-5 pt-4 ${chatFooterClearanceClassName}`}
+                                data-testid="thread-conversation"
+                            >
+                                <MessageScrollerContent className="w-full gap-0">
+                                    {/*
+                                     * Why the anchor was sent, above the anchor itself. A fire
+                                     * writes no transcript row, so this card is where the
+                                     * payload, the fire's place in the automation's history,
+                                     * and the automation's own state are read.
+                                     */}
+                                    {anchor.cause ? (
+                                        <AutomationFireContextCard
+                                            messageId={anchor.id}
+                                            serverId={chat.serverId}
+                                        />
+                                    ) : null}
+                                    <ThreadConversationHistory
+                                        inline={inline.history}
+                                        thread={messages}
+                                    />
+                                    {conversation.map(({ entry, inParentChat }) => (
+                                        <MessageScrollerItem
+                                            className="![content-visibility:visible]"
+                                            key={entry.id}
+                                            messageId={entry.id}
+                                        >
+                                            <TranscriptRenderProvider
+                                                value={
+                                                    inParentChat
+                                                        ? parentRenderContext
+                                                        : threadRenderContext
+                                                }
+                                            >
+                                                <TranscriptEntryView
+                                                    activeReply={null}
+                                                    conversationLayout={
+                                                        renderContext.conversationLayout
+                                                    }
+                                                    entry={entry}
+                                                />
+                                            </TranscriptRenderProvider>
+                                        </MessageScrollerItem>
+                                    ))}
+                                </MessageScrollerContent>
+                            </MessageScrollerViewport>
+                        </MessageScroller>
+                        <ChatSendScroll messages={pendingReplies} />
+                    </MessageScrollerProvider>
+                </TranscriptRenderProvider>
+            </ChatFooterSurface>
         </div>
     );
 }

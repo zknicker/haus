@@ -107,9 +107,9 @@
 
 @layer utilities {
     /* The message scroller cannot hand HeroUI ScrollShadow the ref it needs.
-       The fade eases out and reaches transparent just above the edge, so a
-       line straddling it never shows as a hard cut; `.scroll-fade-blur`
-       softens the same band from behind. */
+       The fade eases in and out (smoothstep stops) so neither end of the
+       ramp reads as a line; `.scroll-fade-blur` softens the same band from
+       behind. */
     .scroll-fade-b {
         --scroll-fade-size: 3rem;
         --scroll-fade-inset: 0.25rem;
@@ -117,21 +117,27 @@
             to bottom,
             #000 0,
             #000 calc(100% - var(--scroll-fade-size)),
-            rgb(0 0 0 / 0.72) calc(100% - var(--scroll-fade-size) * 0.66),
-            rgb(0 0 0 / 0.32) calc(100% - var(--scroll-fade-size) * 0.36),
-            rgb(0 0 0 / 0.08) calc(100% - var(--scroll-fade-size) * 0.14),
+            rgb(0 0 0 / 0.9) calc(100% - var(--scroll-fade-size) * 0.8),
+            rgb(0 0 0 / 0.65) calc(100% - var(--scroll-fade-size) * 0.6),
+            rgb(0 0 0 / 0.35) calc(100% - var(--scroll-fade-size) * 0.4),
+            rgb(0 0 0 / 0.1) calc(100% - var(--scroll-fade-size) * 0.2),
             transparent calc(100% - var(--scroll-fade-inset))
         );
         -webkit-mask-image: var(--scroll-fade-mask);
         mask-image: var(--scroll-fade-mask);
     }
 
-    /* Progressive blur: each layer blurs harder and owns a lower band. */
+    /* Progressive blur: six backdrop layers, each doubling the last, and each
+       masked to a band that crossfades with its neighbours (ramp in over one
+       step, hold, ramp out over the next). The first layer ramps in from
+       nothing at a quarter pixel, so the band's top edge has nothing to show.
+       It stays a sibling of the masked viewport: inside it, the mask would
+       become the blur's backdrop root and cut a visible edge. */
     .scroll-fade-blur {
         position: absolute;
         inset-inline: 0;
         bottom: 0;
-        height: 2.5rem;
+        height: 3rem;
         pointer-events: none;
     }
 
@@ -141,27 +147,86 @@
     }
 
     .scroll-fade-blur > span:nth-child(1) {
-        backdrop-filter: blur(1px);
-        mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 55%, transparent 80%);
+        backdrop-filter: blur(0.25px);
+        mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 35%, transparent 50%);
     }
 
     .scroll-fade-blur > span:nth-child(2) {
-        backdrop-filter: blur(2.5px);
-        mask-image: linear-gradient(to bottom, transparent 30%, #000 55%, #000 80%, transparent 100%);
+        backdrop-filter: blur(0.5px);
+        mask-image: linear-gradient(to bottom, transparent 20%, #000 35%, #000 50%, transparent 62%);
     }
 
     .scroll-fade-blur > span:nth-child(3) {
-        backdrop-filter: blur(5px);
-        mask-image: linear-gradient(to bottom, transparent 55%, #000 80%, #000 100%);
+        backdrop-filter: blur(1px);
+        mask-image: linear-gradient(to bottom, transparent 35%, #000 50%, #000 62%, transparent 74%);
     }
 
-    .scroll-fade-b.thread-conversation-viewport {
-        --scroll-fade-size: 4rem;
-        --scroll-fade-inset: 0.75rem;
+    .scroll-fade-blur > span:nth-child(4) {
+        backdrop-filter: blur(2px);
+        mask-image: linear-gradient(to bottom, transparent 50%, #000 62%, #000 74%, transparent 86%);
+    }
+
+    .scroll-fade-blur > span:nth-child(5) {
+        backdrop-filter: blur(4px);
+        mask-image: linear-gradient(to bottom, transparent 62%, #000 74%, #000 86%, transparent 100%);
+    }
+
+    .scroll-fade-blur > span:nth-child(6) {
+        backdrop-filter: blur(8px);
+        mask-image: linear-gradient(to bottom, transparent 74%, #000 86%);
+    }
+
+    /* The composer floats over the transcript (`ChatFooterSurface`), which
+       publishes the footer's measured height. The fade and blur span that
+       footer plus a little headroom and reach transparent at the window's
+       bottom edge. */
+    .chat-footer-surface {
+        --chat-fade-size: calc(var(--chat-footer-height, 0px) + 1rem);
+    }
+
+    .chat-footer-surface [data-slot="message-scroller-viewport"].scroll-fade-b {
+        --scroll-fade-size: var(--chat-fade-size);
+        --scroll-fade-inset: 0px;
+    }
+
+    .chat-footer-surface .scroll-fade-blur {
+        height: var(--chat-fade-size);
+    }
+
+    /* Only the footer's own surfaces take the pointer; its transparent
+       margins, the reserved typing row, and plain footer text pass wheel,
+       clicks, and selection through to the transcript behind. */
+    .chat-footer-dock {
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 20;
+        pointer-events: none;
+    }
+
+    .chat-footer-dock
+        :is(
+            .prompt-input__shell,
+            .prompt-input__reply,
+            .alert,
+            [role="alert"],
+            [role="listbox"],
+            a,
+            button,
+            input,
+            textarea
+        ) {
+        pointer-events: auto;
     }
 
     .scrollbar-gutter-stable {
         scrollbar-gutter: stable;
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .scroll-fade-blur {
+        display: none;
     }
 }
 

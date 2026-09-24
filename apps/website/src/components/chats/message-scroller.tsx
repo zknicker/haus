@@ -61,6 +61,9 @@ function MessageScrollerViewport({
                 <span />
                 <span />
                 <span />
+                <span />
+                <span />
+                <span />
             </span>
         </>
     );

@@ -28,7 +28,7 @@ export function ThreadContentComposer({
 }) {
     if (readOnly) {
         return (
-            <p className="shrink-0 border-separator border-t px-4 py-3 text-muted text-sm">
+            <p className="shrink-0 border-separator border-t bg-background px-4 py-3 text-muted text-sm">
                 This conversation is read-only because the Agent has been retired.
             </p>
         );

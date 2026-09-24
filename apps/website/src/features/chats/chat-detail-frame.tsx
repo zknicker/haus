@@ -6,6 +6,7 @@ import {
     MessageScrollerProvider,
     MessageScrollerViewport,
 } from '../../components/chats/message-scroller.tsx';
+import { ChatFooterSurface, chatFooterClearanceClassName } from './chat-footer-surface.tsx';
 import { ChatScrollPositionMemory } from './chat-scroll-position-memory.tsx';
 import { ChatTranscriptLoadingIndicator } from './chat-transcript-loading-indicator.tsx';
 import type { TranscriptActiveReply } from './transcript-contract.ts';
@@ -67,65 +68,68 @@ export function ChatDetailFrame({
             <div className="flex min-h-0 flex-1 overflow-hidden">
                 <div className="relative flex min-w-0 flex-1 flex-col">
                     {header}
-                    {body === undefined ? (
-                        <div className="relative min-h-0 flex-1">
-                            <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2">
-                                <ChatTranscriptLoadingIndicator
-                                    className="shrink-0"
-                                    visible={isInitialTranscriptPending}
-                                />
-                            </div>
-                            <MessageScroller>
-                                <MessageScrollerViewport
-                                    // The conversation hugs the composer — the
-                                    // bottom padding (96px) is static clearance
-                                    // for a two-row floating status stack. New
-                                    // sends resume following the bottom once
-                                    // their optimistic rows have committed.
-                                    className="px-5 pt-4 pb-24"
-                                    onScroll={handleScroll}
-                                    ref={viewportRef}
-                                >
-                                    {isInitialTranscriptPending ? null : error ? (
-                                        <MessageScrollerContent className="w-full">
-                                            <div className="px-2 py-4 text-muted text-sm">
-                                                Unable to load this chat transcript right now.
-                                            </div>
-                                        </MessageScrollerContent>
-                                    ) : hasTimelineContent ? (
-                                        timelineContent(contentRef)
-                                    ) : (
-                                        // Sized to the scroller's own content box
-                                        // rather than viewport math, so the state
-                                        // centers on the visible transcript without
-                                        // outgrowing the padding already reserved.
-                                        <MessageScrollerContent className="h-full w-full">
-                                            <div className="flex h-full items-center justify-center">
-                                                {empty}
-                                            </div>
-                                        </MessageScrollerContent>
-                                    )}
-                                </MessageScrollerViewport>
-                                <ChatScrollPositionMemory
-                                    chatId={chatId}
-                                    enabled={hasTimelineContent && !isInitialTranscriptPending}
-                                    key={chatId}
-                                    viewportRef={viewportRef}
-                                />
-                                {hasTimelineContent ? (
-                                    <MessageScrollerButton
-                                        aria-label="Jump to latest message"
-                                        className="z-10"
-                                        direction="end"
+                    <ChatFooterSurface footer={footer}>
+                        {body === undefined ? (
+                            <>
+                                <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2">
+                                    <ChatTranscriptLoadingIndicator
+                                        className="shrink-0"
+                                        visible={isInitialTranscriptPending}
                                     />
-                                ) : null}
-                            </MessageScroller>
-                        </div>
-                    ) : (
-                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
-                    )}
-
-                    {footer}
+                                </div>
+                                <MessageScroller>
+                                    <MessageScrollerViewport
+                                        // The conversation scrolls behind the
+                                        // floating composer and hugs it at the end:
+                                        // the bottom padding is the measured footer
+                                        // plus a small gap. New sends resume
+                                        // following the bottom once their
+                                        // optimistic rows have committed.
+                                        className={`px-5 pt-4 ${chatFooterClearanceClassName}`}
+                                        onScroll={handleScroll}
+                                        ref={viewportRef}
+                                    >
+                                        {isInitialTranscriptPending ? null : error ? (
+                                            <MessageScrollerContent className="w-full">
+                                                <div className="px-2 py-4 text-muted text-sm">
+                                                    Unable to load this chat transcript right now.
+                                                </div>
+                                            </MessageScrollerContent>
+                                        ) : hasTimelineContent ? (
+                                            timelineContent(contentRef)
+                                        ) : (
+                                            // Sized to the scroller's own content box
+                                            // rather than viewport math, so the state
+                                            // centers on the visible transcript without
+                                            // outgrowing the padding already reserved.
+                                            <MessageScrollerContent className="h-full w-full">
+                                                <div className="flex h-full items-center justify-center">
+                                                    {empty}
+                                                </div>
+                                            </MessageScrollerContent>
+                                        )}
+                                    </MessageScrollerViewport>
+                                    <ChatScrollPositionMemory
+                                        chatId={chatId}
+                                        enabled={hasTimelineContent && !isInitialTranscriptPending}
+                                        key={chatId}
+                                        viewportRef={viewportRef}
+                                    />
+                                    {hasTimelineContent ? (
+                                        <MessageScrollerButton
+                                            aria-label="Jump to latest message"
+                                            className="z-10 data-[direction=end]:bottom-[calc(var(--chat-footer-height,0px)+1rem)]"
+                                            direction="end"
+                                        />
+                                    ) : null}
+                                </MessageScroller>
+                            </>
+                        ) : (
+                            <div className="flex size-full min-h-0 flex-col overflow-hidden">
+                                {body}
+                            </div>
+                        )}
+                    </ChatFooterSurface>
                 </div>
             </div>
         </MessageScrollerProvider>
