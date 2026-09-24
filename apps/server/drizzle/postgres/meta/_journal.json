@@ -344,6 +344,13 @@
       "when": 1790219483760,
       "tag": "0048_sole_addressing",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1790272800000,
+      "tag": "0049_rankwrangler_preset",
+      "breakpoints": true
     }
   ]
 }

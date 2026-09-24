@@ -1,0 +1,2 @@
+ALTER TABLE "mcp_connections" DROP CONSTRAINT "mcp_connections_preset";--> statement-breakpoint
+ALTER TABLE "mcp_connections" ADD CONSTRAINT "mcp_connections_preset" CHECK ("mcp_connections"."preset" is null or "mcp_connections"."preset" in ('google-calendar', 'merchbase', 'rankwrangler'));
