@@ -46,26 +46,15 @@ function MessageScrollerViewport({
         // scroller primitive declares a `ref` prop but never forwards it to the
         // scrolling node, so the hook has no element to measure. The mask stays
         // hand-rolled until the primitive forwards its ref.
-        <>
-            <MessageScrollerPrimitive.Viewport
-                className={cn(
-                    'scroll-fade-b scrollbar-gutter-stable data-autoscrolling:scrollbar-thumb-transparent data-autoscrolling:scrollbar-track-transparent size-full min-h-0 min-w-0 overflow-y-auto overscroll-contain contain-content',
-                    className
-                )}
-                data-slot="message-scroller-viewport"
-                tabIndex={tabIndex}
-                {...props}
-            />
-            {/* Blurs the fade band from behind; the scroll button renders later, above it. */}
-            <span aria-hidden="true" className="scroll-fade-blur" data-slot="message-scroller-blur">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-            </span>
-        </>
+        <MessageScrollerPrimitive.Viewport
+            className={cn(
+                'scroll-fade-b scrollbar-gutter-stable data-autoscrolling:scrollbar-thumb-transparent data-autoscrolling:scrollbar-track-transparent size-full min-h-0 min-w-0 overflow-y-auto overscroll-contain contain-content',
+                className
+            )}
+            data-slot="message-scroller-viewport"
+            tabIndex={tabIndex}
+            {...props}
+        />
     );
 }
 
