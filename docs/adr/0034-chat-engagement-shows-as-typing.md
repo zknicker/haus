@@ -83,8 +83,10 @@ A wake that reads several Chats types in all of them until it answers each or se
 including Chats it decides to stay silent in. Silence clears only at settlement, so a run
 that never answers shows typing for its whole turn.
 
-FYI messages in single-Agent channels are never judged — Jev needs at least two eligible
-Agents — so they always engage, as do DMs, mentions, replies, and Thread messages.
+FYI messages in a channel with one eligible Agent and one human member are never judged
+(they are addressed as `sole`), so they always engage, as do DMs, mentions, replies, and
+Thread messages. A single-Agent channel with two or more human members is judged, so its
+FYI messages can be suppressed.
 A judgment that times out or fails under the 1.5-second deadline also engages;
 suppression trims only a low reply expectation that was actually recorded.
 

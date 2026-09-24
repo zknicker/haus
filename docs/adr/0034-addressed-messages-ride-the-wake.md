@@ -50,10 +50,11 @@ exception. Existing drain budgets — fifty rows and 24,000 characters — apply
 unchanged, and a human drain never shares a run with a fire, so ADR 0026's
 sole-fire cause inference is untouched.
 
-**An item is addressed when it names this Agent.** A DM, a personal @mention, or
-a Jev routing that committed the message to exactly this Agent at the 0.90 gate
-(ADR 0030). Stale, invalid, uncertain, timed-out and broadcast judgments are not
-addressing. The reason is decided once, when delivery is planned, and persisted
+**An item is addressed when it names this Agent.** A DM, a personal @mention,
+a Jev routing that committed the message to exactly this Agent at the 0.90 gate,
+or `sole`: the message went to a channel's only eligible Agent, and its author is
+that channel's only human member (both from ADR 0030). Stale, invalid, uncertain,
+timed-out and broadcast judgments are not addressing. The reason is decided once, when delivery is planned, and persisted
 on the inbox row as `addressed_reason`. Draining an addressed message on a cold
 start is a Haus extension beyond Raft, taken because Haus Agents sleep between
 turns far more often than Raft's do.

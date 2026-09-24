@@ -24,7 +24,28 @@ It does not change canonical history, task ownership, seen state, or reply ances
 DMs, explicit Agent mentions, inline replies, Threads, Agent-authored messages and
 messages with attachments retain their deterministic behavior. Existing mention behavior
 includes eligible ambient recipients; this change does not turn mentions into exclusive
-addressing. Fewer than two eligible Agents bypass inference.
+addressing. A channel with no eligible Agent bypasses inference.
+
+## Single-Agent channels
+
+Amended 2026-09-23. With exactly one eligible Agent, a top-level human message is decided by
+the channel's human members: active `channel_participants` rows whose Server membership is not
+revoked. Every other bypass above still applies first, and a mention still wins.
+
+- **One human member, and it is the author:** the message is addressed to that Agent without
+  a Jev call. The inbox row's `addressed_reason` is `sole` and the audit records a `sole`
+  bypass. The transaction rechecks both counts; a second Agent or human arriving since
+  preparation records the audit as `stale` and delivers ordinarily. Sole addressing is
+  deterministic, so it applies with or without the TypeSafe credential. Any other membership
+  shape is not sole.
+- **Two or more human members:** Jev runs the same v2 audience question over one eligible Agent,
+  with the same deadline, gate, audit, and reply-expectation Noul. The options stay
+  `[agentId, multiple, human, unclear]` so `decodeRoutingDecision` validates the same
+  shape. With one Agent, `multiple` carries its "the channel generally" half, and choosing it
+  never addresses anyone. The request lists every human member as a participant, including
+  members missing from the history window, so `human` can name them. A choice at the 0.90 gate
+  marks the row `routing`. Everything else leaves it unaddressed. Recipients never change in
+  this shape, because the only eligible Agent receives the message either way.
 
 ## Ownership and lifecycle
 
