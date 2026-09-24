@@ -26,8 +26,8 @@ export function ChatTypingIndicator({
 }
 
 /**
- * The row always reserves its height, so the composer never moves when an
- * Agent starts or stops. Only the content fades in and out.
+ * The composer reserves this row's height, so it never moves when an Agent
+ * starts or stops. Only the content fades in and out.
  */
 export function ChatTypingStrip({ typists }: { typists: readonly ChatTypist[] }) {
     const reduceMotion = useReducedMotion() === true;
@@ -37,7 +37,7 @@ export function ChatTypingStrip({ typists }: { typists: readonly ChatTypist[] })
     return (
         <div
             aria-live="polite"
-            className="flex h-6 shrink-0 items-center px-9 text-muted text-sm"
+            className="pointer-events-none flex h-6 shrink-0 items-center px-4 text-muted text-sm"
             data-slot="chat-typing"
         >
             <AnimatePresence initial={false}>

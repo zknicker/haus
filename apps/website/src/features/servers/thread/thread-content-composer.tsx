@@ -35,18 +35,16 @@ export function ThreadContentComposer({
     }
 
     return (
-        <>
-            <ChatTypingIndicator chatId={threadChatId} serverId={serverId} />
-            <ChatComposer
-                chatId={chatId}
-                chatName={chatName}
-                onThreadCreated={onThreadCreated}
-                pendingChatId={pendingChatId}
-                placeholder={task ? 'Reply in thread…' : 'Add a reply…'}
-                serverId={serverId}
-                thread={{ anchorMessageId }}
-                variant={composerVariant}
-            />
-        </>
+        <ChatComposer
+            chatId={chatId}
+            chatName={chatName}
+            onThreadCreated={onThreadCreated}
+            pendingChatId={pendingChatId}
+            placeholder={task ? 'Reply in thread…' : 'Add a reply…'}
+            serverId={serverId}
+            status={<ChatTypingIndicator chatId={threadChatId} serverId={serverId} />}
+            thread={{ anchorMessageId }}
+            variant={composerVariant}
+        />
     );
 }

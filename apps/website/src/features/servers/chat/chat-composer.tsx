@@ -44,6 +44,7 @@ export function ServerChatComposer({
     pendingChatId,
     placeholder,
     serverId,
+    status,
     thread,
     target,
     variant = 'primary',
@@ -64,6 +65,8 @@ export function ServerChatComposer({
     pendingChatId?: string;
     placeholder?: string;
     serverId: string;
+    /** The typing row; the composer reserves its height above the shell. */
+    status?: React.ReactNode;
     thread?: { anchorMessageId: string };
     target: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
     /**
@@ -173,6 +176,7 @@ export function ServerChatComposer({
                     requestAnimationFrame(mentionComposer.focusTextEditor);
                 }}
             />
+            {status ? <div aria-hidden="true" className="h-6 shrink-0" /> : null}
             <PromptInput
                 data-expanded={isExpanded || undefined}
                 data-replying={Boolean(activeInlineReply) || undefined}
@@ -183,10 +187,19 @@ export function ServerChatComposer({
                 value={draft}
                 variant={variant}
             >
-                <ChatInlineReplyReference
-                    onCancel={onInlineReplyCancel ?? (() => undefined)}
-                    target={activeInlineReply ?? null}
-                />
+                {/* One stack grows up from the shell over the transcript's
+                    clearance: the reply bar joins the editor, and typing
+                    rides above it, so neither covers the other. */}
+                <div
+                    className="absolute inset-x-0 bottom-full flex flex-col"
+                    data-slot="chat-composer-stack"
+                >
+                    {status}
+                    <ChatInlineReplyReference
+                        onCancel={onInlineReplyCancel ?? (() => undefined)}
+                        target={activeInlineReply ?? null}
+                    />
+                </div>
                 <PromptInput.Shell onMouseDown={handleShellMouseDown}>
                     <PromptInput.Content>
                         <ComposerAttachments

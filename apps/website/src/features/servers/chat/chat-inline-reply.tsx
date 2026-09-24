@@ -47,7 +47,7 @@ export function ChatInlineReplyReference({
             {target ? (
                 <motion.div
                     animate={{ height: 'auto', opacity: 1 }}
-                    className="absolute inset-x-0 bottom-full overflow-hidden"
+                    className="overflow-hidden"
                     exit={{
                         height: 0,
                         opacity: 0,

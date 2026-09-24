@@ -9,6 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { testChat } from '../../chats/chat-fixtures.ts';
 import { testAgent } from '../../members/agent-fixtures.ts';
+import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 import { ChatTypingIndicator, ChatTypingStrip } from './chat-typing-indicator.tsx';
 import { ChatViewFooter } from './chat-view-footer.tsx';
 
@@ -76,13 +77,49 @@ test('a Thread without its chat yet still reserves the strip', () => {
 });
 
 test('the chat footer mounts the strip directly above the composer', () => {
-    const markup = render(
+    const markup = renderFooter(null);
+    const strip = markup.indexOf('data-slot="chat-typing"');
+    expect(strip).toBeGreaterThan(-1);
+    expect(markup.indexOf('Juniper is typing')).toBeGreaterThan(strip);
+    expect(markup.indexOf('Message planning')).toBeGreaterThan(strip);
+});
+
+test('an open inline reply stacks under the typing row instead of covering it', () => {
+    const parent = {
+        author: { kind: 'human' as const, userId: 'usr_one' },
+        content: 'Ship it?',
+        createdAt: '2026-09-23T12:00:00.000Z',
+        id: 'msg_root',
+        sequence: 1,
+    };
+    const markup = renderFooter({
+        author: parent.author,
+        content: parent.content,
+        messageId: parent.id,
+        parent,
+        root: parent,
+    });
+    // Typing and the reply bar share one bottom-anchored stack, so the bar
+    // grows beneath the typing row rather than overlaying its reserved slot.
+    const stack = markup.indexOf('data-slot="chat-composer-stack"');
+    const strip = markup.indexOf('data-slot="chat-typing"');
+    const reply = markup.indexOf('data-inline-reply-reference');
+    expect(stack).toBeGreaterThan(-1);
+    expect(strip).toBeGreaterThan(stack);
+    expect(reply).toBeGreaterThan(strip);
+    expect(markup.indexOf('Message planning')).toBeGreaterThan(reply);
+    expect(markup.indexOf('Juniper is typing')).toBeGreaterThan(strip);
+    expect(markup.match(/absolute[^"]*bottom-full/g)).toHaveLength(1);
+});
+
+function renderFooter(inlineReply: ChatInlineReplyTarget | null) {
+    return render(
         seededClient([engagement('agt_juniper')]),
         <ChatViewFooter
             chat={testChat({ id: chatId, serverId })}
             chatName="planning"
             ensureDmError={null}
-            inlineReply={null}
+            inlineReply={inlineReply}
             onInlineReplyCancel={() => undefined}
             onInlineReplySent={() => undefined}
             peerRetired={false}
@@ -90,11 +127,7 @@ test('the chat footer mounts the strip directly above the composer', () => {
             server={{ role: 'member' } as ServerDetail}
         />
     );
-    const strip = markup.indexOf('data-slot="chat-typing"');
-    expect(strip).toBeGreaterThan(-1);
-    expect(markup.indexOf('Juniper is typing')).toBeGreaterThan(strip);
-    expect(markup.indexOf('Message planning')).toBeGreaterThan(strip);
-});
+}
 
 function engagement(agentId: string): ChatEngagement {
     return { agentId, chatId, runId: `run_${agentId}`, startedAt: '2026-09-23T12:00:00.000Z' };

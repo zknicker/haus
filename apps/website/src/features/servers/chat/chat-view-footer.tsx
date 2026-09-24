@@ -45,19 +45,17 @@ export function ChatViewFooter({
                     new messages.
                 </p>
             ) : (
-                <>
-                    <ChatTypingIndicator chatId={chat.id} serverId={chat.serverId} />
-                    <ChatComposer
-                        agentDmId={chat.peerAgentId ?? undefined}
-                        chatId={chat.id}
-                        chatName={chatName}
-                        inlineReply={inlineReply}
-                        onInlineReplyCancel={onInlineReplyCancel}
-                        onInlineReplySent={onInlineReplySent}
-                        pendingChatId={chat.id}
-                        serverId={chat.serverId}
-                    />
-                </>
+                <ChatComposer
+                    agentDmId={chat.peerAgentId ?? undefined}
+                    chatId={chat.id}
+                    chatName={chatName}
+                    inlineReply={inlineReply}
+                    onInlineReplyCancel={onInlineReplyCancel}
+                    onInlineReplySent={onInlineReplySent}
+                    pendingChatId={chat.id}
+                    serverId={chat.serverId}
+                    status={<ChatTypingIndicator chatId={chat.id} serverId={chat.serverId} />}
+                />
             )}
         </>
     );

@@ -75,6 +75,27 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
         .toBeGreaterThan(0);
     await expect(typing.getByText('Scout is typing', { exact: true })).toBeVisible();
 
+    // An inline reply joins the composer beneath the typing row, never over it,
+    // and neither moves the composer.
+    const composerBox = await page.locator('.prompt-input').boundingBox();
+    const sent = page
+        .locator('[data-slot="message-scroller-item"]')
+        .filter({ hasText: 'Scout, can you check the build?' });
+    await sent.hover();
+    await sent.getByLabel('Reply', { exact: true }).click();
+    const reply = page.locator('[data-inline-reply-reference]');
+    await expect(reply).toBeVisible();
+    await expect(typing.getByText('Scout is typing', { exact: true })).toBeVisible();
+    await expect
+        .poll(async () => {
+            const [strip, bar] = await Promise.all([typing.boundingBox(), reply.boundingBox()]);
+            return strip && bar ? bar.y - (strip.y + strip.height) : Number.NEGATIVE_INFINITY;
+        })
+        .toBeGreaterThanOrEqual(0);
+    expect(await page.locator('.prompt-input').boundingBox()).toEqual(composerBox);
+    await page.getByRole('button', { name: 'Cancel reply' }).click();
+    await expect(reply).toHaveCount(0);
+
     // The reply lands and the engagement ends with it.
     await runnerRequest(runner, '/api/agent/messages/send', {
         content: 'On it — the build is green.',
