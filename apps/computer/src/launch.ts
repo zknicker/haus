@@ -41,7 +41,7 @@ import {
     type AgentThoughtNarrator,
     agentThoughtsEnabled,
     createAgentThoughtNarrator,
-    sharedThoughtSummarizer,
+    thoughtSummarizerFromEnv,
 } from './harness/thought-narrator.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
@@ -161,8 +161,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     const thoughts = agentThoughtsEnabled()
         ? createAgentThoughtNarrator({
               emit: frames.thought,
-              runtimeId: command.runtimeId,
-              summarizer: sharedThoughtSummarizer(),
+              summarizer: thoughtSummarizerFromEnv(),
           })
         : undefined;
     proxy.setActivityRun(activity);

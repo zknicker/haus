@@ -61,11 +61,14 @@ export function condenseThoughtLocally(reasoning: string): string | null {
  */
 export function finishThoughtPhrase(candidate: string): string | null {
     const words = candidate
+        // Typographic apostrophes are apostrophes: "app’s" must stay one word.
+        .replace(/[‘’]/gu, "'")
         .replace(/[\p{Cc}]+/gu, ' ')
         .split(/\s+/u)
         .filter((word) => !looksSensitive(word))
-        .flatMap((word) => word.replace(/[*_`#>"“”‘’]+/gu, ' ').split(/\s+/u))
-        .map((word) => word.replace(/^'(.*)'$/u, '$1').replace(/^'+/u, ''))
+        .flatMap((word) => word.replace(/[*_`#>"“”]+/gu, ' ').split(/\s+/u))
+        // Quote marks go; a plural possessive's trailing apostrophe ("charts'") stays.
+        .map((word) => word.replace(/^'+/u, '').replace(/(?<![sS])'+$/u, ''))
         .filter((word) => word.length > 0);
     const kept = words.slice(0, thoughtPhraseMaxWords);
     while (kept.length > 1 && danglingWords.has(kept.at(-1)?.toLowerCase() ?? '')) {

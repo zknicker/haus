@@ -1,10 +1,9 @@
-import { resolveRuntimeById } from '../runtime-discovery.ts';
 import {
     condenseThoughtLocally,
     extractThoughtTitle,
     thoughtMinimumReasoningLength,
 } from './thought-phrase.ts';
-import { createClaudeCodeThoughtSummarizer, type ThoughtSummarizer } from './thought-summarizer.ts';
+import { createGeminiThoughtSummarizer, type ThoughtSummarizer } from './thought-summarizer.ts';
 
 /** At most one thought per run in this window; later blocks inside it are dropped. */
 export const thoughtIntervalMs = 4000;
@@ -28,18 +27,16 @@ export function agentThoughtsEnabled(env: NodeJS.ProcessEnv = process.env): bool
 
 /**
  * Collects each reasoning block and, when it ends, produces one phrase:
- * a Codex-style bold title as-is; otherwise Haiku for Claude Code reasoning
- * when a summarizer is available (the text already came from Anthropic);
- * otherwise a local condensation. Only the phrase reaches `emit`.
+ * a Codex-style bold title as-is; otherwise the Gemini summarizer when a key
+ * is configured; otherwise a local condensation. Only the phrase reaches `emit`.
  */
 export function createAgentThoughtNarrator(input: {
     emit: (thought: AgentThought) => void;
     now?: () => number;
-    runtimeId: string;
     summarizer?: ThoughtSummarizer | null;
 }): AgentThoughtNarrator {
     const now = input.now ?? Date.now;
-    const summarizer = input.runtimeId === 'claude-code' ? (input.summarizer ?? null) : null;
+    const summarizer = input.summarizer ?? null;
     const blocks = new Map<string, string>();
     let lastAdmittedAt: number | null = null;
     let closed = false;
@@ -88,7 +85,6 @@ export function createAgentThoughtNarrator(input: {
             }
             if (part.type === 'reasoning-start') {
                 blocks.set(id, '');
-                summarizer?.warm();
                 return;
             }
             if (part.type === 'reasoning-delta' && typeof part.text === 'string') {
@@ -106,13 +102,10 @@ export function createAgentThoughtNarrator(input: {
     };
 }
 
-let sharedSummarizer: ThoughtSummarizer | null | undefined;
-
-/** One Haiku process per Computer, through the Claude Code login it already runs; null without one. */
-export function sharedThoughtSummarizer(): ThoughtSummarizer | null {
-    if (sharedSummarizer === undefined) {
-        const executable = resolveRuntimeById('claude-code')?.path;
-        sharedSummarizer = executable ? createClaudeCodeThoughtSummarizer({ executable }) : null;
-    }
-    return sharedSummarizer;
+/** The Gemini summarizer when `HAUS_GEMINI_API_KEY` is configured; null falls back to the heuristic. */
+export function thoughtSummarizerFromEnv(
+    env: NodeJS.ProcessEnv = process.env
+): ThoughtSummarizer | null {
+    const apiKey = env.HAUS_GEMINI_API_KEY?.trim();
+    return apiKey ? createGeminiThoughtSummarizer({ apiKey }) : null;
 }
