@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { AgentCommand } from '@haus/api';
+import type { AddressedReason, AgentCommand } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -116,7 +116,7 @@ export async function deliverHuman(
     delivery: AgentDelivery,
     seed: Seed,
     input: {
-        addressedReason?: 'dm' | 'mention' | 'routing';
+        addressedReason?: AddressedReason;
         chatId: string;
         content?: string;
         mentioned?: boolean;

@@ -95,6 +95,19 @@ test('a composed receipt starts engagement, and a resend reproduces it without a
     ).toEqual(first);
 });
 
+test('a sole-addressed cold wake drains its message and engages at turn start', async () => {
+    const { runner, seed, start, wakeMessage } = await wakeOn(
+        connection.db,
+        'Can you check the deploy?',
+        'sole'
+    );
+    // Drainable on any start, so a cold session composes it and posts the receipt.
+    expect(start?.drainItemIds).toEqual([wakeMessage.id]);
+
+    await compose(runner, [wakeMessage]);
+    expect(eventsFor(runner.runId)).toEqual([{ chatId: seed.channelId, type: 'started' }]);
+});
+
 test('a mid-turn pull starts engagement in the Chat it read', async () => {
     const { delivery, runner, seed, wakeMessage } = await wakeOn(connection.db);
     await compose(runner, [wakeMessage]);

@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentStartCommandSchema, agentTurnSummarySchema } from '@haus/api';
+import { parseInbox } from './agent-inbox-input.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
 import { type AgentStartCommand, type AgentTurnFrame, parseStartCommand } from './launch.ts';
 
@@ -87,3 +88,22 @@ function attentionContinuation() {
         type: 'start',
     });
 }
+
+test('accepts every addressed reason the Server writes and rejects unknown ones', () => {
+    const item = (addressedReason: string) => ({
+        addressed: true,
+        addressedReason,
+        chatId: 'cht_1',
+        content: 'Can you check the deploy?',
+        createdAt: '2026-09-23T00:00:00.000Z',
+        id: 'msg_1',
+        senderHandle: 'ada',
+        senderType: 'human',
+        sequence: 1,
+        target: '#product',
+    });
+    for (const reason of ['dm', 'mention', 'routing', 'sole'] as const) {
+        expect(parseInbox([item(reason)])?.[0]?.addressedReason).toBe(reason);
+    }
+    expect(parseInbox([item('assigned')])).toBeNull();
+});

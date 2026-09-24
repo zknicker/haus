@@ -1,4 +1,4 @@
-import type { AgentTurnSummary } from '@haus/api';
+import type { AddressedReason, AgentTurnSummary } from '@haus/api';
 import { eq, max } from 'drizzle-orm';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -24,7 +24,8 @@ export async function post(
     seed: Seed,
     delivery: ReturnType<typeof offlineDelivery>['delivery'],
     chatId: string,
-    content = 'Can you check the deploy?'
+    content = 'Can you check the deploy?',
+    addressedReason: AddressedReason | null = null
 ) {
     const id = createOpaqueId('msg');
     const sequence = await nextSequence(db, chatId);
@@ -38,6 +39,7 @@ export async function post(
         serverId: seed.serverId,
     });
     await delivery.deliver({
+        addressedReason,
         agentId: seed.agentId,
         chatId,
         content,
@@ -76,7 +78,11 @@ export async function agentPost(
 }
 
 /** Wakes the Agent on a channel message and accepts the run. */
-export async function wakeOn(db: HausDatabase, content = 'Can you check the deploy?') {
+export async function wakeOn(
+    db: HausDatabase,
+    content = 'Can you check the deploy?',
+    addressedReason: AddressedReason | null = null
+) {
     const seed = await seedAgent(db);
     await db.insert(channelAgentParticipantsTable).values({
         agentId: seed.agentId,
@@ -85,7 +91,7 @@ export async function wakeOn(db: HausDatabase, content = 'Can you check the depl
         serverId: seed.serverId,
     });
     const { delivery, wake } = offlineDelivery(db, seed);
-    const wakeMessage = await post(db, seed, delivery, seed.channelId, content);
+    const wakeMessage = await post(db, seed, delivery, seed.channelId, content, addressedReason);
     const start = await wake();
     const runId = start?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
@@ -98,7 +104,7 @@ export async function wakeOn(db: HausDatabase, content = 'Can you check the depl
         runnerId: createOpaqueId('arc'),
         serverId: seed.serverId,
     };
-    return { delivery, runner, seed, wakeMessage };
+    return { delivery, runner, seed, start, wakeMessage };
 }
 
 export function settledSummary(agentId: string, runId: string): AgentTurnSummary {
