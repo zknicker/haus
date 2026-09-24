@@ -3,8 +3,6 @@ import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 
-const maximumHorizontalTravel = 48;
-const maximumVerticalTravel = 16;
 const viewportPadding = 12;
 
 interface CursorPositionInput {
@@ -161,14 +159,8 @@ export function getCursorHoverOffset({
     surfaceBounds?: Pick<DOMRect, 'bottom' | 'left' | 'right' | 'top'>;
     viewport?: { height: number; width: number };
 }) {
-    let x = clamp((clientX - bounds.left - bounds.width / 2) * 0.8, {
-        maximum: maximumHorizontalTravel,
-        minimum: -maximumHorizontalTravel,
-    });
-    let y = clamp((clientY - bounds.top - bounds.height / 2) * 0.65, {
-        maximum: maximumVerticalTravel,
-        minimum: -maximumVerticalTravel,
-    });
+    let x = clientX - bounds.left - bounds.width / 2;
+    let y = clientY - bounds.top - bounds.height / 2;
 
     if (surfaceBounds && viewport) {
         x = constrainToViewport(x, {

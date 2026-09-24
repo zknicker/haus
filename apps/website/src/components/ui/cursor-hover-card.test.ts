@@ -7,11 +7,18 @@ test('centers the cursor-following surface when the pointer is centered', () => 
     expect(getCursorHoverOffset({ bounds, clientX: 150, clientY: 50 })).toEqual({ x: 0, y: 0 });
 });
 
-test('follows the pointer within bounded collision-safe travel', () => {
-    expect(getCursorHoverOffset({ bounds, clientX: 200, clientY: 60 })).toEqual({ x: 40, y: 7 });
-    expect(getCursorHoverOffset({ bounds, clientX: 1000, clientY: 1000 })).toEqual({
-        x: 48,
-        y: 16,
+test('tracks the pointer through the trigger edge without slowing or stopping', () => {
+    expect(getCursorHoverOffset({ bounds, clientX: 199, clientY: 59 })).toEqual({
+        x: 49,
+        y: 9,
+    });
+    expect(getCursorHoverOffset({ bounds, clientX: 200, clientY: 60 })).toEqual({
+        x: 50,
+        y: 10,
+    });
+    expect(getCursorHoverOffset({ bounds, clientX: 250, clientY: 90 })).toEqual({
+        x: 100,
+        y: 40,
     });
 });
 
