@@ -1,9 +1,14 @@
-import type { AgentThreadContext, ChatMessageReply, CloudAgentBranch } from '@haus/api';
+import type {
+    AddressedReason,
+    AgentThreadContext,
+    ChatMessageReply,
+    CloudAgentBranch,
+} from '@haus/api';
 
 export interface AgentInboxItem {
-    /** This item names the Agent personally: a DM, an @mention, or a committed Jev narrow. */
+    /** This item names the Agent personally: a DM, an @mention, a Jev routing, or a sole Agent. */
     addressed?: boolean;
-    addressedReason?: 'dm' | 'mention' | 'routing';
+    addressedReason?: AddressedReason;
     ask?: AgentInboxAsk;
     chatId: string;
     cloudAgentWork?: AgentCloudAgentWorkAttention;

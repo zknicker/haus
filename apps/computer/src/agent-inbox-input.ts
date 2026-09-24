@@ -1,4 +1,5 @@
 import {
+    addressedReasonSchema,
     agentThreadContextSchema,
     chatMessageReplySchema,
     cloudAgentWorkAttentionSchema,
@@ -75,7 +76,7 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
             typeof item.content === 'string' &&
             (item.addressed === undefined || typeof item.addressed === 'boolean') &&
             (item.addressedReason === undefined ||
-                ['dm', 'mention', 'routing'].includes(item.addressedReason as string)) &&
+                addressedReasonSchema.safeParse(item.addressedReason).success) &&
             (item.senderDescription === undefined || typeof item.senderDescription === 'string') &&
             (item.message === undefined || isRecord(item.message)) &&
             (item.threadFollowReactivated === undefined ||

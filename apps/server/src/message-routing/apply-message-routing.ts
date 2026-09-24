@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { AgentMessageRecipientPlan } from '../agent-delivery/message-recipients.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
-import { readRoutingAgents } from './context.ts';
+import { readChannelHumanIds, readRoutingAgents } from './context.ts';
 import { routingModel, routingPromptVersion, routingThreshold } from './jev.ts';
 import type { PreparedMessageRouting } from './route-human-message.ts';
 
@@ -23,20 +23,30 @@ export async function applyMessageRouting(db: HausDatabase, input: RoutingCommit
     const candidateAgentIds = recipients.map((row) => row.agentId).sort();
     let finalRecipients = recipients;
     let audit: MessageRoutingAudit;
-    if (prepared.kind === 'bypass') {
+    if (prepared.kind === 'sole') {
+        // Rechecked in the transaction: a second Agent or human joining since
+        // preparation makes the message ordinary channel traffic again.
+        const humanIds = await readChannelHumanIds(db, input.serverId, input.chatId);
+        const addressed =
+            candidateAgentIds.length === 1 &&
+            candidateAgentIds[0] === prepared.agentId &&
+            humanIds.length === 1 &&
+            humanIds[0] === prepared.authorId;
+        if (addressed) {
+            finalRecipients = recipients.map((row) => ({
+                ...row,
+                addressedReason: 'sole' as const,
+            }));
+        }
         audit = {
-            outcome: 'bypass',
+            ...unjudgedAudit(candidateAgentIds),
+            outcome: addressed ? 'bypass' : 'stale',
+            bypassReason: addressed ? 'sole' : null,
+        };
+    } else if (prepared.kind === 'bypass') {
+        audit = {
+            ...unjudgedAudit(candidateAgentIds),
             bypassReason: bypassReason(input, prepared.reason),
-            candidateAgentIds,
-            recipientAgentIds: candidateAgentIds,
-            model: null,
-            promptVersion: null,
-            confidence: null,
-            probability: null,
-            choice: null,
-            threshold: null,
-            elapsedMs: null,
-            expectsReply: null,
         };
     } else {
         const stale =
@@ -66,6 +76,23 @@ export async function applyMessageRouting(db: HausDatabase, input: RoutingCommit
         .set({ deliveryRouting: audit })
         .where(eq(chatMessagesTable.id, input.messageId));
     return finalRecipients;
+}
+
+function unjudgedAudit(candidateAgentIds: string[]): MessageRoutingAudit {
+    return {
+        outcome: 'bypass',
+        bypassReason: null,
+        candidateAgentIds,
+        recipientAgentIds: candidateAgentIds,
+        model: null,
+        promptVersion: null,
+        confidence: null,
+        probability: null,
+        choice: null,
+        threshold: null,
+        elapsedMs: null,
+        expectsReply: null,
+    };
 }
 
 function judgedAudit(

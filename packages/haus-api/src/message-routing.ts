@@ -9,6 +9,7 @@ export const routingBypassReasonSchema = z.enum([
     'mention',
     'attachments',
     'recipient-count',
+    'sole',
     'context-limit',
     'no-context',
 ]);

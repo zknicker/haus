@@ -1,3 +1,4 @@
+import type { AddressedReason } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,
@@ -160,7 +161,7 @@ export const agentInboxTable = pgTable(
          * Why this item names the Agent personally rather than ambiently, decided
          * once when delivery is planned. Null is an ordinary ambient delivery.
          */
-        addressedReason: text('addressed_reason').$type<'dm' | 'mention' | 'routing'>(),
+        addressedReason: text('addressed_reason').$type<AddressedReason>(),
         agentId: text('agent_id').notNull(),
         chatId: text('chat_id').notNull(),
         content: text('content').notNull(),
@@ -231,7 +232,7 @@ export const agentInboxTable = pgTable(
         check(
             'agent_inbox_addressed_reason',
             sql`${table.addressedReason} is null
-                or ${table.addressedReason} in ('dm', 'mention', 'routing')`
+                or ${table.addressedReason} in ('dm', 'mention', 'routing', 'sole')`
         ),
         check(
             'agent_inbox_expects_reply',

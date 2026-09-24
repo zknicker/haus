@@ -44,8 +44,12 @@ export const inboxAskSchema = z
 
 export type InboxAsk = z.infer<typeof inboxAskSchema>;
 
-/** Why an item is addressed to this Agent personally rather than ambiently. */
-export const addressedReasonSchema = z.enum(['dm', 'mention', 'routing']);
+/**
+ * Why an item is addressed to this Agent personally rather than ambiently: a DM,
+ * an @mention, a committed Jev routing, or `sole` — the Agent is the only
+ * eligible one in a channel whose only human member sent the message.
+ */
+export const addressedReasonSchema = z.enum(['dm', 'mention', 'routing', 'sole']);
 
 export type AddressedReason = z.infer<typeof addressedReasonSchema>;
 

@@ -13,8 +13,9 @@ import { planInlineReplyMessage } from './inline-reply-recipients.ts';
 
 export interface AgentMessageRecipientPlan {
     /**
-     * Why this delivery names the Agent personally: a DM, an @mention, or a
-     * committed Jev narrow. Null is an ordinary ambient delivery.
+     * Why this delivery names the Agent personally: a DM, an @mention, a
+     * committed Jev routing, or the sole Agent of a one-human channel. Null is an
+     * ordinary ambient delivery.
      */
     addressedReason: AddressedReason | null;
     agentId: string;

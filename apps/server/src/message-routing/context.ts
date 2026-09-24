@@ -4,7 +4,9 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
+    channelParticipantsTable,
     chatMessagesTable,
+    serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
 import type { RoutingState } from './jev.ts';
@@ -36,6 +38,32 @@ export async function readRoutingAgents(db: HausDatabase, serverId: string, chat
         .limit(33);
 }
 
+/**
+ * The channel's human members: participant rows whose Server membership is not
+ * revoked. Channel visibility and write access come from these same rows.
+ */
+export async function readChannelHumanIds(db: HausDatabase, serverId: string, chatId: string) {
+    const rows = await db
+        .select({ userId: channelParticipantsTable.userId })
+        .from(channelParticipantsTable)
+        .innerJoin(
+            serverMembershipsTable,
+            and(
+                eq(serverMembershipsTable.serverId, channelParticipantsTable.serverId),
+                eq(serverMembershipsTable.userId, channelParticipantsTable.userId)
+            )
+        )
+        .where(
+            and(
+                eq(channelParticipantsTable.serverId, serverId),
+                eq(channelParticipantsTable.chatId, chatId),
+                isNull(serverMembershipsTable.revokedAt)
+            )
+        )
+        .orderBy(asc(channelParticipantsTable.userId));
+    return rows.map((row) => row.userId);
+}
+
 export async function readRoutingState(
     db: HausDatabase,
     input: {
@@ -46,6 +74,8 @@ export async function readRoutingState(
         content: string;
         agents: Awaited<ReturnType<typeof readRoutingAgents>>;
         eligibleAgentIds: string[];
+        /** Channel members to list even when they are absent from the history window. */
+        memberHumanIds?: string[];
     }
 ): Promise<RoutingState | null> {
     const rows = await db
@@ -75,6 +105,7 @@ export async function readRoutingState(
     const humanIds = [
         ...new Set([
             input.authorId,
+            ...(input.memberHumanIds ?? []),
             ...rows.flatMap((row) => (row.authorUserId ? [row.authorUserId] : [])),
         ]),
     ];
