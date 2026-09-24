@@ -15,19 +15,14 @@ export function RoutingDecisionPanel({
         audit.outcome === 'narrow'
             ? audit.candidateAgentIds.filter((id) => !audit.recipientAgentIds.includes(id))
             : [];
-    const status =
-        audit.outcome === 'narrow'
-            ? 'Narrowed'
-            : audit.outcome === 'bypass'
-              ? 'Jev skipped'
-              : 'Normal delivery';
+    const status = routingStatus(audit);
     return (
         <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
                 <Popover.Heading className="text-base">Message routing</Popover.Heading>
                 <Chip
                     className="text-base"
-                    color={audit.outcome === 'narrow' ? 'accent' : 'default'}
+                    color={status === 'Narrowed' || status === 'Addressed' ? 'accent' : 'default'}
                     size="lg"
                     variant="soft"
                 >
@@ -107,6 +102,17 @@ export function RoutingDecisionPanel({
             </p>
         </div>
     );
+}
+
+function routingStatus(audit: MessageRoutingAudit) {
+    if (audit.outcome === 'narrow') {
+        // With one candidate nothing was narrowed; Jev only confirmed the addressee.
+        return audit.candidateAgentIds.length === 1 ? 'Addressed' : 'Narrowed';
+    }
+    if (audit.outcome === 'bypass') {
+        return audit.bypassReason === 'sole' ? 'Addressed' : 'Jev skipped';
+    }
+    return 'Normal delivery';
 }
 
 function percent(value: number | null) {

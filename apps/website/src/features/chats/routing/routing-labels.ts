@@ -8,6 +8,7 @@ const bypassLabels: Record<RoutingBypassReason, string> = {
     mention: 'explicit mention',
     attachments: 'attachments',
     'recipient-count': 'fewer than two agents',
+    sole: 'sole agent and human',
     'context-limit': 'context limit',
     'no-context': 'no prior context',
 };
@@ -30,7 +31,9 @@ export function routingOutcomeLabel(audit: MessageRoutingAudit) {
 export function routingExplanation(audit: MessageRoutingAudit) {
     switch (audit.outcome) {
         case 'narrow':
-            return 'Jev identified one addressee. Only that agent received an inbox notification.';
+            return audit.candidateAgentIds.length === 1
+                ? 'Jev identified the only eligible agent as the addressee. Recipients are unchanged; the message is addressed to that agent.'
+                : 'Jev identified one addressee. Only that agent received an inbox notification.';
         case 'uncertain':
             return 'Jev did not identify one eligible agent above both thresholds. Normal delivery was preserved.';
         case 'timeout':
@@ -42,6 +45,8 @@ export function routingExplanation(audit: MessageRoutingAudit) {
         case 'stale':
             return 'The conversation or eligible agents changed during inference. The judgment was discarded and current delivery rules were used.';
         case 'bypass':
-            return `Jev was skipped: ${routingOutcomeLabel(audit)}. Recipients came from the normal delivery rules.`;
+            return audit.bypassReason === 'sole'
+                ? 'The only eligible agent and the only human share this channel, so the message is addressed to that agent without Jev.'
+                : `Jev was skipped: ${routingOutcomeLabel(audit)}. Recipients came from the normal delivery rules.`;
     }
 }

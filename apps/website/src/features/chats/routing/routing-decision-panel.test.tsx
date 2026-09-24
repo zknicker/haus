@@ -30,3 +30,29 @@ test.each([
     );
     expect(markup).toContain(row);
 });
+
+test('a sole-agent bypass reads as addressed with its reason', () => {
+    const markup = renderToStaticMarkup(
+        <Popover>
+            <RoutingDecisionPanel
+                agents={[{ displayName: 'Juniper', id: 'agt_juniper' }]}
+                audit={{
+                    ...audit,
+                    bypassReason: 'sole',
+                    candidateAgentIds: ['agt_juniper'],
+                    choice: null,
+                    confidence: null,
+                    elapsedMs: null,
+                    expectsReply: null,
+                    model: null,
+                    outcome: 'bypass',
+                    probability: null,
+                    promptVersion: null,
+                    threshold: null,
+                }}
+            />
+        </Popover>
+    );
+    expect(markup).toContain('Addressed');
+    expect(markup).toContain('sole agent and human');
+});
