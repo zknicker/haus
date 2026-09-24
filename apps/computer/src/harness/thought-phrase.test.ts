@@ -9,10 +9,10 @@ import {
 
 describe('thought titles', () => {
     test('uses a Codex bold title directly', () => {
-        expect(extractThoughtTitle('**Inspecting chart data**')).toBe('Inspecting chart data');
+        expect(extractThoughtTitle('**Inspecting chart data**')).toBe("I'm inspecting chart data");
         expect(
             extractThoughtTitle('\n\n**Planning memory read before messaging**\n\nI will read')
-        ).toBe('Planning memory read before messaging');
+        ).toBe("I'm planning memory read before messaging");
     });
 
     test('keeps the latest of several folded titles', () => {
@@ -20,7 +20,7 @@ describe('thought titles', () => {
             extractThoughtTitle(
                 '**Designing haus-only greeting**\n**Planning memory read execution**'
             )
-        ).toBe('Planning memory read execution');
+        ).toBe("I'm planning memory read execution");
     });
 
     test('ignores bold text that does not lead the block', () => {
@@ -35,40 +35,40 @@ describe('local condensation', () => {
             condenseThoughtLocally(
                 'Let me check the Halloween bid changes against last week. Then I will reply.'
             )
-        ).toBe('Checking the Halloween bid changes against last');
+        ).toBe("I'm checking the Halloween bid changes against last");
         expect(condenseThoughtLocally("Okay, so I should compare the two charts' ranges.")).toBe(
-            "Comparing the two charts' ranges"
+            "I'm comparing the two charts' ranges"
         );
         expect(condenseThoughtLocally("I'm thinking about reading the memory file first.")).toBe(
-            'Reading the memory file first'
+            "I'm reading the memory file first"
         );
         expect(condenseThoughtLocally('Maybe I should run the tests again')).toBe(
-            'Running the tests again'
+            "I'm running the tests again"
         );
     });
 
     test('keeps a sentence that already reads as a status', () => {
         expect(
             condenseThoughtLocally('Listing out the primes between 100 and 160, I count 12.')
-        ).toBe('Listing out the primes between 100');
+        ).toBe("I'm listing out the primes between 100");
     });
 });
 
 describe('phrase finishing', () => {
     test('caps words, drops dangling joiners and trailing punctuation, capitalizes', () => {
         expect(finishThoughtPhrase('reviewing the bids for the big October launch now.')).toBe(
-            'Reviewing the bids for the big October'
+            "I'm reviewing the bids for the big October"
         );
-        expect(finishThoughtPhrase('"Checking the chart."')).toBe('Checking the chart');
-        expect(finishThoughtPhrase('Sending it to the')).toBe('Sending it');
+        expect(finishThoughtPhrase('"Checking the chart."')).toBe("I'm checking the chart");
+        expect(finishThoughtPhrase('Sending it to the')).toBe("I'm sending it");
     });
 
     test('keeps curly-apostrophe possessives as one word', () => {
         expect(finishThoughtPhrase('Inspecting the app’s main window')).toBe(
-            "Inspecting the app's main window"
+            "I'm inspecting the app's main window"
         );
         expect(finishThoughtPhrase('‘Verifying the build’s config’')).toBe(
-            "Verifying the build's config"
+            "I'm verifying the build's config"
         );
     });
 
@@ -78,7 +78,7 @@ describe('phrase finishing', () => {
                 'Using fake_live_4eC39HqLyjWDarjtT1zdp7dc to call https://api.example.com as ops@example.com'
             )
         ).toBe('Using to call');
-        expect(finishThoughtPhrase('Reading ~/secrets/.env now')).toBe('Reading now');
+        expect(finishThoughtPhrase('Reading ~/secrets/.env now')).toBe("I'm reading now");
     });
 
     test('stays within the length cap and drops empty results', () => {

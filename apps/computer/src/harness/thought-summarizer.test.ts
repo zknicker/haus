@@ -28,7 +28,7 @@ describe('Gemini thought summarizer', () => {
             fetch: gemini.fetcher,
         });
         expect(await summarizer.summarize('The user wants the Halloween bids compared.')).toBe(
-            'Comparing Halloween bids to last week'
+            "I'm comparing Halloween bids to last week"
         );
         const [call] = gemini.calls;
         expect(call?.url).toContain(`/models/${thoughtSummaryModel}:generateContent`);

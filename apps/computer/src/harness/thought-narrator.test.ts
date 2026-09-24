@@ -61,7 +61,7 @@ describe('Agent thought narrator', () => {
         const run = harness();
         run.block('r1', '**Inspecting', ' chart data**');
         expect(run.thoughts).toEqual([
-            { at: '2026-09-24T12:00:00.000Z', text: 'Inspecting chart data' },
+            { at: '2026-09-24T12:00:00.000Z', text: "I'm inspecting chart data" },
         ]);
     });
 
@@ -72,12 +72,12 @@ describe('Agent thought narrator', () => {
         run.block('r2', '**Checking task board**');
         run.advance(1000);
         run.block('r3', '**Reading sales chart**');
-        expect(run.thoughts.map((thought) => thought.text)).toEqual(['Planning memory read']);
+        expect(run.thoughts.map((thought) => thought.text)).toEqual(["I'm planning memory read"]);
 
         run.advance(thoughtIntervalMs - 2000);
         expect(run.thoughts.map((thought) => thought.text)).toEqual([
-            'Planning memory read',
-            'Reading sales chart',
+            "I'm planning memory read",
+            "I'm reading sales chart",
         ]);
         expect(run.thoughts[1]?.at).toBe('2026-09-24T12:00:04.000Z');
     });
@@ -88,8 +88,8 @@ describe('Agent thought narrator', () => {
         run.advance(thoughtIntervalMs);
         run.block('r2', '**Sending the reply**');
         expect(run.thoughts.map((thought) => thought.text)).toEqual([
-            'Planning memory read',
-            'Sending the reply',
+            "I'm planning memory read",
+            "I'm sending the reply",
         ]);
     });
 
@@ -99,7 +99,7 @@ describe('Agent thought narrator', () => {
         run.block('r2', '**Checking task board**');
         run.narrator.close();
         run.advance(thoughtIntervalMs);
-        expect(run.thoughts.map((thought) => thought.text)).toEqual(['Planning memory read']);
+        expect(run.thoughts.map((thought) => thought.text)).toEqual(["I'm planning memory read"]);
     });
 
     test('skips untitled blocks under the minimum length', () => {
@@ -112,17 +112,17 @@ describe('Agent thought narrator', () => {
         const run = harness();
         run.block('r1', 'Let me check the Halloween bids against last week', ' before replying.');
         expect(run.thoughts.map((thought) => thought.text)).toEqual([
-            'Checking the Halloween bids against last week',
+            "I'm checking the Halloween bids against last week",
         ]);
     });
 
     test('summarizes untitled reasoning from any harness, sending only the phrase on', async () => {
-        const fake = fakeSummarizer(async () => 'Comparing Halloween bids to last week');
+        const fake = fakeSummarizer(async () => "I'm comparing Halloween bids to last week");
         const run = harness(fake.summarizer);
         run.block('r1', 'The user wants the Halloween bids compared with last week.');
         await Bun.sleep(0);
         expect(run.thoughts.map((thought) => thought.text)).toEqual([
-            'Comparing Halloween bids to last week',
+            "I'm comparing Halloween bids to last week",
         ]);
         expect(fake.seen).toEqual(['The user wants the Halloween bids compared with last week.']);
 
@@ -130,7 +130,7 @@ describe('Agent thought narrator', () => {
         run.advance(thoughtIntervalMs);
         run.block('r2', '**Inspecting chart data**');
         expect(fake.seen).toHaveLength(1);
-        expect(run.thoughts.at(-1)?.text).toBe('Inspecting chart data');
+        expect(run.thoughts.at(-1)?.text).toBe("I'm inspecting chart data");
     });
 
     test('drops a failed or late summary, and anything after close', async () => {
