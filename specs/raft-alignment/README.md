@@ -386,7 +386,7 @@ inbox. Human **Start** resumes the current session and drains that work.
   hold a notice until the last one resolves. Raft also holds flushes while compacting; the AI
   SDK harness reports compaction only after it completes (a `compaction` part from Claude Code
   and Pi, nothing from Codex), so Haus has no compaction gate. Two carve-outs restore Raft's own
-  behavior ([ADR 0033](../../docs/adr/0033-addressed-messages-ride-the-wake.md)): a wake that
+  behavior ([ADR 0034](../../docs/adr/0034-addressed-messages-ride-the-wake.md)): a wake that
   **resumes a live session** drains human bodies as full envelopes, matching Raft's alive-idle
   wake, and a **cold start** drains the items addressed to this Agent — a DM, an @mention, or a
   committed Jev narrow — beside the content-free notice of everything else. A busy Agent's
@@ -484,7 +484,7 @@ section; `## Chat History` tool teaching; all prompt-taught tool catalogs.
 | First session turn | Pending notice/attention when present; otherwise `Start.` (+ one fresh-session line after resets) |
 | Trigger delivery | `New message received:` + envelopes + Raft's two-line trailer; unseen rows of the triggering chat ride along as additional envelopes |
 | Envelope | `[target=… msg=… time=… type=…] @sender — <description>: …` + Raft's attachment suffix. Pulled and read envelopes add Raft's trailing `[task #N status=… assignee=…]`; a drained envelope compresses the same work facts inside its bracket (`task=#N:status:assignee`, `ask=…`, `mentioned=true`, haus-cli.md §4). Both may end with the `[Inline reply context]` block (ADR 0029) |
-| Thread mention context | Raft's `thread_join_context` parity: a drained @mention in a Thread the Agent has no model-visible context for is preceded, once per Thread target, by `[Haus thread context: …]` with parent/Thread targets, a `haus message read --target …` next step, the parent message, and up to ten earlier replies (`(truncated)` when bounded). Server builds it for the first such mention per Thread and budgets it inside the 24,000-character drain; Computer renders it in cold and warm drains only (ADR 0033 lanes) |
+| Thread mention context | Raft's `thread_join_context` parity: a drained @mention in a Thread the Agent has no model-visible context for is preceded, once per Thread target, by `[Haus thread context: …]` with parent/Thread targets, a `haus message read --target …` next step, the parent message, and up to ten earlier replies (`(truncated)` when bounded). Server builds it for the first such mention per Thread and budgets it inside the 24,000-character drain; Computer renders it in cold and warm drains only (ADR 0034 lanes) |
 | Mid-turn traffic | Content-free inbox notices, Raft row format (first/latest msg, sender, `· task/thread/dm/mention` tags) |
 | Unread elsewhere | Per-target counts for chats no row of the frame represents, appended to every wake; `haus inbox check` for the rest (notice rows only when they change) |
 | Identity/roster/description | Not pushed; `server info` / `channel info` pulls (D6) |
@@ -650,7 +650,7 @@ deployment, so intermediate brokenness is not a constraint.
   test), `inbox check` + `message check` — **replacing WS1's honest stubs** (haus-cli.md §7
   marks them; their outputs teach that cursor semantics arrive with WS4) — read-only inbox card
   on agent detail per I4; retire pushed "Unread elsewhere" (restored as Raft's per-wake count
-  digest by ADR 0033). Security note riding the program:
+  digest by ADR 0034). Security note riding the program:
   PRD-105 (cross-agent FS isolation; token custody is contract-level until it lands) is a named
   WS6 blocker.
 - **WS5 — Tasks + reminders + affordances.** D8 tasks (with board view, priorities, labels),

@@ -111,7 +111,7 @@ A durable `message.created` is planned once by Server delivery
   fire's envelope prints `msg=-`, since a fire has no Chat message to address; its id rides the
   envelope's own `fire=` and `--cause` lines. Humans keep their own read/unread system; the inbox is
   agent-only state.
-- **Human bodies ride the wake in two cases** ([ADR 0033](../docs/adr/0033-addressed-messages-ride-the-wake.md)).
+- **Human bodies ride the wake in two cases** ([ADR 0034](../docs/adr/0034-addressed-messages-ride-the-wake.md)).
   A human item is *addressed* when it is a DM, a personal @mention, or a Jev routing that committed
   the message to exactly this Agent ([ADR 0030](../docs/adr/0030-semantic-channel-addressing.md));
   the reason is decided once at enqueue and stored on the row. The Server marks eligibility on the

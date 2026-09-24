@@ -83,7 +83,7 @@ export async function pullAgentEvents(db: HausDatabase, runner: ResolvedRunner) 
  * the rows it returned, as a Server pull does. A composed receipt covers a drain
  * the turn prompt itself carried and records exact visibility only, before the
  * model streams: its rows stay offered to the run so a resend recomputes the
- * same drain sets (ADR 0033), and settlement attaches and sees them.
+ * same drain sets (ADR 0034), and settlement attaches and sees them.
  */
 export async function attestAgentEvents(
     db: HausDatabase,

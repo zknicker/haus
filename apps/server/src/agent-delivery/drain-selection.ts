@@ -118,7 +118,7 @@ export async function humanDrainSets(db: HausDatabase, noticeRows: store.InboxIt
  * A human item this Agent was named in: a DM, an @mention, or a Jev routing
  * that committed the message to it alone (ADR 0030). Raft wakes an alive Agent
  * with every human body; Haus additionally drains these on a cold start, where
- * a notice would otherwise leave a direct question unanswered (ADR 0033).
+ * a notice would otherwise leave a direct question unanswered (ADR 0034).
  */
 export function isAddressedHumanRow(row: store.InboxItemRow): boolean {
     return row.source === 'human' && row.addressedReason !== null;

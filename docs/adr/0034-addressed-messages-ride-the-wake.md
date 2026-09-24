@@ -7,7 +7,7 @@ read_when:
   - adding a signal that needs to know an item was addressed to one Agent
 ---
 
-# ADR 0033: Addressed messages ride the wake
+# ADR 0034: Addressed messages ride the wake
 
 ## Status
 

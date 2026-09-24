@@ -112,7 +112,7 @@ hold therefore never shows the Agent the message its prompt already carried. The
 turn summary repeats the identities as the fallback for a refused receipt or a
 crash, and settlement attaches the rows and advances `seen`. A resumed session drains every
 eligible human body; a cold start drains only the addressed ones and notices the
-rest in the same prompt (ADR 0033). Every start and notice frame also carries
+rest in the same prompt (ADR 0034). Every start and notice frame also carries
 `unreadElsewhere`, per-chat counts for work no row of that frame represents.
 
 A start frame's first human row that @mentions the Agent in a Thread carries a
