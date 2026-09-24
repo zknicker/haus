@@ -1,8 +1,10 @@
-import { cloudAgentPullRequestNumber } from '@haus/api';
+import { cloudAgentPullRequestNumber, parseAmazonProduct } from '@haus/api';
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
 import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
+import { amazonMarkdownComponents } from './amazon-markdown-components.tsx';
+import { AmazonReference } from './amazon-reference.tsx';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
 import type { Mention, ReferenceActivation } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';
@@ -41,6 +43,7 @@ export const ReferenceMarkdown = React.memo(
             <Markdown
                 className={className}
                 components={{
+                    ...amazonMarkdownComponents(serverId),
                     a: ({ children, href }) => (
                         <ReferenceLink
                             chatId={chatId}
@@ -190,7 +193,7 @@ function ReferenceLink({
     const website = getWebsiteReference(href, children);
 
     if (website) {
-        return (
+        const link = (
             <a
                 aria-label={`Open ${website.label}`}
                 className="inline-flex no-underline"
@@ -206,19 +209,19 @@ function ReferenceLink({
                 />
             </a>
         );
+        const product = parseAmazonProduct(website.href);
+        return product && serverId ? (
+            <AmazonReference href={website.href} product={product} serverId={serverId}>
+                {link}
+            </AmazonReference>
+        ) : (
+            link
+        );
     }
 
     return href ? <MarkdownLink href={href}>{children}</MarkdownLink> : children;
 }
 
-/**
- * A pull request an Agent linked in prose. It reads as a reference rather than
- * a link because that is what it is — a named object in the work, like an
- * Agent or a Channel — so it wears the same chip: the pull-request glyph as
- * its 18px mark and `#<n>` as its label, at the surrounding font size. The
- * number comes from the URL through the one parser every surface that prints
- * `PR #<n>` already shares.
- */
 function getPullRequestReference(href: string | undefined) {
     if (!href) {
         return null;

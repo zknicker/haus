@@ -9,7 +9,7 @@ export interface McpConnection {
     icon: McpIcon | null;
     id: string;
     name: string;
-    preset: 'google-calendar' | 'merchbase' | null;
+    preset: 'google-calendar' | 'merchbase' | 'rankwrangler' | null;
     summary: string | null;
     url: string;
 }

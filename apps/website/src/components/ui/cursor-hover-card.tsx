@@ -1,9 +1,14 @@
-import { HoverCard } from '@heroui-pro/react';
-import { useReducedMotion } from 'framer-motion';
+import { Tooltip } from '@heroui/react';
 import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 
 const viewportPadding = 12;
+
+/**
+ * The one hover-card material: always-dark glass with a compact inset, in
+ * both app themes. `dark` scopes HeroUI's own dark tokens onto the card.
+ */
+export const hausHoverCardClassName = 'haus-hover-card dark';
 
 interface CursorPositionInput {
     bounds: Pick<DOMRect, 'height' | 'left' | 'top' | 'width'>;
@@ -16,14 +21,12 @@ export function CursorHoverCard({
     className,
     content,
     onOpenChange,
-    tone = 'default',
     triggerClassName,
 }: {
     children: React.ReactNode;
     className?: string;
     content: React.ReactNode;
     onOpenChange?: (open: boolean) => void;
-    tone?: 'contrast' | 'default';
     /**
      * Layout for the trigger wrapper itself. The wrapper is a real box in its
      * parent's layout, so a trigger inside a flex row needs `min-w-0` on it —
@@ -31,7 +34,7 @@ export function CursorHoverCard({
      */
     triggerClassName?: string;
 }) {
-    const reduceMotion = useReducedMotion();
+    const [open, setOpen] = React.useState(false);
     const contentRef = React.useRef<HTMLElement>(null);
     const pointerRef = React.useRef<CursorPositionInput | null>(null);
     const repositionFrameRef = React.useRef<number | null>(null);
@@ -72,7 +75,7 @@ export function CursorHoverCard({
     }, [applyOffset]);
     const handlePointerMove = React.useCallback(
         (event: React.PointerEvent<HTMLSpanElement>) => {
-            if (event.pointerType !== 'mouse' || reduceMotion) {
+            if (event.pointerType !== 'mouse') {
                 resetOffset();
                 return;
             }
@@ -90,32 +93,37 @@ export function CursorHoverCard({
             pointerRef.current = input;
             applyPointerOffset(input);
         },
-        [applyPointerOffset, reduceMotion, resetOffset]
+        [applyPointerOffset, resetOffset]
     );
     const handleOpenChange = React.useCallback(
         (open: boolean) => {
-            if (!open) {
-                resetOffset();
-            }
+            setOpen(open);
             onOpenChange?.(open);
         },
-        [onOpenChange, resetOffset]
+        [onOpenChange]
     );
 
     return (
-        <HoverCard closeDelay={0} onOpenChange={handleOpenChange} openDelay={0}>
-            <HoverCard.Trigger
+        <Tooltip closeDelay={0} delay={0} isOpen={open} onOpenChange={handleOpenChange}>
+            <Tooltip.Trigger<'span'>
                 className={cn('align-middle', triggerClassName)}
-                onFocus={resetOffset}
+                onBlur={() => handleOpenChange(false)}
+                onFocus={() => {
+                    resetOffset();
+                    handleOpenChange(true);
+                }}
                 onPointerMove={handlePointerMove}
                 ref={triggerRef}
+                render={(props) => <span {...props} />}
+                role="presentation"
+                tabIndex={-1}
             >
                 {children}
-            </HoverCard.Trigger>
-            <HoverCard.Content
+            </Tooltip.Trigger>
+            <Tooltip.Content
                 className={cn(
-                    'cursor-hover-card',
-                    tone === 'contrast' && 'cursor-hover-card--contrast',
+                    'hover-card__content cursor-hover-card',
+                    hausHoverCardClassName,
                     className
                 )}
                 offset={10}
@@ -141,8 +149,8 @@ export function CursorHoverCard({
                 }}
             >
                 {content}
-            </HoverCard.Content>
-        </HoverCard>
+            </Tooltip.Content>
+        </Tooltip>
     );
 }
 
@@ -159,8 +167,8 @@ export function getCursorHoverOffset({
     surfaceBounds?: Pick<DOMRect, 'bottom' | 'left' | 'right' | 'top'>;
     viewport?: { height: number; width: number };
 }) {
-    let x = clientX - bounds.left - bounds.width / 2;
-    let y = clientY - bounds.top - bounds.height / 2;
+    let x = clientX + 25 - (surfaceBounds?.left ?? bounds.left);
+    let y = clientY - 25 - (surfaceBounds?.bottom ?? bounds.top + bounds.height + 10);
 
     if (surfaceBounds && viewport) {
         x = constrainToViewport(x, {

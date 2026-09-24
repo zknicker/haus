@@ -75,30 +75,20 @@ export function sessionRotationReasonLabel(reason: AgentSessionRotation['reason'
     }
 }
 
-export interface SessionMarkHoverRow {
-    label: string;
-    value: string;
-}
-
 /**
- * The hover card's labelled rows. Three facts, in the order someone asks them:
- * what happened, when, and how much running context it cost.
+ * The hover card's fact line, after the reason the header already states:
+ * when it happened, and how much running context it cost. An unknown previous
+ * duration is left out rather than stated as zero.
  */
-export function sessionRotationHoverRows(
+export function sessionRotationHoverFacts(
     rotation: AgentSessionRotation,
     now = Date.now()
-): SessionMarkHoverRow[] {
-    return [
-        { label: 'Reason', value: sessionRotationReasonLabel(rotation.reason) },
-        { label: 'When', value: formatRelativeTime(rotation.rotatedAt, now) },
-        {
-            label: 'Previous session',
-            value:
-                rotation.previousDurationMs === null
-                    ? '—'
-                    : formatSessionDuration(rotation.previousDurationMs),
-        },
-    ];
+): string[] {
+    const facts = [formatRelativeTime(rotation.rotatedAt, now)];
+    if (rotation.previousDurationMs !== null) {
+        facts.push(`Previous session ran ${formatSessionDuration(rotation.previousDurationMs)}`);
+    }
+    return facts;
 }
 
 /**

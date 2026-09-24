@@ -9,7 +9,7 @@ import { useMembers } from '../../hooks/servers/use-members.ts';
 import { formatRelativeTime } from '../../lib/format.ts';
 import { humanDisplayName } from '../servers/human-identity.ts';
 import type { MentionAppearance } from './mention-appearance.tsx';
-import { ReferencePreviewHeader } from './reference-preview-header.tsx';
+import { ReferencePreviewHeader, ReferencePreviewMark } from './reference-preview-header.tsx';
 
 export interface ChannelParticipantPreview {
     avatarUrl: null | string;
@@ -34,7 +34,7 @@ export function ChannelHoverCard({
 }) {
     return (
         <CursorHoverCard
-            className="reference-hover-card w-fit max-w-72"
+            className="w-fit max-w-72"
             content={
                 <LiveChannelHoverCardContent
                     appearance={appearance}
@@ -43,7 +43,6 @@ export function ChannelHoverCard({
                     serverId={serverId}
                 />
             }
-            tone="contrast"
         >
             {children}
         </CursorHoverCard>
@@ -99,7 +98,11 @@ export function ChannelHoverCardContent({
     const title = displayLabel.startsWith('#') ? displayLabel : `#${displayLabel}`;
 
     return (
-        <ReferencePreviewHeader appearance={appearance} meta={activityLabel} title={title}>
+        <ReferencePreviewHeader
+            mark={<ReferencePreviewMark appearance={appearance} />}
+            meta={activityLabel}
+            title={title}
+        >
             {participants.length > 0 ? (
                 <ChannelParticipantStack participants={participants} />
             ) : null}
@@ -116,13 +119,13 @@ function ChannelParticipantStack({
     const remaining = participants.length - visible.length;
 
     return (
-        <div className="reference-hover-card__faces flex min-w-0 items-center">
+        <div className="haus-hover-card__faces flex min-w-0 items-center">
             <ul aria-label="Channel members" className="m-0 flex shrink-0 list-none -space-x-2 p-0">
                 {visible.map((participant) => (
                     <li key={participant.id}>
                         <EntityAvatar
                             name={participant.name}
-                            size={22}
+                            size={20}
                             src={participant.avatarUrl}
                         />
                     </li>

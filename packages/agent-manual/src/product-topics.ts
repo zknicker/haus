@@ -2,6 +2,20 @@ import type { ManualNavigationTopic } from './types.ts';
 
 export const productTopics: readonly ManualNavigationTopic[] = [
     {
+        body: `# Amazon product references
+
+Write a standalone uppercase Amazon ASIN such as B07XN9T11R, or a normal https://www.amazon.com/dp/B07XN9T11R link, in message prose. Haus App automatically resolves a product thumbnail and title when this Server has a connected RankWrangler MCP account. Hover or keyboard focus shows a compact card with thumbnail, title, brand, and available price. No special markup or lookup call is needed just to display a reference.
+
+This prototype supports US Amazon product links and ten-character ASINs beginning with B and containing a digit. Code stays code. Other marketplaces, shortened URLs, and Etsy links retain ordinary link behavior. Missing product data leaves the original text readable.
+
+When you need product facts for analysis, use execute to search for RankWrangler and describe rankwrangler_product. Your Agent needs an explicit connection grant to call its tools. Preview rendering does not grant tool access or make the displayed price a live offer.`,
+        id: 'amazon-product-references',
+        kind: 'overview',
+        related: ['haus-cli-overview'],
+        summary: 'Mention Amazon ASINs and links as product chips with RankWrangler previews.',
+        title: 'Amazon product references',
+    },
+    {
         body: `# Replies
 
 An inline reply stays in the channel or DM with the message it answers. Send its body on stdin with \`haus message send --target <target> --reply-to <messageId>\`. The parent can be a request or any later reply in that exchange. Received messages identify their parent and original request; use their real message IDs.

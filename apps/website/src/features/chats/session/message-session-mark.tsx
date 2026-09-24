@@ -1,12 +1,14 @@
 import type { AgentSessionRotation } from '@haus/api';
-import { ArrowUpRight01Icon, RefreshIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Link, useParams } from 'react-router-dom';
+import { RefreshIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { CursorHoverCard } from '../../../components/ui/cursor-hover-card.tsx';
-import { identityMarkRadius } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentSessionRotation } from '../../../hooks/agents/use-agent-session-rotation.ts';
-import { agentProfileRoute } from '../../servers/server-routes.ts';
-import { sessionRotationHoverRows } from './session-mark-model.ts';
+import { cn } from '../../../lib/utils.ts';
+import {
+    ReferencePreviewHeader,
+    ReferencePreviewText,
+} from '../../mentions/reference-preview-header.tsx';
+import { sessionRotationHoverFacts, sessionRotationReasonLabel } from './session-mark-model.ts';
 
 /**
  * The Agent started over before it wrote this.
@@ -27,7 +29,7 @@ export function MessageSessionMark({
 }) {
     return (
         <CursorHoverCard
-            className="w-80"
+            className="w-fit max-w-72"
             content={
                 <SessionMarkHoverCard
                     agentId={agentId}
@@ -41,7 +43,7 @@ export function MessageSessionMark({
                 className="inline-flex shrink-0 items-center gap-1 font-semibold text-session-mark text-xs leading-5"
                 data-testid="message-session-mark"
             >
-                <SessionGlyph />
+                <SessionGlyph size={13} />
                 New session
             </span>
         </CursorHoverCard>
@@ -64,94 +66,40 @@ function SessionMarkHoverCard({
 }) {
     const rotation = useAgentSessionRotation({ agentId, enabled: true, generation, serverId });
 
-    return <SessionMarkHoverContent agentId={agentId} rotation={rotation.data ?? null} />;
+    return <SessionMarkHoverContent rotation={rotation.data ?? null} />;
 }
 
 /**
  * The card itself. `rotation` is null while the read is in flight and when no
  * rotation was recorded for this generation — history older than the record
  * has none — so the card states the heading it is certain of and adds the
- * facts when they arrive, rather than flashing a shell of empty rows.
+ * facts when they arrive, rather than flashing a shell of empty rows. The
+ * Agent's Activity tab holds the full history; the preview does not link out.
  */
-export function SessionMarkHoverContent({
-    agentId,
-    rotation,
-}: {
-    agentId: string;
-    rotation: AgentSessionRotation | null;
-}) {
-    const rows = rotation ? sessionRotationHoverRows(rotation) : [];
-
+export function SessionMarkHoverContent({ rotation }: { rotation: AgentSessionRotation | null }) {
     return (
-        <div className="flex min-w-0 flex-col gap-3">
-            <header className="flex min-w-0 items-center gap-2.5">
-                <SessionGlyphBox />
-                <strong className="min-w-0 truncate font-semibold text-foreground text-sm">
-                    New session
-                </strong>
-            </header>
-            {rows.length > 0 ? (
-                <dl className="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
-                    {rows.map((row) => (
-                        <div className="contents" key={row.label}>
-                            <dt className="text-muted">{row.label}</dt>
-                            <dd className="m-0 min-w-0 text-foreground">{row.value}</dd>
-                        </div>
-                    ))}
-                </dl>
-            ) : null}
-            <div className="border-separator border-t pt-3">
-                <ViewAgentActivityLink agentId={agentId} />
-            </div>
-        </div>
-    );
-}
-
-/**
- * Out of the transcript and into the Agent's own history. The Activity tab is
- * where a session's turns, tools, and restarts are read in order, so the mark
- * points there rather than trying to explain the run in a hover card.
- */
-function ViewAgentActivityLink({ agentId }: { agentId: string }) {
-    const { slug = '' } = useParams();
-
-    return (
-        <Link
-            className="inline-flex w-fit items-center gap-1 font-semibold text-accent text-xs"
-            to={agentProfileRoute(slug, agentId, 'activity')}
+        <ReferencePreviewHeader
+            mark={<SessionGlyph className="text-session-mark" size={16} />}
+            meta={rotation ? sessionRotationReasonLabel(rotation.reason) : null}
+            title="New session"
         >
-            View activity
-            <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={11} />
-        </Link>
+            {rotation ? (
+                <ReferencePreviewText>
+                    {sessionRotationHoverFacts(rotation).join(' · ')}
+                </ReferencePreviewText>
+            ) : null}
+        </ReferencePreviewHeader>
     );
 }
 
-function SessionGlyph() {
+function SessionGlyph({ className, size }: { className?: string; size: number }) {
     return (
         <Icon
-            className="shrink-0"
+            className={cn('shrink-0', className)}
             icon={RefreshIcon}
-            size={13}
+            size={size}
             strokeWidth={1.6}
-            style={{ height: 13, width: 13 }}
+            style={{ height: size, width: size }}
         />
-    );
-}
-
-/** Exact box, so it derives its radius the way every fixed identity mark does. */
-function SessionGlyphBox() {
-    return (
-        <span
-            aria-hidden="true"
-            className="flex shrink-0 items-center justify-center bg-surface-tertiary text-session-mark"
-            style={{ borderRadius: identityMarkRadius(24), height: 24, width: 24 }}
-        >
-            <Icon
-                icon={RefreshIcon}
-                size={14}
-                strokeWidth={1.6}
-                style={{ height: 14, width: 14 }}
-            />
-        </span>
     );
 }

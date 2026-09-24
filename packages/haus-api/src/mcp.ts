@@ -5,7 +5,7 @@ const mcpConnectionIdSchema = z
     .string()
     .regex(/^mcp_[A-Za-z0-9_-]{16}$/u, 'Invalid MCP connection id.');
 const toolNameSchema = z.string().trim().min(1).max(200);
-export const mcpPresetSchema = z.enum(['google-calendar', 'merchbase']);
+export const mcpPresetSchema = z.enum(['google-calendar', 'merchbase', 'rankwrangler']);
 
 export const mcpGrantSchema = z
     .object({

@@ -64,6 +64,7 @@ const defaultMentionAppearance = {
     file: { icon: 'file' },
     image: { icon: 'image' },
     plugin: { icon: 'plugin' },
+    product: { icon: 'image' },
     'pull-request': { icon: 'pull-request' },
     skill: { icon: 'skill' },
     user: { icon: 'user' },
@@ -209,7 +210,10 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
         } satisfies MentionAppearanceOverride;
     }
 
-    if ((input.kind === 'app' || input.kind === 'website') && metadataIconDataUrl) {
+    if (
+        (input.kind === 'app' || input.kind === 'website' || input.kind === 'product') &&
+        metadataIconDataUrl
+    ) {
         return {
             iconDataUrl: metadataIconDataUrl,
         } satisfies MentionAppearanceOverride;
@@ -236,11 +240,7 @@ function getUserAvatarOverride(input: MentionAppearanceInput) {
     } satisfies MentionAppearanceOverride;
 }
 
-// Agent chips carry the agent's avatar (initials when it has no image). Appearance rides in
-// mention metadata: composer
-// options embed it at pick time (composer chips mount outside app providers)
-// and transcript surfaces resolve it live from the agent record before
-// rendering.
+// Composer chips capture appearance at pick time; transcript chips resolve the live record.
 function getAgentAvatarOverride(input: MentionAppearanceInput) {
     const color = readString(input.metadata?.agentColor);
     const liveDisplayName = readString(input.metadata?.agentDisplayName);

@@ -39,42 +39,36 @@ export function automationStatusChip(status: MessageCauseLive['status']): {
     }
 }
 
-export interface AutomationHoverRow {
-    label: string;
-    value: string;
-}
-
 /**
- * The hover card's labelled rows, built from the message alone — the cause
- * rides every message the Server hands a client, so previewing an automation
- * costs no second read.
+ * The hover card's fact line, built from the message alone — the cause rides
+ * every message the Server hands a client, so previewing an automation costs
+ * no second read. The kind or cadence is the header's `·` clause, so it is not
+ * repeated here: `Armed · Last fired 4m ago · 12 fires` for a Trigger,
+ * `Scheduled · Last fired 2h ago` for a Reminder.
  *
- * Once the automation is archived there is no live record to read, so the rows
- * fall back to what the message snapshotted: what it was, and the fire this
- * message answered. Standing in that fire for "Last fired" keeps the card to
- * one representation of each fact rather than showing a stale live row.
+ * Once the automation is archived there is no live record to read, so the line
+ * falls back to what the message snapshotted: that it is gone, and the fire
+ * this message answered. Standing in that fire for "Last fired" keeps the card
+ * to one representation of each fact rather than showing a stale live one.
  */
-export function messageCauseHoverRows(cause: MessageCause, now = Date.now()): AutomationHoverRow[] {
-    const summary = {
-        label: cause.kind === 'reminder' ? 'Cadence' : 'Kind',
-        value: cause.summary,
-    };
-
+export function messageCauseHoverFacts(cause: MessageCause, now = Date.now()): string[] {
     if (!cause.live) {
-        return [summary, { label: 'Fired', value: formatRelativeTime(cause.firedAt, now) }];
+        return ['Archived', `Fired ${formatRelativeTime(cause.firedAt, now)}`];
     }
 
-    const status = { label: 'Status', value: automationStatusChip(cause.live.status).label };
-    const lastFired = {
-        label: 'Last fired',
-        value: cause.live.lastFiredAt ? formatRelativeTime(cause.live.lastFiredAt, now) : 'Never',
-    };
+    const facts = [
+        automationStatusChip(cause.live.status).label,
+        cause.live.lastFiredAt
+            ? `Last fired ${formatRelativeTime(cause.live.lastFiredAt, now)}`
+            : 'Never fired',
+    ];
 
-    if (cause.kind === 'reminder') {
-        return [summary, status, lastFired];
+    if (cause.kind === 'trigger') {
+        const count = cause.live.fireCount;
+        facts.push(`${count} ${count === 1 ? 'fire' : 'fires'}`);
     }
 
-    return [summary, status, lastFired, { label: 'Fires', value: String(cause.live.fireCount) }];
+    return facts;
 }
 
 /**
@@ -101,9 +95,7 @@ export function messageCauseArchivedNote(cause: MessageCause): string | null {
  * so — so only the inferred case carries one.
  */
 export function messageCauseAttributionNote(cause: MessageCause): string | null {
-    return cause.attribution === 'inferred'
-        ? 'Attributed by Haus — the Agent did not name this fire.'
-        : null;
+    return cause.attribution === 'inferred' ? 'Attributed by Haus, not named by the Agent.' : null;
 }
 
 /**

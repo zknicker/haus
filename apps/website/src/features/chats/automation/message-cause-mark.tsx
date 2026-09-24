@@ -1,13 +1,15 @@
 import type { MessageCause } from '@haus/api';
 import { CursorHoverCard } from '../../../components/ui/cursor-hover-card.tsx';
 import { cn } from '../../../lib/utils.ts';
-import { AutomationGlyph, AutomationGlyphBox } from './automation-glyph.tsx';
-import { ManageInAutomationsLink } from './automation-manage-link.tsx';
+import {
+    ReferencePreviewHeader,
+    ReferencePreviewText,
+} from '../../mentions/reference-preview-header.tsx';
+import { AutomationGlyph } from './automation-glyph.tsx';
 import {
     automationMarkColor,
-    messageCauseArchivedNote,
     messageCauseAttributionNote,
-    messageCauseHoverRows,
+    messageCauseHoverFacts,
 } from './automation-presentation.ts';
 
 /**
@@ -21,12 +23,12 @@ import {
  *
  * Title, glyph, and summary are snapshotted onto the message, so the mark
  * outlives the automation and reads the same after it is archived; only the
- * hover card's live rows go.
+ * hover card's live facts go.
  */
 export function MessageCauseMark({ cause }: { cause: MessageCause }) {
     return (
         <CursorHoverCard
-            className="w-88"
+            className="w-fit max-w-72"
             content={<MessageCauseHoverContent cause={cause} />}
             triggerClassName="min-w-0"
         >
@@ -44,43 +46,40 @@ export function MessageCauseMark({ cause }: { cause: MessageCause }) {
     );
 }
 
+/**
+ * The kind sits beside the title; reminder cadence sits below it.
+ * one fact line carries status and history, and the standing instruction is
+ * clipped to a glance. Managing the automation happens from the Agent's
+ * Automations tab or the Thread context card, never from a hover.
+ */
 export function MessageCauseHoverContent({ cause }: { cause: MessageCause }) {
-    const archivedNote = messageCauseArchivedNote(cause);
     const attributionNote = messageCauseAttributionNote(cause);
-    const rows = messageCauseHoverRows(cause);
+    const instruction = cause.live?.instruction;
 
     return (
-        <div className="flex min-w-0 flex-col gap-3">
-            <header className="flex min-w-0 items-center gap-2.5">
-                <AutomationGlyphBox kind={cause.kind} />
-                <strong className="min-w-0 truncate font-semibold text-foreground text-sm">
-                    {cause.title}
-                </strong>
-            </header>
-            <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
-                {rows.map((row) => (
-                    <div className="contents" key={row.label}>
-                        <dt className="text-muted">{row.label}</dt>
-                        <dd className="m-0 min-w-0 text-foreground">{row.value}</dd>
-                    </div>
-                ))}
-            </dl>
-            {cause.live?.instruction ? (
-                <p className="text-muted text-sm leading-snug">{cause.live.instruction}</p>
+        <ReferencePreviewHeader
+            mark={
+                <AutomationGlyph
+                    className={automationMarkColor[cause.kind]}
+                    kind={cause.kind}
+                    size={16}
+                />
+            }
+            meta={cause.kind === 'reminder' ? null : cause.summary}
+            title={cause.title}
+        >
+            {cause.kind === 'reminder' ? (
+                <ReferencePreviewText>{cause.summary}</ReferencePreviewText>
             ) : null}
-            {archivedNote ? (
-                <p className="text-muted text-xs leading-snug">{archivedNote}</p>
+            <ReferencePreviewText>{messageCauseHoverFacts(cause).join(' · ')}</ReferencePreviewText>
+            {instruction ? (
+                <ReferencePreviewText className="line-clamp-2" tone="foreground">
+                    {instruction}
+                </ReferencePreviewText>
             ) : null}
             {attributionNote ? (
-                <p className="text-muted text-xs leading-snug">{attributionNote}</p>
+                <ReferencePreviewText>{attributionNote}</ReferencePreviewText>
             ) : null}
-            {/* Nothing to manage once the record is gone, so the card ends
-                rather than pointing at a tab that no longer lists it. */}
-            {cause.live ? (
-                <div className="border-separator border-t pt-3">
-                    <ManageInAutomationsLink agentId={cause.ownerAgentId} />
-                </div>
-            ) : null}
-        </div>
+        </ReferencePreviewHeader>
     );
 }

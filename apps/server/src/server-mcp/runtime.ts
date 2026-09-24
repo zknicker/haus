@@ -1,6 +1,7 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import type { EffectRuntime, TraceCarrier } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
+import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,
@@ -142,7 +143,21 @@ export class McpRuntime {
         );
     }
     async closeConnection(connectionId: string): Promise<void> {
+        clearAmazonProductCache(this);
         await this.clients.closeConnection(connectionId, this.closeTimeoutMs);
+    }
+    /** Server product readers authorize membership and select a connected account before calling. */
+    async readAmazonProducts(
+        connectionId: string,
+        args: Record<string, unknown>
+    ): Promise<unknown> {
+        return await this.runUpstream(connectionId, 'invocation', (client, signal) =>
+            client.callTool({
+                name: 'rankwrangler_product',
+                arguments: args,
+                options: { signal, timeout: this.invocationTimeoutMs },
+            })
+        );
     }
     async close(): Promise<void> {
         await this.clients.closeAll(this.closeTimeoutMs);

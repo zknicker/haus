@@ -3,13 +3,17 @@ import {
     parseChatReferenceTarget,
     parseSkillReferenceTarget,
 } from '@haus/api/rich-references';
-import { Separator } from '@heroui/react';
 import type * as React from 'react';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
 import { ChannelHoverCard } from './channel-hover-card.tsx';
-import { type MentionAppearance, MentionAppearanceIcon } from './mention-appearance.tsx';
+import type { MentionAppearance } from './mention-appearance.tsx';
 import type { ReferenceKind } from './mention-types.ts';
+import {
+    ReferencePreviewHeader,
+    ReferencePreviewMark,
+    ReferencePreviewText,
+} from './reference-preview-header.tsx';
 import { SkillHoverCard } from './skill-hover-card.tsx';
 
 export function ReferenceHoverCard({
@@ -76,7 +80,7 @@ export function ReferenceHoverCard({
 
     return (
         <CursorHoverCard
-            className="w-88"
+            className="w-fit max-w-72"
             content={
                 <ReferenceHoverCardContent
                     appearance={appearance}
@@ -107,30 +111,18 @@ export function ReferenceHoverCardContent({
     const description = readDescription(metadata);
 
     return (
-        <div className="flex min-w-0 flex-col gap-3">
-            <header className="flex min-w-0 items-center gap-3">
-                <MentionAppearanceIcon
-                    agentAvatar={appearance.agentAvatar}
-                    channelAppearance={appearance.channelAppearance}
-                    className="size-11 shrink-0"
-                    icon={appearance.icon}
-                    iconDataUrl={appearance.iconDataUrl}
-                    size="preview"
+        <ReferencePreviewHeader
+            mark={
+                <ReferencePreviewMark
+                    appearance={appearance}
+                    className={kind === 'skill' ? 'size-[16px] text-skill-reference' : undefined}
                 />
-                <div className="flex min-w-0 flex-col gap-0.5">
-                    <strong className="truncate font-semibold text-base text-foreground">
-                        {title}
-                    </strong>
-                    <span className="text-muted text-sm">{referenceKindLabel[kind]}</span>
-                </div>
-            </header>
-            {description ? (
-                <>
-                    <Separator />
-                    <p className="text-muted text-sm">{description}</p>
-                </>
-            ) : null}
-        </div>
+            }
+            meta={referenceKindLabel[kind]}
+            title={title}
+        >
+            {description ? <ReferencePreviewText>{description}</ReferencePreviewText> : null}
+        </ReferencePreviewHeader>
     );
 }
 

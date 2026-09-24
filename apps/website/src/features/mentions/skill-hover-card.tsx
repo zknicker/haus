@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import type { MentionAppearance } from './mention-appearance.tsx';
-import { ReferencePreviewHeader } from './reference-preview-header.tsx';
+import {
+    ReferencePreviewHeader,
+    ReferencePreviewMark,
+    ReferencePreviewText,
+} from './reference-preview-header.tsx';
 import { useSkillReferenceDescription } from './use-skill-reference-description.ts';
 
 export function SkillHoverCard({
@@ -102,7 +106,7 @@ function SkillHoverCardFrame({
 }) {
     return (
         <CursorHoverCard
-            className="reference-hover-card w-fit max-w-72"
+            className="w-fit max-w-72"
             content={
                 <SkillHoverCardContent
                     appearance={appearance}
@@ -111,7 +115,6 @@ function SkillHoverCardFrame({
                 />
             }
             onOpenChange={onOpenChange}
-            tone="contrast"
         >
             {children}
         </CursorHoverCard>
@@ -129,12 +132,16 @@ export function SkillHoverCardContent({
 }) {
     return (
         <ReferencePreviewHeader
-            appearance={appearance}
-            markClassName="size-[16px] text-skill-reference"
+            mark={
+                <ReferencePreviewMark
+                    appearance={appearance}
+                    className="size-[16px] text-skill-reference"
+                />
+            }
             meta="Skill"
             title={displayLabel}
         >
-            {description ? <p className="text-muted text-sm">{description}</p> : null}
+            {description ? <ReferencePreviewText>{description}</ReferencePreviewText> : null}
         </ReferencePreviewHeader>
     );
 }

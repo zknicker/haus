@@ -8,6 +8,11 @@ import { ConnectionGlyph } from './connection-mark.tsx';
 
 const presets: Array<{ description: string; id: McpPreset; name: string }> = [
     {
+        description: 'Look up Amazon products and preview ASINs in messages.',
+        id: 'rankwrangler',
+        name: 'RankWrangler',
+    },
+    {
         description: 'Read and schedule events on your Google calendars.',
         id: 'google-calendar',
         name: 'Google Calendar',

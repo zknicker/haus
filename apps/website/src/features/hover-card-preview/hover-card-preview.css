@@ -1,0 +1,14 @@
+/* Fine lines reveal blur; broad color bands reveal surface transparency. */
+.hover-card-preview-backdrop {
+    background-color: var(--background);
+    background-image:
+        repeating-linear-gradient(0deg, transparent 0 23px, var(--separator) 23px 24px),
+        repeating-linear-gradient(90deg, transparent 0 23px, var(--separator) 23px 24px),
+        repeating-linear-gradient(
+            125deg,
+            var(--accent-soft) 0 180px,
+            var(--success-soft) 180px 360px,
+            var(--warning-soft) 360px 540px
+        );
+    background-attachment: local;
+}

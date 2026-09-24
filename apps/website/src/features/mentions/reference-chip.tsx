@@ -9,6 +9,7 @@ import {
 } from './mention-appearance.tsx';
 import { getMentionChipColor } from './mention-chip-color.ts';
 import type { ReferenceActivation, ReferenceKind } from './mention-types.ts';
+import { ProductReferenceThumbnail } from './product-reference-thumbnail.tsx';
 import { isPreviewReference, ReferenceHoverCard } from './reference-hover-card.tsx';
 
 export function ReferenceChip({
@@ -46,30 +47,38 @@ export function ReferenceChip({
                 kind === 'chat' && 'reference-chip--channel',
                 kind === 'pull-request' && 'reference-chip--pull-request',
                 kind === 'skill' && 'reference-chip--skill',
+                kind === 'product' && 'reference-chip--product',
                 className
             )}
             color={chipColor}
             contentEditable={false}
             size="md"
             style={chipStyle}
-            title={previewable ? undefined : displayLabel}
+            title={previewable || kind === 'product' ? undefined : displayLabel}
             variant="tertiary"
         >
-            <MentionAppearanceIcon
-                agentAvatar={appearance.agentAvatar}
-                channelAppearance={appearance.channelAppearance}
-                className={cn(
-                    'reference-chip__mark',
-                    appearance.agentAvatar
-                        ? undefined
-                        : cn(
-                              'shrink-0 opacity-90',
-                              kind === 'skill' ? 'size-[16px]' : 'size-[18px]'
-                          )
-                )}
-                icon={appearance.icon}
-                iconDataUrl={appearance.iconDataUrl}
-            />
+            {kind === 'product' ? (
+                <ProductReferenceThumbnail
+                    key={appearance.iconDataUrl}
+                    src={appearance.iconDataUrl}
+                />
+            ) : (
+                <MentionAppearanceIcon
+                    agentAvatar={appearance.agentAvatar}
+                    channelAppearance={appearance.channelAppearance}
+                    className={cn(
+                        'reference-chip__mark',
+                        appearance.agentAvatar
+                            ? undefined
+                            : cn(
+                                  'shrink-0 opacity-90',
+                                  kind === 'skill' ? 'size-[16px]' : 'size-[18px]'
+                              )
+                    )}
+                    icon={appearance.icon}
+                    iconDataUrl={appearance.iconDataUrl}
+                />
+            )}
             <Chip.Label className="min-w-0 truncate">{displayLabel}</Chip.Label>
         </Chip>
     );

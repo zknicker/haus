@@ -1,4 +1,4 @@
-import type { McpConnection, McpPresetAccountCreate } from '@haus/api';
+import { type McpConnection, type McpPresetAccountCreate, rankWranglerMcpUrl } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import type { McpIconResolver } from './icons.ts';
@@ -6,6 +6,7 @@ import type { McpRuntime } from './runtime.ts';
 import { createMcpConnection } from './service.ts';
 
 const presets = {
+    rankwrangler: { name: 'RankWrangler', url: rankWranglerMcpUrl },
     'google-calendar': {
         name: 'Google Calendar',
         url: 'https://calendarmcp.googleapis.com/mcp/v1',
@@ -33,7 +34,7 @@ export async function createMcpPresetAccount(
             auth: 'oauth',
             headers: {},
             name: input.name || preset.name,
-            oauthScopes: [],
+            oauthScopes: input.preset === 'rankwrangler' ? ['openid', 'email', 'profile'] : [],
             serverId: input.serverId,
             url: preset.url,
         },
