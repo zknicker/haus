@@ -59,7 +59,12 @@ function MessageRoutingDetails({
                         → {recipients} · {routingOutcomeLabel(audit)}
                     </span>
                 </Button>
-                <Popover.Content className="w-96 max-w-[calc(100vw-2rem)]" placement="bottom start">
+                {/* The positioner caps max-height to the space on the flipped
+                    side; scroll inside the box rather than spilling past it. */}
+                <Popover.Content
+                    className="w-96 max-w-[calc(100vw-2rem)] overflow-y-auto"
+                    placement="bottom start"
+                >
                     <Popover.Dialog>
                         <RoutingDecisionPanel agents={data.agents} audit={audit} />
                     </Popover.Dialog>
