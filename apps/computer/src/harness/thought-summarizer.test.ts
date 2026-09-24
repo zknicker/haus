@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { createGeminiThoughtSummarizer, thoughtSummaryModel } from './thought-summarizer.ts';
+import {
+    createGeminiThoughtSummarizer,
+    thoughtOpenings,
+    thoughtSummaryModel,
+} from './thought-summarizer.ts';
 
 function fakeGemini(respond: (init: RequestInit) => Promise<Response>) {
     const calls: { body: Record<string, unknown>; headers: Record<string, string>; url: string }[] =
@@ -26,28 +30,50 @@ describe('Gemini thought summarizer', () => {
         const summarizer = createGeminiThoughtSummarizer({
             apiKey: 'test-key',
             fetch: gemini.fetcher,
+            random: () => 0.99,
         });
         expect(await summarizer.summarize('The user wants the Halloween bids compared.')).toBe(
-            "I'm comparing Halloween bids to last week"
+            'Comparing Halloween bids to last week'
         );
         const [call] = gemini.calls;
         expect(call?.url).toContain(`/models/${thoughtSummaryModel}:generateContent`);
         expect(call?.headers['x-goog-api-key']).toBe('test-key');
         expect(call?.body.generationConfig).toEqual({
-            maxOutputTokens: 24,
-            temperature: 0.2,
+            maxOutputTokens: 32,
+            temperature: 0.8,
             thinkingConfig: { thinkingLevel: 'minimal' },
         });
         expect(call?.body.contents).toEqual([
             {
                 parts: [
                     {
-                        text: '<reasoning>\nThe user wants the Halloween bids compared.\n</reasoning>',
+                        text: `<reasoning>\nThe user wants the Halloween bids compared.\n</reasoning>\n${thoughtOpenings.at(-1)}`,
                     },
                 ],
                 role: 'user',
             },
         ]);
+    });
+
+    test('draws a different opening per request so lines vary', async () => {
+        const gemini = fakeGemini(async () => answer('Pulling royalties first'));
+        const draws = [0, 0.2, 0.99];
+        const summarizer = createGeminiThoughtSummarizer({
+            apiKey: 'test-key',
+            fetch: gemini.fetcher,
+            random: () => draws.shift() ?? 0,
+        });
+        for (let index = 0; index < 3; index += 1) {
+            expect(await summarizer.summarize('Pulling royalties before comparing weeks.')).toBe(
+                'Pulling royalties first'
+            );
+        }
+        const openings = gemini.calls.map((call) =>
+            String((call.body.contents as { parts: { text: string }[] }[])[0]?.parts[0]?.text)
+                .split('\n')
+                .at(-1)
+        );
+        expect(openings).toEqual([thoughtOpenings[0], thoughtOpenings[1], thoughtOpenings.at(-1)]);
     });
 
     test('drops the thought on an error status, an empty answer, or a transport failure', async () => {

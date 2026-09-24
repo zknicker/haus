@@ -57,18 +57,18 @@ describe('local condensation', () => {
 describe('phrase finishing', () => {
     test('caps words, drops dangling joiners and trailing punctuation, capitalizes', () => {
         expect(finishThoughtPhrase('reviewing the bids for the big October launch now.')).toBe(
-            "I'm reviewing the bids for the big October"
+            'Reviewing the bids for the big October launch'
         );
-        expect(finishThoughtPhrase('"Checking the chart."')).toBe("I'm checking the chart");
-        expect(finishThoughtPhrase('Sending it to the')).toBe("I'm sending it");
+        expect(finishThoughtPhrase('"Checking the chart."')).toBe('Checking the chart');
+        expect(finishThoughtPhrase('Sending it to the')).toBe('Sending it');
     });
 
     test('keeps curly-apostrophe possessives as one word', () => {
         expect(finishThoughtPhrase('Inspecting the app’s main window')).toBe(
-            "I'm inspecting the app's main window"
+            "Inspecting the app's main window"
         );
         expect(finishThoughtPhrase('‘Verifying the build’s config’')).toBe(
-            "I'm verifying the build's config"
+            "Verifying the build's config"
         );
     });
 
@@ -78,7 +78,7 @@ describe('phrase finishing', () => {
                 'Using fake_live_4eC39HqLyjWDarjtT1zdp7dc to call https://api.example.com as ops@example.com'
             )
         ).toBe('Using to call');
-        expect(finishThoughtPhrase('Reading ~/secrets/.env now')).toBe("I'm reading now");
+        expect(finishThoughtPhrase('Reading ~/secrets/.env now')).toBe('Reading now');
     });
 
     test('stays within the length cap and drops empty results', () => {
