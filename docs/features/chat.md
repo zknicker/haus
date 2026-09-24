@@ -139,10 +139,11 @@ and [Agent Inbox](../../specs/inbox.md).
   same way, including the first reply, whose pending row belongs to the anchor
   message until the Thread it creates exists. Pending rows are never written
   into durable chat history.
-* **Typing.** A strip above the composer of every channel, DM, and Thread names
-  the Agents answering it: "Juniper is typing…", "Juniper and Cove are
-  typing…", then "Juniper, Cove, and 1 other are typing…", with up to three
-  16px avatars and a three-dot pulse that respects reduced motion.
+* **Typing.** A strip above the composer of every channel, DM, and Thread shows
+  the Agents answering it as up to three 16px avatars and a three-dot pulse
+  that respects reduced motion, aligned with transcript message text. It has no
+  visible words; screen readers hear "Juniper is typing", "Juniper and Cove are
+  typing", then "Juniper, Cove, and 1 other are typing".
   An Agent types while its accepted turn has read a human message here that is
   newer than its own last message and was not judged to want no reply. A reply
   into this Chat clears it at once; otherwise it clears when the turn ends, so a
@@ -150,6 +151,15 @@ and [Agent Inbox](../../specs/inbox.md).
   height is always reserved, so the composer never moves. Reloads and
   reconnects recover it from `chat.engagements`
   ([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)).
+  Each time the engaging run starts a kind of work, a face launches from the
+  dots on a short arc over the transcript and fades: thinking 🤔, reading files
+  🧐, searching the web 🤓, browsing 🫣, editing files 😤, running a command 🫡,
+  using a tool 🙂‍↕️, checking messages 😯, and any failure 😵‍💫. A reply into this
+  Chat launches 😊. Other kinds launch nothing, activity from the Agent's runs
+  elsewhere never launches here, and at most one face launches per 350ms (the
+  reply and failure faces excepted); extras are dropped. Reduced motion fades
+  the face in place. The face is the whole signal: thought text never leaves
+  the Computer ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
 * **Scroll position.** Sending from the composer brings the conversation to the
   bottom, even when the human was reading older messages. Incoming Agent messages
   follow the bottom only when the reader was already following it. That choice

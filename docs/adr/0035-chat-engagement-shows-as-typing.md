@@ -71,10 +71,19 @@ is stored on each inbox row as `expects_reply` and used only here: at or below 0
 message does not engage. Null — no judgment ran, or it was stale, failed, timed out, or
 malformed — engages.
 
-**Presentation.** A typing strip above the composer of the open Chat or Thread names the
-engaged Agents: "Juniper is typing…", "Juniper and Cove are typing…", "Juniper, Cove, and
-1 other are typing…". The row's height is always reserved, so it never shifts the
-composer. The sidebar activity strip is removed; the Inbox's "happening now" rows,
+**Presentation.** A typing strip above the composer of the open Chat or Thread shows the
+engaged Agents as avatars and a three-dot pulse, with no visible verb: engagement spans
+the whole turn, tool work included, so a written "is typing" overclaims. The names
+("Juniper is typing", "Juniper and Cove are typing", "Juniper, Cove, and 1 other are
+typing") remain for assistive technology. The row's height is always reserved, so it never shifts the
+composer. When the engaging run (matched by Agent and `runId`) commits a `started` activity of
+a mapped kind, or any `failed` one, a face launches from the dots and fades over the
+transcript: 🤔 thinking, 🧐 reading files, 🤓 searching the web, 🫣 browsing, 😤 editing files,
+🫡 running a command, 🙂‍↕️ using a tool, 😯 checking messages, 😵‍💫 failure, and 😊 when the
+engagement ends as `sent`. Launches ride the App's existing `agent.onActivity` and
+`chat.onEngagement` streams, are throttled to one per 350ms (reply and failure faces exempt,
+extras dropped), fade in place under reduced motion, and are never cached. Thought text is
+never shown; reasoning stays on the Computer per ADR 0023. The sidebar activity strip is removed; the Inbox's "happening now" rows,
 Activity History, and status dots remain the Agent-level views of work.
 
 ## Consequences
