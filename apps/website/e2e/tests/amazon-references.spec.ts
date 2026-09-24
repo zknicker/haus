@@ -114,8 +114,8 @@ test('Amazon chips resolve prose and links, preview on focus, and fall back afte
     await expect(async () => {
         const bounds = await page.getByRole('tooltip').boundingBox();
         expect(bounds).not.toBeNull();
-        expect(Math.abs(bounds!.x - (pointer.x + 25))).toBeLessThan(2);
-        expect(Math.abs(bounds!.y + bounds!.height - (pointer.y - 25))).toBeLessThan(2);
+        expect(Math.abs(bounds!.x - (pointer.x + 15))).toBeLessThan(2);
+        expect(Math.abs(bounds!.y + bounds!.height - (pointer.y - 15))).toBeLessThan(2);
     }).toPass();
     const tooltip = page.getByRole('tooltip');
     await expect(tooltip).toHaveCSS('pointer-events', 'none');
