@@ -142,7 +142,7 @@ rendering.
   not nested controls.
   Hover or focus opens a non-interactive HeroUI Tooltip immediately; leaving the
   trigger closes it. Its bottom-left corner follows a fine mouse pointer at
-  +25px horizontally and -25px vertically, clamped inside the viewport. Keyboard
+  +15px horizontally and -15px vertically, clamped inside the viewport. Keyboard
   focus uses stock anchored placement. Reduced motion preserves direct pointer
   placement and disables decorative animation. Every
   hover card shares one always-dark glass material and one compact identity-header

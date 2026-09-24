@@ -285,13 +285,6 @@ to. It is gitignored, not committed, because the port is per-checkout. A
 website port that `bun run dev` actually binds. Nothing to do by
 hand; the file regenerates each session.
 
-## Hover Card Preview
-
-The dev-only `/s/:slug/hover-cards` comparison page holds all current rich hover-card
-families open side by side using their real content components and surface classes.
-Agent details use live Server data; other examples use labeled fixtures. Use it to
-compare existing appearance before changing shared hover-card styling.
-
 ## Activation Preview
 
 In development builds, `/prototype/activation` renders every activation surface — sign-in, Server

@@ -119,7 +119,7 @@ shows its initials; unknown Agents fall back to the generic Agent icon.
 Agent, Chat, and Skill references in transcript/read surfaces are focusable
 preview controls; composer references remain inert editor nodes. Hover and focus
 use non-interactive HeroUI Tooltips with immediate open and close. Their bottom-left
-corner follows fine mouse pointers at +25px horizontally and -25px vertically,
+corner follows fine mouse pointers at +15px horizontally and -15px vertically,
 clamped inside the viewport. Leaving the trigger closes the preview immediately.
 Keyboard focus retains ordinary anchored placement. Reduced motion disables
 decorative product animation while preserving direct pointer positioning. Agent previews resolve the
