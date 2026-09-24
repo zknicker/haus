@@ -197,6 +197,17 @@
         "timer": 2
       }
     },
+    "apps/computer/src/harness/thought-narrator.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each run holds at most one pending thought timer, which fires once or is cancelled when the run's narrator closes.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 2
+      }
+    },
     "apps/computer/src/harness/sandbox.ts": {
       "disposition": "effect-owned",
       "reason": "The daemon runtime owns sandbox resources; the Promise bridges Node port reservation into the scoped harness.",

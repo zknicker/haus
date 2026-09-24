@@ -5,7 +5,10 @@ import {
 } from './thought-phrase.ts';
 import { createGeminiThoughtSummarizer, type ThoughtSummarizer } from './thought-summarizer.ts';
 
-/** At most one thought per run in this window; later blocks inside it are dropped. */
+/**
+ * At most one thought per run in this window. Blocks that finish inside it
+ * wait in one slot, newest wins, and the survivor goes out when it closes.
+ */
 export const thoughtIntervalMs = 4000;
 
 export interface AgentThought {
@@ -33,50 +36,67 @@ export function agentThoughtsEnabled(env: NodeJS.ProcessEnv = process.env): bool
 export function createAgentThoughtNarrator(input: {
     emit: (thought: AgentThought) => void;
     now?: () => number;
+    /** Runs `run` after `ms`; returns a cancel. Defaults to `setTimeout`. */
+    schedule?: (run: () => void, ms: number) => () => void;
     summarizer?: ThoughtSummarizer | null;
 }): AgentThoughtNarrator {
     const now = input.now ?? Date.now;
+    const schedule = input.schedule ?? scheduleTimeout;
     const summarizer = input.summarizer ?? null;
     const blocks = new Map<string, string>();
-    let lastAdmittedAt: number | null = null;
+    let lastReleasedAt: number | null = null;
+    // Only the newest waiting block survives, so a burst never queues up.
+    let waiting: string | null = null;
+    let cancelWait: (() => void) | null = null;
     let closed = false;
 
-    const admit = () => {
-        const at = now();
-        if (lastAdmittedAt !== null && at - lastAdmittedAt < thoughtIntervalMs) {
-            return false;
-        }
-        lastAdmittedAt = at;
-        return true;
-    };
     const emit = (text: string | null) => {
         if (text && !closed) {
             input.emit({ at: new Date(now()).toISOString(), text });
         }
     };
-    const finishBlock = (reasoning: string) => {
+    const release = (reasoning: string) => {
+        lastReleasedAt = now();
         const title = extractThoughtTitle(reasoning);
         if (title) {
-            if (admit()) {
-                emit(title);
-            }
-            return;
-        }
-        if (reasoning.trim().length < thoughtMinimumReasoningLength || !admit()) {
-            return;
-        }
-        if (!summarizer) {
+            emit(title);
+        } else if (summarizer) {
+            // A failed or late summary is dropped rather than replaced by a guess.
+            summarizer.summarize(reasoning).then(emit, () => undefined);
+        } else {
             emit(condenseThoughtLocally(reasoning));
+        }
+    };
+    const finishBlock = (reasoning: string) => {
+        if (
+            !extractThoughtTitle(reasoning) &&
+            reasoning.trim().length < thoughtMinimumReasoningLength
+        ) {
             return;
         }
-        // A failed or late summary is dropped rather than replaced by a guess.
-        summarizer.summarize(reasoning).then(emit, () => undefined);
+        const wait = lastReleasedAt === null ? 0 : lastReleasedAt + thoughtIntervalMs - now();
+        if (wait <= 0) {
+            release(reasoning);
+            return;
+        }
+        waiting = reasoning;
+        cancelWait ??= schedule(() => {
+            cancelWait = null;
+            const next = waiting;
+            waiting = null;
+            if (next !== null && !closed) {
+                release(next);
+            }
+        }, wait);
     };
 
     return {
         close() {
             closed = true;
             blocks.clear();
+            waiting = null;
+            cancelWait?.();
+            cancelWait = null;
         },
         observe(part) {
             const id = typeof part.id === 'string' && part.id.length > 0 ? part.id : undefined;
@@ -100,6 +120,11 @@ export function createAgentThoughtNarrator(input: {
             }
         },
     };
+}
+
+function scheduleTimeout(run: () => void, ms: number) {
+    const timer = setTimeout(run, ms);
+    return () => clearTimeout(timer);
 }
 
 /** The Gemini summarizer when `HAUS_GEMINI_API_KEY` is configured; null falls back to the heuristic. */
