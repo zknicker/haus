@@ -1,5 +1,5 @@
 ---
-summary: Proposed prototype — the Computer condenses each reasoning block into one short status phrase (Codex titles, else Gemini 3.5 Flash-Lite) that the typing strip shows as a glass thought bubble; raw reasoning never reaches the Server, and nothing is persisted.
+summary: Proposed prototype — the Computer condenses each reasoning block into one short first-person line (Codex titles, else Gemini 3.5 Flash-Lite) that the typing strip shows as a glass thought bubble; raw reasoning never reaches the Server, and nothing is persisted.
 read_when:
   - changing the typing strip's thought bubble, chat.onThought, or the agent-thought Computer frame
   - changing how reasoning is captured, summarized, or kept on the Computer
@@ -25,8 +25,9 @@ anything the Agent read.
 ## Decision
 
 **Condensed phrases may reach the Server; raw reasoning never does.** When a reasoning block
-ends, the Computer produces at most one phrase of about seven words, present tense, no trailing
-period, capped at 80 characters, with URLs, paths, emails, and token-like strings removed:
+ends, the Computer produces at most one phrase of at most eight words, in the Agent's own first
+person ("I'm checking last week's bids"; a phrase opening with an -ing verb gains "I'm"), no
+trailing period, capped at 80 characters, with URLs, paths, emails, and token-like strings removed:
 
 1. A block that leads with a bold title (Codex reasoning summaries) uses the title as is, with no
    model call.
