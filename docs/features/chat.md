@@ -145,18 +145,20 @@ and [Agent Inbox](../../specs/inbox.md).
   visible words; screen readers hear "Juniper is typing", "Juniper and Cove are
   typing", then "Juniper, Cove, and 1 other are typing".
   An Agent types while its accepted turn has read a human message here that is
-  newer than its own last message, whatever the message says: no judgment
-  that a message wants no reply hides work the Agent is doing. A reply
-  into this Chat clears it at once; otherwise it clears when the turn ends, so a
-  turn that reads a Chat and stays silent types until it settles. The strip's
+  newer than its last answer, whatever the message says: no judgment
+  that a message wants no reply hides work the Agent is doing. The Agent's
+  final reply, sent with `haus message send --done`, clears it at once;
+  acknowledgments and progress posts without `--done` keep it typing. Otherwise
+  it clears when the turn ends, so a turn that reads a Chat and stays silent, or
+  forgets `--done`, types until it settles. The strip's
   height is always reserved, so the composer never moves. Reloads and
   reconnects recover it from `chat.engagements`
   ([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)).
   Each time the engaging run starts a kind of work, a face launches from the
   dots on a short arc over the transcript and fades: thinking 🤔, reading files
   🧐, searching the web 🤓, browsing 🫣, editing files 😤, running a command 🫡,
-  using a tool 🙂‍↕️, checking messages 😯, and any failure 😵‍💫. A reply into this
-  Chat launches 😊. Other kinds launch nothing, activity from the Agent's runs
+  using a tool 🙂‍↕️, checking messages 😯, and any failure 😵‍💫. A `--done` reply
+  into this Chat launches 😊. Other kinds launch nothing, activity from the Agent's runs
   elsewhere never launches here, and at most one face launches per 350ms (the
   reply and failure faces excepted); extras are dropped. Reduced motion fades
   the face in place. Reasoning text never enters Activity

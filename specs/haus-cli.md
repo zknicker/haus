@@ -320,9 +320,26 @@ Reminder and Trigger fire ids carry different prefixes, so the flag needs no
 companion `--kind`. Each fire an Agent acts on gets its own message; answers to
 different fires never share a Thread. See `specs/automation-provenance.md`.
 
+### 6b. Finishing a reply with `--done`
+
+`message send --done` marks the message that completes the Agent's reply in its target Chat. The
+body carries `done: true`, the Server stores it on the message (`completes_reply`), and the run's
+engagement in that Chat ends at once (`chat.engagement.ended`, reason `sent`; ADR 0035). A send
+without it — an acknowledgment, progress note, or partial result — ends nothing, and engagement
+lasts until a later `--done` send there or the end of the turn. The flag is per Chat: `--done`
+into one Chat never ends another. It is accepted on every send mode; a held send commits nothing,
+so the `--send-draft` that releases it repeats `--done`.
+
+The CLI omits `done` unless the flag is set, so an older Server that rejects unknown body fields
+never sees it from an interim post. When an older Server refuses a `--done` send with the generic
+`INVALID_ARG` body-validation error, the CLI resends the same body, same nonce, without `done`;
+engagement there then lasts until turn end. An older CLI that never sends `done` keeps working
+the same way. The resend is removed once every Server accepts `done`.
+
 **Composition is not a CLI handoff (ADR 0023).** The CLI sends no composition identity, and durable
 messages need no provisional-row reconciliation. Chat typing is Server-derived chat engagement
-from exact run visibility (ADR 0035), never from partial `message send` arguments or a CLI verb.
+from exact run visibility (ADR 0035), never from partial `message send` arguments or a CLI verb;
+`--done` only marks where the typing ends.
 
 ## 7. Verb surface and ownership
 
@@ -331,7 +348,7 @@ per family:
 
 | Family | Verbs | Lands | v1 behavior |
 | --- | --- | --- | --- |
-| message | `send` | WS1 | Attested send per §6; `--cause <fireId>` names the automation fire this message answers (§6a) |
+| message | `send` | WS1 | Attested send per §6; `--cause <fireId>` names the automation fire this message answers (§6a); `--done` marks the reply-completing message (§6b) |
 | | `read` | WS1 | History with `--before/--after/--around <idOrSeq>`, `--limit` |
 | | `search` | WS1 | `--query --target --sender --sort relevance\|recent --before --after --limit --offset` |
 | | `resolve <id>` | WS1 | One canonical message by short or full id |

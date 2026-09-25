@@ -151,7 +151,7 @@ Hosted chat engagement events are volatile and Chat-scoped
 ([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)). `chat.engagement.started`
 announces after the write that grants a run exact visibility of an unanswered human message
 commits; `chat.engagement.ended` (`sent`, `settled`, or `interrupted`) rides a committed Agent
-send into the Chat or terminal turn proof. `chat.onEngagement({ serverId, chatId })` checks Chat
+`--done` send into the Chat or terminal turn proof; sends without `--done` end nothing. `chat.onEngagement({ serverId, chatId })` checks Chat
 access at start and before every delivery. Nothing is persisted or replayed: the durable
 `chat.engagements` read derives the same set from delivery state, and the App invalidates it
 whenever the subscription starts or restarts, then patches it from live events.

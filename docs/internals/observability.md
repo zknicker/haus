@@ -135,6 +135,12 @@ Completed turn spans include request-local monotonic measurements under `haus.tu
 | `first_send_ms`, `last_send_ms` | Turn tracing begins to the first/last Server-confirmed committed send observed by the Computer proxy |
 | `after_last_send_ms` | Last confirmed send to turn result observation, including trailing memory and cleanup work |
 
+Turns with a confirmed send also carry two counts. `haus.turn.sent_chats` is the number of Chats
+the turn sent into, and `haus.turn.done_chats` is how many of those received a last send marked
+`haus message send --done` ([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)). The
+difference is Chats left typing until turn end after an answer without `--done`. Silent engaged
+Chats appear in neither.
+
 These attributes also accompany returned failed/interrupted turn results when the boundary was
 reached. They are not live milestones; they export when the span settles. Missing fields mean
 unobserved boundaries, not zero duration. Phase durations overlap the cumulative milestones and
