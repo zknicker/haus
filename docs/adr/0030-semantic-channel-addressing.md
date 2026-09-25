@@ -1,7 +1,8 @@
 ---
-summary: Server narrows unaddressed human channel delivery with bounded Jev judgments while preserving deterministic attention rules.
+summary: Server narrows human channel delivery with bounded Jev judgments — the sole addressee of an unaddressed message, or the mentioned Agents alone — while preserving deterministic attention rules.
 read_when:
   - changing semantic message routing, Jev questions, or Agent inbox recipients
+  - changing how an explicit @mention in a channel is delivered
   - enabling or disabling TypeSafe channel addressing
 ---
 
@@ -20,10 +21,10 @@ human, unclear, invalid, uncertain, failed and timed-out outcomes preserve ordin
 delivery. Jev cannot add recipients or bypass access, retirement, mute, or follow rules.
 It does not change canonical history, task ownership, seen state, or reply ancestry.
 
-DMs, explicit Agent mentions, inline replies, Threads, Agent-authored messages and
-messages with attachments retain their deterministic behavior. Existing mention behavior
-includes eligible ambient recipients; this change does not turn mentions into exclusive
-addressing. A channel with no eligible Agent bypasses inference.
+DMs, inline replies, Threads, Agent-authored messages and messages with attachments
+retain their deterministic behavior. Explicit Agent mentions skip this audience question
+and ask their own narrower one ([Explicit mentions](#explicit-mentions)). A channel with no
+eligible Agent bypasses inference.
 
 ## Single-Agent channels
 
@@ -46,13 +47,67 @@ revoked. Every other bypass above still applies first, and a mention still wins.
   marks the row `routing`. Everything else leaves it unaddressed. Recipients never change in
   this shape, because the only eligible Agent receives the message either way.
 
+## Explicit mentions
+
+Amended 2026-09-25. Mentions were an unconditional bypass: "@Blippy do X" in a channel with
+Blippy and Tiny delivered to both, with Blippy flagged `mentioned`. Now a top-level human
+channel message that @mentions at least one eligible Agent, while at least one other
+eligible Agent is unmentioned, asks Jev the `mention-v2` mention-scope Choice instead of
+the audience question: is the message meant only for the mentioned Agents
+(`mentioned`), also for an unmentioned Agent (`others`), or is that `unclear`? Asides to
+humans do not count as others; only waking another Agent is at stake.
+
+Mentioned Agents always receive the message; Jev can only remove the unmentioned ones.
+A `mentioned` answer with both confidence and probability at the same `routingThreshold`
+(0.90) delivers to the mentioned set only, each row keeping `addressed_reason = 'mention'`,
+and the audit records outcome `mentioned`. Several mentions narrow to all of them.
+`others`, `unclear`, below-threshold, invalid, failed, timed-out and stale judgments, and a
+Server without the TypeSafe credential, keep ordinary delivery: every eligible Agent, with
+the mentioned rows flagged. Mentioning every eligible Agent leaves nothing to narrow and
+records a `mention` bypass without a call.
+
+Precedence is unchanged around it: Threads, inline replies (including ones that mention),
+attachments, over-long text, DMs, over 32 Agents, and nonce replays bypass first. The
+request, deadline, snapshot recheck and audit match the audience question, except that
+`currentMessage.explicitAgentIds` names the mentioned Agents and a channel's first message
+is judged on its text alone. Its audit carries `bypassReason: 'mention'` with the Jev model,
+`promptVersion: 'mention-v2'`, the choice and both scores, which is how Dev Mode tells it
+from the audience question.
+
+The errors are asymmetric. Excluding an Agent the author actually spoke to silently drops
+work, while waking one extra Agent costs a turn that usually ends silent. The question and
+threshold were therefore accepted only with zero wrongly-exclusive narrowings on the
+labeled set in `apps/server/src/message-routing/evals/mention-scope-cases.json`: 58
+synthetic channel messages, 32 labeled `mentioned` and 26 `others`, covering direct asks,
+mention plus a broadcast sentence, multiple mentions, human asides, mentions used as
+references, FYI phrasing, greetings, open calls, bare-name Agents, quoted text, an
+injection attempt, and short histories. Ambiguous cases are labeled `others`.
+
+| Prompt | Threshold | Narrowed | Wrongly exclusive | Missed narrow | Accuracy | Coverage |
+| --- | --- | --- | --- | --- | --- | --- |
+| mention-v1 | 0.90 | 28 | 0 | 4 | 93.1% | 87.5% |
+| mention-v2 | 0.80 | 30 | 0 | 2 | 96.6% | 93.8% |
+| mention-v2 | 0.85 | 29 | 0 | 3 | 94.8% | 90.6% |
+| mention-v2 | 0.90 | 29 | 0 | 3 | 94.8% | 90.6% |
+| mention-v2 | 0.95 | 29 | 0 | 3 | 94.8% | 90.6% |
+
+v1 had no wrongly-exclusive narrowing at 0.90 but left thin margins: "@Blippy pls review the
+PR. Everyone else: deploy freeze at 3pm" chose `mentioned` at 0.81 confidence. v2 asks Jev to
+judge every sentence and names group phrasings (everyone else, you all, anyone, the team);
+the strongest wrong `mentioned` choice on an `others` case fell to 0.64. Remaining misses are
+the cheap direction: a relay ("tell Tiny the build is fixed"), a later hand-off, and a
+question to Cove about everyone's plate. Repeat runs move individual scores by about 0.1,
+so one v2 rerun narrowed 30. Median latency was about 150 ms. Re-run the eval with
+`agent-varlock -- bunx varlock run -- bun scripts/mention-scope-eval.ts` before changing the
+question, model or threshold.
+
 ## Ownership and lifecycle
 
 Server authorizes the human before reading context or calling TypeSafe. The request
 contains at most 16 preceding messages in the same channel, observed author identities,
 active channel Agents and descriptions, computed ages, and the current text. More than
-32 active Agents, current text over 8,000 characters, no history, or combined text over
-24,000 characters bypass inference. No content is truncated mid-message to meet a budget.
+32 active Agents, current text over 8,000 characters, no history (except for the
+mention-scope question), or combined text over 24,000 characters bypass inference. No content is truncated mid-message to meet a budget.
 Attachments are not sent. Eligible channel context is sent to TypeSafe across all Servers.
 
 The provider call has a 1.5-second deadline and no retries on the send path. It runs
@@ -95,6 +150,8 @@ new unaddressed work, including multiple humans and overlapping Agent responsibi
 Command-K → **Turn Dev Mode On** reveals a routing label below each durable human
 message. Click it to open a popover with the committed inbox recipients, candidates, exclusions,
 Jev choice, confidence and probability, threshold, elapsed time, model and prompt version.
+A mention-scope judgment shows its choice as mentioned agents only, other agents too or
+unclear, and a confident one reads as narrowed with the unmentioned Agents excluded.
 Dev Mode is a device-local display preference; it never enables or changes routing.
 
 Server records bypass reasons for human sends too, including DMs, replies, mentions,
