@@ -15,9 +15,9 @@ export interface AgentThoughtNarrator {
 
 /**
  * Collects each reasoning block and, when it ends, sends one thought: a
- * Codex-style bold title as a finished phrase, with no network call;
- * otherwise a scrubbed excerpt the Server summarizes. The Computer's interval
- * is the authoritative rate limit.
+ * Codex-style bold title as a finished phrase, otherwise a scrubbed excerpt.
+ * The Server rephrases either or drops it as housekeeping. The Computer's
+ * interval is the authoritative rate limit.
  */
 export function createAgentThoughtNarrator(input: {
     emit: (thought: AgentThoughtContent) => void;

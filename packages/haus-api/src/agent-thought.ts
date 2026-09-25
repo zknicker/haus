@@ -37,8 +37,9 @@ const agentThoughtFrameFields = {
 
 /**
  * The frame a Computer sends while its accepted run reasons (ADR 0036).
- * `phrase` is finished on the Computer (a Codex title) and relayed as is;
- * `reasoning` carries an excerpt the Server turns into a phrase. Never persisted.
+ * `phrase` carries a Codex title finished on the Computer and `reasoning` a
+ * scrubbed excerpt; the Server rephrases either, or drops it as housekeeping,
+ * before announcing anything. Never persisted.
  */
 export const agentThoughtFrameSchema = z.discriminatedUnion('kind', [
     z

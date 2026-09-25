@@ -11,13 +11,14 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentsTable } from '../postgres/schema.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { ThoughtSummarizer } from './agent-thought-summarizer.ts';
+import { isHousekeepingThought } from './thought-housekeeping.ts';
 
 /**
- * A run's reasoning frames closer together than this are ignored. The
- * Computer's four-second interval is the real limit; this only bounds
- * summarizer spend when a Computer misbehaves.
+ * A run's thought frames closer together than this are ignored. Every frame,
+ * a title or an excerpt, is a paid summarizer call; the Computer's four-second
+ * interval is the real limit, and this only bounds spend when one misbehaves.
  */
-export const thoughtReasoningSpacingMs = 3000;
+export const thoughtSpacingMs = 3000;
 
 interface ThoughtFrameInput {
     computerId: string;
@@ -38,13 +39,13 @@ export interface AgentThoughts {
         input: ThoughtFrameInput,
         background: Pick<ServerPostCommitWork, 'run'>
     ): Promise<boolean>;
-    /** The phrase a frame announces, or null when nothing presentable remains. */
+    /** The phrase a frame announces, or null when it is housekeeping or nothing presentable remains. */
     phrase(frame: AgentThoughtFrame): Promise<string | null>;
 }
 
 export function createAgentThoughts(options: {
     now?: () => number;
-    /** Null when the Server has no summarizer key; excerpts then use the heuristic. */
+    /** Null when the Server has no summarizer key; frames then use the local fallback. */
     summarizer: ThoughtSummarizer | null;
 }): AgentThoughts {
     const now = options.now ?? Date.now;
@@ -53,7 +54,7 @@ export function createAgentThoughts(options: {
     const spaced = (key: string) => {
         const at = now();
         for (const [entry, seenAt] of lastReasoningAt) {
-            if (at - seenAt >= thoughtReasoningSpacingMs) {
+            if (at - seenAt >= thoughtSpacingMs) {
                 lastReasoningAt.delete(entry);
             }
         }
@@ -64,12 +65,21 @@ export function createAgentThoughts(options: {
         return true;
     };
     const phrase = async (frame: AgentThoughtFrame) => {
-        if (frame.kind === 'phrase') {
-            return frame.text;
-        }
         // The excerpt goes to the summarizer and nowhere else; it is dropped after this call.
-        const summary = await options.summarizer?.summarize(frame.reasoning);
-        return summary ?? condenseThoughtLocally(frame.reasoning);
+        const summary = await options.summarizer?.summarize(
+            frame.kind === 'phrase'
+                ? { kind: 'title', title: frame.text }
+                : { kind: 'reasoning', reasoning: frame.reasoning }
+        );
+        if (summary) {
+            // SKIP is the model's judgment that this is housekeeping: no bubble.
+            return summary.kind === 'phrase' ? summary.text : null;
+        }
+        const source = frame.kind === 'phrase' ? frame.text : frame.reasoning;
+        if (isHousekeepingThought(source)) {
+            return null;
+        }
+        return frame.kind === 'phrase' ? frame.text : condenseThoughtLocally(frame.reasoning);
     };
 
     return {
@@ -79,7 +89,7 @@ export function createAgentThoughts(options: {
                 return false;
             }
             const frame = parsed.data;
-            if (frame.kind === 'reasoning' && !spaced(`${input.computerId}:${frame.runId}`)) {
+            if (!spaced(`${input.computerId}:${frame.runId}`)) {
                 return true;
             }
             const events = await admitComputerAgentThought(db, { ...input, frame });
