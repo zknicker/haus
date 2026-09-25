@@ -82,9 +82,9 @@ transcript: 🤔 thinking, 🧐 reading files, 🤓 searching the web, 🫣 brow
 🫡 running a command, 🙂‍↕️ using a tool, 😯 checking messages, 😵‍💫 failure, and 😊 when the
 engagement ends as `sent`. Launches ride the App's existing `agent.onActivity` and
 `chat.onEngagement` streams, are throttled to one per 350ms (reply and failure faces exempt,
-extras dropped), fade in place under reduced motion, and are never cached. Reasoning stays on the Computer per ADR 0023; the proposed prototype in
-[ADR 0036](0036-agent-thoughts-surface-as-condensed-phrases.md) adds only condensed thought
-phrases, flag-gated. The sidebar activity strip is removed; the Inbox's "happening now" rows,
+extras dropped), fade in place under reduced motion, and are never cached. Reasoning stays out of Activity per ADR 0023;
+[ADR 0036](0036-agent-thoughts-surface-as-condensed-phrases.md) adds a volatile thought bubble
+whose phrase the Server condenses from a bounded reasoning excerpt. The sidebar activity strip is removed; the Inbox's "happening now" rows,
 Activity History, and status dots remain the Agent-level views of work.
 
 ## Consequences

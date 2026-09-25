@@ -187,10 +187,14 @@ the finishing state; a later started operation replaces it. A Server `received_m
 activity, committed when a notice-ack marks new work noticed by the run, is history only: it never
 replaces the current row.
 
-Prototype thought phrases (`HAUS_AGENT_THOUGHTS`, [ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md))
-are volatile and never written. A Computer `agent-thought` frame is admitted under the activity
-frame's identity checks and announced once per Chat its run engages; `chat.onThought({ serverId,
-chatId })` delivers it with `chat.onEngagement`'s access checks. There is no read or recovery.
+Agent thoughts ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)) are
+volatile and never written. A Computer `agent-thought` frame carries either `kind: 'phrase'` with a
+finished `text`, or `kind: 'reasoning'` with a scrubbed `reasoning` excerpt (40–3,000 characters)
+that the Server summarizes and discards; the Server ignores a run's excerpts closer than three
+seconds apart. A frame is admitted under the activity frame's identity checks and its phrase is
+announced once per Chat the run engages; `chat.onThought({ serverId, chatId })` delivers
+`{ agentId, runId, chatId, serverId, text, at }` with `chat.onEngagement`'s access checks. There
+is no read or recovery.
 
 `ask.updated` is a participant-gated durable event carrying the Ask id, its Message id, the Chat id,
 the anchor Message's Chat sequence, and the cursor. Creating an Ask emits `message.created` and then

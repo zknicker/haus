@@ -42,6 +42,7 @@ the access boundary.
 | `Dev Sign-In User - Haus` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
+| `Google AI Studio - Haus` | `Development`, `Production` | Server-owned Gemini key that summarizes Agent thought excerpts; one per lifecycle |
 | `Axiom Development OTLP - Haus` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
 | `Axiom Production OTLP - Haus` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Haus` | `Production` | runtime URL, migration URL, container admin password |
@@ -87,6 +88,12 @@ metadata without the concept or image bytes. The fixture path is runtime input,
 so the PNG is not bundled into the Server artifact. Do not enable the fixture in
 a released Server environment.
 
+Agent thought summaries use `HAUS_GEMINI_API_KEY`, resolved per lifecycle from
+`Google AI Studio - Haus` and delivered only to the Server; a Computer never holds it. It is
+optional everywhere: `fallback(op(…), undefined)` turns an empty 1Password field into an absent
+value, and without a key the Server condenses thought excerpts with a local heuristic. Test and
+release lifecycles resolve no credential.
+
 ## Who is allowed to read
 
 Humans and supervised local agents authorize through the 1Password desktop app.
@@ -119,7 +126,7 @@ and a cloud agent that can reach none of them still passes `check`.
 
 Release commands run `varlock run --include-internal`, because `varlock run`
 strips `@internal` items by default and every release credential is one.
-The release switch also leaves Clerk, Google, OpenAI, and OTLP runtime credentials
+The release switch also leaves Clerk, Google, Gemini, OpenAI, and OTLP runtime credentials
 undefined and disables schema-provided OTLP endpoints. This keeps GitHub release jobs on their Tooling-only identity instead
 of making an unrelated Development-vault read part of signing or publication.
 
