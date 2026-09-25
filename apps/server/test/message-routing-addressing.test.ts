@@ -147,34 +147,10 @@ test('a narrow at the gate marks the surviving recipient addressed', async () =>
         {
             addressedReason: 'routing',
             agentId: winner,
-            expectsReply: null,
             mentioned: false,
             threadFollowReactivated: false,
         },
     ]);
-});
-
-test('the reply judgment rides every recipient and the audit, unless the snapshot went stale', async () => {
-    const channel = await seedChannel();
-    const winner = channel.agentIds[0] ?? '';
-    const judged = await preparedNarrow(channel, winner);
-    const withReply = { ...judged, decision: { ...judged.decision, expectsReply: 0.07 } };
-    const uncertain = {
-        ...judged,
-        decision: { expectsReply: 0.07, kind: 'broadcast', reason: 'uncertain' },
-    } satisfies PreparedMessageRouting;
-
-    expect((await commit(channel, withReply)).map((row) => row.expectsReply)).toEqual([0.07]);
-    expect((await commit(channel, uncertain)).map((row) => row.expectsReply)).toEqual([0.07, 0.07]);
-    const [audit] = await connection.db
-        .select({ routing: chatMessagesTable.deliveryRouting })
-        .from(chatMessagesTable)
-        .where(eq(chatMessagesTable.id, channel.messageId));
-    expect(audit?.routing?.expectsReply).toBe(0.07);
-
-    const stale = { ...withReply, sequence: channel.sequence + 1 };
-    const staleRecipients = await commit(channel, stale);
-    expect(staleRecipients.every((row) => row.expectsReply === null)).toBe(true);
 });
 
 test('a stale or uncertain routing judgment leaves every row unaddressed', async () => {
@@ -243,14 +219,13 @@ test('a judgment over one eligible Agent addresses it at the gate and never chan
     const narrow = await preparedNarrow(channel, agentId);
     const uncertain = {
         ...narrow,
-        decision: { expectsReply: 0.1, kind: 'broadcast', reason: 'uncertain' },
+        decision: { kind: 'broadcast', reason: 'uncertain' },
     } satisfies PreparedMessageRouting;
 
     expect(await commit(channel, narrow)).toEqual([
         {
             addressedReason: 'routing',
             agentId,
-            expectsReply: null,
             mentioned: false,
             threadFollowReactivated: false,
         },
@@ -259,7 +234,6 @@ test('a judgment over one eligible Agent addresses it at the gate and never chan
         {
             addressedReason: null,
             agentId,
-            expectsReply: 0.1,
             mentioned: false,
             threadFollowReactivated: false,
         },

@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { chatEngagementEventSchema } from './chat-engagement.ts';
-import { messageRoutingAuditSchema } from './message-routing.ts';
 
 const base = {
     agentId: 'agt_test',
@@ -30,25 +29,5 @@ describe('Chat engagement contract', () => {
         expect(
             chatEngagementEventSchema.safeParse({ ...base, type: 'chat.engagement.ended' }).success
         ).toBe(false);
-    });
-
-    test('routing audits written before the reply judgment read it as null', () => {
-        const audit = {
-            candidateAgentIds: [],
-            recipientAgentIds: [],
-            outcome: 'bypass',
-            bypassReason: 'direct-message',
-            model: null,
-            promptVersion: null,
-            confidence: null,
-            probability: null,
-            choice: null,
-            threshold: null,
-            elapsedMs: null,
-        };
-        expect(messageRoutingAuditSchema.parse(audit).expectsReply).toBeNull();
-        expect(messageRoutingAuditSchema.parse({ ...audit, expectsReply: 0.1 }).expectsReply).toBe(
-            0.1
-        );
     });
 });

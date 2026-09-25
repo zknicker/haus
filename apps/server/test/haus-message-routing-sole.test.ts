@@ -24,11 +24,11 @@ const send = (content: string, extra: { replyToMessageId?: string } = {}) =>
     });
 const inbox = async (messageId: string) =>
     (await fixture.harness.sql`
-        select agent_id as "agentId", addressed_reason as "addressedReason", expects_reply as "expectsReply"
+        select agent_id as "agentId", addressed_reason as "addressedReason"
         from agent_inbox
         where server_id = ${fixture.serverId} and dedupe_key = ${messageId}
         order by agent_id
-    `) as Array<{ addressedReason: string | null; agentId: string; expectsReply: number | null }>;
+    `) as Array<{ addressedReason: string | null; agentId: string }>;
 const audit = async (messageId: string) =>
     (await fixture.owner.trpc.chat.messageRouting.query({ serverId: fixture.serverId, messageId }))
         .audit;
@@ -41,7 +41,7 @@ beforeAll(async () => {
 test('the sole Agent of a one-human channel is addressed without a Jev call', async () => {
     const receipt = await send('Can you check the CSV importer?');
     expect(await inbox(receipt.message.id)).toEqual([
-        { addressedReason: 'sole', agentId: fixture.orbitAgentId, expectsReply: null },
+        { addressedReason: 'sole', agentId: fixture.orbitAgentId },
     ]);
     expect(await audit(receipt.message.id)).toMatchObject({
         bypassReason: 'sole',
@@ -85,7 +85,6 @@ test('with a second human, Jev decides the one Agent at the gate and recipients 
         agentId: fixture.orbitAgentId,
         confidence: 0.97,
         probability: 0.96,
-        expectsReply: 0.125,
     });
     const addressed = await send('Orbit, can you rerun the import?');
     expect(calls).toHaveLength(1);
@@ -93,21 +92,17 @@ test('with a second human, Jev decides the one Agent at the gate and recipients 
     // The silent member is still a participant Jev can name as the addressee.
     expect(calls[0]?.channel.participants.map((row) => row.id)).toContain(userId);
     expect(await inbox(addressed.message.id)).toEqual([
-        { addressedReason: 'routing', agentId: fixture.orbitAgentId, expectsReply: 0.125 },
+        { addressedReason: 'routing', agentId: fixture.orbitAgentId },
     ]);
 
     for (const decision of [
-        { kind: 'broadcast', reason: 'uncertain', choice: 'human', expectsReply: 0.5 },
+        { kind: 'broadcast', reason: 'uncertain', choice: 'human' },
         { kind: 'broadcast', reason: 'timeout' },
     ] satisfies RoutingDecision[]) {
         judge = async () => decision;
         const receipt = await send('Bea, did the import finish on your side?');
         expect(await inbox(receipt.message.id)).toEqual([
-            {
-                addressedReason: null,
-                agentId: fixture.orbitAgentId,
-                expectsReply: decision.expectsReply ?? null,
-            },
+            { addressedReason: null, agentId: fixture.orbitAgentId },
         ]);
     }
     expect(calls).toHaveLength(3);

@@ -48,6 +48,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0047_expects_reply',
             '0048_sole_addressing',
             '0049_rankwrangler_preset',
+            '0050_drop_expects_reply',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
@@ -78,6 +79,10 @@ test('upgrades the preceding production schema without replaying migrations', as
         const [addressedReason] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'agent_inbox_addressed_reason'`;
         expect(addressedReason.definition).toContain("'routing'");
+        expect(
+            await upgraded`SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'agent_inbox' AND column_name = 'expects_reply'`
+        ).toEqual([]);
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([]);
     } finally {
         await upgraded?.close();

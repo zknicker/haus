@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 import {
     createJevRouter,
     decodeRoutingDecision,
-    expectsReplyQuestion,
     type RoutingState,
     routingModel,
     routingQuestions,
@@ -108,35 +107,6 @@ test('an unresponsive provider is aborted within the send deadline', async () =>
     expect(performance.now() - start).toBeLessThan(2500);
 });
 
-test('the reply judgment rides the routing request and never changes the audience outcome', () => {
-    const questions = routingQuestions(state);
-    expect(questions.expects_reply).toMatchObject({ type: 'noul' });
-    expect(questions.expects_reply.instructions[0]).toBe(expectsReplyQuestion);
-    const withReply = (noul: unknown) => ({
-        ...answer(),
-        answers: { ...answer().answers, expects_reply: { type: 'noul', noul } },
-    });
-    expect(decodeRoutingDecision(withReply(0.12), ['a', 'b'])).toEqual({
-        kind: 'narrow',
-        agentId: 'a',
-        confidence: 0.95,
-        probability: 0.96,
-        expectsReply: 0.12,
-    });
-    // A malformed or missing reply judgment is simply absent.
-    for (const response of [withReply(1.4), withReply('yes'), answer()]) {
-        expect(decodeRoutingDecision(response, ['a', 'b'])).toEqual({
-            kind: 'narrow',
-            agentId: 'a',
-            confidence: 0.95,
-            probability: 0.96,
-        });
-    }
-    // An invalid audience keeps its fallback while the reply judgment survives.
-    expect(
-        decodeRoutingDecision(
-            { ...withReply(0.05), answers: { expects_reply: { type: 'noul', noul: 0.05 } } },
-            ['a', 'b']
-        )
-    ).toEqual({ kind: 'broadcast', reason: 'invalid', expectsReply: 0.05 });
+test('the routing request asks only the audience question', () => {
+    expect(Object.keys(routingQuestions(state))).toEqual(['audience']);
 });

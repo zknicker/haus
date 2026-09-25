@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { ChatEngagementEvent } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { readChatEngagements } from '../src/agent-delivery/chat-engagement.ts';
 import {
@@ -12,7 +11,7 @@ import { publishAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentInboxTable, agentsTable } from '../src/postgres/schema.ts';
+import { agentsTable } from '../src/postgres/schema.ts';
 import { agentPost, post, settledSummary, wakeOn } from './chat-engagement-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -202,29 +201,10 @@ test('settlement ends every engaged Chat, as settled or interrupted', async () =
     expect(eventsFor(stopped.runner.runId).at(-1)?.type).toBe('ended');
 });
 
-test('a confident no-reply judgment suppresses engagement; an uncertain one does not', async () => {
-    const quiet = await wakeOn(connection.db, 'FYI, no reply needed: the deploy finished.');
-    await connection.db
-        .update(agentInboxTable)
-        .set({ expectsReply: 0.2 })
-        .where(
-            and(
-                eq(agentInboxTable.agentId, quiet.seed.agentId),
-                eq(agentInboxTable.dedupeKey, quiet.wakeMessage.id)
-            )
-        );
-    await compose(quiet.runner, [quiet.wakeMessage]);
-    expect(eventsFor(quiet.runner.runId)).toEqual([]);
-
-    const unsure = await wakeOn(connection.db, 'The deploy finished, thoughts?');
-    await connection.db
-        .update(agentInboxTable)
-        .set({ expectsReply: 0.21 })
-        .where(eq(agentInboxTable.dedupeKey, unsure.wakeMessage.id));
-    await compose(unsure.runner, [unsure.wakeMessage]);
-    expect(eventsFor(unsure.runner.runId)).toEqual([
-        { chatId: unsure.seed.channelId, type: 'started' },
-    ]);
+test('a message that wants no reply still engages while the run has read it', async () => {
+    const { runner, seed, wakeMessage } = await wakeOn(connection.db, 'Hello everyone! GM');
+    await compose(runner, [wakeMessage]);
+    expect(eventsFor(runner.runId)).toEqual([{ chatId: seed.channelId, type: 'started' }]);
 });
 
 test('Agent-authored messages and messages older than the last send never engage', async () => {
