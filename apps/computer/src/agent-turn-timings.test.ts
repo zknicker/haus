@@ -20,9 +20,11 @@ test('distinguishes first events, repeated sends, and trailing work on a monoton
     timings.mark('first_tool');
     now = 160;
     timings.mark('first_tool');
-    timings.recordSend();
+    timings.recordSend({ chatId: 'cht_a', done: false });
+    now = 180;
+    timings.recordSend({ chatId: 'cht_b', done: true });
     now = 200;
-    timings.recordSend();
+    timings.recordSend({ chatId: 'cht_a', done: true });
     now = 250;
     expect(timings.snapshot()).toEqual({
         'haus.reasoning.effort': 'medium',
@@ -33,6 +35,8 @@ test('distinguishes first events, repeated sends, and trailing work on a monoton
         'haus.turn.first_send_ms': 60,
         'haus.turn.last_send_ms': 100,
         'haus.turn.after_last_send_ms': 50,
+        'haus.turn.done_chats': 2,
+        'haus.turn.sent_chats': 2,
     });
 });
 
@@ -47,4 +51,15 @@ test('retains failed phase duration without inventing sends or replacing the err
         })
     ).rejects.toBe(failure);
     expect(timings.snapshot()).toEqual({ 'haus.turn.session_create_ms': 5 });
+});
+
+test('counts a Chat whose latest send omitted --done as sent but not done', () => {
+    const timings = new AgentTurnTimings(() => 0);
+    timings.recordSend({ chatId: 'cht_a', done: true });
+    timings.recordSend({ chatId: 'cht_a', done: false });
+    timings.recordSend({ chatId: 'cht_b', done: false });
+    expect(timings.snapshot()).toMatchObject({
+        'haus.turn.done_chats': 0,
+        'haus.turn.sent_chats': 2,
+    });
 });

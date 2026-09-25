@@ -4,7 +4,7 @@ import type { AgentApiRequester } from '../agent-api-client.ts';
 import type { AgentCliMessage } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { runSend } from './agent-message.ts';
+import { runSend } from './agent-message-send.ts';
 
 function message(id: string, sequence: number): AgentCliMessage {
     return {

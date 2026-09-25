@@ -18,6 +18,13 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     expect(topic?.body).toContain('A task still has one assignee');
     expect(topic?.body).toContain('Task completion preserves that participation');
     expect(topic?.body).toContain('haus message unfollow');
+    expect(topic?.body).toContain(
+        'Add `--done` to the message that completes your reply in that chat.'
+    );
+    expect(topic?.body).toContain(
+        'Interim posts (acknowledgments, progress notes, partial results) omit it.'
+    );
+    expect(getManualTopic('haus-cli-overview')?.body).toContain('adding --done');
     expect(
         searchManualTopics('inline replies', { limit: 5, scope: 'all' }).map(({ id }) => id)
     ).toContain('replies');

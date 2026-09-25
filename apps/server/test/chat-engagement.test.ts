@@ -4,10 +4,10 @@ import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { readChatEngagements } from '../src/agent-delivery/chat-engagement.ts';
 import {
     announceRunEngagements,
+    endChatEngagement,
     installChatEngagementProjector,
     subscribeToChatEngagements,
 } from '../src/agent-delivery/chat-engagement-events.ts';
-import { publishAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -129,31 +129,57 @@ test('a mid-turn pull starts engagement in the Chat it read', async () => {
     ]);
 });
 
-test('a send ends engagement in that Chat at once and a later read restarts it', async () => {
-    const { delivery, runner, seed, wakeMessage } = await wakeOn(connection.db);
-    await compose(runner, [wakeMessage]);
+async function engagedChats(seed: { channelId: string; dmChatId: string; serverId: string }) {
+    const engaged: string[] = [];
+    for (const chatId of [seed.channelId, seed.dmChatId]) {
+        const rows = await readChatEngagements(connection.db, { chatId, serverId: seed.serverId });
+        engaged.push(...rows.map((row) => row.chatId));
+    }
+    return engaged;
+}
 
-    await agentPost(connection.db, seed, seed.channelId);
-    publishAgentLifecycle({
-        agentId: seed.agentId,
-        chatId: seed.channelId,
-        compositionId: runner.runId,
-        phase: 'sending',
-        runId: runner.runId,
-        serverId: seed.serverId,
-        text: 'On it.',
-    });
+/** Engages the run in the channel it woke on and in the DM it then pulled. */
+async function engageChannelAndDm() {
+    const woken = await wakeOn(connection.db);
+    await compose(woken.runner, [woken.wakeMessage]);
+    const question = await post(
+        connection.db,
+        woken.seed,
+        woken.delivery,
+        woken.seed.dmChatId,
+        'Quick question for you.'
+    );
+    await compose(woken.runner, [question]);
+    return woken;
+}
+
+test('an interim send without --done keeps the Chat engaged', async () => {
+    const { runner, seed } = await engageChannelAndDm();
+
+    await agentPost(connection.db, seed, seed.channelId, seed.agentId, { runId: runner.runId });
     await drained();
+
+    expect(eventsFor(runner.runId).filter((event) => event.type === 'ended')).toEqual([]);
+    expect(await engagedChats(seed)).toEqual([seed.channelId, seed.dmChatId]);
+});
+
+test('a --done send ends only its own Chat, at once, and a later read restarts it', async () => {
+    const { delivery, runner, seed } = await engageChannelAndDm();
+    await agentPost(connection.db, seed, seed.channelId, seed.agentId, { runId: runner.runId });
+
+    await agentPost(connection.db, seed, seed.channelId, seed.agentId, {
+        completesReply: true,
+        runId: runner.runId,
+    });
+    endChatEngagement(runner, seed.channelId);
+    await drained();
+
     expect(eventsFor(runner.runId)).toEqual([
         { chatId: seed.channelId, type: 'started' },
+        { chatId: seed.dmChatId, type: 'started' },
         { chatId: seed.channelId, reason: 'sent', type: 'ended' },
     ]);
-    expect(
-        await readChatEngagements(connection.db, {
-            chatId: seed.channelId,
-            serverId: seed.serverId,
-        })
-    ).toEqual([]);
+    expect(await engagedChats(seed)).toEqual([seed.dmChatId]);
 
     const followUp = await post(
         connection.db,
@@ -164,6 +190,25 @@ test('a send ends engagement in that Chat at once and a later read restarts it',
     );
     await compose(runner, [followUp]);
     expect(eventsFor(runner.runId).at(-1)).toEqual({ chatId: seed.channelId, type: 'started' });
+});
+
+test('settlement ends the Chats a --done send left, including ones with interim posts', async () => {
+    const { delivery, runner, seed } = await engageChannelAndDm();
+    await agentPost(connection.db, seed, seed.dmChatId, seed.agentId, { runId: runner.runId });
+    await agentPost(connection.db, seed, seed.channelId, seed.agentId, {
+        completesReply: true,
+        runId: runner.runId,
+    });
+    endChatEngagement(runner, seed.channelId);
+
+    await delivery.onTurnSettled(seed.computerId, settledSummary(seed.agentId, runner.runId));
+    await drained();
+
+    expect(eventsFor(runner.runId).filter((event) => event.type === 'ended')).toEqual([
+        { chatId: seed.channelId, reason: 'sent', type: 'ended' },
+        { chatId: seed.dmChatId, reason: 'settled', type: 'ended' },
+    ]);
+    expect(await engagedChats(seed)).toEqual([]);
 });
 
 test('settlement ends every engaged Chat, as settled or interrupted', async () => {
@@ -220,7 +265,7 @@ test('Agent-authored messages and messages older than the last send never engage
         desiredModelId: 'fake-model',
         desiredRuntimeId: 'fake',
         displayName: 'Cove',
-        handle: `cove-${peerAgentId.slice(-6).toLowerCase()}`,
+        handle: `cove-${peerAgentId.slice(-6).toLowerCase().replace(/[^a-z0-9]/gu, 'x')}`,
         homeTimezone: 'UTC',
         id: peerAgentId,
         serverId: seed.serverId,

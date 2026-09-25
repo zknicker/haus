@@ -55,21 +55,27 @@ export async function post(
     return { chatId, id, sequence };
 }
 
-/** A message authored by an Agent, committed after everything already in the Chat. */
+/**
+ * A message authored by an Agent, committed after everything already in the Chat.
+ * `run` makes it that run's own send; `completesReply` is its `--done`.
+ */
 export async function agentPost(
     db: HausDatabase,
     seed: Seed,
     chatId: string,
-    agentId = seed.agentId
+    agentId = seed.agentId,
+    run: { completesReply?: boolean; runId: string } | null = null
 ) {
     const id = createOpaqueId('msg');
     const sequence = await nextSequence(db, chatId);
     await db.insert(chatMessagesTable).values({
         authorAgentId: agentId,
         chatId,
+        completesReply: run?.completesReply ?? false,
         content: 'On it.',
         id,
         nonce: createOpaqueId('nonce'),
+        runId: run?.runId ?? null,
         sequence,
         serverId: seed.serverId,
         sessionGeneration: 1,

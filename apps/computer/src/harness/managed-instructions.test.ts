@@ -105,6 +105,12 @@ test('task updates follow the requesting conversation', () => {
     expect(prompt).not.toContain('Deliver the final result there unless');
 });
 
+test('the final reply in a chat carries --done and interim posts do not', () => {
+    expect(renderPrompt()).toContain(
+        'Add `--done` to the message that completes your reply; interim posts omit it.'
+    );
+});
+
 test('keeps current Raft instruction precedence without an Agent-creation policy', () => {
     const prompt = renderPrompt();
 
@@ -187,7 +193,11 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // a verb an Agent looks up, so relocating it would silence it. The bullet is already
     // trimmed to its substance and the retired `action prepare` / `avatar generate` lines paid
     // back what they could.
-    expect(prompt.length).toBeLessThanOrEqual(40_200);
+    //
+    // Raised from 40,200 by exactly the `--done` sentence in Sending messages (ADR 0035). It fires
+    // on every reply, so relocating it to the `replies` Manual topic would silence it; the
+    // mechanics and rationale live there, and the prompt keeps one sentence.
+    expect(prompt.length).toBeLessThanOrEqual(40_270);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

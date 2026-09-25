@@ -10,6 +10,8 @@ test('relays bounded numeric timing and usage without accepting content as a mea
         { key: 'haus.turn.first_send_ms', value: { intValue: '20' } },
         { key: 'haus.tokens.input', value: { intValue: '100' } },
         { key: 'haus.tokens.output', value: { doubleValue: 0 } },
+        { key: 'haus.turn.sent_chats', value: { intValue: '2' } },
+        { key: 'haus.turn.done_chats', value: { stringValue: 'secret' } },
         { key: 'haus.turn.first_stream_ms', value: { stringValue: 'secret' } },
         { key: 'haus.turn.last_send_ms', value: { doubleValue: -1 } },
         { key: 'haus.turn.after_last_send_ms', value: { doubleValue: 604_800_001 } },
@@ -62,6 +64,7 @@ test('relays bounded numeric timing and usage without accepting content as a mea
     expect(text).toContain('haus.turn.first_send_ms');
     expect(text).toContain('haus.tokens.input');
     expect(text).toContain('haus.tokens.output');
+    expect(text).toContain('haus.turn.sent_chats');
     for (const name of [
         'secret',
         'first_stream',
@@ -69,6 +72,7 @@ test('relays bounded numeric timing and usage without accepting content as a mea
         'cache_read',
         'cache_write',
         'arbitrary',
+        'done_chats',
     ]) {
         expect(text).not.toContain(name);
     }
