@@ -265,7 +265,10 @@ test('Agent-authored messages and messages older than the last send never engage
         desiredModelId: 'fake-model',
         desiredRuntimeId: 'fake',
         displayName: 'Cove',
-        handle: `cove-${peerAgentId.slice(-6).toLowerCase().replace(/[^a-z0-9]/gu, 'x')}`,
+        handle: `cove-${peerAgentId
+            .slice(-6)
+            .toLowerCase()
+            .replace(/[^a-z0-9]/gu, 'x')}`,
         homeTimezone: 'UTC',
         id: peerAgentId,
         serverId: seed.serverId,
