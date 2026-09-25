@@ -125,7 +125,7 @@ test('DMs, mentions, inline replies and unauthorized sends skip the audience que
     expect(calls.length).toBe(before);
 });
 
-test('debug reads expose the committed decision, timing and uncertain scores to authorized readers', async () => {
+test('debug reads expose the committed decision, timing, uncertain and kept scores to authorized readers', async () => {
     judge = narrow;
     const receipt = await send('Please include the empty export case.');
     const input = { serverId: fixture.serverId, messageId: receipt.message.id };
@@ -136,7 +136,7 @@ test('debug reads expose the committed decision, timing and uncertain scores to 
         choice: fixture.orbitAgentId,
         confidence: 0.99,
         probability: 0.99,
-        threshold: 0.9,
+        threshold: 0.8,
     });
     expect(debug.audit?.elapsedMs).toBeGreaterThanOrEqual(0);
     expect(debug.agents.map((agent) => agent.displayName).sort()).toEqual(['Orbit', 'Peer']);
@@ -147,8 +147,8 @@ test('debug reads expose the committed decision, timing and uncertain scores to 
     judge = async () => ({
         kind: 'broadcast',
         reason: 'uncertain',
-        confidence: 0.83,
-        probability: 0.83,
+        confidence: 0.79,
+        probability: 0.79,
         choice: fixture.orbitAgentId,
     });
     const uncertain = await send('Tiny said the export has the same bug; check it too.');
@@ -161,9 +161,26 @@ test('debug reads expose the committed decision, timing and uncertain scores to 
         ).audit
     ).toMatchObject({
         outcome: 'uncertain',
-        confidence: 0.83,
-        probability: 0.83,
+        confidence: 0.79,
+        probability: 0.79,
     });
+    judge = async () => ({
+        kind: 'broadcast',
+        reason: 'kept',
+        confidence: 0.99,
+        probability: 0.99,
+        choice: 'multiple',
+    });
+    const shared = await send('Everyone, the export ships tomorrow.');
+    expect(await recipients(shared.message.id)).toHaveLength(2);
+    expect(
+        (
+            await fixture.owner.trpc.chat.messageRouting.query({
+                ...input,
+                messageId: shared.message.id,
+            })
+        ).audit
+    ).toMatchObject({ outcome: 'kept', choice: 'multiple', confidence: 0.99, threshold: 0.8 });
 });
 
 test('debug reads identify deterministic bypasses and never invent historical decisions', async () => {

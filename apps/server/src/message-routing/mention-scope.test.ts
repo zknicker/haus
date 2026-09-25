@@ -25,21 +25,42 @@ const state: RoutingState = {
     },
 };
 
-test('only a mentioned-only answer above both routing thresholds narrows', () => {
+test('a mentioned-only answer narrows on confidence alone at 0.80', () => {
     expect(decodeMentionScopeDecision(answer())).toEqual({
         kind: 'mentioned',
         confidence: 0.95,
         probability: 0.97,
     });
-    for (const [response, choice] of [
-        [answer('mentioned', 0.89), 'mentioned'],
-        [answer('mentioned', 0.95, { mentioned: 0.89, others: 0.1, unclear: 0.01 }), 'mentioned'],
-        [answer('others', 1, { mentioned: 0, others: 1, unclear: 0 }), 'others'],
-        [answer('unclear', 1, { mentioned: 0, others: 0, unclear: 1 }), 'unclear'],
+    expect(decodeMentionScopeDecision(answer('mentioned', 0.8))).toMatchObject({
+        kind: 'mentioned',
+        confidence: 0.8,
+    });
+    // Probability is recorded for diagnostics; it no longer gates.
+    expect(
+        decodeMentionScopeDecision(
+            answer('mentioned', 0.9, { mentioned: 0.6, others: 0.3, unclear: 0.1 })
+        )
+    ).toEqual({ kind: 'mentioned', confidence: 0.9, probability: 0.6 });
+    expect(decodeMentionScopeDecision(answer('mentioned', 0.79))).toMatchObject({
+        kind: 'broadcast',
+        reason: 'uncertain',
+        choice: 'mentioned',
+    });
+});
+
+test('confident others or unclear answers are kept; below-threshold ones are uncertain', () => {
+    for (const [response, reason, choice] of [
+        [answer('others', 0.99, { mentioned: 0, others: 1, unclear: 0 }), 'kept', 'others'],
+        [answer('unclear', 0.8, { mentioned: 0, others: 0, unclear: 1 }), 'kept', 'unclear'],
+        [
+            answer('others', 0.79, { mentioned: 0.2, others: 0.8, unclear: 0 }),
+            'uncertain',
+            'others',
+        ],
     ] as const) {
         expect(decodeMentionScopeDecision(response)).toMatchObject({
             kind: 'broadcast',
-            reason: 'uncertain',
+            reason,
             choice,
         });
     }

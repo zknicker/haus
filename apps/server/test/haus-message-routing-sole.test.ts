@@ -99,7 +99,8 @@ test('with a second human, Jev decides the one Agent at the gate and recipients 
     ]);
 
     for (const decision of [
-        { kind: 'broadcast', reason: 'uncertain', choice: 'human' },
+        { kind: 'broadcast', reason: 'kept', choice: 'human', confidence: 0.99 },
+        { kind: 'broadcast', reason: 'uncertain', choice: fixture.orbitAgentId },
         { kind: 'broadcast', reason: 'timeout' },
     ] satisfies RoutingDecision[]) {
         judge = async () => decision;
@@ -108,5 +109,5 @@ test('with a second human, Jev decides the one Agent at the gate and recipients 
             { addressedReason: null, agentId: fixture.orbitAgentId },
         ]);
     }
-    expect(calls).toHaveLength(3);
+    expect(calls).toHaveLength(4);
 });

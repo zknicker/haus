@@ -153,7 +153,7 @@ test('a narrow at the gate marks the surviving recipient addressed', async () =>
     ]);
 });
 
-test('a stale or uncertain routing judgment leaves every row unaddressed', async () => {
+test('a stale, uncertain or kept routing judgment leaves every row unaddressed', async () => {
     const channel = await seedChannel();
     const winner = channel.agentIds[0] ?? '';
     const stale = await preparedNarrow(channel, winner, channel.sequence + 1);
@@ -161,8 +161,12 @@ test('a stale or uncertain routing judgment leaves every row unaddressed', async
         ...(await preparedNarrow(channel, winner)),
         decision: { kind: 'broadcast', reason: 'uncertain' },
     } satisfies PreparedMessageRouting;
+    const kept = {
+        ...(await preparedNarrow(channel, winner)),
+        decision: { kind: 'broadcast', reason: 'kept', choice: 'multiple', confidence: 0.99 },
+    } satisfies PreparedMessageRouting;
 
-    for (const prepared of [stale, uncertain]) {
+    for (const prepared of [stale, uncertain, kept]) {
         const recipients = await commit(channel, prepared);
         expect(recipients).toHaveLength(2);
         expect(recipients.every((row) => row.addressedReason === null)).toBe(true);

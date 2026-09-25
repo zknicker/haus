@@ -73,7 +73,7 @@ test('a confident mention-only judgment delivers to the mentioned Agent alone', 
         choice: 'mentioned',
         confidence: 0.97,
         probability: 0.98,
-        threshold: 0.9,
+        threshold: 0.8,
         recipientAgentIds: [fixture.orbitAgentId],
     });
 });
@@ -91,15 +91,25 @@ test('multiple mentions narrow to the mentioned set', async () => {
     );
 });
 
-test('others, uncertain, failed, timed-out and invalid judgments keep ordinary delivery', async () => {
+test('kept, uncertain, failed, timed-out and invalid judgments keep ordinary delivery', async () => {
     const decisions: [MentionScopeDecision | Error, string][] = [
         [
             {
                 kind: 'broadcast',
-                reason: 'uncertain',
+                reason: 'kept',
                 choice: 'others',
                 confidence: 0.95,
                 probability: 0.97,
+            },
+            'kept',
+        ],
+        [
+            {
+                kind: 'broadcast',
+                reason: 'uncertain',
+                choice: 'mentioned',
+                confidence: 0.79,
+                probability: 0.8,
             },
             'uncertain',
         ],

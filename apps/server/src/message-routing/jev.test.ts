@@ -1,5 +1,11 @@
 import { expect, test } from 'bun:test';
-import { decodeRoutingDecision, type RoutingState, routingModel, routingQuestions } from './jev.ts';
+import {
+    decodeRoutingDecision,
+    type RoutingState,
+    routingModel,
+    routingQuestions,
+    routingThreshold,
+} from './jev.ts';
 import { createJevRouter } from './jev-client.ts';
 
 function answer(
@@ -18,29 +24,43 @@ function answer(
         answers: { audience: { type: 'choice', choice, confidence, probabilities } },
     };
 }
-test('only an eligible winner above both evaluated thresholds can narrow', () => {
-    expect(decodeRoutingDecision(answer(), ['a', 'b'])).toEqual({
+test('an eligible winner narrows at the 0.80 confidence threshold', () => {
+    expect(routingThreshold).toBe(0.8);
+    expect(decodeRoutingDecision(answer('a', 0.8), ['a', 'b'])).toEqual({
         kind: 'narrow',
         agentId: 'a',
-        confidence: 0.95,
+        confidence: 0.8,
         probability: 0.96,
     });
-    expect(decodeRoutingDecision(answer('a', 0.89), ['a', 'b'])).toMatchObject({
+    expect(decodeRoutingDecision(answer('a', 0.79), ['a', 'b'])).toMatchObject({
         kind: 'broadcast',
         reason: 'uncertain',
+        choice: 'a',
+        confidence: 0.79,
     });
+});
+test('the selected probability is recorded but does not gate narrowing', () => {
     expect(
         decodeRoutingDecision(
-            answer('a', 0.95, { a: 0.89, b: 0.08, multiple: 0.01, human: 0.01, unclear: 0.01 }),
+            answer('a', 0.95, { a: 0.6, b: 0.37, multiple: 0.01, human: 0.01, unclear: 0.01 }),
             ['a', 'b']
         )
-    ).toMatchObject({ kind: 'broadcast', reason: 'uncertain' });
-    expect(
-        decodeRoutingDecision(
-            answer('multiple', 1, { a: 0, b: 0, multiple: 1, human: 0, unclear: 0 }),
-            ['a', 'b']
-        )
-    ).toMatchObject({ kind: 'broadcast', reason: 'uncertain' });
+    ).toEqual({ kind: 'narrow', agentId: 'a', confidence: 0.95, probability: 0.6 });
+});
+test('a confident non-narrowing answer is kept, not uncertain', () => {
+    for (const choice of ['multiple', 'human', 'unclear']) {
+        const probabilities = { a: 0, b: 0, multiple: 0, human: 0, unclear: 0, [choice]: 1 };
+        expect(decodeRoutingDecision(answer(choice, 0.99, probabilities), ['a', 'b'])).toEqual({
+            kind: 'broadcast',
+            reason: 'kept',
+            choice,
+            confidence: 0.99,
+            probability: 1,
+        });
+        expect(
+            decodeRoutingDecision(answer(choice, 0.79, probabilities), ['a', 'b'])
+        ).toMatchObject({ kind: 'broadcast', reason: 'uncertain', choice });
+    }
 });
 test('invalid model, options, probabilities and inconsistent winners fall back', () => {
     for (const response of [
