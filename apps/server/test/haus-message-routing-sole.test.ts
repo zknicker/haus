@@ -11,6 +11,9 @@ const router: MessageRouter = {
         calls.push(state);
         return await judge(state);
     },
+    judgeMentionScope: () => {
+        throw new Error('a sole channel has no unmentioned Agent to narrow');
+    },
 };
 const fixture = agentCreationFixture(router);
 let nonce = 0;

@@ -13,6 +13,8 @@ const router: MessageRouter = {
         calls.push(state);
         return await judge(state);
     },
+    // Mention-scope judgments are covered in haus-message-routing-mention.test.ts.
+    judgeMentionScope: async () => ({ kind: 'broadcast', reason: 'uncertain' }),
 };
 const fixture = agentCreationFixture(router);
 const { recipients } = createInlineReplyHelpers(fixture);
@@ -89,11 +91,11 @@ test('uncertainty, provider failure and out-of-candidate choices preserve broadc
     expect(JSON.stringify(rows)).not.toContain('private provider');
 });
 
-test('DMs, mentions, inline replies and unauthorized sends bypass inference', async () => {
+test('DMs, mentions, inline replies and unauthorized sends skip the audience question', async () => {
     judge = narrow;
     const before = calls.length;
     const root = await send('@peer please check this.');
-    // Existing mention semantics include ambient recipients; the router must preserve them.
+    // A mention asks the mention-scope question instead; uncertain keeps ambient recipients.
     expect(await recipients(root.message.id)).toHaveLength(2);
     await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
@@ -165,7 +167,8 @@ test('debug reads expose the committed decision, timing and uncertain scores to 
 });
 
 test('debug reads identify deterministic bypasses and never invent historical decisions', async () => {
-    const mention = await send('@orbit please check the input too.');
+    // Every eligible Agent is mentioned, so there is nothing for Jev to narrow.
+    const mention = await send('@orbit @peer please check the input too.');
     const input = { serverId: fixture.serverId, messageId: mention.message.id };
     expect((await fixture.owner.trpc.chat.messageRouting.query(input)).audit).toMatchObject({
         outcome: 'bypass',
