@@ -167,8 +167,10 @@ and [Agent Inbox](../../specs/inbox.md).
   such as "I'm checking Halloween bid changes" appears in a glass bubble over
   that Agent's avatar, wobbles in, holds about two seconds, and leaves; a newer
   thought replaces it, faces fly above it, and the engagement ending clears it.
-  The phrase is a Codex title, or the Server's Gemini 3.5 Flash-Lite summary of
-  a reasoning excerpt, or a local condensation when Gemini is unavailable.
+  The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title
+  or a reasoning excerpt, or the title or a local condensation when Gemini is
+  unavailable. Agent housekeeping — reading its memory or notes, checking its
+  inbox, claiming tasks, deciding whether to reply — shows no bubble.
   Thoughts are never stored or recovered
   ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
 * **Composer overlay.** In channels, DMs, and Threads the composer floats over
