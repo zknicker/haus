@@ -145,7 +145,8 @@ and [Agent Inbox](../../specs/inbox.md).
   visible words; screen readers hear "Juniper is typing", "Juniper and Cove are
   typing", then "Juniper, Cove, and 1 other are typing".
   An Agent types while its accepted turn has read a human message here that is
-  newer than its own last message and was not judged to want no reply. A reply
+  newer than its own last message, whatever the message says: no judgment
+  that a message wants no reply hides work the Agent is doing. A reply
   into this Chat clears it at once; otherwise it clears when the turn ends, so a
   turn that reads a Chat and stays silent types until it settles. The strip's
   height is always reserved, so the composer never moves. Reloads and

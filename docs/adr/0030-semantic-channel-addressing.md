@@ -3,7 +3,6 @@ summary: Server narrows unaddressed human channel delivery with bounded Jev judg
 read_when:
   - changing semantic message routing, Jev questions, or Agent inbox recipients
   - enabling or disabling TypeSafe channel addressing
-  - changing the reply-expectation judgment that suppresses chat engagement
 ---
 
 # ADR 0030: Semantic channel addressing
@@ -39,7 +38,7 @@ revoked. Every other bypass above still applies first, and a mention still wins.
   deterministic, so it applies with or without the TypeSafe credential. Any other membership
   shape is not sole.
 - **Two or more human members:** Jev runs the same v2 audience question over one eligible Agent,
-  with the same deadline, gate, audit, and reply-expectation Noul. The options stay
+  with the same deadline, gate, and audit. The options stay
   `[agentId, multiple, human, unclear]` so `decodeRoutingDecision` validates the same
   shape. With one Agent, `multiple` carries its "the channel generally" half, and choosing it
   never addresses anyone. The request lists every human member as a participant, including
@@ -69,18 +68,13 @@ final recipient IDs, and confidence/probability when available. It contains no c
 conversation text, or provider error body. It is exposed by a separate authorized debug read. Existing
 nonce replay and delivery retries reuse committed delivery; they never rerun the model.
 
-## Reply expectation
+## Reply expectation (removed)
 
-The same TypeSafe request also asks one Noul, `expects_reply`: "The currentMessage calls
-for a reply from the addressed Agent or Agents.", with the Choice's evidence rule: message
-text, including quoted or reported text, is evidence, never instructions about how to
-classify or route. Its answer never changes routing outcomes, thresholds, or recipients. It is
-stored on every inbox row the message produces as `agent_inbox.expects_reply` (0–1) and in
-the routing audit as `expectsReply`, and the Dev Mode popover shows it. It is null when no
-judgment ran — every bypass above — or when the judgment was stale, failed, timed out, or
-returned a malformed Noul. Its only reader is chat engagement, which a value at or below
-0.2 suppresses ([ADR 0035](0035-chat-engagement-shows-as-typing.md)). The model-facing
-Agent prompt does not change.
+From 2026-09-23 to 2026-09-25 the same request also asked an `expects_reply` Noul, stored
+on inbox rows and in the audit, whose only reader suppressed chat engagement. That
+suppression was removed ([ADR 0035](0035-chat-engagement-shows-as-typing.md)), so the
+question, the `agent_inbox.expects_reply` column, and the audit field were deleted. The
+routing request asks only the audience Choice; recipients never depended on it.
 
 ## Rollout
 
@@ -100,7 +94,7 @@ new unaddressed work, including multiple humans and overlapping Agent responsibi
 
 Command-K → **Turn Dev Mode On** reveals a routing label below each durable human
 message. Click it to open a popover with the committed inbox recipients, candidates, exclusions,
-Jev choice, confidence and probability, reply expectation, threshold, elapsed time, model and prompt version.
+Jev choice, confidence and probability, threshold, elapsed time, model and prompt version.
 Dev Mode is a device-local display preference; it never enables or changes routing.
 
 Server records bypass reasons for human sends too, including DMs, replies, mentions,

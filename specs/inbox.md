@@ -127,11 +127,6 @@ A durable `message.created` is planned once by Server delivery
   what it composed as exact run visibility before the model streams, so the freshness hold never
   treats the message the Agent is answering as news. The composed receipt leaves inbox rows
   offered; settlement attaches them and advances `seen`, and the turn summary is its fallback.
-- **Reply expectation rides beside the addressed reason.** When ADR 0030's Jev judgment runs for a
-  message, its `expects_reply` Noul (0–1) is stored on every inbox row the message produces;
-  otherwise the column is null. It never affects recipients, drain lanes, or the Agent's prompt.
-  Its one reader is chat engagement, where a value at or below 0.2 keeps that message from
-  showing the Agent as typing ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)).
 - **A Thread mention arrives with its Thread when the Agent cannot see it.** When a drainable
   human item is the first in its Thread to @mention this Agent, and the Agent has no model-visible
   context for that Thread this session (no verified boundary, no settled exact visibility), the

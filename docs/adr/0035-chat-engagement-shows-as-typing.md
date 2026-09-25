@@ -3,7 +3,8 @@ summary: An Agent's accepted run shows as typing in every Chat whose human messa
 read_when:
   - changing the typing strip above the Chat composer, or which runs count as engaging a Chat
   - changing chat.engagement events, the chat.engagements read, or chat.onEngagement
-  - changing exact visibility receipts, the lifecycle facts that end engagement, or reply suppression
+  - changing exact visibility receipts or the lifecycle facts that end engagement
+  - considering suppressing typing for messages judged not to want a reply (removed 2026-09-25)
   - reconsidering where live Agent work is presented to humans
 ---
 
@@ -14,7 +15,8 @@ read_when:
 Accepted 2026-09-23. Supersedes ADR 0023's "no typing indicator" decision and its
 sidebar-strip projection of Agent activity. The rest of ADR 0023 stands: the Server
 activity journal and the Computer-local execution journal remain separate products.
-Amends ADR 0030 with one extra Jev question (see that ADR's reply-expectation section).
+Amended 2026-09-25: reply suppression is removed, and with it the `expects_reply` Jev
+question it had added to ADR 0030.
 
 ## Context
 
@@ -38,8 +40,7 @@ accepts them as the cost of never showing silence while an Agent is answering.
 (`agent_inbox_exact_visibility.served_run_id = R`) of at least one message in C that is:
 
 - newer than A's latest message in C, by Chat sequence;
-- human-authored — Agent-authored messages, including other Agents', never engage;
-- not suppressed — A's inbox row for it has `expects_reply` null or above 0.2.
+- human-authored — Agent-authored messages, including other Agents', never engage.
 
 This applies in every Chat kind: channel, DM, and Thread. It deliberately over-messages
 rather than narrowing to mentions or addressed rows. Engagement is derived only from
@@ -65,11 +66,14 @@ and on every delivery, the same shape as `chat.onComposition`. One App hook owns
 and the subscription, patches the cached read from events, and invalidates it when the
 subscription starts or restarts. There is no polling and no timer.
 
-**Suppression.** The Jev request that already judges the audience of an eligible
-unaddressed channel message also asks whether it calls for a reply (ADR 0030). The answer
-is stored on each inbox row as `expects_reply` and used only here: at or below 0.2 the
-message does not engage. Null — no judgment ran, or it was stale, failed, timed out, or
-malformed — engages.
+**No suppression.** Engagement is all or nothing: no judgment of the message's content
+keeps a run that has read it from engaging. An earlier revision asked Jev whether each
+judged channel message called for a reply and let a value at or below 0.2 suppress
+engagement. In use, a greeting like "Hello everyone! GM" in #all was judged not to want a
+reply while the Agents it woke still worked on it for 25–75 seconds with no visible sign,
+which read as a broken app. Visible work that ends in silence is honest; invisible work is
+not. The question, the `agent_inbox.expects_reply` column, and the audit field were
+removed (migration `0049_drop_expects_reply`).
 
 **Presentation.** A typing strip above the composer of the open Chat or Thread shows the
 engaged Agents as avatars and a three-dot pulse, with no visible verb: engagement spans
@@ -93,12 +97,8 @@ A wake that reads several Chats types in all of them until it answers each or se
 including Chats it decides to stay silent in. Silence clears only at settlement, so a run
 that never answers shows typing for its whole turn.
 
-FYI messages in a channel with one eligible Agent and one human member are never judged
-(they are addressed as `sole`), so they always engage, as do DMs, mentions, replies, and
-Thread messages. A single-Agent channel with two or more human members is judged, so its
-FYI messages can be suppressed.
-A judgment that times out or fails under the 1.5-second deadline also engages;
-suppression trims only a low reply expectation that was actually recorded.
+FYI messages and greetings engage like any other human message, in every Chat kind, so a
+run that reads one types until it answers or settles.
 
 `chat.engagement.ended` is delivered live while `message.created` refreshes after the
 Chat lane's 150ms batch, so the strip can clear a beat before the reply renders.
@@ -114,6 +114,10 @@ false quiet.
 
 **First model token or first streamed `message send` argument.** Still untargeted or late
 for the reasons ADR 0023 gave, and not observable uniformly across Harness adapters.
+
+**Suppressing typing for messages judged not to want a reply.** Shipped first, then
+removed: the Agent still did the work, so hiding it made the App look stalled. Fewer false
+"typing" moments are not worth any unexplained silence while an Agent is busy.
 
 **Keeping the sidebar strip alongside typing.** Two live projections of the same run in
 the same shell. The Inbox already carries the Server-wide view.
