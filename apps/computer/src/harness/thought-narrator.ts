@@ -1,9 +1,4 @@
-import {
-    condenseThoughtLocally,
-    extractThoughtTitle,
-    thoughtMinimumReasoningLength,
-} from './thought-phrase.ts';
-import { createGeminiThoughtSummarizer, type ThoughtSummarizer } from './thought-summarizer.ts';
+import { type AgentThoughtContent, extractThoughtTitle, thoughtReasoningExcerpt } from '@haus/api';
 
 /**
  * At most one thought per run in this window. Blocks that finish inside it
@@ -11,75 +6,49 @@ import { createGeminiThoughtSummarizer, type ThoughtSummarizer } from './thought
  */
 export const thoughtIntervalMs = 4000;
 
-export interface AgentThought {
-    at: string;
-    text: string;
-}
-
-/** Turns one run's reasoning stream into occasional short thoughts (prototype, ADR 0036). */
+/** Turns one run's reasoning stream into occasional thought frames (ADR 0036). */
 export interface AgentThoughtNarrator {
-    /** Drops open blocks and ignores summaries still in flight. */
+    /** Drops open blocks and any thought still waiting for the interval. */
     close(): void;
     observe(part: Record<string, unknown>): void;
 }
 
-/** `HAUS_AGENT_THOUGHTS=true` turns thoughts on; the schema enables it only in local development. */
-export function agentThoughtsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-    return env.HAUS_AGENT_THOUGHTS === 'true';
-}
-
 /**
- * Collects each reasoning block and, when it ends, produces one phrase:
- * a Codex-style bold title as-is; otherwise the Gemini summarizer when a key
- * is configured; otherwise a local condensation. Only the phrase reaches `emit`.
+ * Collects each reasoning block and, when it ends, sends one thought: a
+ * Codex-style bold title as a finished phrase, with no network call;
+ * otherwise a scrubbed excerpt the Server summarizes. The Computer's interval
+ * is the authoritative rate limit.
  */
 export function createAgentThoughtNarrator(input: {
-    emit: (thought: AgentThought) => void;
+    emit: (thought: AgentThoughtContent) => void;
     now?: () => number;
     /** Runs `run` after `ms`; returns a cancel. Defaults to `setTimeout`. */
     schedule?: (run: () => void, ms: number) => () => void;
-    summarizer?: ThoughtSummarizer | null;
 }): AgentThoughtNarrator {
     const now = input.now ?? Date.now;
     const schedule = input.schedule ?? scheduleTimeout;
-    const summarizer = input.summarizer ?? null;
     const blocks = new Map<string, string>();
     let lastReleasedAt: number | null = null;
     // Only the newest waiting block survives, so a burst never queues up.
-    let waiting: string | null = null;
+    let waiting: ThoughtCandidate | null = null;
     let cancelWait: (() => void) | null = null;
     let closed = false;
 
-    const emit = (text: string | null) => {
-        if (text && !closed) {
-            input.emit({ at: new Date(now()).toISOString(), text });
-        }
-    };
-    const release = (reasoning: string) => {
+    const release = (thought: ThoughtCandidate) => {
         lastReleasedAt = now();
-        const title = extractThoughtTitle(reasoning);
-        if (title) {
-            emit(title);
-        } else if (summarizer) {
-            // A failed or late summary is dropped rather than replaced by a guess.
-            summarizer.summarize(reasoning).then(emit, () => undefined);
-        } else {
-            emit(condenseThoughtLocally(reasoning));
-        }
+        input.emit({ at: new Date(lastReleasedAt).toISOString(), ...thought });
     };
     const finishBlock = (reasoning: string) => {
-        if (
-            !extractThoughtTitle(reasoning) &&
-            reasoning.trim().length < thoughtMinimumReasoningLength
-        ) {
+        const thought = thoughtCandidate(reasoning);
+        if (!thought) {
             return;
         }
         const wait = lastReleasedAt === null ? 0 : lastReleasedAt + thoughtIntervalMs - now();
         if (wait <= 0) {
-            release(reasoning);
+            release(thought);
             return;
         }
-        waiting = reasoning;
+        waiting = thought;
         cancelWait ??= schedule(() => {
             cancelWait = null;
             const next = waiting;
@@ -127,10 +96,14 @@ function scheduleTimeout(run: () => void, ms: number) {
     return () => clearTimeout(timer);
 }
 
-/** The Gemini summarizer when `HAUS_GEMINI_API_KEY` is configured; null falls back to the heuristic. */
-export function thoughtSummarizerFromEnv(
-    env: NodeJS.ProcessEnv = process.env
-): ThoughtSummarizer | null {
-    const apiKey = env.HAUS_GEMINI_API_KEY?.trim();
-    return apiKey ? createGeminiThoughtSummarizer({ apiKey }) : null;
+type ThoughtCandidate = { kind: 'phrase'; text: string } | { kind: 'reasoning'; reasoning: string };
+
+/** A title-led block becomes a phrase; any other long-enough block, an excerpt. */
+function thoughtCandidate(reasoning: string): ThoughtCandidate | null {
+    const title = extractThoughtTitle(reasoning);
+    if (title) {
+        return { kind: 'phrase', text: title };
+    }
+    const excerpt = thoughtReasoningExcerpt(reasoning);
+    return excerpt ? { kind: 'reasoning', reasoning: excerpt } : null;
 }

@@ -11,6 +11,8 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { createAgentThoughts } from '../server-agents/agent-thought.ts';
+import type { ThoughtSummarizer } from '../server-agents/agent-thought-summarizer.ts';
 import { clearHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { sendCloudAgentReconcile } from './cloud-agent-reports.ts';
@@ -35,8 +37,10 @@ export function startComputerAttachmentSocket(
     db: HausDatabase,
     connections: ComputerConnections,
     delivery: AgentDelivery,
-    postCommitWork: ServerPostCommitWork
+    postCommitWork: ServerPostCommitWork,
+    thoughtSummarizer: ThoughtSummarizer | null
 ) {
+    const thoughts = createAgentThoughts({ summarizer: thoughtSummarizer });
     const sockets = new Map<string, import('ws').WebSocket>();
     const socketServer = new WebSocketServer({ noServer: true });
     const onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) => {
@@ -108,7 +112,8 @@ export function startComputerAttachmentSocket(
                             attachedServerId,
                             ordinary,
                             rawString,
-                            postCommitWork
+                            postCommitWork,
+                            thoughts
                         );
                         return;
                     }

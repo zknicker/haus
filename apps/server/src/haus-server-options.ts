@@ -4,6 +4,7 @@ import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
 import type { MessageRouter } from './message-routing/jev.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
+import type { ThoughtSummarizer } from './server-agents/agent-thought-summarizer.ts';
 
 /** PostgreSQL- and Clerk-backed Haus Server HTTP and WebSocket application. */
 export interface HausServerApplicationOptions {
@@ -37,4 +38,6 @@ export interface HausServerApplicationOptions {
     staticAppRoot?: string;
     /** Interval seam for the boot sweeps; tests pass inert timers. */
     sweepTimers?: SweepTimers;
+    /** Gemini summarizer for Agent thought excerpts; without it they are condensed locally. */
+    thoughtSummarizer?: ThoughtSummarizer | null;
 }

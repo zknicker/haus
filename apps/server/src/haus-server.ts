@@ -7,6 +7,7 @@ import {
 } from './haus-server-application.ts';
 import { createJevRouter } from './message-routing/jev.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
+import { createGeminiThoughtSummarizer } from './server-agents/agent-thought-summarizer.ts';
 import {
     logStartupBanner,
     logStartupComplete,
@@ -36,6 +37,9 @@ async function start() {
             : undefined,
         releaseIdentity: release,
         staticAppRoot: env.HAUS_STATIC_APP_ROOT,
+        thoughtSummarizer: env.HAUS_GEMINI_API_KEY
+            ? createGeminiThoughtSummarizer({ apiKey: env.HAUS_GEMINI_API_KEY })
+            : null,
     });
 
     await application.listen(env.HAUS_SERVER_PORT);
@@ -58,6 +62,13 @@ async function start() {
         env.HAUS_CLERK_SECRET_KEY
             ? 'verified-email lookup configured'
             : 'disabled — set HAUS_CLERK_SECRET_KEY to accept invitations'
+    );
+    logStartupDetail(
+        '💭',
+        'Agent thoughts',
+        env.HAUS_GEMINI_API_KEY
+            ? 'Gemini summaries'
+            : 'local condensation — set HAUS_GEMINI_API_KEY for Gemini summaries'
     );
     logStartupDetail('🌐', 'Haus App origin', env.HAUS_APP_ORIGIN);
     logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.HAUS_SERVER_PORT}`);

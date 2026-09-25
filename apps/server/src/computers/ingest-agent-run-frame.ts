@@ -2,15 +2,18 @@ import { agentActivityFrameSchema } from '@haus/api';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { recordComputerAgentActivityWithStatus } from '../server-agents/agent-activity.ts';
-import { ingestComputerAgentThought } from '../server-agents/agent-thought.ts';
+import type { AgentThoughts } from '../server-agents/agent-thought.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 
 /**
  * A run's presentation frames: durable semantic activity, committed then
- * broadcast, and volatile thoughts, announced only. True once consumed.
+ * broadcast, and volatile thoughts, phrased and announced only. True once consumed.
  */
 export async function ingestAgentRunFrame(
     db: HausDatabase,
-    input: { computerId: string; frame: unknown; serverId: string }
+    input: { computerId: string; frame: unknown; serverId: string },
+    thoughts: AgentThoughts,
+    background: Pick<ServerPostCommitWork, 'run'>
 ): Promise<boolean> {
     const activity = agentActivityFrameSchema.safeParse(input.frame);
     if (activity.success) {
@@ -23,5 +26,5 @@ export async function ingestAgentRunFrame(
         }
         return true;
     }
-    return await ingestComputerAgentThought(db, input);
+    return await thoughts.ingest(db, input, background);
 }

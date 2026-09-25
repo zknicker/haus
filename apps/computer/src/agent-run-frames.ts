@@ -1,9 +1,9 @@
+import type { AgentThoughtContent } from '@haus/api';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
-import type { AgentThought } from './harness/thought-narrator.ts';
 
 /**
  * The run-scoped presentation frames a turn sends to the Server: semantic
- * activity and, when enabled, condensed thoughts. A disconnected Server drops
+ * activity and thoughts (a finished phrase or a reasoning excerpt). A disconnected Server drops
  * them; presentation must never fail a model turn.
  */
 export function createRunFrames(input: {
@@ -32,7 +32,7 @@ export function createRunFrames(input: {
                 type: 'agent-activity' as const,
             });
         },
-        thought(thought: AgentThought) {
+        thought(thought: AgentThoughtContent) {
             send({ agentId: input.agentId, runId: input.runId, ...thought, type: 'agent-thought' });
         },
     };

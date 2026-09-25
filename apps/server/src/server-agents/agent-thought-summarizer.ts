@@ -1,13 +1,12 @@
-import { finishThoughtPhrase } from './thought-phrase.ts';
+import { finishThoughtPhrase, thoughtReasoningExcerptMaxLength } from '@haus/api';
 
-/** Condenses one reasoning block into a status phrase, or null to drop it. */
+/** Condenses one reasoning excerpt into a status phrase, or null when it cannot. */
 export interface ThoughtSummarizer {
     summarize(reasoning: string): Promise<string | null>;
 }
 
 export const thoughtSummaryModel = 'gemini-3.5-flash-lite';
 const thoughtSummaryTimeoutMs = 4000;
-const reasoningInputLimit = 3000;
 const thoughtAnswerMaxWords = 10;
 const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${thoughtSummaryModel}:generateContent`;
 
@@ -34,8 +33,9 @@ export const thoughtOpenings = [
 
 /**
  * Gemini 3.5 Flash-Lite through the Gemini API: one stateless request per
- * block, minimal thinking, a handful of output tokens, and a four-second
- * deadline. Any failure, refusal, or late answer drops the thought.
+ * excerpt, minimal thinking, a handful of output tokens, and a four-second
+ * deadline. Any failure, refusal, or late answer yields null, and the caller
+ * falls back to the local heuristic. Nothing is kept after the call.
  */
 export function createGeminiThoughtSummarizer(input: {
     apiKey: string;
@@ -68,7 +68,7 @@ export function createGeminiThoughtSummarizer(input: {
                 // The prompt asks for eight words; the looser cap keeps a slightly long answer whole.
                 return text ? finishThoughtPhrase(text, thoughtAnswerMaxWords) : null;
             } catch {
-                // A thought is presentation only: timeouts and transport failures drop it.
+                // A thought is presentation only: the caller condenses locally instead.
                 return null;
             }
         },
@@ -81,7 +81,7 @@ function requestBody(reasoning: string, opening: string) {
             {
                 parts: [
                     {
-                        text: `<reasoning>\n${reasoning.slice(0, reasoningInputLimit)}\n</reasoning>\n${opening}`,
+                        text: `<reasoning>\n${reasoning.slice(0, thoughtReasoningExcerptMaxLength)}\n</reasoning>\n${opening}`,
                     },
                 ],
                 role: 'user',

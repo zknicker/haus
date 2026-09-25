@@ -218,7 +218,8 @@ export async function createHausServerApplication(
             connectedHaus.db,
             computerConnections,
             agentDelivery,
-            startedPostCommitWork
+            startedPostCommitWork,
+            options.thoughtSummarizer ?? null
         );
         computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };

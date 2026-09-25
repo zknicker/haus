@@ -1,33 +1,67 @@
 import { z } from 'zod';
+import {
+    thoughtMinimumReasoningLength,
+    thoughtReasoningExcerptMaxLength,
+} from './agent-thought-phrase.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
-/** The longest thought phrase the Server relays; the Computer aims for about seven words. */
+/** The longest thought phrase the Server relays; phrases aim for about seven words. */
 export const agentThoughtTextMaxLength = 80;
 
-/**
- * One short, present-tense status phrase condensed on the Computer from a
- * reasoning block. Raw reasoning never crosses the boundary; only this phrase
- * does, and only when the Computer enables thoughts (prototype, ADR 0036).
- */
+/** One line of plain text: no control characters, newlines, or markup fences. */
 export const agentThoughtTextSchema = z
     .string()
     .trim()
     .min(1)
     .max(agentThoughtTextMaxLength)
-    // One line of plain text: no control characters, newlines, or markup fences.
     .regex(/^[^\p{Cc}`]+$/u);
 
-/** The frame a Computer sends while its accepted run reasons. Never persisted. */
-export const agentThoughtFrameSchema = z
-    .object({
-        agentId: idSchema,
-        at: timestampSchema,
-        runId: idSchema,
-        text: agentThoughtTextSchema,
-        type: z.literal('agent-thought'),
-    })
-    .strict();
+/**
+ * A scrubbed reasoning excerpt (`thoughtReasoningExcerpt`) the Server
+ * summarizes into a phrase and then discards. Line breaks are its only
+ * control characters.
+ */
+export const agentThoughtReasoningSchema = z
+    .string()
+    .trim()
+    .min(thoughtMinimumReasoningLength)
+    .max(thoughtReasoningExcerptMaxLength)
+    .regex(/^[^\p{Cc}]*(?:\n[^\p{Cc}]*)*$/u);
+
+const agentThoughtFrameFields = {
+    agentId: idSchema,
+    at: timestampSchema,
+    runId: idSchema,
+    type: z.literal('agent-thought'),
+};
+
+/**
+ * The frame a Computer sends while its accepted run reasons (ADR 0036).
+ * `phrase` is finished on the Computer (a Codex title) and relayed as is;
+ * `reasoning` carries an excerpt the Server turns into a phrase. Never persisted.
+ */
+export const agentThoughtFrameSchema = z.discriminatedUnion('kind', [
+    z
+        .object({
+            ...agentThoughtFrameFields,
+            kind: z.literal('phrase'),
+            text: agentThoughtTextSchema,
+        })
+        .strict(),
+    z
+        .object({
+            ...agentThoughtFrameFields,
+            kind: z.literal('reasoning'),
+            reasoning: agentThoughtReasoningSchema,
+        })
+        .strict(),
+]);
 export type AgentThoughtFrame = z.infer<typeof agentThoughtFrameSchema>;
+
+/** What a run's narrator hands its frame sender: the frame without its routing fields. */
+export type AgentThoughtContent =
+    | { at: string; kind: 'phrase'; text: string }
+    | { at: string; kind: 'reasoning'; reasoning: string };
 
 /**
  * A volatile thought, announced once per Chat its run engages (ADR 0035) and

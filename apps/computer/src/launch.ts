@@ -39,9 +39,7 @@ import {
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import {
     type AgentThoughtNarrator,
-    agentThoughtsEnabled,
     createAgentThoughtNarrator,
-    thoughtSummarizerFromEnv,
 } from './harness/thought-narrator.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
@@ -158,12 +156,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     proxy.setOnCommittedSend(() => options.turnTimings?.recordSend());
     const frames = createRunFrames({ ...command, sendFrame: options.sendFrame });
     const activity = new AgentActivityRun(options.runtime, frames.activity);
-    const thoughts = agentThoughtsEnabled()
-        ? createAgentThoughtNarrator({
-              emit: frames.thought,
-              summarizer: thoughtSummarizerFromEnv(),
-          })
-        : undefined;
+    const thoughts = createAgentThoughtNarrator({ emit: frames.thought });
     proxy.setActivityRun(activity);
     const tokenFile = join(dirs.runtime, 'proxy-token');
     const binDir = join(dirs.runtime, 'bin');
@@ -241,7 +234,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
         await revokeRunner(options, runner.runnerId).catch(() => undefined);
         proxy.clearRunnerToken();
         proxy.setActivityRun(undefined);
-        thoughts?.close();
+        thoughts.close();
         await activity.close(result.status);
     }
 

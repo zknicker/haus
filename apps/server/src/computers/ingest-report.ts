@@ -22,6 +22,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
@@ -53,7 +54,8 @@ export async function ingestReport(
     serverId: string,
     ordinary: boolean,
     raw: string,
-    postCommitWork: ServerPostCommitWork
+    postCommitWork: ServerPostCommitWork,
+    thoughts: AgentThoughts
 ) {
     let frame: unknown;
     try {
@@ -89,7 +91,7 @@ export async function ingestReport(
         return;
     }
 
-    if (await ingestAgentRunFrame(db, { computerId, frame, serverId })) {
+    if (await ingestAgentRunFrame(db, { computerId, frame, serverId }, thoughts, postCommitWork)) {
         return;
     }
 

@@ -1,13 +1,34 @@
 /**
- * Pure phrase shaping for Agent thoughts (prototype, ADR 0036): one short,
- * first-person line per reasoning block ("I'm checking the bids"). Raw reasoning stays on the
- * Computer; only the phrase this module returns may leave it.
+ * Pure phrase shaping for Agent thoughts (ADR 0036), shared by the Computer
+ * and the Server: one short, first-person line per reasoning block ("I'm
+ * checking the bids"), and the bounded, scrubbed excerpt a Computer may send
+ * when a block has no title.
  */
 
 export const thoughtPhraseMaxWords = 8;
 export const thoughtPhraseMaxLength = 80;
 /** Untitled blocks shorter than this carry too little to summarize. */
 export const thoughtMinimumReasoningLength = 40;
+/** The most reasoning a Computer sends, and the Server summarizes, per block. */
+export const thoughtReasoningExcerptMaxLength = 3000;
+
+/**
+ * The part of an untitled block that may leave the Computer: URLs, paths,
+ * emails, and token-like strings removed, whitespace tidied, then the first
+ * 3,000 characters. Null when too little remains to summarize.
+ */
+export function thoughtReasoningExcerpt(reasoning: string): string | null {
+    const excerpt = reasoning
+        .replace(/[^\S\n]*\S+/gu, (word) => (looksSensitive(word.trim()) ? '' : word))
+        // Control characters other than line breaks never ride a frame.
+        .replace(/[^\P{Cc}\n]+/gu, ' ')
+        .replace(/[^\S\n]+/gu, ' ')
+        .replace(/ *\n[\s]*/gu, '\n')
+        .trim()
+        .slice(0, thoughtReasoningExcerptMaxLength)
+        .trim();
+    return excerpt.length >= thoughtMinimumReasoningLength ? excerpt : null;
+}
 
 /**
  * The bold title a Codex reasoning summary leads with (`**Inspecting chart
@@ -178,7 +199,7 @@ const danglingWords = new Set([
     'with',
 ]);
 
-/** URLs, emails, paths, and long opaque tokens never ride a thought. */
+/** URLs, emails, paths, and long opaque tokens never ride a thought or an excerpt. */
 function looksSensitive(word: string): boolean {
     return (
         /:\/\//u.test(word) ||
