@@ -5,7 +5,8 @@ import {
     finishThoughtPhrase,
     presentParticiple,
     thoughtPhraseMaxLength,
-} from './thought-phrase.ts';
+    thoughtReasoningExcerpt,
+} from './agent-thought-phrase.ts';
 
 describe('thought titles', () => {
     test('uses a Codex bold title directly', () => {
@@ -91,5 +92,24 @@ describe('phrase finishing', () => {
         expect(
             ['check', 'make', 'run', 'tie', 'see', 'open', 'read'].map(presentParticiple)
         ).toEqual(['checking', 'making', 'running', 'tying', 'seeing', 'opening', 'reading']);
+    });
+});
+
+describe('reasoning excerpts', () => {
+    test('removes URLs, paths, emails, and opaque tokens but keeps line breaks', () => {
+        expect(
+            thoughtReasoningExcerpt(
+                'I should call https://api.example.com with fake_live_4eC39HqLyjWDarjtT1zdp7dc\n\n  and\tmail ops@example.com about ~/secrets/.env today.'
+            )
+        ).toBe('I should call with\nand mail about today.');
+    });
+
+    test('caps at 3,000 characters and refuses what is too short to summarize', () => {
+        expect(thoughtReasoningExcerpt('Comparing the weekly bids. '.repeat(400))?.length).toBe(
+            3000
+        );
+        expect(thoughtReasoningExcerpt('Check https://example.com/some/long/path/here now')).toBe(
+            null
+        );
     });
 });

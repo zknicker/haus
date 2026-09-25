@@ -1,15 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import {
-    type AgentThought,
-    agentThoughtsEnabled,
-    createAgentThoughtNarrator,
-    thoughtIntervalMs,
-    thoughtSummarizerFromEnv,
-} from './thought-narrator.ts';
-import type { ThoughtSummarizer } from './thought-summarizer.ts';
+import type { AgentThoughtContent } from '@haus/api';
+import { createAgentThoughtNarrator, thoughtIntervalMs } from './thought-narrator.ts';
 
-function harness(summarizer?: ThoughtSummarizer) {
-    const thoughts: AgentThought[] = [];
+function harness() {
+    const thoughts: AgentThoughtContent[] = [];
     let clock = Date.parse('2026-09-24T12:00:00.000Z');
     const timers = new Set<{ at: number; run: () => void }>();
     const narrator = createAgentThoughtNarrator({
@@ -20,7 +14,6 @@ function harness(summarizer?: ThoughtSummarizer) {
             timers.add(timer);
             return () => timers.delete(timer);
         },
-        summarizer,
     });
     const block = (id: string, ...deltas: string[]) => {
         narrator.observe({ id, type: 'reasoning-start' });
@@ -45,23 +38,12 @@ function harness(summarizer?: ThoughtSummarizer) {
     };
 }
 
-function fakeSummarizer(answer: (reasoning: string) => Promise<string | null>) {
-    const seen: string[] = [];
-    const summarizer: ThoughtSummarizer = {
-        summarize: (reasoning) => {
-            seen.push(reasoning);
-            return answer(reasoning);
-        },
-    };
-    return { seen, summarizer };
-}
-
 describe('Agent thought narrator', () => {
     test('uses a Codex title directly, even when the block is short', () => {
         const run = harness();
         run.block('r1', '**Inspecting', ' chart data**');
         expect(run.thoughts).toEqual([
-            { at: '2026-09-24T12:00:00.000Z', text: "I'm inspecting chart data" },
+            { at: '2026-09-24T12:00:00.000Z', kind: 'phrase', text: "I'm inspecting chart data" },
         ]);
     });
 
@@ -72,10 +54,10 @@ describe('Agent thought narrator', () => {
         run.block('r2', '**Checking task board**');
         run.advance(1000);
         run.block('r3', '**Reading sales chart**');
-        expect(run.thoughts.map((thought) => thought.text)).toEqual(["I'm planning memory read"]);
+        expect(run.thoughts.map((thought) => text(thought))).toEqual(["I'm planning memory read"]);
 
         run.advance(thoughtIntervalMs - 2000);
-        expect(run.thoughts.map((thought) => thought.text)).toEqual([
+        expect(run.thoughts.map((thought) => text(thought))).toEqual([
             "I'm planning memory read",
             "I'm reading sales chart",
         ]);
@@ -87,7 +69,7 @@ describe('Agent thought narrator', () => {
         run.block('r1', '**Planning memory read**');
         run.advance(thoughtIntervalMs);
         run.block('r2', '**Sending the reply**');
-        expect(run.thoughts.map((thought) => thought.text)).toEqual([
+        expect(run.thoughts.map((thought) => text(thought))).toEqual([
             "I'm planning memory read",
             "I'm sending the reply",
         ]);
@@ -99,7 +81,7 @@ describe('Agent thought narrator', () => {
         run.block('r2', '**Checking task board**');
         run.narrator.close();
         run.advance(thoughtIntervalMs);
-        expect(run.thoughts.map((thought) => thought.text)).toEqual(["I'm planning memory read"]);
+        expect(run.thoughts.map((thought) => text(thought))).toEqual(["I'm planning memory read"]);
     });
 
     test('skips untitled blocks under the minimum length', () => {
@@ -108,62 +90,48 @@ describe('Agent thought narrator', () => {
         expect(run.thoughts).toEqual([]);
     });
 
-    test('condenses untitled reasoning locally without a summarizer', () => {
+    test('sends untitled reasoning as a scrubbed excerpt for the Server to summarize', () => {
         const run = harness();
-        run.block('r1', 'Let me check the Halloween bids against last week', ' before replying.');
-        expect(run.thoughts.map((thought) => thought.text)).toEqual([
-            "I'm checking the Halloween bids against last week",
+        run.block(
+            'r1',
+            'Let me check the Halloween bids in ~/ads/bids.csv against last week',
+            ' via https://ads.example.com before replying.'
+        );
+        expect(run.thoughts).toEqual([
+            {
+                at: '2026-09-24T12:00:00.000Z',
+                kind: 'reasoning',
+                reasoning:
+                    'Let me check the Halloween bids in against last week via before replying.',
+            },
         ]);
     });
 
-    test('summarizes untitled reasoning from any harness, sending only the phrase on', async () => {
-        const fake = fakeSummarizer(async () => "I'm comparing Halloween bids to last week");
-        const run = harness(fake.summarizer);
-        run.block('r1', 'The user wants the Halloween bids compared with last week.');
-        await Bun.sleep(0);
-        expect(run.thoughts.map((thought) => thought.text)).toEqual([
-            "I'm comparing Halloween bids to last week",
-        ]);
-        expect(fake.seen).toEqual(['The user wants the Halloween bids compared with last week.']);
-
-        // Titles never reach the model.
-        run.advance(thoughtIntervalMs);
-        run.block('r2', '**Inspecting chart data**');
-        expect(fake.seen).toHaveLength(1);
-        expect(run.thoughts.at(-1)?.text).toBe("I'm inspecting chart data");
-    });
-
-    test('drops a failed or late summary, and anything after close', async () => {
-        const fake = fakeSummarizer(async () => null);
-        const run = harness(fake.summarizer);
-        run.block('r1', 'Thinking through which campaign has the highest bid right now.');
-        await Bun.sleep(0);
+    test('caps the excerpt and skips a block that is too short once scrubbed', () => {
+        const run = harness();
+        run.block('r1', `Comparing bids ${'x'.repeat(10)} https://example.com/a/very/long/path`);
         expect(run.thoughts).toEqual([]);
 
-        let release: (value: string) => void = () => undefined;
-        const slow = fakeSummarizer(
-            () =>
-                new Promise((resolve) => {
-                    release = resolve;
-                })
-        );
-        const closing = harness(slow.summarizer);
-        closing.block('r1', 'Thinking through which campaign has the highest bid right now.');
-        closing.narrator.close();
-        release('Comparing campaign bids');
-        await Bun.sleep(0);
-        expect(closing.thoughts).toEqual([]);
+        run.block('r2', 'Weighing the campaign budgets. '.repeat(200));
+        const [thought] = run.thoughts;
+        expect(thought?.kind).toBe('reasoning');
+        expect(thought?.kind === 'reasoning' && thought.reasoning.length).toBe(3000);
     });
 
-    test('uses Gemini only when a key is configured', () => {
-        expect(thoughtSummarizerFromEnv({ HAUS_GEMINI_API_KEY: 'key' })).not.toBeNull();
-        expect(thoughtSummarizerFromEnv({ HAUS_GEMINI_API_KEY: '  ' })).toBeNull();
-        expect(thoughtSummarizerFromEnv({})).toBeNull();
-    });
-
-    test('is on only when HAUS_AGENT_THOUGHTS is exactly true', () => {
-        expect(agentThoughtsEnabled({ HAUS_AGENT_THOUGHTS: 'true' })).toBe(true);
-        expect(agentThoughtsEnabled({ HAUS_AGENT_THOUGHTS: 'false' })).toBe(false);
-        expect(agentThoughtsEnabled({})).toBe(false);
+    test('holds titles and excerpts in the same newest-wins slot', () => {
+        const run = harness();
+        run.block('r1', '**Planning memory read**');
+        run.block('r2', 'Now I should compare this week against the previous week of sales.');
+        run.block('r3', '**Checking task board**');
+        run.advance(thoughtIntervalMs);
+        expect(run.thoughts.map((thought) => thought.kind)).toEqual(['phrase', 'phrase']);
+        expect(run.thoughts.map(text)).toEqual([
+            "I'm planning memory read",
+            "I'm checking task board",
+        ]);
     });
 });
+
+function text(thought: AgentThoughtContent) {
+    return thought.kind === 'phrase' ? thought.text : thought.reasoning;
+}

@@ -262,6 +262,7 @@ test('release context skips development-only runtime and App values', () => {
     for (const name of [
         'HAUS_CLERK_SECRET_KEY',
         'HAUS_DEV_CLERK_SIGN_IN_USER_ID',
+        'HAUS_GEMINI_API_KEY',
         'HAUS_GOOGLE_OAUTH_CLIENT_ID',
         'HAUS_GOOGLE_OAUTH_CLIENT_SECRET',
         'HAUS_OPENAI_API_KEY',

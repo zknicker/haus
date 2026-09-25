@@ -3,7 +3,7 @@ import {
     createGeminiThoughtSummarizer,
     thoughtOpenings,
     thoughtSummaryModel,
-} from './thought-summarizer.ts';
+} from './agent-thought-summarizer.ts';
 
 function fakeGemini(respond: (init: RequestInit) => Promise<Response>) {
     const calls: { body: Record<string, unknown>; headers: Record<string, string>; url: string }[] =
@@ -76,7 +76,7 @@ describe('Gemini thought summarizer', () => {
         expect(openings).toEqual([thoughtOpenings[0], thoughtOpenings[1], thoughtOpenings.at(-1)]);
     });
 
-    test('drops the thought on an error status, an empty answer, or a transport failure', async () => {
+    test('answers null on an error status, an empty answer, or a transport failure', async () => {
         for (const respond of [
             async () => new Response('quota', { status: 429 }),
             async () => Response.json({ candidates: [{ content: { parts: [] } }] }),
@@ -93,7 +93,7 @@ describe('Gemini thought summarizer', () => {
         }
     });
 
-    test('drops an answer that misses the deadline', async () => {
+    test('answers null when Gemini misses the deadline', async () => {
         const gemini = fakeGemini(
             (init) =>
                 new Promise((_resolve, reject) => {
