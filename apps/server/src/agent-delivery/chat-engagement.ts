@@ -1,25 +1,19 @@
 import type { ChatEngagement } from '@haus/api';
-import { and, eq, isNotNull, isNull, or, type SQL, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, type SQL, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
-    agentInboxTable,
     chatMessagesTable as message,
     agentInboxExactVisibilityTable as visibility,
 } from '../postgres/schema.ts';
 
 /**
- * At or below this Jev probability that a message wants a reply, reading it does
- * not engage the Chat. Null, uncertain, and missing judgments still engage.
- */
-export const replySuppressionThreshold = 0.2;
-
-/**
  * Chat engagement (ADR 0035), derived only from durable delivery state so a
  * reload, reconnect, or resent turn reproduces it exactly. Agent A's run R
  * engages Chat C while R is accepted and unsettled and holds exact visibility
- * of a human message in C that is newer than A's last message in C and was not
- * judged to want no reply. A send into C or R's settlement ends it.
+ * of a human message in C that is newer than A's last message in C. No
+ * judgment of the message suppresses it: work an Agent has read must show. A
+ * send into C or R's settlement ends it.
  */
 export async function readChatEngagements(
     db: HausDatabase,
@@ -77,24 +71,11 @@ async function selectEngagements(db: HausDatabase, filter: SQL | undefined) {
             message,
             and(eq(message.serverId, visibility.serverId), eq(message.id, visibility.messageId))
         )
-        .leftJoin(
-            agentInboxTable,
-            and(
-                eq(agentInboxTable.serverId, visibility.serverId),
-                eq(agentInboxTable.agentId, visibility.agentId),
-                eq(agentInboxTable.dedupeKey, visibility.messageId)
-            )
-        )
         .where(
             and(
                 filter,
                 isNotNull(visibility.servedRunId),
                 isNotNull(message.authorUserId),
-                // The column is `real`; compare in its precision so 0.2 suppresses.
-                or(
-                    isNull(agentInboxTable.expectsReply),
-                    sql`${agentInboxTable.expectsReply} > ${replySuppressionThreshold}::real`
-                ),
                 sql`${message.sequence} > ${lastOwnSequence}`
             )
         )

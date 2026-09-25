@@ -62,14 +62,10 @@ export async function applyMessageRouting(db: HausDatabase, input: RoutingCommit
         const narrowed = !stale && decision.kind === 'narrow' && selected.length === 1;
         // A committed narrow is addressing: the surviving Agent is the sole
         // conversational addressee, which is what a cold start drains on.
-        // The reply judgment describes this message only as its snapshot saw it.
-        const expectsReply = stale ? null : (decision.expectsReply ?? null);
-        finalRecipients = (
-            narrowed
-                ? selected.map((row) => ({ ...row, addressedReason: 'routing' as const }))
-                : recipients
-        ).map((row) => ({ ...row, expectsReply }));
-        audit = judgedAudit(prepared, finalRecipients, stale, narrowed, expectsReply);
+        finalRecipients = narrowed
+            ? selected.map((row) => ({ ...row, addressedReason: 'routing' as const }))
+            : recipients;
+        audit = judgedAudit(prepared, finalRecipients, stale, narrowed);
     }
     await db
         .update(chatMessagesTable)
@@ -91,7 +87,6 @@ function unjudgedAudit(candidateAgentIds: string[]): MessageRoutingAudit {
         choice: null,
         threshold: null,
         elapsedMs: null,
-        expectsReply: null,
     };
 }
 
@@ -99,8 +94,7 @@ function judgedAudit(
     prepared: Extract<PreparedMessageRouting, { kind: 'judged' }>,
     recipients: AgentMessageRecipientPlan[],
     stale: boolean,
-    narrowed: boolean,
-    expectsReply: number | null
+    narrowed: boolean
 ): MessageRoutingAudit {
     const { decision } = prepared;
     return {
@@ -121,7 +115,6 @@ function judgedAudit(
         choice: decision.kind === 'narrow' ? decision.agentId : (decision.choice ?? null),
         threshold: routingThreshold,
         elapsedMs: prepared.elapsedMs,
-        expectsReply,
     };
 }
 

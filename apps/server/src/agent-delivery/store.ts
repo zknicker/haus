@@ -118,7 +118,6 @@ export async function enqueueInboxItem(
         content: string;
         createdAt?: Date;
         dedupeKey: string;
-        expectsReply?: number | null | undefined;
         mentioned?: boolean;
         serverId: string;
         source: string;

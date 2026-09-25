@@ -93,7 +93,6 @@ export interface EnqueueInput {
     createdAt?: Date;
     /** Idempotency key; a duplicate delivery of the same message is a no-op. */
     dedupeKey: string;
-    expectsReply?: number | null | undefined;
     mentioned?: boolean;
     sequence?: number;
     serverId: string;

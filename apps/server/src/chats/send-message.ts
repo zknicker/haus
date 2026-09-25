@@ -251,7 +251,6 @@ export async function sendChatMessage(
                 chatId: writeChatId,
                 content: input.content,
                 dedupeKey: message.id,
-                expectsReply: recipient.expectsReply,
                 mentioned: recipient.mentioned,
                 sequence: message.sequence,
                 serverId: input.serverId,

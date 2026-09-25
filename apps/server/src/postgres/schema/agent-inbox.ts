@@ -8,7 +8,6 @@ import {
     integer,
     pgTable,
     primaryKey,
-    real,
     text,
     timestamp,
     uniqueIndex,
@@ -167,12 +166,6 @@ export const agentInboxTable = pgTable(
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
-        /**
-         * Jev's probability that the message calls for a reply from its addressed
-         * Agents, asked with the routing judgment. Null when no judgment ran or it
-         * did not answer. Used only to suppress the Chat typing presentation.
-         */
-        expectsReply: real('expects_reply'),
         id: text('id').primaryKey(),
         /** Whether this Agent was personally named when the immutable message was planned. */
         mentioned: boolean('mentioned').notNull().default(false),
@@ -233,11 +226,6 @@ export const agentInboxTable = pgTable(
             'agent_inbox_addressed_reason',
             sql`${table.addressedReason} is null
                 or ${table.addressedReason} in ('dm', 'mention', 'routing', 'sole')`
-        ),
-        check(
-            'agent_inbox_expects_reply',
-            sql`${table.expectsReply} is null
-                or (${table.expectsReply} >= 0 and ${table.expectsReply} <= 1)`
         ),
         check('agent_inbox_id_shape', sql`${table.id} ~ '^inb_[A-Za-z0-9_-]{16}$'`),
         check('agent_inbox_state', sql`${table.state} in ('queued', 'accepted', 'served', 'seen')`),
