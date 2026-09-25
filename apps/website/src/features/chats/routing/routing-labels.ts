@@ -16,7 +16,7 @@ export function routingOutcomeLabel(audit: MessageRoutingAudit) {
     if (audit.outcome === 'bypass') {
         return audit.bypassReason ? bypassLabels[audit.bypassReason] : 'Jev skipped';
     }
-    if (audit.outcome === 'narrow') {
+    if (audit.outcome === 'narrow' || audit.outcome === 'mentioned') {
         return audit.confidence === null ? 'Jev' : `Jev ${Math.round(audit.confidence * 100)}%`;
     }
     return {
@@ -28,8 +28,27 @@ export function routingOutcomeLabel(audit: MessageRoutingAudit) {
     }[audit.outcome];
 }
 
+/** A judged audit whose trigger was an @mention asked the mention-scope question. */
+export function isMentionScopeJudgment(audit: MessageRoutingAudit) {
+    return audit.model !== null && audit.bypassReason === 'mention';
+}
+
+const mentionScopeChoices: Record<string, string> = {
+    mentioned: 'Mentioned agents only',
+    others: 'Other agents too',
+    unclear: 'Unclear',
+};
+export function mentionScopeChoiceLabel(choice: string) {
+    return mentionScopeChoices[choice] ?? choice;
+}
+
 export function routingExplanation(audit: MessageRoutingAudit) {
+    if (isMentionScopeJudgment(audit) && audit.outcome === 'uncertain') {
+        return 'Jev did not confirm, above both thresholds, that the message was for the mentioned agents alone. Normal delivery was preserved.';
+    }
     switch (audit.outcome) {
+        case 'mentioned':
+            return 'Jev judged the message was for the mentioned agents alone. Other agents in the channel were not notified.';
         case 'narrow':
             return audit.candidateAgentIds.length === 1
                 ? 'Jev identified the only eligible agent as the addressee. Recipients are unchanged; the message is addressed to that agent.'

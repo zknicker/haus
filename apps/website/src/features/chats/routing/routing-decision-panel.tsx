@@ -1,6 +1,11 @@
 import type { MessageRoutingAudit, MessageRoutingDebug } from '@haus/api';
 import { Chip, Popover } from '@heroui/react';
-import { routingExplanation, routingOutcomeLabel } from './routing-labels.ts';
+import {
+    isMentionScopeJudgment,
+    mentionScopeChoiceLabel,
+    routingExplanation,
+    routingOutcomeLabel,
+} from './routing-labels.ts';
 
 export function RoutingDecisionPanel({
     audit,
@@ -12,7 +17,7 @@ export function RoutingDecisionPanel({
     const name = (id: string) => agents.find((agent) => agent.id === id)?.displayName ?? id;
     const names = (ids: string[]) => ids.map(name).join(', ') || 'None';
     const excluded =
-        audit.outcome === 'narrow'
+        audit.outcome === 'narrow' || audit.outcome === 'mentioned'
             ? audit.candidateAgentIds.filter((id) => !audit.recipientAgentIds.includes(id))
             : [];
     const status = routingStatus(audit);
@@ -68,9 +73,7 @@ export function RoutingDecisionPanel({
                 {audit.model ? (
                     <>
                         <dt className="text-muted">Model choice</dt>
-                        <dd className="break-words text-right">
-                            {audit.choice ? name(audit.choice) : 'Unavailable'}
-                        </dd>
+                        <dd className="break-words text-right">{choiceLabel(audit, name)}</dd>
                         <dt className="text-muted">Threshold</dt>
                         <dd className="text-right tabular-nums">
                             {percent(audit.threshold)} on both
@@ -100,7 +103,19 @@ export function RoutingDecisionPanel({
     );
 }
 
+function choiceLabel(audit: MessageRoutingAudit, name: (id: string) => string) {
+    if (!audit.choice) {
+        return 'Unavailable';
+    }
+    return isMentionScopeJudgment(audit)
+        ? mentionScopeChoiceLabel(audit.choice)
+        : name(audit.choice);
+}
+
 function routingStatus(audit: MessageRoutingAudit) {
+    if (audit.outcome === 'mentioned') {
+        return 'Narrowed';
+    }
     if (audit.outcome === 'narrow') {
         // With one candidate nothing was narrowed; Jev only confirmed the addressee.
         return audit.candidateAgentIds.length === 1 ? 'Addressed' : 'Narrowed';
