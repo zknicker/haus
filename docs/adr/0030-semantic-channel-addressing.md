@@ -15,10 +15,11 @@ unaddressed human top-level messages across all Servers. Server may narrow
 ordinary eligible channel recipients to one Agent when Jev identifies that Agent as the
 sole conversational addressee. This is addressing, not assignment by expertise.
 
-The initial policy uses the evaluated v2 question, pinned `jev-1.13.0`, and requires both
-Choice confidence and the selected option's probability to be at least 0.90. Shared,
-human, unclear, invalid, uncertain, failed and timed-out outcomes preserve ordinary
-delivery. Jev cannot add recipients or bypass access, retirement, mute, or follow rules.
+The policy uses the evaluated v2 question, pinned `jev-1.13.0`, and requires Choice
+confidence of at least `routingThreshold` (0.80; see [Threshold](#threshold)). A confident
+`multiple`, `human` or `unclear` answer records outcome `kept`; any answer below the
+threshold records `uncertain`. Kept, uncertain, invalid, failed and timed-out outcomes
+preserve ordinary delivery. Jev cannot add recipients or bypass access, retirement, mute, or follow rules.
 It does not change canonical history, task ownership, seen state, or reply ancestry.
 
 DMs, inline replies, Threads, Agent-authored messages and messages with attachments
@@ -43,7 +44,7 @@ revoked. Every other bypass above still applies first, and a mention still wins.
   `[agentId, multiple, human, unclear]` so `decodeRoutingDecision` validates the same
   shape. With one Agent, `multiple` carries its "the channel generally" half, and choosing it
   never addresses anyone. The request lists every human member as a participant, including
-  members missing from the history window, so `human` can name them. A choice at the 0.90 gate
+  members missing from the history window, so `human` can name them. A choice at the 0.80 gate
   marks the row `routing`. Everything else leaves it unaddressed. Recipients never change in
   this shape, because the only eligible Agent receives the message either way.
 
@@ -58,11 +59,11 @@ the audience question: is the message meant only for the mentioned Agents
 humans do not count as others; only waking another Agent is at stake.
 
 Mentioned Agents always receive the message; Jev can only remove the unmentioned ones.
-A `mentioned` answer with both confidence and probability at the same `routingThreshold`
-(0.90) delivers to the mentioned set only, each row keeping `addressed_reason = 'mention'`,
-and the audit records outcome `mentioned`. Several mentions narrow to all of them.
-`others`, `unclear`, below-threshold, invalid, failed, timed-out and stale judgments, and a
-Server without the TypeSafe credential, keep ordinary delivery: every eligible Agent, with
+A `mentioned` answer with confidence at the same `routingThreshold` (0.80) delivers to the
+mentioned set only, each row keeping `addressed_reason = 'mention'`, and the audit records
+outcome `mentioned`. Several mentions narrow to all of them. A confident `others` or
+`unclear` answer records `kept`; below-threshold, invalid, failed, timed-out and stale
+judgments, and a Server without the TypeSafe credential, also keep ordinary delivery: every eligible Agent, with
 the mentioned rows flagged. Mentioning every eligible Agent leaves nothing to narrow and
 records a `mention` bypass without a call.
 
@@ -71,7 +72,7 @@ attachments, over-long text, DMs, over 32 Agents, and nonce replays bypass first
 request, deadline, snapshot recheck and audit match the audience question, except that
 `currentMessage.explicitAgentIds` names the mentioned Agents and a channel's first message
 is judged on its text alone. Its audit carries `bypassReason: 'mention'` with the Jev model,
-`promptVersion: 'mention-v2'`, the choice and both scores, which is how Dev Mode tells it
+`promptVersion: 'mention-v2'`, the choice, confidence and probability, which is how Dev Mode tells it
 from the audience question.
 
 The errors are asymmetric. Excluding an Agent the author actually spoke to silently drops
@@ -85,7 +86,7 @@ injection attempt, and short histories. Ambiguous cases are labeled `others`.
 
 | Prompt | Threshold | Narrowed | Wrongly exclusive | Missed narrow | Accuracy | Coverage |
 | --- | --- | --- | --- | --- | --- | --- |
-| mention-v1 | 0.90 | 28 | 0 | 4 | 93.1% | 87.5% |
+| mention-v1 (both gates) | 0.90 | 28 | 0 | 4 | 93.1% | 87.5% |
 | mention-v2 | 0.80 | 30 | 0 | 2 | 96.6% | 93.8% |
 | mention-v2 | 0.85 | 29 | 0 | 3 | 94.8% | 90.6% |
 | mention-v2 | 0.90 | 29 | 0 | 3 | 94.8% | 90.6% |
@@ -100,6 +101,28 @@ question to Cove about everyone's plate. Repeat runs move individual scores by a
 so one v2 rerun narrowed 30. Median latency was about 150 ms. Re-run the eval with
 `agent-varlock -- bunx varlock run -- bun scripts/mention-scope-eval.ts` before changing the
 question, model or threshold.
+
+## Threshold
+
+Amended 2026-09-25. Both questions share one `routingThreshold` of 0.80 on Choice confidence
+alone. The original gate also required the selected option's probability at 0.90, but an
+audit of 142 real Jev calls found confidence never above the selected probability, so the
+probability condition never decided anything. The audit still records `probability` for
+diagnostics, and its `threshold` field is the confidence gate. Audits committed before this
+amendment used 0.90 on both scores and recorded every non-narrowing judgment as
+`uncertain`; they still parse, and Dev Mode reads a stored `uncertain` whose confidence met
+its threshold on a non-narrowing choice as kept.
+
+The evidence is synthetic, from real calls:
+
+- **Audience question (v2):** 71 synthetic scenarios, each sent twice. At 0.80 there were no
+  wrong exclusions across 130 multi-agent attempts, and the most confident wrong choice was
+  0.55. Narrowing rose to 40% from 37% at 0.90; two correct cases sat exactly at 0.90.
+- **Mention scope (mention-v2):** the 58 cases below had no wrongly-exclusive narrowing at
+  any threshold from 0.80 to 0.95, and the strongest wrong `mentioned` choice was 0.64.
+
+Revisit with production `delivery_routing` rows by hand-labeling the 0.70–0.90 confidence
+band before moving the threshold again.
 
 ## Ownership and lifecycle
 
@@ -151,11 +174,13 @@ Command-K → **Turn Dev Mode On** reveals a routing label below each durable hu
 message. Click it to open a popover with the committed inbox recipients, candidates, exclusions,
 Jev choice, confidence and probability, threshold, elapsed time, model and prompt version.
 A mention-scope judgment shows its choice as mentioned agents only, other agents too or
-unclear, and a confident one reads as narrowed with the unmentioned Agents excluded.
+unclear, and a confident one reads as narrowed with the unmentioned Agents excluded. A kept
+judgment says what Jev decided in plain words (for everyone, for a human, the audience
+unclear, or other agents too); an uncertain one says confidence fell below the threshold.
 Dev Mode is a device-local display preference; it never enables or changes routing.
 
 Server records bypass reasons for human sends too, including DMs, replies, mentions,
-disabled routing and context limits. An uncertain result keeps its scores; a timeout is
+disabled routing and context limits. Kept and uncertain results keep their scores; a timeout is
 distinct from other provider failures. Changed context is shown as a discarded judgment,
 not a successful narrowing. Older messages without an audit say **Routing not recorded**.
 Recipients describe inbox delivery, not whether an Agent read or acted on a message.

@@ -51,9 +51,9 @@ unchanged, and a human drain never shares a run with a fire, so ADR 0026's
 sole-fire cause inference is untouched.
 
 **An item is addressed when it names this Agent.** A DM, a personal @mention,
-a Jev routing that committed the message to exactly this Agent at the 0.90 gate,
+a Jev routing that committed the message to exactly this Agent at the 0.80 confidence gate,
 or `sole`: the message went to a channel's only eligible Agent, and its author is
-that channel's only human member (both from ADR 0030). Stale, invalid, uncertain,
+that channel's only human member (both from ADR 0030). Stale, invalid, kept, uncertain,
 timed-out and broadcast judgments are not addressing. The reason is decided once, when delivery is planned, and persisted
 on the inbox row as `addressed_reason`. Draining an addressed message on a cold
 start is a Haus extension beyond Raft, taken because Haus Agents sleep between
@@ -101,8 +101,8 @@ resumed after the Computer restarted reads as warm, and a session rotation force
 a cold start that downgrades an intended warm drain to addressed-only. A resend
 must recompute the same drain sets from durable state or a replayed run composes
 a prompt the ledger does not expect; `startFrame` does, and a test holds it. And
-because the 1.5-second Jev deadline makes `uncertain` and `timeout` the common
-non-narrow outcomes, most channel traffic stays unaddressed — the safe default.
+because the 1.5-second Jev deadline and confident shared answers make `kept`,
+`uncertain` and `timeout` the common non-narrow outcomes, most channel traffic stays unaddressed — the safe default.
 
 ## Rejected alternatives
 

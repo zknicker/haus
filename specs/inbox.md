@@ -74,8 +74,8 @@ mark that names the wrong cause.
 
 Across all Servers with the TypeSafe credential configured, [ADR 0030](../docs/adr/0030-semantic-channel-addressing.md)
 permits semantic narrowing of unaddressed human top-level channel messages. The final
-recipient set is committed with the message; uncertain, failed or stale judgments retain
-ordinary delivery. This does not change explicit mention, reply, Thread or DM rules. In a
+recipient set is committed with the message; kept, uncertain, failed or stale judgments
+retain ordinary delivery. This does not change explicit mention, reply, Thread or DM rules. In a
 channel with one eligible Agent, the message is addressed to it as `sole` when the author is
 the channel's only human member. With more human members, Jev judges whether the one Agent is
 the addressee, and recipients stay unchanged either way.
@@ -283,7 +283,7 @@ turn starts when its creator sends the working brief.
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
 | A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |
-| Addressing is decided at enqueue and survives stale or uncertain routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
+| Addressing is decided at enqueue and survives stale, uncertain or kept routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |

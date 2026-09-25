@@ -62,7 +62,7 @@ leading sigil is presentation syntax.
 
 | Kind | Target | Projection | Behavior |
 | --- | --- | --- | --- |
-| `agent` | `agent://<encoded-agent-id>` | `agent-reference` | Channel messages deliver to eligible joined Agents while the linked participant receives durable direct-attention metadata, unless Jev confidently judges a top-level human message to be for the mentioned Agents alone (ADR 0030); a mention bypasses that Agent's Channel mute, while a direct Thread mention restores an explicit unfollow and resumes ordinary Thread delivery. Agent DMs address their one Agent participant without a link. |
+| `agent` | `agent://<encoded-agent-id>` | `agent-reference` | Channel messages deliver to eligible joined Agents while the linked participant receives durable direct-attention metadata, unless Jev judges, at Choice confidence of at least 0.80, a top-level human message to be for the mentioned Agents alone (ADR 0030); a mention bypasses that Agent's Channel mute, while a direct Thread mention restores an explicit unfollow and resumes ordinary Thread delivery. Agent DMs address their one Agent participant without a link. |
 | `chat` | `chat://<encoded-chat-id>` | `chat-reference` | Visual channel reference. The chip opens the referenced channel by immutable chat id. |
 | `user` | `user://<encoded-user-id>` | `user-reference` | Visual human reference only. Resolve the current display name/avatar by immutable user id; unknown or departed humans keep the persisted label. No notification or wake behavior. |
 | `skill` | `skill://<encoded-skill-id>` | `skill-activation` | Runtime adds a compact turn hint only if the addressed Agent already has that skill enabled. |
