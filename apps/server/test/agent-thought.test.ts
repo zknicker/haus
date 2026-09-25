@@ -11,9 +11,13 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     admitComputerAgentThought,
     createAgentThoughts,
-    thoughtReasoningSpacingMs,
+    thoughtSpacingMs,
 } from '../src/server-agents/agent-thought.ts';
-import type { ThoughtSummarizer } from '../src/server-agents/agent-thought-summarizer.ts';
+import type {
+    ThoughtSource,
+    ThoughtSummarizer,
+    ThoughtSummary,
+} from '../src/server-agents/agent-thought-summarizer.ts';
 import { settledSummary, wakeOn } from './chat-engagement-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -72,40 +76,82 @@ test('admits a thought for the accepted run, once per Chat it engages, and nowhe
     expect(await admit(phrase(seed.agentId, runner.runId))).toEqual([]);
 });
 
-test('relays a phrase as is and summarizes an excerpt, falling back to the heuristic', async () => {
+test('rephrases titles and excerpts, drops SKIP, and falls back to the filtered heuristic', async () => {
     const { runner, seed, wakeMessage } = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
-    const answers: (string | null)[] = ["I'm comparing Halloween bids to last week", null];
+    const answers: (ThoughtSummary | null)[] = [
+        { kind: 'phrase', text: 'Now checking Halloween bid changes' },
+        { kind: 'phrase', text: "I'm comparing Halloween bids to last week" },
+        { kind: 'skip' },
+        { kind: 'skip' },
+        null,
+        null,
+    ];
     const summarizer = fakeSummarizer(async () => answers.shift() ?? null);
     let clock = 0;
     const thoughts = createAgentThoughts({ now: () => clock, summarizer: summarizer.summarizer });
-    const offline = createAgentThoughts({ summarizer: null });
-    const ingest = recorder(seed);
+    const ingest = async (frame: AgentThoughtFrame) => {
+        const heard = await recorder(seed)(thoughts, frame);
+        clock += thoughtSpacingMs;
+        return heard;
+    };
 
-    expect(await ingest(thoughts, phrase(seed.agentId, runner.runId))).toEqual([
-        'Checking Halloween bid changes',
+    expect(await ingest(phrase(seed.agentId, runner.runId))).toEqual([
+        'Now checking Halloween bid changes',
     ]);
-    expect(summarizer.seen).toEqual([]);
-
-    expect(await ingest(thoughts, reasoning(seed.agentId, runner.runId))).toEqual([
+    expect(await ingest(reasoning(seed.agentId, runner.runId))).toEqual([
         "I'm comparing Halloween bids to last week",
     ]);
-    // A failed, late, or refused summary still shows the local condensation.
-    clock += thoughtReasoningSpacingMs;
-    expect(await ingest(thoughts, reasoning(seed.agentId, runner.runId))).toEqual([
+    // SKIP is final: no bubble, and no heuristic second opinion.
+    expect(await ingest(phrase(seed.agentId, runner.runId))).toEqual([]);
+    expect(await ingest(reasoning(seed.agentId, runner.runId))).toEqual([]);
+    // A failed, late, or refused summary still shows the title or local condensation.
+    expect(await ingest(phrase(seed.agentId, runner.runId))).toEqual([
+        'Checking Halloween bid changes',
+    ]);
+    expect(await ingest(reasoning(seed.agentId, runner.runId))).toEqual([
         "I'm comparing the Halloween bids with last week",
     ]);
-    expect(summarizer.seen).toEqual([excerpt, excerpt]);
-    // With no key the Server never calls out and still shows a phrase.
-    expect(await ingest(offline, reasoning(seed.agentId, runner.runId))).toEqual([
-        "I'm comparing the Halloween bids with last week",
+    expect(summarizer.seen).toEqual([
+        { kind: 'title', title: 'Checking Halloween bid changes' },
+        { kind: 'reasoning', reasoning: excerpt },
+        { kind: 'title', title: 'Checking Halloween bid changes' },
+        { kind: 'reasoning', reasoning: excerpt },
+        { kind: 'title', title: 'Checking Halloween bid changes' },
+        { kind: 'reasoning', reasoning: excerpt },
     ]);
 });
 
-test('ignores a run’s excerpts closer than the spacing window, before any lookup or summary', async () => {
+test('without a key, shows the heuristic unless it is housekeeping', async () => {
     const { runner, seed, wakeMessage } = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
-    const summarizer = fakeSummarizer(async () => 'Comparing bids');
+    const ingest = recorder(seed);
+
+    expect(
+        await ingest(
+            createAgentThoughts({ summarizer: null }),
+            reasoning(seed.agentId, runner.runId)
+        )
+    ).toEqual(["I'm comparing the Halloween bids with last week"]);
+    expect(
+        await ingest(createAgentThoughts({ summarizer: null }), {
+            ...phrase(seed.agentId, runner.runId),
+            text: "I'm reviewing memory notes",
+        })
+    ).toEqual([]);
+    expect(
+        await ingest(createAgentThoughts({ summarizer: null }), {
+            ...reasoning(seed.agentId, runner.runId),
+            reasoning:
+                "I'm going to read my memory first before touching anything in this workspace.",
+        })
+    ).toEqual([]);
+});
+
+test('ignores a run’s titles and excerpts closer than the spacing window, before any summary', async () => {
+    const { runner, seed, wakeMessage } = await wakeOn(connection.db);
+    await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
+    const summarizer = fakeSummarizer(async () => ({ kind: 'phrase', text: 'Comparing bids' }));
     let clock = 0;
     const thoughts = createAgentThoughts({ now: () => clock, summarizer: summarizer.summarizer });
     const ingest = recorder(seed);
@@ -113,23 +159,19 @@ test('ignores a run’s excerpts closer than the spacing window, before any look
     expect(await ingest(thoughts, reasoning(seed.agentId, runner.runId))).toEqual([
         'Comparing bids',
     ]);
-    clock += thoughtReasoningSpacingMs - 1;
+    clock += thoughtSpacingMs - 1;
     expect(await ingest(thoughts, reasoning(seed.agentId, runner.runId))).toEqual([]);
-    // Titles cost nothing to relay, so the guard leaves them alone.
-    expect(await ingest(thoughts, phrase(seed.agentId, runner.runId))).toEqual([
-        'Checking Halloween bid changes',
-    ]);
+    // Titles are paid summarizer calls too, so the guard spaces them the same way.
+    expect(await ingest(thoughts, phrase(seed.agentId, runner.runId))).toEqual([]);
     clock += 1;
-    expect(await ingest(thoughts, reasoning(seed.agentId, runner.runId))).toEqual([
-        'Comparing bids',
-    ]);
+    expect(await ingest(thoughts, phrase(seed.agentId, runner.runId))).toEqual(['Comparing bids']);
     expect(summarizer.seen).toHaveLength(2);
 });
 
 test('consumes but never summarizes a thought from the wrong Computer, and passes other frames on', async () => {
     const { runner, seed, wakeMessage } = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
-    const summarizer = fakeSummarizer(async () => 'Comparing bids');
+    const summarizer = fakeSummarizer(async () => ({ kind: 'phrase', text: 'Comparing bids' }));
     const thoughts = createAgentThoughts({ summarizer: summarizer.summarizer });
     const background = collectBackground();
     const input = { computerId: createOpaqueId('cmp'), serverId: seed.serverId };
@@ -216,12 +258,12 @@ function collectBackground() {
     };
 }
 
-function fakeSummarizer(answer: (reasoning: string) => Promise<string | null>) {
-    const seen: string[] = [];
+function fakeSummarizer(answer: (source: ThoughtSource) => Promise<ThoughtSummary | null>) {
+    const seen: ThoughtSource[] = [];
     const summarizer: ThoughtSummarizer = {
-        summarize: (text) => {
-            seen.push(text);
-            return answer(text);
+        summarize: (source) => {
+            seen.push(source);
+            return answer(source);
         },
     };
     return { seen, summarizer };

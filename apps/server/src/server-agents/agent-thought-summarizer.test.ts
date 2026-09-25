@@ -32,9 +32,12 @@ describe('Gemini thought summarizer', () => {
             fetch: gemini.fetcher,
             random: () => 0.99,
         });
-        expect(await summarizer.summarize('The user wants the Halloween bids compared.')).toBe(
-            'Comparing Halloween bids to last week'
-        );
+        expect(
+            await summarizer.summarize({
+                kind: 'reasoning',
+                reasoning: 'The user wants the Halloween bids compared.',
+            })
+        ).toEqual({ kind: 'phrase', text: 'Comparing Halloween bids to last week' });
         const [call] = gemini.calls;
         expect(call?.url).toContain(`/models/${thoughtSummaryModel}:generateContent`);
         expect(call?.headers['x-goog-api-key']).toBe('test-key');
@@ -64,9 +67,12 @@ describe('Gemini thought summarizer', () => {
             random: () => draws.shift() ?? 0,
         });
         for (let index = 0; index < 3; index += 1) {
-            expect(await summarizer.summarize('Pulling royalties before comparing weeks.')).toBe(
-                'Pulling royalties first'
-            );
+            expect(
+                await summarizer.summarize({
+                    kind: 'reasoning',
+                    reasoning: 'Pulling royalties before comparing weeks.',
+                })
+            ).toEqual({ kind: 'phrase', text: 'Pulling royalties first' });
         }
         const openings = gemini.calls.map((call) =>
             String((call.body.contents as { parts: { text: string }[] }[])[0]?.parts[0]?.text)
@@ -89,7 +95,12 @@ describe('Gemini thought summarizer', () => {
                 apiKey: 'k',
                 fetch: fakeGemini(respond).fetcher,
             });
-            expect(await summarizer.summarize('some reasoning worth summarizing')).toBeNull();
+            expect(
+                await summarizer.summarize({
+                    kind: 'reasoning',
+                    reasoning: 'some reasoning worth summarizing',
+                })
+            ).toBeNull();
         }
     });
 
@@ -105,6 +116,47 @@ describe('Gemini thought summarizer', () => {
             fetch: gemini.fetcher,
             timeoutMs: 5,
         });
-        expect(await summarizer.summarize('slow reasoning block')).toBeNull();
+        expect(
+            await summarizer.summarize({ kind: 'reasoning', reasoning: 'slow reasoning block' })
+        ).toBeNull();
+    });
+
+    test('answers skip for SKIP, tolerating stray punctuation, and never phrases it', async () => {
+        for (const text of ['SKIP', 'Skip.', '"SKIP"']) {
+            const summarizer = createGeminiThoughtSummarizer({
+                apiKey: 'k',
+                fetch: fakeGemini(async () => answer(text)).fetcher,
+            });
+            expect(
+                await summarizer.summarize({
+                    kind: 'reasoning',
+                    reasoning: 'Let me read my MEMORY.md before anything else.',
+                })
+            ).toEqual({ kind: 'skip' });
+        }
+    });
+
+    test('asks for a title in the same request shape and instructs SKIP for housekeeping', async () => {
+        const gemini = fakeGemini(async () => answer('Now inspecting the chart data'));
+        const summarizer = createGeminiThoughtSummarizer({
+            apiKey: 'k',
+            fetch: gemini.fetcher,
+            random: () => 0,
+        });
+        expect(
+            await summarizer.summarize({ kind: 'title', title: "I'm inspecting chart data" })
+        ).toEqual({ kind: 'phrase', text: 'Now inspecting the chart data' });
+        const [call] = gemini.calls;
+        expect(call?.body.contents).toEqual([
+            {
+                parts: [
+                    { text: `<title>\nI'm inspecting chart data\n</title>\n${thoughtOpenings[0]}` },
+                ],
+                role: 'user',
+            },
+        ]);
+        const system = JSON.stringify(call?.body.systemInstruction);
+        expect(system).toContain('Reply with exactly SKIP');
+        expect(system).toContain('claiming, assigning, or updating tasks');
     });
 });
