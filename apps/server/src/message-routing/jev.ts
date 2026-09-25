@@ -31,11 +31,17 @@ export type RoutingDecision =
     | { kind: 'narrow'; agentId: string; confidence: number; probability: number }
     | {
           kind: 'broadcast';
-          reason: 'uncertain' | 'failure' | 'timeout' | 'invalid';
+          reason: RoutingKeepReason;
           confidence?: number;
           probability?: number;
           choice?: string;
       };
+/**
+ * Why a judgment kept ordinary delivery. `kept` is a confident answer that does
+ * not narrow (the channel, a human, unclear, or other Agents too); `uncertain`
+ * is any answer below the confidence threshold.
+ */
+export type RoutingKeepReason = 'kept' | 'uncertain' | 'failure' | 'timeout' | 'invalid';
 export interface MessageRouter {
     judge(state: RoutingState): Promise<RoutingDecision>;
     /** Whether a message that @mentions Agents is for those Agents alone. */
@@ -43,7 +49,8 @@ export interface MessageRouter {
 }
 export const routingModel = 'jev-1.13.0';
 export const routingPromptVersion = 'v2';
-export const routingThreshold = 0.9;
+/** Minimum Choice confidence to act on a judgment. The selected option's probability is recorded, not gated. */
+export const routingThreshold = 0.8;
 const probability = z.number().finite().min(0).max(1);
 const answerSchema = z.object({
     model: z.literal(routingModel),
@@ -76,14 +83,10 @@ export function decodeRoutingDecision(value: unknown, ids: string[]): RoutingDec
     ) {
         return { kind: 'broadcast', reason: 'invalid' };
     }
-    if (
-        !ids.includes(answer.choice) ||
-        selected < routingThreshold ||
-        answer.confidence < routingThreshold
-    ) {
+    if (answer.confidence < routingThreshold || !ids.includes(answer.choice)) {
         return {
             kind: 'broadcast',
-            reason: 'uncertain',
+            reason: answer.confidence < routingThreshold ? 'uncertain' : 'kept',
             confidence: answer.confidence,
             probability: selected,
             choice: answer.choice,

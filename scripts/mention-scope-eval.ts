@@ -156,12 +156,9 @@ function caseState(item: EvalCase): RoutingState {
     };
 }
 
+/** Mirrors `decodeMentionScopeDecision`: confidence alone gates; probability is diagnostic. */
 function narrows(outcome: Outcome, threshold: number) {
-    return (
-        outcome.choice === 'mentioned' &&
-        (outcome.confidence ?? 0) >= threshold &&
-        (outcome.probability ?? 0) >= threshold
-    );
+    return outcome.choice === 'mentioned' && (outcome.confidence ?? 0) >= threshold;
 }
 
 function report(results: Outcome[]) {

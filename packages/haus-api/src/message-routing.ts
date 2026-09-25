@@ -19,9 +19,14 @@ export const messageRoutingAuditSchema = z
     .object({
         candidateAgentIds: z.array(idSchema),
         recipientAgentIds: z.array(idSchema),
+        /**
+         * `kept` is a confident answer that does not narrow; `uncertain` is below
+         * `threshold`. Audits before 2026-09-25 recorded both as `uncertain`.
+         */
         outcome: z.enum([
             'narrow',
             'mentioned',
+            'kept',
             'uncertain',
             'failure',
             'timeout',
@@ -35,6 +40,7 @@ export const messageRoutingAuditSchema = z
         confidence: z.number().min(0).max(1).nullable(),
         probability: z.number().min(0).max(1).nullable(),
         choice: z.string().nullable(),
+        /** Minimum Choice confidence. Audits before 2026-09-25 gated probability at 0.90 too. */
         threshold: z.number().min(0).max(1).nullable(),
         elapsedMs: z.number().int().nonnegative().nullable(),
     })

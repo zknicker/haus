@@ -76,7 +76,7 @@ export function RoutingDecisionPanel({
                         <dd className="break-words text-right">{choiceLabel(audit, name)}</dd>
                         <dt className="text-muted">Threshold</dt>
                         <dd className="text-right tabular-nums">
-                            {percent(audit.threshold)} on both
+                            {percent(audit.threshold)} confidence
                         </dd>
                         <dt className="text-muted">Decision time</dt>
                         <dd className="text-right tabular-nums">

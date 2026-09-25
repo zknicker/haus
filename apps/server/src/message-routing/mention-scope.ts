@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { type RoutingState, routingModel, routingThreshold } from './jev.ts';
+import {
+    type RoutingKeepReason,
+    type RoutingState,
+    routingModel,
+    routingThreshold,
+} from './jev.ts';
 
 /**
  * Whether a message that @mentions Agents is for those Agents alone. The
@@ -11,7 +16,7 @@ export type MentionScopeDecision =
     | { kind: 'mentioned'; confidence: number; probability: number }
     | {
           kind: 'broadcast';
-          reason: 'uncertain' | 'failure' | 'timeout' | 'invalid';
+          reason: RoutingKeepReason;
           confidence?: number;
           probability?: number;
           choice?: string;
@@ -73,14 +78,10 @@ export function decodeMentionScopeDecision(value: unknown): MentionScopeDecision
     ) {
         return { kind: 'broadcast', reason: 'invalid' };
     }
-    if (
-        answer.choice !== 'mentioned' ||
-        selected < routingThreshold ||
-        answer.confidence < routingThreshold
-    ) {
+    if (answer.confidence < routingThreshold || answer.choice !== 'mentioned') {
         return {
             kind: 'broadcast',
-            reason: 'uncertain',
+            reason: answer.confidence < routingThreshold ? 'uncertain' : 'kept',
             confidence: answer.confidence,
             probability: selected,
             choice: answer.choice,
