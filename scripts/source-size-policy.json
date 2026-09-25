@@ -22,7 +22,7 @@
       "reason": "Static icon reference corpus shipped with the Agent visuals skill."
     },
     "packages/haus-api/src/generated/openapi.d.ts": {
-      "maxLines": 4071,
+      "maxLines": 4072,
       "reason": "Generated OpenAPI declarations, including additive inline-reply contracts."
     },
     "packages/haus-api/src/runtime/contracts.ts": {
@@ -32,7 +32,6 @@
   },
   "legacyCeilings": {
     "apps/computer/src/agent-cli/commands/agent-message.test.ts": 323,
-    "apps/computer/src/agent-cli/commands/agent-message.ts": 333,
     "apps/computer/src/agent-cli/commands/agent-reminder.ts": 384,
     "apps/computer/src/agent-cli/commands/agent-trigger.test.ts": 341,
     "apps/computer/src/harness/executor.test.ts": 1359,
@@ -45,7 +44,7 @@
     "apps/computer/src/launch.ts": 613,
     "apps/computer/src/login.ts": 409,
     "apps/computer/src/proxy.test.ts": 752,
-    "apps/computer/src/proxy.ts": 439,
+    "apps/computer/src/proxy.ts": 373,
     "apps/computer/src/setup-resume.test.ts": 325,
     "apps/computer/src/update.test.ts": 340,
     "apps/ios-swift/Sources/HausUI/Chat/MessageComposerView.swift": 380,

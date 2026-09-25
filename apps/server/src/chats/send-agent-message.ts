@@ -36,12 +36,11 @@ const maxAgentMessageContentLength = 32_000;
 export interface SendAgentMessageInput {
     agentId: string;
     attachmentIds: string[];
-    /**
-     * The Trigger or Reminder fire this message answers, already owner-checked,
-     * with how the Server learned it.
-     */
+    /** The owner-checked Trigger or Reminder fire this answers, and how the Server learned it. */
     cause?: AttributedMessageCause;
     chatId: string;
+    /** `--done`: this message completes the run's reply in the Chat (ADR 0035). */
+    completesReply: boolean;
     content: string;
     nonce: string;
     /** Optional direct parent of an inline reply; the Server derives its root. */
@@ -157,6 +156,7 @@ export async function sendAgentMessage(
             .values({
                 authorAgentId: input.agentId,
                 chatId: input.chatId,
+                completesReply: input.completesReply,
                 content,
                 id: messageId,
                 nonce: input.nonce,

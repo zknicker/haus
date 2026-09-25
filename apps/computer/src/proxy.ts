@@ -2,14 +2,6 @@ import type { TraceCarrier } from '@haus/effect';
 import * as z from 'zod';
 import type { AgentActivityRun } from './agent-activity-run.ts';
 import {
-    agentHistoryResponseSchema,
-    agentMessageCheckResponseSchema,
-    agentReactionResponseSchema,
-    agentSearchResponseSchema,
-    agentSendResponseSchema,
-    resolvedAgentMessageSchema,
-} from './agent-cli/agent-api-schemas.ts';
-import {
     createLocalAgentSkill,
     deleteLocalAgentSkill,
     listLocalAgentSkills,
@@ -29,7 +21,12 @@ import {
 } from './inbox-store.ts';
 import { serveLocalAgentEvents } from './proxy-inbox.ts';
 import { mcpRequestHeaders, mcpRequestSignal, readProxyResponse } from './proxy-mcp.ts';
-import { isCommittedSend, isDefinitelyPreCommitFailure } from './proxy-send-outcome.ts';
+import { extractServedAutomationIds, extractVisibleMessageIds } from './proxy-response-ids.ts';
+import {
+    type CommittedSend,
+    committedSend,
+    isDefinitelyPreCommitFailure,
+} from './proxy-send-outcome.ts';
 import { attestVisibleMessages } from './visibility-receipt.ts';
 
 const skillCreateSchema = z.object({
@@ -55,7 +52,7 @@ export interface LoopbackProxy {
     resetSendCount(): void;
     sendCount(): number;
     setActivityRun(activity: AgentActivityRun | undefined): void;
-    setOnCommittedSend(onSend: (() => void) | undefined): void;
+    setOnCommittedSend(onSend: ((send: CommittedSend) => void) | undefined): void;
     setRunId(runId: string): void;
     setRunnerToken(token: string): void;
     setTraceContext(context: TraceCarrier | undefined): void;
@@ -79,7 +76,7 @@ export function startLoopbackProxy(input: {
     let runId: string | null = input.runId ?? null;
     let activityRun: AgentActivityRun | undefined;
     let traceContext: TraceCarrier | undefined;
-    let onCommittedSend: (() => void) | undefined;
+    let onCommittedSend: ((send: CommittedSend) => void) | undefined;
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -161,7 +158,7 @@ async function handleAuthorizedProxyRequest(
         getRunId(): string | null;
         getRunnerToken(): string | null;
         traceContext?: TraceCarrier;
-        onCommittedSend?: () => void;
+        onCommittedSend?: (send: CommittedSend) => void;
         incrementSendCount(): void;
     }
 ): Promise<Response> {
@@ -233,9 +230,10 @@ async function handleAuthorizedProxyRequest(
         );
     }
     const responseBody = await readProxyResponse(request, upstream);
-    if (upstream.ok && isMessageSend && isCommittedSend(responseBody)) {
+    const committed = upstream.ok && isMessageSend ? committedSend(body, responseBody) : null;
+    if (committed) {
         state.incrementSendCount();
-        state.onCommittedSend?.();
+        state.onCommittedSend?.(committed);
     }
     const visibleMessageIds = upstream.ok
         ? extractVisibleMessageIds(url.pathname, responseBody)
@@ -311,70 +309,6 @@ function agentInboxLocation(input: {
     return input.agentId && input.dataRoot && input.serverId
         ? { agentId: input.agentId, dataRoot: input.dataRoot, serverId: input.serverId }
         : null;
-}
-
-function extractServedAutomationIds(responseBody: string): string[] {
-    let body: unknown;
-    try {
-        body = JSON.parse(responseBody);
-    } catch {
-        return [];
-    }
-    const parsed = agentMessageCheckResponseSchema.safeParse(body);
-    return parsed.success ? parsed.data.automations.map((event) => event.id) : [];
-}
-
-function extractVisibleMessageIds(
-    pathname: string,
-    responseBody: string
-): VisibleMessageIdentity[] {
-    let body: unknown;
-    try {
-        body = JSON.parse(responseBody);
-    } catch {
-        return [];
-    }
-    if (!(body && typeof body === 'object')) {
-        return [];
-    }
-    if (pathname === '/api/agent/events') {
-        const parsed = agentMessageCheckResponseSchema.safeParse(body);
-        return parsed.success ? parsed.data.messages.map((row) => identity(row.message)) : [];
-    }
-    if (pathname === '/api/agent/history') {
-        const parsed = agentHistoryResponseSchema.safeParse(body);
-        return parsed.success ? parsed.data.messages.map(identity) : [];
-    }
-    if (pathname === '/api/agent/messages/search') {
-        const parsed = agentSearchResponseSchema.safeParse(body);
-        return parsed.success ? parsed.data.messages.map(identity) : [];
-    }
-    if (pathname === '/api/agent/messages/react') {
-        const parsed = agentReactionResponseSchema.safeParse(body);
-        return parsed.success ? [identity(parsed.data.message)] : [];
-    }
-    if (pathname === '/api/agent/messages/send') {
-        const parsed = agentSendResponseSchema.safeParse(body);
-        if (!parsed.success) {
-            return [];
-        }
-        return parsed.data.state === 'held'
-            ? parsed.data.shownMessages.map(identity)
-            : parsed.data.recentUnread.map((row) => identity(row.message));
-    }
-    if (/^\/api\/agent\/messages\/[^/]+$/u.test(pathname)) {
-        const parsed = resolvedAgentMessageSchema.safeParse(body);
-        return parsed.success ? [identity(parsed.data.message)] : [];
-    }
-    return [];
-}
-
-function identity(message: {
-    chat_id: string;
-    id: string;
-    sequence: number;
-}): VisibleMessageIdentity {
-    return { chatId: message.chat_id, id: message.id, sequence: message.sequence };
 }
 
 async function handleSkillRequest(

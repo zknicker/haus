@@ -11,6 +11,8 @@ export class AgentTurnTimings {
         -readonly [K in keyof TelemetryAttributes]: TelemetryAttributes[K];
     } = {};
     private lastSendAt: number | undefined;
+    /** Whether the latest committed send into each Chat carried `--done`. */
+    private readonly lastSendDone = new Map<string, boolean>();
 
     constructor(private readonly now: () => number = () => performance.now()) {
         this.startedAt = now();
@@ -37,18 +39,26 @@ export class AgentTurnTimings {
         }
     }
 
-    recordSend(): void {
+    recordSend(send: { chatId: string | null; done: boolean }): void {
+        if (send.chatId) {
+            this.lastSendDone.set(send.chatId, send.done);
+        }
         this.lastSendAt = this.now();
         this.attributes['haus.turn.first_send_ms'] ??= this.lastSendAt - this.startedAt;
         this.attributes['haus.turn.last_send_ms'] = this.lastSendAt - this.startedAt;
     }
 
     snapshot(): TelemetryAttributes {
+        const doneChats = [...this.lastSendDone.values()].filter(Boolean).length;
         return {
             ...this.attributes,
             ...(this.lastSendAt === undefined
                 ? {}
-                : { 'haus.turn.after_last_send_ms': this.now() - this.lastSendAt }),
+                : {
+                      'haus.turn.after_last_send_ms': this.now() - this.lastSendAt,
+                      'haus.turn.done_chats': doneChats,
+                      'haus.turn.sent_chats': this.lastSendDone.size,
+                  }),
         };
     }
 

@@ -53,7 +53,7 @@ Manual lookups require a natural-language --intent and --reason, each 12–500 c
 
 This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus task, haus reminder, haus thread, haus attachment, haus skill, haus agent, and haus manual. haus ask is a single verb: it asks one named human for a decision (see asks).
 
-Read the current identity with haus profile show. Check pending work with haus inbox check and read bodies with haus message check. Send durable collaboration with haus message send.
+Read the current identity with haus profile show. Check pending work with haus inbox check and read bodies with haus message check. Send durable collaboration with haus message send, adding --done to the message that completes your reply in a chat (see replies).
 
 Use haus manual search <keywords> --scope recipes to find a procedure, then haus manual get <topic> to read its complete body. Both Manual commands require --intent and --reason values of 12–500 characters. Keep those values concise and free of secrets or message content.
 

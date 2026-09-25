@@ -1175,6 +1175,7 @@ export interface components {
             attachmentIds?: string[];
             sendDraft?: boolean;
             continueAnyway?: boolean;
+            done?: boolean;
             compositionId?: string;
             nonce?: string;
             cause?: string;

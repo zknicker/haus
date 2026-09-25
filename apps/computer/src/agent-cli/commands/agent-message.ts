@@ -1,10 +1,7 @@
-import { randomUUID } from 'node:crypto';
-import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import {
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
     agentReactionResponseSchema,
-    agentSendResponseSchema,
     resolvedAgentMessageSchema,
 } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -14,76 +11,20 @@ import {
     formatHistoryLine,
     shortMessageId,
 } from '../agent-format.ts';
-import { renderHistory, renderSendResponse } from '../agent-render.ts';
+import { renderHistory } from '../agent-render.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
-import {
-    assertAgentTarget,
-    optionalInteger,
-    requiredValue,
-    valuesFor,
-} from './agent-command-utils.ts';
+import { assertAgentTarget, optionalInteger, requiredValue } from './agent-command-utils.ts';
 import { MESSAGE_ATTENTION_SUBCOMMANDS } from './agent-message-attention.ts';
-import {
-    HEREDOC_RECIPE,
-    heredocError,
-    optionalCause,
-    validateDraftOptions,
-} from './agent-message-input.ts';
+import { defaultMessageDeps, type MessageDeps } from './agent-message-deps.ts';
 import { messageSearchSubcommand } from './agent-message-search.ts';
+import { messageSendSubcommand } from './agent-message-send.ts';
 
 const MAX_MESSAGE_CHECK_ROUNDS = 50;
 
-interface MessageDeps {
-    client: AgentApiRequester;
-    compositionId?: string;
-    mintNonce(): string;
-    readStdin(): Promise<string>;
-    stdinIsTty: boolean;
-    write(text: string): void;
-}
-
 export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
     ...MESSAGE_ATTENTION_SUBCOMMANDS,
-    {
-        allowExtraPositionals: true,
-        examples: [
-            HEREDOC_RECIPE,
-            'haus message send --send-draft --target "#general"',
-            'haus message send --target "#general" --cause trf_41c2d8e9 <<\'HAUSMSG\'\nPayment webhook failed twice.\nHAUSMSG',
-        ],
-        flags: [
-            {
-                name: '--target',
-                valueName: '<target>',
-                description: 'Channel, DM, or thread target',
-            },
-            {
-                name: '--reply-to',
-                valueName: '<messageId>',
-                description: 'Reply inline to a message in this channel or DM',
-            },
-            {
-                name: '--attachment-id',
-                valueName: '<id>',
-                description: 'Attach an uploaded file (repeatable)',
-            },
-            {
-                name: '--cause',
-                valueName: '<fireId>',
-                description: 'Record the trigger or reminder fire this message answers',
-            },
-            { name: '--send-draft', description: 'Send the saved draft unchanged' },
-            { name: '--anyway', description: 'Send a repeatedly held draft despite new activity' },
-            { name: '--content', description: 'Unsupported; message bodies use stdin' },
-        ],
-        name: 'send',
-        positionals: [],
-        run: (args) => runSend(args, defaultDeps()),
-        summary: 'Send a message body read only from stdin',
-        usage: 'haus message send --target <t> [--reply-to <messageId>] [--attachment-id <id> ...] [--cause <fireId>] [--send-draft] [--anyway]',
-    },
+    messageSendSubcommand,
     {
         examples: [
             'haus message read --target "#general"',
@@ -114,7 +55,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         ],
         name: 'read',
         positionals: [],
-        run: (args) => runRead(args, defaultDeps()),
+        run: (args) => runRead(args, defaultMessageDeps()),
         summary: 'Read canonical history for one target',
         usage: 'haus message read --target <t> [--before|--after|--around <idOrSeq>] [--limit <n>]',
     },
@@ -124,7 +65,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         flags: [],
         name: 'resolve',
         positionals: ['<id>'],
-        run: (args) => runResolve(args, defaultDeps()),
+        run: (args) => runResolve(args, defaultMessageDeps()),
         summary: 'Resolve one canonical message by short or full id',
         usage: 'haus message resolve <id>',
     },
@@ -133,7 +74,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         flags: [],
         name: 'check',
         positionals: [],
-        run: () => runCheck(defaultDeps()),
+        run: () => runCheck(defaultMessageDeps()),
         summary: 'Read and acknowledge pending message deliveries',
         usage: 'haus message check',
     },
@@ -149,7 +90,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         ],
         name: 'react',
         positionals: [],
-        run: (args) => runReact(args, defaultDeps()),
+        run: (args) => runReact(args, defaultMessageDeps()),
         summary:
             'React only when a human asks or as a clear acknowledgement; never auto-react to routine events',
         usage: 'haus message react --message-id <id> --emoji <e> [--remove]',
@@ -211,60 +152,6 @@ function byCreatedAtThenId(left: CheckedEnvelope, right: CheckedEnvelope): numbe
     return leftTime - rightTime;
 }
 
-export async function runSend(args: ParsedArgs, deps: MessageDeps): Promise<number> {
-    if (args.flags['--content']) {
-        throw heredocError('CONTENT_FLAG_UNSUPPORTED', '--content is not supported.');
-    }
-    if (args.positionals.length > 0) {
-        throw heredocError(
-            'POSITIONAL_CONTENT_UNSUPPORTED',
-            'Positional message content is not supported.'
-        );
-    }
-    const target = requiredValue(args, '--target');
-    assertAgentTarget(target);
-    const sendDraft = Boolean(args.flags['--send-draft']);
-    const continueAnyway = Boolean(args.flags['--anyway']);
-    const attachmentIds = valuesFor(args, '--attachment-id');
-    const replyToMessageId =
-        args.values['--reply-to'] === undefined ? undefined : requiredValue(args, '--reply-to');
-    const cause = optionalCause(args);
-    validateDraftOptions({ attachmentIds, continueAnyway, replyToMessageId, sendDraft });
-    const stdin = deps.stdinIsTty ? '' : await deps.readStdin();
-    if (sendDraft && stdin.trim()) {
-        throw new AgentCliError(
-            'SEND_DRAFT_STDIN_UNSUPPORTED',
-            '--send-draft does not accept stdin content.'
-        );
-    }
-    if (!(sendDraft || stdin.trim())) {
-        throw heredocError('MISSING_CONTENT', 'Message content is required on stdin.');
-    }
-    // One nonce per invocation keeps a re-driven send idempotent server-side.
-    // No automatic transport retry: a lost held response must be re-driven by
-    // the agent so the catch-up context is actually reviewed (spec §6).
-    const response = await deps.client.request(
-        '/api/agent/messages/send',
-        agentSendResponseSchema,
-        {
-            body: {
-                ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
-                ...(cause ? { cause } : {}),
-                ...(replyToMessageId ? { replyToMessageId } : {}),
-                ...(deps.compositionId ? { compositionId: deps.compositionId } : {}),
-                ...(sendDraft ? {} : { content: stdin }),
-                ...(continueAnyway ? { continueAnyway: true } : {}),
-                ...(sendDraft ? { sendDraft: true } : {}),
-                nonce: deps.mintNonce(),
-                target,
-            },
-            method: 'POST',
-        }
-    );
-    deps.write(renderSendResponse(target, response));
-    return 0;
-}
-
 export async function runRead(args: ParsedArgs, deps: MessageDeps): Promise<number> {
     const target = requiredValue(args, '--target');
     assertAgentTarget(target);
@@ -318,16 +205,3 @@ export async function runReact(args: ParsedArgs, deps: MessageDeps): Promise<num
     );
     return 0;
 }
-
-function defaultDeps(): MessageDeps {
-    return {
-        client: createAgentApiClient(),
-        compositionId: process.env.HAUS_COMPOSITION_ID?.trim() || undefined,
-        mintNonce: () => `cli-${randomUUID()}`,
-        readStdin: readAgentStdin,
-        stdinIsTty: Boolean(process.stdin.isTTY),
-        write: (text) => process.stdout.write(text),
-    };
-}
-
-export const __test = { HEREDOC_RECIPE };

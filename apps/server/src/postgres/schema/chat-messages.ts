@@ -1,6 +1,7 @@
 import type { MessageBodyKind, MessageRoutingAudit } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
+    boolean,
     check,
     customType,
     foreignKey,
@@ -30,6 +31,8 @@ export const chatMessagesTable = pgTable(
         // never define a Message's type.
         bodyKind: text('body_kind').notNull().default('text').$type<MessageBodyKind>(),
         chatId: text('chat_id').notNull(),
+        /** An Agent's `--done` send: it ends that run's engagement in this Chat (ADR 0035). */
+        completesReply: boolean('completes_reply').notNull().default(false),
         content: text('content').notNull(),
         deliveryRouting: bunJsonb('delivery_routing').$type<MessageRoutingAudit>(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

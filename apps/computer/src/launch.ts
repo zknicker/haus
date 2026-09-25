@@ -153,7 +153,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     });
     const { proxy, proxyToken } = host;
     proxy.setTraceContext(options.turnTraceContext);
-    proxy.setOnCommittedSend(() => options.turnTimings?.recordSend());
+    proxy.setOnCommittedSend((send) => options.turnTimings?.recordSend(send));
     const frames = createRunFrames({ ...command, sendFrame: options.sendFrame });
     const activity = new AgentActivityRun(options.runtime, frames.activity);
     const thoughts = createAgentThoughtNarrator({ emit: frames.thought });

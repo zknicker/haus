@@ -12,8 +12,8 @@ import {
  * reload, reconnect, or resent turn reproduces it exactly. Agent A's run R
  * engages Chat C while R is accepted and unsettled and holds exact visibility
  * of a human message in C that is newer than A's last message in C. No
- * judgment of the message suppresses it: work an Agent has read must show. A
- * send into C or R's settlement ends it.
+ * judgment of the message suppresses it: work an Agent has read must show. R's
+ * `--done` send into C, or R's settlement, ends it; R's interim posts do not.
  */
 export async function readChatEngagements(
     db: HausDatabase,
@@ -50,12 +50,15 @@ export async function readSettledRunEngagements(
 
 async function selectEngagements(db: HausDatabase, filter: SQL | undefined) {
     // Postgres resolves the unaliased outer `chat_messages` columns inside the
-    // aliased subquery, so this is the Agent's latest message in the same Chat.
+    // aliased subquery, so this is the Agent's latest answer in the same Chat:
+    // any message from another run, or this run's `--done` send. This run's
+    // interim posts answer nothing.
     const lastOwnSequence = sql`coalesce((
         select max(own.sequence) from chat_messages own
         where own.server_id = ${message.serverId}
           and own.chat_id = ${message.chatId}
           and own.author_agent_id = ${visibility.agentId}
+          and (own.completes_reply or own.run_id is distinct from ${visibility.servedRunId})
     ), 0)`;
     const rows = await db
         .select({

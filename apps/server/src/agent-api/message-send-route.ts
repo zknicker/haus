@@ -1,7 +1,10 @@
 import { agentSendInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
-import { announceRunEngagements } from '../agent-delivery/chat-engagement-events.ts';
+import {
+    announceRunEngagements,
+    endChatEngagement,
+} from '../agent-delivery/chat-engagement-events.ts';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import { inferMessageCause } from '../automations/infer-message-cause.ts';
 import { MessageCauseError, resolveMessageCause } from '../automations/message-cause.ts';
@@ -83,6 +86,7 @@ export function registerAgentMessageSendRoute(
                         attachmentIds: prepared.outgoing.attachmentIds,
                         ...(cause ? { cause } : {}),
                         chatId,
+                        completesReply: input.done,
                         content: prepared.outgoing.content,
                         nonce: input.nonce,
                         ...(prepared.outgoing.replyToMessageId
@@ -105,6 +109,11 @@ export function registerAgentMessageSendRoute(
                 return committed.response;
             }
             const { chatId, result } = committed;
+            // Only a `--done` send ends engagement early; interim posts leave the
+            // Chat typing until this send or the end of the turn (ADR 0035).
+            if (input.done) {
+                endChatEngagement(runner, chatId);
+            }
             for (const activity of result.activities) {
                 publishCommittedAgentActivity(activity);
             }

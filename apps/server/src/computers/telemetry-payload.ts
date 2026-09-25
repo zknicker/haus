@@ -239,6 +239,8 @@ function safeSpanAttributes(
                     return value.boolValue !== undefined;
                 case 'haus.message.count':
                 case 'haus.retry.count':
+                case 'haus.turn.sent_chats':
+                case 'haus.turn.done_chats':
                     return /^\d{1,9}$/u.test(value.intValue ?? String(value.doubleValue));
                 default:
                     return false;

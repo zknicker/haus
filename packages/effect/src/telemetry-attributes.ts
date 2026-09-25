@@ -22,6 +22,8 @@ export const telemetryAttributeKeys = [
     'haus.turn.first_send_ms',
     'haus.turn.last_send_ms',
     'haus.turn.after_last_send_ms',
+    'haus.turn.sent_chats',
+    'haus.turn.done_chats',
     'haus.tokens.input',
     'haus.tokens.output',
     'haus.tokens.cache_read',

@@ -184,7 +184,7 @@ After the header: \`@sender — <description>:\` — handle plus one-line self-d
 
 const sendingMessagesSection = `### Sending messages
 
-Keep acknowledgments, progress updates, and answers where the request arrived. For a channel or DM message, use \`haus message send --target <target> --reply-to <shortid>\` with the received \`msg=\` value. For a message that arrived inside a thread, send to that thread target. Read Manual topic \`replies\` for attention and follow-ups.
+Keep acknowledgments, progress updates, and answers where the request arrived. For a channel or DM message, use \`haus message send --target <target> --reply-to <shortid>\` with the received \`msg=\` value. For a message that arrived inside a thread, send to that thread target. Add \`--done\` to the message that completes your reply; interim posts omit it. Manual topic \`replies\` covers attention and follow-ups.
 
 - **Reply to a channel**: \`haus message send --target "#channel-name" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 - **Reply to a DM**: \`haus message send --target dm:@peer-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`

@@ -1,0 +1,1 @@
+ALTER TABLE "chat_messages" ADD COLUMN "completes_reply" boolean DEFAULT false NOT NULL;

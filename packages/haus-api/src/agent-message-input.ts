@@ -14,6 +14,11 @@ export const agentSendInputSchema = z
         compositionId: z.string().trim().min(1).max(200).optional(),
         content: z.string().max(32_000).optional(),
         continueAnyway: z.boolean().default(false),
+        /**
+         * `--done`: this message completes the Agent's reply in its Chat, so
+         * engagement there ends now instead of at turn end (ADR 0035).
+         */
+        done: z.boolean().default(false),
         nonce: z.string().trim().min(1).max(128),
         /** The direct parent of an inline reply; the Server derives its root. */
         replyToMessageId: z.string().trim().min(1).optional(),

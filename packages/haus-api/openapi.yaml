@@ -1683,6 +1683,9 @@ components:
           items: { type: string, minLength: 1 }
         sendDraft: { type: boolean }
         continueAnyway: { type: boolean }
+        # `--done`: this message completes the Agent's reply in its Chat, so the
+        # Chat stops showing the Agent as typing now rather than at turn end.
+        done: { type: boolean }
         compositionId: { type: string, minLength: 1 }
         nonce: { type: string, minLength: 1 }
         # The Trigger or Reminder fire this message answers, recorded as

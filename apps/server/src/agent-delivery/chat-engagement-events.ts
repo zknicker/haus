@@ -1,6 +1,5 @@
 import EventEmitter, { on } from 'node:events';
 import {
-    type AgentLifecycleEvent,
     type ChatEngagementEndReason,
     type ChatEngagementEvent,
     chatEngagementEventSchema,
@@ -57,24 +56,24 @@ export async function announceRunEngagements(db: HausDatabase, run: RunIdentity)
 }
 
 /**
- * Ends engagement from the lifecycle facts that close it: an Agent message
- * committed into a Chat (`sending`) ends that Chat at once, and terminal turn
- * proof (`settled`) ends every Chat the run engaged.
+ * A `--done` send committed into a Chat ends the run's engagement there at once.
+ * Interim sends end nothing; settlement ends the rest.
  */
+export function endChatEngagement(run: RunIdentity, chatId: string) {
+    // A run this process never announced (a restarted Server) may still be
+    // engaged in a reader's recovered snapshot, so it ends anyway.
+    const chats = announced.get(run.runId);
+    if (!chats || chats.delete(chatId)) {
+        publishEnded(run, chatId, 'sent');
+    }
+}
+
+/** Terminal turn proof (`settled`) ends every Chat the run still engaged. */
 export function installChatEngagementProjector(
     db: HausDatabase,
     postCommitWork: Pick<ServerPostCommitWork, 'run'>
 ) {
     return onAgentLifecycle((event) => {
-        if (event.phase === 'sending') {
-            // A run this process never announced (a restarted Server) may still
-            // be engaged in a reader's recovered snapshot, so it ends anyway.
-            const chats = announced.get(event.runId);
-            if (!chats || chats.delete(event.chatId)) {
-                publishEnded(event, event.chatId, 'sent');
-            }
-            return;
-        }
         if (event.phase !== 'settled') {
             return;
         }
@@ -101,7 +100,7 @@ export async function* subscribeToChatEngagements(signal?: AbortSignal) {
     }
 }
 
-function publishEnded(event: AgentLifecycleEvent, chatId: string, reason: ChatEngagementEndReason) {
+function publishEnded(event: RunIdentity, chatId: string, reason: ChatEngagementEndReason) {
     publish({
         agentId: event.agentId,
         chatId,
