@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "description": "Labeled Agent reasoning excerpts and Codex status titles for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work.",
+  "cases": [
+    {
+      "id": "memory-first",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "I'm going to read my memory first. Let me open MEMORY.md and see what I've recorded about this workspace before doing anything else."
+    },
+    {
+      "id": "memory-index",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "Before I respond, I should check my MEMORY.md index and the notes files it points to so I have my standing context loaded."
+    },
+    {
+      "id": "claim-task",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "There's a new request in #product. I'm looking to claim a task for it so nobody else picks it up. Let me run haus task claim on that message."
+    },
+    {
+      "id": "task-board",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "Let me check the task board to see which tasks are assigned to me and whether any are still open from yesterday."
+    },
+    {
+      "id": "update-task-status",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "The work is finished, so I need to update the task status to done and make sure the assignee is still me."
+    },
+    {
+      "id": "inbox-check",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "I got an inbox notice with three new items. Let me run haus message check to read what's pending before I decide anything."
+    },
+    {
+      "id": "whether-to-reply",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "This message is an FYI from Zach about the offsite. I'm deciding whether to reply at all — it doesn't seem to ask anything of me, so staying silent is probably right."
+    },
+    {
+      "id": "read-manual",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "I don't remember the exact flags for scheduling a reminder. Let me search the Haus manual for the reminder-cron recipe and read it."
+    },
+    {
+      "id": "read-skill",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "Before emitting any visual fence I'm supposed to read the visuals skill. Let me load that skill file first so I follow the fence contract."
+    },
+    {
+      "id": "instructions",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "Let me re-read my instructions about threads to make sure I'm sending to the right target and following the placement rules."
+    },
+    {
+      "id": "orient-history",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "I was mentioned in a thread I haven't seen. Let me read the earlier messages in the thread to get oriented before anything else."
+    },
+    {
+      "id": "profile-self",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "Let me confirm who I am here with haus profile show and check which channels I've joined so I know my identity and handle."
+    },
+    {
+      "id": "title-claim",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm claiming the task"
+    },
+    {
+      "id": "title-memory",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm reviewing memory notes"
+    },
+    {
+      "id": "title-inbox",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm checking inbox messages"
+    },
+    {
+      "id": "title-reply-decision",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm deciding whether to respond"
+    },
+    {
+      "id": "sales-pull",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Zach wants last week's royalties by marketplace. Let me pull the sales report for Sep 15 to Sep 21 and group it by marketplace, then compare to the prior week."
+    },
+    {
+      "id": "chart-fix",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The chart is rendering with the wrong axis because the dates come back as strings. I need to parse them before building the series, then rerun the chart."
+    },
+    {
+      "id": "deploy-check",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The staging deploy failed on the migration step. Let me look at the CI log for the failing job and see whether the new column conflicts with the old default."
+    },
+    {
+      "id": "bid-review",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Looking at the Halloween campaign bids: spend is up 40% but conversions are flat, so the long-tail keywords are probably overbidding. I'll list the worst ten."
+    },
+    {
+      "id": "draft-email",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Maya asked for a reply to the supplier about the late shipment. I'll draft something firm but polite that asks for a new ship date and tracking."
+    },
+    {
+      "id": "memory-leak",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The worker's memory usage climbs every hour, which smells like a leak in the image cache. Let me profile the heap after a few hundred renders."
+    },
+    {
+      "id": "release-notes",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Tiny asked for release notes for v0.4. Let me go through the merged pull requests since the last tag and group them into fixes and features."
+    },
+    {
+      "id": "listing-title",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The Etsy title is too long for the ribbon shirt. I'll lead with the design name, then the product type, and drop the duplicate keyword at the end."
+    },
+    {
+      "id": "title-work",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm inspecting chart data"
+    },
+    {
+      "id": "title-tests",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm running the failing tests"
+    },
+    {
+      "id": "title-sales",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm comparing UK and US sales"
+    },
+    {
+      "id": "mixed-memory-sales",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Reading memory for Zach's chart preference, then pulling sales. He likes weekly bars rather than lines, so once I have the numbers I'll build a bar chart of last month by week."
+    },
+    {
+      "id": "mixed-claim-fix",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "I'll claim this one quickly and then get into the bug itself: the checkout total double-counts tax when a coupon is applied, so the discount has to be subtracted before tax."
+    },
+    {
+      "id": "mixed-thread-deploy",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Skimming the thread to see what Priya already tried — she restarted the queue worker, so the stuck jobs must be a lock problem. Let me query for jobs holding a lease past expiry."
+    },
+    {
+      "id": "mixed-manual-reminder",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Zach wants a reminder to check the Amazon ad budget every Monday. I checked the manual for the flags; now scheduling the weekly budget check on his message."
+    },
+    {
+      "id": "mixed-notes-invoice",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "My notes say the invoice template lives in the finance folder. Opening it now to fill in September's hours for the Acme invoice Maya asked for."
+    }
+  ]
+}
