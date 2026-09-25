@@ -4,10 +4,10 @@ import { chatFooterClearance } from './chat-footer-clearance.ts';
 
 /**
  * Bottom padding for a transcript viewport inside a `ChatFooterSurface`: the
- * measured footer plus a small gap, so the last message rests just above the
- * composer when scrolled to the end.
+ * measured footer plus room for a one-line thought bubble, so the last message
+ * rests clear of the composer and the bubble when scrolled to the end.
  */
-export const chatFooterClearanceClassName = 'pb-[calc(var(--chat-footer-height,0px)+1.5rem)]';
+export const chatFooterClearanceClassName = 'pb-[calc(var(--chat-footer-height,0px)+3rem)]';
 
 /**
  * A transcript region whose footer (the composer, or what replaces it) floats
