@@ -5,7 +5,7 @@ import {
     createHausServerApplication,
     type HausServerApplication,
 } from './haus-server-application.ts';
-import { createJevRouter } from './message-routing/jev.ts';
+import { createJevRouter } from './message-routing/jev-client.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
 import { createGeminiThoughtSummarizer } from './server-agents/agent-thought-summarizer.ts';
 import {

@@ -7,6 +7,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { readChannelHumanIds, readRoutingAgents, readRoutingState } from './context.ts';
 import type { MessageRouter, RoutingDecision, RoutingState } from './jev.ts';
+import type { MentionScopeDecision } from './mention-scope.ts';
 
 export type PreparedMessageRouting =
     | { kind: 'bypass'; reason: RoutingBypassReason }
@@ -17,6 +18,15 @@ export type PreparedMessageRouting =
           agentsFingerprint: string;
           candidateAgentIds: string[];
           decision: RoutingDecision;
+          elapsedMs: number;
+          sequence: number;
+      }
+    /** An @mention with unmentioned Agents also eligible: Jev judged whether it is for the mentioned alone. */
+    | {
+          kind: 'mention-judged';
+          agentsFingerprint: string;
+          candidateAgentIds: string[];
+          decision: MentionScopeDecision;
           elapsedMs: number;
           sequence: number;
       };
@@ -48,15 +58,16 @@ export async function prepareMessageRouting(
     if (agents.length > 32) {
         return bypass('context-limit');
     }
-    if (mentionedAgentIds(input.content, agents).size) {
-        return bypass('mention');
-    }
     const recipients = await planAgentMessageRecipients(db, {
         authorAgentId: null,
         chatId: input.chatId,
         content: input.content,
         serverId: input.serverId,
     });
+    const scope = { agents, chat, member, recipients, router };
+    if (mentionedAgentIds(input.content, agents).size) {
+        return await prepareMentionScope(db, input, scope);
+    }
     const [sole] = recipients;
     if (!sole) {
         return bypass('recipient-count');
@@ -98,6 +109,52 @@ export async function prepareMessageRouting(
     };
 }
 
+/**
+ * Mentioned Agents always receive the message. Jev only decides whether the
+ * unmentioned eligible Agents can be left out, so there is nothing to ask when
+ * every recipient is mentioned.
+ */
+async function prepareMentionScope(
+    db: HausDatabase,
+    input: Extract<ChatSendInput, { chatId: string }>,
+    scope: {
+        agents: Awaited<ReturnType<typeof readRoutingAgents>>;
+        chat: { lastMessageSequence: number };
+        member: HausUser;
+        recipients: Awaited<ReturnType<typeof planAgentMessageRecipients>>;
+        router: MessageRouter | undefined;
+    }
+): Promise<PreparedMessageRouting> {
+    const { agents, chat, recipients, router } = scope;
+    if (!(router && recipients.some((row) => !row.mentioned))) {
+        return bypass('mention');
+    }
+    const candidateAgentIds = recipients.map((row) => row.agentId).sort();
+    const state = await readRoutingState(db, {
+        serverId: input.serverId,
+        chatId: input.chatId,
+        sequence: chat.lastMessageSequence,
+        authorId: scope.member.id,
+        content: input.content,
+        agents,
+        eligibleAgentIds: candidateAgentIds,
+        explicitAgentIds: recipients.flatMap((row) => (row.mentioned ? [row.agentId] : [])),
+        allowEmptyHistory: true,
+    });
+    if (!state) {
+        return bypass('context-limit');
+    }
+    const started = performance.now();
+    return {
+        kind: 'mention-judged',
+        sequence: chat.lastMessageSequence,
+        agentsFingerprint: JSON.stringify(agents),
+        candidateAgentIds,
+        decision: await judgeMentionScopeSafely(router, state),
+        elapsedMs: Math.round(performance.now() - started),
+    };
+}
+
 /** Message shapes that keep their deterministic delivery before any read. */
 function shapeBypass(input: ChatSendInput): RoutingBypassReason | null {
     if ('thread' in input && input.thread) {
@@ -115,6 +172,17 @@ function shapeBypass(input: ChatSendInput): RoutingBypassReason | null {
 async function judgeSafely(router: MessageRouter, state: RoutingState): Promise<RoutingDecision> {
     try {
         return await router.judge(state);
+    } catch {
+        return { kind: 'broadcast', reason: 'failure' };
+    }
+}
+
+async function judgeMentionScopeSafely(
+    router: MessageRouter,
+    state: RoutingState
+): Promise<MentionScopeDecision> {
+    try {
+        return await router.judgeMentionScope(state);
     } catch {
         return { kind: 'broadcast', reason: 'failure' };
     }

@@ -76,6 +76,10 @@ export async function readRoutingState(
         eligibleAgentIds: string[];
         /** Channel members to list even when they are absent from the history window. */
         memberHumanIds?: string[];
+        /** Agents the current message @mentions; the mention-scope question judges around them. */
+        explicitAgentIds?: string[];
+        /** The mention-scope question can judge a channel's first message on its text alone. */
+        allowEmptyHistory?: boolean;
     }
 ): Promise<RoutingState | null> {
     const rows = await db
@@ -97,7 +101,7 @@ export async function readRoutingState(
         .orderBy(desc(chatMessagesTable.sequence))
         .limit(16);
     if (
-        !rows.length ||
+        !(rows.length || input.allowEmptyHistory) ||
         rows.reduce((size, row) => size + row.content.length, input.content.length) > 24_000
     ) {
         return null;
@@ -147,7 +151,7 @@ export async function readRoutingState(
         currentMessage: {
             authorId: input.authorId,
             text: input.content,
-            explicitAgentIds: [],
+            explicitAgentIds: input.explicitAgentIds ?? [],
             replyRecipientAgentIds: [],
         },
     };

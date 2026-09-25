@@ -5,6 +5,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { readChannelHumanIds, readRoutingAgents } from './context.ts';
 import { routingModel, routingPromptVersion, routingThreshold } from './jev.ts';
+import { mentionScopePromptVersion } from './mention-scope.ts';
 import type { PreparedMessageRouting } from './route-human-message.ts';
 
 interface RoutingCommit {
@@ -48,12 +49,16 @@ export async function applyMessageRouting(db: HausDatabase, input: RoutingCommit
             ...unjudgedAudit(candidateAgentIds),
             bypassReason: bypassReason(input, prepared.reason),
         };
+    } else if (prepared.kind === 'mention-judged') {
+        const stale = await isStale(db, input, prepared, candidateAgentIds);
+        const mentioned = recipients.filter((row) => row.mentioned);
+        // Mentioned rows already carry `addressedReason: 'mention'`; a confident
+        // judgment only drops the unmentioned channel Agents.
+        const narrowed = !stale && prepared.decision.kind === 'mentioned' && mentioned.length > 0;
+        finalRecipients = narrowed ? mentioned : recipients;
+        audit = mentionAudit(prepared, finalRecipients, stale, narrowed);
     } else {
-        const stale =
-            input.sequence !== prepared.sequence ||
-            JSON.stringify(candidateAgentIds) !== JSON.stringify(prepared.candidateAgentIds) ||
-            JSON.stringify(await readRoutingAgents(db, input.serverId, input.chatId)) !==
-                prepared.agentsFingerprint;
+        const stale = await isStale(db, input, prepared, candidateAgentIds);
         const decision = prepared.decision;
         const selected =
             decision.kind === 'narrow'
@@ -72,6 +77,24 @@ export async function applyMessageRouting(db: HausDatabase, input: RoutingCommit
         .set({ deliveryRouting: audit })
         .where(eq(chatMessagesTable.id, input.messageId));
     return finalRecipients;
+}
+
+/**
+ * A judgment made before the transaction applies only to the same snapshot:
+ * message sequence, eligible recipients, and active Agent metadata.
+ */
+async function isStale(
+    db: HausDatabase,
+    input: RoutingCommit,
+    prepared: Extract<PreparedMessageRouting, { kind: 'judged' | 'mention-judged' }>,
+    candidateAgentIds: string[]
+) {
+    return (
+        input.sequence !== prepared.sequence ||
+        JSON.stringify(candidateAgentIds) !== JSON.stringify(prepared.candidateAgentIds) ||
+        JSON.stringify(await readRoutingAgents(db, input.serverId, input.chatId)) !==
+            prepared.agentsFingerprint
+    );
 }
 
 function unjudgedAudit(candidateAgentIds: string[]): MessageRoutingAudit {
@@ -113,6 +136,35 @@ function judgedAudit(
         confidence: decision.confidence ?? null,
         probability: decision.probability ?? null,
         choice: decision.kind === 'narrow' ? decision.agentId : (decision.choice ?? null),
+        threshold: routingThreshold,
+        elapsedMs: prepared.elapsedMs,
+    };
+}
+
+/** `bypassReason: 'mention'` records that the mention-scope question ran instead of the audience question. */
+function mentionAudit(
+    prepared: Extract<PreparedMessageRouting, { kind: 'mention-judged' }>,
+    recipients: AgentMessageRecipientPlan[],
+    stale: boolean,
+    narrowed: boolean
+): MessageRoutingAudit {
+    const { decision } = prepared;
+    return {
+        model: routingModel,
+        promptVersion: mentionScopePromptVersion,
+        bypassReason: 'mention',
+        outcome: stale
+            ? 'stale'
+            : decision.kind === 'broadcast'
+              ? decision.reason
+              : narrowed
+                ? 'mentioned'
+                : 'invalid',
+        candidateAgentIds: prepared.candidateAgentIds,
+        recipientAgentIds: recipients.map((row) => row.agentId),
+        confidence: decision.confidence ?? null,
+        probability: decision.probability ?? null,
+        choice: decision.kind === 'mentioned' ? 'mentioned' : (decision.choice ?? null),
         threshold: routingThreshold,
         elapsedMs: prepared.elapsedMs,
     };

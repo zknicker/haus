@@ -21,6 +21,7 @@ export const messageRoutingAuditSchema = z
         recipientAgentIds: z.array(idSchema),
         outcome: z.enum([
             'narrow',
+            'mentioned',
             'uncertain',
             'failure',
             'timeout',

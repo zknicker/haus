@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { MentionScopeDecision } from './mention-scope.ts';
 
 export interface RoutingState {
     channel: {
@@ -37,6 +38,8 @@ export type RoutingDecision =
       };
 export interface MessageRouter {
     judge(state: RoutingState): Promise<RoutingDecision>;
+    /** Whether a message that @mentions Agents is for those Agents alone. */
+    judgeMentionScope(state: RoutingState): Promise<MentionScopeDecision>;
 }
 export const routingModel = 'jev-1.13.0';
 export const routingPromptVersion = 'v2';
@@ -53,38 +56,6 @@ const answerSchema = z.object({
         }),
     }),
 });
-
-export function createJevRouter(
-    apiKey: string,
-    request: (url: string, init: RequestInit) => Promise<Response> = fetch
-): MessageRouter {
-    return {
-        async judge(state) {
-            const signal = AbortSignal.timeout(1500);
-            try {
-                const response = await request('https://api.typesafe.ai/v1/systemone', {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: routingModel,
-                        state,
-                        questions: routingQuestions(state),
-                    }),
-                    signal,
-                });
-                if (!response.ok) {
-                    return { kind: 'broadcast', reason: 'failure' };
-                }
-                return decodeRoutingDecision(await response.json(), state.eligibleAgentIds);
-            } catch {
-                return { kind: 'broadcast', reason: signal.aborted ? 'timeout' : 'failure' };
-            }
-        },
-    };
-}
 
 export function decodeRoutingDecision(value: unknown, ids: string[]): RoutingDecision {
     const parsed = answerSchema.safeParse(value);
