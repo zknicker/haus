@@ -11,7 +11,7 @@ import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@haus/
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
-import { Cause, Data, Effect, Exit, Stream } from 'effect';
+import { Cause, Effect, Exit } from 'effect';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
@@ -20,10 +20,7 @@ import {
     claimClaudeSdkUsageRefresh,
     saveClaudePlanUsageSnapshot,
 } from '../usage/claude-plan-usage-state.ts';
-import {
-    type createComputerActivityProjector,
-    createHarnessActivityProjector,
-} from './activity-projector.ts';
+import { createHarnessActivityProjector } from './activity-projector.ts';
 import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
 import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
 import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
@@ -45,16 +42,11 @@ import {
 } from './session-store.ts';
 import { readAgentSkills } from './skills.ts';
 import { createNoticeDelivery } from './steer-inbox-notice.ts';
-import { createNoticeCoordinator, deliverStoredNotice, type ToolGate } from './stored-notice.ts';
-import {
-    addTokenUsage,
-    type HarnessTokenUsage,
-    readClaudePlanUsageMetadata,
-    readTokenUsage,
-    usageContextTokens,
-} from './token-usage.ts';
+import { createNoticeCoordinator, deliverStoredNotice } from './stored-notice.ts';
+import type { HarnessTokenUsage } from './token-usage.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
 import { attestComposedDrain, composeTurnPrompt, type TurnDelivery } from './turn-prompt.ts';
+import { HarnessStreamForeignError, observeTurnStream } from './turn-stream.ts';
 
 /** Drives one isolated, persistent Codex, Claude Code, Grok Build, or Pi Agent session. */
 export interface HarnessTurnInput extends TurnDelivery {
@@ -93,6 +85,7 @@ export interface HarnessTurnResult {
 }
 
 export type { HarnessTokenUsage } from './token-usage.ts';
+export { HarnessTurnFailedError } from './turn-stream.ts';
 
 /** Resume was rejected; the caller rotates the generation and cold-starts once. */
 export class AgentSessionResumeRejectedError extends Error {
@@ -104,24 +97,6 @@ export class AgentSessionResumeRejectedError extends Error {
         this.name = 'AgentSessionResumeRejectedError';
     }
 }
-
-/** A settled provider failure that may still have billable token usage. */
-export class HarnessTurnFailedError extends Error {
-    constructor(
-        readonly tokenUsage: HarnessTokenUsage | null,
-        options: { cause: unknown }
-    ) {
-        super(
-            options.cause instanceof Error ? options.cause.message : String(options.cause),
-            options
-        );
-        this.name = 'HarnessTurnFailedError';
-    }
-}
-
-class HarnessStreamForeignError extends Data.TaggedError('HarnessStreamForeignError')<{
-    readonly cause: unknown;
-}> {}
 
 function journalOutcome(
     exit: Exit.Exit<HarnessTurnResult, HarnessStreamForeignError>,
@@ -544,170 +519,6 @@ async function clearPendingCoveGuidanceRefresh(agentRoot: string): Promise<void>
 
 function coveGuidanceRefreshReceiptPath(agentRoot: string): string {
     return join(agentRoot, 'runtime', 'cove-guidance-refresh.json');
-}
-
-/** Observes execution evidence and terminal state; durable replies leave through the CLI. */
-async function observeTurnStream(
-    stream: AsyncIterable<unknown>,
-    toolCalls: ToolGate | undefined,
-    projector: ReturnType<typeof createComputerActivityProjector> | undefined,
-    {
-        onFirstPart,
-        onToolCall,
-        runtime,
-        signal,
-        stallLabel,
-        stallAfterMs = 120_000,
-    }: {
-        onFirstPart?: () => void | Promise<void>;
-        onToolCall?: () => void;
-        runtime: DaemonRuntime;
-        signal?: AbortSignal;
-        stallAfterMs?: number;
-        stallLabel?: string;
-    }
-): Promise<HarnessTurnResult> {
-    let contextTokens: number | null = null;
-    let finalTokenUsage: HarnessTokenUsage | null = null;
-    let claudePlanUsage: ClaudeUsageSnapshot | null = null;
-    let stepTokenUsage: HarnessTokenUsage | null = null;
-    let streamError: unknown;
-    let aborted = false;
-    // Last-part timing distinguishes provider silence from a bridge that never emitted.
-    let lastPartAt = Date.now();
-    let lastPartType = 'none yet';
-    let partCount = 0;
-    const consume = Stream.fromAsyncIterable(
-        stream,
-        (cause) => new HarnessStreamForeignError({ cause })
-    ).pipe(
-        Stream.runForEach((part) =>
-            Effect.tryPromise({
-                catch: (cause) => new HarnessStreamForeignError({ cause }),
-                try: async () => {
-                    if (!isRecord(part) || typeof part.type !== 'string') {
-                        return;
-                    }
-                    lastPartAt = Date.now();
-                    lastPartType = part.type;
-                    partCount += 1;
-                    if (partCount === 1) {
-                        await onFirstPart?.();
-                    }
-                    switch (part.type) {
-                        case 'raw':
-                        case 'reasoning-delta':
-                        case 'reasoning-end':
-                        case 'reasoning-start':
-                            await projector?.observe(part);
-                            return;
-                        case 'tool-call':
-                            onToolCall?.();
-                            toolCalls?.toolCallStarted(part);
-                            await projector?.observe(part);
-                            return;
-                        case 'tool-error':
-                        case 'tool-result':
-                            await projector?.observe(part);
-                            await toolCalls?.toolCallSettled(part);
-                            return;
-                        case 'finish-step':
-                            contextTokens = usageContextTokens(part.usage) ?? contextTokens;
-                            stepTokenUsage = addTokenUsage(
-                                stepTokenUsage,
-                                readTokenUsage(part.usage)
-                            );
-                            return;
-                        case 'finish':
-                            contextTokens = usageContextTokens(part.totalUsage) ?? contextTokens;
-                            finalTokenUsage = readTokenUsage(part.totalUsage);
-                            claudePlanUsage = readClaudePlanUsageMetadata(part.providerMetadata);
-                            return;
-                        case 'error':
-                            streamError ??= part.error ?? new Error('Harness stream failed.');
-                            return;
-                        case 'abort':
-                            aborted = true;
-                            return;
-                        default:
-                            return;
-                    }
-                },
-            })
-        ),
-        Effect.catchAll((failure) =>
-            Effect.sync(() => {
-                streamError ??= failure.cause;
-            })
-        )
-    );
-    const watchdog = Effect.sleep('60 seconds').pipe(
-        Effect.andThen(
-            Effect.sync(() => Date.now() - lastPartAt).pipe(
-                Effect.flatMap((silentForMs) =>
-                    stallLabel && silentForMs >= stallAfterMs
-                        ? Effect.logWarning('Harness turn stream stalled.').pipe(
-                              Effect.annotateLogs({
-                                  event: 'harness-turn-stream-stalled',
-                                  eventCount: partCount,
-                                  lastEventType: lastPartType,
-                                  silentSeconds: Math.round(silentForMs / 1000),
-                                  stallLabel,
-                              })
-                          )
-                        : Effect.void
-                )
-            )
-        ),
-        Effect.forever
-    );
-    const program = Effect.scoped(
-        Effect.gen(function* () {
-            if (stallLabel) {
-                yield* Effect.forkScoped(watchdog);
-            }
-            yield* consume;
-            const tokenUsage = finalTokenUsage ?? stepTokenUsage;
-            if (aborted) {
-                yield* finishProjector(projector, 'interrupted', streamError);
-                return { aborted: true, claudePlanUsage, contextTokens, tokenUsage };
-            }
-            if (streamError) {
-                yield* finishProjector(projector, 'failed', streamError);
-                return yield* Effect.fail(
-                    new HarnessTurnFailedError(tokenUsage, { cause: streamError })
-                );
-            }
-            yield* finishProjector(projector, 'completed');
-            return { aborted: false, claudePlanUsage, contextTokens, tokenUsage };
-        })
-    ).pipe(
-        Effect.onInterrupt(() =>
-            finishProjector(projector, 'interrupted', streamError).pipe(Effect.ignore)
-        )
-    );
-    return await settle(runtime, program, {
-        mapFailure: (failure) =>
-            failure instanceof HarnessStreamForeignError ? failure.cause : failure,
-        onInterrupted: () => ({
-            aborted: true,
-            claudePlanUsage,
-            contextTokens,
-            tokenUsage: finalTokenUsage ?? stepTokenUsage,
-        }),
-        signal,
-    });
-}
-
-function finishProjector(
-    projector: ReturnType<typeof createComputerActivityProjector> | undefined,
-    phase: 'completed' | 'failed' | 'interrupted',
-    error?: unknown
-) {
-    return Effect.tryPromise({
-        catch: (cause) => new HarnessStreamForeignError({ cause }),
-        try: () => projector?.finish(phase, error) ?? Promise.resolve(),
-    });
 }
 
 // Tests inject a fake Agent at this construction seam.

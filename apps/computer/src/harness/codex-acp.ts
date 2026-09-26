@@ -3,6 +3,7 @@ import { createACP } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import * as z from 'zod';
 import { codexAcpImplementationFiles } from './codex-acp-bootstrap.ts';
+import { typedSessionFailureClientCapabilities } from './runtime-session-failure.ts';
 
 type CodexReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 interface CodexAcpSettings {
@@ -23,6 +24,8 @@ export function createCodexAcp(settings: CodexAcpSettings) {
     }
     return createACP({
         builtinTools: codexBuiltinTools,
+        // Provider failures arrive typed instead of as assistant text beside `end_turn`.
+        clientCapabilities: typedSessionFailureClientCapabilities,
         env: codexAcpEnvironment(settings),
         executable: 'codex-acp',
         harnessId: 'codex',

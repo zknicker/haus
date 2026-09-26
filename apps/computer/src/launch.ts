@@ -30,9 +30,7 @@ import { createComputerTools } from './computer-tools.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
 import {
-    AgentSessionResumeRejectedError,
     type HarnessAgentFactory,
-    HarnessTurnFailedError,
     type NoticeSinkRegistrar,
     runHarnessTurn,
 } from './harness/executor.ts';
@@ -46,8 +44,9 @@ import { readRunVisibleMessages } from './inbox-store.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
-import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
+import type { RuntimeFailureKind } from './runtime-failure.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
+import { reportHarnessTurnFailure } from './turn-failure-report.ts';
 import { visibilityReceipt } from './visibility-receipt.ts';
 import { writeHausWrapper } from './wrapper.ts';
 
@@ -600,14 +599,7 @@ async function runRealRuntime(
         };
     } catch (error) {
         await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
-        const failure = error instanceof HarnessTurnFailedError ? error.cause : error;
-        return {
-            failureKind:
-                failure instanceof AgentSessionResumeRejectedError
-                    ? 'session-resume'
-                    : classifyRuntimeFailure(failure),
-            status: 'failed',
-            tokenUsage: error instanceof HarnessTurnFailedError ? error.tokenUsage : null,
-        };
+        const { agentId, runId, runtimeId } = command;
+        return await reportHarnessTurnFailure(input.runtime, { agentId, runId, runtimeId }, error);
     }
 }

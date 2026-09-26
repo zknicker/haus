@@ -1,3 +1,5 @@
+import { RuntimeSessionFailureError } from './harness/runtime-session-failure.ts';
+
 export type RuntimeFailureKind =
     | 'authentication'
     | 'configuration'
@@ -9,10 +11,14 @@ export type RuntimeFailureKind =
     | 'unknown';
 
 export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
+    // A typed runtime failure names a rejected credential by category; its title may not.
+    if (error instanceof RuntimeSessionFailureError && error.category === 'access') {
+        return 'authentication';
+    }
     const message = runtimeErrorMessage(error);
     const normalized = message.toLowerCase();
     if (
-        /not logged in|sign.?in required|unauthorized|authentication|invalid (?:api key|\w+ credentials)|oauth|\b401\b/u.test(
+        /not logged in|sign.?in required|unauthorized|authentication|(?:invalid|incorrect) (?:api key|\w+ credentials)|invalid_api_key|oauth|\b401\b/u.test(
             normalized
         )
     ) {
