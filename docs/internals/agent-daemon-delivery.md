@@ -6,6 +6,7 @@ read_when:
   - changing accepted, served, or seen semantics, or the retained delivery ledger
   - changing which visibility writes or lifecycle facts start and end chat engagement
   - changing Agent-authored chain limits or turn failure retry policy
+  - changing how runtime provider or authentication failures are detected
 ---
 
 # Agent Daemon And Delivery
@@ -290,8 +291,26 @@ Authentication, invalid model/runtime configuration, and oversized input
 failures degrade immediately because retrying cannot repair them. Rate limits,
 timeouts, transport failures, and unknown failures use the bounded retry
 policy. A human Restart clears the failure hold and redrives queued work without
-rotating the Agent's session. Raw failure evidence remains Computer-local; the
-compact failure kind crosses the Server boundary.
+rotating the Agent's session; so does any new message, which is why the
+next human message re-enables the Agent. Raw failure evidence remains Computer-local; the
+compact failure kind crosses the Server boundary, and Computer logs one
+`harness-turn-failed` line with the Agent, run, runtime, and kind.
+
+A provider failure must settle the turn as failed even when the runtime ends
+it normally. codex-acp does that by default: it reports a provider error as
+assistant text beside `end_turn`. Computer therefore advertises codex-acp's
+typed session-failure capability (`_meta.jetbrains.air.sessionFailure`), and
+the turn stream fails on a terminal failure (`severity: error`, carried on the
+prompt response) and on a retry warning whose category is `access`. Codex
+retries a rejected credential five times per transport, roughly 30 seconds, so
+Computer stops reading at the first such warning and cancels the runtime turn.
+Other retry warnings stay transient and let Codex finish its own retries.
+Claude Code's bridge already ends a 401, 403, or 404 without retrying.
+
+An `authentication` failure also records the runtime's issue in
+`runtime-health/<runtime>.json`. The Computer report sent after every settled
+turn carries it to the Server, and the App shows it as the Agent's sign-in
+prompt beside the `error` availability; the next completed turn clears it.
 
 Computer validates committed action results with the shared Haus API schema.
 A rejected start whose run, Agent, runtime, and model identities remain valid
@@ -356,6 +375,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | `agent.turns` and `agent.deliveries` are member-scoped and deny as `NOT_FOUND` | `apps/server/test/haus-agent-observability.test.ts` |
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
+| A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, opt-in `apps/computer/src/harness/codex-auth-live.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
 | `As Task` enters the inbox with canonical task metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
 | Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/haus-agent-run.test.ts` |
