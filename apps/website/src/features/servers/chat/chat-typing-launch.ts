@@ -1,14 +1,15 @@
 import type { AgentActivityCategory, AgentActivityEvent, ChatEngagement } from '@haus/api';
 
 /** A face that launches from the typing dots when an engaged Agent starts a kind of work. */
-export type ChatTypingFace = '🤔' | '🧐' | '🤓' | '🫣' | '😤' | '🫡' | '🙂‍↕️' | '😯' | '😵‍💫' | '😊';
+export type ChatTypingFace = '🤔' | '🧐' | '🤓' | '🫣' | '😤' | '🫡' | '🙂‍↕️' | '😵‍💫' | '😊' | '👀';
 
 export const chatTypingFailedFace = '😵‍💫';
 export const chatTypingSentFace = '😊';
+/** An engagement that settled without a reply here: read it, nothing to add. */
+export const chatTypingReadFace = '👀';
 
 const startedFaces: Partial<Record<AgentActivityCategory, ChatTypingFace>> = {
     browsing: '🫣',
-    checking_messages: '😯',
     editing_files: '😤',
     reading_files: '🧐',
     running_command: '🫡',
@@ -19,7 +20,8 @@ const startedFaces: Partial<Record<AgentActivityCategory, ChatTypingFace>> = {
 
 /**
  * The face for one committed activity event, or null. Only a started kind of
- * work launches; any failure launches the dizzy face. Reasoning text never
+ * work launches; any failure launches the dizzy face. `checking_messages` and
+ * `sending_message` are the Agent's own Haus bookkeeping and launch nothing. Reasoning text never
  * reaches the App (ADR 0023); only the prototype's condensed thought phrases
  * do, as a separate bubble (ADR 0036).
  */
@@ -43,25 +45,47 @@ export function isEngagedActivity(
 }
 
 export const chatTypingLaunchIntervalMs = 350;
+/** No two faces start closer than this, priority faces included. */
+export const chatTypingLaunchMinGapMs = 200;
 export const chatTypingLaunchCap = 6;
 
+export interface ChatTypingLaunchGate {
+    inFlight: number;
+    lastFace: ChatTypingFace | null;
+    /** When the latest admitted face starts, which may be a scheduled moment. */
+    lastLaunchAt: number | null;
+}
+
 /**
- * Admits at most one launch per interval and a bounded number in flight;
- * extras are dropped, not queued. Sent and failed faces skip the interval.
+ * The delay before a face may start, or null to drop it. Work faces launch at
+ * most once per interval and extras are dropped. Reply, read, and failure
+ * faces skip the interval but wait out the minimum gap, so they always show
+ * without landing on top of another face; the same face twice inside the
+ * interval is dropped either way.
  */
 export function admitChatTypingLaunch(
-    state: { inFlight: number; lastLaunchAt: number | null },
+    state: ChatTypingLaunchGate,
     now: number,
     face: ChatTypingFace
-) {
+): number | null {
     if (state.inFlight >= chatTypingLaunchCap) {
-        return false;
+        return null;
     }
-    if (face === chatTypingSentFace || face === chatTypingFailedFace) {
-        return true;
+    const since = state.lastLaunchAt === null ? Number.POSITIVE_INFINITY : now - state.lastLaunchAt;
+    if (face === state.lastFace && since < chatTypingLaunchIntervalMs) {
+        return null;
     }
-    return state.lastLaunchAt === null || now - state.lastLaunchAt >= chatTypingLaunchIntervalMs;
+    if (priorityFaces.has(face)) {
+        return Math.max(0, chatTypingLaunchMinGapMs - since);
+    }
+    return since >= chatTypingLaunchIntervalMs ? 0 : null;
 }
+
+const priorityFaces = new Set<ChatTypingFace>([
+    chatTypingSentFace,
+    chatTypingFailedFace,
+    chatTypingReadFace,
+]);
 
 export interface ChatTypingLaunchPath {
     durationMs: number;

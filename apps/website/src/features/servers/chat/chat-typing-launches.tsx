@@ -33,28 +33,61 @@ export function useChatTypingLauncher(): ChatTypingLauncher {
     const gate = React.useRef({
         direction: 1 as 1 | -1,
         inFlight: 0,
+        lastFace: null as ChatTypingFace | null,
         lastLaunchAt: null as number | null,
         lastOrigin: null as { x: number; y: number } | null,
         nextId: 0,
     });
+    const timers = React.useRef(new Set<ReturnType<typeof setTimeout>>());
 
-    const launch = React.useCallback((face: ChatTypingFace) => {
+    const start = React.useCallback((face: ChatTypingFace) => {
         const state = gate.current;
-        const now = performance.now();
         // The dots are gone once typing ends; a reply's face still rises from
         // where they were.
         const origin = measureDotsCenter(stripRef.current, dotsRef.current) ?? state.lastOrigin;
-        if (!(origin && admitChatTypingLaunch(state, now, face))) {
+        if (!origin) {
+            state.inFlight = Math.max(0, state.inFlight - 1);
             return;
         }
         const path = planChatTypingLaunch(state.direction);
         state.direction = path.dx < 0 ? -1 : 1;
-        state.inFlight += 1;
-        state.lastLaunchAt = now;
         state.lastOrigin = origin;
         state.nextId += 1;
         const next = { face, id: state.nextId, origin, path };
         setLaunches((current) => [...current, next]);
+    }, []);
+
+    const launch = React.useCallback(
+        (face: ChatTypingFace) => {
+            const state = gate.current;
+            const now = performance.now();
+            const delay = admitChatTypingLaunch(state, now, face);
+            if (delay === null) {
+                return;
+            }
+            state.inFlight += 1;
+            state.lastFace = face;
+            state.lastLaunchAt = now + delay;
+            if (delay === 0) {
+                start(face);
+                return;
+            }
+            // A reply or failure face waits out the gap rather than stacking on another.
+            const timer = setTimeout(() => {
+                timers.current.delete(timer);
+                start(face);
+            }, delay);
+            timers.current.add(timer);
+        },
+        [start]
+    );
+    React.useEffect(() => {
+        const pending = timers.current;
+        return () => {
+            for (const timer of pending) {
+                clearTimeout(timer);
+            }
+        };
     }, []);
 
     const finish = React.useCallback((id: number) => {
