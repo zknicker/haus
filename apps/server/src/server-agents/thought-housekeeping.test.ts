@@ -12,6 +12,11 @@ test('drops the Agent’s own process from the fallback', () => {
         'Re-read my instructions about threads',
         'Before emitting a fence I should read the visuals skill',
         "I'm deciding whether to reply at all",
+        "I'm drafting that quick availability reply",
+        'Drafting a quick availability reply for them',
+        'Ah, let me double-check this draft first',
+        "I'm reviewing my draft response",
+        'Composing the final answer',
     ]) {
         expect(isHousekeepingThought(text)).toBe(true);
     }
@@ -26,6 +31,10 @@ test('keeps work on the request, including mixed and look-alike nouns', () => {
         'Zach wants a reminder to check the Amazon ad budget',
         // Only the leading sentence is judged, so later housekeeping never hides the work.
         'Parsing the date strings first. Then I will update the task status.',
+        'Drafting a firm reply to the supplier about the late shipment',
+        'Writing the reply for Maya to send the supplier',
+        'Checking the API response time for the NYC forecast',
+        'Double-checking the dates',
     ]) {
         expect(isHousekeepingThought(text)).toBe(false);
     }

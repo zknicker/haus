@@ -64,6 +64,22 @@ describe('phrase finishing', () => {
         expect(finishThoughtPhrase('Sending it to the')).toBe('Sending it');
     });
 
+    test('drops a trailing "now" or "right now" filler', () => {
+        expect(finishThoughtPhrase('Checking the NYC forecast right now')).toBe(
+            'Checking the NYC forecast'
+        );
+        expect(finishThoughtPhrase("I'm drafting that quick availability reply now.")).toBe(
+            "I'm drafting that quick availability reply"
+        );
+        expect(finishThoughtPhrase('Now comparing Saturday and Sunday')).toBe(
+            'Now comparing Saturday and Sunday'
+        );
+        expect(finishThoughtPhrase('Checking which build is live now for Zach')).toBe(
+            'Checking which build is live now for Zach'
+        );
+        expect(finishThoughtPhrase('Now')).toBe('Now');
+    });
+
     test('keeps curly-apostrophe possessives as one word', () => {
         expect(finishThoughtPhrase('Inspecting the app’s main window')).toBe(
             "Inspecting the app's main window"
@@ -79,7 +95,7 @@ describe('phrase finishing', () => {
                 'Using fake_live_4eC39HqLyjWDarjtT1zdp7dc to call https://api.example.com as ops@example.com'
             )
         ).toBe('Using to call');
-        expect(finishThoughtPhrase('Reading ~/secrets/.env now')).toBe('Reading now');
+        expect(finishThoughtPhrase('Reading ~/secrets/.env')).toBe('Reading');
     });
 
     test('stays within the length cap and drops empty results', () => {

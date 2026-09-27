@@ -136,6 +136,35 @@ describe('Gemini thought summarizer', () => {
         }
     });
 
+    test('skips a line about drafting its own reply and strips trailing "now"', async () => {
+        const drafting = createGeminiThoughtSummarizer({
+            apiKey: 'k',
+            fetch: fakeGemini(async () => answer("I'm drafting that quick availability reply now"))
+                .fetcher,
+        });
+        expect(
+            await drafting.summarize({
+                kind: 'reasoning',
+                reasoning: "I'll draft a quick reply saying I can help.",
+            })
+        ).toEqual({ kind: 'skip' });
+        const filler = createGeminiThoughtSummarizer({
+            apiKey: 'k',
+            fetch: fakeGemini(async () => answer('Checking NYC weather conditions right now'))
+                .fetcher,
+        });
+        expect(await filler.summarize({ kind: 'title', title: 'Checking the weather' })).toEqual({
+            kind: 'phrase',
+            text: 'Checking NYC weather conditions',
+        });
+    });
+
+    test('keeps openings mostly pronoun-free', () => {
+        const iOpenings = thoughtOpenings.filter((opening) => opening.startsWith('Start with "I'));
+        expect(iOpenings.length / thoughtOpenings.length).toBeLessThanOrEqual(1 / 3);
+        expect(thoughtOpenings.some((opening) => /"Now"/u.test(opening))).toBe(false);
+    });
+
     test('asks for a title in the same request shape and instructs SKIP for housekeeping', async () => {
         const gemini = fakeGemini(async () => answer('Now inspecting the chart data'));
         const summarizer = createGeminiThoughtSummarizer({
@@ -158,5 +187,7 @@ describe('Gemini thought summarizer', () => {
         const system = JSON.stringify(call?.body.systemInstruction);
         expect(system).toContain('Reply with exactly SKIP');
         expect(system).toContain('claiming, assigning, or updating tasks');
+        expect(system).toContain('its own chat reply');
+        expect(system).not.toContain('right now for');
     });
 });
