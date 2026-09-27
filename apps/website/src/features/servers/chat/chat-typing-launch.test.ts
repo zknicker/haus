@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import type { AgentActivityCategory } from '@haus/api';
 import {
     admitChatTypingLaunch,
+    type ChatTypingFace,
     chatTypingLaunchCap,
     isEngagedActivity,
     planChatTypingLaunch,
@@ -16,12 +17,12 @@ test.each([
     ['editing_files', '😤'],
     ['running_command', '🫡'],
     ['using_tool', '🙂‍↕️'],
-    ['checking_messages', '😯'],
 ] as const)('a started %s launches %s', (category, face) => {
     expect(resolveChatTypingFace({ category, phase: 'started' })).toBe(face);
 });
 
 const unmapped: AgentActivityCategory[] = [
+    'checking_messages',
     'starting_work',
     'working',
     'sending_message',
@@ -51,21 +52,44 @@ test('an activity launches only from the run engaging this Chat', () => {
     expect(isEngagedActivity([], { agentId: 'agt_juniper', runId: 'run_here' })).toBe(false);
 });
 
-test('launches are throttled to one per 350ms and extras are dropped', () => {
-    const idle = { inFlight: 0, lastLaunchAt: null };
-    expect(admitChatTypingLaunch(idle, 1000, '🤔')).toBe(true);
-    const recent = { inFlight: 1, lastLaunchAt: 1000 };
-    expect(admitChatTypingLaunch(recent, 1349, '🧐')).toBe(false);
-    expect(admitChatTypingLaunch(recent, 1350, '🧐')).toBe(true);
+const idle = { inFlight: 0, lastFace: null, lastLaunchAt: null };
+const after = (face: ChatTypingFace, at: number) => ({
+    inFlight: 1,
+    lastFace: face,
+    lastLaunchAt: at,
 });
 
-test('sent and failed faces skip the throttle but not the in-flight cap', () => {
-    const recent = { inFlight: 1, lastLaunchAt: 1000 };
-    expect(admitChatTypingLaunch(recent, 1001, '😊')).toBe(true);
-    expect(admitChatTypingLaunch(recent, 1001, '😵‍💫')).toBe(true);
-    const full = { inFlight: chatTypingLaunchCap, lastLaunchAt: 0 };
-    expect(admitChatTypingLaunch(full, 5000, '🤔')).toBe(false);
-    expect(admitChatTypingLaunch(full, 5000, '😊')).toBe(false);
+test('work faces are throttled to one per 350ms and extras are dropped', () => {
+    expect(admitChatTypingLaunch(idle, 1000, '🤔')).toBe(0);
+    expect(admitChatTypingLaunch(after('🤔', 1000), 1349, '🧐')).toBeNull();
+    expect(admitChatTypingLaunch(after('🤔', 1000), 1350, '🧐')).toBe(0);
+});
+
+test('reply, read, and failure faces skip the throttle but wait out a 200ms gap', () => {
+    // The spot test's 🫡 then 😵‍💫 310ms later now launches at once…
+    expect(admitChatTypingLaunch(after('🫡', 1000), 1310, '😵‍💫')).toBe(0);
+    // …and a failure 10ms after a command face waits until 200ms have passed.
+    expect(admitChatTypingLaunch(after('🫡', 1000), 1010, '😵‍💫')).toBe(190);
+    expect(admitChatTypingLaunch(after('🫡', 1000), 1001, '😊')).toBe(199);
+    expect(admitChatTypingLaunch(after('🫡', 1000), 1100, '👀')).toBe(100);
+});
+
+test('the same face twice within 350ms is dropped, priority faces included', () => {
+    expect(admitChatTypingLaunch(after('😵‍💫', 1000), 1010, '😵‍💫')).toBeNull();
+    expect(admitChatTypingLaunch(after('😵‍💫', 1000), 1350, '😵‍💫')).toBe(0);
+    expect(admitChatTypingLaunch(after('🫡', 1000), 1200, '🫡')).toBeNull();
+});
+
+test('a face scheduled into the future holds back the next one', () => {
+    // A failure scheduled for 1200 blocks a work face until 1550.
+    expect(admitChatTypingLaunch(after('😵‍💫', 1200), 1300, '🤔')).toBeNull();
+    expect(admitChatTypingLaunch(after('😵‍💫', 1200), 1300, '😊')).toBe(100);
+});
+
+test('the in-flight cap drops every face', () => {
+    const full = { inFlight: chatTypingLaunchCap, lastFace: null, lastLaunchAt: 0 };
+    expect(admitChatTypingLaunch(full, 5000, '🤔')).toBeNull();
+    expect(admitChatTypingLaunch(full, 5000, '😊')).toBeNull();
 });
 
 test('a launch arcs within its ranges and mostly flips direction', () => {
