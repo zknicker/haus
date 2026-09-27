@@ -1,4 +1,5 @@
 import { getTranscriptItemKey } from './chat-transcript-item-utils.ts';
+import { markRepeatedReplyReferences } from './inline-reply-reference.ts';
 import type {
     TranscriptActiveReply,
     TranscriptActor,
@@ -39,6 +40,8 @@ export interface TranscriptTurnEntry {
     // Server-truth turn identity from the owning response, when rows carry
     // it. Live tail items and legacy rows fall back to grouping heuristics.
     responseId: string | null;
+    // False when an inline reply continues its author's previous reply.
+    showReplyReference: boolean;
     timestamp: string | null;
 }
 
@@ -94,6 +97,7 @@ export function buildTranscriptEntries(input: {
             kind: 'turn',
             participant,
             responseId,
+            showReplyReference: true,
             timestamp: getItemTimestamp(item),
         };
         entries.push(entry);
@@ -115,7 +119,6 @@ export function buildTranscriptEntries(input: {
 
         if (participant === 'user') {
             const previous = entries.at(-1);
-
             if (previous?.kind === 'turn' && canAppendUserMessage(previous, item)) {
                 previous.items.push(item);
                 continue;
@@ -131,9 +134,7 @@ export function buildTranscriptEntries(input: {
         }
 
         const entry = pushTurnEntry(item, 'agent');
-
         const runId = getItemRunId(item);
-
         if (runId && !anchorsByRun.has(runId)) {
             anchorsByRun.set(runId, entry);
         }
@@ -148,7 +149,6 @@ export function buildTranscriptEntries(input: {
     // their own position.
     for (const entry of attachments) {
         const item = entry.items[0];
-
         if (!item) {
             continue;
         }
@@ -176,7 +176,7 @@ export function buildTranscriptEntries(input: {
         entries.splice(entries.indexOf(entry), 1);
     }
 
-    return entries;
+    return markRepeatedReplyReferences(entries);
 }
 
 // Widgets, clarifications, stop notes, and artifacts are parts of a turn's

@@ -208,7 +208,7 @@ function UserTurnPresentation({
     return (
         <InlineReplyHoverProvider state={inlineReplyHover}>
             <div className={cn('relative -mx-5 px-5', lastMessageRow && turnInteractionClassName)}>
-                <InlineReplyTurnHeader items={entry.items} />
+                <InlineReplyTurnHeader entry={entry} />
                 <ChatMessage.Assistant
                     className={cn(transcriptTurnGeometry.row, 'static')}
                     onMouseLeave={inlineReplyHover.clear}
@@ -462,7 +462,7 @@ function AgentTurnPresentation({
         <MessageContextActionsProvider onViewTurnDetails={openTurnDetails}>
             <InlineReplyHoverProvider state={inlineReplyHover}>
                 <div className={cn('relative -mx-5 px-5', turnInteractionClassName)}>
-                    <InlineReplyTurnHeader items={items} />
+                    <InlineReplyTurnHeader entry={entry} />
                     <ChatMessage.Assistant
                         className={cn(
                             transcriptTurnGeometry.row,

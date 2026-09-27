@@ -1,19 +1,22 @@
 import { useMessageScroller } from '../../components/chats/message-scroller.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import type { TranscriptItem } from './chat-transcript-model.ts';
+import type { TranscriptTurnEntry } from './chat-transcript-model.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
 import { messagePreviewLine } from './message-preview-line.ts';
 import type { TranscriptReplyReference } from './transcript-reply-contract.ts';
 
-/** The reference precedes the turn's identity, with the elbow in its avatar rail. */
-export function InlineReplyTurnHeader({ items }: { items: readonly TranscriptItem[] }) {
+/**
+ * The reference precedes the turn's identity, with the elbow in its avatar rail.
+ * A same-author follow-up to the same parent skips it (markRepeatedReplyReferences).
+ */
+export function InlineReplyTurnHeader({ entry }: { entry: TranscriptTurnEntry }) {
     const context = useTranscriptRenderContextOptional();
-    const message = items.find((item) => item.kind === 'row' && item.row.kind === 'message');
+    const message = entry.items.find((item) => item.kind === 'row' && item.row.kind === 'message');
     const reply =
         message?.kind === 'row' && message.row.kind === 'message'
             ? message.row.message.reply
             : null;
-    if (!(reply && context?.onOpenInlineReply)) {
+    if (!(reply && entry.showReplyReference && context?.onOpenInlineReply)) {
         return null;
     }
     return <NavigableInlineReply onOpen={context.onOpenInlineReply} reference={reply.parent} />;
