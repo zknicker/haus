@@ -13,6 +13,19 @@ export interface ChatTypingThought {
 export const chatTypingThoughtTiming = { enterMs: 620, exitMs: 260, holdMs: 2300 } as const;
 
 /**
+ * Bubbles start at least this far apart. Thoughts arrive after a variable
+ * summarizer delay, so the Computer's four-second spacing alone can reach the
+ * screen closer together; a thought that comes early waits, and a newer one
+ * replaces it while it waits.
+ */
+export const chatTypingThoughtSpacingMs = 4000;
+
+/** How long a new thought waits before its bubble may show. */
+export function chatTypingThoughtDelay(lastShownAt: number | null, now: number): number {
+    return lastShownAt === null ? 0 : Math.max(0, lastShownAt + chatTypingThoughtSpacingMs - now);
+}
+
+/**
  * The bubble for a live thought, or null. Like activity faces, a thought shows
  * here only when its run is the one engaging this Chat, so an Agent thinking
  * about another conversation stays quiet in this one.

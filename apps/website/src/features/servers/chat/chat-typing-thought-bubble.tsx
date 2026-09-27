@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useChatThoughtListener } from '../../../hooks/servers/use-chat-thought-listener.ts';
 import {
     type ChatTypingThought,
+    chatTypingThoughtDelay,
     chatTypingThoughtTiming,
     resolveChatTypingThought,
     visibleChatTypingThought,
@@ -21,7 +22,19 @@ export function useChatTypingThought(
 ): ChatTypingThought | null {
     const [thought, setThought] = React.useState<ChatTypingThought | null>(null);
     const nextId = React.useRef(0);
-    const timer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const lastShownAt = React.useRef<number | null>(null);
+    const holdTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const waitTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+    const show = React.useCallback((next: ChatTypingThought) => {
+        clearTimeout(holdTimer.current);
+        lastShownAt.current = performance.now();
+        setThought(next);
+        const { enterMs, holdMs } = chatTypingThoughtTiming;
+        holdTimer.current = setTimeout(() => {
+            setThought((current) => (current?.id === next.id ? null : current));
+        }, enterMs + holdMs);
+    }, []);
 
     useChatThoughtListener(serverId, chatId, (event) => {
         nextId.current += 1;
@@ -29,14 +42,22 @@ export function useChatTypingThought(
         if (!next) {
             return;
         }
-        clearTimeout(timer.current);
-        setThought(next);
-        const { enterMs, holdMs } = chatTypingThoughtTiming;
-        timer.current = setTimeout(() => {
-            setThought((current) => (current?.id === next.id ? null : current));
-        }, enterMs + holdMs);
+        // Newest wins: a thought still waiting for its turn is replaced.
+        clearTimeout(waitTimer.current);
+        const delay = chatTypingThoughtDelay(lastShownAt.current, performance.now());
+        if (delay === 0) {
+            show(next);
+        } else {
+            waitTimer.current = setTimeout(() => show(next), delay);
+        }
     });
-    React.useEffect(() => () => clearTimeout(timer.current), []);
+    React.useEffect(
+        () => () => {
+            clearTimeout(holdTimer.current);
+            clearTimeout(waitTimer.current);
+        },
+        []
+    );
 
     return visibleChatTypingThought(engagements, thought);
 }
