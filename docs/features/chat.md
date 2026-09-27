@@ -164,13 +164,16 @@ and [Agent Inbox](../../specs/inbox.md).
   the face in place. Reasoning text never enters Activity
   ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
   When the engaging run finishes a reasoning block, a short first-person phrase
-  such as "I'm checking Halloween bid changes" appears in a glass bubble over
+  such as "Comparing Saturday and Sunday" appears in a glass bubble over
   that Agent's avatar, wobbles in, holds about two seconds, and leaves; a newer
   thought replaces it, faces fly above it, and the engagement ending clears it.
   The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title
   or a reasoning excerpt, or the title or a local condensation when Gemini is
   unavailable. Agent housekeeping — reading its memory or notes, checking its
-  inbox, claiming tasks, deciding whether to reply — shows no bubble.
+  inbox, claiming tasks, deciding whether to reply, drafting its own reply —
+  shows no bubble. Phrases use plain words from the request ("Pulling the NYC
+  forecast"), rarely open with "I", never end in "now", and describe the work
+  rather than errors.
   Thoughts are never stored or recovered
   ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
 * **Composer overlay.** In channels, DMs, and Threads the composer floats over

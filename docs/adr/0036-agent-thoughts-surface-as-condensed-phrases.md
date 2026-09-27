@@ -44,9 +44,12 @@ most one `agent-thought` frame:
 For either kind, the Server asks Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`, minimal
 thinking, temperature 0.8, at most 32 output tokens) for one first-person line, with a
 four-second deadline; a title rides as `<title>` and an excerpt as `<reasoning>` under the same
-instruction. Each request draws one opening style ("I'm…", a bare verb, "Now…", "I think…", a
-short reaction, or the thing being worked on) so a run's lines vary; the answer is capped at ten
-words. The excerpt is held only for that call and never stored or logged.
+instruction. Each request draws one of six opening styles (three bare -ing verbs, "Next,"/"First,", a short
+reaction, or "I'm…") so a run's lines vary and at most about a sixth open with "I"; the answer is
+capped at ten words. The prompt asks for plain words from the request (the city, the day, the
+build), no hedging, no trailing "now", and the work rather than what went wrong ("Double-checking
+the dates", not "Fixing those date errors"). `finishThoughtPhrase` also strips a trailing "now" or
+"right now", the model's verbal tic. The excerpt is held only for that call and never stored or logged.
 
 **Housekeeping is skipped.** The same prompt tells Gemini to answer exactly `SKIP` when the input
 is only the Agent's own process — reading its notes, memory, Manual, instructions, or skills;
@@ -54,19 +57,27 @@ checking its inbox or messages; claiming, assigning, or updating tasks; deciding
 to reply; or reading earlier conversation just to orient — and to describe the work instead when
 the input also names work on the person's request. `SKIP` drops the thought: no bubble, and no
 fallback second opinion. People watching a Chat want to see work on their request; "I'm reading
-my memory first" is noise. A labeled set of 32 excerpts and titles
-(`apps/server/src/server-agents/evals/thought-housekeeping-cases.json`, half housekeeping, with
-mixed cases that must show) measured skip precision 98% and recall 100% over 192 calls; rerun
-`agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts`
+my memory first" is noise. Composing, drafting, or double-checking the Agent's own reply in the
+Chat is housekeeping too ("Ah, let me double-check this draft first" was a real bubble); drafting an
+email or document the person asked for is work. Because Flash-Lite still phrases some reply
+drafting, the Server also runs the keyword filter below over the model's line and skips a match.
+A labeled set of 48 excerpts and titles
+(`apps/server/src/server-agents/evals/thought-housekeeping-cases.json`, with mixed cases that must
+show and wording rules for lines from a spot test) measured, over 144 calls on 2026-09-27, skip
+precision 98% and recall 94%, 19% of lines opening with "I", and no "now" filler (the previous
+prompt: 95%, 83%, 37%, and 18 filler lines). The runner checks filler, length, per-case banned and
+required words, and the "I" share; rerun
+`agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts --runs 3`
 before changing the prompt.
 
 **Fallback.** Without `HAUS_GEMINI_API_KEY`, or when Gemini fails, refuses, or is late, the
 Server shows the title or a local condensation of the excerpt (its first sentence without
 narration filler), unless a small keyword filter judges that leading sentence to be the same
-housekeeping — "my memory", "inbox", "claim a task", "the manual", "whether to reply" — with an
+housekeeping — "my memory", "inbox", "claim a task", "the manual", "whether to reply", "drafting
+the reply" — with an
 exemption for sequenced work ("…, then pulling sales"). It is deliberately narrow (it keeps "the
-memory leak" and "release notes") and so misses some housekeeping: on the same set, 92% precision
-and 75% recall.
+memory leak" and "release notes") and so misses some housekeeping: on the 48-case set, 93% precision
+and 67% recall.
 
 Every phrase is one plain line of at most 80 characters with no trailing period and no URLs,
 paths, emails, or tokens.
