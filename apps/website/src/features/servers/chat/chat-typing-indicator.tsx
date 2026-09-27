@@ -7,11 +7,8 @@ import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChatEngagement } from '../../../hooks/servers/use-chat-engagement.ts';
 import { springs } from '../../../lib/springs.ts';
 import { type ChatTypist, formatChatTypingLabel, resolveChatTypists } from './chat-typing.ts';
-import {
-    chatTypingSentFace,
-    isEngagedActivity,
-    resolveChatTypingFace,
-} from './chat-typing-launch.ts';
+import { withHeldEngagements } from './chat-typing-hold.ts';
+import { isEngagedActivity, resolveChatTypingFace } from './chat-typing-launch.ts';
 import {
     type ChatTypingLauncher,
     ChatTypingLaunches,
@@ -19,6 +16,7 @@ import {
 } from './chat-typing-launches.tsx';
 import type { ChatTypingThought } from './chat-typing-thought.ts';
 import { ChatTypingThoughtBubble, useChatTypingThought } from './chat-typing-thought-bubble.tsx';
+import { useChatTypingEnds } from './use-chat-typing-ends.ts';
 
 const maximumAvatars = 3;
 
@@ -32,14 +30,12 @@ export function ChatTypingIndicator({
     serverId: string;
 }) {
     const launcher = useChatTypingLauncher();
-    const engagements = useChatEngagement(serverId, chatId, (event) => {
-        if (event.reason === 'sent') {
-            launcher.launch(chatTypingSentFace);
-        }
-    });
+    const ends = useChatTypingEnds(serverId, chatId, launcher.launch);
+    const engagements = useChatEngagement(serverId, chatId, ends.onEnded);
+    // A `--done` reply's Agent keeps its dots until the reply renders.
+    const shown = withHeldEngagements(engagements, ends.holds);
     const agents = useAgents(serverId);
-    const typists =
-        engagements.length > 0 ? resolveChatTypists(engagements, agents.data ?? []) : [];
+    const typists = shown.length > 0 ? resolveChatTypists(shown, agents.data ?? []) : [];
 
     // Matching the engaging run keeps an Agent busy in another Chat quiet here.
     useAgentActivityListener((event) => {
