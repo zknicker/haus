@@ -1,7 +1,10 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { chatFooterClearanceClassName } from '../../chats/chat-footer-surface.tsx';
 import { ChatTypingStrip } from './chat-typing-indicator.tsx';
 import {
+    chatTypingThoughtDelay,
+    chatTypingThoughtSpacingMs,
     chatTypingThoughtTiming,
     resolveChatTypingThought,
     visibleChatTypingThought,
@@ -58,4 +61,17 @@ test('the strip overlays the thought under the faces without taking layout', () 
 
     const idle = renderToStaticMarkup(<ChatTypingStrip thought={thought} typists={[]} />);
     expect(idle).not.toContain('Reading the chart');
+});
+
+test('bubbles start at least four seconds apart; an early thought waits its turn', () => {
+    expect(chatTypingThoughtSpacingMs).toBe(4000);
+    expect(chatTypingThoughtDelay(null, 10_000)).toBe(0);
+    // The spot test's bubble 3.9s after the previous one now waits 100ms.
+    expect(chatTypingThoughtDelay(10_000, 13_900)).toBe(100);
+    expect(chatTypingThoughtDelay(10_000, 14_000)).toBe(0);
+    expect(chatTypingThoughtDelay(10_000, 20_000)).toBe(0);
+});
+
+test('the transcript end clears a two-line bubble above the strip', () => {
+    expect(chatFooterClearanceClassName).toContain('+4rem)');
 });
