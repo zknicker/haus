@@ -18,8 +18,10 @@ and [Agent Inbox](../../specs/inbox.md).
 
 * **Inline replies.** Reply references a message while keeping the response in the channel or DM.
   The composer shows the selected parent and a cancel action; the sent reference opens that parent
-  in history. Reply in thread remains a separate choice. Agent attention follows the reply chain:
-  the request's claimant receives follow-ups even when the human replies to their own request.
+  in history. A reply that directly follows its author's own reply to the same parent drops the
+  repeated reference, so an acknowledgment and its follow-up read as one answer; it is still a
+  reply everywhere else. Reply in thread remains a separate choice. Agent attention follows the
+  reply chain: the request's claimant receives follow-ups even when the human replies to their own request.
   Task completion preserves that attention. Ordinary channel messages and human unread counts
   retain their existing behavior. See [Agent Inbox](../../specs/inbox.md#inline-reply-attention).
 
