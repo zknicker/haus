@@ -86,7 +86,10 @@ paths, emails, or tokens.
 window wait in a single slot where the newest replaces any older one, so the bubble shows current
 work without a backlog. This Computer interval is the authoritative limit. The Server also
 ignores a run's thought frames, titles and excerpts alike, closer than three seconds apart, before
-any lookup or model call, to bound summarizer spend if a Computer misbehaves.
+any lookup or model call, to bound summarizer spend if a Computer misbehaves. Summaries finish after
+varying delays, so two bubbles could still land under four seconds apart; the App therefore holds a
+thought that arrives within four seconds of the last shown bubble until that mark, a newer one
+replacing it while it waits.
 
 **Transport is volatile and Chat-scoped.** The Server admits a frame with the same identity
 checks as an activity frame (assigned Computer, active accepted run), writes nothing, and, once

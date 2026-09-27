@@ -87,10 +87,18 @@ typing") remain for assistive technology. The row's height is always reserved, s
 composer. When the engaging run (matched by Agent and `runId`) commits a `started` activity of
 a mapped kind, or any `failed` one, a face launches from the dots and fades over the
 transcript: 🤔 thinking, 🧐 reading files, 🤓 searching the web, 🫣 browsing, 😤 editing files,
-🫡 running a command, 🙂‍↕️ using a tool, 😯 checking messages, 😵‍💫 failure, and 😊 when the
-engagement ends as `sent`, which only a `--done` send does. Launches ride the App's existing `agent.onActivity` and
-`chat.onEngagement` streams, are throttled to one per 350ms (reply and failure faces exempt,
-extras dropped), fade in place under reduced motion, and are never cached. Reasoning stays out of Activity per ADR 0023;
+🫡 running a command, 🙂‍↕️ using a tool, and 😵‍💫 failure. A shell call that only runs the `haus`
+CLI (message checks and sends, task claims, profile reads) is Agent bookkeeping and opens no
+activity, so it launches nothing, and checking messages launches nothing either. When the
+engagement ends as `sent`, which only a `--done` send does, the App keeps that Agent's dots until
+the reply (a message from that Agent and run committed within two seconds before the end) is in
+the Chat's cached transcript, at most two seconds, and launches 😊 as the hold releases. When it
+ends as `settled` and the run wrote nothing in this Chat, 👀 launches ("read it, nothing to add");
+`interrupted` launches nothing beyond any failure face. Launches ride the App's existing
+`agent.onActivity`, `chat.onEngagement`, and transcript cache, are throttled to one per 350ms with
+extras dropped, fade in place under reduced motion, and are never cached. Reply, read, and failure
+faces skip the throttle but wait out a 200ms gap so no two faces start together, and the same face
+twice within 350ms is dropped. Reasoning stays out of Activity per ADR 0023;
 [ADR 0036](0036-agent-thoughts-surface-as-condensed-phrases.md) adds a volatile thought bubble
 whose phrase the Server condenses from a bounded reasoning excerpt. The sidebar activity strip is removed; the Inbox's "happening now" rows,
 Activity History, and status dots remain the Agent-level views of work.
@@ -120,7 +128,7 @@ run that reads one types until it answers with `--done` or settles. A run that a
 without `--done` and then does tidy-up work keeps typing through that work.
 
 `chat.engagement.ended` is delivered live while `message.created` refreshes after the
-Chat lane's 150ms batch, so the strip can clear a beat before the reply renders.
+Chat lane's 150ms batch; the App's reply hold covers that gap so the strip never empties before the reply renders.
 
 Engagement state is volatile; its truth is the durable read. A missed event costs at most
 a stale strip until the next subscription restart or reconnect invalidation.

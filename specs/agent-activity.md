@@ -65,9 +65,18 @@ inference.
    out of a shell command: codex-acp sends it as an ACP `read` call named `exec_command` with no
    command and the file in `locations`, so the projector reads that file from the raw ACP update
    and records `reading_files`, journaling a `read` step of the workspace-relative file.
+   The one command the projector reads is the `haus` CLI's own: a shell call whose whole command
+   is one `haus …` invocation (an absolute path to the shim, leading `env`/`NAME=value`
+   assignments, a runtime's `sh -c` wrapper, or a trailing heredoc body allowed) opens no activity
+   at all, like `compaction`. Its semantic work is already projected at the product boundary — the
+   structured proxy reports message checks and the Server reports sends — and task, profile, and
+   inbox calls are the Agent's bookkeeping, not work; counting the shell call too would double
+   message checks and message counts. A compound command (`haus … && curl …`) stays
+   `running_command`. The command text is read on the Computer only and never crosses.
 3. **Unknown and MCP tools** default to `using_tool`. Their names, descriptions, and inputs are not
    parsed for intent. A tool named `search` does not prove web search; `cat` inside a shell command
-   does not turn a shell event into file reading.
+   does not turn a shell event into file reading. The `haus` CLI exception above is the only
+   command recognized.
 4. **Harness-synthesized runtime events** arrive as reserved provider-executed tool calls:
    `fileChange` maps to `editing_files`, so a runtime whose only file-edit evidence is a file-change
    event still reports file work. A `fileChange` that harness-acp tags with an already-seen ACP

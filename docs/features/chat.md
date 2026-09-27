@@ -157,16 +157,23 @@ and [Agent Inbox](../../specs/inbox.md).
   Each time the engaging run starts a kind of work, a face launches from the
   dots on a short arc over the transcript and fades: thinking 🤔, reading files
   🧐, searching the web 🤓, browsing 🫣, editing files 😤, running a command 🫡,
-  using a tool 🙂‍↕️, checking messages 😯, and any failure 😵‍💫. A `--done` reply
-  into this Chat launches 😊. Other kinds launch nothing, activity from the Agent's runs
-  elsewhere never launches here, and at most one face launches per 350ms (the
-  reply and failure faces excepted); extras are dropped. Reduced motion fades
+  using a tool 🙂‍↕️, and any failure 😵‍💫. Haus bookkeeping — the Agent's own
+  `haus` CLI calls and message checks — launches nothing. A `--done` reply into
+  this Chat keeps that Agent's dots until the reply shows in the transcript (at
+  most two seconds) and launches 😊 with it; a turn that read this Chat and
+  settled without writing here launches 👀. Other kinds launch nothing, activity
+  from the Agent's runs elsewhere never launches here, and at most one face
+  launches per 350ms; extras are dropped. Reply, read, and failure faces skip
+  that throttle but still start at least 200ms after another face, and the same
+  face twice within 350ms shows once. Reduced motion fades
   the face in place. Reasoning text never enters Activity
   ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
   When the engaging run finishes a reasoning block, a short first-person phrase
   such as "Comparing Saturday and Sunday" appears in a glass bubble over
-  that Agent's avatar, wobbles in, holds about two seconds, and leaves; a newer
-  thought replaces it, faces fly above it, and the engagement ending clears it.
+  that Agent's avatar, wobbles in, holds about two seconds, and leaves; bubbles
+  start at least four seconds apart, a thought that arrives sooner waits (the
+  newest replaces one still waiting), faces fly above it, and the engagement
+  ending clears it.
   The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title
   or a reasoning excerpt, or the title or a local condensation when Gemini is
   unavailable. Agent housekeeping — reading its memory or notes, checking its
