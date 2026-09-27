@@ -1,5 +1,19 @@
 import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 
+/** One tool call that opens a semantic activity operation. */
+export interface ComputerToolActivity {
+    category: ComputerAgentActivityCategory;
+    outcome: 'activity';
+    toolRef?: string;
+}
+
+/**
+ * `skip` is a deliberate silence, not a missing mapping: bookkeeping such as
+ * context compaction or a `haus` CLI shell call is journaled evidence but never
+ * agent work, so it must not open an Activity row.
+ */
+export type ComputerToolClassification = ComputerToolActivity | { outcome: 'skip' };
+
 /**
  * Fixture-shaped tool identities kept explicit so adapter renames fail closed.
  *
@@ -89,4 +103,8 @@ export function knownToolCategory(
             runtimeId as keyof typeof computerNativeToolActivityFixtures
         ];
     return mapping?.[nativeName ?? toolName] ?? mapping?.[toolName];
+}
+
+export function isMcpName(value: string | undefined): boolean {
+    return value?.startsWith('mcp__') ?? false;
 }

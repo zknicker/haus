@@ -1,9 +1,16 @@
 import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import { createAcpReadSteps } from './acp-read-steps.ts';
-import { knownToolCategory, syntheticHarnessToolActivity } from './activity-tool-fixtures.ts';
+import {
+    type ComputerToolActivity,
+    type ComputerToolClassification,
+    isMcpName,
+    knownToolCategory,
+    syntheticHarnessToolActivity,
+} from './activity-tool-fixtures.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { createFileChangeFold } from './file-change-fold.ts';
+import { classifyShellCall } from './haus-cli-command.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 import type { AgentThoughtNarrator } from './thought-narrator.ts';
 
@@ -13,23 +20,10 @@ export interface HausHostToolRegistration {
     toolRef?: string;
 }
 
-/** One tool call that opens a semantic activity operation. */
-export interface ComputerToolActivity {
-    category: ComputerAgentActivityCategory;
-    outcome: 'activity';
-    toolRef?: string;
-}
-
-/**
- * `skip` is a deliberate silence, not a missing mapping: harness bookkeeping
- * such as context compaction is journaled evidence but never agent work, so it
- * must not open an Activity row.
- */
-export type ComputerToolClassification = ComputerToolActivity | { outcome: 'skip' };
-
 export interface ComputerActivityRegistry {
     classify(input: {
         dynamic?: boolean;
+        input?: unknown;
         invalid?: boolean;
         nativeName?: string;
         providerExecuted?: boolean;
@@ -69,7 +63,7 @@ export function createComputerActivityRegistry(): ComputerActivityRegistry {
                     ...(host.toolRef ? { toolRef: host.toolRef } : {}),
                 };
             }
-            return { category: known ?? 'using_tool', outcome: 'activity' };
+            return classifyShellCall(known ?? 'using_tool', input.input);
         },
         registerHausHostTool(registration) {
             hostTools.set(registration.name, registration);
@@ -180,6 +174,7 @@ async function observeToolCall(
             ? { category: 'reading_files', outcome: 'activity' }
             : input.registry.classify({
                   dynamic: part.dynamic === true,
+                  input: part.input,
                   invalid: part.invalid === true,
                   nativeName: stringValue(part.nativeName),
                   providerExecuted: part.providerExecuted === true,
@@ -284,10 +279,6 @@ interface ToolCalls {
 
 function toolActivityKey(toolCallId: string): string {
     return `tool:${toolCallId}`;
-}
-
-function isMcpName(value: string | undefined): boolean {
-    return value?.startsWith('mcp__') ?? false;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
