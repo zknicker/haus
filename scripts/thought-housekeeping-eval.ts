@@ -1,7 +1,9 @@
 // Thought housekeeping eval (ADR 0036). Sends every labeled case in
 // apps/server/src/server-agents/evals/thought-housekeeping-cases.json through the
 // production Gemini thought summarizer and reports SKIP precision and recall, the
-// phrase shown for each case, and the local fallback filter on the same set.
+// phrase shown for each case, wording checks on every shown phrase (filler "now",
+// length, per-case banned and required words, the share opening with "I"), and
+// the local fallback filter on the same set.
 //
 // This is a dev tool, not CI: each case is a real Gemini call.
 // Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <id>] [--runs <n>]
@@ -13,11 +15,18 @@ import {
 } from '../apps/server/src/server-agents/agent-thought-summarizer.ts';
 import { isHousekeepingThought } from '../apps/server/src/server-agents/thought-housekeeping.ts';
 import { condenseThoughtLocally } from '../packages/haus-api/src/agent-thought-phrase.ts';
+import {
+    checkThoughtPhrase,
+    opensWithI,
+    type ThoughtEvalRules,
+    thoughtEvalMaxIOpeningShare,
+} from './thought-eval-checks.ts';
 
 interface EvalCase {
     expected: 'show' | 'skip';
     id: string;
     kind: 'reasoning' | 'title';
+    rules?: ThoughtEvalRules;
     text: string;
 }
 interface Outcome {
@@ -25,6 +34,7 @@ interface Outcome {
     expected: EvalCase['expected'];
     fallbackSkip: boolean;
     id: string;
+    problems: string[];
     run: number;
 }
 
@@ -66,6 +76,7 @@ async function judgeCase(item: EvalCase, run: number): Promise<Outcome> {
     return {
         answer: summary === null ? '(failed)' : summary.kind === 'skip' ? 'SKIP' : summary.text,
         expected: item.expected,
+        problems: summary?.kind === 'phrase' ? checkThoughtPhrase(summary.text, item.rules) : [],
         fallbackSkip:
             isHousekeepingThought(item.text) ||
             (item.kind === 'reasoning' && condenseThoughtLocally(item.text) === null),
@@ -78,16 +89,40 @@ function report(results: Outcome[]) {
     for (const outcome of results) {
         const skipped = outcome.answer === 'SKIP';
         const correct = skipped === (outcome.expected === 'skip');
+        const verdict = correct ? (outcome.problems.length > 0 ? 'WORD' : 'ok  ') : 'MISS';
+        const problems = outcome.problems.length > 0 ? `  [${outcome.problems.join('; ')}]` : '';
         console.log(
-            `${correct ? 'ok  ' : 'MISS'} ${outcome.id.padEnd(24)} expected=${outcome.expected.padEnd(4)} → ${outcome.answer}`
+            `${verdict} ${outcome.id.padEnd(26)} expected=${outcome.expected.padEnd(4)} → ${outcome.answer}${problems}`
         );
     }
     const failed = results.filter((outcome) => outcome.answer === '(failed)').length;
     const answered = results.filter((outcome) => outcome.answer !== '(failed)');
     console.log(`\nGemini (${answered.length} answered, ${failed} failed):`);
     printScores(answered.map((outcome) => [outcome.answer === 'SKIP', outcome.expected]));
+    printWording(answered.filter((outcome) => outcome.answer !== 'SKIP'));
     console.log('\nLocal fallback filter:');
     printScores(results.map((outcome) => [outcome.fallbackSkip, outcome.expected]));
+}
+
+function printWording(shown: Outcome[]) {
+    const count = (predicate: (outcome: Outcome) => boolean) => shown.filter(predicate).length;
+    const iOpenings = count((outcome) => opensWithI(outcome.answer));
+    const share = iOpenings / Math.max(shown.length, 1);
+    const verdict = (passed: boolean) => (passed ? 'pass' : 'FAIL');
+    const filler = count((outcome) => outcome.problems.includes('filler "now"'));
+    const long = count((outcome) => outcome.problems.some((problem) => problem.endsWith(' words')));
+    const ruled = count((outcome) =>
+        outcome.problems.some(
+            (problem) => problem.startsWith('banned') || problem.startsWith('mentions')
+        )
+    );
+    console.log(`  shown phrases ${shown.length}`);
+    console.log(
+        `  ${verdict(share <= thoughtEvalMaxIOpeningShare)} open with "I": ${(share * 100).toFixed(1)}% (${iOpenings}/${shown.length}, max ${(thoughtEvalMaxIOpeningShare * 100).toFixed(0)}%)`
+    );
+    console.log(`  ${verdict(filler === 0)} filler "right now"/trailing "now": ${filler}`);
+    console.log(`  ${verdict(long === 0)} over eight words: ${long}`);
+    console.log(`  ${verdict(ruled === 0)} per-case banned/required word misses: ${ruled}`);
 }
 
 function printScores(pairs: [boolean, EvalCase['expected']][]) {

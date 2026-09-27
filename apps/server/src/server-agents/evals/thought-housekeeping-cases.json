@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "description": "Labeled Agent reasoning excerpts and Codex status titles for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work.",
+  "version": 2,
+  "description": "Labeled Agent reasoning excerpts and Codex status titles for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\".",
   "cases": [
     {
       "id": "memory-first",
@@ -193,6 +193,208 @@
       "kind": "reasoning",
       "expected": "show",
       "text": "My notes say the invoice template lives in the finance folder. Opening it now to fill in September's hours for the Acme invoice Maya asked for."
+    },
+    {
+      "id": "reply-availability-draft",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "They just want to know whether anyone has a sec to look at the launch checklist. I'll draft a quick availability reply saying I can help and ask them to share where it lives."
+    },
+    {
+      "id": "reply-double-check",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "Ah, before I post this, let me double-check this draft reply for tone and make sure it actually answers what they asked, then send it with --done."
+    },
+    {
+      "id": "reply-final-compose",
+      "kind": "reasoning",
+      "expected": "skip",
+      "text": "I have everything I need now. Let me compose the final answer to the channel: a short summary with the three numbers and one sentence of context."
+    },
+    {
+      "id": "title-drafting-reply",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm drafting the reply"
+    },
+    {
+      "id": "title-reviewing-draft",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm reviewing my draft response"
+    },
+    {
+      "id": "weather-nyc",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The user asked for the weather in NYC. I think I need to check the current conditions, so let me query the Open-Meteo forecast endpoint for New York's coordinates and read temperature and cloud cover.",
+      "rules": {
+        "banned": ["I think", "patterns"],
+        "mentionsAny": [
+          "NYC",
+          "New York",
+          "weather",
+          "forecast",
+          "conditions",
+          "temperature"
+        ]
+      }
+    },
+    {
+      "id": "weather-grid-retry",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The forecast call came back with a 400 — looks like I swapped latitude and longitude in the grid coordinates. Let me fix the coordinates for Manhattan and retry the three-day NYC forecast.",
+      "rules": {
+        "banned": [
+          "error",
+          "errors",
+          "failed",
+          "failing",
+          "fixing",
+          "messy",
+          "broken",
+          "wrong",
+          "oops"
+        ],
+        "mentionsAny": [
+          "NYC",
+          "forecast",
+          "coordinates",
+          "Manhattan",
+          "weather",
+          "location"
+        ]
+      }
+    },
+    {
+      "id": "weather-date-range",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "OK, the dates came back wrong again: the API rejects an end_date more than 16 days out, and I asked for the wrong range. I'm fixing those date errors and requesting Saturday through Monday only.",
+      "rules": {
+        "banned": [
+          "error",
+          "errors",
+          "failed",
+          "failing",
+          "fixing",
+          "messy",
+          "broken",
+          "wrong",
+          "oops"
+        ],
+        "mentionsAny": [
+          "Saturday",
+          "Monday",
+          "dates",
+          "date",
+          "forecast",
+          "weekend",
+          "days"
+        ]
+      }
+    },
+    {
+      "id": "weather-api-choice",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "For a packing tip I need precipitation too. Comparing the NWS gridpoint forecast with Open-Meteo: NWS is more reliable for US cities, so I'll pull the NYC three-day forecast from NWS.",
+      "rules": {
+        "banned": ["meteorological", "reliability"],
+        "mentionsAny": [
+          "NYC",
+          "forecast",
+          "rain",
+          "precipitation",
+          "weather",
+          "packing"
+        ]
+      }
+    },
+    {
+      "id": "weekend-compare",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Zach wants to know which weekend day is better for the picnic in Prospect Park. Let me compare Saturday and Sunday: precipitation chance, wind, and the afternoon high.",
+      "rules": {
+        "mentionsAny": ["Saturday", "Sunday", "weekend", "picnic"]
+      }
+    },
+    {
+      "id": "build-status-search",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The build search results look a bit messy — lots of stale runs from old branches. Let me filter to the latest main-branch build so I can report the status Zach asked about.",
+      "rules": {
+        "banned": [
+          "error",
+          "errors",
+          "failed",
+          "failing",
+          "fixing",
+          "messy",
+          "broken",
+          "wrong",
+          "oops"
+        ],
+        "mentionsAny": ["build", "main", "CI", "status"]
+      }
+    },
+    {
+      "id": "build-ci-steps",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "To report the build status I should walk the CI pipeline in order: find the latest workflow run on main, then check each job's result, then note anything still queued.",
+      "rules": {
+        "banned": ["sequential", "integration", "for you", "structuring"],
+        "mentionsAny": ["build", "CI", "main", "pipeline", "workflow", "jobs"]
+      }
+    },
+    {
+      "id": "build-repo-lookup",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The deploy workflow might live in a different repository. Let me check whether the build config is in the infra repo or this one before I read the latest run.",
+      "rules": {
+        "banned": ["placement", "external", "weighing"],
+        "mentionsAny": [
+          "build",
+          "deploy",
+          "repo",
+          "workflow",
+          "infra",
+          "config"
+        ]
+      }
+    },
+    {
+      "id": "checklist-location",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Now I need to find where the launch checklist is saved. Let me search the shared docs folder for anything named launch checklist and open the newest one.",
+      "rules": {
+        "mentionsAny": ["checklist", "launch"]
+      }
+    },
+    {
+      "id": "title-weather-query",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm tweaking the weather lookup query",
+      "rules": {
+        "mentionsAny": ["weather", "forecast", "lookup", "query"]
+      }
+    },
+    {
+      "id": "title-build-targets",
+      "kind": "title",
+      "expected": "show",
+      "text": "Now finding the right build targets",
+      "rules": {
+        "mentionsAny": ["build", "targets"]
+      }
     }
   ]
 }
