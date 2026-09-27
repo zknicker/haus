@@ -105,7 +105,7 @@ export function finishThoughtPhrase(
         // Quote marks go; a plural possessive's trailing apostrophe ("charts'") stays.
         .map((word) => word.replace(/^'+/u, '').replace(/(?<![sS])'+$/u, ''))
         .filter((word) => word.length > 0);
-    const kept = words.slice(0, maxWords);
+    const kept = dropTrailingNow(words).slice(0, maxWords);
     while (kept.length > 1 && danglingWords.has(kept.at(-1)?.toLowerCase() ?? '')) {
         kept.pop();
     }
@@ -117,6 +117,23 @@ export function finishThoughtPhrase(
         return null;
     }
     return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+}
+
+/**
+ * "…right now" and a trailing "now" are the summarizer's verbal tic, not
+ * information: "Checking the NYC forecast right now" → "Checking the NYC forecast".
+ */
+function dropTrailingNow(words: readonly string[]): string[] {
+    const kept = [...words];
+    const bare = (word: string | undefined) =>
+        word?.toLowerCase().replace(/[.,;:!?…]+$/u, '') ?? '';
+    if (kept.length > 1 && bare(kept.at(-1)) === 'now') {
+        kept.pop();
+        if (kept.length > 1 && bare(kept.at(-1)) === 'right') {
+            kept.pop();
+        }
+    }
+    return kept;
 }
 
 function firstSentence(text: string): string | null {

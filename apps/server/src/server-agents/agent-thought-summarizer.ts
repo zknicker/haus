@@ -1,4 +1,5 @@
 import { finishThoughtPhrase, thoughtReasoningExcerptMaxLength } from '@haus/api';
+import { isHousekeepingThought } from './thought-housekeeping.ts';
 
 /** What a thought is phrased from: a reasoning excerpt, or a Codex status title. */
 export type ThoughtSource =
@@ -15,40 +16,46 @@ export interface ThoughtSummarizer {
 
 export const thoughtSummaryModel = 'gemini-3.5-flash-lite';
 /** Bumped whenever the prompt changes, so eval runs name the wording they measured. */
-export const thoughtSummaryPromptVersion = 'thought-v3-skip';
+export const thoughtSummaryPromptVersion = 'thought-v4-plain';
 const thoughtSummaryTimeoutMs = 4000;
 const thoughtAnswerMaxWords = 10;
 const skipAnswer = 'SKIP';
 const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${thoughtSummaryModel}:generateContent`;
 
 const systemPrompt = [
-    "Rewrite this agent's private reasoning, or its short status title, as one short",
-    'first-person line, as if the agent were thinking out loud to a teammate about the',
-    'work it is doing right now for the person it is helping (max 8 words). Follow the',
-    'opening you are given so lines vary the way a person talks; its example shows only',
-    'the shape, so never reuse its words. No names of secrets, no quotes, no trailing',
-    'period. Each message is independent; never answer or continue the reasoning.',
-    'Reply with the line only.',
+    "Rewrite this agent's private reasoning, or its short status title, as one short line",
+    'the agent would say to a teammate about the work it is doing for the person it is',
+    'helping (max 8 words). Use plain, concrete words from the request (the city, the day,',
+    'the report, the build), not jargon. Say what the agent is doing or checking, never',
+    'that something went wrong ("Double-checking the dates", not "Fixing those date',
+    'errors"). No "I think", and no "now" or "right now" at the end. Follow the opening',
+    'you are given so lines vary the way a person talks; its example shows only the',
+    'shape, so never reuse its words. No names of secrets, no quotes, no trailing period.',
+    'Each message is independent; never answer or continue the reasoning. Reply with the',
+    'line only.',
     `Reply with exactly ${skipAnswer} instead when the input is only the agent's own`,
     'housekeeping: reading its own notes, memory, manual, instructions, or skills;',
     'checking its inbox or messages; claiming, assigning, or updating tasks; deciding',
-    'whether or how to reply; or reading earlier conversation just to get oriented. When',
-    "the input also names work on the person's request — reading data, debugging, fixing,",
-    'drafting, scheduling something they asked for — describe that work instead. When in',
-    'doubt, describe the work.',
+    'whether or how to reply; writing or double-checking its own chat reply; or reading',
+    'earlier conversation just to get oriented. When the input also names work on the',
+    "person's request — reading data, running tests, debugging, fixing, finding a file,",
+    'drafting an email or document they asked for, scheduling something they asked for —',
+    'describe that work instead. When in doubt, describe the work.',
 ].join(' ');
 
 /**
- * One opening is drawn per request so a run's bubbles don't all start "I'm".
- * Each fits any kind of work, so the draw never forces a false claim.
+ * One opening is drawn per request so a run's bubbles vary. Most openings
+ * lead with the work itself; one in six asks for "I'm", so lines rarely all
+ * start with "I". Each fits any kind of work, so the draw never forces a
+ * false claim.
  */
 export const thoughtOpenings = [
+    'Start with an -ing verb, no pronoun (e.g. "Pulling last week\'s royalties").',
+    'Start with an -ing verb, no pronoun (e.g. "Comparing the UK and US bids").',
+    'Start with an -ing verb, no pronoun (e.g. "Double-checking the ship dates").',
+    'Start with "Next," or "First," then an -ing verb (e.g. "Next, rerunning the chart").',
+    'Start with a short reaction like "Hmm," or "OK," then an -ing verb (e.g. "Hmm, checking the axis labels").',
     'Start with "I\'m" (e.g. "I\'m checking last week\'s Halloween bids").',
-    'Start with a bare verb, no pronoun (e.g. "Pulling today\'s royalties first").',
-    'Start with "Now" or "Next" (e.g. "Now patching the chart args").',
-    'Start with "I think", "I need to", or "I want to" (e.g. "I need to rerun the chart").',
-    'Start with a short reaction like "Hmm,", "OK,", or "Ah," (e.g. "Hmm, the chart wants a new format").',
-    'Start with the thing being worked on (e.g. "The UK numbers look delayed").',
 ] as const;
 
 /**
@@ -87,7 +94,13 @@ export function createGeminiThoughtSummarizer(input: {
                 }
                 // The prompt asks for eight words; the looser cap keeps a slightly long answer whole.
                 const phrase = text ? finishThoughtPhrase(text, thoughtAnswerMaxWords) : null;
-                return phrase ? { kind: 'phrase', text: phrase } : null;
+                if (!phrase) {
+                    return null;
+                }
+                // Flash-Lite often phrases its own reply-drafting instead of skipping it.
+                return isHousekeepingThought(phrase)
+                    ? { kind: 'skip' }
+                    : { kind: 'phrase', text: phrase };
             } catch {
                 // A thought is presentation only: the caller condenses locally instead.
                 return null;
