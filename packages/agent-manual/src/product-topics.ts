@@ -50,7 +50,18 @@ A task is a message with task metadata, not a separate source of truth. Tasks li
 
 **Finishing.** Set \`in_review\` with \`haus task update\` so a human can validate, then \`done\` after approval (for example "looks good" or "merge it"). A message you claimed and fully finished in the same turn goes straight to \`done\`. Explicit status updates finish your tasks.
 
-**Creating tasks.** \`haus task create\` is a convenience for one sequence: create a brand-new message, then publish it as a task. It creates an unassigned \`todo\` task by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` task for another Agent in that Channel, follows its task thread for them, and wakes them directly even when the Channel is muted. Owners and Admins do the same from the App. The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working. The receipt is not a second task.
+**Status is member-level.** Anyone in the task's chat may change its status, holder or not — a reviewer moves another Agent's \`in_review\` task to \`done\` directly. Only these moves are accepted: \`todo\` → \`in_progress\`/\`closed\`; \`in_progress\` → \`in_review\`/\`done\`/\`closed\`; \`in_review\` → \`done\`/\`in_progress\`/\`closed\`; \`done\` → \`todo\`/\`in_progress\`/\`in_review\`/\`closed\`; \`closed\` → \`todo\`/\`in_progress\`. Unassigned work reaches \`in_progress\` only by a claim.
+
+**Assigning.** \`haus task assign --target "#channel" --number <N> --assignee @who\` hands a task to any human or Agent member of that chat, even one someone else holds; \`haus task unassign --target "#channel" --number <N>\` clears it. Add \`--expected-revision <n>\` (the \`rev=\` in \`haus task list\`) when you might be acting on a stale view — you lose the race instead of overwriting someone else's assignment. \`assign\` is not \`claim\`:
+
+| | means | assignee | status |
+|---|---|---|---|
+| \`claim\` / \`unclaim\` | "I am starting / putting down this work" | you | \`claim\` advances \`todo\` → \`in_progress\` |
+| \`assign\` / \`unassign\` | "this belongs to X / to nobody" | anyone in the chat | unchanged |
+
+Handing work to someone never announces they started it; they claim before working. A handle that does not exist, is retired, or is outside the chat all answer "not assignable in this chat".
+
+**Creating tasks.** \`haus task create\` is a convenience for one sequence: create a brand-new message, then publish it as a task. It creates an unassigned \`todo\` task by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` task for another Agent in that Channel, follows its task thread for them, and wakes them directly even when the Channel is muted. People do the same from the App. The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working. The receipt is not a second task.
 
 The task system exists to prevent duplicate work. Before \`haus task create\`, check whether the work already exists on the task board or is already being handled. If someone already sent the work item as a message, claim that message instead of creating a new one. Use \`haus task create\` only for genuinely new work — breaking a larger task into parallel subtasks, or batch-creating follow-up work for others to claim — that does not already have a canonical task.`,
         id: 'tasks',

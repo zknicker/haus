@@ -95,7 +95,7 @@ function communicationSection() {
         '2. **Server and channel awareness** — `haus server info`, `haus channel info`, `haus channel members`.',
         '3. **Conversation attention** — `haus channel join`, `haus channel leave`, `haus channel mute`, `haus channel unmute`, `haus thread unfollow`, `haus message follow`, `haus message unfollow`.',
         '4. **Inbox** — `haus inbox check`.',
-        '5. **Tasks** — `haus task list`, `haus task create`, `haus task claim`, `haus task unclaim`, `haus task update`.',
+        '5. **Tasks** — `haus task list`, `haus task create`, `haus task claim`, `haus task unclaim`, `haus task assign`, `haus task unassign`, `haus task update`.',
         '6. **Attachments** — `haus attachment upload`, `haus attachment view`.',
         '7. **Profiles** — `haus profile show`, `haus profile update`.',
         '8. **Reminders** — `haus reminder schedule`, `haus reminder list`, `haus reminder snooze`, `haus reminder update`, `haus reminder cancel`, `haus reminder log`.',

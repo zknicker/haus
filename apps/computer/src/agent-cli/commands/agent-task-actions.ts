@@ -37,7 +37,7 @@ const taskListResponseSchema = z.object({
 });
 const taskCreateResponseSchema = z.object({ tasks: z.array(taskRowSchema) });
 const taskClaimResponseSchema = z.object({ results: z.array(taskClaimResultSchema).min(1) });
-const taskSingleResponseSchema = z.object({ task: taskRowSchema });
+export const taskSingleResponseSchema = z.object({ task: taskRowSchema });
 
 export async function runTaskList(args: ParsedArgs, deps: TaskDeps): Promise<number> {
     const params = new URLSearchParams();
@@ -172,7 +172,7 @@ export async function runTaskUpdate(args: ParsedArgs, deps: TaskDeps): Promise<n
     return 0;
 }
 
-function requireTarget(args: ParsedArgs, nextAction: string): string {
+export function requireTarget(args: ParsedArgs, nextAction: string): string {
     const target = args.values['--target'];
     if (!target) {
         throw new AgentCliError('INVALID_ARG', 'Provide --target with a channel or DM target.', {
@@ -182,7 +182,7 @@ function requireTarget(args: ParsedArgs, nextAction: string): string {
     return target;
 }
 
-function singleNumber(args: ParsedArgs): number {
+export function singleNumber(args: ParsedArgs): number {
     const numbers = args.valueLists?.['--number'] ?? [];
     if (numbers.length !== 1) {
         throw new AgentCliError('INVALID_ARG', 'Provide exactly one --number.');
@@ -198,7 +198,7 @@ function parseTaskNumber(value: string): number {
     return parsed;
 }
 
-function withTaskSignal(deps: TaskDeps, input: AgentApiRequest): AgentApiRequest {
+export function withTaskSignal(deps: TaskDeps, input: AgentApiRequest): AgentApiRequest {
     return deps.signal ? { ...input, signal: deps.signal } : input;
 }
 

@@ -10,8 +10,9 @@ export const taskRowSchema = z.object({
     number: z.number().int().positive(),
     status: z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']),
     target: z.string().nullable(),
+    version: z.number().int().nonnegative(),
 });
-type TaskRow = z.infer<typeof taskRowSchema>;
+export type TaskRow = z.infer<typeof taskRowSchema>;
 
 export const taskClaimResultSchema = z.object({
     claimConflict: taskClaimConflictSchema.nullable(),
@@ -116,5 +117,5 @@ function taskLine(task: TaskRow): string {
     const where = task.target ? ` in ${task.target}` : '';
     const title = task.message.content.replaceAll(/\s+/gu, ' ').trim();
     const clipped = title.length > 80 ? `${title.slice(0, 79)}…` : title;
-    return `#${task.number} [${task.status}]${assignee}${where} msg=${shortMessageId(task.message.id)}: ${clipped}`;
+    return `#${task.number} [${task.status}]${assignee}${where} rev=${task.version} msg=${shortMessageId(task.message.id)}: ${clipped}`;
 }

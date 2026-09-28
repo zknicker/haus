@@ -7,6 +7,7 @@ import {
     runTaskUpdate,
     type TaskDeps,
 } from './agent-task-actions.ts';
+import { runTaskAssign, runTaskUnassign } from './agent-task-assign.ts';
 
 const statusFlag = {
     description: 'New status: todo|in_progress|in_review|done|closed',
@@ -17,6 +18,11 @@ const targetFlag = {
     description: "Channel or DM target, e.g. '#general' or 'dm:@zach'",
     name: '--target',
     valueName: '<target>',
+};
+const expectedRevisionFlag = {
+    description: 'Apply only if the task is still at this revision (rev= in task list)',
+    name: '--expected-revision',
+    valueName: '<n>',
 };
 const numberFlag = {
     description: 'Task number (repeatable on claim)',
@@ -106,6 +112,39 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
             run: (args) => runTaskUnclaim(args, resolveDeps()),
             summary: 'Release a task you claimed',
             usage: 'haus task unclaim --target <target> --number <n>',
+        },
+        {
+            examples: [
+                'haus task assign --target "#general" --number 1 --assignee @kit',
+                'haus task assign --target "#general" --number 1 --assignee @zach --expected-revision 3',
+            ],
+            flags: [
+                targetFlag,
+                numberFlag,
+                {
+                    description: 'Human or Agent member of the target to hand the task to',
+                    name: '--assignee',
+                    valueName: '<@who>',
+                },
+                expectedRevisionFlag,
+            ],
+            name: 'assign',
+            notes: [
+                'Moves the owner only; status is unchanged and the assignee claims to start. Works on a task someone else holds.',
+            ],
+            positionals: [],
+            run: (args) => runTaskAssign(args, resolveDeps()),
+            summary: 'Hand a task to a member of its chat',
+            usage: 'haus task assign --target <target> --number <n> --assignee @who [--expected-revision <n>]',
+        },
+        {
+            examples: ['haus task unassign --target "#general" --number 1'],
+            flags: [targetFlag, numberFlag, expectedRevisionFlag],
+            name: 'unassign',
+            positionals: [],
+            run: (args) => runTaskUnassign(args, resolveDeps()),
+            summary: "Clear a task's assignee without changing its status",
+            usage: 'haus task unassign --target <target> --number <n> [--expected-revision <n>]',
         },
         {
             examples: ['haus task update --target "#general" --number 1 --status in_review'],
