@@ -16,6 +16,7 @@ import { agentDeliveryTable, agentsTable } from '../postgres/schema.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { ThoughtSource, ThoughtSummarizer } from './agent-thought-summarizer.ts';
 import { isHousekeepingThought } from './thought-housekeeping.ts';
+import { createThoughtPreviousLines } from './thought-previous-lines.ts';
 
 /**
  * A run's thought frames closer together than this are ignored once one of its
@@ -53,9 +54,15 @@ export interface AgentThoughts {
     /**
      * The phrase a frame announces, or null when it is housekeeping or nothing
      * presentable remains. `request` is the scrubbed human message the run is
-     * answering, context the summarizer may take nouns from.
+     * answering, context the summarizer may take nouns from; `previous` is the
+     * run's last shown lines in the Chat, which the phrase should not restate.
      */
-    phrase(frame: AgentThoughtFrame, request?: string | null): Promise<string | null>;
+    phrase(frame: AgentThoughtFrame, context?: ThoughtContext): Promise<string | null>;
+}
+
+interface ThoughtContext {
+    previous?: readonly string[];
+    request?: string | null;
 }
 
 export function createAgentThoughts(options: {
@@ -65,6 +72,7 @@ export function createAgentThoughts(options: {
 }): AgentThoughts {
     const now = options.now ?? Date.now;
     const lastFrames = new Map<string, { announced: boolean; at: number }>();
+    const previousLines = createThoughtPreviousLines(now);
     // Entries outlive their window only until the next reasoning frame from any run.
     const spaced = (key: string) => {
         const at = now();
@@ -86,9 +94,12 @@ export function createAgentThoughts(options: {
             last.announced = true;
         }
     };
-    const phrase = async (frame: AgentThoughtFrame, request?: string | null) => {
+    const phrase = async (frame: AgentThoughtFrame, { previous, request }: ThoughtContext = {}) => {
         // The excerpt and request go to the summarizer and nowhere else; both are dropped after this call.
-        const context = request ? { request } : {};
+        const context = {
+            ...(request ? { request } : {}),
+            ...(previous && previous.length > 0 ? { previous } : {}),
+        };
         const summary = await options.summarizer?.summarize(thoughtSource(frame, context));
         if (summary) {
             // SKIP is the model's judgment that this is housekeeping: no bubble.
@@ -122,13 +133,26 @@ export function createAgentThoughts(options: {
                     const request = options.summarizer
                         ? await readRunRequest(db, input.serverId, frame)
                         : null;
-                    const text = await phrase(frame, request);
-                    if (text) {
-                        markAnnounced(key);
-                        for (const event of events) {
-                            announceAgentThought({ ...event, text });
-                        }
-                    }
+                    // Usually one group: the run's Chats share their last lines unless one joined later.
+                    const groups = groupByPrevious(events, (event) =>
+                        previousLines.read({ ...event, computerId: input.computerId })
+                    );
+                    await Promise.all(
+                        groups.map(async (group) => {
+                            const text = await phrase(frame, { previous: group.previous, request });
+                            if (!text) {
+                                return;
+                            }
+                            markAnnounced(key);
+                            for (const event of group.events) {
+                                announceAgentThought({ ...event, text });
+                                previousLines.remember(
+                                    { ...event, computerId: input.computerId },
+                                    text
+                                );
+                            }
+                        })
+                    );
                 });
             }
             return true;
@@ -137,7 +161,26 @@ export function createAgentThoughts(options: {
     };
 }
 
-function thoughtSource(frame: AgentThoughtFrame, context: { request?: string }): ThoughtSource {
+/** Engaged Chats grouped by the lines the run last showed there, so each group is phrased once. */
+function groupByPrevious<Event>(
+    events: readonly Event[],
+    previousOf: (event: Event) => readonly string[]
+): { events: Event[]; previous: readonly string[] }[] {
+    const groups = new Map<string, { events: Event[]; previous: readonly string[] }>();
+    for (const event of events) {
+        const previous = previousOf(event);
+        const key = JSON.stringify(previous);
+        const group = groups.get(key) ?? { events: [], previous };
+        group.events.push(event);
+        groups.set(key, group);
+    }
+    return [...groups.values()];
+}
+
+function thoughtSource(
+    frame: AgentThoughtFrame,
+    context: { previous?: readonly string[]; request?: string }
+): ThoughtSource {
     switch (frame.kind) {
         case 'action':
             return { action: frame.action, kind: 'action', ...context };

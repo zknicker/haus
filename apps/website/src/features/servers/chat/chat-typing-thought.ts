@@ -13,6 +13,63 @@ export interface ChatTypingThought {
 export const chatTypingThoughtTiming = { enterMs: 620, exitMs: 260, holdMs: 2300 } as const;
 
 /**
+ * However often its line repeats, a bubble stays on screen at most this long
+ * from when it appeared, so a run stuck on one line still lets the bubble go:
+ * about three holds' worth, long enough to read as "still on it", short enough
+ * that the strip never looks frozen.
+ */
+export const chatTypingThoughtMaxVisibleMs = 8000;
+
+/** The bubble on screen: when it appeared and when its hold ends. */
+export interface ChatTypingThoughtOnScreen {
+    hideAt: number;
+    shownAt: number;
+    thought: ChatTypingThought;
+}
+
+/**
+ * What an arriving thought does. The same line from the same run while its
+ * bubble is still up extends that bubble's hold, reset from now and capped at
+ * the maximum visible time, without a new bubble or its wobble; once the cap
+ * leaves nothing to add, the repeat is absorbed. Anything else, including the
+ * same line after its bubble has left, is a new bubble.
+ */
+export type ChatTypingThoughtArrival =
+    | { hideAt: number; kind: 'extend' }
+    | { kind: 'absorb' }
+    | { kind: 'show' };
+
+export function resolveChatTypingThoughtArrival(
+    onScreen: ChatTypingThoughtOnScreen | null,
+    next: Pick<ChatTypingThought, 'agentId' | 'runId' | 'text'>,
+    now: number
+): ChatTypingThoughtArrival {
+    if (
+        !onScreen ||
+        onScreen.thought.agentId !== next.agentId ||
+        onScreen.thought.runId !== next.runId ||
+        normalizeChatTypingThoughtText(onScreen.thought.text) !==
+            normalizeChatTypingThoughtText(next.text)
+    ) {
+        return { kind: 'show' };
+    }
+    const hideAt = Math.min(
+        now + chatTypingThoughtTiming.holdMs,
+        onScreen.shownAt + chatTypingThoughtMaxVisibleMs
+    );
+    return hideAt > onScreen.hideAt ? { hideAt, kind: 'extend' } : { kind: 'absorb' };
+}
+
+/** A line's words for comparison: case, punctuation, and spacing ignored. */
+export function normalizeChatTypingThoughtText(text: string): string {
+    return text
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, '')
+        .replace(/\s+/gu, ' ')
+        .trim();
+}
+
+/**
  * Bubbles start at least this far apart. Thoughts arrive after a variable
  * summarizer delay, so the Computer's four-second spacing alone can reach the
  * screen closer together; a thought that comes early waits, and a newer one

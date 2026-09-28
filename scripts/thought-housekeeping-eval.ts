@@ -8,7 +8,10 @@
 // This is a dev tool, not CI: each case is a real Gemini call.
 // Cases may carry a `request`, the human message the run is answering, and may be
 // an `action` (a scrubbed command, file, or tool description) instead of a title or excerpt.
-// Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <id>] [--runs <n>] [--no-request]
+// Sequences phrase one request's steps in order, each with the last two shown lines as
+// its previous status, and report how often consecutive shown lines repeat;
+// `--no-previous` sends them without it, the baseline.
+// Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <id>] [--runs <n>] [--no-request] [--no-previous] [--sequences]
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -22,7 +25,9 @@ import {
     checkThoughtPhrase,
     opensWithI,
     type ThoughtEvalRules,
+    type ThoughtRepeat,
     thoughtEvalMaxIOpeningShare,
+    thoughtRepeat,
 } from './thought-eval-checks.ts';
 
 interface EvalCase {
@@ -33,6 +38,18 @@ interface EvalCase {
     request?: string;
     rules?: ThoughtEvalRules;
     text: string;
+}
+/** One request's titles and actions in the order a real run produced them. */
+interface EvalSequence {
+    id: string;
+    request: string;
+    steps: { kind: EvalCase['kind']; text: string }[];
+}
+interface SequenceOutcome {
+    id: string;
+    repeats: ThoughtRepeat[];
+    run: number;
+    shown: string[];
 }
 interface Outcome {
     answer: string;
@@ -49,28 +66,39 @@ if (!apiKey) {
     throw new Error('HAUS_GEMINI_API_KEY is not set; run through varlock.');
 }
 const summarizer = createGeminiThoughtSummarizer({ apiKey, timeoutMs: 15_000 });
-const corpus = JSON.parse(await readFile(corpusPath, 'utf8')) as { cases: EvalCase[] };
+const corpus = JSON.parse(await readFile(corpusPath, 'utf8')) as {
+    cases: EvalCase[];
+    sequences: EvalSequence[];
+};
 const flag = (name: string) =>
     process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : undefined;
 const only = flag('--only');
 // Sends request cases without their request, to measure what the context adds.
 const withoutRequest = process.argv.includes('--no-request');
+// Sends sequence steps without the previous lines, to measure what they add.
+const withoutPrevious = process.argv.includes('--no-previous');
 const runs = Number(flag('--runs') ?? 1);
-const cases = corpus.cases.filter((item) => !only || item.id === only);
+// Runs only the sequences, for quick prompt iteration on repeats.
+const sequencesOnly = process.argv.includes('--sequences');
+const cases = corpus.cases.filter((item) => !(sequencesOnly || (only && item.id !== only)));
+const sequences = corpus.sequences.filter((item) => !only || item.id === only);
 const outcomes: Outcome[] = [];
+const sequenceOutcomes: SequenceOutcome[] = [];
 for (let run = 1; run <= runs; run += 1) {
     for (let index = 0; index < cases.length; index += 4) {
         const batch = cases.slice(index, index + 4);
         outcomes.push(...(await Promise.all(batch.map((item) => judgeCase(item, run)))));
     }
+    sequenceOutcomes.push(...(await Promise.all(sequences.map((item) => playSequence(item, run)))));
 }
 report(outcomes);
+reportSequences(sequenceOutcomes);
 const directory = path.join('.context/thought-housekeeping-eval');
 await mkdir(directory, { recursive: true });
 const file = path.join(directory, `${thoughtSummaryPromptVersion}-${Date.now()}.json`);
 await writeFile(
     file,
-    `${JSON.stringify({ outcomes, promptVersion: thoughtSummaryPromptVersion }, null, 4)}\n`
+    `${JSON.stringify({ outcomes, promptVersion: thoughtSummaryPromptVersion, sequenceOutcomes, withoutPrevious }, null, 4)}\n`
 );
 console.log(`\nraw outcomes: ${file}`);
 
@@ -89,7 +117,53 @@ async function judgeCase(item: EvalCase, run: number): Promise<Outcome> {
     };
 }
 
-function caseSource(item: EvalCase, context: { request?: string }): ThoughtSource {
+/** Phrases a sequence's steps in order, as the Server would for one run in one Chat. */
+async function playSequence(item: EvalSequence, run: number): Promise<SequenceOutcome> {
+    const shown: string[] = [];
+    for (const step of item.steps) {
+        const previous = withoutPrevious ? [] : shown.slice(-2);
+        const summary = await summarizer.summarize(
+            caseSource(step, {
+                request: item.request,
+                ...(previous.length > 0 ? { previous } : {}),
+            })
+        );
+        if (summary?.kind === 'phrase') {
+            shown.push(summary.text);
+        }
+    }
+    const repeats = shown.slice(1).map((line, index) => thoughtRepeat(shown[index] ?? '', line));
+    return { id: item.id, repeats, run, shown };
+}
+
+function reportSequences(results: SequenceOutcome[]) {
+    if (results.length === 0) {
+        return;
+    }
+    console.log(`\nSequences (previous lines ${withoutPrevious ? 'off' : 'on'}):`);
+    for (const outcome of results.filter((result) => result.run === 1)) {
+        console.log(`  ${outcome.id}`);
+        outcome.shown.forEach((line, index) => {
+            const repeat = index > 0 ? outcome.repeats[index - 1] : null;
+            console.log(`    ${repeat ? repeat.toUpperCase().padEnd(15) : ''.padEnd(15)}${line}`);
+        });
+    }
+    const repeats = results.flatMap((result) => result.repeats);
+    const shown = results.reduce((total, result) => total + result.shown.length, 0);
+    const share = (kind: ThoughtRepeat) => {
+        const count = repeats.filter((repeat) => repeat === kind).length;
+        return `${((count / Math.max(repeats.length, 1)) * 100).toFixed(1)}% (${count}/${repeats.length})`;
+    };
+    console.log(
+        `  ${shown} shown lines, ${(shown / results.length).toFixed(2)} per sequence run; consecutive pairs ${repeats.length}`
+    );
+    console.log(`  duplicates ${share('duplicate')}, near-duplicates ${share('near-duplicate')}`);
+}
+
+function caseSource(
+    item: Pick<EvalCase, 'kind' | 'text'>,
+    context: { previous?: string[]; request?: string }
+): ThoughtSource {
     switch (item.kind) {
         case 'action':
             return { action: item.text, kind: 'action', ...context };
@@ -101,6 +175,9 @@ function caseSource(item: EvalCase, context: { request?: string }): ThoughtSourc
 }
 
 function report(results: Outcome[]) {
+    if (results.length === 0) {
+        return;
+    }
     for (const outcome of results) {
         const skipped = outcome.answer === 'SKIP';
         const correct = skipped === (outcome.expected === 'skip');

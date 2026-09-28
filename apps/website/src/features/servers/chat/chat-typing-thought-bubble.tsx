@@ -4,16 +4,19 @@ import * as React from 'react';
 import { useChatThoughtListener } from '../../../hooks/servers/use-chat-thought-listener.ts';
 import {
     type ChatTypingThought,
+    type ChatTypingThoughtOnScreen,
     chatTypingThoughtDelay,
     chatTypingThoughtTiming,
     resolveChatTypingThought,
+    resolveChatTypingThoughtArrival,
     visibleChatTypingThought,
 } from './chat-typing-thought.ts';
 
 /**
  * The engaged Agent's latest thought for this Chat, held for one wobble-in
- * and hold. Transient state only: never cached, gone on unmount, and hidden
- * the moment its run stops engaging the Chat.
+ * and hold; the same line again while it is up extends that hold instead.
+ * Transient state only: never cached, gone on unmount, and hidden the moment
+ * its run stops engaging the Chat.
  */
 export function useChatTypingThought(
     serverId: string,
@@ -25,19 +28,41 @@ export function useChatTypingThought(
     const lastShownAt = React.useRef<number | null>(null);
     // Engagements (Agent and run) that have shown a bubble here.
     const shownEngagements = React.useRef(new Set<string>());
+    const onScreen = React.useRef<ChatTypingThoughtOnScreen | null>(null);
     const holdTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const waitTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-    const show = React.useCallback((next: ChatTypingThought) => {
+    const holdUntil = React.useCallback((next: ChatTypingThought, hideAt: number) => {
         clearTimeout(holdTimer.current);
-        lastShownAt.current = performance.now();
-        shownEngagements.current.add(`${next.agentId}:${next.runId}`);
-        setThought(next);
-        const { enterMs, holdMs } = chatTypingThoughtTiming;
         holdTimer.current = setTimeout(() => {
+            onScreen.current = null;
             setThought((current) => (current?.id === next.id ? null : current));
-        }, enterMs + holdMs);
+        }, hideAt - performance.now());
     }, []);
+
+    // An extension is not a new bubble: it keeps the bubble's key, so no wobble,
+    // and leaves the spacing mark where the bubble first showed.
+    const present = React.useCallback(
+        (next: ChatTypingThought) => {
+            const now = performance.now();
+            const arrival = resolveChatTypingThoughtArrival(onScreen.current, next, now);
+            if (arrival.kind === 'absorb') {
+                return;
+            }
+            if (arrival.kind === 'extend' && onScreen.current) {
+                onScreen.current = { ...onScreen.current, hideAt: arrival.hideAt };
+                holdUntil(onScreen.current.thought, arrival.hideAt);
+                return;
+            }
+            const { enterMs, holdMs } = chatTypingThoughtTiming;
+            lastShownAt.current = now;
+            shownEngagements.current.add(`${next.agentId}:${next.runId}`);
+            onScreen.current = { hideAt: now + enterMs + holdMs, shownAt: now, thought: next };
+            setThought(next);
+            holdUntil(next, onScreen.current.hideAt);
+        },
+        [holdUntil]
+    );
 
     useChatThoughtListener(serverId, chatId, (event) => {
         nextId.current += 1;
@@ -47,15 +72,23 @@ export function useChatTypingThought(
         }
         // Newest wins: a thought still waiting for its turn is replaced.
         clearTimeout(waitTimer.current);
+        // The line already on screen extends at once rather than waiting to re-enter.
+        if (
+            resolveChatTypingThoughtArrival(onScreen.current, next, performance.now()).kind !==
+            'show'
+        ) {
+            present(next);
+            return;
+        }
         const delay = chatTypingThoughtDelay(
             lastShownAt.current,
             performance.now(),
             !shownEngagements.current.has(`${next.agentId}:${next.runId}`)
         );
         if (delay === 0) {
-            show(next);
+            present(next);
         } else {
-            waitTimer.current = setTimeout(() => show(next), delay);
+            waitTimer.current = setTimeout(() => present(next), delay);
         }
     });
     React.useEffect(

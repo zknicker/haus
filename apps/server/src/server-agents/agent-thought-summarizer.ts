@@ -8,13 +8,14 @@ import { isHousekeepingPhrase } from './thought-housekeeping.ts';
 /**
  * What a thought is phrased from: a reasoning excerpt, a Codex status title, or
  * a scrubbed description of a tool action the run started, with the scrubbed
- * human message the run is answering as optional context.
+ * human message the run is answering and the run's last shown lines in that
+ * Chat (oldest first) as optional context.
  */
 export type ThoughtSource = (
     | { action: string; kind: 'action' }
     | { kind: 'reasoning'; reasoning: string }
     | { kind: 'title'; title: string }
-) & { request?: string };
+) & { previous?: readonly string[]; request?: string };
 
 /** A phrase to show, or `skip` when the source is only the Agent's own housekeeping. */
 export type ThoughtSummary = { kind: 'phrase'; text: string } | { kind: 'skip' };
@@ -26,7 +27,7 @@ export interface ThoughtSummarizer {
 
 export const thoughtSummaryModel = 'gemini-3.5-flash-lite';
 /** Bumped whenever the prompt changes, so eval runs name the wording they measured. */
-export const thoughtSummaryPromptVersion = 'thought-v7-action';
+export const thoughtSummaryPromptVersion = 'thought-v8-previous';
 const thoughtSummaryTimeoutMs = 4000;
 const thoughtAnswerMaxWords = 10;
 const skipAnswer = 'SKIP';
@@ -87,6 +88,19 @@ const actionPrompt = [
     '"Pulling the forecast"), never the command, its flags, a file name, or a host. Reading',
     "or editing the agent's own memory, notes, or instructions files (MEMORY.md) is",
     'housekeeping, so SKIP.',
+].join(' ');
+
+/**
+ * Added only when the run has already shown a line in this Chat. Flash-Lite
+ * otherwise restates the request's subject in every line of a run.
+ */
+const previousPrompt = [
+    'The note after the input names the line the agent showed last. A person already',
+    'read it, so never repeat it, and changing only the opening or word order is still',
+    'a repeat ("OK, checking the build status" after "Checking the build status").',
+    "Name what this step adds, in the input's own words rather than the request's subject",
+    'again. Take it only from the input, never invent one; when the input adds nothing new,',
+    'say the same work goes on in fresh words ("Still digging into the build").',
 ].join(' ');
 
 /**
@@ -160,7 +174,8 @@ function requestBody(source: ThoughtSource, opening: string) {
         ? `<request>\n${source.request.slice(0, thoughtRequestMaxLength)}\n</request>\n`
         : '';
     const input = sourceBlock(source);
-    const text = `${request}${input}\n${opening}`;
+    const previous = previousNote(source.previous);
+    const text = `${request}${input}\n${previous}${opening}`;
     return {
         contents: [{ parts: [{ text }], role: 'user' }],
         generationConfig: {
@@ -183,12 +198,31 @@ function sourceBlock(source: ThoughtSource): string {
     }
 }
 
-/** The base prompt, plus the action and request notes only when those ride along. */
+/**
+ * Asks for what is new since the run's last shown line in this Chat, so a run
+ * does not repeat itself. Present only when such a line exists, so a run's
+ * first thought is phrased by exactly the prompt without it.
+ */
+function previousNote(previous: readonly string[] | undefined): string {
+    const last = previous?.at(-1);
+    if (!(previous && last)) {
+        return '';
+    }
+    const earlier = previous.length > 1 ? ` (and before it, "${previous.at(-2)}")` : '';
+    return [
+        `The previous status was "${last}"${earlier}.`,
+        "Describe what's new in this step; don't restate it. If this step is the same",
+        "activity continuing, you may say so briefly in new words, or SKIP if it's housekeeping.\n",
+    ].join(' ');
+}
+
+/** The base prompt, plus the action, request, and previous-line notes only when those ride along. */
 function instructions(source: ThoughtSource): string {
     return [
         systemPrompt,
         source.kind === 'action' ? actionPrompt : null,
         source.request ? requestPrompt : null,
+        source.previous?.length ? previousPrompt : null,
     ]
         .filter(Boolean)
         .join(' ');
