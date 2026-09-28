@@ -391,16 +391,17 @@ inbox. Human **Start** resumes the current session and drains that work.
   pending count, first/latest msg ids, latest sender, `· task/thread/dm/mention` tags); bodies
   arrive through `message check` or a bounded concrete resume batch. The Computer already has
   the full socket-delivered envelope; content-free describes the runtime input, not the
-  Computer transport. Notice flushing copies the daemon's gating as far as the harness lets
-  Haus observe it: only at a tool boundary with no tool call still in flight, so parallel calls
-  hold a notice until the last one resolves. Raft also holds flushes while compacting; the AI
-  SDK harness reports compaction only after it completes (a `compaction` part from Claude Code
-  and Pi, nothing from Codex), so Haus has no compaction gate. Two carve-outs restore Raft's own
-  behavior ([ADR 0034](../../docs/adr/0034-addressed-messages-ride-the-wake.md)): a wake that
-  **resumes a live session** drains human bodies as full envelopes, matching Raft's alive-idle
-  wake, and a **cold start** drains the items addressed to this Agent — a DM, an @mention, or a
-  committed Jev narrow — beside the content-free notice of everything else. A busy Agent's
-  mid-turn traffic stays content-free without exception.
+  Computer transport. Haus flushes notices only at a tool boundary with no tool call still in
+  flight, so parallel calls hold a notice until the last one resolves. This is a Haus choice
+  for AI SDK steering, not Raft parity: Raft's Claude, Codex, and Pi drivers write notices
+  directly into the runtime's own input queue (`busyDeliveryMode = "direct"`). Raft holds
+  flushes while compacting; the AI SDK harness reports compaction only after it completes, so
+  Haus has no compaction gate. Two carve-outs are Haus extensions beyond Raft, whose idle wakes
+  stay content-free ([ADR 0034](../../docs/adr/0034-addressed-messages-ride-the-wake.md)): a
+  wake that **resumes a live session** drains human bodies as full envelopes, and a **cold
+  start** drains the items addressed to this Agent — a DM, an @mention, or a committed Jev
+  narrow — beside the content-free notice of everything else. A busy Agent's mid-turn traffic
+  stays content-free without exception.
 - **I3 — Exact model visibility plus a verified contiguous boundary.** Server pending rows are
   exact transport debt. Every path that exposes a message to the model records its exact identity
   for the active run; settlement makes that visibility authoritative for later turns. An optional

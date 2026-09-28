@@ -19,11 +19,14 @@ ADR 0030's routing gate, and the cause-inference rule are unchanged.
 ## Context
 
 Haus pushed no bodies into an ordinary wake. Every human message reached the
-model as a content-free notice, and the Agent decided whether to pull. That was
-read as Raft parity, and it was not: Raft's daemon drains full envelopes into an
-alive-idle session and only falls back to a notice when the Agent is busy. Haus
-Agents therefore woke less informed than their Raft equivalents, and a direct
-question could sit behind a pull the Agent chose not to make.
+model as a content-free notice, and the Agent decided whether to pull. That
+matches Raft: its idle wakes are content-free too, and bodies enter the prompt
+only as thread-join context (raft-source `packages/daemon/src/agentProcessManager.ts`
+at commit `05f7d8f`). This ADR was first written believing Raft drained full
+envelopes into alive-idle sessions; the published source corrected that premise,
+and the decision stands on its own merit. A content-free wake costs every Agent
+a pull round trip before it can answer, and a direct question could sit behind a
+pull the Agent chose not to make.
 
 Two more gaps followed from the same shape. A concrete wake — a reminder or
 Trigger fire, a task assignment, a settled Cloud Agent Run — zeroed
@@ -42,10 +45,9 @@ decided about liveness would be a guess racing the process it describes.
 **The Server decides eligibility; the Computer decides the lane.** The start
 frame carries `drainItemIds` — drainable on any start — and `warmDrainItemIds`,
 drainable only when the harness session resumes. The Computer reads `isResume`
-and composes accordingly: a resumed session drains every eligible human body,
-matching Raft's alive-idle wake; a cold start drains only the addressed items and
-puts a content-free notice for everything else in the same prompt, which is
-Raft's hybrid shape. A busy Agent's mid-turn traffic stays content-free without
+and composes accordingly: a resumed session drains every eligible human body; a
+cold start drains only the addressed items and puts a content-free notice for
+everything else in the same prompt. Both lanes are Haus extensions beyond Raft. A busy Agent's mid-turn traffic stays content-free without
 exception. Existing drain budgets — fifty rows and 24,000 characters — apply
 unchanged, and a human drain never shares a run with a fire, so ADR 0026's
 sole-fire cause inference is untouched.
@@ -96,7 +98,7 @@ settlement read as news, so every warm turn's first reply to it was held once
 behind a `--send-draft` round trip. The composed receipt closes that window, and
 the hold itself is unchanged.
 
-The costs are real. `isResume` is a proxy for Raft's ALIVE-IDLE: a session
+The costs are real. `isResume` is a proxy for a live, idle session: a session
 resumed after the Computer restarted reads as warm, and a session rotation forces
 a cold start that downgrades an intended warm drain to addressed-only. A resend
 must recompute the same drain sets from durable state or a replayed run composes
