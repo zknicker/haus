@@ -679,6 +679,9 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 - **Chat message width:** The transcript pane owns the horizontal gutter. Message bodies have
   no additional end padding, so text and thread previews use the space beside the avatar rail.
   Human and Agent message bodies use the full available width, without an Agent-only width cap.
+- **Chat Markdown tables:** Columns size to content over a floor of
+  `--chat-markdown-table-min-width` (`min(100%, 40rem)`), wrap up to the message column, then
+  scroll. Row rules and the row hover tint end at the table edge.
 - **Inline replies:** A single muted line with a miniature author avatar and truncated excerpt sits
   above the replying author. An elbow in the avatar rail connects the excerpt to the reply.
   Each inline reply starts its own visual row; clicking the excerpt reveals its parent.
