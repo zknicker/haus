@@ -425,7 +425,7 @@ test('full reset independently clears harness context and restores the ordinary 
     expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toContain(
         'Onboarding guide'
     );
-    await expect(stat(join(agentRoot, 'workspace', 'notes'))).rejects.toThrow();
+    expect(await readdir(join(agentRoot, 'workspace', 'notes'))).toEqual([]);
     await expect(
         readFile(join(agentRoot, 'skills', 'haus-agent', 'SKILL.md'), 'utf8')
     ).rejects.toThrow();

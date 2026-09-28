@@ -97,8 +97,8 @@ test('applies desired runtime and model without waiting for the first turn', asy
     expect(await readFile(join(workspace, 'MEMORY.md'), 'utf8')).toContain(
         'Reviews launch copy and records concrete risks.'
     );
-    await expect(stat(join(workspace, 'notes'))).rejects.toThrow();
-    expect(await readdir(workspace)).toEqual(['MEMORY.md']);
+    expect((await readdir(workspace)).sort()).toEqual(['MEMORY.md', 'notes']);
+    expect(await readdir(join(workspace, 'notes'))).toEqual([]);
     const skills = join(
         dataRoot,
         'servers',

@@ -15,7 +15,7 @@ describe('ordinary Agent workspace seed', () => {
         await fs.rm(workspaceDir, { force: true, recursive: true });
     });
 
-    it('seeds only a minimal MEMORY.md into a fresh workspace', async () => {
+    it('seeds a minimal MEMORY.md and an empty notes/ into a fresh workspace', async () => {
         const seeded = await seedAgentWorkspace({
             agentName: 'scout',
             bio: 'Operator — ships scoped, verified changes end to end',
@@ -29,7 +29,8 @@ describe('ordinary Agent workspace seed', () => {
         expect(memory).toContain('## Key Knowledge\n\n- No notes yet.');
         expect(memory).toContain('## Active Context\n\n- First startup.');
         expect(memory).not.toContain('notes/');
-        expect(await fs.readdir(workspaceDir)).toEqual(['MEMORY.md']);
+        expect((await fs.readdir(workspaceDir)).sort()).toEqual(['MEMORY.md', 'notes']);
+        expect(await fs.readdir(path.join(workspaceDir, 'notes'))).toEqual([]);
     });
 
     // Raft parity (`buildInitialMemoryMd`, Computer 1.0.16): the seed is inert.

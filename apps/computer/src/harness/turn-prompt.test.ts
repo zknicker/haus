@@ -117,6 +117,22 @@ test("the unread digest prints Raft's wording after the prompt body", () => {
     );
 });
 
+test('an ordinary cold wake on an unaddressed channel question still gets a notice', () => {
+    const question: AgentInboxItem = { ...channel, content: 'Anyone know how deploys work?' };
+    const wake = composeTurnPrompt(
+        delivery({
+            drainItemIds: [],
+            inbox: [question],
+            totalPending: 1,
+            unreadElsewhere: [{ count: 2, target: '#general' }],
+            warmDrainItemIds: [question.id],
+        }),
+        { isColdStart: true, sessionGeneration: 3 }
+    );
+    expect(wake.drained).toEqual([]);
+    expect(wake.turnContent).toContain('[Haus inbox notice:');
+});
+
 test('an empty digest renders nothing', () => {
     const prompt = composeTurnPrompt(
         delivery({ drainItemIds: [], inbox: [], totalPending: 0, warmDrainItemIds: [] }),
