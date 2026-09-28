@@ -58,7 +58,8 @@ most one `agent-thought` frame:
    (`GITHUB_TOKEN=…`, `Authorization: Bearer …`), emails, credentials, and token-like strings
    removed, and absolute paths cut to their basename; a file read or edit as its basename
    (`read launch-checklist.md`); a web search as its query; a page as its host and path words;
-   and any other or MCP tool as its name plus up to three short scrubbed scalar arguments. Real
+   and any other or MCP tool as its name plus up to three short scrubbed scalar arguments,
+   never a credential-named one (`password`, `api_key`). Real
    actions are the Activity projector's `running_command`, `reading_files`, `editing_files`,
    `searching_web`, `browsing`, and `using_tool` calls; a shell call that only runs the `haus` CLI
    classifies as skipped there and never becomes a thought, and message checks and sends are not
