@@ -1,5 +1,11 @@
 # Raft blog research notes (raft.build/resources/blog)
 
+> **Provenance.** Raft's source is now public: https://github.com/botiverse/raft-source, pinned at
+> commit `05f7d8fd77d2535f993d5d90b85118438bc18216` (release `v1.13.0-source.1`, daemon `1.0.25`).
+> The blog documents product intent, not implementation — where a claim here needs a mechanism
+> check, verify against that source rather than the installed CLI/binary. This file remains a
+> historical record of the blog's stated philosophy, not a research-method guide.
+
 All 8 posts read 2026-07-20 (sitemap-verified complete). Dense summaries; verbatim where crisp.
 
 ## Posts

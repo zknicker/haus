@@ -1,5 +1,11 @@
 # Raft (app.raft.build) UI Anatomy Notes
 
+> **Provenance.** This is a visual/behavioral recon of the live app, not a source read — it stays
+> the right method for UI anatomy. Raft's source is public at
+> https://github.com/botiverse/raft-source (pinned commit `05f7d8fd77d2535f993d5d90b85118438bc18216`,
+> release `v1.13.0-source.1`, daemon `1.0.25`); prefer it over the app or the installed CLI/binary
+> for any underlying mechanism claim this file makes in passing.
+
 Server: "arcade". Logged in as Zach (owner/human). Captured via read_page (accessible
 names double as tooltip text) + screenshots. Written for a designer who has never
 seen the app — every section is self-contained.

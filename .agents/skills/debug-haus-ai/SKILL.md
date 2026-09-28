@@ -69,15 +69,18 @@ evidence.
 
 Give it the raw symptom and ask it to:
 
-1. Research primary public Raft sources: `raft.build`, `docs.raft.build`, and Raft's blog.
-2. Read the repository's Raft-alignment specs.
-3. Inspect the local Raft Computer and daemon source plus the installed implementation read-only.
+1. Read Raft's source: https://github.com/botiverse/raft-source, pinned at commit
+   `05f7d8fd77d2535f993d5d90b85118438bc18216` (release `v1.13.0-source.1`, daemon `1.0.25`) —
+   clone or browse it read-only rather than reconstructing behavior from the installed CLI/binary.
+2. Research primary public Raft sources when source doesn't settle intent: `raft.build`,
+   `docs.raft.build`, and Raft's blog.
+3. Read the repository's Raft-alignment specs.
 4. Return a source-backed behavioral model, parity and deliberate divergences, three to five
    falsifiable questions, and a challenge to the leading hypothesis.
 
-Do not give the partner a suspected answer as fact. Do not let it edit Haus or Raft repositories
-or inspect credentials. If local Raft code or the public network is unavailable, record that
-evidence gap and continue with repository sources.
+Do not give the partner a suspected answer as fact. Do not let it edit Haus or the Raft source
+checkout, or inspect credentials. If the source checkout or the public network is unavailable,
+record that evidence gap and continue with repository sources.
 
 ## Agent execution diagnosis
 

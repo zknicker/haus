@@ -204,17 +204,24 @@ inbox. Human **Start** resumes the current session and drains that work.
 - Raft's AX conventions are program-wide law: stderr `Error:` / `Code:` / `Next action:`;
   stdin-only message bodies; every output teaches the next action at the point of use; every
   token a result spends has to earn its place.
-- **Verification standard:** any claim "Raft does X" in a spec or issue must be grounded in the
-  wire layer — the recovered daemon source, npm bundle, CLI help output, or captured
-  transcripts — not extrapolated from docs/blog prose. Raft binaries SELF-UPGRADE: verify the installed version before citing a strings dump (a v1.0.7 dump nearly produced a false verdict against v1.0.13 behavior). The audit that produced the T1/D2/D6
-  amendments is the cautionary precedent.
+- **Verification standard:** Raft's source is public — https://github.com/botiverse/raft-source,
+  pinned at commit `05f7d8fd77d2535f993d5d90b85118438bc18216` (release `v1.13.0-source.1`, daemon
+  `1.0.25`). Any claim "Raft does X" in a spec or issue must be grounded in that source (clone or
+  browse it at the pinned commit) — not extrapolated from docs/blog prose or reconstructed from the
+  installed binary/CLI help/`strings`. Older material in this program predates the source release
+  and was recovered from the wire layer (daemon source extracted from the binary, npm bundle, CLI
+  help output, captured transcripts); treat it as superseded wherever it conflicts with the pinned
+  source, and prefer re-deriving from source over re-running binary/strings archaeology. Raft
+  binaries also SELF-UPGRADE, so a claim grounded in an older capture may be stale even relative to
+  itself (a v1.0.7 strings dump nearly produced a false verdict against v1.0.13 behavior) — the
+  audit that produced the T1/D2/D6 amendments is the cautionary precedent.
 
 **Execution rules** (every workstream thread inherits these):
 
 - **Raft audit first.** Before implementing, each thread audits its slice of this contract
-  against the Raft evidence set (and the live raft CLI/docs where the evidence is thin) to
-  catch incorrect assumptions or unexplained divergence. Anything weird stops and goes to the
-  operator for manual review before code is written.
+  against the Raft evidence set (and the pinned raft-source clone/browse, or live docs, where the
+  evidence is thin) to catch incorrect assumptions or unexplained divergence. Anything weird stops
+  and goes to the operator for manual review before code is written.
 - **Test discipline.** Do not run e2e or full test suites early — prefer the smallest
   verification lane (docs/operations/testing.md) and save broad suites for
   integration-readiness. Update lint rules when that encodes a convention better than review

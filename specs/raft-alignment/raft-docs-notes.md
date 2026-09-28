@@ -1,5 +1,12 @@
 # Raft docs research notes (docs.raft.build)
 
+> **Provenance.** Raft's source is now public: https://github.com/botiverse/raft-source, pinned at
+> commit `05f7d8fd77d2535f993d5d90b85118438bc18216` (release `v1.13.0-source.1`, daemon `1.0.25`).
+> For any claim below that the source can settle directly, prefer cloning or browsing that repo
+> over docs prose, blog posts, or the installed CLI/binary. This file is a historical snapshot of
+> docs-only research from before the source release; keep it as a record of what the public docs
+> said, not as the current research method.
+
 Swept 2026-07-20. Sources: full docs site (38 markdown pages via `/llms.txt` → `.md` twins), the
 published `@botiverse/raft` npm CLI (help tree + bundled JS mined for verbatim output text), the
 `botiverse/raft-external-agents` GitHub repo (Claude Code channel plugin + wake-endpoint

@@ -1,9 +1,14 @@
 # Raft agent CLI — recovered command surface
 
-Merged from: the published `@botiverse/raft` npm CLI (installed 2026-07-20; full `--help` tree
-walked, 51 leaf commands), the prompt template in the local `raft-computer` binary (v1.0.7), and
-docs.raft.build. `slock` is a legacy alias for every command. This is the reference for designing
-the agent-facing `haus` CLI.
+> **Provenance.** Raft's source is public: https://github.com/botiverse/raft-source, pinned at
+> commit `05f7d8fd77d2535f993d5d90b85118438bc18216` (release `v1.13.0-source.1`, daemon `1.0.25`).
+> The authoritative CLI surface is `packages/cli/src/commands` in that repo — clone or browse it
+> there rather than re-deriving behavior from the installed binary, `--help` output, or `strings`.
+> This document predates that source release; it was merged from the published `@botiverse/raft`
+> npm CLI (installed 2026-07-20; full `--help` tree walked, 51 leaf commands), the prompt template
+> in the local `raft-computer` binary (v1.0.7), and docs.raft.build, then spot-checked against the
+> pinned source below. `slock` is a legacy alias for every command. This is the reference for
+> designing the agent-facing `haus` CLI.
 
 ## Entry shapes
 
@@ -85,11 +90,21 @@ the agent-facing `haus` CLI.
   direct mention or posting restores the follow.
 
 ### task
-- `task list [--target] [--status all|todo|in_progress|in_review|done]`
-- `task create [--title … repeatable] [--assignee @who]` — body stdin; unassigned `todo` default;
-  `--assignee @yourself` → atomically `in_progress` with claim timestamp.
-- `task claim --target <t> (--number N … | --message-id <id>)` — the claim-before-work lock.
-- `task unclaim`, `task update --status todo|in_progress|in_review|done|closed`.
+- `task list (--target <t> | --mine) [--status all|todo|in_progress|in_review|done|closed]` —
+  `--target`/legacy `--channel` and `--mine` are mutually exclusive; `--status` includes `closed`
+  and `--mine` defaults to unfinished statuses.
+- `task create --target <t> [--title … repeatable] [--assignee @who] [--creates-resource]` — title
+  only, no stdin body; repeatable `--title` batch-creates; unassigned `todo` default; `--assignee
+  @yourself` → atomically `in_progress` with claim timestamp; `--creates-resource` requires a
+  structured resource receipt and expiry follow-up before completion.
+- `task claim --target <t> (--number N … | --message-id <id> …) [--reviewer-isolation]` — the
+  claim-before-work lock; `--message-id` is repeatable; `--reviewer-isolation` withholds freshness
+  context/draft instructions from the claim response; a claim may come back as a freshness hold;
+  failure exit codes are `CLAIM_CONFLICT` (already locked) and `CLAIM_FAILED` (other failures).
+- `task unclaim`, `task update --status todo|in_progress|in_review|done|closed`, plus `task assign`,
+  `task unassign`, `task convert`, `task amend`, `task history`, `task delete`, and `task receipt` —
+  not covered by the earlier npm-bundle sweep; see `packages/cli/src/commands/task/` at the pinned
+  commit for exact flags.
 - Tasks are messages with task metadata (`[task #N status=…]` suffix in envelopes), not a separate
   store; thread under the task message is the progress surface.
 
@@ -98,9 +113,10 @@ the agent-facing `haus` CLI.
   `comments --id <id>` (comments anchored to file locations).
 
 ### mention (sender-side resolution)
-- `mention pending` / `mention notify <resolutionIds…>` / `mention add <resolutionIds…>` — when a
-  send @mentions a non-member, the send returns resolution ids; the sender chooses notify vs
-  add-to-channel.
+- `mention pending [--json]` / `mention notify <resolutionIds…> [--json]` / `mention add
+  <resolutionIds…> [--json]` — when a send @mentions a non-member, the send returns resolution ids;
+  the sender chooses notify vs add-to-channel; `pending` and both action subcommands (`notify`,
+  `add`) accept `--json` for machine-readable output.
 
 ### profile
 - `profile show [target]` — identity card; `profile update --display-name --description
@@ -115,11 +131,14 @@ the agent-facing `haus` CLI.
 
 ### reminder (the scheduling primitive; no separate cron product)
 - `reminder schedule --title … (--delay-seconds N | --fire-at <iso>) [--repeat
-  every:15m|every:2h|every:1d|daily@09:00|weekly:mon,fri@09:00] [--channel] --message-id <anchor>`
-  — author-owned wake signal anchored to a message/thread; fires as a system message in that
-  surface and wakes the author.
-- `reminder list [--status scheduled,fired,canceled]`, `cancel`, `snooze --by 30m|2h|1d`,
-  `update` (one field), `log`.
+  every:15m|every:2h|every:1d|daily@09:00|weekly:mon,fri@09:00] [--tz <iana>] [--channel <ref>]
+  --message-id <anchor>` — author-owned wake signal anchored to a message/thread; fires as a system
+  message in that surface and wakes the author; `--tz` sets the IANA timezone for `--repeat`,
+  overriding the host timezone; `--msg-id` is a deprecated alias for `--message-id`.
+- `reminder list [--all] [--status scheduled,fired,canceled]` (defaults to scheduled+fired; `--all`
+  includes canceled), `cancel`, `snooze --by 30m|2h|1d`, `update --id <id> [--in <duration> |
+  --fire-at <iso>] [--cadence <rule>] [--title <text>]` (one field; `--in` is the relative-duration
+  counterpart to `--fire-at`), `log`.
 
 ### action (cards a human commits)
 - `action prepare --target <t>` — stdin JSON `ActionCardAction`; v1 types: `channel:create`
@@ -140,7 +159,7 @@ human commit/edit remain later work.
   it). Known topics: `index`, `raft-cli-overview`, `recipes/seeded`, `recipes/<kind>/<slug>`
   (e.g. `decision/when-to-ask-human`, `pattern/discuss-then-assign`, `technique/task-claim-lock`).
 
-## WS1 audit corrections (2026-07-21, npm v0.0.17 bundle source)
+## WS1 audit corrections (2026-07-21, npm v0.0.17 bundle source; command-tree corrections above spot-checked against the pinned source commit)
 
 - Heredoc delimiter in current CLI teaching text is `RAFTMSG` (the captured v1.0.0 prompt used
   `SLOCKMSG`).
