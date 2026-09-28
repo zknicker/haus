@@ -1,7 +1,9 @@
 /**
- * Ordinary Agent workspace seed. The workspace starts with identity and an
- * empty knowledge section; durable guidance remains available through the
- * shared Manual rather than being copied into every Agent workspace.
+ * Ordinary Agent workspace seed. The workspace starts with identity, an
+ * empty knowledge section, and an empty `notes/` for the details MEMORY.md
+ * indexes (Raft's `initializeAgentWorkspace`); durable guidance remains
+ * available through the shared Manual rather than being copied into every
+ * Agent workspace.
  */
 
 import fs from 'node:fs/promises';
@@ -27,7 +29,7 @@ export async function seedAgentWorkspace(input: SeedAgentWorkspaceInput): Promis
         return false;
     }
 
-    await fs.mkdir(input.workspaceDir, { recursive: true });
+    await fs.mkdir(path.join(input.workspaceDir, 'notes'), { recursive: true });
     await fs.writeFile(memoryPath, renderStarterMemory(input));
     return true;
 }

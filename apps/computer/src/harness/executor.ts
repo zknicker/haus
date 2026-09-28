@@ -1,5 +1,5 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { basename, dirname, join } from 'node:path';
+import { rm } from 'node:fs/promises';
+import { basename, join } from 'node:path';
 import type { HarnessV1 } from '@ai-sdk/harness';
 import type {
     HarnessAgent,
@@ -23,12 +23,20 @@ import {
 import { createHarnessActivityProjector } from './activity-projector.ts';
 import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
 import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
+import {
+    clearPendingCoveGuidanceRefresh,
+    coveGuidanceConflictNotice,
+    coveGuidanceRefreshNotice,
+    hasPendingCoveGuidanceRefresh,
+    markCoveGuidanceRefreshPending,
+} from './cove-guidance-refresh.ts';
 import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
 import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
 } from './execution-journal.ts';
 import { composeAgentInstructions } from './instructions.ts';
+import { takeMemorySizeNotice } from './memory-size-notice.ts';
 import { AgentSessionResumeRejectedError, isPromptResumeRejection } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { createHarnessForRuntime } from './runtime-harness.ts';
@@ -322,13 +330,16 @@ async function executeHarnessTurn(
         // the local notice projection before any stored notice can repeat it.
         await attestComposedDrain(input, prompt.drained);
         const turnContent = prompt.turnContent;
+        const memoryNotice = await takeMemorySizeNotice(input);
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await agent.stream({
             abortSignal: turnSignal,
             prompt: projectMessageForAgent({
-                content: [factoryGuidanceNotice, turnContent].filter(Boolean).join('\n\n'),
+                content: [factoryGuidanceNotice, turnContent, memoryNotice]
+                    .filter(Boolean)
+                    .join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
             }),
             session: live,
@@ -460,38 +471,6 @@ async function executeHarnessTurn(
     }
 }
 
-const coveGuidanceRefreshNotice =
-    "Haus updated Cove's factory-managed onboarding guidance. Before acting on this request, re-read notes/onboarding_playbook.md and notes/onboarding_knowledge_faq.md. Their current guidance supersedes earlier assumptions from this session.";
-
-function coveGuidanceConflictNotice(files: readonly string[]): string {
-    return `Haus could not update Cove's factory-managed onboarding guidance because these files were changed or removed: ${files.join(', ')}. Do not overwrite them. Retrieve the relevant Haus Manual topic before claiming a capability is unavailable.`;
-}
-
-async function hasPendingCoveGuidanceRefresh(agentRoot: string): Promise<boolean> {
-    return await readFile(coveGuidanceRefreshReceiptPath(agentRoot))
-        .then(() => true)
-        .catch((error: unknown) => {
-            if (isRecord(error) && error.code === 'ENOENT') {
-                return false;
-            }
-            throw error;
-        });
-}
-
-async function markCoveGuidanceRefreshPending(agentRoot: string): Promise<void> {
-    const receiptPath = coveGuidanceRefreshReceiptPath(agentRoot);
-    await mkdir(dirname(receiptPath), { recursive: true });
-    await writeFile(receiptPath, '{"version":1}\n', { mode: 0o600 });
-}
-
-async function clearPendingCoveGuidanceRefresh(agentRoot: string): Promise<void> {
-    await rm(coveGuidanceRefreshReceiptPath(agentRoot), { force: true });
-}
-
-function coveGuidanceRefreshReceiptPath(agentRoot: string): string {
-    return join(agentRoot, 'runtime', 'cove-guidance-refresh.json');
-}
-
 // Tests inject a fake Agent at this construction seam.
 export type HarnessAgentFactory = (
     input: HarnessTurnInput,
@@ -518,8 +497,4 @@ export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRe
     return () => {
         harnessBootstrapRefresh = previous;
     };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
