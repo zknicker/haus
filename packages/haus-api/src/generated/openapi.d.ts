@@ -1419,13 +1419,24 @@ export interface components {
             target: string | null;
         };
         AgentTaskListResponse: {
+            /** @description Matching rows left out by the 50-row limit. */
+            omitted: number;
             tasks: components["schemas"]["AgentTaskRow"][];
         };
         AgentTaskCreateResponse: {
             tasks: components["schemas"]["AgentTaskRow"][];
         };
         AgentTaskClaimResponse: {
-            claimed: components["schemas"]["AgentTaskRow"][];
+            results: components["schemas"]["AgentTaskClaimResult"][];
+        };
+        AgentTaskClaimResult: {
+            /** @description The structured holder conflict on a row refused because someone else holds the task. */
+            claimConflict: Record<string, never> | null;
+            number: number;
+            /** @enum {string} */
+            outcome: "claimed" | "already_yours" | "refused";
+            reason: string | null;
+            task: components["schemas"]["AgentTaskRow"] | null;
         };
         AgentTaskSingleResponse: {
             task: components["schemas"]["AgentTaskRow"];
@@ -3246,7 +3257,10 @@ export interface operations {
         parameters: {
             query?: {
                 target?: string;
+                /** @description One status or `all`; defaults to todo, in_progress, and in_review. */
                 status?: "all" | "todo" | "in_progress" | "in_review" | "done" | "closed";
+                /** @description `true` keeps tasks claimed by or assigned to the calling agent. */
+                mine?: "true" | "false";
             };
             header?: never;
             path?: never;
@@ -3304,7 +3318,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Claimed task-messages. */
+            /** @description One result row per requested task. */
             200: {
                 headers: {
                     [name: string]: unknown;

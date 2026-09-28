@@ -893,9 +893,16 @@ paths:
           schema: { type: string, minLength: 1 }
         - name: status
           in: query
+          description: One status or `all`; defaults to todo, in_progress, and in_review.
           schema:
             type: string
             enum: [all, todo, in_progress, in_review, done, closed]
+        - name: mine
+          in: query
+          description: '`true` keeps tasks claimed by or assigned to the calling agent.'
+          schema:
+            type: string
+            enum: ['true', 'false']
       responses:
         '200':
           description: Visible task-messages.
@@ -938,7 +945,7 @@ paths:
               $ref: '#/components/schemas/AgentTaskClaimRequest'
       responses:
         '200':
-          description: Claimed task-messages.
+          description: One result row per requested task.
           content:
             application/json:
               schema:
@@ -2075,8 +2082,12 @@ components:
     AgentTaskListResponse:
       type: object
       additionalProperties: false
-      required: [tasks]
+      required: [omitted, tasks]
       properties:
+        omitted:
+          type: integer
+          minimum: 0
+          description: Matching rows left out by the 50-row limit.
         tasks:
           type: array
           items:
@@ -2093,12 +2104,30 @@ components:
     AgentTaskClaimResponse:
       type: object
       additionalProperties: false
-      required: [claimed]
+      required: [results]
       properties:
-        claimed:
+        results:
           type: array
+          minItems: 1
           items:
-            $ref: '#/components/schemas/AgentTaskRow'
+            $ref: '#/components/schemas/AgentTaskClaimResult'
+    AgentTaskClaimResult:
+      type: object
+      additionalProperties: false
+      required: [claimConflict, number, outcome, reason, task]
+      properties:
+        claimConflict:
+          description: The structured holder conflict on a row refused because someone else holds the task.
+          type: [object, 'null']
+        number: { type: integer, minimum: 1 }
+        outcome:
+          type: string
+          enum: [claimed, already_yours, refused]
+        reason: { type: [string, 'null'] }
+        task:
+          oneOf:
+            - $ref: '#/components/schemas/AgentTaskRow'
+            - type: 'null'
     AgentTaskSingleResponse:
       type: object
       additionalProperties: false
