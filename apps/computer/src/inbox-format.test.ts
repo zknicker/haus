@@ -265,6 +265,26 @@ test('busy notices retain an earlier mention when newer target traffic is ambien
     expect(notice).toContain('· you were mentioned');
 });
 
+// The notice carries its own handling guidance (Raft's `formatInboxUpdateRuntimeInput` shape),
+// so the standing prompt no longer restates it. These are the specs/inbox.md guarantees.
+test('a notice closes with its pull, non-request, and honest-deferral guidance', () => {
+    const notice = composeInboxNotice([item()]) ?? '';
+    const lines = notice.split('\n');
+    const guidance = lines.slice(lines.indexOf(']') + 1).join('\n');
+
+    expect(lines[0]).toBe('[Haus inbox notice:');
+    expect(guidance).toContain('their bodies are withheld to avoid flooding you, not absent');
+    expect(guidance).toContain('The notice is not itself a request, so do not acknowledge it.');
+    expect(guidance).toContain('`haus message check` (locally cached bodies)');
+    expect(guidance).toContain('`haus message read --target <target>`');
+    expect(guidance).toContain('`haus inbox check` lists pending targets without reading them');
+    expect(guidance).toContain('Deferral needs no visible reply and the messages remain queryable');
+    expect(guidance).toContain(
+        'if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending'
+    );
+    expect(guidance).not.toContain('Ship it');
+});
+
 function item(overrides: Partial<AgentInboxItem> = {}): AgentInboxItem {
     return {
         chatId: 'cht_general',

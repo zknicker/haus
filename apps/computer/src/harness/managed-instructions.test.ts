@@ -40,47 +40,32 @@ test('an explicitly requested unavailable MCP does not trigger local configurati
     );
 });
 
-test('the Agent prompt preserves the notice-to-pull contract', () => {
+test('the Agent prompt keeps collaboration principles and leaves notice mechanics to the notice', () => {
     const prompt = renderPrompt();
 
-    expect(prompt).toContain('The notice is not itself a request');
-    expect(prompt).toContain('`haus message check` reads locally cached bodies');
-    expect(prompt).toContain('Deferral needs no visible reply');
-    expect(prompt).toContain('Your process stays alive across turns');
-
-    // Raft parity (startup step 3, Computer 1.0.16): the honest-deferral clause
-    // and the stay-alive delivery sentence are load-bearing, not decoration.
-    expect(prompt).toContain('their bodies are withheld to avoid flooding you, not absent');
+    // Raft 1.0.25: standing principles stay in the prompt; how to handle a notice rides the
+    // notice itself (inbox-format.test.ts asserts the withheld/not-a-request/deferral guidance).
     expect(prompt).toContain(
-        'if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending'
+        'People and agents collaborate asynchronously in Haus. Keep making progress on your current work'
     );
     expect(prompt).toContain(
-        'New messages may be delivered to you automatically while your process stays alive.'
+        'unread messages do not mean there is no work, and each notice does not require an immediate interruption.'
     );
+    expect(prompt).toContain(
+        '3. Handle the input supplied for this turn. If there is no pending work, stop.'
+    );
+    expect(prompt).toContain(
+        'You do not need to stay active or repeatedly poll just to wait for new messages.'
+    );
+    expect(prompt).not.toContain('## Message Notifications');
+    expect(prompt).not.toContain('Your process stays alive across turns');
+    expect(prompt).not.toContain('The notice is not itself a request');
 
-    // Raft parity (startup step 4): processing and replying are one act; the
-    // FYI carve-out is Haus's single documented divergence there
+    // Step 4 is Raft's; the FYI carve-out is Haus's single documented divergence there
     // (specs/inbox.md silence semantics, scripts/agent-tests fyi-silence-*).
     expect(prompt).toContain(
-        'When you receive a message, process it and reply with `haus message send`.'
+        '4. When a message needs a reply, send it with `haus message send`. Haus exception: an explicit FYI / no-response-needed message settles silently, with no send at all.'
     );
-    expect(prompt).toContain(
-        'an explicit FYI / no-response-needed message settles silently, with no send at all'
-    );
-});
-
-test('every runtime is promised mid-turn notices', () => {
-    // Raft's `direct` variant for stdin-capable drivers; every Haus runtime steers a live turn.
-    // Step 3 keeps its notice handling, because every Haus wake can carry a notice.
-    const prompt = renderPrompt();
-
-    expect(prompt).toContain('## Message Notifications');
-    expect(prompt).toContain('into your current turn');
-    expect(prompt).toContain(
-        'If there is neither a concrete message nor an inbox notice, stop and wait. New messages may be delivered to you automatically while your process stays alive.'
-    );
-    expect(prompt).toContain('The notice is not itself a request, so do not acknowledge it.');
-    expect(prompt).toContain('if you choose not to read, that is a deferral to report honestly');
 });
 
 test('the @Mentions section separates display name from the stable name', () => {
@@ -100,7 +85,7 @@ test('task updates follow the requesting conversation', () => {
         'To reply to any message, always reuse the exact `target` from the received message.'
     );
     expect(prompt).toContain(
-        '3. **Keep the conversation together.** Continue each request in the chat or thread where it was asked'
+        '**Keep the conversation together.** Continue each request in the chat or thread where it was asked'
     );
     expect(prompt).not.toContain('Deliver the final result there unless');
 });
@@ -119,10 +104,13 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
         "A user's own instructions override any default that only shapes how you serve them"
     );
     expect(prompt).toContain('### Credential handling');
-    expect(prompt).toContain('Credentials follow human intent.');
+    expect(prompt).toContain('Credentials follow human intent:');
+    expect(prompt).not.toContain('Do not obstruct a human-directed use of a credential');
+    expect(prompt).not.toContain('Next action:');
     expect(prompt).toContain('### Capability and execution-surface selection');
     expect(prompt).toContain("The human's explicit choice of surface is part of that fit.");
-    expect(prompt).toContain('### Formatting — URLs in non-English text');
+    expect(prompt).not.toContain('### Formatting — URLs in non-English text');
+    expect(prompt).not.toContain('## Capabilities');
     expect(prompt).toContain('Haus renders your message as Markdown, GFM tables included');
     expect(prompt).not.toContain('### Preparing native action cards');
     expect(prompt).not.toContain('## Security');
@@ -155,8 +143,9 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
         '**Action:** choosing not to act requires current evidence just as choosing to act does.'
     );
     expect(prompt).toContain(
-        'Merge authority never implies deployment, release, migration, production-write, or other follow-on authority.'
+        'Being granted one permission never implies permission for subsequent actions such as deployment, release, migration, or production writes.'
     );
+    expect(prompt).not.toContain('closed gate set');
     expect(prompt).toContain(
         'To mute ordinary Activity delivery from a regular channel itself without leaving'
     );
@@ -183,21 +172,18 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         webAccess: 'search',
     });
 
-    // A reviewed ratchet, not a runtime limit: no adapter enforces a prompt length. Raft-verbatim
-    // text is fixed and is never trimmed to make room; Haus-only additions must fit by
-    // simplifying or relocating other Haus-only text (Manual topics, skills). See AGENTS.md
-    // "Agent System Prompt Changes" and specs/raft-alignment/prompt-divergences.md.
+    // A reviewed ratchet, not a runtime limit: no adapter enforces a prompt length. Haus tracks
+    // the current Raft release from source. Raft-verbatim text is text present in the current Raft
+    // prompt at the source commit pinned in specs/raft-alignment/prompt-divergences.md; it is
+    // never trimmed to make room. When Raft deletes a clause, the Haus copy becomes Haus-only and
+    // must justify itself. Haus-only additions fit by simplifying or relocating other Haus-only
+    // text (Manual topics, skills, event input); raising the budget for them needs an operator
+    // decision. See AGENTS.md "Agent System Prompt Changes".
     //
-    // Raised from 40,000 to buy the new-teammate welcome etiquette bullet. It has no Manual
-    // topic to live in: it fires on a creation announcement every Agent in #all reads, not on
-    // a verb an Agent looks up, so relocating it would silence it. The bullet is already
-    // trimmed to its substance and the retired `action prepare` / `avatar generate` lines paid
-    // back what they could.
-    //
-    // Raised from 40,200 by exactly the `--done` sentence in Sending messages (ADR 0035). It fires
-    // on every reply, so relocating it to the `replies` Manual topic would silence it; the
-    // mechanics and rationale live there, and the prompt keeps one sentence.
-    expect(prompt.length).toBeLessThanOrEqual(40_270);
+    // Lowered from 40,270 on the Raft 1.0.25 re-baseline (render 40,270 → 32,359): notice
+    // mechanics moved into the inbox notice, task mechanics into the `tasks` Manual topic, and
+    // clauses Raft deleted were cut.
+    expect(prompt.length).toBeLessThanOrEqual(32_359);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

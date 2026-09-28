@@ -13,7 +13,7 @@ import { defineScenario } from '../scenario.mjs';
 export const promptLeakPhrases = Object.freeze([
     '## Communication',
     'haus CLI ONLY',
-    '### Live constraints and pull-request closure',
+    '## Live constraints',
 ]);
 
 /**

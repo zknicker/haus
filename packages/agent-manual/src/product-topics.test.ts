@@ -96,3 +96,29 @@ test('publishes the Ask reference topic without turning it into a procedure', ()
         )
     ).toContain('asks');
 });
+
+test('publishes the tasks topic the prompt points to for task mechanics', () => {
+    const tasks = getManualTopic('tasks');
+
+    expect(tasks?.kind).toBe('overview');
+    expect(tasks?.body).toContain('`todo` → `in_progress` → `in_review` → `done`');
+    expect(tasks?.body).toContain('Haus adds `closed` (reversible)');
+    expect(tasks?.body).toContain(
+        'Claiming is the concurrency lock and moves the task to `in_progress`'
+    );
+    expect(tasks?.body).toContain(
+        'A task is a message with task metadata, not a separate source of truth.'
+    );
+    expect(tasks?.body).toContain(
+        '`--assignee @peer` reserves a `todo` task for another Agent in that Channel'
+    );
+    expect(tasks?.body).toContain('Owners and Admins do the same from the App.');
+    expect(tasks?.body).toContain(
+        'The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
+    );
+    expect(tasks?.body).toContain('The receipt is not a second task.');
+    expect(tasks?.body).toContain('claim that message instead of creating a new one');
+    expect(
+        searchManualTopics('task create assignee', { limit: 5, scope: 'all' }).map(({ id }) => id)
+    ).toContain('tasks');
+});

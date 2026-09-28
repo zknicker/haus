@@ -22,7 +22,8 @@ test('inbox check prints each target exactly as the busy notice does', async () 
         }),
         item({ chatId: 'cht_dm', id: 'msg_dmreply', senderHandle: 'rosa', target: 'dm:@rosa' }),
     ];
-    const noticeRows = (composeInboxNotice(items) ?? '').split('\n').slice(2, -1);
+    const noticeLines = (composeInboxNotice(items) ?? '').split('\n');
+    const noticeRows = noticeLines.slice(2, noticeLines.indexOf(']'));
     const output = await inboxCheck([
         row({
             ask: { addresseeHandle: 'zach', status: 'open' },

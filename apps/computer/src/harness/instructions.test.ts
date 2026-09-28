@@ -33,16 +33,10 @@ test('composes the CLI-only Haus collaboration contract', () => {
         '**Manual** — `haus manual get`, `haus manual search`. Both require `--intent`'
     );
     expect(instructions).toContain('## Startup sequence');
-    expect(instructions).toContain('## Message Notifications');
-    expect(instructions).toContain(
-        '`--assignee @peer` reserves a `todo` task for another Agent in that Channel'
-    );
-    expect(instructions).toContain(
-        'The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
-    );
-    // Owners and Admins reserve tasks for Agents from the App, so the prompt has
-    // to teach that a receipt can arrive from a human, not only from a peer.
-    expect(instructions).toContain('Owners and Admins do the same from the App.');
+    expect(instructions).not.toContain('## Message Notifications');
+    // Assignment mechanics live in the `tasks` Manual topic (product-topics.test.ts); the prompt
+    // keeps the receipt rule and the pointer.
+    expect(instructions).toContain('live in the `tasks` Manual topic');
     expect(instructions).toContain(
         'A later direct @mention reactivates that follow and repeats the exact unfollow command in the Agent delivery.'
     );
@@ -55,9 +49,9 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions).toContain('Default every message to the shortest useful form');
     expect(instructions).toContain('Do not paste execution logs into chat');
     expect(instructions).toContain('A completion message should lead with the outcome');
-    // Raft parity (`buildLiveConstraintsSection`, Computer 1.0.16): the four
-    // live seats and the closed gate set are the load-bearing clauses.
-    expect(instructions).toContain('### Live constraints and pull-request closure');
+    // Raft 1.0.25 Live constraints: the four live seats and the no-inferred-approval
+    // paragraph are the load-bearing clauses. Raft deleted the pull-request closed gate set.
+    expect(instructions).toContain('## Live constraints');
     expect(instructions).toContain(
         'A constraint that makes you delay or withhold an otherwise authorized action needs four live seats'
     );
@@ -65,14 +59,9 @@ test('composes the CLI-only Haus collaboration contract', () => {
         '**Reception:** immediately before withholding action, fresh-read the authoritative machine surface and the latest accountable directive.'
     );
     expect(instructions).toContain(
-        "use the repository or team's current written merge rule as a **closed gate set**"
+        "Do not infer approval, completion, release, or permission from a person's role or from an old announcement."
     );
-    expect(instructions).toContain(
-        '1. required hosted checks are terminal green on the exact head,'
-    );
-    expect(instructions).toContain(
-        'all four passing means: mark the PR Ready, execute the ordinary protected merge, and report the actual merge SHA.'
-    );
+    expect(instructions).not.toContain('closed gate set');
     expect(instructions).toContain(
         'explicit FYI / no-response-needed messages should settle with zero sends'
     );
@@ -177,7 +166,10 @@ test('advertises the Agent family without inventing an Agent-creation policy', (
     expect(instructions).not.toContain('haus avatar generate');
     expect(instructions).not.toContain('recipes/playbook/agent-creation');
     expect(instructions).not.toMatch(/playful character|fun name|exactly one generation/iu);
-    expect(instructions).not.toMatch(/--avatar-concept|inherit|a human in this Chat asked/u);
+    // Execution-config inheritance is Agent-creation policy; thread visibility inheritance is not.
+    expect(instructions).not.toMatch(
+        /--avatar-concept|inherits? (your|its)|a human in this Chat asked/u
+    );
 });
 
 test('tells every Agent to welcome a new teammate once, in its own voice', () => {
@@ -201,13 +193,13 @@ test('does not append retired model-family operational instructions', () => {
     expect(instructions).not.toContain('## Operational Directives');
 });
 
-// Every runtime steers a live turn (runtime-harness.ts), so every Agent is promised that a
-// busy notice may arrive mid-turn.
-test('composes the mid-turn notice wording', () => {
+// Notice handling rides the notice (inbox-format.ts); the prompt only teaches asynchronous
+// collaboration, so no runtime is promised a particular delivery mechanism here.
+test('teaches asynchronous collaboration without notice mechanics', () => {
     const { instructions } = composeAgentInstructions(facts);
 
-    expect(instructions).toContain('## Message Notifications');
-    expect(instructions).toContain('into the current turn');
+    expect(instructions).toContain('People and agents collaborate asynchronously in Haus.');
+    expect(instructions).not.toContain('## Message Notifications');
     expect(instructions).not.toContain('delivered at the start of your next turn');
 });
 
@@ -217,23 +209,19 @@ test('fingerprint is stable per composed text', () => {
     expect(a.fingerprint).toBe(b.fingerprint);
 });
 
-// Raft parity (`buildTasksSection`, Computer 1.0.16): the claim gate is the
-// decision rule again. Anything that needs action beyond a reply is claimed
-// before the first tool call, so a second Agent cannot start work another
-// Agent already holds. Haus keeps `closed` and the stale-close window, and
-// keeps conversation routing separate from same-turn completion status.
+// Raft 1.0.25 `### Tasks`: the claim rule gates anything that needs action beyond a reply, so a
+// second Agent cannot start work another Agent already holds. Haus keeps `closed`, the
+// stale-close window, same-turn `done`, and conversation routing; mechanics live in the Manual.
 test('claims before acting and closes same-turn work without parking it', () => {
     const { instructions } = composeAgentInstructions(facts);
 
-    // Raft's claim gate, verbatim apart from the product noun.
+    // Raft's claim rule, verbatim apart from the product noun.
     expect(instructions).toContain(
-        'if fulfilling a message requires you to take action beyond just replying (running tools, writing code, making changes), claim the message first'
+        '**Claim rule:** if fulfilling a message requires you to take action beyond just replying (running tools, making changes, investigating), use `haus task claim` before starting.'
     );
     expect(instructions).toContain(
-        "If you're only answering a question or having a conversation, no claim needed."
+        "If you're only answering a question or having a conversation, no claim is needed."
     );
-    expect(instructions).toContain('that is work. Claim it before you start.');
-    expect(instructions).toContain('Receive a message that requires action → claim it first');
 
     // The retired "never claim a same-turn request" carve-out must stay gone:
     // it let an unaddressed Agent execute work another Agent was asked to do.
@@ -241,14 +229,11 @@ test('claims before acting and closes same-turn work without parking it', () => 
     expect(instructions).not.toContain('**Promotion rule:**');
     expect(instructions).not.toContain('a same-turn request is never claimed or promoted');
 
-    // Claim-before-work remains the concurrency lock.
-    expect(instructions).toContain(
-        'Claiming is the concurrency lock and moves the task to `in_progress`'
-    );
-
     // Haus's own status set and stale window survive as additive text.
     expect(instructions).toContain('Haus adds `closed` (reversible)');
-    expect(instructions).toContain('When done, set status to `in_review` so a human can validate');
+    expect(instructions).toContain(
+        'When your work is done, set the task to `in_review` so a human can validate it, then to `done` after approval.'
+    );
     expect(instructions).toContain(
         "**Keep the conversation together.** Continue each request in the chat or thread where it was asked, from acknowledgment to result, following the human's lead as the conversation develops."
     );
@@ -258,4 +243,5 @@ test('claims before acting and closes same-turn work without parking it', () => 
     expect(instructions).toContain(
         `An \`in_review\` task whose conversation stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation.`
     );
+    expect(instructions).toContain('live in the `tasks` Manual topic');
 });
