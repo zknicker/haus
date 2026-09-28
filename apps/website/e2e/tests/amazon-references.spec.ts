@@ -1,7 +1,7 @@
 import { assertOpaqueId, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('Amazon chips resolve prose and links, preview on focus, and fall back after disconnect', async ({
+test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN chips after disconnect', async ({
     page,
 }) => {
     test.setTimeout(60_000);
@@ -135,7 +135,15 @@ test('Amazon chips resolve prose and links, preview on focus, and fall back afte
     const fallbackChips = page.getByRole('link', { name: 'Open B07XN9T11R on Amazon' });
     await expect(fallbackChips).toHaveCount(2);
     await client.mcp.disconnect.mutate({ serverId: server.id, connectionId: connection.id });
-    await expect(chips).toHaveCount(0);
-    await expect(fallbackChips).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Open the listing' })).toBeVisible();
+    await expect(fallbackChips.first().locator('img')).toHaveCount(0);
+    await expect(fallbackChips).toHaveCount(2);
+    await expect(fallbackChips.last()).toHaveAttribute(
+        'href',
+        'https://www.amazon.com/dp/B07XN9T11R'
+    );
+    await page.mouse.move(0, 0);
+    await fallbackChips.last().focus();
+    await expect(
+        page.getByRole('tooltip').getByText('Connect RankWrangler for product details')
+    ).toBeVisible();
 });

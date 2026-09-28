@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { AmazonProductSummary } from '@haus/api';
-import { parseProductDetails, rankWranglerPayload } from './read-products.ts';
+import { parseProductDetails, rankWranglerPayload } from './rankwrangler-payload.ts';
 
 const product = {
     asin: 'B07XN9T11R',
@@ -11,6 +11,7 @@ const product = {
     brand: 'Lunch Lady Designs',
     thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
     amazonListingStatus: 'active',
+    enrichment: 'ready',
 } satisfies AmazonProductSummary;
 test('reads RankWrangler structured and text MCP envelopes', () => {
     const payload = {

@@ -14,17 +14,68 @@ test('product cache shares lookups and rechecks connection state before serving 
     const effects = makeServerRuntime();
     const client = createHausClient(harness, await harness.clerk.mintSessionToken('product-cache'));
     let reads = 0;
+    let enrichmentReady = true;
+    const unknownAsin = 'B000000000';
     const upstream = makeClient('RankWrangler', {
         call: async (args) => {
-            expect(args).toMatchObject({
-                arguments: {
-                    operation: 'get',
-                    asin: 'B07XN9T11R',
+            const request = args.arguments as Record<string, unknown>;
+            if (request.operation === 'getMany') {
+                expect(request.products).toContainEqual({
+                    asin: expect.any(String),
                     marketplaceId: 'ATVPDKIKX0DER',
-                    include: ['shortName', 'cutoutThumbnail'],
-                },
+                });
+                reads += 1;
+                const known = (request.products as { asin: string }[]).some(
+                    (product) => product.asin === 'B07XN9T11R'
+                );
+                return {
+                    structuredContent: {
+                        operation: 'getMany',
+                        data: known
+                            ? [
+                                  {
+                                      asin: 'B07XN9T11R',
+                                      marketplaceId: 'ATVPDKIKX0DER',
+                                      title: 'Freaky Lunch Lady Halloween Shirt',
+                                      thumbnail: { status: 'unavailable' },
+                                      amazonListingStatus: 'active',
+                                  },
+                              ]
+                            : [],
+                    },
+                };
+            }
+            if (request.asin === unknownAsin) {
+                return {
+                    isError: true,
+                    content: [
+                        { type: 'text', text: '{"error":{"code":"NOT_FOUND","retryable":false}}' },
+                    ],
+                };
+            }
+            expect(request).toEqual({
+                operation: 'get',
+                asin: 'B07XN9T11R',
+                marketplaceId: 'ATVPDKIKX0DER',
+                include: ['shortName', 'cutoutThumbnail'],
             });
-            reads += 1;
+            if (!enrichmentReady) {
+                return {
+                    isError: true,
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify({
+                                error: {
+                                    code: 'TEMPORARILY_UNAVAILABLE',
+                                    retryable: true,
+                                    retryAfterSeconds: 2,
+                                },
+                            }),
+                        },
+                    ],
+                };
+            }
             return {
                 structuredContent: {
                     operation: 'get',
@@ -81,8 +132,31 @@ test('product cache shares lookups and rechecks connection state before serving 
         expect(await readAmazonProducts(db.db, runtime, member, input)).toBeNull();
         await runtime.closeConnection(account.id);
         await harness.sql`update mcp_connections set connected = true where id = ${account.id}`;
+        enrichmentReady = false;
+        const [pending] = (await readAmazonProducts(db.db, runtime, member, input)) ?? [];
+        expect(reads).toBe(2);
+        expect(pending).toMatchObject({
+            title: 'Freaky Lunch Lady Halloween Shirt',
+            shortName: null,
+            cutoutThumbnail: null,
+            enrichment: 'pending',
+        });
         await readAmazonProducts(db.db, runtime, member, input);
         expect(reads).toBe(2);
+        await Bun.sleep(2100);
+        enrichmentReady = true;
+        const [ready] = (await readAmazonProducts(db.db, runtime, member, input)) ?? [];
+        expect(reads).toBe(3);
+        expect(ready).toMatchObject({ shortName: 'Freaky Lunch Lady', enrichment: 'ready' });
+        const unknown = { asin: unknownAsin, marketplaceId: 'ATVPDKIKX0DER' as const };
+        const mixed = await readAmazonProducts(db.db, runtime, member, {
+            ...input,
+            products: [...input.products, unknown],
+        });
+        expect(mixed?.map((product) => product.asin)).toEqual(['B07XN9T11R']);
+        await expect(
+            readAmazonProducts(db.db, runtime, member, { ...input, products: [unknown] })
+        ).rejects.toThrow('omitted');
         await expect(readAmazonProducts(db.db, runtime, null, input)).rejects.toThrow();
     } finally {
         await runtime.close();

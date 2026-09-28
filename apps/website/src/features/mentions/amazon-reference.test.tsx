@@ -1,30 +1,83 @@
 import { expect, test } from 'bun:test';
+import type { AmazonProductSummary } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { AmazonProductPreview, renderAmazonText } from './amazon-reference.tsx';
+import { AmazonProductPreview } from './amazon-product-preview.tsx';
+import { AmazonReferenceChip, renderAmazonText } from './amazon-reference.tsx';
 import { ReferenceChip } from './reference-chip.tsx';
+import type { AmazonProductLookup } from './use-amazon-product.ts';
+
+const identity = { asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' } as const;
+const summary = {
+    ...identity,
+    shortName: 'Freaky Lunch Lady',
+    cutoutThumbnail: { status: 'available', url: 'https://images.example.com/cutout.webp' },
+    title: 'Freaky Lunch Lady Shirt',
+    brand: 'Lunch Lady Designs',
+    thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
+    amazonListingStatus: 'active',
+    enrichment: 'ready',
+} satisfies AmazonProductSummary;
+const chip = (lookup: AmazonProductLookup) =>
+    renderToStaticMarkup(<AmazonReferenceChip lookup={lookup} product={identity} />);
+const preview = (lookup: AmazonProductLookup) =>
+    renderToStaticMarkup(<AmazonProductPreview asin={identity.asin} lookup={lookup} />);
 
 test('product previews show title, brand, price, and listing removal', () => {
-    const markup = renderToStaticMarkup(
-        <AmazonProductPreview
-            product={{
-                asin: 'B07XN9T11R',
-                marketplaceId: 'ATVPDKIKX0DER',
-                shortName: 'Freaky Lunch Lady',
-                cutoutThumbnail: {
-                    status: 'available',
-                    url: 'https://images.example.com/cutout.webp',
-                },
-                title: 'Freaky Lunch Lady',
-                brand: 'Lunch Lady Designs',
-                thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
-                amazonListingStatus: 'deleted',
-                price: { amountMinor: 1999, currencyCode: 'USD' },
-            }}
-        />
-    );
-    for (const text of ['Freaky Lunch Lady', '$19.99', 'Lunch Lady Designs', 'Listing removed']) {
+    const markup = preview({
+        status: 'ready',
+        detailFailed: false,
+        product: {
+            ...summary,
+            amazonListingStatus: 'deleted',
+            price: { amountMinor: 1999, currencyCode: 'USD' },
+        },
+    });
+    for (const text of [
+        'Freaky Lunch Lady Shirt',
+        '$19.99',
+        'Lunch Lady Designs',
+        'Listing removed',
+    ]) {
         expect(markup).toContain(text);
     }
+});
+test('the chip renders from the pattern match before any product data', () => {
+    const markup = chip({ status: 'loading' });
+    expect(markup).toContain('aria-label="Open B07XN9T11R on Amazon"');
+    expect(markup).toContain('href="https://www.amazon.com/dp/B07XN9T11R"');
+    expect(markup).toContain('aria-busy="true"');
+    expect(markup).toContain('reference-chip--product');
+    expect(markup).toContain('animate-pulse');
+    expect(markup).not.toContain('<img');
+    expect(preview({ status: 'loading' })).toContain('Fetching product details…');
+});
+test('loaded product data fills the label and cutout in place', () => {
+    const markup = chip({ status: 'ready', detailFailed: false, product: summary });
+    expect(markup).toContain('aria-label="Open Freaky Lunch Lady on Amazon"');
+    expect(markup).toContain('https://images.example.com/cutout.webp');
+    expect(markup).not.toContain('aria-busy');
+    const unenriched = chip({
+        status: 'ready',
+        detailFailed: false,
+        product: { ...summary, shortName: null, cutoutThumbnail: null, enrichment: 'pending' },
+    });
+    expect(unenriched).toContain('aria-label="Open B07XN9T11R on Amazon"');
+    expect(unenriched).toContain('https://images.example.com/product.jpg');
+    expect(preview({ status: 'ready', detailFailed: true, product: summary })).toContain(
+        'Price unavailable'
+    );
+});
+test('failed and disconnected lookups keep the ASIN chip linking to Amazon', () => {
+    for (const lookup of [{ status: 'failed' }, { status: 'disconnected' }] as const) {
+        const markup = chip(lookup);
+        expect(markup).toContain('aria-label="Open B07XN9T11R on Amazon"');
+        expect(markup).toContain('href="https://www.amazon.com/dp/B07XN9T11R"');
+        expect(markup).not.toContain('animate-pulse');
+    }
+    expect(preview({ status: 'failed' })).toContain('Product details unavailable');
+    expect(preview({ status: 'disconnected' })).toContain(
+        'Connect RankWrangler for product details'
+    );
 });
 test('product chips share the reference shell and thumbnail registry', () => {
     const markup = renderToStaticMarkup(
