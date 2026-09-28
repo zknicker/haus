@@ -1,9 +1,9 @@
 ---
-summary: Agent reasoning surfaces as one short first-person phrase in a glass thought bubble on the typing strip — the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title or a scrubbed reasoning excerpt, skipped when it is only Agent housekeeping, else a filtered local heuristic; always on, never persisted.
+summary: Agent reasoning surfaces as one short first-person phrase in a glass thought bubble on the typing strip — the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title or a scrubbed reasoning excerpt in terms of the human request the run is answering, skipped when it is only Agent housekeeping, else a filtered local heuristic; always on, never persisted.
 read_when:
   - changing the typing strip's thought bubble, chat.onThought, or the agent-thought Computer frame
   - changing how reasoning is captured, excerpted, summarized, or kept on the Computer
-  - changing HAUS_GEMINI_API_KEY, the thought summarizer, its SKIP rule, or its fallback
+  - changing HAUS_GEMINI_API_KEY, the thought summarizer, its SKIP rule, its request context, or its fallback
 ---
 
 # ADR 0036: Agent thoughts surface as condensed phrases
@@ -13,7 +13,8 @@ read_when:
 Accepted 2026-09-25; amended the same day to skip housekeeping and route Codex titles through
 the Server. Amended 2026-09-27: reading what the request is about counts as work, the check on
 Gemini's own line catches only clear reply drafting and bookkeeping, and a run's first thought
-skips the Server and App spacing. Amends [ADR 0023](0023-agent-work-projects-as-activity-and-chat-engagement.md)
+skips the Server and App spacing. Amended again 2026-09-27: the Server phrases each thought
+against the human message the run is answering. Amends [ADR 0023](0023-agent-work-projects-as-activity-and-chat-engagement.md)
 ("reasoning stays on the Computer") and the presentation section of
 [ADR 0035](0035-chat-engagement-shows-as-typing.md) ("thought text is never shown").
 
@@ -53,6 +54,24 @@ build), no hedging, no trailing "now", and the work rather than what went wrong 
 the dates", not "Fixing those date errors"). `finishThoughtPhrase` also strips a trailing "now" or
 "right now", the model's verbal tic. The excerpt is held only for that call and never stored or logged.
 
+**Request context.** A title like "Planning data retrieval" says nothing a person could
+recognize, so the Server gives Gemini the request too. Before phrasing, it reads the newest human
+message the run engages on (the same visibility rows that make it engage, ADR 0035), across every
+Chat it engages, so a run engaged in several Chats is phrased against its most recent request.
+Mention links become their label (`[@Blippy](agent://…)` → `@Blippy`), the excerpt scrubber
+removes URLs, paths, emails, and tokens, and the first 500 characters ride as a `<request>`
+block ahead of the title or excerpt. The request's instructions are appended to the system prompt
+only when a request rides along, so a thought without one is judged by exactly the old prompt: an
+earlier draft that folded them into the main prompt turned "Claiming weather task and preparing
+fetch" into SKIP even without a request. Those instructions say the request is context, never the
+input: SKIP is decided from the title or reasoning alone, as if no request were given, and only
+when that is work does the line take the request's nouns ("Planning data retrieval" for "check the
+weather in NYC" → "Checking the weather in NYC"). The no-invention rule widens only to the request:
+a place, day, or name may come from the input or the request, never from anywhere else. A first
+draft that named the request in the main instructions phrased housekeeping as the request's work
+("I'm claiming weather task" → "Checking the weather in NYC") in 14 of 15 paired cases. The request
+is read only when the Server has a Gemini key, held for the call, and never stored or logged.
+
 **Housekeeping is skipped.** The same prompt tells Gemini to answer exactly `SKIP` when the input
 is only the Agent's own process — reading its notes, memory, Manual, instructions, or skills;
 checking its inbox or messages; claiming, assigning, syncing, or updating its tasks; deciding
@@ -74,12 +93,15 @@ instructions, claiming or syncing its tasks, and whether to reply. It deliberate
 work that merely name an inbox, a manual, memory usage, or a decision, such as "Searching his
 email inbox for the invoice" or "Checking memory usage on the worker", which the fallback filter,
 formerly applied here too, skips.
-A labeled set of 69 excerpts and titles
+A labeled set of 82 excerpts and titles
 (`apps/server/src/server-agents/evals/thought-housekeeping-cases.json`, with mixed cases that must
-show, real Codex titles from two spot tests, and wording rules) measured over two 207-call runs on
-2026-09-27 skip precision 94% and recall 91% (single runs: 96%/89% and 91%/93%), 14–16% of lines
-opening with "I", and no "now" filler; the previous prompt and filter scored 87% and 88% on the same
-set. Flash-Lite at temperature 0.8 moves single-run numbers by about five points. The runner checks filler, length, per-case banned and
+show, real Codex titles from two spot tests, wording rules, and 13 cases that carry a request)
+measured over 246 calls on 2026-09-27 skip precision 97% and recall 92%, 22% of lines opening with
+"I", and no "now" filler. The request cases pair terse titles, which must name a word from the
+request, with housekeeping titles that must still skip: with the request, 15 of 15 housekeeping
+calls skipped and every shown line named the request's subject; the same cases sent without it
+(`--no-request`) missed that subject in 20 of 23 shown lines ("Pulling the data records"). The
+previous prompt and filter scored 87% and 88% on the 69-case set. Flash-Lite at temperature 0.8 moves single-run numbers by about five points. The runner checks filler, length, per-case banned and
 required words, and the "I" share; rerun
 `agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts --runs 3`
 before changing the prompt.
@@ -133,8 +155,9 @@ Faces render above it. Reduced motion crossfades.
 
 ## Consequences
 
-- Reasoning excerpts from every harness pass through the Server to Google, a third party the
-  Agent's own provider did not choose. Nothing is persisted on the way.
+- Reasoning excerpts from every harness, and the first 500 scrubbed characters of the human
+  message each run is answering, pass through the Server to Google, a third party the Agent's own
+  provider did not choose. Nothing is persisted on the way.
 - A Server's human members can read a paraphrase of Agent reasoning. The phrase describes the
   whole run, so a reader of one engaged Chat may glimpse work for another Chat the same run
   engages. Chat scoping limits this to readers of a Chat the run is actually answering.
