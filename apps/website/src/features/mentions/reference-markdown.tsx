@@ -196,7 +196,7 @@ function ReferenceLink({
         const link = (
             <a
                 aria-label={`Open ${website.label}`}
-                className="inline-flex no-underline"
+                className="inline-flex max-w-full align-middle no-underline"
                 href={website.href}
                 rel="noreferrer"
                 target="_blank"
