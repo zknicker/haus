@@ -231,10 +231,17 @@ function toReplyReference(
 }
 
 function boundReplyExcerpt(content: string) {
-    const characters = [...content];
-    return characters.length <= replyExcerptMaxLength
-        ? content
-        : `${characters.slice(0, replyExcerptMaxLength - 1).join('')}…`;
+    if (content.length <= replyExcerptMaxLength) {
+        return content;
+    }
+    let end = 0;
+    for (const character of content) {
+        if (end + character.length >= replyExcerptMaxLength) {
+            break;
+        }
+        end += character.length;
+    }
+    return `${content.slice(0, end)}…`;
 }
 
 export function messageIdPredicate(value: string) {
