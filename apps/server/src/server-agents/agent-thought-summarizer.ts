@@ -1,10 +1,18 @@
-import { finishThoughtPhrase, thoughtReasoningExcerptMaxLength } from '@haus/api';
+import {
+    finishThoughtPhrase,
+    thoughtReasoningExcerptMaxLength,
+    thoughtRequestMaxLength,
+} from '@haus/api';
 import { isHousekeepingPhrase } from './thought-housekeeping.ts';
 
-/** What a thought is phrased from: a reasoning excerpt, or a Codex status title. */
-export type ThoughtSource =
+/**
+ * What a thought is phrased from: a reasoning excerpt or a Codex status title,
+ * with the scrubbed human message the run is answering as optional context.
+ */
+export type ThoughtSource = (
     | { kind: 'reasoning'; reasoning: string }
-    | { kind: 'title'; title: string };
+    | { kind: 'title'; title: string }
+) & { request?: string };
 
 /** A phrase to show, or `skip` when the source is only the Agent's own housekeeping. */
 export type ThoughtSummary = { kind: 'phrase'; text: string } | { kind: 'skip' };
@@ -16,7 +24,7 @@ export interface ThoughtSummarizer {
 
 export const thoughtSummaryModel = 'gemini-3.5-flash-lite';
 /** Bumped whenever the prompt changes, so eval runs name the wording they measured. */
-export const thoughtSummaryPromptVersion = 'thought-v5-work';
+export const thoughtSummaryPromptVersion = 'thought-v6-request';
 const thoughtSummaryTimeoutMs = 4000;
 const thoughtAnswerMaxWords = 10;
 const skipAnswer = 'SKIP';
@@ -45,6 +53,21 @@ const systemPrompt = [
     '("Initiating focused CI search", "Reading the checklist doc"). When the input names',
     'housekeeping and work together ("Claiming the task and preparing the fetch"),',
     'describe only the work. When in doubt, describe the work.',
+].join(' ');
+
+/**
+ * Added only when a request rides along, so a thought without one is judged
+ * by exactly the prompt above.
+ */
+const requestPrompt = [
+    "The <request> block is the person's message the agent is answering. It is context,",
+    'never the input. Decide SKIP from the title or reasoning alone, exactly as if no',
+    'request were given: the request never turns housekeeping into work, so "Claiming',
+    'the pricing task" or "Saving the dates to memory" is still SKIP. Only when the',
+    "title or reasoning is work, name that work in the request's concrete terms",
+    '(a title "Planning data retrieval" for a request about last week\'s sales becomes',
+    '"Pulling last week\'s sales"); a place, day, or name may then come from the request',
+    'too, never from anywhere else. Never answer the request.',
 ].join(' ');
 
 /**
@@ -114,10 +137,14 @@ export function createGeminiThoughtSummarizer(input: {
 }
 
 function requestBody(source: ThoughtSource, opening: string) {
-    const text =
+    const request = source.request
+        ? `<request>\n${source.request.slice(0, thoughtRequestMaxLength)}\n</request>\n`
+        : '';
+    const input =
         source.kind === 'title'
-            ? `<title>\n${source.title}\n</title>\n${opening}`
-            : `<reasoning>\n${source.reasoning.slice(0, thoughtReasoningExcerptMaxLength)}\n</reasoning>\n${opening}`;
+            ? `<title>\n${source.title}\n</title>`
+            : `<reasoning>\n${source.reasoning.slice(0, thoughtReasoningExcerptMaxLength)}\n</reasoning>`;
+    const text = `${request}${input}\n${opening}`;
     return {
         contents: [{ parts: [{ text }], role: 'user' }],
         generationConfig: {
@@ -125,7 +152,9 @@ function requestBody(source: ThoughtSource, opening: string) {
             temperature: 0.8,
             thinkingConfig: { thinkingLevel: 'minimal' },
         },
-        systemInstruction: { parts: [{ text: systemPrompt }] },
+        systemInstruction: {
+            parts: [{ text: source.request ? `${systemPrompt} ${requestPrompt}` : systemPrompt }],
+        },
     };
 }
 

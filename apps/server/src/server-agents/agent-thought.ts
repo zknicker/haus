@@ -3,9 +3,13 @@ import {
     type AgentThoughtFrame,
     agentThoughtFrameSchema,
     condenseThoughtLocally,
+    thoughtRequestExcerpt,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import { readActiveRunEngagements } from '../agent-delivery/chat-engagement.ts';
+import {
+    readActiveRunEngagements,
+    readActiveRunRequest,
+} from '../agent-delivery/chat-engagement.ts';
 import { announceAgentThought } from '../agent-delivery/thought-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentsTable } from '../postgres/schema.ts';
@@ -46,8 +50,12 @@ export interface AgentThoughts {
         input: ThoughtFrameInput,
         background: Pick<ServerPostCommitWork, 'run'>
     ): Promise<boolean>;
-    /** The phrase a frame announces, or null when it is housekeeping or nothing presentable remains. */
-    phrase(frame: AgentThoughtFrame): Promise<string | null>;
+    /**
+     * The phrase a frame announces, or null when it is housekeeping or nothing
+     * presentable remains. `request` is the scrubbed human message the run is
+     * answering, context the summarizer may take nouns from.
+     */
+    phrase(frame: AgentThoughtFrame, request?: string | null): Promise<string | null>;
 }
 
 export function createAgentThoughts(options: {
@@ -78,12 +86,13 @@ export function createAgentThoughts(options: {
             last.announced = true;
         }
     };
-    const phrase = async (frame: AgentThoughtFrame) => {
-        // The excerpt goes to the summarizer and nowhere else; it is dropped after this call.
+    const phrase = async (frame: AgentThoughtFrame, request?: string | null) => {
+        // The excerpt and request go to the summarizer and nowhere else; both are dropped after this call.
+        const context = request ? { request } : {};
         const summary = await options.summarizer?.summarize(
             frame.kind === 'phrase'
-                ? { kind: 'title', title: frame.text }
-                : { kind: 'reasoning', reasoning: frame.reasoning }
+                ? { kind: 'title', title: frame.text, ...context }
+                : { kind: 'reasoning', reasoning: frame.reasoning, ...context }
         );
         if (summary) {
             // SKIP is the model's judgment that this is housekeeping: no bubble.
@@ -110,7 +119,10 @@ export function createAgentThoughts(options: {
             const events = await admitComputerAgentThought(db, { ...input, frame });
             if (events.length > 0) {
                 void background.run('agent-thought.announce', async () => {
-                    const text = await phrase(frame);
+                    const request = options.summarizer
+                        ? await readRunRequest(db, input.serverId, frame)
+                        : null;
+                    const text = await phrase(frame, request);
                     if (text) {
                         markAnnounced(key);
                         for (const event of events) {
@@ -123,6 +135,20 @@ export function createAgentThoughts(options: {
         },
         phrase,
     };
+}
+
+/** The engaged human message, scrubbed and capped, that a run's thought is phrased against. */
+async function readRunRequest(
+    db: HausDatabase,
+    serverId: string,
+    frame: AgentThoughtFrame
+): Promise<string | null> {
+    const content = await readActiveRunRequest(db, {
+        agentId: frame.agentId,
+        runId: frame.runId,
+        serverId,
+    });
+    return content ? thoughtRequestExcerpt(content) : null;
 }
 
 /** Where an admitted thought is announced: one event per engaged Chat, awaiting its phrase. */

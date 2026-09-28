@@ -11,6 +11,8 @@ export const thoughtPhraseMaxLength = 80;
 export const thoughtMinimumReasoningLength = 40;
 /** The most reasoning a Computer sends, and the Server summarizes, per block. */
 export const thoughtReasoningExcerptMaxLength = 3000;
+/** The most of the engaged human message the Server gives the summarizer as context. */
+export const thoughtRequestMaxLength = 500;
 
 /**
  * The part of an untitled block that may leave the Computer: URLs, paths,
@@ -18,16 +20,33 @@ export const thoughtReasoningExcerptMaxLength = 3000;
  * 3,000 characters. Null when too little remains to summarize.
  */
 export function thoughtReasoningExcerpt(reasoning: string): string | null {
-    const excerpt = reasoning
-        .replace(/[^\S\n]*\S+/gu, (word) => (looksSensitive(word.trim()) ? '' : word))
-        // Control characters other than line breaks never ride a frame.
-        .replace(/[^\P{Cc}\n]+/gu, ' ')
-        .replace(/[^\S\n]+/gu, ' ')
-        .replace(/ *\n[\s]*/gu, '\n')
-        .trim()
-        .slice(0, thoughtReasoningExcerptMaxLength)
-        .trim();
+    const excerpt = scrubThoughtText(reasoning, thoughtReasoningExcerptMaxLength);
     return excerpt.length >= thoughtMinimumReasoningLength ? excerpt : null;
+}
+
+/**
+ * The human message a run is answering, as summarizer context: mention links
+ * reduced to their label (`[@Blippy](agent://…)` → `@Blippy`), then the
+ * excerpt scrubber, capped at 500 characters. Null when nothing remains.
+ */
+export function thoughtRequestExcerpt(message: string): string | null {
+    const labels = message.replace(/\[([^\]\n]*)\]\([^)\s]*\)/gu, '$1');
+    const excerpt = scrubThoughtText(labels, thoughtRequestMaxLength);
+    return excerpt.length > 0 ? excerpt : null;
+}
+
+function scrubThoughtText(text: string, maxLength: number): string {
+    return (
+        text
+            .replace(/[^\S\n]*\S+/gu, (word) => (looksSensitive(word.trim()) ? '' : word))
+            // Control characters other than line breaks never ride a frame.
+            .replace(/[^\P{Cc}\n]+/gu, ' ')
+            .replace(/[^\S\n]+/gu, ' ')
+            .replace(/ *\n[\s]*/gu, '\n')
+            .trim()
+            .slice(0, maxLength)
+            .trim()
+    );
 }
 
 /**

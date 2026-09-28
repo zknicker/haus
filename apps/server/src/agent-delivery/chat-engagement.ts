@@ -1,5 +1,5 @@
 import type { ChatEngagement } from '@haus/api';
-import { and, eq, isNotNull, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, type SQL, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
@@ -48,18 +48,29 @@ export async function readSettledRunEngagements(
     return await selectEngagements(db, runFilter(input));
 }
 
+/**
+ * The newest human message an accepted, unsettled run engages on, in any Chat
+ * it engages: the request its thoughts are about (ADR 0036). A run engaged in
+ * several Chats gets its most recent one. Null when it engages nothing.
+ */
+export async function readActiveRunRequest(
+    db: HausDatabase,
+    input: { agentId: string; runId: string; serverId: string }
+): Promise<string | null> {
+    const [row] = await db
+        .select({ content: message.content })
+        .from(visibility)
+        .innerJoin(
+            message,
+            and(eq(message.serverId, visibility.serverId), eq(message.id, visibility.messageId))
+        )
+        .where(and(runFilter(input), activeRun(), engagingMessage()))
+        .orderBy(desc(message.createdAt), desc(message.sequence))
+        .limit(1);
+    return row?.content ?? null;
+}
+
 async function selectEngagements(db: HausDatabase, filter: SQL | undefined) {
-    // Postgres resolves the unaliased outer `chat_messages` columns inside the
-    // aliased subquery, so this is the Agent's latest answer in the same Chat:
-    // any message from another run, or this run's `--done` send. This run's
-    // interim posts answer nothing.
-    const lastOwnSequence = sql`coalesce((
-        select max(own.sequence) from chat_messages own
-        where own.server_id = ${message.serverId}
-          and own.chat_id = ${message.chatId}
-          and own.author_agent_id = ${visibility.agentId}
-          and (own.completes_reply or own.run_id is distinct from ${visibility.servedRunId})
-    ), 0)`;
     const rows = await db
         .select({
             agentId: visibility.agentId,
@@ -74,14 +85,7 @@ async function selectEngagements(db: HausDatabase, filter: SQL | undefined) {
             message,
             and(eq(message.serverId, visibility.serverId), eq(message.id, visibility.messageId))
         )
-        .where(
-            and(
-                filter,
-                isNotNull(visibility.servedRunId),
-                isNotNull(message.authorUserId),
-                sql`${message.sequence} > ${lastOwnSequence}`
-            )
-        )
+        .where(and(filter, engagingMessage()))
         .groupBy(visibility.agentId, visibility.chatId, visibility.servedRunId);
     return rows
         .flatMap((row) =>
@@ -97,6 +101,26 @@ async function selectEngagements(db: HausDatabase, filter: SQL | undefined) {
                 : []
         )
         .sort((left, right) => left.startedAt.localeCompare(right.startedAt));
+}
+
+/** A served human message newer than the Agent's latest answer in its Chat. */
+function engagingMessage() {
+    // Postgres resolves the unaliased outer `chat_messages` columns inside the
+    // aliased subquery, so this is the Agent's latest answer in the same Chat:
+    // any message from another run, or this run's `--done` send. This run's
+    // interim posts answer nothing.
+    const lastOwnSequence = sql`coalesce((
+        select max(own.sequence) from chat_messages own
+        where own.server_id = ${message.serverId}
+          and own.chat_id = ${message.chatId}
+          and own.author_agent_id = ${visibility.agentId}
+          and (own.completes_reply or own.run_id is distinct from ${visibility.servedRunId})
+    ), 0)`;
+    return and(
+        isNotNull(visibility.servedRunId),
+        isNotNull(message.authorUserId),
+        sql`${message.sequence} > ${lastOwnSequence}`
+    );
 }
 
 function runFilter(input: { agentId: string; runId: string; serverId: string }) {
