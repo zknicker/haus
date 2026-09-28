@@ -25,6 +25,9 @@ model session. Per-turn message delivery is an inbox concern; see
 - Each turn reads the current MEMORY.md index and only the additional notes needed for the task.
   Context compression also requires a recovery read. These are Agent instructions, not automatic
   file injection or a Computer-enforced freshness guarantee; the same global session still resumes.
+- A MEMORY.md over 64 KiB earns a one-line private notice appended to the next turn input, at most
+  once per 24 hours per Agent and only while still over. It is Computer-composed turn input, never
+  an inbox item or standing-prompt text ([Agent Workspace](../../specs/workspace.md#durable-knowledge)).
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
   Server tools. MCP grants and discovery results never change the harness tool catalog.
   Missing tools call for the specific connection or grant to be repaired; local configuration
@@ -73,7 +76,7 @@ model session. Per-turn message delivery is an inbox concern; see
   Its next delivery uses the same refresh path without rotating the session generation or
   replaying `Start.`.
 - Session reset preserves workspace, memory, skills, identity, and Server
-  history. Full reset restores an ordinary Agent's minimal `MEMORY.md` and
+  history. Full reset restores an ordinary Agent's minimal `MEMORY.md`, empty `notes/`, and
   factory-managed skills.
 
 The composed instructions are bounded by a reviewed size budget asserted in

@@ -22,6 +22,8 @@ The Agent controls the structure of its workspace. The ordinary factory seed pro
 
 - `MEMORY.md`, a concise recovery index containing identity, role, empty
   knowledge, and initial active context.
+- An empty `notes/` directory for the detailed knowledge `MEMORY.md` indexes
+  (Raft's workspace initialization).
 
 The seed establishes only that minimal starting point and never overwrites an
 existing workspace. The Agent may add, rename, organize, and remove
@@ -56,6 +58,13 @@ Factory guidance participates in the public Haus Agent version. A successful com
 may advance that version; a missing or edited Cove file blocks the receipt from advancing and leaves
 the conflict visible as a failed update.
 
+`MEMORY.md` should stay an index. When it exceeds a fixed 64 KiB (65,536 bytes, Raft's Cleaner
+default), Computer appends a one-line private notice to that Agent's next turn input: the size, the
+limit, and "keep it an index and move details into notes/". The notice is Computer-composed turn
+input, not an inbox item: it wakes no turn, reaches no Chat or human surface, and never enters
+delivery or cause inference. Computer stamps it locally under `runtime/` and repeats it at most once
+per 24 hours, and only while the file is still over. There is no setting and no adjustable threshold.
+
 There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
 automatic extraction or dreaming pipeline, or separate Wiki primitive.
 Personality comes from the Server-owned Agent description. Durable learned
@@ -78,7 +87,7 @@ bytes; edits and deletes are guarded by the Computer-reported bundle hash.
 The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
 without erasing the workspace or skills. Full reset restores the workspace for
-the Agent's persisted factory kind: minimal `MEMORY.md` for an ordinary Agent,
+the Agent's persisted factory kind: minimal `MEMORY.md` and empty `notes/` for an ordinary Agent,
 or the exact four-file Cove onboarding seed under root `MEMORY.md` and `notes/`.
 It deletes all existing skills and restores only current factory-managed skills,
 presently `visuals`.

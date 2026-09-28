@@ -38,8 +38,8 @@ path in this contract. Fresh-Server Cove onboarding is a separate setup flow;
 see [ADR 0021](../adr/0021-cove-onboards-and-agents-share-a-manual.md).
 
 Computer seeds an ordinary Agent's fresh workspace with only a minimal
-`MEMORY.md`: identity, description-derived role, empty knowledge, and initial
-active context. Practice files, recipe summaries, onboarding notes, and
+`MEMORY.md` — identity, description-derived role, empty knowledge, and initial
+active context — and an empty `notes/` directory for the details it indexes. Practice files, recipe summaries, onboarding notes, and
 archetype notes come from neither creation nor reset. Shared guidance belongs
 in the Haus Manual, while the Agent's own work may add files later.
 
@@ -215,8 +215,8 @@ single global model session spans all Chats and resumes across deliveries and
 Computer restarts. Stop, Restart, Start fresh session, and Full reset all run from the profile
 header's actions menu. Session reset creates fresh model context while preserving
 the workspace and skills. Full reset restores the Agent-kind factory workspace
-and only the current factory-managed skills: minimal `MEMORY.md` for an
-ordinary Agent, or Cove's root `MEMORY.md` plus three onboarding files under
+and only the current factory-managed skills: minimal `MEMORY.md` and empty
+`notes/` for an ordinary Agent, or Cove's root `MEMORY.md` plus three onboarding files under
 `notes/`. Today the only factory-managed skill is `visuals`.
 
 See [Context management](context-management.md) and

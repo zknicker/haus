@@ -181,6 +181,10 @@ cold session uses that notice as its first prompt; `Start.` is reserved for a
 cold session with no pending delivery. The Agent chooses whether and when to
 pull bodies.
 
+Computer-composed turn input may also carry private workspace notices that are not inbox items,
+such as the MEMORY.md size notice ([workspace.md](workspace.md#durable-knowledge)). They wake no
+turn, have no identity in this ledger, and never affect cause inference.
+
 Each pending identity records the turn that successfully offered it. Settling
 without a pull leaves the row pending and queryable but does not start another
 turn for that unchanged set. A new identity changes the set and wakes once;
