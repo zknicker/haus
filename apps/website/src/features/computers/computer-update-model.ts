@@ -1,4 +1,5 @@
 import type { ComputerUpdatePhase } from '@haus/api';
+import { unconfirmedComputerUpdate } from '../updates/offline-computer-update.ts';
 
 const phaseLabels = {
     available: 'Update available',
@@ -26,30 +27,34 @@ const updateInFlightPhases: ComputerUpdatePhase[] = [
 export function computerUpdateView(input: {
     health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     isChecking?: boolean;
+    observedAt?: number;
     phase: ComputerUpdatePhase;
     targetVersion?: string | null;
+    updateUpdatedAt?: string | null;
 }) {
+    const unconfirmed = unconfirmedComputerUpdate(input, input.observedAt ?? Date.now());
     const connected = input.health !== 'offline';
     const updateInFlight = updateInFlightPhases.includes(input.phase);
     const busy = input.isChecking || input.phase === 'checking' || updateInFlight;
     return {
         canCheck: connected && !busy,
         canUpdate: connected && input.phase === 'available' && !busy,
-        // An idle offline Computer can neither check nor install, so the card has
-        // no control to show and says why instead of rendering an empty slot. An
-        // update already in flight keeps reporting its phase: restarting drops the
-        // connection by design, and the progress must survive that.
-        label:
-            connected || updateInFlight
-                ? input.isChecking
-                    ? phaseLabels.checking
-                    : input.phase === 'idle' && input.targetVersion
-                      ? 'Up to date'
-                      : phaseLabels[input.phase]
-                : 'Unavailable while offline',
+        detail: unconfirmed?.detail ?? null,
+        // Keep recent update progress visible through an expected disconnect.
+        // An idle offline Computer has no update control to show.
+        label: unconfirmed
+            ? 'Update unconfirmed'
+            : connected || updateInFlight
+              ? input.isChecking
+                  ? phaseLabels.checking
+                  : input.phase === 'idle' && input.targetVersion
+                    ? 'Up to date'
+                    : phaseLabels[input.phase]
+              : 'Unavailable while offline',
         needsLocalRecovery:
             input.health === 'update-required' ||
-            (input.health === 'offline' && input.phase !== 'restarting'),
+            (input.health === 'offline' && (input.phase !== 'restarting' || !!unconfirmed)),
+        unconfirmed: unconfirmed !== null,
     };
 }
 

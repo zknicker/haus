@@ -66,6 +66,7 @@ export type HausUpdateDesktop =
 export type HausUpdateStep = ComputerUpdateStep | DesktopUpdateStep;
 
 export interface ComputerUpdateStep {
+    connected: boolean;
     currentVersion: string | null;
     detail: string | null;
     failedPhase: string | null;

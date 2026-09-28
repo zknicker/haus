@@ -16,12 +16,14 @@ export const productionComputerManifestUrl = 'https://releases.haus.chat/compute
 
 export async function checkComputerUpdate(input: {
     computerId: string;
+    connections: ComputerConnections;
     db: HausDatabase;
     manifestUrl: string;
     member: HausUser | null;
     serverId: string;
 }) {
     const computer = await requireComputerAdmin(input);
+    requireConnectedComputer(computer, input.connections);
     await setChecking(input.db, computer.id);
     try {
         const release = await fetchProductionRelease(input.manifestUrl);
@@ -55,6 +57,7 @@ export async function startComputerUpdate(input: {
     serverId: string;
 }) {
     const computer = await requireComputerAdmin(input);
+    requireConnectedComputer(computer, input.connections);
     await setChecking(input.db, computer.id);
     let failedPhase: ComputerUpdateProgress['failedPhase'] = 'checking';
     try {
@@ -127,6 +130,7 @@ async function requireComputerAdmin(input: {
     }
     const [computer] = await input.db
         .select({
+            health: computersTable.health,
             id: computersTable.id,
             productVersion: computersTable.productVersion,
         })
@@ -142,6 +146,17 @@ async function requireComputerAdmin(input: {
         throw new ComputerSetupDeniedError('That Computer is not attached to this Server.');
     }
     return computer;
+}
+
+function requireConnectedComputer(
+    computer: { health: string; id: string },
+    connections: ComputerConnections
+) {
+    if (computer.health === 'offline' || !connections.hasAttachment(computer.id)) {
+        throw new ComputerSetupDeniedError(
+            'Reconnect this Computer before checking for or installing updates.'
+        );
+    }
 }
 
 async function fetchProductionRelease(manifestUrl: string): Promise<SignedComputerRelease> {

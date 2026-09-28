@@ -97,6 +97,10 @@ export class ComputerConnections implements DeliveryTransport {
         );
     }
 
+    hasAttachment(computerId: string): boolean {
+        return this.attached.has(computerId);
+    }
+
     /** Sends cleanup to every online Computer for a Server, then disconnects it without waiting. */
     cleanupServer(serverId: string): number {
         let sent = 0;

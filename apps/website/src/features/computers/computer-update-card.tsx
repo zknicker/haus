@@ -1,7 +1,9 @@
 import { Button, Tooltip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
+import { useEffect, useReducer } from 'react';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { UpdateProgressBar } from '../updates/haus-update-progress.tsx';
+import { offlineComputerUpdateExpiry } from '../updates/offline-computer-update.ts';
 import { computerUpdateView } from './computer-update-model.ts';
 
 export type ComputerUpdateComputer = HausOutputs['computer']['list'][number];
@@ -28,13 +30,28 @@ export function ComputerUpdateCard({
     onCheck: () => void;
     onUpdate: () => void;
 }) {
+    const [, refreshTime] = useReducer((value: number) => value + 1, 0);
+    const expiry = offlineComputerUpdateExpiry({
+        health: computer.health,
+        phase: computer.updatePhase,
+        updateUpdatedAt: computer.updateUpdatedAt,
+    });
+    useEffect(() => {
+        if (expiry === null || expiry <= Date.now()) {
+            return;
+        }
+        const timer = window.setTimeout(refreshTime, expiry - Date.now());
+        return () => window.clearTimeout(timer);
+    }, [expiry]);
+
     const view = computerUpdateView({
         health: computer.health,
         isChecking: isChecking || isStarting,
         phase: computer.updatePhase,
         targetVersion: computer.updateTargetVersion,
+        updateUpdatedAt: computer.updateUpdatedAt,
     });
-    const isUpdateActive = activeUpdatePhases.has(computer.updatePhase);
+    const isUpdateActive = activeUpdatePhases.has(computer.updatePhase) && !view.unconfirmed;
     const downloadProgress = computerDownloadProgress(computer);
     const showCheck = view.canCheck || isChecking || computer.updatePhase === 'checking';
     const showUpdate = view.canUpdate || isStarting;
@@ -44,7 +61,7 @@ export function ComputerUpdateCard({
             <ItemCard.Content>
                 <ItemCard.Title>Software Update</ItemCard.Title>
                 <ItemCard.Description>
-                    Check for and install the latest production release.
+                    {view.detail ?? 'Check for and install the latest production release.'}
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
@@ -69,14 +86,16 @@ export function ComputerUpdateCard({
                                 <Tooltip.Trigger aria-label={view.label}>
                                     <span className="inline-flex cursor-not-allowed">
                                         <Button isDisabled size="sm" variant="secondary">
-                                            Offline
+                                            {view.unconfirmed ? 'Unconfirmed' : 'Offline'}
                                         </Button>
                                     </span>
                                 </Tooltip.Trigger>
                                 <Tooltip.Content showArrow>
                                     <Tooltip.Arrow />
                                     <p className="max-w-xs">
-                                        Reconnect this Computer to check for updates.
+                                        {view.unconfirmed
+                                            ? 'Reconnect this Computer to confirm the installed version.'
+                                            : 'Reconnect this Computer to check for updates.'}
                                     </p>
                                 </Tooltip.Content>
                             </Tooltip>

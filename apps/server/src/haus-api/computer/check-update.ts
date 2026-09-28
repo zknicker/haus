@@ -13,6 +13,7 @@ export const checkComputerUpdateProcedure = memberProcedure
             // which is exactly what the Computer list renders.
             const checked = await checkComputerUpdate({
                 ...input,
+                connections: ctx.computerConnections,
                 db: ctx.hausDb,
                 manifestUrl: ctx.computerReleaseManifestUrl,
                 member: ctx.member,

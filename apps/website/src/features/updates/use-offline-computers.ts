@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { ComputerUpdateComputer } from '../computers/computer-update-card.tsx';
 import { computerLabel } from '../computers/presentation.ts';
 import { expectedComputerRestartMs, offlineComputerNoticeDelayMs } from './haus-update-timing.ts';
+import { offlineComputerUpdateExpiry } from './offline-computer-update.ts';
 
 export interface OfflineComputerNotice {
     id: string;
@@ -56,11 +57,11 @@ export function useOfflineComputers(
             timers.current.set(computer.id, timer);
         }
 
-        const restartExpiry = nextRestartExpiry(computers, observedAt);
-        if (restartExpiry === null) {
+        const updateExpiry = nextUpdateExpiry(computers, observedAt);
+        if (updateExpiry === null) {
             return;
         }
-        const wake = window.setTimeout(render, Math.max(0, restartExpiry - observedAt));
+        const wake = window.setTimeout(render, Math.max(0, updateExpiry - observedAt));
         return () => window.clearTimeout(wake);
     }, [computers, refreshedAt]);
 
@@ -99,17 +100,20 @@ export function isOfflineComputerNoticeCandidate(
     return observedAt - new Date(computer.updateUpdatedAt).getTime() >= expectedComputerRestartMs;
 }
 
-function nextRestartExpiry(computers: readonly ComputerUpdateComputer[], observedAt: number) {
+export function nextUpdateExpiry(
+    computers: readonly Pick<
+        ComputerUpdateComputer,
+        'health' | 'updatePhase' | 'updateUpdatedAt'
+    >[],
+    observedAt: number
+) {
     const expiries = computers.flatMap((computer) => {
-        if (
-            computer.health !== 'offline' ||
-            computer.updatePhase !== 'restarting' ||
-            !computer.updateUpdatedAt
-        ) {
-            return [];
-        }
-        const expiry = new Date(computer.updateUpdatedAt).getTime() + expectedComputerRestartMs;
-        return expiry > observedAt ? [expiry] : [];
+        const expiry = offlineComputerUpdateExpiry({
+            health: computer.health,
+            phase: computer.updatePhase,
+            updateUpdatedAt: computer.updateUpdatedAt,
+        });
+        return expiry !== null && expiry > observedAt ? [expiry] : [];
     });
     return expiries.length > 0 ? Math.min(...expiries) : null;
 }

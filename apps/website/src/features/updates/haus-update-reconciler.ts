@@ -58,7 +58,9 @@ export async function runHausUpdateSequence(
         }
     }
 
-    const selectedSteps = initialView.steps.filter((step) => !isCompleteUpdateStep(step));
+    const selectedSteps = initialView.steps.filter(
+        (step) => !isCompleteUpdateStep(step) && (step.kind !== 'computer' || step.connected)
+    );
     const outcomes = await Promise.all(
         selectedSteps.map((step) => reconcileStep(step, operations))
     );

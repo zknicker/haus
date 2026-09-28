@@ -10,7 +10,10 @@ import type {
     HausUpdateView,
 } from './haus-update-contract.ts';
 import { projectComponentFacts } from './haus-update-facts.ts';
-import { expectedComputerRestartMs } from './haus-update-timing.ts';
+import {
+    offlineComputerUpdateExpiry,
+    unconfirmedComputerUpdate,
+} from './offline-computer-update.ts';
 
 export type {
     ComputerUpdateStep,
@@ -56,7 +59,7 @@ export function projectHausUpdate(input: HausUpdateInput): HausUpdateView {
         detail: aggregateDetail(phase, steps),
         headline: aggregateHeadline(phase, input.release.version),
         phase,
-        primaryAction: primaryAction(phase),
+        primaryAction: primaryAction(phase, steps),
         steps,
         version: input.release.version,
     };
@@ -77,25 +80,25 @@ function projectComputerStep(
     targetVersion: string,
     observedAt: number
 ): ComputerUpdateStep | null {
-    const timedOutRestart =
+    const unconfirmed = unconfirmedComputerUpdate(computer, observedAt);
+    if (
         computer.health === 'offline' &&
-        computer.phase === 'restarting' &&
-        elapsedSince(computer.updateUpdatedAt, observedAt) >= expectedComputerRestartMs;
-    if (computer.health === 'offline' && computer.phase !== 'restarting') {
+        (offlineComputerUpdateExpiry(computer) === null ||
+            computer.reportedTargetVersion !== targetVersion)
+    ) {
         return null;
     }
     const current = isVersionCurrent(computer.currentVersion, targetVersion);
-    const phase = timedOutRestart
+    const phase = unconfirmed
         ? 'failed'
         : current
           ? 'current'
           : normalizeComputerPhase(computer, targetVersion);
     return {
+        connected: computer.health !== 'offline',
         currentVersion: computer.currentVersion,
-        detail: timedOutRestart
-            ? 'This Computer did not reconnect after installing the update.'
-            : (computer.detail ?? null),
-        failedPhase: timedOutRestart ? 'restarting' : (computer.failedPhase ?? null),
+        detail: unconfirmed?.detail ?? computer.detail ?? null,
+        failedPhase: unconfirmed?.failedPhase ?? computer.failedPhase ?? null,
         id: computer.id,
         kind: 'computer',
         label: computer.name,
@@ -156,11 +159,14 @@ function aggregatePhase(steps: readonly HausUpdateStep[]): HausUpdatePhase {
     if (steps.some((step) => step.phase === 'restart-required')) {
         return 'restart-required';
     }
-    if (steps.some((step) => step.phase === 'failed')) {
+    if (steps.some((step) => step.phase === 'failed' && isConnectedStep(step))) {
         return 'failed';
     }
-    if (steps.some((step) => !isCompleteUpdateStep(step))) {
+    if (steps.some((step) => step.phase !== 'failed' && !isCompleteUpdateStep(step))) {
         return 'available';
+    }
+    if (steps.some((step) => step.phase === 'failed')) {
+        return 'failed';
     }
     return 'current';
 }
@@ -183,7 +189,7 @@ function aggregateHeadline(phase: HausUpdatePhase, version: string) {
 }
 
 function aggregateDetail(phase: HausUpdatePhase, steps: readonly HausUpdateStep[]) {
-    const remaining = steps.filter((step) => !isCompleteUpdateStep(step));
+    const remaining = steps.filter((step) => isConnectedStep(step) && !isCompleteUpdateStep(step));
     const active = steps.find(isActiveUpdateStep);
     switch (phase) {
         case 'current':
@@ -197,7 +203,9 @@ function aggregateDetail(phase: HausUpdatePhase, steps: readonly HausUpdateStep[
         case 'reload-required':
             return 'Reload to use the updated website.';
         case 'failed': {
-            const failed = steps.find((step) => step.phase === 'failed');
+            const failed =
+                steps.find((step) => step.phase === 'failed' && isConnectedStep(step)) ??
+                steps.find((step) => step.phase === 'failed');
             return (
                 failed?.detail ?? (failed ? `${failed.label} could not update.` : 'Update failed.')
             );
@@ -205,7 +213,10 @@ function aggregateDetail(phase: HausUpdatePhase, steps: readonly HausUpdateStep[
     }
 }
 
-function primaryAction(phase: HausUpdatePhase): HausUpdateView['primaryAction'] {
+function primaryAction(
+    phase: HausUpdatePhase,
+    steps: readonly HausUpdateStep[]
+): HausUpdateView['primaryAction'] {
     if (phase === 'available') {
         return { kind: 'start', label: 'Update' };
     }
@@ -213,9 +224,15 @@ function primaryAction(phase: HausUpdatePhase): HausUpdateView['primaryAction'] 
         return { kind: 'restart', label: 'Restart' };
     }
     if (phase === 'failed') {
-        return { kind: 'retry', label: 'Try again' };
+        return steps.some((step) => step.phase === 'failed' && isConnectedStep(step))
+            ? { kind: 'retry', label: 'Try again' }
+            : null;
     }
     return null;
+}
+
+function isConnectedStep(step: HausUpdateStep) {
+    return step.kind === 'desktop-app' || step.connected;
 }
 
 function isVersionCurrent(installed: string | null, target: string) {
@@ -236,13 +253,6 @@ function isVersionCurrent(installed: string | null, target: string) {
 function parseSemver(version: string) {
     const match = /^(\d+)\.(\d+)\.(\d+)$/u.exec(version);
     return match ? match.slice(1).map(Number) : [-1, -1, -1];
-}
-
-function elapsedSince(value: string | null | undefined, observedAt: number) {
-    if (!value) {
-        return Number.POSITIVE_INFINITY;
-    }
-    return observedAt - new Date(value).getTime();
 }
 
 function compareComputerSteps(left: ComputerUpdateStep, right: ComputerUpdateStep) {
