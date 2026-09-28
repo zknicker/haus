@@ -46,7 +46,11 @@ import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
-import { reportHarnessTurnFailure } from './turn-failure-report.ts';
+import {
+    type RuntimeTurnOutcome,
+    reportHarnessTurnFailure,
+    settledTurnOutcome,
+} from './turn-failure-report.ts';
 import { visibilityReceipt } from './visibility-receipt.ts';
 import { writeHausWrapper } from './wrapper.ts';
 
@@ -188,13 +192,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
             .join(':'),
     };
 
-    let result: {
-        failureKind?: RuntimeFailureKind;
-        status: 'completed' | 'failed' | 'interrupted';
-        tokenUsage?: AgentTurnFrame['tokenUsage'];
-    } = {
-        status: 'failed',
-    };
+    let result: RuntimeTurnOutcome = { status: 'failed' };
     try {
         await options.onRuntimeReady?.();
         result =
@@ -256,7 +254,8 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                 ? `Sent ${proxy.sendCount()} message(s).`
                 : result.status === 'interrupted'
                   ? 'The Agent turn was interrupted.'
-                  : `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`,
+                  : (result.summary ??
+                    `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`),
         visibleMessages: await readRunVisibleMessages(
             {
                 agentId: command.agentId,
@@ -545,11 +544,7 @@ async function runRealRuntime(
         thoughts?: AgentThoughtNarrator;
         tools: import('@ai-sdk/provider-utils').ToolSet;
     }
-): Promise<{
-    failureKind?: RuntimeFailureKind;
-    status: 'completed' | 'failed' | 'interrupted';
-    tokenUsage?: AgentTurnFrame['tokenUsage'];
-}> {
+): Promise<RuntimeTurnOutcome> {
     const { command } = input;
     try {
         const seed = await readAgentSeedConfiguration(input.agentRoot);
@@ -593,13 +588,9 @@ async function runRealRuntime(
             tools: input.tools,
         });
         await writeTrace(input, 'Harness turn completed.\n');
-        return {
-            status: turn.aborted ? 'interrupted' : 'completed',
-            tokenUsage: turn.tokenUsage,
-        };
+        return settledTurnOutcome(turn);
     } catch (error) {
         await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
-        const { agentId, runId, runtimeId } = command;
-        return await reportHarnessTurnFailure(input.runtime, { agentId, runId, runtimeId }, error);
+        return await reportHarnessTurnFailure(input.runtime, command, error, input.signal);
     }
 }

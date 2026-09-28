@@ -49,42 +49,51 @@ export interface ToolGate {
  * Busy notices wait for a tool boundary with no tool call still in flight: with parallel tool
  * calls, one result is not a safe boundary while its siblings run. The harness exposes no
  * in-progress compaction signal, so compaction cannot gate this (specs/raft-alignment I2).
+ * Each notice is a complete inbox summary, so a newer one supersedes any still waiting and
+ * the superseded callers share its outcome.
  */
 export function createNoticeCoordinator(
     deliver: (notice: string) => Promise<boolean>
 ): ToolGate & { close(): void; enqueue(notice: string): Promise<boolean> } {
-    const pending: Array<{
-        notice: string;
-        resolve: (accepted: boolean) => void;
-    }> = [];
+    let pending: { notice: string; resolvers: Array<(accepted: boolean) => void> } | null = null;
     const inFlightToolCalls = new Set<unknown>();
     let closed = false;
+    const take = () => {
+        const entry = pending;
+        pending = null;
+        return entry;
+    };
     const flush = async () => {
-        const entries = pending.splice(0);
-        for (const [index, entry] of entries.entries()) {
-            try {
-                entry.resolve(await deliver(entry.notice));
-            } catch (error) {
-                entry.resolve(false);
-                for (const remaining of entries.slice(index + 1)) {
-                    remaining.resolve(false);
-                }
-                throw error;
+        const entry = take();
+        if (!entry) {
+            return;
+        }
+        const settleAll = (accepted: boolean) => {
+            for (const resolve of entry.resolvers) {
+                resolve(accepted);
             }
+        };
+        try {
+            settleAll(await deliver(entry.notice));
+        } catch (error) {
+            settleAll(false);
+            throw error;
         }
     };
     return {
         close() {
             closed = true;
-            for (const entry of pending.splice(0)) {
-                entry.resolve(false);
+            for (const resolve of take()?.resolvers ?? []) {
+                resolve(false);
             }
         },
         enqueue(notice: string): Promise<boolean> {
             if (closed) {
                 return Promise.resolve(false);
             }
-            return new Promise((resolve) => pending.push({ notice, resolve }));
+            return new Promise((resolve) => {
+                pending = { notice, resolvers: [...(pending?.resolvers ?? []), resolve] };
+            });
         },
         toolCallStarted(part: ToolCallPart) {
             inFlightToolCalls.add(part.toolCallId);

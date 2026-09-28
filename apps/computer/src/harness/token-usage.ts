@@ -3,16 +3,9 @@ import type { AgentSessionTokenUsage } from './session-store.ts';
 
 export type HarnessTokenUsage = AgentSessionTokenUsage;
 
+/** A step's context size: its request's full input, cached tokens included. */
 export function usageContextTokens(usage: unknown): number | null {
-    if (!isRecord(usage)) {
-        return null;
-    }
-    const inputTotal = tokenCount(usage.inputTokens);
-    const outputTotal = tokenCount(usage.outputTokens);
-    if (inputTotal === null && outputTotal === null) {
-        return null;
-    }
-    return (inputTotal ?? 0) + (outputTotal ?? 0);
+    return isRecord(usage) ? tokenCount(usage.inputTokens) : null;
 }
 
 export function readTokenUsage(usage: unknown): HarnessTokenUsage | null {

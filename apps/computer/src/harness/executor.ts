@@ -29,11 +29,13 @@ import {
     createComputerExecutionJournal,
 } from './execution-journal.ts';
 import { composeAgentInstructions } from './instructions.ts';
+import { AgentSessionResumeRejectedError, isPromptResumeRejection } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { createHarnessForRuntime } from './runtime-harness.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
+import { startHarnessSession } from './session-start.ts';
 import {
     type AgentSessionState,
     readAgentSessionState,
@@ -81,22 +83,13 @@ export interface HarnessTurnResult {
     aborted: boolean;
     claudePlanUsage: ClaudeUsageSnapshot | null;
     contextTokens: number | null;
+    /** The no-progress deadline, not a Stop, interrupted the turn. */
+    stalled?: boolean;
     tokenUsage: HarnessTokenUsage | null;
 }
 
 export type { HarnessTokenUsage } from './token-usage.ts';
 export { HarnessTurnFailedError } from './turn-stream.ts';
-
-/** Resume was rejected; the caller rotates the generation and cold-starts once. */
-export class AgentSessionResumeRejectedError extends Error {
-    constructor(
-        readonly agentId: string,
-        options?: { cause?: unknown }
-    ) {
-        super(`Agent ${agentId} could not resume its stored runtime session.`, options);
-        this.name = 'AgentSessionResumeRejectedError';
-    }
-}
 
 function journalOutcome(
     exit: Exit.Exit<HarnessTurnResult, HarnessStreamForeignError>,
@@ -218,7 +211,6 @@ async function executeHarnessTurn(
         lease.prepare(resumeFrom, (state, abortSignal) =>
             agent.createSession({ abortSignal, resumeFrom: state, sessionId })
         );
-        let effectiveResumeFrom = resumeFrom;
         let factoryGuidanceNotice: string | null = null;
         let factoryGuidanceRefreshPending =
             input.factoryKind === 'cove' && (await hasPendingCoveGuidanceRefresh(input.agentRoot));
@@ -286,60 +278,32 @@ async function executeHarnessTurn(
             });
         }
         const reasoningChanged = session.effectiveReasoningEffort !== input.reasoningEffort;
-        if (resumeFrom && (refreshBootstrap || reasoningChanged)) {
-            let parked: HarnessAgentSession;
-            try {
-                parked = await agent.createSession({
-                    abortSignal: input.signal,
-                    resumeFrom,
-                    sessionId,
-                });
-            } catch (error) {
-                throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
-            }
-            // Only creation rejection invalidates native resume state.
-            const parkedState = await parked.stop();
-            const refresh = async () => {
-                if (!refreshBootstrap) {
-                    return;
-                }
-                await timings.measure('bootstrap', () =>
-                    harnessBootstrapRefresh({
-                        abortSignal: input.signal,
-                        harness,
-                        provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
-                        sessionId,
-                        workDir: basename(input.workspaceDir),
-                    })
-                );
-            };
-            await refresh();
-            effectiveResumeFrom = parkedState;
-        }
         const phase = createTurnPhaseLog(input);
-        try {
-            await phase(
-                effectiveResumeFrom ? 'creating session (resume)' : 'creating session (cold)'
-            );
-            input.turnTimings?.mark('harness_ready');
-            const createSession = () =>
-                agent.createSession({
-                    abortSignal: input.signal,
-                    resumeFrom: effectiveResumeFrom,
-                    sessionId,
-                });
-            live = await timings.measure('session_create', createSession);
-            lease.attach(live, (state, abortSignal) =>
-                agent.createSession({ abortSignal, resumeFrom: state, sessionId })
-            );
-            await phase('session ready');
-        } catch (error) {
-            await phase('session creation failed');
-            if (!resumeFrom) {
-                throw error;
-            }
-            throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
-        }
+        live = await startHarnessSession({
+            agent,
+            agentId: input.agentId,
+            lease,
+            phase,
+            refreshBootstrap: refreshBootstrap
+                ? (abortSignal) =>
+                      timings.measure('bootstrap', () =>
+                          harnessBootstrapRefresh({
+                              abortSignal,
+                              harness,
+                              provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
+                              sessionId,
+                              workDir: basename(input.workspaceDir),
+                          })
+                      )
+                : undefined,
+            restartNative: refreshBootstrap || reasoningChanged,
+            resumeFrom,
+            runtime: input.runtime,
+            sessionId,
+            signal: input.signal,
+            timings,
+        });
+        await phase('session ready');
 
         if (lease.stopping) {
             await writeAgentSessionState(input.agentRoot, {
@@ -358,8 +322,11 @@ async function executeHarnessTurn(
         // the local notice projection before any stored notice can repeat it.
         await attestComposedDrain(input, prompt.drained);
         const turnContent = prompt.turnContent;
+        // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
+        const noProgress = new AbortController();
+        const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await agent.stream({
-            abortSignal: input.signal,
+            abortSignal: turnSignal,
             prompt: projectMessageForAgent({
                 content: [factoryGuidanceNotice, turnContent].filter(Boolean).join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
@@ -401,9 +368,10 @@ async function executeHarnessTurn(
                                         input.turnTimings?.mark('first_stream');
                                         return phase('first stream event');
                                     },
+                                    onNoProgress: () => noProgress.abort(),
                                     onToolCall: () => input.turnTimings?.mark('first_tool'),
                                     runtime: input.runtime,
-                                    signal: input.signal,
+                                    signal: turnSignal,
                                     stallLabel: `${input.runtimeId} agent=${input.agentId}`,
                                 }
                             );
@@ -426,7 +394,10 @@ async function executeHarnessTurn(
             }
         } catch (error) {
             await projector.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
-            throw error;
+            // Claude and Pi only discover a missing session or rejected replay once prompted.
+            throw live.isResume && isPromptResumeRejection(error)
+                ? new AgentSessionResumeRejectedError(input.agentId, { cause: error })
+                : error;
         } finally {
             unregisterNoticeSink?.();
             noticeCoordinator.close();
@@ -447,7 +418,7 @@ async function executeHarnessTurn(
                 runtimeSessionId: live.sessionId,
             });
             await input.activity.finish(instructionActivityKey, 'interrupted');
-            return observation;
+            return { ...observation, stalled: noProgress.signal.aborted && !input.signal?.aborted };
         }
         const appliesHausAgentVersion = !hausAgentVersionDrift || hausAgentVersionCanApply;
         await writeAgentSessionState(input.agentRoot, {

@@ -1,6 +1,6 @@
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
-import { Data, Effect, Stream } from 'effect';
+import { Clock, Data, Duration, Effect, Stream } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { createComputerActivityProjector } from './activity-projector.ts';
 import type { HarnessTurnResult } from './executor.ts';
@@ -35,20 +35,28 @@ export class HarnessStreamForeignError extends Data.TaggedError('HarnessStreamFo
     readonly cause: unknown;
 }> {}
 
+/** A turn silent this long with no tool call in flight is interrupted, keeping resume state. */
+export const turnNoProgressDeadlineMs = 15 * 60_000;
+
 /** Observes execution evidence and terminal state; durable replies leave through the CLI. */
 export async function observeTurnStream(
     stream: AsyncIterable<unknown>,
     toolCalls: ToolGate | undefined,
     projector: ReturnType<typeof createComputerActivityProjector> | undefined,
     {
+        noProgressAfterMs = turnNoProgressDeadlineMs,
         onFirstPart,
+        onNoProgress,
         onToolCall,
         runtime,
         signal,
         stallLabel,
         stallAfterMs = 120_000,
     }: {
+        noProgressAfterMs?: number;
         onFirstPart?: () => void | Promise<void>;
+        /** Must interrupt the turn, typically by aborting `signal`. */
+        onNoProgress?: () => void;
         onToolCall?: () => void;
         runtime: DaemonRuntime;
         signal?: AbortSignal;
@@ -64,9 +72,10 @@ export async function observeTurnStream(
     let fatalFailure: RuntimeSessionFailureError | null = null;
     let aborted = false;
     // Last-part timing distinguishes provider silence from a bridge that never emitted.
-    let lastPartAt = Date.now();
+    let lastPartAt = 0;
     let lastPartType = 'none yet';
     let partCount = 0;
+    const openToolCalls = new Set<unknown>();
     const consume = Stream.fromAsyncIterable(
         stream,
         (cause) => new HarnessStreamForeignError({ cause })
@@ -75,61 +84,69 @@ export async function observeTurnStream(
         // failed turn destroys its session.
         Stream.takeUntil((part) => fatalRetry(part)),
         Stream.runForEach((part) =>
-            Effect.tryPromise({
-                catch: (cause) => new HarnessStreamForeignError({ cause }),
-                try: async () => {
-                    if (!isRecord(part) || typeof part.type !== 'string') {
-                        return;
-                    }
-                    lastPartAt = Date.now();
-                    lastPartType = part.type;
-                    partCount += 1;
-                    if (partCount === 1) {
-                        await onFirstPart?.();
-                    }
-                    switch (part.type) {
-                        case 'raw':
-                            fatalFailure ??= fatalRuntimeSessionFailure(part.rawValue);
-                            await projector?.observe(part);
+            Effect.flatMap(Clock.currentTimeMillis, (now) =>
+                Effect.tryPromise({
+                    catch: (cause) => new HarnessStreamForeignError({ cause }),
+                    try: async () => {
+                        if (!isRecord(part) || typeof part.type !== 'string') {
                             return;
-                        case 'reasoning-delta':
-                        case 'reasoning-end':
-                        case 'reasoning-start':
-                            await projector?.observe(part);
-                            return;
-                        case 'tool-call':
-                            onToolCall?.();
-                            toolCalls?.toolCallStarted(part);
-                            await projector?.observe(part);
-                            return;
-                        case 'tool-error':
-                        case 'tool-result':
-                            await projector?.observe(part);
-                            await toolCalls?.toolCallSettled(part);
-                            return;
-                        case 'finish-step':
-                            contextTokens = usageContextTokens(part.usage) ?? contextTokens;
-                            stepTokenUsage = addTokenUsage(
-                                stepTokenUsage,
-                                readTokenUsage(part.usage)
-                            );
-                            return;
-                        case 'finish':
-                            contextTokens = usageContextTokens(part.totalUsage) ?? contextTokens;
-                            finalTokenUsage = readTokenUsage(part.totalUsage);
-                            claudePlanUsage = readClaudePlanUsageMetadata(part.providerMetadata);
-                            return;
-                        case 'error':
-                            streamError ??= part.error ?? new Error('Harness stream failed.');
-                            return;
-                        case 'abort':
-                            aborted = true;
-                            return;
-                        default:
-                            return;
-                    }
-                },
-            })
+                        }
+                        lastPartAt = now;
+                        lastPartType = part.type;
+                        partCount += 1;
+                        if (partCount === 1) {
+                            await onFirstPart?.();
+                        }
+                        switch (part.type) {
+                            case 'raw':
+                                fatalFailure ??= fatalRuntimeSessionFailure(part.rawValue);
+                                await projector?.observe(part);
+                                return;
+                            case 'reasoning-delta':
+                            case 'reasoning-end':
+                            case 'reasoning-start':
+                                await projector?.observe(part);
+                                return;
+                            case 'tool-call':
+                                openToolCalls.add(part.toolCallId);
+                                onToolCall?.();
+                                toolCalls?.toolCallStarted(part);
+                                await projector?.observe(part);
+                                return;
+                            case 'tool-error':
+                            case 'tool-result':
+                                if (part.preliminary !== true) {
+                                    openToolCalls.delete(part.toolCallId);
+                                }
+                                await projector?.observe(part);
+                                await toolCalls?.toolCallSettled(part);
+                                return;
+                            case 'finish-step':
+                                // The last step's input is the context size; summed usage overstates it.
+                                contextTokens = usageContextTokens(part.usage) ?? contextTokens;
+                                stepTokenUsage = addTokenUsage(
+                                    stepTokenUsage,
+                                    readTokenUsage(part.usage)
+                                );
+                                return;
+                            case 'finish':
+                                finalTokenUsage = readTokenUsage(part.totalUsage);
+                                claudePlanUsage = readClaudePlanUsageMetadata(
+                                    part.providerMetadata
+                                );
+                                return;
+                            case 'error':
+                                streamError ??= part.error ?? new Error('Harness stream failed.');
+                                return;
+                            case 'abort':
+                                aborted = true;
+                                return;
+                            default:
+                                return;
+                        }
+                    },
+                })
+            )
         ),
         Effect.catchAll((failure) =>
             Effect.sync(() => {
@@ -137,29 +154,34 @@ export async function observeTurnStream(
             })
         )
     );
-    const watchdog = Effect.sleep('60 seconds').pipe(
-        Effect.andThen(
-            Effect.sync(() => Date.now() - lastPartAt).pipe(
-                Effect.flatMap((silentForMs) =>
-                    stallLabel && silentForMs >= stallAfterMs
-                        ? Effect.logWarning('Harness turn stream stalled.').pipe(
-                              Effect.annotateLogs({
-                                  event: 'harness-turn-stream-stalled',
-                                  eventCount: partCount,
-                                  lastEventType: lastPartType,
-                                  silentSeconds: Math.round(silentForMs / 1000),
-                                  stallLabel,
-                              })
-                          )
-                        : Effect.void
-                )
-            )
-        ),
-        Effect.forever
-    );
+    const watchdog = Effect.gen(function* () {
+        while (true) {
+            yield* Effect.sleep(Duration.minutes(1));
+            const silentForMs = (yield* Clock.currentTimeMillis) - lastPartAt;
+            const annotations = {
+                eventCount: partCount,
+                lastEventType: lastPartType,
+                silentSeconds: Math.round(silentForMs / 1000),
+                stallLabel,
+            };
+            if (onNoProgress && silentForMs >= noProgressAfterMs && openToolCalls.size === 0) {
+                yield* Effect.logWarning('Harness turn made no progress; interrupting it.').pipe(
+                    Effect.annotateLogs({ ...annotations, event: 'harness-turn-no-progress' })
+                );
+                onNoProgress();
+                return;
+            }
+            if (stallLabel && silentForMs >= stallAfterMs) {
+                yield* Effect.logWarning('Harness turn stream stalled.').pipe(
+                    Effect.annotateLogs({ ...annotations, event: 'harness-turn-stream-stalled' })
+                );
+            }
+        }
+    });
     const program = Effect.scoped(
         Effect.gen(function* () {
-            if (stallLabel) {
+            lastPartAt = yield* Clock.currentTimeMillis;
+            if (stallLabel || onNoProgress) {
                 yield* Effect.forkScoped(watchdog);
             }
             yield* consume;

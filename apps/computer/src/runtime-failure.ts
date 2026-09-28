@@ -32,26 +32,33 @@ export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
         return 'configuration';
     }
     if (
-        /context window|too many tokens|input .*too large|payload too large|\b413\b/u.test(
-            normalized
-        )
+        contextOverflowPattern.test(normalized) ||
+        /too many tokens|input .*too large|payload too large|\b413\b/u.test(normalized)
     ) {
         return 'input';
     }
-    if (/rate.?limit|too many requests|quota|\b429\b/u.test(normalized)) {
+    if (/rate.?limit|too many requests|quota|usage limit|at capacity|\b429\b/u.test(normalized)) {
         return 'rate-limit';
     }
     if (/timed out|timeout/u.test(normalized)) {
         return 'timeout';
     }
     if (
-        /econn|websocket|connection (closed|failed|refused|reset)|network|fetch failed/u.test(
+        /econn|websocket|connection (closed|failed|refused|reset)|network|fetch failed|overloaded|internal server error|bad gateway|service unavailable|\b(?:500|502|503|504|529)\b/u.test(
             normalized
         )
     ) {
         return 'transport';
     }
     return 'unknown';
+}
+
+const contextOverflowPattern =
+    /context window|context.?length.?exceeded|maximum context length|prompt is too long/u;
+
+/** The session's history no longer fits the model; only a session reset recovers it. */
+export function isContextWindowOverflow(error: unknown): boolean {
+    return contextOverflowPattern.test(runtimeErrorMessage(error).toLowerCase());
 }
 
 export function isRetryableRuntimeFailure(kind: RuntimeFailureKind): boolean {
