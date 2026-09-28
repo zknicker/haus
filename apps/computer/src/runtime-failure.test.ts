@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
-import { classifyRuntimeFailure, isRetryableRuntimeFailure } from './runtime-failure.ts';
+import {
+    classifyRuntimeFailure,
+    isContextWindowOverflow,
+    isRetryableRuntimeFailure,
+} from './runtime-failure.ts';
 
 test('classifies operator-action failures as terminal', () => {
     for (const [message, kind] of [
@@ -16,6 +20,15 @@ test('classifies operator-action failures as terminal', () => {
 test('classifies transient failures for bounded retry', () => {
     for (const [message, kind] of [
         ['429 Too Many Requests', 'rate-limit'],
+        ["You've hit your usage limit. Try again at 5pm.", 'rate-limit'],
+        ['Selected model is at capacity. Please try a different model.', 'rate-limit'],
+        [
+            '{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}',
+            'transport',
+        ],
+        ['API Error: 529', 'transport'],
+        ['503 Service Unavailable', 'transport'],
+        ['Internal server error', 'transport'],
         ['WebSocket connection closed', 'transport'],
         ['Bridge startup timed out', 'timeout'],
     ] as const) {
@@ -63,4 +76,16 @@ test('invalid Claude credentials require operator action instead of repeated ret
         expect(kind).toBe('authentication');
         expect(isRetryableRuntimeFailure(kind)).toBe(false);
     }
+});
+
+test('recognizes a context-window overflow as terminal input', () => {
+    for (const message of [
+        'prompt is too long: 201234 tokens > 200000 maximum',
+        'Your input exceeds the context window of this model.',
+        'context_length_exceeded',
+    ]) {
+        expect(isContextWindowOverflow(new Error(message))).toBe(true);
+        expect(classifyRuntimeFailure(new Error(message))).toBe('input');
+    }
+    expect(isContextWindowOverflow(new Error('HTTP 413'))).toBe(false);
 });

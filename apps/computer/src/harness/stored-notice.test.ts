@@ -29,3 +29,20 @@ test('a notice still pending when the turn ends is declined for the next turn', 
 
     expect(await accepted).toBe(false);
 });
+
+test('only the latest waiting notice is delivered; superseded callers share its outcome', async () => {
+    const delivered: string[] = [];
+    const coordinator = createNoticeCoordinator((notice) => {
+        delivered.push(notice);
+        return Promise.resolve(true);
+    });
+    coordinator.toolCallStarted({ toolCallId: 'call_a' });
+    const first = coordinator.enqueue('[Haus inbox notice: 1 unread]');
+    const second = coordinator.enqueue('[Haus inbox notice: 2 unread]');
+    const latest = coordinator.enqueue('[Haus inbox notice: 3 unread]');
+
+    await coordinator.toolCallSettled({ toolCallId: 'call_a' });
+
+    expect(delivered).toEqual(['[Haus inbox notice: 3 unread]']);
+    expect(await Promise.all([first, second, latest])).toEqual([true, true, true]);
+});

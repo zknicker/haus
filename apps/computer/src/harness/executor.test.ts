@@ -13,7 +13,6 @@ import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
 import { readComputerExecutionJournal } from './execution-journal.ts';
 import {
-    AgentSessionResumeRejectedError,
     HarnessTurnFailedError,
     type HarnessTurnInput,
     runHarnessTurn,
@@ -21,6 +20,7 @@ import {
     setHarnessBootstrapRefreshForTesting,
 } from './executor.ts';
 import { legacyCoveFaq, legacyCovePlaybook } from './executor-fixtures.ts';
+import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import type { AgentSessionState } from './session-store.ts';
 
 const runtime = makeDaemonRuntime();
@@ -93,7 +93,7 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                 sessionId: options.sessionId,
             });
             if (options.resumeFrom && rejectResume) {
-                throw new Error('runtime session gone');
+                throw new Error('No conversation found with session ID: native_session_1');
             }
             return {
                 detach: async () => {
@@ -162,7 +162,7 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                     }
                     yield {
                         type: 'finish-step',
-                        usage: streamFails ? publicUsage(streamUsageScale) : publicUsage(0),
+                        usage: publicUsage(streamUsageScale),
                     };
                     if (streamAborts) {
                         yield { type: 'abort' };
@@ -290,7 +290,7 @@ test('effort changes restart the native process and resume the same conversation
 
 test('cold-starts a fresh Agent then resumes its one global session', async () => {
     const first = await runHarnessTurn(turnInput());
-    expect(first.contextTokens).toBe(15);
+    expect(first.contextTokens).toBe(10);
     expect(first.tokenUsage).toEqual({
         cacheReadTokens: 8,
         cacheWriteTokens: 2,

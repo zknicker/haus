@@ -54,7 +54,7 @@ test('a terminal failure on the prompt response is fatal and keeps its provider 
         classifyRuntimeFailure(
             fatalRuntimeSessionFailure(response('unexpected status 503 Service Unavailable'))
         )
-    ).toBe('unknown');
+    ).toBe('transport');
 });
 
 test('ignores raw parts that carry no typed session failure', () => {
