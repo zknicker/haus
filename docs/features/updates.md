@@ -11,8 +11,9 @@ read_when:
 The sidebar updater is a one-click control for release work Haus knows is needed and can act on
 now. It is not a compliance report for every attached machine. The desktop App contributes its
 native updater state; each connected Computer contributes its own installed version and update
-state. An offline Computer contributes neither because its last report may no longer describe the
-installed software.
+state. An offline Computer creates no new update opportunity from its last reported version,
+which may no longer describe the installed software. An update already in progress may remain
+visible while Haus waits for reconnection.
 
 The anchored update tooltip lists only surfaces that still need attention. A current App or
 Computer stays out of the tooltip. Every Computer row includes its user-facing name, such as
@@ -34,7 +35,13 @@ Computer connectivity is separate product attention. Owners and Admins see a yel
 button after a ten-second offline delay. Its tooltip lists each offline Computer and its last
 connected time, including **Never**. Clicking opens the first listed Computer in Settings. Expected
 disconnects during an update restart are suppressed; a Computer that does not reconnect within
-the restart window becomes ordinary offline attention and a named update failure.
+two minutes of its last progress report becomes ordinary offline attention. An active update that
+loses its Computer connection remains visible until that timeout. Afterward, both the sidebar updater
+and Computer Settings say the outcome is unconfirmed and direct the operator to reconnect the
+Computer. The sidebar does not offer a retry while it is offline, and other reachable updates may
+continue. Reconnection replaces the last reported phase with the Computer's installed version and
+actual update result. Server requires a live Computer attachment before checking or starting an
+update, so a retained old version alone never starts one.
 
 The hosted website contributes a reload opportunity to the same updater. Its build marker ships
 with the website files; the App checks it every minute while visible and when returning to Haus.

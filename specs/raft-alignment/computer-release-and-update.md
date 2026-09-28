@@ -179,6 +179,11 @@ The progress surface must feel live, not like a submitted form:
   indeterminate and still reports downloaded bytes.
 - Restart remains visibly active through disconnect and reconnect; disconnect is expected during
   this phase and is not rendered as a generic failure.
+- If an active update is offline two minutes after its last progress report, Settings and the
+  sidebar stop showing live progress and say its outcome is unconfirmed. Reconnecting the Computer
+  supplies the installed version and actual update result; an offline App does not infer that
+  installation failed. Server requires a live Computer attachment before accepting a check or
+  update request. The sidebar does not retry an unconfirmed offline Computer.
 - Progress labels are announced accessibly. Determinate bars expose current/min/max values;
   indeterminate motion honors reduced-motion preferences.
 
