@@ -8,7 +8,14 @@ import { useChatEngagement } from '../../../hooks/servers/use-chat-engagement.ts
 import { springs } from '../../../lib/springs.ts';
 import { type ChatTypist, formatChatTypingLabel, resolveChatTypists } from './chat-typing.ts';
 import { withHeldEngagements } from './chat-typing-hold.ts';
-import { isEngagedActivity, resolveChatTypingFace } from './chat-typing-launch.ts';
+import {
+    admitChatTypingThinking,
+    type ChatTypingThinkingLedger,
+    chatTypingThinkingFace,
+    isEngagedActivity,
+    resolveChatTypingFace,
+    syncChatTypingThinking,
+} from './chat-typing-launch.ts';
 import {
     type ChatTypingLauncher,
     ChatTypingLaunches,
@@ -37,10 +44,29 @@ export function ChatTypingIndicator({
     const agents = useAgents(serverId);
     const typists = shown.length > 0 ? resolveChatTypists(shown, agents.data ?? []) : [];
 
+    // 🤔 launches as an engagement appears, once; its run's `thinking` activity stays quiet.
+    const thinking = React.useRef<ChatTypingThinkingLedger>({ launched: new Set() });
+    const { launch } = launcher;
+    React.useEffect(() => {
+        // Agents that appear together share one 🤔: the launch throttle drops the repeat.
+        if (chatId && syncChatTypingThinking(thinking.current, chatId, engagements) > 0) {
+            launch(chatTypingThinkingFace);
+        }
+    }, [chatId, engagements, launch]);
+
     // Matching the engaging run keeps an Agent busy in another Chat quiet here.
     useAgentActivityListener((event) => {
         const face = resolveChatTypingFace(event);
-        if (face && event.serverId === serverId && isEngagedActivity(engagements, event)) {
+        if (!(face && chatId && event.serverId === serverId)) {
+            return;
+        }
+        if (!isEngagedActivity(engagements, event)) {
+            return;
+        }
+        if (
+            face !== chatTypingThinkingFace ||
+            admitChatTypingThinking(thinking.current, chatId, event)
+        ) {
             launcher.launch(face);
         }
     });

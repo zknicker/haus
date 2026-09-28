@@ -3,6 +3,7 @@ import type { AgentActivityCategory, AgentActivityEvent, ChatEngagement } from '
 /** A face that launches from the typing dots when an engaged Agent starts a kind of work. */
 export type ChatTypingFace = '🤔' | '🧐' | '🤓' | '🫣' | '😤' | '🫡' | '🙂‍↕️' | '😵‍💫' | '😊' | '👀';
 
+export const chatTypingThinkingFace = '🤔';
 export const chatTypingFailedFace = '😵‍💫';
 export const chatTypingSentFace = '😊';
 /** An engagement that settled without a reply here: read it, nothing to add. */
@@ -14,7 +15,7 @@ const startedFaces: Partial<Record<AgentActivityCategory, ChatTypingFace>> = {
     reading_files: '🧐',
     running_command: '🫡',
     searching_web: '🤓',
-    thinking: '🤔',
+    thinking: chatTypingThinkingFace,
     using_tool: '🙂‍↕️',
 };
 
@@ -42,6 +43,62 @@ export function isEngagedActivity(
     return engagements.some(
         (engagement) => engagement.agentId === event.agentId && engagement.runId === event.runId
     );
+}
+
+/**
+ * Which engagements in the open Chat have had their 🤔. An Agent's run
+ * often reports `thinking` before the Server has registered its engagement,
+ * which drops that face, so the 🤔 launches when the engagement appears in the
+ * strip instead, once per engagement: a `thinking` activity for one that
+ * already launched stays quiet, and an engagement that ends and later starts
+ * again, by a new run or the same one, launches its own.
+ */
+export interface ChatTypingThinkingLedger {
+    /** The engagements that have launched, keyed by Chat, Agent, and run. */
+    launched: Set<string>;
+}
+
+/**
+ * Brings the ledger up to date with this Chat's engagements: forgets those
+ * that ended, and returns how many 🤔 to launch for those that just appeared.
+ */
+export function syncChatTypingThinking(
+    ledger: ChatTypingThinkingLedger,
+    chatId: string,
+    engagements: readonly Pick<ChatEngagement, 'agentId' | 'runId'>[]
+): number {
+    const current = new Set(engagements.map((engagement) => thinkingKey(chatId, engagement)));
+    for (const key of ledger.launched) {
+        if (key.startsWith(`${chatId}:`) && !current.has(key)) {
+            ledger.launched.delete(key);
+        }
+    }
+    let appeared = 0;
+    for (const key of current) {
+        if (!ledger.launched.has(key)) {
+            ledger.launched.add(key);
+            appeared += 1;
+        }
+    }
+    return appeared;
+}
+
+/** Whether a `thinking` activity may launch 🤔: only once per engagement. */
+export function admitChatTypingThinking(
+    ledger: ChatTypingThinkingLedger,
+    chatId: string,
+    engagement: Pick<ChatEngagement, 'agentId' | 'runId'>
+): boolean {
+    const key = thinkingKey(chatId, engagement);
+    if (ledger.launched.has(key)) {
+        return false;
+    }
+    ledger.launched.add(key);
+    return true;
+}
+
+function thinkingKey(chatId: string, engagement: Pick<ChatEngagement, 'agentId' | 'runId'>) {
+    return `${chatId}:${engagement.agentId}:${engagement.runId}`;
 }
 
 export const chatTypingLaunchIntervalMs = 350;

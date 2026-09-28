@@ -20,9 +20,19 @@ export const chatTypingThoughtTiming = { enterMs: 620, exitMs: 260, holdMs: 2300
  */
 export const chatTypingThoughtSpacingMs = 4000;
 
-/** How long a new thought waits before its bubble may show. */
-export function chatTypingThoughtDelay(lastShownAt: number | null, now: number): number {
-    return lastShownAt === null ? 0 : Math.max(0, lastShownAt + chatTypingThoughtSpacingMs - now);
+/**
+ * How long a new thought waits before its bubble may show. An engagement's
+ * first thought never waits, so a bubble appears early in every turn even
+ * while another Agent's bubble has just shown.
+ */
+export function chatTypingThoughtDelay(
+    lastShownAt: number | null,
+    now: number,
+    firstOfEngagement = false
+): number {
+    return lastShownAt === null || firstOfEngagement
+        ? 0
+        : Math.max(0, lastShownAt + chatTypingThoughtSpacingMs - now);
 }
 
 /**

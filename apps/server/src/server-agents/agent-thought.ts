@@ -14,11 +14,18 @@ import type { ThoughtSummarizer } from './agent-thought-summarizer.ts';
 import { isHousekeepingThought } from './thought-housekeeping.ts';
 
 /**
- * A run's thought frames closer together than this are ignored. Every frame,
- * a title or an excerpt, is a paid summarizer call; the Computer's four-second
- * interval is the real limit, and this only bounds spend when one misbehaves.
+ * A run's thought frames closer together than this are ignored once one of its
+ * thoughts has been announced. Every frame, a title or an excerpt, is a paid
+ * summarizer call; the Computer's four-second interval is the real limit, and
+ * this only bounds spend when one misbehaves.
  */
 export const thoughtSpacingMs = 3000;
+/**
+ * Until a run's first thought is announced, only frames closer than this are
+ * ignored, so a skipped opening (claiming the task) never holds back the first
+ * bubble that describes work.
+ */
+export const thoughtFirstSpacingMs = 1000;
 
 interface ThoughtFrameInput {
     computerId: string;
@@ -49,20 +56,27 @@ export function createAgentThoughts(options: {
     summarizer: ThoughtSummarizer | null;
 }): AgentThoughts {
     const now = options.now ?? Date.now;
-    const lastReasoningAt = new Map<string, number>();
+    const lastFrames = new Map<string, { announced: boolean; at: number }>();
     // Entries outlive their window only until the next reasoning frame from any run.
     const spaced = (key: string) => {
         const at = now();
-        for (const [entry, seenAt] of lastReasoningAt) {
-            if (at - seenAt >= thoughtSpacingMs) {
-                lastReasoningAt.delete(entry);
+        for (const [entry, last] of lastFrames) {
+            if (at - last.at >= thoughtSpacingMs) {
+                lastFrames.delete(entry);
             }
         }
-        if (lastReasoningAt.has(key)) {
+        const last = lastFrames.get(key);
+        if (last && (last.announced || at - last.at < thoughtFirstSpacingMs)) {
             return false;
         }
-        lastReasoningAt.set(key, at);
+        lastFrames.set(key, { announced: false, at });
         return true;
+    };
+    const markAnnounced = (key: string) => {
+        const last = lastFrames.get(key);
+        if (last) {
+            last.announced = true;
+        }
     };
     const phrase = async (frame: AgentThoughtFrame) => {
         // The excerpt goes to the summarizer and nowhere else; it is dropped after this call.
@@ -89,7 +103,8 @@ export function createAgentThoughts(options: {
                 return false;
             }
             const frame = parsed.data;
-            if (!spaced(`${input.computerId}:${frame.runId}`)) {
+            const key = `${input.computerId}:${frame.runId}`;
+            if (!spaced(key)) {
                 return true;
             }
             const events = await admitComputerAgentThought(db, { ...input, frame });
@@ -97,6 +112,7 @@ export function createAgentThoughts(options: {
                 void background.run('agent-thought.announce', async () => {
                     const text = await phrase(frame);
                     if (text) {
+                        markAnnounced(key);
                         for (const event of events) {
                             announceAgentThought({ ...event, text });
                         }

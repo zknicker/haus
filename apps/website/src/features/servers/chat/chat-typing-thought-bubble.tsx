@@ -23,12 +23,15 @@ export function useChatTypingThought(
     const [thought, setThought] = React.useState<ChatTypingThought | null>(null);
     const nextId = React.useRef(0);
     const lastShownAt = React.useRef<number | null>(null);
+    // Engagements (Agent and run) that have shown a bubble here.
+    const shownEngagements = React.useRef(new Set<string>());
     const holdTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const waitTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const show = React.useCallback((next: ChatTypingThought) => {
         clearTimeout(holdTimer.current);
         lastShownAt.current = performance.now();
+        shownEngagements.current.add(`${next.agentId}:${next.runId}`);
         setThought(next);
         const { enterMs, holdMs } = chatTypingThoughtTiming;
         holdTimer.current = setTimeout(() => {
@@ -44,7 +47,11 @@ export function useChatTypingThought(
         }
         // Newest wins: a thought still waiting for its turn is replaced.
         clearTimeout(waitTimer.current);
-        const delay = chatTypingThoughtDelay(lastShownAt.current, performance.now());
+        const delay = chatTypingThoughtDelay(
+            lastShownAt.current,
+            performance.now(),
+            !shownEngagements.current.has(`${next.agentId}:${next.runId}`)
+        );
         if (delay === 0) {
             show(next);
         } else {

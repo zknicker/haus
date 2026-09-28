@@ -1,5 +1,5 @@
 import { finishThoughtPhrase, thoughtReasoningExcerptMaxLength } from '@haus/api';
-import { isHousekeepingThought } from './thought-housekeeping.ts';
+import { isHousekeepingPhrase } from './thought-housekeeping.ts';
 
 /** What a thought is phrased from: a reasoning excerpt, or a Codex status title. */
 export type ThoughtSource =
@@ -16,7 +16,7 @@ export interface ThoughtSummarizer {
 
 export const thoughtSummaryModel = 'gemini-3.5-flash-lite';
 /** Bumped whenever the prompt changes, so eval runs name the wording they measured. */
-export const thoughtSummaryPromptVersion = 'thought-v4-plain';
+export const thoughtSummaryPromptVersion = 'thought-v5-work';
 const thoughtSummaryTimeoutMs = 4000;
 const thoughtAnswerMaxWords = 10;
 const skipAnswer = 'SKIP';
@@ -25,22 +25,26 @@ const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${thou
 const systemPrompt = [
     "Rewrite this agent's private reasoning, or its short status title, as one short line",
     'the agent would say to a teammate about the work it is doing for the person it is',
-    'helping (max 8 words). Use plain, concrete words from the request (the city, the day,',
-    'the report, the build), not jargon. Say what the agent is doing or checking, never',
-    'that something went wrong ("Double-checking the dates", not "Fixing those date',
-    'errors"). No "I think", and no "now" or "right now" at the end. Follow the opening',
-    'you are given so lines vary the way a person talks; its example shows only the',
-    'shape, so never reuse its words. No names of secrets, no quotes, no trailing period.',
-    'Each message is independent; never answer or continue the reasoning. Reply with the',
-    'line only.',
+    'helping (max 8 words). Use plain, concrete words from the input, not jargon, and',
+    'never add a place, day, or name the input does not mention. Say what the agent is',
+    'doing or checking, never that something went wrong ("Double-checking the dates",',
+    'not "Fixing those date errors"). No "I think", and no "now" or "right now" at the',
+    'end. Follow the opening you are given so lines vary the way a person talks; its',
+    'example shows only the shape, so never reuse its words. No names of secrets, no',
+    'quotes, no trailing period. Each message is independent; never answer or continue',
+    'the reasoning. Reply with the line only.',
     `Reply with exactly ${skipAnswer} instead when the input is only the agent's own`,
     'housekeeping: reading its own notes, memory, manual, instructions, or skills;',
-    'checking its inbox or messages; claiming, assigning, or updating tasks; deciding',
-    'whether or how to reply; writing or double-checking its own chat reply; or reading',
-    'earlier conversation just to get oriented. When the input also names work on the',
-    "person's request — reading data, running tests, debugging, fixing, finding a file,",
-    'drafting an email or document they asked for, scheduling something they asked for —',
-    'describe that work instead. When in doubt, describe the work.',
+    'checking its inbox or messages; claiming, assigning, syncing, or updating its tasks',
+    'or their status; deciding whether or how to reply; acknowledging or offering to',
+    'help; writing or double-checking its own chat reply; or reading earlier',
+    'conversation just to get oriented. Everything else is work: reading, searching,',
+    'fetching, or checking anything the request is about (a checklist, document,',
+    'thread, file, log, inbox, or data source), and judging the request itself (whether',
+    'a build is safe to ship), even when framed as planning, requesting, or starting',
+    '("Initiating focused CI search", "Reading the checklist doc"). When the input names',
+    'housekeeping and work together ("Claiming the task and preparing the fetch"),',
+    'describe only the work. When in doubt, describe the work.',
 ].join(' ');
 
 /**
@@ -97,8 +101,8 @@ export function createGeminiThoughtSummarizer(input: {
                 if (!phrase) {
                     return null;
                 }
-                // Flash-Lite often phrases its own reply-drafting instead of skipping it.
-                return isHousekeepingThought(phrase)
+                // Flash-Lite sometimes phrases its own reply drafting or bookkeeping instead of skipping it.
+                return isHousekeepingPhrase(phrase)
                     ? { kind: 'skip' }
                     : { kind: 'phrase', text: phrase };
             } catch {
