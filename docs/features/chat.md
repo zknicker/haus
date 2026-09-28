@@ -156,8 +156,11 @@ and [Agent Inbox](../../specs/inbox.md).
   height is always reserved, so the composer never moves. Reloads and
   reconnects recover it from `chat.engagements`
   ([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)).
+  When an Agent appears in the strip, 🤔 launches from the dots once for that
+  engagement; the run's own thinking activity adds no second one, and a later
+  engagement, even by the same Agent, launches its own.
   Each time the engaging run starts a kind of work, a face launches from the
-  dots on a short arc over the transcript and fades: thinking 🤔, reading files
+  dots on a short arc over the transcript and fades: reading files
   🧐, searching the web 🤓, browsing 🫣, editing files 😤, running a command 🫡,
   using a tool 🙂‍↕️, and any failure 😵‍💫. Haus bookkeeping — the Agent's own
   `haus` CLI calls and message checks — launches nothing. A `--done` reply into
@@ -174,13 +177,14 @@ and [Agent Inbox](../../specs/inbox.md).
   such as "Comparing Saturday and Sunday" appears in a glass bubble over
   that Agent's avatar, wobbles in, holds about two seconds, and leaves; bubbles
   start at least four seconds apart, a thought that arrives sooner waits (the
-  newest replaces one still waiting), faces fly above it, and the engagement
-  ending clears it.
+  newest replaces one still waiting) unless it is that engagement's first,
+  faces fly above it, and the engagement ending clears it.
   The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title
   or a reasoning excerpt, or the title or a local condensation when Gemini is
   unavailable. Agent housekeeping — reading its memory or notes, checking its
   inbox, claiming tasks, deciding whether to reply, drafting its own reply —
-  shows no bubble. Phrases use plain words from the request ("Pulling the NYC
+  shows no bubble; reading or searching what the request is about (the
+  checklist, the thread, the CI logs) is work and shows. Phrases use plain words from the request ("Pulling the NYC
   forecast"), rarely open with "I", never end in "now", and describe the work
   rather than errors.
   Thoughts are never stored or recovered

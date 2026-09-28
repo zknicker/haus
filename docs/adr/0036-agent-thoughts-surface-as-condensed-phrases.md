@@ -11,7 +11,9 @@ read_when:
 ## Status
 
 Accepted 2026-09-25; amended the same day to skip housekeeping and route Codex titles through
-the Server. Amends [ADR 0023](0023-agent-work-projects-as-activity-and-chat-engagement.md)
+the Server. Amended 2026-09-27: reading what the request is about counts as work, the check on
+Gemini's own line catches only clear reply drafting and bookkeeping, and a run's first thought
+skips the Server and App spacing. Amends [ADR 0023](0023-agent-work-projects-as-activity-and-chat-engagement.md)
 ("reasoning stays on the Computer") and the presentation section of
 [ADR 0035](0035-chat-engagement-shows-as-typing.md) ("thought text is never shown").
 
@@ -53,19 +55,31 @@ the dates", not "Fixing those date errors"). `finishThoughtPhrase` also strips a
 
 **Housekeeping is skipped.** The same prompt tells Gemini to answer exactly `SKIP` when the input
 is only the Agent's own process — reading its notes, memory, Manual, instructions, or skills;
-checking its inbox or messages; claiming, assigning, or updating tasks; deciding whether or how
-to reply; or reading earlier conversation just to orient — and to describe the work instead when
-the input also names work on the person's request. `SKIP` drops the thought: no bubble, and no
+checking its inbox or messages; claiming, assigning, syncing, or updating its tasks; deciding
+whether or how to reply; acknowledging or offering to help; or reading earlier conversation just
+to orient — and to describe only the work when the input also names work on the person's request.
+Reading, searching, or fetching anything the request is about (the checklist, the thread, the CI
+logs) is work even when a title frames it as planning or starting ("Initiating focused CI search"),
+and so is judging the request itself ("whether the build is safe to ship"). The prompt also forbids
+adding a place, day, or name the input does not mention; its earlier examples ("the city, the
+day") surfaced as invented details ("Maintaining the build for the city"). `SKIP` drops the thought: no bubble, and no
 fallback second opinion. People watching a Chat want to see work on their request; "I'm reading
 my memory first" is noise. Composing, drafting, or double-checking the Agent's own reply in the
 Chat is housekeeping too ("Ah, let me double-check this draft first" was a real bubble); drafting an
 email or document the person asked for is work. Because Flash-Lite still phrases some reply
-drafting, the Server also runs the keyword filter below over the model's line and skips a match.
-A labeled set of 48 excerpts and titles
+drafting and bookkeeping, the Server checks the model's line with `isHousekeepingPhrase`, a
+narrower list than the fallback filter below: only clear reply drafting ("Drafting the
+availability reply", "Planning the acknowledgment send"), the Agent's own memory, notes, or
+instructions, claiming or syncing its tasks, and whether to reply. It deliberately keeps lines about
+work that merely name an inbox, a manual, memory usage, or a decision, such as "Searching his
+email inbox for the invoice" or "Checking memory usage on the worker", which the fallback filter,
+formerly applied here too, skips.
+A labeled set of 69 excerpts and titles
 (`apps/server/src/server-agents/evals/thought-housekeeping-cases.json`, with mixed cases that must
-show and wording rules for lines from a spot test) measured, over 144 calls on 2026-09-27, skip
-precision 98% and recall 94%, 19% of lines opening with "I", and no "now" filler (the previous
-prompt: 95%, 83%, 37%, and 18 filler lines). The runner checks filler, length, per-case banned and
+show, real Codex titles from two spot tests, and wording rules) measured over two 207-call runs on
+2026-09-27 skip precision 94% and recall 91% (single runs: 96%/89% and 91%/93%), 14–16% of lines
+opening with "I", and no "now" filler; the previous prompt and filter scored 87% and 88% on the same
+set. Flash-Lite at temperature 0.8 moves single-run numbers by about five points. The runner checks filler, length, per-case banned and
 required words, and the "I" share; rerun
 `agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts --runs 3`
 before changing the prompt.
@@ -86,10 +100,19 @@ paths, emails, or tokens.
 window wait in a single slot where the newest replaces any older one, so the bubble shows current
 work without a backlog. This Computer interval is the authoritative limit. The Server also
 ignores a run's thought frames, titles and excerpts alike, closer than three seconds apart, before
-any lookup or model call, to bound summarizer spend if a Computer misbehaves. Summaries finish after
-varying delays, so two bubbles could still land under four seconds apart; the App therefore holds a
-thought that arrives within four seconds of the last shown bubble until that mark, a newer one
-replacing it while it waits.
+any lookup or model call, to bound summarizer spend if a Computer misbehaves; until one of the
+run's thoughts has been announced that window is one second, so a skipped opening ("Claiming the
+task") never holds back the first bubble about work. Summaries finish after varying delays, so two
+bubbles could still land under four seconds apart; the App therefore holds a thought that arrives
+within four seconds of the last shown bubble until that mark, a newer one replacing it while it
+waits. An engagement's first thought never waits, so every Agent's first bubble shows as soon as
+it is phrased.
+
+**Supply.** Bubbles can only be as frequent as reasoning blocks. Codex reports one bold title per
+block and often none while it runs tools: in the 2026-09-27 spot test a 25-second Cove turn produced
+two blocks, both housekeeping, so it showed no bubble under any filter. A replay of that test's
+eleven turns through every stage lost nothing to the Computer slot or the Server window; the losses
+were the summarizer's SKIP and blocks that finished after the `--done` reply.
 
 **Transport is volatile and Chat-scoped.** The Server admits a frame with the same identity
 checks as an activity frame (assigned Computer, active accepted run), writes nothing, and, once
@@ -118,7 +141,7 @@ Faces render above it. Reduced motion crossfades.
 - Summaries cost about $0.09 per 1,000 thoughts, paid by the Server's key; Codex titles are now
   paid calls too. The heuristic costs nothing.
 - A thought can vanish: a skipped block leaves the previous bubble to fade and shows nothing new,
-  and Gemini occasionally skips real work (2 of 96 real-work calls in the eval).
+  and Gemini occasionally skips real work (11 of 234 real-work calls across the two eval runs).
 - The frame contract is unchanged, so mixed versions keep working: an older Server still relays
   titles as they are, and an older Computer's titles are rephrased by a newer Server.
 - A mixed-version deployment degrades to no thoughts, never to an error: a Server that predates

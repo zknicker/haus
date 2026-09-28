@@ -18,7 +18,9 @@ sidebar-strip projection of Agent activity. The rest of ADR 0023 stands: the Ser
 activity journal and the Computer-local execution journal remain separate products.
 Amended 2026-09-25: reply suppression is removed, and with it the `expects_reply` Jev
 question it had added to ADR 0030. Amended again 2026-09-25: only a `--done` send ends
-engagement early; interim posts leave the Chat typing until that send or turn end.
+engagement early; interim posts leave the Chat typing until that send or turn end. Amended
+2026-09-27: 🤔 launches when an engagement appears in the strip rather than from the run's
+first `thinking` activity, which usually arrived before the engagement did and was dropped.
 
 ## Context
 
@@ -87,7 +89,11 @@ typing") remain for assistive technology. The row's height is always reserved, s
 composer. When the engaging run (matched by Agent and `runId`) commits a `started` activity of
 a mapped kind, or any `failed` one, a face launches from the dots and fades over the
 transcript: 🤔 thinking, 🧐 reading files, 🤓 searching the web, 🫣 browsing, 😤 editing files,
-🫡 running a command, 🙂‍↕️ using a tool, and 😵‍💫 failure. A shell call that only runs the `haus`
+🫡 running a command, 🙂‍↕️ using a tool, and 😵‍💫 failure. 🤔 is the exception: it launches once
+when the engagement first appears in the strip, since a run reports `thinking` at turn start,
+usually before the Server has registered the engagement, and a face for an unmatched run is
+dropped. A `thinking` activity then launches 🤔 only for an engagement that has not had one, and an
+engagement that ends and later starts again launches its own. A shell call that only runs the `haus`
 CLI (message checks and sends, task claims, profile reads) is Agent bookkeeping and opens no
 activity, so it launches nothing, and checking messages launches nothing either. When the
 engagement ends as `sent`, which only a `--done` send does, the App keeps that Agent's dots until
