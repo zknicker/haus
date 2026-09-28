@@ -177,9 +177,9 @@
     },
     "apps/computer/src/harness/executor.ts": {
       "disposition": "effect-owned",
-      "reason": "The daemon runtime owns turn streaming, notice delivery, and final cleanup across the foreign harness boundary.",
+      "reason": "The daemon runtime owns turn streaming, notice delivery, and final cleanup across the foreign harness boundary. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
       "risks": {
-        "abortController": 0,
+        "abortController": 1,
         "catchAndIgnore": 2,
         "finallyBlock": 2,
         "manualPromise": 1,
@@ -623,6 +623,17 @@
         "catchAndIgnore": 0,
         "finallyBlock": 0,
         "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/harness/session-start.ts": {
+      "disposition": "external-adapter",
+      "reason": "runHarnessStart owns the start gate, deadline, and abort; a session the foreign adapter returns after the start was abandoned is destroyed best-effort because nothing else will own it.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 0,
+        "manualPromise": 0,
         "timer": 0
       }
     },
