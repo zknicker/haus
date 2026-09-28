@@ -179,7 +179,9 @@ and [Agent Inbox](../../specs/inbox.md).
   that Agent's avatar, wobbles in, holds about two seconds, and leaves; bubbles
   start at least four seconds apart, a thought that arrives sooner waits (the
   newest replaces one still waiting) unless it is that engagement's first,
-  faces fly above it, and the engagement ending clears it.
+  faces fly above it, and the engagement ending clears it. The same line again
+  while its bubble is up keeps that bubble and restarts its hold, up to eight
+  seconds in all; after the bubble has left, it shows again as a new bubble.
   The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title,
   a reasoning excerpt, or a scrubbed action description, in the terms of the
   message the Agent is answering ("Planning data retrieval" for a weather
@@ -189,7 +191,8 @@ and [Agent Inbox](../../specs/inbox.md).
   shows no bubble; reading or searching what the request is about (the
   checklist, the thread, the CI logs) is work and shows. Phrases use plain words from the request ("Pulling the NYC
   forecast"), rarely open with "I", never end in "now", and describe the work
-  rather than errors.
+  rather than errors; each says what is new since the run's last line in that
+  Chat instead of restating it.
   Thoughts are never stored or recovered
   ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
 * **Composer overlay.** In channels, DMs, and Threads the composer floats over

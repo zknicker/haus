@@ -5,6 +5,7 @@ read_when:
   - changing how reasoning is captured, excerpted, summarized, or kept on the Computer
   - changing which tool actions become thoughts, or how their descriptions are scrubbed
   - changing HAUS_GEMINI_API_KEY, the thought summarizer, its SKIP rule, its request context, or its fallback
+  - changing how a run's repeated thought lines are phrased, extended, or shown again
 ---
 
 # ADR 0036: Agent thoughts surface as condensed phrases
@@ -19,7 +20,9 @@ against the human message the run is answering, and a started tool action become
 candidate too, so scrubbed command descriptions now travel Computer → Server → Google. Amends
 [ADR 0023](0023-agent-work-projects-as-activity-and-chat-engagement.md) ("reasoning stays on the
 Computer", "raw tool arguments never leave the Computer") and the presentation section of
-[ADR 0035](0035-chat-engagement-shows-as-typing.md) ("thought text is never shown").
+[ADR 0035](0035-chat-engagement-shows-as-typing.md) ("thought text is never shown"). Amended
+again 2026-09-27: a run's last shown lines ride along so it stops repeating itself, and the App
+extends a bubble whose line repeats while it is still up.
 
 ## Context
 
@@ -135,6 +138,23 @@ required words, and the "I" share; rerun
 `agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts --runs 3`
 before changing the prompt.
 
+**Repeats.** With the request as context, Flash-Lite pulled a run's lines toward the request's
+subject: one replayed turn showed "Checking the build status" three times. Dropping repeats would
+leave dead air, so the Server instead remembers the last two lines it announced for each run in
+each Chat (in memory, like the spacing guard; forgotten after ten quiet minutes or a restart) and
+sends them with the next source: "The previous status was "…" (and before it, "…"). Describe
+what's new in this step; don't restate it. If this step is the same activity continuing, you may
+say so briefly in new words, or SKIP if it's housekeeping." A system note, also present only
+then, says a changed opening or word order is still a repeat and that the new line should take
+what the step adds from the input, never invent it. A run's first thought carries neither, so it
+is phrased exactly as before. A run engaging several Chats is phrased once per distinct set of
+previous lines, usually one. On seven sequences (the spot tests' real turns plus two synthetic
+runs that repeat a command, three runs each), consecutive shown lines that repeat fell from 5.1%
+duplicates and 14.1% near-duplicates (normalized equality; content-word overlap of at least 0.6)
+to 0% and 1.2%; the note alone, without the system note, left 5.2% and 20.8%. Replaying the two
+spot tests' eleven turns, repeated consecutive bubbles fell from 5 to 0 over three passes, and
+bubbles per turn rose from 2.1 to 2.3.
+
 **Fallback.** Without `HAUS_GEMINI_API_KEY`, or when Gemini fails, refuses, or is late, the
 Server shows the title or a local condensation of the excerpt (its first sentence without
 narration filler), unless a small keyword filter judges that leading sentence to be the same
@@ -187,7 +207,12 @@ Server like every other Server-validated value, and optional in both
 
 **Presentation.** A glass bubble rises over the thinking Agent's avatar in the strip, holds for
 about two seconds, and leaves; a newer thought replaces it, and the engagement ending clears it.
-Faces render above it. Reduced motion crossfades.
+Faces render above it. Reduced motion crossfades. When the same run's line arrives again, equal
+after case, punctuation, and spacing are ignored, while its bubble is still up, the bubble stays
+without re-entering: its hold restarts from that moment, capped at eight seconds from when it
+appeared so a stuck line still leaves, and the extension neither waits for nor resets the
+four-second spacing. The same line after its bubble has left shows as a new bubble, which reads
+as "still on it".
 
 ## Consequences
 
