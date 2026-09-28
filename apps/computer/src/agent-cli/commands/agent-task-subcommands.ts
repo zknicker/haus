@@ -9,7 +9,7 @@ import {
 } from './agent-task-actions.ts';
 
 const statusFlag = {
-    description: 'Task status filter or new status',
+    description: 'New status: todo|in_progress|in_review|done|closed',
     name: '--status',
     valueName: '<status>',
 };
@@ -27,13 +27,28 @@ const numberFlag = {
 export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[] {
     return [
         {
-            examples: ['haus task list', 'haus task list --target "#general" --status in_progress'],
-            flags: [targetFlag, statusFlag],
+            examples: [
+                'haus task list',
+                'haus task list --mine',
+                'haus task list --target "#general" --status all',
+            ],
+            flags: [
+                targetFlag,
+                {
+                    description: 'Filter: all|todo|in_progress|in_review|done|closed',
+                    name: '--status',
+                    valueName: '<status>',
+                },
+                { description: 'Only tasks claimed by or assigned to you', name: '--mine' },
+            ],
             name: 'list',
+            notes: [
+                'Lists unfinished tasks (todo, in_progress, in_review) unless --status says otherwise, newest activity first, at most 50 rows.',
+            ],
             positionals: [],
             run: (args) => runTaskList(args, resolveDeps()),
             summary: 'List task-messages across your chats or one target',
-            usage: 'haus task list [--target <target>] [--status all|todo|in_progress|in_review|done|closed]',
+            usage: 'haus task list [--target <target>] [--mine] [--status all|todo|in_progress|in_review|done|closed]',
         },
         {
             examples: [
@@ -75,6 +90,9 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
                 },
             ],
             name: 'claim',
+            notes: [
+                'Prints one row per requested task: claimed, already yours, or refused with the reason. Exits non-zero only when nothing was granted.',
+            ],
             positionals: [],
             run: (args) => runTaskClaim(args, resolveDeps()),
             summary: 'Claim tasks before working — the claim is the concurrency lock',

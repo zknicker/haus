@@ -5,11 +5,18 @@ import {
     type AgentApiRequester,
     createAgentApiClient,
 } from '../agent-api-client.ts';
-import { agentMessageSchema, taskActorSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { shortMessageId } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
+import {
+    assigneeLabel,
+    claimRefusal,
+    formatTaskClaims,
+    formatTaskList,
+    formatTasksCreated,
+    taskClaimResultSchema,
+    taskRowSchema,
+} from './agent-task-format.ts';
 
 // Family 5 — Tasks (D8). A task is a message with task metadata; claiming is
 // the concurrency lock. `task create` posts a fresh message and publishes it
@@ -24,17 +31,12 @@ export interface TaskDeps {
     write(text: string): void;
 }
 
-const taskRowSchema = z.object({
-    assignee: taskActorSchema.nullable(),
-    message: agentMessageSchema,
-    number: z.number().int().positive(),
-    status: z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']),
-    target: z.string().nullable(),
+const taskListResponseSchema = z.object({
+    omitted: z.number().int().nonnegative(),
+    tasks: z.array(taskRowSchema),
 });
-
-const taskListResponseSchema = z.object({ tasks: z.array(taskRowSchema) });
 const taskCreateResponseSchema = z.object({ tasks: z.array(taskRowSchema) });
-const taskClaimResponseSchema = z.object({ claimed: z.array(taskRowSchema) });
+const taskClaimResponseSchema = z.object({ results: z.array(taskClaimResultSchema).min(1) });
 const taskSingleResponseSchema = z.object({ task: taskRowSchema });
 
 export async function runTaskList(args: ParsedArgs, deps: TaskDeps): Promise<number> {
@@ -47,22 +49,16 @@ export async function runTaskList(args: ParsedArgs, deps: TaskDeps): Promise<num
     if (status) {
         params.set('status', status);
     }
+    if (args.flags['--mine']) {
+        params.set('mine', 'true');
+    }
     const query = params.size > 0 ? `?${params.toString()}` : '';
     const response = await deps.client.request(
         `/api/agent/tasks${query}`,
         taskListResponseSchema,
         withTaskSignal(deps, { method: 'GET' })
     );
-    if (response.tasks.length === 0) {
-        deps.write(
-            'No tasks found. A task is a message with task metadata — claim work with haus task claim, or create new work with haus task create.\n'
-        );
-        return 0;
-    }
-    const lines = response.tasks.map((task) => taskLine(task));
-    deps.write(
-        `${lines.join('\n')}\n\nClaim before you work: haus task claim --target <target> --number <n>\n`
-    );
+    deps.write(formatTaskList(response.tasks, response.omitted));
     return 0;
 }
 
@@ -100,13 +96,7 @@ export async function runTaskCreate(args: ParsedArgs, deps: TaskDeps): Promise<n
             method: 'POST',
         })
     );
-    const lines = response.tasks.map(
-        (task) =>
-            `Created task #${task.number} [${task.status}] in ${task.target ?? target}. Message ID: ${task.message.id}`
-    );
-    deps.write(
-        `${lines.join('\n')}\nTask thread: "${target}:${shortMessageId(response.tasks[0]?.message.id ?? '')}".\n`
-    );
+    deps.write(formatTasksCreated(response.tasks, target));
     return 0;
 }
 
@@ -131,10 +121,11 @@ export async function runTaskClaim(args: ParsedArgs, deps: TaskDeps): Promise<nu
             method: 'POST',
         })
     );
-    const claims = response.claimed.map(
-        (task) => `#${task.number} (msg:${shortMessageId(task.message.id)}): claimed`
-    );
-    deps.write(`Claim results (${response.claimed.length} claimed):\n${claims.join('\n')}\n`);
+    deps.write(formatTaskClaims(response.results, target));
+    const refusal = claimRefusal(response.results);
+    if (refusal) {
+        throw refusal;
+    }
     return 0;
 }
 
@@ -179,21 +170,6 @@ export async function runTaskUpdate(args: ParsedArgs, deps: TaskDeps): Promise<n
         `Task #${task.number} is now [${task.status}]${task.assignee ? ` (assignee ${assigneeLabel(task.assignee)})` : ''}.\n`
     );
     return 0;
-}
-
-function taskLine(task: z.infer<typeof taskRowSchema>): string {
-    const assignee = task.assignee ? ` ${assigneeLabel(task.assignee)}` : ' unassigned';
-    const where = task.target ? ` in ${task.target}` : '';
-    const title = task.message.content.replaceAll(/\s+/gu, ' ').trim();
-    const clipped = title.length > 80 ? `${title.slice(0, 79)}…` : title;
-    return `#${task.number} [${task.status}]${assignee}${where} msg=${shortMessageId(task.message.id)}: ${clipped}`;
-}
-
-function assigneeLabel(assignee: z.infer<typeof taskRowSchema>['assignee']) {
-    if (!assignee) {
-        return 'unassigned';
-    }
-    return assignee.handle ? `@${assignee.handle}` : `human:${assignee.id}`;
 }
 
 function requireTarget(args: ParsedArgs, nextAction: string): string {

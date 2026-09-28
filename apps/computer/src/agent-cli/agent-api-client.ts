@@ -1,13 +1,9 @@
-import { taskClaimConflictSchema } from '@haus/api';
 import * as z from 'zod';
 import { type AgentContext, resolveAgentContext } from './agent-context.ts';
 import { AgentCliError } from './agent-error.ts';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 const errorResponseSchema = z.object({
-    // A lost claim rides its structured conflict on the 409 body; every other
-    // failure leaves this absent and renders the ordinary way.
-    claimConflict: taskClaimConflictSchema.optional(),
     code: z.string().min(1),
     draftSaved: z.boolean().optional(),
     message: z.string().min(1),
@@ -79,7 +75,6 @@ export class AgentApiClient implements AgentApiRequester {
                 throw response.status >= 500 ? serverFailure() : invalidJson();
             }
             throw new AgentCliError(parsedError.data.code, parsedError.data.message, {
-                claimConflict: parsedError.data.claimConflict,
                 draftSaved: parsedError.data.draftSaved,
                 nextAction: parsedError.data.nextAction,
                 retryable: parsedError.data.retryable,
