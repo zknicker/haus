@@ -6,6 +6,8 @@ import {
     presentParticiple,
     thoughtPhraseMaxLength,
     thoughtReasoningExcerpt,
+    thoughtRequestExcerpt,
+    thoughtRequestMaxLength,
 } from './agent-thought-phrase.ts';
 
 describe('thought titles', () => {
@@ -127,5 +129,23 @@ describe('reasoning excerpts', () => {
         expect(thoughtReasoningExcerpt('Check https://example.com/some/long/path/here now')).toBe(
             null
         );
+    });
+});
+
+describe('thought request excerpt', () => {
+    test('keeps mention labels and drops URLs, emails, and tokens', () => {
+        expect(
+            thoughtRequestExcerpt(
+                '[@Blippy](agent://agt_DpiydJh7Cx4bllOz)  can you check https://ci.example.com/run/1 for ops@example.com? key fake_live_abcdefghijklmnopqrstuvwx'
+            )
+        ).toBe('@Blippy can you check for key');
+    });
+
+    test('caps a long request and answers null when nothing remains', () => {
+        expect(thoughtRequestExcerpt('word '.repeat(200))?.length).toBeLessThanOrEqual(
+            thoughtRequestMaxLength
+        );
+        expect(thoughtRequestExcerpt('https://example.com/only-a-link')).toBeNull();
+        expect(thoughtRequestExcerpt('Weather?')).toBe('Weather?');
     });
 });

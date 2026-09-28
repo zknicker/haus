@@ -1,6 +1,6 @@
 {
-  "version": 3,
-  "description": "Labeled Agent reasoning excerpts and Codex status titles for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\".",
+  "version": 4,
+  "description": "Labeled Agent reasoning excerpts and Codex status titles for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `request` is the human message the run is answering, sent as summarizer context; request cases pair terse titles that must become concrete with housekeeping that must still skip, and ban nouns the request does not carry. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\".",
   "cases": [
     {
       "id": "memory-first",
@@ -561,6 +561,143 @@
       "kind": "title",
       "expected": "skip",
       "text": "I'm maintaining task in progress despite blocker"
+    },
+    {
+      "id": "req-title-data-retrieval",
+      "kind": "title",
+      "expected": "show",
+      "request": "@Blippy can you check the weather in NYC right now?",
+      "text": "Planning data retrieval",
+      "rules": {
+        "mentionsAny": [
+          "NYC",
+          "New York",
+          "weather",
+          "conditions",
+          "temperature",
+          "forecast"
+        ],
+        "banned": ["Boston", "London", "tomorrow", "sales"]
+      }
+    },
+    {
+      "id": "req-title-fetching-data",
+      "kind": "title",
+      "expected": "show",
+      "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
+      "text": "I'm fetching current data",
+      "rules": {
+        "mentionsAny": [
+          "NYC",
+          "New York",
+          "forecast",
+          "weather",
+          "3-day",
+          "three-day"
+        ],
+        "banned": ["Boston", "sales"]
+      }
+    },
+    {
+      "id": "req-title-weather-retrieval",
+      "kind": "title",
+      "expected": "show",
+      "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
+      "text": "I'm planning weather data retrieval",
+      "rules": {
+        "mentionsAny": ["NYC", "New York", "forecast", "3-day", "three-day"],
+        "banned": ["Boston"]
+      }
+    },
+    {
+      "id": "req-title-relevant-details",
+      "kind": "title",
+      "expected": "show",
+      "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
+      "text": "Searching for relevant details",
+      "rules": {
+        "mentionsAny": ["build", "CI", "status"],
+        "banned": ["weather"]
+      }
+    },
+    {
+      "id": "req-title-ci-url",
+      "kind": "title",
+      "expected": "show",
+      "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
+      "text": "I'm requesting project or CI URL for build diagnostics",
+      "rules": {
+        "mentionsAny": ["build", "CI", "project"],
+        "banned": ["weather"]
+      }
+    },
+    {
+      "id": "req-title-reviewing-document",
+      "kind": "title",
+      "expected": "show",
+      "request": "Morning all! Anyone have a sec to sanity check the launch checklist?",
+      "text": "Reviewing the document",
+      "rules": {
+        "mentionsAny": ["checklist", "launch"],
+        "banned": ["build", "weather"]
+      }
+    },
+    {
+      "id": "req-reasoning-pull-numbers",
+      "kind": "reasoning",
+      "expected": "show",
+      "request": "What were last week's royalties on the Halloween shirts?",
+      "text": "Let me look up what's needed here and pull the numbers from the source before I answer.",
+      "rules": {
+        "mentionsAny": ["royalties", "Halloween", "shirts", "sales"],
+        "banned": ["Christmas", "month"]
+      }
+    },
+    {
+      "id": "req-title-no-city",
+      "kind": "title",
+      "expected": "show",
+      "request": "Can you check the weather for me?",
+      "text": "Checking the data source",
+      "rules": {
+        "mentionsAny": ["weather", "forecast", "conditions"],
+        "banned": ["NYC", "New York", "London", "Boston", "tomorrow"]
+      }
+    },
+    {
+      "id": "req-skip-claim",
+      "kind": "title",
+      "expected": "skip",
+      "request": "@Blippy can you check the weather in NYC right now?",
+      "text": "I'm claiming weather task"
+    },
+    {
+      "id": "req-skip-memory-dates",
+      "kind": "title",
+      "expected": "skip",
+      "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
+      "text": "I'm updating memory with upcoming dates"
+    },
+    {
+      "id": "req-skip-claim-ack",
+      "kind": "title",
+      "expected": "skip",
+      "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
+      "text": "I'm planning task claiming and acknowledgement"
+    },
+    {
+      "id": "req-skip-willing",
+      "kind": "title",
+      "expected": "skip",
+      "request": "Morning all! Anyone have a sec to sanity check the launch checklist?",
+      "text": "I'm confirming willingness to assist"
+    },
+    {
+      "id": "req-skip-task-sync",
+      "kind": "title",
+      "expected": "skip",
+      "request": "Morning all! Anyone have a sec to sanity check the launch checklist?",
+      "text": "I'm assessing task synchronization and status updates"
     }
   ]
 }

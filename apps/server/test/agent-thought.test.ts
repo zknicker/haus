@@ -114,14 +114,11 @@ test('rephrases titles and excerpts, drops SKIP, and falls back to the filtered 
     expect(await ingest(reasoning(seed.agentId, runner.runId))).toEqual([
         "I'm comparing the Halloween bids with last week",
     ]);
-    expect(summarizer.seen).toEqual([
-        { kind: 'title', title: 'Checking Halloween bid changes' },
-        { kind: 'reasoning', reasoning: excerpt },
-        { kind: 'title', title: 'Checking Halloween bid changes' },
-        { kind: 'reasoning', reasoning: excerpt },
-        { kind: 'title', title: 'Checking Halloween bid changes' },
-        { kind: 'reasoning', reasoning: excerpt },
-    ]);
+    // Every source carries the engaged human message as context.
+    const request = 'Can you check the deploy?';
+    const title = { kind: 'title', request, title: 'Checking Halloween bid changes' };
+    const reasoned = { kind: 'reasoning', reasoning: excerpt, request };
+    expect(summarizer.seen).toEqual([title, reasoned, title, reasoned, title, reasoned]);
 });
 
 test('without a key, shows the heuristic unless it is housekeeping', async () => {

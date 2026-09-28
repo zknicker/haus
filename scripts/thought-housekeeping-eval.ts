@@ -6,7 +6,8 @@
 // the local fallback filter on the same set.
 //
 // This is a dev tool, not CI: each case is a real Gemini call.
-// Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <id>] [--runs <n>]
+// Cases may carry a `request`, the human message the run is answering.
+// Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <id>] [--runs <n>] [--no-request]
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -26,6 +27,8 @@ interface EvalCase {
     expected: 'show' | 'skip';
     id: string;
     kind: 'reasoning' | 'title';
+    /** The human message the run is answering, sent as `<request>` context. */
+    request?: string;
     rules?: ThoughtEvalRules;
     text: string;
 }
@@ -48,6 +51,8 @@ const corpus = JSON.parse(await readFile(corpusPath, 'utf8')) as { cases: EvalCa
 const flag = (name: string) =>
     process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : undefined;
 const only = flag('--only');
+// Sends request cases without their request, to measure what the context adds.
+const withoutRequest = process.argv.includes('--no-request');
 const runs = Number(flag('--runs') ?? 1);
 const cases = corpus.cases.filter((item) => !only || item.id === only);
 const outcomes: Outcome[] = [];
@@ -68,10 +73,11 @@ await writeFile(
 console.log(`\nraw outcomes: ${file}`);
 
 async function judgeCase(item: EvalCase, run: number): Promise<Outcome> {
+    const context = item.request && !withoutRequest ? { request: item.request } : {};
     const summary = await summarizer.summarize(
         item.kind === 'title'
-            ? { kind: 'title', title: item.text }
-            : { kind: 'reasoning', reasoning: item.text }
+            ? { kind: 'title', title: item.text, ...context }
+            : { kind: 'reasoning', reasoning: item.text, ...context }
     );
     return {
         answer: summary === null ? '(failed)' : summary.kind === 'skip' ? 'SKIP' : summary.text,
@@ -95,11 +101,16 @@ function report(results: Outcome[]) {
             `${verdict} ${outcome.id.padEnd(26)} expected=${outcome.expected.padEnd(4)} → ${outcome.answer}${problems}`
         );
     }
+    const withRequest = new Set(cases.filter((item) => item.request).map((item) => item.id));
     const failed = results.filter((outcome) => outcome.answer === '(failed)').length;
     const answered = results.filter((outcome) => outcome.answer !== '(failed)');
     console.log(`\nGemini (${answered.length} answered, ${failed} failed):`);
     printScores(answered.map((outcome) => [outcome.answer === 'SKIP', outcome.expected]));
     printWording(answered.filter((outcome) => outcome.answer !== 'SKIP'));
+    const requestCases = answered.filter((outcome) => withRequest.has(outcome.id));
+    console.log(`\nCases with a request (${requestCases.length} answered):`);
+    printScores(requestCases.map((outcome) => [outcome.answer === 'SKIP', outcome.expected]));
+    printWording(requestCases.filter((outcome) => outcome.answer !== 'SKIP'));
     console.log('\nLocal fallback filter:');
     printScores(results.map((outcome) => [outcome.fallbackSkip, outcome.expected]));
 }
