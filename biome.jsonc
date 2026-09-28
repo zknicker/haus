@@ -147,7 +147,7 @@
         "apps/server/test/controlled-oauth-mcp.ts",
         "apps/computer/src/proxy.ts",
         "apps/computer/src/usage/claude-plan-usage.ts",
-        "apps/server/src/agent-api/tasks.ts",
+        "apps/server/src/agent-api/task-create.ts",
         "apps/server/src/server-agents/configure-agent.ts",
         "apps/server/src/tasks/create-task.ts",
         "apps/website/src/features/chats/chat-transcript-model.ts",

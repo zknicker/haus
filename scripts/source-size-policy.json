@@ -22,7 +22,7 @@
       "reason": "Static icon reference corpus shipped with the Agent visuals skill."
     },
     "packages/haus-api/src/generated/openapi.d.ts": {
-      "maxLines": 4072,
+      "maxLines": 4086,
       "reason": "Generated OpenAPI declarations, including additive inline-reply contracts."
     },
     "packages/haus-api/src/runtime/contracts.ts": {
@@ -53,7 +53,6 @@
     "apps/ios-swift/Sources/HausUI/Settings/SettingsProfileViews.swift": 306,
     "apps/ios-swift/Tests/HausModelsTests/HausModelsTests.swift": 350,
     "apps/ios-swift/Tests/HausTransportTests/TRPCClientTests.swift": 443,
-    "apps/server/src/agent-api/tasks.ts": 766,
     "apps/server/src/agent-delivery/delivery.ts": 1213,
     "apps/server/src/agent-delivery/store.ts": 778,
     "apps/server/src/chats/send-agent-message.ts": 317,
