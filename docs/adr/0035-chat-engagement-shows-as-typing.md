@@ -79,7 +79,7 @@ engagement. In use, a greeting like "Hello everyone! GM" in #all was judged not 
 reply while the Agents it woke still worked on it for 25–75 seconds with no visible sign,
 which read as a broken app. Visible work that ends in silence is honest; invisible work is
 not. The question, the `agent_inbox.expects_reply` column, and the audit field were
-removed (migration `0049_drop_expects_reply`).
+removed (migration `0050_drop_expects_reply`).
 
 **Presentation.** A typing strip above the composer of the open Chat or Thread shows the
 engaged Agents as avatars and a three-dot pulse, with no visible verb: engagement spans
