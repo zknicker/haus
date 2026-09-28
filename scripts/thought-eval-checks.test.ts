@@ -1,5 +1,10 @@
 import { expect, test } from 'bun:test';
-import { checkThoughtPhrase, opensWithI } from './thought-eval-checks.ts';
+import {
+    checkThoughtPhrase,
+    opensWithI,
+    thoughtRepeat,
+    thoughtWordOverlap,
+} from './thought-eval-checks.ts';
 
 test('flags the spot-tested bad lines', () => {
     expect(checkThoughtPhrase('Weighing external repository placement options right now')).toEqual([
@@ -42,4 +47,27 @@ test('recognizes lines that open with the pronoun I', () => {
     expect(opensWithI('I’ll pull the report')).toBe(true);
     expect(opensWithI('Inspecting the chart')).toBe(false);
     expect(opensWithI('Pulling the NYC forecast')).toBe(false);
+});
+
+test('counts a repeated line as a duplicate, ignoring case and punctuation', () => {
+    expect(thoughtRepeat('Checking the build status', 'checking the build status.')).toBe(
+        'duplicate'
+    );
+});
+
+test('counts a reworded repeat as a near-duplicate by content words', () => {
+    expect(thoughtRepeat('Checking the build status', 'OK, checking the build status')).toBe(
+        'near-duplicate'
+    );
+    expect(thoughtRepeat('OK, checking the weather in NYC', 'Checking the NYC weather')).toBe(
+        'near-duplicate'
+    );
+    expect(thoughtWordOverlap('Pulling the NYC forecast', 'Pulling the 3-day NYC forecast')).toBe(
+        0.75
+    );
+});
+
+test('keeps different steps apart', () => {
+    expect(thoughtRepeat('Checking the build status', 'Reading the failing CI log')).toBeNull();
+    expect(thoughtRepeat('Pulling the forecast', 'Comparing the three days')).toBeNull();
 });

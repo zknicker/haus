@@ -1,6 +1,6 @@
 {
-  "version": 5,
-  "description": "Labeled Agent reasoning excerpts, Codex status titles, and scrubbed tool-action descriptions (`kind: action`) for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `request` is the human message the run is answering, sent as summarizer context; request cases pair terse titles that must become concrete with housekeeping that must still skip, and ban nouns the request does not carry. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\". An `action` case is shown when the command, file, search, or tool serves the request, and skipped when it reads or edits the Agent's own memory, notes, or instructions files; its rules ban the command's own syntax.",
+  "version": 6,
+  "description": "Labeled Agent reasoning excerpts, Codex status titles, and scrubbed tool-action descriptions (`kind: action`) for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `request` is the human message the run is answering, sent as summarizer context; request cases pair terse titles that must become concrete with housekeeping that must still skip, and ban nouns the request does not carry. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\". An `action` case is shown when the command, file, search, or tool serves the request, and skipped when it reads or edits the Agent's own memory, notes, or instructions files; its rules ban the command's own syntax. `sequences` replay one request's titles and actions in order, each phrased with the run's last two shown lines as its previous status, and measure how often consecutive shown lines repeat: normalized text equality for duplicates, content-word overlap for near-duplicates. They come from the two 2026-09 spot tests' real turns plus two synthetic runs that repeat a command.",
   "cases": [
     {
       "id": "memory-first",
@@ -871,6 +871,246 @@
       "rules": {
         "mentionsAny": ["repo", "repository"]
       }
+    }
+  ],
+  "sequences": [
+    {
+      "id": "seq-r2-build",
+      "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
+      "steps": [
+        {
+          "kind": "title",
+          "text": "I'm claiming new task"
+        },
+        {
+          "kind": "title",
+          "text": "I'm initiating focused CI search"
+        },
+        {
+          "kind": "title",
+          "text": "I'm requesting project or CI URL for build"
+        },
+        {
+          "kind": "title",
+          "text": "I'm maintaining task in progress despite blocker"
+        },
+        {
+          "kind": "title",
+          "text": "I'm closing duplicate task 10"
+        },
+        {
+          "kind": "title",
+          "text": "I'm updating memory with assignee rules"
+        },
+        {
+          "kind": "action",
+          "text": "edit MEMORY.md"
+        }
+      ]
+    },
+    {
+      "id": "seq-r2-weather",
+      "request": "@Blippy can you check the weather in NYC right now?",
+      "steps": [
+        {
+          "kind": "title",
+          "text": "I'm claiming weather task and preparing fetch"
+        },
+        {
+          "kind": "title",
+          "text": "I'm fetching current weather data"
+        },
+        {
+          "kind": "action",
+          "text": "curl -fsS api.open-meteo.com/v1/forecast"
+        },
+        {
+          "kind": "title",
+          "text": "I'm reporting current weather conditions"
+        },
+        {
+          "kind": "title",
+          "text": "I'm deciding against adding ephemeral weather to memory"
+        },
+        {
+          "kind": "action",
+          "text": "edit MEMORY.md"
+        }
+      ]
+    },
+    {
+      "id": "seq-r1-cove-forecast",
+      "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
+      "steps": [
+        {
+          "kind": "title",
+          "text": "I'm planning query execution and tool claiming"
+        },
+        {
+          "kind": "title",
+          "text": "I'm planning weather data retrieval"
+        },
+        {
+          "kind": "action",
+          "text": "curl -L --max-time 20 wttr.in"
+        },
+        {
+          "kind": "title",
+          "text": "I'm refining weather forecast query"
+        },
+        {
+          "kind": "title",
+          "text": "I'm investigating accurate weather data sources"
+        },
+        {
+          "kind": "action",
+          "text": "curl -sL --max-time 20 -H User-Agent: cove-weather api.weather.gov/gridpoints/OKX/forecast | jq -r .properties.periods[:6][]"
+        },
+        {
+          "kind": "title",
+          "text": "I'm correcting grid coordinates interpretation"
+        },
+        {
+          "kind": "action",
+          "text": "curl -sL --max-time 20 -H User-Agent: cove-weather api.weather.gov/gridpoints/OKX/forecast | jq -r .properties.periods[:6][]"
+        },
+        {
+          "kind": "title",
+          "text": "I'm resolving date mismatch and patching"
+        }
+      ]
+    },
+    {
+      "id": "seq-r1-weather",
+      "request": "@Blippy can you check the weather in NYC right now?",
+      "steps": [
+        {
+          "kind": "action",
+          "text": "read MEMORY.md"
+        },
+        {
+          "kind": "title",
+          "text": "I'm planning command claiming and weather query"
+        },
+        {
+          "kind": "title",
+          "text": "I'm planning acknowledgment send"
+        },
+        {
+          "kind": "title",
+          "text": "I'm reviewing draft before sending"
+        },
+        {
+          "kind": "title",
+          "text": "I'm planning weather data retrieval"
+        },
+        {
+          "kind": "action",
+          "text": "curl -fsS api.open-meteo.com/v1/forecast"
+        },
+        {
+          "kind": "title",
+          "text": "I'm preparing concise weather summary reply"
+        }
+      ]
+    },
+    {
+      "id": "seq-r1-build",
+      "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
+      "steps": [
+        {
+          "kind": "title",
+          "text": "I'm planning task claim and acknowledgment"
+        },
+        {
+          "kind": "title",
+          "text": "I'm requesting memory access"
+        },
+        {
+          "kind": "action",
+          "text": "read MEMORY.md"
+        },
+        {
+          "kind": "title",
+          "text": "I'm planning sequential build commands in CI"
+        },
+        {
+          "kind": "title",
+          "text": "I'm considering external repo location"
+        },
+        {
+          "kind": "title",
+          "text": "I'm inspecting server for build channels"
+        },
+        {
+          "kind": "title",
+          "text": "I'm exploring build search across channels"
+        },
+        {
+          "kind": "title",
+          "text": "I'm requesting build details and repo info"
+        }
+      ]
+    },
+    {
+      "id": "seq-sales-pages",
+      "request": "Can you pull last week's Etsy sales for the Halloween shirts?",
+      "steps": [
+        {
+          "kind": "title",
+          "text": "Planning sales data retrieval"
+        },
+        {
+          "kind": "action",
+          "text": "curl api.etsy.com/v3/application/shops/receipts"
+        },
+        {
+          "kind": "action",
+          "text": "curl api.etsy.com/v3/application/shops/receipts"
+        },
+        {
+          "kind": "title",
+          "text": "Aggregating sales by listing"
+        },
+        {
+          "kind": "action",
+          "text": "python3 aggregate.py"
+        },
+        {
+          "kind": "title",
+          "text": "Checking sales totals"
+        }
+      ]
+    },
+    {
+      "id": "seq-ci-failure",
+      "request": "Why is the deploy failing on main?",
+      "steps": [
+        {
+          "kind": "title",
+          "text": "Checking CI status"
+        },
+        {
+          "kind": "action",
+          "text": "gh run list --branch main"
+        },
+        {
+          "kind": "action",
+          "text": "gh run view --log-failed"
+        },
+        {
+          "kind": "title",
+          "text": "Investigating failing test"
+        },
+        {
+          "kind": "action",
+          "text": "gh run view --log-failed"
+        },
+        {
+          "kind": "title",
+          "text": "Checking the failing test"
+        }
+      ]
     }
   ]
 }

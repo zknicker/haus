@@ -82,4 +82,34 @@ describe('Gemini thought summarizer context', () => {
         await gemini.summarizer.summarize({ kind: 'title', title: 'Checking the forecast' });
         expect(JSON.stringify(gemini.bodies[1]?.systemInstruction)).not.toContain('<action>');
     });
+
+    test('asks for what is new since the previous line, only when there is one', async () => {
+        const gemini = fakeGemini('Reading the failing job log');
+        const source = { kind: 'title', title: 'Inspecting CI logs' } as const;
+        await gemini.summarizer.summarize(source);
+        await gemini.summarizer.summarize({ ...source, previous: [] });
+        await gemini.summarizer.summarize({ ...source, previous: ['Checking the build status'] });
+        await gemini.summarizer.summarize({
+            ...source,
+            previous: ['Pulling the CI runs', 'Checking the build status'],
+        });
+
+        // A run's first thought keeps exactly the prompt it had before.
+        const bare = `<title>\nInspecting CI logs\n</title>\n${thoughtOpenings[0]}`;
+        expect(userText(gemini.bodies[0])).toBe(bare);
+        expect(userText(gemini.bodies[1])).toBe(bare);
+        const note =
+            "Describe what's new in this step; don't restate it. If this step is the same activity continuing, you may say so briefly in new words, or SKIP if it's housekeeping.";
+        expect(userText(gemini.bodies[2])).toBe(
+            `<title>\nInspecting CI logs\n</title>\nThe previous status was "Checking the build status". ${note}\n${thoughtOpenings[0]}`
+        );
+        expect(userText(gemini.bodies[3])).toContain(
+            'The previous status was "Checking the build status" (and before it, "Pulling the CI runs").'
+        );
+        const systems = gemini.bodies.map((body) => JSON.stringify(body.systemInstruction));
+        expect(systems[0]).toBe(systems[1] ?? '');
+        expect(systems[0]).not.toContain('names the line the agent showed last');
+        expect(systems[2]).toContain('names the line the agent showed last');
+        expect(systems[2]).toContain('changing only the opening or word order is still');
+    });
 });

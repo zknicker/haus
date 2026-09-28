@@ -4,9 +4,12 @@ import { chatFooterClearanceClassName } from '../../chats/chat-footer-surface.ts
 import { ChatTypingStrip } from './chat-typing-indicator.tsx';
 import {
     chatTypingThoughtDelay,
+    chatTypingThoughtMaxVisibleMs,
     chatTypingThoughtSpacingMs,
     chatTypingThoughtTiming,
+    normalizeChatTypingThoughtText,
     resolveChatTypingThought,
+    resolveChatTypingThoughtArrival,
     visibleChatTypingThought,
 } from './chat-typing-thought.ts';
 
@@ -79,4 +82,72 @@ test('an engagement’s first thought shows at once, even right after another bu
 
 test('the transcript end clears a two-line bubble above the strip', () => {
     expect(chatFooterClearanceClassName).toContain('+4rem)');
+});
+
+const building = {
+    agentId: 'agt_juniper',
+    id: 1,
+    runId: 'run_here',
+    text: 'Checking the build status',
+};
+// Shown at 10s; its first hold ends after the wobble-in and hold.
+const onScreen = {
+    hideAt: 10_000 + chatTypingThoughtTiming.enterMs + chatTypingThoughtTiming.holdMs,
+    shownAt: 10_000,
+    thought: building,
+};
+
+test('the same line while its bubble is up extends the hold instead of a new bubble', () => {
+    // The replayed turn's "Checking the build status" came back 1.5s later, reworded only in case.
+    expect(
+        resolveChatTypingThoughtArrival(
+            onScreen,
+            { ...building, text: 'checking the build status.' },
+            11_500
+        )
+    ).toEqual({ hideAt: 11_500 + chatTypingThoughtTiming.holdMs, kind: 'extend' });
+});
+
+test('the same line after its bubble has left shows as a new bubble', () => {
+    expect(resolveChatTypingThoughtArrival(null, building, 20_000)).toEqual({ kind: 'show' });
+});
+
+test('a different line, or the same line from another run, replaces the bubble as usual', () => {
+    expect(
+        resolveChatTypingThoughtArrival(
+            onScreen,
+            { ...building, text: 'Reading the CI log' },
+            11_000
+        )
+    ).toEqual({ kind: 'show' });
+    expect(
+        resolveChatTypingThoughtArrival(onScreen, { ...building, runId: 'run_next' }, 11_000)
+    ).toEqual({ kind: 'show' });
+    expect(
+        resolveChatTypingThoughtArrival(onScreen, { ...building, agentId: 'agt_cove' }, 11_000)
+    ).toEqual({ kind: 'show' });
+});
+
+test('repeats keep one bubble up at most eight seconds from when it appeared', () => {
+    expect(chatTypingThoughtMaxVisibleMs).toBe(8000);
+    const cap = onScreen.shownAt + chatTypingThoughtMaxVisibleMs;
+    // Late repeats extend only up to the cap...
+    expect(
+        resolveChatTypingThoughtArrival({ ...onScreen, hideAt: 16_000 }, building, 16_000)
+    ).toEqual({ hideAt: cap, kind: 'extend' });
+    // ...and once the cap is reached they add nothing and show nothing new.
+    expect(resolveChatTypingThoughtArrival({ ...onScreen, hideAt: cap }, building, 17_000)).toEqual(
+        {
+            kind: 'absorb',
+        }
+    );
+});
+
+test('compares lines by their words, ignoring case, punctuation, and spacing', () => {
+    expect(normalizeChatTypingThoughtText("  I'm checking the  Build status. ")).toBe(
+        'im checking the build status'
+    );
+    expect(normalizeChatTypingThoughtText('OK, checking the build status')).not.toBe(
+        normalizeChatTypingThoughtText('Checking the build status')
+    );
 });

@@ -118,7 +118,17 @@ test('rephrases titles and excerpts, drops SKIP, and falls back to the filtered 
     const request = 'Can you check the deploy?';
     const title = { kind: 'title', request, title: 'Checking Halloween bid changes' };
     const reasoned = { kind: 'reasoning', reasoning: excerpt, request };
-    expect(summarizer.seen).toEqual([title, reasoned, title, reasoned, title, reasoned]);
+    // After the first shown line, each source also carries the run's last two shown lines.
+    const first = 'Now checking Halloween bid changes';
+    const second = "I'm comparing Halloween bids to last week";
+    expect(summarizer.seen).toEqual([
+        title,
+        { ...reasoned, previous: [first] },
+        { ...title, previous: [first, second] },
+        { ...reasoned, previous: [first, second] },
+        { ...title, previous: [first, second] },
+        { ...reasoned, previous: [second, 'Checking Halloween bid changes'] },
+    ]);
 });
 
 test('without a key, shows the heuristic unless it is housekeeping', async () => {
