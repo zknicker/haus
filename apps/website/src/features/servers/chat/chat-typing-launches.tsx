@@ -1,18 +1,12 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
+import type { ChatTypingFace } from './chat-typing-launch.ts';
 import {
-    admitChatTypingLaunch,
-    type ChatTypingFace,
-    type ChatTypingLaunchPath,
-    planChatTypingLaunch,
-} from './chat-typing-launch.ts';
-
-interface ChatTypingLaunch {
-    face: ChatTypingFace;
-    id: number;
-    origin: { x: number; y: number };
-    path: ChatTypingLaunchPath;
-}
+    type ChatTypingLaunch,
+    type ChatTypingLaunchQueue,
+    createChatTypingLaunchQueue,
+    isStaleChatTypingLaunch,
+} from './chat-typing-launch-queue.ts';
 
 export interface ChatTypingLauncher {
     dotsRef: React.RefObject<HTMLSpanElement | null>;
@@ -23,79 +17,51 @@ export interface ChatTypingLauncher {
 }
 
 /**
- * Transient faces launched from the typing dots. They are presentation only:
- * never cached, dropped when throttled, and discarded on unmount.
+ * Faces launch only while the page is in view: a hidden page drops them, and
+ * one whose animation could not start promptly is dropped, never replayed.
  */
 export function useChatTypingLauncher(): ChatTypingLauncher {
-    const [launches, setLaunches] = React.useState<readonly ChatTypingLaunch[]>([]);
     const dotsRef = React.useRef<HTMLSpanElement | null>(null);
     const stripRef = React.useRef<HTMLDivElement | null>(null);
-    const gate = React.useRef({
-        direction: 1 as 1 | -1,
-        inFlight: 0,
-        lastFace: null as ChatTypingFace | null,
-        lastLaunchAt: null as number | null,
-        lastOrigin: null as { x: number; y: number } | null,
-        nextId: 0,
-    });
-    const timers = React.useRef(new Set<ReturnType<typeof setTimeout>>());
-
-    const start = React.useCallback((face: ChatTypingFace) => {
-        const state = gate.current;
-        // The dots are gone once typing ends; a reply's face still rises from
-        // where they were.
-        const origin = measureDotsCenter(stripRef.current, dotsRef.current) ?? state.lastOrigin;
-        if (!origin) {
-            state.inFlight = Math.max(0, state.inFlight - 1);
-            return;
-        }
-        const path = planChatTypingLaunch(state.direction);
-        state.direction = path.dx < 0 ? -1 : 1;
-        state.lastOrigin = origin;
-        state.nextId += 1;
-        const next = { face, id: state.nextId, origin, path };
-        setLaunches((current) => [...current, next]);
-    }, []);
-
-    const launch = React.useCallback(
-        (face: ChatTypingFace) => {
-            const state = gate.current;
-            const now = performance.now();
-            const delay = admitChatTypingLaunch(state, now, face);
-            if (delay === null) {
-                return;
-            }
-            state.inFlight += 1;
-            state.lastFace = face;
-            state.lastLaunchAt = now + delay;
-            if (delay === 0) {
-                start(face);
-                return;
-            }
-            // A reply or failure face waits out the gap rather than stacking on another.
-            const timer = setTimeout(() => {
-                timers.current.delete(timer);
-                start(face);
-            }, delay);
-            timers.current.add(timer);
-        },
-        [start]
+    const [queue] = React.useState(() =>
+        createChatTypingLaunchQueue({
+            isHidden: () => document.visibilityState === 'hidden',
+            measure: () => measureDotsCenter(stripRef.current, dotsRef.current),
+            now: () => performance.now(),
+            schedule: (run, delayMs) => {
+                const timer = setTimeout(run, delayMs);
+                return () => clearTimeout(timer);
+            },
+        })
     );
+    const launches = React.useSyncExternalStore(
+        queue.subscribe,
+        queue.getSnapshot,
+        queue.getSnapshot
+    );
+    useDropLaunchesWhenHidden(queue);
+    return {
+        dotsRef,
+        finish: queue.finish,
+        launch: queue.launch,
+        launches,
+        stripRef,
+    };
+}
+
+function useDropLaunchesWhenHidden(queue: ChatTypingLaunchQueue) {
     React.useEffect(() => {
-        const pending = timers.current;
-        return () => {
-            for (const timer of pending) {
-                clearTimeout(timer);
+        const onVisibility = () => {
+            if (document.visibilityState === 'hidden') {
+                queue.drop();
             }
         };
-    }, []);
-
-    const finish = React.useCallback((id: number) => {
-        gate.current.inFlight = Math.max(0, gate.current.inFlight - 1);
-        setLaunches((current) => current.filter((item) => item.id !== id));
-    }, []);
-
-    return { dotsRef, finish, launch, launches, stripRef };
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibility);
+            queue.dispose();
+        };
+    }, [queue]);
 }
 
 /** Rises over the transcript from inside the strip without affecting layout. */
@@ -110,19 +76,46 @@ export function ChatTypingLaunches({
     return (
         <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-20">
             {launches.map((item) => (
-                <span
-                    className="absolute flex size-5 items-center justify-center"
-                    data-slot="chat-typing-launch"
-                    key={item.id}
-                    style={{ left: item.origin.x - 10, top: item.origin.y - 10 }}
-                >
+                <LaunchSlot finish={finish} item={item} key={item.id}>
                     {reduceMotion ? (
                         <ReducedLaunch item={item} onDone={() => finish(item.id)} />
                     ) : (
                         <ArcLaunch item={item} onDone={() => finish(item.id)} />
                     )}
-                </span>
+                </LaunchSlot>
             ))}
+        </span>
+    );
+}
+
+function LaunchSlot({
+    children,
+    finish,
+    item,
+}: {
+    children: React.ReactNode;
+    finish: (id: number) => void;
+    item: ChatTypingLaunch;
+}) {
+    // Motion runs on animation frames. A late first frame means frames stalled
+    // while this face waited, as in a blurred or occluded window: drop it
+    // rather than play it with every other stalled face.
+    const { admittedAt, id } = item;
+    React.useEffect(() => {
+        const frame = requestAnimationFrame(() => {
+            if (isStaleChatTypingLaunch({ admittedAt }, performance.now())) {
+                finish(id);
+            }
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [admittedAt, finish, id]);
+    return (
+        <span
+            className="absolute flex size-5 items-center justify-center"
+            data-slot="chat-typing-launch"
+            style={{ left: item.origin.x - 10, top: item.origin.y - 10 }}
+        >
+            {children}
         </span>
     );
 }
