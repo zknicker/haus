@@ -22,8 +22,8 @@
       "reason": "Static icon reference corpus shipped with the Agent visuals skill."
     },
     "packages/haus-api/src/generated/openapi.d.ts": {
-      "maxLines": 4086,
-      "reason": "Generated OpenAPI declarations, including additive inline-reply contracts."
+      "maxLines": 4186,
+      "reason": "Generated OpenAPI declarations, including additive inline-reply and task-assign contracts."
     },
     "packages/haus-api/src/runtime/contracts.ts": {
       "maxLines": 2300,
@@ -78,7 +78,7 @@
     "apps/server/test/haus-reminder-scheduler.test.ts": 515,
     "apps/server/test/haus-reminders.test.ts": 902,
     "apps/server/test/haus-server-onboarding.test.ts": 783,
-    "apps/server/test/haus-tasks.test.ts": 1026,
+    "apps/server/test/haus-tasks.test.ts": 1018,
     "apps/server/test/haus-trigger-api.test.ts": 597,
     "apps/server/test/haus-triggers.test.ts": 471,
     "apps/website/e2e/tests/messaging.spec.ts": 538,
