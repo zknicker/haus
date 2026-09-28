@@ -2,7 +2,7 @@
   "lineLimit": 300,
   "namedExceptions": {
     "apps/computer/src/harness/managed-instructions.ts": {
-      "maxLines": 650,
+      "maxLines": 475,
       "reason": "Declarative Agent instruction corpus; splitting it would obscure the composed prompt contract."
     },
     "apps/server/src/server-mcp/icons.ts": {
