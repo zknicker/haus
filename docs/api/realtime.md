@@ -188,10 +188,12 @@ activity, committed when a notice-ack marks new work noticed by the run, is hist
 replaces the current row.
 
 Agent thoughts ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)) are
-volatile and never written. A Computer `agent-thought` frame carries either `kind: 'phrase'` with a
-finished `text`, or `kind: 'reasoning'` with a scrubbed `reasoning` excerpt (40–3,000 characters)
-that the Server summarizes and discards; the Server ignores a run's excerpts closer than three
-seconds apart. A frame is admitted under the activity frame's identity checks and its phrase is
+volatile and never written. A Computer `agent-thought` frame carries `kind: 'phrase'` with a
+finished `text`, `kind: 'reasoning'` with a scrubbed `reasoning` excerpt (40–3,000 characters), or
+`kind: 'action'` with a scrubbed one-line `action` description of a started tool call (at most 200
+characters). The Server phrases any of them against the run's engaged human request and discards
+the input; it ignores a run's frames closer than three seconds apart, and a Server that predates
+`action` drops that frame as unknown. A frame is admitted under the activity frame's identity checks and its phrase is
 announced once per Chat the run engages; `chat.onThought({ serverId, chatId })` delivers
 `{ agentId, runId, chatId, serverId, text, at }` with `chat.onEngagement`'s access checks. There
 is no read or recovery.

@@ -72,7 +72,8 @@ inference.
    structured proxy reports message checks and the Server reports sends — and task, profile, and
    inbox calls are the Agent's bookkeeping, not work; counting the shell call too would double
    message checks and message counts. A compound command (`haus … && curl …`) stays
-   `running_command`. The command text is read on the Computer only and never crosses.
+   `running_command`. The command text never enters Activity; a non-`haus` command may cross only
+   as the scrubbed description of an action thought (ADR 0036), and a `haus` call never does.
 3. **Unknown and MCP tools** default to `using_tool`. Their names, descriptions, and inputs are not
    parsed for intent. A tool named `search` does not prove web search; `cat` inside a shell command
    does not turn a shell event into file reading. The `haus` CLI exception above is the only
@@ -177,8 +178,9 @@ The journal stays on Computer; Server Owners and Admins may inspect it through a
 Server-to-Computer relay. Server does not persist the response, and reasoning never reaches the
 Server activity journal or any Activity event. The thought bubble
 ([ADR 0036](../docs/adr/0036-agent-thoughts-surface-as-condensed-phrases.md)) is a separate,
-volatile `agent-thought` frame carrying a title phrase or a scrubbed reasoning excerpt that the
-Server summarizes and discards; it is not activity. When Computer is offline, detailed evidence is
+volatile `agent-thought` frame carrying a title phrase, a scrubbed reasoning excerpt, or a
+scrubbed description of a started tool action that the Server summarizes and discards; it is not
+activity. When Computer is offline, detailed evidence is
 unavailable.
 
 This workstream assigns no retention or cleanup policy to the execution journal. Holistic cleanup

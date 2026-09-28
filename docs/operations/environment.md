@@ -42,7 +42,7 @@ the access boundary.
 | `Dev Sign-In User - Haus` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
-| `Google AI Studio - Haus` | `Development`, `Production` | Server-owned Gemini key that summarizes Agent thought excerpts; one per lifecycle |
+| `Google AI Studio - Haus` | `Development`, `Production` | Server-owned Gemini key that summarizes Agent thought excerpts and action descriptions; one per lifecycle |
 | `Axiom Development OTLP - Haus` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
 | `Axiom Production OTLP - Haus` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Haus` | `Production` | runtime URL, migration URL, container admin password |
@@ -91,7 +91,8 @@ a released Server environment.
 Agent thought summaries use `HAUS_GEMINI_API_KEY`, resolved per lifecycle from
 `Google AI Studio - Haus` and delivered only to the Server; a Computer never holds it. It is
 optional everywhere: `fallback(op(…), undefined)` turns an empty 1Password field into an absent
-value, and without a key the Server condenses thought excerpts with a local heuristic. Test and
+value, and without a key the Server condenses thought excerpts with a local heuristic and shows
+no bubble for an action. Test and
 release lifecycles resolve no credential.
 
 ## Who is allowed to read

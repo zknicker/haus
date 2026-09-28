@@ -173,15 +173,18 @@ and [Agent Inbox](../../specs/inbox.md).
   face twice within 350ms shows once. Reduced motion fades
   the face in place. Reasoning text never enters Activity
   ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
-  When the engaging run finishes a reasoning block, a short first-person phrase
+  When the engaging run finishes a reasoning block or starts a real tool action
+  (a command, a file, a web search, a tool; never `haus` bookkeeping), a short phrase
   such as "Comparing Saturday and Sunday" appears in a glass bubble over
   that Agent's avatar, wobbles in, holds about two seconds, and leaves; bubbles
   start at least four seconds apart, a thought that arrives sooner waits (the
   newest replaces one still waiting) unless it is that engagement's first,
   faces fly above it, and the engagement ending clears it.
-  The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title
-  or a reasoning excerpt, or the title or a local condensation when Gemini is
-  unavailable. Agent housekeeping — reading its memory or notes, checking its
+  The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title,
+  a reasoning excerpt, or a scrubbed action description, in the terms of the
+  message the Agent is answering ("Planning data retrieval" for a weather
+  question reads "Checking the weather in NYC"); without Gemini it is the title
+  or a local condensation, and an action shows nothing. Agent housekeeping — reading its memory or notes, checking its
   inbox, claiming tasks, deciding whether to reply, drafting its own reply —
   shows no bubble; reading or searching what the request is about (the
   checklist, the thread, the CI logs) is work and shows. Phrases use plain words from the request ("Pulling the NYC

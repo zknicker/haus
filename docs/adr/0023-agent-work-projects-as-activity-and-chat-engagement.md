@@ -24,6 +24,13 @@ reasoning block the Computer may send a finished title phrase or a scrubbed exce
 only the phrase to engaged Chats. Neither is persisted, and reasoning still never enters the
 activity journal or any Activity event.
 
+Amended 2026-09-27 by ADR 0036: when a real tool action starts, the Computer may also send a
+scrubbed description of it, at most 200 characters: a command line with URLs reduced to host and
+path words and secrets, tokens, and emails removed, a file's basename, or a tool name with a short
+scrubbed argument summary. The Server phrases it through Google and discards it. Raw tool arguments
+and output still never leave the Computer, and no description enters the activity journal, any
+Activity event, or Server persistence.
+
 ## Context
 
 Haus previously exposed ongoing Agent work primarily through one global status dot. Its durable
@@ -88,5 +95,6 @@ in for the Agent's broader work status.
 - **Inbox-engagement typing:** starts too early and remains visible while the Agent performs work
   that is not message composition.
 - **Server-persisted raw tool evidence:** violates the established Server/Computer privacy boundary.
+  The scrubbed, volatile action descriptions of ADR 0036 are not raw evidence and are never stored.
 - **Computer lookup for Activity History:** makes an ordinary collaboration surface unavailable
   offline and turns history reads into remote machine operations.
