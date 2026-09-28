@@ -60,6 +60,7 @@ export function ReferenceChip({
             {kind === 'product' ? (
                 <ProductReferenceThumbnail
                     key={appearance.iconDataUrl}
+                    pending={metadata?.pending === true}
                     src={appearance.iconDataUrl}
                 />
             ) : (

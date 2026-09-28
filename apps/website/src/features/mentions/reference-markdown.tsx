@@ -211,9 +211,7 @@ function ReferenceLink({
         );
         const product = parseAmazonProduct(website.href);
         return product && serverId ? (
-            <AmazonReference href={website.href} product={product} serverId={serverId}>
-                {link}
-            </AmazonReference>
+            <AmazonReference href={website.href} product={product} serverId={serverId} />
         ) : (
             link
         );
