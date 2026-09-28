@@ -37,12 +37,17 @@ Asks, and Cloud Agent work messages.
 
 ### Amazon prototype
 
-With RankWrangler connected in Settings → Connections, Haus App resolves US
-Amazon product links and standalone uppercase ASINs into thumbnail-and-title
-chips. Labels use RankWrangler’s generated short name, falling back to the ASIN
-when unavailable. The chip uses RankWrangler’s transparent cutout thumbnail in an 18px box,
-without extra zoom or background blending. Missing or failed cutouts show a
-product icon. The hover card retains the full listing
+Haus App renders US Amazon product links and standalone uppercase ASINs as
+product chips as soon as the text matches. Whether text becomes a chip never
+depends on RankWrangler: the chip links to Amazon with the ASIN as its label and
+a product placeholder mark, and the RankWrangler lookup fills it in place.
+While the lookup runs, the placeholder pulses and the hover card says product
+details are being fetched. Once it completes, the label becomes RankWrangler’s
+generated short name (else the ASIN) and the mark becomes the transparent cutout
+thumbnail in an 18px box, else the listing photo. A failed lookup keeps the ASIN
+chip and the hover card says details are unavailable; without a RankWrangler
+connection in Settings → Connections the hover card notes that details need it.
+The hover card retains the full listing
 title. Hover or keyboard focus opens a compact glass card with a title of at most two lines, brand, and available price. The transparent product cutout floats beside it, tilted slightly, with a brief settling entrance and sparkle. Reduced motion disables the decoration. Clicking opens Amazon.
 
 ASIN recognition requires ten uppercase letters/digits beginning with B and
@@ -55,10 +60,16 @@ prototype.
 Server membership authorizes preview reads through the connected RankWrangler
 account. Agent tool calls still require an explicit connection grant. Credentials
 stay on Server. Lookups share a bounded five-minute Server cache; account changes
-clear it and invalidate App reads. Chip reads request `get` with
-`include: ['shortName', 'cutoutThumbnail']`; market data loads only on preview with
-`include: ['marketData']`.
-Unknown products and unavailable connections preserve the original text/link.
+clear it and invalidate App reads. Chips mounted together share one
+`mcp.amazonProducts` read. Server reads the basics (title, thumbnail, listing
+status) with one RankWrangler `getMany`, and the short name and cutout with a
+best-effort `get` per product using `include: ['shortName', 'cutoutThumbnail']`.
+When RankWrangler has not generated those yet (`TEMPORARILY_UNAVAILABLE`), the
+summary still returns with `enrichment: 'pending'`; Server caches it for two
+seconds and the App refetches a few times, five seconds apart. Any other
+enrichment failure serves the basics with `enrichment: 'ready'` and logs a Server
+warning. A batched read returns the products it resolved, so one unknown ASIN
+fails only its own chip. Errors are never cached. Market data loads only on preview with `include: ['marketData']`.
 Removed listings show last-known data with a removal label. Missing prices and brands are omitted. An upstream detail failure leaves the thumbnail and title
 visible with an unavailable notice.
 
