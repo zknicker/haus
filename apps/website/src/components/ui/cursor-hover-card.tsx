@@ -69,14 +69,25 @@ export function CursorHoverCard({
         },
         [applyOffset]
     );
-    const resetOffset = React.useCallback(() => {
-        pointerRef.current = null;
-        applyOffset(0, 0);
-    }, [applyOffset]);
+    // The surface's own box sits at the viewport origin, so a zero offset
+    // pins it top-left; pointerless opens anchor to the trigger instead.
+    const anchorToTrigger = React.useCallback(() => {
+        const bounds = triggerRef.current?.getBoundingClientRect();
+        if (!bounds) {
+            return;
+        }
+        const input = {
+            bounds,
+            clientX: bounds.left,
+            clientY: bounds.top,
+        } satisfies CursorPositionInput;
+        pointerRef.current = input;
+        applyPointerOffset(input);
+    }, [applyPointerOffset]);
     const handlePointerMove = React.useCallback(
         (event: React.PointerEvent<HTMLSpanElement>) => {
             if (event.pointerType !== 'mouse') {
-                resetOffset();
+                anchorToTrigger();
                 return;
             }
 
@@ -93,7 +104,7 @@ export function CursorHoverCard({
             pointerRef.current = input;
             applyPointerOffset(input);
         },
-        [applyPointerOffset, resetOffset]
+        [anchorToTrigger, applyPointerOffset]
     );
     const handleOpenChange = React.useCallback(
         (open: boolean) => {
@@ -108,8 +119,15 @@ export function CursorHoverCard({
             <Tooltip.Trigger<'span'>
                 className={cn('align-middle', triggerClassName)}
                 onBlur={() => handleOpenChange(false)}
-                onFocus={() => {
-                    resetOffset();
+                onFocus={(event) => {
+                    // A click focuses the link after React Aria closed the card on
+                    // press; only keyboard focus opens it.
+                    if (
+                        !(event.target instanceof Element && event.target.matches(':focus-visible'))
+                    ) {
+                        return;
+                    }
+                    anchorToTrigger();
                     handleOpenChange(true);
                 }}
                 onPointerMove={handlePointerMove}
