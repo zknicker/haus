@@ -531,9 +531,16 @@
      *
      * Block spacing moves to the scroller `reference-markdown.tsx` wraps every
      * table in, so a table has one source of margin rather than two.
+     *
+     * Columns size to content over a wide floor, so a four-column table does
+     * not spread its columns a window apart; wider content wraps up to the
+     * message column and then scrolls.
      */
     .chat-markdown table {
-        width: 100%;
+        --chat-markdown-table-min-width: min(100%, 40rem);
+
+        width: auto;
+        min-width: var(--chat-markdown-table-min-width);
         margin-bottom: 0;
         border-collapse: collapse;
     }
