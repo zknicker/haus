@@ -211,5 +211,44 @@ describe('Gemini thought summarizer', () => {
         expect(system).toContain('never add a place, day, or name');
         expect(system).toContain('its own chat reply');
         expect(system).not.toContain('right now for');
+        // Own voice: never narrate the requester's ask, and restating it alone is SKIP.
+        expect(system).toContain('never say what the user, the person, or anyone by name wants');
+        expect(system).toContain('only restating what the person asked or how the answer');
+        expect(system).toContain('even when you could guess the next step');
+        // Specific, but inside the 8-word cap.
+        expect(system).toContain('the 8 words include the opening');
+    });
+
+    test('skips a line that narrates what the requester wants or asked', async () => {
+        const summarize = async (text: string) => {
+            const gemini = fakeGemini(async () => answer(text));
+            const summary = await createGeminiThoughtSummarizer({
+                apiKey: 'k',
+                fetch: gemini.fetcher,
+            }).summarize({
+                kind: 'reasoning',
+                reasoning: 'Zach wants me to check the build status and the NYC forecast.',
+                requester: 'Zach Knickerbocker',
+            });
+            // The name only filters the answer; it never reaches the model.
+            expect(JSON.stringify(gemini.calls[0]?.body)).not.toContain('Knickerbocker');
+            return summary;
+        };
+        for (const text of [
+            'Zach wants me to check the build status',
+            'The user wants the 3-day NYC forecast',
+            'Hmm, they’re asking for last week’s sales',
+            'Checking what the user needs',
+        ]) {
+            expect(await summarize(text)).toEqual({ kind: 'skip' });
+        }
+        // Tools and services are subjects of work, not the requester.
+        for (const text of [
+            'Reconciling two date formats in the export',
+            'Postgres wants an index here',
+            'Stripe asked for a webhook secret',
+        ]) {
+            expect(await summarize(text)).toEqual({ kind: 'phrase', text });
+        }
     });
 });

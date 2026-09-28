@@ -1,6 +1,6 @@
 {
-  "version": 6,
-  "description": "Labeled Agent reasoning excerpts, Codex status titles, and scrubbed tool-action descriptions (`kind: action`) for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `request` is the human message the run is answering, sent as summarizer context; request cases pair terse titles that must become concrete with housekeeping that must still skip, and ban nouns the request does not carry. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\". An `action` case is shown when the command, file, search, or tool serves the request, and skipped when it reads or edits the Agent's own memory, notes, or instructions files; its rules ban the command's own syntax. `sequences` replay one request's titles and actions in order, each phrased with the run's last two shown lines as its previous status, and measure how often consecutive shown lines repeat: normalized text equality for duplicates, content-word overlap for near-duplicates. They come from the two 2026-09 spot tests' real turns plus two synthetic runs that repeat a command.",
+  "version": 7,
+  "description": "Labeled Agent reasoning excerpts, Codex status titles, and scrubbed tool-action descriptions (`kind: action`) for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `request` is the human message the run is answering, sent as summarizer context; request cases pair terse titles that must become concrete with housekeeping that must still skip, and ban nouns the request does not carry. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. `restate-*` cases open by narrating what the person wants or asked: they skip when that is all the input says, and otherwise must describe the Agent's own step without naming the requester or their wants. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\". An `action` case is shown when the command, file, search, or tool serves the request, and skipped when it reads or edits the Agent's own memory, notes, or instructions files; its rules ban the command's own syntax. `sequences` replay one request's titles and actions in order, each phrased with the run's last two shown lines as its previous status, and measure how often consecutive shown lines repeat: normalized text equality for duplicates, content-word overlap for near-duplicates. They come from the two 2026-09 spot tests' real turns plus two synthetic runs that repeat a command.",
   "cases": [
     {
       "id": "memory-first",
@@ -870,6 +870,58 @@
       "text": "I'm considering external repo location",
       "rules": {
         "mentionsAny": ["repo", "repository"]
+      }
+    },
+    {
+      "id": "restate-only",
+      "kind": "reasoning",
+      "expected": "skip",
+      "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
+      "text": "The user wants a quick 3-day NYC forecast with a one-line packing tip. They want it short, so the answer should be compact."
+    },
+    {
+      "id": "restate-only-named",
+      "kind": "reasoning",
+      "expected": "skip",
+      "request": "@Blippy can you pull last week's Amazon ad spend by campaign?",
+      "text": "Zach wants last week's Amazon ad spend. He asked for it broken down by campaign."
+    },
+    {
+      "id": "restate-title",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm understanding the user's request for the forecast"
+    },
+    {
+      "id": "restate-then-snag",
+      "kind": "reasoning",
+      "expected": "show",
+      "request": "@Blippy can you pull last week's sales by marketplace?",
+      "text": "Zach is asking for last week's sales by marketplace. The export mixes two date formats, so I'll normalize them before summing.",
+      "rules": {
+        "banned": ["wants", "asked", "asking", "user", "Zach"],
+        "mentionsAny": ["date", "dates", "format", "formats"]
+      }
+    },
+    {
+      "id": "restate-then-check",
+      "kind": "reasoning",
+      "expected": "show",
+      "request": "@Blippy can you check the build status?",
+      "text": "Zach wants me to check the build status. The last run failed on the lint step, so I should read that job's log first.",
+      "rules": {
+        "banned": ["wants", "asked", "asking", "user", "Zach"],
+        "mentionsAny": ["lint", "log", "logs"]
+      }
+    },
+    {
+      "id": "restate-then-judge",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The user is asking whether the release build is safe to ship. I need to confirm the database migration actually ran on staging.",
+      "rules": {
+        "banned": ["wants", "asked", "asking", "user", "Zach"],
+        "mentionsAny": ["migration", "staging"]
       }
     }
   ],

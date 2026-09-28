@@ -10,6 +10,7 @@ import {
     normalizeChatTypingThoughtText,
     resolveChatTypingThought,
     resolveChatTypingThoughtArrival,
+    shownChatTypingThought,
     visibleChatTypingThought,
 } from './chat-typing-thought.ts';
 
@@ -55,14 +56,18 @@ test('the bubble wobbles in, holds, and wobbles out on the specified beat', () =
 
 test('the strip overlays the thought under the faces without taking layout', () => {
     const thought = { agentId: 'agt_juniper', id: 1, runId: 'run_here', text: 'Reading the chart' };
-    const markup = renderToStaticMarkup(<ChatTypingStrip thought={thought} typists={[juniper]} />);
+    const markup = renderToStaticMarkup(
+        <ChatTypingStrip thoughts={{ latest: thought, live: thought }} typists={[juniper]} />
+    );
     expect(markup).toContain('data-slot="chat-typing-thought"');
     expect(markup).toContain('Reading the chart');
     expect(markup).toContain('data-typist-avatar="agt_juniper"');
     expect(markup).toContain('pointer-events-none absolute inset-0 z-10');
     expect(markup).toContain('h-8');
 
-    const idle = renderToStaticMarkup(<ChatTypingStrip thought={thought} typists={[]} />);
+    const idle = renderToStaticMarkup(
+        <ChatTypingStrip thoughts={{ latest: thought, live: thought }} typists={[]} />
+    );
     expect(idle).not.toContain('Reading the chart');
 });
 
@@ -150,4 +155,44 @@ test('compares lines by their words, ignoring case, punctuation, and spacing', (
     expect(normalizeChatTypingThoughtText('OK, checking the build status')).not.toBe(
         normalizeChatTypingThoughtText('Checking the build status')
     );
+});
+
+const earlier = { agentId: 'agt_juniper', id: 1, runId: 'run_here', text: 'Reading the chart' };
+const newer = { agentId: 'agt_juniper', id: 2, runId: 'run_here', text: 'Comparing weekends' };
+
+test('hovering recalls the latest thought after its bubble has left', () => {
+    const after = { latest: earlier, live: null };
+    expect(shownChatTypingThought(after, false)).toBeNull();
+    expect(shownChatTypingThought(after, true)).toBe(earlier);
+});
+
+test('hovering a live bubble holds that same bubble; a newer thought replaces it', () => {
+    // Same thought, same key: the hover keeps it up without a second wobble.
+    expect(shownChatTypingThought({ latest: earlier, live: earlier }, true)).toBe(earlier);
+    expect(shownChatTypingThought({ latest: newer, live: newer }, true)).toBe(newer);
+    // Once the newer bubble's hold ends, the hover keeps showing the newer text.
+    expect(shownChatTypingThought({ latest: newer, live: null }, true)).toBe(newer);
+});
+
+test('hovering before any thought this engagement shows nothing', () => {
+    expect(shownChatTypingThought({ latest: null, live: null }, true)).toBeNull();
+});
+
+test('the recalled thought belongs to its engagement and clears when the run ends', () => {
+    // The hook keeps `latest` only while `visibleChatTypingThought` still admits it.
+    expect(visibleChatTypingThought([], earlier)).toBeNull();
+    expect(
+        visibleChatTypingThought([{ agentId: 'agt_juniper', runId: 'run_next' }], earlier)
+    ).toBeNull();
+});
+
+test('only the faces and dots take the pointer, and hover adds no tab stop', () => {
+    const markup = renderToStaticMarkup(
+        <ChatTypingStrip thoughts={{ latest: earlier, live: null }} typists={[juniper]} />
+    );
+    expect(markup).toMatch(/class="pointer-events-none relative flex h-8/);
+    expect(markup).toMatch(/class="pointer-events-auto [^"]*" data-slot="chat-typing-recall"/);
+    expect(markup).not.toContain('tabindex');
+    // Not hovered: the retained thought stays hidden.
+    expect(markup).not.toContain('data-slot="chat-typing-thought"');
 });

@@ -50,6 +50,25 @@ describe('local condensation', () => {
         );
     });
 
+    test('never restates the ask: drops it, or keeps only the own-work clause after it', () => {
+        expect(condenseThoughtLocally('The user wants the Halloween bids compared.')).toBeNull();
+        expect(
+            condenseThoughtLocally(
+                "Zach is asking for last week's sales. I will pull them.",
+                'Zach'
+            )
+        ).toBeNull();
+        expect(condenseThoughtLocally("They're asking for a summary of the release.")).toBeNull();
+        expect(condenseThoughtLocally('Stripe asked for a webhook secret.', 'Zach')).toBe(
+            'Stripe asked for a webhook secret'
+        );
+        expect(
+            condenseThoughtLocally(
+                'The user wants the forecast, so let me check the weather API first.'
+            )
+        ).toBe("I'm checking the weather API first");
+    });
+
     test('keeps a sentence that already reads as a status', () => {
         expect(
             condenseThoughtLocally('Listing out the primes between 100 and 160, I count 12.')
