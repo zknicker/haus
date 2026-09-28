@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { expectedComputerRestartMs } from './haus-update-timing.ts';
-import { isOfflineComputerNoticeCandidate } from './use-offline-computers.ts';
+import { isOfflineComputerNoticeCandidate, nextUpdateExpiry } from './use-offline-computers.ts';
 
 const observedAt = Date.parse('2026-08-29T16:00:00.000Z');
 
@@ -41,5 +41,21 @@ describe('offline Computer attention', () => {
                 observedAt
             )
         ).toBe(true);
+    });
+
+    test('wakes the updater when a disconnected download becomes unconfirmed', () => {
+        const lastProgress = observedAt - 5000;
+        expect(
+            nextUpdateExpiry(
+                [
+                    {
+                        health: 'offline',
+                        updatePhase: 'downloading',
+                        updateUpdatedAt: new Date(lastProgress).toISOString(),
+                    },
+                ],
+                observedAt
+            )
+        ).toBe(lastProgress + expectedComputerRestartMs);
     });
 });

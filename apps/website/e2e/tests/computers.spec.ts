@@ -1,5 +1,5 @@
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
-import { attachComputer, createTestServer } from '../support/server.ts';
+import { attachComputer, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('a populated Computer page never presents its attach flow while inventory loads', async ({
@@ -30,6 +30,29 @@ test('a populated Computer page never presents its attach flow while inventory l
     await expect(page.getByText('Attach a Computer')).toHaveCount(0);
     await expect(page.getByText('Computers · 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Attach a Computer')).toHaveCount(0);
+});
+
+test('an offline Computer with an old reported version cannot start an update', async ({
+    page,
+}) => {
+    const { client: owner, session } = await createTestServer(page, {
+        displayName: 'Offline Computer HQ',
+        slug: 'offline-computer-hq',
+    });
+    const { computerId } = await attachComputer(owner, {
+        credential: 'offline-computer-test-credential-1234',
+        slug: 'offline-computer-hq',
+    });
+    runPsql(
+        session.databaseUrl,
+        `update computers set product_version = '1.0.0', update_phase = 'available',
+         update_target_version = '1.1.0' where id = '${computerId}'`
+    );
+
+    await page.goto('/s/offline-computer-hq/computers');
+    await expect(page.getByText('v1.0.0', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Offline', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Update to v1.1.0' })).toHaveCount(0);
 });
 
 test('an Owner updates one Computer from Settings through isolated progress', async ({ page }) => {

@@ -60,6 +60,20 @@ test('names the available release in the update action', () => {
     expect(html).toContain('Update to v1.0.3');
 });
 
+test('an offline update stops showing endless progress after its connection window', () => {
+    const html = renderUpdateCard({
+        ...computer,
+        health: 'offline',
+        updatePhase: 'restarting',
+        updateTargetVersion: '1.5.0',
+        updateUpdatedAt: '2020-01-01T00:00:00.000Z',
+    });
+
+    expect(html).toContain('did not reconnect after installation');
+    expect(html).toContain('Unconfirmed');
+    expect(html).not.toContain('progress-bar');
+});
+
 test('the development preview covers every update phase and both progress modes', () => {
     const previewIds = computerUpdatePreviewStates.map((state) => state.id);
 

@@ -65,7 +65,14 @@ describe('Haus update projection', () => {
     test('excludes an offline Computer because its installed version is unknown', () => {
         const view = projectHausUpdate({
             ...currentInput,
-            computers: [computer({ health: 'offline' })],
+            computers: [
+                computer({
+                    currentVersion: '1.4.2',
+                    health: 'offline',
+                    phase: 'available',
+                    reportedTargetVersion: '1.4.9',
+                }),
+            ],
             desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
         });
 
@@ -104,12 +111,81 @@ describe('Haus update projection', () => {
             ],
         });
 
-        expect(view).toMatchObject({ phase: 'failed', primaryAction: { kind: 'retry' } });
+        expect(view).toMatchObject({ phase: 'failed', primaryAction: null });
         expect(view.componentFacts.find((fact) => fact.id === 'cmp_studio')).toMatchObject({
-            detail: 'This Computer did not reconnect after installing the update.',
+            detail: 'This Computer did not reconnect after installation. Reconnect it to confirm the installed version.',
             label: 'Computer · Home',
             status: 'failed',
         });
+    });
+
+    test('keeps a disconnected download visible until its outcome is known', () => {
+        const recent = projectHausUpdate({
+            ...currentInput,
+            computers: [
+                computer({
+                    health: 'offline',
+                    phase: 'downloading',
+                    updateUpdatedAt: new Date(observedAt - 5000).toISOString(),
+                }),
+            ],
+        });
+        const expired = projectHausUpdate({
+            ...currentInput,
+            computers: [
+                computer({
+                    health: 'offline',
+                    phase: 'downloading',
+                    updateUpdatedAt: new Date(observedAt - expectedComputerRestartMs).toISOString(),
+                }),
+            ],
+        });
+
+        expect(recent.steps[0]).toMatchObject({ phase: 'downloading' });
+        expect(expired.steps[0]).toMatchObject({
+            connected: false,
+            detail: 'This Computer disconnected during the update. Reconnect it to confirm whether the update finished.',
+            failedPhase: 'downloading',
+            phase: 'failed',
+        });
+    });
+
+    test('does not let an unconfirmed Computer block a reachable App update', () => {
+        const view = projectHausUpdate({
+            ...currentInput,
+            computers: [
+                computer({
+                    health: 'offline',
+                    phase: 'restarting',
+                    updateUpdatedAt: new Date(observedAt - expectedComputerRestartMs).toISOString(),
+                }),
+            ],
+            desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
+        });
+
+        expect(view).toMatchObject({
+            detail: '1 update is ready.',
+            phase: 'available',
+            primaryAction: { kind: 'start' },
+        });
+        expect(view.componentFacts.find((fact) => fact.id === 'cmp_studio')?.status).toBe('failed');
+    });
+
+    test('does not treat a stale offline update phase as part of a newer release', () => {
+        const view = projectHausUpdate({
+            ...currentInput,
+            computers: [
+                computer({
+                    health: 'offline',
+                    phase: 'restarting',
+                    reportedTargetVersion: '1.4.8',
+                    updateUpdatedAt: new Date(observedAt - expectedComputerRestartMs).toISOString(),
+                }),
+            ],
+        });
+
+        expect(view.steps.filter((step) => step.kind === 'computer')).toEqual([]);
+        expect(view.phase).toBe('current');
     });
 
     test('does not let an old completed target hide a newer release', () => {

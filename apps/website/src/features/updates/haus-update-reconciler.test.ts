@@ -152,6 +152,26 @@ describe('Haus update reconciler', () => {
         expect(result).toEqual({ kind: 'complete' });
     });
 
+    test('does not retry an unreachable Computer while starting reachable work', async () => {
+        let state = view([computer('alpha', 'failed', null, false), desktop('pending')]);
+        const starts: string[] = [];
+        const result = await runHausUpdateSequence({
+            downloadDesktop: async () => {
+                starts.push('desktop');
+                state = replaceStep(state, desktop('restart-required'));
+            },
+            readView: () => state,
+            restartDesktop: async () => undefined,
+            updateComputer: async () => {
+                starts.push('computer');
+            },
+            waitForChange: async () => undefined,
+        });
+
+        expect(starts).toEqual(['desktop']);
+        expect(result).toEqual({ kind: 'restart-required', targetVersion: '1.8.40' });
+    });
+
     test('coalesces concurrent controller runs into one operation batch', async () => {
         let releaseDownload: () => void = () => undefined;
         let downloads = 0;
@@ -187,9 +207,11 @@ describe('Haus update reconciler', () => {
 function computer(
     id: string,
     phase: ComputerUpdateStep['phase'],
-    detail: string | null = null
+    detail: string | null = null,
+    connected = true
 ): ComputerUpdateStep {
     return {
+        connected,
         currentVersion: phase === 'current' ? '1.4.9' : '1.4.8',
         detail,
         failedPhase: phase === 'failed' ? 'verifying' : null,

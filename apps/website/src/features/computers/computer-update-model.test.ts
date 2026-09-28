@@ -45,15 +45,54 @@ test('keeps signed update available in update-required and disables ordinary off
 });
 
 test('an in-flight update keeps reporting its phase after the Computer drops', () => {
-    // Restarting disconnects the Computer by design, so the offline label must
-    // not swallow the progress the operator is watching.
-    expect(computerUpdateView({ health: 'offline', phase: 'restarting' })).toMatchObject({
+    const observedAt = Date.parse('2026-09-28T16:00:00.000Z');
+    const updateUpdatedAt = new Date(observedAt - 5000).toISOString();
+    expect(
+        computerUpdateView({
+            health: 'offline',
+            observedAt,
+            phase: 'restarting',
+            updateUpdatedAt,
+        })
+    ).toMatchObject({
         label: 'Restarting Haus Computer',
         needsLocalRecovery: false,
     });
-    expect(computerUpdateView({ health: 'offline', phase: 'downloading' }).label).toBe(
-        'Downloading Haus Computer'
-    );
+    expect(
+        computerUpdateView({
+            health: 'offline',
+            observedAt,
+            phase: 'downloading',
+            updateUpdatedAt,
+        }).label
+    ).toBe('Downloading Haus Computer');
+});
+
+test('stops indefinite progress when an offline Computer cannot confirm its update', () => {
+    const observedAt = Date.parse('2026-09-28T16:00:00.000Z');
+    for (const phase of ['requested', 'downloading', 'restarting'] as const) {
+        expect(
+            computerUpdateView({
+                health: 'offline',
+                observedAt,
+                phase,
+                updateUpdatedAt: new Date(observedAt - 120_000).toISOString(),
+            })
+        ).toMatchObject({
+            canCheck: false,
+            canUpdate: false,
+            label: 'Update unconfirmed',
+            needsLocalRecovery: true,
+        });
+    }
+    expect(
+        computerUpdateView({
+            health: 'offline',
+            observedAt,
+            phase: 'restarting',
+            updateUpdatedAt: new Date(observedAt - 120_000).toISOString(),
+        }).detail
+    ).toContain('confirm the installed version');
 });
 
 test('an offline Computer explains itself instead of leaving the card silent', () => {
