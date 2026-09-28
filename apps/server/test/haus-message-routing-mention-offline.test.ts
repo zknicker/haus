@@ -26,13 +26,14 @@ test('without a TypeSafe credential a mention keeps ordinary delivery', async ()
         select agent_id as "agentId", mentioned
         from agent_inbox
         where server_id = ${fixture.serverId} and dedupe_key = ${receipt.message.id}
-        order by agent_id
     `) as Array<{ agentId: string; mentioned: boolean }>;
-    expect(rows).toEqual(
+    // Which rows exist is the point, not their order: sort both sides in JS so neither
+    // Postgres collation nor locale rules decide it.
+    expect(rows.toSorted(byAgentId)).toEqual(
         [
             { agentId: fixture.orbitAgentId, mentioned: true },
             { agentId: fixture.peerAgentId, mentioned: false },
-        ].sort((a, b) => a.agentId.localeCompare(b.agentId))
+        ].toSorted(byAgentId)
     );
     const { audit } = await fixture.owner.trpc.chat.messageRouting.query({
         serverId: fixture.serverId,
@@ -40,3 +41,10 @@ test('without a TypeSafe credential a mention keeps ordinary delivery', async ()
     });
     expect(audit).toMatchObject({ outcome: 'bypass', bypassReason: 'mention', model: null });
 });
+
+function byAgentId(a: { agentId: string }, b: { agentId: string }) {
+    if (a.agentId === b.agentId) {
+        return 0;
+    }
+    return a.agentId < b.agentId ? -1 : 1;
+}
