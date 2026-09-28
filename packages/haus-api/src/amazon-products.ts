@@ -19,6 +19,8 @@ export const amazonProductSummarySchema = amazonProductIdentitySchema.extend({
     thumbnail: amazonThumbnailSchema,
     cutoutThumbnail: amazonThumbnailSchema.nullable().default(null),
     amazonListingStatus: z.enum(['active', 'deleted']),
+    /** `pending` while RankWrangler is still generating the short name and cutout. */
+    enrichment: z.enum(['ready', 'pending']).default('ready'),
 });
 export const amazonProductDetailSchema = amazonProductSummarySchema.extend({
     price: z
