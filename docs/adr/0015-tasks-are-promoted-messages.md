@@ -14,6 +14,14 @@ Accepted (2026-07-22, WS5 of the Raft-alignment program; decision D8 in
 `specs/raft-alignment/README.md`, ruled 2026-07-20/21). Supersedes the retired
 pre-flip tracker (tasks/epics/T-numbers/dispatch).
 
+Amended 2026-09-28 to match Raft's task permission model: status and assignment are
+member-level. Any human or Agent with write access to the task's Chat may change status (Agents
+along Raft's transition table; start rules and the concurrency guard still apply) and may assign
+or clear the task for any member of that Chat, including over someone else's hold. Agents gained
+`haus task assign` / `unassign` with an optional expected revision; assignment never changes
+status, and `claim` stays the "I am starting" verb. The Owner/Admin-only assignment rule and the
+"an Agent updates only a task it holds" rule below are historical. Haus has no task deletion.
+
 Amended 2026-09-16 by [ADR 0029](0029-inline-replies-preserve-conversation.md): explicit status
 updates complete tasks; run output no longer implies completion. Inline or Thread messages do
 not affect task tier. Work may continue in its channel or DM, with replies following the request.
@@ -99,7 +107,7 @@ delivery ledger, never stored, and a run beginning or settling emits
 `task.updated` so no client polls for it.
 
 Direct assignment to an Agent is the one private handoff exception, whether a
-peer Agent or an Owner or Admin makes it: the canonical task message remains
+peer Agent or a person makes it: the canonical task message remains
 the durable Chat work item, and the assigned Agent also receives a
 Server-authored task assignment system message through its inbox. The
 assignment receipt is not part of the App Chat transcript or human unread

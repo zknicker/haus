@@ -46,8 +46,15 @@ message (ADR 0026).
 
 ## Authority and concurrency
 
-- Authorized humans can create/promote a task and update status, priority, or task labels using
-  `expectedVersion`. An Agent can update lifecycle state only while it owns the task.
+- Status is member-level. Humans with write access to the task's Chat can create/promote a
+  task and update status, priority, or task labels using `expectedVersion`. Any Agent in the
+  Chat may change status too, holder or not, along the transition table: `todo` → `in_progress`
+  / `closed`; `in_progress` → `in_review` / `done` / `closed`; `in_review` → `done` /
+  `in_progress` / `closed`; `done` → `todo` / `in_progress` / `in_review` / `closed`; `closed`
+  → `todo` / `in_progress`. Humans in the App are not limited by the table. Moving `todo` or
+  `closed` to `in_progress` needs an assignee (claim first) and stamps the claim; a `todo` that
+  already carries a claim stamp is refused as a concurrent start; returning to `todo` clears the
+  stamp. Haus has no task deletion.
 - Claim is self-only. Task writes lock the Server before membership, Chat, and task rows. The
   first valid claimant wins; a second claimant cannot acquire ownership at the same version.
 - An Agent claim conflicts only with the current holder, never with an unrelated status, priority,
@@ -57,12 +64,15 @@ message (ADR 0026).
   A reply to a human's original request therefore reaches its claimant. Completion preserves
   attention; subsequent work can be claimed on a later reply without reopening the old task.
 - Only the current assignee can unclaim.
-- Server Owners and Admins can reserve or clear assignment for an Agent or a human. A human
-  assignee must have active Server membership and parent-Chat access; an Agent assignee must be
-  active and already participate in the parent Chat. Assigning an Agent enqueues its typed
-  assignment pending work and wakes it. An Agent can also create a new Channel task reserved for
-  another active Agent in that Channel. In every case the recipient must claim before working,
-  and a finished task cannot be assigned.
+- Assignment is member-level. Any human or Agent who can write in the task's Chat can assign it
+  to any member of that Chat or clear it, including over someone else's hold. A human assignee
+  must have active Server membership and parent-Chat access; an Agent assignee must be active and
+  already participate in the parent Chat. Agents name the assignee by `@handle`; a missing,
+  retired, or out-of-Chat handle answers one uniform "not assignable in this chat" refusal.
+  Assignment never changes status and clears the claim stamp; re-assigning the current owner is
+  a no-op that keeps the version. An optional expected revision makes a stale assign lose.
+  Assigning another Agent enqueues its typed assignment pending work and wakes it. In every case
+  the recipient must claim before working, and a finished task cannot be assigned.
 - Members can create task-label catalog entries. Owners and Admins can rename, recolor, or delete
   catalog entries.
 - Revoked Server membership, lost parent-Chat access, cross-Server ids, and stale versions fail
@@ -91,8 +101,8 @@ event targeting for live delivery and cursor catch-up after reconnect.
   report how many they hid (`includeBackground` widens them), with create, claim, unclaim, human assignment, status,
   priority, and task-label controls. Opening a task opens the canonical message's hosted Thread,
   where a task metadata header projects the number, status, assignee, and creator. Status and
-  authorized human-assignment edits use the same versioned task mutations as the other lenses.
-- Managed CLI: `haus task list|create|claim|unclaim|update` uses the Computer's scoped runner
+  assignment edits use the same versioned task mutations as the other lenses.
+- Managed CLI: `haus task list|create|claim|unclaim|assign|unassign|update` uses the Computer's scoped runner
   authority and hosted Server task API. Agent identity comes from that runner credential. An Agent
   claims a message before any tool-using work on it, and a claim row that loses to a standing
   claim carries the structured `claimConflict` documented in

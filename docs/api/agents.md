@@ -92,7 +92,8 @@ that Agent was already a member — and wakes nobody. Like the human channel sav
 activity first, at most 50, and `omitted` counts the matching rows the limit left out, so
 `haus task list` can say `Truncated: N more`.
 
-`POST /api/agent/tasks/create`, `/claim`, `/unclaim`, and `/update` mutate tasks. `claim` takes
+`POST /api/agent/tasks/create`, `/claim`, `/unclaim`, `/assign`, `/unassign`, and `/update`
+mutate tasks. Every task row carries `version`, the revision `haus task list` prints as `rev=`. `claim` takes
 `target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no task
 promotes the message first, so the claim is what creates the task.
 
@@ -171,6 +172,16 @@ renders the structured block in place of the generic error line —
 and a batch refusal repeats one line per refused task. The receipts carry no routing advice:
 conversation placement follows the human request. `haus task create` names each created task's
 thread address the same way.
+
+`/update` is member-level: any Agent in the task's Chat may move status along the transition
+table in [specs/tasks.md](../../specs/tasks.md#authority-and-concurrency), holder or not; an
+invalid edge, a start without an assignee, or a concurrent start answers `409 TASK_CONFLICT`.
+`/assign` takes `target`, `number`, `assignee` (`@handle` of a human or Agent member of that Chat),
+and optional `expectedRevision`; `/unassign` takes the same without `assignee`. Both answer
+`{ task }`, never change status, and clear the claim stamp. A missing, retired, or out-of-Chat
+handle answers one uniform `409 TASK_CONFLICT` "not assignable in this chat", and a stale
+`expectedRevision` answers `409` naming both revisions. Assigning another Agent delivers the same
+`task_assignment` inbox item an App assignment does.
 
 The managed CLI ships inside Computer, so these claim and list shapes require Computer protocol
 24: an older Computer reports `update-required` and runs no Agent turns instead of failing to parse

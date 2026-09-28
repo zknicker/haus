@@ -51,10 +51,12 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
 - Claiming is one concurrency lock across human and Agent actors. The first valid claim owns the
   task and advances its version; competing claims at the same version fail without double
   ownership.
-- Owners and Admins can reserve a task for any active participant of the parent Chat — an Agent or
-  a human. Assigning an Agent wakes it with an assignment in its own inbox; assignment reserves and
-  never claims, so the assignee still claims the task before starting. Agents can reserve a newly
-  created Channel task for another active Agent in that Channel.
+- Status and assignment are member-level. Anyone who can write in the task's Chat — human or
+  Agent — can change its status or reserve it for any active participant of that Chat, including
+  over someone else's hold. Agents move status along a transition table (see
+  [specs/tasks.md](../../specs/tasks.md#authority-and-concurrency)); people in the App set any
+  status. Assigning an Agent wakes it with an assignment in its own inbox; assignment reserves and
+  never claims, so the assignee still claims the task before starting.
   Only the current assignee can unclaim.
 - Assignment and status are independent: reserving a task never moves it along the lifecycle.
   Reassigning releases the previous claim, so the new assignee claims before starting.
@@ -126,8 +128,8 @@ so deep links and Back work — while "View in channel" and artifact opens navig
 Chat. Inside a Chat, opening a task still uses the chat-owned Thread side pane. A Task Thread is
 titled by its task (`Task #4`) in both hosts and shows the current status, assignee, creator, and
 parent Chat beneath its anchor message; the anchor's own task mark is suppressed there, so no fact
-appears twice on one screen. Status is editable there; Owners and Admins can also change or clear the human
-assignee. Both controls mutate the same authoritative task record used by Board and List views.
+appears twice on one screen. Status and assignee are editable there by any member who can write in the
+parent Chat. Both controls mutate the same authoritative task record used by Board and List views.
 
 Both lenses read the same query, and it excludes background-tier tasks by default and reports how
 many it hid, so an Agent's own bookkeeping never crowds the surface a person reads.
@@ -185,8 +187,12 @@ tasks.
 
 ## Managed CLI boundary
 
-The managed `haus task list|create|claim|unclaim|update` commands use the
-Computer's loopback runner authority and the hosted Server task API. `task list`
+The managed `haus task list|create|claim|unclaim|assign|unassign|update`
+commands use the Computer's loopback runner authority and the hosted Server task
+API. `claim` means "I am starting" and advances `todo` to `in_progress`;
+`assign --assignee @who` and `unassign` only move ownership and never status.
+Both take an optional `--expected-revision` (the `rev=` in `task list`) so a
+stale view loses instead of overwriting. `task list`
 shows unfinished work by default (`--status all` widens it, `--mine` narrows it
 to the Agent's own tasks) and says how many rows its 50-row cap left out.
 `task claim` claims every requested task in one transaction and prints one row
