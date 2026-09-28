@@ -230,10 +230,7 @@
       "expected": "show",
       "text": "The user asked for the weather in NYC. I think I need to check the current conditions, so let me query the Open-Meteo forecast endpoint for New York's coordinates and read temperature and cloud cover.",
       "rules": {
-        "banned": [
-          "I think",
-          "patterns"
-        ],
+        "banned": ["I think", "patterns"],
         "mentionsAny": [
           "NYC",
           "New York",
@@ -305,10 +302,7 @@
       "expected": "show",
       "text": "For a packing tip I need precipitation too. Comparing the NWS gridpoint forecast with Open-Meteo: NWS is more reliable for US cities, so I'll pull the NYC three-day forecast from NWS.",
       "rules": {
-        "banned": [
-          "meteorological",
-          "reliability"
-        ],
+        "banned": ["meteorological", "reliability"],
         "mentionsAny": [
           "NYC",
           "forecast",
@@ -325,12 +319,7 @@
       "expected": "show",
       "text": "Zach wants to know which weekend day is better for the picnic in Prospect Park. Let me compare Saturday and Sunday: precipitation chance, wind, and the afternoon high.",
       "rules": {
-        "mentionsAny": [
-          "Saturday",
-          "Sunday",
-          "weekend",
-          "picnic"
-        ]
+        "mentionsAny": ["Saturday", "Sunday", "weekend", "picnic"]
       }
     },
     {
@@ -350,12 +339,7 @@
           "wrong",
           "oops"
         ],
-        "mentionsAny": [
-          "build",
-          "main",
-          "CI",
-          "status"
-        ]
+        "mentionsAny": ["build", "main", "CI", "status"]
       }
     },
     {
@@ -364,20 +348,8 @@
       "expected": "show",
       "text": "To report the build status I should walk the CI pipeline in order: find the latest workflow run on main, then check each job's result, then note anything still queued.",
       "rules": {
-        "banned": [
-          "sequential",
-          "integration",
-          "for you",
-          "structuring"
-        ],
-        "mentionsAny": [
-          "build",
-          "CI",
-          "main",
-          "pipeline",
-          "workflow",
-          "jobs"
-        ]
+        "banned": ["sequential", "integration", "for you", "structuring"],
+        "mentionsAny": ["build", "CI", "main", "pipeline", "workflow", "jobs"]
       }
     },
     {
@@ -386,11 +358,7 @@
       "expected": "show",
       "text": "The deploy workflow might live in a different repository. Let me check whether the build config is in the infra repo or this one before I read the latest run.",
       "rules": {
-        "banned": [
-          "placement",
-          "external",
-          "weighing"
-        ],
+        "banned": ["placement", "external", "weighing"],
         "mentionsAny": [
           "build",
           "deploy",
@@ -407,10 +375,7 @@
       "expected": "show",
       "text": "Now I need to find where the launch checklist is saved. Let me search the shared docs folder for anything named launch checklist and open the newest one.",
       "rules": {
-        "mentionsAny": [
-          "checklist",
-          "launch"
-        ]
+        "mentionsAny": ["checklist", "launch"]
       }
     },
     {
@@ -419,12 +384,7 @@
       "expected": "show",
       "text": "I'm tweaking the weather lookup query",
       "rules": {
-        "mentionsAny": [
-          "weather",
-          "forecast",
-          "lookup",
-          "query"
-        ]
+        "mentionsAny": ["weather", "forecast", "lookup", "query"]
       }
     },
     {
@@ -433,10 +393,7 @@
       "expected": "show",
       "text": "Now finding the right build targets",
       "rules": {
-        "mentionsAny": [
-          "build",
-          "targets"
-        ]
+        "mentionsAny": ["build", "targets"]
       }
     },
     {
@@ -445,16 +402,8 @@
       "expected": "show",
       "text": "I'm initiating focused CI search",
       "rules": {
-        "mentionsAny": [
-          "CI",
-          "build",
-          "search"
-        ],
-        "banned": [
-          "the city",
-          "Monday",
-          "Tuesday"
-        ]
+        "mentionsAny": ["CI", "build", "search"],
+        "banned": ["the city", "Monday", "Tuesday"]
       }
     },
     {
@@ -463,15 +412,8 @@
       "expected": "show",
       "text": "I'm planning weather data retrieval",
       "rules": {
-        "mentionsAny": [
-          "weather",
-          "forecast"
-        ],
-        "banned": [
-          "the city",
-          "Monday",
-          "Tuesday"
-        ]
+        "mentionsAny": ["weather", "forecast"],
+        "banned": ["the city", "Monday", "Tuesday"]
       }
     },
     {
@@ -480,16 +422,8 @@
       "expected": "show",
       "text": "I'm claiming weather task and preparing fetch",
       "rules": {
-        "mentionsAny": [
-          "weather",
-          "forecast",
-          "fetch"
-        ],
-        "banned": [
-          "claim",
-          "claiming",
-          "task"
-        ]
+        "mentionsAny": ["weather", "forecast", "fetch"],
+        "banned": ["claim", "claiming", "task"]
       }
     },
     {
@@ -498,11 +432,7 @@
       "expected": "show",
       "text": "I'm fetching current weather data",
       "rules": {
-        "mentionsAny": [
-          "weather",
-          "forecast",
-          "conditions"
-        ]
+        "mentionsAny": ["weather", "forecast", "conditions"]
       }
     },
     {
@@ -511,16 +441,8 @@
       "expected": "show",
       "text": "I'm requesting project or CI URL for build diagnostics",
       "rules": {
-        "mentionsAny": [
-          "build",
-          "CI",
-          "project"
-        ],
-        "banned": [
-          "the city",
-          "Monday",
-          "Tuesday"
-        ]
+        "mentionsAny": ["build", "CI", "project"],
+        "banned": ["the city", "Monday", "Tuesday"]
       }
     },
     {
@@ -529,9 +451,7 @@
       "expected": "show",
       "text": "I'm requesting checklist location",
       "rules": {
-        "mentionsAny": [
-          "checklist"
-        ]
+        "mentionsAny": ["checklist"]
       }
     },
     {
@@ -540,10 +460,7 @@
       "expected": "show",
       "text": "Zach asked for a sanity check of the launch checklist. Reading the checklist doc first so I can flag any step that is missing an owner or a date.",
       "rules": {
-        "mentionsAny": [
-          "checklist",
-          "launch"
-        ]
+        "mentionsAny": ["checklist", "launch"]
       }
     },
     {
@@ -552,13 +469,7 @@
       "expected": "show",
       "text": "The question is about the pricing change Priya proposed. Let me read that thread to pull out the three price points she listed so I can compare them against last month's sales.",
       "rules": {
-        "mentionsAny": [
-          "pricing",
-          "price",
-          "prices",
-          "sales",
-          "Priya"
-        ]
+        "mentionsAny": ["pricing", "price", "prices", "sales", "Priya"]
       }
     },
     {
@@ -567,13 +478,7 @@
       "expected": "show",
       "text": "Checking memory usage on the image worker: the heap snapshot shows the thumbnail cache never evicts, so the process grows until it is killed.",
       "rules": {
-        "mentionsAny": [
-          "memory",
-          "cache",
-          "worker",
-          "heap",
-          "thumbnail"
-        ]
+        "mentionsAny": ["memory", "cache", "worker", "heap", "thumbnail"]
       }
     },
     {
@@ -582,13 +487,7 @@
       "expected": "show",
       "text": "Maya's label printer shows error E-41. Reading the printer manual for that code to see whether it is a jam or a sensor fault.",
       "rules": {
-        "mentionsAny": [
-          "printer",
-          "E-41",
-          "label",
-          "error code",
-          "code"
-        ]
+        "mentionsAny": ["printer", "E-41", "label", "error code", "code"]
       }
     },
     {
@@ -597,12 +496,7 @@
       "expected": "show",
       "text": "Zach wants the supplier's September invoice total. Searching his email inbox for the invoice from Northwind and reading the attached PDF.",
       "rules": {
-        "mentionsAny": [
-          "invoice",
-          "Northwind",
-          "supplier",
-          "September"
-        ]
+        "mentionsAny": ["invoice", "Northwind", "supplier", "September"]
       }
     },
     {
@@ -611,12 +505,7 @@
       "expected": "show",
       "text": "Deciding whether the release build is safe to ship: two flaky tests failed, but both pass on rerun and the failing step is unrelated to the change.",
       "rules": {
-        "mentionsAny": [
-          "release",
-          "build",
-          "ship",
-          "tests"
-        ]
+        "mentionsAny": ["release", "build", "ship", "tests"]
       }
     },
     {
@@ -688,12 +577,7 @@
           "temperature",
           "forecast"
         ],
-        "banned": [
-          "Boston",
-          "London",
-          "tomorrow",
-          "sales"
-        ]
+        "banned": ["Boston", "London", "tomorrow", "sales"]
       }
     },
     {
@@ -711,10 +595,7 @@
           "3-day",
           "three-day"
         ],
-        "banned": [
-          "Boston",
-          "sales"
-        ]
+        "banned": ["Boston", "sales"]
       }
     },
     {
@@ -724,16 +605,8 @@
       "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
       "text": "I'm planning weather data retrieval",
       "rules": {
-        "mentionsAny": [
-          "NYC",
-          "New York",
-          "forecast",
-          "3-day",
-          "three-day"
-        ],
-        "banned": [
-          "Boston"
-        ]
+        "mentionsAny": ["NYC", "New York", "forecast", "3-day", "three-day"],
+        "banned": ["Boston"]
       }
     },
     {
@@ -743,14 +616,8 @@
       "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
       "text": "Searching for relevant details",
       "rules": {
-        "mentionsAny": [
-          "build",
-          "CI",
-          "status"
-        ],
-        "banned": [
-          "weather"
-        ]
+        "mentionsAny": ["build", "CI", "status"],
+        "banned": ["weather"]
       }
     },
     {
@@ -760,14 +627,8 @@
       "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
       "text": "I'm requesting project or CI URL for build diagnostics",
       "rules": {
-        "mentionsAny": [
-          "build",
-          "CI",
-          "project"
-        ],
-        "banned": [
-          "weather"
-        ]
+        "mentionsAny": ["build", "CI", "project"],
+        "banned": ["weather"]
       }
     },
     {
@@ -777,14 +638,8 @@
       "request": "Morning all! Anyone have a sec to sanity check the launch checklist?",
       "text": "Reviewing the document",
       "rules": {
-        "mentionsAny": [
-          "checklist",
-          "launch"
-        ],
-        "banned": [
-          "build",
-          "weather"
-        ]
+        "mentionsAny": ["checklist", "launch"],
+        "banned": ["build", "weather"]
       }
     },
     {
@@ -794,16 +649,8 @@
       "request": "What were last week's royalties on the Halloween shirts?",
       "text": "Let me look up what's needed here and pull the numbers from the source before I answer.",
       "rules": {
-        "mentionsAny": [
-          "royalties",
-          "Halloween",
-          "shirts",
-          "sales"
-        ],
-        "banned": [
-          "Christmas",
-          "month"
-        ]
+        "mentionsAny": ["royalties", "Halloween", "shirts", "sales"],
+        "banned": ["Christmas", "month"]
       }
     },
     {
@@ -813,18 +660,8 @@
       "request": "Can you check the weather for me?",
       "text": "Checking the data source",
       "rules": {
-        "mentionsAny": [
-          "weather",
-          "forecast",
-          "conditions"
-        ],
-        "banned": [
-          "NYC",
-          "New York",
-          "London",
-          "Boston",
-          "tomorrow"
-        ]
+        "mentionsAny": ["weather", "forecast", "conditions"],
+        "banned": ["NYC", "New York", "London", "Boston", "tomorrow"]
       }
     },
     {
@@ -877,12 +714,7 @@
           "forecast",
           "temperature"
         ],
-        "banned": [
-          "curl",
-          "api",
-          "open-meteo",
-          "Boston"
-        ]
+        "banned": ["curl", "api", "open-meteo", "Boston"]
       }
     },
     {
@@ -900,12 +732,7 @@
           "3-day",
           "three-day"
         ],
-        "banned": [
-          "curl",
-          "jq",
-          "gridpoints",
-          "OKX"
-        ]
+        "banned": ["curl", "jq", "gridpoints", "OKX"]
       }
     },
     {
@@ -915,16 +742,8 @@
       "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
       "text": "curl -L --max-time 20 wttr.in/New",
       "rules": {
-        "mentionsAny": [
-          "NYC",
-          "New York",
-          "forecast",
-          "weather"
-        ],
-        "banned": [
-          "curl",
-          "wttr"
-        ]
+        "mentionsAny": ["NYC", "New York", "forecast", "weather"],
+        "banned": ["curl", "wttr"]
       }
     },
     {
@@ -934,17 +753,8 @@
       "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
       "text": "gh run list --limit 5",
       "rules": {
-        "mentionsAny": [
-          "build",
-          "CI",
-          "runs",
-          "workflow",
-          "status"
-        ],
-        "banned": [
-          "gh",
-          "weather"
-        ]
+        "mentionsAny": ["build", "CI", "runs", "workflow", "status"],
+        "banned": ["gh", "weather"]
       }
     },
     {
@@ -954,14 +764,8 @@
       "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
       "text": "web search: NYC 3-day forecast",
       "rules": {
-        "mentionsAny": [
-          "NYC",
-          "forecast",
-          "weather"
-        ],
-        "banned": [
-          "Boston"
-        ]
+        "mentionsAny": ["NYC", "forecast", "weather"],
+        "banned": ["Boston"]
       }
     },
     {
@@ -971,13 +775,8 @@
       "request": "Morning all! Anyone have a sec to sanity check the launch checklist?",
       "text": "read launch-checklist.md",
       "rules": {
-        "mentionsAny": [
-          "checklist",
-          "launch"
-        ],
-        "banned": [
-          ".md"
-        ]
+        "mentionsAny": ["checklist", "launch"],
+        "banned": [".md"]
       }
     },
     {
@@ -987,13 +786,8 @@
       "request": "Can you count how many TODOs are left in the app repo?",
       "text": "rg -n TODO src",
       "rules": {
-        "mentionsAny": [
-          "TODO",
-          "TODOs"
-        ],
-        "banned": [
-          "rg"
-        ]
+        "mentionsAny": ["TODO", "TODOs"],
+        "banned": ["rg"]
       }
     },
     {
@@ -1002,19 +796,8 @@
       "expected": "show",
       "text": "curl -s api.github.com/repos/acme/app/actions/runs",
       "rules": {
-        "mentionsAny": [
-          "runs",
-          "workflow",
-          "CI",
-          "actions",
-          "build",
-          "app"
-        ],
-        "banned": [
-          "curl",
-          "NYC",
-          "weather"
-        ]
+        "mentionsAny": ["runs", "workflow", "CI", "actions", "build", "app"],
+        "banned": ["curl", "NYC", "weather"]
       }
     },
     {
@@ -1066,11 +849,7 @@
       "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
       "text": "I'm inspecting server for build channels",
       "rules": {
-        "mentionsAny": [
-          "channels",
-          "channel",
-          "server"
-        ]
+        "mentionsAny": ["channels", "channel", "server"]
       }
     },
     {
@@ -1080,10 +859,7 @@
       "request": "Can you give me a quick 3-day NYC forecast with a one-line packing tip?",
       "text": "I'm investigating accurate weather data sources",
       "rules": {
-        "mentionsAny": [
-          "sources",
-          "source"
-        ]
+        "mentionsAny": ["sources", "source"]
       }
     },
     {
@@ -1093,10 +869,7 @@
       "request": "@Blippy can you check the build status? Everyone else: deploy freeze at 3pm.",
       "text": "I'm considering external repo location",
       "rules": {
-        "mentionsAny": [
-          "repo",
-          "repository"
-        ]
+        "mentionsAny": ["repo", "repository"]
       }
     }
   ]
