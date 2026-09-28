@@ -112,7 +112,10 @@ test('publishes the tasks topic the prompt points to for task mechanics', () => 
     expect(tasks?.body).toContain(
         '`--assignee @peer` reserves a `todo` task for another Agent in that Channel'
     );
-    expect(tasks?.body).toContain('Owners and Admins do the same from the App.');
+    expect(tasks?.body).toContain('People do the same from the App.');
+    expect(tasks?.body).toContain('**Status is member-level.**');
+    expect(tasks?.body).toContain('`assign` is not `claim`');
+    expect(tasks?.body).toContain('"not assignable in this chat"');
     expect(tasks?.body).toContain(
         'The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
     );

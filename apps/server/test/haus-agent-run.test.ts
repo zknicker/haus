@@ -1612,7 +1612,7 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
 
     const update = await agentPost(loserToken ?? '', '/api/agent/tasks/update', {
         number: created.task.number,
-        status: 'in_review',
+        status: 'in_progress',
         target: '#concurrent-claim',
     });
     const unclaim = await agentPost(loserToken ?? '', '/api/agent/tasks/unclaim', {

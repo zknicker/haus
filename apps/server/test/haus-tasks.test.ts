@@ -249,7 +249,7 @@ test('maps task creation by an unknown Haus User to not found', async () => {
     stranger.close();
 });
 
-test('allows self-claim during creation but reserves another member for admins', async () => {
+test('allows self-claim during creation and lets a member reserve another member', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Create Authority',
         slug: 'task-create-authority',
@@ -272,15 +272,15 @@ test('allows self-claim during creation but reserves another member for admins',
         assigneeUserId: peer.userId,
         status: 'in_progress',
     });
-    await expect(
-        peer.client.trpc.task.create.mutate({
-            assigneeUserId: ownerUserId,
-            chatId,
-            content: 'Reserve this for the owner',
-            nonce: 'task-create-other-assignee',
-            serverId: server.id,
-        })
-    ).rejects.toThrow(/admin|owner/i);
+    // Assigning another member is member-level, not an admin power.
+    const reserved = await peer.client.trpc.task.create.mutate({
+        assigneeUserId: ownerUserId,
+        chatId,
+        content: 'Reserve this for the owner',
+        nonce: 'task-create-other-assignee',
+        serverId: server.id,
+    });
+    expect(reserved.task).toMatchObject({ assigneeUserId: ownerUserId, status: 'todo' });
     peer.client.close();
 });
 
@@ -373,7 +373,7 @@ test('serializes concurrent claims without double ownership', async () => {
     peer.client.close();
 });
 
-test('restricts reservations to admins and preserves status when an owner unassigns', async () => {
+test('lets a member reserve and preserves status when an owner unassigns', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Assignment',
         slug: 'task-assignment',
@@ -387,16 +387,8 @@ test('restricts reservations to admins and preserves status when an owner unassi
         serverId: server.id,
     });
 
-    await expect(
-        peer.client.trpc.task.assign.mutate({
-            assignee: { kind: 'human', userId: peer.userId },
-            expectedVersion: created.task.version,
-            messageId: created.task.messageId,
-            serverId: server.id,
-        })
-    ).rejects.toThrow(/admin|owner/i);
-
-    const assigned = await owner.trpc.task.assign.mutate({
+    // Any Chat member may assign, including to themselves.
+    const assigned = await peer.client.trpc.task.assign.mutate({
         assignee: { kind: 'human', userId: peer.userId },
         expectedVersion: created.task.version,
         messageId: created.task.messageId,
@@ -523,7 +515,7 @@ test('rejects reservations for revoked members or members without parent Chat ac
     peer.client.close();
 });
 
-test('lists only admin-visible human assignees with parent Chat access', async () => {
+test('lists member-visible human assignees with parent Chat access', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Assignee Options',
         slug: 'task-assignee-options',
@@ -553,7 +545,7 @@ test('lists only admin-visible human assignees with parent Chat access', async (
             messageId: created.task.messageId,
             serverId: server.id,
         })
-    ).rejects.toThrow(/admin|owner/i);
+    ).resolves.toContainEqual({ kind: 'human', role: 'member', userId: peer.userId });
 
     await harness.sql`
         delete from channel_participants

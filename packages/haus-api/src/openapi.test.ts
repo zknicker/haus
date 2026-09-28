@@ -59,6 +59,8 @@ describe('Haus OpenAPI contract', () => {
             '/api/agent/tasks/create',
             '/api/agent/tasks/claim',
             '/api/agent/tasks/unclaim',
+            '/api/agent/tasks/assign',
+            '/api/agent/tasks/unassign',
             '/api/agent/tasks/update',
             '/api/agent/reminders',
             '/api/agent/reminders/log',

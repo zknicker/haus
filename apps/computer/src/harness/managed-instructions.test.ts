@@ -182,8 +182,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     //
     // Lowered from 40,270 on the Raft 1.0.25 re-baseline (render 40,270 → 32,359): notice
     // mechanics moved into the inbox notice, task mechanics into the `tasks` Manual topic, and
-    // clauses Raft deleted were cut.
-    expect(prompt.length).toBeLessThanOrEqual(32_359);
+    // clauses Raft deleted were cut. Raised by exactly 42 when Haus gained task assign/unassign
+    // and restored Raft's `task assign` / `task unassign` family entries (32,359 → 32,401).
+    expect(prompt.length).toBeLessThanOrEqual(32_401);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

@@ -263,6 +263,7 @@ function task(number: number) {
         number,
         status: 'in_progress',
         target: '#general',
+        version: 3,
     };
 }
 
