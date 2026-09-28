@@ -628,7 +628,7 @@ export async function recordDeliveryFailure(
         .where(eq(agentDeliveryTable.agentId, input.agentId));
 }
 
-/** Clears the failure backoff — a success or fresh human intent re-enables dispatch. */
+/** Clears the failure backoff — a success, Start, or session recovery re-enables dispatch. */
 export async function clearDeliveryFailures(db: HausDatabase, agentId: string): Promise<void> {
     await db
         .update(agentDeliveryTable)

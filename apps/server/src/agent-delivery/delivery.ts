@@ -50,12 +50,12 @@ import {
     noticeWindow,
     startFrame,
 } from './drain-selection.ts';
-import { shouldRetryFailure } from './failure-policy.ts';
+import { recordTurnFailure, releaseFailureHoldForHuman } from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
-import { isBackedOff, maxDeliveryFailures, nextRetryAt } from './retry-policy.ts';
+import { isBackedOff, maxDeliveryFailures } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
@@ -131,10 +131,11 @@ export class AgentDelivery {
         const source = input.source ?? 'human';
         await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
         await store.enqueueInboxItem(tx, { ...input, source });
-        // Fresh work re-enables delivery. Human intent also releases the
+        // Only human intent re-enables a failed Agent, and it releases the
         // Agent-authored chain ceiling even when older Agent rows precede it.
-        await store.clearDeliveryFailures(tx, input.agentId);
+        // Agent and automation work queues behind any failure hold.
         if (source === 'human') {
+            await releaseFailureHoldForHuman(tx, input.agentId);
             await store.setAgentChainTurns(tx, { agentId: input.agentId, turns: 0 });
         }
     }
@@ -671,13 +672,10 @@ export class AgentDelivery {
             });
             const taskEvents = await settleAgentBackgroundClaims(tx, runScope);
             await store.clearActiveRun(tx, summary.agentId);
-            const retryable = shouldRetryFailure(summary.failureKind);
-            const failures = retryable ? state.consecutiveFailures + 1 : maxDeliveryFailures;
-            await store.recordDeliveryFailure(tx, {
-                agentId: summary.agentId,
-                consecutiveFailures: failures,
-                retryAfter:
-                    retryable && failures < maxDeliveryFailures ? nextRetryAt(failures) : null,
+            await recordTurnFailure(tx, runScope, {
+                consecutiveFailures: state.consecutiveFailures,
+                failureKind: summary.failureKind,
+                outputProduced: summary.outputProduced,
             });
             return { activity, chatId, configuration, plan: null, taskEvents };
         });
