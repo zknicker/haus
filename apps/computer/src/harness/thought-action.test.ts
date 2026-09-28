@@ -101,6 +101,13 @@ describe('action thought descriptions', () => {
                 'mcp__linear__create_issue'
             )
         ).toBe('linear create_issue team: PRD title: Fix login for');
+        expect(
+            act(
+                'using_tool',
+                { api_key: 'abc123', password: 'hunter2pass', username: 'zach' },
+                'mcp__db__login'
+            )
+        ).toBe('db login username: zach');
         expect(describeFileChange({ event: 'add', path: 'drafts/tip.md' })).toBe('create tip.md');
         expect(describeFileChange({})).toBeNull();
     });
