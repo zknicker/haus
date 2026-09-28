@@ -87,7 +87,7 @@ export function ChatTypingStrip({
 }: {
     /** Faces launched from the dots; absent in static previews. */
     launcher?: ChatTypingLauncher;
-    /** A thinking Agent's condensed thought, shown over its avatar (prototype, ADR 0036). */
+    /** A thinking Agent's condensed thought, shown over its avatar (ADR 0036). */
     thought?: ChatTypingThought | null;
     typists: readonly ChatTypist[];
 }) {

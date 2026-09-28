@@ -3,7 +3,7 @@ import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
- * Hears the volatile Agent thoughts announced to one Chat (prototype, ADR 0036)
+ * Hears the volatile Agent thoughts announced to one Chat (ADR 0036)
  * for transient presentation. Nothing is cached or recovered: a thought missed
  * while disconnected is simply gone. The latest listener is always called.
  */

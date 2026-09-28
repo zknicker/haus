@@ -4,7 +4,7 @@ import { requireChatAccess } from '../../chats/chat-access.ts';
 import { chatProcedure } from './procedure.ts';
 
 /**
- * Volatile Agent thought phrases for one Chat (prototype, ADR 0036). Thoughts
+ * Volatile Agent thought phrases for one Chat (ADR 0036). Thoughts
  * describe a whole run, so they reach only readers of a Chat that run engages,
  * checked like `chat.onEngagement` at start and on every delivery.
  */

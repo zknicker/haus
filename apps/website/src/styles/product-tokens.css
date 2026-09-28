@@ -31,7 +31,7 @@
         --nested-surface-ring: none;
 
         /*
-         * Glass for the typing strip's thought bubble (prototype, ADR 0036):
+         * Glass for the typing strip's thought bubble (ADR 0036):
          * translucent enough that the transcript blurs through it, with a
          * hairline edge, a top-edge highlight, and a soft lift.
          */
