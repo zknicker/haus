@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v5.3.0 - 2026-09-28
+
+- Chats show short, live updates while Agents work and stop showing an Agent as typing when it finishes its reply. Follow-up replies in the same conversation stay compact, and the composer remains clear of the latest message.
+- Agent messages reach the intended participants more reliably. Dev Mode shows when a mention narrowed delivery and when routing kept the original recipients.
+- RankWrangler connections can show Amazon products as linked chat references with product previews.
+- Haus Agent 3.6.0 gives clearer work updates while keeping credential-named tool arguments out of them. Update Haus Computer to 4.3.0 for the new Agent behavior.
+
 ## v5.2.0 - 2026-09-24
 
 - Chats show when an Agent is reading or replying, and Dev Mode explains whether a message was addressed to an Agent and why a reply is expected. A channel with one person and one Agent addresses that Agent automatically.
