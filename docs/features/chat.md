@@ -170,7 +170,11 @@ and [Agent Inbox](../../specs/inbox.md).
   from the Agent's runs elsewhere never launches here, and at most one face
   launches per 350ms; extras are dropped. Reply, read, and failure faces skip
   that throttle but still start at least 200ms after another face, and the same
-  face twice within 350ms shows once. Reduced motion fades
+  face twice within 350ms shows once. Faces launch only while the Chat is in
+  view: a face that arrives while the page is hidden is dropped, hiding the
+  page clears faces in flight, and a face whose animation cannot start within
+  half a second (a blurred, occluded window) is dropped rather than replayed on
+  return. Reduced motion fades
   the face in place. Reasoning text never enters Activity
   ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
   When the engaging run finishes a reasoning block or starts a real tool action
@@ -182,6 +186,13 @@ and [Agent Inbox](../../specs/inbox.md).
   faces fly above it, and the engagement ending clears it. The same line again
   while its bubble is up keeps that bubble and restarts its hold, up to eight
   seconds in all; after the bubble has left, it shows again as a new bubble.
+  Hovering the strip's avatars or dots with a mouse or pen brings back the
+  engagement's latest bubble at any point, holds a live bubble past its own
+  hold, shows a newer thought if one arrives meanwhile, and lets the bubble
+  leave shortly after the pointer does. Hover never delays the next bubble,
+  shows nothing before the engagement's first thought, never recalls a line
+  from an ended engagement, and adds no tab stop; the rest of the strip stays
+  click-through so it never blocks the composer.
   The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title,
   a reasoning excerpt, or a scrubbed action description, in the terms of the
   message the Agent is answering ("Planning data retrieval" for a weather
@@ -191,7 +202,10 @@ and [Agent Inbox](../../specs/inbox.md).
   shows no bubble; reading or searching what the request is about (the
   checklist, the thread, the CI logs) is work and shows. Phrases use plain words from the request ("Pulling the NYC
   forecast"), rarely open with "I", never end in "now", and describe the work
-  rather than errors; each says what is new since the run's last line in that
+  rather than errors. A phrase speaks in the Agent's own voice about its own
+  step, preferring what it is checking or the wrinkle it is working through, and
+  never restates the request or says what the person wants or asked; a thought
+  that would only restate the ask is not shown. Each says what is new since the run's last line in that
   Chat instead of restating it.
   Thoughts are never stored or recovered
   ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).

@@ -22,7 +22,8 @@ candidate too, so scrubbed command descriptions now travel Computer → Server �
 Computer", "raw tool arguments never leave the Computer") and the presentation section of
 [ADR 0035](0035-chat-engagement-shows-as-typing.md) ("thought text is never shown"). Amended
 again 2026-09-27: a run's last shown lines ride along so it stops repeating itself, and the App
-extends a bubble whose line repeats while it is still up.
+extends a bubble whose line repeats while it is still up. Amended 2026-09-28: a line speaks in
+the Agent's own voice about its own step and never narrates what the requester wants or asked.
 
 ## Context
 
@@ -76,7 +77,24 @@ reaction, or "I'm…") so a run's lines vary and at most about a sixth open with
 capped at ten words. The prompt asks for plain words from the request (the city, the day, the
 build), no hedging, no trailing "now", and the work rather than what went wrong ("Double-checking
 the dates", not "Fixing those date errors"). `finishThoughtPhrase` also strips a trailing "now" or
-"right now", the model's verbal tic. The excerpt is held only for that call and never stored or logged.
+"right now", the model's verbal tic.
+
+**Own voice.** The person watching wrote the request, so a line that restates it ("Zach wants me
+to check the build") tells them nothing. The prompt (`thought-v12-no-guessed-step`) says the line is
+about the Agent's own step, never what the user, the person, or anyone by name wants, asked, or
+needs; an input that opens by restating the ask is read past to the Agent's own step; and the line
+names the one thing being checked while staying inside the 8-word cap, opening included, by
+dropping dates, places, and qualifiers ("Reconciling the date formats", not "Working on the
+export"). An input that only restates the ask or how the answer should look, with no step of the
+Agent's own, is SKIP even when the next step is guessable. `narratesRequest` (in `@haus/api`) backs this up
+on the model's line, and only for person subjects: "the user/person/requester" anywhere, a leading
+"they/he/she" (or "what they…"), and the requester's own display name (full or first word,
+whole-word, any case), each followed by a want, ask, need, or looking-for verb (contractions like
+"they're asking" included) or a possessive "request/ask/question" ("Zach's request for…", not
+"Zach's request logs"). Any other subject is work, so "Postgres wants an index" or "CI requested a
+rerun" passes. The Server reads the name with the request (the message author's display name); it
+filters the answer and the local fallback but is never sent to the model, and with no name only the
+generic subjects apply. A match is SKIP. The excerpt is held only for that call and never stored or logged.
 
 **Request context.** A title like "Planning data retrieval" says nothing a person could
 recognize, so the Server gives Gemini the request too. Before phrasing, it reads the newest human
@@ -158,7 +176,9 @@ bubbles per turn rose from 2.1 to 2.3.
 
 **Fallback.** Without `HAUS_GEMINI_API_KEY`, or when Gemini fails, refuses, or is late, the
 Server shows the title or a local condensation of the excerpt (its first sentence without
-narration filler), unless a small keyword filter judges that leading sentence to be the same
+narration filler), with a leading sentence that restates the ask dropped (or cut to the own-work clause after
+it: "The user wants the forecast, so let me check the weather API" → "I'm checking the weather
+API"), unless a small keyword filter judges that leading sentence to be the same
 housekeeping — "my memory", "inbox", "claim a task", "the manual", "whether to reply", "drafting
 the reply" — with an
 exemption for sequenced work ("…, then pulling sales"). It is deliberately narrow (it keeps "the
