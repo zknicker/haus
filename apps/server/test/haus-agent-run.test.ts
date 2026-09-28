@@ -1385,19 +1385,17 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         numbers: [1],
         target: '#dispatch',
     });
-    expect(claimed.body.claimed[0]).toMatchObject({
-        assignee: { handle: 'sage', id: agentId },
-        status: 'in_progress',
-        version: 2,
+    expect(claimed.body.results[0]).toMatchObject({
+        outcome: 'claimed',
+        task: { assignee: { handle: 'sage', id: agentId }, status: 'in_progress', version: 2 },
     });
     const repeatedClaim = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
         numbers: [1],
         target: '#dispatch',
     });
-    expect(repeatedClaim.body.claimed[0]).toMatchObject({
-        assignee: { handle: 'sage', id: agentId },
-        status: 'in_progress',
-        version: 2,
+    expect(repeatedClaim.body.results[0]).toMatchObject({
+        outcome: 'already_yours',
+        task: { assignee: { handle: 'sage', id: agentId }, status: 'in_progress', version: 2 },
     });
     const updated = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
         number: 1,
@@ -1472,12 +1470,15 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
     });
     expect(converted).toMatchObject({
         body: {
-            claimed: [
+            results: [
                 {
-                    assignee: { handle: 'sage', id: agentId },
-                    number: 2,
-                    status: 'in_progress',
-                    target: '#dispatch',
+                    outcome: 'claimed',
+                    task: {
+                        assignee: { handle: 'sage', id: agentId },
+                        number: 2,
+                        status: 'in_progress',
+                        target: '#dispatch',
+                    },
                 },
             ],
         },
@@ -1535,8 +1536,8 @@ test('task ownership is one lock across human and Agent actors', async () => {
         target: '#dispatch',
     });
     expect(agentClaim).toMatchObject({
-        body: { code: 'TASK_CONFLICT' },
-        status: 409,
+        body: { results: [{ claimConflict: { kind: 'claim_conflict' }, outcome: 'refused' }] },
+        status: 200,
     });
 
     const agentOwned = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
@@ -1604,11 +1605,10 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
         agentPost(rivalRunner.runnerToken, '/api/agent/tasks/claim', claimBody),
     ]);
 
-    expect(claims.filter((claim) => claim.status === 200)).toHaveLength(1);
-    expect(claims.filter((claim) => claim.status === 409)).toHaveLength(1);
-    const loserIndex = claims.findIndex((claim) => claim.status === 409);
+    const outcomes = claims.map((claim) => claim.body.results?.[0]?.outcome);
+    expect([...outcomes].sort()).toEqual(['claimed', 'refused']);
+    const loserIndex = outcomes.indexOf('refused');
     const loserToken = [coveRunner.runnerToken, rivalRunner.runnerToken][loserIndex];
-    expect(loserToken).toBeTruthy();
 
     const update = await agentPost(loserToken ?? '', '/api/agent/tasks/update', {
         number: created.task.number,
@@ -1633,7 +1633,7 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
         from message_tasks
         where server_id = ${serverId} and message_id = ${created.task.messageId}
     `) as Array<{ assignee_agent_id: string | null; status: string }>;
-    const winnerAgentId = claims[0]?.status === 200 ? agentId : peer.agent.id;
+    const winnerAgentId = loserIndex === 1 ? agentId : peer.agent.id;
     expect(stored).toEqual({
         assignee_agent_id: winnerAgentId,
         status: 'in_progress',
@@ -2830,7 +2830,6 @@ async function agentPost(token: string, path: string, body: Record<string, unkno
     });
     return {
         body: (await response.json()) as {
-            claimed?: Record<string, unknown>[];
             code?: string;
             joined?: boolean;
             left?: boolean;
@@ -2838,6 +2837,7 @@ async function agentPost(token: string, path: string, body: Record<string, unkno
             message?: Record<string, unknown>;
             profile?: Record<string, unknown>;
             reminder?: Record<string, unknown>;
+            results?: Record<string, unknown>[];
             target?: string;
             task?: Record<string, unknown>;
             tasks?: Array<{

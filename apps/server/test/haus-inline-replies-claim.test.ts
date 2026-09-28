@@ -34,16 +34,24 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
             target: '#product',
         }),
     ]);
-    expect(raceClaims.map(({ status }) => status).sort()).toEqual([200, 409]);
+    const raceOutcomes = raceClaims.map(
+        ({ body }) => (body as { results?: Array<{ outcome: string }> }).results?.[0]?.outcome
+    );
+    expect(raceOutcomes.sort()).toEqual(['claimed', 'refused']);
     const raceFollowRows = await follows(raceRoot.message.id);
     expect(raceFollowRows).toHaveLength(1);
     expect(raceFollowRows[0]?.followed).toBe(true);
-    const winningIndex = raceClaims.findIndex(({ status }) => status === 200);
+    const winningIndex = raceClaims.findIndex(
+        ({ body }) =>
+            (body as { results?: Array<{ outcome: string }> }).results?.[0]?.outcome === 'claimed'
+    );
     const winner = winningIndex === 0 ? orbit : peer;
     const loser = winningIndex === 0 ? peer : orbit;
     const taskNumber = (
-        raceClaims[winningIndex]?.body as { claimed?: Array<{ number: number }> } | undefined
-    )?.claimed?.[0]?.number;
+        raceClaims[winningIndex]?.body as
+            | { results?: Array<{ task: { number: number } | null }> }
+            | undefined
+    )?.results?.[0]?.task?.number;
     expect(taskNumber).toBeTypeOf('number');
     const completed = await fixture.post('/api/agent/tasks/update', winner, {
         number: taskNumber,

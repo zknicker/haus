@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
-import { type AgentTaskError, claimAgentTasks } from '../src/agent-api/tasks.ts';
+import { claimAgentTasks } from '../src/agent-api/task-claims.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { messageTasksTable } from '../src/postgres/schema.ts';
@@ -199,9 +199,8 @@ async function seedAgentRunner(
 }
 
 test('the loser of a claim race learns who holds the lock, not to refresh', async () => {
-    // Both Agents read the task before either wrote it, so the losing claim
-    // fails on a stale version. That is the real race, and it is exactly the
-    // refusal Raft parity wants carrying the structured conflict.
+    // Both Agents read the task before either wrote it. The loser's row must
+    // carry the structured conflict, never a stale-version refresh notice.
     const server = await createServer('lens-race');
     const anchor = await sendMessage(server, 'Cut the release branch');
     await owner.trpc.task.promote.mutate({ messageId: anchor, serverId: server.id });
@@ -211,15 +210,15 @@ test('the loser of a claim race learns who holds the lock, not to refresh', asyn
         seedAgentRunner(server, 'rook'),
     ]);
 
-    const races = await Promise.allSettled([
+    const races = await Promise.all([
         claimAgentTasks(connection.db, first, { numbers: [1], target }),
         claimAgentTasks(connection.db, second, { numbers: [1], target }),
     ]);
 
-    expect(races.filter((race) => race.status === 'fulfilled')).toHaveLength(1);
-    const lost = races.find((race) => race.status === 'rejected') as PromiseRejectedResult;
-    const refusal = lost.reason as AgentTaskError;
-    expect(refusal.claimConflict).toMatchObject({
+    const rows = races.map((race) => race.results[0]);
+    expect(rows.filter((row) => row?.outcome === 'claimed')).toHaveLength(1);
+    const lost = rows.find((row) => row?.outcome === 'refused');
+    expect(lost?.claimConflict).toMatchObject({
         blockedActions: ['start_conflicting_execution'],
         currentAssignee: { type: 'agent' },
         kind: 'claim_conflict',
