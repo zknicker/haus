@@ -212,6 +212,15 @@ remains unacknowledged and is offered by the next turn in the same session.
 Runtime acceptance must be acknowledged; writing to an adapter's local input
 queue is insufficient. A notice advances no cursor.
 
+The notice carries its own handling guidance after the closing `]`, as Raft's inbox update does,
+so the standing system prompt keeps only the collaboration principle (collaborate
+asynchronously; choose when to read; a notice needs no immediate interruption). The guidance
+states that the bodies are withheld to avoid flooding the Agent, not absent; that the notice is not
+itself a request and is not acknowledged; how to pull (`haus message check`, `haus message read
+--target`, `haus inbox check`); and that deferral needs no visible reply but must be reported
+honestly, never as a conclusion that nothing is pending. With no concrete message and no notice,
+the prompt's startup sequence stops the turn.
+
 Computer owns one local visibility coordinator for the busy-notice
 projection. Every path that makes a message visible to the model — an accepted
 run inbox, a message pull, a history result, or freshness-hold context —
@@ -279,7 +288,7 @@ turn starts when its creator sends the working brief.
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/haus-agent-creation.test.ts` |
-| Agent instructions teach notice, pull, silence, and deferral semantics without losing required capabilities | `apps/computer/src/harness/managed-instructions.test.ts` |
+| The notice teaches pull, non-request, and honest-deferral semantics; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `apps/computer/src/inbox-format.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
 | A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |

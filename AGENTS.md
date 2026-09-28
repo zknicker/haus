@@ -213,21 +213,27 @@ The composed agent system prompt is a guarded contract. Its sources live under
 
 Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
 reviewed, and bounded. `managed-instructions.test.ts` asserts a reviewed size budget (currently
-40,270 characters) that ratchets down and never drifts up. It is a review gate, not a runtime
+32,359 characters) that ratchets down and never drifts up. It is a review gate, not a runtime
 limit: no adapter enforces a prompt length. Prefer moving guidance out of the prompt over adding
 to it — the prompt is a pointer to the
 [Haus Manual](docs/adr/0021-cove-onboards-and-agents-share-a-manual.md) for mechanics, and a
-change should move things around and simplify rather than expand.
+change should move things around and simplify rather than expand. Following Raft's own rule,
+standing principles stay in the prompt; event formats, delivery mechanics, and event-specific
+actions ride the event input (for example the inbox notice in `apps/computer/src/inbox-format.ts`).
 
-Two kinds of text share that budget:
+Haus tracks the **current** Raft release from source. The
+[divergence register](specs/raft-alignment/prompt-divergences.md) pins the Raft source commit;
+re-pin by updating that commit and re-diffing every row. Two kinds of text share the budget:
 
-- **Raft-verbatim text is the fixed part.** It is never trimmed, paraphrased, or reordered to make
-  room. Restoring a Raft clause that Haus had replaced with an analogue may raise the budget by
-  exactly the restored amount, with the register row and a one-line commit rationale.
+- **Raft-verbatim text is the fixed part.** It is text present in the current Raft prompt at the
+  pinned source commit, and it is never trimmed, paraphrased, or reordered to make room. Adopting
+  or restoring a current Raft clause may raise the budget by exactly that amount, with the
+  register row and a one-line commit rationale. When Raft deletes a clause, the Haus copy becomes
+  Haus-only and must justify itself like any other Haus-only text.
 - **Haus-only text is the variable part.** A Haus-only addition must fit inside the current
-  budget by simplifying or relocating other Haus-only text — Manual topics and skills, per
-  [ADR 0012](docs/adr/0012-design-guidance-is-skill-carried.md) — never by cutting Raft text.
-  Raising the budget for Haus-only growth needs an explicit operator decision.
+  budget by simplifying or relocating other Haus-only text — Manual topics, skills, or event
+  input, per [ADR 0012](docs/adr/0012-design-guidance-is-skill-carried.md) — never by cutting Raft
+  text. Raising the budget for Haus-only growth needs an explicit operator decision.
 
 When changing prompt text or that contract test:
 
