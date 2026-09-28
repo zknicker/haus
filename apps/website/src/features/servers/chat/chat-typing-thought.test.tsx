@@ -72,6 +72,11 @@ test('bubbles start at least four seconds apart; an early thought waits its turn
     expect(chatTypingThoughtDelay(10_000, 20_000)).toBe(0);
 });
 
+test('an engagement’s first thought shows at once, even right after another bubble', () => {
+    expect(chatTypingThoughtDelay(10_000, 11_000, true)).toBe(0);
+    expect(chatTypingThoughtDelay(10_000, 11_000, false)).toBe(3000);
+});
+
 test('the transcript end clears a two-line bubble above the strip', () => {
     expect(chatFooterClearanceClassName).toContain('+4rem)');
 });

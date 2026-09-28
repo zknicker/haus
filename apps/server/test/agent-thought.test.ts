@@ -11,13 +11,18 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     admitComputerAgentThought,
     createAgentThoughts,
+    thoughtFirstSpacingMs,
     thoughtSpacingMs,
 } from '../src/server-agents/agent-thought.ts';
-import type {
-    ThoughtSource,
-    ThoughtSummarizer,
-    ThoughtSummary,
-} from '../src/server-agents/agent-thought-summarizer.ts';
+import type { ThoughtSummary } from '../src/server-agents/agent-thought-summarizer.ts';
+import {
+    at,
+    collectBackground,
+    excerpt,
+    fakeSummarizer,
+    phrase,
+    reasoning,
+} from './agent-thought-harness.ts';
 import { settledSummary, wakeOn } from './chat-engagement-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -34,9 +39,6 @@ afterAll(async () => {
     await connection?.close();
     await cluster?.stop();
 });
-
-const at = '2026-09-24T12:00:00.000Z';
-const excerpt = 'Let me compare the Halloween bids with last week before replying to the user.';
 
 test('admits a thought for the accepted run, once per Chat it engages, and nowhere else', async () => {
     const { delivery, runner, seed, wakeMessage } = await wakeOn(connection.db);
@@ -168,6 +170,26 @@ test('ignores a run’s titles and excerpts closer than the spacing window, befo
     expect(summarizer.seen).toHaveLength(2);
 });
 
+test('lets a run’s first shown thought through the spacing window after a skipped opening', async () => {
+    const { runner, seed, wakeMessage } = await wakeOn(connection.db);
+    await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
+    const answers: ThoughtSummary[] = [{ kind: 'skip' }, { kind: 'phrase', text: 'Fetching' }];
+    const summarizer = fakeSummarizer(async () => answers.shift() ?? null);
+    let clock = 0;
+    const thoughts = createAgentThoughts({ now: () => clock, summarizer: summarizer.summarizer });
+    const ingest = async (step: number) => {
+        clock += step;
+        return await recorder(seed)(thoughts, phrase(seed.agentId, runner.runId));
+    };
+    // A skipped "Claiming the task" never holds back the work title behind it.
+    expect(await ingest(0)).toEqual([]);
+    expect(await ingest(thoughtFirstSpacingMs - 1)).toEqual([]);
+    expect(await ingest(1)).toEqual(['Fetching']);
+    // Once a thought has shown, the full window applies again.
+    expect(await ingest(thoughtFirstSpacingMs)).toEqual([]);
+    expect(summarizer.seen).toHaveLength(2);
+});
+
 test('consumes but never summarizes a thought from the wrong Computer, and passes other frames on', async () => {
     const { runner, seed, wakeMessage } = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
@@ -244,42 +266,4 @@ function recorder(seed: { computerId: string; serverId: string }) {
         await listener;
         return heard.map((event) => event.text);
     };
-}
-
-function collectBackground() {
-    const tasks: Promise<void>[] = [];
-    return {
-        run: (_operation: string, work: () => Promise<unknown>) => {
-            const task = work().then(() => undefined);
-            tasks.push(task);
-            return task;
-        },
-        tasks,
-    };
-}
-
-function fakeSummarizer(answer: (source: ThoughtSource) => Promise<ThoughtSummary | null>) {
-    const seen: ThoughtSource[] = [];
-    const summarizer: ThoughtSummarizer = {
-        summarize: (source) => {
-            seen.push(source);
-            return answer(source);
-        },
-    };
-    return { seen, summarizer };
-}
-
-function phrase(agentId: string, runId: string): AgentThoughtFrame {
-    return {
-        agentId,
-        at,
-        kind: 'phrase',
-        runId,
-        text: 'Checking Halloween bid changes',
-        type: 'agent-thought',
-    };
-}
-
-function reasoning(agentId: string, runId: string): AgentThoughtFrame {
-    return { agentId, at, kind: 'reasoning', reasoning: excerpt, runId, type: 'agent-thought' };
 }

@@ -159,6 +159,25 @@ describe('Gemini thought summarizer', () => {
         });
     });
 
+    test('shows a line about work that only names an inbox, a manual, memory, or a decision', async () => {
+        for (const line of [
+            "Searching Zach's email inbox for the invoice",
+            'Reading the printer manual for error E-41',
+            'Checking memory usage on the image worker',
+            'Deciding whether the release build is safe',
+            'Checking the task list Maya shared',
+        ]) {
+            const summarizer = createGeminiThoughtSummarizer({
+                apiKey: 'k',
+                fetch: fakeGemini(async () => answer(line)).fetcher,
+            });
+            expect(await summarizer.summarize({ kind: 'title', title: line })).toEqual({
+                kind: 'phrase',
+                text: line,
+            });
+        }
+    });
+
     test('keeps openings mostly pronoun-free', () => {
         const iOpenings = thoughtOpenings.filter((opening) => opening.startsWith('Start with "I'));
         expect(iOpenings.length / thoughtOpenings.length).toBeLessThanOrEqual(1 / 3);
@@ -186,7 +205,10 @@ describe('Gemini thought summarizer', () => {
         ]);
         const system = JSON.stringify(call?.body.systemInstruction);
         expect(system).toContain('Reply with exactly SKIP');
-        expect(system).toContain('claiming, assigning, or updating tasks');
+        expect(system).toContain('claiming, assigning, syncing, or updating its tasks');
+        // Reading what the request is about is work, and the line never invents details.
+        expect(system).toContain('Reading the checklist doc');
+        expect(system).toContain('never add a place, day, or name');
         expect(system).toContain('its own chat reply');
         expect(system).not.toContain('right now for');
     });

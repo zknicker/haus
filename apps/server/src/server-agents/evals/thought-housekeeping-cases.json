@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "description": "Labeled Agent reasoning excerpts and Codex status titles for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\".",
   "cases": [
     {
@@ -395,6 +395,172 @@
       "rules": {
         "mentionsAny": ["build", "targets"]
       }
+    },
+    {
+      "id": "title-ci-search",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm initiating focused CI search",
+      "rules": {
+        "mentionsAny": ["CI", "build", "search"],
+        "banned": ["the city", "Monday", "Tuesday"]
+      }
+    },
+    {
+      "id": "title-weather-retrieval",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm planning weather data retrieval",
+      "rules": {
+        "mentionsAny": ["weather", "forecast"],
+        "banned": ["the city", "Monday", "Tuesday"]
+      }
+    },
+    {
+      "id": "title-claim-and-fetch",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm claiming weather task and preparing fetch",
+      "rules": {
+        "mentionsAny": ["weather", "forecast", "fetch"],
+        "banned": ["claim", "claiming", "task"]
+      }
+    },
+    {
+      "id": "title-fetch-weather",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm fetching current weather data",
+      "rules": {
+        "mentionsAny": ["weather", "forecast", "conditions"]
+      }
+    },
+    {
+      "id": "title-ci-url",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm requesting project or CI URL for build diagnostics",
+      "rules": {
+        "mentionsAny": ["build", "CI", "project"],
+        "banned": ["the city", "Monday", "Tuesday"]
+      }
+    },
+    {
+      "id": "title-checklist-location",
+      "kind": "title",
+      "expected": "show",
+      "text": "I'm requesting checklist location",
+      "rules": {
+        "mentionsAny": ["checklist"]
+      }
+    },
+    {
+      "id": "read-checklist-doc",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Zach asked for a sanity check of the launch checklist. Reading the checklist doc first so I can flag any step that is missing an owner or a date.",
+      "rules": {
+        "mentionsAny": ["checklist", "launch"]
+      }
+    },
+    {
+      "id": "read-thread-for-request",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "The question is about the pricing change Priya proposed. Let me read that thread to pull out the three price points she listed so I can compare them against last month's sales.",
+      "rules": {
+        "mentionsAny": ["pricing", "price", "prices", "sales", "Priya"]
+      }
+    },
+    {
+      "id": "memory-usage",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Checking memory usage on the image worker: the heap snapshot shows the thumbnail cache never evicts, so the process grows until it is killed.",
+      "rules": {
+        "mentionsAny": ["memory", "cache", "worker", "heap", "thumbnail"]
+      }
+    },
+    {
+      "id": "printer-manual",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Maya's label printer shows error E-41. Reading the printer manual for that code to see whether it is a jam or a sensor fault.",
+      "rules": {
+        "mentionsAny": ["printer", "E-41", "label", "error code", "code"]
+      }
+    },
+    {
+      "id": "email-inbox-invoice",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Zach wants the supplier's September invoice total. Searching his email inbox for the invoice from Northwind and reading the attached PDF.",
+      "rules": {
+        "mentionsAny": ["invoice", "Northwind", "supplier", "September"]
+      }
+    },
+    {
+      "id": "decide-ship",
+      "kind": "reasoning",
+      "expected": "show",
+      "text": "Deciding whether the release build is safe to ship: two flaky tests failed, but both pass on rerun and the failing step is unrelated to the change.",
+      "rules": {
+        "mentionsAny": ["release", "build", "ship", "tests"]
+      }
+    },
+    {
+      "id": "title-claim-new-task",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm claiming new task"
+    },
+    {
+      "id": "title-claim-and-ack",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm planning task claiming and acknowledgement"
+    },
+    {
+      "id": "title-ack-send",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm planning acknowledgment send"
+    },
+    {
+      "id": "title-willing",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm confirming willingness to assist"
+    },
+    {
+      "id": "title-memory-dates",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm updating memory with upcoming dates"
+    },
+    {
+      "id": "title-memory-decline",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm deciding against adding ephemeral weather to memory"
+    },
+    {
+      "id": "title-summary-reply",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm preparing concise weather summary reply"
+    },
+    {
+      "id": "title-task-sync",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm assessing task synchronization and status updates"
+    },
+    {
+      "id": "title-task-blocker",
+      "kind": "title",
+      "expected": "skip",
+      "text": "I'm maintaining task in progress despite blocker"
     }
   ]
 }

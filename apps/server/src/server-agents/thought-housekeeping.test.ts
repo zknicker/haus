@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { isHousekeepingThought } from './thought-housekeeping.ts';
+import { isHousekeepingPhrase, isHousekeepingThought } from './thought-housekeeping.ts';
 
 test('drops the Agent’s own process from the fallback', () => {
     for (const text of [
@@ -37,5 +37,38 @@ test('keeps work on the request, including mixed and look-alike nouns', () => {
         'Double-checking the dates',
     ]) {
         expect(isHousekeepingThought(text)).toBe(false);
+    }
+});
+
+test('the summary check catches only clear reply drafting and bookkeeping', () => {
+    for (const phrase of [
+        'Drafting the availability reply',
+        'Preparing the weather summary reply',
+        'Planning the acknowledgment send',
+        'Confirming willingness to assist',
+        'Reviewing the draft before sending',
+        'Updating my memory with the dates',
+        'Applying a patch to update memory context',
+        'Claiming the new task',
+        'Assessing task synchronization and status updates',
+        'Keeping the task in progress',
+        'Searching the manual for the reminder recipe',
+    ]) {
+        expect(isHousekeepingPhrase(phrase)).toBe(true);
+    }
+});
+
+test('the summary check keeps work that names an inbox, a manual, memory, or a decision', () => {
+    for (const phrase of [
+        "Searching Zach's email inbox for the invoice",
+        'Reading the printer manual for error E-41',
+        'Checking memory usage on the image worker',
+        'Deciding whether the release build is safe',
+        'Checking the task list Maya shared',
+        'Reading the launch checklist doc',
+        'Drafting a firm reply to the supplier',
+        'Fetching the current NYC weather',
+    ]) {
+        expect(isHousekeepingPhrase(phrase)).toBe(false);
     }
 });

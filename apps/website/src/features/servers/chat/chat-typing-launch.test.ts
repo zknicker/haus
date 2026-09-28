@@ -2,11 +2,13 @@ import { expect, test } from 'bun:test';
 import type { AgentActivityCategory } from '@haus/api';
 import {
     admitChatTypingLaunch,
+    admitChatTypingThinking,
     type ChatTypingFace,
     chatTypingLaunchCap,
     isEngagedActivity,
     planChatTypingLaunch,
     resolveChatTypingFace,
+    syncChatTypingThinking,
 } from './chat-typing-launch.ts';
 
 test.each([
@@ -100,4 +102,47 @@ test('a launch arcs within its ranges and mostly flips direction', () => {
     expect(high.rise).toBeCloseTo(70);
     expect(high.rotate).toBeCloseTo(16);
     expect(high.durationMs).toBeCloseTo(1100);
+});
+
+test('🤔 launches once when an engagement starts', () => {
+    const ledger = { launched: new Set<string>() };
+    const juniper = { agentId: 'agt_juniper', runId: 'run_1' };
+    expect(syncChatTypingThinking(ledger, 'cht_a', [juniper])).toBe(1);
+    // The same engagement on later renders launches nothing more.
+    expect(syncChatTypingThinking(ledger, 'cht_a', [juniper])).toBe(0);
+    expect(
+        syncChatTypingThinking(ledger, 'cht_a', [juniper, { agentId: 'agt_cove', runId: 'run_2' }])
+    ).toBe(1);
+});
+
+test('a thinking activity right after the engagement starts launches no second 🤔', () => {
+    const ledger = { launched: new Set<string>() };
+    const juniper = { agentId: 'agt_juniper', runId: 'run_1' };
+    expect(syncChatTypingThinking(ledger, 'cht_a', [juniper])).toBe(1);
+    expect(admitChatTypingThinking(ledger, 'cht_a', juniper)).toBe(false);
+    // A thinking activity that beats the effect claims the engagement's 🤔 instead.
+    const early = { launched: new Set<string>() };
+    expect(admitChatTypingThinking(early, 'cht_a', juniper)).toBe(true);
+    expect(syncChatTypingThinking(early, 'cht_a', [juniper])).toBe(0);
+});
+
+test('a later engagement by the same Agent in the same Chat gets its own 🤔', () => {
+    const ledger = { launched: new Set<string>() };
+    const first = { agentId: 'agt_juniper', runId: 'run_1' };
+    expect(syncChatTypingThinking(ledger, 'cht_a', [first])).toBe(1);
+    expect(syncChatTypingThinking(ledger, 'cht_a', [])).toBe(0);
+    expect(
+        syncChatTypingThinking(ledger, 'cht_a', [{ agentId: 'agt_juniper', runId: 'run_2' }])
+    ).toBe(1);
+    // The same run engaging again after its engagement ended launches again too.
+    expect(syncChatTypingThinking(ledger, 'cht_a', [])).toBe(0);
+    expect(syncChatTypingThinking(ledger, 'cht_a', [first])).toBe(1);
+});
+
+test('another Chat’s engagements neither launch nor forget this Chat’s 🤔', () => {
+    const ledger = { launched: new Set<string>() };
+    const juniper = { agentId: 'agt_juniper', runId: 'run_1' };
+    expect(syncChatTypingThinking(ledger, 'cht_a', [juniper])).toBe(1);
+    expect(syncChatTypingThinking(ledger, 'cht_b', [])).toBe(0);
+    expect(syncChatTypingThinking(ledger, 'cht_a', [juniper])).toBe(0);
 });
