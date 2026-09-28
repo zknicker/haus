@@ -130,8 +130,60 @@ describe('Agent thought narrator', () => {
             "I'm checking task board",
         ]);
     });
+
+    test('sends an action at once when the interval is open, and shares the interval', () => {
+        const run = harness();
+        run.narrator.observeAction('curl api.open-meteo.com/v1/forecast');
+        run.narrator.observeAction(null);
+        run.block('r1', '**Reading sales chart**');
+        expect(run.thoughts).toEqual([
+            {
+                action: 'curl api.open-meteo.com/v1/forecast',
+                at: '2026-09-24T12:00:00.000Z',
+                kind: 'action',
+            },
+        ]);
+        run.advance(thoughtIntervalMs);
+        expect(run.thoughts.map(text)).toEqual([
+            'curl api.open-meteo.com/v1/forecast',
+            "I'm reading sales chart",
+        ]);
+    });
+
+    test('keeps a waiting title or excerpt over a newer action, and lets them replace actions', () => {
+        const run = harness();
+        run.block('r1', '**Planning weather fetch**');
+        run.block('r2', '**Checking the forecast endpoint**');
+        run.narrator.observeAction('curl api.weather.gov/gridpoints/OKX/forecast');
+        run.advance(thoughtIntervalMs);
+        run.narrator.observeAction('read MEMORY.md');
+        run.narrator.observeAction('curl wttr.in/New');
+        run.advance(thoughtIntervalMs);
+        run.narrator.observeAction('edit notes.md');
+        run.block(
+            'r3',
+            'Now I should compare the three days and pick the rainiest one for the tip.'
+        );
+        run.advance(thoughtIntervalMs);
+        expect(run.thoughts.map(text)).toEqual([
+            "I'm planning weather fetch",
+            "I'm checking the forecast endpoint",
+            'curl wttr.in/New',
+            'Now I should compare the three days and pick the rainiest one for the tip.',
+        ]);
+    });
+
+    test('drops actions after close', () => {
+        const run = harness();
+        run.narrator.close();
+        run.narrator.observeAction('curl example.com');
+        expect(run.thoughts).toEqual([]);
+    });
 });
 
 function text(thought: AgentThoughtContent) {
+    if (thought.kind === 'action') {
+        return thought.action;
+    }
     return thought.kind === 'phrase' ? thought.text : thought.reasoning;
 }

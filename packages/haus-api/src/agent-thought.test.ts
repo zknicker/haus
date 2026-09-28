@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { agentThoughtFrameSchema, agentThoughtTextMaxLength } from './agent-thought.ts';
+import {
+    agentThoughtActionMaxLength,
+    agentThoughtFrameSchema,
+    agentThoughtTextMaxLength,
+} from './agent-thought.ts';
 
 const phrase = {
     agentId: 'agt_test',
@@ -14,6 +18,12 @@ const reasoning = {
     ...base,
     kind: 'reasoning' as const,
     reasoning: 'Comparing the Halloween bids with last week.\nThen the reply.',
+};
+
+const action = {
+    ...base,
+    action: 'curl api.open-meteo.com/v1/forecast',
+    kind: 'action' as const,
 };
 
 describe('Agent thought contract', () => {
@@ -51,6 +61,30 @@ describe('Agent thought contract', () => {
             { ...base, text: phrase.text },
         ]) {
             expect(agentThoughtFrameSchema.safeParse(frame).success).toBe(false);
+        }
+    });
+
+    test('accepts a one-line action description up to its cap', () => {
+        expect(agentThoughtFrameSchema.parse(action)).toEqual(action);
+        const longest = 'a'.repeat(agentThoughtActionMaxLength);
+        expect(agentThoughtFrameSchema.safeParse({ ...action, action: longest }).success).toBe(
+            true
+        );
+        for (const text of [`${longest}a`, 'curl a\ncurl b', '  ']) {
+            expect(agentThoughtFrameSchema.safeParse({ ...action, action: text }).success).toBe(
+                false
+            );
+        }
+        expect(agentThoughtFrameSchema.safeParse({ ...action, text: 'x' }).success).toBe(false);
+    });
+
+    test('an action frame fits no earlier kind, so a Server that predates it drops it', () => {
+        const earlier = agentThoughtFrameSchema.options.filter(
+            (option) => option.shape.kind.value !== 'action'
+        );
+        expect(earlier).toHaveLength(2);
+        for (const option of earlier) {
+            expect(option.safeParse(action).success).toBe(false);
         }
     });
 });

@@ -57,9 +57,29 @@ describe('Gemini thought summarizer context', () => {
         ).toEqual({ kind: 'skip' });
         const system = JSON.stringify(gemini.bodies[0]?.systemInstruction);
         expect(system).toContain('The <request> block');
-        expect(system).toContain('Decide SKIP from the title or reasoning alone');
-        expect(system).toContain('the request never turns housekeeping into work');
-        expect(system).toContain("in the request's concrete terms");
+        expect(system).toContain('First decide SKIP from the input alone');
+        expect(system).toContain("drafting, reviewing, or preparing the agent's own reply");
+        expect(system).toContain('keep its own verb and object');
         expect(system).toContain('never from anywhere else');
+    });
+
+    test('phrases a started action with the action note, and only then', async () => {
+        const gemini = fakeGemini('Pulling the NYC forecast');
+        expect(
+            await gemini.summarizer.summarize({
+                action: 'curl -fsS api.open-meteo.com/v1/forecast',
+                kind: 'action',
+                request: 'Weather in NYC?',
+            })
+        ).toEqual({ kind: 'phrase', text: 'Pulling the NYC forecast' });
+        expect(userText(gemini.bodies[0])).toBe(
+            `<request>\nWeather in NYC?\n</request>\n<action>\ncurl -fsS api.open-meteo.com/v1/forecast\n</action>\n${thoughtOpenings[0]}`
+        );
+        const system = JSON.stringify(gemini.bodies[0]?.systemInstruction);
+        expect(system).toContain('The <action> block is not reasoning');
+        expect(system).toContain('(MEMORY.md) is housekeeping, so SKIP');
+
+        await gemini.summarizer.summarize({ kind: 'title', title: 'Checking the forecast' });
+        expect(JSON.stringify(gemini.bodies[1]?.systemInstruction)).not.toContain('<action>');
     });
 });

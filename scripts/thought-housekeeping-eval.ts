@@ -6,12 +6,14 @@
 // the local fallback filter on the same set.
 //
 // This is a dev tool, not CI: each case is a real Gemini call.
-// Cases may carry a `request`, the human message the run is answering.
+// Cases may carry a `request`, the human message the run is answering, and may be
+// an `action` (a scrubbed command, file, or tool description) instead of a title or excerpt.
 // Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <id>] [--runs <n>] [--no-request]
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
     createGeminiThoughtSummarizer,
+    type ThoughtSource,
     thoughtSummaryPromptVersion,
 } from '../apps/server/src/server-agents/agent-thought-summarizer.ts';
 import { isHousekeepingThought } from '../apps/server/src/server-agents/thought-housekeeping.ts';
@@ -26,7 +28,7 @@ import {
 interface EvalCase {
     expected: 'show' | 'skip';
     id: string;
-    kind: 'reasoning' | 'title';
+    kind: 'action' | 'reasoning' | 'title';
     /** The human message the run is answering, sent as `<request>` context. */
     request?: string;
     rules?: ThoughtEvalRules;
@@ -74,11 +76,7 @@ console.log(`\nraw outcomes: ${file}`);
 
 async function judgeCase(item: EvalCase, run: number): Promise<Outcome> {
     const context = item.request && !withoutRequest ? { request: item.request } : {};
-    const summary = await summarizer.summarize(
-        item.kind === 'title'
-            ? { kind: 'title', title: item.text, ...context }
-            : { kind: 'reasoning', reasoning: item.text, ...context }
-    );
+    const summary = await summarizer.summarize(caseSource(item, context));
     return {
         answer: summary === null ? '(failed)' : summary.kind === 'skip' ? 'SKIP' : summary.text,
         expected: item.expected,
@@ -89,6 +87,17 @@ async function judgeCase(item: EvalCase, run: number): Promise<Outcome> {
         id: item.id,
         run,
     };
+}
+
+function caseSource(item: EvalCase, context: { request?: string }): ThoughtSource {
+    switch (item.kind) {
+        case 'action':
+            return { action: item.text, kind: 'action', ...context };
+        case 'title':
+            return { kind: 'title', title: item.text, ...context };
+        default:
+            return { kind: 'reasoning', reasoning: item.text, ...context };
+    }
 }
 
 function report(results: Outcome[]) {
