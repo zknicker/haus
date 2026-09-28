@@ -6,6 +6,7 @@ import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
+import { assignAgentTask } from './task-assign.ts';
 import { claimAgentTasks } from './task-claims.ts';
 import { createAgentTasks } from './task-create.ts';
 import { listAgentTasks, TASK_LIST_STATUSES } from './task-list.ts';
@@ -91,6 +92,43 @@ export function registerAgentTaskRoutes(
             return sendAgentReadError(reply, cause);
         }
     });
+
+    for (const action of ['assign', 'unassign'] as const) {
+        app.post(`/api/agent/tasks/${action}`, async (request, reply) => {
+            const runner = await authorizeAgentRunner(db, request);
+            const parsed = z
+                .object({
+                    assignee: z.string().min(1).optional(),
+                    expectedRevision: z.number().int().nonnegative().optional(),
+                    number: z.number().int().positive(),
+                    target: z.string().min(1),
+                })
+                .safeParse(request.body);
+            const assignee = parsed.success ? (parsed.data.assignee ?? null) : null;
+            if (!(runner && parsed.success) || (action === 'assign') !== (assignee !== null)) {
+                return sendAgentApiError(
+                    reply,
+                    400,
+                    'INVALID_ARG',
+                    'The task request was invalid.'
+                );
+            }
+            try {
+                const result = await assignAgentTask(db, runner, agentDelivery, {
+                    ...parsed.data,
+                    assignee,
+                });
+                emitTaskEvents(result.events);
+                await postCommitWork.wakeAgents(
+                    agentDelivery,
+                    result.wakes.map((agentId) => ({ agentId, serverId: runner.serverId }))
+                );
+                return { task: result.task };
+            } catch (cause) {
+                return sendAgentReadError(reply, cause);
+            }
+        });
+    }
 
     for (const action of ['unclaim', 'update'] as const) {
         app.post(`/api/agent/tasks/${action}`, async (request, reply) => {

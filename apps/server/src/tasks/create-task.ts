@@ -18,7 +18,6 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { TaskAdminRequiredError } from './assign-task.ts';
 import { TaskNotFoundError } from './claim-task.ts';
 import { UntaskableMessageError } from './promote-task.ts';
 import { InvalidTaskAssigneeError } from './resolve-task-assignee.ts';
@@ -66,15 +65,8 @@ export async function createTask(
                 for update
             `);
         }
-        const server = await requireServerMembership(tx, member, input.serverId);
-        if (
-            input.assigneeUserId &&
-            input.assigneeUserId !== member.id &&
-            server.role !== 'owner' &&
-            server.role !== 'admin'
-        ) {
-            throw new TaskAdminRequiredError();
-        }
+        // Assigning at creation is member-level, like assigning afterwards.
+        await requireServerMembership(tx, member, input.serverId);
         await tx.execute(sql`
             select id from chats
             where server_id = ${input.serverId} and id = ${input.chatId}

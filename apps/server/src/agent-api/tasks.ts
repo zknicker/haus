@@ -5,16 +5,17 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { insertTaskEvent } from '../tasks/task-events.ts';
-import { agentOwnsTask } from '../tasks/task-ownership.ts';
-import { stampsTaskTracked } from '../tasks/task-tier.ts';
+import {
+    type TaskStatus,
+    taskStatusChangeError,
+    taskStatusColumns,
+} from '../tasks/task-status-transitions.ts';
 import { messageSelection } from './message-view.ts';
 import { resolveAgentTarget } from './resolve-target.ts';
 import { AgentTaskError } from './task-error.ts';
 import { hasUnseenTaskThreadContext } from './task-freshness.ts';
 import { findAgentTasks } from './task-lookup.ts';
 import { taskRow } from './task-row.ts';
-
-type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';
 
 export async function unclaimAgentTask(
     db: HausDatabase,
@@ -63,13 +64,13 @@ async function mutateAgentTask(
             chatId: current.chatId,
             serverId: runner.serverId,
         });
-        await requireMayMutate(tx, runner, current, expectedVersion, action);
+        await requireMayMutate(tx, runner, current, expectedVersion, action, status);
         const [updated] = await tx
             .update(messageTasksTable)
             .set({
                 ...(action === 'unclaim'
                     ? { assigneeAgentId: null, assigneeUserId: null, claimedAt: null }
-                    : statusPatch(status)),
+                    : taskStatusColumns(current, status as TaskStatus)),
                 updatedAt: sql`now()`,
                 version: sql`${messageTasksTable.version} + 1`,
             })
@@ -117,7 +118,8 @@ async function requireMayMutate(
     runner: ResolvedRunner,
     current: typeof messageTasksTable.$inferSelect,
     expectedVersion: number,
-    action: 'unclaim' | 'update'
+    action: 'unclaim' | 'update',
+    status: TaskStatus | undefined
 ) {
     if (current.version !== expectedVersion) {
         throw new AgentTaskError('That task changed; refresh it before updating.');
@@ -136,15 +138,10 @@ async function requireMayMutate(
             'New context exists in this task thread. Run haus message check before retrying.'
         );
     }
-    if (!agentOwnsTask(current, runner.agentId) || current.claimedAt === null) {
-        throw new AgentTaskError('Only the current assignee may update this task.');
+    // Status is member-level: any Agent that can write here may move it along
+    // the transition table. Agents hold no Server role, so no force path.
+    const refusal = taskStatusChangeError(current, status as TaskStatus, { force: false });
+    if (refusal) {
+        throw new AgentTaskError(refusal);
     }
-}
-
-/**
- * Leaving the claim's own `in_progress`/`done` lifecycle is the Agent saying a
- * human has to look: tracked from here on.
- */
-function statusPatch(status: TaskStatus | undefined) {
-    return { status, ...(stampsTaskTracked(status) ? { trackedAt: sql`now()` } : {}) };
 }

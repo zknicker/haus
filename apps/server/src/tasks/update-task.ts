@@ -8,7 +8,7 @@ import { TaskConflictError, type TaskMutationResult, TaskNotFoundError } from '.
 import { insertTaskEvent } from './task-events.ts';
 import { requireTaskLabelIds } from './task-labels.ts';
 import { findMessageTask } from './task-shape.ts';
-import { stampsTaskTracked } from './task-tier.ts';
+import { type TaskStatus, taskStatusColumns } from './task-status-transitions.ts';
 
 export async function updateTask(
     db: HausDatabase,
@@ -85,7 +85,7 @@ export async function updateTask(
         }
         await tx
             .update(messageTasksTable)
-            .set(taskPatchColumns(input.patch))
+            .set(taskPatchColumns(current, input.patch))
             .where(
                 and(
                     eq(messageTasksTable.serverId, input.serverId),
@@ -107,19 +107,22 @@ export async function updateTask(
 }
 
 /**
- * Moving a task out of the claim's own `in_progress`/`done` lifecycle — asking
- * for review, closing it, reopening it — is a person's cue to look, so it also
- * stamps the task tracked. That stamp is what keeps the tier one-way: it stays
- * off the background lens however its status moves afterwards.
+ * People in the App set status freely (member-level, no transition table);
+ * the shared columns keep the claim stamp and tracked tier consistent with the
+ * Agent path. An unchanged status is not a status change.
  */
-function taskPatchColumns(patch: {
-    priority?: 'none' | 'urgent' | 'high' | 'medium' | 'low';
-    status?: 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';
-}) {
+function taskPatchColumns(
+    current: Parameters<typeof taskStatusColumns>[0],
+    patch: {
+        priority?: 'none' | 'urgent' | 'high' | 'medium' | 'low';
+        status?: TaskStatus;
+    }
+) {
     return {
         ...(patch.priority ? { priority: patch.priority } : {}),
-        ...(patch.status ? { status: patch.status } : {}),
-        ...(stampsTaskTracked(patch.status) ? { trackedAt: sql`now()` } : {}),
+        ...(patch.status && patch.status !== current.status
+            ? taskStatusColumns(current, patch.status)
+            : {}),
         updatedAt: sql`now()`,
         version: sql`${messageTasksTable.version} + 1`,
     };

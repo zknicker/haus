@@ -11,7 +11,3 @@ export function taskHasOtherOwnerForAgent(task: TaskOwnership, agentId: string) 
         task.assigneeUserId || (task.assigneeAgentId && task.assigneeAgentId !== agentId)
     );
 }
-
-export function agentOwnsTask(task: TaskOwnership, agentId: string) {
-    return task.assigneeAgentId === agentId;
-}

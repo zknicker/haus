@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { TaskAdminRequiredError } from '../../tasks/assign-task.ts';
+import { TaskClosedAssignError } from '../../tasks/assign-task.ts';
 import { TaskConflictError, TaskNotFoundError } from '../../tasks/claim-task.ts';
 import { TaskMessageNotFoundError, UntaskableMessageError } from '../../tasks/promote-task.ts';
 import { InvalidTaskAssigneeError } from '../../tasks/resolve-task-assignee.ts';
@@ -27,8 +27,8 @@ export const taskProcedure = chatProcedure.use(async ({ next }) => {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 
-    if (cause instanceof TaskAdminRequiredError) {
-        throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
+    if (cause instanceof TaskClosedAssignError) {
+        throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 
     if (cause instanceof InvalidTaskAssigneeError) {

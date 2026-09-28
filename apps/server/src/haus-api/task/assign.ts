@@ -7,7 +7,8 @@ export const assignTaskProcedure = taskProcedure
     .input(taskAssignInputSchema)
     .output(taskMutationSchema)
     .mutation(async ({ ctx, input }) => {
-        const result = await assignTask(ctx.hausDb, ctx.member, ctx.agentDelivery, input);
+        const actor = ctx.member ? { kind: 'human' as const, member: ctx.member } : null;
+        const result = await assignTask(ctx.hausDb, actor, ctx.agentDelivery, input);
 
         for (const event of result.events) {
             emitDurableChatEvent({ audienceUserId: null, event });

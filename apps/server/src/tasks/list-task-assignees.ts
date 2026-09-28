@@ -11,7 +11,6 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { TaskAdminRequiredError } from './assign-task.ts';
 import { TaskNotFoundError } from './claim-task.ts';
 import { findMessageTask } from './task-shape.ts';
 
@@ -20,10 +19,7 @@ export async function listTaskAssignees(
     member: HausUser | null,
     input: { messageId: string; serverId: string }
 ): Promise<TaskAssignee[]> {
-    const server = await requireServerMembership(db, member, input.serverId);
-    if (server.role !== 'owner' && server.role !== 'admin') {
-        throw new TaskAdminRequiredError();
-    }
+    await requireServerMembership(db, member, input.serverId);
     const task = await findMessageTask(db, input.serverId, input.messageId);
     if (!task) {
         throw new TaskNotFoundError();
