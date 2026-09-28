@@ -2,7 +2,7 @@ import { agentThoughtActionMaxLength } from '@haus/api';
 import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { ComputerToolClassification } from './activity-tool-fixtures.ts';
 import { readShellCommand, unwrapShell } from './haus-cli-command.ts';
-import { scrubCommandLine, scrubPhrase } from './thought-action-scrub.ts';
+import { isSecretName, scrubCommandLine, scrubPhrase } from './thought-action-scrub.ts';
 
 /**
  * The work an action thought may describe: real commands, files, web, and
@@ -90,7 +90,7 @@ function fileAction(verb: string, path: string): string | null {
     return name ? bounded(`${verb} ${name}`) : null;
 }
 
-/** `mcp__linear__create_issue` → `linear create_issue`, then up to three short scalar args. */
+/** `mcp__linear__create_issue` → `linear create_issue`, then up to three short, non-secret scalar args. */
 function toolAction(name: string, fields: Record<string, unknown>): string | null {
     const label = name
         .replace(/^mcp__/u, '')
@@ -100,6 +100,8 @@ function toolAction(name: string, fields: Record<string, unknown>): string | nul
         return null;
     }
     const args = Object.entries(fields)
+        // A credential-named argument (`password`, `api_key`) never rides a thought.
+        .filter(([key]) => !isSecretName(key))
         .filter(([, value]) => ['boolean', 'number', 'string'].includes(typeof value))
         .slice(0, 3)
         .map(([key, value]) => `${key}: ${scrubPhrase(String(value)).slice(0, 40)}`)

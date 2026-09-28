@@ -39,6 +39,11 @@ export function scrubCommandLine(command: string): string {
     return words.filter((word) => word.length > 0).join(' ');
 }
 
+/** Whether a flag, header, variable, or argument name carries a credential value. */
+export function isSecretName(name: string): boolean {
+    return secretName.test(name);
+}
+
 /** A free-text argument (a query, a pattern, a file name) with the same removals. */
 export function scrubPhrase(text: string): string {
     return text
