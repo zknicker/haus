@@ -288,11 +288,21 @@ allowed. The seventeenth remains queued until human input arrives; any drain
 containing human input resets the counter.
 
 Authentication, invalid model/runtime configuration, and oversized input
-failures degrade immediately because retrying cannot repair them. Rate limits,
-timeouts, transport failures, and unknown failures use the bounded retry
-policy. A human Restart clears the failure hold and redrives queued work without
-rotating the Agent's session; so does any new message, which is why the
-next human message re-enables the Agent. Raw failure evidence remains Computer-local; the
+failures degrade immediately because retrying cannot repair them. Timeouts,
+transport failures (including provider 5xx and overload), and unknown failures
+back off exponentially from 5 seconds to a 60-second cap with up to 10% jitter,
+and the fifth consecutive one degrades the Agent. Rate limits, usage limits, and
+model-capacity errors back off from 10 seconds to a 5-minute cap and never
+count toward that bound, so a long usage limit parks the Agent instead of
+degrading it. A failed turn that produced output also backs off without
+counting a failure. New work keeps queuing during any backoff and the retry
+sweep drains it once `retry_after` passes.
+
+A human Restart or Start clears the failure hold and redrives queued work
+without rotating the Agent's session. A new human message also clears a
+degraded or counted hold, but never cuts an active backoff window short.
+Agent-authored, reminder, trigger, and other automated work never clears a
+hold; it waits behind it. Raw failure evidence remains Computer-local; the
 compact failure kind crosses the Server boundary, and Computer logs one
 `harness-turn-failed` line with the Agent, run, runtime, and kind.
 
@@ -375,6 +385,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | `agent.turns` and `agent.deliveries` are member-scoped and deny as `NOT_FOUND` | `apps/server/test/haus-agent-observability.test.ts` |
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
+| Backoff schedule, rate-limit and progress exemptions, human-only hold release | `apps/server/src/agent-delivery/retry-policy.test.ts`, `apps/server/test/agent-delivery-backoff.test.ts` |
 | A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, opt-in `apps/computer/src/harness/codex-auth-live.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
 | `As Task` enters the inbox with canonical task metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |

@@ -35,6 +35,12 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   attention that becomes the first prompt. Creating an Agent configures its
   executor but never schedules an empty bootstrap turn. Startup never races a
   second mid-turn delivery.
+- A Computer starts at most five Agent runtimes at once; further starts queue. A runtime that
+  has not produced a live session within two minutes fails the turn as a retryable timeout. A
+  live turn that emits nothing for fifteen minutes with no tool call in flight is interrupted and
+  resume state is kept, but it settles as a retryable `timeout` failure, so a turn that stalls
+  every time backs off and degrades instead of looping. A Stop or Restart during startup settles
+  as interrupted, never as a resume failure.
 - Stop interrupts the live turn and persists the Agent's stopped lifecycle state. New messages and
   reminders continue to accumulate in its inbox but cannot wake it. A human Start resumes the
   current session and offers pending work again.
@@ -54,7 +60,10 @@ Sessions never rotate because of age or idleness. A new session starts only on:
    effect on the next turn with a fresh session. Workspace, memory, and
    identity persist.
 2. **Resume recovery** — if the executor reports that its stored runtime session is missing or
-   replay is rejected, Computer automatically starts a fresh Agent session generation. The recovery
+   replay is rejected, Computer automatically starts a fresh Agent session generation. Only
+   specific runtime evidence counts (a missing conversation, thread, or session; stored state the
+   adapter rejects; a provider rejecting the replay); a network, auth, rate-limit, or timeout
+   failure while resuming is an ordinary turn failure, classified as usual, that keeps the session. The recovery
    is visible in activity and injected into the fresh context, directing the Agent to recover from
    Haus history and local `MEMORY.md`/notes. If the cold start also fails, the Agent becomes
    offline with an error.
