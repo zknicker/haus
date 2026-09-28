@@ -6,13 +6,10 @@ import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
-import {
-    claimAgentTasks,
-    createAgentTasks,
-    listAgentTasks,
-    unclaimAgentTask,
-    updateAgentTask,
-} from './tasks.ts';
+import { claimAgentTasks } from './task-claims.ts';
+import { createAgentTasks } from './task-create.ts';
+import { listAgentTasks, TASK_LIST_STATUSES } from './task-list.ts';
+import { unclaimAgentTask, updateAgentTask } from './tasks.ts';
 
 const taskStatusSchema = z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']);
 
@@ -28,13 +25,20 @@ export function registerAgentTaskRoutes(
     app.get('/api/agent/tasks', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
         const parsed = z
-            .object({ status: taskStatusSchema.optional(), target: z.string().optional() })
+            .object({
+                mine: z.enum(['true', 'false']).optional(),
+                status: z.enum(TASK_LIST_STATUSES).optional(),
+                target: z.string().optional(),
+            })
             .safeParse(request.query);
         if (!(runner && parsed.success)) {
             return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The task request was invalid.');
         }
         try {
-            return await listAgentTasks(db, runner, parsed.data);
+            return await listAgentTasks(db, runner, {
+                ...parsed.data,
+                mine: parsed.data.mine === 'true',
+            });
         } catch (cause) {
             return sendAgentReadError(reply, cause);
         }
@@ -82,7 +86,7 @@ export function registerAgentTaskRoutes(
         try {
             const result = await claimAgentTasks(db, runner, parsed.data);
             emitTaskEvents(result.events);
-            return { claimed: result.claimed };
+            return { results: result.results };
         } catch (cause) {
             return sendAgentReadError(reply, cause);
         }

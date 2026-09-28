@@ -3,7 +3,7 @@ import { ChatArchivedError } from '../chats/chat-access.ts';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { AgentTargetError } from './resolve-target.ts';
-import { AgentTaskError } from './tasks.ts';
+import { AgentTaskError } from './task-error.ts';
 
 export async function authorizeAgentRunner(db: HausDatabase, request: FastifyRequest) {
     const header = request.headers.authorization;
@@ -18,7 +18,6 @@ export function sendAgentApiError(
     code: string,
     message: string,
     options: {
-        claimConflict?: unknown;
         handle?: string;
         nextAction?: string;
         retryable?: boolean;
@@ -32,11 +31,7 @@ export function sendAgentReadError(reply: FastifyReply, cause: unknown) {
         return sendAgentApiError(reply, 404, 'INVALID_TARGET', cause.message);
     }
     if (cause instanceof AgentTaskError) {
-        // A lost claim carries the structured conflict alongside the message so
-        // the CLI can state what the lock blocks and what it leaves open.
-        return sendAgentApiError(reply, 409, 'TASK_CONFLICT', cause.message, {
-            ...(cause.claimConflict ? { claimConflict: cause.claimConflict } : {}),
-        });
+        return sendAgentApiError(reply, 409, 'TASK_CONFLICT', cause.message);
     }
     if (cause instanceof ChatArchivedError) {
         return sendAgentApiError(reply, 409, 'TARGET_READ_ONLY', cause.message);
