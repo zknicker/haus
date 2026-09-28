@@ -114,3 +114,29 @@ export function visibleChatTypingThought(
 ): ChatTypingThought | null {
     return thought && isEngagedActivity(engagements, thought) ? thought : null;
 }
+
+/**
+ * A strip's thoughts: `live` is the bubble on its own beat; `latest` is the
+ * last bubble this engagement showed, kept after it leaves so hovering the
+ * Agent's avatar or dots can bring it back. Both clear when the run stops
+ * engaging the Chat, so a new turn never recalls an old one.
+ */
+export interface ChatTypingThoughts {
+    latest: ChatTypingThought | null;
+    live: ChatTypingThought | null;
+}
+
+/** After the pointer leaves, a recalled bubble lingers this long before its exit. */
+export const chatTypingThoughtRecallLingerMs = 300;
+
+/**
+ * The bubble to render. A live bubble always shows; while recalled, the
+ * latest one shows too. The latest is the live one when both exist, so a hover
+ * over a live bubble keeps its key and simply holds it past its own hold.
+ */
+export function shownChatTypingThought(
+    thoughts: ChatTypingThoughts,
+    recalled: boolean
+): ChatTypingThought | null {
+    return thoughts.live ?? (recalled ? thoughts.latest : null);
+}

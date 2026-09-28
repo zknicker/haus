@@ -21,11 +21,13 @@ import {
     ChatTypingLaunches,
     useChatTypingLauncher,
 } from './chat-typing-launches.tsx';
-import type { ChatTypingThought } from './chat-typing-thought.ts';
+import { type ChatTypingThoughts, shownChatTypingThought } from './chat-typing-thought.ts';
 import { ChatTypingThoughtBubble, useChatTypingThought } from './chat-typing-thought-bubble.tsx';
 import { useChatTypingEnds } from './use-chat-typing-ends.ts';
+import { useChatTypingThoughtRecall } from './use-chat-typing-thought-recall.ts';
 
 const maximumAvatars = 3;
+const noThoughts: ChatTypingThoughts = { latest: null, live: null };
 
 /** Which Agents are answering this Chat right now, above its composer. */
 export function ChatTypingIndicator({
@@ -71,9 +73,9 @@ export function ChatTypingIndicator({
         }
     });
 
-    const thought = useChatTypingThought(serverId, chatId, engagements);
+    const thoughts = useChatTypingThought(serverId, chatId, engagements);
 
-    return <ChatTypingStrip launcher={launcher} thought={thought} typists={typists} />;
+    return <ChatTypingStrip launcher={launcher} thoughts={thoughts} typists={typists} />;
 }
 
 /**
@@ -82,13 +84,13 @@ export function ChatTypingIndicator({
  */
 export function ChatTypingStrip({
     launcher,
-    thought = null,
+    thoughts = noThoughts,
     typists,
 }: {
     /** Faces launched from the dots; absent in static previews. */
     launcher?: ChatTypingLauncher;
-    /** A thinking Agent's condensed thought, shown over its avatar (ADR 0036). */
-    thought?: ChatTypingThought | null;
+    /** A thinking Agent's condensed thoughts, shown over its avatar (ADR 0036). */
+    thoughts?: ChatTypingThoughts;
     typists: readonly ChatTypist[];
 }) {
     const reduceMotion = useReducedMotion() === true;
@@ -96,6 +98,7 @@ export function ChatTypingStrip({
     const stripRef = launcher?.stripRef ?? ownStripRef;
     const label = formatChatTypingLabel(typists.map((typist) => typist.displayName));
     const transition = reduceMotion ? { duration: 0 } : { ...springs.moderate, bounce: 0 };
+    const recall = useChatTypingThoughtRecall(label !== null);
 
     return (
         <div
@@ -108,10 +111,14 @@ export function ChatTypingStrip({
                 {label ? (
                     <motion.div
                         animate={{ opacity: 1 }}
-                        className="flex min-w-0 items-center gap-1.5"
+                        className="pointer-events-auto flex min-w-0 items-center gap-1.5"
+                        data-slot="chat-typing-recall"
                         exit={{ opacity: 0 }}
                         initial={{ opacity: 0 }}
                         key="typing"
+                        // Hovering the faces and dots brings back the latest thought.
+                        onPointerEnter={recall.onPointerEnter}
+                        onPointerLeave={recall.onPointerLeave}
                         transition={transition}
                     >
                         <span aria-hidden="true" className="flex shrink-0 items-center gap-0.5">
@@ -136,7 +143,10 @@ export function ChatTypingStrip({
                     </motion.div>
                 ) : null}
             </AnimatePresence>
-            <ChatTypingThoughtBubble stripRef={stripRef} thought={label ? thought : null} />
+            <ChatTypingThoughtBubble
+                stripRef={stripRef}
+                thought={label ? shownChatTypingThought(thoughts, recall.recalled) : null}
+            />
             {launcher ? (
                 <ChatTypingLaunches finish={launcher.finish} launches={launcher.launches} />
             ) : null}

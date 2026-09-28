@@ -5,6 +5,7 @@ import { useChatThoughtListener } from '../../../hooks/servers/use-chat-thought-
 import {
     type ChatTypingThought,
     type ChatTypingThoughtOnScreen,
+    type ChatTypingThoughts,
     chatTypingThoughtDelay,
     chatTypingThoughtTiming,
     resolveChatTypingThought,
@@ -15,15 +16,16 @@ import {
 /**
  * The engaged Agent's latest thought for this Chat, held for one wobble-in
  * and hold; the same line again while it is up extends that hold instead.
- * Transient state only: never cached, gone on unmount, and hidden the moment
- * its run stops engaging the Chat.
+ * The last shown thought stays recallable until its run stops engaging the
+ * Chat. Transient state only: never cached, gone on unmount.
  */
 export function useChatTypingThought(
     serverId: string,
     chatId: string | undefined,
     engagements: readonly Pick<ChatEngagement, 'agentId' | 'runId'>[]
-): ChatTypingThought | null {
+): ChatTypingThoughts {
     const [thought, setThought] = React.useState<ChatTypingThought | null>(null);
+    const [latest, setLatest] = React.useState<ChatTypingThought | null>(null);
     const nextId = React.useRef(0);
     const lastShownAt = React.useRef<number | null>(null);
     // Engagements (Agent and run) that have shown a bubble here.
@@ -59,6 +61,7 @@ export function useChatTypingThought(
             shownEngagements.current.add(`${next.agentId}:${next.runId}`);
             onScreen.current = { hideAt: now + enterMs + holdMs, shownAt: now, thought: next };
             setThought(next);
+            setLatest(next);
             holdUntil(next, onScreen.current.hideAt);
         },
         [holdUntil]
@@ -99,7 +102,12 @@ export function useChatTypingThought(
         []
     );
 
-    return visibleChatTypingThought(engagements, thought);
+    // Recall belongs to one engagement: drop it the moment its run stops engaging.
+    const engagedLatest = visibleChatTypingThought(engagements, latest);
+    if (latest && !engagedLatest) {
+        setLatest(null);
+    }
+    return { latest: engagedLatest, live: visibleChatTypingThought(engagements, thought) };
 }
 
 const tailInset = 14;
