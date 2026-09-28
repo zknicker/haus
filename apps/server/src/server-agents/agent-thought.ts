@@ -54,8 +54,10 @@ export interface AgentThoughts {
     /**
      * The phrase a frame announces, or null when it is housekeeping or nothing
      * presentable remains. `request` is the scrubbed human message the run is
-     * answering, context the summarizer may take nouns from; `previous` is the
-     * run's last shown lines in the Chat, which the phrase should not restate.
+     * answering, context the summarizer may take nouns from; `requester` is its
+     * author's display name, so a line restating their ask by name is dropped;
+     * `previous` is the run's last shown lines in the Chat, which the phrase
+     * should not restate.
      */
     phrase(frame: AgentThoughtFrame, context?: ThoughtContext): Promise<string | null>;
 }
@@ -63,6 +65,7 @@ export interface AgentThoughts {
 interface ThoughtContext {
     previous?: readonly string[];
     request?: string | null;
+    requester?: string | null;
 }
 
 export function createAgentThoughts(options: {
@@ -94,10 +97,14 @@ export function createAgentThoughts(options: {
             last.announced = true;
         }
     };
-    const phrase = async (frame: AgentThoughtFrame, { previous, request }: ThoughtContext = {}) => {
+    const phrase = async (
+        frame: AgentThoughtFrame,
+        { previous, request, requester }: ThoughtContext = {}
+    ) => {
         // The excerpt and request go to the summarizer and nowhere else; both are dropped after this call.
         const context = {
             ...(request ? { request } : {}),
+            ...(requester ? { requester } : {}),
             ...(previous && previous.length > 0 ? { previous } : {}),
         };
         const summary = await options.summarizer?.summarize(thoughtSource(frame, context));
@@ -113,7 +120,9 @@ export function createAgentThoughts(options: {
         if (isHousekeepingThought(source)) {
             return null;
         }
-        return frame.kind === 'phrase' ? frame.text : condenseThoughtLocally(frame.reasoning);
+        return frame.kind === 'phrase'
+            ? frame.text
+            : condenseThoughtLocally(frame.reasoning, requester);
     };
 
     return {
@@ -130,16 +139,19 @@ export function createAgentThoughts(options: {
             const events = await admitComputerAgentThought(db, { ...input, frame });
             if (events.length > 0) {
                 void background.run('agent-thought.announce', async () => {
-                    const request = options.summarizer
-                        ? await readRunRequest(db, input.serverId, frame)
-                        : null;
+                    // The fallback needs the requester's name even without a summarizer.
+                    const { request, requester } = await readRunRequest(db, input.serverId, frame);
                     // Usually one group: the run's Chats share their last lines unless one joined later.
                     const groups = groupByPrevious(events, (event) =>
                         previousLines.read({ ...event, computerId: input.computerId })
                     );
                     await Promise.all(
                         groups.map(async (group) => {
-                            const text = await phrase(frame, { previous: group.previous, request });
+                            const text = await phrase(frame, {
+                                previous: group.previous,
+                                request,
+                                requester,
+                            });
                             if (!text) {
                                 return;
                             }
@@ -179,7 +191,7 @@ function groupByPrevious<Event>(
 
 function thoughtSource(
     frame: AgentThoughtFrame,
-    context: { previous?: readonly string[]; request?: string }
+    context: { previous?: readonly string[]; request?: string; requester?: string }
 ): ThoughtSource {
     switch (frame.kind) {
         case 'action':
@@ -191,18 +203,24 @@ function thoughtSource(
     }
 }
 
-/** The engaged human message, scrubbed and capped, that a run's thought is phrased against. */
+/**
+ * The engaged human message, scrubbed and capped, that a run's thought is
+ * phrased against, and its author's display name.
+ */
 async function readRunRequest(
     db: HausDatabase,
     serverId: string,
     frame: AgentThoughtFrame
-): Promise<string | null> {
-    const content = await readActiveRunRequest(db, {
+): Promise<{ request: string | null; requester: string | null }> {
+    const row = await readActiveRunRequest(db, {
         agentId: frame.agentId,
         runId: frame.runId,
         serverId,
     });
-    return content ? thoughtRequestExcerpt(content) : null;
+    return {
+        request: row ? thoughtRequestExcerpt(row.content) : null,
+        requester: row?.requester ?? null,
+    };
 }
 
 /** Where an admitted thought is announced: one event per engaged Chat, awaiting its phrase. */

@@ -1,5 +1,6 @@
 import {
     finishThoughtPhrase,
+    narratesRequest,
     thoughtReasoningExcerptMaxLength,
     thoughtRequestMaxLength,
 } from '@haus/api';
@@ -9,13 +10,15 @@ import { isHousekeepingPhrase } from './thought-housekeeping.ts';
  * What a thought is phrased from: a reasoning excerpt, a Codex status title, or
  * a scrubbed description of a tool action the run started, with the scrubbed
  * human message the run is answering and the run's last shown lines in that
- * Chat (oldest first) as optional context.
+ * Chat (oldest first) as optional context. `requester` is that message's
+ * author's display name; it never reaches the model and only filters a line
+ * that restates their ask by name.
  */
 export type ThoughtSource = (
     | { action: string; kind: 'action' }
     | { kind: 'reasoning'; reasoning: string }
     | { kind: 'title'; title: string }
-) & { previous?: readonly string[]; request?: string };
+) & { previous?: readonly string[]; request?: string; requester?: string };
 
 /** A phrase to show, or `skip` when the source is only the Agent's own housekeeping. */
 export type ThoughtSummary = { kind: 'phrase'; text: string } | { kind: 'skip' };
@@ -27,7 +30,7 @@ export interface ThoughtSummarizer {
 
 export const thoughtSummaryModel = 'gemini-3.5-flash-lite';
 /** Bumped whenever the prompt changes, so eval runs name the wording they measured. */
-export const thoughtSummaryPromptVersion = 'thought-v8-previous';
+export const thoughtSummaryPromptVersion = 'thought-v12-no-guessed-step';
 const thoughtSummaryTimeoutMs = 4000;
 const thoughtAnswerMaxWords = 10;
 const skipAnswer = 'SKIP';
@@ -40,7 +43,13 @@ const systemPrompt = [
     'never add a place, day, or name the input does not mention. Say what the agent is',
     'doing or checking, never that something went wrong ("Double-checking the dates",',
     'not "Fixing those date errors"). No "I think", and no "now" or "right now" at the',
-    'end. Follow the opening you are given so lines vary the way a person talks; its',
+    'end. Speak as the agent about its own step, never about the person: never say what',
+    'the user, the person, or anyone by name wants, asked, or needs, and never restate the',
+    'request ("Maya wants the NYC forecast" is wrong; she wrote it). When the input',
+    "opens by restating the ask, skip past it to the agent's own step. Name the one",
+    'thing it is checking, but the 8 words include the opening, so drop dates, places,',
+    'and qualifiers ("Reconciling the date formats", not "Working on the export").',
+    'Follow the opening you are given so lines vary the way a person talks; its',
     'example shows only the shape, so never reuse its words. No names of secrets, no',
     'quotes, no trailing period. Each message is independent; never answer or continue',
     'the reasoning. Reply with the line only.',
@@ -48,8 +57,10 @@ const systemPrompt = [
     'housekeeping: reading its own notes, memory, manual, instructions, or skills;',
     'checking its inbox or messages; claiming, assigning, syncing, or updating its tasks',
     'or their status; deciding whether or how to reply; acknowledging or offering to',
-    'help; writing or double-checking its own chat reply; or reading earlier',
-    'conversation just to get oriented. Everything else is work: reading, searching,',
+    'help; writing or double-checking its own chat reply; reading earlier conversation',
+    'just to get oriented; or only restating what the person asked or how the answer',
+    'should look, with no step of its own, even when you could guess the next step.',
+    'Everything else is work: reading, searching,',
     'fetching, or checking anything the request is about (a checklist, document,',
     'thread, file, log, inbox, or data source), and judging the request itself (whether',
     'a build is safe to ship), even when framed as planning, requesting, or starting',
@@ -157,8 +168,8 @@ export function createGeminiThoughtSummarizer(input: {
                 if (!phrase) {
                     return null;
                 }
-                // Flash-Lite sometimes phrases its own reply drafting or bookkeeping instead of skipping it.
-                return isHousekeepingPhrase(phrase)
+                // Flash-Lite sometimes phrases its own reply drafting, bookkeeping, or the ask itself instead of skipping it.
+                return isHousekeepingPhrase(phrase) || narratesRequest(phrase, source.requester)
                     ? { kind: 'skip' }
                     : { kind: 'phrase', text: phrase };
             } catch {

@@ -4,6 +4,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
     chatMessagesTable as message,
+    usersTable,
     agentInboxExactVisibilityTable as visibility,
 } from '../postgres/schema.ts';
 
@@ -51,23 +52,25 @@ export async function readSettledRunEngagements(
 /**
  * The newest human message an accepted, unsettled run engages on, in any Chat
  * it engages: the request its thoughts are about (ADR 0036). A run engaged in
- * several Chats gets its most recent one. Null when it engages nothing.
+ * several Chats gets its most recent one, with its author's display name
+ * (null until they set one). Null when it engages nothing.
  */
 export async function readActiveRunRequest(
     db: HausDatabase,
     input: { agentId: string; runId: string; serverId: string }
-): Promise<string | null> {
+): Promise<{ content: string; requester: string | null } | null> {
     const [row] = await db
-        .select({ content: message.content })
+        .select({ content: message.content, requester: usersTable.displayName })
         .from(visibility)
         .innerJoin(
             message,
             and(eq(message.serverId, visibility.serverId), eq(message.id, visibility.messageId))
         )
+        .leftJoin(usersTable, eq(usersTable.id, message.authorUserId))
         .where(and(runFilter(input), activeRun(), engagingMessage()))
         .orderBy(desc(message.createdAt), desc(message.sequence))
         .limit(1);
-    return row?.content ?? null;
+    return row ?? null;
 }
 
 async function selectEngagements(db: HausDatabase, filter: SQL | undefined) {

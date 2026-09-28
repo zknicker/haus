@@ -4,6 +4,7 @@
  * checking the bids"), and the bounded, scrubbed excerpt a Computer may send
  * when a block has no title.
  */
+import { withoutRequestNarration } from './agent-thought-request-narration.ts';
 
 export const thoughtPhraseMaxWords = 8;
 export const thoughtPhraseMaxLength = 80;
@@ -66,10 +67,17 @@ export function extractThoughtTitle(reasoning: string): string | null {
 /**
  * A local, model-free phrase: the first sentence without narration filler,
  * with a stripped modal's verb turned present-progressive ("Let me check the
- * bids" → "Checking the bids").
+ * bids" → "Checking the bids"). `requester` is the asking human's display name,
+ * when known, so a line restating their ask by name is dropped too.
  */
-export function condenseThoughtLocally(reasoning: string): string | null {
-    const sentence = firstSentence(reasoning.replace(/[*_`#>]+/gu, ' '));
+export function condenseThoughtLocally(
+    reasoning: string,
+    requester?: string | null
+): string | null {
+    const sentence = withoutRequestNarration(
+        firstSentence(reasoning.replace(/[*_`#>]+/gu, ' ')),
+        requester
+    );
     if (!sentence) {
         return null;
     }
@@ -190,7 +198,6 @@ const modalFiller = [
 const leadingFiller = [
     /^(?:okay|ok|alright|all right|so|now|hmm+|well|right|first|next|then)[,\s]+/iu,
     /^(?:i'm|i am) (?:thinking about|now|currently)\s+/iu,
-    /^(?:the user (?:wants|asked|is asking)(?: me)?(?: to)?)\s+/iu,
     ...modalFiller,
     /^(?:maybe|perhaps)\s+/iu,
 ];
