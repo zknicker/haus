@@ -668,6 +668,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/tasks/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign one task to a member of its Chat without changing its status. */
+        post: operations["assignAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/unassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear one task's assignee without changing its status. */
+        post: operations["unassignAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/tasks/update": {
         parameters: {
             query?: never;
@@ -1417,6 +1451,8 @@ export interface components {
             number: number;
             status: components["schemas"]["AgentTaskStatus"];
             target: string | null;
+            /** @description The task revision; pass it as expectedRevision to act only on this state. */
+            version: number;
         };
         AgentTaskListResponse: {
             /** @description Matching rows left out by the 50-row limit. */
@@ -1453,6 +1489,20 @@ export interface components {
             target: string;
         } & (unknown | unknown);
         AgentTaskUnclaimRequest: {
+            number: number;
+            target: string;
+        };
+        AgentTaskAssignRequest: {
+            /** @description @handle of a human or Agent member of the task's Chat. Missing, retired, and out-of-Chat handles share one not-assignable refusal. */
+            assignee: string;
+            /** @description Apply only if the task is still at this revision. */
+            expectedRevision?: number;
+            number: number;
+            target: string;
+        };
+        AgentTaskUnassignRequest: {
+            /** @description Apply only if the task is still at this revision. */
+            expectedRevision?: number;
             number: number;
             target: string;
         };
@@ -3340,6 +3390,56 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AgentTaskUnclaimRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated task-message. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    assignAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskAssignRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated task-message. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    unassignAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskUnassignRequest"];
             };
         };
         responses: {

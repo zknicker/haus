@@ -972,6 +972,46 @@ paths:
                 $ref: '#/components/schemas/AgentTaskSingleResponse'
         default:
           $ref: '#/components/responses/AgentError'
+  /api/agent/tasks/assign:
+    post:
+      operationId: assignAgentTask
+      tags: [Agent CLI]
+      summary: Assign one task to a member of its Chat without changing its status.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentTaskAssignRequest'
+      responses:
+        '200':
+          description: Updated task-message.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskSingleResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/tasks/unassign:
+    post:
+      operationId: unassignAgentTask
+      tags: [Agent CLI]
+      summary: Clear one task's assignee without changing its status.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentTaskUnassignRequest'
+      responses:
+        '200':
+          description: Updated task-message.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskSingleResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/tasks/update:
     post:
       operationId: updateAgentTask
@@ -2070,7 +2110,7 @@ components:
     AgentTaskRow:
       type: object
       additionalProperties: false
-      required: [assignee, message, number, status, target]
+      required: [assignee, message, number, status, target, version]
       properties:
         assignee: { type: [string, 'null'] }
         message:
@@ -2079,6 +2119,10 @@ components:
         status:
           $ref: '#/components/schemas/AgentTaskStatus'
         target: { type: [string, 'null'] }
+        version:
+          type: integer
+          minimum: 0
+          description: The task revision; pass it as expectedRevision to act only on this state.
     AgentTaskListResponse:
       type: object
       additionalProperties: false
@@ -2171,6 +2215,32 @@ components:
       additionalProperties: false
       required: [number, target]
       properties:
+        number: { type: integer, minimum: 1 }
+        target: { type: string, minLength: 1 }
+    AgentTaskAssignRequest:
+      type: object
+      additionalProperties: false
+      required: [assignee, number, target]
+      properties:
+        assignee:
+          type: string
+          minLength: 1
+          description: '@handle of a human or Agent member of the task''s Chat. Missing, retired, and out-of-Chat handles share one not-assignable refusal.'
+        expectedRevision:
+          type: integer
+          minimum: 0
+          description: Apply only if the task is still at this revision.
+        number: { type: integer, minimum: 1 }
+        target: { type: string, minLength: 1 }
+    AgentTaskUnassignRequest:
+      type: object
+      additionalProperties: false
+      required: [number, target]
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+          description: Apply only if the task is still at this revision.
         number: { type: integer, minimum: 1 }
         target: { type: string, minLength: 1 }
     AgentTaskUpdateRequest:
