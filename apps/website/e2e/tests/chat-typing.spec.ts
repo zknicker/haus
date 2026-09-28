@@ -96,13 +96,14 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
     await page.getByRole('button', { name: 'Cancel reply' }).click();
     await expect(reply).toHaveCount(0);
 
-    // The reply lands and the engagement ends with it.
+    // The `--done` reply lands and the engagement ends with it (ADR 0035).
     await runnerRequest(runner, '/api/agent/messages/send', {
         content: 'On it — the build is green.',
+        done: true,
         nonce: 'e2e-chat-typing-reply',
         target: '#all',
     });
-    // The reply ends the engagement as sent, so a face launches from the dots.
+    // The done reply ends the engagement as sent, so a face launches from the dots.
     await expect(typing.locator('[data-slot="chat-typing-launch"]')).toHaveCount(1);
     await expect(page.getByText('On it — the build is green.')).toBeVisible();
     await expect(typing.locator('[data-slot="chat-typing-launch"]')).toHaveCount(0);
