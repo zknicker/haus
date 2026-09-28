@@ -87,19 +87,14 @@ export function TaskPrioritySubmenu({ disabled, onAction, task }: TaskSubmenuPro
 
 export function TaskAssigneeSubmenu({
     assignees,
-    canAssign,
     disabled,
     humans,
     onAction,
     task,
 }: TaskSubmenuProps & {
     assignees: TaskAssignee[];
-    canAssign: boolean;
     humans: HumanDirectory;
 }) {
-    if (!canAssign) {
-        return null;
-    }
     const selectedKey = task.assigneeAgentId
         ? `agent:${task.assigneeAgentId}`
         : (task.assigneeUserId ?? unassignedAssigneeKey);

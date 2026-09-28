@@ -46,8 +46,7 @@ export function TaskContextMenu({
     const navigate = useNavigate();
     const humans = useHumanDirectory(server.id);
     const [open, setOpen] = React.useState(false);
-    const canAssign = server.role === 'owner' || server.role === 'admin';
-    const assignees = useTaskAssignees(server.id, task.id, open && canAssign);
+    const assignees = useTaskAssignees(server.id, task.id, open);
     const labels = useTaskLabels(server.id, { enabled: open });
     const assign = useTaskAssign();
     const update = useTaskUpdate();
@@ -143,7 +142,6 @@ export function TaskContextMenu({
                     <TaskPrioritySubmenu disabled={pending} onAction={onAction} task={task} />
                     <TaskAssigneeSubmenu
                         assignees={assignees.data ?? []}
-                        canAssign={canAssign}
                         disabled={pending || assignees.isPending}
                         humans={humans}
                         onAction={onAction}

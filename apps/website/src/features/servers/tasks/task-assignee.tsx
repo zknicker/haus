@@ -41,19 +41,14 @@ export function TaskAssignee({
 }) {
     const { server } = useServerContext();
     const humans = useHumanDirectory(server.id);
-    const canAssign = server.role === 'owner' || server.role === 'admin';
     const [open, setOpen] = React.useState(false);
-    const assignees = useTaskAssignees(server.id, task.id, canAssign && open);
+    const assignees = useTaskAssignees(server.id, task.id, open);
     const assign = useTaskAssign();
     const value = task.assigneeAgentId
         ? `${agentKeyPrefix}${task.assigneeAgentId}`
         : (task.assigneeUserId ?? unassignedAssigneeKey);
     const valueLabel = task.assigneeLabel;
     const isAssigned = Boolean(task.assigneeAgentId || task.assigneeUserId);
-
-    if (!canAssign) {
-        return null;
-    }
 
     const onChange = (next: unknown) => {
         const key = String(next);

@@ -33,7 +33,6 @@ export function TaskThreadMetadata({
         tasks.data?.tasks.find((item) => item.task.messageId === messageId)?.task ?? fallbackTask;
     const agentDirectory = agents.data ?? [];
     const assigneeLabel = taskAssigneeName(task, agentDirectory, humans);
-    const canAssign = server.role === 'owner' || server.role === 'admin';
     const creator = taskCreatorIdentity(task, agentDirectory, humans);
     const target = {
         assigneeAgentId: task.assigneeAgentId,
@@ -74,15 +73,7 @@ export function TaskThreadMetadata({
                 <div className="flex min-w-0 max-w-52 flex-col gap-1.5">
                     <dt className="text-muted text-sm">Assignee</dt>
                     <dd className="flex min-h-7 min-w-0 items-center">
-                        {canAssign ? (
-                            <TaskAssignee presentation="inline" task={target} />
-                        ) : (
-                            <EntityName
-                                avatarUrl={target.assigneeAvatarUrl}
-                                className="text-sm"
-                                name={assigneeLabel}
-                            />
-                        )}
+                        <TaskAssignee presentation="inline" task={target} />
                     </dd>
                 </div>
                 <div className="flex min-w-0 flex-col gap-1.5">
