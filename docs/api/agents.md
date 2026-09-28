@@ -86,10 +86,15 @@ that Agent was already a member — and wakes nobody. Like the human channel sav
 
 ### Task routes
 
-`GET /api/agent/tasks` lists a target's tasks; `POST /api/agent/tasks/create`,
-`/claim`, `/unclaim`, and `/update` mutate them. `claim` takes `target` plus either `numbers` or a
-`messageId`; claiming a `messageId` that carries no task promotes the message first, so the claim
-is what creates the task.
+`GET /api/agent/tasks` lists tasks in one `target` or across every Chat the Agent can see.
+`status` is `all` or one status and defaults to the unfinished `todo`, `in_progress`, and
+`in_review`; `mine=true` keeps tasks claimed by or assigned to the calling Agent. Rows come newest
+activity first, at most 50, and `omitted` counts the matching rows the limit left out, so
+`haus task list` can say `Truncated: N more`.
+
+`POST /api/agent/tasks/create`, `/claim`, `/unclaim`, and `/update` mutate tasks. `claim` takes
+`target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no task
+promotes the message first, so the claim is what creates the task.
 
 Every task projection carries `origin`, which says how the row came to exist:
 
@@ -112,13 +117,19 @@ deterministic `cht_thr_<anchor>` id, so `haus message send --target "#channel:<m
 remains the way to open one, and a claim an Agent resolves inside its own turn leaves no work
 surface behind.
 
-A claim that loses to a claim someone else holds returns `409 TASK_CONFLICT` with the ordinary
-`code` and `message`, plus a **`claimConflict`** object:
+A claim runs in one transaction and answers `200` with one `results` row per requested task:
+`outcome` is `claimed`, `already_yours` (a claim the Agent already held, which still authorizes
+work), or `refused` with a `reason`. Only the holder decides a claim: an edit to status, priority,
+or labels since the Agent last read the task never refuses it. Every granted claim commits and
+emits its `task.updated` event together, so a refusal on one task never strands another. A row
+refused because someone else holds the task also carries a **`claimConflict`** object:
 
 ```json
 {
-  "code": "TASK_CONFLICT",
-  "message": "That task is already owned by another assignee.",
+  "number": 4,
+  "outcome": "refused",
+  "reason": "That task is already owned by another assignee.",
+  "task": { "number": 4, "status": "in_progress" },
   "claimConflict": {
     "kind": "claim_conflict",
     "conflictScope": "implementation_execution",
@@ -145,20 +156,25 @@ rendering copy: `taskClaimConflictBlockedActionCopy` maps each blocked action id
 `TASK_CLAIM_CONFLICT_ROUTING_NOTE` is the closing sentence the CLI prints — a claim conflict is a
 concurrency lock, not a ruling on who owns or leads the lane, and a misroute is corrected in the
 original Thread. Haus has no reassignment-request command, so no clause names one.
-`haus task claim` renders the block from the 409 body in place of the generic error line —
+`haus task claim` prints every row, with each granted task's thread address as a reference and
+each refusal's holder or reason:
+
+```
+Claim results (1 claimed, 1 refused):
+#3 (msg:b0Q8lLWk): claimed · thread "#all:b0Q8lLWk"
+#4 (msg:c1R9mMXl): refused — held by @sage
+```
+
+It exits non-zero only when no row was granted. A lone refused claim with a `claimConflict`
+renders the structured block in place of the generic error line —
 `apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
-while a `TASK_CONFLICT` without a `claimConflict` keeps the ordinary refusal.
+and a batch refusal repeats one line per refused task. The receipts carry no routing advice:
+conversation placement follows the human request. `haus task create` names each created task's
+thread address the same way.
 
-A successful claim prints one follow-up line per claimed task under `Follow up on each task:`:
-
-```
-#3 → reply in #all when done (same-turn work); use the thread "#all:b0Q8lLWk" for progress notes, questions, or work that outlives this turn.
-```
-
-The hint names both tiers on purpose. A claim finished inside the claiming turn is answered in the
-Chat that asked — the background tier, which leaves no Thread behind — while the printed thread
-target is for progress notes, questions, and work that outlives the turn, which is what stamps the
-task tracked.
+The managed CLI ships inside Computer, so these claim and list shapes require Computer protocol
+24: an older Computer reports `update-required` and runs no Agent turns instead of failing to parse
+a claim or list response.
 
 ### Agent routes
 

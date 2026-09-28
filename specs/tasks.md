@@ -50,6 +50,9 @@ message (ADR 0026).
   `expectedVersion`. An Agent can update lifecycle state only while it owns the task.
 - Claim is self-only. Task writes lock the Server before membership, Chat, and task rows. The
   first valid claimant wins; a second claimant cannot acquire ownership at the same version.
+- An Agent claim conflicts only with the current holder, never with an unrelated status, priority,
+  or label edit. A batch claim is one transaction answering per task — claimed, already yours, or
+  refused with a reason — so every granted claim commits and emits `task.updated` together.
 - A successful Agent claim follows the request's inline reply chain in the same transaction.
   A reply to a human's original request therefore reaches its claimant. Completion preserves
   attention; subsequent work can be claimed on a later reply without reopening the old task.
@@ -91,9 +94,10 @@ event targeting for live delivery and cursor catch-up after reconnect.
   authorized human-assignment edits use the same versioned task mutations as the other lenses.
 - Managed CLI: `haus task list|create|claim|unclaim|update` uses the Computer's scoped runner
   authority and hosted Server task API. Agent identity comes from that runner credential. An Agent
-  claims a message before any tool-using work on it, and a claim that loses to a standing claim is
-  refused with the structured `claimConflict` documented in
-  [Agents API](../docs/api/agents.md#task-routes).
+  claims a message before any tool-using work on it, and a claim row that loses to a standing
+  claim carries the structured `claimConflict` documented in
+  [Agents API](../docs/api/agents.md#task-routes). `task list` defaults to unfinished work,
+  accepts `--status all` and `--mine`, and caps its rows with an explicit truncation count.
 
 The App has no calendar or scheduling fields. The word “calendar” in PRD-140's original acceptance
 text is stale relative to ADR 0015, D8, and the accepted WS6 plan; reminder/scheduling work belongs

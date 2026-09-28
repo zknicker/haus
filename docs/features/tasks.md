@@ -186,9 +186,14 @@ tasks.
 ## Managed CLI boundary
 
 The managed `haus task list|create|claim|unclaim|update` commands use the
-Computer's loopback runner authority and the hosted Server task API. A claim
-that loses to a standing claim is refused with a structured `claimConflict` the
-CLI renders: who holds the lock, when that was observed, that it blocks
+Computer's loopback runner authority and the hosted Server task API. `task list`
+shows unfinished work by default (`--status all` widens it, `--mine` narrows it
+to the Agent's own tasks) and says how many rows its 50-row cap left out.
+`task claim` claims every requested task in one transaction and prints one row
+per task — claimed, already yours, or refused — with each granted task's thread
+address as a reference; it fails only when nothing was granted. A claim only
+conflicts with the current holder. A refused row that lost to a standing claim
+carries a structured `claimConflict` the CLI renders: who holds the lock, when that was observed, that it blocks
 starting conflicting implementation or change work, and an illustrative list of
 what it does not block. It is a concurrency lock, not a ruling on who owns the
 lane; correcting a misroute happens in the original Thread. See
