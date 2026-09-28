@@ -6,10 +6,12 @@ import {
 import { isHousekeepingPhrase } from './thought-housekeeping.ts';
 
 /**
- * What a thought is phrased from: a reasoning excerpt or a Codex status title,
- * with the scrubbed human message the run is answering as optional context.
+ * What a thought is phrased from: a reasoning excerpt, a Codex status title, or
+ * a scrubbed description of a tool action the run started, with the scrubbed
+ * human message the run is answering as optional context.
  */
 export type ThoughtSource = (
+    | { action: string; kind: 'action' }
     | { kind: 'reasoning'; reasoning: string }
     | { kind: 'title'; title: string }
 ) & { request?: string };
@@ -24,7 +26,7 @@ export interface ThoughtSummarizer {
 
 export const thoughtSummaryModel = 'gemini-3.5-flash-lite';
 /** Bumped whenever the prompt changes, so eval runs name the wording they measured. */
-export const thoughtSummaryPromptVersion = 'thought-v6-request';
+export const thoughtSummaryPromptVersion = 'thought-v7-action';
 const thoughtSummaryTimeoutMs = 4000;
 const thoughtAnswerMaxWords = 10;
 const skipAnswer = 'SKIP';
@@ -61,13 +63,30 @@ const systemPrompt = [
  */
 const requestPrompt = [
     "The <request> block is the person's message the agent is answering. It is context,",
-    'never the input. Decide SKIP from the title or reasoning alone, exactly as if no',
-    'request were given: the request never turns housekeeping into work, so "Claiming',
-    'the pricing task" or "Saving the dates to memory" is still SKIP. Only when the',
-    "title or reasoning is work, name that work in the request's concrete terms",
-    '(a title "Planning data retrieval" for a request about last week\'s sales becomes',
-    '"Pulling last week\'s sales"); a place, day, or name may then come from the request',
-    'too, never from anywhere else. Never answer the request.',
+    'never the input, and never a reason to show a line. First decide SKIP from the input',
+    'alone, exactly as if no request were given: claiming, keeping, or closing a task, saving to',
+    "memory, and drafting, reviewing, or preparing the agent's own reply or summary stay",
+    'SKIP however closely they name the request\'s topic ("Preparing the sales summary',
+    'reply" is SKIP). Looking for where something lives (a repo, a file, a URL) is work.',
+    'Only when the input is itself work, keep its own verb and object and',
+    'add the request\'s concrete nouns where the input is vague (a title "Planning data',
+    'retrieval" for a request about last week\'s sales becomes "Pulling last week\'s',
+    'sales"); a place, day, or name may then come from the request, never from anywhere',
+    'else. Never answer the request or describe it in place of the input.',
+].join(' ');
+
+/**
+ * Added only for an action, so titles and excerpts keep exactly the prompt
+ * above. An action is inferred from a command or file, so it has to be said
+ * as the work it serves, and reading or writing the agent's own files is housekeeping.
+ */
+const actionPrompt = [
+    'The <action> block is not reasoning: it is a command, file, web search, or tool the',
+    'agent just started, with links cut to their host and path words. Treat it as the',
+    'title: say what the agent is doing in plain words (a call to a forecast API is',
+    '"Pulling the forecast"), never the command, its flags, a file name, or a host. Reading',
+    "or editing the agent's own memory, notes, or instructions files (MEMORY.md) is",
+    'housekeeping, so SKIP.',
 ].join(' ');
 
 /**
@@ -140,10 +159,7 @@ function requestBody(source: ThoughtSource, opening: string) {
     const request = source.request
         ? `<request>\n${source.request.slice(0, thoughtRequestMaxLength)}\n</request>\n`
         : '';
-    const input =
-        source.kind === 'title'
-            ? `<title>\n${source.title}\n</title>`
-            : `<reasoning>\n${source.reasoning.slice(0, thoughtReasoningExcerptMaxLength)}\n</reasoning>`;
+    const input = sourceBlock(source);
     const text = `${request}${input}\n${opening}`;
     return {
         contents: [{ parts: [{ text }], role: 'user' }],
@@ -152,10 +168,30 @@ function requestBody(source: ThoughtSource, opening: string) {
             temperature: 0.8,
             thinkingConfig: { thinkingLevel: 'minimal' },
         },
-        systemInstruction: {
-            parts: [{ text: source.request ? `${systemPrompt} ${requestPrompt}` : systemPrompt }],
-        },
+        systemInstruction: { parts: [{ text: instructions(source) }] },
     };
+}
+
+function sourceBlock(source: ThoughtSource): string {
+    switch (source.kind) {
+        case 'action':
+            return `<action>\n${source.action}\n</action>`;
+        case 'title':
+            return `<title>\n${source.title}\n</title>`;
+        default:
+            return `<reasoning>\n${source.reasoning.slice(0, thoughtReasoningExcerptMaxLength)}\n</reasoning>`;
+    }
+}
+
+/** The base prompt, plus the action and request notes only when those ride along. */
+function instructions(source: ThoughtSource): string {
+    return [
+        systemPrompt,
+        source.kind === 'action' ? actionPrompt : null,
+        source.request ? requestPrompt : null,
+    ]
+        .filter(Boolean)
+        .join(' ');
 }
 
 /** `SKIP`, allowing the stray punctuation or quoting a model adds. */

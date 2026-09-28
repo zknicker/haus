@@ -1,23 +1,28 @@
 import { type AgentThoughtContent, extractThoughtTitle, thoughtReasoningExcerpt } from '@haus/api';
 
 /**
- * At most one thought per run in this window. Blocks that finish inside it
- * wait in one slot, newest wins, and the survivor goes out when it closes.
+ * At most one thought per run in this window, whatever its kind. Candidates
+ * that arrive inside it wait in one slot, newest wins, and the survivor goes
+ * out when it closes; a waiting title or excerpt is never displaced by an
+ * action, since the model's own words beat inferred ones.
  */
 export const thoughtIntervalMs = 4000;
 
-/** Turns one run's reasoning stream into occasional thought frames (ADR 0036). */
+/** Turns one run's reasoning and tool actions into occasional thought frames (ADR 0036). */
 export interface AgentThoughtNarrator {
     /** Drops open blocks and any thought still waiting for the interval. */
     close(): void;
     observe(part: Record<string, unknown>): void;
+    /** Offers a started tool action's scrubbed description (`thought-action.ts`); null is ignored. */
+    observeAction(action: string | null): void;
 }
 
 /**
  * Collects each reasoning block and, when it ends, sends one thought: a
  * Codex-style bold title as a finished phrase, otherwise a scrubbed excerpt.
- * The Server rephrases either or drops it as housekeeping. The Computer's
- * interval is the authoritative rate limit.
+ * A started tool action becomes an `action` thought too, since Codex often
+ * reasons only before and after its tools. The Server rephrases any of them or
+ * drops it as housekeeping. The Computer's interval is the authoritative rate limit.
  */
 export function createAgentThoughtNarrator(input: {
     emit: (thought: AgentThoughtContent) => void;
@@ -29,7 +34,7 @@ export function createAgentThoughtNarrator(input: {
     const schedule = input.schedule ?? scheduleTimeout;
     const blocks = new Map<string, string>();
     let lastReleasedAt: number | null = null;
-    // Only the newest waiting block survives, so a burst never queues up.
+    // Only the newest waiting candidate survives, so a burst never queues up.
     let waiting: ThoughtCandidate | null = null;
     let cancelWait: (() => void) | null = null;
     let closed = false;
@@ -38,14 +43,16 @@ export function createAgentThoughtNarrator(input: {
         lastReleasedAt = now();
         input.emit({ at: new Date(lastReleasedAt).toISOString(), ...thought });
     };
-    const finishBlock = (reasoning: string) => {
-        const thought = thoughtCandidate(reasoning);
-        if (!thought) {
+    const offer = (thought: ThoughtCandidate | null) => {
+        if (!thought || closed) {
             return;
         }
         const wait = lastReleasedAt === null ? 0 : lastReleasedAt + thoughtIntervalMs - now();
         if (wait <= 0) {
             release(thought);
+            return;
+        }
+        if (thought.kind === 'action' && waiting !== null && waiting.kind !== 'action') {
             return;
         }
         waiting = thought;
@@ -84,9 +91,12 @@ export function createAgentThoughtNarrator(input: {
                 const reasoning = blocks.get(id);
                 blocks.delete(id);
                 if (reasoning) {
-                    finishBlock(reasoning);
+                    offer(thoughtCandidate(reasoning));
                 }
             }
+        },
+        observeAction(action) {
+            offer(action ? { action, kind: 'action' } : null);
         },
     };
 }
@@ -96,7 +106,10 @@ function scheduleTimeout(run: () => void, ms: number) {
     return () => clearTimeout(timer);
 }
 
-type ThoughtCandidate = { kind: 'phrase'; text: string } | { kind: 'reasoning'; reasoning: string };
+type ThoughtCandidate =
+    | { action: string; kind: 'action' }
+    | { kind: 'phrase'; text: string }
+    | { kind: 'reasoning'; reasoning: string };
 
 /** A title-led block becomes a phrase; any other long-enough block, an excerpt. */
 function thoughtCandidate(reasoning: string): ThoughtCandidate | null {

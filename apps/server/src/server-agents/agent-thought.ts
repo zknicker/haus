@@ -14,12 +14,12 @@ import { announceAgentThought } from '../agent-delivery/thought-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentsTable } from '../postgres/schema.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
-import type { ThoughtSummarizer } from './agent-thought-summarizer.ts';
+import type { ThoughtSource, ThoughtSummarizer } from './agent-thought-summarizer.ts';
 import { isHousekeepingThought } from './thought-housekeeping.ts';
 
 /**
  * A run's thought frames closer together than this are ignored once one of its
- * thoughts has been announced. Every frame, a title or an excerpt, is a paid
+ * thoughts has been announced. Every frame, a title, excerpt, or action, is a paid
  * summarizer call; the Computer's four-second interval is the real limit, and
  * this only bounds spend when one misbehaves.
  */
@@ -89,14 +89,14 @@ export function createAgentThoughts(options: {
     const phrase = async (frame: AgentThoughtFrame, request?: string | null) => {
         // The excerpt and request go to the summarizer and nowhere else; both are dropped after this call.
         const context = request ? { request } : {};
-        const summary = await options.summarizer?.summarize(
-            frame.kind === 'phrase'
-                ? { kind: 'title', title: frame.text, ...context }
-                : { kind: 'reasoning', reasoning: frame.reasoning, ...context }
-        );
+        const summary = await options.summarizer?.summarize(thoughtSource(frame, context));
         if (summary) {
             // SKIP is the model's judgment that this is housekeeping: no bubble.
             return summary.kind === 'phrase' ? summary.text : null;
+        }
+        if (frame.kind === 'action') {
+            // A command line is not a phrase; without the summarizer an action shows nothing.
+            return null;
         }
         const source = frame.kind === 'phrase' ? frame.text : frame.reasoning;
         if (isHousekeepingThought(source)) {
@@ -135,6 +135,17 @@ export function createAgentThoughts(options: {
         },
         phrase,
     };
+}
+
+function thoughtSource(frame: AgentThoughtFrame, context: { request?: string }): ThoughtSource {
+    switch (frame.kind) {
+        case 'action':
+            return { action: frame.action, kind: 'action', ...context };
+        case 'phrase':
+            return { kind: 'title', title: frame.text, ...context };
+        default:
+            return { kind: 'reasoning', reasoning: frame.reasoning, ...context };
+    }
 }
 
 /** The engaged human message, scrubbed and capped, that a run's thought is phrased against. */

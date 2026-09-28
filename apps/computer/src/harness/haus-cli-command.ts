@@ -19,9 +19,10 @@ export function classifyShellCall(
  *
  * Such a call is Agent bookkeeping, not a command the person would call work:
  * the structured proxy already reports its message checks, the Server its
- * sends, and task or profile updates are not work at all. The command text is
- * read here and never leaves the Computer (ADR 0023). A compound command
- * (`haus … && curl …`) is real work and stays a command.
+ * sends, and task or profile updates are not work at all. It never becomes a
+ * thought either; any other command may, only as a scrubbed description
+ * (`thought-action.ts`, ADR 0036). A compound command (`haus … && curl …`) is
+ * real work and stays a command.
  */
 export function isHausCliCommand(input: unknown): boolean {
     const command = readShellCommand(input);
@@ -42,7 +43,7 @@ export function isHausCliCommand(input: unknown): boolean {
 }
 
 /** A tool input's command string: `{ command }` as an object or JSON, or an argv array. */
-function readShellCommand(input: unknown): string | null {
+export function readShellCommand(input: unknown): string | null {
     let value = input;
     if (typeof value === 'string') {
         try {
@@ -71,7 +72,7 @@ function readShellCommand(input: unknown): string | null {
 const shellWrapper = /^(\S+)\s+(-[A-Za-z]+)\s+([\s\S]+)$/u;
 
 /** `/bin/zsh -lc "haus …"` → `haus …`; anything else is returned as it is. */
-function unwrapShell(command: string): string {
+export function unwrapShell(command: string): string {
     const match = shellWrapper.exec(command);
     if (!(match?.[1] && isShell(match[1]) && match[2]?.includes('c') && match[3])) {
         return command;

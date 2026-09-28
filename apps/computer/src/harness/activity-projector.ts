@@ -12,6 +12,7 @@ import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { createFileChangeFold } from './file-change-fold.ts';
 import { classifyShellCall } from './haus-cli-command.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
+import { describeFileChange, describeToolAction } from './thought-action.ts';
 import type { AgentThoughtNarrator } from './thought-narrator.ts';
 
 export interface HausHostToolRegistration {
@@ -155,6 +156,7 @@ async function observeToolCall(
         journal?: ComputerExecutionJournal;
         registry: ComputerActivityRegistry;
         runtimeId: string;
+        thoughts?: AgentThoughtNarrator;
     },
     calls: ToolCalls
 ) {
@@ -164,25 +166,27 @@ async function observeToolCall(
         return;
     }
     if (await calls.fileChanges.observeCall({ part, toolCallId, toolName }, input.journal)) {
+        input.thoughts?.observeAction(describeFileChange(part.input));
         return;
     }
     const readPath = calls.reads.claim(toolCallId, part);
-    await startToolActivity({
-        activity: input.activity,
-        calls,
-        classification: readPath
-            ? { category: 'reading_files', outcome: 'activity' }
-            : input.registry.classify({
-                  dynamic: part.dynamic === true,
-                  input: part.input,
-                  invalid: part.invalid === true,
-                  nativeName: stringValue(part.nativeName),
-                  providerExecuted: part.providerExecuted === true,
-                  runtimeId: input.runtimeId,
-                  toolName,
-              }),
-        toolCallId,
-    });
+    const nativeName = stringValue(part.nativeName);
+    const classification: ComputerToolClassification = readPath
+        ? { category: 'reading_files', outcome: 'activity' }
+        : input.registry.classify({
+              dynamic: part.dynamic === true,
+              input: part.input,
+              invalid: part.invalid === true,
+              nativeName,
+              providerExecuted: part.providerExecuted === true,
+              runtimeId: input.runtimeId,
+              toolName,
+          });
+    // A started real action is a thought candidate too; `haus` bookkeeping classifies as skip.
+    input.thoughts?.observeAction(
+        describeToolAction({ classification, input: part.input, nativeName, readPath, toolName })
+    );
+    await startToolActivity({ activity: input.activity, calls, classification, toolCallId });
     await input.journal?.recordToolCall({
         input: readPath ? { path: readPath } : part.input,
         nativeName: readPath ? toolName : stringValue(part.nativeName),

@@ -3,8 +3,8 @@ import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 
 /**
  * The run-scoped presentation frames a turn sends to the Server: semantic
- * activity and thoughts (a finished phrase or a reasoning excerpt). A disconnected Server drops
- * them; presentation must never fail a model turn.
+ * activity and thoughts (a finished phrase, a reasoning excerpt, or a scrubbed action
+ * description). A disconnected Server drops them; presentation must never fail a model turn.
  */
 export function createRunFrames(input: {
     agentId: string;

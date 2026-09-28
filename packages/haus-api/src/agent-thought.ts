@@ -28,6 +28,22 @@ export const agentThoughtReasoningSchema = z
     .max(thoughtReasoningExcerptMaxLength)
     .regex(/^[^\p{Cc}]*(?:\n[^\p{Cc}]*)*$/u);
 
+/** The longest tool-action description a Computer sends (a command line, a file, a tool). */
+export const agentThoughtActionMaxLength = 200;
+
+/**
+ * A scrubbed, one-line description of a tool action the run just started:
+ * a shell command with URLs reduced to host and path words and secrets,
+ * tokens, and emails removed; a file's basename; or a tool name with a short
+ * argument summary. Never raw output or full arguments.
+ */
+export const agentThoughtActionSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(agentThoughtActionMaxLength)
+    .regex(/^[^\p{Cc}]+$/u);
+
 const agentThoughtFrameFields = {
     agentId: idSchema,
     at: timestampSchema,
@@ -36,10 +52,11 @@ const agentThoughtFrameFields = {
 };
 
 /**
- * The frame a Computer sends while its accepted run reasons (ADR 0036).
- * `phrase` carries a Codex title finished on the Computer and `reasoning` a
- * scrubbed excerpt; the Server rephrases either, or drops it as housekeeping,
- * before announcing anything. Never persisted.
+ * The frame a Computer sends while its accepted run works (ADR 0036).
+ * `phrase` carries a Codex title finished on the Computer, `reasoning` a
+ * scrubbed excerpt, and `action` a scrubbed description of a tool action; the
+ * Server rephrases any of them, or drops it as housekeeping, before announcing
+ * anything. A Server that predates a kind drops its frames as unknown. Never persisted.
  */
 export const agentThoughtFrameSchema = z.discriminatedUnion('kind', [
     z
@@ -56,13 +73,21 @@ export const agentThoughtFrameSchema = z.discriminatedUnion('kind', [
             reasoning: agentThoughtReasoningSchema,
         })
         .strict(),
+    z
+        .object({
+            ...agentThoughtFrameFields,
+            action: agentThoughtActionSchema,
+            kind: z.literal('action'),
+        })
+        .strict(),
 ]);
 export type AgentThoughtFrame = z.infer<typeof agentThoughtFrameSchema>;
 
 /** What a run's narrator hands its frame sender: the frame without its routing fields. */
 export type AgentThoughtContent =
     | { at: string; kind: 'phrase'; text: string }
-    | { at: string; kind: 'reasoning'; reasoning: string };
+    | { at: string; kind: 'reasoning'; reasoning: string }
+    | { action: string; at: string; kind: 'action' };
 
 /**
  * A volatile thought, announced once per Chat its run engages (ADR 0035) and
