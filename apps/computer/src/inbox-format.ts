@@ -12,6 +12,17 @@ const deliveryTrailer = [
     "Each message's `target` identifies the conversation where it was asked.",
 ].join('\n');
 
+/**
+ * Notice-handling guidance rides the notice, as Raft's `formatInboxUpdateRuntimeInput` carries
+ * it, so the standing prompt keeps only collaboration principles. specs/inbox.md §Notices owns
+ * these guarantees: bodies withheld, not absent; not a request; deferral reported honestly.
+ */
+const noticeGuidance = [
+    'These messages have not been read; their bodies are withheld to avoid flooding you, not absent. The notice is not itself a request, so do not acknowledge it.',
+    'Choose when to read them with `haus message check` (locally cached bodies) or `haus message read --target <target>`; `haus inbox check` lists pending targets without reading them. If what you read is higher priority, pivot to it; otherwise continue your current work.',
+    'Deferral needs no visible reply and the messages remain queryable, but deferring them does not establish that there is no work: if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending.',
+].join('\n');
+
 /** Exact model-visible drain shape from specs/inbox.md. */
 export function composeInboxDrain(items: AgentInboxItem[], homeTimezone = 'UTC'): string {
     if (items.length === 0) {
@@ -48,7 +59,10 @@ export function formatUnreadElsewhere(entries: UnreadElsewhere[]): string | null
     ].join('\n');
 }
 
-/** Content-free, target-level busy notice. Bodies never enter this projection. */
+/**
+ * Content-free, target-level notice, closed by its handling guidance. Bodies never enter this
+ * projection.
+ */
 export function composeInboxNotice(
     items: AgentInboxItem[],
     totalPending = items.length
@@ -89,6 +103,7 @@ export function composeInboxNotice(
             : `Inbox update: ${totalPending} unread ${plural(totalPending, 'message')} total; ${targets.size} changed ${plural(targets.size, 'target')}`,
         ...lines,
         ']',
+        noticeGuidance,
     ].join('\n');
 }
 

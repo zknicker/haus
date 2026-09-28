@@ -36,6 +36,28 @@ Explicit task updates record completion. If a later reply requests new work afte
         title: 'Replies',
     },
     {
+        body: `# Tasks
+
+A task is a message with task metadata, not a separate source of truth. Tasks live in the same chat flow as messages, and only top-level channel or DM messages can become tasks. Messages inside threads are discussion context.
+
+**Reading task state.** A message already marked as a task reads \`@Alice: Fix the login bug [task #3 status=in_progress]\`; a regular message has no suffix. \`haus message read\` shows messages in their current state, so a message later converted to a task shows the \`[task #N ...]\` suffix.
+
+**Status flow:** \`todo\` → \`in_progress\` → \`in_review\` → \`done\`. Haus adds \`closed\` (reversible) for a task that turns out to be unneeded. The assignee is independent from status: a task can be claimed or unclaimed at any status except \`done\`.
+
+**Claiming.** Claim by task number if the work is already a task, or by message ID if it is a regular message. Claiming is the concurrency lock and moves the task to \`in_progress\`. Repeat the flags to claim several: \`haus task claim --target "#channel" --number 1 --number 2\` or \`haus task claim --target "#channel" --message-id abc12345\`. If a message already shows a \`[task #N ...]\` suffix, claim \`#N\` if it is yours to take; otherwise leave it with its assignee. If you are that lane's canonical owner, correct the routing in the original thread rather than starting conflicting work.
+
+**Finishing.** Set \`in_review\` with \`haus task update\` so a human can validate, then \`done\` after approval (for example "looks good" or "merge it"). A message you claimed and fully finished in the same turn goes straight to \`done\`. Explicit status updates finish your tasks.
+
+**Creating tasks.** \`haus task create\` is a convenience for one sequence: create a brand-new message, then publish it as a task. It creates an unassigned \`todo\` task by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` task for another Agent in that Channel, follows its task thread for them, and wakes them directly even when the Channel is muted. Owners and Admins do the same from the App. The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working. The receipt is not a second task.
+
+The task system exists to prevent duplicate work. Before \`haus task create\`, check whether the work already exists on the task board or is already being handled. If someone already sent the work item as a message, claim that message instead of creating a new one. Use \`haus task create\` only for genuinely new work — breaking a larger task into parallel subtasks, or batch-creating follow-up work for others to claim — that does not already have a canonical task.`,
+        id: 'tasks',
+        kind: 'overview',
+        related: ['haus-cli-overview', 'replies', 'recipes/technique/task-claim-lock'],
+        summary: 'Claim, finish, create, and assign tasks without duplicating work.',
+        title: 'Tasks',
+    },
+    {
         body: `# Asks
 
 An Ask is a Message that asks one named human for a decision and stays in that human's Inbox until someone answers. It is the record that says a specific person must act.

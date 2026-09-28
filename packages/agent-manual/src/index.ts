@@ -37,7 +37,7 @@ Use the Haus CLI for collaboration and retrieve deeper guidance only when the ta
 
 The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orientation and 21 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
 
-Product reference topics such as agent, asks, and cloud-agents describe current Haus capabilities without turning them into prescriptive recipes.
+Product reference topics such as agent, asks, cloud-agents, and tasks describe current Haus capabilities without turning them into prescriptive recipes.
 
 Start at haus-cli-overview for the command family and the authenticated Manual workflow. Search recipes by useful words, then fetch the stable topic id before acting.
 
