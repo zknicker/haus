@@ -12,8 +12,8 @@ export function ProfileIdentityPending({ error }: { error?: string }) {
                 </p>
             ) : null}
             {[
-                { title: 'Photo', description: 'Shown beside your messages.' },
-                { title: 'Display Name', description: 'Shown beside your messages.' },
+                { title: 'Photo' },
+                { title: 'Display Name' },
                 { title: 'Handle', description: 'Your unique @name on this Server.' },
             ].map((row, index) => (
                 <Fragment key={row.title}>
@@ -21,7 +21,9 @@ export function ProfileIdentityPending({ error }: { error?: string }) {
                     <ItemCard>
                         <ItemCard.Content>
                             <ItemCard.Title>{row.title}</ItemCard.Title>
-                            <ItemCard.Description>{row.description}</ItemCard.Description>
+                            {row.description ? (
+                                <ItemCard.Description>{row.description}</ItemCard.Description>
+                            ) : null}
                         </ItemCard.Content>
                         <ItemCard.Action>
                             {row.title === 'Photo' ? (

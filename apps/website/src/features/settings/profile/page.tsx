@@ -95,7 +95,6 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Photo</ItemCard.Title>
-                    <ItemCard.Description>Shown beside your messages.</ItemCard.Description>
                     <SettingsRowError>{avatarError ?? setAvatar.error?.message}</SettingsRowError>
                 </ItemCard.Content>
                 {/* The picker's edit badge overhangs its own box by 8px,
@@ -123,7 +122,6 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Display Name</ItemCard.Title>
-                    <ItemCard.Description>Shown beside your messages.</ItemCard.Description>
                     <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
                 </ItemCard.Content>
                 <ItemCard.Action>
@@ -205,14 +203,13 @@ function SignOutSection() {
             <ItemCardGroup className="overflow-hidden">
                 <ItemCard>
                     <ItemCard.Content>
-                        <ItemCard.Title>Sign Out</ItemCard.Title>
+                        <ItemCard.Title>This device</ItemCard.Title>
                         <ItemCard.Description>
-                            Ends this session on this device. Your Servers and Agents are
-                            unaffected.
+                            Sign out of Haus here. Your chats stay on the Server.
                         </ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>
-                        <Button onPress={signOut} size="sm" variant="secondary">
+                        <Button onPress={signOut} size="sm" variant="danger-soft">
                             Sign Out
                         </Button>
                     </ItemCard.Action>

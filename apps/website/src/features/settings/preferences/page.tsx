@@ -36,9 +36,6 @@ function AppearanceSection() {
                 <ItemCard>
                     <ItemCard.Content>
                         <ItemCard.Title>Theme</ItemCard.Title>
-                        <ItemCard.Description>
-                            Applies to Haus on this device only.
-                        </ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>
                         <Select

@@ -62,9 +62,9 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     <ItemCardGroup className="overflow-hidden">
                         <ItemCard>
                             <ItemCard.Content>
-                                <ItemCard.Title>Delete Server</ItemCard.Title>
+                                <ItemCard.Title>This Server</ItemCard.Title>
                                 <ItemCard.Description>
-                                    Permanently delete this Server and its Server data.
+                                    Deletion is permanent and removes all of its data.
                                 </ItemCard.Description>
                                 <SettingsRowError>{remove.error?.message}</SettingsRowError>
                             </ItemCard.Content>
