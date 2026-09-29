@@ -40,9 +40,39 @@ export const pushDeviceResultSchema = z.object({ ok: z.literal(true) }).strict()
 /** Longest `aps.alert.body`, in characters. */
 export const pushAlertBodyMaxLength = 180;
 
+/** Longest sender name in a push, in characters; Server cuts longer names with an ellipsis. */
+export const pushNotificationSenderNameMaxLength = 80;
+
+/**
+ * Who wrote the pushed message, for the iPhone Communication Notification.
+ * `avatarUrl` is absolute (avatar routes are public by opaque id) and null
+ * when the sender has no avatar.
+ */
+export const pushNotificationSenderSchema = z
+    .object({
+        avatarUrl: z
+            .string()
+            .url()
+            .regex(/^https?:\/\//u)
+            .nullable(),
+        id: idSchema,
+        kind: z.enum(['agent', 'human']),
+        name: z.string().min(1).max(pushNotificationSenderNameMaxLength),
+    })
+    .strict();
+
+/** Where the pushed message lives: a Channel (named without `#`) or a DM (no name). */
+export const pushNotificationConversationSchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('channel'), name: z.string().min(1) }).strict(),
+    z.object({ kind: z.literal('dm'), name: z.null() }).strict(),
+]);
+
 /**
  * The JSON body of one iPhone push. `aps.thread-id` groups a conversation's
- * pushes; the custom keys route a tap. `threadAnchorMessageId` is non-null
+ * pushes; the custom keys route a tap. `aps.mutable-content` lets the
+ * Notification Service extension turn the alert into a Communication
+ * Notification from `sender` and `conversation`; the plain alert is the
+ * fallback when it cannot. `threadAnchorMessageId` is non-null
  * when the message is in a Thread, whose Chat is then `chatId`.
  */
 export const pushNotificationPayloadSchema = z
@@ -57,13 +87,16 @@ export const pushNotificationPayloadSchema = z
                     .strict(),
                 /** The human's Needs you row count across every Server. */
                 badge: z.number().int().nonnegative().optional(),
+                'mutable-content': z.literal(1),
                 sound: z.literal('default'),
                 'thread-id': idSchema,
             })
             .strict(),
         chatId: idSchema,
+        conversation: pushNotificationConversationSchema,
         conversationChatId: idSchema,
         messageId: idSchema,
+        sender: pushNotificationSenderSchema,
         serverId: idSchema,
         threadAnchorMessageId: idSchema.nullable(),
     })
@@ -72,4 +105,6 @@ export const pushNotificationPayloadSchema = z
 export type PushRegisterDeviceInput = z.infer<typeof pushRegisterDeviceInputSchema>;
 export type PushUnregisterDeviceInput = z.infer<typeof pushUnregisterDeviceInputSchema>;
 export type PushDeviceResult = z.infer<typeof pushDeviceResultSchema>;
+export type PushNotificationSender = z.infer<typeof pushNotificationSenderSchema>;
+export type PushNotificationConversation = z.infer<typeof pushNotificationConversationSchema>;
 export type PushNotificationPayload = z.infer<typeof pushNotificationPayloadSchema>;
