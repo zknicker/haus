@@ -40,6 +40,7 @@ export function buildPushPayload(
         conversation,
         conversationChatId: row.conversationChatId,
         messageId: row.messageId,
+        reason: row.reason,
         sender: {
             avatarUrl: absoluteAvatarUrlFor(author.avatarId, input.appOrigin),
             id: author.id,
