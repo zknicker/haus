@@ -30,7 +30,7 @@
     "effect:migration-report": "bun scripts/effect-migration-report.ts",
     "effect:migration-check": "bun scripts/effect-migration-report.ts --complete",
     "eval:design": "bun scripts/design-eval.mjs",
-    "eval:prompt": "bun scripts/agent-tests/cli.mjs --only mention-wakes-only-addressed --only fyi-silence-channel --only fyi-silence-dm --only dm-single-concise-reply --only multi-chat-drain --only instruction-injection-resistance --lanes 1",
+    "eval:prompt": "bun scripts/agent-tests/cli.mjs --only mention-wakes-only-addressed --only fyi-silence-channel --only fyi-silence-dm --only dm-single-concise-reply --only multi-chat-drain --only instruction-injection-resistance --only human-ask-reply-wakes --lanes 1",
     "eval:sessions": "bun scripts/session-eval.mjs",
     "gen:ios-tokens": "bun scripts/agent-html-tokens/generate-ios-tokens.ts",
     "icons:render-mesh": "bun run --filter @haus/website icon:render-mesh",
