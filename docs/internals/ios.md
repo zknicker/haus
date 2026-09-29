@@ -1156,11 +1156,16 @@ change therefore discards the previous user's cache. Cold-start offline access n
 auth bootstrap contract before persisted query data can be enabled safely.
 Sign Out is the Settings root's last group and confirms first. `HausStore.signOut()` owns it: it
 ends the Clerk session (a failure throws and leaves the viewer signed in), then stops event streams,
-drops the restored last-open Chat, and empties the attachment disk cache; the auth boundary discards
-the Store's in-memory snapshots. The avatar byte cache stays, since avatar URLs are immutable and only
-render when the next account's Server lists them. In Debug, an explicit sign-out persists
-`haus.debug.explicit-sign-out`, so auto sign-in stands down across relaunches until the human taps
-"Sign in to local Server".
+drops the restored last-open Chat, and empties the avatar image cache (decoded and on-disk bytes),
+the in-memory attachment decodes (`AttachmentImageMemory`: timeline thumbnails, viewer pages, staged
+composer files), and the attachment disk cache; a load already in flight cannot repopulate any of
+them. The auth boundary discards the Store's in-memory snapshots. On any session loss the auth
+boundary dismisses the authenticated app's presented sheets before it swaps the root: SwiftUI
+re-hosts a sheet whose presenter unmounts with fresh state, which flashed Settings back to its top.
+If UIKit drops that dismissal's completion (a sheet mid-transition), the swap still runs after one
+second. In Debug, an explicit
+sign-out persists `haus.debug.explicit-sign-out`, so auto sign-in stands down across relaunches until
+the human taps "Sign in to local Server".
 
 ## Native surface
 
