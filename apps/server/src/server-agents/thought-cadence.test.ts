@@ -17,6 +17,8 @@ function harness() {
     const shown: { at: number; text: string }[] = [];
     const phrased: string[] = [];
     const tasks: Promise<void>[] = [];
+    /** The request each run is engaged on now; `end` clears it. */
+    const current = new Map<string, string>([['run', 'ask']]);
     const cadence = createThoughtCadence({
         now: () => clock,
         schedule: (run, ms) => {
@@ -25,7 +27,13 @@ function harness() {
             return () => timers.delete(timer);
         },
     });
-    const job = (text: string | null, stream: ThoughtStream = 'new', rank = 1): ThoughtJob => ({
+    const job = (
+        text: string | null,
+        stream: ThoughtStream = 'new',
+        rank = 1,
+        request = 'ask'
+    ): ThoughtJob => ({
+        current: async () => current.get('run') === request,
         phrase: async () => {
             phrased.push(text ?? '(skip)');
             return text ? { announce: () => shown.push({ at: clock, text }), stream } : null;
@@ -57,10 +65,39 @@ function harness() {
             }
             clock = until;
         },
+        /** The run's engagement ends without a settle signal, as a `--done` reply does. */
+        answer: () => current.delete('run'),
+        endRun: () => {
+            current.delete('run');
+            cadence.endRun('run');
+        },
         offer: async (text: string | null, stream?: ThoughtStream, rank?: number) => {
-            cadence.offer('run', job(text, stream, rank));
+            cadence.offer(
+                { request: current.get('run') ?? 'ask', run: 'run' },
+                job(text, stream, rank, current.get('run') ?? 'ask')
+            );
             await settle();
         },
+        /** Offers a frame whose phrasing resolves only when the returned release runs. */
+        offerSlow: (text: string) => {
+            const { promise: gate, resolve: release } = Promise.withResolvers<void>();
+            const slow = job(text);
+            cadence.offer(
+                { request: 'ask', run: 'run' },
+                {
+                    ...slow,
+                    phrase: async () => {
+                        await gate;
+                        return await slow.phrase();
+                    },
+                }
+            );
+            return async () => {
+                release();
+                await settle();
+            };
+        },
+        steer: (request: string) => current.set('run', request),
         phrased,
         shown,
     };
@@ -123,6 +160,58 @@ describe('thought cadence', () => {
         expect(run.shown.map((line) => [line.at, line.text])).toEqual([
             [0, 'Pulling the forecast'],
             [thoughtFindingFloorMs, "Saturday's dry"],
+        ]);
+    });
+
+    test('a settled turn drops its held line and waiting frame unphrased', async () => {
+        const run = harness();
+        await run.offer('Reading the notes');
+        await run.advance(thoughtFloorMs);
+        await run.offer('Still reading the notes', 'still');
+        // Inside a second of the held line's phrasing, this one waits.
+        await run.offer('Comparing the releases');
+        expect(run.phrased).toEqual(['Reading the notes', 'Still reading the notes']);
+        run.endRun();
+        await run.advance(thoughtStillAfterMs);
+        expect(run.phrased).toHaveLength(2);
+        expect(run.shown.map((line) => line.text)).toEqual(['Reading the notes']);
+    });
+
+    test('an ended request neither phrases a waiting frame nor announces a held line', async () => {
+        const run = harness();
+        await run.offer('Reading the notes');
+        await run.advance(thoughtFloorMs);
+        await run.offer('Still reading the notes', 'still');
+        // Inside a second of the held line's phrasing, this one waits.
+        await run.offer('Comparing the releases');
+        // A `--done` reply ends the engagement; the timers still fire, and find it gone.
+        run.answer();
+        await run.advance(thoughtStillAfterMs);
+        expect(run.phrased).toEqual(['Reading the notes', 'Still reading the notes']);
+        expect(run.shown.map((line) => line.text)).toEqual(['Reading the notes']);
+    });
+
+    test('a summary still in flight when the turn settles announces nothing', async () => {
+        const run = harness();
+        const release = run.offerSlow('Reading the notes');
+        run.endRun();
+        await release();
+        expect(run.phrased).toEqual(['Reading the notes']);
+        expect(run.shown).toEqual([]);
+    });
+
+    test('a steered message drops the older request’s held line and starts fresh', async () => {
+        const run = harness();
+        await run.offer('Reading the notes');
+        await run.advance(thoughtFloorMs);
+        await run.offer('Still reading the notes', 'still');
+        run.steer('follow-up');
+        await run.advance(1000);
+        await run.offer('Checking the follow-up');
+        await run.advance(thoughtStillAfterMs);
+        expect(run.shown.map((line) => [line.at, line.text])).toEqual([
+            [0, 'Reading the notes'],
+            [thoughtFloorMs + 1000, 'Checking the follow-up'],
         ]);
     });
 
