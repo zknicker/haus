@@ -52,10 +52,10 @@ export function InlineReplyPreview({
     const author = replyAuthorName(reference.author);
     const excerpt = messagePreviewLine(reference.content) || 'Attachment';
     return (
-        <div className="relative min-w-0 pt-1 pl-11">
+        <div className="relative min-w-0 pt-2 pl-11" data-turn-reply-preview="">
             <span
                 aria-hidden="true"
-                className="absolute top-3 left-4 size-4 rounded-tl-lg border-separator border-t-2 border-l-2"
+                className="absolute top-4 left-4 size-4 rounded-tl-lg border-separator border-t-2 border-l-2"
             />
             <button
                 aria-label={`Jump to ${author}'s message: ${excerpt}`}

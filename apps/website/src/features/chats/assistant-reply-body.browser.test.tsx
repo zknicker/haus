@@ -38,7 +38,7 @@ for (const list of ['- One\n- Two', '1. One\n2. Two']) {
                     : Number.parseFloat(getComputedStyle(child).marginBottom);
             });
         });
-        expect(metrics).toEqual([12, 12, 12, 0]);
+        expect(metrics).toEqual([8, 8, 8, 0]);
         await page.close();
     });
 }
@@ -92,9 +92,9 @@ test('visuals retain their authored position and paragraph-sized gaps on both si
     });
     expect(metrics).toEqual([
         { label: 'Before chart.', gap: 0 },
-        { label: 'First chart', gap: 12 },
-        { label: 'After chart.', gap: 12 },
-        { label: 'Second chart', gap: 12 },
+        { label: 'First chart', gap: 8 },
+        { label: 'After chart.', gap: 8 },
+        { label: 'Second chart', gap: 8 },
     ]);
     await page.close();
 });

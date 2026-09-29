@@ -38,10 +38,11 @@
     animation: chat-thread-flash 1.5s ease-out both;
 }
 
+/* Segments of one reply share the Markdown paragraph step. */
 .chat-reply-segments {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing, 0.25rem) * 3);
+    gap: calc(var(--spacing, 0.25rem) * 2);
     min-width: 0;
 }
 

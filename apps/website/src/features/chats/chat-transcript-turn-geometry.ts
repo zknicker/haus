@@ -6,5 +6,7 @@ export const transcriptTurnGeometry = {
     name: 'shrink-0 truncate font-semibold text-sm leading-tight',
     // Keep the bleed width on the same theme-scaled unit as its two margins.
     // A fixed rem width overflows compact panes; omitting it clips the right wash.
-    row: '-mx-5 relative w-[calc(100%+var(--spacing)*10)] px-5 py-2',
+    // py-2 on each side makes the between-message gap; a reply preview takes the
+    // top half so the preview hugs the header it introduces.
+    row: '-mx-5 relative w-[calc(100%+var(--spacing)*10)] px-5 py-2 [[data-turn-reply-preview]+&]:pt-1',
 } as const;

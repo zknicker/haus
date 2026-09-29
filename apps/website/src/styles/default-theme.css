@@ -512,11 +512,15 @@
         padding-inline-start: calc(var(--spacing) * 6);
     }
 
-    /* Remove when HeroUI scopes its last-child reset to the final Markdown block. */
+    /*
+     * HeroUI resets each block's last child, so the block gap lives here. It
+     * is the transcript's paragraph step (×2, about half a line): smaller than
+     * the gap between messages, larger than the gap between list items.
+     */
     .chat-markdown
         > .markdown__block:not(:last-child)
         > :is(p, ul, ol, .chat-markdown-table):last-child {
-        margin-bottom: calc(var(--spacing, 0.25rem) * 3);
+        margin-bottom: calc(var(--spacing, 0.25rem) * 2);
     }
 
     /*
