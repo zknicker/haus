@@ -132,9 +132,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let inlineReply: MessageReplyReferencePresentation?
     public let thread: ThreadPreviewPresentation?
     public let task: TaskPresentation?
-    /// The Ask this Message asks, when its body is one. The marker beneath the
-    /// row and the options above the answer Thread's composer both read it.
-    public let ask: AskPresentation?
     public let isPending: Bool
     public let cloudAgents: [CloudAgentPresentation]
     public let threadCloudAgents: [CloudAgentPresentation]
@@ -157,7 +154,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         inlineReply: MessageReplyReferencePresentation? = nil,
         thread: ThreadPreviewPresentation? = nil,
         task: TaskPresentation? = nil,
-        ask: AskPresentation? = nil,
         isPending: Bool = false,
         cloudAgents: [CloudAgentPresentation] = [],
         threadCloudAgents: [CloudAgentPresentation] = [],
@@ -181,7 +177,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.inlineReply = inlineReply
         self.thread = thread
         self.task = task
-        self.ask = ask
         self.isPending = isPending
         self.cloudAgents = cloudAgents
         self.threadCloudAgents = threadCloudAgents

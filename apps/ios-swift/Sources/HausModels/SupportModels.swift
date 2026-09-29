@@ -61,8 +61,8 @@ public struct TaskLabel: Codable, Identifiable, Sendable, Equatable {
 }
 
 public struct MessageTask: Codable, Identifiable, Sendable, Equatable {
+    /// Tasks are Agent work (ADR 0037): only an Agent ever holds one.
     public let assigneeAgentID: String?
-    public let assigneeUserID: String?
     public let chatID: String
     public let claimedAt: Date?
     public let createdAt: Date
@@ -85,7 +85,6 @@ public struct MessageTask: Codable, Identifiable, Sendable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case assigneeAgentID = "assigneeAgentId"
-        case assigneeUserID = "assigneeUserId"
         case chatID = "chatId"
         case claimedAt
         case createdAt

@@ -124,7 +124,7 @@ struct AuthenticatedHausView: View {
                         }
                     },
                     inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
-                    onOpenTasks: { path.append(.tasks(focus: nil)) },
+                    onOpenTasks: { path.append(.tasks) },
                     onOpenInbox: openInbox,
                     needsYouCount: store.needsYouCount,
                     ghostTempo: store.agentActivityGhostTempo,
@@ -191,10 +191,9 @@ struct AuthenticatedHausView: View {
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in
                     switch route {
-                    case .tasks(let focus):
+                    case .tasks:
                         TaskListDestinationView(
                             persistence: store.settingsTasksPersistence,
-                            focus: focus,
                             onOpenTask: openTask
                         )
                     case .thread(let thread):

@@ -17,7 +17,7 @@ extension HausStore {
         var affectedChatIDs: Set<String> = []
         var shouldReloadChats = false
         var shouldReloadActiveCloudAgentWork = false
-        var shouldReloadOpenAsks = false
+        var shouldReloadNeedsYou = false
         var shouldReloadTasks = false
         var inlineRefreshChatIDs: Set<String> = []
         for event in events {
@@ -34,6 +34,15 @@ extension HausStore {
                     affectedChatIDs.insert(parentChatID)
                 }
                 shouldReloadChats = true
+                // Only a message that could address the viewer, or be their
+                // reply that answers a row, refetches Needs you.
+                let conversationID = event.parentChatID ?? event.chatID
+                if event.mayChangeNeedsYou(
+                    viewerUserID: members?.viewerUserID,
+                    conversationKind: chats.first { $0.id == conversationID }?.kind
+                ) {
+                    shouldReloadNeedsYou = true
+                }
             case .cloudAgentWorkUpdated:
                 if let chatID = event.chatID {
                     affectedChatIDs.insert(chatID)
@@ -45,25 +54,15 @@ extension HausStore {
             case .chatRead:
                 // Server addresses this event to the reader alone, so every one
                 // that reaches this client is the echo of its own
-                // acknowledgement. It is the single refresh for that read.
+                // acknowledgement. It is the single refresh for that read, and
+                // the echo of a Done, which moves the Needs you rows.
                 shouldReloadChats = true
+                shouldReloadNeedsYou = true
             case .threadFollowUpdated:
                 if let parentChatID = event.parentChatID {
                     affectedChatIDs.insert(parentChatID)
                 }
                 shouldReloadChats = true
-            case .askUpdated:
-                // An Ask created or settled moves two reads: the viewer's open
-                // Asks, and the transcript carrying the Ask Message whose
-                // marker states the new status. A settlement happens inside a
-                // Thread, so the parent Chat refetches beside it.
-                if let chatID = event.chatID {
-                    affectedChatIDs.insert(chatID)
-                }
-                if let parentChatID = event.parentChatID {
-                    affectedChatIDs.insert(parentChatID)
-                }
-                shouldReloadOpenAsks = true
             case .taskCreated, .taskUpdated:
                 // Creating or changing a Task moves the Server Task lens and
                 // the transcript the Task was raised in, but not Chat ordering.
@@ -73,6 +72,8 @@ extension HausStore {
                 shouldReloadTasks = true
             case .chatLifecycle:
                 shouldReloadChats = true
+                // Archiving or deleting a Chat drops its Needs you rows.
+                shouldReloadNeedsYou = true
             case .taskLabelUpdated, .reminderChanged:
                 break
             }
@@ -93,11 +94,11 @@ extension HausStore {
         // The Inbox snapshots refresh only when this client already holds them,
         // the way the App's invalidation only refetches a live query: an event
         // must not start a Server-wide read for a surface nobody has opened.
-        if shouldReloadOpenAsks, openAsks != nil {
-            await loadOpenAsks()
+        if shouldReloadNeedsYou, needsYouRows != nil {
+            await loadNeedsYou()
         }
-        if shouldReloadTasks, inboxTasks != nil {
-            await loadInboxTasks()
+        if shouldReloadTasks, serverTasks != nil {
+            await loadServerTasks()
         }
         if shouldReloadActiveCloudAgentWork, activeCloudAgentWork != nil {
             await loadActiveCloudAgentWork()

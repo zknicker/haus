@@ -2,13 +2,10 @@ import SwiftUI
 
 extension ThreadDetailView {
     @ViewBuilder
-    func threadRow(
-        _ item: ThreadTranscriptItem,
-        answerableAskMessageID: String?
-    ) -> some View {
+    func threadRow(_ item: ThreadTranscriptItem) -> some View {
         switch item {
         case .anchor(let message, let hasReplies):
-            messageRow(message, emphasized: true, answerableAskMessageID: answerableAskMessageID)
+            messageRow(message, emphasized: true)
                 .padding(.bottom, hasReplies ? 2 : 0)
         case .taskMetadata(let task, let hasReplies):
             ThreadTaskMetadataView(task: task)
@@ -31,7 +28,7 @@ extension ThreadDetailView {
         case .threadHeader:
             ThreadRegionHeader(title: "Thread")
         case .reply(let message):
-            messageRow(message, answerableAskMessageID: answerableAskMessageID)
+            messageRow(message)
                 .padding(.top, 10)
         case .pendingSend:
             ThreadPendingSendRow()
@@ -40,8 +37,7 @@ extension ThreadDetailView {
 
     func messageRow(
         _ message: MessagePresentation,
-        emphasized: Bool = false,
-        answerableAskMessageID: String?
+        emphasized: Bool = false
     ) -> ThreadMessageRow {
         ThreadMessageRow(
             message: message,
@@ -51,9 +47,7 @@ extension ThreadDetailView {
             tiles: attachmentTiles,
             visualHeights: visualHeights,
             onOpenAgent: onOpenAgent,
-            onCancelCloudAgent: onCancelCloudAgent,
-            answerableAskMessageID: answerableAskMessageID,
-            onAnswerAsk: answerAsk
+            onCancelCloudAgent: onCancelCloudAgent
         )
     }
 

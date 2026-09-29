@@ -55,27 +55,14 @@ extension HausStore {
             },
             uniquingKeysWith: { current, _ in current }
         )
-        let memberAssignees = Dictionary(
-            (members?.members ?? []).compactMap { member in
-                actorPresentation(agentID: nil, userID: member.userID).map { (member.userID, $0) }
-            },
-            uniquingKeysWith: { current, _ in current }
-        )
         return TaskListPersistence(
-            viewerUserID: settingsData?.viewer.id,
             assignee: { item in
-                if let agentID = item.task.assigneeAgentID {
-                    return agentAssignees[agentID]
-                }
-                if let userID = item.task.assigneeUserID {
-                    return memberAssignees[userID]
-                }
-                return nil
+                item.task.assigneeAgentID.flatMap { agentAssignees[$0] }
             },
             // The default lens is the Server-wide read the Store already
             // owns, so the screen reads that one snapshot and a durable task
             // event keeps it current. Only the widened lens is the screen's.
-            tasks: { [weak self] in self?.inboxTasks },
+            tasks: { [weak self] in self?.serverTasks },
             backgroundCount: { [weak self] in self?.taskBackgroundCount ?? 0 },
             load: { [weak self] includeBackground in
                 guard let self else { throw CancellationError() }
@@ -84,14 +71,6 @@ extension HausStore {
             updateStatus: { [weak self] item, status in
                 guard let self else { throw CancellationError() }
                 _ = try await self.updateTaskStatus(item.task, status: status)
-            },
-            claim: { [weak self] item in
-                guard let self else { throw CancellationError() }
-                _ = try await self.claimTask(item.task)
-            },
-            unclaim: { [weak self] item in
-                guard let self else { throw CancellationError() }
-                _ = try await self.unclaimTask(item.task)
             }
         )
     }

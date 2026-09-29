@@ -88,25 +88,6 @@ public struct TaskListInput: Encodable, Equatable, Sendable {
     }
 }
 
-/// Shared optimistic-concurrency input for `task.claim` and `task.unclaim`.
-public struct TaskMutationInput: Encodable, Equatable, Sendable {
-    public let expectedVersion: Int
-    public let messageID: String
-    public let serverID: String
-
-    public init(serverID: String, messageID: String, expectedVersion: Int) {
-        self.expectedVersion = expectedVersion
-        self.messageID = messageID
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case expectedVersion
-        case messageID = "messageId"
-        case serverID = "serverId"
-    }
-}
-
 public struct TaskUpdatePatch: Encodable, Equatable, Sendable {
     public let labelIDs: [String]?
     public let priority: TaskPriority?

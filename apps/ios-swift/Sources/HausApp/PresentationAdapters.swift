@@ -105,7 +105,6 @@ extension HausStore {
                 },
                 thread: thread,
                 task: message.task.map(taskPresentation),
-                ask: askPresentation(message.body),
                 cloudAgents: cloudAgentPresentation(message.body).map { [$0] } ?? [],
                 threadCloudAgents: cloudAgentPresentations(cloudAgentWork.filter { $0.anchorMessageId == message.id }),
                 richBlocks: richMessageBlocks(fenced.prose),
@@ -224,7 +223,7 @@ extension HausStore {
             number: task.number,
             origin: task.origin,
             status: status,
-            assignee: actorPresentation(agentID: task.assigneeAgentID, userID: task.assigneeUserID),
+            assignee: actorPresentation(agentID: task.assigneeAgentID, userID: nil),
             creator: actorPresentation(agentID: task.createdByAgentID, userID: task.createdByUserID)
         )
     }

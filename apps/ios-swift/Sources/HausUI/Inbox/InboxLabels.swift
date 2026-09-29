@@ -15,6 +15,22 @@ public enum InboxConversationLabel {
     }
 }
 
+/// The name a row falls back to when the directory no longer lists its actor:
+/// the Message's own stored author profile, and a generic noun for one that
+/// left no profile either.
+public enum InboxActorName {
+    public static func stored(_ author: ChatAuthor) -> String {
+        switch author {
+        case .agent(let agentID, let profile):
+            profile?.displayName ?? "Agent \(String(agentID.suffix(6)))"
+        case .human(let profile, _):
+            profile?.displayName ?? "Haus member"
+        case .system:
+            "Haus"
+        }
+    }
+}
+
 /// How long something has been going, in the Cloud Agent grammar every Haus
 /// surface already states elapsed time in: `45s`, `25m`, `2h`, `2h 5m`.
 public enum InboxElapsed {

@@ -6,7 +6,7 @@ import HausUI
 /// availability looks like, and where a stored avatar path actually lives.
 ///
 /// They sit beside the projections rather than inside any one of them because
-/// transcripts, activity, tasks, Asks, and settings all finish the same way.
+/// transcripts, activity, tasks, the Inbox, and settings all finish the same way.
 extension HausStore {
     func presence(_ availability: AgentAvailability) -> AgentPresence {
         switch availability {

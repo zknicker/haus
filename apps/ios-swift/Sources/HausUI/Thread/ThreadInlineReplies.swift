@@ -38,7 +38,7 @@ public struct ThreadInlineReplies {
 }
 
 /// A labeled region inside the Thread transcript. Its rows deliberately omit
-/// Ask and cloud-agent actions: the parent chain is an inspection surface, and
+/// cloud-agent actions: the parent chain is an inspection surface, and
 /// sending remains the separate dedicated Thread composer below.
 struct ThreadInlineRepliesRegion: View {
     let config: ThreadInlineReplies
@@ -109,13 +109,6 @@ struct ThreadRegionHeader: View {
 }
 
 extension ThreadDetailView {
-    /// An offered option follows the dedicated Thread send path, so it can
-    /// settle the Ask without changing the read-only parent region.
-    func answerAsk(_ option: String) async -> Bool {
-        guard !pending else { return false }
-        return await onSend(option, [])
-    }
-
     @ViewBuilder
     var loadOlderAccessory: some View {
         VStack(spacing: 8) {

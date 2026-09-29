@@ -28,6 +28,7 @@ public struct InboxPageView: View {
     private let workingAgents: [InboxWorkingAgent]
     private let resolveActor: InboxActorResolver
     private let onOpen: (InboxOpenRequest) -> Void
+    private let onDone: (String) -> Void
     private let onRefresh: () async -> Void
     private let onOpenSidebar: () -> Void
     /// The canvas ignores safe areas, so the chrome row carries its own
@@ -46,6 +47,7 @@ public struct InboxPageView: View {
         workingAgents: [InboxWorkingAgent],
         resolveActor: @escaping InboxActorResolver,
         onOpen: @escaping (InboxOpenRequest) -> Void,
+        onDone: @escaping (String) -> Void,
         onRefresh: @escaping () async -> Void,
         onOpenSidebar: @escaping () -> Void,
         contentInsets: EdgeInsets = EdgeInsets()
@@ -58,6 +60,7 @@ public struct InboxPageView: View {
         self.workingAgents = workingAgents
         self.resolveActor = resolveActor
         self.onOpen = onOpen
+        self.onDone = onDone
         self.onRefresh = onRefresh
         self.onOpenSidebar = onOpenSidebar
         self.contentInsets = contentInsets
@@ -82,7 +85,7 @@ public struct InboxPageView: View {
             VStack(alignment: .leading, spacing: 22) {
                 header
                 InboxActiveAgentsSection(weeks: agentWeeks, onOpen: onOpen)
-                InboxNeedsYouSection(rows: needsYou, onOpen: onOpen)
+                InboxNeedsYouSection(rows: needsYou, now: now, onOpen: onOpen, onDone: onDone)
                 InboxConversationsSection(rows: conversations, now: now, onOpen: onOpen)
                 InboxHappeningNowSection(rows: happeningNowRows, onOpen: onOpen)
             }

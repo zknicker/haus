@@ -51,8 +51,7 @@ public struct ChatSummary: Codable, Identifiable, Sendable, Equatable {
     ///
     /// Two lifecycles end a conversation without deleting it: a DM whose peer
     /// Agent was retired, and a Chat that was archived. Either leaves the
-    /// transcript readable and takes the composer away — and with it every
-    /// answer control, because an Ask here can no longer be settled. Haus App
+    /// transcript readable and takes the composer away. Haus App
     /// reads exactly this predicate as `readOnly`.
     public var isReadOnly: Bool {
         (kind == .dm && peerAgentRetired) || archivedAt != nil

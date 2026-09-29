@@ -3,8 +3,8 @@ import HausModels
 import OSLog
 
 /// The Server-wide reads the Inbox and its sidebar badge stand on: the viewer's
-/// open Asks, the default Task lens, the Cloud Agent work running right now,
-/// and the Server's token-usage snapshot.
+/// Needs you rows, the Cloud Agent work running right now, and the Server's
+/// token-usage snapshot.
 ///
 /// Each snapshot lives on the Store rather than on a screen because the badge
 /// outlives the Inbox: a durable event refreshes what this client already
@@ -15,41 +15,52 @@ extension HausStore {
     /// Every Server-wide Inbox read at once, for a surface that shows all of
     /// them. The reads are independent, so they run concurrently.
     func loadInbox() async {
-        async let asks: Void = loadOpenAsks()
-        async let tasks: Void = loadInboxTasks()
+        async let needsYou: Void = loadNeedsYou()
         async let work: Void = loadActiveCloudAgentWork()
         async let usage: Void = loadServerUsage()
-        _ = await (asks, tasks, work, usage)
+        _ = await (needsYou, work, usage)
     }
 
-    /// The viewer's open Asks on this Server, oldest first. Server membership
-    /// and Chat access gate the read, so an Ask the viewer lost access to
-    /// simply stops arriving and no surface has to filter one out.
-    func loadOpenAsks() async {
+    /// The Chats addressed to the viewer that they have not answered or marked
+    /// Done (ADR 0037), newest first. `message.created` and `chat.read` own
+    /// the refresh.
+    func loadNeedsYou() async {
         guard let serverID = activeServer?.id else { return }
         do {
-            let rows: [OpenAsk] = try await client.query(
-                "ask.listOpen",
+            let rows: [NeedsYouRow] = try await client.query(
+                "inbox.needsYou",
                 input: ServerScopedInput(serverId: serverID)
             )
             guard activeServer?.id == serverID else { return }
-            if openAsks != rows { openAsks = rows }
+            if needsYouRows != rows { needsYouRows = rows }
         } catch {
-            Self.logger.error("Loading open asks failed: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("Loading needs you failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    /// The Server-wide default Task lens, which is what the "Needs you" count
-    /// reads its stalled claims from.
-    func loadInboxTasks() async {
+    /// Done on one row: it leaves at once, the Server records the sequence it
+    /// covered and advances the read marker, and the refetch reconciles. A
+    /// failed Done puts the row back, because nothing was recorded.
+    func markNeedsYouDone(_ row: NeedsYouRow) async {
         guard let serverID = activeServer?.id else { return }
+        needsYouDoneThrough[row.chatID] = row.latest.sequence
+        defer { needsYouDoneThrough[row.chatID] = nil }
         do {
-            let tasks = try await loadTasks()
+            let _: InboxMarkDoneResult = try await client.mutation(
+                "inbox.markDone",
+                input: InboxMarkDoneInput(serverID: serverID, row: row)
+            )
             guard activeServer?.id == serverID else { return }
-            if inboxTasks != tasks { inboxTasks = tasks }
+            await loadNeedsYou()
         } catch {
-            Self.logger.error("Loading inbox tasks failed: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("Marking needs you done failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// The rows the Inbox shows: the Server's, less any Done still settling.
+    /// Nil until the first read lands.
+    var visibleNeedsYouRows: [NeedsYouRow]? {
+        needsYouRows.map { NeedsYou.visible($0, doneThrough: needsYouDoneThrough) }
     }
 
     /// Every queued or running Cloud Agent work the viewer can see on this
@@ -85,18 +96,15 @@ extension HausStore {
         }
     }
 
-    /// How much work is waiting on this human right now, for surfaces that
-    /// badge the Inbox instead of opening it.
+    /// How many conversations are waiting on this human right now, for
+    /// surfaces that badge the Inbox instead of opening it — the same rows the
+    /// section lists.
     ///
-    /// Zero until both reads have landed: a badge that counted Asks now and
-    /// Tasks a moment later would tick upward in front of the reader. Ask
-    /// `isNeedsYouCountReady` to tell "nothing waiting" from "not yet known".
-    var needsYouCount: Int {
-        guard let openAsks, let inboxTasks else { return 0 }
-        return InboxNeedsYou.count(askCount: openAsks.count, tasks: inboxTasks.map(\.task))
-    }
+    /// Zero until the rows have landed. Ask `isNeedsYouCountReady` to tell
+    /// "nothing waiting" from "not yet known".
+    var needsYouCount: Int { visibleNeedsYouRows?.count ?? 0 }
 
-    var isNeedsYouCountReady: Bool { openAsks != nil && inboxTasks != nil }
+    var isNeedsYouCountReady: Bool { needsYouRows != nil }
 
     /// One Agent's week, sliced from the Server usage snapshot the Inbox
     /// already holds. Nil until that read lands, so a strip is blank rather

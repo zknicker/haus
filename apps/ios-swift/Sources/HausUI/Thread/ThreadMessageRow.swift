@@ -13,11 +13,6 @@ struct ThreadMessageRow: View {
     let visualHeights: VisualHeightRegistry
     var onOpenAgent: (String) -> Void = { _ in }
     var onCancelCloudAgent: ((String) async throws -> Void)?
-    /// The Ask a reply in this Thread would settle — see `ThreadAskAnswerability`.
-    /// Every other open Ask here keeps its card's header and offers nothing.
-    var answerableAskMessageID: String?
-    /// The Thread's own send, already addressed to the parent Chat and anchor.
-    var onAnswerAsk: (String) async -> Bool = { _ in false }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -61,19 +56,6 @@ struct ThreadMessageRow: View {
                         tiles: tiles,
                         onOpen: onOpenAttachment
                     )
-                }
-
-                if let ask = message.ask {
-                    // An Ask is answered where it was asked, so inside a Thread
-                    // the Ask reads as its card rather than as a marker. A
-                    // second Ask is a second decision: keyed on its own Message
-                    // so it never inherits a card a previous answer spent.
-                    AskAnswerCard(
-                        ask: ask,
-                        canAnswer: answerableAskMessageID == message.id,
-                        onAnswer: onAnswerAsk
-                    )
-                    .id(message.id)
                 }
 
                 ForEach(message.cloudAgents) { agent in

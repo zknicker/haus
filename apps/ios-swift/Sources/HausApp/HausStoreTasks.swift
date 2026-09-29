@@ -1,6 +1,7 @@
 import Foundation
 import HausModels
 import HausUI
+import OSLog
 
 /// Server-backed task reads and lifecycle mutations for native task lenses.
 ///
@@ -50,8 +51,20 @@ extension HausStore {
             return try await loadTasks(includeBackground: true)
         }
         let rows = try await loadTasks()
-        if inboxTasks != rows { inboxTasks = rows }
+        if serverTasks != rows { serverTasks = rows }
         return rows
+    }
+
+    /// Refreshes the Server-wide default Task lens the Task list stands on.
+    func loadServerTasks() async {
+        guard let serverID = activeServer?.id else { return }
+        do {
+            let tasks = try await loadTasks()
+            guard activeServer?.id == serverID else { return }
+            if serverTasks != tasks { serverTasks = tasks }
+        } catch {
+            Self.logger.error("Loading server tasks failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     @discardableResult
@@ -66,34 +79,6 @@ extension HausStore {
                 messageID: task.messageID,
                 expectedVersion: task.version,
                 patch: TaskUpdatePatch(status: status)
-            )
-        )
-        return receipt.task
-    }
-
-    @discardableResult
-    func claimTask(_ task: MessageTask) async throws -> MessageTask {
-        try await mutateTask(task, procedure: "task.claim")
-    }
-
-    @discardableResult
-    func unclaimTask(_ task: MessageTask) async throws -> MessageTask {
-        try await mutateTask(task, procedure: "task.unclaim")
-    }
-
-    private func mutateTask(
-        _ task: MessageTask,
-        procedure: String
-    ) async throws -> MessageTask {
-        guard let serverID = activeServer?.id else {
-            throw HausStoreError.serverUnavailable
-        }
-        let receipt: TaskMutationReceipt = try await client.mutation(
-            procedure,
-            input: TaskMutationInput(
-                serverID: serverID,
-                messageID: task.messageID,
-                expectedVersion: task.version
             )
         )
         return receipt.task

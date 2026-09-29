@@ -7,11 +7,10 @@ import SwiftUI
 ///
 /// The preview is optional because not every row has a second fact worth the
 /// width. Without one the title takes the whole middle and truncates at its own
-/// tail, which is what "Needs you" wants: a decision and where it came from,
-/// neither of them cut in half to make room for the other.
+/// tail.
 ///
-/// No row carries a control, so the whole row is the press target and every row
-/// in the column ends on the same right edge.
+/// The whole row is the press target. The one control an Inbox row may carry —
+/// a Needs you row's Done — sits beside it rather than inside it.
 struct InboxRowView<Trailing: View>: View {
     let mark: InboxMark
     let title: String

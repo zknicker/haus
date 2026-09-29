@@ -4,17 +4,17 @@ import HausModels
 /// What pressing an Inbox row asks the App to open.
 ///
 /// A row carries an id, never a resolved route: the record it projects lives on
-/// the Store, and the App layer owns navigation. The Ask and the Cloud Agent
-/// work both name their Message, which is the id their Server read is keyed by.
+/// the Store, and the App layer owns navigation. A Cloud Agent work names its
+/// Message and a Needs you Thread row its Thread's Chat, which is the id each
+/// Server read is keyed by.
 public enum InboxOpenRequest: Hashable, Sendable {
     /// The Agent's own Chat — its DM, which is where a person talks to it.
     case agent(String)
-    case ask(messageID: String)
     case chat(String)
     case cloudAgentWork(messageID: String)
-    /// The Task list, landing on one task when the row names one — a stalled
-    /// claim names its own, the way the App's `?task=` deep link does.
-    case tasks(focus: TaskFocus?)
+    /// A Needs you row on a Thread, by the Thread's own Chat id. The App
+    /// resolves the anchor and pushes that Thread.
+    case needsYouThread(chatID: String)
 }
 
 /// The 32pt mark every Inbox row leads with: a face, a Channel's icon box, or
@@ -28,31 +28,38 @@ public enum InboxMark: Hashable, Sendable {
 /// Every Inbox mark is this size, Agent, Channel, or week card alike.
 public let inboxMarkSize: CGFloat = 32
 
-/// A row in "Needs you" carries no preview. The title is already the decision
-/// or the stalled claim, and on a phone a summary between it and the trailing
-/// meta only truncates all three; where the row came from is the fact that
-/// survives instead.
+/// A conversation addressed to the reader (ADR 0037): the addressing author's
+/// face and name, the line they wrote, and where and when — a mention reads
+/// `#onboarding · 2m`, a DM its time alone.
 public struct InboxNeedsYouRow: Identifiable, Hashable, Sendable {
-    /// Namespaced by kind: an Ask and a claim can name the same Message, so a
-    /// raw Message id would collide across the two halves of the section.
+    /// The Chat holding the addressing messages, which is also what Done names.
     public let id: String
     public let mark: InboxMark
+    /// Who addressed the reader.
     public let title: String
-    /// Where it came from and what kind of row it is — `Ask · #onboarding`.
-    public let meta: String
+    /// What they wrote, on one line.
+    public let preview: String
+    /// Where it came from: `#onboarding` for a mention, nil for a DM, whose
+    /// face already says where.
+    public let context: String?
+    public let latestAt: Date
     public let open: InboxOpenRequest
 
     public init(
         id: String,
         mark: InboxMark,
         title: String,
-        meta: String,
+        preview: String,
+        context: String?,
+        latestAt: Date,
         open: InboxOpenRequest
     ) {
         self.id = id
         self.mark = mark
         self.title = title
-        self.meta = meta
+        self.preview = preview
+        self.context = context
+        self.latestAt = latestAt
         self.open = open
     }
 }

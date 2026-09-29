@@ -29,15 +29,12 @@ enum TaskAssigneeLabel {
         if let agentID = item.task.assigneeAgentID {
             return "Agent \(String(agentID.suffix(6)))"
         }
-        if let userID = item.task.assigneeUserID {
-            return "Member \(String(userID.suffix(6)))"
-        }
         return "Unassigned"
     }
 }
 
 struct TaskSectionHeader: View {
-    let status: TaskStatus
+    let title: String
     let count: Int
     let showsBoundaryRule: Bool
 
@@ -53,7 +50,7 @@ struct TaskSectionHeader: View {
             // Linear mobile keeps the group header to plain muted text; the
             // status disc earns its color in the rows, not twice on a screen.
             HStack(spacing: 7) {
-                Text(status.displayName)
+                Text(title)
                     .font(.subheadline.weight(.semibold))
                 Text("\(count)")
                     .font(.subheadline)
@@ -66,21 +63,17 @@ struct TaskSectionHeader: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .textCase(nil)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(status.displayName), \(count) tasks")
+        .accessibilityLabel("\(title), \(count) tasks")
     }
 }
 
 struct TaskListRow: View {
     let item: TaskListItem
-    let viewerUserID: String?
     let chatLabel: String
     let assignee: MessageAuthorPresentation?
     let isMutating: Bool
-    let actionsDisabled: Bool
     let onOpen: () -> Void
     let onUpdateStatus: (TaskStatus) -> Void
-    let onClaim: () -> Void
-    let onUnclaim: () -> Void
 
     var body: some View {
         Button(action: onOpen) {
@@ -121,7 +114,6 @@ struct TaskListRow: View {
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(.isButton)
         .contextMenu { actionMenu }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) { swipeActions }
     }
 
     // One line, so the anchor collapses and a fence reads as the visual's name.
@@ -173,33 +165,6 @@ struct TaskListRow: View {
                 }
             }
         }
-
-        if canClaim {
-            Button(action: onClaim) {
-                Label("Claim", systemImage: "hand.raised")
-            }
-        } else if canUnclaim {
-            Button(action: onUnclaim) {
-                Label("Unclaim", systemImage: "hand.raised.slash")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var swipeActions: some View {
-        if !actionsDisabled, !isMutating {
-            if canClaim {
-                Button(action: onClaim) {
-                    Label("Claim", systemImage: "hand.raised")
-                }
-                .tint(.blue)
-            } else if canUnclaim {
-                Button(action: onUnclaim) {
-                    Label("Unclaim", systemImage: "hand.raised.slash")
-                }
-                .tint(.orange)
-            }
-        }
     }
 
     private var assigneeLabel: String {
@@ -207,7 +172,7 @@ struct TaskListRow: View {
     }
 
     private var isAssigned: Bool {
-        item.task.assigneeAgentID != nil || item.task.assigneeUserID != nil
+        item.task.assigneeAgentID != nil
     }
 
     // The row sheds metadata visually, so the a11y label still carries it.
@@ -229,23 +194,5 @@ struct TaskListRow: View {
             parts.append("Updating")
         }
         return parts.joined(separator: ", ")
-    }
-
-    private var canClaim: Bool {
-        guard item.task.status != .done,
-              item.task.assigneeAgentID == nil,
-              let viewerUserID
-        else { return false }
-        return item.task.assigneeUserID == nil
-            || (item.task.assigneeUserID == viewerUserID && item.task.claimedAt == nil)
-    }
-
-    private var canUnclaim: Bool {
-        guard item.task.status != .done,
-              let viewerUserID,
-              item.task.assigneeAgentID == nil,
-              item.task.assigneeUserID == viewerUserID
-        else { return false }
-        return item.task.claimedAt != nil
     }
 }

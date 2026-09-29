@@ -5,71 +5,57 @@ import HausModels
 /// Nil is an actor this client no longer lists, which each row names itself.
 public typealias InboxActorResolver = (_ agentID: String?, _ userID: String?) -> MessageAuthorPresentation?
 
-/// Work waiting on this human: open Asks addressed to them, then claims an
-/// Agent took and stopped short of finishing. Two records, one list — as two
-/// lists in one group the seam between them was the only place in the section
-/// without a divider, and the reader could see the join.
-///
-/// Asks lead. An Ask is a decision only this human can make; a stalled claim is
-/// work that fell over and will still be there in a minute.
+/// Conversations addressed to this human that they have not answered or marked
+/// Done (ADR 0037): DM messages from someone else, and `user://` mentions of
+/// them. The Server returns them newest first, so nothing is reordered here.
 public enum InboxNeedsYouRows {
-    /// Nil until both reads have landed. They make the same claim — that
-    /// nothing needs you — so the section stays neutral rather than emptying
-    /// and then filling, exactly as the sidebar badge stays silent until the
-    /// same pair can answer.
+    /// Nil until the read has landed, so the section stays neutral rather than
+    /// saying "Nothing needs you" a moment before a row arrives.
     public static func rows(
-        asks: [OpenAsk]?,
-        tasks: [TaskListItem]?,
+        _ rows: [NeedsYouRow]?,
         resolveActor: InboxActorResolver
     ) -> [InboxNeedsYouRow]? {
-        guard let asks, let tasks else { return nil }
-        // The stalled-claim question is the shared selector's, asked of the
-        // Task records these rows carry, so the section and the sidebar badge
-        // can never disagree about what a stalled claim is.
-        let stalled = Set(InboxNeedsYou.stalledClaims(in: tasks.map(\.task)).map(\.messageID))
-        return asks.map { askRow($0, resolveActor: resolveActor) }
-            + tasks
-                .filter { stalled.contains($0.task.messageID) }
-                .map { claimRow($0, resolveActor: resolveActor) }
+        rows?.map { row($0, resolveActor: resolveActor) }
     }
 
-    /// The Server already returns only the viewer's open Asks, oldest first, so
-    /// nothing is filtered here.
-    static func askRow(_ item: OpenAsk, resolveActor: InboxActorResolver) -> InboxNeedsYouRow {
-        let resolved = resolveActor(item.ask.agentID, nil)
-        let name = resolved?.name ?? authoredAgentName(item.message.author, agentID: item.ask.agentID)
-        return InboxNeedsYouRow(
-            id: "ask:\(item.ask.messageID)",
-            mark: .identity(name: name, avatarURL: resolved?.avatarURL, presence: resolved?.presence),
-            title: item.ask.title,
-            meta: "Ask · \(InboxConversationLabel.text(kind: item.chatKind, name: item.chatName))",
-            open: .ask(messageID: item.ask.messageID)
-        )
-    }
-
-    /// A stalled claim is where a person learns that an Agent took work and
-    /// dropped it, because Chat hides an Agent's own claims by default.
-    static func claimRow(_ item: TaskListItem, resolveActor: InboxActorResolver) -> InboxNeedsYouRow {
-        let resolved = resolveActor(item.task.assigneeAgentID, item.task.assigneeUserID)
-        let name = TaskAssigneeLabel.text(for: item, assignee: resolved)
-        return InboxNeedsYouRow(
-            id: "claim:\(item.message.id)",
-            mark: .identity(name: name, avatarURL: resolved?.avatarURL, presence: resolved?.presence),
-            title: "\(name) stopped before finishing",
-            meta: "\(InboxConversationLabel.text(kind: item.chatKind, name: item.chatName))"
-                + " · Task #\(item.task.number)",
-            // The Task is a promoted Message, so its Message id is the focus
-            // the list scrolls to and, when it is background-tier, widens for.
-            open: .tasks(focus: TaskFocus(messageID: item.message.id))
-        )
-    }
-
-    /// The Message's own stored author profile stands in for an Agent the
-    /// Server no longer lists, and its id for one that left no profile either.
-    static func authoredAgentName(_ author: ChatAuthor, agentID: String) -> String {
-        if case .agent(_, let profile) = author, let profile {
-            return profile.displayName
+    static func row(_ item: NeedsYouRow, resolveActor: InboxActorResolver) -> InboxNeedsYouRow {
+        let author = item.latest.author
+        let resolved = resolveActor(author.agentID, author.userID)
+        let name = resolved?.name ?? InboxActorName.stored(author)
+        let context: String? = switch item.reason {
+        case .dm: nil
+        case .mention(let chatName), .reply(let chatName):
+            InboxConversationLabel.text(kind: .channel, name: chatName)
         }
-        return "Agent \(String(agentID.suffix(6)))"
+        return InboxNeedsYouRow(
+            id: item.chatID,
+            mark: .identity(name: name, avatarURL: resolved?.avatarURL, presence: resolved?.presence),
+            title: name,
+            preview: oneLine(item.latest.preview),
+            context: context,
+            latestAt: item.latest.createdAt,
+            // A top-level row opens its DM or Channel; a Thread row pushes the
+            // Thread its reply belongs in, so answering there clears the row.
+            open: item.isThread ? .needsYouThread(chatID: item.chatID) : .chat(item.chatID)
+        )
+    }
+
+    /// The Server's preview is plain text but may still break lines; a row is
+    /// one line.
+    static func oneLine(_ text: String) -> String {
+        text.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+}
+
+extension ChatAuthor {
+    var agentID: String? {
+        if case .agent(let agentID, _) = self { agentID } else { nil }
+    }
+
+    var userID: String? {
+        if case .human(_, let userID) = self { userID } else { nil }
     }
 }

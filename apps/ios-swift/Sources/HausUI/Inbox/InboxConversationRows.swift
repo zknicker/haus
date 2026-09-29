@@ -40,17 +40,19 @@ public struct InboxConversation: Identifiable, Equatable, Sendable {
 }
 
 /// Unread conversation, newest activity first, each row quoting the line that
-/// is waiting.
+/// is waiting. A Chat that already has a Needs you row is left out, so one
+/// conversation is never listed twice.
 public enum InboxConversationRows {
     /// What a Chat holding no message yet says instead of a quote.
     public static let noActivityPreview = "no activity yet"
 
     public static func rows(
         _ chats: [InboxConversation],
-        viewerDisplayName: String?
+        viewerDisplayName: String?,
+        hiding needsYouChatIDs: Set<String> = []
     ) -> [InboxConversationRow] {
         chats
-            .filter { $0.unreadCount > 0 }
+            .filter { $0.unreadCount > 0 && !needsYouChatIDs.contains($0.id) }
             .sorted { left, right in
                 let leftAt = left.lastActivityAt ?? .distantPast
                 let rightAt = right.lastActivityAt ?? .distantPast

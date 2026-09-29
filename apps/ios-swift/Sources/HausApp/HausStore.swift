@@ -54,8 +54,14 @@ final class HausStore {
     // load, which is what lets `needsYouCount` stay silent until it can answer
     // honestly, and what lets a durable event refresh only what this client
     // actually holds.
-    var openAsks: [OpenAsk]?
-    var inboxTasks: [TaskListItem]?
+    var needsYouRows: [NeedsYouRow]?
+    /// Done presses still settling, by Chat id and the sequence each covered.
+    /// A row stays hidden until the Server answers unless newer addressing
+    /// arrives first (`NeedsYou.visible`).
+    var needsYouDoneThrough: [String: Int] = [:]
+    /// The Server-wide default Task lens (`task.list`), which the Task list
+    /// reads and durable task events refresh.
+    var serverTasks: [TaskListItem]?
     var activeCloudAgentWork: [ActiveCloudAgentWork]?
     var serverUsage: ServerUsageSnapshot?
     /// How many background-tier tasks the Server-wide Task lens last hid. Zero

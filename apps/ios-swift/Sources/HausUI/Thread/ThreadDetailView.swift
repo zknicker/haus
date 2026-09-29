@@ -11,8 +11,7 @@ public struct ThreadDetailView: View {
     private let isConnected: Bool
     /// Whether this conversation refuses new Messages — an archived Chat, or a
     /// DM whose peer Agent was retired (`ChatSummary.isReadOnly`). The Thread
-    /// keeps its transcript and loses its composer, and with it every Ask
-    /// answer control, because no reply can be sent to settle one.
+    /// keeps its transcript and loses its composer.
     private let isReadOnly: Bool
     let onSend: (String, [ComposerAttachment]) async -> Bool
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
@@ -124,10 +123,6 @@ public struct ThreadDetailView: View {
             includesInlineReplies: inlineReplies != nil,
             inlineReplies: inlineReplyMessages
         )
-        // The Ask a reply here would settle, read in the screen's body so an
-        // Ask posted as a reply takes over the moment its Message lands.
-        let answerableAskMessageID = ThreadAskAnswerability
-            .answerableMessageID(rows: [anchor] + replies, readOnly: isReadOnly)
         // Read here, in the screen's own body, so a visual's height report
         // re-renders the screen and the table re-hosts its visible rows. Read
         // only inside a row it would land on the cell's hosting view, which the
@@ -136,7 +131,7 @@ public struct ThreadDetailView: View {
 
         return GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
-                transcript(items: items, answerableAskMessageID: answerableAskMessageID)
+                transcript(items: items)
                     // Same shape as the chat screen: replies run under the floating glass
                     // composer and the inset reserves their clearance.
                     .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -196,10 +191,7 @@ public struct ThreadDetailView: View {
     /// timeline, so the bottom anchor, keyboard rides, and history prepends
     /// are structural here too. The anchor and its task metadata are simply
     /// the transcript's oldest items.
-    private func transcript(
-        items: [ThreadTranscriptItem],
-        answerableAskMessageID: String?
-    ) -> some View {
+    private func transcript(items: [ThreadTranscriptItem]) -> some View {
         GeometryReader { proxy in
             TranscriptListView(
                 items: items,
@@ -223,9 +215,7 @@ public struct ThreadDetailView: View {
                 isNearNewest: $isNearNewest,
                 onContentTap: { isComposerFocused = false },
                 onVisibleItems: onVisibleMessagesChange,
-                row: { item in
-                    threadRow(item, answerableAskMessageID: answerableAskMessageID)
-                },
+                row: { item in threadRow(item) },
                 accessory: {
                     loadOlderAccessory
                 }

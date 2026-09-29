@@ -30,6 +30,10 @@ extension AuthenticatedHausView {
                 store.actorPresentation(agentID: agentID, userID: userID)
             },
             onOpen: openInboxRequest,
+            onDone: { chatID in
+                guard let row = store.needsYouRows?.first(where: { $0.chatID == chatID }) else { return }
+                Task { await store.markNeedsYouDone(row) }
+            },
             onRefresh: { await store.loadInbox() },
             onOpenSidebar: onOpenSidebar,
             contentInsets: contentInsets
@@ -46,19 +50,20 @@ extension AuthenticatedHausView {
 
     /// A row states a record and opens it where that record is fully readable.
     ///
-    /// An Ask and a Cloud Agent work both open the Thread they hang off, which
-    /// is the same pair a Thread composer sends to: the conversation's Chat and
-    /// the anchor Message. A stalled claim opens the Task list on its own task,
-    /// the phone's counterpart of the App's `?task=` deep link.
+    /// A Needs you Thread row and a Cloud Agent work both open the Thread they
+    /// hang off, which is the same pair a Thread composer sends to: the
+    /// conversation's Chat and the anchor Message. A top-level Needs you row
+    /// opens its DM or Channel, where the reply that clears it is written.
     func openInboxRequest(_ request: InboxOpenRequest) {
         switch request {
         case .agent(let agentID):
             openAgentDM(agentID)
-        case .ask(let messageID):
-            guard let ask = store.openAsks?.first(where: { $0.ask.messageID == messageID }),
-                  let selection = store.threadSelection(openAsk: ask)
-            else { return }
-            pushConversationThread(selection)
+        case .needsYouThread(let chatID):
+            guard let row = store.needsYouRows?.first(where: { $0.chatID == chatID }) else { return }
+            Task {
+                guard let selection = await store.threadSelection(needsYou: row) else { return }
+                pushConversationThread(selection)
+            }
         case .chat(let chatID):
             openCanvasChat(.chat(chatID))
         case .cloudAgentWork(let messageID):
@@ -71,20 +76,18 @@ extension AuthenticatedHausView {
                 )
             else { return }
             pushConversationThread(selection)
-        case .tasks(let focus):
-            path.append(.tasks(focus: focus))
         }
     }
 
     /// A Thread opened from the Inbox pops back to the Inbox, and its parent
     /// Chat may be one the user has never visited — selecting it would mark it
     /// read on the way back out. The route carries the parent Chat id and the
-    /// Ask or work carries the child Chat id, so it needs no selection.
+    /// row or work carries the child Chat id, so it needs no selection.
     ///
     /// The Store projects the anchor, because the Inbox is the one surface that
     /// opens a Thread over a Chat page this client has not loaded: the Thread
     /// screen has nothing to fall back to, so what the row hands it is all it
-    /// will ever have — the Ask marker and its offered options included.
+    /// will ever have.
     private func pushConversationThread(_ selection: ThreadSelection) {
         pushThread(selection, selectingParent: nil)
     }
@@ -138,9 +141,8 @@ extension AuthenticatedHausView {
         )
     }
 
-    /// Every Thread push, whichever row opened it. The Thread screen reads its
-    /// open Asks off its own rows — anchor and replies alike — so nothing but
-    /// the route is needed to open one.
+    /// Every Thread push, whichever row opened it. Nothing but the route is
+    /// needed to open one.
     private func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
         if let parentChatID {
             selectedDestinationID = .chat(parentChatID)

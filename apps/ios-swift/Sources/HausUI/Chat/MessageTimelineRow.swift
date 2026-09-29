@@ -76,13 +76,6 @@ struct MessageTimelineRow: View {
                     .padding(.top, hasBodyAbove ? 3 : 0)
                 }
 
-                if let ask = message.ask {
-                    // The marker is this Ask's only ingress until somebody
-                    // replies: with no replies the row shows no Thread card,
-                    // and the answer is written in the Thread either way.
-                    AskMark(ask: ask, onOpen: onOpenThread)
-                }
-
                 ForEach(message.cloudAgents) { agent in
                     CloudAgentCard(agent: agent).padding(.top, 6)
                 }
