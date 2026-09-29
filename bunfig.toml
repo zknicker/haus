@@ -6,6 +6,10 @@ ignoreScripts = true
 saveTextLockfile = true
 minimumReleaseAge = 259200
 minimumReleaseAgeExcludes = [
+    # Exact transitive pins required by the current AI SDK harness release.
+    "ai",
+    "@ai-sdk/gateway",
+    "@ai-sdk/provider",
     "@ai-sdk/harness",
     "@ai-sdk/harness-acp",
     "@ai-sdk/harness-claude-code",

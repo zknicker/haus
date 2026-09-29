@@ -1,0 +1,37 @@
+diff --git a/dist/agent/index.js b/dist/agent/index.js
+index 60ebc95..5021785 100644
+--- a/dist/agent/index.js
++++ b/dist/agent/index.js
+@@ -1138,6 +1138,7 @@ function stripParsedToolInputWorkDir({
+   }
+   return result;
+ }
++var WORKSPACE_TOKEN = "<workspace>";
+ function stripString(value, workDir) {
+   return stripStreamingString({
+     value,
+@@ -1164,13 +1165,13 @@ function stripStreamingString({
+         matchIndex,
+         characterBeforeRemaining
+       );
+-      if (hasPathBoundary && followingIndex === remaining.length && !final) {
++      if (hasPathBoundary && !final && (followingIndex === remaining.length || remaining.slice(followingIndex) === ".")) {
+         return {
+           output: output + remaining.slice(0, matchIndex),
+           pending: remaining.slice(matchIndex)
+         };
+       }
+-      const isPath = hasPathBoundary && (followingIndex === remaining.length || remaining[followingIndex] === "/" || isPathTerminator(remaining[followingIndex]));
++      const isPath = hasPathBoundary && (followingIndex === remaining.length || remaining[followingIndex] === "/" || isPathTerminator(remaining[followingIndex]) || remaining[followingIndex] === "." && (isPathTerminator(remaining[followingIndex + 1]) || remaining.slice(followingIndex + 1, followingIndex + 3) === '\\"'));
+       if (!isPath) {
+         output += remaining.slice(0, followingIndex);
+         characterBeforeRemaining = remaining[followingIndex - 1];
+@@ -1180,7 +1181,7 @@ function stripStreamingString({
+         characterBeforeRemaining = remaining[followingIndex];
+         remaining = remaining.slice(followingIndex + 1);
+       } else {
+-        output += remaining.slice(0, matchIndex) + ".";
++        output += remaining.slice(0, matchIndex) + WORKSPACE_TOKEN;
+         remaining = remaining.slice(followingIndex);
+       }
+       continue;

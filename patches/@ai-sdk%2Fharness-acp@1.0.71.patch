@@ -1,8 +1,8 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 9770d846a1c76534879f6cf90963208e84efbd32..942a6de105a6014d7f90bc41c09bf8418146190b 100644
+index 8d205b7..7aa3a1b 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -949,6 +949,81 @@ function captureACPStream({ stream }) {
+@@ -948,6 +948,81 @@ function captureACPStream({ stream }) {
      }
    };
  }
@@ -84,7 +84,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..942a6de105a6014d7f90bc41c09bf841
  function getRawSessionUpdate({ message }) {
    const record = message;
    if (record.method !== "session/update" || !isRecord2(record.params)) {
-@@ -1781,7 +1856,8 @@ function createHostToolCorrelation({
+@@ -1778,7 +1853,8 @@ function createHostToolCorrelation({
    emitSemanticUpdate,
    emitRawUpdate,
    hostToolServerName,
@@ -94,7 +94,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..942a6de105a6014d7f90bc41c09bf841
  }) {
    const invocations = /* @__PURE__ */ new Map();
    const candidates = /* @__PURE__ */ new Map();
-@@ -1884,6 +1960,11 @@ function createHostToolCorrelation({
+@@ -1881,6 +1957,11 @@ function createHostToolCorrelation({
            releasedToolCallIds.delete(toolCallId);
          return;
        }
@@ -260,7 +260,7 @@ index 9770d846a1c76534879f6cf90963208e84efbd32..942a6de105a6014d7f90bc41c09bf841
      args: value.args,
      envKeys: value.envKeys
 diff --git a/dist/bridge/package.json b/dist/bridge/package.json
-index 40387def2f1bc8da5ad7c4de15696eee0642d527..7e0dae9df04ad5dd642db041222a50de171afee9 100644
+index 40c85b2..d804b2a 100644
 --- a/dist/bridge/package.json
 +++ b/dist/bridge/package.json
 @@ -3,6 +3,7 @@
@@ -269,13 +269,13 @@ index 40387def2f1bc8da5ad7c4de15696eee0642d527..7e0dae9df04ad5dd642db041222a50de
    "type": "module",
 +  "packageManager": "pnpm@10.32.1",
    "dependencies": {
-     "@agentclientprotocol/sdk": "1.4.0",
+     "@agentclientprotocol/sdk": "1.5.0",
      "@modelcontextprotocol/sdk": "1.30.0",
 diff --git a/dist/index.d.ts b/dist/index.d.ts
-index 3bb6054752f78c8942bb9696072c921cbada74e7..7761f498728df0954952ed28b493dbd7cbaea2ce 100644
+index 1481f3f..1875fd6 100644
 --- a/dist/index.d.ts
 +++ b/dist/index.d.ts
-@@ -133,7 +133,10 @@ type ACPInstallCommandSource = {
+@@ -135,7 +135,10 @@ type ACPInstallCommandSource = {
      readonly type: 'install-command';
      readonly command: string;
  };
@@ -288,11 +288,11 @@ index 3bb6054752f78c8942bb9696072c921cbada74e7..7761f498728df0954952ed28b493dbd7
      readonly methodId: string;
      readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
 diff --git a/dist/index.js b/dist/index.js
-index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..74930c27c5856ddaa15c31911536d99e6379a582 100644
+index 0e01ac5..90dc777 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -12,7 +12,12 @@ import {
-   harnessV1DiagnosticFromBridgeFrame
+@@ -13,7 +13,12 @@ import {
+   harnessStateDirectoryPath
  } from "@ai-sdk/harness";
  import { HarnessBridgeCapabilityUnsupportedError } from "@ai-sdk/harness/bridge";
 +import acpBridge from "./bridge/index.mjs" with { type: "text" };
@@ -340,7 +340,7 @@ index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..74930c27c5856ddaa15c31911536d99e
    } : {
      type: source.type,
      command: source.command
-@@ -483,9 +492,16 @@ function sortValue({ value }) {
+@@ -481,12 +490,19 @@ function sortValue({ value }) {
  
  // src/v1/acp-v1-bootstrap.ts
  import { createReadBridgeAsset } from "@ai-sdk/harness/utils";
@@ -352,13 +352,16 @@ index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..74930c27c5856ddaa15c31911536d99e
 +  "pnpm-lock.yaml": acpPnpmLock
 +};
 +var readBridgeAssetFromDisk = createReadBridgeAsset({
-   resolveAssetUrl: (name) => new URL(`./bridge/${name}`, import.meta.url)
+   "package.json": new URL("./bridge/package.json", import.meta.url),
+   "pnpm-lock.yaml": new URL("./bridge/pnpm-lock.yaml", import.meta.url),
+   "index.mjs": new URL("./bridge/index.mjs", import.meta.url),
+   "host-tool-mcp.mjs": new URL("./bridge/host-tool-mcp.mjs", import.meta.url)
  });
 +var readBridgeAsset = async (name) => embeddedBridgeAssets[name] ?? await readBridgeAssetFromDisk(name);
  function createACPBootstrap({
    harnessId,
    implementation
-@@ -562,15 +578,15 @@ function createACPBootstrap({
+@@ -563,15 +579,15 @@ function createACPBootstrap({
          ],
          commands: [
            {
@@ -377,7 +380,7 @@ index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..74930c27c5856ddaa15c31911536d99e
          ]
        };
        return cachedBootstrap;
-@@ -2063,6 +2079,11 @@ function createSession({
+@@ -2090,6 +2106,11 @@ function createSession({
      const toolCallClassificationErrors = /* @__PURE__ */ new Map();
      const activeQuestionRequests = /* @__PURE__ */ new Map();
      const questionToolCallIdsByRequestId = /* @__PURE__ */ new Map();
@@ -389,7 +392,7 @@ index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..74930c27c5856ddaa15c31911536d99e
      const subscriptions = [];
      const forward = (event) => {
        if (event.type === "text-start" || event.type === "reasoning-start") {
-@@ -2109,6 +2130,7 @@ function createSession({
+@@ -2136,6 +2157,7 @@ function createSession({
      const settle = ({ error }) => {
        if (settled) return;
        settled = true;
@@ -397,7 +400,7 @@ index 4b2c55b18751658d8b1699aa9faa5df75464e4a3..74930c27c5856ddaa15c31911536d99e
        cleanup();
        if (error === void 0) resolveDone();
        else rejectDone(error);
-@@ -2364,6 +2386,11 @@ function createSession({
+@@ -2391,6 +2413,11 @@ function createSession({
            toolResult: input.toolResult
          });
        },

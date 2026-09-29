@@ -1,5 +1,5 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 6792ce0961034e992b3f5f4367d316680dec2cf3..8e1e515c8ab99cc6b15abc6c40df3bbed59ba264 100644
+index b12b9f9..2a94379 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
 @@ -232,7 +232,13 @@ async function runBridge(options) {
@@ -17,7 +17,7 @@ index 6792ce0961034e992b3f5f4367d316680dec2cf3..8e1e515c8ab99cc6b15abc6c40df3bbe
        await writeFile(startConfigPath, serialized);
        if (!existsSync(rerunStartConfigPath)) {
          await writeFile(rerunStartConfigPath, serialized);
-@@ -1622,6 +1628,7 @@ async function runTurn(start, turn) {
+@@ -1645,6 +1651,7 @@ async function runTurn(start, turn) {
    };
    let turnUsage;
    let totalCostUsd;
@@ -25,7 +25,7 @@ index 6792ce0961034e992b3f5f4367d316680dec2cf3..8e1e515c8ab99cc6b15abc6c40df3bbe
    let emittedTerminalError = false;
    let emittedTerminalFinish = false;
    const emitTerminalError = (message) => {
-@@ -1697,6 +1704,12 @@ async function runTurn(start, turn) {
+@@ -1720,6 +1727,12 @@ async function runTurn(start, turn) {
            }
            queryInput.observeResult();
            if (!queryInput.hasActiveUserMessages()) {
@@ -38,7 +38,7 @@ index 6792ce0961034e992b3f5f4367d316680dec2cf3..8e1e515c8ab99cc6b15abc6c40df3bbe
              queryInput.close();
              break;
            }
-@@ -1736,10 +1749,11 @@ async function runTurn(start, turn) {
+@@ -1759,10 +1772,11 @@ async function runTurn(start, turn) {
      type: "finish",
      finishReason: { unified: "stop", raw: "stop" },
      totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
@@ -52,10 +52,10 @@ index 6792ce0961034e992b3f5f4367d316680dec2cf3..8e1e515c8ab99cc6b15abc6c40df3bbe
            // SDK with `claude --resume <sessionId>` and captured by the
            // adapter for exact cross-process resume.
 diff --git a/src/bridge/index.ts b/src/bridge/index.ts
-index 26465987ea151162335a86af0added3e66b11f76..4e9f9d168dff51aa5e31b8d482594e768dad5216 100644
+index c24c8f4..aa32677 100644
 --- a/src/bridge/index.ts
 +++ b/src/bridge/index.ts
-@@ -547,6 +547,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -565,6 +565,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    };
    let turnUsage: Record<string, unknown> | undefined;
    let totalCostUsd: number | undefined;
@@ -63,7 +63,7 @@ index 26465987ea151162335a86af0added3e66b11f76..4e9f9d168dff51aa5e31b8d482594e76
    let emittedTerminalError = false;
    let emittedTerminalFinish = false;
  
-@@ -648,6 +649,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -666,6 +667,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            }
            queryInput.observeResult();
            if (!queryInput.hasActiveUserMessages()) {
@@ -78,7 +78,7 @@ index 26465987ea151162335a86af0added3e66b11f76..4e9f9d168dff51aa5e31b8d482594e76
              queryInput.close();
              break;
            }
-@@ -709,11 +718,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -727,11 +736,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
      type: 'finish',
      finishReason: { unified: 'stop', raw: 'stop' },
      totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),

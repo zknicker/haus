@@ -17,12 +17,12 @@
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "@ai-sdk/harness": "1.0.113",
-    "@ai-sdk/harness-acp": "1.0.51",
-    "@ai-sdk/harness-claude-code": "1.0.117",
-    "@ai-sdk/harness-grok-build": "1.0.50",
-    "@ai-sdk/harness-pi": "1.0.115",
-    "@ai-sdk/provider-utils": "5.0.42",
+    "@ai-sdk/harness": "1.0.133",
+    "@ai-sdk/harness-acp": "1.0.71",
+    "@ai-sdk/harness-claude-code": "1.0.137",
+    "@ai-sdk/harness-grok-build": "1.0.70",
+    "@ai-sdk/harness-pi": "1.0.135",
+    "@ai-sdk/provider-utils": "5.0.51",
     "@cursor/sdk": "1.0.30",
     "@haus/agent-workspace": "workspace:*",
     "@haus/api": "workspace:*",
