@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { needsYouReasons } from './needs-you.ts';
 
 /**
  * iPhone push (APNs). A device registers its token for the signed-in human;
@@ -73,7 +74,9 @@ export const pushNotificationConversationSchema = z.discriminatedUnion('kind', [
  * Notification Service extension turn the alert into a Communication
  * Notification from `sender` and `conversation`; the plain alert is the
  * fallback when it cannot. `threadAnchorMessageId` is non-null
- * when the message is in a Thread, whose Chat is then `chatId`.
+ * when the message is in a Thread, whose Chat is then `chatId`. `reason` is
+ * the Needs you row's reason for this message; the extension maps it to Focus
+ * donation metadata (`mention`, `reply`).
  */
 export const pushNotificationPayloadSchema = z
     .object({
@@ -96,6 +99,7 @@ export const pushNotificationPayloadSchema = z
         conversation: pushNotificationConversationSchema,
         conversationChatId: idSchema,
         messageId: idSchema,
+        reason: z.enum(needsYouReasons),
         sender: pushNotificationSenderSchema,
         serverId: idSchema,
         threadAnchorMessageId: idSchema.nullable(),

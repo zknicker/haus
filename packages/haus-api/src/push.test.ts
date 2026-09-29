@@ -12,6 +12,7 @@ const payload = {
     conversation: { kind: 'dm', name: null },
     conversationChatId: 'cht_dm',
     messageId: 'msg_1',
+    reason: 'dm',
     sender: {
         avatarUrl: 'https://app.haus.chat/api/avatars/avt_orbit',
         id: 'agt_orbit',
@@ -23,6 +24,19 @@ const payload = {
 };
 
 describe('iPhone push payload contract', () => {
+    test('requires a known Needs you reason', () => {
+        for (const reason of ['dm', 'mention', 'reply']) {
+            expect(pushNotificationPayloadSchema.safeParse({ ...payload, reason }).success).toBe(
+                true
+            );
+        }
+        const { reason: _, ...withoutReason } = payload;
+        expect(pushNotificationPayloadSchema.safeParse(withoutReason).success).toBe(false);
+        expect(
+            pushNotificationPayloadSchema.safeParse({ ...payload, reason: 'task' }).success
+        ).toBe(false);
+    });
+
     test('accepts a Communication Notification payload', () => {
         expect(pushNotificationPayloadSchema.parse(payload)).toEqual(payload as never);
     });
