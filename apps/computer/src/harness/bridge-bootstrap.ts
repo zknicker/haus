@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 // The adapter ships a bridge manifest pinning its vendor CLI, and that pin
-// trails the models Haus offers: at @ai-sdk/harness-claude-code 1.0.117 it pins
-// @anthropic-ai/claude-code 2.1.245, which rejects `claude-fable-5-1` below
-// 2.1.251. So Computer owns the manifest and lockfile and takes only the
+// trails the models Haus offers: at @ai-sdk/harness-claude-code 1.0.137 it pins
+// @anthropic-ai/claude-code 2.1.281, while `claude-sonnet-5-5` needs
+// 2.1.284. So Computer owns the manifest and lockfile and takes only the
 // adapter's bridge code from the package. DELETE this override — and go back to
 // importing both files from the package — once the published bridge pins a
 // vendor at or above that floor. The bridge recipe is content-fingerprinted, so

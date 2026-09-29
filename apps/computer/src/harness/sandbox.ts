@@ -105,7 +105,7 @@ async function createLocalTrustedSandboxSession(input: {
     const id = input.sessionId ?? `local_${randomUUID()}`;
     const processes = createSandboxProcessRegistry({
         defaultWorkingDirectory: rootDir,
-        env: input.env,
+        env: { ...input.env, HOME: input.homeDir },
         resolveWorkingDirectory: (value) => resolveLocalPath(rootDir, value),
         runtime: input.runtime,
     });
