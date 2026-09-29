@@ -58,9 +58,9 @@ export async function readSettledRunEngagements(
 export async function readActiveRunRequest(
     db: HausDatabase,
     input: { agentId: string; runId: string; serverId: string }
-): Promise<{ content: string; requester: string | null } | null> {
+): Promise<{ content: string; id: string; requester: string | null } | null> {
     const [row] = await db
-        .select({ content: message.content, requester: usersTable.displayName })
+        .select({ content: message.content, id: message.id, requester: usersTable.displayName })
         .from(visibility)
         .innerJoin(
             message,

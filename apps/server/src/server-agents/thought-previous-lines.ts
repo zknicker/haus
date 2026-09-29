@@ -1,17 +1,21 @@
 /** How many of a run's shown lines in one Chat ride along as its previous status. */
-export const thoughtPreviousLineCount = 2;
+export const thoughtPreviousLineCount = 4;
 /** A run's lines in a Chat are forgotten once nothing new has shown there for this long. */
 export const thoughtPreviousLineTtlMs = 10 * 60_000;
 
-/** One run's thoughts as announced to one Chat. */
+/**
+ * One run's thoughts about one request as announced to one Chat. A message
+ * steered into a running turn is a new request, so it starts with no lines.
+ */
 export interface ThoughtLineScope {
     chatId: string;
     computerId: string;
+    requestId: string | null;
     runId: string;
 }
 
 /**
- * The last lines each run showed in each Chat (ADR 0036), so the summarizer can
+ * The last lines each run showed for each request in each Chat (ADR 0036), so the summarizer can
  * say what is new instead of repeating itself. In memory only, like the
  * Server's spacing guard: nothing is persisted, and a restart forgets them.
  */
@@ -44,5 +48,5 @@ export function createThoughtPreviousLines(now: () => number = Date.now): Though
 }
 
 function scopeKey(scope: ThoughtLineScope): string {
-    return `${scope.computerId}:${scope.runId}:${scope.chatId}`;
+    return `${scope.computerId}:${scope.runId}:${scope.requestId ?? ''}:${scope.chatId}`;
 }

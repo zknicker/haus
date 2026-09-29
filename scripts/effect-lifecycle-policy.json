@@ -647,6 +647,28 @@
         "manualPromise": 1,
         "timer": 0
       }
+    },
+    "apps/server/src/server-agents/agent-thought.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Only threads an injectable schedule into the thought cadence; the cadence owns its timers.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
+      }
+    },
+    "apps/server/src/server-agents/thought-cadence.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each request holds at most one waiting-frame timer and one held still-line timer, each firing once or cancelled when a newer line shows; entries expire after ten idle minutes. Phrasing runs as post-commit background work.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 2
+      }
     }
   },
   "staticRuntimeCeilings": {}

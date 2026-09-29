@@ -10,27 +10,15 @@ import {
     readActiveRunEngagements,
     readActiveRunRequest,
 } from '../agent-delivery/chat-engagement.ts';
-import { announceAgentThought } from '../agent-delivery/thought-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentsTable } from '../postgres/schema.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { ThoughtSource, ThoughtSummarizer } from './agent-thought-summarizer.ts';
+import { phraseForChats } from './thought-announcement.ts';
+import { createThoughtCadence, thoughtFindingRank } from './thought-cadence.ts';
 import { isHousekeepingThought } from './thought-housekeeping.ts';
+import { judgeThoughtLine, type PhrasedThought } from './thought-novelty.ts';
 import { createThoughtPreviousLines } from './thought-previous-lines.ts';
-
-/**
- * A run's thought frames closer together than this are ignored once one of its
- * thoughts has been announced. Every frame, a title, excerpt, or action, is a paid
- * summarizer call; the Computer's four-second interval is the real limit, and
- * this only bounds spend when one misbehaves.
- */
-export const thoughtSpacingMs = 3000;
-/**
- * Until a run's first thought is announced, only frames closer than this are
- * ignored, so a skipped opening (claiming the task) never holds back the first
- * bubble that describes work.
- */
-export const thoughtFirstSpacingMs = 1000;
 
 interface ThoughtFrameInput {
     computerId: string;
@@ -42,9 +30,9 @@ interface ThoughtFrameInput {
 export interface AgentThoughts {
     /**
      * Handles a Computer frame when it is a thought; true once consumed,
-     * admitted or not. Admission runs in the Computer's frame order; the
-     * phrase and its announcement run as background work so a summary never
-     * holds up the Computer's later frames.
+     * admitted or not. Admission and the request's cadence run in the
+     * Computer's frame order; the phrase and its announcement run as
+     * background work so a summary never holds up the Computer's later frames.
      */
     ingest(
         db: HausDatabase,
@@ -52,14 +40,21 @@ export interface AgentThoughts {
         background: Pick<ServerPostCommitWork, 'run'>
     ): Promise<boolean>;
     /**
-     * The phrase a frame announces, or null when it is housekeeping or nothing
-     * presentable remains. `request` is the scrubbed human message the run is
+     * The line a frame would announce and its workstream, or null when it is
+     * housekeeping, nothing presentable remains, it repeats a shown line, or it
+     * names the machinery. `request` is the scrubbed human message the run is
      * answering, context the summarizer may take nouns from; `requester` is its
      * author's display name, so a line restating their ask by name is dropped;
-     * `previous` is the run's last shown lines in the Chat, which the phrase
-     * should not restate.
+     * `previous` is the lines already shown for this request in the Chat. A
+     * `still` line continues the shown work and reads "Still …".
      */
-    phrase(frame: AgentThoughtFrame, context?: ThoughtContext): Promise<string | null>;
+    phrase(frame: AgentThoughtFrame, context?: ThoughtContext): Promise<PhrasedThought | null>;
+}
+
+interface SummaryContext {
+    previous?: readonly string[];
+    request?: string;
+    requester?: string;
 }
 
 interface ThoughtContext {
@@ -70,33 +65,14 @@ interface ThoughtContext {
 
 export function createAgentThoughts(options: {
     now?: () => number;
+    /** Runs `run` after `ms`; returns a cancel. Defaults to `setTimeout`. */
+    schedule?: (run: () => void, ms: number) => () => void;
     /** Null when the Server has no summarizer key; frames then use the local fallback. */
     summarizer: ThoughtSummarizer | null;
 }): AgentThoughts {
     const now = options.now ?? Date.now;
-    const lastFrames = new Map<string, { announced: boolean; at: number }>();
+    const cadence = createThoughtCadence({ now, schedule: options.schedule });
     const previousLines = createThoughtPreviousLines(now);
-    // Entries outlive their window only until the next reasoning frame from any run.
-    const spaced = (key: string) => {
-        const at = now();
-        for (const [entry, last] of lastFrames) {
-            if (at - last.at >= thoughtSpacingMs) {
-                lastFrames.delete(entry);
-            }
-        }
-        const last = lastFrames.get(key);
-        if (last && (last.announced || at - last.at < thoughtFirstSpacingMs)) {
-            return false;
-        }
-        lastFrames.set(key, { announced: false, at });
-        return true;
-    };
-    const markAnnounced = (key: string) => {
-        const last = lastFrames.get(key);
-        if (last) {
-            last.announced = true;
-        }
-    };
     const phrase = async (
         frame: AgentThoughtFrame,
         { previous, request, requester }: ThoughtContext = {}
@@ -107,10 +83,26 @@ export function createAgentThoughts(options: {
             ...(requester ? { requester } : {}),
             ...(previous && previous.length > 0 ? { previous } : {}),
         };
+        const line = await phraseOnce(frame, context);
+        // A reworded earlier line continues its work; a repeat or one about the machinery goes.
+        return line
+            ? judgeThoughtLine(line, {
+                  finding: frame.kind === 'action' && Boolean(frame.result),
+                  previous: previous ?? [],
+                  request,
+              })
+            : null;
+    };
+    const phraseOnce = async (
+        frame: AgentThoughtFrame,
+        context: SummaryContext
+    ): Promise<PhrasedThought | null> => {
         const summary = await options.summarizer?.summarize(thoughtSource(frame, context));
         if (summary) {
             // SKIP is the model's judgment that this is housekeeping: no bubble.
-            return summary.kind === 'phrase' ? summary.text : null;
+            return summary.kind === 'phrase'
+                ? { stream: summary.stream, text: summary.text }
+                : null;
         }
         if (frame.kind === 'action') {
             // A command line is not a phrase; without the summarizer an action shows nothing.
@@ -120,9 +112,11 @@ export function createAgentThoughts(options: {
         if (isHousekeepingThought(source)) {
             return null;
         }
-        return frame.kind === 'phrase'
-            ? frame.text
-            : condenseThoughtLocally(frame.reasoning, requester);
+        const text =
+            frame.kind === 'phrase'
+                ? frame.text
+                : condenseThoughtLocally(frame.reasoning, context.requester);
+        return text ? { stream: 'new', text } : null;
     };
 
     return {
@@ -132,70 +126,53 @@ export function createAgentThoughts(options: {
                 return false;
             }
             const frame = parsed.data;
-            const key = `${input.computerId}:${frame.runId}`;
-            if (!spaced(key)) {
+            const events = await admitComputerAgentThought(db, { ...input, frame });
+            if (events.length === 0) {
                 return true;
             }
-            const events = await admitComputerAgentThought(db, { ...input, frame });
-            if (events.length > 0) {
-                void background.run('agent-thought.announce', async () => {
-                    // The fallback needs the requester's name even without a summarizer.
-                    const { request, requester } = await readRunRequest(db, input.serverId, frame);
-                    // Usually one group: the run's Chats share their last lines unless one joined later.
-                    const groups = groupByPrevious(events, (event) =>
-                        previousLines.read({ ...event, computerId: input.computerId })
-                    );
-                    await Promise.all(
-                        groups.map(async (group) => {
-                            const text = await phrase(frame, {
-                                previous: group.previous,
-                                request,
-                                requester,
-                            });
-                            if (!text) {
-                                return;
-                            }
-                            markAnnounced(key);
-                            for (const event of group.events) {
-                                announceAgentThought({ ...event, text });
-                                previousLines.remember(
-                                    { ...event, computerId: input.computerId },
-                                    text
-                                );
-                            }
-                        })
-                    );
-                });
-            }
+            // The fallback needs the requester's name even without a summarizer.
+            const { messageId, request, requester } = await readRunRequest(
+                db,
+                input.serverId,
+                frame
+            );
+            // Paced per request: a message steered into a running turn starts its own cadence.
+            const key = `${input.computerId}:${frame.runId}:${messageId ?? ''}`;
+            cadence.offer(key, {
+                phrase: () =>
+                    phraseForChats({
+                        events,
+                        phrase: (previous) => phrase(frame, { previous, request, requester }),
+                        previousLines,
+                        scope: { computerId: input.computerId, requestId: messageId },
+                    }),
+                rank: frameRank(frame),
+                run: (task) => void background.run('agent-thought.announce', task),
+            });
             return true;
         },
         phrase,
     };
 }
 
-/** Engaged Chats grouped by the lines the run last showed there, so each group is phrased once. */
-function groupByPrevious<Event>(
-    events: readonly Event[],
-    previousOf: (event: Event) => readonly string[]
-): { events: Event[]; previous: readonly string[] }[] {
-    const groups = new Map<string, { events: Event[]; previous: readonly string[] }>();
-    for (const event of events) {
-        const previous = previousOf(event);
-        const key = JSON.stringify(previous);
-        const group = groups.get(key) ?? { events: [], previous };
-        group.events.push(event);
-        groups.set(key, group);
+/** A finding outranks the model's own words, which outrank an inferred action. */
+function frameRank(frame: AgentThoughtFrame): number {
+    if (frame.kind !== 'action') {
+        return 1;
     }
-    return [...groups.values()];
+    return frame.result ? thoughtFindingRank : 0;
 }
 
-function thoughtSource(
-    frame: AgentThoughtFrame,
-    context: { previous?: readonly string[]; request?: string; requester?: string }
-): ThoughtSource {
+function thoughtSource(frame: AgentThoughtFrame, context: SummaryContext): ThoughtSource {
     switch (frame.kind) {
         case 'action':
-            return { action: frame.action, kind: 'action', ...context };
+            // The result excerpt rides this one call and is never stored or logged.
+            return {
+                action: frame.action,
+                kind: 'action',
+                ...(frame.result ? { result: frame.result } : {}),
+                ...context,
+            };
         case 'phrase':
             return { kind: 'title', title: frame.text, ...context };
         default:
@@ -211,13 +188,14 @@ async function readRunRequest(
     db: HausDatabase,
     serverId: string,
     frame: AgentThoughtFrame
-): Promise<{ request: string | null; requester: string | null }> {
+): Promise<{ messageId: string | null; request: string | null; requester: string | null }> {
     const row = await readActiveRunRequest(db, {
         agentId: frame.agentId,
         runId: frame.runId,
         serverId,
     });
     return {
+        messageId: row?.id ?? null,
         request: row ? thoughtRequestExcerpt(row.content) : null,
         requester: row?.requester ?? null,
     };
