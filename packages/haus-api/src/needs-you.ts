@@ -5,10 +5,14 @@ import { chatMessageAuthorSchema } from './chat-message-context.ts';
 /**
  * Why a Needs you row is addressed to the viewer (ADR 0037). `dm` is a
  * message from someone else in a DM the viewer belongs to; `mention` is a
- * Channel message whose content carries a `user://<viewerId>` mention. A
- * mention inside a DM is already a `dm` row.
+ * Channel message whose content carries a `user://<viewerId>` mention; `reply`
+ * is a Channel message that inline-replies to a message the viewer wrote, or
+ * any message by someone else in a Thread anchored on one. A
+ * row carries the reason of its newest addressing message (`mention` wins
+ * when one message is both), and a mention or reply inside a DM is already a
+ * `dm` row.
  */
-export const needsYouReasons = ['dm', 'mention'] as const;
+export const needsYouReasons = ['dm', 'mention', 'reply'] as const;
 
 export type NeedsYouReason = (typeof needsYouReasons)[number];
 
@@ -49,16 +53,19 @@ const needsYouAnchoringShape = {
  * One exchange addressed to the viewer that the viewer has not answered or
  * marked Done. It clears when the viewer replies where the addresser will see
  * it, or marks it Done; newer addressing activity after Done brings it back.
- * A DM row is always `dm` and a Channel row always `mention`, so the reason
- * and the Chat kind never disagree.
+ * A DM row is always `dm` and a Channel row always `mention` or `reply`, so
+ * the reason and the Chat kind never disagree.
  */
 export const needsYouRowSchema = z
-    .discriminatedUnion('reason', [
+    .discriminatedUnion('chatKind', [
         z
             .object({
                 ...needsYouAnchoringShape,
                 chatKind: z.literal('dm'),
-                chatPeerUserId: idSchema,
+                /** The DM's peer Agent, as `Chat.peerAgentId`; null in a human DM. */
+                chatPeerAgentId: idSchema.nullable(),
+                /** The DM's peer human, as `Chat.peerUserId`; null in an Agent DM. */
+                chatPeerUserId: idSchema.nullable(),
                 reason: z.literal('dm'),
             })
             .strict(),
@@ -67,7 +74,7 @@ export const needsYouRowSchema = z
                 ...needsYouAnchoringShape,
                 chatKind: z.literal('channel'),
                 chatName: z.string().trim().min(1),
-                reason: z.literal('mention'),
+                reason: z.enum(['mention', 'reply']),
             })
             .strict(),
     ])

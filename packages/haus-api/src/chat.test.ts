@@ -103,14 +103,18 @@ test('Server messages and durable events keep stable Server and Chat identity', 
 
     expect(
         serverdurableeventSchema.parse({
+            authorUserId: null,
             chatId: message.chatId,
             createdAt: message.createdAt,
             cursor: '4',
             id: 'evt_one',
+            mentionedUserIds: [],
             messageId: message.id,
             parentChatId: null,
+            replyToAuthorUserId: null,
             sequence: message.sequence,
             serverId: message.serverId,
+            threadAnchorAuthorUserId: null,
             type: 'message.created',
         })
     ).toMatchObject({ cursor: '4', messageId: 'msg_one', type: 'message.created' });

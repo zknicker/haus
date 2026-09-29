@@ -353,14 +353,19 @@ export const chatSearchResultsSchema = z.array(chatSearchResultSchema);
 
 export const messageCreatedEventSchema = z
     .object({
+        authorUserId: idSchema.nullable(),
         chatId: idSchema,
         createdAt: timestampSchema,
         cursor: z.string().regex(/^[1-9]\d*$/u),
         id: idSchema,
+        /** With the author, reply, and Thread anchor ids, gates Needs you refetches (ADR 0037). */
+        mentionedUserIds: z.array(z.string()),
         messageId: idSchema,
         parentChatId: idSchema.nullable(),
+        replyToAuthorUserId: idSchema.nullable(),
         sequence: z.number().int().positive(),
         serverId: idSchema,
+        threadAnchorAuthorUserId: idSchema.nullable(),
         type: z.literal('message.created'),
     })
     .strict();
@@ -508,10 +513,7 @@ export const compositionPublishInputSchema = z
     .strict();
 
 export const compositionSubscriptionInputSchema = z
-    .object({
-        chatId: idSchema,
-        serverId: idSchema,
-    })
+    .object({ chatId: idSchema, serverId: idSchema })
     .strict();
 
 export const compositionEventSchema = z

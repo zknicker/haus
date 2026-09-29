@@ -15,7 +15,8 @@ const dmRow = {
     addressedCount: 1,
     chatId: 'cht_dm',
     chatKind: 'dm',
-    chatPeerUserId: 'usr_ada',
+    chatPeerAgentId: 'agt_orbit',
+    chatPeerUserId: null,
     conversationChatId: 'cht_dm',
     latest,
     reason: 'dm',
@@ -33,10 +34,15 @@ const threadMentionRow = {
     threadAnchorMessageId: 'msg_anchor',
 };
 
-test('a Needs you row is a DM or a Channel mention, never a mix', () => {
+test('a Needs you row is a DM or a Channel mention or reply, never a mix', () => {
     expect(needsYouRowSchema.parse(dmRow)).toMatchObject({ reason: 'dm' });
     expect(needsYouRowSchema.parse(threadMentionRow)).toMatchObject({ reason: 'mention' });
+    expect(needsYouRowSchema.parse({ ...threadMentionRow, reason: 'reply' })).toMatchObject({
+        reason: 'reply',
+    });
     expect(needsYouRowSchema.safeParse({ ...dmRow, reason: 'mention' }).success).toBe(false);
+    expect(needsYouRowSchema.safeParse({ ...dmRow, reason: 'reply' }).success).toBe(false);
+    expect(needsYouRowSchema.safeParse({ ...threadMentionRow, reason: 'dm' }).success).toBe(false);
     expect(needsYouRowSchema.safeParse({ ...threadMentionRow, chatKind: 'dm' }).success).toBe(
         false
     );

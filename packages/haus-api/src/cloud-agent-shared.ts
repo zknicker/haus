@@ -253,7 +253,7 @@ export type CloudAgentWork = z.infer<typeof cloudAgentWorkSchema>;
 
 /**
  * The envelope suffix every surface that prints a Message appends after the
- * task and Ask suffixes, from this one formatting owner
+ * task suffix, from this one formatting owner
  * (specs/haus-cli.md#4-envelopes-and-message-lines).
  */
 export function formatCloudAgentWorkSuffix(work: {
