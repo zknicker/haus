@@ -42,6 +42,10 @@ final class AttachmentFullImageCache {
     /// Least recently used first.
     private var order: [String] = []
     private var cost = 0
+    /// Bumped by `removeAll()` on sign-out, not on memory pressure. A decode
+    /// captures it before its first await and hands it back to `store`, so
+    /// one that began before a sign-out cannot repopulate the emptied cache.
+    private(set) var generation = 0
 
     let countLimit: Int
     let costLimit: Int
@@ -64,7 +68,12 @@ final class AttachmentFullImageCache {
         return entry
     }
 
-    func store(_ image: AttachmentFullImage, for attachmentID: String) {
+    func store(
+        _ image: AttachmentFullImage,
+        for attachmentID: String,
+        loadedIn loadGeneration: Int? = nil
+    ) {
+        guard loadGeneration.map({ $0 == generation }) ?? true else { return }
         if let existing = entries[attachmentID] {
             cost -= existing.pixelCost
             order.removeAll { $0 == attachmentID }
@@ -75,10 +84,10 @@ final class AttachmentFullImageCache {
         evictToLimits()
     }
 
+    /// Forgets this account's decodes on sign-out.
     func removeAll() {
-        entries.removeAll()
-        order.removeAll()
-        cost = 0
+        generation += 1
+        evictAll()
     }
 
     private func observeMemoryPressure() {
@@ -88,9 +97,15 @@ final class AttachmentFullImageCache {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.removeAll() }
+            MainActor.assumeIsolated { self?.evictAll() }
         }
         #endif
+    }
+
+    private func evictAll() {
+        entries.removeAll()
+        order.removeAll()
+        cost = 0
     }
 
     private func touch(_ attachmentID: String) {

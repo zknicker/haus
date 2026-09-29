@@ -3,31 +3,48 @@ import Foundation
 import HausTransport
 import HausUI
 import SwiftUI
+import UIKit
 
 struct AuthBoundaryView: View {
     @Environment(Clerk.self) private var clerk
+    /// Follows the Clerk session from `onChange` rather than `body`, so a lost
+    /// session unmounts the authenticated app only once
+    /// `dismissPresentedScreens(then:)` has closed its sheets.
+    @State private var showsAuthenticatedApp: Bool?
 
     var body: some View {
         Group {
             #if DEBUG
             if let development = HausRuntimeConfiguration.development {
                 DevelopmentAuthBoundaryView(development: development)
-            } else if hasUsableSession(clerk.session) {
-                AuthenticatedHausView(clerk: clerk)
             } else {
-                googleSignIn
+                productionBoundary
             }
             #else
-            if hasUsableSession(clerk.session) {
-                AuthenticatedHausView(clerk: clerk)
-            } else {
-                googleSignIn
-            }
+            productionBoundary
             #endif
         }
         // Deliberately no implicit animation here: its branches are the whole
         // authenticated app vs the sign-in screen, and animating that value
         // crossfaded the entire app on any session change.
+    }
+
+    private var productionBoundary: some View {
+        Group {
+            if showsAuthenticatedApp ?? hasUsableSession(clerk.session) {
+                AuthenticatedHausView(clerk: clerk)
+            } else {
+                googleSignIn
+            }
+        }
+        .onChange(of: hasUsableSession(clerk.session), initial: true) { _, usable in
+            guard !usable else {
+                showsAuthenticatedApp = true
+                return
+            }
+            // A session restored while the sheet closed keeps the app mounted.
+            dismissPresentedScreens { showsAuthenticatedApp = hasUsableSession(clerk.session) }
+        }
     }
 
     private var googleSignIn: some View {
@@ -86,11 +103,14 @@ private struct DevelopmentAuthBoundaryView: View {
         // localhost ticket renews like a cold start.
         .onChange(of: hasUsableSession(clerk.session)) { _, usable in
             guard !usable, state == .authenticated else { return }
-            if HausRuntimeConfiguration.hasExplicitlySignedOut {
-                state = .signedOut
-            } else {
-                state = .loading
-                Task { await authenticate() }
+            dismissPresentedScreens {
+                guard !hasUsableSession(clerk.session) else { return }
+                if HausRuntimeConfiguration.hasExplicitlySignedOut {
+                    state = .signedOut
+                } else {
+                    state = .loading
+                    Task { await authenticate() }
+                }
             }
         }
     }
@@ -201,6 +221,49 @@ private struct SignInView: View {
         }
     }
 
+}
+
+/// Dismisses whatever the authenticated app presented, then runs `swap`, which
+/// unmounts it. SwiftUI re-hosts a sheet whose presenter unmounts with fresh
+/// state until it tears the sheet down, so swapping the root out from under
+/// Settings flashed the sheet back to its top for several frames. `swap` runs
+/// inside UIKit's completion, not after an `await`: the hop to a later run loop
+/// turn drew the authenticated app for a frame between the two.
+@MainActor
+private func dismissPresentedScreens(then swap: @escaping @MainActor () -> Void) {
+    let root = UIApplication.shared.connectedScenes
+        .compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }
+        .first
+    guard let root, root.presentedViewController != nil else {
+        swap()
+        return
+    }
+    let once = RunOnce(swap)
+    root.dismiss(animated: false) {
+        MainActor.assumeIsolated { once.run() }
+    }
+    // UIKit drops the completion of a dismiss requested mid-transition (a
+    // sheet still animating in or being swiped away). Never leave the
+    // authenticated app mounted on a lost session waiting for it.
+    Task { @MainActor in
+        try? await Task.sleep(for: .seconds(1))
+        once.run()
+    }
+}
+
+@MainActor
+private final class RunOnce {
+    private var action: (@MainActor () -> Void)?
+
+    init(_ action: @escaping @MainActor () -> Void) {
+        self.action = action
+    }
+
+    func run() {
+        let pending = action
+        action = nil
+        pending?()
+    }
 }
 
 private func hasUsableSession(_ session: Session?) -> Bool {

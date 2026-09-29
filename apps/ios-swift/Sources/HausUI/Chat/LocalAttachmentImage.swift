@@ -45,6 +45,9 @@ final class LocalAttachmentImageCache {
 
     private let cache = NSCache<NSString, EntryBox>()
     private var loads: [String: Task<Void, Never>] = [:]
+    /// Bumped by `removeAll()`, so a decode that began before it can neither
+    /// store its entry nor clear the slot of a decode that began after it.
+    private var generation = 0
 
     init() {
         cache.countLimit = 40
@@ -64,6 +67,7 @@ final class LocalAttachmentImageCache {
     func load(url: URL) async -> LocalAttachmentImageEntry? {
         if let hit = entry(for: url) { return hit }
         let key = url.path
+        let loadGeneration = generation
         let task: Task<Void, Never>
         if let active = loads[key] {
             task = active
@@ -76,13 +80,21 @@ final class LocalAttachmentImageCache {
                     )
                 else { return }
                 let backdrop = await AttachmentImageBackdrop.classified(bitmap)
-                self?.store(bitmap, backdrop: backdrop, for: key)
+                guard let self, loadGeneration == generation else { return }
+                store(bitmap, backdrop: backdrop, for: key)
             }
             loads[key] = task
         }
         await task.value
-        loads[key] = nil
+        if loadGeneration == generation { loads[key] = nil }
         return entry(for: url)
+    }
+
+    func removeAll() {
+        generation += 1
+        for load in loads.values { load.cancel() }
+        loads.removeAll()
+        cache.removeAllObjects()
     }
 
     private func store(
