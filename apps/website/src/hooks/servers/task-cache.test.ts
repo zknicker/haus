@@ -21,7 +21,6 @@ test('replaces both task projections with the authoritative mutation result', ()
 function taskItem(): TaskListItem {
     const task: MessageTask = {
         assigneeAgentId: null,
-        assigneeUserId: null,
         chatId: 'chat_one',
         claimedAt: null,
         createdAt: '2026-07-26T12:00:00.000Z',

@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
+import { createChannelAgent } from '../support/channel-agent.ts';
 import { e2eClerkUserId } from '../support/clerk-session.ts';
-import { createClient, createTestServer, openChannel, runPsql } from '../support/server.ts';
+import { createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('hosted task board survives reconnect and loses tasks with parent Chat access', async ({
@@ -42,16 +43,14 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
 
     let card = taskCard(page);
     await expect(card).toBeVisible();
-    await card.getByRole('button', { name: 'Claim' }).click();
-    await expect(card.getByRole('button', { name: 'Unclaim' })).toBeVisible();
+    // Tasks are Agent work: a person hands a task to an Agent, never claims it.
+    await expect(card.getByRole('button', { name: 'Claim' })).toHaveCount(0);
 
     const status = taskControl(card, 'Status');
     await status.click();
     await page.getByRole('option', { name: 'In progress' }).click();
     card = taskCard(page);
     await expect(taskControl(card, 'Status')).toContainText('In progress');
-    await card.getByRole('button', { name: 'Unclaim' }).click();
-    await expect(card.getByRole('button', { name: 'Claim' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Manage Labels' }).click();
     await page.getByLabel('New task label').fill('backend');
@@ -74,36 +73,21 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await page.getByRole('menuitemcheckbox', { name: 'review' }).click();
     await expect(taskCard(page).getByText('review', { exact: true })).toBeVisible();
 
-    const peer = createClient(session.peerToken);
-    await peer.server.create.mutate({
-        displayName: 'Hosted Task Peer Root',
-        slug: 'task-peer-root',
+    // Any member of the Chat may hand the task to one of its Agents; the
+    // picker lists Agents only.
+    await createChannelAgent({
+        channelName: 'all',
+        databaseUrl: session.databaseUrl,
+        serverId: server.id,
+        slug: 'tasks',
+        token: session.token,
     });
-    const allChatId = server.channels.find((chat) => chat.name === 'all')?.id;
-    const peerUserId = runPsql(
-        session.databaseUrl,
-        "select id from users where clerk_user_id = 'user_e2e_peer'"
-    );
-    if (!allChatId) {
-        throw new Error('The hosted task flow did not resolve #all.');
-    }
-    runPsql(
-        session.databaseUrl,
-        `insert into server_memberships (id, server_id, user_id, role)
-         values ('mem_hosted_task_peer', '${server.id}', '${peerUserId}', 'member');
-         insert into channel_participants (server_id, chat_id, user_id)
-         values ('${server.id}', '${allChatId}', '${peerUserId}')`
-    );
     await page.reload();
     card = taskCard(page);
-    const assignee = taskControl(card, 'Assignee');
-    await assignee.click();
-    await page
-        // Name and role stack in the option now, so they are separate text
-        // nodes rather than the old `name · role` single line.
-        .getByRole('option', { name: new RegExp(`${peerUserId.slice(-6)}\\s*member$`, 'u') })
-        .click();
-    await expect(taskControl(taskCard(page), 'Assignee')).toContainText(peerUserId.slice(-6));
+    await taskControl(card, 'Assignee').click();
+    await expect(page.getByRole('option', { name: /member$/u })).toHaveCount(0);
+    await page.getByRole('option', { name: /Orbit\s*@orbit$/u }).click();
+    await expect(taskControl(taskCard(page), 'Assignee')).toContainText('Orbit');
 
     const snapshot = await client.task.list.query({ serverId: server.id });
     const task = snapshot.tasks[0]?.task;
@@ -180,7 +164,7 @@ test('a hosted task message projects its status in the Chat and opens its Thread
 
     await expect(page.getByText('Projected task message', { exact: true })).toBeVisible();
     // Task identity is the header of the recessed Thread surface beneath the
-    // message — the same slot an Ask and Cloud Agent work use — and that whole
+    // message — the same slot Cloud Agent work uses — and that whole
     // surface is the way into the work. The author line carries provenance only.
     const chip = page.getByTestId('message-task-chip');
     const openThread = page.getByRole('button', { name: /^Open thread, Task #1/u });
@@ -189,23 +173,14 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     await expect(page.getByTestId('message-task-mark')).toHaveCount(0);
     await expect(openThread).toBeVisible();
 
-    // Claiming advances status through the same task realtime invalidation; no reload.
-    const claim = await client.task.claim.mutate({
+    // A status change rides the same task realtime invalidation; no reload.
+    await client.task.update.mutate({
         expectedVersion: promotion.task.version,
         messageId: anchor.id,
+        patch: { status: 'in_progress' },
         serverId: server.id,
     });
-    if (!claim.task.assigneeUserId) {
-        throw new Error('The task projection flow did not resolve the claiming human.');
-    }
-    const directory = await client.member.list.query({ serverId: server.id });
-    const assignee = directory.members.find(
-        (member) => member.userId === claim.task.assigneeUserId
-    );
-    if (!assignee?.displayName) {
-        throw new Error('The claiming human did not carry a canonical display name.');
-    }
-    await expect(chip).toContainText(assignee.displayName);
+    await expect(chip).toContainText('In progress');
 
     await openThread.click();
     const thread = page.getByRole('complementary', { name: 'Thread' });

@@ -9,7 +9,6 @@ import {
     groupTasksForList,
     resolveTaskView,
     taskChatOptions,
-    taskClaimAction,
     toTaskItem,
 } from './task-model.ts';
 
@@ -91,15 +90,36 @@ test('rests on the active view so finished work stays out of the default page', 
 test('leads the list with the tasks waiting on a person', () => {
     const groups = groupTasksForList([toTaskItem(item(), humans)]);
 
-    expect(groups.map((group) => group.status)).toEqual([
+    expect(groups.map((group) => group.key)).toEqual([
         'in_review',
+        'stopped',
         'todo',
         'in_progress',
         'done',
         'closed',
     ]);
     expect(groups[0]?.title).toBe('Needs your review');
-    expect(groups[1]?.title).toBe('Todo');
+    expect(groups[1]?.title).toBe('Stopped before finishing');
+    expect(groups[2]?.title).toBe('Todo');
+});
+
+test('a claim an Agent stopped short of finishing leaves In Progress for its own group', () => {
+    const base = toTaskItem(item(), humans);
+    const stalled = {
+        ...base,
+        id: 'message_stalled',
+        live: false,
+        origin: 'claimed' as const,
+        status: 'in_progress' as const,
+        tier: 'tracked' as const,
+    };
+    const running = { ...stalled, id: 'message_running', live: true };
+
+    const groups = groupTasksForList([stalled, running]);
+    const byKey = new Map(groups.map((group) => [group.key, group.tasks.map((task) => task.id)]));
+
+    expect(byKey.get('stopped')).toEqual(['message_stalled']);
+    expect(byKey.get('in_progress')).toEqual(['message_running']);
 });
 
 test('orders each status group by priority, urgent first and unset last', () => {
@@ -128,29 +148,6 @@ test('projects the assignee avatar from the agent directory', () => {
     expect(task.assigneeLabel).toBe('Fen');
     expect(task.assigneeAvatarUrl).toBe('/api/avatars/avt_fen');
     expect(toTaskItem(item(), humans).assigneeAvatarUrl).toBeNull();
-});
-
-test('shows claim controls only when the viewer can perform the action', () => {
-    const task = toTaskItem(item(), humans);
-
-    expect(taskClaimAction(task, 'user_viewer')).toBe('claim');
-    expect(
-        taskClaimAction({ ...task, assigneeUserId: 'user_viewer', claimedAt: null }, 'user_viewer')
-    ).toBe('claim-reservation');
-    expect(
-        taskClaimAction(
-            { ...task, assigneeUserId: 'user_viewer', claimedAt: '2026-07-26T12:00:00.000Z' },
-            'user_viewer'
-        )
-    ).toBe('unclaim');
-    expect(
-        taskClaimAction(
-            { ...task, assigneeUserId: 'user_other', claimedAt: '2026-07-26T12:00:00.000Z' },
-            'user_viewer'
-        )
-    ).toBeNull();
-    expect(taskClaimAction({ ...task, status: 'done' }, 'user_viewer')).toBeNull();
-    expect(taskClaimAction({ ...task, assigneeAgentId: 'agent_owner' }, 'user_viewer')).toBeNull();
 });
 
 test('treats Agent-owned tasks as assigned in task filters', () => {
@@ -266,7 +263,6 @@ function item(overrides: { content?: string } = {}): TaskListItem {
         },
         task: {
             assigneeAgentId: null,
-            assigneeUserId: null,
             chatId: 'chat_one',
             claimedAt: null,
             createdAt: '2026-07-26T12:00:00.000Z',

@@ -34,7 +34,7 @@ test('an assignee with no resolved profile falls back to their handle', () => {
 
 function task(overrides: Partial<MessageTask>): MessageTask {
     return {
-        assignee: { handle: 'ada', id: 'usr_ada', kind: 'human' },
+        assignee: { handle: 'ada', id: 'agt_ada', kind: 'agent' },
         live: false,
         number: 7,
         status: 'todo',

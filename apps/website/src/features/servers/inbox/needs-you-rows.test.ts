@@ -1,82 +1,134 @@
 import { describe, expect, test } from 'bun:test';
-import type { TaskItem } from '../tasks/task-model.ts';
-import type { NeedsYouAsk } from './needs-you-asks.ts';
-import { needsYouRowTarget, stalledClaimTitle, toNeedsYouRows } from './needs-you-rows.ts';
+import type { Agent, NeedsYouRow } from '@haus/api';
+import { withoutDoneRow } from '../../../hooks/servers/use-needs-you-done.ts';
+import { humanDirectory } from '../human-identity.ts';
+import {
+    needsYouChatIds,
+    needsYouConversationPath,
+    needsYouNotificationText,
+    toNeedsYouRowView,
+} from './needs-you-rows.ts';
 
-const ask: NeedsYouAsk = {
-    agentId: 'agt_cove',
-    agentName: 'Cove',
-    chatLabel: '#onboarding-owner',
-    id: 'msg_ask',
-    summary: 'Two agents keep filing build questions in #product.',
-    title: 'Rename #product to #build?',
+const latest = {
+    author: { agentId: 'agt_orbit', kind: 'agent' },
+    createdAt: '2026-09-29T12:00:00.000Z',
+    messageId: 'msg_2',
+    preview: 'The migration is staged. Should I run it?',
+    sequence: 7,
+} as const;
+
+const dmRow: NeedsYouRow = {
+    addressedCount: 1,
+    chatId: 'cht_dm',
+    chatKind: 'dm',
+    chatPeerAgentId: 'agt_orbit',
+    chatPeerUserId: null,
+    conversationChatId: 'cht_dm',
+    latest,
+    reason: 'dm',
+    threadAnchorMessageId: null,
 };
 
-const claim = {
-    assigneeAgentId: 'agt_blippy',
-    assigneeAvatarUrl: 'https://example.test/blippy.png',
-    assigneeLabel: 'Blippy',
-    chatLabel: '#all',
-    id: 'msg_claim',
-    number: 3,
-    title: 'Reminders on the weekly digest fired twice this morning.',
-} as TaskItem;
+const threadRow: NeedsYouRow = {
+    addressedCount: 2,
+    chatId: 'cht_thread',
+    chatKind: 'channel',
+    chatName: 'product',
+    conversationChatId: 'cht_product',
+    latest: { ...latest, author: { kind: 'human', userId: 'usr_bo' }, sequence: 3 },
+    reason: 'mention',
+    threadAnchorMessageId: 'msg_anchor',
+};
 
-describe('toNeedsYouRows', () => {
-    test('Asks lead, and each row states its kind and origin', () => {
-        const rows = toNeedsYouRows([ask], [claim]);
+const names = {
+    agents: [
+        { avatarUrl: 'https://example.test/orbit.png', displayName: 'Orbit', id: 'agt_orbit' },
+    ] as Agent[],
+    humans: humanDirectory([
+        { avatarUrl: null, displayName: 'Bo', handle: 'bo', userId: 'usr_bo' },
+    ] as unknown as Parameters<typeof humanDirectory>[0]),
+};
 
-        expect(rows.map((row) => row.kind)).toEqual(['ask', 'claim']);
-        expect(rows[0]).toMatchObject({
-            agentId: 'agt_cove',
-            markName: 'Cove',
-            meta: 'Ask · #onboarding-owner',
-            preview: 'Two agents keep filing build questions in #product.',
-            title: 'Rename #product to #build?',
+describe('toNeedsYouRowView', () => {
+    test('a DM row names its Agent and has no place of its own', () => {
+        expect(toNeedsYouRowView(dmRow, names)).toMatchObject({
+            authorAgentId: 'agt_orbit',
+            authorAvatarUrl: 'https://example.test/orbit.png',
+            authorName: 'Orbit',
+            id: 'cht_dm',
+            place: null,
+            preview: 'The migration is staged. Should I run it?',
         });
-        expect(rows[1]).toMatchObject({
-            agentId: 'agt_blippy',
-            avatarUrl: 'https://example.test/blippy.png',
-            meta: '#all · Task #3',
-            preview: 'Reminders on the weekly digest fired twice this morning.',
-            title: 'Blippy stopped before finishing',
+    });
+
+    test('a Thread mention names the human and the Channel it lives in', () => {
+        expect(toNeedsYouRowView(threadRow, names)).toMatchObject({
+            authorAgentId: null,
+            authorName: 'Bo',
+            place: '#product › thread',
         });
     });
 
-    test('every row carries the record it opens', () => {
-        const [askRow, claimRow] = toNeedsYouRows([ask], [claim]);
-
-        expect(askRow?.kind === 'ask' && askRow.ask.id).toBe('msg_ask');
-        expect(claimRow?.kind === 'claim' && claimRow.claim.number).toBe(3);
+    test('an inline reply to the viewer reads in its Channel like a mention', () => {
+        const replyRow: NeedsYouRow = {
+            ...threadRow,
+            chatId: 'cht_product',
+            reason: 'reply',
+            threadAnchorMessageId: null,
+        };
+        expect(toNeedsYouRowView(replyRow, names).place).toBe('#product');
     });
 
-    test('an Ask and a claim on the same Message stay two reachable rows', () => {
-        const shared = 'msg_shared';
-        const rows = toNeedsYouRows([{ ...ask, id: shared }], [{ ...claim, id: shared }]);
-
-        expect(rows).toHaveLength(2);
-        expect(rows.map((row) => row.id)).toEqual(['ask:msg_shared', 'claim:msg_shared']);
-
-        // The list resolves an action by row id, the way ListView's onAction
-        // does; each id must reach its own row and its own deep link.
-        for (const row of rows) {
-            const found = rows.find((candidate) => candidate.id === row.id);
-            expect(found).toBe(row);
-            expect(found && needsYouRowTarget(found)).toBe(shared);
-        }
-        expect(rows.map((row) => row.kind)).toEqual(['ask', 'claim']);
-    });
-
-    test('the deep-link target is the payload Message, not the namespaced id', () => {
-        const [askRow, claimRow] = toNeedsYouRows([ask], [claim]);
-
-        expect(askRow && needsYouRowTarget(askRow)).toBe('msg_ask');
-        expect(claimRow && needsYouRowTarget(claimRow)).toBe('msg_claim');
+    test('a retired Agent still reads by its stored name, then its id', () => {
+        const retired = { ...names, agents: [] };
+        expect(toNeedsYouRowView(dmRow, retired).authorName).toBe('Agent _orbit');
+        const stored: NeedsYouRow = {
+            ...dmRow,
+            latest: {
+                ...latest,
+                author: {
+                    agentId: 'agt_orbit',
+                    kind: 'agent',
+                    profile: {
+                        avatarUrl: null,
+                        deleted: true,
+                        description: null,
+                        displayName: 'Old Orbit',
+                    },
+                },
+            },
+        };
+        expect(toNeedsYouRowView(stored, retired).authorName).toBe('Old Orbit');
     });
 });
 
-describe('stalledClaimTitle', () => {
-    test('names who stopped', () => {
-        expect(stalledClaimTitle({ assigneeLabel: 'Tiny' })).toBe('Tiny stopped before finishing');
+test('a row opens its conversation, with the Thread open for a Thread row', () => {
+    expect(needsYouConversationPath('acme', dmRow)).toBe('/s/acme/chats/cht_dm');
+    expect(needsYouConversationPath('acme', threadRow)).toBe(
+        '/s/acme/chats/cht_product?thread=msg_anchor'
+    );
+});
+
+test('Conversations hides exactly the Chats that have a row', () => {
+    expect([...needsYouChatIds([dmRow, threadRow])]).toEqual(['cht_dm', 'cht_thread']);
+});
+
+test('a notification names the author and the place', () => {
+    expect(needsYouNotificationText(toNeedsYouRowView(threadRow, names))).toEqual({
+        body: 'The migration is staged. Should I run it?',
+        title: 'Bo in #product › thread',
+    });
+    expect(needsYouNotificationText(toNeedsYouRowView(dmRow, names)).title).toBe('Orbit');
+});
+
+describe('withoutDoneRow', () => {
+    test('Done removes the row it covered', () => {
+        expect(
+            withoutDoneRow([dmRow, threadRow], { chatId: 'cht_dm', throughSequence: 7 })
+        ).toEqual([threadRow]);
+    });
+
+    test('newer addressing than the Done covered keeps the row', () => {
+        expect(withoutDoneRow([dmRow], { chatId: 'cht_dm', throughSequence: 6 })).toEqual([dmRow]);
     });
 });

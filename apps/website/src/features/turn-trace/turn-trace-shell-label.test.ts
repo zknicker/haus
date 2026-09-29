@@ -60,7 +60,6 @@ test('a haus command reads as the product verb it is', () => {
     assert.equal(formatShellLabel(`zsh -lc 'haus message check'`), 'Checked messages with haus');
     assert.equal(formatShellLabel(`zsh -lc 'haus inbox check'`), 'Checked inbox with haus');
     assert.equal(formatShellLabel('haus task claim --number 3'), 'Claimed a task with haus');
-    assert.equal(formatShellLabel(`haus ask "what changed"`), 'Asked a question with haus');
 });
 
 test('a haus command with no verb of its own still states what ran', () => {
