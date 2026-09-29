@@ -31,6 +31,12 @@ export interface ThoughtLine {
 
 /** One frame's phrasing, offered to the cadence; it runs now, later, or never. */
 export interface ThoughtJob {
+    /**
+     * Whether the frame's request is still the one its run is engaged on; false
+     * once the turn settles, a `--done` reply answers it, or a newer message is
+     * steered in. Checked before phrasing and again before announcing.
+     */
+    current(): Promise<boolean>;
     /** Phrases the frame against the lines shown so far; null when nothing should show. */
     phrase(): Promise<ThoughtLine | null>;
     /** A higher rank survives a lower one while both wait: a finding beats a title beats an action. */
@@ -45,11 +51,21 @@ export interface ThoughtJob {
  * waits out a short floor, one waiting at a time (the highest rank, then the
  * newest). A new workstream or finding shows as soon as it is phrased; a line
  * that continues the shown work shows only once the request has been quiet for
- * `thoughtStillAfterMs`, and the freshest such line is held until then. In
- * memory only.
+ * `thoughtStillAfterMs`, and the freshest such line is held until then.
+ * Nothing outlives its request: a frame is phrased and announced only while
+ * its request is current, a newer request on the run drops the older one's
+ * held and waiting frames, and `endRun` drops the run's. In memory only.
  */
 export interface ThoughtCadence {
-    offer(key: string, job: ThoughtJob): void;
+    /** Drops every held and waiting frame of a run whose turn has settled. */
+    endRun(run: string): void;
+    offer(key: ThoughtCadenceKey, job: ThoughtJob): void;
+}
+
+/** One request of one run: the unit a cadence paces. */
+export interface ThoughtCadenceKey {
+    request: string;
+    run: string;
 }
 
 export function createThoughtCadence(
@@ -68,15 +84,20 @@ export function createThoughtCadence(
         entry.lastAt = now();
         job.run(async () => {
             try {
+                // A request that has ended is never phrased: the summary is a paid call.
+                if (!(await job.current())) {
+                    return;
+                }
                 const line = await job.phrase();
-                if (line) {
+                // The turn may have ended while the summary was in flight.
+                if (line && !entry.ended && (await job.current())) {
                     decide(entry, line, job);
                 }
             } finally {
                 entry.pending = false;
                 const waiting = entry.waiting;
                 entry.waiting = null;
-                if (waiting) {
+                if (waiting && !entry.ended) {
                     offerTo(entry, waiting);
                 }
             }
@@ -93,7 +114,7 @@ export function createThoughtCadence(
             return;
         }
         // Too soon for "still": hold the freshest one for when the quiet runs out.
-        entry.held = { announce: line.announce, run: job.run };
+        entry.held = { announce: line.announce, current: job.current, run: job.run };
         entry.cancelHeld ??= schedule(
             () => {
                 entry.cancelHeld = null;
@@ -101,7 +122,11 @@ export function createThoughtCadence(
                 entry.held = null;
                 // Phrased after the floor, so never more than a few seconds stale.
                 if (held) {
-                    held.run(async () => show(entry, held.announce));
+                    held.run(async () => {
+                        if (!entry.ended && (await held.current())) {
+                            show(entry, held.announce);
+                        }
+                    });
                 }
             },
             entry.shownAt + thoughtStillAfterMs - at
@@ -135,15 +160,30 @@ export function createThoughtCadence(
         }, wait);
     };
 
+    const drop = (key: string, entry: RequestCadence) => {
+        end(entry);
+        requests.delete(key);
+    };
+
     return {
-        offer(key, job) {
-            const at = now();
-            for (const [entry, request] of requests) {
-                if (isIdle(request) && at - request.lastAt >= thoughtCadenceTtlMs) {
-                    requests.delete(entry);
+        endRun(run) {
+            for (const [key, entry] of requests) {
+                if (entry.run === run) {
+                    drop(key, entry);
                 }
             }
-            const entry = requests.get(key) ?? newRequest();
+        },
+        offer({ request, run }, job) {
+            const at = now();
+            const key = `${run}\n${request}`;
+            for (const [other, entry] of requests) {
+                // A message steered into the run supersedes the request it was answering.
+                const superseded = entry.run === run && other !== key;
+                if (superseded || (isIdle(entry) && at - entry.lastAt >= thoughtCadenceTtlMs)) {
+                    drop(other, entry);
+                }
+            }
+            const entry = requests.get(key) ?? newRequest(run);
             requests.set(key, entry);
             offerTo(entry, job);
         },
@@ -153,24 +193,39 @@ export function createThoughtCadence(
 interface RequestCadence {
     cancelHeld: (() => void) | null;
     cancelWait: (() => void) | null;
-    held: { announce: () => void; run: ThoughtJob['run'] } | null;
+    /** Set once the request is dropped; its in-flight phrasing announces nothing. */
+    ended: boolean;
+    held: { announce: () => void; current: ThoughtJob['current']; run: ThoughtJob['run'] } | null;
     /** When a frame last started phrasing; spaces frames before the first bubble. */
     lastAt: number;
     pending: boolean;
+    run: string;
     shownAt: number | null;
     waiting: ThoughtJob | null;
 }
 
-function newRequest(): RequestCadence {
+function newRequest(run: string): RequestCadence {
     return {
         cancelHeld: null,
         cancelWait: null,
+        ended: false,
         held: null,
         lastAt: Number.NEGATIVE_INFINITY,
         pending: false,
+        run,
         shownAt: null,
         waiting: null,
     };
+}
+
+function end(entry: RequestCadence) {
+    entry.ended = true;
+    entry.cancelHeld?.();
+    entry.cancelWait?.();
+    entry.cancelHeld = null;
+    entry.cancelWait = null;
+    entry.held = null;
+    entry.waiting = null;
 }
 
 /** Before a bubble, frames a second apart; after one, the floor (shorter for a finding). */

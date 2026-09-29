@@ -28,6 +28,8 @@ interface ThoughtFrameInput {
 
 /** Computer thought frames (ADR 0036): admitted, phrased, announced, never stored. */
 export interface AgentThoughts {
+    /** A settled turn's held and waiting thoughts are dropped, never phrased or announced. */
+    endRun(runId: string): void;
     /**
      * Handles a Computer frame when it is a thought; true once consumed,
      * admitted or not. Admission and the request's cadence run in the
@@ -120,6 +122,7 @@ export function createAgentThoughts(options: {
     };
 
     return {
+        endRun: (runId) => cadence.endRun(runId),
         async ingest(db, input, background) {
             const parsed = agentThoughtFrameSchema.safeParse(input.frame);
             if (!parsed.success) {
@@ -136,19 +139,25 @@ export function createAgentThoughts(options: {
                 input.serverId,
                 frame
             );
+            const run = { agentId: frame.agentId, runId: frame.runId, serverId: input.serverId };
             // Paced per request: a message steered into a running turn starts its own cadence.
-            const key = `${input.computerId}:${frame.runId}:${messageId ?? ''}`;
-            cadence.offer(key, {
-                phrase: () =>
-                    phraseForChats({
-                        events,
-                        phrase: (previous) => phrase(frame, { previous, request, requester }),
-                        previousLines,
-                        scope: { computerId: input.computerId, requestId: messageId },
-                    }),
-                rank: frameRank(frame),
-                run: (task) => void background.run('agent-thought.announce', task),
-            });
+            cadence.offer(
+                { request: messageId ?? '', run: frame.runId },
+                {
+                    current: async () =>
+                        messageId !== null &&
+                        (await readActiveRunRequest(db, run))?.id === messageId,
+                    phrase: () =>
+                        phraseForChats({
+                            events,
+                            phrase: (previous) => phrase(frame, { previous, request, requester }),
+                            previousLines,
+                            scope: { computerId: input.computerId, requestId: messageId },
+                        }),
+                    rank: frameRank(frame),
+                    run: (task) => void background.run('agent-thought.announce', task),
+                }
+            );
             return true;
         },
         phrase,

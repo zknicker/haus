@@ -8,6 +8,7 @@ import {
 } from '@haus/api';
 import { WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -41,6 +42,12 @@ export function startComputerAttachmentSocket(
     thoughtSummarizer: ThoughtSummarizer | null
 ) {
     const thoughts = createAgentThoughts({ summarizer: thoughtSummarizer });
+    // A settled turn drops its held and waiting thoughts (ADR 0036).
+    const stopThoughtsOnSettle = onAgentLifecycle((event) => {
+        if (event.phase === 'settled') {
+            thoughts.endRun(event.runId);
+        }
+    });
     const sockets = new Map<string, import('ws').WebSocket>();
     const socketServer = new WebSocketServer({ noServer: true });
     const onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) => {
@@ -202,6 +209,7 @@ export function startComputerAttachmentSocket(
     return {
         close: () => {
             server.off('upgrade', onUpgrade);
+            stopThoughtsOnSettle();
             for (const socket of sockets.values()) {
                 socket.close(1001, 'Server shutting down');
             }
