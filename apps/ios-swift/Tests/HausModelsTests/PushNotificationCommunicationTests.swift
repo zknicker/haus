@@ -59,6 +59,30 @@ final class PushNotificationCommunicationTests: XCTestCase {
         XCTAssertNil(PushNotificationCommunication.fetchableAvatarURL("file:///etc/hosts"))
     }
 
+    func testReasonMapsToFocusSignals() throws {
+        let mention = try XCTUnwrap(PushNotificationCommunication(userInfo: userInfo(reason: "mention")))
+        XCTAssertEqual(mention.reason, .mention)
+        XCTAssertEqual(mention.focusSignals, .init(mentionsCurrentUser: true, isReplyToCurrentUser: false))
+
+        let reply = try XCTUnwrap(PushNotificationCommunication(userInfo: userInfo(reason: "reply")))
+        XCTAssertEqual(reply.reason, .reply)
+        XCTAssertEqual(reply.focusSignals, .init(mentionsCurrentUser: false, isReplyToCurrentUser: true))
+
+        let dm = try XCTUnwrap(PushNotificationCommunication(userInfo: userInfo(reason: "dm")))
+        XCTAssertEqual(dm.reason, .dm)
+        XCTAssertNil(dm.focusSignals)
+    }
+
+    func testMissingOrUnknownReasonStillParsesWithoutFocusSignals() throws {
+        let older = try XCTUnwrap(PushNotificationCommunication(userInfo: userInfo()))
+        XCTAssertNil(older.reason)
+        XCTAssertNil(older.focusSignals)
+
+        let unknown = try XCTUnwrap(PushNotificationCommunication(userInfo: userInfo(reason: "task")))
+        XCTAssertNil(unknown.reason)
+        XCTAssertNil(unknown.focusSignals)
+    }
+
     func testInitialsMatchWeb() {
         XCTAssertEqual(PushNotificationCommunication.initials(for: "Blippy"), "BL")
         XCTAssertEqual(PushNotificationCommunication.initials(for: "Grace Brewster Hopper"), "GH")
@@ -70,9 +94,10 @@ final class PushNotificationCommunicationTests: XCTestCase {
             "id": "agent_1", "kind": "agent", "name": "Blippy",
             "avatarUrl": "https://haus.chat/api/avatars/a1",
         ],
-        conversation: [String: Any] = ["kind": "dm", "name": NSNull()]
+        conversation: [String: Any] = ["kind": "dm", "name": NSNull()],
+        reason: String? = nil
     ) -> [AnyHashable: Any] {
-        [
+        var info: [AnyHashable: Any] = [
             "serverId": "server_1",
             "chatId": "chat_dm",
             "conversationChatId": "chat_dm",
@@ -80,5 +105,7 @@ final class PushNotificationCommunicationTests: XCTestCase {
             "sender": sender,
             "conversation": conversation,
         ]
+        if let reason { info["reason"] = reason }
+        return info
     }
 }
