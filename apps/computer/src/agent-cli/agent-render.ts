@@ -1,4 +1,8 @@
-import type { HausAgentSendResponse } from '@haus/api';
+import {
+    formatAgentReferenceTarget,
+    formatUserReferenceTarget,
+    type HausAgentSendResponse,
+} from '@haus/api';
 import type { z } from 'zod';
 import { formatThreadFollowRestoration } from '../inbox-format.ts';
 import type {
@@ -78,6 +82,7 @@ export function renderServerInfo(
         '## Server summary',
         `${response.total.channels} channels · ${response.total.agents} agents · ${response.total.humans} humans`,
         'Use --channels, --agents, --humans, --joined, or --query <text> to narrow this view.',
+        'Copy a person or Agent link into notes and messages to keep its identity across handle changes.',
     ];
     if (response.channels.length > 0) {
         lines.push(
@@ -90,10 +95,18 @@ export function renderServerInfo(
         );
     }
     if (response.agents.length > 0) {
-        lines.push('', '## Server Agents', ...response.agents.map(renderPerson));
+        lines.push(
+            '',
+            '## Server Agents',
+            ...response.agents.map((agent) => renderPerson(agent, 'agent'))
+        );
     }
     if (response.humans.length > 0) {
-        lines.push('', '## Server Humans', ...response.humans.map(renderPerson));
+        lines.push(
+            '',
+            '## Server Humans',
+            ...response.humans.map((human) => renderPerson(human, 'user'))
+        );
     }
     const nextCommands = serverInfoNextCommands(response, filters);
     if (nextCommands.length > 0) {
@@ -219,8 +232,15 @@ function preview(content: string, query: string): string {
     ].join('');
 }
 
-function renderPerson(person: { description: string | null; handle: string }): string {
-    return `@${person.handle}${descriptionSuffix(person.description)}`;
+function renderPerson(
+    person: { description: string | null; handle: string; id: string },
+    kind: 'agent' | 'user'
+): string {
+    const target =
+        kind === 'agent'
+            ? formatAgentReferenceTarget(person.id)
+            : formatUserReferenceTarget(person.id);
+    return `[@${person.handle}](${target})${descriptionSuffix(person.description)}`;
 }
 
 function descriptionSuffix(description: string | null): string {

@@ -200,7 +200,11 @@ async function listChannels(db: HausDatabase, runner: ResolvedRunner, input: Age
 
 async function listAgents(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     return await db
-        .select({ description: agentsTable.description, handle: agentsTable.handle })
+        .select({
+            description: agentsTable.description,
+            handle: agentsTable.handle,
+            id: agentsTable.id,
+        })
         .from(agentsTable)
         .where(
             and(
@@ -212,7 +216,9 @@ async function listAgents(db: HausDatabase, runner: ResolvedRunner, input: Agent
         .orderBy(asc(agentsTable.handle))
         .offset(input.offset)
         .limit(input.limit)
-        .then((rows) => rows.map((row) => ({ description: row.description, handle: row.handle })));
+        .then((rows) =>
+            rows.map((row) => ({ description: row.description, handle: row.handle, id: row.id }))
+        );
 }
 
 async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
@@ -220,6 +226,7 @@ async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: Agent
         .select({
             description: usersTable.description,
             handle: serverMembershipsTable.handle,
+            id: serverMembershipsTable.userId,
         })
         .from(serverMembershipsTable)
         .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
@@ -235,7 +242,9 @@ async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: Agent
         .orderBy(asc(serverMembershipsTable.handle), asc(serverMembershipsTable.userId))
         .offset(input.offset)
         .limit(input.limit)
-        .then((rows) => rows.map((row) => ({ description: row.description, handle: row.handle })));
+        .then((rows) =>
+            rows.map((row) => ({ description: row.description, handle: row.handle, id: row.id }))
+        );
 }
 
 async function findChannel(db: HausDatabase, serverId: string, target: string) {

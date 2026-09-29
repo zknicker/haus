@@ -206,10 +206,10 @@ export const agentHistoryResponseSchema = z.object({
     target: z.string().min(1),
     thread_follow_reactivated_message_ids: z.array(z.string().min(1)).default([]),
 });
-
 const directoryPersonSchema = z.object({
     description: z.string().nullable(),
     handle: z.string().min(1),
+    id: z.string().min(1),
 });
 
 export const agentChannelSchema = z.object({

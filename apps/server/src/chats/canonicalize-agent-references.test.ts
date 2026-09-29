@@ -33,6 +33,17 @@ describe('canonicalizeAgentMessageContent', () => {
         ).toBe('Ask @blippy.');
     });
 
+    it('keeps a saved human ID link after the handle changes', () => {
+        const content = 'Ask [@old-handle](user://usr_zach); @old-handle is stale.';
+        expect(
+            canonicalizeAgentMessageContent(content, {
+                agents,
+                channels,
+                users: [{ handle: 'new-handle', id: 'usr_zach' }],
+            })
+        ).toBe(content);
+    });
+
     it('resolves every permitted channel prefix and the maximum name length', () => {
         const names = ['_notes', '-notes', 'a'.repeat(32)];
         for (const name of names) {
