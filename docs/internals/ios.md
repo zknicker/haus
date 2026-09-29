@@ -1140,6 +1140,13 @@ hosted Account Portal. The provider browser returns through the production-autho
 for every request, while `HausStore` keeps the active user's in-memory Server snapshots. A user
 change therefore discards the previous user's cache. Cold-start offline access needs an explicit secure
 auth bootstrap contract before persisted query data can be enabled safely.
+Sign Out is the Settings root's last group and confirms first. `HausStore.signOut()` owns it: it
+ends the Clerk session (a failure throws and leaves the viewer signed in), then stops event streams,
+drops the restored last-open Chat, and empties the attachment disk cache; the auth boundary discards
+the Store's in-memory snapshots. The avatar byte cache stays, since avatar URLs are immutable and only
+render when the next account's Server lists them. In Debug, an explicit sign-out persists
+`haus.debug.explicit-sign-out`, so auto sign-in stands down across relaunches until the human taps
+"Sign in to local Server".
 
 ## Native surface
 

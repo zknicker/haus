@@ -294,6 +294,10 @@ production Server.
 Launching without those variables on a fresh install leaves the app on
 production sign-in, which needs a real Google account and cannot be automated.
 
+After Settings → Sign Out, a Debug build stays signed out across relaunches and
+shows "Sign in to local Server"; tapping it clears the flag and resumes auto
+sign-in.
+
 ## Claude Code Previews
 
 `.claude/launch.json` tells Claude Code's browser preview which port to attach
