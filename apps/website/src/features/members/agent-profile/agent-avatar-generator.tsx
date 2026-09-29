@@ -1,119 +1,70 @@
-import type { GeneratedAvatar } from '@haus/api';
 import * as React from 'react';
-import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
-import { useAgentAvatarGeneration } from '../../../hooks/members/use-agent-avatar-generation.ts';
-import {
-    AvatarGenerationDialog,
-    type AvatarGenerationDialogProps,
-} from './agent-avatar-generation-dialog.tsx';
+import { AvatarGenerationDialog } from './agent-avatar-generation-dialog.tsx';
+import { useAvatarGenerationSession } from './use-avatar-generation-session.ts';
 
-/** The generation dialog alone; the opener owns `open` (the avatar menu). */
+/**
+ * The generation dialog plus its session. The opener owns `open` (the avatar
+ * menu) and keeps this mounted while the dialog is closed, so a run started
+ * here survives closing; key it by Agent so a different Agent starts fresh.
+ */
 export function AgentAvatarGenerator({
     agentId,
+    currentAvatarUrl,
     name,
     onOpenChange,
     open,
     serverId,
 }: {
     agentId: string;
+    currentAvatarUrl: string | null;
     name: string;
     onOpenChange: (open: boolean) => void;
     open: boolean;
     serverId: string;
 }) {
-    const generation = useAgentAvatarGeneration(serverId, agentId);
-    const setAvatar = useAgentAvatar(serverId, agentId);
-    const [concept, setConcept] = React.useState('');
-    const [conceptError, setConceptError] = React.useState<string | null>(null);
-    const [preview, setPreview] = React.useState<GeneratedAvatar | null>(null);
-    const generationRun = React.useRef(0);
-    const busy = generation.isPending || setAvatar.isPending;
+    const {
+        changeConcept,
+        open: openSession,
+        save,
+        session,
+        stage,
+        startGeneration,
+    } = useAvatarGenerationSession({
+        agentId,
+        serverId,
+    });
+    // A saved session resets as the dialog reopens, not as it animates out.
+    const [wasOpen, setWasOpen] = React.useState(open);
+    if (open !== wasOpen) {
+        setWasOpen(open);
+        if (open) {
+            openSession();
+        }
+    }
 
-    const resetTransientState = React.useCallback(() => {
-        generationRun.current += 1;
-        setConcept('');
-        setConceptError(null);
-        setPreview(null);
-        generation.reset();
-        setAvatar.reset();
-    }, [generation.reset, setAvatar.reset]);
-
-    const handleOpenChange = React.useCallback(
-        (nextOpen: boolean) => {
-            if (!nextOpen && busy) {
-                return;
-            }
-            onOpenChange(nextOpen);
-            if (!nextOpen) {
-                resetTransientState();
-            }
-        },
-        [busy, onOpenChange, resetTransientState]
+    return (
+        <AvatarGenerationDialog
+            currentAvatarUrl={currentAvatarUrl}
+            name={name}
+            onConceptChange={changeConcept}
+            onGenerate={() => {
+                void startGeneration();
+            }}
+            onOpenChange={(nextOpen) => {
+                if (nextOpen || !session.saving) {
+                    onOpenChange(nextOpen);
+                }
+            }}
+            onSave={() => {
+                void save().then((saved) => {
+                    if (saved) {
+                        onOpenChange(false);
+                    }
+                });
+            }}
+            onStage={stage}
+            open={open}
+            session={session}
+        />
     );
-
-    const handleGenerate = React.useCallback(async () => {
-        const trimmedConcept = concept.trim();
-        if (!trimmedConcept) {
-            setConceptError('Enter a short concept before generating an avatar.');
-            return;
-        }
-
-        setConceptError(null);
-        generation.reset();
-        const run = generationRun.current + 1;
-        generationRun.current = run;
-
-        try {
-            const result = await generation.generate(trimmedConcept);
-            if (generationRun.current === run) {
-                setPreview(result.avatar);
-            }
-        } catch {
-            // The mutation error stays visible and the preview remains retryable.
-        }
-    }, [concept, generation.generate, generation.reset]);
-
-    const handleSave = React.useCallback(async () => {
-        if (!preview || busy) {
-            return;
-        }
-
-        try {
-            await setAvatar.mutateAsync({
-                bytesBase64: preview.bytesBase64,
-                mediaType: preview.mediaType,
-                serverId,
-                target: { agentId, kind: 'agent' },
-            });
-            handleOpenChange(false);
-        } catch {
-            // Keep the preview and Save action available for an ordinary-save retry.
-        }
-    }, [agentId, busy, handleOpenChange, preview, serverId, setAvatar.mutateAsync]);
-
-    const dialogProps: AvatarGenerationDialogProps = {
-        concept,
-        conceptError,
-        error: generation.error?.message ?? setAvatar.error?.message ?? null,
-        isGenerating: generation.isPending,
-        isSaving: setAvatar.isPending,
-        name,
-        onConceptChange: (nextConcept) => {
-            setConcept(nextConcept);
-            if (conceptError && nextConcept.trim()) {
-                setConceptError(null);
-            }
-        },
-        onGenerate: () => {
-            void handleGenerate();
-        },
-        onOpenChange: handleOpenChange,
-        onSave: () => {
-            void handleSave();
-        },
-        open,
-        preview,
-    };
-
-    return <AvatarGenerationDialog {...dialogProps} />;
 }

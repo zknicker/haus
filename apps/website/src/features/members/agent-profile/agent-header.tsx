@@ -94,6 +94,8 @@ export function AgentHeader({
                         {canGenerate && server.avatarGenerationAvailable ? (
                             <AgentAvatarGenerator
                                 agentId={agent.id}
+                                currentAvatarUrl={agent.avatarUrl}
+                                key={agent.id}
                                 name={agent.displayName}
                                 onOpenChange={setGenerateOpen}
                                 open={generateOpen}
