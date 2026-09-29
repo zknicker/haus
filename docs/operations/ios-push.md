@@ -3,6 +3,7 @@ summary: iPhone push (APNs) for Needs you — the device and payload contract, t
 read_when:
   - enabling, rotating, or debugging iPhone push notifications
   - changing `push.registerDevice`, `push.unregisterDevice`, or the push payload
+  - changing how pushes behave under iPhone Focus
   - changing the App ID capabilities, entitlements, or provisioning profiles of the Haus iPhone app and its Notification Service extension
 ---
 
@@ -32,7 +33,11 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
   `aps.mutable-content: 1`, `sender` (`id`, `kind` `agent` | `human`, `name` cut to 80 characters,
   `avatarUrl` absolute on `HAUS_APP_ORIGIN` or null when the sender has none — avatar routes are
   public by opaque id), and `conversation` (`{ kind: "channel", name }` without `#`, or
-  `{ kind: "dm", name: null }`). The alert title and body stay as the fallback when the Notification
+  `{ kind: "dm", name: null }`). `reason` (`dm` | `mention` | `reply`) is the reason of the Needs
+  you row the push tops; the extension donates it as `INSendMessageIntentDonationMetadata`
+  (`mentionsCurrentUser` for `mention`, `isReplyToCurrentUser` for `reply`, iOS defaults for `dm`
+  or a push without it) so Focus lets mentions and replies to the human through. Pushes are never
+  Time Sensitive. The alert title and body stay as the fallback when the Notification
   Service extension cannot fetch the avatar. A message whose author or Channel name cannot be
   resolved is not pushed. The worst-case payload stays under the 4 KB APNs limit
   (`push-payload.test.ts`). Headers: `apns-push-type: alert`, `apns-priority: 10`,
