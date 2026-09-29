@@ -37,23 +37,10 @@ test('names the Agent holding the lock and what the lock leaves open', () => {
     );
 });
 
-test('reads the same for a human holder', () => {
-    expect(
-        formatTaskClaimConflict(conflict({ currentAssignee: { name: 'wren', type: 'user' } }))
-    ).toBe(
-        [
-            'Claim failed — @wren currently holds the implementation lock (assignment state as of 2026-09-08T17:09:52.000Z).',
-            'Blocked: starting conflicting implementation/change work.',
-            unblockedLine,
-            routingLine,
-        ].join('\n')
-    );
-});
-
 test('falls back to an unnamed holder rather than claiming the task is open', () => {
     expect(formatTaskClaimConflict(conflict({ currentAssignee: null }))).toBe(
         [
-            'Claim failed — another actor currently holds the implementation lock (assignment state as of 2026-09-08T17:09:52.000Z).',
+            'Claim failed — another Agent currently holds the implementation lock (assignment state as of 2026-09-08T17:09:52.000Z).',
             'Blocked: starting conflicting implementation/change work.',
             unblockedLine,
             routingLine,

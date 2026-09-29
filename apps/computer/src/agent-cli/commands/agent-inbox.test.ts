@@ -7,13 +7,11 @@ import { runInboxCheck } from './agent-inbox.ts';
 test('inbox check prints each target exactly as the busy notice does', async () => {
     const items: AgentInboxItem[] = [
         item({
-            ask: { addresseeHandle: 'zach', status: 'open' },
-            id: 'msg_askfirst',
+            id: 'msg_tasklead',
             mentioned: true,
             task: {
                 assigneeAgentId: null,
-                assigneeUserId: null,
-                messageId: 'msg_askfirst',
+                messageId: 'msg_tasklead',
                 number: 7,
                 priority: 'none',
                 status: 'todo',
@@ -26,9 +24,8 @@ test('inbox check prints each target exactly as the busy notice does', async () 
     const noticeRows = noticeLines.slice(2, noticeLines.indexOf(']'));
     const output = await inboxCheck([
         row({
-            ask: { addresseeHandle: 'zach', status: 'open' },
-            firstShortId: 'askfirst',
-            latestShortId: 'askfirst',
+            firstShortId: 'tasklead',
+            latestShortId: 'tasklead',
             mentioned: true,
             target: '#general:abcd1234',
             taskNumber: 7,
@@ -43,7 +40,7 @@ test('inbox check prints each target exactly as the busy notice does', async () 
     ]);
 
     expect(noticeRows).toEqual([
-        '#general:abcd1234  pending: 1 message · first msg=askfirst · latest sender @zach · latest msg=askfirst · thread · task #7 · ask open to=@zach · you were mentioned',
+        '#general:abcd1234  pending: 1 message · first msg=tasklead · latest sender @zach · latest msg=tasklead · thread · task #7 · you were mentioned',
         'dm:@rosa  pending: 1 message · first msg=dmreply · latest sender @rosa · latest msg=dmreply · dm',
     ]);
     expect(output).toBe(
@@ -66,7 +63,7 @@ test('inbox check tags a waiting Cloud Agent result as work, like the notice', a
 });
 
 test('rows from a Server that predates the work facts still print, untagged', async () => {
-    const { ask: _ask, cloudAgentResult: _cloud, taskNumber: _task, ...legacy } = row({});
+    const { cloudAgentResult: _cloud, taskNumber: _task, ...legacy } = row({});
     const output = await inboxCheck([{ ...legacy, dm: false, thread: false }]);
     expect(output).toBe(
         '#general  pending: 1 message · first msg=first · latest sender @zach · latest msg=first\nRead pending bodies with haus message check.\n'
@@ -91,7 +88,6 @@ async function inboxCheck(rows: Record<string, unknown>[]): Promise<string> {
 
 function row(overrides: Record<string, unknown>): Record<string, unknown> {
     return {
-        ask: null,
         chatId: 'cht_general',
         cloudAgentResult: false,
         firstShortId: 'first',

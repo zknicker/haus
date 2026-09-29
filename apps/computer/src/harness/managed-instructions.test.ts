@@ -157,8 +157,14 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
         'A parent channel mute already suppresses ordinary delivery from its threads'
     );
 
-    expect(prompt).toContain('**Asks** — `haus ask`');
-    expect(prompt).toContain('the answer is their reply in the Ask’s thread');
+    // A human is asked by @mention where the work lives (ADR 0037); there is no Ask command.
+    expect(prompt).not.toContain('haus ask');
+    expect(prompt).not.toContain('**Asks**');
+    expect(prompt).toContain(
+        "- When you need a human's decision or action, @mention them where the work lives. Ask one question, a default only if reversible, and what you prepared. Their reply wakes you. Irreversible acts wait for an explicit yes."
+    );
+    expect(prompt).toContain('12. **Cloud agents**');
+    expect(prompt).toContain('13. **Manual**');
 
     // These Raft-only surfaces must not leak into the Haus prompt.
     expect(prompt).not.toContain('reviewer-isolation');
@@ -184,7 +190,13 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // mechanics moved into the inbox notice, task mechanics into the `tasks` Manual topic, and
     // clauses Raft deleted were cut. Raised by exactly 42 when Haus gained task assign/unassign
     // and restored Raft's `task assign` / `task unassign` family entries (32,359 → 32,401).
-    expect(prompt.length).toBeLessThanOrEqual(32_401);
+    // Lowered when Asks were deleted (ADR 0037): the `haus ask` family entry gave way to one
+    // shorter Haus-only @mention rule in `## @Mentions` (32,401 → 32,395). Ratcheted to the
+    // measured render (32,395 → 32,393) when that rule learned to mention even the asker, paid for by
+    // cutting the capability section's redundant surface bullet. Lowered (32,393 → 32,281) when an
+    // inline reply to a human's message came to reach their Needs you like a mention, so the
+    // "even when replying to whoever asked" clause was cut.
+    expect(prompt.length).toBeLessThanOrEqual(32_281);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

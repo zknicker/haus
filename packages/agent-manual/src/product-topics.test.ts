@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { getManualTopic, searchManualTopics } from './index.ts';
+import { getManualTopic, manualTopics, searchManualTopics } from './index.ts';
 
 test('Amazon product guidance is discoverable without granting MCP access', () => {
     expect(
@@ -80,23 +80,28 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     ).toContain('agent');
 });
 
-test('publishes the Ask reference topic without turning it into a procedure', () => {
-    const asks = getManualTopic('asks');
-
-    expect(asks?.kind).toBe('overview');
-    expect(asks?.body).toContain(
-        'haus ask --target <target> --to @<handle> --title <text> --summary <text> [--option <text>]...'
+test('retires the Ask topic and teaches asking a human by @mention', () => {
+    expect(getManualTopic('asks')).toBeNull();
+    const corpus = manualTopics.map((topic) => topic.body).join('\n');
+    expect(corpus).not.toContain('haus ask');
+    expect(getManualTopic('haus-cli-overview')?.body).toContain(
+        '@mention them where the work lives; there is no separate ask command'
     );
-    expect(asks?.body).toContain('one named human for a decision');
-    expect(asks?.body).toContain('The question text arrives on stdin');
-    expect(asks?.body).toContain('settles the Ask');
-    expect(asks?.body).toContain('An Ask changes nothing on its own');
-    expect(getManualTopic('haus-cli-overview')?.body).toContain('haus ask');
+    const recipe = getManualTopic('recipes/decision/when-to-ask-human');
+    expect(recipe?.body).toContain('### In Haus');
+    expect(recipe?.body).toContain(
+        'An @mention of them or an inline reply to their message (`haus message send --reply-to`) both put it in their Inbox'
+    );
+    expect(recipe?.body).toContain('their reply there wakes you');
+    expect(getManualTopic('cloud-agents')?.body).toContain('**Launch approval.**');
+    expect(getManualTopic('cloud-agents')?.body).toContain(
+        'wait for an explicit yes in reply before `start`'
+    );
     expect(
         searchManualTopics('ask a human for a decision', { limit: 5, scope: 'all' }).map(
             (topic) => topic.id
         )
-    ).toContain('asks');
+    ).toContain('recipes/decision/when-to-ask-human');
 });
 
 test('publishes the tasks topic the prompt points to for task mechanics', () => {
@@ -118,6 +123,11 @@ test('publishes the tasks topic the prompt points to for task mechanics', () => 
     expect(tasks?.body).toContain('**Status is member-level.**');
     expect(tasks?.body).toContain('`assign` is not `claim`');
     expect(tasks?.body).toContain('"not assignable in this chat"');
+    expect(tasks?.body).toContain('only an Agent ever holds one');
+    expect(tasks?.body).toContain('hands a task to any Agent member of that chat');
+    expect(tasks?.body).not.toContain('any human or Agent member');
+    expect(tasks?.body).toContain('**Handing work to a human.**');
+    expect(tasks?.body).toContain('@mention them in the task thread');
     expect(tasks?.body).toContain(
         'The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
     );

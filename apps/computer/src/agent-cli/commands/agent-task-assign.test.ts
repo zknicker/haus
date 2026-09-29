@@ -36,6 +36,23 @@ test('task assign without --assignee points at unassign instead of guessing', as
     expect(calls).toEqual([]);
 });
 
+test('task assign names the @mention path when the Server refuses a human handle', async () => {
+    const refusing: AgentApiRequester = {
+        request: async () => {
+            throw new AgentCliError('TASK_CONFLICT', '@zach is not assignable in this chat.');
+        },
+    };
+    const failure = await runTaskAssign(args({ '--assignee': '@zach' }), deps(refusing, [])).catch(
+        (cause: unknown) => cause
+    );
+
+    expect((failure as AgentCliError).code).toBe('TASK_CONFLICT');
+    expect((failure as AgentCliError).message).toBe('@zach is not assignable in this chat.');
+    expect((failure as AgentCliError).options.nextAction).toContain(
+        '@mention them in the task thread'
+    );
+});
+
 test('task assign rejects a malformed --expected-revision before calling the Server', async () => {
     const calls: Array<{ body: unknown; route: string }> = [];
     const failure = await runTaskAssign(

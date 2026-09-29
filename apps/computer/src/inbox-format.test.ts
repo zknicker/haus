@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
-import { formatAskMarker, formatAskSuffix, formatAskTag } from './inbox-ask-format.ts';
 import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
 
 test('projects structured inbox rows into the specified drain envelope', () => {
@@ -145,7 +144,6 @@ test('projects task and mention intent into both drain and busy-notice metadata'
         mentioned: true,
         task: {
             assigneeAgentId: null,
-            assigneeUserId: null,
             messageId: 'msg_first',
             number: 7,
             priority: 'high',
@@ -159,43 +157,7 @@ test('projects task and mention intent into both drain and busy-notice metadata'
     expect(composeInboxNotice([task])).toContain('· task #7 · you were mentioned');
 });
 
-test('summarizes an unread Ask in the busy notice the way it summarizes a task', () => {
-    const ask = item({
-        ask: { addresseeHandle: 'zach', status: 'open' },
-        content: 'Which release branch should I cut from?',
-    });
-
-    expect(composeInboxNotice([ask])).toContain('· ask open to=@zach');
-    expect(composeInboxNotice([ask])).not.toContain('Which release branch');
-});
-
-test('names an unaddressed and an answered Ask without inventing an addressee', () => {
-    const unaddressed = item({ ask: { addresseeHandle: null, status: 'answered' } });
-
-    expect(composeInboxNotice([unaddressed])).toContain('· ask answered');
-    expect(composeInboxNotice([unaddressed])).not.toContain('to=@');
-});
-
-test('carries an open Ask and its addressee in the drain envelope beside the task marker', () => {
-    const ask = item({
-        ask: { addresseeHandle: 'zach', status: 'open' },
-        content: 'Which release branch should I cut from?',
-    });
-
-    expect(composeInboxDrain([ask], 'UTC')).toContain(
-        '[target=#general msg=first time=2026-07-27 00:00:00 type=human ask=open:@zach] @zach: Which release branch should I cut from?'
-    );
-});
-
-test('compresses an answered, unaddressed Ask to its status alone in the drain envelope', () => {
-    const answered = item({ ask: { addresseeHandle: null, status: 'answered' } });
-    const drain = composeInboxDrain([answered], 'UTC');
-
-    expect(drain).toContain('type=human ask=answered]');
-    expect(drain).not.toContain(':@');
-});
-
-test('leaves an ordinary text message envelope free of an Ask marker', () => {
+test('leaves an ordinary text message envelope free of work markers', () => {
     expect(composeInboxDrain([item()], 'UTC')).toBe(
         [
             'New message received:',
@@ -206,16 +168,6 @@ test('leaves an ordinary text message envelope free of an Ask marker', () => {
             "Each message's `target` identifies the conversation where it was asked.",
         ].join('\n')
     );
-});
-
-test('reads the Ask notice tag and the Ask envelope suffix off one formatting source', () => {
-    const ask = { addresseeHandle: 'zach', status: 'open' } as const;
-
-    expect(formatAskSuffix(ask)).toBe(' [ask status=open to=@zach]');
-    expect(formatAskTag(ask)).toBe('ask open to=@zach');
-    expect(formatAskMarker(ask)).toBe(' ask=open:@zach');
-    expect(composeInboxNotice([item({ ask })])).toContain(`· ${formatAskTag(ask)}`);
-    expect(composeInboxDrain([item({ ask })], 'UTC')).toContain(formatAskMarker(ask));
 });
 
 test('renders a task assignment as a bodiless @haus item keyed to its task message', () => {
