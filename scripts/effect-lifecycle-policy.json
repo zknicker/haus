@@ -494,6 +494,39 @@
         "timer": 0
       }
     },
+    "apps/server/src/push/apns-sender.ts": {
+      "disposition": "external-adapter",
+      "reason": "node:http2 APNs adapter: wraps one request stream in a Promise with a stream timeout, and pings each session on an unref'd interval whose deadline destroys a dead session; the interval is cleared when the session closes. Every failure becomes a push outcome; nothing retries.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 2,
+        "timer": 3
+      }
+    },
+    "apps/server/src/push/message-push.ts": {
+      "disposition": "external-adapter",
+      "reason": "Durable-event listener for iPhone push. Server acquires it in its Effect Scope; close aborts the subscription, logs any other listener failure, and drains the bounded push queue before database teardown.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/server/src/push/push-queue.ts": {
+      "disposition": "external-adapter",
+      "reason": "Bounded-concurrency queue for iPhone push tasks owned by message-push; tasks settle their own errors, and drain resolves once every queued and running task has settled.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
     "apps/server/src/server-mcp/client-cache.ts": {
       "disposition": "effect-owned",
       "reason": "The injected Server runtime owns MCP acquisition, operations, retirement, bounded close, and interruption translation.",
