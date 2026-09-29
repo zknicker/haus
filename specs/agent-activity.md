@@ -179,8 +179,8 @@ Server-to-Computer relay. Server does not persist the response, and reasoning ne
 Server activity journal or any Activity event. The thought bubble
 ([ADR 0036](../docs/adr/0036-agent-thoughts-surface-as-condensed-phrases.md)) is a separate,
 volatile `agent-thought` frame carrying a title phrase, a scrubbed reasoning excerpt, or a
-scrubbed description of a started tool action that the Server summarizes and discards; it is not
-activity. When Computer is offline, detailed evidence is
+scrubbed description of a tool action (with a scrubbed excerpt of a finished command, search,
+page, or tool's output) that the Server summarizes and discards; it is not activity. When Computer is offline, detailed evidence is
 unavailable.
 
 This workstream assigns no retention or cleanup policy to the execution journal. Holistic cleanup

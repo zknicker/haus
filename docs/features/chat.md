@@ -177,15 +177,22 @@ and [Agent Inbox](../../specs/inbox.md).
   return. Reduced motion fades
   the face in place. Reasoning text never enters Activity
   ([ADR 0023](../adr/0023-agent-work-projects-as-activity-and-chat-engagement.md)).
-  When the engaging run finishes a reasoning block or starts a real tool action
-  (a command, a file, a web search, a tool; never `haus` bookkeeping), a short phrase
-  such as "Comparing Saturday and Sunday" appears in a glass bubble over
-  that Agent's avatar, wobbles in, holds about two seconds, and leaves; bubbles
-  start at least four seconds apart, a thought that arrives sooner waits (the
-  newest replaces one still waiting) unless it is that engagement's first,
-  faces fly above it, and the engagement ending clears it. The same line again
-  while its bubble is up keeps that bubble and restarts its hold, up to eight
-  seconds in all; after the bubble has left, it shows again as a new bubble.
+  When the engaging run finishes a reasoning block, starts a real tool action
+  (a command, a file, a web search, a tool; never `haus` bookkeeping), or finishes a command,
+  search, page, or tool, a short phrase such as "Comparing the last three Bun releases", or a
+  finding such as "The 72-hour pass costs €62", may appear in a glass bubble over that Agent's
+  avatar. It wobbles in, holds five to seven and a half seconds depending on its length (about
+  six for eight words), and leaves. Bubbles follow the work, not a clock: a request's first
+  shows as soon as one is phrased; after that a new part of the work or a finding shows as
+  it happens, at least 15 seconds after the last bubble (10 for a finding); and when the same
+  work runs on with nothing new, a "Still …" line ("Still digging through the Bun changelog")
+  shows once the strip has been quiet for 28 seconds, so a long turn never goes silent for much
+  more than half a minute. A one-minute weather lookup shows two or three; a two-minute research
+  turn about one per step. A message steered into a running turn starts its own count. The App
+  also keeps bubbles at least five seconds apart (a sooner thought waits, the newest replacing
+  one still waiting) unless it is that engagement's first; faces fly above it, and the
+  engagement ending clears it. The same line again while its bubble is up keeps that bubble and
+  restarts its hold, up to twelve seconds in all.
   Hovering the strip's avatars or dots with a mouse or pen brings back the
   engagement's latest bubble at any point, holds a live bubble past its own
   hold, shows a newer thought if one arrives meanwhile, and lets the bubble
@@ -196,17 +203,23 @@ and [Agent Inbox](../../specs/inbox.md).
   The phrase is the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title,
   a reasoning excerpt, or a scrubbed action description, in the terms of the
   message the Agent is answering ("Planning data retrieval" for a weather
-  question reads "Checking the weather in NYC"); without Gemini it is the title
-  or a local condensation, and an action shows nothing. Agent housekeeping — reading its memory or notes, checking its
+  question reads "Checking the weather in NYC"), or of what a finished action
+  returned; without Gemini it is the title or a local condensation, and an
+  action shows nothing. Agent housekeeping — reading its memory or notes, checking its
   inbox, claiming tasks, deciding whether to reply, drafting its own reply —
   shows no bubble; reading or searching what the request is about (the
-  checklist, the thread, the CI logs) is work and shows. Phrases use plain words from the request ("Pulling the NYC
-  forecast"), rarely open with "I", never end in "now", and describe the work
-  rather than errors. A phrase speaks in the Agent's own voice about its own
-  step, preferring what it is checking or the wrinkle it is working through, and
-  never restates the request or says what the person wants or asked; a thought
-  that would only restate the ask is not shown. Each says what is new since the run's last line in that
-  Chat instead of restating it.
+  checklist, the thread, the CI logs) is work and shows. A phrase reads like a
+  thinking summary: plain words about what the work is about, never how it is
+  done (no CLI, API, JSON, markdown, jq, or tags unless the person used the
+  word), an -ing verb or a result the Agent found, no filler opener ("Next,",
+  "OK,"; "Still" only on a still line), never "now", and the work rather than errors. It speaks in the
+  Agent's own voice and never restates the request or says what the person wants
+  or asked. A finding is said in plain words, never quoted from the output, and only when the output
+  shows it; what a tool returned is scrubbed on the Computer (no credentials, environment
+  values, emails, or paths), never sent for file reads, edits, secret stores, or Haus
+  bookkeeping, and never stored. After a request's first line, choosing or testing the Agent's
+  own tools shows nothing, and a line that repeats one already shown, or rewords an earlier
+  "Still" line, is dropped.
   Thoughts are never stored or recovered
   ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
 * **Composer overlay.** In channels, DMs, and Threads the composer floats over
