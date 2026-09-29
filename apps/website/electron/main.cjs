@@ -3,6 +3,7 @@
 const {
     app,
     BrowserWindow,
+    WebContentsView,
     ipcMain,
     Menu,
     nativeTheme,
@@ -14,18 +15,19 @@ const {
 } = require('electron');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
-const { existsSync } = require('node:fs');
 const electronUpdater = require('electron-updater');
 const { registerClerkAuth } = require('./clerk-auth.cjs');
 const { resolveClerkAuthOrigins } = require('./clerk-auth-origins.cjs');
 const { registerNativeClerkRequestHeaders } = require('./clerk-native-requests.cjs');
 const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
 const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs');
+const { registerBrowserWorkspace } = require('./browser-workspace-ipc.cjs');
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 const { buildWindowUrl, isSafeWindowRoute, nextWindowBounds } = require('./window-routing.cjs');
 const { readWindowState, resolveInitialBounds, writeWindowState } = require('./window-state.cjs');
 const { hideLastWindowOnClose, markQuitting, showWindow } = require('./window-lifecycle.cjs');
 const { forwardWindowSignals } = require('./window-signals.cjs');
+const { installDevelopmentDockIcon } = require('./development-dock-icon.cjs');
 
 // A broken stdout/stderr pipe (e.g. the dev launcher's reader went away, or a logging
 // library writes after the pipe closed) must never crash the app with an uncaught EPIPE.
@@ -40,8 +42,6 @@ for (const stream of [process.stdout, process.stderr]) {
 const updateCheckIntervalMs = 10 * 60 * 1000;
 const openDevtoolsMenuId = 'open-devtools';
 const productionAppUrl = 'https://haus.chat';
-// Matches --topbar-height in the renderer so the traffic lights center in
-// the shell's headroom band.
 // Matches --app-shell-band-height in src/features/shell/shell.css, the height
 // every top-of-column band shares.
 const topbarHeightPx = 48;
@@ -66,6 +66,7 @@ let mainWindow = null;
 let updateCheckInterval = null;
 let availableDesktopUpdateVersion = null;
 let currentDesktopUpdateStatus = null;
+let browserWorkspaces = null;
 const newWindowOffsetPx = 36;
 const minWindowWidth = 1100;
 const minWindowHeight = 760;
@@ -155,8 +156,10 @@ function createWindow({ route, openerBounds } = {}) {
         }
     });
 
+    const browserWorkspace = browserWorkspaces.attach(window);
     registerExternalLinkHandlers(window, {
         appUrl,
+        openBrowser: (url) => browserWorkspace.open(url),
         openExternal: (url) => shell.openExternal(url),
     });
 
@@ -181,17 +184,6 @@ function initialWindowBounds(openerBounds) {
         screen.getAllDisplays().map((display) => display.workArea),
         { minWidth: minWindowWidth, minHeight: minWindowHeight, defaults }
     );
-}
-
-function installDevelopmentDockIcon() {
-    if (process.platform !== 'darwin' || app.isPackaged || !app.dock) {
-        return;
-    }
-
-    const iconPath = path.join(__dirname, 'icons', 'AppIcon.png');
-    if (existsSync(iconPath)) {
-        app.dock.setIcon(iconPath);
-    }
 }
 
 async function loadWindow(window, route) {
@@ -366,6 +358,13 @@ function sendToFocusedWindow(channel, ...args) {
 }
 
 function registerIpcHandlers() {
+    browserWorkspaces = registerBrowserWorkspace({
+        appUrl,
+        BrowserWindow,
+        WebContentsView,
+        ipcMain,
+        session,
+    });
     registerEditContextMenuHandlers({ appUrl, ipcMain });
 
     ipcMain.handle('desktop:get-info', (event) => {
@@ -581,7 +580,7 @@ function getErrorMessage(error) {
 }
 
 app.whenReady().then(() => {
-    installDevelopmentDockIcon();
+    installDevelopmentDockIcon(app);
     registerNativeClerkRequestHeaders(
         session.defaultSession.webRequest,
         clerkAuthOrigins.clerkOrigin,

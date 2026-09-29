@@ -3,11 +3,22 @@
 const externalBrowserProtocols = new Set(['http:', 'https:', 'mailto:']);
 
 function registerExternalLinkHandlers(window, options) {
-    const { appUrl, openExternal } = options;
+    const { appUrl, openBrowser, openExternal } = options;
+    const openLink = (url) => {
+        if (openBrowser && ['http:', 'https:'].includes(parseUrl(url)?.protocol)) {
+            try {
+                openBrowser(url);
+            } catch {
+                void openExternal(url);
+            }
+        } else {
+            void openExternal(url);
+        }
+    };
 
     window.webContents.setWindowOpenHandler(({ url }) => {
         if (isExternalBrowserUrl(url)) {
-            void openExternal(url);
+            openLink(url);
         }
 
         return { action: 'deny' };
@@ -21,7 +32,7 @@ function registerExternalLinkHandlers(window, options) {
         event.preventDefault();
 
         if (isExternalBrowserUrl(url)) {
-            void openExternal(url);
+            openLink(url);
         }
     });
 }

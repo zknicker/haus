@@ -1,18 +1,25 @@
 import { getDesktopBridge } from './desktop-bridge.ts';
 
 /**
- * Open an http(s) link outside the App. In the desktop shell that is the
- * bridge, which hands the URL to the operating system browser rather than
- * navigating the renderer away from Haus; in a browser tab it is an ordinary
- * new tab.
+ * Open HTTP(S) links in the desktop workspace when supported. Web clients
+ * and older installed shells retain their external-browser behavior.
  */
 export async function openExternalLink(url: string) {
     const bridge = getDesktopBridge();
 
-    if (bridge) {
-        await bridge.openExternal(url);
+    if (bridge?.browserCommand && ['http:', 'https:'].includes(new URL(url).protocol)) {
+        await bridge.browserCommand({ kind: 'open', url });
         return;
     }
+    await openSystemBrowserLink(url);
+}
 
-    window.open(url, '_blank', 'noopener,noreferrer');
+/** Authentication flows use the human's existing system-browser session. */
+export async function openSystemBrowserLink(url: string) {
+    const bridge = getDesktopBridge();
+    if (bridge) {
+        await bridge.openExternal(url);
+    } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
 }

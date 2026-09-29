@@ -7,6 +7,8 @@ import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import { readLastChatId, rememberLastChatId } from '../../features/servers/server-choice.ts';
 import { serverSearchRoute, serverSettingsRoute } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
+import { BrowserWorkspaceBody } from '../../features/shell/browser-workspace-body.tsx';
+import { BrowserWorkspaceProvider } from '../../features/shell/browser-workspace-context.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
@@ -91,6 +93,14 @@ export function ServerLayout() {
     }
 
     const active = resolveActiveSection(location.pathname, slug);
+    const primaryChat = chats.data?.find((chat) =>
+        selectedChatId
+            ? chat.id === selectedChatId
+            : chat.kind === 'dm' && chat.peerAgentId === selectedAgentDmId
+    );
+    const primaryTabLabel = primaryChat
+        ? (primaryChat.name ?? primaryChat.peerAgentDisplayName ?? 'Chat')
+        : active.charAt(0).toUpperCase() + active.slice(1);
     const settingsSection = resolveSettingsSection(location.pathname, slug);
     const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
     const activeSidebarPage = resolveSidebarPage(active);
@@ -104,73 +114,93 @@ export function ServerLayout() {
             <SidePaneProvider>
                 <TopbarProvider>
                     <CommandMenuProvider>
-                        <AppShell className="w-full">
-                            <ChatEventListeners serverId={server.data.id} />
-                            <SyncHumanIdentity serverId={server.data.id} />
-                            <AppShellDragRegion />
-                            <CommandMenu server={server.data} />
-                            <div className="flex min-h-0 flex-1">
-                                <AgentLifecycleProvider serverId={server.data.id}>
-                                    <AgentActivityProvider serverId={server.data.id}>
-                                        <ResizableAppLayout
-                                            navigate={navigate}
-                                            sidebar={
-                                                <ShellSidebar
-                                                    activePage={activeSidebarPage}
-                                                    footer={
-                                                        <HausUpdateFooterContainer slug={slug} />
-                                                    }
-                                                    settingsAction={
-                                                        <SidebarSettingsAction
-                                                            onOpenSettings={() =>
-                                                                navigate(serverSettingsRoute(slug))
-                                                            }
-                                                            onPreloadSettings={() =>
-                                                                preloadServerSection('settings')
-                                                            }
-                                                        />
-                                                    }
-                                                    slug={slug}
-                                                >
-                                                    <ShellSidebarPage
-                                                        ariaLabel="Server"
-                                                        value="server"
+                        <BrowserWorkspaceProvider
+                            chatRoute={active === 'chat'}
+                            key={server.data.id}
+                            routeLabel={primaryTabLabel}
+                        >
+                            <AppShell className="w-full">
+                                <ChatEventListeners serverId={server.data.id} />
+                                <SyncHumanIdentity serverId={server.data.id} />
+                                <AppShellDragRegion />
+                                <CommandMenu server={server.data} />
+                                <div className="flex min-h-0 flex-1">
+                                    <AgentLifecycleProvider serverId={server.data.id}>
+                                        <AgentActivityProvider serverId={server.data.id}>
+                                            <ResizableAppLayout
+                                                navigate={navigate}
+                                                sidebar={
+                                                    <ShellSidebar
+                                                        activePage={activeSidebarPage}
+                                                        footer={
+                                                            <HausUpdateFooterContainer
+                                                                slug={slug}
+                                                            />
+                                                        }
+                                                        settingsAction={
+                                                            <SidebarSettingsAction
+                                                                onOpenSettings={() =>
+                                                                    navigate(
+                                                                        serverSettingsRoute(slug)
+                                                                    )
+                                                                }
+                                                                onPreloadSettings={() =>
+                                                                    preloadServerSection('settings')
+                                                                }
+                                                            />
+                                                        }
+                                                        slug={slug}
                                                     >
-                                                        <AppSidebar
-                                                            currentServer={server.data}
-                                                            onPreloadSection={preloadServerSection}
-                                                            selectedAgentDmId={selectedAgentDmId}
-                                                            selectedChatId={selectedChatId}
-                                                        />
-                                                    </ShellSidebarPage>
-                                                    <ShellSidebarPage
-                                                        ariaLabel="Settings"
-                                                        value="settings"
-                                                    >
-                                                        <SettingsSidebar
-                                                            backRoute={chatSectionRoute}
-                                                            canOperate={canOperate}
-                                                            currentSection={settingsSection}
-                                                            serverId={server.data.id}
-                                                            slug={slug}
-                                                        />
-                                                    </ShellSidebarPage>
-                                                </ShellSidebar>
-                                            }
-                                        >
-                                            <ShellFrame>
-                                                <ShellTopbar />
-                                                <ConnectionNotice
-                                                    serverError={Boolean(server.error)}
-                                                    serverId={server.data.id}
-                                                />
-                                                <Outlet context={{ server: server.data }} />
-                                            </ShellFrame>
-                                        </ResizableAppLayout>
-                                    </AgentActivityProvider>
-                                </AgentLifecycleProvider>
-                            </div>
-                        </AppShell>
+                                                        <ShellSidebarPage
+                                                            ariaLabel="Server"
+                                                            value="server"
+                                                        >
+                                                            <AppSidebar
+                                                                currentServer={server.data}
+                                                                onPreloadSection={
+                                                                    preloadServerSection
+                                                                }
+                                                                selectedAgentDmId={
+                                                                    selectedAgentDmId
+                                                                }
+                                                                selectedChatId={selectedChatId}
+                                                            />
+                                                        </ShellSidebarPage>
+                                                        <ShellSidebarPage
+                                                            ariaLabel="Settings"
+                                                            value="settings"
+                                                        >
+                                                            <SettingsSidebar
+                                                                backRoute={chatSectionRoute}
+                                                                canOperate={canOperate}
+                                                                currentSection={settingsSection}
+                                                                serverId={server.data.id}
+                                                                slug={slug}
+                                                            />
+                                                        </ShellSidebarPage>
+                                                    </ShellSidebar>
+                                                }
+                                            >
+                                                <div className="flex h-full min-h-0 flex-col">
+                                                    <ShellTopbar />
+                                                    <BrowserWorkspaceBody>
+                                                        <ShellFrame>
+                                                            <ConnectionNotice
+                                                                serverError={Boolean(server.error)}
+                                                                serverId={server.data.id}
+                                                            />
+                                                            <Outlet
+                                                                context={{ server: server.data }}
+                                                            />
+                                                        </ShellFrame>
+                                                    </BrowserWorkspaceBody>
+                                                </div>
+                                            </ResizableAppLayout>
+                                        </AgentActivityProvider>
+                                    </AgentLifecycleProvider>
+                                </div>
+                            </AppShell>
+                        </BrowserWorkspaceProvider>
                     </CommandMenuProvider>
                 </TopbarProvider>
             </SidePaneProvider>

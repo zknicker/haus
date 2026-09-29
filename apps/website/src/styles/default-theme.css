@@ -209,6 +209,79 @@
  * a token belongs in `:root` above, where it propagates on its own.
  */
 @layer components {
+    .browser-loading-line {
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 2;
+        opacity: 0;
+        transition: opacity 150ms ease;
+        pointer-events: none;
+    }
+
+    .browser-loading-line[data-loading="true"] {
+        opacity: 1;
+    }
+
+    .browser-loading-line .progress-bar__track {
+        height: 2px;
+        background: transparent;
+    }
+
+    .browser-loading-line .progress-bar__fill {
+        background: var(--accent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .browser-loading-line { transition: none; }
+    }
+
+    .browser-toolbar {
+        justify-content: space-between;
+    }
+
+    .browser-toolbar > div:not(.browser-loading-line) {
+        width: 100px;
+    }
+
+    .browser-address {
+        max-width: 720px;
+    }
+
+    .browser-address .input {
+        border-radius: var(--radius-full, 9999px);
+        text-align: center;
+    }
+
+    .browser-address .input:focus {
+        text-align: start;
+    }
+
+    .workspace-titlebar {
+        display: flex;
+        height: var(--app-shell-band-height);
+        flex-shrink: 0;
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+        padding-inline: calc(var(--spacing) * 3);
+    }
+
+    .workspace-primary-tab {
+        max-width: 280px;
+        overflow: hidden;
+    }
+
+    .workspace-tab {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        border-radius: var(--radius-full, 9999px);
+    }
+
+    .workspace-tab[data-active="true"] {
+        background: var(--surface-secondary);
+    }
+
     /*
      * A Select inside a Toolbar is a filter, not form input: it opens a menu
      * and never takes typed text. HeroUI assigns chrome by component family,

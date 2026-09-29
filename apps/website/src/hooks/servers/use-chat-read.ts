@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useBrowserWorkspace } from '../../features/shell/browser-workspace-context.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useAppForegrounded } from '../shell/use-app-foregrounded.ts';
 
@@ -78,6 +79,7 @@ export function useChatRead(input: {
     serverId: string | undefined;
 }) {
     const foregrounded = useAppForegrounded();
+    const browserActive = useBrowserWorkspace()?.state.activeId != null;
     const attemptTrackerRef = React.useRef(createChatReadAttemptTracker());
     const attemptTracker = attemptTrackerRef.current;
     // The durable `chat.read` event owns unread-count invalidation; see useChatEvents.
@@ -92,7 +94,11 @@ export function useChatRead(input: {
     });
     const mutate = mutation.mutate;
     const [retryGeneration, setRetryGeneration] = React.useState(0);
-    const eligible = canMarkChatRead({ ...input, foregrounded });
+    const eligible = canMarkChatRead({
+        ...input,
+        enabled: input.enabled !== false && !browserActive,
+        foregrounded,
+    });
     const request = React.useMemo(
         () =>
             eligible &&

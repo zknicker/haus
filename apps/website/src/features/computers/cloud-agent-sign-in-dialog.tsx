@@ -4,7 +4,7 @@ import { Key01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
-import { openExternalLink } from '../../lib/open-external-link.ts';
+import { openSystemBrowserLink } from '../../lib/open-external-link.ts';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 
 import type { CloudAgentSignInView } from './cloud-agent-sign-in-model.ts';
@@ -39,7 +39,7 @@ export function CloudAgentSignInDialog({
     };
     const openLink = async (url: string) => {
         try {
-            await openExternalLink(url);
+            await openSystemBrowserLink(url);
             setLinkError(null);
         } catch {
             setLinkError(

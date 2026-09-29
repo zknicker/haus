@@ -1,3 +1,4 @@
+import { toast } from '@heroui/react';
 import * as React from 'react';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
@@ -34,7 +35,13 @@ export function handleCloseWindowRequest(closeWindow: () => void) {
 }
 
 export function handleNewTabRequest() {
-    activePaneCommands?.openNewTab();
+    if (!activePaneCommands?.openNewTab()) {
+        void getDesktopBridge()
+            ?.browserCommand?.({ kind: 'new' })
+            .catch((error: Error) =>
+                toast.danger('Could not open a tab', { description: error.message })
+            );
+    }
 }
 
 /** Mounted once in AppFrame: subscribes the window to the File menu's requests. */

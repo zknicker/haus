@@ -1,6 +1,11 @@
+import { Button } from '@heroui/react';
+import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { SectionBar } from './section-header.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
+import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
+import { useBrowserWorkspace } from './browser-workspace-context.tsx';
+import { BrowserWorkspaceTabs } from './browser-workspace-tabs.tsx';
 
 interface TopbarSlot {
     container: HTMLElement | null;
@@ -23,10 +28,54 @@ export function TopbarProvider({ children }: { children: React.ReactNode }) {
  */
 export function ShellTopbar() {
     const slot = React.use(TopbarContext);
+    const workspace = useBrowserWorkspace();
+    const desktop = Boolean(getDesktopBridge()?.browserCommand);
+    const browserActive =
+        workspace?.state.activeId !== null && workspace?.state.activeId !== undefined;
     return (
-        <SectionBar>
-            <div className="flex h-full min-w-0 flex-1 items-center" ref={slot?.setContainer} />
-        </SectionBar>
+        <header
+            className={
+                desktop
+                    ? 'workspace-titlebar app-shell-band'
+                    : 'app-shell-band flex h-[var(--app-shell-band-height)] shrink-0 items-center px-3'
+            }
+            data-window-drag-region=""
+        >
+            <div className="workspace-tab-strip flex min-w-0 flex-1 items-center gap-2">
+                <div
+                    className={
+                        desktop
+                            ? 'workspace-tab workspace-primary-tab'
+                            : 'flex min-w-0 flex-1 items-center'
+                    }
+                    data-active={!browserActive}
+                >
+                    {desktop ? (
+                        <Button
+                            aria-pressed={!browserActive}
+                            onPress={() => workspace?.command({ kind: 'select', id: null })}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <Icon aria-hidden="true" icon={BubbleChatIcon} size={16} />
+                            <span className="max-w-48 truncate">{workspace?.routeLabel}</span>
+                        </Button>
+                    ) : null}
+                    {!desktop && workspace && !workspace.chatRoute && !browserActive ? (
+                        <span className="text-sm">{workspace.routeLabel}</span>
+                    ) : null}
+                    <div
+                        className={
+                            desktop
+                                ? 'flex shrink-0 items-center'
+                                : 'flex min-w-0 flex-1 items-center'
+                        }
+                        ref={slot?.setContainer}
+                    />
+                </div>
+                {desktop ? <BrowserWorkspaceTabs /> : null}
+            </div>
+        </header>
     );
 }
 

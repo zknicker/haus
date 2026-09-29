@@ -4,6 +4,19 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const bridge = {
     loadsApp: true,
+    browserCommand: (command) => ipcRenderer.invoke('desktop:browser:command', command),
+    browserSnapshot: () => ipcRenderer.invoke('desktop:browser:snapshot'),
+    browserBounds: (bounds) => ipcRenderer.invoke('desktop:browser:bounds', bounds),
+    onBrowserShortcut: (listener) => {
+        const handler = (_event, shortcut) => listener(shortcut);
+        ipcRenderer.on('desktop:browser:shortcut', handler);
+        return () => ipcRenderer.off('desktop:browser:shortcut', handler);
+    },
+    onBrowserState: (listener) => {
+        const handler = (_event, state) => listener(state);
+        ipcRenderer.on('desktop:browser:state', handler);
+        return () => ipcRenderer.off('desktop:browser:state', handler);
+    },
     authTokenGet: () => ipcRenderer.invoke('desktop:auth:token-get'),
     authTokenSet: (token) => ipcRenderer.invoke('desktop:auth:token-set', token),
     cancelSsoCallback: () => ipcRenderer.invoke('desktop:auth:sso-callback-cancel'),

@@ -1,3 +1,5 @@
+import type { BrowserBounds, BrowserCommand } from './desktop-browser.ts';
+
 export type DesktopUpdateBridgeStatus =
     | { phase: 'unsupported' }
     | { phase: 'checking' }
@@ -15,6 +17,9 @@ export interface HausDesktopBridge {
     authTokenGet: () => Promise<string | null>;
     /** Persist or clear Clerk's native client JWT in main-process storage. */
     authTokenSet: (token: string | null) => Promise<void>;
+    browserBounds?: (bounds: BrowserBounds | null) => Promise<void>;
+    browserCommand?: (command: BrowserCommand) => Promise<unknown>;
+    browserSnapshot?: () => Promise<unknown>;
     /** Stop waiting for a development loopback OAuth callback. */
     cancelSsoCallback?: () => Promise<void>;
     checkForUpdate: () => Promise<void>;
@@ -25,6 +30,8 @@ export interface HausDesktopBridge {
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
     /** Electron loads the canonical Haus App instead of a bundled renderer. */
     loadsApp?: true;
+    onBrowserShortcut?: (listener: (shortcut: string) => void) => () => void;
+    onBrowserState?: (listener: (state: unknown) => void) => () => void;
     /** Main → renderer: File > Close (⌘W); close a tab first or fall back to closeWindow. */
     onCloseWindowRequest?: (listener: () => void) => () => void;
     /** Main → renderer: the Developer menu toggled dev mode for this device. */
