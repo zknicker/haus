@@ -51,10 +51,29 @@ text or image bytes.
 
 The human App exposes the same service through `avatar.generate` for Server Owners and Admins on an
 active ordinary Agent. It accepts only the explicit short concept plus the Server and Agent ids; it
-does not derive a concept from profile fields. The App holds one returned image in local preview
-state, and an explicit Save sends those bytes through ordinary `avatar.set`. Canceling, replacing a
-preview, or retrying a failed generation leaves the current avatar and hosted rows untouched; upload
-and initials behavior remain unchanged.
+does not derive a concept from profile fields. Each returned image joins an App-local generation
+session as a selectable variant; an explicit Use Avatar sends the staged variant's bytes through
+ordinary `avatar.set`. Generating, retrying, canceling, or a failed save leaves the current avatar and
+hosted rows untouched; upload and initials behavior remain unchanged.
+
+The session (`features/members/agent-profile/avatar-generation-session.ts`) lives with the
+always-mounted generator in the Agent header, not with the dialog: closing the dialog keeps the
+concept, every variant, and any run in flight, and reopening resumes it. It resets after a successful
+save (on the next open, so the closing dialog does not flash empty) or when the generator remounts for
+a different Agent. Only a save in flight blocks dismissal. Generation and save errors are attributed
+separately: a failed run becomes the last page on the stage while earlier variants stay
+selectable, and a save error clears when save is retried or a different slot is staged. Run ids never
+repeat, so a result from a run superseded by a newer run or a save is dropped. A busy Server
+(`TOO_MANY_REQUESTS`) reads as a retry-in-a-moment message.
+
+The dialog is one column built for the common case of generating once and using it: a square stage
+spanning the body, the concept prompt bar, and the footer. It never changes size across states. With
+two or more pages (variants, then the latest run while it draws or after it fails), a compact pager
+floats over the bottom of the stage — previous and next icon buttons around a `2 / 3` counter, both
+ends wrapping, Left and Right paging while a pager button has focus, and a polite live region naming
+the shown page; with one page there is no pager. A generation error is clamped inside the stage, a
+save error is clamped to two lines in the footer's reserved slot, and Use Avatar is always present,
+disabled until a variant is staged.
 
 ## Storage
 
