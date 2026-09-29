@@ -117,7 +117,8 @@ struct AuthenticatedHausView: View {
                                 persistence: store.settingsPersistence,
                                 cloudAgentActions: store.cloudAgentSettings,
                                 appearance: appearanceBinding,
-                                initialPath: initialPath
+                                initialPath: initialPath,
+                                onSignOut: { try await store.signOut() }
                             )
                         } else {
                             SettingsUnavailableSheet()

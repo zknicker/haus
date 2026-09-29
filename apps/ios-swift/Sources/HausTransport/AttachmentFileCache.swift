@@ -80,6 +80,9 @@ public actor AttachmentFileCache {
         } else {
             task = Task { [weak self] in
                 let downloaded = try await download()
+                // removeAll() cancels in-flight loads; a download that
+                // finishes afterwards must not repopulate the emptied cache.
+                try Task.checkCancellation()
                 guard let self else { return downloaded }
                 return try await self.insert(downloaded, at: destination)
             }
@@ -87,6 +90,16 @@ public actor AttachmentFileCache {
         }
         defer { loads[key] = nil }
         return try await task.value
+    }
+
+    /// Deletes every cached attachment. Sign-out calls this so the next
+    /// account on this device cannot open the previous one's files.
+    public func removeAll() throws {
+        for load in loads.values { load.cancel() }
+        loads.removeAll()
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: root.path) else { return }
+        try manager.removeItem(at: root)
     }
 
     /// Evicts least-recently-used attachments until the cache fits its budget.

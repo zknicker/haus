@@ -10,6 +10,7 @@ enum HausRuntimeConfiguration {
     private static let productionServerOrigin = URL(string: "https://haus.chat")!
     private static let cachedClerkPublishableKey = "haus.debug.clerk-publishable-key"
     private static let cachedServerOrigin = "haus.debug.server-origin"
+    private static let explicitSignOutKey = "haus.debug.explicit-sign-out"
 
     static var development: Development? {
         #if DEBUG
@@ -29,6 +30,29 @@ enum HausRuntimeConfiguration {
         )
         #else
         nil
+        #endif
+    }
+
+    /// Debug auto sign-in stands down after an explicit sign-out, across
+    /// relaunches, until the human signs in again from the signed-out screen.
+    /// Release builds have no auto sign-in, so the flag does not exist there.
+    static var hasExplicitlySignedOut: Bool {
+        #if DEBUG
+        UserDefaults.standard.bool(forKey: explicitSignOutKey)
+        #else
+        false
+        #endif
+    }
+
+    static func recordExplicitSignOut() {
+        #if DEBUG
+        UserDefaults.standard.set(true, forKey: explicitSignOutKey)
+        #endif
+    }
+
+    static func clearExplicitSignOut() {
+        #if DEBUG
+        UserDefaults.standard.removeObject(forKey: explicitSignOutKey)
         #endif
     }
 

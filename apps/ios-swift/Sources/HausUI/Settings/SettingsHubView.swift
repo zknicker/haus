@@ -4,6 +4,7 @@ struct SettingsHubView: View {
     let data: SettingsData
     @Binding var appearance: AppearancePreference
     let onNavigate: (SettingsRoute) -> Void
+    var onSignOut: SettingsSignOut?
 
     var body: some View {
         ScrollView {
@@ -82,6 +83,10 @@ struct SettingsHubView: View {
                             action: { onNavigate(.appInfo) }
                         )
                     }
+                }
+
+                if let onSignOut {
+                    SettingsSignOutSection(signOut: onSignOut)
                 }
             }
             .padding(.horizontal, 16)
@@ -178,7 +183,8 @@ private struct SettingsAgentRow: View {
         SettingsHubView(
             data: SettingsFixtures.data,
             appearance: .constant(.system),
-            onNavigate: { _ in }
+            onNavigate: { _ in },
+            onSignOut: {}
         )
         .navigationTitle("Settings")
     }

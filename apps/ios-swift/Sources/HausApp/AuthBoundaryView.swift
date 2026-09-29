@@ -15,19 +15,25 @@ struct AuthBoundaryView: View {
             } else if hasUsableSession(clerk.session) {
                 AuthenticatedHausView(clerk: clerk)
             } else {
-                SignInView()
+                googleSignIn
             }
             #else
             if hasUsableSession(clerk.session) {
                 AuthenticatedHausView(clerk: clerk)
             } else {
-                SignInView()
+                googleSignIn
             }
             #endif
         }
         // Deliberately no implicit animation here: its branches are the whole
         // authenticated app vs the sign-in screen, and animating that value
         // crossfaded the entire app on any session change.
+    }
+
+    private var googleSignIn: some View {
+        SignInView(actionTitle: "Continue with Google") {
+            _ = try await clerk.auth.signInWithOAuth(provider: .google)
+        }
     }
 }
 
@@ -45,6 +51,12 @@ private struct DevelopmentAuthBoundaryView: View {
                 HausOpeningView()
             case .authenticated:
                 AuthenticatedHausView(clerk: clerk)
+            case .signedOut:
+                SignInView(actionTitle: "Sign in to local Server") {
+                    HausRuntimeConfiguration.clearExplicitSignOut()
+                    state = .loading
+                    await authenticate()
+                }
             case let .failed(message):
                 ContentUnavailableView {
                     Label("Haus couldn't sign you in.", systemImage: "exclamationmark.triangle")
@@ -69,6 +81,18 @@ private struct DevelopmentAuthBoundaryView: View {
             guard clerk.isLoaded else { return }
             await authenticate()
         }
+        // Losing the session while signed in is either the human's Sign Out,
+        // which must not be undone by auto sign-in, or an expiry, which the
+        // localhost ticket renews like a cold start.
+        .onChange(of: hasUsableSession(clerk.session)) { _, usable in
+            guard !usable, state == .authenticated else { return }
+            if HausRuntimeConfiguration.hasExplicitlySignedOut {
+                state = .signedOut
+            } else {
+                state = .loading
+                Task { await authenticate() }
+            }
+        }
     }
 
     @MainActor
@@ -81,6 +105,10 @@ private struct DevelopmentAuthBoundaryView: View {
                !token.isEmpty
             {
                 state = .authenticated
+                return
+            }
+            if HausRuntimeConfiguration.hasExplicitlySignedOut {
+                state = .signedOut
                 return
             }
 
@@ -112,12 +140,14 @@ private struct DevelopmentAuthBoundaryView: View {
 private enum DevelopmentAuthState: Equatable {
     case loading
     case authenticated
+    case signedOut
     case failed(String)
 }
 #endif
 
 private struct SignInView: View {
-    @Environment(Clerk.self) private var clerk
+    let actionTitle: String
+    let action: @MainActor () async throws -> Void
     @State private var isSigningIn = false
     @State private var errorMessage: String?
 
@@ -137,7 +167,7 @@ private struct SignInView: View {
                 HStack(spacing: 10) {
                     if isSigningIn { ProgressView().controlSize(.small) }
                     HausIcon(.identity, size: 20, weight: 1.8)
-                    Text("Continue with Google")
+                    Text(actionTitle)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -164,7 +194,7 @@ private struct SignInView: View {
             errorMessage = nil
             defer { isSigningIn = false }
             do {
-                _ = try await clerk.auth.signInWithOAuth(provider: .google)
+                try await action()
             } catch {
                 errorMessage = error.localizedDescription
             }
