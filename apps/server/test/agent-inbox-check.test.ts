@@ -53,7 +53,6 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
 
     expect(inbox.totalPending).toBe(3);
     expect(inbox.rows.find((row) => row.target === '#product')).toEqual({
-        ask: null,
         chatId: seed.channelId,
         cloudAgentResult: false,
         dm: false,

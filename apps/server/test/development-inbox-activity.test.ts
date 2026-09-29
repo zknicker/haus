@@ -49,38 +49,47 @@ test('Conversations reads unread demo Chats with their last line', async () => {
         dms.map((chat) => chat.lastMessage?.content).filter((content) => content !== undefined)
     ).toEqual(
         expect.arrayContaining([
-            'Finished the member-directory audit. Three stale strings, listed in the thread.',
-            expect.stringContaining('The duplicate digest reminders are still open on my side'),
+            expect.stringContaining('Which of the three stale strings should I fix first?'),
+            'Sounds right — badge PR first, then the reminders.',
         ])
     );
     expect(dms.every((chat) => chat.unreadCount > 0 || chat.lastMessage === null)).toBe(true);
 });
 
-test('Needs you reads both open Asks and one stalled claim', async () => {
-    const asks = await owner.trpc.ask.listOpen.query({ serverId });
-    expect(asks.filter((row) => row.chatName !== 'ui-gallery')).toHaveLength(2);
-    const rename = asks.find((row) => row.ask.title === 'Rename #product to #build?');
-    const staleCopy = asks.find((row) => row.ask.title === 'Which stale copy should I fix first?');
-
-    expect(rename?.ask).toMatchObject({
-        options: ['Yes, rename it', 'Keep #product, pin a note instead', 'Not now'],
-        status: 'open',
-        summary:
-            'Two agents keep filing build questions in #product. Renaming makes the channel’s job obvious.',
-    });
-    expect(rename?.chatName).toBe('onboarding-owner');
-    expect(rename?.message.body).toMatchObject({ kind: 'ask' });
-
-    // The open question: no options, so the peek offers its composer instead.
-    expect(staleCopy?.ask).toMatchObject({
-        options: [],
-        status: 'open',
-        summary:
-            'The directory audit found three stale strings; the order matters if you want a single PR.',
-    });
-    expect(staleCopy?.chatName).toBe('product');
-
+test('Needs you reads Cove’s @mention and Tiny’s DM question; the claim is on Tasks', async () => {
     const agents = await owner.trpc.agent.list.query({ serverId });
+    const agentId = (handle: string) => agents.find((agent) => agent.handle === handle)?.id;
+    const rows = (await owner.trpc.inbox.needsYou.query({ serverId })).filter(
+        (row) => row.chatKind === 'dm' || row.chatName !== 'ui-gallery'
+    );
+    expect(rows).toHaveLength(2);
+    const [dm, mention] = rows;
+
+    expect(dm).toMatchObject({
+        chatPeerAgentId: agentId('tiny'),
+        chatPeerUserId: null,
+        latest: {
+            author: { agentId: agentId('tiny'), kind: 'agent' },
+            preview:
+                'Which of the three stale strings should I fix first? I can fold the rest into the same PR once I know where to start.',
+        },
+        reason: 'dm',
+        threadAnchorMessageId: null,
+    });
+    // Blippy's DM line is answered, so only Tiny's DM needs the owner.
+    expect(dm?.chatId).toBe(
+        (await owner.trpc.chat.list.query({ serverId })).find(
+            (chat) => chat.peerAgentId === agentId('tiny')
+        )?.id
+    );
+    expect(mention).toMatchObject({
+        addressedCount: 1,
+        chatName: 'onboarding-owner',
+        latest: { author: { agentId: agentId('cove'), kind: 'agent' } },
+        reason: 'mention',
+    });
+    expect(mention?.latest.preview).toMatch(/^@\S+ Rename #product to #build\?/u);
+
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id;
     const { tasks } = await owner.trpc.task.list.query({ includeBackground: false, serverId });
     const claims = tasks.filter(
@@ -161,7 +170,6 @@ async function countActivity() {
     const [counts] = (await harness.sql`
         select
             (select count(*) from chat_messages where server_id = ${serverId}) as messages,
-            (select count(*) from asks where server_id = ${serverId}) as asks,
             (select count(*) from message_tasks where server_id = ${serverId}) as tasks,
             (select count(*) from cloud_agent_work where server_id = ${serverId}) as work,
             (select count(*) from cloud_agent_runs where server_id = ${serverId}) as runs,
@@ -193,7 +201,7 @@ test('a Server without the demo shape is left alone', async () => {
     expect(after.map((chat) => chat.lastMessageSequence)).toEqual(
         before.map((chat) => chat.lastMessageSequence)
     );
-    expect(await owner.trpc.ask.listOpen.query({ serverId: plain.id })).toEqual([]);
+    expect(await owner.trpc.inbox.needsYou.query({ serverId: plain.id })).toEqual([]);
 });
 
 test('UI gallery reads the attachment combinations and isolates live samples', async () => {
@@ -202,8 +210,10 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     expect(gallery).toBeDefined();
     const chatId = gallery?.id ?? '';
     const transcript = await owner.trpc.chat.messages.query({ serverId, chatId });
-    expect(transcript.messages).toHaveLength(26);
-    expect(transcript.messages.filter((message) => message.body.kind === 'ask')).toHaveLength(6);
+    expect(transcript.messages).toHaveLength(24);
+    expect(
+        transcript.messages.filter((message) => message.content.includes('user://'))
+    ).toHaveLength(4);
     const works = await owner.trpc.cloudAgentWork.listForChat.query({ serverId, chatId });
     expect(works).toHaveLength(11);
     expect([...new Set(works.map((entry) => entry.work.status))].sort()).toEqual([

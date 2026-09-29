@@ -96,7 +96,7 @@ test('an Agent reassigns a held task to a peer without moving status, and the pe
     expect(cleared.task).toMatchObject({ assignee: null, status: 'in_progress' });
 });
 
-test('an Agent assigns a person by handle and loses to a stale revision', async () => {
+test('an Agent cannot assign a person, and loses to a stale revision', async () => {
     const server = await createServer('assign-human');
     const ada = await seedAgent(server, 'ada');
     await harness.sql`
@@ -104,14 +104,23 @@ test('an Agent assigns a person by handle and loses to a stale revision', async 
     `;
     const task = await createTask(server, 'Approve the budget');
 
+    // Tasks are Agent work (ADR 0037): a person is @mentioned, never assigned.
+    await expect(
+        assignAgentTask(connection.db, ada, delivery, {
+            assignee: '@perm-owner',
+            expectedRevision: task.version,
+            number: task.number,
+            target: server.target,
+        })
+    ).rejects.toThrow(/@perm-owner is not assignable/u);
+
     const assigned = await assignAgentTask(connection.db, ada, delivery, {
-        assignee: '@perm-owner',
+        assignee: '@ada',
         expectedRevision: task.version,
         number: task.number,
         target: server.target,
     });
-    expect(assigned.task).toMatchObject({ assignee: { handle: 'perm-owner' }, status: 'todo' });
-    expect(assigned.wakes).toEqual([]);
+    expect(assigned.task).toMatchObject({ assignee: { handle: 'ada' }, status: 'todo' });
 
     await expect(
         assignAgentTask(connection.db, ada, delivery, {

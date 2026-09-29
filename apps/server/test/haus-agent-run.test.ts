@@ -634,7 +634,6 @@ test('As Task enters the Agent inbox with canonical unassigned task metadata', a
 
     expect(created.task).toMatchObject({
         assigneeAgentId: null,
-        assigneeUserId: null,
         origin: 'composed',
         status: 'todo',
     });
@@ -1519,45 +1518,6 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         'message.created',
         'task.created',
     ]);
-});
-
-test('task ownership is one lock across human and Agent actors', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_actor_lock' });
-    const humanOwned = await owner.trpc.task.create.mutate({
-        assigneeUserId: ownerUserId,
-        chatId: 'cht_targetchannel01',
-        content: 'Human-owned task must stay human-owned.',
-        nonce: 'human_owned_task_actor_lock',
-        serverId,
-    });
-
-    const agentClaim = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
-        numbers: [humanOwned.task.number],
-        target: '#dispatch',
-    });
-    expect(agentClaim).toMatchObject({
-        body: { results: [{ claimConflict: { kind: 'claim_conflict' }, outcome: 'refused' }] },
-        status: 200,
-    });
-
-    const agentOwned = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
-        assignee: '@sage',
-        nonce: 'agent_owned_task_actor_lock',
-        target: '#dispatch',
-        titles: ['Agent-owned task must stay Agent-owned.'],
-    });
-    const agentTask = agentOwned.body.tasks[0] as {
-        message: { id: string };
-        number: number;
-        version: number;
-    };
-    await expect(
-        owner.trpc.task.claim.mutate({
-            expectedVersion: agentTask.version,
-            messageId: agentTask.message.id,
-            serverId,
-        })
-    ).rejects.toThrow(/already owned/i);
 });
 
 test('concurrent Agent claims choose one owner and the losing Agent cannot proceed', async () => {

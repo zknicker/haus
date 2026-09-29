@@ -7,33 +7,25 @@ const claimed: TaskTierRow = {
     status: 'in_progress',
     trackedAt: null,
 };
-const quiet = { hasAsk: false };
 
 test('an untouched Agent claim is background', () => {
-    expect(resolveTaskTier(claimed, quiet)).toBe('background');
-    expect(resolveTaskTier({ ...claimed, status: 'done' }, quiet)).toBe('background');
+    expect(resolveTaskTier(claimed)).toBe('background');
+    expect(resolveTaskTier({ ...claimed, status: 'done' })).toBe('background');
 });
 
 test('a human-made task is always tracked', () => {
-    expect(resolveTaskTier({ ...claimed, origin: 'composed' }, quiet)).toBe('tracked');
-    expect(resolveTaskTier({ ...claimed, origin: 'converted' }, quiet)).toBe('tracked');
-});
-
-// A Thread is a separate conversation surface. Its replies do not move task
-// bookkeeping onto a person's lens; an Ask still does.
-test('Thread replies do not promote a claim, while an Ask does', () => {
-    expect(resolveTaskTier(claimed, quiet)).toBe('background');
-    expect(resolveTaskTier(claimed, { ...quiet, hasAsk: true })).toBe('tracked');
+    expect(resolveTaskTier({ ...claimed, origin: 'composed' })).toBe('tracked');
+    expect(resolveTaskTier({ ...claimed, origin: 'converted' })).toBe('tracked');
 });
 
 test('review and surviving a settled run are recorded as one stamp', () => {
-    expect(resolveTaskTier({ ...claimed, trackedAt: new Date() }, quiet)).toBe('tracked');
+    expect(resolveTaskTier({ ...claimed, trackedAt: new Date() })).toBe('tracked');
 });
 
 test('a claim parked outside its own lifecycle is tracked', () => {
-    expect(resolveTaskTier({ ...claimed, status: 'todo' }, quiet)).toBe('tracked');
-    expect(resolveTaskTier({ ...claimed, status: 'in_review' }, quiet)).toBe('tracked');
-    expect(resolveTaskTier({ ...claimed, status: 'closed' }, quiet)).toBe('tracked');
+    expect(resolveTaskTier({ ...claimed, status: 'todo' })).toBe('tracked');
+    expect(resolveTaskTier({ ...claimed, status: 'in_review' })).toBe('tracked');
+    expect(resolveTaskTier({ ...claimed, status: 'closed' })).toBe('tracked');
 });
 
 // A claim reopened to `todo` used to read tracked only while it sat there:
@@ -49,8 +41,8 @@ test('leaving the claim lifecycle is persisted, so the tier cannot flap back', (
     expect(stampsTaskTracked(undefined)).toBe(false);
     for (const status of ['todo', 'in_review', 'closed'] as const) {
         const stamped = { ...claimed, status, trackedAt: new Date() };
-        expect(resolveTaskTier(stamped, quiet)).toBe('tracked');
-        expect(resolveTaskTier({ ...stamped, status: 'in_progress' }, quiet)).toBe('tracked');
-        expect(resolveTaskTier({ ...stamped, status: 'done' }, quiet)).toBe('tracked');
+        expect(resolveTaskTier(stamped)).toBe('tracked');
+        expect(resolveTaskTier({ ...stamped, status: 'in_progress' })).toBe('tracked');
+        expect(resolveTaskTier({ ...stamped, status: 'done' })).toBe('tracked');
     }
 });

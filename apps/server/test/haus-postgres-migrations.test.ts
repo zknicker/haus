@@ -50,6 +50,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0049_rankwrangler_preset',
             '0050_drop_expects_reply',
             '0051_completes_reply',
+            '0052_humans_addressed_by_mention',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },

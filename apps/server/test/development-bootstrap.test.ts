@@ -57,8 +57,8 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(computersTable)).toHaveLength(2);
     const agents = await connection.db.select().from(agentsTable);
     expect(agents).toHaveLength(3);
-    // Base workspace plus the UI gallery channel and its 18 example threads.
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(31);
+    // Base workspace plus the UI gallery channel and its example threads.
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(25);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -68,7 +68,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(61);
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(59);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -143,7 +143,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
         (chat) => chat.isAll
     )?.id;
     // Threads are anchored to real channel messages, and one is followed.
-    expect(threads).toHaveLength(24);
+    expect(threads).toHaveLength(18);
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
     expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(1);
 
@@ -157,11 +157,11 @@ test('seeds a demo workspace an operator can actually look at', async () => {
             .every((task) => threadIds.has(`cht_thr_${task.messageId.replace(/^msg_/u, '')}`))
     ).toBe(true);
 
-    // Two promoted tasks covering both assignee kinds and two statuses, plus
+    // Two Agent-held promoted tasks in two statuses, plus
     // the Inbox seed's stalled claim. The channel's counter is past all of
     // them, so promoting a message in the seeded `#all` does not collide with
     // a seeded task number.
-    expect(tasks).toHaveLength(14);
+    expect(tasks).toHaveLength(13);
     const [allChannel] = (await connection.db.select().from(chatsTable)).filter(
         (chat) => chat.isAll
     );
@@ -174,8 +174,8 @@ test('seeds a demo workspace an operator can actually look at', async () => {
             .map((task) => task.status)
             .sort()
     ).toEqual(['in_progress', 'in_progress', 'todo']);
-    expect(tasks.some((task) => task.assigneeAgentId !== null)).toBe(true);
-    expect(tasks.some((task) => task.assigneeUserId !== null)).toBe(true);
+    // Tasks are Agent work (ADR 0037): every seeded task is held by an Agent.
+    expect(tasks.every((task) => task.assigneeAgentId !== null)).toBe(true);
 
     // A Server-managed connection the Agent Connections surface can grant.
     expect(await connection.db.select().from(mcpConnectionsTable)).toHaveLength(1);
