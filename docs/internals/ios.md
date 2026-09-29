@@ -94,23 +94,37 @@ An ordinary Agent's profile may call the same Server-owned `avatar.generate` pro
 App with one short concept, from a capsule directly under the avatar it changes. A factory Agent does
 not offer it: the Server refuses to replace Cove's product-owned artwork, so `SettingsAgent` carries
 `canGenerateAvatar` from the Agent's `factoryKind` and the App and the phone gate the entry the same
-way. Swift keeps the returned image only in the generation sheet until the human taps Save, which
-applies it through the ordinary `avatar.set` contract; dismissal discards the preview, and the
-existing native photo picker remains the manual-upload path.
+way. Each returned image joins an `AvatarGenerationSession` that `SettingsSheet` keeps per Agent,
+not the generation sheet: closing the sheet keeps the concept, every variant, and any run in flight,
+and reopening resumes it. Tapping Save applies the variant on stage through the ordinary `avatar.set`
+contract, and the session resets the next time the sheet opens after that save. Run ids never repeat,
+so a result from a run superseded by a newer run or a save is dropped. A successful `avatar.set` is a
+successful save even when the follow-up `agent.list` refresh fails; the store logs the refresh and
+returns the Agent with the saved avatar URL. The existing native photo picker remains the
+manual-upload path.
 
-The generation sheet leads with the preview at the size and circular shape the product actually draws
-an avatar, so what the human approves is what every surface will show. It is an ordinary scrolling
-sheet: Cancel and Save are the navigation bar's own actions, Generate is one button inline under the
-concept field, and the keyboard toolbar carries Done because a vertical-axis field spends Return on a
-newline. Nothing is pinned above the keyboard, so raising it never buries a control. Concept
-suggestions live inside the concept card and appear only while the field is empty, so the layout below
-the card never shifts, and the only prose under the preview is the wait itself — the screen does not
-narrate controls that are already on it. Drawing one avatar takes the image provider tens of seconds: the operation carries its
-own request timeout well past `URLSession`'s 60-second default, the wait is marked on the preview
-itself, and Cancel stays live for the whole generation — only the save that writes the avatar holds
-the sheet open. No Server failure reaches a human as a tRPC string; `AvatarGenerationFailure` maps each
-documented outcome — unconfigured provider, capacity, authorization, missing owner, provider failure,
-unreachable Server — onto one sentence that says what to do next.
+The generation sheet leads with a fixed 176pt circular stage at the size and shape the product
+actually draws an avatar, so what the human approves is what every surface will show. Before the
+first run it shows the Agent's current avatar, dimmed. Every variant, then the latest run while it
+draws or after it fails, is a page of that circle, swiped in place; with two or more pages a small
+glass `2 / 3` counter sits on the stage's bottom edge, and VoiceOver pages with the adjustable
+action. A failed run's message stays on its own page while earlier variants stay selectable, and
+Save is disabled while that page or the pending page is shown. A save failure is a native alert,
+cleared when save is retried or the page changes. It is an ordinary scrolling sheet: Cancel and Save
+are the navigation bar's own actions, Generate is one button inline under the concept field and is
+disabled while the trimmed concept is blank, and the keyboard toolbar carries Done because a
+vertical-axis field spends Return on a newline. Nothing is pinned above the keyboard, so raising it
+never buries a control. Concept suggestions live inside the concept card while the field is empty,
+and their row, like the `Drawing…` wait line under the stage, stays laid out when hidden, so nothing
+below the stage moves between states. Drawing one avatar takes the image provider tens of seconds:
+the operation carries its own request timeout well past `URLSession`'s 60-second default, the wait
+is marked on the stage by a frame-clock ring (a still rim under Reduce Motion), and Cancel stays live
+for the whole generation — only the save that writes the avatar holds the sheet open. No Server
+failure reaches a human as a tRPC string; `AvatarGenerationFailure` maps each documented outcome —
+unconfigured provider, capacity, authorization, missing owner, provider failure, unreachable Server
+— onto one sentence that says what to do next. `AvatarGenerationDebugPreview` mounts the sheet over
+fixture sessions (empty, one variant, several variants, generating, failed page, save error) from a
+Debug launch argument, so every state is reachable in Simulator without a Server.
 
 Channel appearance is Server state the iPhone app only renders. A channel's `icon` and `color` reach
 `ChatSummary` unchanged, and `ChannelIconBox` draws the chosen glyph in its tinted box everywhere a
