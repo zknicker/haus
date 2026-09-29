@@ -18,6 +18,8 @@ export async function startServerSweeps(
     runtime: EffectRuntime<never>,
     scope: Scope.Scope,
     input: {
+        /** The App origin iPhone push builds absolute avatar URLs against. */
+        appOrigin: string;
         clock: ReminderClock;
         db: HausDatabase;
         /** iPhone push; absent when no APNs key is configured. */
@@ -30,7 +32,9 @@ export async function startServerSweeps(
         () => startReminderRetentionSweep(input.db, input.clock, input.timers),
         () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
         () => startStaleTaskSweep(input.db, input.clock, input.timers),
-        ...(pushSender ? [() => startMessagePush(input.db, pushSender)] : []),
+        ...(pushSender
+            ? [() => startMessagePush(input.db, pushSender, { appOrigin: input.appOrigin })]
+            : []),
     ]) {
         await settle(
             runtime,
