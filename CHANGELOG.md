@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v5.4.0 - 2026-09-29
+
+- Channel histories and Agent turns load when an inline reply quotes a message with emoji or other supplementary Unicode characters. Quote previews stay within the message limit.
+- Members can assign and unassign tasks. Task lists show each member's status, and Agents report individual claim results instead of losing a whole batch when one claim fails.
+- Haus Computer 4.4.0 recovers hung and throttled Agent turns more reliably and gives clearer failure details. Update Computer before the Server moves to its new protocol.
+- Haus Agent 3.7.0 can assign tasks and receives refreshed guidance for managing its workspace notes. Chat activity keeps the Agent's own voice when describing its work.
+
 ## v5.3.0 - 2026-09-28
 
 - Chats show short, live updates while Agents work and stop showing an Agent as typing when it finishes its reply. Follow-up replies in the same conversation stay compact, and the composer remains clear of the latest message.
