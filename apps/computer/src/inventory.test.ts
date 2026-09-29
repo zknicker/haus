@@ -16,6 +16,32 @@ test('reports effort capabilities for the runtime and concrete model', () => {
     expect(reasoningEffortsForModel('claude-code', 'claude-haiku-4-5')).toEqual(['default']);
 });
 
+test('offers Claude 5.5 models with medium default effort after the existing default', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'haus-claude-inventory-'));
+    const claude = join(root, 'claude');
+    try {
+        await writeFile(claude, '#!/bin/sh\necho "2.1.284 (Claude Code)"\n');
+        await chmod(claude, 0o755);
+        const models = detectInventory({ searchPath: root }).runtimes.find(
+            (runtime) => runtime.id === 'claude-code'
+        )?.models;
+        expect(models?.[0]?.id).toBe('claude-opus-4-8');
+        for (const [id, label] of [
+            ['claude-opus-5-5', 'Claude Opus 5.5'],
+            ['claude-sonnet-5-5', 'Claude Sonnet 5.5'],
+        ]) {
+            expect(models).toContainEqual({
+                id,
+                label,
+                defaultReasoningEffort: 'medium',
+                reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+            });
+        }
+    } finally {
+        await rm(root, { force: true, recursive: true });
+    }
+});
+
 test('finds the native Grok install with a minimal background-service PATH', async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), 'haus-grok-home-'));
     try {
@@ -56,6 +82,14 @@ test('discovers a runtime from the Computer search path and verifies the executa
         const inventory = detectInventory({ searchPath: root });
 
         expect(inventory.runtimes.map((runtime) => runtime.id)).toEqual(['codex', 'grok-build']);
+        const codexModels = inventory.runtimes.find((runtime) => runtime.id === 'codex')?.models;
+        expect(codexModels?.[0]?.id).toBe('gpt-5.6-sol');
+        expect(codexModels).toContainEqual({
+            id: 'gpt-6.1-sol',
+            label: 'GPT-6.1 Sol',
+            defaultReasoningEffort: 'medium',
+            reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+        });
         expect(inventory.runtimes.at(-1)?.models.map(({ id, label }) => ({ id, label }))).toEqual([
             { id: 'grok-4.6', label: 'Grok 4.6' },
             { id: 'grok-4.5', label: 'Grok 4.5' },

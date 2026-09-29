@@ -14,7 +14,7 @@ for (const bridge of [
         bootstrapDir: '.harness-bootstrap/claude-code',
         harnessId: 'claude-code' as const,
         nativeHarness: createClaudeCode(),
-        packageDependency: '"@anthropic-ai/claude-code": "2.1.257"',
+        packageDependency: '"@anthropic-ai/claude-code": "2.1.284"',
         verifyFragment: './node_modules/.bin/claude --version',
     },
 ]) {
@@ -88,8 +88,8 @@ for (const bridge of [
     {
         harnessId: 'claude-code' as const,
         nativeHarness: createClaudeCode(),
-        // `claude-fable-5-1` needs 2.1.251 or newer.
-        pinned: '"@anthropic-ai/claude-code": "2.1.257"',
+        // `claude-sonnet-5-5` needs 2.1.284 or newer.
+        pinned: '"@anthropic-ai/claude-code": "2.1.284"',
     },
 ]) {
     test(`Computer overrides the published ${bridge.harnessId} bridge vendor pin`, async () => {

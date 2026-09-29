@@ -40,10 +40,9 @@ test('codex-acp is pinned together with the Codex CLI it drives', async () => {
     )?.content;
 
     expect(manifest).toContain('"@agentclientprotocol/codex-acp": "1.12.0"');
-    // `gpt-6-astra` needs Codex 0.153.0 or newer.
-    expect(manifest).toContain('"@openai/codex": "0.155.1"');
+    expect(manifest).toContain('"@openai/codex": "0.159.0"');
     expect(lockfile).toContain("'@agentclientprotocol/codex-acp@1.12.0'");
-    expect(lockfile).toContain("'@openai/codex@0.155.1'");
+    expect(lockfile).toContain("'@openai/codex@0.159.0'");
     // The patch puts per-request token usage on the wire; the frozen lockfile pins its hash.
     const patch = bootstrap?.files.find(
         (file) => file.path === '.harness-bootstrap/codex/implementation/codex-acp.patch'

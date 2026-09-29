@@ -20,7 +20,7 @@ const codexPreflight =
 const liveTest = codexPreflight.available ? test : test.skip;
 const skipReason = codexPreflight.available ? '' : ` (${codexPreflight.reason})`;
 const runtime = makeDaemonRuntime();
-const model = 'gpt-5.6-luna';
+const model = process.env.HAUS_LIVE_CODEX_MODEL ?? 'gpt-5.6-luna';
 
 afterAll(() => runtime.dispose());
 
