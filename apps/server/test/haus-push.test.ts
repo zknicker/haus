@@ -62,6 +62,7 @@ test('a DM message pushes its other member with the routing payload', async () =
                 conversation: { kind: 'dm', name: null },
                 conversationChatId: dmChatId,
                 messageId: sent.message.id,
+                reason: 'dm',
                 sender: { avatarUrl: null, id: fixture.peerUserId, kind: 'human', name: 'Bo' },
                 serverId,
                 threadAnchorMessageId: null,
@@ -94,6 +95,7 @@ test('a Channel mention pushes only mentioned humans with access, never the auth
     const alert = pushes[0]?.payload.aps.alert;
     expect(alert?.title).toBe('Bo in #push-mentions');
     expect(pushes[0]?.payload.conversation).toEqual({ kind: 'channel', name: 'push-mentions' });
+    expect(pushes[0]?.payload.reason).toBe('mention');
     expect(pushes[0]?.payload.sender).toMatchObject({ id: peerUserId, kind: 'human', name: 'Bo' });
     expect(alert?.body.length).toBeLessThanOrEqual(180);
     expect(alert?.body.startsWith('@Ada @Bo @Cass xxx')).toBe(true);
@@ -121,6 +123,7 @@ test('an inline reply or a Thread answer pushes the author of the message it ans
     expect(replyPushes[0]?.payload).toMatchObject({
         chatId: channelId,
         conversationChatId: channelId,
+        reason: 'reply',
         threadAnchorMessageId: null,
     });
 
@@ -137,6 +140,7 @@ test('an inline reply or a Thread answer pushes the author of the message it ans
         aps: { alert: { title: 'Bo in #push-replies' }, 'thread-id': channelId },
         chatId: answer.threadChatId,
         conversationChatId: channelId,
+        reason: 'reply',
         threadAnchorMessageId: question.message.id,
     });
 

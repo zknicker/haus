@@ -32,6 +32,7 @@ describe('buildPushPayload', () => {
             conversation: { kind: 'dm', name: null },
             conversationChatId: 'cht_dm',
             messageId: 'msg_1',
+            reason: 'dm',
             sender: {
                 avatarUrl: 'https://app.haus.test/api/avatars/avt_orbit',
                 id: 'agt_orbit',
@@ -63,6 +64,23 @@ describe('buildPushPayload', () => {
             kind: 'human',
             name: 'Bo',
         });
+    });
+
+    test('the push carries the reason of the Needs you row it tops', () => {
+        for (const reason of ['mention', 'reply'] as const) {
+            const payload = buildPushPayload(
+                row({
+                    authorAgentDisplayName: 'Orbit',
+                    authorAgentId: 'agt_orbit',
+                    conversationKind: 'channel',
+                    conversationName: 'product',
+                    reason,
+                }),
+                input
+            );
+            expect(payload?.reason).toBe(reason);
+            expect(pushNotificationPayloadSchema.parse(payload).reason).toBe(reason);
+        }
     });
 
     test('a human without an avatar sends a null avatar URL', () => {
@@ -107,6 +125,7 @@ describe('buildPushPayload', () => {
                 conversationKind: 'channel',
                 conversationName: 'x'.repeat(32),
                 messageId: `msg_${'d'.repeat(60)}`,
+                reason: 'mention',
             }),
             {
                 appOrigin: `https://${'h'.repeat(60)}.example.com`,
