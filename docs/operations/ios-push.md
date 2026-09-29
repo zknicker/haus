@@ -3,7 +3,7 @@ summary: iPhone push (APNs) for Needs you — the device and payload contract, t
 read_when:
   - enabling, rotating, or debugging iPhone push notifications
   - changing `push.registerDevice`, `push.unregisterDevice`, or the push payload
-  - changing the App ID capabilities, entitlements, or provisioning profile of the Haus iPhone target
+  - changing the App ID capabilities, entitlements, or provisioning profiles of the Haus iPhone app and its Notification Service extension
 ---
 
 # iPhone Push
@@ -28,7 +28,14 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
   preview, mentions as display names, at most 180 characters), `aps.sound: "default"`,
   `aps.thread-id` = conversation Chat id, `aps.badge` = Needs you rows across every Server, and the
   tap-routing keys `serverId`, `chatId`, `conversationChatId`, `threadAnchorMessageId` (null outside
-  a Thread), `messageId`. Headers: `apns-push-type: alert`, `apns-priority: 10`,
+  a Thread), `messageId`. For Communication Notifications (sender avatar banners) it also carries
+  `aps.mutable-content: 1`, `sender` (`id`, `kind` `agent` | `human`, `name` cut to 80 characters,
+  `avatarUrl` absolute on `HAUS_APP_ORIGIN` or null when the sender has none — avatar routes are
+  public by opaque id), and `conversation` (`{ kind: "channel", name }` without `#`, or
+  `{ kind: "dm", name: null }`). The alert title and body stay as the fallback when the Notification
+  Service extension cannot fetch the avatar. A message whose author or Channel name cannot be
+  resolved is not pushed. The worst-case payload stays under the 4 KB APNs limit
+  (`push-payload.test.ts`). Headers: `apns-push-type: alert`, `apns-priority: 10`,
   `apns-collapse-id` = message id, `apns-topic` = the device's bundle id.
 
 ## Server behavior
@@ -53,14 +60,18 @@ and stored in `push_devices.last_error`, never retried.
 
 ## One-time setup
 
-1. In Certificates, Identifiers & Profiles, enable **Push Notifications** on the App ID
-   `chat.haus.ios`.
+1. In Certificates, Identifiers & Profiles, enable **Push Notifications** and **Communication
+   Notifications** on the App ID `chat.haus.ios`, and register the App ID
+   `chat.haus.ios.NotificationService` for the Notification Service extension with no
+   capabilities.
 2. Create an APNs authentication key (Keys → **Apple Push Notifications service**). One key serves
    sandbox and production. Download the `.p8` once.
 3. Store it in 1Password as `Apple Push - Haus` in both `Development` and `Production`, with fields
    `key_id` (the 10-character key id) and `private_key` (the full `.p8` PEM, newlines kept).
-4. Regenerate the **Haus CI App Store** provisioning profile so it carries the push entitlement
-   ([iOS TestFlight](ios-testflight.md)); CI only downloads profiles.
+4. Keep two App Store provisioning profiles ([iOS TestFlight](ios-testflight.md)): regenerate
+   **Haus CI App Store** (`chat.haus.ios`) after any capability change so it carries the push and
+   communication entitlements, and keep **Haus CI App Store NotificationService**
+   (`chat.haus.ios.NotificationService`) active for the extension. CI only downloads profiles.
 5. Redeploy the Server. Startup logs `iPhone push enabled: APNs key <id>`; without the item it logs
    `iPhone push disabled: APNs key not configured`.
 
