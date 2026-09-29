@@ -39,6 +39,23 @@ describe('app navigation URLs', () => {
 });
 
 describe('external link handlers', () => {
+    test('web links use workspace tabs while mail links keep their system handler', () => {
+        const browser = [];
+        const external = [];
+        const webContents = createWebContents();
+        registerExternalLinkHandlers(
+            { webContents },
+            {
+                appUrl: 'https://haus.chat',
+                openBrowser: (url) => browser.push(url),
+                openExternal: (url) => external.push(url),
+            }
+        );
+        webContents.openHandler({ url: 'https://amazon.com' });
+        webContents.openHandler({ url: 'mailto:hello@example.com' });
+        expect(browser).toEqual(['https://amazon.com']);
+        expect(external).toEqual(['mailto:hello@example.com']);
+    });
     test('opens new-window links in the desktop browser and denies Haus windows', () => {
         const opened = [];
         const webContents = createWebContents();

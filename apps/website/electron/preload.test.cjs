@@ -54,6 +54,10 @@ describe('desktop preload bridge', () => {
         expect(bridge.loadsApp).toBe(true);
         expect(typeof bridge.authTokenGet).toBe('function');
         expect(typeof bridge.openExternal).toBe('function');
+        expect(typeof bridge.browserCommand).toBe('function');
+        expect(typeof bridge.browserSnapshot).toBe('function');
+        expect(typeof bridge.browserBounds).toBe('function');
+        expect(typeof bridge.onBrowserState).toBe('function');
         expect(typeof bridge.focusWindow).toBe('function');
         expect(typeof bridge.prepareSsoCallback).toBe('function');
     });
