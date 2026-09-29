@@ -51,7 +51,11 @@ before loading Server-backed UI. If it cannot, the app renews the session throug
 ticket procedure. A configured local build never falls back to browser OAuth.
 
 Swift settings use one native sheet with one `NavigationStack`. Focused screens push within that
-sheet, single-line identity values edit inline, and long-form values use a dedicated editor. All
+sheet, single-line identity values edit inline, and long-form values use a dedicated editor. The root
+opens on a centered identity header that pushes the viewer's profile. Rows carry a short title and
+show a single-line current value trailing, dropping it under the title only when it cannot fit;
+long-form values such as descriptions preview as a subtitle. An up/down chevron marks an in-place
+picker and a right chevron marks navigation. Explanations live in section footers. All
 profile values and avatars originate from Server records; the app must not create mobile-only identity
 state. On startup, iOS reports the signed-in Clerk name and email through `member.syncIdentity` before
 loading the Server snapshot, matching the web app's default-handle bootstrap. A human edits their
