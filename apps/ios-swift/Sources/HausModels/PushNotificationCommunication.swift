@@ -11,6 +11,36 @@ public struct PushNotificationCommunication: Sendable, Equatable {
     public let conversation: Conversation
     /// Groups donated interactions per conversation: the Channel or DM.
     public let conversationIdentifier: String
+    /// Why the message addresses the viewer; nil for a push that predates it
+    /// or an unknown value.
+    public let reason: Reason?
+
+    /// The Needs you reason the Server pushed for.
+    public enum Reason: String, Sendable, Equatable {
+        case dm
+        case mention
+        case reply
+    }
+
+    /// What the donated intent tells Focus about the message. iOS lets a
+    /// Channel message through a Focus only when it mentions or replies to the
+    /// viewer; a DM breaks through by sender, so it needs no signal.
+    public struct FocusSignals: Sendable, Equatable {
+        public let mentionsCurrentUser: Bool
+        public let isReplyToCurrentUser: Bool
+    }
+
+    /// Nil when the donation should keep iOS defaults: a DM or unknown reason.
+    public var focusSignals: FocusSignals? {
+        switch reason {
+        case .mention:
+            FocusSignals(mentionsCurrentUser: true, isReplyToCurrentUser: false)
+        case .reply:
+            FocusSignals(mentionsCurrentUser: false, isReplyToCurrentUser: true)
+        case .dm, nil:
+            nil
+        }
+    }
 
     public struct Sender: Sendable, Equatable {
         public enum Kind: String, Sendable, Equatable {
@@ -50,10 +80,16 @@ public struct PushNotificationCommunication: Sendable, Equatable {
         }
     }
 
-    public init(sender: Sender, conversation: Conversation, conversationIdentifier: String) {
+    public init(
+        sender: Sender,
+        conversation: Conversation,
+        conversationIdentifier: String,
+        reason: Reason? = nil
+    ) {
         self.sender = sender
         self.conversation = conversation
         self.conversationIdentifier = conversationIdentifier
+        self.reason = reason
     }
 
     public init?(userInfo: [AnyHashable: Any]) {
@@ -73,7 +109,8 @@ public struct PushNotificationCommunication: Sendable, Equatable {
                 avatarURL: Self.string(senderInfo["avatarUrl"]).flatMap(Self.fetchableAvatarURL)
             ),
             conversation: conversation,
-            conversationIdentifier: conversationIdentifier
+            conversationIdentifier: conversationIdentifier,
+            reason: Self.string(userInfo["reason"]).flatMap(Reason.init(rawValue:))
         )
     }
 

@@ -55,6 +55,15 @@ enum CommunicationNotification {
         if let image {
             intent.setImage(image, forParameterNamed: \.sender)
         }
+        if let signals = communication.focusSignals {
+            let metadata = INSendMessageIntentDonationMetadata()
+            metadata.mentionsCurrentUser = signals.mentionsCurrentUser
+            metadata.isReplyToCurrentUser = signals.isReplyToCurrentUser
+            intent.donationMetadata = metadata
+        }
+        NotificationService.logger.info(
+            "focus reason \(communication.reason?.rawValue ?? "unknown", privacy: .public), metadata \(intent.donationMetadata != nil, privacy: .public)"
+        )
         return intent
     }
 
