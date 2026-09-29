@@ -27,6 +27,20 @@ struct InboxConversationRowsTests {
         #expect(rows.map(\.title) == ["#all", "#product"])
     }
 
+    /// A Chat Needs you already lists is not listed again.
+    @Test func leavesOutChatsThatHaveANeedsYouRow() {
+        let rows = InboxConversationRows.rows(
+            [
+                InboxFixtures.chat(id: "addressed", name: "product"),
+                InboxFixtures.chat(id: "waiting", name: "all"),
+            ],
+            viewerDisplayName: "Marlow",
+            hiding: ["addressed"]
+        )
+
+        #expect(rows.map(\.id) == ["waiting"])
+    }
+
     /// The row carries whether it is waiting, never how many messages are: the
     /// phone marks unread with a dot, so nothing downstream can render a count.
     @Test func marksEveryListedRowUnread() {

@@ -16,13 +16,6 @@ struct TaskAssigneeLabelTests {
         #expect(TaskAssigneeLabel.text(for: item, assignee: nil) == "Agent review")
     }
 
-    @Test func fallsBackToTheMemberIdSuffixWhenUnresolvable() {
-        let item = TaskPreviewFixtures.items[1]
-
-        #expect(item.task.assigneeUserID == "user_preview")
-        #expect(TaskAssigneeLabel.text(for: item, assignee: nil) == "Member review")
-    }
-
     @Test func readsUnassignedWhenNoActorIsSet() {
         let item = TaskPreviewFixtures.items[2]
 

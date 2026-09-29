@@ -3,7 +3,7 @@ import XCTest
 @testable import HausModels
 
 /// Which conversations refuse a new Message. Haus App reads the same predicate
-/// as `readOnly`, and the phone gates its Ask answer controls on it.
+/// as `readOnly`.
 final class ChatReadOnlyTests: XCTestCase {
     func testAnOpenChannelTakesMessages() throws {
         XCTAssertFalse(try chat().isReadOnly)

@@ -57,7 +57,7 @@ final class HausModelsTests: XCTestCase {
               "attachments": [{"filename":"brief.pdf","id":"attachment_1","mediaType":"application/pdf","sizeBytes":42}],
               "author": {"kind":"human","userId":"user_1","profile":{"avatarUrl":null,"deleted":false,"description":null,"displayName":"Zach"}},
               "chatId":"chat_1","content":"Please review this.","createdAt":"2026-08-15T14:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":1,"serverId":"server_1",
-              "task": {"assigneeAgentId":"agent_1","assigneeUserId":null,"chatId":"chat_1","claimedAt":null,"createdAt":"2026-08-15T14:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","labels":[],"live":false,"messageId":"message_1","number":1,"origin":"converted","priority":"high","status":"todo","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-08-15T14:00:00Z","version":1}
+              "task": {"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":null,"createdAt":"2026-08-15T14:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","labels":[],"live":false,"messageId":"message_1","number":1,"origin":"converted","priority":"high","status":"todo","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-08-15T14:00:00Z","version":1}
             }
           ],
           "nextBeforeSequence": null,

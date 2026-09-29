@@ -3,92 +3,53 @@ import HausModels
 @testable import HausUI
 import Testing
 
-/// The Inbox's two-record sections: what each row says, and in what order.
+/// Needs you: who addressed the reader, what they wrote, and where.
 struct InboxNeedsYouRowsTests {
-    @Test func leadsWithAsksAndNamesWhereEachCameFrom() throws {
+    @Test func namesTheAuthorTheLineAndWhereAMentionCameFrom() throws {
         let rows = try #require(InboxNeedsYouRows.rows(
-            asks: [InboxFixtures.openAsk()],
-            tasks: [
-                InboxFixtures.task(number: 3, origin: .claimed, status: .inProgress, tier: .tracked)
+            [
+                InboxFixtures.needsYou(),
+                InboxFixtures.needsYou(reason: "dm", chatID: "chat_dm", conversationChatID: "chat_dm"),
+                InboxFixtures.needsYou(reason: "reply", chatID: "chat_2", conversationChatID: "chat_2"),
             ],
             resolveActor: InboxFixtures.directory
         ))
 
-        #expect(rows.map(\.title) == ["Pick a rollout window", "Blippy stopped before finishing"])
-        #expect(rows.map(\.meta) == ["Ask · #onboarding", "#all · Task #3"])
-        #expect(rows.map(\.id) == ["ask:message_ask", "claim:message_task_3"])
+        #expect(rows.map(\.title) == ["Blippy", "Blippy", "Blippy"])
+        #expect(rows.map(\.context) == ["#onboarding", nil, "#onboarding"])
+        #expect(rows.map(\.id) == ["chat_1", "chat_dm", "chat_2"])
     }
 
-    @Test func opensAnAskAtItsMessageAndAStalledClaimAtItsOwnTask() throws {
+    @Test func opensATopLevelRowInItsChatAndAThreadRowAsItsThread() throws {
         let rows = try #require(InboxNeedsYouRows.rows(
-            asks: [InboxFixtures.openAsk()],
-            tasks: [
-                InboxFixtures.task(number: 3, origin: .claimed, status: .inProgress, tier: .tracked)
+            [
+                InboxFixtures.needsYou(),
+                InboxFixtures.needsYou(chatID: "chat_thread", threadAnchorMessageID: "message_anchor"),
             ],
             resolveActor: InboxFixtures.directory
         ))
 
-        #expect(rows[0].open == .ask(messageID: "message_ask"))
-        #expect(rows[1].open == .tasks(focus: TaskFocus(messageID: "message_task_3")))
+        #expect(rows[0].open == .chat("chat_1"))
+        #expect(rows[1].open == .needsYouThread(chatID: "chat_thread"))
     }
 
-    @Test func listsOnlyClaimsThatStalled() throws {
+    @Test func flattensThePreviewToOneLine() throws {
         let rows = try #require(InboxNeedsYouRows.rows(
-            asks: [],
-            tasks: [
-                InboxFixtures.task(number: 1, origin: .claimed, status: .inProgress, tier: .tracked, live: true),
-                InboxFixtures.task(number: 2, origin: .composed, status: .inProgress, tier: .tracked),
-                InboxFixtures.task(number: 3, origin: .claimed, status: .inReview, tier: .tracked),
-                InboxFixtures.task(number: 4, origin: .claimed, status: .inProgress, tier: .background),
-                InboxFixtures.task(number: 5, origin: .claimed, status: .inProgress, tier: .tracked),
-            ],
+            [InboxFixtures.needsYou(preview: "Ship on\n\nFriday  or Monday?")],
             resolveActor: InboxFixtures.directory
         ))
 
-        #expect(rows.map(\.meta) == ["#all · Task #5"])
+        #expect(rows[0].preview == "Ship on Friday  or Monday?")
     }
 
-    /// The row states the Ask's question and where it came from, and nothing
-    /// else: its summary is the Thread's to show, not a third thing to cut in
-    /// half on a phone line.
-    @Test func statesTheAskQuestionWithoutItsSummary() throws {
-        let rows = try #require(InboxNeedsYouRows.rows(
-            asks: [InboxFixtures.openAsk(summary: "Ship on\n**Friday** or Monday")],
-            tasks: [],
-            resolveActor: InboxFixtures.directory
-        ))
-
-        #expect(rows[0].title == "Pick a rollout window")
-        #expect(rows[0].meta == "Ask · #onboarding")
-    }
-
-    @Test func namesADirectMessageAsDM() throws {
-        let rows = try #require(InboxNeedsYouRows.rows(
-            asks: [InboxFixtures.openAsk(chatKind: .dm, chatName: nil)],
-            tasks: [],
-            resolveActor: InboxFixtures.directory
-        ))
-
-        #expect(rows[0].meta == "Ask · DM")
-    }
-
-    /// Both reads make the same claim, so a half-loaded section says nothing.
-    @Test func staysNeutralUntilBothReadsHaveLanded() {
-        #expect(
-            InboxNeedsYouRows.rows(asks: nil, tasks: [], resolveActor: InboxFixtures.directory) == nil
-        )
-        #expect(
-            InboxNeedsYouRows.rows(asks: [], tasks: nil, resolveActor: InboxFixtures.directory) == nil
-        )
-        #expect(
-            InboxNeedsYouRows.rows(asks: [], tasks: [], resolveActor: InboxFixtures.directory) == []
-        )
+    @Test func staysNeutralUntilTheReadHasLanded() {
+        #expect(InboxNeedsYouRows.rows(nil, resolveActor: InboxFixtures.directory) == nil)
+        #expect(InboxNeedsYouRows.rows([], resolveActor: InboxFixtures.directory) == [])
     }
 
     @Test func fallsBackToTheStoredAuthorProfileForARetiredAgent() throws {
         let rows = try #require(InboxNeedsYouRows.rows(
-            asks: [InboxFixtures.openAsk()],
-            tasks: [],
+            [InboxFixtures.needsYou()],
             resolveActor: { _, _ in nil }
         ))
 

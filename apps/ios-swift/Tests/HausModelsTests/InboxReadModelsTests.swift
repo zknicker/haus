@@ -20,7 +20,7 @@ private let workJSON = """
  "terminalAt":null,"title":"Ship the iPhone build","updatedAt":"2026-09-11T09:05:00.000Z"}
 """
 
-/// The two Server-wide Inbox reads that are not Asks: the Chat list's quoted
+/// The two Server-wide Inbox reads beside Needs you: the Chat list's quoted
 /// last line, and the Cloud Agent work running right now.
 final class InboxReadModelsTests: XCTestCase {
     func testDecodesTheChatListsQuotedLastMessage() throws {

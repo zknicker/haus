@@ -58,7 +58,7 @@ final class TaskModelsTests: XCTestCase {
                 """
                 {"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
                  "message":{"attachments":[],"author":{"kind":"human","userId":"user_1","profile":null},"chatId":"chat_1","content":"Review the mobile release","createdAt":"2026-01-01T00:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":8,"serverId":"server_1","task":null},
-                 "task":{"assigneeAgentId":"agent_1","assigneeUserId":null,"chatId":"chat_1","claimedAt":null,"createdAt":"2026-01-01T00:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","labels":[],"live":false,"messageId":"message_1","number":4,"origin":"converted","priority":"urgent","status":"in_review","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-01-01T00:01:00Z","version":6},
+                 "task":{"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":null,"createdAt":"2026-01-01T00:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","labels":[],"live":false,"messageId":"message_1","number":4,"origin":"converted","priority":"urgent","status":"in_review","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-01-01T00:01:00Z","version":6},
                  "threadSummary":{"anchorMessageId":"message_1","followed":true,"latestReplyAt":"2026-01-01T00:02:00Z","recentReplies":[],"replyCount":2,"threadChatId":"thread_1","unreadCount":1}}
                 """.utf8
             )
@@ -79,7 +79,7 @@ final class TaskModelsTests: XCTestCase {
                 {"backgroundCount":2,"tasks":[
                  {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
                   "message":{"attachments":[],"author":{"kind":"human","userId":"user_1","profile":null},"chatId":"chat_1","content":"Ship the release","createdAt":"2026-01-01T00:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":8,"serverId":"server_1","task":null},
-                  "task":{"assigneeAgentId":"agent_1","assigneeUserId":null,"chatId":"chat_1","claimedAt":"2026-01-01T00:01:00Z","createdAt":"2026-01-01T00:00:00Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":true,"messageId":"message_1","number":4,"origin":"claimed","priority":"none","status":"in_progress","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-01-01T00:01:00Z","version":6},
+                  "task":{"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":"2026-01-01T00:01:00Z","createdAt":"2026-01-01T00:00:00Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":true,"messageId":"message_1","number":4,"origin":"claimed","priority":"none","status":"in_progress","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-01-01T00:01:00Z","version":6},
                   "threadSummary":{"anchorMessageId":"message_1","followed":true,"latestReplyAt":null,"recentReplies":[],"replyCount":0,"threadChatId":"thread_1","unreadCount":0}}]}
                 """.utf8
             )
@@ -100,7 +100,7 @@ final class TaskModelsTests: XCTestCase {
                 {"backgroundCount":0,"tasks":[
                  {"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
                   "message":{"attachments":[],"author":{"kind":"human","userId":"user_1","profile":null},"chatId":"chat_1","content":"Check the log","createdAt":"2026-01-01T00:00:00Z","id":"message_2","nonce":"nonce_2","runId":null,"sequence":9,"serverId":"server_1","task":null},
-                  "task":{"assigneeAgentId":"agent_1","assigneeUserId":null,"chatId":"chat_1","claimedAt":"2026-01-01T00:00:30Z","createdAt":"2026-01-01T00:00:00Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":false,"messageId":"message_2","number":5,"origin":"claimed","priority":"none","status":"done","threadChatId":"thread_2","tier":"background","updatedAt":"2026-01-01T00:02:00Z","version":2},
+                  "task":{"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":"2026-01-01T00:00:30Z","createdAt":"2026-01-01T00:00:00Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":false,"messageId":"message_2","number":5,"origin":"claimed","priority":"none","status":"done","threadChatId":"thread_2","tier":"background","updatedAt":"2026-01-01T00:02:00Z","version":2},
                   "threadSummary":{"anchorMessageId":"message_2","followed":false,"latestReplyAt":null,"recentReplies":[],"replyCount":0,"threadChatId":"thread_2","unreadCount":0}}]}
                 """.utf8
             )
