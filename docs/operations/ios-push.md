@@ -20,8 +20,10 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
   human only; `bundleId` must be on the `pushBundleIds` allowlist (`chat.haus.ios`), since it
   becomes the `apns-topic`; upserts by the hex device token (stored lowercase). A token registered by another
   human moves to the caller. Returns `{ ok: true }`.
-- `push.unregisterDevice({ token })` — called on sign-out; removes the token only if the caller
-  holds it. Returns `{ ok: true }`.
+- `push.unregisterDevice({ token })` — called when the Notifications switch turns off (retried until
+  it succeeds) and, best effort with a 3-second limit, before sign-out; removes the token only if the
+  caller holds it. Returns `{ ok: true }`. Sign-out then clears local push state, turns the switch
+  off, and clears delivered notifications and the badge, so the next account opts in itself.
 - Payload: `aps.alert.title` (author, plus ` in #channel` outside a DM), `aps.alert.body` (plain
   preview, mentions as display names, at most 180 characters), `aps.sound: "default"`,
   `aps.thread-id` = conversation Chat id, `aps.badge` = Needs you rows across every Server, and the
