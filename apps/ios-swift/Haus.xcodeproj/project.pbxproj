@@ -14,6 +14,7 @@
 		122F254A49A4BF494962CD60 /* HausStoreProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE16B456BE9D7C8D1129D79A /* HausStoreProfiles.swift */; };
 		1A8B2635CFEBDFBDBD95B72A /* HausUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0941F47FDECBF6CD658D96BF /* HausUI */; };
 		23F49FE4C0A512B9B169FD44 /* HausStoreChatReads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9BE553275D26E429E17F /* HausStoreChatReads.swift */; };
+		2504F0CD7C8B54F1D41065A0 /* HausNotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 48C78DBB9691AD8E16A14C9E /* HausNotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		251F4347D29A196865AE3129 /* HausStoreInlineReplies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 789E7748649B73A8DADD1383 /* HausStoreInlineReplies.swift */; };
 		2DA4E995560C3C0E770FC121 /* HausStoreCloudAgents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5905A0B13F5B6C3D1B243267 /* HausStoreCloudAgents.swift */; };
 		36E11B61F6B7923EF0774757 /* ActivityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 876CEDBE5B2CC4CDF301EFF6 /* ActivityPresentationAdapters.swift */; };
@@ -21,6 +22,7 @@
 		44B50B0FDF5AD409888415AE /* HausStoreMentions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D58A2E06B71FDA6ABF4D58 /* HausStoreMentions.swift */; };
 		4DCE55C82B0FF476161F79B2 /* HausStorePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D804D45D075913F4A3A028 /* HausStorePush.swift */; };
 		52551422BE2056D26C78745F /* UtilityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */; };
+		5376EAB5B5D3CF0671600353 /* CommunicationNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F461CB50C4296185DBCD6F /* CommunicationNotification.swift */; };
 		5EF0958A96B24C8375100293 /* MessageRenderingPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0F44CF7F9F5FCFA3C846AD /* MessageRenderingPerformanceTests.swift */; };
 		62125AE71C8239413ECE3A78 /* HausStoreAgentDM.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E1927FC2A1E1B00A79F28F /* HausStoreAgentDM.swift */; };
 		6758481DDEE0C344F289375C /* HausAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934132B2BEA791BD55DCB3E9 /* HausAppDelegate.swift */; };
@@ -31,7 +33,9 @@
 		70E765489388474DB798D67F /* ThreadRouteAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 956E5E1CBFE3C8DCEE32CB56 /* ThreadRouteAdapters.swift */; };
 		7D04A02F8292E2F5D10AC97B /* HausStoreTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0329C162166D08C65D149B64 /* HausStoreTasks.swift */; };
 		81557844D44B791D6174731E /* HausStoreSignOut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 960626C05BC402D32C2B6895 /* HausStoreSignOut.swift */; };
+		816A3D99028641C226608DAF /* HausModels in Frameworks */ = {isa = PBXBuildFile; productRef = 1397DB42B0E113FE68BA5BA5 /* HausModels */; };
 		841294F8BCF8D400843DFF93 /* HausRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599DA44C9DA817DC367BE98B /* HausRuntimeConfiguration.swift */; };
+		89D8EF10B9318198A0BDB33E /* SenderAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707CB06A0A216FDE227C67B8 /* SenderAvatar.swift */; };
 		8FE296002F3C29657170772A /* HausStoreMessaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36E0B52EFEAC490DDCC5888 /* HausStoreMessaging.swift */; };
 		91CD1375E99A47E7F7363F09 /* HausTransport in Frameworks */ = {isa = PBXBuildFile; productRef = 1DB905D686A4CE7B1959646B /* HausTransport */; };
 		9478CA0B56335FE8DE0B45B6 /* HausOpeningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020A718A9A0014626B19C74B /* HausOpeningView.swift */; };
@@ -44,6 +48,7 @@
 		C17ACBD581A41085B44710D1 /* HausStoreRealtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 752D9C819F8C3513DCBD350E /* HausStoreRealtime.swift */; };
 		C294E516F409A496974B8D9B /* HausStoreSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A65F91E2B21B774C3DBC0A3 /* HausStoreSupport.swift */; };
 		C2CDCADF5A7F5C82CF9D8636 /* InboxPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = E45EDC3114F9952D72C4F7DA /* InboxPresentationAdapters.swift */; };
+		C2F90B8B72E9969E770A8C2A /* Intents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC799CB8FAC41CB382B7ACC9 /* Intents.framework */; };
 		C323DE156E64DD8A5301B545 /* AuthenticatedHausView+Routes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25A9247649992AD4B411E84D /* AuthenticatedHausView+Routes.swift */; };
 		C540FBF117E5602A92C592A8 /* HausUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6E627B7AF11A724FBA288003 /* HausUI */; };
 		CE5F5B90A8942EA8E8DA665E /* AuthBoundaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B09206EC655FA6C9134513FB /* AuthBoundaryView.swift */; };
@@ -52,6 +57,7 @@
 		E7AED1D7D7B0AA1AE73102EE /* TranscriptWindowScrollingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B53C2D0C19204903D3EE0F3 /* TranscriptWindowScrollingTests.swift */; };
 		EECBD3F5DF1F0DB3BA83E5D0 /* HausStoreActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197041FDE46D01CE30061965 /* HausStoreActivity.swift */; };
 		EF499854B2F9D70B435232F4 /* HausStoreHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F320C65051725B25AFAB257 /* HausStoreHistory.swift */; };
+		F44D29509DCB18FC6F3FAF8F /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72AD2C0C53BC211A604E6276 /* NotificationService.swift */; };
 		F54865A4738553181ADADA05 /* IdentityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B9855BFA098D23FD4E9EBD /* IdentityPresentationAdapters.swift */; };
 		F5AFE88E2DA7359D6F6E5CA1 /* HausModels in Frameworks */ = {isa = PBXBuildFile; productRef = 5EC6967227E68FD69E891391 /* HausModels */; };
 		F67377AD066715CF4B5900FC /* PushNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33E22F3873B8A832FCD4467 /* PushNotifications.swift */; };
@@ -59,6 +65,30 @@
 		FBA812BFF6948CDE7B63A9CB /* MessageHistoryNavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CCA5EAECEFF7A9AE34DFB26 /* MessageHistoryNavigationTests.swift */; };
 		FDA688D0A2B9DBBE1B9F0776 /* HausStoreUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C799DCE0C12DFA6D65C82F1E /* HausStoreUtilities.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E34E875735B1A193F04ED71C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FEB139AA758915657E4A5D8E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A502AA1A2ED44FF54C65BDD1;
+			remoteInfo = HausNotificationService;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5D952E37C76B87903130AC95 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				2504F0CD7C8B54F1D41065A0 /* HausNotificationService.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		020A718A9A0014626B19C74B /* HausOpeningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausOpeningView.swift; sourceTree = "<group>"; };
@@ -76,6 +106,7 @@
 		2CCA5EAECEFF7A9AE34DFB26 /* MessageHistoryNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageHistoryNavigationTests.swift; sourceTree = "<group>"; };
 		2EA9AD3B9155443B2AE9B5B4 /* AuthenticatedHausView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatedHausView.swift; sourceTree = "<group>"; };
 		440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilityPresentationAdapters.swift; sourceTree = "<group>"; };
+		48C78DBB9691AD8E16A14C9E /* HausNotificationService.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = HausNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		53B9855BFA098D23FD4E9EBD /* IdentityPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityPresentationAdapters.swift; sourceTree = "<group>"; };
 		5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPresentationAdapters.swift; sourceTree = "<group>"; };
 		5905A0B13F5B6C3D1B243267 /* HausStoreCloudAgents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreCloudAgents.swift; sourceTree = "<group>"; };
@@ -83,6 +114,8 @@
 		6479EFBFB200B67B041489C1 /* PresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationAdapters.swift; sourceTree = "<group>"; };
 		6B53C2D0C19204903D3EE0F3 /* TranscriptWindowScrollingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptWindowScrollingTests.swift; sourceTree = "<group>"; };
 		6EA4A3F1787540E29C3BE266 /* ChatPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPresentationAdapters.swift; sourceTree = "<group>"; };
+		707CB06A0A216FDE227C67B8 /* SenderAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SenderAvatar.swift; sourceTree = "<group>"; };
+		72AD2C0C53BC211A604E6276 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		73709D1E08C0F2545F2E0E2D /* HausStoreEventStreams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreEventStreams.swift; sourceTree = "<group>"; };
 		73D804D45D075913F4A3A028 /* HausStorePush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStorePush.swift; sourceTree = "<group>"; };
 		752D9C819F8C3513DCBD350E /* HausStoreRealtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreRealtime.swift; sourceTree = "<group>"; };
@@ -95,6 +128,7 @@
 		934132B2BEA791BD55DCB3E9 /* HausAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausAppDelegate.swift; sourceTree = "<group>"; };
 		956E5E1CBFE3C8DCEE32CB56 /* ThreadRouteAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadRouteAdapters.swift; sourceTree = "<group>"; };
 		960626C05BC402D32C2B6895 /* HausStoreSignOut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreSignOut.swift; sourceTree = "<group>"; };
+		99F461CB50C4296185DBCD6F /* CommunicationNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunicationNotification.swift; sourceTree = "<group>"; };
 		A25C9CB2C17FDE37245B3CE1 /* LongTranscriptPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongTranscriptPerformanceTests.swift; sourceTree = "<group>"; };
 		A36E0B52EFEAC490DDCC5888 /* HausStoreMessaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreMessaging.swift; sourceTree = "<group>"; };
 		AA24DB188EBB52388C52CF86 /* mac-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "mac-icon.icon"; sourceTree = "<group>"; };
@@ -105,6 +139,7 @@
 		CE16B456BE9D7C8D1129D79A /* HausStoreProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreProfiles.swift; sourceTree = "<group>"; };
 		D6E1927FC2A1E1B00A79F28F /* HausStoreAgentDM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreAgentDM.swift; sourceTree = "<group>"; };
 		D9D58A2E06B71FDA6ABF4D58 /* HausStoreMentions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreMentions.swift; sourceTree = "<group>"; };
+		DC799CB8FAC41CB382B7ACC9 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
 		E45EDC3114F9952D72C4F7DA /* InboxPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxPresentationAdapters.swift; sourceTree = "<group>"; };
 		E56E7535CC7FF21EC23A66EF /* HausStoreComputers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreComputers.swift; sourceTree = "<group>"; };
 		E5CD0E9C85581C948DF53EC2 /* HausStoreInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreInbox.swift; sourceTree = "<group>"; };
@@ -113,6 +148,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		822B0B9F039E7180BD93B19C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				816A3D99028641C226608DAF /* HausModels in Frameworks */,
+				C2F90B8B72E9969E770A8C2A /* Intents.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EBB4D15F156B531BD20455AD /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -151,8 +195,27 @@
 				91DBD131CB7681F2617294AE /* Packages */,
 				9A4DAC557DDDCB5EF3037449 /* SimulatorTests */,
 				B71B11DD7955C2C5B56C6A06 /* Sources */,
+				627A12A8D9A0BB882DE6250A /* Frameworks */,
 				B058AA557C5899919AFE0B2B /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		3E1EDCE1C5FA37ED8CFD31C1 /* HausNotificationService */ = {
+			isa = PBXGroup;
+			children = (
+				99F461CB50C4296185DBCD6F /* CommunicationNotification.swift */,
+				72AD2C0C53BC211A604E6276 /* NotificationService.swift */,
+				707CB06A0A216FDE227C67B8 /* SenderAvatar.swift */,
+			);
+			path = HausNotificationService;
+			sourceTree = "<group>";
+		};
+		627A12A8D9A0BB882DE6250A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DC799CB8FAC41CB382B7ACC9 /* Intents.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		91DBD131CB7681F2617294AE /* Packages */ = {
@@ -179,6 +242,7 @@
 			isa = PBXGroup;
 			children = (
 				19D2775FC5AB696722A326FE /* Haus.app */,
+				48C78DBB9691AD8E16A14C9E /* HausNotificationService.appex */,
 				23B21F3BBD09D71AD7C4DFFB /* HausRenderingTests.xctest */,
 			);
 			name = Products;
@@ -235,6 +299,7 @@
 			isa = PBXGroup;
 			children = (
 				B5C8F0078DBFF0F52E5AFDDA /* HausApp */,
+				3E1EDCE1C5FA37ED8CFD31C1 /* HausNotificationService */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -249,11 +314,13 @@
 				5D877B8364AAE33E5E49A1EF /* Sources */,
 				318903ABFC386BA621443EB0 /* Resources */,
 				EEDE74F1D24706EC9A0DEFE3 /* Frameworks */,
+				5D952E37C76B87903130AC95 /* Embed Foundation Extensions */,
 				10572526E8486B7A96A0982D /* Install precompiled iOS icon */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F60CADA04E1702D55C275A45 /* PBXTargetDependency */,
 			);
 			name = Haus;
 			packageProductDependencies = (
@@ -285,6 +352,25 @@
 			productReference = 23B21F3BBD09D71AD7C4DFFB /* HausRenderingTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		A502AA1A2ED44FF54C65BDD1 /* HausNotificationService */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 49F5831F67E21225F38389BB /* Build configuration list for PBXNativeTarget "HausNotificationService" */;
+			buildPhases = (
+				139E84BBC58F5EDF4393BB2F /* Sources */,
+				822B0B9F039E7180BD93B19C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HausNotificationService;
+			packageProductDependencies = (
+				1397DB42B0E113FE68BA5BA5 /* HausModels */,
+			);
+			productName = HausNotificationService;
+			productReference = 48C78DBB9691AD8E16A14C9E /* HausNotificationService.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -315,6 +401,7 @@
 			projectRoot = "";
 			targets = (
 				21A6BEAFC23E488BBF251C65 /* Haus */,
+				A502AA1A2ED44FF54C65BDD1 /* HausNotificationService */,
 				7C0EFC4887BE4FD3AF3D21E9 /* HausRenderingTests */,
 			);
 		};
@@ -363,6 +450,16 @@
 				5EF0958A96B24C8375100293 /* MessageRenderingPerformanceTests.swift in Sources */,
 				AF15E7CEEDD94078E44902A6 /* TranscriptRenderingPerformanceTests.swift in Sources */,
 				E7AED1D7D7B0AA1AE73102EE /* TranscriptWindowScrollingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		139E84BBC58F5EDF4393BB2F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5376EAB5B5D3CF0671600353 /* CommunicationNotification.swift in Sources */,
+				F44D29509DCB18FC6F3FAF8F /* NotificationService.swift in Sources */,
+				89D8EF10B9318198A0BDB33E /* SenderAvatar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -415,7 +512,33 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		F60CADA04E1702D55C275A45 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A502AA1A2ED44FF54C65BDD1 /* HausNotificationService */;
+			targetProxy = E34E875735B1A193F04ED71C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1B305954F41DB871ED93B78A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/NotificationService-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = chat.haus.ios.NotificationService;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 		41A499DF3F473EE770CF1E36 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -467,6 +590,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 36;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -485,6 +609,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 3.4.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -502,7 +627,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "mac-icon";
 				CODE_SIGN_ENTITLEMENTS = Config/Haus.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 36;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -510,7 +634,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = chat.haus.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -535,13 +658,30 @@
 			};
 			name = Release;
 		};
+		7E9D55CB174C861E50C9EA6B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/NotificationService-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = chat.haus.ios.NotificationService;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		84EB82F08D8D7829513B2A73 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "mac-icon";
 				CODE_SIGN_ENTITLEMENTS = Config/Haus.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 36;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -549,7 +689,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = chat.haus.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -591,6 +730,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 36;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -603,6 +743,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 3.4.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -616,6 +757,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		49F5831F67E21225F38389BB /* Build configuration list for PBXNativeTarget "HausNotificationService" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B305954F41DB871ED93B78A /* Debug */,
+				7E9D55CB174C861E50C9EA6B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		56ECDC87E9C9A477EA02B0A0 /* Build configuration list for PBXNativeTarget "Haus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -667,6 +817,10 @@
 		0941F47FDECBF6CD658D96BF /* HausUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = HausUI;
+		};
+		1397DB42B0E113FE68BA5BA5 /* HausModels */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HausModels;
 		};
 		1DB905D686A4CE7B1959646B /* HausTransport */ = {
 			isa = XCSwiftPackageProductDependency;
