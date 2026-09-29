@@ -128,6 +128,31 @@ final class AttachmentFileCacheTests: XCTestCase {
         XCTAssertEqual(count, 1)
     }
 
+    func testRemoveAllDropsEveryCachedAttachmentSoTheNextOpenDownloads() async throws {
+        let root = try makeRoot()
+        let cache = AttachmentFileCache(root: root)
+        let downloads = DownloadCount()
+        let open = {
+            try await cache.file(
+                serverID: "srv_1",
+                attachmentID: "att_1",
+                displayFilename: "photo.png"
+            ) {
+                await downloads.increment()
+                return try AttachmentFileCacheTests.stageDownload(named: "photo.png")
+            }
+        }
+
+        let cached = try await open()
+        try await cache.removeAll()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: cached.path))
+        XCTAssertTrue(AttachmentFileCache.entries(root: root).isEmpty)
+        _ = try await open()
+        let count = await downloads.value
+        XCTAssertEqual(count, 2)
+    }
+
     func testConcurrentOpensOfTheSameAttachmentShareOneDownload() async throws {
         let root = try makeRoot()
         let cache = AttachmentFileCache(root: root)
