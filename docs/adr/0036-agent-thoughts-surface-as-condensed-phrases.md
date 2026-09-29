@@ -278,8 +278,11 @@ starts over), in `thought-cadence.ts`:
 
 The admission and request lookups run in the Computer's frame order before any of this, since the
 request decides the cadence; phrasing and announcing run as background work. A held or waiting
-frame keeps the Chats it was admitted for; if the run ends first, the App ignores a thought whose
-run no longer engages the Chat. The cadence costs summaries: every frame past the floor is phrased,
+frame keeps the Chats it was admitted for, and lives only as long as its request: it is phrased,
+and announced, only while its request is still the run's newest engaged message, checked again
+after the summary returns. A turn that settles drops its run's held and waiting frames unphrased; a
+`--done` reply that answers the request, or a newer message steered in, leaves them to find it
+gone when they come due, and the new request's first frame drops the older request's outright. The cadence costs summaries: every frame past the floor is phrased,
 at most one per request every few seconds, where the ladder phrased at most one per gap.
 
 Measured 2026-09-29. The previous prompt (`thought-v20-results`) scored, in two runs of 342 calls
