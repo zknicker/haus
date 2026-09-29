@@ -13,6 +13,9 @@ Electron owns desktop installation, window behavior (the menu bar and its shortc
 persistence, focus dimming, history swipes, and the Dock unread badge), and desktop updates, not a
 local backend.
 
+Desktop browser pages are App-owned presentation with Electron-owned native page lifecycles. See
+[Browser tabs](../features/browser-tabs.md) for navigation, session storage, and access boundaries.
+
 The persistent sidebar footer projects Electron's update state into the App: an available release
 is clickable to begin its download, active downloads show determinate progress, and a downloaded
 release becomes a restart action. Electron remains the state owner and replays its latest actionable

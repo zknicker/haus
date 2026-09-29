@@ -765,7 +765,15 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   the grid is a hairline on horizontals alone, and labels are 12px. The app's usage chart and
   agent-authored visuals share the same tokens.
 
+The desktop content topbar keeps one primary Chat tab and additional browser tabs. The sidebar is
+unchanged. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the white
+canvas without a background tray; selected tabs use a low-contrast `surface-secondary` fill and pill-shaped corners through `.workspace-tab` in
+`default-theme.css`. Tab actions are stock HeroUI Buttons with sibling Close controls, so interactive
+controls are never nested. The primary tab keeps the same icon, inset, and dimensions when selected; channel actions live in
+its sibling ellipsis button. The desktop tab does not carry an artifact-panel toggle.
+
 ## Do's and Don'ts
+
 - Do use semantic HeroUI and Tailwind tokens as implementation handles; use raw values in this file for reference, QA, and migration only.
 - Do use the same semantic token across light and dark mode; do not branch component code to manually pick colors.
 - Do keep layouts spacious but controlled with consistent spacing, constrained max widths, and comfortable reading lines on wide screens.
