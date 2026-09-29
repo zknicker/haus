@@ -8,7 +8,6 @@ import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
-import { settleAskForReply } from '../asks/settle-ask.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -17,13 +16,14 @@ import {
 import { type AttributedMessageCause, insertMessageCause } from '../automations/message-cause.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentsTable, chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
-import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { canonicalizeAgentMessageContentForPersistence } from './canonicalize-agent-references.ts';
 import { requireChatWritable } from './chat-access.ts';
+import { mentionedUserIds } from './mentioned-user-ids.ts';
+import { insertMessageCreatedEvent } from './message-created-event.ts';
 import { readInlineReplyContext, resolveInlineReplyParent } from './reply-context.ts';
 import {
     readExistingAgentMessage,
@@ -159,6 +159,7 @@ export async function sendAgentMessage(
                 completesReply: input.completesReply,
                 content,
                 id: messageId,
+                mentionedUserIds: mentionedUserIds(content),
                 nonce: input.nonce,
                 replyRootMessageId: replyParent?.root.id ?? messageId,
                 replyToMessageId: replyParent?.parent.id ?? null,
@@ -202,19 +203,6 @@ export async function sendAgentMessage(
                 });
             }
         }
-        // An Agent reply in an Ask's Thread settles that Ask, unless it is the
-        // asking Agent's own reply. Settlement commits with the reply.
-        const settledAsk =
-            writtenChat?.kind === 'thread'
-                ? await settleAskForReply(tx, {
-                      anchorMessageId: writtenChat.anchorMessageId,
-                      answeredBy: { id: input.agentId, kind: 'agent' },
-                      answerMessageId: message.id,
-                      replySequence: message.sequence,
-                      serverId: input.serverId,
-                      threadChatId: input.chatId,
-                  })
-                : null;
 
         const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: input.agentId,
@@ -238,23 +226,15 @@ export async function sendAgentMessage(
             });
         }
 
-        const eventCursor = await allocateEventCursor(tx, input.serverId);
-        const [event] = await tx
-            .insert(chatEventsTable)
-            .values({
-                chatId: input.chatId,
-                cursor: eventCursor,
-                id: createOpaqueId('evt'),
-                messageId: message.id,
-                sequence: message.sequence,
-                serverId: input.serverId,
-                type: 'message.created',
-            })
-            .returning({
-                createdAt: chatEventsTable.createdAt,
-                cursor: chatEventsTable.cursor,
-                id: chatEventsTable.id,
-            });
+        if (!writtenChat) {
+            throw new Error('The Agent message Chat disappeared mid-send.');
+        }
+        const event = await insertMessageCreatedEvent(tx, {
+            chat: writtenChat,
+            message,
+            replyToAuthorUserId: replyParent?.parent.authorUserId ?? null,
+            serverId: input.serverId,
+        });
 
         const completedActivity = await appendServerAgentActivity(tx, {
             agentId: input.agentId,
@@ -269,20 +249,7 @@ export async function sendAgentMessage(
 
         return {
             activities,
-            events: [
-                {
-                    chatId: input.chatId,
-                    createdAt: event.createdAt.toISOString(),
-                    cursor: event.cursor.toString(),
-                    id: event.id,
-                    messageId: message.id,
-                    parentChatId: writtenChat?.kind === 'thread' ? writtenChat.parentChatId : null,
-                    sequence: message.sequence,
-                    serverId: input.serverId,
-                    type: 'message.created',
-                },
-                ...(settledAsk ? [settledAsk] : []),
-            ],
+            events: [event],
             message: toAgentCliMessage(message, {
                 ...agent,
                 agentId: input.agentId,

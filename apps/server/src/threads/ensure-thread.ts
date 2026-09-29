@@ -2,7 +2,12 @@ import { idSchema } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatMessagesTable, chatsTable, threadFollowsTable } from '../postgres/schema.ts';
+import {
+    agentThreadFollowsTable,
+    chatMessagesTable,
+    chatsTable,
+    threadFollowsTable,
+} from '../postgres/schema.ts';
 import { followMaterializedTaskThread } from '../tasks/task-thread-follows.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { threadChatIdForAnchor } from './thread-id.ts';
@@ -32,10 +37,13 @@ export async function ensureThread(
         chatId: input.parentChatId,
         serverId: input.serverId,
     });
-    const thread = await ensureThreadRecord(db, input);
+    const { created, ...thread } = await ensureThreadRecord(db, input);
 
     const [anchor] = await db
-        .select({ authorUserId: chatMessagesTable.authorUserId })
+        .select({
+            authorAgentId: chatMessagesTable.authorAgentId,
+            authorUserId: chatMessagesTable.authorUserId,
+        })
         .from(chatMessagesTable)
         .where(
             and(
@@ -52,6 +60,21 @@ export async function ensureThread(
                 serverId: input.serverId,
                 threadChatId: thread.id,
                 userId: anchor.authorUserId,
+            })
+            .onConflictDoNothing();
+    }
+    // An Agent anchor author follows a Thread a human opens on its message (say,
+    // to answer its @mention), so the first reply wakes it. Only at creation:
+    // a later send into an existing Thread must not start waking the Agent.
+    if (created && anchor?.authorAgentId) {
+        await db
+            .insert(agentThreadFollowsTable)
+            .values({
+                agentId: anchor.authorAgentId,
+                followed: true,
+                serverId: input.serverId,
+                threadChatId: thread.id,
+                updatedAt: new Date(),
             })
             .onConflictDoNothing();
     }
@@ -134,5 +157,9 @@ export async function ensureThreadRecord(
         throw new InvalidThreadAnchorError();
     }
 
-    return { id: threadChatId, parentChatId: input.parentChatId };
+    return {
+        created: materialized !== undefined,
+        id: threadChatId,
+        parentChatId: input.parentChatId,
+    };
 }

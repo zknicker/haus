@@ -104,7 +104,7 @@ export async function seedDevelopmentServer(
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
             .where(eq(usersTable.id, user.id));
-        // Two tasks in different states, one per assignee kind. The channel's
+        // Two Agent tasks in different states. The channel's
         // task counter starts past them, or the first real `task.promote` in a
         // seeded workspace collides with a seeded number.
         const demoTasks = [
@@ -120,7 +120,7 @@ export async function seedDevelopmentServer(
                 status: 'in_progress' as const,
             },
             {
-                assigneeUserId: user.id,
+                assigneeAgentId: tinyId,
                 chatId: channelId,
                 createdByAgentId: tinyId,
                 messageId: auditTaskMessageId,
@@ -310,7 +310,7 @@ export async function seedDevelopmentServer(
             }),
         ]);
 
-        // Two tasks in different states, one per assignee kind.
+        // Two Agent tasks in different states.
         await tx.insert(messageTasksTable).values(demoTasks);
 
         // One Server-managed MCP connection so the Agent Connections surface

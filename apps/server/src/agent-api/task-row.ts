@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, type messageTasksTable, serverMembershipsTable } from '../postgres/schema.ts';
+import { agentsTable, type messageTasksTable } from '../postgres/schema.ts';
 import { type MessageRow, targetForChat, toAgentMessages } from './message-view.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
@@ -41,18 +41,13 @@ export async function taskRows(
         runner.serverId,
         rows.flatMap((row) => row.task.assigneeAgentId ?? [])
     );
-    const humanHandles = await humanHandlesById(
-        db,
-        runner.serverId,
-        rows.flatMap((row) => row.task.assigneeUserId ?? [])
-    );
     // Sequential: `db` is often the caller's transaction connection.
     const targets = new Map<string, string>();
     for (const chatId of new Set(rows.map((row) => row.task.chatId))) {
         targets.set(chatId, await targetForChat(db, runner.serverId, chatId));
     }
     return rows.map(({ task }, index) => ({
-        assignee: taskAssignee(task, agentHandles, humanHandles),
+        assignee: taskAssignee(task, agentHandles),
         message: messages[index] as (typeof messages)[number],
         number: task.number,
         status: task.status,
@@ -61,23 +56,13 @@ export async function taskRows(
     }));
 }
 
-function taskAssignee(
-    task: TaskRecord,
-    agentHandles: Map<string, string>,
-    humanHandles: Map<string, string | null>
-) {
+function taskAssignee(task: TaskRecord, agentHandles: Map<string, string>) {
     if (task.assigneeAgentId) {
         const handle = agentHandles.get(task.assigneeAgentId);
         if (!handle) {
             throw new AgentTargetError('This Agent no longer exists.');
         }
         return { handle, id: task.assigneeAgentId };
-    }
-    if (task.assigneeUserId) {
-        return {
-            handle: humanHandles.get(task.assigneeUserId) ?? null,
-            id: task.assigneeUserId,
-        };
     }
     return null;
 }
@@ -91,22 +76,6 @@ async function agentHandlesById(db: HausDatabase, serverId: string, ids: string[
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, serverId), inArray(agentsTable.id, [...new Set(ids)])));
     return new Map(agents.map((agent) => [agent.id, agent.handle]));
-}
-
-async function humanHandlesById(db: HausDatabase, serverId: string, ids: string[]) {
-    if (ids.length === 0) {
-        return new Map<string, string | null>();
-    }
-    const humans = await db
-        .select({ handle: serverMembershipsTable.handle, id: serverMembershipsTable.userId })
-        .from(serverMembershipsTable)
-        .where(
-            and(
-                eq(serverMembershipsTable.serverId, serverId),
-                inArray(serverMembershipsTable.userId, [...new Set(ids)])
-            )
-        );
-    return new Map<string, string | null>(humans.map((human) => [human.id, human.handle]));
 }
 
 export async function agentHandle(

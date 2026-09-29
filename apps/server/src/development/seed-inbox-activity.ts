@@ -1,12 +1,13 @@
+import { formatUserReferenceTarget } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatMessagesTable } from '../postgres/schema.ts';
+import { chatMessagesTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { seedAgentTurns } from './seed-agent-turns.ts';
 import { findInboxSeedContext, type InboxSeedContext } from './seed-inbox-context.ts';
 import { appendSeedMessages, backdateSeedHistory } from './seed-inbox-messages.ts';
-import { seedCloudAgentWork, seedInboxAsk, seedStalledClaim } from './seed-inbox-records.ts';
+import { seedCloudAgentWork, seedStalledClaim } from './seed-inbox-records.ts';
 
 /** The oldest Message this seed writes; its nonce is the whole seed's marker. */
 const claimRequestNonce = 'dev-inbox-claim-request';
@@ -16,7 +17,8 @@ const hour = 60 * minute;
 
 /**
  * Gives the demo workspace the activity the human Inbox is a lens over: unread
- * conversations with a last line, two open Asks, a claim an Agent left behind,
+ * conversations with a last line, two Needs you rows (Cove's @mention and
+ * Tiny's DM question), a claim an Agent left behind,
  * one settled Cloud Agent work, and a week of Agent turns. Every row is shaped
  * the way the product writes it, so the page can be judged from a fresh boot
  * without hand-building data.
@@ -48,17 +50,7 @@ export async function seedDevelopmentInboxActivity(
         });
         await seedProductChannelActivity(tx, context, now);
         await seedDirectMessageActivity(tx, context, now);
-        await seedInboxAsk(tx, context, {
-            agentId: context.coveId,
-            chatId: context.onboardingChatId,
-            content: 'Renaming #product to #build would make the channel’s job obvious.',
-            createdAt: before(now, 55 * minute),
-            nonce: 'dev-inbox-ask-rename-product',
-            options: ['Yes, rename it', 'Keep #product, pin a note instead', 'Not now'],
-            summary:
-                'Two agents keep filing build questions in #product. Renaming makes the channel’s job obvious.',
-            title: 'Rename #product to #build?',
-        });
+        await seedCoveMention(tx, context, before(now, 55 * minute));
         await seedAgentTurns(tx, context, now);
     });
 }
@@ -116,10 +108,41 @@ async function seedAllChannelActivity(
 }
 
 /**
- * #product: yesterday's settled Cloud Agent work, Tiny's open question, and its
- * rename nudge. The Ask is appended before the nudge so sequence, clock, and
- * the Chat's last line all agree.
+ * Cove asks the owner by @mention where the work lives (ADR 0037): the Channel
+ * Needs you row. There is no question record; the reply is the answer.
  */
+async function seedCoveMention(tx: HausDatabase, context: InboxSeedContext, at: Date) {
+    const [owner] = await tx
+        .select({ handle: serverMembershipsTable.handle })
+        .from(serverMembershipsTable)
+        .where(
+            and(
+                eq(serverMembershipsTable.serverId, context.serverId),
+                eq(serverMembershipsTable.userId, context.userId)
+            )
+        )
+        .limit(1);
+    const mention = `[@${owner?.handle ?? 'owner'}](${formatUserReferenceTarget(context.userId)})`;
+    await backdateSeedHistory(tx, {
+        chatId: context.onboardingChatId,
+        serverId: context.serverId,
+        until: at,
+    });
+    await appendSeedMessages(tx, {
+        chatId: context.onboardingChatId,
+        messages: [
+            {
+                authorAgentId: context.coveId,
+                content: `${mention} Rename #product to #build? Two agents keep filing build questions in #product, and the new name makes the channel’s job obvious. Reply yes and I’ll rename it; nothing changes until you do.`,
+                createdAt: at,
+                nonce: 'dev-inbox-mention-rename-product',
+            },
+        ],
+        serverId: context.serverId,
+    });
+}
+
+/** #product: yesterday's settled Cloud Agent work and Tiny's rename nudge. */
 async function seedProductChannelActivity(
     tx: HausDatabase,
     context: InboxSeedContext,
@@ -149,20 +172,6 @@ async function seedProductChannelActivity(
         terminalAt: before(now, 25 * hour + 10 * minute),
         title: 'Sidebar Inbox badge',
     });
-    // No options: the answer is an ordering only the human knows, so the peek
-    // offers its composer rather than a row of replies.
-    await seedInboxAsk(tx, context, {
-        agentId: context.tinyId,
-        chatId: context.productChatId,
-        content:
-            'Which of the three stale strings should I fix first? I can fold the rest into the same PR once I know where to start.',
-        createdAt: before(now, 12 * minute),
-        nonce: 'dev-inbox-ask-stale-copy',
-        options: [],
-        summary:
-            'The directory audit found three stale strings; the order matters if you want a single PR.',
-        title: 'Which stale copy should I fix first?',
-    });
     await appendSeedMessages(tx, {
         chatId: context.productChatId,
         messages: [
@@ -178,7 +187,10 @@ async function seedProductChannelActivity(
     });
 }
 
-/** One unread line in each Agent DM, both pointing back at the open work. */
+/**
+ * Blippy's DM: an Agent line the owner already answered, so it is no Needs you
+ * row. Tiny's DM: an unanswered question, the DM Needs you row.
+ */
 async function seedDirectMessageActivity(
     tx: HausDatabase,
     context: InboxSeedContext,
@@ -201,6 +213,12 @@ async function seedDirectMessageActivity(
                 createdAt: blippyAt,
                 nonce: 'dev-inbox-blippy-dm',
             },
+            {
+                authorUserId: context.userId,
+                content: 'Sounds right — badge PR first, then the reminders.',
+                createdAt: new Date(blippyAt.getTime() + 4 * minute),
+                nonce: 'dev-inbox-blippy-dm-reply',
+            },
         ],
         serverId: context.serverId,
     });
@@ -218,6 +236,13 @@ async function seedDirectMessageActivity(
                     'Finished the member-directory audit. Three stale strings, listed in the thread.',
                 createdAt: tinyAt,
                 nonce: 'dev-inbox-tiny-dm',
+            },
+            {
+                authorAgentId: context.tinyId,
+                content:
+                    'Which of the three stale strings should I fix first? I can fold the rest into the same PR once I know where to start.',
+                createdAt: new Date(tinyAt.getTime() + 33 * minute),
+                nonce: 'dev-inbox-tiny-stale-copy',
             },
         ],
         serverId: context.serverId,

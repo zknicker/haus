@@ -7,26 +7,23 @@ import { insertTaskEvent } from './task-events.ts';
 type TaskAssignmentWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 /**
- * Releases task ownership held by one departing actor. The caller owns the
+ * Releases task ownership held by one departing Agent. The caller owns the
  * Server lock, so task writers cannot race this selection or its ordered
  * updates.
  */
 export async function clearTaskAssignments(
     db: TaskAssignmentWriter,
     serverId: string,
-    actor: { id: string; kind: 'agent' | 'user' }
+    agentId: string
 ): Promise<ServerDurableEvent[]> {
-    const assigneeColumn =
-        actor.kind === 'agent'
-            ? messageTasksTable.assigneeAgentId
-            : messageTasksTable.assigneeUserId;
+    const assigneeColumn = messageTasksTable.assigneeAgentId;
     const assigned = await db
         .select({
             chatId: messageTasksTable.chatId,
             messageId: messageTasksTable.messageId,
         })
         .from(messageTasksTable)
-        .where(and(eq(messageTasksTable.serverId, serverId), eq(assigneeColumn, actor.id)))
+        .where(and(eq(messageTasksTable.serverId, serverId), eq(assigneeColumn, agentId)))
         .orderBy(asc(messageTasksTable.messageId));
     const events: ServerDurableEvent[] = [];
 
@@ -35,7 +32,6 @@ export async function clearTaskAssignments(
             .update(messageTasksTable)
             .set({
                 assigneeAgentId: null,
-                assigneeUserId: null,
                 claimedAt: null,
                 updatedAt: sql`now()`,
                 version: sql`${messageTasksTable.version} + 1`,
@@ -44,7 +40,7 @@ export async function clearTaskAssignments(
                 and(
                     eq(messageTasksTable.serverId, serverId),
                     eq(messageTasksTable.messageId, task.messageId),
-                    eq(assigneeColumn, actor.id)
+                    eq(assigneeColumn, agentId)
                 )
             );
         events.push(

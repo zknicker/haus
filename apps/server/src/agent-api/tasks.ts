@@ -69,7 +69,7 @@ async function mutateAgentTask(
             .update(messageTasksTable)
             .set({
                 ...(action === 'unclaim'
-                    ? { assigneeAgentId: null, assigneeUserId: null, claimedAt: null }
+                    ? { assigneeAgentId: null, claimedAt: null }
                     : taskStatusColumns(current, status as TaskStatus)),
                 updatedAt: sql`now()`,
                 version: sql`${messageTasksTable.version} + 1`,

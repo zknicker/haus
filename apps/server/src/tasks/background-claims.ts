@@ -4,7 +4,6 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, messageTasksTable } from '../postgres/schema.ts';
 import { anchorMessageIdForThreadChatId } from '../threads/thread-id.ts';
 import { insertTaskEvent } from './task-events.ts';
-import { loadTaskTierEvidence, taskTierEvidenceFor } from './task-tier.ts';
 
 type TaskWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
@@ -20,8 +19,7 @@ interface RunScope {
  * A background claim is a lock the Agent took to do work inside one turn. A
  * settled run never proves that the work is finished: only the Agent's explicit
  * `done` mutation can close it. Any still-open claim is stamped tracked so a
- * person can see work that outlived the run. An Ask already makes a claim
- * tracked and needs no durable stamp here.
+ * person can see work that outlived the run.
  *
  * Each changed claim emits `task.updated`, as does the liveness edge every
  * settling run crosses, so no client polls for either.
@@ -42,12 +40,8 @@ export async function settleAgentBackgroundClaims(
                 isNull(messageTasksTable.trackedAt)
             )
         );
-    const evidence = await loadTaskTierEvidence(db, scope.serverId, candidates);
     const changed = new Map<string, { chatId: string; messageId: string }>();
     for (const task of candidates) {
-        if (taskTierEvidenceFor(evidence, task.messageId).hasAsk) {
-            continue;
-        }
         await db
             .update(messageTasksTable)
             .set({

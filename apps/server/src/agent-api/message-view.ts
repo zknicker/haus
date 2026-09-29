@@ -1,6 +1,5 @@
 import type { HausAgentMessage, MessageBodyKind } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { readAsksForMessages } from '../asks/ask-shape.ts';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readInlineReplyContexts } from '../chats/reply-context.ts';
 import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
@@ -56,7 +55,6 @@ export async function toAgentMessages(
     // overlapping reads on that one connection deadlocked Agent delivery
     // against the Server row lock its own transaction already held.
     const tasksByMessage = await listMessageTaskMap(db, serverId, messageIds);
-    const asksByMessage = await readAsksForMessages(db, serverId, messageIds);
     const cloudAgentWorkByMessage = await readCloudAgentWorkForMessages(db, serverId, messageIds);
     const createdAgentByMessage = await readCreatedAgentsForMessages(db, serverId, messageIds);
     const agentIds = [
@@ -81,14 +79,7 @@ export async function toAgentMessages(
                       and(eq(agentsTable.serverId, serverId), inArray(agentsTable.id, agentIds))
                   );
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
-    const humanIds = [
-        ...new Set(
-            rows
-                .flatMap((row) => row.authorUserId ?? [])
-                .concat([...tasksByMessage.values()].flatMap((task) => task.assigneeUserId ?? []))
-                .concat([...asksByMessage.values()].map((ask) => ask.addresseeUserId))
-        ),
-    ];
+    const humanIds = [...new Set(rows.flatMap((row) => row.authorUserId ?? []))];
     const humans =
         humanIds.length === 0
             ? []
@@ -117,14 +108,10 @@ export async function toAgentMessages(
         const handle = agent?.handle ?? human?.handle ?? null;
         const label = agent?.displayName ?? human?.displayName ?? 'Human';
         const task = tasksByMessage.get(row.id);
-        const ask = asksByMessage.get(row.id);
         const cloudAgentWork = cloudAgentWorkByMessage.get(row.id);
         const createdAgent = createdAgentByMessage.get(row.id);
         const taskAssigneeAgent = task?.assigneeAgentId
             ? agentById.get(task.assigneeAgentId)
-            : undefined;
-        const taskAssigneeHuman = task?.assigneeUserId
-            ? humanById.get(task.assigneeUserId)
             : undefined;
         return {
             attachments: attachmentsByMessage.get(row.id) ?? [],
@@ -152,17 +139,6 @@ export async function toAgentMessages(
                 type: agent ? 'agent' : 'human',
             },
             sequence: row.sequence,
-            ...(ask
-                ? {
-                      ask: {
-                          addressee_handle: humanById.get(ask.addresseeUserId)?.handle ?? null,
-                          id: ask.id,
-                          options: ask.options,
-                          status: ask.status,
-                          title: ask.title,
-                      },
-                  }
-                : {}),
             ...agentMessageBodies({ cloudAgentWork, createdAgent }),
             ...(task
                 ? {
@@ -172,12 +148,7 @@ export async function toAgentMessages(
                                     handle: taskAssigneeAgent?.handle ?? null,
                                     id: task.assigneeAgentId,
                                 }
-                              : task.assigneeUserId
-                                ? {
-                                      handle: taskAssigneeHuman?.handle ?? null,
-                                      id: task.assigneeUserId,
-                                  }
-                                : null,
+                              : null,
                           claimed_at: task.claimedAt,
                           created_at: task.createdAt,
                           labels: task.labels,

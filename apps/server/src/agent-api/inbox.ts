@@ -166,7 +166,6 @@ export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner
         }
         return [
             {
-                ask: latest.ask ?? null,
                 chatId,
                 cloudAgentResult: group.some((item) => item.cloudAgentWork !== undefined),
                 // Released Computers still read these two; current ones derive them from `target`.

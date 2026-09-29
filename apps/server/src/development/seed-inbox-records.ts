@@ -3,7 +3,6 @@ import { followAgentThread } from '../agent-api/attention.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
-    asksTable,
     chatsTable,
     cloudAgentRunsTable,
     cloudAgentWorkTable,
@@ -15,66 +14,6 @@ import type { InboxSeedContext } from './seed-inbox-context.ts';
 import { appendSeedMessages } from './seed-inbox-messages.ts';
 
 const repository = 'zknicker/haus';
-
-interface SeedAsk {
-    agentId: string;
-    chatId: string;
-    content: string;
-    createdAt: Date;
-    nonce: string;
-    options: string[];
-    summary: string;
-    title: string;
-}
-
-/**
- * One open Ask, written the way `createAsk` writes one: the Agent-authored
- * Message carrying the `ask` body, its deterministic child Thread, the author's
- * follow on that Thread, and the Ask record.
- */
-export async function seedInboxAsk(
-    tx: HausDatabase,
-    context: InboxSeedContext,
-    ask: SeedAsk
-): Promise<void> {
-    const messageId = createOpaqueId('msg');
-    await appendSeedMessages(tx, {
-        chatId: ask.chatId,
-        messages: [
-            {
-                authorAgentId: ask.agentId,
-                bodyKind: 'ask',
-                content: ask.content,
-                createdAt: ask.createdAt,
-                id: messageId,
-                nonce: ask.nonce,
-            },
-        ],
-        serverId: context.serverId,
-    });
-    await ensureThreadRecord(tx, {
-        anchorMessageId: messageId,
-        parentChatId: ask.chatId,
-        serverId: context.serverId,
-    });
-    await followAgentThread(tx, {
-        agentId: ask.agentId,
-        serverId: context.serverId,
-        threadChatId: threadChatIdForAnchor(messageId),
-    });
-    await tx.insert(asksTable).values({
-        addresseeUserId: context.userId,
-        agentId: ask.agentId,
-        chatId: ask.chatId,
-        createdAt: ask.createdAt,
-        id: createOpaqueId('ask'),
-        messageId,
-        options: ask.options,
-        serverId: context.serverId,
-        summary: ask.summary,
-        title: ask.title,
-    });
-}
 
 /**
  * Blippy's claim on a message nobody promoted, stamped tracked the way a run

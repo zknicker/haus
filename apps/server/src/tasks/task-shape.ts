@@ -4,7 +4,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTaskLabelsTable, messageTasksTable, taskLabelsTable } from '../postgres/schema.ts';
 import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 import { loadLiveTaskMessageIds } from './task-liveness.ts';
-import { loadTaskTierEvidence, resolveTaskTier, taskTierEvidenceFor } from './task-tier.ts';
+import { resolveTaskTier } from './task-tier.ts';
 
 export type MessageTaskRow = typeof messageTasksTable.$inferSelect;
 
@@ -84,13 +84,12 @@ export async function projectMessageTasks(
     }
     const messageIds = rows.map((row) => row.messageId);
     const labels = knownLabels ?? (await listTaskLabelMap(db, serverId, messageIds));
-    const evidence = await loadTaskTierEvidence(db, serverId, rows);
     const live = await loadLiveTaskMessageIds(db, serverId, rows);
     return rows.map((row) =>
         toMessageTaskWithDerivation(row, {
             labels: labels.get(row.messageId) ?? [],
             live: live.has(row.messageId),
-            tier: resolveTaskTier(row, taskTierEvidenceFor(evidence, row.messageId)),
+            tier: resolveTaskTier(row),
         })
     );
 }
@@ -101,7 +100,6 @@ export function toMessageTaskWithDerivation(
 ): MessageTask {
     return {
         assigneeAgentId: row.assigneeAgentId,
-        assigneeUserId: row.assigneeUserId,
         chatId: row.chatId,
         claimedAt: row.claimedAt?.toISOString() ?? null,
         createdAt: row.createdAt.toISOString(),

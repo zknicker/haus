@@ -1,13 +1,7 @@
 import type { MessageTask } from '@haus/api';
 
-type TaskOwnership = Pick<MessageTask, 'assigneeAgentId' | 'assigneeUserId'>;
-
-export function taskHasOtherOwnerForUser(task: TaskOwnership, userId: string) {
-    return Boolean(task.assigneeAgentId || (task.assigneeUserId && task.assigneeUserId !== userId));
-}
+type TaskOwnership = Pick<MessageTask, 'assigneeAgentId'>;
 
 export function taskHasOtherOwnerForAgent(task: TaskOwnership, agentId: string) {
-    return Boolean(
-        task.assigneeUserId || (task.assigneeAgentId && task.assigneeAgentId !== agentId)
-    );
+    return Boolean(task.assigneeAgentId && task.assigneeAgentId !== agentId);
 }

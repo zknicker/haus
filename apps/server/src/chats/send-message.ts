@@ -2,7 +2,6 @@ import type { ChatMessageReceipt, ChatSendInput, ServerDurableEvent } from '@hau
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
-import { settleAskForReply } from '../asks/settle-ask.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -27,6 +26,8 @@ import { requireActiveDmPeer } from './active-dm-peer.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
 import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
+import { mentionedUserIds } from './mentioned-user-ids.ts';
+import { readThreadAnchorAuthorUserId } from './message-created-event.ts';
 import { toChatMessage } from './message-shape.ts';
 import {
     InvalidInlineReplyError,
@@ -160,6 +161,7 @@ export async function sendChatMessage(
                 chatId: writeChatId,
                 content: input.content,
                 id: messageId,
+                mentionedUserIds: mentionedUserIds(input.content),
                 nonce: input.nonce,
                 replyRootMessageId: replyParent?.root.id ?? messageId,
                 replyToMessageId: replyParent?.parent.id ?? null,
@@ -211,20 +213,6 @@ export async function sendChatMessage(
                 id: chatEventsTable.id,
             });
 
-        // A reply into an Ask's Thread settles that Ask in this same
-        // transaction. The asking Agent's own reply never settles it.
-        const settledAsk =
-            'chatId' in input && input.thread && thread
-                ? await settleAskForReply(tx, {
-                      anchorMessageId: input.thread.anchorMessageId,
-                      answeredBy: { id: member.id, kind: 'user' },
-                      answerMessageId: message.id,
-                      replySequence: message.sequence,
-                      serverId: input.serverId,
-                      threadChatId: thread.id,
-                  })
-                : null;
-
         // Plan every Agent recipient under its Server-owned attention state in
         // this same transaction. The wire nudge remains separately recoverable.
         const plannedRecipients = await planAgentMessageRecipients(tx, {
@@ -262,17 +250,25 @@ export async function sendChatMessage(
         return {
             events: [
                 {
+                    authorUserId: message.authorUserId,
                     chatId: message.chatId,
                     createdAt: event.createdAt.toISOString(),
                     cursor: event.cursor.toString(),
                     id: event.id,
+                    mentionedUserIds: message.mentionedUserIds,
                     messageId: message.id,
                     parentChatId: thread?.parentChatId ?? null,
+                    replyToAuthorUserId: replyParent?.parent.authorUserId ?? null,
                     sequence: message.sequence,
                     serverId: message.serverId,
+                    threadAnchorAuthorUserId: thread
+                        ? await readThreadAnchorAuthorUserId(tx, {
+                              serverId: input.serverId,
+                              threadChatId: thread.id,
+                          })
+                        : null,
                     type: 'message.created',
                 },
-                ...(settledAsk ? [settledAsk] : []),
             ],
             receipt: {
                 eventCursor: event.cursor.toString(),

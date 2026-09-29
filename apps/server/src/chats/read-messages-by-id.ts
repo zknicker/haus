@@ -19,7 +19,7 @@ import { readInlineReplyContexts } from './reply-context.ts';
  * Reads named Messages the way the Chat transcript reads a page: the same
  * author profile, typed body, cause, attachment, and task projections. Callers
  * that already hold a Message use it to pull in one more a surface needs — the
- * Thread anchor an Inbox Ask row answers, for instance.
+ * anchor a Cloud Agent work row came from, for instance.
  * Authorization belongs to the caller, which is why this takes explicit ids.
  */
 export async function readMessagesById(

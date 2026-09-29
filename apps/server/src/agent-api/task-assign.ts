@@ -2,15 +2,10 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    chatMessagesTable,
-    messageTasksTable,
-    serverMembershipsTable,
-} from '../postgres/schema.ts';
+import { agentsTable, chatMessagesTable, messageTasksTable } from '../postgres/schema.ts';
 import { assignTask, type TaskAssigneeInput, TaskClosedAssignError } from '../tasks/assign-task.ts';
-import { TaskConflictError, TaskNotFoundError } from '../tasks/claim-task.ts';
 import { InvalidTaskAssigneeError } from '../tasks/resolve-task-assignee.ts';
+import { TaskConflictError, TaskNotFoundError } from '../tasks/task-errors.ts';
 import { messageSelection } from './message-view.ts';
 import { resolveAgentTarget } from './resolve-target.ts';
 import { AgentTaskError } from './task-error.ts';
@@ -81,9 +76,9 @@ export async function assignAgentTask(
 }
 
 /**
- * A handle names one active Agent or one active person. Missing, ambiguous,
- * and out-of-Chat handles all answer the same way, so assignment cannot be
- * used to probe who exists.
+ * A handle names one active Agent; only Agents hold tasks (ADR 0037). Missing,
+ * human, and out-of-Chat handles all answer the same way, so assignment cannot
+ * be used to probe who exists.
  */
 async function resolveAssigneeHandle(
     db: HausDatabase,
@@ -102,25 +97,11 @@ async function resolveAssigneeHandle(
             )
         )
         .limit(2);
-    const humans = await db
-        .select({ userId: serverMembershipsTable.userId })
-        .from(serverMembershipsTable)
-        .where(
-            and(
-                eq(serverMembershipsTable.serverId, runner.serverId),
-                eq(serverMembershipsTable.handle, handle),
-                isNull(serverMembershipsTable.revokedAt)
-            )
-        )
-        .limit(2);
     const [agent] = agents;
-    const [human] = humans;
-    if (agents.length + humans.length !== 1) {
+    if (!agent || agents.length !== 1) {
         throw notAssignable(value);
     }
-    return agent
-        ? { agentId: agent.id, kind: 'agent' }
-        : { kind: 'human', userId: human?.userId ?? '' };
+    return { agentId: agent.id };
 }
 
 function notAssignable(value: string) {

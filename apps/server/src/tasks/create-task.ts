@@ -1,10 +1,11 @@
 import type { MessageTask, ServerDurableEvent } from '@haus/api';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import { findChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
+import { requireChatWriteAccess } from '../chats/chat-access.ts';
+import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -13,14 +14,12 @@ import {
     chatMessagesTable,
     chatsTable,
     messageTasksTable,
-    serverMembershipsTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { TaskNotFoundError } from './claim-task.ts';
 import { UntaskableMessageError } from './promote-task.ts';
-import { InvalidTaskAssigneeError } from './resolve-task-assignee.ts';
+import { TaskNotFoundError } from './task-errors.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
@@ -35,7 +34,6 @@ export async function createTask(
     db: HausDatabase,
     member: HausUser | null,
     input: {
-        assigneeUserId?: string;
         chatId: string;
         content: string;
         nonce: string;
@@ -49,23 +47,13 @@ export async function createTask(
             throw new TaskNotFoundError();
         }
 
-        const membershipIds = [
-            ...new Set(
-                [member.id, input.assigneeUserId].filter(
-                    (userId): userId is string => userId !== undefined
-                )
-            ),
-        ].sort();
-        for (const userId of membershipIds) {
-            await tx.execute(sql`
-                select user_id from server_memberships
-                where server_id = ${input.serverId}
-                  and user_id = ${userId}
-                  and revoked_at is null
-                for update
-            `);
-        }
-        // Assigning at creation is member-level, like assigning afterwards.
+        await tx.execute(sql`
+            select user_id from server_memberships
+            where server_id = ${input.serverId}
+              and user_id = ${member.id}
+              and revoked_at is null
+            for update
+        `);
         await requireServerMembership(tx, member, input.serverId);
         await tx.execute(sql`
             select id from chats
@@ -98,25 +86,6 @@ export async function createTask(
             return { events: [], idempotent: true, task, wakes: [] };
         }
         await requireActiveDmPeer(tx, chat);
-        if (input.assigneeUserId) {
-            const [active] = await tx
-                .select({ userId: serverMembershipsTable.userId })
-                .from(serverMembershipsTable)
-                .where(
-                    and(
-                        eq(serverMembershipsTable.serverId, input.serverId),
-                        eq(serverMembershipsTable.userId, input.assigneeUserId),
-                        isNull(serverMembershipsTable.revokedAt)
-                    )
-                )
-                .limit(1);
-            if (!(active && (await findChatAccess(tx, input.assigneeUserId, input)))) {
-                throw new InvalidTaskAssigneeError(
-                    'The assignee must be an active Server member with access to the parent Chat.'
-                );
-            }
-        }
-
         const [numberedChat] = await tx
             .update(chatsTable)
             .set({
@@ -140,23 +109,21 @@ export async function createTask(
                 chatId: input.chatId,
                 content: input.content,
                 id: createOpaqueId('msg'),
+                mentionedUserIds: mentionedUserIds(input.content),
                 nonce: input.nonce,
                 sequence: numberedChat.messageSequence,
                 serverId: input.serverId,
             })
             .returning();
 
-        const selfClaim = input.assigneeUserId === member.id;
         await tx.insert(messageTasksTable).values({
-            assigneeUserId: input.assigneeUserId,
             chatId: input.chatId,
-            claimedAt: selfClaim ? sql`now()` : null,
             createdByUserId: member.id,
             messageId: message.id,
             number: numberedChat.taskNumber,
             origin: 'composed',
             serverId: input.serverId,
-            status: selfClaim ? 'in_progress' : 'todo',
+            status: 'todo',
         });
 
         const cursor = await allocateEventCursor(tx, input.serverId);
@@ -178,14 +145,18 @@ export async function createTask(
         }
 
         const messageEvent: ServerDurableEvent = {
+            authorUserId: message.authorUserId,
             chatId: input.chatId,
             createdAt: eventRow.createdAt.toISOString(),
             cursor: cursor.toString(),
             id: eventRow.id,
+            mentionedUserIds: message.mentionedUserIds,
             messageId: message.id,
             parentChatId: null,
+            replyToAuthorUserId: null,
             sequence: message.sequence,
             serverId: input.serverId,
+            threadAnchorAuthorUserId: null,
             type: 'message.created',
         };
         const taskEvent = await insertTaskEvent(tx, {

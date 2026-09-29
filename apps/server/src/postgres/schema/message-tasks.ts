@@ -19,7 +19,7 @@ import { taskLabelsTable } from './task-labels.ts';
 export const messageTasksTable = pgTable(
     'message_tasks',
     {
-        assigneeUserId: text('assignee_user_id'),
+        /** Tasks are Agent work (ADR 0037): only an Agent ever holds one. */
         assigneeAgentId: text('assignee_agent_id'),
         chatId: text('chat_id').notNull(),
         claimedAt: timestamp('claimed_at', { withTimezone: true }),
@@ -76,11 +76,6 @@ export const messageTasksTable = pgTable(
             name: 'message_tasks_creator_agent_fk',
         }),
         foreignKey({
-            columns: [table.serverId, table.assigneeUserId],
-            foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
-            name: 'message_tasks_assignee_membership_fk',
-        }),
-        foreignKey({
             columns: [table.serverId, table.assigneeAgentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
             name: 'message_tasks_assignee_agent_fk',
@@ -88,10 +83,6 @@ export const messageTasksTable = pgTable(
         check(
             'message_tasks_creator_shape',
             sql`num_nonnulls(${table.createdByUserId}, ${table.createdByAgentId}) = 1`
-        ),
-        check(
-            'message_tasks_assignee_shape',
-            sql`num_nonnulls(${table.assigneeUserId}, ${table.assigneeAgentId}) <= 1`
         ),
         check('message_tasks_positive_number', sql`${table.number} > 0`),
         check('message_tasks_positive_version', sql`${table.version} > 0`),
@@ -106,7 +97,7 @@ export const messageTasksTable = pgTable(
         check('message_tasks_origin', sql`${table.origin} in ('claimed', 'composed', 'converted')`),
         check(
             'message_tasks_claim_shape',
-            sql`${table.claimedAt} is null or num_nonnulls(${table.assigneeUserId}, ${table.assigneeAgentId}) = 1`
+            sql`${table.claimedAt} is null or ${table.assigneeAgentId} is not null`
         ),
         index('message_tasks_chat_status_idx').on(table.serverId, table.chatId, table.status),
         // Every Agent turn settles by asking for that Agent's open claims. The

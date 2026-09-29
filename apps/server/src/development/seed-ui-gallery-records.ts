@@ -1,5 +1,6 @@
 import {
     type CloudAgentStatus,
+    formatUserReferenceTarget,
     isTerminalCloudAgentStatus,
     type MessageTask,
     type TaskOrigin,
@@ -8,7 +9,6 @@ import { eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
-    asksTable,
     chatsTable,
     cloudAgentRunsTable,
     cloudAgentWorkTable,
@@ -30,7 +30,7 @@ export async function galleryMessage(
     db: HausDatabase,
     context: GalleryContext,
     content: string,
-    bodyKind: 'text' | 'ask' | 'cloud-agent-work' = 'text'
+    bodyKind: 'text' | 'cloud-agent-work' = 'text'
 ) {
     const id = createOpaqueId('msg');
     await appendSeedMessages(db, {
@@ -91,18 +91,21 @@ export async function galleryTask(
     });
 }
 
-export async function galleryAsk(
+/**
+ * An Agent asking the gallery's human by @mention (ADR 0037). An answered one
+ * carries the human's reply in the Thread on it (or in the same Thread when it
+ * is already inside one), which clears it from Needs you.
+ */
+export async function galleryMention(
     db: HausDatabase,
     context: GalleryContext,
-    input: {
-        content: string;
-        answered: boolean;
-        inThread?: boolean;
-        options?: string[];
-        discussion?: boolean;
-    }
+    input: { content: string; answered: boolean; inThread?: boolean; discussion?: boolean }
 ) {
-    const messageId = await galleryMessage(db, context, input.content, 'ask');
+    const mention = `[@you](${formatUserReferenceTarget(context.userId)})`;
+    const messageId = await galleryMessage(db, context, `${mention} ${input.content}`);
+    if (!(input.discussion || input.answered)) {
+        return messageId;
+    }
     const thread = input.inThread ? context : await galleryThread(db, context, messageId);
     if (input.discussion) {
         await galleryMessage(
@@ -111,9 +114,8 @@ export async function galleryAsk(
             'I recommend the smaller change. This is still waiting for your answer.'
         );
     }
-    let answerMessageId: string | null = null;
     if (input.answered) {
-        answerMessageId = createOpaqueId('msg');
+        const answerMessageId = createOpaqueId('msg');
         await appendSeedMessages(db, {
             serverId: context.serverId,
             chatId: thread.chatId,
@@ -128,21 +130,6 @@ export async function galleryAsk(
             ],
         });
     }
-    await db.insert(asksTable).values({
-        id: createOpaqueId('ask'),
-        serverId: context.serverId,
-        chatId: context.chatId,
-        messageId,
-        agentId: context.agentId,
-        addresseeUserId: context.userId,
-        title: input.content,
-        summary: 'UI gallery sample decision. Replies here are real messages.',
-        options: input.options ?? ['Yes, go ahead', 'Keep it as it is'],
-        status: input.answered ? 'answered' : 'open',
-        answerMessageId,
-        answeredAt: input.answered ? context.now : null,
-        answeredByUserId: input.answered ? context.userId : null,
-    });
     return messageId;
 }
 

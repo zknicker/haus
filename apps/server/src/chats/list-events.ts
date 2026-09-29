@@ -1,11 +1,15 @@
 import type { ServerDurableEvent } from '@haus/api';
 import { and, eq, gt, or, type SQL, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatEventsTable, chatsTable } from '../postgres/schema.ts';
+import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { visibleChats } from './chat-visibility.ts';
 import type { ChatLifecycleAction } from './lifecycle-events.ts';
+
+const replyParentMessages = alias(chatMessagesTable, 'reply_parent_message');
+const threadAnchorMessages = alias(chatMessagesTable, 'thread_anchor_message');
 
 export async function listChatEvents(
     db: HausDatabase,
@@ -20,7 +24,6 @@ export async function listChatEvents(
 
     const rows = await db
         .select({
-            askId: chatEventsTable.askId,
             chatAction: chatEventsTable.chatAction,
             chatId: chatEventsTable.chatId,
             cloudAgentWorkId: chatEventsTable.cloudAgentWorkId,
@@ -29,12 +32,16 @@ export async function listChatEvents(
             id: chatEventsTable.id,
             labelId: chatEventsTable.labelId,
             lifecycleChatId: chatEventsTable.lifecycleChatId,
+            messageAuthorUserId: chatMessagesTable.authorUserId,
             messageId: chatEventsTable.messageId,
+            messageMentionedUserIds: chatMessagesTable.mentionedUserIds,
             parentChatId: chatsTable.parentChatId,
             reminderAction: chatEventsTable.reminderAction,
             reminderId: chatEventsTable.reminderId,
+            replyToAuthorUserId: replyParentMessages.authorUserId,
             sequence: chatEventsTable.sequence,
             serverId: chatEventsTable.serverId,
+            threadAnchorAuthorUserId: threadAnchorMessages.authorUserId,
             type: chatEventsTable.type,
         })
         .from(chatEventsTable)
@@ -43,6 +50,32 @@ export async function listChatEvents(
             and(
                 eq(chatsTable.serverId, chatEventsTable.serverId),
                 eq(chatsTable.id, chatEventsTable.chatId)
+            )
+        )
+        .leftJoin(
+            chatMessagesTable,
+            and(
+                eq(chatEventsTable.type, 'message.created'),
+                eq(chatMessagesTable.serverId, chatEventsTable.serverId),
+                eq(chatMessagesTable.chatId, chatEventsTable.chatId),
+                eq(chatMessagesTable.id, chatEventsTable.messageId)
+            )
+        )
+        .leftJoin(
+            replyParentMessages,
+            and(
+                eq(replyParentMessages.serverId, chatMessagesTable.serverId),
+                eq(replyParentMessages.chatId, chatMessagesTable.chatId),
+                eq(replyParentMessages.id, chatMessagesTable.replyToMessageId)
+            )
+        )
+        .leftJoin(
+            threadAnchorMessages,
+            and(
+                eq(chatEventsTable.type, 'message.created'),
+                eq(threadAnchorMessages.serverId, chatsTable.serverId),
+                eq(threadAnchorMessages.chatId, chatsTable.parentChatId),
+                eq(threadAnchorMessages.id, chatsTable.anchorMessageId)
             )
         )
         .where(
@@ -60,7 +93,6 @@ export async function listChatEvents(
                             // Participant-gated like live delivery; the operator-scoped
                             // reminder lane (reminder.changes) owns cross-chat replay.
                             eq(chatEventsTable.type, 'reminder.changed'),
-                            eq(chatEventsTable.type, 'ask.updated'),
                             eq(chatEventsTable.type, 'cloud-agent-work.updated'),
                             eq(chatEventsTable.type, 'message.created'),
                             eq(chatEventsTable.type, 'message.reaction.updated'),
@@ -112,18 +144,6 @@ export async function listChatEvents(
             };
         }
 
-        if (event.type === 'ask.updated') {
-            return {
-                ...common,
-                askId: event.askId as string,
-                chatId: event.chatId as string,
-                messageId: event.messageId as string,
-                parentChatId: event.parentChatId,
-                sequence: event.sequence,
-                type: 'ask.updated' as const,
-            };
-        }
-
         if (event.type === 'cloud-agent-work.updated') {
             return {
                 ...common,
@@ -136,7 +156,22 @@ export async function listChatEvents(
             };
         }
 
-        if (event.type === 'message.created' || event.type === 'message.reaction.updated') {
+        if (event.type === 'message.created') {
+            return {
+                ...common,
+                authorUserId: event.messageAuthorUserId,
+                chatId: event.chatId as string,
+                mentionedUserIds: event.messageMentionedUserIds ?? [],
+                messageId: event.messageId as string,
+                parentChatId: event.parentChatId,
+                replyToAuthorUserId: event.replyToAuthorUserId,
+                sequence: event.sequence,
+                threadAnchorAuthorUserId: event.threadAnchorAuthorUserId,
+                type: event.type,
+            };
+        }
+
+        if (event.type === 'message.reaction.updated') {
             return {
                 ...common,
                 chatId: event.chatId as string,

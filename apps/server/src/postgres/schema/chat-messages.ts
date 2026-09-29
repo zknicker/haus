@@ -37,6 +37,11 @@ export const chatMessagesTable = pgTable(
         deliveryRouting: bunJsonb('delivery_routing').$type<MessageRoutingAudit>(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         id: text('id').primaryKey(),
+        /**
+         * Human user ids this Message's content `user://` mentions (ADR 0037),
+         * written on every send path from `mentionedUserIds`.
+         */
+        mentionedUserIds: text('mentioned_user_ids').array().notNull().default(sql`'{}'::text[]`),
         nonce: text('nonce').notNull(),
         /** Direct parent of an inline reply; null for a top-level message. */
         replyToMessageId: text('reply_to_message_id'),
@@ -88,7 +93,7 @@ export const chatMessagesTable = pgTable(
         check('chat_messages_positive_sequence', sql`${table.sequence} > 0`),
         check(
             'chat_messages_body_kind',
-            sql`${table.bodyKind} in ('text', 'ask', 'cloud-agent-work', 'agent-created')`
+            sql`${table.bodyKind} in ('text', 'cloud-agent-work', 'agent-created')`
         ),
         // Every durable Chat message is human-readable, so every row has a
         // human or an Agent author. Agent-only deliveries ride the agent inbox.
@@ -122,5 +127,16 @@ export const chatMessagesTable = pgTable(
             table.sequence
         ),
         index('chat_messages_search_idx').using('gin', table.searchVector),
+        index('chat_messages_mentioned_users_idx').using('gin', table.mentionedUserIds),
+        // Needs you reads the viewer's own latest Message per Chat and their
+        // replies after an addressing Message; both are range reads here.
+        index('chat_messages_author_user_idx')
+            .on(table.serverId, table.chatId, table.authorUserId, table.sequence)
+            .where(sql`${table.authorUserId} is not null`),
+        // Needs you reads a Chat's inline replies since Done to find replies
+        // to the viewer's own Messages.
+        index('chat_messages_inline_reply_idx')
+            .on(table.serverId, table.chatId, table.sequence)
+            .where(sql`${table.replyToMessageId} is not null`),
     ]
 );

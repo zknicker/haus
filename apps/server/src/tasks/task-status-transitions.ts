@@ -19,7 +19,6 @@ const taskStatusTransitions: Record<TaskStatus, readonly TaskStatus[]> = {
 
 interface TaskStatusState {
     assigneeAgentId: null | string;
-    assigneeUserId: null | string;
     claimedAt: Date | null | string;
     status: TaskStatus;
 }
@@ -41,7 +40,7 @@ export function taskStatusChangeError(
         return `A task cannot move from ${task.status} to ${next}.`;
     }
     if (next === 'in_progress' && (task.status === 'todo' || task.status === 'closed')) {
-        if (!(task.assigneeAgentId || task.assigneeUserId)) {
+        if (!task.assigneeAgentId) {
             return 'Claim the task before moving it to in_progress.';
         }
         if (task.status === 'todo' && task.claimedAt !== null) {
@@ -61,7 +60,7 @@ export function taskStatusColumns(task: TaskStatusState, next: TaskStatus) {
     const starts =
         next === 'in_progress' &&
         (task.status === 'todo' || task.status === 'closed') &&
-        Boolean(task.assigneeAgentId || task.assigneeUserId);
+        Boolean(task.assigneeAgentId);
     return {
         status: next,
         ...(starts ? { claimedAt: sql`now()` } : {}),

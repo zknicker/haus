@@ -6,7 +6,6 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';
-import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
     findCurrentMembership,
@@ -23,7 +22,6 @@ export interface RemovedServerMember {
     /** Chats the human just lost, so live surfaces can drop volatile state. */
     departedChatIds: string[];
     serverId: string;
-    taskEvents: Awaited<ReturnType<typeof clearTaskAssignments>>;
     userId: string;
 }
 
@@ -93,12 +91,8 @@ export async function removeServerMember(
                 )
             );
 
-        const taskEvents = await clearTaskAssignments(tx, server.id, {
-            id: target.userId,
-            kind: 'user',
-        });
         const departedChatIds = await clearPersonalWork(tx, server.id, target.userId);
 
-        return { departedChatIds, serverId: server.id, taskEvents, userId: target.userId };
+        return { departedChatIds, serverId: server.id, userId: target.userId };
     });
 }

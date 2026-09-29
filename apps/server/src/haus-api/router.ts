@@ -1,5 +1,4 @@
 import { agentRouter } from './agent/router.ts';
-import { askRouter } from './ask/router.ts';
 import { attachmentRouter } from './attachment/router.ts';
 import { automationRouter } from './automation/router.ts';
 import { avatarRouter } from './avatar/router.ts';
@@ -9,6 +8,7 @@ import { cloudAgentProviderRouter } from './cloud-agent-provider/router.ts';
 import { cloudAgentWorkRouter } from './cloud-agent-work/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { devRouter } from './dev/router.ts';
+import { inboxRouter } from './inbox/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
@@ -26,7 +26,6 @@ import { createRouter } from './trpc.ts';
  */
 export const hausRouter = createRouter({
     agent: agentRouter,
-    ask: askRouter,
     attachment: attachmentRouter,
     automation: automationRouter,
     avatar: avatarRouter,
@@ -36,6 +35,7 @@ export const hausRouter = createRouter({
     cloudAgentWork: cloudAgentWorkRouter,
     computer: computerRouter,
     dev: devRouter,
+    inbox: inboxRouter,
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,

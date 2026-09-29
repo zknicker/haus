@@ -1,5 +1,4 @@
 import type { MessageBody } from '@haus/api';
-import { readAsksForMessages } from '../asks/ask-shape.ts';
 import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
@@ -14,15 +13,11 @@ export async function readMessageBodies(
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, MessageBody>> {
-    const [asks, cloudAgentWork, createdAgents] = await Promise.all([
-        readAsksForMessages(db, serverId, messageIds),
+    const [cloudAgentWork, createdAgents] = await Promise.all([
         readCloudAgentWorkForMessages(db, serverId, messageIds),
         readCreatedAgentsForMessages(db, serverId, messageIds),
     ]);
     return new Map<string, MessageBody>([
-        ...[...asks].map(
-            ([messageId, ask]) => [messageId, { ask, kind: 'ask' }] as [string, MessageBody]
-        ),
         ...[...cloudAgentWork].map(
             ([messageId, work]) =>
                 [messageId, { kind: 'cloud-agent-work', work }] as [string, MessageBody]

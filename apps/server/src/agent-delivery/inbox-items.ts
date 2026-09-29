@@ -131,14 +131,6 @@ function messageFacets(apiMessage: HausAgentMessage | undefined) {
     }
     return {
         message: apiMessage,
-        ...(apiMessage.ask
-            ? {
-                  ask: {
-                      addresseeHandle: apiMessage.ask.addressee_handle,
-                      status: apiMessage.ask.status,
-                  },
-              }
-            : {}),
         ...(apiMessage.reply ? { reply: apiMessage.reply } : {}),
         ...(apiMessage.sender.description
             ? { senderDescription: apiMessage.sender.description }

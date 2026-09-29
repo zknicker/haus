@@ -156,7 +156,6 @@ async function claimTaskRow(tx: HausDatabase, runner: ResolvedRunner, messageId:
         .update(messageTasksTable)
         .set({
             assigneeAgentId: runner.agentId,
-            assigneeUserId: null,
             claimedAt: sql`now()`,
             status: current.status === 'todo' ? 'in_progress' : current.status,
             updatedAt: sql`now()`,

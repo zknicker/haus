@@ -11,6 +11,7 @@ import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.t
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { requireChatWritable } from './chat-access.ts';
+import { mentionedUserIds } from './mentioned-user-ids.ts';
 import { insertMessageCreatedEvent } from './message-created-event.ts';
 import { resolveInlineReplyParent } from './reply-context.ts';
 
@@ -121,6 +122,7 @@ export async function writeAgentAuthoredMessage(
             chatId: plan.chatId,
             content: input.content,
             id: createOpaqueId('msg'),
+            mentionedUserIds: mentionedUserIds(input.content),
             nonce: input.nonce,
             replyToMessageId: reply?.parent.id ?? null,
             replyRootMessageId: reply?.root.id ?? null,
@@ -185,6 +187,7 @@ export async function writeAgentAuthoredMessage(
         event: await insertMessageCreatedEvent(db, {
             chat: plan.chat,
             message,
+            replyToAuthorUserId: reply?.parent.authorUserId ?? null,
             serverId: runner.serverId,
         }),
         messageId: message.id,

@@ -3,9 +3,7 @@ import type { CloudAgentWork, CreatedAgentSummary, HausAgentMessage } from '@hau
 type AgentMessageBodies = Pick<HausAgentMessage, 'agent_created' | 'cloud_agent_work'>;
 
 /**
- * The typed Message bodies in the Agent API's own snake_case wire shape. Ask
- * bodies stay in the projection itself because they need the human directory
- * the projection already loaded.
+ * The typed Message bodies in the Agent API's own snake_case wire shape.
  */
 export function agentMessageBodies(input: {
     cloudAgentWork: CloudAgentWork | undefined;

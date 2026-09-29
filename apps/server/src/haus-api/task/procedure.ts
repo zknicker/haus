@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server';
 import { TaskClosedAssignError } from '../../tasks/assign-task.ts';
-import { TaskConflictError, TaskNotFoundError } from '../../tasks/claim-task.ts';
 import { TaskMessageNotFoundError, UntaskableMessageError } from '../../tasks/promote-task.ts';
 import { InvalidTaskAssigneeError } from '../../tasks/resolve-task-assignee.ts';
+import { TaskConflictError, TaskNotFoundError } from '../../tasks/task-errors.ts';
 import { TaskLabelAdminRequiredError, TaskLabelConflictError } from '../../tasks/task-labels.ts';
 import { chatProcedure } from '../chat/procedure.ts';
 

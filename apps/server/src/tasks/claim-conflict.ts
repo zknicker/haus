@@ -1,7 +1,7 @@
 import type { TaskClaimConflict } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, type messageTasksTable, serverMembershipsTable } from '../postgres/schema.ts';
+import { agentsTable, type messageTasksTable } from '../postgres/schema.ts';
 
 type ClaimConflictReader = Pick<HausDatabase, 'select'>;
 type TaskRow = typeof messageTasksTable.$inferSelect;
@@ -53,19 +53,6 @@ async function resolveHolder(
             )
             .limit(1);
         return { name: agent?.handle ?? null, type: 'agent' };
-    }
-    if (task.assigneeUserId) {
-        const [human] = await db
-            .select({ handle: serverMembershipsTable.handle })
-            .from(serverMembershipsTable)
-            .where(
-                and(
-                    eq(serverMembershipsTable.serverId, serverId),
-                    eq(serverMembershipsTable.userId, task.assigneeUserId)
-                )
-            )
-            .limit(1);
-        return { name: human?.handle ?? null, type: 'user' };
     }
     return null;
 }

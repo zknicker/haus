@@ -5,7 +5,6 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { TaskConflictError, TaskNotFoundError } from './claim-task.ts';
 import { resolveTaskAssignee } from './resolve-task-assignee.ts';
 import {
     lockTaskMemberships,
@@ -14,6 +13,7 @@ import {
     taskActorHandle,
 } from './task-actor.ts';
 import { deliverTaskAssignment } from './task-assignment-delivery.ts';
+import { TaskConflictError, TaskNotFoundError } from './task-errors.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
@@ -24,10 +24,8 @@ export class TaskClosedAssignError extends Error {
     }
 }
 
-export type TaskAssigneeInput =
-    | { agentId: string; kind: 'agent' }
-    | { kind: 'human'; userId: string }
-    | null;
+/** Only an Agent holds a task (ADR 0037); null unassigns. */
+export type TaskAssigneeInput = { agentId: string } | null;
 
 /**
  * Assignment updates the task and hands the assignee a typed delivery, so it
@@ -43,8 +41,8 @@ export interface TaskAssignResult {
 /**
  * Moves who a task belongs to, and nothing else: status never changes and any
  * claim stamp clears, so the new owner still claims before starting. Any
- * member who can write in the task's Chat may assign it to any member of that
- * Chat, including over someone else's hold (Raft parity). `expectedVersion`
+ * member who can write in the task's Chat may assign it to any Agent of that
+ * Chat, including over another Agent's hold (Raft parity). `expectedVersion`
  * is optional for Agents, whose `--expected-revision` is opt-in.
  */
 export async function assignTask(
@@ -69,7 +67,6 @@ export async function assignTask(
         }
         await lockTaskMemberships(tx, input.serverId, [
             ...(actor.kind === 'human' ? [actor.member.id] : []),
-            ...(input.assignee?.kind === 'human' ? [input.assignee.userId] : []),
         ]);
         if (actor.kind === 'human') {
             await requireServerMembership(tx, actor.member, input.serverId);
@@ -108,10 +105,7 @@ export async function assignTask(
         });
         // Re-assigning the current owner is success, not a version bump that
         // would invalidate everyone else's expected revision.
-        if (
-            current.assigneeAgentId === assignee.agentId &&
-            current.assigneeUserId === assignee.userId
-        ) {
+        if (current.assigneeAgentId === assignee.agentId) {
             return { events: [], task: current, wakes: [] };
         }
 
@@ -119,9 +113,8 @@ export async function assignTask(
             .update(messageTasksTable)
             .set({
                 assigneeAgentId: assignee.agentId,
-                assigneeUserId: assignee.userId,
                 // Assignment reserves; it never carries a claim. The new owner
-                // takes the lock themselves before starting work.
+                // takes the lock itself before starting work.
                 claimedAt: null,
                 updatedAt: sql`now()`,
                 version: sql`${messageTasksTable.version} + 1`,

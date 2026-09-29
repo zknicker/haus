@@ -1,5 +1,4 @@
 import { publishChatComposition } from '../../chats/composition-hub.ts';
-import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { createOpaqueId } from '../../postgres/opaque-id.ts';
 import type { RemovedServerMember } from '../../servers/remove-member.ts';
 import { emitServerUpdated } from '../server-events.ts';
@@ -15,9 +14,6 @@ import { emitServerUpdated } from '../server-events.ts';
  * signal cannot leave a former member composing forever.
  */
 export function announceDeparture(departure: RemovedServerMember): void {
-    for (const event of departure.taskEvents) {
-        emitDurableChatEvent({ audienceUserId: null, event });
-    }
     for (const chatId of departure.departedChatIds) {
         publishChatComposition({
             actorUserId: departure.userId,

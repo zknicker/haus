@@ -8,7 +8,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { findInboxSeedContext } from './seed-inbox-context.ts';
 import {
     type GalleryContext,
-    galleryAsk,
+    galleryMention,
     galleryMessage,
     galleryTask,
     galleryThread,
@@ -59,38 +59,33 @@ export async function seedDevelopmentUiGallery(
         await galleryMessage(
             tx,
             gallery,
-            'UI gallery: compact attachments and populated threads. Toggle “Show tasks in chat” to reveal background claims. Open threads to compare inline asks and full cloud-work cards. All cloud runs here are static samples on an unattached Computer; no provider links or jobs are created.'
+            'UI gallery: compact attachments and populated threads. Toggle “Show tasks in chat” to reveal background claims. Open threads to compare inline @mentions and full cloud-work cards. All cloud runs here are static samples on an unattached Computer; no provider links or jobs are created.'
         );
-        await seedAskExamples(tx, gallery);
+        await seedMentionExamples(tx, gallery);
         await seedTaskExamples(tx, gallery);
         await seedCloudExamples(tx, gallery);
         await seedCombinedExamples(tx, gallery);
     });
 }
 
-async function seedAskExamples(db: HausDatabase, context: GalleryContext) {
-    await galleryAsk(db, context, {
-        content: 'Open ask · Should we rename #product to #build?',
+async function seedMentionExamples(db: HausDatabase, context: GalleryContext) {
+    await galleryMention(db, context, {
+        content: 'Open @mention · Should we rename #product to #build?',
         answered: false,
     });
-    await galleryAsk(db, context, {
-        content: 'Open question · What should we polish next?',
-        answered: false,
-        options: [],
-    });
-    await galleryAsk(db, context, {
-        content: 'Open ask with discussion · Should we simplify the welcome screen?',
+    await galleryMention(db, context, {
+        content: 'Open @mention with discussion · Should we simplify the welcome screen?',
         answered: false,
         discussion: true,
     });
-    await galleryAsk(db, context, {
-        content: 'Answered ask · The question remains, but its Ask marker is gone.',
+    await galleryMention(db, context, {
+        content: 'Answered @mention · The reply in its Thread cleared it from Needs you.',
         answered: true,
     });
     const plain = await galleryMessage(
         db,
         context,
-        'Ordinary thread · A discussion with no task, ask, or cloud work.'
+        'Ordinary thread · A discussion with no task, @mention, or cloud work.'
     );
     await galleryMessage(
         db,
@@ -175,7 +170,7 @@ async function seedCombinedExamples(db: HausDatabase, context: GalleryContext) {
     const anchor = await galleryMessage(
         db,
         context,
-        'Task + multiple cloud runs + inline asks · Open this thread to see the full combination.'
+        'Task + multiple cloud runs + inline @mentions · Open this thread to see the full combination.'
     );
     await galleryTask(db, context, anchor, 'converted', 'in_review');
     const thread = await galleryThread(db, context, anchor);
@@ -185,24 +180,19 @@ async function seedCombinedExamples(db: HausDatabase, context: GalleryContext) {
         withBranch: true,
     });
     await galleryWork(db, thread, { title: 'Accessibility pass · Running', status: 'running' });
-    await galleryAsk(db, thread, {
-        content: 'Answered inline ask · This message has no Ask marker.',
+    await galleryMention(db, thread, {
+        content: 'Answered inline @mention · Your reply follows it in this Thread.',
         answered: true,
         inThread: true,
     });
-    await galleryAsk(db, thread, {
-        content: 'Open inline ask · Is the new focus order right?',
+    await galleryMention(db, thread, {
+        content: 'Open inline @mention · Is the new focus order right?',
         answered: false,
         inThread: true,
     });
-    const openTaskAsk = await galleryAsk(db, context, {
-        content: 'Task + open Ask · Should I ship the new sidebar?',
+    const taskMention = await galleryMention(db, context, {
+        content: 'Task + @mention · Should I ship the new sidebar?',
         answered: false,
     });
-    await galleryTask(db, context, openTaskAsk, 'converted', 'in_review');
-    const answeredTaskAsk = await galleryAsk(db, context, {
-        content: 'Task + answered Ask · Only task metadata and replies remain.',
-        answered: true,
-    });
-    await galleryTask(db, context, answeredTaskAsk, 'converted', 'done');
+    await galleryTask(db, context, taskMention, 'converted', 'in_review');
 }

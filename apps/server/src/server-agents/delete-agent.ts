@@ -109,10 +109,7 @@ export async function deleteAgent(
                 )
             );
         await tx.delete(agentDeliveryTable).where(owner);
-        const taskEvents = await clearTaskAssignments(tx, input.serverId, {
-            id: agent.id,
-            kind: 'agent',
-        });
+        const taskEvents = await clearTaskAssignments(tx, input.serverId, agent.id);
         await tx
             .update(agentsTable)
             .set({

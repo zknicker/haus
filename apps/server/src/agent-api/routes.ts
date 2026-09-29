@@ -6,7 +6,6 @@ import { setAgentInlineReplyFollow } from '../chats/reply-follow-route.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
-import { registerAgentAskRoutes } from './ask-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -83,7 +82,6 @@ export function registerAgentApiRoutes(
         db: options.db,
         postCommitWork: options.postCommitWork,
     });
-    registerAgentAskRoutes(app, options);
     registerAgentChannelRoutes(app, { db: options.db });
     registerAgentCloudAgentRoutes(app, {
         agentDelivery: options.agentDelivery,

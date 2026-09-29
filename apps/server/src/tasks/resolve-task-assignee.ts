@@ -1,12 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import { findChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    channelAgentParticipantsTable,
-    chatsTable,
-    serverMembershipsTable,
-} from '../postgres/schema.ts';
+import { agentsTable, channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts';
 
 export class InvalidTaskAssigneeError extends Error {
     constructor(message: string) {
@@ -19,81 +13,51 @@ export interface ResolvedTaskAssignee {
     agentId: null | string;
     /** The assignee's handle, for the assignment receipt. */
     handle: null | string;
-    userId: null | string;
 }
 
 /**
- * Validates who a task may be handed to. An Agent must be active and already a
- * participant of the parent Chat — it has to be able to read the conversation
- * to do the work — and a human must be an active member with Chat access.
+ * Validates who a task may be handed to. Only an Agent holds a task (ADR
+ * 0037), and it must be active and already a participant of the parent Chat —
+ * it has to be able to read the conversation to do the work.
  */
 export async function resolveTaskAssignee(
     db: HausDatabase,
     input: {
-        assignee: { agentId: string; kind: 'agent' } | { kind: 'human'; userId: string } | null;
+        assignee: { agentId: string } | null;
         chatId: string;
         serverId: string;
     }
 ): Promise<ResolvedTaskAssignee> {
     if (!input.assignee) {
-        return { agentId: null, handle: null, userId: null };
+        return { agentId: null, handle: null };
     }
 
-    if (input.assignee.kind === 'agent') {
-        const agentId = input.assignee.agentId;
-        const [agent] = await db
-            .select({ handle: agentsTable.handle })
-            .from(agentsTable)
-            .where(
-                and(
-                    eq(agentsTable.serverId, input.serverId),
-                    eq(agentsTable.id, agentId),
-                    isNull(agentsTable.retiredAt)
-                )
-            )
-            .limit(1);
-        if (!agent) {
-            throw new InvalidTaskAssigneeError(
-                'The assigned Agent must be an active Agent on this Server.'
-            );
-        }
-        const participates = await agentParticipatesInChat(db, {
-            agentId,
-            chatId: input.chatId,
-            serverId: input.serverId,
-        });
-        if (!participates) {
-            throw new InvalidTaskAssigneeError(
-                'The assigned Agent must belong to the parent Chat.'
-            );
-        }
-        return { agentId, handle: agent.handle, userId: null };
-    }
-
-    const userId = input.assignee.userId;
-    const [active] = await db
-        .select({ userId: serverMembershipsTable.userId })
-        .from(serverMembershipsTable)
+    const agentId = input.assignee.agentId;
+    const [agent] = await db
+        .select({ handle: agentsTable.handle })
+        .from(agentsTable)
         .where(
             and(
-                eq(serverMembershipsTable.serverId, input.serverId),
-                eq(serverMembershipsTable.userId, userId),
-                isNull(serverMembershipsTable.revokedAt)
+                eq(agentsTable.serverId, input.serverId),
+                eq(agentsTable.id, agentId),
+                isNull(agentsTable.retiredAt)
             )
         )
         .limit(1);
-    const access = active
-        ? await findChatAccess(db, active.userId, {
-              chatId: input.chatId,
-              serverId: input.serverId,
-          })
-        : null;
-    if (!(active && access)) {
+    if (!agent) {
         throw new InvalidTaskAssigneeError(
-            'The assignee must be an active Server member with access to the parent Chat.'
+            'The assigned Agent must be an active Agent on this Server.'
         );
     }
-    return { agentId: null, handle: null, userId };
+    const participates = await agentParticipatesInChat(db, {
+        agentId,
+        chatId: input.chatId,
+        serverId: input.serverId,
+    });
+    if (!participates) {
+        throw new InvalidTaskAssigneeError('The assigned Agent must belong to the parent Chat.');
+    }
+    return { agentId, handle: agent.handle };
 }
 
 async function agentParticipatesInChat(

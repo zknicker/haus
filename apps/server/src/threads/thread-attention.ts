@@ -1,6 +1,6 @@
-import { parseHausRichReferences, parseUserReferenceTarget } from '@haus/api';
 import { and, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
+import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,
@@ -14,9 +14,7 @@ export async function autoFollowThreadMentions(
     db: HausDatabase,
     input: { content: string; parentChatId: string; serverId: string; threadChatId: string }
 ) {
-    const mentionedUserIds = directMentionedUserIds(input.content);
-
-    for (const userId of mentionedUserIds) {
+    for (const userId of mentionedUserIds(input.content)) {
         const [eligible] = await db
             .select({ id: serverMembershipsTable.userId })
             .from(serverMembershipsTable)
@@ -126,7 +124,7 @@ export async function readThreadAttentionCounts(
     for (const message of messages) {
         const attended =
             message.followed === true ||
-            directMentionedUserIds(message.content).includes(input.readerUserId);
+            mentionedUserIds(message.content).includes(input.readerUserId);
 
         if (!attended) {
             continue;
@@ -137,18 +135,4 @@ export async function readThreadAttentionCounts(
     }
 
     return counts;
-}
-
-function directMentionedUserIds(content: string) {
-    return [
-        ...new Set(
-            parseHausRichReferences(content).flatMap((reference) => {
-                if (reference.kind !== 'user') {
-                    return [];
-                }
-                const userId = parseUserReferenceTarget(reference.id);
-                return userId ? [userId] : [];
-            })
-        ),
-    ];
 }

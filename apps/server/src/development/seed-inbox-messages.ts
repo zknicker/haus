@@ -1,5 +1,6 @@
 import type { MessageBodyKind } from '@haus/api';
 import { and, asc, eq, like, sql } from 'drizzle-orm';
+import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -60,6 +61,7 @@ export async function appendSeedMessages(
             content: message.content,
             createdAt: message.createdAt,
             id,
+            mentionedUserIds: mentionedUserIds(message.content),
             nonce: message.nonce,
             replyRootMessageId: id,
             sequence: base + index + 1,

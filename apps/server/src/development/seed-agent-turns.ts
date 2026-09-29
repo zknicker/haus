@@ -77,7 +77,7 @@ export async function seedAgentTurns(
             failedDaysAgo: null,
             summaries: [
                 'Walked the owner through connecting a Computer.',
-                'Filed the channel rename as an Ask for the owner.',
+                'Asked the owner about the channel rename.',
             ],
         },
     ];

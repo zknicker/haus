@@ -6,6 +6,8 @@ export const chatReadsTable = pgTable(
     'chat_reads',
     {
         chatId: text('chat_id').notNull(),
+        /** Needs you Done marker (ADR 0037): addressing at or below it is done. */
+        doneSequence: integer('done_sequence').notNull().default(0),
         readerUserId: text('reader_user_id').notNull(),
         sequence: integer('sequence').notNull().default(0),
         serverId: text('server_id').notNull(),

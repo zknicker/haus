@@ -5,6 +5,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
+import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -95,6 +96,7 @@ export async function createAgentTasks(
                     chatId,
                     content: title.trim(),
                     id: messageId,
+                    mentionedUserIds: mentionedUserIds(title),
                     nonce: nonces[index],
                     replyRootMessageId: messageId,
                     runId: runner.runId,
@@ -190,6 +192,7 @@ export async function createAgentTasks(
             events.push(
                 await insertAgentMessageCreatedEvent(tx, {
                     chatId,
+                    mentionedUserIds: mentionedUserIds(message.content),
                     messageId: message.id,
                     sequence: message.sequence,
                     serverId: runner.serverId,
@@ -223,7 +226,13 @@ export async function createAgentTasks(
 
 async function insertAgentMessageCreatedEvent(
     db: HausDatabase,
-    input: { chatId: string; messageId: string; sequence: number; serverId: string }
+    input: {
+        chatId: string;
+        mentionedUserIds: string[];
+        messageId: string;
+        sequence: number;
+        serverId: string;
+    }
 ): Promise<ServerDurableEvent> {
     const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
@@ -240,14 +249,18 @@ async function insertAgentMessageCreatedEvent(
         .returning({ createdAt: chatEventsTable.createdAt, id: chatEventsTable.id });
 
     return {
+        authorUserId: null,
         chatId: input.chatId,
         createdAt: event.createdAt.toISOString(),
         cursor: cursor.toString(),
         id: event.id,
+        mentionedUserIds: input.mentionedUserIds,
         messageId: input.messageId,
         parentChatId: null,
+        replyToAuthorUserId: null,
         sequence: input.sequence,
         serverId: input.serverId,
+        threadAnchorAuthorUserId: null,
         type: 'message.created',
     };
 }

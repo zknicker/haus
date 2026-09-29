@@ -9,7 +9,6 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { asksTable } from './asks.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
 import { cloudAgentWorkTable } from './cloud-agents.ts';
@@ -19,7 +18,6 @@ import { serverMembershipsTable } from './server-memberships.ts';
 export const chatEventsTable = pgTable(
     'chat_events',
     {
-        askId: text('ask_id'),
         chatId: text('chat_id'),
         cloudAgentWorkId: text('cloud_agent_work_id'),
         chatAction: text('chat_action').$type<
@@ -41,7 +39,6 @@ export const chatEventsTable = pgTable(
         type: text('event_type')
             .notNull()
             .$type<
-                | 'ask.updated'
                 | 'chat.read'
                 | 'cloud-agent-work.updated'
                 | 'chat.lifecycle'
@@ -68,11 +65,6 @@ export const chatEventsTable = pgTable(
             name: 'chat_events_chat_fk',
         }).onDelete('cascade'),
         foreignKey({
-            columns: [table.serverId, table.askId],
-            foreignColumns: [asksTable.serverId, asksTable.id],
-            name: 'chat_events_ask_fk',
-        }).onDelete('cascade'),
-        foreignKey({
             columns: [table.serverId, table.cloudAgentWorkId],
             foreignColumns: [cloudAgentWorkTable.serverId, cloudAgentWorkTable.id],
             name: 'chat_events_cloud_agent_work_fk',
@@ -95,17 +87,6 @@ export const chatEventsTable = pgTable(
         check(
             'chat_events_shape',
             sql`(
-                (${table.type} = 'ask.updated'
-                    AND ${table.askId} IS NOT NULL
-                    AND ${table.cloudAgentWorkId} IS NULL
-                    AND ${table.chatId} IS NOT NULL
-                    AND ${table.messageId} IS NOT NULL
-                    AND ${table.labelId} IS NULL
-                    AND ${table.readerUserId} IS NULL
-                    AND ${table.reminderId} IS NULL
-                    AND ${table.reminderAction} IS NULL
-                    AND ${table.sequence} > 0)
-                OR
                 (${table.type} = 'cloud-agent-work.updated'
                     AND ${table.cloudAgentWorkId} IS NOT NULL
                     AND ${table.chatId} IS NOT NULL
@@ -114,7 +95,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
-                    AND ${table.askId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'message.created'
@@ -124,7 +104,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
-                    AND ${table.askId} IS NULL
                     AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
@@ -135,7 +114,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
-                    AND ${table.askId} IS NULL
                     AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
@@ -150,7 +128,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
-                    AND ${table.askId} IS NULL
                     AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} = 0)
                 OR
@@ -161,7 +138,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
-                    AND ${table.askId} IS NULL
                     AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
@@ -172,7 +148,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NOT NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
-                    AND ${table.askId} IS NULL
                     AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
@@ -183,7 +158,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NOT NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
-                    AND ${table.askId} IS NULL
                     AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
@@ -196,7 +170,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderAction} IN (
                         'scheduled', 'updated', 'snoozed', 'canceled', 'fired'
                     )
-                    AND ${table.askId} IS NULL
                     AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
@@ -207,7 +180,6 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
-                    AND ${table.askId} IS NULL
                     AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} = 0)
             )`

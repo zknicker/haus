@@ -1,17 +1,12 @@
 import type { TaskAssignee } from '@haus/api';
-import { and, asc, eq, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    channelAgentParticipantsTable,
-    channelParticipantsTable,
-    serverMembershipsTable,
-} from '../postgres/schema.ts';
+import { agentsTable, channelAgentParticipantsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { TaskNotFoundError } from './claim-task.ts';
+import { TaskNotFoundError } from './task-errors.ts';
 import { findMessageTask } from './task-shape.ts';
 
 export async function listTaskAssignees(
@@ -28,76 +23,13 @@ export async function listTaskAssignees(
         chatId: task.chatId,
         serverId: input.serverId,
     });
-    const selection = {
-        role: serverMembershipsTable.role,
-        userId: serverMembershipsTable.userId,
-    };
-    const memberships =
-        chat.kind === 'channel'
-            ? await db
-                  .select(selection)
-                  .from(serverMembershipsTable)
-                  .innerJoin(
-                      channelParticipantsTable,
-                      and(
-                          eq(channelParticipantsTable.serverId, serverMembershipsTable.serverId),
-                          eq(channelParticipantsTable.userId, serverMembershipsTable.userId),
-                          eq(channelParticipantsTable.chatId, chat.id)
-                      )
-                  )
-                  .where(
-                      and(
-                          eq(serverMembershipsTable.serverId, input.serverId),
-                          isNull(serverMembershipsTable.revokedAt)
-                      )
-                  )
-                  .orderBy(asc(serverMembershipsTable.userId))
-            : await db
-                  .select(selection)
-                  .from(serverMembershipsTable)
-                  .where(
-                      and(
-                          eq(serverMembershipsTable.serverId, input.serverId),
-                          isNull(serverMembershipsTable.revokedAt),
-                          or(
-                              and(
-                                  eq(
-                                      serverMembershipsTable.userId,
-                                      chat.dmMemberOneUserId as string
-                                  ),
-                                  eq(serverMembershipsTable.stint, chat.dmMemberOneStint as number)
-                              ),
-                              and(
-                                  eq(
-                                      serverMembershipsTable.userId,
-                                      chat.dmMemberTwoUserId as string
-                                  ),
-                                  eq(serverMembershipsTable.stint, chat.dmMemberTwoStint as number)
-                              )
-                          )
-                      )
-                  )
-                  .orderBy(asc(serverMembershipsTable.userId));
-
-    // Agents are first-class assignees: a task is normally handed to one and
-    // completed by one, so the picker lists people and Agents together.
-    const agents = await listAssignableAgents(db, {
+    // Only an Agent holds a task (ADR 0037); the picker lists the Chat's Agents.
+    return await listAssignableAgents(db, {
         chatId: task.chatId,
         dmAgentId: chat.dmAgentId,
         kind: chat.kind,
         serverId: input.serverId,
     });
-
-    return [
-        ...memberships.map(
-            (candidate): TaskAssignee => ({
-                kind: 'human',
-                role: candidate.role as Extract<TaskAssignee, { kind: 'human' }>['role'],
-                userId: candidate.userId,
-            })
-        ),
-        ...agents,
-    ];
 }
 
 async function listAssignableAgents(
@@ -139,7 +71,6 @@ async function listAssignableAgents(
             avatarUrl: avatarUrlFor(row.avatarId),
             displayName: row.displayName,
             handle: row.handle,
-            kind: 'agent',
         })
     );
 }
