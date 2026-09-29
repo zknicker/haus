@@ -39,6 +39,25 @@ export function scrubCommandLine(command: string): string {
     return words.filter((word) => word.length > 0).join(' ');
 }
 
+/**
+ * One line of a tool's output, scrubbed at least as hard as a command line:
+ * everything `scrubCommandLine` removes, plus the value of any
+ * environment-style assignment (`HOME=…`, `DATABASE_URL=…`) and of a
+ * secret-named key joined to its value (`api_key:abc`, `"token":"abc"`,
+ * `password = abc`).
+ */
+export function scrubResultLine(line: string): string {
+    const unjoined = line
+        .replace(/\s+:/gu, ':')
+        // `password = hunter2` (TOML, INI, source) joins so its value reads as an assignment.
+        .replace(/\s+=\s*|\s*=\s+/gu, '=')
+        .replace(/\b([A-Z][A-Z0-9_]*)=\S*/gu, '$1=…')
+        .replace(/(^|\s)([A-Za-z0-9_-]+):(?=\S)/gu, (match, lead: string, name: string) =>
+            secretName.test(name) ? `${lead}${name}: ` : match
+        );
+    return scrubCommandLine(unjoined);
+}
+
 /** Whether a flag, header, variable, or argument name carries a credential value. */
 export function isSecretName(name: string): boolean {
     return secretName.test(name);

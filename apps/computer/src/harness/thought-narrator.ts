@@ -1,10 +1,17 @@
-import { type AgentThoughtContent, extractThoughtTitle, thoughtReasoningExcerpt } from '@haus/api';
+import {
+    type AgentThoughtContent,
+    agentThoughtActionMaxLength,
+    agentThoughtResultMaxLength,
+    extractThoughtTitle,
+    thoughtReasoningExcerpt,
+} from '@haus/api';
 
 /**
  * At most one thought per run in this window, whatever its kind. Candidates
  * that arrive inside it wait in one slot, newest wins, and the survivor goes
- * out when it closes; a waiting title or excerpt is never displaced by an
- * action, since the model's own words beat inferred ones.
+ * out when it closes, with one ranking: a finished action with a result beats
+ * a title or excerpt, which beats a bare started action. A finding is the most
+ * a person can learn, and the model's own words beat inferred ones.
  */
 export const thoughtIntervalMs = 4000;
 
@@ -13,8 +20,12 @@ export interface AgentThoughtNarrator {
     /** Drops open blocks and any thought still waiting for the interval. */
     close(): void;
     observe(part: Record<string, unknown>): void;
-    /** Offers a started tool action's scrubbed description (`thought-action.ts`); null is ignored. */
-    observeAction(action: string | null): void;
+    /**
+     * Offers a tool action's scrubbed description (`thought-action.ts`), with
+     * a scrubbed excerpt of its output once it has finished
+     * (`thought-result.ts`); a null action is ignored.
+     */
+    observeAction(action: string | null, result?: string): void;
 }
 
 /**
@@ -52,10 +63,17 @@ export function createAgentThoughtNarrator(input: {
             release(thought);
             return;
         }
-        if (thought.kind === 'action' && waiting !== null && waiting.kind !== 'action') {
+        if (waiting !== null && candidateRank(thought) < candidateRank(waiting)) {
             return;
         }
-        waiting = thought;
+        // Parallel fetches finish together; both results ride one frame rather than the newest alone.
+        waiting =
+            waiting?.kind === 'action' &&
+            thought.kind === 'action' &&
+            waiting.result &&
+            thought.result
+                ? mergeFindings(waiting, thought)
+                : thought;
         cancelWait ??= schedule(() => {
             cancelWait = null;
             const next = waiting;
@@ -95,8 +113,8 @@ export function createAgentThoughtNarrator(input: {
                 }
             }
         },
-        observeAction(action) {
-            offer(action ? { action, kind: 'action' } : null);
+        observeAction(action, result) {
+            offer(action ? { action, kind: 'action', ...(result ? { result } : {}) } : null);
         },
     };
 }
@@ -107,9 +125,40 @@ function scheduleTimeout(run: () => void, ms: number) {
 }
 
 type ThoughtCandidate =
-    | { action: string; kind: 'action' }
+    | { action: string; kind: 'action'; result?: string }
     | { kind: 'phrase'; text: string }
     | { kind: 'reasoning'; reasoning: string };
+
+/** Two finished actions as one: both descriptions and both results, each result halved. */
+function mergeFindings(
+    first: { action: string; result?: string },
+    second: { action: string; result?: string }
+): ThoughtCandidate {
+    // Two halves and the line break between them still fit the cap.
+    const half = Math.floor((agentThoughtResultMaxLength - 1) / 2);
+    return {
+        action: clip(`${first.action}; ${second.action}`, agentThoughtActionMaxLength),
+        kind: 'action',
+        result: `${clip(first.result ?? '', half)}\n${clip(second.result ?? '', half)}`,
+    };
+}
+
+function clip(text: string, max: number): string {
+    return text.length <= max
+        ? text
+        : text
+              .slice(0, max)
+              .replace(/\s+\S*$/u, '')
+              .trim();
+}
+
+/** A finding outranks the model's own words, which outrank an inferred action. */
+function candidateRank(thought: ThoughtCandidate): number {
+    if (thought.kind !== 'action') {
+        return 1;
+    }
+    return thought.result ? 2 : 0;
+}
 
 /** A title-led block becomes a phrase; any other long-enough block, an excerpt. */
 function thoughtCandidate(reasoning: string): ThoughtCandidate | null {

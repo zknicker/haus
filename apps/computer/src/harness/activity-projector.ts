@@ -14,6 +14,7 @@ import { classifyShellCall } from './haus-cli-command.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 import { describeFileChange, describeToolAction } from './thought-action.ts';
 import type { AgentThoughtNarrator } from './thought-narrator.ts';
+import { createToolFindings } from './thought-result.ts';
 
 export interface HausHostToolRegistration {
     category: Exclude<ComputerAgentActivityCategory, 'starting_work' | 'thinking' | 'working'>;
@@ -84,6 +85,7 @@ export function createComputerActivityProjector(input: {
     const skipped = new Set<string>();
     const calls: ToolCalls = {
         fileChanges: createFileChangeFold(skipped),
+        findings: createToolFindings(input.thoughts),
         pending: new Map(),
         reads: createAcpReadSteps(input.workspaceDir),
         skipped,
@@ -109,6 +111,7 @@ export function createComputerActivityProjector(input: {
             pending.clear();
             calls.skipped.clear();
             calls.fileChanges.clear();
+            calls.findings.clear();
             calls.reads.clear();
             await input.journal?.flushReasoning();
         },
@@ -182,8 +185,9 @@ async function observeToolCall(
               runtimeId: input.runtimeId,
               toolName,
           });
-    // A started real action is a thought candidate too; `haus` bookkeeping classifies as skip.
-    input.thoughts?.observeAction(
+    calls.findings.started(
+        toolCallId,
+        classification,
         describeToolAction({ classification, input: part.input, nativeName, readPath, toolName })
     );
     await startToolActivity({ activity: input.activity, calls, classification, toolCallId });
@@ -245,6 +249,7 @@ async function observeToolOutcome(
     if (isPreliminary) {
         return;
     }
+    calls.findings.finished(toolCallId, part.output, failed);
     calls.skipped.delete(toolCallId);
     if (calls.pending.delete(toolCallId)) {
         await input.activity.finish(toolActivityKey(toolCallId), failed ? 'failed' : 'completed');
@@ -276,6 +281,7 @@ async function startToolActivity(input: {
 /** Open tool activities, and calls deliberately kept out of Activity until they settle. */
 interface ToolCalls {
     fileChanges: ReturnType<typeof createFileChangeFold>;
+    findings: ReturnType<typeof createToolFindings>;
     pending: Map<string, ComputerToolActivity>;
     reads: ReturnType<typeof createAcpReadSteps>;
     skipped: Set<string>;
