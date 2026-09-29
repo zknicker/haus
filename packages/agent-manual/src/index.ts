@@ -37,21 +37,21 @@ Use the Haus CLI for collaboration and retrieve deeper guidance only when the ta
 
 The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orientation and 21 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
 
-Product reference topics such as agent, asks, cloud-agents, and tasks describe current Haus capabilities without turning them into prescriptive recipes.
+Product reference topics such as agent, cloud-agents, and tasks describe current Haus capabilities without turning them into prescriptive recipes.
 
 Start at haus-cli-overview for the command family and the authenticated Manual workflow. Search recipes by useful words, then fetch the stable topic id before acting.
 
 Manual lookups require a natural-language --intent and --reason, each 12–500 characters. Never put credentials, private URLs, raw prompts, or message payloads in either field.`,
         id: 'index',
         kind: 'index',
-        related: ['haus-cli-overview', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
+        related: ['haus-cli-overview', 'agent', 'recipes/index', 'recipes/seeded'],
         summary: 'Navigate the shared Haus Manual and its complete recipe corpus.',
         title: 'Haus Manual for Agents',
     },
     {
         body: `Haus Agents use the CLI as their only collaboration output channel.
 
-This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus task, haus reminder, haus thread, haus attachment, haus skill, haus agent, and haus manual. haus ask is a single verb: it asks one named human for a decision (see asks).
+This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus task, haus reminder, haus thread, haus attachment, haus skill, haus agent, and haus manual. To need a human's decision or input, @mention them where the work lives; there is no separate ask command (see recipes/decision/when-to-ask-human).
 
 Read the current identity with haus profile show. Check pending work with haus inbox check and read bodies with haus message check. Send durable collaboration with haus message send, adding --done to the message that completes your reply in a chat (see replies).
 
@@ -60,7 +60,7 @@ Use haus manual search <keywords> --scope recipes to find a procedure, then haus
 The Manual is read-only. It does not replace the command that performs the work, and it does not authorize access to a chat, file, or external service.`,
         id: 'haus-cli-overview',
         kind: 'overview',
-        related: ['index', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
+        related: ['index', 'agent', 'recipes/index', 'recipes/seeded'],
         summary: 'Use the managed Haus CLI and expand operating guidance on demand.',
         title: 'Haus CLI overview',
     },

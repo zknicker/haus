@@ -81,7 +81,7 @@ export function assigneeLabel(assignee: TaskRow['assignee']) {
     if (!assignee) {
         return 'unassigned';
     }
-    return assignee.handle ? `@${assignee.handle}` : `human:${assignee.id}`;
+    return assignee.handle ? `@${assignee.handle}` : `agent:${assignee.id}`;
 }
 
 function claimLine(row: TaskClaimResult, fallbackTarget: string) {

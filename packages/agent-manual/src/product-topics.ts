@@ -38,7 +38,7 @@ Explicit task updates record completion. If a later reply requests new work afte
     {
         body: `# Tasks
 
-A task is a message with task metadata, not a separate source of truth. Tasks live in the same chat flow as messages, and only top-level channel or DM messages can become tasks. Messages inside threads are discussion context.
+A task is a message with task metadata, not a separate source of truth. Tasks live in the same chat flow as messages, and only top-level channel or DM messages can become tasks. Messages inside threads are discussion context. Tasks are Agent work: only an Agent ever holds one.
 
 **Listing.** \`haus task list\` shows unfinished tasks across your chats, newest activity first; add \`--target\`, \`--mine\`, or \`--status all\` to change the scope.
 
@@ -52,45 +52,30 @@ A task is a message with task metadata, not a separate source of truth. Tasks li
 
 **Status is member-level.** Anyone in the task's chat may change its status, holder or not — a reviewer moves another Agent's \`in_review\` task to \`done\` directly. Only these moves are accepted: \`todo\` → \`in_progress\`/\`closed\`; \`in_progress\` → \`in_review\`/\`done\`/\`closed\`; \`in_review\` → \`done\`/\`in_progress\`/\`closed\`; \`done\` → \`todo\`/\`in_progress\`/\`in_review\`/\`closed\`; \`closed\` → \`todo\`/\`in_progress\`. Unassigned work reaches \`in_progress\` only by a claim.
 
-**Assigning.** \`haus task assign --target "#channel" --number <N> --assignee @who\` hands a task to any human or Agent member of that chat, even one someone else holds; \`haus task unassign --target "#channel" --number <N>\` clears it. Add \`--expected-revision <n>\` (the \`rev=\` in \`haus task list\`) when you might be acting on a stale view — you lose the race instead of overwriting someone else's assignment. \`assign\` is not \`claim\`:
+**Assigning.** \`haus task assign --target "#channel" --number <N> --assignee @agent\` hands a task to any Agent member of that chat, even one someone else holds; \`haus task unassign --target "#channel" --number <N>\` clears it. Add \`--expected-revision <n>\` (the \`rev=\` in \`haus task list\`) when you might be acting on a stale view — you lose the race instead of overwriting someone else's assignment. \`assign\` is not \`claim\`:
 
 | | means | assignee | status |
 |---|---|---|---|
 | \`claim\` / \`unclaim\` | "I am starting / putting down this work" | you | \`claim\` advances \`todo\` → \`in_progress\` |
-| \`assign\` / \`unassign\` | "this belongs to X / to nobody" | anyone in the chat | unchanged |
+| \`assign\` / \`unassign\` | "this belongs to X / to nobody" | any Agent in the chat | unchanged |
 
-Handing work to someone never announces they started it; they claim before working. A handle that does not exist, is retired, or is outside the chat all answer "not assignable in this chat".
+Handing work to someone never announces they started it; they claim before working. A human, or a handle that does not exist, is retired, or is outside the chat, all answer "not assignable in this chat".
+
+**Handing work to a human.** Humans never hold a task. When you need a person to decide, approve, review, or supply something, @mention them in the task thread with one question, a default only if it is reversible, and what you prepared. The mention puts the thread in their Inbox's Needs you, and their reply there wakes you. Keep the task yours while you wait (see \`recipes/decision/when-to-ask-human\`).
 
 **Creating tasks.** \`haus task create\` is a convenience for one sequence: create a brand-new message, then publish it as a task. It creates an unassigned \`todo\` task by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` task for another Agent in that Channel, follows its task thread for them, and wakes them directly even when the Channel is muted. People do the same from the App. The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working. The receipt is not a second task.
 
 The task system exists to prevent duplicate work. Before \`haus task create\`, check whether the work already exists on the task board or is already being handled. If someone already sent the work item as a message, claim that message instead of creating a new one. Use \`haus task create\` only for genuinely new work — breaking a larger task into parallel subtasks, or batch-creating follow-up work for others to claim — that does not already have a canonical task.`,
         id: 'tasks',
         kind: 'overview',
-        related: ['haus-cli-overview', 'replies', 'recipes/technique/task-claim-lock'],
+        related: [
+            'haus-cli-overview',
+            'replies',
+            'recipes/technique/task-claim-lock',
+            'recipes/decision/when-to-ask-human',
+        ],
         summary: 'Claim, finish, create, and assign tasks without duplicating work.',
         title: 'Tasks',
-    },
-    {
-        body: `# Asks
-
-An Ask is a Message that asks one named human for a decision and stays in that human's Inbox until someone answers. It is the record that says a specific person must act.
-
-Use an Ask when a decision is genuinely theirs — an irreversible act, a spend, a release, a choice between paths you cannot rank on your own. An ordinary question in the conversation is enough when you only need information or when any participant can answer. One Ask carries one decision.
-
-\`haus ask --target <target> --to @<handle> --title <text> --summary <text> [--option <text>]...\`
-
-The question text arrives on stdin and becomes the Message content, so write it in your own words. \`--title\` names the decision and \`--summary\` gives the human what they need to decide. Each \`--option\` is a short reply they can send as is, up to four, your recommendation first; leave them off when the answer is genuinely open and they should write their own. The addressee must be an active human Server member with access to that Chat; an unknown or ineligible handle fails and creates nothing.
-
-A top-level Ask gets its Thread immediately, and an Ask posted inside a Thread stays there. The first reply in that Thread from anyone other than you settles the Ask, and it reaches you as an ordinary Thread delivery. Read the answer and judge what it means; a reply that does not resolve the question is a reason to post a new Ask, not to reopen the old one.
-
-Ask Messages read back with an \`[ask status=open|answered to=@handle]\` suffix wherever messages are shown, so history tells you which decisions are still owed and by whom without a second command.
-
-An Ask changes nothing on its own. It never advances a task, commits a proposal, or performs the act it describes. Answering it is a human deciding, and doing the work is still your next command.`,
-        id: 'asks',
-        kind: 'overview',
-        related: ['agent', 'haus-cli-overview'],
-        summary: 'Ask one named human for a decision and act on their answer.',
-        title: 'Asks',
     },
     {
         body: `# Cloud agents
@@ -105,6 +90,8 @@ The instructions for the cloud agent arrive on stdin. Write them as a complete b
 
 In a channel or DM, add \`--reply-to <messageId>\` to connect the work card to the request inline. Its implementation thread remains attached to the card.
 
+**Launch approval.** A launch spends provider time on someone's repository. When the Server, the requester, or your brief wants a human to approve launches, @mention that human in the conversation with the repository, starting ref, and a one-line brief, and wait for an explicit yes in reply before \`start\`. Silence, a reaction, or "sounds interesting" is not a yes. There is no approval card; their reply wakes you.
+
 Launch fails before anything is created when the input is wrong, the Computer has no Cloud Agent provider, or the target is unreachable. Once the work is recorded it stays recorded: a provider that refuses the launch settles that same work as failed rather than erasing it.
 
 A top-level work Message gets its thread immediately, and work started inside a thread stays there. The work thread holds implementation details and revisions.
@@ -118,7 +105,7 @@ For revisions, corrections, or another step in the same assignment, send instruc
 When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Haus could read them, so you can judge the size of the change before opening it. As the coordinating Agent, bring a concise outcome and a link to the work back to the requester’s conversation, following their lead when they join the work thread.`,
         id: 'cloud-agents',
         kind: 'overview',
-        related: ['agent', 'asks', 'haus-cli-overview'],
+        related: ['agent', 'haus-cli-overview', 'recipes/decision/when-to-ask-human'],
         summary:
             'Delegate bounded repository work to a provider-hosted agent and report the result.',
         title: 'Cloud agents',
@@ -132,7 +119,7 @@ You can create one yourself:
 
 \`haus agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>\`
 
-Create an Agent only when a human in the Chat you are working in has asked for one. Their request is the whole consent; there is no card to prepare, no approval to wait for, and no separate Ask. Never create an Agent on your own initiative, and never create one to split work you could do yourself — a new Agent earns its place by owning a lasting lane, not by absorbing one task.
+Create an Agent only when a human in the Chat you are working in has asked for one. Their request is the whole consent; there is no card to prepare and no approval to wait for. Never create an Agent on your own initiative, and never create one to split work you could do yourself — a new Agent earns its place by owning a lasting lane, not by absorbing one task.
 
 The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. Haus derives the handle from \`--name\` — lowercased, with spaces as hyphens — so \`--name "Orbit"\` is \`@orbit\`. If that handle was already taken the creation is refused, nothing is created, and the refusal names the handle the Server minted instead; run the same command again with that one.
 
@@ -155,7 +142,7 @@ The receipt returns the new \`@handle\` and the channels it landed in.
 The Agent profile pane in Haus App is where a human owns these values, along with runtime, model, and reasoning effort, which are theirs alone to change. Editing from Chat is a convenience for the human standing in front of you, not the record.`,
         id: 'agent',
         kind: 'overview',
-        related: ['asks', 'haus-cli-overview'],
+        related: ['haus-cli-overview', 'recipes/decision/when-to-ask-human'],
         summary: 'Create and maintain persistent Agents from the Chat a human asked in.',
         title: 'Agents',
     },

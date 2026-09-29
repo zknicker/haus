@@ -1,7 +1,6 @@
 import type { CloudAgentBranch } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
-import { formatAskMarker } from './inbox-ask-format.ts';
 import { formatInboxTime, shortInboxId } from './inbox-header-format.ts';
 import { formatInboxTargetRow } from './inbox-target-row.ts';
 import { formatInlineReplyContext } from './inline-reply-format.ts';
@@ -85,7 +84,6 @@ export function composeInboxNotice(
             throw new Error('Inbox notice target cannot be empty.');
         }
         return formatInboxTargetRow({
-            ask: latest.ask ?? null,
             cloudAgentResult: ordered.some(isAttention),
             firstShortId: shortInboxId(first.id),
             latestSender: latest.senderHandle,
@@ -121,10 +119,9 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
     const task = item.task
         ? ` task=#${item.task.number}:${item.task.status}:${taskAssignee(item)}`
         : '';
-    const ask = item.ask ? formatAskMarker(item.ask) : '';
     const mention = item.mentioned ? ' mentioned=true' : '';
     const envelope =
-        `[target=${item.target} msg=${shortInboxId(item.id)} time=${formatInboxTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${ask}${mention}] ` +
+        `[target=${item.target} msg=${shortInboxId(item.id)} time=${formatInboxTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${mention}] ` +
         `${sender}: ${item.content}${formatAttachmentSuffix(messageAttachments(item))}${formatInlineReplyContext(item.reply)}`;
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
@@ -203,7 +200,7 @@ function taskAssignee(item: AgentInboxItem): string {
     if (!item.task) {
         return 'unassigned';
     }
-    return item.task.assigneeAgentId ?? item.task.assigneeUserId ?? 'unassigned';
+    return item.task.assigneeAgentId ?? 'unassigned';
 }
 
 /** A bodiless typed attention: work to act on, not a message to read. */

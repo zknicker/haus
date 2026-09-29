@@ -1,6 +1,3 @@
-import type { AgentInboxAsk } from './agent-inbox-item.ts';
-import { formatAskTag } from './inbox-ask-format.ts';
-
 /**
  * One pending target, as both the content-free notice and `haus inbox check`
  * print it. The notice derives it from cached envelopes and the CLI from the
@@ -8,8 +5,6 @@ import { formatAskTag } from './inbox-ask-format.ts';
  * drifting (Raft prints both with one row formatter too).
  */
 export interface InboxTargetSummary {
-    /** The latest item's Ask, when it is one. */
-    ask: AgentInboxAsk | null;
     /** A settled Cloud Agent Run waits here, so the target counts work items. */
     cloudAgentResult: boolean;
     firstShortId: string;
@@ -38,7 +33,6 @@ function formatInboxTags(row: InboxTargetSummary): string {
     const tags = [
         targetTag(row.target),
         row.taskNumber === null ? null : `task #${row.taskNumber}`,
-        row.ask ? formatAskTag(row.ask) : null,
         row.cloudAgentResult ? 'cloud agent result' : null,
         row.mentioned ? 'you were mentioned' : null,
     ].filter(Boolean);

@@ -116,26 +116,27 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
         {
             examples: [
                 'haus task assign --target "#general" --number 1 --assignee @kit',
-                'haus task assign --target "#general" --number 1 --assignee @zach --expected-revision 3',
+                'haus task assign --target "#general" --number 1 --assignee @scout --expected-revision 3',
             ],
             flags: [
                 targetFlag,
                 numberFlag,
                 {
-                    description: 'Human or Agent member of the target to hand the task to',
+                    description: 'Agent member of the target to hand the task to',
                     name: '--assignee',
-                    valueName: '<@who>',
+                    valueName: '<@agent>',
                 },
                 expectedRevisionFlag,
             ],
             name: 'assign',
             notes: [
                 'Moves the owner only; status is unchanged and the assignee claims to start. Works on a task someone else holds.',
+                'Only Agents hold tasks. To hand work to a human, @mention them in the task thread.',
             ],
             positionals: [],
             run: (args) => runTaskAssign(args, resolveDeps()),
-            summary: 'Hand a task to a member of its chat',
-            usage: 'haus task assign --target <target> --number <n> --assignee @who [--expected-revision <n>]',
+            summary: 'Hand a task to an Agent member of its chat',
+            usage: 'haus task assign --target <target> --number <n> --assignee @agent [--expected-revision <n>]',
         },
         {
             examples: ['haus task unassign --target "#general" --number 1'],

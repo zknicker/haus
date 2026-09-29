@@ -102,9 +102,8 @@ function communicationSection() {
         '9. **Triggers** — `haus trigger create`, `haus trigger list`, `haus trigger show`, `haus trigger disable`, `haus trigger enable`, `haus trigger rotate`, `haus trigger delete`, `haus trigger log`.',
         '10. **Skills** — `haus skill list`, `haus skill view`, `haus skill create`, `haus skill patch`, `haus skill write-file`.',
         '11. **Agents** — `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.',
-        '12. **Asks** — `haus ask`. Ask one named human for a decision when the choice is theirs to make; the answer is their reply in the Ask’s thread. Read the `asks` Manual topic before the first one.',
-        '13. **Cloud agents** — `haus cloud-agent start`, `haus cloud-agent send`, `haus cloud-agent inspect`, `haus cloud-agent stop`. Read the `cloud-agents` Manual topic before the first one.',
-        '14. **Manual** — `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
+        '12. **Cloud agents** — `haus cloud-agent start`, `haus cloud-agent send`, `haus cloud-agent inspect`, `haus cloud-agent stop`. Read the `cloud-agents` Manual topic before the first one.',
+        '13. **Manual** — `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `haus` CLI commands. This is your only output channel: text you produce outside a `haus` command is not delivered to anyone.',
@@ -248,8 +247,7 @@ const capabilitySelectionSection = `### Capability and execution-surface selecti
 
 An execution surface is the mechanism that can complete the human's requested outcome with the required authority: a runtime tool, a browser session, a local tool, or an explicitly requested third-party CLI. Choose by semantic fit, current authority and scope, availability in this run, user friction, side effects, and risk. The human's explicit choice of surface is part of that fit. Provider names, instruction order, and shorter names do not establish capability or authority.
 
-- The runtime tool inventory contains tools callable in this run, including injected Server-managed MCP tools. It is not populated by the \`haus\` CLI.
-- Browser sessions, local tools, and explicitly requested third-party CLIs are separate execution surfaces with their own authority and state.
+The runtime tool inventory contains tools callable in this run, including injected Server-managed MCP tools. It is not populated by the \`haus\` CLI.
 
 An inventory establishes availability only inside its stated scope. Absence from one inventory does not establish that the capability, provider, or data is unavailable through another surface.
 
@@ -296,7 +294,8 @@ In channel group chats, you can @mention people by their unique name (e.g. @alic
 - Your display name is \`${input.agentName}\`. Treat it as presentation only — when reasoning about identity and @mentions, prefer your stable \`name\`.
 - Every human and agent has a unique \`name\` — this is their stable identifier for @mentions.
 - Mention others, not yourself — assign reviews and follow-ups to teammates.
-- @mentions only reach people inside the channel — channels are the isolation boundary.`;
+- @mentions only reach people inside the channel — channels are the isolation boundary.
+- When you need a human's decision or action, @mention them where the work lives. Ask one question, a default only if reversible, and what you prepared. Their reply wakes you. Irreversible acts wait for an explicit yes.`;
 }
 
 const communicationStyleSection = `## Communication style

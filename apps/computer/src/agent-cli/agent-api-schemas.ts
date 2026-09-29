@@ -14,14 +14,6 @@ export const taskActorSchema = z.object({
     id: z.string(),
 });
 
-const messageAskSchema = z.object({
-    addressee_handle: z.string().nullable(),
-    id: z.string(),
-    options: z.array(z.string()),
-    status: z.enum(['open', 'answered']),
-    title: z.string(),
-});
-
 const messageTaskSchema = z.object({
     assignee: taskActorSchema.nullable(),
     claimed_at: z.string().nullable(),
@@ -87,7 +79,6 @@ const messageAgentCreatedSchema = z.object({
 
 export const agentMessageSchema = z.object({
     agent_created: messageAgentCreatedSchema.nullable().optional(),
-    ask: messageAskSchema.nullable().optional(),
     cloud_agent_work: messageCloudAgentWorkSchema.nullable().optional(),
     attachments: z.array(jsonObjectSchema),
     author: z.object({
@@ -96,7 +87,7 @@ export const agentMessageSchema = z.object({
         label: z.string().nullable(),
         metadata: jsonObjectSchema,
     }),
-    body_kind: z.enum(['text', 'ask', 'cloud-agent-work', 'agent-created']),
+    body_kind: z.enum(['text', 'cloud-agent-work', 'agent-created']),
     chat_id: z.string().min(1),
     content: z.string(),
     created_at: z.string().min(1),
@@ -169,13 +160,6 @@ export const agentInboxCheckResponseSchema = z.object({
     rows: z.array(
         z.object({
             // An older Server omits the work facts; its rows print untagged.
-            ask: z
-                .object({
-                    addresseeHandle: z.string().min(1).nullable(),
-                    status: z.enum(['answered', 'open']),
-                })
-                .nullable()
-                .default(null),
             chatId: z.string().min(1),
             cloudAgentResult: z.boolean().default(false),
             firstShortId: z.string().min(1),

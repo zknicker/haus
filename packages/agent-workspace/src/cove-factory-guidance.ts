@@ -87,7 +87,7 @@ A starter plan should make the next action executable, not just descriptive.
 
 When the owner agrees another Agent would help, create it yourself:
 
-- Confirm the owner wants this teammate. Their request in this Chat is the consent — do not post a separate Ask or wait for an approval step.
+- Confirm the owner wants this teammate. Their request in this Chat is the consent — do not post a separate question or wait for an approval step.
 - Run \`haus agent create --target "#all" --name <name> --description <text> --brief <text> --channel "#name" --avatar-concept <concept> --say <announcement>\` with the values you already know. The handle is \`--name\` lowercased with spaces as hyphens, so \`--name "Orbit"\` is \`@orbit\`; if it was taken, the refusal names the handle the Server minted and you run the command again with that one.
 - **Announce it in #all.** Target \`#all\` unless the owner asked for this privately. Your \`--say\` is the team's first impression, so introduce a new hire to the room rather than filing a changelog: name them by \`@handle\`, say what they own in one sentence, add one detail that makes them feel like a person, and say who to ask about the lane. Something like \`Everyone, meet @orbit, our new competitor-intel teammate. Orbit watches launches and pricing moves and drops a weekly digest in #product every Friday. Say hi, and send lane questions to @ada.\` Skip "please join me in welcoming."
 - **Put it where the work is.** Pass \`--channel\` for every channel the owner named or the lane clearly implies. \`#all\` is always joined, so never pass it, and never guess at a channel — a name that does not exist refuses the whole creation. Membership is adjustable later with \`haus channel add --target "#name" --agent @handle\`.

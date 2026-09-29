@@ -148,7 +148,10 @@ Mid-task, you hit a decision you could make yourself — or maybe shouldn't. Use
 - **"Unless you object" on irreversible actions**: a timeout is not consent for sends/deletes/money. Counter: irreversible waits for an explicit yes.
 
 ### Proof it works
-Daily practice across a 12-agent team: agents draft and stage without asking, and hard-stop on external sends; owners see one decision-shaped question with a staged artifact instead of open-ended pings.`,
+Daily practice across a 12-agent team: agents draft and stage without asking, and hard-stop on external sends; owners see one decision-shaped question with a staged artifact instead of open-ended pings.
+
+### In Haus
+Asking is an ordinary message that reaches the owner where the work lives — the task thread, or the conversation the request came from. An @mention of them or an inline reply to their message (\`haus message send --reply-to\`) both put it in their Inbox's Needs you; in a channel or thread any other message only shows as unread. A DM to them works the same way. There is no question record, option list, or approval card. That addressing keeps the conversation in their Needs you until they reply or mark it Done, and their reply there wakes you, so you do not poll for the answer. A task stays yours while you wait; humans never hold tasks. Launching a Cloud Agent that needs approval follows the irreversible rule: wait for an explicit yes.`,
         class: 'decision',
         industries: ['universal'],
         prereqs: [],

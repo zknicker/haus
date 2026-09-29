@@ -1,6 +1,5 @@
 import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-agent.ts';
-import { ASK_COMMAND } from './agent-cli/commands/agent-ask.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
@@ -14,7 +13,7 @@ import { TASK_SUBCOMMANDS } from './agent-cli/commands/agent-task.ts';
 import { THREAD_SUBCOMMANDS } from './agent-cli/commands/agent-thread.ts';
 import { TRIGGER_SUBCOMMANDS } from './agent-cli/commands/agent-trigger.ts';
 import { UsageError } from './agent-cli/parse.ts';
-import { dispatchCommand, dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
+import { dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
 import { errorBlock } from './agent-cli/ui.ts';
 
 const commandGroups = {
@@ -34,11 +33,6 @@ const commandGroups = {
     trigger: TRIGGER_SUBCOMMANDS,
 } satisfies Record<string, SubCommand[]>;
 
-/** Commands that are one verb, not a family. `haus ask` is the only one. */
-const flatCommands = {
-    ask: ASK_COMMAND,
-} satisfies Record<string, SubCommand>;
-
 /**
  * Computer-owned copy of the proven Runtime Agent CLI. Command modules are
  * ported intact; this narrow dispatcher deliberately exposes only Agent
@@ -53,14 +47,6 @@ export async function runAgentCli(argv: string[]): Promise<number> {
     if (group === '--version' || group === '-v') {
         process.stdout.write('1.0.0\n');
         return 0;
-    }
-    const flat = flatCommands[group as keyof typeof flatCommands];
-    if (flat) {
-        try {
-            return await dispatchCommand(flat, rest);
-        } catch (error) {
-            return reportAgentCliFailure(error);
-        }
     }
     const subcommands = commandGroups[group as keyof typeof commandGroups];
     if (!subcommands) {
@@ -105,9 +91,6 @@ function printHelp() {
             ...Object.entries(commandGroups).map(
                 ([name, commands]) =>
                     `  ${name.padEnd(12)} ${commands.map((command) => command.name).join(', ')}`
-            ),
-            ...Object.entries(flatCommands).map(
-                ([name, command]) => `  ${name.padEnd(12)} ${command.summary}`
             ),
             '',
             "Run 'haus <command> --help' for command help.",

@@ -65,30 +65,6 @@ export async function dispatchSubcommand(
     }
 }
 
-/**
- * Dispatch a command that has no subcommand of its own (`haus ask …`). Flag
- * validation, `--help`, and arity behave exactly as they do inside a group.
- */
-export async function dispatchCommand(command: SubCommand, raw: string[]): Promise<number> {
-    try {
-        const spec = toCliCommand('', command);
-        const parsed = parseArgs(spec, raw);
-        if (parsed.help) {
-            printSubHelp(command, process.stdout);
-            return 0;
-        }
-        validateArity(spec, command, parsed);
-        return await command.run(parsed);
-    } catch (error) {
-        if (error instanceof UsageError) {
-            printSubHelp(command, process.stderr);
-            process.stderr.write(`\n${errorBlock(error.message)}\n`);
-            return 2;
-        }
-        throw error;
-    }
-}
-
 /** Exact-arity check for declared positionals; UsageError carries the spec. */
 function validateArity(spec: CliCommand, sub: SubCommand, parsed: ParsedArgs): void {
     if (sub.allowExtraPositionals) {

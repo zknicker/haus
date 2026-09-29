@@ -1,5 +1,4 @@
 import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
-import { formatAskSuffix } from '../inbox-ask-format.ts';
 import { formatAttachmentSuffix, formatThreadFollowRestoration } from '../inbox-format.ts';
 import { shortInboxId } from '../inbox-header-format.ts';
 import { formatInlineReplyContext } from '../inline-reply-format.ts';
@@ -86,11 +85,11 @@ export function shortMessageId(messageId: string): string {
 
 /**
  * Every product record a Message carries rides its line in one fixed order:
- * attachments, the task metadata, the Ask lifecycle, delegated Cloud Agent
+ * attachments, the task metadata, delegated Cloud Agent
  * work, then the Agent this Message created.
  */
 function messageSuffixes(message: AgentCliMessage): string {
-    return `${formatAttachmentSuffix(message.attachments)}${taskSuffix(message)}${askSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}`;
+    return `${formatAttachmentSuffix(message.attachments)}${taskSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}`;
 }
 
 /** Task-messages ride every surface with their metadata suffix (D8). */
@@ -101,15 +100,6 @@ function taskSuffix(message: AgentCliMessage): string {
     }
     const assignee = task.assignee?.handle ? ` assignee=@${task.assignee.handle}` : '';
     return ` [task #${task.number} status=${task.status}${assignee}]`;
-}
-
-/** An Ask Message states who owes the answer and whether it is still owed. */
-function askSuffix(message: AgentCliMessage): string {
-    const ask = message.ask;
-    if (!ask) {
-        return '';
-    }
-    return formatAskSuffix({ addresseeHandle: ask.addressee_handle, status: ask.status });
 }
 
 /**

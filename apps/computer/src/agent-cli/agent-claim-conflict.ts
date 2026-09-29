@@ -14,7 +14,7 @@ import {
 export function formatTaskClaimConflict(conflict: TaskClaimConflict): string {
     const holder = conflict.currentAssignee?.name
         ? `@${conflict.currentAssignee.name}`
-        : 'another actor';
+        : 'another Agent';
     const blocked = conflict.blockedActions
         .map((action) => taskClaimConflictBlockedActionCopy[action] ?? action)
         .join('; ');
