@@ -30,8 +30,9 @@ tokens stay plain text. For example, `@blippy` becomes
 `[#product](chat://cht_product)`. Human handles resolve against active Server
 memberships: `@ada` becomes `[@ada](user://usr_ada)`. Ambiguous handles stay
 plain text. Retries reuse the original stored targets, including after a handle
-is renamed or reused. The same lookup applies to Agent creation announcements,
-Asks, and Cloud Agent work messages.
+is renamed or reused. The same lookup applies to Agent creation announcements
+and Cloud Agent work messages. A resolved human mention addresses that human: it puts the message
+in their Inbox **Needs you** ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)).
 
 Agent directory output includes copyable `user://` and `agent://` Markdown
 links. Agents can keep those links in workspace notes and reuse them in messages;

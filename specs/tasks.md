@@ -4,10 +4,14 @@ Chat-first tasks implement D8 from `specs/raft-alignment/README.md`. A task is o
 message plus Server-owned lifecycle metadata. Conversation continues inline in its channel or DM,
 or in a deliberately chosen child Thread. All task views project the canonical message and metadata.
 
+Tasks are Agent work ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Only an
+Agent holds a task; humans create, promote, assign to Agents, and change status, but never claim or
+hold one. An Agent that needs a person @mentions them in the task Thread.
+
 ## Hosted model
 
 `message_tasks` keys metadata by `(server_id, message_id)` and also binds the canonical
-`chat_id`: monotonic per-Chat task number, status, optional human or Agent assignee and claim time,
+`chat_id`: monotonic per-Chat task number, status, optional Agent assignee (`assignee_agent_id`) and claim time,
 priority, origin, creator, monotonic version, and a nullable `tracked_at`. The work-surface Thread
 id is derived deterministically from the message id; it is not stored on the task row, and the
 Thread itself does not exist until someone replies in it.
@@ -15,11 +19,11 @@ Thread itself does not exist until someone replies in it.
 `origin` is `composed` (a human composed the message as a task), `converted` (a human promoted an
 existing message), or `claimed` (an Agent claimed a message nobody had promoted). Reads derive two
 more fields. `tier` is `background` for a `claimed` task in `in_progress` or `done` that carries
-no Ask and has no `tracked_at`. Inline and Thread messages leave the tier alone; everything else is `tracked`,
+has no `tracked_at`. Inline and Thread messages leave the tier alone; everything else is `tracked`,
 and only the default Board and List lenses distinguish them. `live` is true while the assignee
 Agent's in-flight run holds the task's message or Thread. `tracked_at` records what the current row
 cannot show — the status left `in_progress`/`done`, or the claiming run settled with the work open
-— so the tier predicate stays a pure function of one row plus Ask evidence, and only ever
+— so the tier predicate stays a pure function of one row, and only ever
 moves a task from background to tracked.
 
 An explicit status update completes the task. Posting a message never sets it `done`. Same-turn
@@ -55,7 +59,7 @@ message (ADR 0026).
   `closed` to `in_progress` needs an assignee (claim first) and stamps the claim; a `todo` that
   already carries a claim stamp is refused as a concurrent start; returning to `todo` clears the
   stamp. Haus has no task deletion.
-- Claim is self-only. Task writes lock the Server before membership, Chat, and task rows. The
+- Claim is self-only and Agent-only; a human has no claim or unclaim. Task writes lock the Server before membership, Chat, and task rows. The
   first valid claimant wins; a second claimant cannot acquire ownership at the same version.
 - An Agent claim conflicts only with the current holder, never with an unrelated status, priority,
   or label edit. A batch claim is one transaction answering per task — claimed, already yours, or
@@ -65,10 +69,10 @@ message (ADR 0026).
   attention; subsequent work can be claimed on a later reply without reopening the old task.
 - Only the current assignee can unclaim.
 - Assignment is member-level. Any human or Agent who can write in the task's Chat can assign it
-  to any member of that Chat or clear it, including over someone else's hold. A human assignee
-  must have active Server membership and parent-Chat access; an Agent assignee must be active and
-  already participate in the parent Chat. Agents name the assignee by `@handle`; a missing,
-  retired, or out-of-Chat handle answers one uniform "not assignable in this chat" refusal.
+  to any Agent of that Chat or clear it, including over another Agent's hold. The assignee must
+  be an active Agent that already participates in the parent Chat; a human is never an assignee.
+  Agents name the assignee by `@handle`; a human, missing, retired, or out-of-Chat handle answers
+  one uniform "not assignable in this chat" refusal.
   Assignment never changes status and clears the claim stamp; re-assigning the current owner is
   a no-op that keeps the version. An optional expected revision makes a stale assign lose.
   Assigning another Agent enqueues its typed assignment pending work and wakes it. In every case
@@ -77,8 +81,8 @@ message (ADR 0026).
   catalog entries.
 - Revoked Server membership, lost parent-Chat access, cross-Server ids, and stale versions fail
   closed.
-- Human removal or Agent retirement releases that actor's claims and assignments with versioned
-  `task.updated` events. Reinvitation or reactivation restores no old assignment or Thread access.
+- Agent retirement releases that Agent's claims and assignments with versioned `task.updated`
+  events. Reinvitation or reactivation restores no old assignment or Thread access.
 
 Assignee and status are independent. Claiming an unassigned `todo` task moves it to
 `in_progress`; unclaiming preserves status. Done tasks cannot be claimed or unclaimed.
@@ -98,8 +102,9 @@ event targeting for live delivery and cursor catch-up after reconnect.
 ## Surfaces
 
 - Hosted App: Server Board and List lenses, which exclude background-tier tasks by default and
-  report how many they hid (`includeBackground` widens them), with create, claim, unclaim, human assignment, status,
-  priority, and task-label controls. Opening a task opens the canonical message's hosted Thread,
+  report how many they hid (`includeBackground` widens them), with create, Agent assignment, status,
+  priority, and task-label controls, and a **Stopped before finishing** group after **Needs your
+  review** for `claimed` tasks whose run settled with the work open. Opening a task opens the canonical message's hosted Thread,
   where a task metadata header projects the number, status, assignee, and creator. Status and
   assignment edits use the same versioned task mutations as the other lenses.
 - Managed CLI: `haus task list|create|claim|unclaim|assign|unassign|update` uses the Computer's scoped runner

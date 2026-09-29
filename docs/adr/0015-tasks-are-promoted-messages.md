@@ -14,6 +14,14 @@ Accepted (2026-07-22, WS5 of the Raft-alignment program; decision D8 in
 `specs/raft-alignment/README.md`, ruled 2026-07-20/21). Supersedes the retired
 pre-flip tracker (tasks/epics/T-numbers/dispatch).
 
+Amended 2026-09-29 by [ADR 0037](0037-humans-are-addressed-by-mention.md): tasks are Agent
+work. Only an Agent holds a task — `message_tasks.assignee_user_id` is gone, humans never claim,
+unclaim, or receive an assignment, and any member may assign a task to an Agent of its Chat. An
+Agent that needs a person on a task @mentions them in the task Thread. Asks are retired, so the
+"no Ask against it" tier evidence below is historical, and a claim an Agent stopped short of
+finishing is surfaced on the Tasks page (**Stopped before finishing**) rather than in the Inbox.
+The "human-or-Agent concurrency lock" wording below now reads Agent-only.
+
 Amended 2026-09-28 to match Raft's task permission model: status and assignment are
 member-level. Any human or Agent with write access to the task's Chat may change status (Agents
 along Raft's transition table; start rules and the concurrency guard still apply) and may assign

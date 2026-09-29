@@ -14,6 +14,9 @@ Accepted 2026-08-07 and amended 2026-08-29 to match Raft's current Cindy
 factory layout. Supersedes ADR 0018 and the conflicting first-Agent and
 onboarding-chat statements in ADR 0019. Existing Servers are not migrated.
 
+Amended 2026-09-29 by [ADR 0037](0037-humans-are-addressed-by-mention.md): the `asks` Manual topic
+is retired; asking a human is the @mention recipe.
+
 ## Context
 
 Haus previously treated Raft's onboarding recipe summaries as a universal

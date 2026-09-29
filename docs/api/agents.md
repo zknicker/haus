@@ -107,7 +107,7 @@ Every task projection carries `origin`, which says how the row came to exist:
 
 The hosted task wire shape adds two derived fields on top of that. `tier` is `background` or
 `tracked`: a background task is a `claimed` task in `in_progress` or `done` whose Thread has no
-messages, that carries no Ask, whose status never left that pair — review, closure, or a reopen
+messages, whose status never left that pair — review, closure, or a reopen
 stamps it tracked for good — and whose claiming run has not settled leaving the work open — an Agent's own orchestration lock, excluded from the default Board
 and List. Everything else is `tracked`. `live` is true while the assignee Agent's in-flight run
 holds that task's message or Thread; a run beginning and a run settling both emit `task.updated`,
@@ -176,15 +176,15 @@ thread address the same way.
 `/update` is member-level: any Agent in the task's Chat may move status along the transition
 table in [specs/tasks.md](../../specs/tasks.md#authority-and-concurrency), holder or not; an
 invalid edge, a start without an assignee, or a concurrent start answers `409 TASK_CONFLICT`.
-`/assign` takes `target`, `number`, `assignee` (`@handle` of a human or Agent member of that Chat),
+`/assign` takes `target`, `number`, `assignee` (`@handle` of an Agent member of that Chat),
 and optional `expectedRevision`; `/unassign` takes the same without `assignee`. Both answer
-`{ task }`, never change status, and clear the claim stamp. A missing, retired, or out-of-Chat
-handle answers one uniform `409 TASK_CONFLICT` "not assignable in this chat", and a stale
+`{ task }`, never change status, and clear the claim stamp. Tasks are Agent work, so a human
+handle, like a missing, retired, or out-of-Chat one, answers one uniform `409 TASK_CONFLICT` "not assignable in this chat", and a stale
 `expectedRevision` answers `409` naming both revisions. Assigning another Agent delivers the same
 `task_assignment` inbox item an App assignment does.
 
-The managed CLI ships inside Computer, so these claim and list shapes require Computer protocol
-24: an older Computer reports `update-required` and runs no Agent turns instead of failing to parse
+The managed CLI ships inside Computer, so these claim, list, and Agent-only assignee shapes require
+Computer protocol 25: an older Computer reports `update-required` and runs no Agent turns instead of failing to parse
 a claim or list response.
 
 ### Agent routes
@@ -243,46 +243,14 @@ is provenance rather than something the App draws. Creation emits
 Creating an Agent does not wake it. Its standing brief is already in the memory the Computer seeds,
 so its first turn is its next ordinary delivery and nothing DMs it.
 
-### Asks
+### Asking a human
 
-A managed Agent asks one named human for a decision with `haus ask`:
-
-```sh
-haus ask --target "#product" --to @ada --title "Run the staged migration?" \
-  --summary "The migration is staged and reversible for one hour." \
-  --option "Run it now" --option "Wait for the release window" <<'HAUSMSG'
-The migration is staged. Should I run it now, or wait for the release window?
-HAUSMSG
-```
-
-`POST /api/agent/asks` takes `{ addresseeHandle, content, nonce, options, summary, target, title }`
-and returns `{ ask, chatId, idempotent, messageId, sequence, target }`. The question text is the
-Message content and is required; `title` is at most 120 characters and `summary` 500. `options` is
-zero to four distinct replies of at most 80 characters each, in the order the human sees them, the
-first being the Agent's recommendation; an empty array is an open question. The Server resolves the target under the runner's own Agent and Server
-authority, resolves the handle in the shared human/Agent handle namespace, and requires an active
-human member with access to that Chat — an unknown handle, an Agent handle, or a member without Chat
-access returns `ASK_ADDRESSEE_NOT_FOUND` and writes nothing.
-
-One transaction writes the Agent-authored Message with `body_kind = 'ask'`, the `asks` row, the
-deterministic child Thread when the Ask is top-level, ordinary delivery planning, and both the
-`message.created` and `ask.updated` events. It is idempotent by `(Chat, nonce)`; the same nonce with
-different values returns `ASK_IDEMPOTENCY_CONFLICT`. An Ask posted inside a Thread stays in that
-Thread, because Threads do not nest.
-
-The first reply in the Ask's Thread from anyone other than the asking Agent settles it in that
-reply's own transaction, recording the answering human or Agent and the answer Message. Humans and
-Agents both settle; the addressee is who Haus notifies, not who Haus permits. There is no answer
-route — settlement is a side effect of the ordinary send paths — and no mutation of any other
-record. `ask.listOpen({ serverId })` is the human read for the Inbox, and it carries the
-conversation the answer is addressed to plus the Thread anchor a reply hangs off, so an Ask posted
-inside a Thread is answerable from the Inbox like any other.
-
-Every Agent-facing Message states its `body_kind` (`text | ask | cloud-agent-work`), and an Ask
-Message carries `ask: { id, status, addressee_handle, title, options }` beside it. The
-Agent CLI appends `[ask status=open|answered to=@handle]` to that Message's history line and
-delivery envelope, after the task suffix
-([Haus CLI](../../specs/haus-cli.md#4-envelopes-and-message-lines)).
+Haus has no question route. An Agent asks a person by @mentioning them in an ordinary
+`haus message send` where the work lives, and their reply wakes it through ordinary delivery
+([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). The mention writes the Message's
+`mentioned_user_ids`, which puts it in that human's **Needs you**
+([Inbox](../features/inbox.md)). Every Agent-facing Message states its `body_kind`
+(`text | cloud-agent-work | agent-created`).
 
 ### Cloud Agent work
 

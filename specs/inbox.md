@@ -203,10 +203,7 @@ new run explicitly reoffers it so a terminal result is model-visible at most onc
 
 Idle and busy agents receive only the content-free inbox notice (turn-shapes §4):
 batched target rows with counts, first/latest short ids, latest sender, and
-`· thread / · dm / · task #N / · ask <status> to=@handle /
-· you were mentioned` tags — never bodies. The Ask tag reads the same status and
-addressee as the `[ask status=… to=@handle]` envelope suffix and the drain
-envelope's compressed `ask=<status>[:@handle]` marker (haus-cli.md §4), from
+`· thread / · dm / · task #N / · you were mentioned` tags — never bodies, from
 one formatting owner. Rows are
 deduped by exact offered identities and repeat only when the pending set
 changes. Busy injection is acknowledged only after Computer durably caches the
@@ -251,7 +248,7 @@ canonical envelopes to the replayed turn. History, search, direct reads, and
 freshness-hold results require a Server visibility receipt for any pending
 identities before Computer returns the bodies. `haus inbox check` lists
 pending target rows without draining or advancing anything. Its rows are the busy
-notice's rows: the Server peek derives the task, Ask, Cloud Agent result, and mention
+notice's rows: the Server peek derives the task, Cloud Agent result, and mention
 facts from the same envelopes the notice uses, and the notice and the CLI print a
 target through one formatter (`apps/computer/src/inbox-target-row.ts`), as Raft prints
 both with one row formatter.

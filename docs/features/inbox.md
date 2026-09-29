@@ -1,8 +1,9 @@
 ---
-summary: The human Inbox page — a sidebar lens over the day, the week's most active Agents, Asks, live Agent work, and unread conversation.
+summary: The human Inbox page — a sidebar lens over the day, the week's most active Agents, the DMs and @mentions that need you (with Done and desktop notifications), live Agent work, and unread conversation.
 read_when:
   - changing the Inbox page, its sections, empty states, or realtime invalidation
   - adding a record that should ask a human to act or should stay observable between turns
+  - changing Needs you rows, Done, or desktop/web notifications for them
   - deciding where background work that outlives an Agent turn becomes visible to humans
 ---
 
@@ -77,22 +78,33 @@ The remaining three sections share one grammar: the label above, and below it on
 holding that section's rows with a separator between each pair. A quiet section says so in one muted
 row inside that same box, so it keeps the section's shape rather than changing it to say so.
 
-**Needs you** — work waiting on this human, as one list over two records:
+**Needs you** — conversations addressed to this human that they have not answered
+([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). An Agent asks a person by
+@mentioning them or by writing in their DM; there is no separate question record. A row is one
+Chat — a DM, a Channel, or a Thread — holding at least one addressing message:
 
-- Open [Asks](../../specs/asks.md) addressed to me. The row states the Ask; the Ask's options are
-  offered in the Thread the row peeks, where the whole Ask is readable.
-- Claims an Agent took and stopped short of finishing.
+- **DM** (`reason: 'dm'`) — a message from someone else in a DM the viewer belongs to. Every
+  unanswered Agent DM message counts, as in Raft.
+- **Mention** (`reason: 'mention'`) — a Channel or Thread message whose content carries a
+  `user://<viewerId>` mention ([Rich References](../../specs/mentions.md)).
 
-They share a list rather than a card. As two lists in one group, the seam between them was the only
-place in the section without a divider, and the reader could see the join.
+The row carries the newest addressing message — its author, a plain-text preview, and its time —
+plus how many addressing messages it stands for. It **clears** when the viewer replies where the
+addresser will see it (the same Thread, the same DM, or an inline reply in the same exchange), or
+presses **Done**. Done records the sequence it covered; newer addressing activity in that Chat
+brings the row back, the same `throughActivitySeq` rule Raft's Inbox uses. Done also advances the
+viewer's read marker to that sequence.
+
+A Chat that has a Needs you row is left out of **Conversations**, so one conversation is never
+listed twice.
+
+Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to the
+Tasks page, in its **Stopped before finishing** group after **Needs your review**
+([Tasks](tasks.md)). Tasks are Agent work; when an Agent needs a person on one, it @mentions them
+in the task Thread, and that mention is the Needs you row.
 
 A failed Server onboarding appears on the owner's setup screen. Until setup completes,
 owners remain in setup and members and Admins remain on the waiting page, outside the Inbox.
-
-Tasks are not here. Task tiers made a task the Agent's own ledger, the Tasks page already leads with
-its **Needs your review** group, and an [Ask](../../specs/asks.md) is the record that addresses a
-person — so `in_review` rows in the Inbox only made the section long enough that the Asks stopped
-being the point.
 
 **Conversations** — unread Chats, newest activity first: the Chat's identity and name, the last
 message beside it, and the time and unread count trailing. The quoted line is flattened by the same
@@ -130,15 +142,14 @@ grammar:
   its own ground, and that slot exists to give a bare glyph one.
 - The **title**, which keeps its own width rather than shrinking, and truncates only past 40% of the
   line so one long title cannot take the preview's width with it.
-- The **preview**, muted, filling whatever the title leaves and truncating first: an Ask's summary,
-  a Chat's waiting line, the Chat and Agent behind a Cloud Agent work.
+- The **preview**, muted, filling whatever the title leaves and truncating first: the addressing
+  message, a Chat's waiting line, the Chat and Agent behind a Cloud Agent work.
 - The **trailing cluster**, which never wraps or shrinks: where the row came from and how it stands
-  — an Ask reads `Ask · #onboarding-owner`, a stalled claim `#all · Task #3`, a Chat its time and
-  unread count. No row carries a control, so every row in the column ends on the same right edge
-  and every one of them is exactly one line tall.
+  — a mention reads `#onboarding-owner · 2m`, a DM its time, a Chat its time and unread count. A
+  Needs you row adds one **Done** action at the trailing edge; no other row carries a control.
 
-An Ask leads with the asking Agent's face, not a question glyph, so every row in the section shares
-one identity grammar. The row is composed from `ItemCard`'s own parts in
+A Needs you row leads with the addressing author's face, so every row in the section shares one
+identity grammar. The row is composed from `ItemCard`'s own parts in
 [`inbox-row.tsx`](../../apps/website/src/features/servers/inbox/inbox-row.tsx), and carries no height
 of its own: the card's padding around a 32px mark is the band, which measures 54.5px at the app's
 spacing scale. The theme layer holds exactly two Inbox rules — the section header's inset, and the
@@ -149,30 +160,42 @@ component's spacing to fit it, are gone.
 Pressing anywhere on a row opens it. The card itself is the press target — `ItemCard`'s own
 Pressable composition, rendered as a `button` with `PressableFeedback.Highlight` inside it, the same
 shape the week cards in the strip use. It takes the tab stop, carries the row's title as its
-accessible name, and shows an inset `:focus-visible` ring. Nothing nests inside it: a row that acts
-would need the target underneath and the control lifted above, and no row acts.
+accessible name, and shows an inset `:focus-visible` ring. Done is the one row action; it sits
+beside the press target rather than inside it, so no interactive element nests in another.
 
 ## Current stub
 
-The page is live at `/s/:slug/inbox`. An Ask row peeks its Thread over the Inbox at
-`?ask=<messageId>`, showing that Thread's shared answer card under the Ask itself, with the options
-in the Agent's own order, the first emphasized and every label carried verbatim — the one-press form
-of the reply a person would otherwise type, and the only place an Ask can be answered without
-typing. Pressing one sends exactly its text; one press spends the row. An Ask with no options is an open question and
-shows only the composer. The options ride the same open-Ask read the section does, so an Ask
-answered elsewhere takes them, the peek, and the row with it; a Cloud Agent work row peeks its conversation at `?work=<messageId>` — the same
-Thread timeline the Chat opens, work card and all; a stalled claim opens the task on the Tasks page;
-an Agent row in **Happening now** opens that Agent's page.
+The page is live at `/s/:slug/inbox`. A Needs you row opens its conversation: a DM or Channel row
+opens that Chat at the addressing message, and a Thread row peeks its Thread over the Inbox. The
+reply goes through the ordinary composer, and replying there clears the row. A Cloud Agent work row
+peeks its conversation at `?work=<messageId>` — the same Thread timeline the Chat opens, work card
+and all; an Agent row in **Happening now** opens that Agent's page.
 
-A **stalled claim** row is where a person learns that an Agent took work and dropped it, because
-[Chat hides an Agent's own claims by default](tasks.md). It is composed from the same `task.list`
-read the section already makes — a task with `origin` `claimed`, status `in_progress`, tier
-`tracked`, and `live` false, meaning its run settled without answering and no reply is coming — and
-reads as the Agent's avatar, `Blippy stopped before finishing`, what was asked as its preview, and
-the Chat and task number trailing.
+The rows come from `inbox.needsYou({ serverId })`, and Done is
+`inbox.markDone({ serverId, chatId, throughSequence })` with the row's `chatId` and
+`latest.sequence` (`packages/haus-api/src/needs-you.ts`). Done removes the row optimistically and
+reconciles on the refetch.
 
 One source has no Server list procedure yet and is absent until it does: followed Threads
 (**Conversations**).
+
+## Notifications
+
+A new or newer Needs you row notifies the viewer while Haus is in the background:
+
+- **Desktop (Electron) and web** use the platform `Notification` API when the window is hidden
+  or unfocused. The title names the author and the Chat; the body is the row's preview. Clicking
+  it focuses the window and opens the conversation. A row notifies once per `latest.messageId`;
+  Done and replies never notify.
+- Permission is requested only from the notifications toggle in Settings, never on page load.
+  With the toggle off or permission denied, nothing is shown.
+- **macOS** keeps the app running when its last window closes: closing hides the window, and
+  Cmd+Q or the menu's Quit quits. Notifications therefore keep arriving with no window open.
+
+Deferred until the operator provides credentials: iPhone push through APNs (an Apple push key
+and the app's push entitlement), and browser Web Push while Haus is closed (a VAPID key pair and a
+service worker). Neither exists today; the iPhone and a closed browser tab learn about Needs you
+rows only when opened.
 
 ## Rules
 
@@ -193,22 +216,21 @@ One source has no Server list procedure yet and is absent until it does: followe
   nothing is claimed — and nothing flashes — on the way there. This holds for the header, which
   waits for the name it greets, and for the week strip, which waits for the usage snapshot rather
   than ranking against zeroes.
-- The page updates from the durable events the underlying records already emit — `ask.updated`,
-  `task.updated`, `cloud-agent-work.updated`, Agent activity and lifecycle, and `message.created` —
-  through the existing invalidations. The Inbox adds no event of its own. The strip's token figure is
+- The page updates from the durable events the underlying records already emit —
+  `message.created`, `chat.read`, `cloud-agent-work.updated`, and Agent activity and lifecycle —
+  through the existing invalidations; Needs you refetches on `message.created` and `chat.read`.
+  The Inbox adds no event of its own. The strip's token figure is
   the exception that needs none: it rides the usage snapshot's own freshness, the same one every
   other usage surface reads, while the live step on a card still comes from Agent activity.
-- The Inbox owns no read state. Unread counts come from `chat_reads`; open and answered come from
-  the Ask, Task, and work records. Opening the Inbox marks nothing read.
-- The Inbox adds no store, no cache, and no page-local lifecycle. Authorization is the ordinary
+- The Inbox owns no read state of its own. Unread counts and the Done marker both live in
+  `chat_reads`; running work comes from the work records. Opening the Inbox marks nothing read.
+- The Inbox adds no store, no cache, and no page-local lifecycle beyond Done's optimistic removal. Authorization is the ordinary
   Server membership and Chat access of each projected record.
 - iOS mirrors this page, and the sections and their ordering above are the contract it mirrors:
   the same header, the same **Active this week** strip, and the same three lists in the same order,
   reading the same Server records through Store-owned snapshots
   ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Cloud Agent work gets its
-  first iPhone presentation. A stalled claim deep-links to its own task on both surfaces: the App
-  through `?task=`, the phone through a focused Task list that scrolls to the row and widens the
-  background lens when it has to. One row differs, because the phone has nowhere else to send it: an
+  first iPhone presentation. One row differs, because the phone has nowhere else to send it: an
   Agent row in **Happening now** opens that Agent's DM rather than a profile page, which the phone
   reaches from a Chat instead. The iPhone Inbox is also the cold-start
   landing screen there, which the App has no counterpart for.

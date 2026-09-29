@@ -653,8 +653,8 @@ because [that page's order is the contract](../features/inbox.md), and it render
 snapshots below rather than from reads of its own: `HausUI/Inbox` owns the row projections and the
 page, and `HausApp/InboxPresentationAdapters.swift` is the only place the Store's records become
 them. A section renders nothing at all until its read lands, so an unsettled section is blank rather
-than an empty box that fills a moment later; **Needs you** waits for both the Asks and the Tasks,
-which is the same pair the sidebar badge waits for.
+than an empty box that fills a moment later; **Needs you** waits for its one read, which is the
+same read the sidebar badge waits for.
 
 It is the canvas itself, not a push on the root stack. A cold start shows the Inbox page as the
 shell's canvas — no navigation bar, no title, no Back chevron, because there is nothing behind a
@@ -664,11 +664,11 @@ than to either of them: the leading chrome button sits where it sits on a Chat s
 and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
-always did. `HausRootRoute` therefore carries only `.tasks(focus:)` and `.thread`. An Ask row and a Cloud
-Agent work row each push the Thread they hang off, carrying the conversation's Chat id and the anchor Message — the same pair a Thread
-composer sends to — and leaving the canvas selection alone for the same reason a Task does. A
-stalled claim pushes the Task list focused on its own task, which is the phone's counterpart of the
-App's `?task=` deep link. One row still lands somewhere the App does not send it, because the phone
+always did. `HausRootRoute` therefore carries only `.tasks(focus:)` and `.thread`. A Needs you row on a Thread
+and a Cloud Agent work row each push the Thread they hang off, carrying the conversation's Chat id
+and the anchor Message — the same pair a Thread composer sends to — and leaving the canvas
+selection alone for the same reason a Task does; a top-level Needs you row opens its DM or Channel.
+Stalled claims live on the Task list, in its **Stopped before finishing** group. One row still lands somewhere the App does not send it, because the phone
 has nowhere else: an Agent in **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
 Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
 column every other row uses — a deliberate exception to the column's 26-point boxed glyphs, because
@@ -681,75 +681,27 @@ on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App'
 `agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
 
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
-holds four reads — the viewer's open Asks (`ask.listOpen`), the default Server-wide Task lens
-(`task.list`), the Cloud Agent work running right now (`cloudAgentWork.listActive`), and the
+holds four reads — the viewer's Needs you rows (`inbox.needsYou`), the default Server-wide Task
+lens (`task.list`), the Cloud Agent work running right now (`cloudAgentWork.listActive`), and the
 Server's token-usage snapshot (`stats.live`) — and each stays nil until its first load. That nil is
-load-bearing: `needsYouCount` answers zero until both the Asks and the Tasks have landed, because a
-badge that counted Asks now and Tasks a moment later would tick upward in front of the reader; ask
-`isNeedsYouCountReady` to tell "nothing waiting" from "not yet known". The count is the App's own
-selector ported whole (`InboxNeedsYou` in `HausModels`): every open Ask addressed to this human,
-plus every stalled claim — `claimed`, `in_progress`, `tracked`, and not `live`, each clause
-load-bearing. Durable events refresh only what this client already holds, the way the App's
-invalidation only refetches a live query: `ask.updated` reloads the open Asks beside the transcripts
-naming the Ask and its parent, `task.created` and `task.updated` reload the Server Task lens beside
-the affected Chat page, and `cloud-agent-work.updated` reloads the active work list beside its own.
+load-bearing: `needsYouCount` answers zero until the Needs you rows have landed; ask
+`isNeedsYouCountReady` to tell "nothing waiting" from "not yet known". The count is the number of
+Needs you rows, the same rows the App lists. Durable events refresh only what this client already
+holds, the way the App's invalidation only refetches a live query: `message.created` and
+`chat.read` reload the Needs you rows, `task.created` and `task.updated` reload the Server Task
+lens beside the affected Chat page, and `cloud-agent-work.updated` reloads the active work list
+beside its own.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.
 
-An Ask is answered exactly as the App answers one, so there is no answer procedure: an ordinary
-`chat.send` carrying the chosen option, addressed to the conversation's Chat id and to
-`OpenAsk.threadAnchor`, which is the shared `openAskThreadAnchor` rule — the Thread's own anchor
-when the Ask was posted inside one, and the Ask's own Message when it was not. `OpenAsk` names the
-Channel or DM, never a Thread, so a row carries the same pair a Thread composer sends. An Ask's
-`options` are up to four short replies, the first the Agent's recommendation, and no options at all
-is an open question whose answer is whatever the human writes. The Ask reaches a transcript as the
-`ask` Message body beside that row.
-
-That contract is why the phone has no Ask screen: opening an Ask is opening the Thread its answer
-is written in. `HausStore.threadSelection(openAsk:)` is the one entry point a surface that lists
-open Asks pushes, and it builds the ordinary `.thread` route out of `AskAnswerRoute` — the
-conversation's Chat id and the Ask's Thread anchor, never the Thread's own Chat.
-
-Inside a Thread an Ask is answered where it was asked: `AskAnswerCard` draws under the Ask's own
-Message, the same surface the App draws. The card states `Ask for <name>` beside the addressee's
-face and `Awaiting answer` under it, and never repeats the question — that is the Message above it.
-The answerable Ask also carries the Agent's options as capsule buttons, in the order it wrote them
-with the recommendation first and prominent, and then a line pointing at the composer: `Or write a
-reply below.`, or `Write your answer below.` for an Ask with no options at all. Pressing one sends
-its text verbatim as the human's own reply through the Thread send the screen already has, which
-addresses the conversation Chat and this anchor — the exact pair an Ask's answer takes. One press
-spends the whole card, because the Ask leaves only when `ask.updated` refetches this Thread's
-Messages — nothing here is optimistic. A send that failed spends nothing: the card re-enables and
-says so in its own line rather than swallowing it, because the store's send reports only whether it
-landed.
-
-The card belongs to the **newest open Ask among that Thread's own rows**, anchor or reply alike
-(`ThreadAskAnswerability`, read once in `ThreadDetailView`'s body, with coverage in
-`ThreadAskAnswerabilityTests`). An Agent can ask inside a Thread as easily as it can start one, so
-the decision waiting on the reader is not always the anchor's; newest, because an Agent that asked
-twice is waiting on the second question, and because Server settles a reply against exactly that
-Ask. An older open Ask still draws its card, header only — a reply here would not settle it, so it
-offers nothing to press. A **read-only** Thread turns every card header-only for the same reason,
-the way the App's `readOnly` does: the predicate is `ChatSummary.isReadOnly` — an archived Chat, or
-a DM whose peer Agent was retired, the one Haus App computes in `thread-content.tsx` — read off the
-parent Chat in `AuthenticatedHausView+Thread` and passed into `ThreadDetailView`, which hands it to
-`ThreadAskAnswerability.answerableMessageID(rows:readOnly:)` and replaces its composer with
-`ThreadReadOnlyNotice`, one line saying the Thread reads but does not reply. No composer means no
-reply can settle an Ask, so the controls would be a lie. Each card is keyed on
-its own Ask Message, so a second Ask arriving in the same Thread gets a card of its own rather than
-one a previous answer already spent.
-
-In the Chat timeline the same Ask reads as `AskMark`, the compact marker: the Ask glyph, the word
-`Ask`, the addressee's face and name, the accent ring, and `· Awaiting answer`, in the same
-annotation grammar as the task chip. The marker is also the way in, taking the Thread ingress card's
-own press feedback and route under the App's own accessible name, `Open thread, Ask`; an Ask nobody
-has replied to yet shows no ingress card, so without that the Inbox was the only surface that could
-open it. Both are projected from the `ask` Message body through the one actor resolver every other
-row already reads (`HausStore.askPresentation`).
-
-An answered Ask draws nothing — no marker, no card, on either surface. The question and its reply
-stay ordinary conversation, and a Thread that filled up keeps its ordinary ingress; a settled marker
-is bookkeeping nobody scanning back needs.
+A Needs you row ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)) is one Chat
+addressed to the viewer — a DM message from someone else, or a `user://` mention of them — decoded
+from `NeedsYouRow` in `packages/haus-api/src/needs-you.ts`. The phone answers it the only way
+there is: an ordinary reply in that DM, Channel, or Thread, which clears the row on the Server. Done
+calls `inbox.markDone` with the row's `chatId` and `latest.sequence`; newer addressing activity
+brings the row back. There is no question screen, card, or marker — the mention chip in the
+transcript is the whole presentation. iPhone push is deferred until APNs credentials exist
+([Inbox](../features/inbox.md#notifications)).
 
 A Task lens widens through `loadTasks(includeBackground:)`, and
 a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N

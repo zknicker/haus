@@ -121,15 +121,16 @@ the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages, a Thread, two tasks, and one MCP
 connection — enough to open any surface without hand-building data. It then
 seeds the activity the Inbox is a lens over: unread lines in both Channels and
-both Agent DMs, two open Asks — Cove's rename question offering three replies
-and Tiny's stale-copy question offering none — one claim Blippy left stalled, one
+both Agent DMs, two **Needs you** rows — Cove @mentioning you with its rename question in a
+Channel and Tiny's unanswered stale-copy question in its DM — one claim Blippy left stalled (shown
+on the Tasks page under **Stopped before finishing**), one
 settled Cloud Agent work, and seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.
 
-A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its 26
-anchor messages cover open/answered Asks, options and free-text questions, all task statuses,
+A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
+anchor messages cover human @mentions in Channels and Threads, all task statuses,
 hidden claims, claims with replies, all cloud-work statuses, cancelling/stale work, ordinary
-threads, and a task thread containing multiple cloud runs and inline Asks. Toggle **Show tasks
+threads, and a task thread containing multiple cloud runs and an inline human @mention. Toggle **Show tasks
 in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic and has no external
 link. The gallery's queued/running work appears in Inbox too.
 

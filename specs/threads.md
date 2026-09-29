@@ -31,8 +31,13 @@ per participant, humans and agents identically. Explicit unfollows persist as `f
 the participant posts, follows explicitly, or is directly mentioned in the Thread. A direct mention
 restores ordinary delivery because the newer address supersedes the earlier unfollow.
 
-- Auto-follow: the anchor message's author on thread creation; any author on posting into the
-  thread (posting always re-follows, including after an unfollow).
+- Auto-follow: the anchor message's author on thread creation, human or Agent alike — so a human
+  who opens a Thread on an Agent's message (for example, to answer its @mention) wakes that Agent
+  with the first reply; any author on posting into the thread (posting always re-follows,
+  including after an unfollow).
+- A Thread message that @mentions a human is a **Needs you** row for that human, anchored to the
+  Thread ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); a reply from them in
+  the same Thread clears it.
 - @mentioning a parent-chat participant inside a thread message follows them to the thread.
 - A direct mention uses the existing rich-reference syntax. The hosted human slice recognizes
   `user://` references only; local Agent delivery may recognize `agent://` when that delivery

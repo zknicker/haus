@@ -1,5 +1,5 @@
 ---
-summary: Hosted chat-first tasks — canonical messages with Server-owned lifecycle metadata, inline conversation, optional Threads, and board/list lenses.
+summary: Hosted chat-first tasks — Agent work as canonical messages with Server-owned lifecycle metadata, Agent-only assignees, inline conversation, optional Threads, and board/list lenses.
 read_when:
   - changing task promotion, claiming, assignment, statuses, priorities, or labels
   - changing hosted task authorization, events, or Thread work surfaces
@@ -12,6 +12,11 @@ A task is a canonical hosted Chat message promoted with task metadata. The messa
 task title verbatim, conversation continues inline or in a chosen child Thread, and board/list
 views are lenses over the same message. Haus does not keep a
 second task conversation or content store.
+
+Tasks are Agent work. Only an Agent ever holds a task; a person never claims or is assigned one.
+When an Agent needs a person on a task, it @mentions them in the task Thread, and that mention
+reaches them under **Needs you** in the [Inbox](inbox.md)
+([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)).
 
 Tasks never own Threads. A message gets a task, a message gets a Thread, and they meet only
 because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted-messages.md)).
@@ -31,9 +36,9 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
 - Status is `todo`, `in_progress`, `in_review`, `done`, or reversible `closed`.
 - Every task reads as one of two **tiers**, inferred from evidence rather than declared. A
   **background** task is an Agent's own claim — `origin` `claimed`, status `in_progress` or
-  `done`, no Ask against it, never sent to review, and not left unfinished by its claiming run.
-  Everything else is **tracked**. An Ask, a status outside `in_progress`/`done`, or an open claim
-  after settlement makes work tracked. Inline and Thread replies do not affect this choice.
+  `done`, never sent to review, and not left unfinished by its claiming run.
+  Everything else is **tracked**. A status outside `in_progress`/`done`, or an open claim
+  after settlement, makes work tracked. Inline and Thread replies do not affect this choice.
   The durable tracked stamp keeps the tier from flickering back.
 - Explicit task updates complete work. A message never completes a task by implication. Every
   claim left open at settlement remains `in_progress` and becomes tracked, including when the
@@ -48,12 +53,12 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
 - Priority is `none`, `urgent`, `high`, `medium`, or `low`.
 - Labels come from one small Server task-label catalog. Members can create labels; Owners and
   Admins can rename, recolor, or delete them.
-- Claiming is one concurrency lock across human and Agent actors. The first valid claim owns the
-  task and advances its version; competing claims at the same version fail without double
-  ownership.
+- Claiming is one concurrency lock among Agents. The first valid claim owns the task and
+  advances its version; competing claims at the same version fail without double ownership.
+  Humans do not claim.
 - Status and assignment are member-level. Anyone who can write in the task's Chat — human or
-  Agent — can change its status or reserve it for any active participant of that Chat, including
-  over someone else's hold. Agents move status along a transition table (see
+  Agent — can change its status or reserve it for any active Agent participant of that Chat,
+  including over another Agent's hold. A person is never an assignee. Agents move status along a transition table (see
   [specs/tasks.md](../../specs/tasks.md#authority-and-concurrency)); people in the App set any
   status. Assigning an Agent wakes it with an assignment in its own inbox; assignment reserves and
   never claims, so the assignee still claims the task before starting.
@@ -101,7 +106,7 @@ a concise outcome and link in their conversation.
 Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
 apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose
 parent-Chat access cannot continue reading or mutating the task.
-Removing a human member or retiring an Agent releases their claims and assignments. Reinvitation
+Retiring an Agent releases its claims and assignments. Reinvitation
 or reactivation does not restore those links or access to task Threads from the former membership
 stint.
 
@@ -110,12 +115,16 @@ stint.
 The hosted `/s/<slug>` Server UI provides List and Board lenses; the Linear-style List is the
 default, and it opens on active work — done and closed tasks are a deliberate widening carried as
 `?view=all`. The List leads with the `in_review` group, titled **Needs your review**, because a
-task waiting on a person is the only kind a reader can finish by looking at it. The Board keeps
+task waiting on a person is the only kind a reader can finish by looking at it. The
+**Stopped before finishing** group follows it: `claimed` tasks still `in_progress`, stamped tracked
+because their run settled without answering, and not `live` — each reads as the Agent that
+stopped and what was asked. Both groups show on web and iPhone. The Board keeps
 lifecycle column order, so it still reads as a pipeline. List rows are dense and display-only — priority glyph, task number, status disc, title,
-labels, origin Chat, updated time, and assignee avatar — while create, claim, unclaim, assignment,
-status, priority, and task-label controls live on the Board cards and the Task Thread. Right-clicking
-either a List row or Board card opens the same task actions: open, status, priority, assignment,
-labels, claim/unclaim when eligible, parent-Chat navigation, and a copyable task link. Both lenses
+labels, origin Chat, updated time, and assignee avatar — while create, assignment,
+status, priority, and task-label controls live on the Board cards and the Task Thread. The
+assignment picker lists the Chat's Agents only. Right-clicking either a List row or Board card
+opens the same task actions: open, status, priority, assignment, labels, parent-Chat navigation,
+and a copyable task link. Both lenses
 order the tasks inside a group by priority, urgent first. Loading, empty, filtered-empty, and
 authorization failures are explicit. The Tasks topbar owns the chat-scope filter, layout, and creation controls —
 `?chat=<chatId>` carries the scope, and each chat's name menu deep-links here
@@ -146,7 +155,7 @@ and affected-message invalidation; cursor catch-up applies the same invalidation
 
 In Chat, a task's identity is a **task chip** in the header of the recessed Thread surface beneath
 the message: the task number owns the left edge, only the status disc carries lifecycle color, and
-the assignee appears by avatar and display name. It shares that header with the Ask marker and the
+the assignee appears by avatar and display name. It shares that header with the
 Cloud Agent work header — one chip grammar for everything with a lifecycle a reader follows — and
 the reply count trails it. The message's author line carries provenance only: the automation and
 session marks explain how the message came to be said
@@ -174,10 +183,8 @@ populated Thread always states its task, so a hidden claim whose Thread has repl
 `Task #N · status` on its ingress card. The Task list carries the same `N background` widening
 ([iOS internals](../internals/ios.md)).
 
-A claim nobody finished is the one case a person needs told, and it is told in the
-[Inbox](inbox.md) rather than in Chat: a `claimed` task still `in_progress`, stamped tracked because
-its run settled without answering, and not `live`, appears under **Needs you** as the Agent that
-stopped, what was asked, and the way into the task.
+A claim nobody finished is the one case a person needs told, and it is told on the Tasks page
+rather than in Chat: it appears in the **Stopped before finishing** group.
 
 Opening the task's Thread states it in full in the metadata panel above the anchor, so the anchor
 drops its own chip there.
@@ -190,7 +197,8 @@ tasks.
 The managed `haus task list|create|claim|unclaim|assign|unassign|update`
 commands use the Computer's loopback runner authority and the hosted Server task
 API. `claim` means "I am starting" and advances `todo` to `in_progress`;
-`assign --assignee @who` and `unassign` only move ownership and never status.
+`assign --assignee @agent` and `unassign` only move ownership and never status; the assignee
+must be an Agent member of the task's Chat, and a human handle is refused as not assignable.
 Both take an optional `--expected-revision` (the `rev=` in `task list`) so a
 stale view loses instead of overwriting. `task list`
 shows unfinished work by default (`--status all` widens it, `--mine` narrows it

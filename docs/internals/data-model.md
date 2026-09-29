@@ -42,7 +42,7 @@ Semantic Agent activity is durable Server metadata. Detailed execution journals 
 Computer-local and are read only through an authorized live relay.
 
 `chat_messages.body_kind` is the Message body discriminator (ADR 0025). It defaults to `text`, and
-`ask` and `cloud-agent-work` are the typed kinds; optional feature columns never define a Message's
+`cloud-agent-work` and `agent-created` are the typed kinds; optional feature columns never define a Message's
 type. One Server Message reader projects the stored kind and its record together, and fails the
 mapping rather than downgrading a typed Message to text.
 
@@ -53,13 +53,16 @@ Adding or removing a row appends `message.reaction.updated` to the same per-Serv
 cursor, while Chat access and archive checks remain the write boundary. Deleting a Message's Chat
 aggregate cascades its reactions.
 
-`asks` is the Server record behind an `ask` body: one row per Message (`(server_id, message_id)` is
-unique) carrying the addressed human, the asking Agent, the title, summary, and options,
-plus the settlement columns — status, answered-at, answer Message, and exactly one of the answering
-human or Agent. A CHECK keeps `answered` and its settlement columns in agreement, and composite
-foreign keys keep the Ask, its Message, its Chat, its addressee, and its answerer in one Server
-tenant. Ask lifecycle changes append `ask.updated` to the same `chat_events` cursor log through the
-new nullable `ask_id` column.
+`chat_messages.mentioned_user_ids` is the set of human user ids a Message's content mentions
+through `user://` references, written on every send path from the same parse that follows
+mentioned humans into Threads and GIN-indexed. `chat_reads.done_sequence` is the viewer's **Done**
+marker for a Chat. Together with DM membership they are the whole of **Needs you**
+([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)): a Chat has a row for a viewer while
+it holds an addressing message newer than both that marker and the viewer's own latest reply
+there. There is no Ask table.
+
+`message_tasks.assignee_agent_id` is the only task assignee; tasks are Agent work and carry no
+human assignee.
 
 `cloud_agent_work` is the Server record behind a `cloud-agent-work` body: one row per Message
 (`(server_id, message_id)` is unique) carrying the delegating Agent, the Computer that holds the

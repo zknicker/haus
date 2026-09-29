@@ -12,6 +12,10 @@ read_when:
 Accepted 2026-09-02. This amends ADR 0024's empty-content Message and generic action terminology;
 its avatar-generation and human-commit decisions remain intact.
 
+Amended 2026-09-29 by [ADR 0037](0037-humans-are-addressed-by-mention.md): the `ask` body kind is
+retired. A human decision request is an ordinary `text` Message that @mentions the human; the
+Consequences line naming `ask` is historical.
+
 Every Chat transcript item remains one authored Message with stable identity, placement, sequence,
 and meaningful immutable content. A Server-validated body kind may project one lifecycle-rich
 record such as a created Agent or Cloud Agent work, while a card remains presentation

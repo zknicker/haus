@@ -98,8 +98,7 @@ content; it never replaces the Message's authored meaning.
 type MessageBody =
     | { kind: 'text' }
     | { kind: 'agent-created'; agent: CreatedAgentSummary }
-    | { kind: 'cloud-agent-work'; work: CloudAgentWork }
-    | { kind: 'ask'; ask: Ask };
+    | { kind: 'cloud-agent-work'; work: CloudAgentWork };
 
 type Message = {
     id: string;
@@ -114,7 +113,8 @@ type Message = {
 };
 ```
 
-An `ask` body carries one human decision request; see [Asks](asks.md).
+Haus has no question body. An Agent asks a person by @mentioning them in an ordinary `text`
+Message ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)).
 
 Body kinds name concrete Haus product acts, not generic mechanisms, rendered entities, or
 providers. Haus has no generic `prepared-action`, `cards[]`, or arbitrary JSON-block body. Agent
@@ -127,7 +127,7 @@ data. Haus App renders a card from the Message and the Server-owned record proje
 typed body.
 
 In the parent Chat — a Channel or a DM — Haus App renders Cloud Agent work as the header of the
-Message's recessed Thread surface, the same surface and the same chip grammar a Task and an Ask use:
+Message's recessed Thread surface, the same surface and the same chip grammar a Task uses:
 provider glyph and name, title, a status disc with elapsed or total duration, and the reply count.
 One optional line shows `activity` while the work runs, and the latest Run summary or error once the
 work is terminal. The surface opens the Thread. Open in Cursor and Cancel live in the surface's
@@ -140,7 +140,7 @@ Thread card; zero replies never reserves an empty Thread card. Full work details
 remain unchanged. iOS retains its existing presentation until a separate native update.
 
 **Thread preview.** Each Cloud Agent work inside a Thread gets an informational row below the
-anchor's Task/Ask header: provider, title, and status with elapsed or total duration. Completed work
+anchor's Task header: provider, title, and status with elapsed or total duration. Completed work
 stays visible. The entire preview opens the Thread; individual work rows are not click targets.
 Server's conversation-scoped `cloudAgentWork.listForChat` read includes all statuses, grouped by
 Thread anchor. The Inbox's separate active-work read remains active-only.
@@ -494,15 +494,16 @@ administrative integration and is outside this Computer capability.
 - No pull-request facts sourced from Cursor. A Run's own `pullRequest` snapshot is the Computer
   reading GitHub directly for the branch row's state and diff counts; the pull-request reference's
   title and cached presentation still come only from the Server GitHub connection.
-- No per-launch human approval card. Launch approval, when a Server wants it, is an Ask
-  ([Asks](asks.md)), not a card.
+- No per-launch human approval card. Launch approval, when a Server wants it, is an @mention:
+  the Agent @mentions the human with what it will launch and waits for an explicit yes in reply
+  before launching ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)).
 
 ## Implementation sequence
 
 1. Canonicalize Messages: add `body_kind`, the exhaustive `Message.body` contract, and the single
-   Server Message reader. Cloud Agent work blocks on this step. This landed with
-   [Asks](asks.md): `body_kind` defaults to `text`, the shipped union is `text | ask`, and
-   `toChatMessage` projects the typed record for every consumer that returns a Message.
+   Server Message reader. Cloud Agent work blocks on this step. `body_kind`
+   defaults to `text`, and `toChatMessage` projects the typed record for every consumer that
+   returns a Message. The retired `ask` kind first introduced the column; ADR 0037 removed it.
 2. **Landed.** ADR 0028 retired prepared actions entirely: Agents create Agents directly, the
    `agent-created` body joined this union, and the top-level `preparedAction` field is gone.
 3. Add Cursor runtime discovery and AI SDK harness support.

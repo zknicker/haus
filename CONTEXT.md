@@ -226,16 +226,17 @@ The Haus App presentation of a Message body or recognized reference. A card has 
 identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
-**Ask**:
-An Agent-authored Message that asks one named human for a decision and stays open in that human's
-Inbox until someone replies in its Thread. An Ask carries a title, a summary, and a recommended
-step, changes no other record, and is answered by an ordinary Message rather than a control.
-_Avoid_: approval card, prompt, escalation, poll, action card
+**Needs you**:
+The Inbox section listing each Chat where someone addressed one human — a DM message from someone
+else, or a Channel or Thread message that @mentions them — and that human has not replied there or
+marked it Done. Done covers the messages it saw; newer addressing brings the row back. An @mention
+is how an Agent asks a person anything (ADR 0037).
+_Avoid_: Ask, approval card, action card, notification center, escalation
 
 **Inbox**:
-The Haus App page below Search where one human sees open Asks and other work waiting on them,
-Agent and Cloud Agent work running now, and unread Chats and followed Threads. It is a lens over
-existing records with no state, read state, or lifecycle of its own.
+The Haus App page below Search where one human sees Needs you, Agent and Cloud Agent work running
+now, and unread Chats and followed Threads. It is a lens over existing records; its only state is
+each viewer's Done marker, kept beside their read marker.
 _Avoid_: Agent inbox, notification center, activity feed, task list
 
 **Agent inbox**:

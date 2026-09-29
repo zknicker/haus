@@ -392,7 +392,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/haus-agent-run.test.ts` |
 | Mute purges ordinary work without blocking personal mentions; a Thread mention restores an unfollow | `apps/server/test/haus-agent-run.test.ts` |
 | Freshness validation and Agent send commit share one Server lock | `apps/server/test/haus-agent-run.test.ts` |
-| Human and Agent claims share one ownership lock | `apps/server/test/haus-agent-run.test.ts` |
+| Agent claims share one ownership lock; humans never claim | `apps/server/test/haus-agent-run.test.ts` |
 | Agent peer assignment is idempotent and delivers the exact canonical task identity to a muted peer | `apps/server/test/haus-agent-run.test.ts` |
 | Agent retirement releases task ownership and emits durable updates | `apps/server/test/haus-agents.test.ts` |
 

@@ -36,7 +36,7 @@ model session. Per-turn message delivery is an inbox concern; see
 - Ordinary requests continue in the Chat or Thread where they were asked, from acknowledgment to
   result, following the human's lead across turns. Cloud Agent work Threads hold implementation
   details and revisions; the coordinating Agent brings a concise outcome and link back to the
-  requester conversation. Formal Ask and automation placement follow their own contracts.
+  requester conversation. Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
 - Sessions never rotate because of age or idle time.
 - The Harness supplies current composed instructions on every accepted turn. When the persisted
   instruction fingerprint differs, the same native conversation therefore adopts them without

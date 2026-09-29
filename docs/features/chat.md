@@ -63,20 +63,17 @@ and [Agent Inbox](../../specs/inbox.md).
   control, and no second Chat receipt. The App never treats it as a Widget,
   visual fence, artifact, or model-authored form. Dropped realtime events
   recover through the ordinary message snapshot on reconnect.
-* **Message attachments and Threads.** Open Asks, visible tasks, and Cloud Agent work use compact,
+* **Message attachments and Threads.** Visible tasks and Cloud Agent work use compact,
   content-width attachments beneath their message before anyone replies. They open the existing
   Thread destination without a zero-reply count. Once replies exist, one recessed Thread card holds
   the metadata, Cloud Agent summaries, reply count, and recent replies. Agent-claimed task metadata
-  stays hidden when Show tasks in chat is off, including on cards with replies. Answered Ask markers
-  disappear, leaving the question and replies as ordinary conversation. Inside a Thread, Cloud Agent
+  stays hidden when Show tasks in chat is off, including on cards with replies. Inside a Thread, Cloud Agent
   work keeps its full detail card. These attachment rules apply to the web App.
 
-* **Ask markers.** An open [Ask](../../specs/asks.md) shows its glyph, addressee's face and name,
-  accent status disc, and `Awaiting answer`. Inside a Thread, an answer card below the question
-  offers one button per option in the Agent's order — the recommendation first and emphasized, each
-  button labeled with its option text verbatim — and points to the existing composer for free text.
-  Channel panes, Task dialogs, and Inbox peeks share that card. Answered Asks show no marker or
-  answer card.
+* **Questions to a person.** An Agent asks a human by @mentioning them in an ordinary Message
+  ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); the mention chip is the only
+  transcript mark, and the question reaches them under **Needs you** in the [Inbox](inbox.md).
+  There is no question card, option buttons, or answered state.
 * **Cloud Agent work.** A Message carrying
   [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message
   whose attachment or populated Thread card is headed by that work: the provider's own mark and
@@ -89,7 +86,7 @@ and [Agent Inbox](../../specs/inbox.md).
   Open in `<provider>`, Copy link, and — for Owners and Admins, while the work
   is live — Cancel run.
 * **Hoisted work status.** Each Cloud Agent inside a Thread gets a compact row
-  beneath its anchor's Task/Ask header, showing provider, title, and status.
+  beneath its anchor's Task header, showing provider, title, and status.
   Completed work remains visible. The Server's conversation-scoped work list
   supplies these rows, grouped by Thread anchor. The whole preview opens the
   Thread; individual work rows are not click targets.
