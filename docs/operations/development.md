@@ -59,9 +59,9 @@ restarting Vite so it rebuilds optimized dependencies.
 The `@ai-sdk/harness*` packages version in lockstep: every adapter pins one
 exact `@ai-sdk/harness`, and `harness-grok-build` pins one exact
 `harness-acp`, which Computer also depends on directly to run Codex. Bump the whole set to versions that agree, and prefer the newest
-set whose transitive `ai`, `@ai-sdk/provider`, and `@ai-sdk/harness-acp` are
-themselves outside the three-day `minimumReleaseAge` window — the adapters are
-excluded from that hold in `bunfig.toml`, their transitive dependencies are not.
+set whose exact dependencies agree. The AI SDK packages, including the core
+`ai`, `@ai-sdk/gateway`, and `@ai-sdk/provider` transitive pins, are excluded from the three-day
+`minimumReleaseAge` hold in `bunfig.toml` so current stable releases can install.
 
 Every adapter is patched locally, as is `@ai-sdk/harness` itself (its display
 text shows a bare workspace mention as `<workspace>` rather than `.`), and each
@@ -74,10 +74,12 @@ Each adapter also ships a bridge manifest pinning the vendor CLI it installs,
 and those pins trail the models Haus offers. Computer therefore owns the
 Claude Code bridge manifest and lockfile in
 `apps/computer/assets/harness-bridges/claude-code/`, taking only the bridge code
-from the package. Codex has no adapter-owned pin: `harness-bridges/codex/` is the
+from the package. It pins Claude Code `2.1.284` and Agent SDK `0.3.284` to support
+Opus 5.5 and Sonnet 5.5; the current adapter still bundles CLI `2.1.281`, which
+predates Sonnet 5.5. Codex has no adapter-owned pin: `harness-bridges/codex/` is the
 implementation Computer installs behind `harness-acp` — an exact
 `@agentclientprotocol/codex-acp` plus a pnpm override pinning the `@openai/codex`
-CLI it drives (`gpt-6-astra` needs 0.153.0 or newer), and `codex-acp.patch`, a pnpm patch
+CLI it drives (currently `0.159.0`, verified with `gpt-6.1-sol`), and `codex-acp.patch`, a pnpm patch
 that sends per-request token usage (see [Usage](../features/usage.md)). Rebuild the patch
 with `pnpm patch` / `pnpm patch-commit --patches-dir .` when bumping codex-acp. Regenerate a
 lockfile with
@@ -86,6 +88,12 @@ edited manifest. Drop an override once the published bridge pins that vendor at
 or above the floor Haus needs; the bootstrap recipe is content-fingerprinted,
 so changing a pin re-runs every Agent's bridge install on its own.
 
+Harness-generated bootstraps and run state live under each Agent home's
+`.ai-sdk-harness/` directory. The local sandbox always sets `HOME` to that Agent
+home, including during bootstrap refresh; it must never inherit the operator's
+home for these files. An upgrade from the older workspace layout installs the
+current bridge recipe in the new location.
+
 Adding a model is one entry in `apps/computer/src/inventory.ts`. Nothing
 validates a model id against the vendor, so prove a new one end to end before
 shipping it: start the visuals lab (`bun run visuals:lab`) and run the new
@@ -93,6 +101,15 @@ model on one question. It drives the same harness bridge the Computer executor
 does, so a model id the bridge rejects fails there rather than in front of a
 user. That is a real model turn and costs money — see [Testing](testing.md),
 "Visuals Lab".
+
+For a focused Claude model and conversation-continuity smoke without a visual,
+run `HAUS_RUN_LIVE_CLAUDE_MODELS_TEST=1 bun test apps/computer/src/harness/claude-models-live.test.ts`.
+It uses the host's Claude sign-in and runs real turns on Opus 5.5 and Sonnet 5.5.
+
+Codex model smoke uses the existing opt-in bridge suite:
+`HAUS_RUN_LIVE_CODEX_TEST=1 HAUS_LIVE_CODEX_MODEL=gpt-6.1-sol bun test apps/computer/src/harness/codex-live.test.ts`.
+It uses the host's Codex sign-in and checks steering, tools, token usage, and
+conversation resume. Without a model override, the suite uses GPT-5.6 Luna.
 
 ## Local Stack
 
