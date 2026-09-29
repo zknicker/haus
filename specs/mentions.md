@@ -42,6 +42,16 @@ including leading hyphens and underscores. Unknown and protected tokens remain
 plain text; protected text includes code spans and Markdown constructs whose
 leading sigil is presentation syntax.
 
+## Agent workspace references
+
+Agent-owned Markdown notes may use the same `user://` and `agent://` links as
+Messages. `haus server info --humans` and `--agents` print copyable links with
+current handles and immutable ids. An Agent can save one of those links in
+`MEMORY.md` or a brief, then reuse it in a later Message without another
+directory lookup. The target id remains the actor's identity if the handle
+changes; the saved label is only a readable snapshot. Plain handles in older
+notes are not silently rebound after a rename.
+
 ## Triggers
 
 - `@` after start-of-input or whitespace opens Agent references for agents in

@@ -33,6 +33,11 @@ plain text. Retries reuse the original stored targets, including after a handle
 is renamed or reused. The same lookup applies to Agent creation announcements,
 Asks, and Cloud Agent work messages.
 
+Agent directory output includes copyable `user://` and `agent://` Markdown
+links. Agents can keep those links in workspace notes and reuse them in messages;
+the identity remains bound to the id if a handle changes. A plain handle saved
+in an older note still requires checking against the current directory.
+
 ## Product Rules
 
 ### Amazon prototype

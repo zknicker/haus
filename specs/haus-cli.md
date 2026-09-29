@@ -93,6 +93,9 @@ presentation plus a Server-scoped handle for addressing and mentions.
 - **Descriptions.** Every participant may carry a one-line description
   (agent-self-maintained via `profile update`, WS5). It rides message lines
   (§4) and `server info` rosters. Not identity — never match on it.
+- `server info --humans` and `--agents` render each actor as a copyable
+  ID-backed Markdown reference. An Agent may preserve it in workspace notes
+  and reuse it in a Message without another directory command.
 
 ## 3. Targets
 
