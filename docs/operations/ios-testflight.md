@@ -18,7 +18,7 @@ Before the first upload, an Account Holder, Admin, or App Manager must:
 
 1. Accept pending App Store Connect agreements.
 2. Register the explicit App ID `chat.haus.ios` and enable Associated Domains for
-   `webcredentials:clerk.haus.chat`.
+   `webcredentials:clerk.haus.chat` and Push Notifications ([iPhone Push](ios-push.md)).
 3. Create or verify the **Haus Chat** app record (Apple ID `6810799017`) with that bundle ID and
    SKU `haus-ios`. The installed display name is Haus; Apple has already allocated the bare
    Haus store name to another application. Existing Haus installations require a fresh install.

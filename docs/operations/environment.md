@@ -43,6 +43,7 @@ the access boundary.
 | `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
 | `Google AI Studio - Haus` | `Development`, `Production` | Server-owned Gemini key that summarizes Agent thought excerpts and action descriptions; one per lifecycle |
+| `Apple Push - Haus` | `Development`, `Production` | Server-owned APNs token-signing key for iPhone push: `key_id` and `private_key` (the `.p8` PEM); optional |
 | `Axiom Development OTLP - Haus` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
 | `Axiom Production OTLP - Haus` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Haus` | `Production` | runtime URL, migration URL, container admin password |
@@ -94,6 +95,13 @@ optional everywhere: `fallback(op(…), undefined)` turns an empty 1Password fie
 value, and without a key the Server condenses thought excerpts with a local heuristic and shows
 no bubble for an action. Test and
 release lifecycles resolve no credential.
+
+iPhone push uses `HAUS_APNS_KEY_ID` and `HAUS_APNS_PRIVATE_KEY`, resolved per lifecycle from
+`Apple Push - Haus` with `allowMissing=true`, so a lifecycle without the item still loads. The Server
+signs its APNs provider token with the public `APPLE_TEAM_ID`, which the renderer therefore
+delivers to the hosted Server too. All three are optional: without the key the Server logs
+`iPhone push disabled: APNs key not configured` at startup and sends nothing. Test and release
+lifecycles resolve no key. Setup is in [iPhone Push](ios-push.md).
 
 ## Who is allowed to read
 

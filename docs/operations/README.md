@@ -15,4 +15,5 @@ read_when:
 | Release planning, workflow, and handoff | [Haus release skill](../../.agents/skills/release-haus/SKILL.md) |
 | Release process | [Releases](releases.md) |
 | iOS and TestFlight | [iOS TestFlight](ios-testflight.md) |
+| iPhone push (APNs) | [iPhone Push](ios-push.md) |
 | Hosted Server deployment | [Haus Server Deployment](haus-server-deploy.md) |

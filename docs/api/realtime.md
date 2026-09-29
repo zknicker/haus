@@ -208,6 +208,12 @@ that cannot address the viewer) and on the reader-scoped
 `chat.read` that `inbox.markDone` emits when it advances the viewer's read marker. Reconnect
 recovery walks those same events.
 
+**iPhone push** is a Server-side consumer of the same post-commit `message.created` stream, not a
+client subscription: `apps/server/src/push/` narrows candidates from the event's addressing ids and
+DM members, then pushes each human whose Needs you row for the Chat now ends at that message. The
+device contract is `push.registerDevice` / `push.unregisterDevice`
+(`packages/haus-api/src/push.ts`); see [iPhone push](../operations/ios-push.md).
+
 `cloud-agent-work.updated` is a participant-gated durable event for Cloud Agent work: the work id,
 its Message id, the Chat id, the Message's Chat sequence, and the cursor. Creating the work emits
 `message.created` and then `cloud-agent-work.updated` in one transaction; every applied Computer

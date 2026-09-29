@@ -80,7 +80,9 @@ empty rather than replaying old mentions and DMs.
 **Push is desktop and web first.** The Electron and web App raise a platform `Notification` for a
 new or newer Needs you row while the window is hidden or unfocused, after permission is granted
 from a Settings toggle; clicking focuses the window and opens the conversation. On macOS closing
-the last window hides it rather than quitting. APNs and Web Push (VAPID, service worker) wait for
+the last window hides it rather than quitting. iPhone push (APNs) followed on 2026-09-29 on the
+same rule: a message that newly tops a human's Needs you row pushes their registered devices
+([iPhone Push](../operations/ios-push.md)). Web Push (VAPID, service worker) waits for
 operator-provided credentials.
 
 **Tasks are Agent-only.** Only an Agent holds a task. `message_tasks.assignee_user_id` is dropped;
@@ -110,5 +112,5 @@ The strict task and inbox wire shapes change, so the Computer protocol moves fro
   that Done emits.
 - Every DM message from an Agent counts until answered or Done, as in Raft; a chatty DM Agent
   keeps its row present, and Done is the release valve.
-- Closed-app delivery (iPhone push, browser push while Haus is closed) remains a gap until the
+- Closed-app browser delivery (Web Push while Haus is closed) remains a gap until the
   credentials exist.

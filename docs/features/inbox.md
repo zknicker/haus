@@ -3,7 +3,7 @@ summary: The human Inbox page — a sidebar lens over the day, the week's most a
 read_when:
   - changing the Inbox page, its sections, empty states, or realtime invalidation
   - adding a record that should ask a human to act or should stay observable between turns
-  - changing Needs you rows, Done, or desktop/web notifications for them
+  - changing Needs you rows, Done, or desktop/web/iPhone notifications for them
   - deciding where background work that outlives an Agent turn becomes visible to humans
 ---
 
@@ -203,10 +203,17 @@ A new or newer Needs you row notifies the viewer while Haus is in the background
 - **macOS** keeps the app running when its last window closes: closing hides the window, and
   Cmd+Q or the menu's Quit quits. Notifications therefore keep arriving with no window open.
 
-Deferred until the operator provides credentials: iPhone push through APNs (an Apple push key
-and the app's push entitlement), and browser Web Push while Haus is closed (a VAPID key pair and a
-service worker). Neither exists today; the iPhone and a closed browser tab learn about Needs you
-rows only when opened.
+- **iPhone** gets an APNs alert, even while Haus is closed, for every message that newly tops one
+  of the human's Needs you rows: one push per addressed human per message, to each device they
+  registered. The title is the author, plus ` in #channel` outside a DM; the body is the row's
+  plain-text preview cut to 180 characters; the badge is the human's Needs you row count across
+  every Server. Pushes group by conversation and collapse by message id, and a tap opens the
+  conversation (or Thread). The human's own messages, Chats they cannot see, archived Chats, and
+  exchanges already answered or marked Done never push. The Server sends only when an APNs key is
+  configured; see [iPhone Push](../operations/ios-push.md).
+
+Deferred until the operator provides credentials: browser Web Push while Haus is closed (a VAPID
+key pair and a service worker). A closed browser tab learns about Needs you rows only when opened.
 
 ## Rules
 

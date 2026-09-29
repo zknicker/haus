@@ -120,6 +120,7 @@ PostgreSQL owns the hosted collaboration tables
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
 | `servers` / `server_onboarding` | Opaque id, address/display fields, commit-serialized Chat event cursor, and durable fresh-Server setup progress |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
+| `push_devices` | One human's iPhone APNs registrations keyed by device token: environment, bundle id, and the last APNs refusal ([iPhone Push](../operations/ios-push.md)) |
 | `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, Clerk owner, and the CLI's post-persistence acknowledgement |
 | `computers` | Server-scoped Computer credentials (hash only), durable attachment idempotency, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
