@@ -21,6 +21,13 @@ final class PushDeviceSyncTests: XCTestCase {
         XCTAssertEqual(action(isOn: false, pending: true, token: nil, registered: nil), .none)
     }
 
+    func testSignOutUnregistersOnlyATokenThisAccountRegistered() {
+        XCTAssertEqual(signOutToken(token: "a", isOn: true, pending: false), "a")
+        XCTAssertEqual(signOutToken(token: "a", isOn: false, pending: true), "a")
+        XCTAssertNil(signOutToken(token: "a", isOn: false, pending: false))
+        XCTAssertNil(signOutToken(token: nil, isOn: true, pending: true))
+    }
+
     func testAPendingUnregisterStillAsksForTheToken() {
         XCTAssertTrue(PushDeviceSync.needsToken(isOn: false, pendingUnregister: true))
         XCTAssertTrue(PushDeviceSync.needsToken(isOn: true, pendingUnregister: false))
@@ -78,5 +85,9 @@ final class PushDeviceSyncTests: XCTestCase {
                 messageID: "msg-\(id)"
             )
         )
+    }
+
+    private func signOutToken(token: String?, isOn: Bool, pending: Bool) -> String? {
+        PushDeviceSync.signOutUnregisterToken(token: token, isOn: isOn, pendingUnregister: pending)
     }
 }

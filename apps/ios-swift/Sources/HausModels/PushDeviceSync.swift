@@ -27,6 +27,19 @@ public enum PushDeviceSync {
         if isOn { return token == registeredToken ? .none : .register }
         return pendingUnregister ? .unregister : .none
     }
+
+    /// The token to unregister before sign-out ends the session, or nil when
+    /// this account never asked the Server to push to it. The Server scopes a
+    /// device to its member, so this is the last chance: the next account
+    /// cannot unregister it.
+    public static func signOutUnregisterToken(
+        token: String?,
+        isOn: Bool,
+        pendingUnregister: Bool
+    ) -> String? {
+        guard let token, isOn || pendingUnregister else { return nil }
+        return token
+    }
 }
 
 /// The persisted "the Server has not yet heard that pushes are off" flag.

@@ -113,6 +113,45 @@ final class PushNotifications {
         pendingOpen = payload
     }
 
+    /// Before sign-out ends the session: stop this account's pushes to this
+    /// phone. Best effort and bounded, so an unreachable Server never holds
+    /// the reader in an account they are leaving.
+    func prepareForSignOut() async {
+        guard let store,
+              let token = PushDeviceSync.signOutUnregisterToken(
+                  token: deviceToken,
+                  isOn: setting.isOn,
+                  pendingUnregister: pendingUnregister.isPending
+              )
+        else { return }
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await store.unregisterPushDevice(token: token) }
+            group.addTask { try? await Task.sleep(for: .seconds(3)) }
+            await group.next()
+            group.cancelAll()
+        }
+    }
+
+    /// Sign-out failed and the account stays: re-register if the switch is on.
+    func signOutFailed() {
+        registeredToken = nil
+        syncDevice()
+    }
+
+    /// After sign-out nothing here belongs to the next account: it opts in
+    /// itself, and an unregister still pending can no longer be answered.
+    func didSignOut() {
+        store = nil
+        registeredToken = nil
+        pendingOpen = nil
+        viewingChatID = nil
+        pendingUnregister.isPending = false
+        persistPreference(false)
+        let center = UNUserNotificationCenter.current()
+        center.removeAllDeliveredNotifications()
+        center.setBadgeCount(0)
+    }
+
     /// The switch asks iOS first and only reads on once granted, like the
     /// App's toggle; off tells the Server to stop pushing to this phone.
     private func setPreferred(_ isOn: Bool) async {

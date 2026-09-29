@@ -9,6 +9,10 @@ extension HausStore {
     /// boundary unmounts this Store and its in-memory Server snapshots with it;
     /// what remains is state that outlives the Store on this device.
     func signOut() async throws {
+        // The Server scopes push devices to this member, so it has to hear
+        // before the session ends.
+        let push = PushNotifications.shared
+        await push.prepareForSignOut()
         // Recorded before Clerk drops the session: the Debug auth boundary
         // reacts to the lost session and must already see this was a human
         // sign-out, or it auto signs straight back in.
@@ -17,8 +21,10 @@ extension HausStore {
             try await clerk.auth.signOut()
         } catch {
             HausRuntimeConfiguration.clearExplicitSignOut()
+            push.signOutFailed()
             throw error
         }
+        push.didSignOut()
         stopEventStreams()
         // The restored last-open Chat names a Chat on this account's Server.
         UserDefaults.standard.removeObject(forKey: ChatDestination.ID.lastOpenDefaultsKey)
