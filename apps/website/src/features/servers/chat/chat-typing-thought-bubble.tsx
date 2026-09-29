@@ -7,6 +7,7 @@ import {
     type ChatTypingThoughtOnScreen,
     type ChatTypingThoughts,
     chatTypingThoughtDelay,
+    chatTypingThoughtHoldMs,
     chatTypingThoughtTiming,
     resolveChatTypingThought,
     resolveChatTypingThoughtArrival,
@@ -56,10 +57,11 @@ export function useChatTypingThought(
                 holdUntil(onScreen.current.thought, arrival.hideAt);
                 return;
             }
-            const { enterMs, holdMs } = chatTypingThoughtTiming;
+            const hideAt =
+                now + chatTypingThoughtTiming.enterMs + chatTypingThoughtHoldMs(next.text);
             lastShownAt.current = now;
             shownEngagements.current.add(`${next.agentId}:${next.runId}`);
-            onScreen.current = { hideAt: now + enterMs + holdMs, shownAt: now, thought: next };
+            onScreen.current = { hideAt, shownAt: now, thought: next };
             setThought(next);
             setLatest(next);
             holdUntil(next, onScreen.current.hideAt);

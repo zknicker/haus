@@ -10,15 +10,34 @@ export interface ChatTypingThought {
 }
 
 /** Wobble in, hold, then wobble out; a newer thought replaces the current one at once. */
-export const chatTypingThoughtTiming = { enterMs: 620, exitMs: 260, holdMs: 2300 } as const;
+export const chatTypingThoughtTiming = { enterMs: 620, exitMs: 260 } as const;
+
+/** The shortest and longest hold, whatever the line's length. */
+export const chatTypingThoughtHoldRangeMs = { max: 7500, min: 5000 } as const;
+
+/**
+ * How long a bubble holds after it wobbles in. The Server shows few bubbles —
+ * one per workstream or finding, or a "still" line after a quiet stretch — so
+ * each can stay until someone glancing up has read it: about 3.5 seconds to
+ * notice the bubble and move the eyes there, plus 350ms a word (a relaxed
+ * glance-reading pace), between 5 and 7.5 seconds. An eight-word line holds
+ * about 6.3 seconds.
+ */
+export function chatTypingThoughtHoldMs(text: string): number {
+    const words = text.split(/\s+/u).filter(Boolean).length;
+    return Math.min(
+        chatTypingThoughtHoldRangeMs.max,
+        Math.max(chatTypingThoughtHoldRangeMs.min, 3500 + 350 * words)
+    );
+}
 
 /**
  * However often its line repeats, a bubble stays on screen at most this long
  * from when it appeared, so a run stuck on one line still lets the bubble go:
- * about three holds' worth, long enough to read as "still on it", short enough
+ * about two holds' worth, long enough to read as "still on it", short enough
  * that the strip never looks frozen.
  */
-export const chatTypingThoughtMaxVisibleMs = 8000;
+export const chatTypingThoughtMaxVisibleMs = 12_000;
 
 /** The bubble on screen: when it appeared and when its hold ends. */
 export interface ChatTypingThoughtOnScreen {
@@ -54,7 +73,7 @@ export function resolveChatTypingThoughtArrival(
         return { kind: 'show' };
     }
     const hideAt = Math.min(
-        now + chatTypingThoughtTiming.holdMs,
+        now + chatTypingThoughtHoldMs(next.text),
         onScreen.shownAt + chatTypingThoughtMaxVisibleMs
     );
     return hideAt > onScreen.hideAt ? { hideAt, kind: 'extend' } : { kind: 'absorb' };
@@ -70,12 +89,13 @@ export function normalizeChatTypingThoughtText(text: string): string {
 }
 
 /**
- * Bubbles start at least this far apart. Thoughts arrive after a variable
- * summarizer delay, so the Computer's four-second spacing alone can reach the
- * screen closer together; a thought that comes early waits, and a newer one
- * replaces it while it waits.
+ * Bubbles start at least this far apart, so a newer one never cuts the last
+ * short before its shortest hold. The Server already spaces a request's
+ * bubbles ten seconds or more, so this rarely delays one; it guards against
+ * summaries that land close together, as when two Agents think at once. A
+ * thought that comes early waits, and a newer one replaces it while it waits.
  */
-export const chatTypingThoughtSpacingMs = 4000;
+export const chatTypingThoughtSpacingMs = chatTypingThoughtHoldRangeMs.min;
 
 /**
  * How long a new thought waits before its bubble may show. An engagement's
