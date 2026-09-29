@@ -41,19 +41,19 @@ struct HumanProfileView: View {
 
                 SettingsSection("Identity") {
                     SettingsListGroup {
-                        SettingsRow(title: "Name", icon: .account, showsDivider: true) {
+                        SettingsRow(title: "Name", icon: .account, showsDivider: true, layout: .stacksAtAccessibilitySizes) {
                             TextField("Name", text: $name)
                                 .font(.body)
-                                .multilineTextAlignment(.trailing)
+                                .settingsRowValueAlignment()
                                 .hausWordsAutocapitalization()
                                 .submitLabel(.done)
                                 .onSubmit { Task { await saveIdentity() } }
                                 .accessibilityLabel("Name")
                         }
-                        SettingsRow(title: "Handle", icon: .handle, showsDivider: true) {
+                        SettingsRow(title: "Handle", icon: .handle, showsDivider: true, layout: .stacksAtAccessibilitySizes) {
                             TextField("handle", text: $handle)
                                 .font(.body)
-                                .multilineTextAlignment(.trailing)
+                                .settingsRowValueAlignment()
                                 .hausHandleInput()
                                 .submitLabel(.done)
                                 .onSubmit { Task { await saveIdentity() } }
@@ -203,10 +203,10 @@ struct AgentProfileView: View {
 
                 SettingsSection("Identity") {
                     SettingsListGroup {
-                        SettingsRow(title: "Name", icon: .account, showsDivider: true) {
+                        SettingsRow(title: "Name", icon: .account, showsDivider: true, layout: .stacksAtAccessibilitySizes) {
                             TextField("Name", text: $name)
                                 .font(.body)
-                                .multilineTextAlignment(.trailing)
+                                .settingsRowValueAlignment()
                                 .hausWordsAutocapitalization()
                                 .submitLabel(.done)
                                 .onSubmit { Task { await saveName() } }

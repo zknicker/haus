@@ -41,6 +41,7 @@ public struct SettingsSheet: View {
     let persistence: SettingsPersistence
     let cloudAgentActions: CloudAgentSettingsActions
     let onSignOut: SettingsSignOut?
+    let notifications: NeedsYouNotificationsSetting
     @State var data: SettingsData
     @State var path: [SettingsRoute]
     @State var avatarGenerator: AvatarGeneratorSheet?
@@ -53,6 +54,7 @@ public struct SettingsSheet: View {
         data: SettingsData = SettingsFixtures.data,
         persistence: SettingsPersistence = .preview,
         cloudAgentActions: CloudAgentSettingsActions = .unavailable,
+        notifications: NeedsYouNotificationsSetting = NeedsYouNotificationsSetting(),
         appearance: Binding<AppearancePreference> = .constant(.system),
         initialPath: [SettingsRoute] = [],
         onSignOut: SettingsSignOut? = nil
@@ -60,6 +62,7 @@ public struct SettingsSheet: View {
         self.onSignOut = onSignOut
         self.persistence = persistence
         self.cloudAgentActions = cloudAgentActions
+        self.notifications = notifications
         _data = State(initialValue: data)
         _path = State(initialValue: initialPath)
         _appearance = appearance
@@ -76,6 +79,7 @@ public struct SettingsSheet: View {
             SettingsHubView(
                 data: data,
                 appearance: $appearance,
+                notifications: notifications,
                 onNavigate: { path.append($0) },
                 onSignOut: onSignOut
             )

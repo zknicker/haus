@@ -18,6 +18,20 @@ extension AuthenticatedHausView {
         )
     }
 
+    /// The Chat on screen right now, for deciding whether a foreground push
+    /// would only repeat it: a pushed Thread's own Chat, the uncovered canvas
+    /// Chat, or nothing while the Inbox or the Task list shows.
+    var viewingChatID: String? {
+        switch path.last {
+        case .thread:
+            selectedThread?.resolvedChatID(selectedThread: selectedThread, store: store)
+        case .tasks:
+            nil
+        case nil:
+            canvasOpenChatID
+        }
+    }
+
     /// The Chat the canvas is showing, covered or not. It is what a pop lands
     /// on, so the Store keeps its page fresh even while it is off screen.
     var selectedCanvasChatID: String? {

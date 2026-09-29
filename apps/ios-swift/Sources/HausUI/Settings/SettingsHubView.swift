@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsHubView: View {
     let data: SettingsData
     @Binding var appearance: AppearancePreference
+    var notifications = NeedsYouNotificationsSetting()
     let onNavigate: (SettingsRoute) -> Void
     var onSignOut: SettingsSignOut?
 
@@ -60,6 +61,8 @@ struct SettingsHubView: View {
                         )
                     }
                 }
+
+                NeedsYouNotificationsSection(setting: notifications)
 
                 SettingsSection("Preferences", footer: ShowTasksInChat.footer) {
                     SettingsListGroup {

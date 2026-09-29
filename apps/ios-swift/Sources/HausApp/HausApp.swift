@@ -5,6 +5,8 @@ import SwiftUI
 
 @main
 struct HausApp: App {
+    @UIApplicationDelegateAdaptor(HausAppDelegate.self) private var appDelegate
+
     init() {
         Clerk.configure(
             publishableKey: HausRuntimeConfiguration.clerkPublishableKey,

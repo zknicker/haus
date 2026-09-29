@@ -23,6 +23,7 @@ struct AuthenticatedHausView: View {
     /// The opening entrance plays once, on the screen the initial load mounts;
     /// after it settles, chat switches and reloads mount plainly.
     @State private var openingEntranceFinished = false
+    let push = PushNotifications.shared
     @AppStorage("appearancePreference") private var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
@@ -85,9 +86,16 @@ struct AuthenticatedHausView: View {
             case .background:
                 hasBackgrounded = true
             case .active:
+                // Pushes that arrived in the background may have moved the badge.
+                push.updateBadge(needsYouCount: store.needsYouCount, isReady: store.isNeedsYouCountReady)
+                Task { await push.clearDelivered(openedChatID: push.viewingChatID) }
                 guard hasBackgrounded else { return }
                 hasBackgrounded = false
-                Task { await store.resumeAfterForeground() }
+                Task {
+                    await store.resumeAfterForeground()
+                    // The reader may have changed permission in the Settings app.
+                    await push.refreshAuthorization()
+                }
             default:
                 break
             }
@@ -116,6 +124,7 @@ struct AuthenticatedHausView: View {
                                 data: settingsData,
                                 persistence: store.settingsPersistence,
                                 cloudAgentActions: store.cloudAgentSettings,
+                                notifications: push.setting,
                                 appearance: appearanceBinding,
                                 initialPath: initialPath,
                                 onSignOut: { try await store.signOut() }
@@ -219,6 +228,24 @@ struct AuthenticatedHausView: View {
                 // so it cannot carry this.
                 .onChange(of: selectedCanvasChatID, initial: true) { _, current in
                     store.canvasChatID = current
+                }
+                .onChange(of: viewingChatID, initial: true) { _, current in
+                    push.viewingChatID = current
+                    Task { await push.clearDelivered(openedChatID: current) }
+                }
+                .onChange(of: PushBadge.count(
+                    needsYouCount: store.needsYouCount,
+                    isReady: store.isNeedsYouCountReady
+                ), initial: true) {
+                    push.updateBadge(needsYouCount: store.needsYouCount, isReady: store.isNeedsYouCountReady)
+                }
+                .task { await push.attach(store) }
+                // Consumed outside the change handler: clearing the value a
+                // `task(id:)` keys on would cancel the Thread anchor read.
+                .onChange(of: push.pendingOpen, initial: true) { _, payload in
+                    guard let payload else { return }
+                    push.pendingOpen = nil
+                    Task { await openPushNotification(payload) }
                 }
                 .preferredColorScheme(preferredColorScheme)
                 }

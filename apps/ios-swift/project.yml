@@ -81,6 +81,9 @@ targets:
     entitlements:
       path: Config/Haus.entitlements
       properties:
+        # Development here; exporting with the App Store profile re-signs it as
+        # production. See docs/operations/ios-testflight.md.
+        aps-environment: development
         com.apple.developer.associated-domains:
           - webcredentials:clerk.haus.chat
     postBuildScripts:

@@ -79,6 +79,28 @@ extension AuthenticatedHausView {
         }
     }
 
+    /// A tapped notification opens what its Needs you row would: a DM or
+    /// Channel on the canvas, or its Thread pushed over whatever is showing.
+    /// A push for another Server opens nothing — this app shows one Server.
+    func openPushNotification(_ payload: PushNotificationPayload) async {
+        guard payload.serverID == store.activeServer?.id else {
+            PushNotifications.logger.notice("Ignoring a notification for another Server.")
+            return
+        }
+        switch payload.route {
+        case .chat(let chatID):
+            openCanvasChat(.chat(chatID))
+        case .thread(let conversationChatID, let threadChatID, let anchorMessageID):
+            guard let selection = await store.threadSelection(
+                conversationChatID: conversationChatID,
+                threadChatID: threadChatID,
+                anchorMessageID: anchorMessageID
+            ) else { return }
+            path.removeAll()
+            pushConversationThread(selection)
+        }
+    }
+
     /// A Thread opened from the Inbox pops back to the Inbox, and its parent
     /// Chat may be one the user has never visited — selecting it would mark it
     /// read on the way back out. The route carries the parent Chat id and the

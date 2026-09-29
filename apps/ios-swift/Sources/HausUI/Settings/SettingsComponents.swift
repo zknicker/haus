@@ -5,6 +5,8 @@ public struct SettingsSection<Content: View>: View {
     private let footer: String?
     private let content: () -> Content
 
+    /// - Parameter footer: explanatory copy under the group, the way a grouped
+    ///   iOS list carries it; it wraps freely, so rows keep short titles.
     public init(
         _ title: String?,
         footer: String? = nil,
@@ -30,6 +32,7 @@ public struct SettingsSection<Content: View>: View {
                 Text(footer)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 16)
             }
         }
@@ -49,97 +52,6 @@ public struct SettingsListGroup<Content: View>: View {
         }
         .background(HausPlatformColor.groupedSurface, in: RoundedRectangle(cornerRadius: 22))
         .clipShape(RoundedRectangle(cornerRadius: 22))
-    }
-}
-
-public struct SettingsRow<Content: View>: View {
-    private let title: String
-    private let subtitle: String?
-    private let value: String?
-    private let icon: HausIconName?
-    private let showsDivider: Bool
-    private let content: () -> Content
-
-    public init(
-        title: String,
-        subtitle: String? = nil,
-        value: String? = nil,
-        icon: HausIconName? = nil,
-        showsDivider: Bool = true,
-        @ViewBuilder content: @escaping () -> Content
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.value = value
-        self.icon = icon
-        self.showsDivider = showsDivider
-        self.content = content
-    }
-
-    public var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 14) {
-                if let icon {
-                    HausIcon(icon, size: 21, weight: 1.8)
-                        .frame(width: 24)
-                        .foregroundStyle(.primary)
-                }
-
-                if let value {
-                    // Value trails the title while both fit on one line; otherwise it
-                    // drops under the title and only then truncates, in the middle.
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 8) {
-                            labels.fixedSize()
-                            Spacer(minLength: 8)
-                            valueText(value).fixedSize()
-                        }
-                        HStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                labels
-                                valueText(value).truncationMode(.middle)
-                            }
-                            Spacer(minLength: 0)
-                        }
-                    }
-                } else {
-                    labels.layoutPriority(1)
-                    Spacer(minLength: 8)
-                }
-                content()
-            }
-            .padding(.vertical, 10)
-            .frame(minHeight: 52)
-            .padding(.horizontal, 16)
-            .contentShape(Rectangle())
-
-            if showsDivider {
-                Divider()
-                    .padding(.leading, icon == nil ? 16 : 54)
-            }
-        }
-    }
-
-    private var labels: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.body)
-                .foregroundStyle(.primary)
-
-            if let subtitle {
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-    }
-
-    private func valueText(_ value: String) -> some View {
-        Text(value)
-            .font(.body)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
     }
 }
 

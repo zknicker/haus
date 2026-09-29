@@ -37,14 +37,29 @@ extension HausStore {
     /// row, or when the anchor cannot be read.
     func threadSelection(needsYou row: NeedsYouRow) async -> ThreadSelection? {
         guard let anchorID = row.threadAnchorMessageID else { return nil }
-        var anchor = messagesByChatID[row.conversationChatID]?.messages.first { $0.id == anchorID }
+        return await threadSelection(
+            conversationChatID: row.conversationChatID,
+            threadChatID: row.chatID,
+            anchorMessageID: anchorID
+        )
+    }
+
+    /// The Thread a row or a tapped notification names by ids alone. The
+    /// anchor Message is read from the loaded parent page when there is one,
+    /// and otherwise fetched around its id. Nil when it cannot be read.
+    func threadSelection(
+        conversationChatID: String,
+        threadChatID: String,
+        anchorMessageID: String
+    ) async -> ThreadSelection? {
+        var anchor = messagesByChatID[conversationChatID]?.messages.first { $0.id == anchorMessageID }
         if anchor == nil {
-            anchor = await fetchMessage(chatID: row.conversationChatID, messageID: anchorID)
+            anchor = await fetchMessage(chatID: conversationChatID, messageID: anchorMessageID)
         }
         guard let anchor else { return nil }
         return threadSelection(
-            conversationChatID: row.conversationChatID,
-            threadChatID: row.chatID,
+            conversationChatID: conversationChatID,
+            threadChatID: threadChatID,
             anchor: anchor
         )
     }
