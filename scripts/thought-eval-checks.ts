@@ -1,5 +1,9 @@
 // Wording checks for the thought housekeeping eval (ADR 0036). Pure, so the
 // runner's verdicts are unit-tested without calling Gemini.
+import {
+    normalizeThoughtLine,
+    thoughtWordOverlap,
+} from '../apps/server/src/server-agents/thought-novelty.ts';
 
 export interface ThoughtEvalRules {
     /** Words or phrases a shown phrase must not contain, matched on word boundaries. */
@@ -46,26 +50,6 @@ function containsWords(phrase: string, words: string): boolean {
 
 /** Consecutive shown lines at least this similar by content words are near-duplicates. */
 export const thoughtEvalNearDuplicateOverlap = 0.6;
-// Openers and glue words the summarizer varies on purpose; they say nothing about the work.
-const fillerWords = new Set([
-    'a',
-    'an',
-    'and',
-    'first',
-    'for',
-    'hmm',
-    'i',
-    'im',
-    'in',
-    'next',
-    'now',
-    'of',
-    'ok',
-    'on',
-    'still',
-    'the',
-    'to',
-]);
 
 /** How a shown line relates to the one before it in a run. */
 export type ThoughtRepeat = 'duplicate' | 'near-duplicate' | null;
@@ -83,29 +67,4 @@ export function thoughtRepeat(previous: string, next: string): ThoughtRepeat {
     return thoughtWordOverlap(previous, next) >= thoughtEvalNearDuplicateOverlap
         ? 'near-duplicate'
         : null;
-}
-
-/** Jaccard overlap of two lines' content words, 0 to 1. */
-export function thoughtWordOverlap(first: string, second: string): number {
-    const a = contentWords(first);
-    const b = contentWords(second);
-    const shared = [...a].filter((word) => b.has(word)).length;
-    const union = new Set([...a, ...b]).size;
-    return union === 0 ? 0 : shared / union;
-}
-
-function normalizeThoughtLine(line: string): string {
-    return line
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}\s]/gu, '')
-        .replace(/\s+/gu, ' ')
-        .trim();
-}
-
-function contentWords(line: string): Set<string> {
-    return new Set(
-        normalizeThoughtLine(line)
-            .split(' ')
-            .filter((word) => word && !fillerWords.has(word))
-    );
 }

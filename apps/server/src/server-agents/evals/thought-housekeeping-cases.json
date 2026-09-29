@@ -1,6 +1,6 @@
 {
-  "version": 7,
-  "description": "Labeled Agent reasoning excerpts, Codex status titles, and scrubbed tool-action descriptions (`kind: action`) for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `request` is the human message the run is answering, sent as summarizer context; request cases pair terse titles that must become concrete with housekeeping that must still skip, and ban nouns the request does not carry. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. `restate-*` cases open by narrating what the person wants or asked: they skip when that is all the input says, and otherwise must describe the Agent's own step without naming the requester or their wants. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\". An `action` case is shown when the command, file, search, or tool serves the request, and skipped when it reads or edits the Agent's own memory, notes, or instructions files; its rules ban the command's own syntax. `sequences` replay one request's titles and actions in order, each phrased with the run's last two shown lines as its previous status, and measure how often consecutive shown lines repeat: normalized text equality for duplicates, content-word overlap for near-duplicates. They come from the two 2026-09 spot tests' real turns plus two synthetic runs that repeat a command.",
+  "version": 8,
+  "description": "Labeled Agent reasoning excerpts, Codex status titles, and scrubbed tool-action descriptions (`kind: action`) for the thought summarizer's housekeeping check (ADR 0036). `expected` is `skip` when the input is only the Agent's own process — reading its memory, notes, manual, instructions, or skills; checking its inbox or messages; claiming or updating tasks; deciding whether to reply; reading prior conversation just to orient; composing, drafting, or double-checking its own reply in the Chat — and `show` when it describes work on the person's request, including mixed inputs that mention housekeeping alongside that work. Optional `request` is the human message the run is answering, sent as summarizer context; request cases pair terse titles that must become concrete with housekeeping that must still skip, and ban nouns the request does not carry. Optional `previous` lists lines the run already showed, sent as the Server sends them after a run's first line: `method-*` cases (choosing or testing the agent's own tools) and `later-*` cases (the same work continuing) skip there, and `result-*` cases, which name something found, show. Optional `rules` add wording checks for a shown phrase: `banned` words or phrases it must not contain, and `mentionsAny` words of which it must contain at least one. `restate-*` cases open by narrating what the person wants or asked: they skip when that is all the input says, and otherwise must describe the Agent's own step without naming the requester or their wants. Every shown phrase is also checked for the \"right now\" and trailing \"now\" filler, length, and the run's share of lines that open with \"I\". An `action` case is shown when the command, file, search, or tool serves the request, and skipped when it reads or edits the Agent's own memory, notes, or instructions files; its rules ban the command's own syntax. `sequences` replay one run's titles and actions at their `at` offsets (seconds; five per step when absent) through the Server's cadence, phrase each admitted frame with the lines already shown, apply the Server's repeat and mechanism filters, and check the shown lines against an optional `maxShown` budget and for consecutive repeats: normalized text equality for duplicates, content-word overlap for near-duplicates. They come from the 2026-09 spot tests' real turns, two synthetic runs that repeat a command, and three `seq-live-*` runs modeled on the 2026-09-29 live Chicago weather, Bun releases, and Lisbon trip turns, whose budgets are the product target: few lines, each a new phase or result.",
   "cases": [
     {
       "id": "memory-first",
@@ -402,7 +402,7 @@
       "expected": "show",
       "text": "I'm initiating focused CI search",
       "rules": {
-        "mentionsAny": ["CI", "build", "search"],
+        "mentionsAny": ["CI", "build", "search", "continuous integration"],
         "banned": ["the city", "Monday", "Tuesday"]
       }
     },
@@ -923,6 +923,293 @@
         "banned": ["wants", "asked", "asking", "user", "Zach"],
         "mentionsAny": ["migration", "staging"]
       }
+    },
+    {
+      "id": "method-search-tools",
+      "kind": "title",
+      "expected": "skip",
+      "request": "Help me plan a 3-day trip to Lisbon in October on a moderate budget.",
+      "text": "I'm inspecting available search tools",
+      "previous": ["Searching official Pena Palace ticket sources"]
+    },
+    {
+      "id": "method-parse-html",
+      "kind": "title",
+      "expected": "skip",
+      "request": "Help me plan a 3-day trip to Lisbon in October on a moderate budget.",
+      "text": "I'm planning HTML parsing with Perl and sed",
+      "previous": ["Searching official Pena Palace ticket sources"]
+    },
+    {
+      "id": "method-bing-rss",
+      "kind": "title",
+      "expected": "skip",
+      "request": "Help me plan a 3-day trip to Lisbon in October on a moderate budget.",
+      "text": "I'm testing Bing RSS search via curl",
+      "previous": ["Searching official Pena Palace ticket sources"]
+    },
+    {
+      "id": "method-with-object",
+      "kind": "title",
+      "expected": "show",
+      "request": "Can you find the three most recent releases of the Bun runtime and tell me what changed that matters for a web app?",
+      "text": "I'm planning API lookup and messaging update",
+      "rules": {
+        "mentionsAny": ["Bun", "release", "releases"],
+        "banned": ["API"]
+      }
+    },
+    {
+      "id": "live-metro-action",
+      "kind": "action",
+      "expected": "show",
+      "request": "Help me plan a 3-day trip to Lisbon in October on a moderate budget.",
+      "text": "curl -sS -o x -w %{http_code}\\n www.metrolisboa.pt/wp-json/wp/v2/search",
+      "rules": {
+        "mentionsAny": ["metro", "transit", "Lisbon"],
+        "banned": ["API", "JSON", "curl"]
+      }
+    },
+    {
+      "id": "result-bun-highlight",
+      "kind": "title",
+      "expected": "show",
+      "request": "Can you find the three most recent releases of the Bun runtime and tell me what changed that matters for a web app?",
+      "previous": ["Finding the three most recent Bun releases"],
+      "text": "I'm highlighting offline CI and modulepreload",
+      "rules": {
+        "mentionsAny": ["offline", "modulepreload"]
+      }
+    },
+    {
+      "id": "result-weather-improved",
+      "kind": "title",
+      "expected": "show",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "previous": ["Pulling Chicago's weekend weather forecast"],
+      "text": "I'm confirming improved weekend weather forecast",
+      "rules": {
+        "mentionsAny": ["improved", "improving", "better", "improves"]
+      }
+    },
+    {
+      "id": "later-same-fetch",
+      "kind": "title",
+      "expected": "still",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "previous": ["Pulling Chicago's weekend weather forecast"],
+      "text": "I'm fetching updated weather summary and hourly forecast"
+    },
+    {
+      "id": "later-requery",
+      "kind": "title",
+      "expected": "skip",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "previous": ["Pulling Chicago's weekend weather forecast"],
+      "text": "I'm adjusting query to exclude NWS param"
+    },
+    {
+      "id": "finding-weather-weekend",
+      "kind": "action",
+      "expected": "show",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "text": "curl -fsS api.open-meteo.com/v1/forecast",
+      "result": "daily:\ntime: 2026-10-03, 2026-10-04\nweather_code: 63, 2\ntemperature_2m_max: 14.1, 19.6\nprecipitation_probability_max: 85, 10",
+      "rules": {
+        "mentionsAny": [
+          "rain",
+          "rainy",
+          "wet",
+          "showers",
+          "Saturday",
+          "Sunday",
+          "dry",
+          "drier",
+          "clear",
+          "clearer"
+        ],
+        "banned": [
+          "precipitation_probability_max",
+          "temperature_2m_max",
+          "weather_code",
+          "daily"
+        ]
+      }
+    },
+    {
+      "id": "finding-weather-after-line",
+      "kind": "action",
+      "expected": "show",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "previous": ["Pulling Chicago's weekend forecast"],
+      "text": "curl -fsS api.weather.gov/gridpoints/LOT/forecast",
+      "result": "name: Saturday, shortForecast: Showers And Thunderstorms, temperature: 57\nname: Saturday Night, shortForecast: Chance Showers, temperature: 49\nname: Sunday, shortForecast: Sunny, temperature: 68",
+      "rules": {
+        "mentionsAny": [
+          "rain",
+          "rainy",
+          "wet",
+          "showers",
+          "storms",
+          "stormy",
+          "thunderstorms",
+          "Saturday",
+          "Sunday",
+          "sunny"
+        ],
+        "banned": ["shortForecast", "name:"]
+      }
+    },
+    {
+      "id": "finding-bun-versions",
+      "kind": "action",
+      "expected": "show",
+      "request": "Can you find the three most recent releases of the Bun runtime and tell me what changed that matters for a web app?",
+      "text": "curl -fsSL -H Accept: application/vnd.github+json api.github.com/repos/oven-sh/bun/releases | jq -r .[0:3][] | .tag_name",
+      "result": "bun-v1.4.2\nbun-v1.4.1\nbun-v1.4.0",
+      "rules": {
+        "mentionsAny": ["1.4.2", "1.4", "1.4.0", "1.4.1"],
+        "banned": ["tag_name", "jq", "curl"]
+      }
+    },
+    {
+      "id": "finding-lisboa-card",
+      "kind": "action",
+      "expected": "show",
+      "request": "Help me plan a 3-day trip to Lisbon in October on a moderate budget.",
+      "previous": ["Gathering Lisbon costs and sights"],
+      "text": "curl -fsSL shop.visitlisboa.com/products/lisboa-card.js | jq {variants:[.variants[]|{title,price}]}",
+      "result": "variants:\ntitle: 72h / Adult (+15)\nprice: 6200\ntitle: 48h / Adult (+15)\nprice: 5100\ntitle: 24h / Adult (+15)\nprice: 3100",
+      "rules": {
+        "mentionsAny": ["Lisboa Card", "Lisbon Card", "card", "pass"],
+        "banned": ["variants", "price:", "title:"]
+      }
+    },
+    {
+      "id": "finding-secret-token",
+      "kind": "action",
+      "expected": "show",
+      "request": "Is the deploy on main green yet?",
+      "text": "curl -fsS api.example-ci.com/v1/runs/latest",
+      "result": "status: completed, conclusion: success\nbranch: main, commit: 4e1c9a2\nrunner_token: tok_9f8e7d6c session: … build 4812 passed in 6m",
+      "rules": {
+        "mentionsAny": [
+          "green",
+          "passed",
+          "passing",
+          "success",
+          "succeeded",
+          "succeeds"
+        ],
+        "banned": ["tok_9f8e7d6c", "9f8e7d6c", "runner_token", "4e1c9a2"]
+      }
+    },
+    {
+      "id": "finding-status-noise",
+      "kind": "action",
+      "expected": "show",
+      "request": "Help me plan a 3-day trip to Lisbon in October on a moderate budget.",
+      "text": "for u in www.navegante.pt/en/travel/fares www.cp.pt/passageiros/en/train-times/Prices; do curl -L -sS -o /dev/null; done",
+      "result": "200 www.navegante.pt/en/travel/fares\n200 www.cp.pt/passageiros/en/train-times/Prices/lisbon-urban-trains-prices",
+      "rules": {
+        "banned": ["200", "navegante.pt", "cp.pt"]
+      }
+    },
+    {
+      "id": "finding-no-invention",
+      "kind": "action",
+      "expected": "show",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "text": "curl -fsS api.open-meteo.com/v1/forecast",
+      "result": "latitude: 41.88, longitude: -87.63, timezone: America/Chicago, elevation: 179",
+      "rules": {
+        "banned": [
+          "rain",
+          "rainy",
+          "sunny",
+          "wet",
+          "dry",
+          "clear",
+          "clearer",
+          "showers",
+          "storm",
+          "warm",
+          "cold",
+          "41.88",
+          "-87.63"
+        ]
+      }
+    },
+    {
+      "id": "still-bun-scan",
+      "kind": "title",
+      "expected": "still",
+      "request": "Can you find the three most recent releases of the Bun runtime and tell me what changed that matters for a web app?",
+      "previous": ["Reading the Bun release notes"],
+      "text": "I'm scanning the release notes for web changes"
+    },
+    {
+      "id": "still-pricing-page",
+      "kind": "title",
+      "expected": "still",
+      "request": "Compare the pricing and free tiers of Vercel, Netlify, and Cloudflare Pages for a small side project and recommend one.",
+      "previous": ["Checking Netlify's free tier limits"],
+      "text": "I'm reading Netlify's pricing FAQ for bandwidth overages"
+    },
+    {
+      "id": "new-bun-compare",
+      "kind": "title",
+      "expected": "show",
+      "request": "Can you find the three most recent releases of the Bun runtime and tell me what changed that matters for a web app?",
+      "previous": ["Reading the Bun release notes"],
+      "text": "I'm comparing HTTP server changes across releases",
+      "rules": {
+        "mentionsAny": ["HTTP", "server", "compar", "comparing"]
+      }
+    },
+    {
+      "id": "new-pricing-next-host",
+      "kind": "title",
+      "expected": "show",
+      "request": "Compare the pricing and free tiers of Vercel, Netlify, and Cloudflare Pages for a small side project and recommend one.",
+      "previous": ["Checking Vercel's Hobby plan limits"],
+      "text": "I'm moving on to Cloudflare Pages free tier limits",
+      "rules": {
+        "mentionsAny": ["Cloudflare"]
+      }
+    },
+    {
+      "id": "still-weather-refetch",
+      "kind": "action",
+      "expected": "still",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "previous": ["Pulling Chicago's weekend forecast"],
+      "text": "curl -fsS api.open-meteo.com/v1/forecast"
+    },
+    {
+      "id": "finding-weather-inverse",
+      "kind": "action",
+      "expected": "show",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "text": "curl -fsS api.open-meteo.com/v1/forecast",
+      "result": "daily:\ntime: 2026-10-03, 2026-10-04\nweather_code: 1, 65\ntemperature_2m_max: 21.3, 12.8\nprecipitation_probability_max: 5, 90",
+      "rules": {
+        "mentionsAny": [
+          "Saturday",
+          "Sunday",
+          "rain",
+          "wet",
+          "dry",
+          "clear",
+          "sunny",
+          "nice"
+        ],
+        "banned": [
+          "Saturday looks wet",
+          "Sunday's clearer",
+          "Sunday looks clear"
+        ]
+      }
     }
   ],
   "sequences": [
@@ -1161,6 +1448,433 @@
         {
           "kind": "title",
           "text": "Checking the failing test"
+        }
+      ]
+    },
+    {
+      "id": "seq-live-chicago-weather",
+      "maxShown": 3,
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "steps": [
+        {
+          "at": 0,
+          "kind": "title",
+          "text": "I'm initiating weather data retrieval"
+        },
+        {
+          "at": 6,
+          "kind": "title",
+          "text": "I'm reading memory and claims"
+        },
+        {
+          "at": 10,
+          "kind": "action",
+          "text": "read MEMORY.md"
+        },
+        {
+          "at": 14,
+          "kind": "title",
+          "text": "I'm pulling Chicago's weekend weather forecast"
+        },
+        {
+          "at": 18,
+          "kind": "title",
+          "text": "I'm requesting the API data"
+        },
+        {
+          "at": 22,
+          "kind": "action",
+          "text": "curl -fsS api.open-meteo.com/v1/forecast"
+        },
+        {
+          "at": 27,
+          "kind": "title",
+          "text": "I'm still fetching the weekend forecast"
+        },
+        {
+          "at": 33,
+          "kind": "title",
+          "text": "I'm cross-checking the API data"
+        },
+        {
+          "at": 38,
+          "kind": "action",
+          "text": "curl -fsS api.weather.gov/alerts/active"
+        },
+        {
+          "at": 44,
+          "kind": "title",
+          "text": "I'm reviewing the forecast details"
+        },
+        {
+          "at": 52,
+          "kind": "title",
+          "text": "I'm checking the active weather alerts"
+        },
+        {
+          "at": 60,
+          "kind": "title",
+          "text": "I'm confirming improved weekend weather forecast"
+        },
+        {
+          "at": 66,
+          "kind": "title",
+          "text": "I'm updating memory with last task"
+        },
+        {
+          "at": 70,
+          "kind": "action",
+          "text": "edit MEMORY.md"
+        }
+      ]
+    },
+    {
+      "id": "seq-live-bun-releases",
+      "maxShown": 5,
+      "request": "Can you find the three most recent releases of the Bun runtime and tell me what changed that matters for a web app?",
+      "steps": [
+        {
+          "at": 0,
+          "kind": "title",
+          "text": "I'm planning Bun release lookup"
+        },
+        {
+          "at": 5,
+          "kind": "title",
+          "text": "I'm reading content with Haus CLI"
+        },
+        {
+          "at": 9,
+          "kind": "action",
+          "text": "curl -fsSL -H Accept: application/vnd.github+json api.github.com/repos/oven-sh/bun/releases | jq -r [.[] | select(.draft == false)][0:3][]"
+        },
+        {
+          "at": 14,
+          "kind": "title",
+          "text": "I'm filtering the three tags using jq"
+        },
+        {
+          "at": 20,
+          "kind": "title",
+          "text": "I'm parsing release notes markdown"
+        },
+        {
+          "at": 26,
+          "kind": "action",
+          "text": "curl -fsSL api.github.com/repos/oven-sh/bun/releases/tags/bun-v1.3.2"
+        },
+        {
+          "at": 32,
+          "kind": "title",
+          "text": "I'm scanning the release notes"
+        },
+        {
+          "at": 38,
+          "kind": "title",
+          "text": "I'm reading content with Haus CLI"
+        },
+        {
+          "at": 45,
+          "kind": "title",
+          "text": "I'm parsing the release notes for web-relevant changes"
+        },
+        {
+          "at": 52,
+          "kind": "title",
+          "text": "I'm scanning bundler and runtime changes"
+        },
+        {
+          "at": 60,
+          "kind": "action",
+          "text": "curl -fsSL bun.com/blog/bun-v1.3.2"
+        },
+        {
+          "at": 66,
+          "kind": "title",
+          "text": "I'm extracting key web app changes from release notes"
+        },
+        {
+          "at": 74,
+          "kind": "title",
+          "text": "I'm comparing HTTP server changes across releases"
+        },
+        {
+          "at": 82,
+          "kind": "title",
+          "text": "I'm reviewing Node compatibility fixes"
+        },
+        {
+          "at": 90,
+          "kind": "title",
+          "text": "I'm scanning markdown release notes again"
+        },
+        {
+          "at": 98,
+          "kind": "title",
+          "text": "I'm summarizing web-relevant changes"
+        },
+        {
+          "at": 106,
+          "kind": "title",
+          "text": "I'm drafting the release summary reply"
+        },
+        {
+          "at": 112,
+          "kind": "action",
+          "text": "edit MEMORY.md"
+        }
+      ]
+    },
+    {
+      "id": "seq-live-lisbon-trip",
+      "maxShown": 3,
+      "request": "Help me plan a 3-day trip to Lisbon in October on a moderate budget.",
+      "steps": [
+        {
+          "at": 0,
+          "kind": "title",
+          "text": "I'm gathering Lisbon travel costs and itinerary details"
+        },
+        {
+          "at": 6,
+          "kind": "action",
+          "text": "web search Lisbon October weather average"
+        },
+        {
+          "at": 12,
+          "kind": "title",
+          "text": "I'm checking October weather in Lisbon"
+        },
+        {
+          "at": 18,
+          "kind": "action",
+          "text": "web search Lisbon mid-range hotels Alfama price"
+        },
+        {
+          "at": 24,
+          "kind": "title",
+          "text": "I'm comparing mid-range neighborhoods and hotel prices"
+        },
+        {
+          "at": 32,
+          "kind": "title",
+          "text": "I'm estimating daily food and transport costs"
+        },
+        {
+          "at": 40,
+          "kind": "title",
+          "text": "I'm planning a day trip to Sintra"
+        },
+        {
+          "at": 48,
+          "kind": "title",
+          "text": "I'm structuring the three-day itinerary"
+        },
+        {
+          "at": 56,
+          "kind": "title",
+          "text": "I'm drafting the trip plan reply"
+        }
+      ]
+    },
+    {
+      "id": "seq-still-long-bun",
+      "request": "Can you find the three most recent releases of the Bun runtime and tell me what changed that matters for a web app?",
+      "minShown": 3,
+      "maxShown": 6,
+      "endAt": 130,
+      "steps": [
+        {
+          "at": 0,
+          "kind": "title",
+          "text": "I'm planning Bun release lookup"
+        },
+        {
+          "at": 6,
+          "kind": "action",
+          "text": "curl -fsSL api.github.com/repos/oven-sh/bun/releases"
+        },
+        {
+          "at": 14,
+          "kind": "title",
+          "text": "I'm reading the Bun release notes"
+        },
+        {
+          "at": 24,
+          "kind": "title",
+          "text": "I'm parsing release notes for runtime changes"
+        },
+        {
+          "at": 36,
+          "kind": "title",
+          "text": "I'm scanning the release notes"
+        },
+        {
+          "at": 48,
+          "kind": "title",
+          "text": "I'm reviewing the bundler section of the notes"
+        },
+        {
+          "at": 60,
+          "kind": "title",
+          "text": "I'm reading the release notes for Node compatibility"
+        },
+        {
+          "at": 74,
+          "kind": "title",
+          "text": "I'm going through the remaining release notes"
+        },
+        {
+          "at": 88,
+          "kind": "title",
+          "text": "I'm checking the notes for breaking changes"
+        },
+        {
+          "at": 102,
+          "kind": "title",
+          "text": "I'm reading the last release's notes"
+        },
+        {
+          "at": 116,
+          "kind": "title",
+          "text": "I'm skimming the fixes list"
+        },
+        {
+          "at": 125,
+          "kind": "title",
+          "text": "I'm drafting the summary reply"
+        }
+      ]
+    },
+    {
+      "id": "seq-workstreams-hosting",
+      "request": "Compare the pricing and free tiers of Vercel, Netlify, and Cloudflare Pages for a small side project and recommend one.",
+      "minShown": 4,
+      "maxShown": 7,
+      "endAt": 150,
+      "steps": [
+        {
+          "at": 0,
+          "kind": "title",
+          "text": "I'm claiming the hosting comparison task"
+        },
+        {
+          "at": 4,
+          "kind": "action",
+          "text": "web search: Vercel pricing Hobby plan limits"
+        },
+        {
+          "at": 10,
+          "kind": "title",
+          "text": "I'm checking Vercel's Hobby plan limits"
+        },
+        {
+          "at": 18,
+          "kind": "action",
+          "text": "curl -fsSL vercel.com/pricing",
+          "result": "Hobby: Free forever. 100 GB Fast Data Transfer, 1M Edge Requests, non-commercial use only.\nPro: $20/user/month, 1 TB Fast Data Transfer"
+        },
+        {
+          "at": 30,
+          "kind": "title",
+          "text": "I'm reviewing Vercel's commercial use terms"
+        },
+        {
+          "at": 42,
+          "kind": "action",
+          "text": "web search: Netlify free plan bandwidth credits"
+        },
+        {
+          "at": 48,
+          "kind": "title",
+          "text": "I'm checking Netlify's free plan credits"
+        },
+        {
+          "at": 58,
+          "kind": "action",
+          "text": "curl -fsSL netlify.com/pricing",
+          "result": "Free: $0 forever, 300 credits/month, 100 GB bandwidth\nPersonal: $9/month, 1,000 credits"
+        },
+        {
+          "at": 70,
+          "kind": "title",
+          "text": "I'm reading Netlify's credit usage details"
+        },
+        {
+          "at": 84,
+          "kind": "action",
+          "text": "web search: Cloudflare Pages free tier limits builds bandwidth"
+        },
+        {
+          "at": 90,
+          "kind": "title",
+          "text": "I'm checking Cloudflare Pages free limits"
+        },
+        {
+          "at": 100,
+          "kind": "action",
+          "text": "curl -fsSL developers.cloudflare.com/pages/platform/limits",
+          "result": "Free plan: 500 builds per month, unlimited bandwidth and requests for static assets, 1 concurrent build"
+        },
+        {
+          "at": 114,
+          "kind": "title",
+          "text": "I'm comparing the three free tiers"
+        },
+        {
+          "at": 126,
+          "kind": "title",
+          "text": "I'm weighing which fits a side project"
+        },
+        {
+          "at": 138,
+          "kind": "title",
+          "text": "I'm drafting the recommendation reply"
+        }
+      ]
+    },
+    {
+      "id": "seq-finding-weather",
+      "request": "What's the weather looking like in Chicago this weekend? Should I plan anything outdoors?",
+      "minShown": 2,
+      "maxShown": 3,
+      "endAt": 50,
+      "steps": [
+        {
+          "at": 0,
+          "kind": "title",
+          "text": "I'm claiming weather task"
+        },
+        {
+          "at": 4,
+          "kind": "title",
+          "text": "I'm pulling Chicago's weekend forecast"
+        },
+        {
+          "at": 9,
+          "kind": "action",
+          "text": "curl -fsS api.open-meteo.com/v1/forecast"
+        },
+        {
+          "at": 11,
+          "kind": "action",
+          "text": "curl -fsS api.open-meteo.com/v1/forecast",
+          "result": "daily:\ntime: 2026-10-03, 2026-10-04\nweather_code: 63, 2\ntemperature_2m_max: 14.1, 19.6\nprecipitation_probability_max: 85, 10"
+        },
+        {
+          "at": 20,
+          "kind": "title",
+          "text": "I'm checking hourly rain timing for Saturday"
+        },
+        {
+          "at": 32,
+          "kind": "title",
+          "text": "I'm weighing outdoor plan options"
+        },
+        {
+          "at": 44,
+          "kind": "title",
+          "text": "I'm drafting the weather reply"
         }
       ]
     }

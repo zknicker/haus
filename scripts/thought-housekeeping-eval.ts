@@ -8,10 +8,13 @@
 // This is a dev tool, not CI: each case is a real Gemini call.
 // Cases may carry a `request`, the human message the run is answering, and may be
 // an `action` (a scrubbed command, file, or tool description) instead of a title or excerpt.
-// Sequences phrase one request's steps in order, each with the last two shown lines as
-// its previous status, and report how often consecutive shown lines repeat;
-// `--no-previous` sends them without it, the baseline.
-// Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <id>] [--runs <n>] [--no-request] [--no-previous] [--sequences]
+// An action may carry a `result`, the scrubbed excerpt of what it returned.
+// Cases with `previous` lines are judged by workstream too: `show` should answer
+// NEW, `still` STILL, `skip` SKIP.
+// Sequences replay one run's frames through the Server's workstream cadence
+// (thought-eval-sequences.ts); `--no-previous` sends them without the shown
+// lines, the baseline.
+// Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <ids or prefixes>] [--runs <n>] [--no-request] [--no-previous] [--sequences]
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -25,31 +28,29 @@ import {
     checkThoughtPhrase,
     opensWithI,
     type ThoughtEvalRules,
-    type ThoughtRepeat,
     thoughtEvalMaxIOpeningShare,
-    thoughtRepeat,
 } from './thought-eval-checks.ts';
+import {
+    type EvalFrameKind,
+    type EvalSequence,
+    playSequence,
+    reportSequences,
+    type SequenceOutcome,
+} from './thought-eval-sequences.ts';
 
 interface EvalCase {
-    expected: 'show' | 'skip';
+    /** `still` (only with `previous`) expects a STILL answer, and counts as shown for SKIP scores. */
+    expected: 'show' | 'skip' | 'still';
     id: string;
-    kind: 'action' | 'reasoning' | 'title';
+    kind: EvalFrameKind;
+    /** Lines the run already showed, sent as the Server sends them after a first line. */
+    previous?: string[];
     /** The human message the run is answering, sent as `<request>` context. */
     request?: string;
+    /** For an action: the scrubbed excerpt of what it returned. */
+    result?: string;
     rules?: ThoughtEvalRules;
     text: string;
-}
-/** One request's titles and actions in the order a real run produced them. */
-interface EvalSequence {
-    id: string;
-    request: string;
-    steps: { kind: EvalCase['kind']; text: string }[];
-}
-interface SequenceOutcome {
-    id: string;
-    repeats: ThoughtRepeat[];
-    run: number;
-    shown: string[];
 }
 interface Outcome {
     answer: string;
@@ -58,6 +59,8 @@ interface Outcome {
     id: string;
     problems: string[];
     run: number;
+    /** The model's workstream label, for cases with `previous` lines. */
+    stream: 'new' | 'skip' | 'still' | null;
 }
 
 const corpusPath = 'apps/server/src/server-agents/evals/thought-housekeeping-cases.json';
@@ -80,8 +83,10 @@ const withoutPrevious = process.argv.includes('--no-previous');
 const runs = Number(flag('--runs') ?? 1);
 // Runs only the sequences, for quick prompt iteration on repeats.
 const sequencesOnly = process.argv.includes('--sequences');
-const cases = corpus.cases.filter((item) => !(sequencesOnly || (only && item.id !== only)));
-const sequences = corpus.sequences.filter((item) => !only || item.id === only);
+// `--only` takes comma-separated ids or id prefixes ("finding-,still-").
+const picked = (id: string) => !only || only.split(',').some((prefix) => id.startsWith(prefix));
+const cases = corpus.cases.filter((item) => !sequencesOnly && picked(item.id));
+const sequences = corpus.sequences.filter((item) => picked(item.id));
 const outcomes: Outcome[] = [];
 const sequenceOutcomes: SequenceOutcome[] = [];
 for (let run = 1; run <= runs; run += 1) {
@@ -89,10 +94,16 @@ for (let run = 1; run <= runs; run += 1) {
         const batch = cases.slice(index, index + 4);
         outcomes.push(...(await Promise.all(batch.map((item) => judgeCase(item, run)))));
     }
-    sequenceOutcomes.push(...(await Promise.all(sequences.map((item) => playSequence(item, run)))));
+    sequenceOutcomes.push(
+        ...(await Promise.all(
+            sequences.map((item) =>
+                playSequence(item, run, { caseSource, summarizer, withoutPrevious })
+            )
+        ))
+    );
 }
 report(outcomes);
-reportSequences(sequenceOutcomes);
+reportSequences(sequenceOutcomes, withoutPrevious);
 const directory = path.join('.context/thought-housekeeping-eval');
 await mkdir(directory, { recursive: true });
 const file = path.join(directory, `${thoughtSummaryPromptVersion}-${Date.now()}.json`);
@@ -103,11 +114,16 @@ await writeFile(
 console.log(`\nraw outcomes: ${file}`);
 
 async function judgeCase(item: EvalCase, run: number): Promise<Outcome> {
-    const context = item.request && !withoutRequest ? { request: item.request } : {};
+    const context = {
+        ...(item.request && !withoutRequest ? { request: item.request } : {}),
+        ...(item.previous ? { previous: item.previous } : {}),
+    };
     const summary = await summarizer.summarize(caseSource(item, context));
     return {
         answer: summary === null ? '(failed)' : summary.kind === 'skip' ? 'SKIP' : summary.text,
         expected: item.expected,
+        stream:
+            item.previous && summary ? (summary.kind === 'skip' ? 'skip' : summary.stream) : null,
         problems: summary?.kind === 'phrase' ? checkThoughtPhrase(summary.text, item.rules) : [],
         fallbackSkip:
             isHousekeepingThought(item.text) ||
@@ -117,56 +133,18 @@ async function judgeCase(item: EvalCase, run: number): Promise<Outcome> {
     };
 }
 
-/** Phrases a sequence's steps in order, as the Server would for one run in one Chat. */
-async function playSequence(item: EvalSequence, run: number): Promise<SequenceOutcome> {
-    const shown: string[] = [];
-    for (const step of item.steps) {
-        const previous = withoutPrevious ? [] : shown.slice(-2);
-        const summary = await summarizer.summarize(
-            caseSource(step, {
-                request: item.request,
-                ...(previous.length > 0 ? { previous } : {}),
-            })
-        );
-        if (summary?.kind === 'phrase') {
-            shown.push(summary.text);
-        }
-    }
-    const repeats = shown.slice(1).map((line, index) => thoughtRepeat(shown[index] ?? '', line));
-    return { id: item.id, repeats, run, shown };
-}
-
-function reportSequences(results: SequenceOutcome[]) {
-    if (results.length === 0) {
-        return;
-    }
-    console.log(`\nSequences (previous lines ${withoutPrevious ? 'off' : 'on'}):`);
-    for (const outcome of results.filter((result) => result.run === 1)) {
-        console.log(`  ${outcome.id}`);
-        outcome.shown.forEach((line, index) => {
-            const repeat = index > 0 ? outcome.repeats[index - 1] : null;
-            console.log(`    ${repeat ? repeat.toUpperCase().padEnd(15) : ''.padEnd(15)}${line}`);
-        });
-    }
-    const repeats = results.flatMap((result) => result.repeats);
-    const shown = results.reduce((total, result) => total + result.shown.length, 0);
-    const share = (kind: ThoughtRepeat) => {
-        const count = repeats.filter((repeat) => repeat === kind).length;
-        return `${((count / Math.max(repeats.length, 1)) * 100).toFixed(1)}% (${count}/${repeats.length})`;
-    };
-    console.log(
-        `  ${shown} shown lines, ${(shown / results.length).toFixed(2)} per sequence run; consecutive pairs ${repeats.length}`
-    );
-    console.log(`  duplicates ${share('duplicate')}, near-duplicates ${share('near-duplicate')}`);
-}
-
 function caseSource(
-    item: Pick<EvalCase, 'kind' | 'text'>,
+    item: Pick<EvalCase, 'kind' | 'result' | 'text'>,
     context: { previous?: string[]; request?: string }
 ): ThoughtSource {
     switch (item.kind) {
         case 'action':
-            return { action: item.text, kind: 'action', ...context };
+            return {
+                action: item.text,
+                kind: 'action',
+                ...(item.result ? { result: item.result } : {}),
+                ...context,
+            };
         case 'title':
             return { kind: 'title', title: item.text, ...context };
         default:
@@ -181,10 +159,17 @@ function report(results: Outcome[]) {
     for (const outcome of results) {
         const skipped = outcome.answer === 'SKIP';
         const correct = skipped === (outcome.expected === 'skip');
-        const verdict = correct ? (outcome.problems.length > 0 ? 'WORD' : 'ok  ') : 'MISS';
+        const streamMiss = outcome.stream !== null && outcome.stream !== expectedStream(outcome);
+        const verdict = correct
+            ? streamMiss
+                ? 'STRM'
+                : outcome.problems.length > 0
+                  ? 'WORD'
+                  : 'ok  '
+            : 'MISS';
         const problems = outcome.problems.length > 0 ? `  [${outcome.problems.join('; ')}]` : '';
         console.log(
-            `${verdict} ${outcome.id.padEnd(26)} expected=${outcome.expected.padEnd(4)} → ${outcome.answer}${problems}`
+            `${verdict} ${outcome.id.padEnd(26)} expected=${outcome.expected.padEnd(5)} → ${outcome.stream && outcome.stream !== 'skip' ? `${outcome.stream.toUpperCase()}: ` : ''}${outcome.answer}${problems}`
         );
     }
     const withRequest = new Set(cases.filter((item) => item.request).map((item) => item.id));
@@ -193,12 +178,22 @@ function report(results: Outcome[]) {
     console.log(`\nGemini (${answered.length} answered, ${failed} failed):`);
     printScores(answered.map((outcome) => [outcome.answer === 'SKIP', outcome.expected]));
     printWording(answered.filter((outcome) => outcome.answer !== 'SKIP'));
+    const judged = answered.filter((outcome) => outcome.stream !== null);
+    const streamHits = judged.filter((outcome) => outcome.stream === expectedStream(outcome));
+    console.log(
+        `  workstream label (cases with shown lines): ${streamHits.length}/${judged.length} as expected`
+    );
     const requestCases = answered.filter((outcome) => withRequest.has(outcome.id));
     console.log(`\nCases with a request (${requestCases.length} answered):`);
     printScores(requestCases.map((outcome) => [outcome.answer === 'SKIP', outcome.expected]));
     printWording(requestCases.filter((outcome) => outcome.answer !== 'SKIP'));
     console.log('\nLocal fallback filter:');
     printScores(results.map((outcome) => [outcome.fallbackSkip, outcome.expected]));
+}
+
+/** What a case with shown lines should answer: show → NEW, still → STILL, skip → SKIP. */
+function expectedStream(outcome: Outcome): Outcome['stream'] {
+    return outcome.expected === 'show' ? 'new' : outcome.expected;
 }
 
 function printWording(shown: Outcome[]) {

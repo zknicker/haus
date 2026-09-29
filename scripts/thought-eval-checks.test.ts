@@ -1,10 +1,5 @@
 import { expect, test } from 'bun:test';
-import {
-    checkThoughtPhrase,
-    opensWithI,
-    thoughtRepeat,
-    thoughtWordOverlap,
-} from './thought-eval-checks.ts';
+import { checkThoughtPhrase, opensWithI, thoughtRepeat } from './thought-eval-checks.ts';
 
 test('flags the spot-tested bad lines', () => {
     expect(checkThoughtPhrase('Weighing external repository placement options right now')).toEqual([
@@ -61,9 +56,6 @@ test('counts a reworded repeat as a near-duplicate by content words', () => {
     );
     expect(thoughtRepeat('OK, checking the weather in NYC', 'Checking the NYC weather')).toBe(
         'near-duplicate'
-    );
-    expect(thoughtWordOverlap('Pulling the NYC forecast', 'Pulling the 3-day NYC forecast')).toBe(
-        0.75
     );
 });
 
