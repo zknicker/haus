@@ -45,6 +45,9 @@ public struct SettingsSheet: View {
     @State var data: SettingsData
     @State var path: [SettingsRoute]
     @State var avatarGenerator: AvatarGeneratorSheet?
+    /// One generation session per Agent, kept for the life of Settings so that
+    /// closing the generator never discards variants or a run in flight.
+    @State var avatarSessions: [String: AvatarGenerationSession] = [:]
     @Binding private var appearance: AppearancePreference
 
     /// - Parameter initialPath: screens the sheet opens already pushed to, so a
@@ -112,6 +115,9 @@ public struct SettingsSheet: View {
         .sheet(item: $avatarGenerator) { generator in
             AgentAvatarGenerationView(
                 agentName: generator.agentName,
+                currentAvatarURL: generator.avatarURL,
+                initials: generator.initials,
+                session: generator.session,
                 onGenerate: { concept in
                     try await persistence.generateAgentAvatar(generator.agentID, concept)
                 },
@@ -123,6 +129,19 @@ public struct SettingsSheet: View {
                 }
             )
         }
+    }
+
+    func openAvatarGenerator(for agent: SettingsAgent) {
+        let session = avatarSessions[agent.id] ?? AvatarGenerationSession()
+        avatarSessions[agent.id] = session
+        session.opened()
+        avatarGenerator = AvatarGeneratorSheet(
+            agentID: agent.id,
+            agentName: agent.displayName,
+            avatarURL: agent.avatarURL,
+            initials: agent.initials,
+            session: session
+        )
     }
 
     func updateViewer(_ viewer: SettingsPerson) {
@@ -206,6 +225,9 @@ public struct SettingsSheet: View {
 struct AvatarGeneratorSheet: Identifiable {
     let agentID: String
     let agentName: String
+    let avatarURL: URL?
+    let initials: String
+    let session: AvatarGenerationSession
 
     var id: String { agentID }
 }

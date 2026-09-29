@@ -45,6 +45,13 @@ final class AvatarGenerationFailureTests: XCTestCase {
         )
     }
 
+    func testABusyServerReadsAsARetryInAMoment() {
+        XCTAssertEqual(
+            AvatarGenerationFailure.busy.localizedDescription,
+            "Another avatar is still being drawn. Try again in a moment."
+        )
+    }
+
     func testNeverSurfacesARawTransportString() {
         let raw = TRPCError(
             message: "The image provider could not generate an avatar.",

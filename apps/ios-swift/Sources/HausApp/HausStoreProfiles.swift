@@ -156,8 +156,9 @@ extension HausStore {
               agents.contains(where: { $0.id == agentID }) else {
             throw HausStoreError.profileUnavailable
         }
+        let avatar: Avatar
         do {
-            let _: Avatar = try await client.mutation(
+            avatar = try await client.mutation(
                 "avatar.set",
                 input: SetAvatarInput(
                     bytesBase64: payload.data.base64EncodedString(),
@@ -171,11 +172,24 @@ extension HausStore {
         } catch {
             throw AvatarGenerationFailure.from(error)
         }
-        let refreshed: [AgentSummary] = try await client.query(
-            "agent.list",
-            input: ServerScopedInput(serverId: serverID)
-        )
-        agents = refreshed
+        // The avatar is saved once `avatar.set` answers. A failed refresh only
+        // leaves the Agent list stale until the next sync, so it must not read
+        // as a failed save: log it and hand back the saved avatar URL directly.
+        do {
+            let refreshed: [AgentSummary] = try await client.query(
+                "agent.list",
+                input: ServerScopedInput(serverId: serverID)
+            )
+            agents = refreshed
+        } catch {
+            Self.logger.error(
+                "Agent list refresh after avatar save failed: \(error.localizedDescription, privacy: .public)"
+            )
+            guard let agent = settingsData?.agents.first(where: { $0.id == agentID }) else {
+                throw HausStoreError.profileUnavailable
+            }
+            return agent.replacingAvatarURL(resolvedAvatarURL(avatar.avatarURL))
+        }
         guard let agent = settingsData?.agents.first(where: { $0.id == agentID }) else {
             throw HausStoreError.profileUnavailable
         }
@@ -233,4 +247,23 @@ extension HausStore {
         }
     }
 
+}
+
+private extension SettingsAgent {
+    func replacingAvatarURL(_ url: URL?) -> SettingsAgent {
+        SettingsAgent(
+            id: id,
+            displayName: displayName,
+            handle: handle,
+            description: description,
+            runtime: runtime,
+            model: model,
+            status: status,
+            avatarURL: url,
+            presence: presence,
+            initials: initials,
+            canGenerateAvatar: canGenerateAvatar,
+            runtimeConfiguration: runtimeConfiguration
+        )
+    }
 }

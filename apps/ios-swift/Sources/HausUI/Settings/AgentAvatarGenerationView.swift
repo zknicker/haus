@@ -24,92 +24,72 @@ struct AgentAvatarGeneratorEntry: View {
     }
 }
 
-/// Concept in, one preview out, saved only on purpose.
+/// Concept in, variants out, saved only on purpose.
 ///
-/// The preview leads and the controls follow it: the avatar is the subject of
+/// The stage leads and the controls follow it: the avatar is the subject of
 /// the screen, and the primary action lives at the thumb rather than in the
-/// navigation bar because generating is the thing a human repeats here.
+/// navigation bar because generating is the thing a human repeats here. All
+/// state lives in the `AvatarGenerationSession` the Settings sheet keeps for
+/// this Agent, so closing this sheet never cancels a drawing.
 struct AgentAvatarGenerationView: View {
     let agentName: String
+    let currentAvatarURL: URL?
+    let initials: String
+    @Bindable var session: AvatarGenerationSession
     let onGenerate: @Sendable (String) async throws -> AvatarImagePayload
     let onSave: @Sendable (AvatarImagePayload) async throws -> Void
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var conceptFocused: Bool
-    @State private var concept = ""
-    @State private var conceptError: String?
-    @State private var errorMessage: String?
-    @State private var isGenerating = false
-    @State private var isSaving = false
-    @State private var preview: AvatarImagePayload?
-    /// Increments on each landed preview so the haptic fires once per drawing.
-    @State private var previewCount = 0
-
-    init(
-        agentName: String,
-        onGenerate: @escaping @Sendable (String) async throws -> AvatarImagePayload,
-        onSave: @escaping @Sendable (AvatarImagePayload) async throws -> Void,
-        initialConcept: String = "",
-        initialPreview: AvatarImagePayload? = nil,
-        initiallyGenerating: Bool = false
-    ) {
-        self.agentName = agentName
-        self.onGenerate = onGenerate
-        self.onSave = onSave
-        _concept = State(initialValue: initialConcept)
-        _preview = State(initialValue: initialPreview)
-        _isGenerating = State(initialValue: initiallyGenerating)
-    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 22) {
-                    AvatarGenerationPreviewHero(
+                    AvatarGenerationStage(
                         agentName: agentName,
-                        payload: preview,
-                        isGenerating: isGenerating
+                        currentAvatarURL: currentAvatarURL,
+                        initials: initials,
+                        session: session
                     )
                     .padding(.top, 8)
 
                     conceptCard
 
                     generateButton
-
-                    if let errorMessage {
-                        failureCard(errorMessage)
-                    }
                 }
                 .padding(.vertical, 8)
                 .padding(.bottom, 16)
-                .animation(.snappy(duration: 0.28), value: showsSuggestions)
-                .animation(.snappy(duration: 0.28), value: errorMessage)
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .background(HausPlatformColor.groupedBackground)
             .navigationTitle("Generate avatar")
             .hausInlineNavigationTitle()
-            // A drawing takes tens of seconds, so leaving is allowed the whole
-            // time — only the save itself, which writes the Agent's avatar, is
-            // held open until it finishes.
-            .interactiveDismissDisabled(isSaving)
+            // A drawing takes tens of seconds and keeps going in the session,
+            // so leaving is allowed the whole time — only the save itself,
+            // which writes the Agent's avatar, holds the sheet open.
+            .interactiveDismissDisabled(session.isSaving)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .disabled(isSaving)
+                        .disabled(session.isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        Task { await save() }
+                        Task {
+                            if await session.save(using: onSave) {
+                                dismiss()
+                            }
+                        }
                     } label: {
-                        if isSaving {
+                        if session.isSaving {
                             ProgressView()
                         } else {
                             Text("Save")
                         }
                     }
-                    .disabled(preview == nil || isBusy)
+                    .disabled(!session.canSave)
                     .accessibilityLabel("Save avatar")
                     .accessibilityIdentifier("save-generated-avatar")
                 }
@@ -120,7 +100,12 @@ struct AgentAvatarGenerationView: View {
                     Button("Done") { conceptFocused = false }
                 }
             }
-            .sensoryFeedback(.success, trigger: previewCount)
+            .alert("Couldn't save avatar", isPresented: saveErrorPresented) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(session.saveError ?? "")
+            }
+            .sensoryFeedback(.success, trigger: session.variants.count)
         }
     }
 
@@ -134,34 +119,28 @@ struct AgentAvatarGenerationView: View {
             VStack(alignment: .leading, spacing: 12) {
                 TextField(
                     "e.g. a moonlit fox cartographer",
-                    text: $concept,
+                    text: $session.concept,
                     axis: .vertical
                 )
                 .font(.body)
                 .lineLimit(2 ... 5)
                 .focused($conceptFocused)
-                .onChange(of: concept) { _, value in
-                    if value.count > AvatarGenerationConcept.maxLength {
-                        concept = String(value.prefix(AvatarGenerationConcept.maxLength))
-                    }
-                    if conceptError != nil, !AvatarGenerationConcept.normalized(value).isEmpty {
-                        conceptError = nil
-                    }
-                }
                 .accessibilityLabel("Avatar concept")
 
-                if showsSuggestions {
+                // Always laid out, so clearing or filling the field never
+                // moves Generate; hidden once there is a concept to act on.
+                Group {
                     Divider()
-                    AvatarConceptSuggestions { suggestion in
-                        concept = suggestion
-                        conceptError = nil
-                    }
-                    .transition(.opacity)
+                    AvatarConceptSuggestions { session.concept = $0 }
                 }
+                .opacity(showsSuggestions ? 1 : 0)
+                .allowsHitTesting(showsSuggestions)
+                .accessibilityHidden(!showsSuggestions)
             }
             .padding(16)
             .background(HausPlatformColor.groupedSurface, in: RoundedRectangle(cornerRadius: 22))
             .padding(.horizontal, 16)
+            .animation(.snappy(duration: 0.2), value: showsSuggestions)
 
             conceptFooter
         }
@@ -171,17 +150,15 @@ struct AgentAvatarGenerationView: View {
     /// section's rail, at the same size as the rest of the screen's prose.
     private var conceptFooter: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(conceptError ?? "Describe one character. This Agent's name and description aren't used.")
+            Text("Describe a character and get a pixel-art portrait. Try a few; nothing changes until you use one.")
                 .font(.subheadline)
-                .foregroundStyle(conceptError == nil ? .secondary : Color.red)
-                .accessibilityIdentifier(
-                    conceptError == nil ? "avatar-concept-help" : "avatar-concept-error"
-                )
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("avatar-concept-help")
 
             Spacer(minLength: 0)
 
-            if concept.count >= AvatarGenerationConcept.counterThreshold {
-                Text("\(concept.count)/\(AvatarGenerationConcept.maxLength)")
+            if session.concept.count >= AvatarGenerationConcept.counterThreshold {
+                Text("\(session.concept.count)/\(AvatarGenerationConcept.maxLength)")
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.tertiary)
             }
@@ -189,30 +166,16 @@ struct AgentAvatarGenerationView: View {
         .padding(.horizontal, 16)
     }
 
-    private func failureCard(_ message: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            HausIcon(.alert, size: 19, weight: 1.9)
-                .foregroundStyle(.red)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(14)
-        .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 18))
-        .padding(.horizontal, 16)
-        .accessibilityIdentifier("avatar-generation-error")
-    }
-
     /// The only action the content owns. Save belongs in the navigation bar,
     /// where a sheet's confirming action lives, which also keeps both controls
     /// clear of the keyboard the concept field raises.
     private var generateButton: some View {
         Button {
-            Task { await generate() }
+            conceptFocused = false
+            session.generate(using: onGenerate)
         } label: {
             HStack(spacing: 8) {
-                if isGenerating {
+                if session.isGenerating {
                     // A prominent pill paints its own label white; a
                     // ProgressView keeps the system grey unless told.
                     ProgressView()
@@ -229,63 +192,26 @@ struct AgentAvatarGenerationView: View {
         .buttonStyle(.borderedProminent)
         .buttonBorderShape(.capsule)
         .controlSize(.large)
-        // An empty concept is guidance rather than a dead end: the tap lands and
-        // the field says what it needs. Only work in flight blocks it, and the
-        // label already says so.
-        .allowsHitTesting(!isBusy)
+        .disabled(!session.canGenerate)
         .padding(.horizontal, 16)
         .accessibilityIdentifier("generate-avatar-preview")
     }
 
     private var generateTitle: String {
-        if isGenerating {
+        if session.isGenerating {
             return "Generating…"
         }
-        return preview == nil ? "Generate preview" : "Generate another"
+        return session.variants.isEmpty ? "Generate preview" : "Generate another"
     }
 
     private var showsSuggestions: Bool {
-        preview == nil && !isGenerating && concept.isEmpty
+        session.concept.isEmpty
     }
 
-    private var isBusy: Bool {
-        isGenerating || isSaving
-    }
-
-    private func generate() async {
-        guard !isBusy else { return }
-        if let validationError = AvatarGenerationConcept.validationError(for: concept) {
-            conceptError = validationError
-            conceptFocused = true
-            return
-        }
-
-        conceptFocused = false
-        isGenerating = true
-        errorMessage = nil
-        defer { isGenerating = false }
-        do {
-            preview = try await onGenerate(AvatarGenerationConcept.normalized(concept))
-            previewCount += 1
-        } catch is CancellationError {
-            return
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func save() async {
-        guard let preview, !isBusy else { return }
-        isSaving = true
-        errorMessage = nil
-        defer { isSaving = false }
-        do {
-            try await onSave(preview)
-            dismiss()
-        } catch is CancellationError {
-            return
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+    private var saveErrorPresented: Binding<Bool> {
+        Binding(
+            get: { session.saveError != nil },
+            set: { if !$0 { session.saveError = nil } }
+        )
     }
 }

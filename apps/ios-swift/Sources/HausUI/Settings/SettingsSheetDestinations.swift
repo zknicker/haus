@@ -50,10 +50,7 @@ extension SettingsSheet {
                         }
                     },
                     onOpenAvatarGenerator: {
-                        avatarGenerator = AvatarGeneratorSheet(
-                            agentID: agent.id,
-                            agentName: agent.displayName
-                        )
+                        openAvatarGenerator(for: agent)
                     },
                     onOpenRuntimeConfiguration: {
                         path.append(.agentRuntime(id: agent.id))

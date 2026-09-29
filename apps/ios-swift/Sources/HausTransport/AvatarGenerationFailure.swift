@@ -26,7 +26,7 @@ public enum AvatarGenerationFailure: Error, Equatable, LocalizedError, Sendable 
         case .notConfigured:
             "Avatar generation isn't set up on this Server yet. A Server Owner has to add an image provider key."
         case .busy:
-            "Haus is generating other avatars right now. Try again in a moment."
+            "Another avatar is still being drawn. Try again in a moment."
         case let .notAllowed(message):
             message
         case .providerFailed:

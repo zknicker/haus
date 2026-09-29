@@ -3,11 +3,6 @@ import Testing
 
 @Suite("Avatar generation concept")
 struct AvatarGenerationConceptTests {
-    @Test("requires a nonblank concept")
-    func rejectsBlankConcepts() {
-        #expect(AvatarGenerationConcept.validationError(for: " \n ") != nil)
-    }
-
     @Test("trims the concept sent to the Server")
     func normalizesConcept() {
         #expect(
@@ -16,12 +11,21 @@ struct AvatarGenerationConceptTests {
         )
     }
 
-    @Test("matches the Server's 280-character limit")
-    func enforcesMaximumLength() {
-        #expect(AvatarGenerationConcept.validationError(for: String(repeating: "a", count: 280)) == nil)
-        #expect(
-            AvatarGenerationConcept.validationError(for: String(repeating: "a", count: 281))
-                == "Keep the concept to 280 characters or fewer."
-        )
+    @Test("a blank concept cannot generate")
+    @MainActor
+    func blankConceptCannotGenerate() {
+        let session = AvatarGenerationSession()
+        session.concept = " \n "
+        #expect(!session.canGenerate)
+        session.concept = "a fox"
+        #expect(session.canGenerate)
+    }
+
+    @Test("the field clamps to the Server's 280-character limit")
+    @MainActor
+    func clampsToMaximumLength() {
+        let session = AvatarGenerationSession()
+        session.concept = String(repeating: "a", count: 281)
+        #expect(session.concept.count == 280)
     }
 }
