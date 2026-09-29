@@ -132,7 +132,7 @@ export function finishThoughtPhrase(
         // Quote marks go; a plural possessive's trailing apostrophe ("charts'") stays.
         .map((word) => word.replace(/^'+/u, '').replace(/(?<![sS])'+$/u, ''))
         .filter((word) => word.length > 0);
-    const kept = dropTrailingNow(words).slice(0, maxWords);
+    const kept = dropTrailingNow(dropLeadingFiller(words)).slice(0, maxWords);
     while (kept.length > 1 && danglingWords.has(kept.at(-1)?.toLowerCase() ?? '')) {
         kept.pop();
     }
@@ -144,6 +144,17 @@ export function finishThoughtPhrase(
         return null;
     }
     return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+}
+
+/**
+ * A leading "Next,", "OK,", "Hmm,", or "Still" is filler, not progress:
+ * "Still fetching the forecast" → "fetching the forecast".
+ */
+function dropLeadingFiller(words: readonly string[]): string[] {
+    const [first = '', second = ''] = words;
+    const withComma = /^(?:ok|okay|hmm+|alright|so|now|next|first|then),$/iu.test(first);
+    const stillDoing = /^still$/iu.test(first) && /^[a-z]+ing$/iu.test(second);
+    return words.length > 1 && (withComma || stillDoing) ? words.slice(1) : [...words];
 }
 
 /**

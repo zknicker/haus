@@ -44,6 +44,24 @@ export const agentThoughtActionSchema = z
     .max(agentThoughtActionMaxLength)
     .regex(/^[^\p{Cc}]+$/u);
 
+/** The most of a tool's output a Computer sends with its action, after scrubbing. */
+export const agentThoughtResultMaxLength = 400;
+
+/**
+ * A scrubbed excerpt of what a finished tool action returned, so the Server
+ * can state a finding ("Saturday looks wet") instead of the activity: markup,
+ * URLs' credentials and queries, emails, paths, token-like strings, and the
+ * values of secret-named or environment-style variables removed, then capped.
+ * Held for one summarizer call, never stored or logged. Line breaks are its
+ * only control characters.
+ */
+export const agentThoughtResultSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(agentThoughtResultMaxLength)
+    .regex(/^[^\p{Cc}]*(?:\n[^\p{Cc}]*)*$/u);
+
 const agentThoughtFrameFields = {
     agentId: idSchema,
     at: timestampSchema,
@@ -54,9 +72,11 @@ const agentThoughtFrameFields = {
 /**
  * The frame a Computer sends while its accepted run works (ADR 0036).
  * `phrase` carries a Codex title finished on the Computer, `reasoning` a
- * scrubbed excerpt, and `action` a scrubbed description of a tool action; the
- * Server rephrases any of them, or drops it as housekeeping, before announcing
- * anything. A Server that predates a kind drops its frames as unknown. Never persisted.
+ * scrubbed excerpt, and `action` a scrubbed description of a tool action —
+ * when it has finished, with a scrubbed `result` excerpt of what it returned.
+ * The Server rephrases any of them, or drops it as housekeeping, before
+ * announcing anything. A Server that predates a kind drops its frames as
+ * unknown. Never persisted.
  */
 export const agentThoughtFrameSchema = z.discriminatedUnion('kind', [
     z
@@ -78,6 +98,7 @@ export const agentThoughtFrameSchema = z.discriminatedUnion('kind', [
             ...agentThoughtFrameFields,
             action: agentThoughtActionSchema,
             kind: z.literal('action'),
+            result: agentThoughtResultSchema.optional(),
         })
         .strict(),
 ]);
@@ -87,7 +108,7 @@ export type AgentThoughtFrame = z.infer<typeof agentThoughtFrameSchema>;
 export type AgentThoughtContent =
     | { at: string; kind: 'phrase'; text: string }
     | { at: string; kind: 'reasoning'; reasoning: string }
-    | { action: string; at: string; kind: 'action' };
+    | { action: string; at: string; kind: 'action'; result?: string };
 
 /**
  * A volatile thought, announced once per Chat its run engages (ADR 0035) and
