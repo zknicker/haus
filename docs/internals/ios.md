@@ -631,16 +631,7 @@ Tasks are Server work, not a settings screen. The sidebar opens the Task list as
 navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread
 → Task list → Chat canvas.
 
-The route carries the task it lands on: `HausRootRoute.tasks(focus:)` takes a `TaskFocus`, which is
-a Task's Message id and nothing else, because a Task is a promoted Message. The sidebar's own Tasks
-row names none and opens the list the way it always did; a row that is about one task names it —
-today that is the Inbox's stalled claim. A focused list scrolls that row under the reader's eye and
-holds the press wash on it for a moment, so they see which row they were sent to rather than hunting
-a list they did not scroll; the mark fades on its own and nothing stays selected. When the focused
-task is one the default lens hides — the background tier — the list widens itself
-(`TaskFocusLens.widens`, which asks only whether the landed lens holds the focus), because a route
-that sends a reader to a row they cannot see is a broken route. The background control stays exactly
-where it was, so they can close the lens again. Opening a Task leaves the canvas selection alone — its route carries the
+Opening a Task leaves the canvas selection alone — its route carries the
 parent Chat id and the Task carries the child Chat id, so selecting the parent would mark a channel
 the user never visited as read and strand them there once the Tasks list pops. A pushed Thread owns
 the open Chat while it is on screen, and the shell's Chat selection resumes ownership when it pops;
@@ -664,7 +655,7 @@ than to either of them: the leading chrome button sits where it sits on a Chat s
 and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
-always did. `HausRootRoute` therefore carries only `.tasks(focus:)` and `.thread`. A Needs you row on a Thread
+always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. A Needs you row on a Thread
 and a Cloud Agent work row each push the Thread they hang off, carrying the conversation's Chat id
 and the anchor Message — the same pair a Thread composer sends to — and leaving the canvas
 selection alone for the same reason a Task does; a top-level Needs you row opens its DM or Channel.

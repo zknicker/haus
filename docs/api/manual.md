@@ -37,7 +37,7 @@ workflow is unfamiliar. Unknown topics point back to `haus manual get index`.
 ## Published corpus
 
 The release-owned Manual ships `index`, `haus-cli-overview`, the product
-reference topics `agent`, `asks`, `cloud-agents`, and `amazon-product-references`, `recipes/index`, `recipes/seeded`,
+reference topics `agent`, `cloud-agents`, and `amazon-product-references`, `recipes/index`, `recipes/seeded`,
 and 33 complete recipe cards: 12 seeded cards and 21 query-tier cards. Delivery tiers are editorial
 metadata, not authorization tiers; every authenticated managed Agent can
 search and get every card, including all seven archetypes.
@@ -50,7 +50,7 @@ release-owned and read-only; they are not copied into Agent workspaces. The
 Haus-only `save-as-a-skill` card is also excluded; it is not part of the
 captured Raft corpus.
 
-`agent`, `asks`, and `cloud-agents` describe current Haus product
+`agent` and `cloud-agents` describe current Haus product
 capabilities. They are reference topics rather than recipes: `agent` carries the
 `haus agent create` contract and its consent norm (ADR 0028) without
 prescribing team shape or what creative concept an Agent should choose.

@@ -153,22 +153,19 @@ Rules:
   is already a thread. (Populated from WS3 on; absent before.)
 - Suffixes, in order: attachments
   (`[2 attachments: a.png (id:att_…), … — use haus attachment view to download]`, WS5),
-  task (`[task #N status=… assignee=…]`, WS5), ask (`[ask status=open|answered to=@handle]`),
+  task (`[task #N status=… assignee=…]`, WS5),
   cloud agent work (`[cloud-agent-work status=… title=… pr=#N]`, the pull request omitted until
   the Run reports one).
 - The turn-drain envelope carries the same work facts compressed inside the
   bracket instead of as trailing suffixes, in the same order:
   `task=#N:status:assignee` (`unassigned` when nobody owns it), then
-  `ask=open|answered[:@handle]` (the addressee is omitted when the Ask has
-  none), then `mentioned=true`. The attachment suffix is not a work fact and
+  `mentioned=true`. The attachment suffix is not a work fact and
   stays a trailing suffix on the drain envelope too. Suffix and marker grammars
-  share one formatting owner (`apps/computer/src/inbox-format.ts`, with the Ask
-  grammar in `inbox-ask-format.ts`), except the
+  share one formatting owner (`apps/computer/src/inbox-format.ts`), except the
   Cloud Agent suffix, which is owned beside its schema in `@haus/api` because
   every layer prints it.
-- Every message also carries `body_kind` (`text | ask | cloud-agent-work`) on the
-  wire, with the Ask's own facts under `ask` (`id`, `status`, `addressee_handle`,
-  `title`, `options`) and Cloud Agent work's under `cloud_agent_work`
+- Every message also carries `body_kind` (`text | cloud-agent-work | agent-created`) on
+  the wire, with Cloud Agent work's facts under `cloud_agent_work`
   (`id`, `provider`, `status`, `title`, `repository`, `starting_ref`,
   `provider_url`, `activity`, and the `latest_run` with its status, summary,
   error code, and branches) so a reader can act without a second call.
@@ -366,12 +363,11 @@ per family:
 | | `add` | ADR 0028 (landed) | `add --target <t> --agent @handle` puts another active Agent in a channel; idempotent, wakes nothing, refuses Cove |
 | | `mute` `unmute` | WS4 | Attention stores land with the inbox |
 | thread | `unfollow` | WS3 | T1 follows model |
-| task | `list create claim unclaim assign unassign update` | WS5 (landed) | D8 model: `list [--target] [--mine] [--status all\|…]` defaults to unfinished work and caps at 50 rows with a `Truncated: N more` line; claim by `--number` (repeatable) or `--message-id` (converts + claims), one transaction answering one row per task (claimed, already yours, refused) and exiting non-zero only when nothing was granted; `create` takes repeatable `--title` or a stdin body and names each task's thread address; `assign --assignee @who` / `unassign` move ownership to any Chat member without touching status (optional `--expected-revision`, shown as `rev=` in `list`; one uniform not-assignable refusal); `update` is member-level along the status transition table |
+| task | `list create claim unclaim assign unassign update` | WS5 (landed) | D8 model: `list [--target] [--mine] [--status all\|…]` defaults to unfinished work and caps at 50 rows with a `Truncated: N more` line; claim by `--number` (repeatable) or `--message-id` (converts + claims), one transaction answering one row per task (claimed, already yours, refused) and exiting non-zero only when nothing was granted; `create` takes repeatable `--title` or a stdin body and names each task's thread address; `assign --assignee @agent` / `unassign` move ownership to any Agent member of the Chat without touching status (optional `--expected-revision`, shown as `rev=` in `list`; one uniform not-assignable refusal, which the CLI pairs with the @mention hand-off because humans never hold tasks, [ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); `update` is member-level along the status transition table |
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
 | profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤500 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; message anchors only |
 | trigger | `create list show enable disable rotate delete log` | ADR 0027 (landed) | Inbound webhook wakes: `create --title --message-id [--instruction] [--kind webhook]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds; `list`/`show` print the kind with the status; message anchors only and never a schedule; `create` and `rotate` print the bearer secret once with a ready `curl` line; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent |
-| ask | one verb, no subcommand | Asks (landed) | `ask --target <target> --to @<handle> --title <text> --summary <text> [--option <text>]...`, question body on stdin; one named human's decision ([Asks](asks.md)) |
 | cloud-agent | `start cancel` | Cloud Agents (landed) | `start --target <target> --repo <owner/name> [--ref <ref>] --title <text> --say <text>` with the provider instructions on stdin, and `cancel --work <workId>`; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |
 | agent | `create update avatar` | ADR 0028 (landed) | `create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>` creates the Agent and returns its `@handle` and channels, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
@@ -412,9 +408,6 @@ POST /api/agent/agents             { avatarConcept?, content, description, displ
                                        sequence, target }
 POST /api/agent/agents/update      { agent, description } → { agent }
 POST /api/agent/agents/avatar      { agent, concept } → { agent, avatar }
-POST /api/agent/asks               { addresseeHandle, content, nonce, options,
-                                     summary, target, title }
-                                   → { ask, chatId, idempotent, messageId, sequence, target }
 POST /api/agent/cloud-agents       { content, nonce, provider, repository, startingRef,
                                      target, title }
                                    → { chatId, idempotent, messageId, runId, sequence,

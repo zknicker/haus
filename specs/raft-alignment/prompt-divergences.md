@@ -32,9 +32,11 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **32,359** characters — a reviewed
+`managed-instructions.test.ts` caps the composed prompt at **32,395** characters — a reviewed
 ratchet, not a runtime limit. History: introduced at 32,500 (2026-08-18), raised to 40,270 by
-2026-09-23, lowered to 32,359 by the 1.0.25 re-baseline. Measured line-by-line against the pinned
+2026-09-23, lowered to 32,359 by the 1.0.25 re-baseline, raised by exactly 42 to 32,401 when
+Raft's `task assign` / `task unassign` family entries were restored, and lowered to 32,395 when
+Asks were deleted (ADR 0037). Measured line-by-line against the pinned
 render, about 18,500 characters of the Haus prompt are Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
@@ -60,7 +62,7 @@ Sections are in Haus's render order.
 | Who you are | Parity | — |
 | Current Runtime Context | Parity for the preamble. Rows differ: Haus renders `- Agent: @handle (id)`, Hostname, OS, Runtime, Workspace, Home timezone; Raft renders Role, Agent ID, Server ID, `Computer: name (id)`, Hostname, OS, Daemon, Workspace. Raft renders the section only in its configured variant; Haus always does | Deliberate — ADR 0019; the home timezone is load-bearing for the `time=` header (specs/messages.md); the role renders as `## Initial role` |
 | How these instructions apply | Parity | — |
-| Communication — CLI ONLY, command families | Haus drops Raft's admin channel/server management, Integrations, Action cards, Wiki bridge, `raft version`, sender-side mention actions, `user info`, built-in apps, `auth whoami`, and task `amend/history/convert/delete` (task `assign/unassign` restored verbatim when Haus gained the verbs). Haus adds Triggers, Skills, Agents, Asks, Cloud agents, `channel info`, and `message follow/unfollow`. Inbox has no Raft trailing description | Deliberate — specs/haus-cli.md is the CLI contract; ADRs 0017/0021/0027/0028, specs/asks.md, specs/cloud-agents.md, specs/skills.md |
+| Communication — CLI ONLY, command families | Haus drops Raft's admin channel/server management, Integrations, Action cards, Wiki bridge, `raft version`, sender-side mention actions, `user info`, built-in apps, `auth whoami`, and task `amend/history/convert/delete` (task `assign/unassign` restored verbatim when Haus gained the verbs). Haus adds Triggers, Skills, Agents, Cloud agents, `channel info`, and `message follow/unfollow`. Inbox has no Raft trailing description | Deliberate — specs/haus-cli.md is the CLI contract; ADRs 0017/0021/0027/0028, specs/cloud-agents.md, specs/skills.md |
 | Credential handling, CRITICAL RULES | Parity | — |
 | Startup steps 1, 2, 3, 5 | Parity | — |
 | Startup step 4 | Parity **plus** "Haus exception: an explicit FYI / no-response-needed message settles silently, with no send at all." | Deliberate — specs/inbox.md silence semantics; gated by `fyi-silence-channel` / `fyi-silence-dm` in `bun run eval:prompt` |
@@ -77,7 +79,7 @@ Sections are in Haus's render order.
 | Reading history & references | Parity | — |
 | Tasks | Parity for the claim rule, top-level-only, failed-claim routing, and review-then-done sentence. Haus adds **Keep the conversation together**, same-turn `done`, reversible `closed`, the `TASK_IN_REVIEW_STALE_DAYS` stale close, and points to the `tasks` Manual topic where Raft points to "the Raft Manual" | Deliberate — operator-approved conversation policy; ADR 0015 (`closed`), `apps/server/src/tasks/close-stale-tasks.ts`; covered by `instructions.test.ts` and `product-topics.test.ts` |
 | Splitting tasks | Parity | — |
-| @Mentions | Parity. Haus renders one name, so the display-name bullet interpolates the same value twice | Deliberate — specs/identity.md |
+| @Mentions | Parity **plus** one Haus-only bullet: to need a human's decision or action, @mention them where the work lives, with one question, a default only if reversible, and what you prepared; their reply wakes you; irreversible acts wait for an explicit yes. Raft keeps this in its `recipes/decision/when-to-ask-human` recipe; Haus lifts it into the prompt because deleting `haus ask` removed the only prompt-taught way to need a human. Haus renders one name, so the display-name bullet interpolates the same value twice | Deliberate — ADR 0037 (replaces the retired Asks family entry, net −6 characters; a later mention-the-asker clause was cut again once an inline reply to a human's message came to reach their Needs you like a mention, 32,393 → 32,281), specs/identity.md; `managed-instructions.test.ts`, `human-ask-reply-wakes` |
 | Communication style | Parity | — |
 | Conversation etiquette | Parity **plus** "Silence is deliberate", "DM knowledge is not room knowledge", and "Welcome new teammates" | Deliberate — specs/inbox.md (silence), specs/sessions.md §"Knowledge and discretion", ADR 0028 (welcome fires on a message, so it cannot live in a Manual topic) |
 | Live constraints | Parity | — |
@@ -98,7 +100,7 @@ These are not system-prompt text, but they carry guidance Raft keeps in event in
 | Surface | Difference | Status / owner |
 | --- | --- | --- |
 | Inbox notice (`composeInboxNotice`) | Bracket says `Haus inbox notice` where Raft says `Raft`. Raft closes with one line ("These messages have not been read. Choose when to read them … deferring them does not establish that there is no work."). Haus's closing guidance adds withheld-not-absent, not-a-request, `haus inbox check`, pivot-or-continue, and honest deferral — the guarantees the prompt used to carry | Deliberate — specs/inbox.md §Notices; covered by `inbox-format.test.ts` |
-| Envelope work markers | A drained envelope compresses task, Ask, and mention facts inside its leading bracket (`task=#N:status:assignee`, `ask=<status>[:@handle]`, `mentioned=true`) | Deliberate — specs/haus-cli.md §4; ADR 0026; specs/asks.md |
+| Envelope work markers | A drained envelope compresses task and mention facts inside its leading bracket (`task=#N:status:assignee`, `mentioned=true`) | Deliberate — specs/haus-cli.md §4; ADR 0026 |
 | Envelope attachment suffix | `[N attachments: name (id:…) — use haus attachment view to download]`; Haus's view takes the id positionally, so the hint names only the command | Deliberate — specs/haus-cli.md §4; `inbox-attachment-format.test.ts` |
 | Inline reply context | Haus appends an `[Inline reply context]` block | Deliberate — ADR 0029; `inline-reply-format.test.ts` |
 | Thread context block | Raft's thread-join block with `Haus` naming, home-timezone `time=`, and Server bounds | Deliberate — specs/inbox.md; `thread-context-format.test.ts` |

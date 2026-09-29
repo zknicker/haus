@@ -201,7 +201,10 @@ announced once per Chat the run engages; `chat.onThought({ serverId, chatId })` 
 is no read or recovery.
 
 **Needs you** ([Inbox](../features/inbox.md)) adds no event. `inbox.needsYou` is refetched on
-`message.created` (a new addressing message or the viewer's reply) and on the reader-scoped
+`message.created` (a new addressing message or the viewer's reply; the payload's
+`mentionedUserIds`, `replyToAuthorUserId`, `threadAnchorAuthorUserId`, and `authorUserId` let a
+client skip Channel messages
+that cannot address the viewer) and on the reader-scoped
 `chat.read` that `inbox.markDone` emits when it advances the viewer's read marker. Reconnect
 recovery walks those same events.
 

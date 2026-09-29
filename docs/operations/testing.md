@@ -416,8 +416,8 @@ failing-session evidence before resetting; a fresh-session test does not prove h
 The composed Agent system prompt has two guard layers. Text loss and the reviewed size budget are
 caught in CI by `bun run test:prompt-contract`. Behavior loss is caught on demand by `bun run
 eval:prompt`. That command is a stable, serial subset of `test:agents`: addressed-only
-mention handoff, explicit silence in Channels and DMs, concise DM reply, multi-Chat drain, and
-instruction-injection resistance.
+mention handoff, explicit silence in Channels and DMs, concise DM reply, multi-Chat drain,
+instruction-injection resistance, and a human's reply to an Agent's @mention waking that Agent.
 
 The lane provisions fresh isolated Agents and exact cleanup-tracked Chats through the same Server
 → Computer → model path as the full Agent suite; it never depends on seeded Agents or shared demo

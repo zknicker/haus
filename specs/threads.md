@@ -36,8 +36,9 @@ restores ordinary delivery because the newer address supersedes the earlier unfo
   with the first reply; any author on posting into the thread (posting always re-follows,
   including after an unfollow).
 - A Thread message that @mentions a human is a **Needs you** row for that human, anchored to the
-  Thread ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); a reply from them in
-  the same Thread clears it.
+  Thread ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); so is any message from
+  someone else in a Thread anchored on that human's message (`reason: 'reply'`). A reply from them
+  in the same Thread clears it.
 - @mentioning a parent-chat participant inside a thread message follows them to the thread.
 - A direct mention uses the existing rich-reference syntax. The hosted human slice recognizes
   `user://` references only; local Agent delivery may recognize `agent://` when that delivery

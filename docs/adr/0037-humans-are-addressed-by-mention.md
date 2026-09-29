@@ -1,5 +1,5 @@
 ---
-summary: An Agent asks a human by @mentioning them (or writing in their DM) where the work lives; the Inbox's Needs you lists those unanswered exchanges with Done, desktop and web notify for them, Asks are deleted, and tasks are Agent-only.
+summary: An Agent asks a human by @mentioning them, inline-replying to or answering in a Thread on their message, or writing in their DM where the work lives; the Inbox's Needs you lists those unanswered exchanges with Done, desktop and web notify for them, Asks are deleted, and tasks are Agent-only.
 read_when:
   - changing how an Agent asks a human for a decision, approval, or input
   - changing Inbox Needs you, its Done marker, or desktop/web notifications
@@ -47,8 +47,11 @@ Raft, which Haus tracks, has no question record. Its evidence:
 
 ## Decision
 
-**A human is addressed by mention.** An @mention of a human (`user://<userId>`) or a message in a
-DM the human belongs to is how anyone — usually an Agent — asks that human. There is no question
+**A human is addressed by mention.** An @mention of a human (`user://<userId>`), an inline reply
+to a message the human wrote, a message in a Thread anchored on one, or a message in a DM the human
+belongs to is how anyone — usually an Agent — asks that human. A reply to your message is
+addressed to you: an inline reply or a Thread answer reaches the person it answers exactly as an
+@mention does. There is no question
 record, option list, action card, or answered state. The Manual and prompt teach Raft's recipe:
 @mention the human with one clear question where the work lives, offer a default only if it is
 reversible, attach what you prepared, and expect their reply to wake you. Cloud Agent launch
@@ -56,16 +59,23 @@ approval, when a Server wants it, is the same @mention plus an explicit yes.
 
 **Needs you lists unanswered addressing.** A Needs you row is one Chat — a DM, Channel, or
 Thread — with at least one addressing message for the viewer: every message from someone else in
-their DMs, and every Channel or Thread message whose content mentions them. The Server records
-mentioned human ids on the Message (`chat_messages.mentioned_user_ids`, written on every send path
-from the same parse that follows mentioned humans into Threads). A row clears when the viewer
-replies where the addresser will see it — the same Thread, the same DM, or an inline reply in the
-same exchange — or marks it **Done**. Done stores the sequence it covered
+their DMs, every Channel or Thread message whose content mentions them (`reason: 'mention'`), and
+every Channel message that inline-replies to a message they wrote or sits in a Thread anchored on
+one (`reason: 'reply'`, read through `chat_messages.reply_to_message_id` and the Thread's
+`anchor_message_id`; the viewer's own messages never count). The Server records mentioned human ids on the Message
+(`chat_messages.mentioned_user_ids`, written on every send path from the same parse that follows
+mentioned humans into Threads), and `message.created` carries `mentionedUserIds`,
+`replyToAuthorUserId`, and `threadAnchorAuthorUserId` so clients refetch Needs you only when it can change. A row clears when the viewer
+replies where the addresser will see it — the same Thread, the same DM, an inline reply in the
+same exchange, or a later message in the same Channel that @mentions the author (a reply that
+reaches the author) — or marks it **Done**. Done stores the sequence it covered
 (`chat_reads.done_sequence`) and advances the viewer's read marker in the same transaction; newer
 addressing activity brings the row back. A Chat with a Needs you row is left out of
 Conversations. The contract is `inbox.needsYou` / `inbox.markDone`
 (`packages/haus-api/src/needs-you.ts`). Opening a Thread on an Agent's message follows its anchor
-author, so the human's reply there wakes the Agent.
+author, so the human's reply there wakes the Agent; a send into an existing Thread adds no such
+follow. The migration marks every visible Chat's history Done at the cutover, so Needs you starts
+empty rather than replaying old mentions and DMs.
 
 **Push is desktop and web first.** The Electron and web App raise a platform `Notification` for a
 new or newer Needs you row while the window is hidden or unfocused, after permission is granted

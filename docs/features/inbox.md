@@ -80,17 +80,25 @@ row inside that same box, so it keeps the section's shape rather than changing i
 
 **Needs you** — conversations addressed to this human that they have not answered
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). An Agent asks a person by
-@mentioning them or by writing in their DM; there is no separate question record. A row is one
+@mentioning them, inline-replying to their message, answering in a Thread on it, or writing in
+their DM; there is no separate
+question record. A row is one
 Chat — a DM, a Channel, or a Thread — holding at least one addressing message:
 
 - **DM** (`reason: 'dm'`) — a message from someone else in a DM the viewer belongs to. Every
   unanswered Agent DM message counts, as in Raft.
 - **Mention** (`reason: 'mention'`) — a Channel or Thread message whose content carries a
   `user://<viewerId>` mention ([Rich References](../../specs/mentions.md)).
+- **Reply** (`reason: 'reply'`) — a Channel message that inline-replies to a message the viewer
+  wrote ([ADR 0029](../adr/0029-inline-replies-preserve-conversation.md)), or any message from
+  someone else in a Thread anchored on one (a Thread row). It reads like a mention, under its
+  Channel's name. When a message both mentions and replies to the viewer, it is a
+  mention; a row carries the reason of its newest addressing message.
 
 The row carries the newest addressing message — its author, a plain-text preview, and its time —
 plus how many addressing messages it stands for. It **clears** when the viewer replies where the
-addresser will see it (the same Thread, the same DM, or an inline reply in the same exchange), or
+addresser will see it (the same Thread, the same DM, an inline reply in the same exchange, or a
+later message in the same Channel that @mentions the author — a reply that reaches the author), or
 presses **Done**. Done records the sequence it covered; newer addressing activity in that Chat
 brings the row back, the same `throughActivitySeq` rule Raft's Inbox uses. Done also advances the
 viewer's read marker to that sequence.
@@ -166,8 +174,9 @@ beside the press target rather than inside it, so no interactive element nests i
 ## Current stub
 
 The page is live at `/s/:slug/inbox`. A Needs you row opens its conversation: a DM or Channel row
-opens that Chat at the addressing message, and a Thread row peeks its Thread over the Inbox. The
-reply goes through the ordinary composer, and replying there clears the row. A Cloud Agent work row
+opens that Chat at `/s/<slug>/chats/<conversationChatId>`, and a Thread row opens its conversation
+with the Thread beside it at `/s/<slug>/chats/<conversationChatId>?thread=<anchorId>`. The reply
+goes through the ordinary composer, and replying there clears the row. A Cloud Agent work row
 peeks its conversation at `?work=<messageId>` — the same Thread timeline the Chat opens, work card
 and all; an Agent row in **Happening now** opens that Agent's page.
 
@@ -187,6 +196,8 @@ A new or newer Needs you row notifies the viewer while Haus is in the background
   or unfocused. The title names the author and the Chat; the body is the row's preview. Clicking
   it focuses the window and opens the conversation. A row notifies once per `latest.messageId`;
   Done and replies never notify.
+- With several tabs open on the same Server, one tab (elected through a Web Lock) notifies, so
+  each message notifies once per browser. The Electron app and a browser each notify separately.
 - Permission is requested only from the notifications toggle in Settings, never on page load.
   With the toggle off or permission denied, nothing is shown.
 - **macOS** keeps the app running when its last window closes: closing hides the window, and

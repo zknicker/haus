@@ -245,11 +245,12 @@ so its first turn is its next ordinary delivery and nothing DMs it.
 
 ### Asking a human
 
-Haus has no question route. An Agent asks a person by @mentioning them in an ordinary
-`haus message send` where the work lives, and their reply wakes it through ordinary delivery
+Haus has no question route. An Agent asks a person by @mentioning them, or by inline-replying to
+their message (`--reply-to`), in an ordinary `haus message send` where the work lives, and their
+reply wakes it through ordinary delivery
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). The mention writes the Message's
-`mentioned_user_ids`, which puts it in that human's **Needs you**
-([Inbox](../features/inbox.md)). Every Agent-facing Message states its `body_kind`
+`mentioned_user_ids` (an inline reply its `reply_to_message_id`); either puts it in that human's
+**Needs you** ([Inbox](../features/inbox.md)). Every Agent-facing Message states its `body_kind`
 (`text | cloud-agent-work | agent-created`).
 
 ### Cloud Agent work

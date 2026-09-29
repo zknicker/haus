@@ -98,7 +98,7 @@ done mutation; failure is a genuine behavior failure. Chat's task-label preferen
 
 Task lenses should reflect ownership/lifecycle rather than the choice of conversation location.
 An assignee's thread reply alone no longer upgrades a background claim to
-tracked. Inline replies likewise do not upgrade it. Preserve human-created tasks, Asks,
+tracked. Inline replies likewise do not upgrade it. Preserve human-created tasks,
 unfinished-run visibility, and status-based tracking.
 Task detail links remain valid; showing the canonical request and its inline replies in task
 inspection must not materialize an empty thread or count inline replies as thread replies.
