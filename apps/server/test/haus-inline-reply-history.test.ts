@@ -53,3 +53,30 @@ test('task inspection pages its inline chain without including unrelated chat me
         await harness.sql`select id from chats where server_id=${server.id} and kind='thread'`;
     expect(threads).toHaveLength(0);
 });
+
+test('inline reply excerpts fit the API limit when the parent contains supplementary Unicode', async () => {
+    const server = await owner.trpc.server.create.mutate({
+        displayName: 'Unicode replies',
+        slug: 'unicode-replies',
+    });
+    const chatId = server.channels[0].id;
+    const root = await owner.trpc.chat.send.mutate({
+        chatId,
+        content: `${'a'.repeat(277)}🙂${'b'.repeat(10)}`,
+        nonce: 'unicode-reply-root',
+        serverId: server.id,
+    });
+    const reply = await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'Following up',
+        nonce: 'unicode-reply-child',
+        replyToMessageId: root.message.id,
+        serverId: server.id,
+    });
+    const page = await owner.trpc.chat.messages.query({ chatId, serverId: server.id });
+    const excerpt = page.messages.find((message) => message.id === reply.message.id)?.reply?.parent
+        .content;
+
+    expect(excerpt).toBe(`${'a'.repeat(277)}🙂…`);
+    expect(excerpt?.length).toBe(280);
+});
