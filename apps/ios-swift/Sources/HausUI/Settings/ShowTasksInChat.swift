@@ -9,9 +9,11 @@ import SwiftUI
 /// its own answer. Off unless it is asked for.
 public enum ShowTasksInChat {
     public static let storageKey = "haus.chat.showTasks"
+    public static let footer = "Tasks agents claim for themselves also appear in chat."
 }
 
-/// The Preferences row that turns the claims back on.
+/// The Preferences row that turns the claims back on. Its explanation is the
+/// section footer, `ShowTasksInChat.footer`.
 public struct ShowTasksInChatRow: View {
     @AppStorage(ShowTasksInChat.storageKey) private var showTasksInChat = false
 
@@ -20,7 +22,6 @@ public struct ShowTasksInChatRow: View {
     public var body: some View {
         SettingsToggleRow(
             "Show tasks in chat",
-            subtitle: "Include the tasks agents claim for themselves",
             icon: .tasks,
             isOn: $showTasksInChat,
             showsDivider: false

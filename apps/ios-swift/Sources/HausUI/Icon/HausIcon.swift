@@ -26,6 +26,8 @@ public enum HausIconName: String, CaseIterable, Sendable {
     /// overrides, where the plug is too generic for a browser everyone knows.
     case chrome = "ChromeIcon"
     case close = "Cancel01Icon"
+    /// Cloud agents — the App's fallback mark for a cloud agent provider.
+    case cloud = "CloudIcon"
     case complete = "CheckmarkCircle02Icon"
     case computer = "ComputerIcon"
     case description = "TextAlignLeftIcon"

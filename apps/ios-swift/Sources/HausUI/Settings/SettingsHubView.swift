@@ -8,28 +8,17 @@ struct SettingsHubView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                SettingsSection("You") {
-                    SettingsListGroup {
-                        SettingsIdentityRow(
-                            initials: data.viewer.initials,
-                            avatarURL: data.viewer.avatarURL,
-                            title: "Profile",
-                            subtitle: data.viewer.displayName,
-                            action: { onNavigate(.profile) }
-                        )
-                    }
-                }
+                SettingsIdentityHeader(
+                    viewer: data.viewer,
+                    action: { onNavigate(.profile) }
+                )
 
                 if !data.agents.isEmpty {
                     SettingsSection("Agent profiles") {
                         SettingsListGroup {
                             ForEach(Array(data.agents.enumerated()), id: \.element.id) { index, agent in
-                                SettingsIdentityRow(
-                                initials: agent.initials,
-                                avatarURL: agent.avatarURL,
-                                presence: agent.presence,
-                                title: agent.displayName,
-                                    subtitle: agent.description.isEmpty ? "Agent" : agent.description,
+                                SettingsAgentRow(
+                                    agent: agent,
                                     showsDivider: index < data.agents.count - 1,
                                     action: { onNavigate(.agent(id: agent.id)) }
                                 )
@@ -42,7 +31,7 @@ struct SettingsHubView: View {
                     SettingsListGroup {
                         DisclosureRow(
                             "Server",
-                            subtitle: data.server.name,
+                            value: data.server.name,
                             icon: .server,
                             action: { onNavigate(.server) }
                         )
@@ -64,38 +53,30 @@ struct SettingsHubView: View {
                     SettingsListGroup {
                         DisclosureRow(
                             "Cloud agents",
-                            subtitle: "Cursor",
-                            icon: .computer,
+                            icon: .cloud,
                             showsDivider: false,
                             action: { onNavigate(.cloudAgents) }
                         )
                     }
                 }
 
-                SettingsSection("Preferences") {
-                    SettingsListGroup {
-                        ShowTasksInChatRow()
-                    }
-                }
-
-                SettingsSection("Theme") {
+                SettingsSection("Preferences", footer: ShowTasksInChat.footer) {
                     SettingsListGroup {
                         PickerRow(
                             "Appearance",
                             value: appearance,
                             icon: .appearance,
                             options: AppearancePreference.allCases.map { ($0, $0.title) },
-                            showsDivider: false,
                             onChange: { appearance = $0 }
                         )
+                        ShowTasksInChatRow()
                     }
                 }
 
-                SettingsSection("About") {
+                SettingsSection(nil) {
                     SettingsListGroup {
                         DisclosureRow(
-                            "Haus for iPhone",
-                            subtitle: AppVersionInfo.current,
+                            "About",
                             icon: .info,
                             showsDivider: false,
                             action: { onNavigate(.appInfo) }
@@ -112,51 +93,83 @@ struct SettingsHubView: View {
     }
 }
 
-private struct SettingsIdentityRow: View {
-    let initials: String
-    let avatarURL: URL?
-    var presence: AgentPresence? = nil
-    let title: String
-    let subtitle: String
-    var showsDivider = false
+/// The root's centered identity: no card, the whole block opens the profile.
+private struct SettingsIdentityHeader: View {
+    let viewer: SettingsPerson
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 0) {
-                HStack(spacing: 14) {
-                    AvatarView(
-                        name: title,
-                        url: avatarURL,
-                        initials: initials,
-                        presence: presence,
-                        size: 42
-                    )
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title)
-                            .font(.body)
-                            .foregroundStyle(.primary)
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(minHeight: 76)
-                .padding(.horizontal, 16)
-
-                if showsDivider {
-                    Divider().padding(.leading, 72)
+            VStack(spacing: 8) {
+                AvatarView(
+                    name: viewer.displayName,
+                    url: viewer.avatarURL,
+                    initials: viewer.initials,
+                    size: 84
+                )
+                Text(viewer.displayName)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+                if let handle = viewer.handle, !handle.isEmpty {
+                    Text("@\(handle)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Open \(title) profile")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            [viewer.displayName, viewer.handle.flatMap { $0.isEmpty ? nil : "@\($0)" }]
+                .compactMap { $0 }
+                .joined(separator: ", ")
+        )
+        .accessibilityHint("Opens your profile")
+    }
+}
+
+private struct SettingsAgentRow: View {
+    let agent: SettingsAgent
+    let showsDivider: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                AvatarView(
+                    name: agent.displayName,
+                    url: agent.avatarURL,
+                    initials: agent.initials,
+                    presence: agent.presence,
+                    size: 30
+                )
+                Text(agent.displayName)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .layoutPriority(1)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.vertical, 10)
+            .frame(minHeight: 52)
+            .padding(.horizontal, 16)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open \(agent.displayName) profile")
+        .overlay(alignment: .bottom) {
+            if showsDivider {
+                Divider().padding(.leading, 60)
+            }
+        }
     }
 }
 

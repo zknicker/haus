@@ -1,25 +1,37 @@
 import SwiftUI
 
 public struct SettingsSection<Content: View>: View {
-    private let title: String
+    private let title: String?
+    private let footer: String?
     private let content: () -> Content
 
     public init(
-        _ title: String,
+        _ title: String?,
+        footer: String? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
+        self.footer = footer
         self.content = content
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
+            if let title {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+            }
 
             content()
+
+            if let footer {
+                Text(footer)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+            }
         }
     }
 }
@@ -43,6 +55,7 @@ public struct SettingsListGroup<Content: View>: View {
 public struct SettingsRow<Content: View>: View {
     private let title: String
     private let subtitle: String?
+    private let value: String?
     private let icon: HausIconName?
     private let showsDivider: Bool
     private let content: () -> Content
@@ -50,12 +63,14 @@ public struct SettingsRow<Content: View>: View {
     public init(
         title: String,
         subtitle: String? = nil,
+        value: String? = nil,
         icon: HausIconName? = nil,
         showsDivider: Bool = true,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.value = value
         self.icon = icon
         self.showsDivider = showsDivider
         self.content = content
@@ -70,24 +85,31 @@ public struct SettingsRow<Content: View>: View {
                         .foregroundStyle(.primary)
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                if let value {
+                    // Value trails the title while both fit on one line; otherwise it
+                    // drops under the title and only then truncates, in the middle.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) {
+                            labels.fixedSize()
+                            Spacer(minLength: 8)
+                            valueText(value).fixedSize()
+                        }
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                labels
+                                valueText(value).truncationMode(.middle)
+                            }
+                            Spacer(minLength: 0)
+                        }
                     }
+                } else {
+                    labels.layoutPriority(1)
+                    Spacer(minLength: 8)
                 }
-
-                Spacer(minLength: 8)
                 content()
             }
-            .frame(height: 64)
+            .padding(.vertical, 10)
+            .frame(minHeight: 52)
             .padding(.horizontal, 16)
             .contentShape(Rectangle())
 
@@ -97,11 +119,34 @@ public struct SettingsRow<Content: View>: View {
             }
         }
     }
+
+    private var labels: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.body)
+                .foregroundStyle(.primary)
+
+            if let subtitle {
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private func valueText(_ value: String) -> some View {
+        Text(value)
+            .font(.body)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+    }
 }
 
 public struct DisclosureRow: View {
     private let title: String
     private let subtitle: String?
+    private let value: String?
     private let icon: HausIconName
     private let showsDivider: Bool
     private let action: () -> Void
@@ -109,12 +154,14 @@ public struct DisclosureRow: View {
     public init(
         _ title: String,
         subtitle: String? = nil,
+        value: String? = nil,
         icon: HausIconName,
         showsDivider: Bool = true,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.value = value
         self.icon = icon
         self.showsDivider = showsDivider
         self.action = action
@@ -125,6 +172,7 @@ public struct DisclosureRow: View {
             SettingsRow(
                 title: title,
                 subtitle: subtitle,
+                value: value,
                 icon: icon,
                 showsDivider: false
             ) {
@@ -135,7 +183,7 @@ public struct DisclosureRow: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(subtitle.map { "\(title), \($0)" } ?? title)
+        .accessibilityLabel([title, value ?? subtitle].compactMap { $0 }.joined(separator: ", "))
         .overlay(alignment: .bottom) {
             if showsDivider {
                 Divider()
@@ -166,77 +214,14 @@ public struct ValueRow: View {
     public var body: some View {
         SettingsRow(
             title: title,
+            value: value,
             icon: icon,
             showsDivider: showsDivider
         ) {
-            Text(value)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .multilineTextAlignment(.trailing)
+            EmptyView()
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title), \(value)")
-    }
-}
-
-public struct PickerRow<Value: Hashable>: View {
-    private let title: String
-    private let value: Value
-    private let icon: HausIconName
-    private let options: [(Value, String)]
-    private let showsDivider: Bool
-    private let onChange: (Value) -> Void
-
-    public init(
-        _ title: String,
-        value: Value,
-        icon: HausIconName,
-        options: [(Value, String)],
-        showsDivider: Bool = true,
-        onChange: @escaping (Value) -> Void
-    ) {
-        self.title = title
-        self.value = value
-        self.icon = icon
-        self.options = options
-        self.showsDivider = showsDivider
-        self.onChange = onChange
-    }
-
-    public var body: some View {
-        SettingsRow(title: title, icon: icon, showsDivider: false) {
-            Menu {
-                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-                    Button {
-                        onChange(option.0)
-                    } label: {
-                        HStack {
-                            Text(option.1)
-                            if option.0 == value {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(options.first(where: { $0.0 == value })?.1 ?? "Select")
-                        .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .tint(.secondary)
-            .accessibilityLabel("\(title), \(options.first(where: { $0.0 == value })?.1 ?? "Select")")
-        }
-        .overlay(alignment: .bottom) {
-            if showsDivider {
-                Divider()
-                    .padding(.leading, 54)
-            }
-        }
     }
 }
 
