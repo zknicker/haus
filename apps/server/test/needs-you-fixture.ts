@@ -1,6 +1,7 @@
 import { expect } from 'bun:test';
 import { recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
+import type { PushSender } from '../src/push/push-sender.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -14,8 +15,8 @@ export type NeedsYouFixture = Awaited<ReturnType<typeof startNeedsYouFixture>>;
  * (member outside every test Channel), and the Agents Orbit and Scout on one
  * Computer. Agent sends go through the real Agent API.
  */
-export async function startNeedsYouFixture() {
-    const harness = await startHausServerHarness();
+export async function startNeedsYouFixture(options: { pushSender?: PushSender } = {}) {
+    const harness = await startHausServerHarness(options);
     const database = await connectHausDatabase(harness.databaseUrl);
     const signIn = async (clerkUserId: string, verifiedEmails: string[]) => {
         harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
@@ -78,6 +79,7 @@ export async function startNeedsYouFixture() {
     const scoutAgentId = await createAgent('Scout', 'scout');
 
     const context = {
+        database,
         harness,
         orbitAgentId,
         outsider,

@@ -31,7 +31,13 @@ test('0052 retires Asks, releases human tasks, and backfills mentions', async ()
         database = new SQL({ max: 1, url: url.toString() });
         await seedPreviousSchema(database);
 
-        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([
+        // Apply exactly 0052, whatever later migrations exist.
+        const full = JSON.parse(
+            await readFile(join(import.meta.dir, '../drizzle/postgres/meta/_journal.json'), 'utf8')
+        );
+        journal.entries = full.entries.filter((entry: { idx: number }) => entry.idx <= 52);
+        await writeFile(journalPath, JSON.stringify(journal));
+        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus', folder)).toEqual([
             '0052_humans_addressed_by_mention',
         ]);
 
