@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { thoughtRequestMaxLength } from '@haus/api';
-import { createGeminiThoughtSummarizer, thoughtOpenings } from './agent-thought-summarizer.ts';
+import { createGeminiThoughtSummarizer } from './agent-thought-summarizer.ts';
 
 function fakeGemini(text: string) {
     const bodies: Record<string, unknown>[] = [];
@@ -10,13 +10,13 @@ function fakeGemini(text: string) {
     }) as unknown as typeof fetch;
     return {
         bodies,
-        summarizer: createGeminiThoughtSummarizer({
-            apiKey: 'k',
-            fetch: fetcher,
-            random: () => 0,
-        }),
+        summarizer: createGeminiThoughtSummarizer({ apiKey: 'k', fetch: fetcher }),
     };
 }
+
+const firstCue = '\nReply with the status line, or SKIP if this is only housekeeping.';
+const laterCue =
+    '\nReply NEW: or STILL: and the status line, or SKIP if this is only housekeeping.';
 
 function userText(body: Record<string, unknown> | undefined): string {
     const [content] = (body?.contents ?? []) as { parts: { text: string }[] }[];
@@ -33,9 +33,9 @@ describe('Gemini thought summarizer context', () => {
                 request,
                 title: 'Planning data retrieval',
             })
-        ).toEqual({ kind: 'phrase', text: 'Pulling the NYC weather' });
+        ).toEqual({ kind: 'phrase', stream: 'new', text: 'Pulling the NYC weather' });
         expect(userText(gemini.bodies[0])).toBe(
-            `<request>\n${request.slice(0, thoughtRequestMaxLength)}\n</request>\n<title>\nPlanning data retrieval\n</title>\n${thoughtOpenings[0]}`
+            `<request>\n${request.slice(0, thoughtRequestMaxLength)}\n</request>\n<title>\nPlanning data retrieval\n</title>${firstCue}`
         );
     });
 
@@ -71,9 +71,9 @@ describe('Gemini thought summarizer context', () => {
                 kind: 'action',
                 request: 'Weather in NYC?',
             })
-        ).toEqual({ kind: 'phrase', text: 'Pulling the NYC forecast' });
+        ).toEqual({ kind: 'phrase', stream: 'new', text: 'Pulling the NYC forecast' });
         expect(userText(gemini.bodies[0])).toBe(
-            `<request>\nWeather in NYC?\n</request>\n<action>\ncurl -fsS api.open-meteo.com/v1/forecast\n</action>\n${thoughtOpenings[0]}`
+            `<request>\nWeather in NYC?\n</request>\n<action>\ncurl -fsS api.open-meteo.com/v1/forecast\n</action>${firstCue}`
         );
         const system = JSON.stringify(gemini.bodies[0]?.systemInstruction);
         expect(system).toContain('The <action> block is not reasoning');
@@ -83,7 +83,7 @@ describe('Gemini thought summarizer context', () => {
         expect(JSON.stringify(gemini.bodies[1]?.systemInstruction)).not.toContain('<action>');
     });
 
-    test('asks for what is new since the previous line, only when there is one', async () => {
+    test('lists the lines already shown and asks NEW or STILL, only once one has shown', async () => {
         const gemini = fakeGemini('Reading the failing job log');
         const source = { kind: 'title', title: 'Inspecting CI logs' } as const;
         await gemini.summarizer.summarize(source);
@@ -95,21 +95,84 @@ describe('Gemini thought summarizer context', () => {
         });
 
         // A run's first thought keeps exactly the prompt it had before.
-        const bare = `<title>\nInspecting CI logs\n</title>\n${thoughtOpenings[0]}`;
-        expect(userText(gemini.bodies[0])).toBe(bare);
-        expect(userText(gemini.bodies[1])).toBe(bare);
-        const note =
-            "Describe what's new in this step; don't restate it. If this step is the same activity continuing, you may say so briefly in new words, or SKIP if it's housekeeping.";
+        const bare = '<title>\nInspecting CI logs\n</title>';
+        expect(userText(gemini.bodies[0])).toBe(`${bare}${firstCue}`);
+        expect(userText(gemini.bodies[1])).toBe(`${bare}${firstCue}`);
         expect(userText(gemini.bodies[2])).toBe(
-            `<title>\nInspecting CI logs\n</title>\nThe previous status was "Checking the build status". ${note}\n${thoughtOpenings[0]}`
+            `${bare}\nAlready shown: "Checking the build status".${laterCue}`
         );
-        expect(userText(gemini.bodies[3])).toContain(
-            'The previous status was "Checking the build status" (and before it, "Pulling the CI runs").'
+        expect(userText(gemini.bodies[3])).toBe(
+            `${bare}\nAlready shown: "Pulling the CI runs", then "Checking the build status".${laterCue}`
         );
         const systems = gemini.bodies.map((body) => JSON.stringify(body.systemInstruction));
         expect(systems[0]).toBe(systems[1] ?? '');
-        expect(systems[0]).not.toContain('names the line the agent showed last');
-        expect(systems[2]).toContain('names the line the agent showed last');
-        expect(systems[2]).toContain('changing only the opening or word order is still');
+        expect(systems[0]).not.toContain('already saw');
+        expect(systems[2]).toContain('already saw during this work');
+        expect(systems[2]).toContain('starts a different part of the work or states a new');
+        expect(systems[2]).toContain('Start with STILL:');
+    });
+
+    test('reads the workstream label, and an unlabeled or first line is new', async () => {
+        const answers: [string, unknown][] = [
+            [
+                'NEW: Comparing the three Bun releases',
+                { stream: 'new', text: 'Comparing the three Bun releases' },
+            ],
+            [
+                'STILL: Digging through the changelog',
+                { stream: 'still', text: 'Digging through the changelog' },
+            ],
+            [
+                'still - digging through the changelog',
+                { stream: 'still', text: 'Digging through the changelog' },
+            ],
+            [
+                'Still digging through the changelog',
+                { stream: 'still', text: 'Digging through the changelog' },
+            ],
+            [
+                'Comparing the three Bun releases',
+                { stream: 'new', text: 'Comparing the three Bun releases' },
+            ],
+        ];
+        for (const [text, expected] of answers) {
+            const gemini = fakeGemini(text);
+            expect(
+                await gemini.summarizer.summarize({
+                    kind: 'title',
+                    previous: ['Reading the Bun release notes'],
+                    title: 'Scanning notes',
+                })
+            ).toEqual({ kind: 'phrase', ...(expected as object) } as never);
+        }
+        expect(
+            await fakeGemini('STILL: SKIP').summarizer.summarize({
+                kind: 'title',
+                previous: ['Reading the Bun release notes'],
+                title: 'Claiming the task',
+            })
+        ).toEqual({ kind: 'skip' });
+    });
+
+    test('sends a finished action with its result block and the finding note, and only then', async () => {
+        const gemini = fakeGemini("Saturday looks wet, Sunday's clearer");
+        expect(
+            await gemini.summarizer.summarize({
+                action: 'curl -fsS api.open-meteo.com/v1/forecast',
+                kind: 'action',
+                result: 'Saturday: rain 80%, high 58\nSunday: sunny, high 66',
+            })
+        ).toEqual({ kind: 'phrase', stream: 'new', text: "Saturday looks wet, Sunday's clearer" });
+        expect(userText(gemini.bodies[0])).toBe(
+            '<action>\ncurl -fsS api.open-meteo.com/v1/forecast\n</action>\n<result>\nSaturday: rain 80%, high 58\nSunday: sunny, high 66\n</result>\nReply with the finding or the status line, or SKIP if this is only housekeeping.'
+        );
+        const system = JSON.stringify(gemini.bodies[0]?.systemInstruction);
+        expect(system).toContain('The <result> block');
+        expect(system).toContain('never quote the result');
+        expect(system).toContain('never state a finding');
+
+        await gemini.summarizer.summarize({ action: 'curl wttr.in/Chicago', kind: 'action' });
+        expect(userText(gemini.bodies[1])).not.toContain('<result>');
+        expect(JSON.stringify(gemini.bodies[1]?.systemInstruction)).not.toContain('<result>');
     });
 });

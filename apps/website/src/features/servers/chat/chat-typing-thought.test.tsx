@@ -4,6 +4,7 @@ import { chatFooterClearanceClassName } from '../../chats/chat-footer-surface.ts
 import { ChatTypingStrip } from './chat-typing-indicator.tsx';
 import {
     chatTypingThoughtDelay,
+    chatTypingThoughtHoldMs,
     chatTypingThoughtMaxVisibleMs,
     chatTypingThoughtSpacingMs,
     chatTypingThoughtTiming,
@@ -50,8 +51,16 @@ test('a shown thought hides as soon as its engagement ends', () => {
     expect(visibleChatTypingThought(engaged, null)).toBeNull();
 });
 
-test('the bubble wobbles in, holds, and wobbles out on the specified beat', () => {
-    expect(chatTypingThoughtTiming).toEqual({ enterMs: 620, exitMs: 260, holdMs: 2300 });
+test('the bubble wobbles in, holds long enough to read, and wobbles out', () => {
+    expect(chatTypingThoughtTiming).toEqual({ enterMs: 620, exitMs: 260 });
+    // About six seconds for a typical eight-word line, scaled by length within bounds.
+    expect(chatTypingThoughtHoldMs('Still digging through the Bun changelog for breakage')).toBe(
+        6300
+    );
+    expect(chatTypingThoughtHoldMs('Checking the forecast')).toBe(5000);
+    expect(
+        chatTypingThoughtHoldMs('one two three four five six seven eight nine ten eleven twelve')
+    ).toBe(7500);
 });
 
 test('the strip overlays the thought under the faces without taking layout', () => {
@@ -71,18 +80,18 @@ test('the strip overlays the thought under the faces without taking layout', () 
     expect(idle).not.toContain('Reading the chart');
 });
 
-test('bubbles start at least four seconds apart; an early thought waits its turn', () => {
-    expect(chatTypingThoughtSpacingMs).toBe(4000);
+test('bubbles start at least a shortest hold apart, under the Server floor; an early one waits', () => {
+    expect(chatTypingThoughtSpacingMs).toBe(5000);
     expect(chatTypingThoughtDelay(null, 10_000)).toBe(0);
-    // The spot test's bubble 3.9s after the previous one now waits 100ms.
-    expect(chatTypingThoughtDelay(10_000, 13_900)).toBe(100);
-    expect(chatTypingThoughtDelay(10_000, 14_000)).toBe(0);
+    expect(chatTypingThoughtDelay(10_000, 14_900)).toBe(100);
+    expect(chatTypingThoughtDelay(10_000, 15_000)).toBe(0);
+    // The Server spaces a request's bubbles ten seconds apart, which never waits here.
     expect(chatTypingThoughtDelay(10_000, 20_000)).toBe(0);
 });
 
 test('an engagement’s first thought shows at once, even right after another bubble', () => {
     expect(chatTypingThoughtDelay(10_000, 11_000, true)).toBe(0);
-    expect(chatTypingThoughtDelay(10_000, 11_000, false)).toBe(3000);
+    expect(chatTypingThoughtDelay(10_000, 11_000, false)).toBe(4000);
 });
 
 test('the transcript end clears a two-line bubble above the strip', () => {
@@ -97,7 +106,7 @@ const building = {
 };
 // Shown at 10s; its first hold ends after the wobble-in and hold.
 const onScreen = {
-    hideAt: 10_000 + chatTypingThoughtTiming.enterMs + chatTypingThoughtTiming.holdMs,
+    hideAt: 10_000 + chatTypingThoughtTiming.enterMs + chatTypingThoughtHoldMs(building.text),
     shownAt: 10_000,
     thought: building,
 };
@@ -110,7 +119,7 @@ test('the same line while its bubble is up extends the hold instead of a new bub
             { ...building, text: 'checking the build status.' },
             11_500
         )
-    ).toEqual({ hideAt: 11_500 + chatTypingThoughtTiming.holdMs, kind: 'extend' });
+    ).toEqual({ hideAt: 11_500 + chatTypingThoughtHoldMs(building.text), kind: 'extend' });
 });
 
 test('the same line after its bubble has left shows as a new bubble', () => {
@@ -133,15 +142,15 @@ test('a different line, or the same line from another run, replaces the bubble a
     ).toEqual({ kind: 'show' });
 });
 
-test('repeats keep one bubble up at most eight seconds from when it appeared', () => {
-    expect(chatTypingThoughtMaxVisibleMs).toBe(8000);
+test('repeats keep one bubble up at most twelve seconds from when it appeared', () => {
+    expect(chatTypingThoughtMaxVisibleMs).toBe(12_000);
     const cap = onScreen.shownAt + chatTypingThoughtMaxVisibleMs;
     // Late repeats extend only up to the cap...
     expect(
-        resolveChatTypingThoughtArrival({ ...onScreen, hideAt: 16_000 }, building, 16_000)
+        resolveChatTypingThoughtArrival({ ...onScreen, hideAt: 20_000 }, building, 20_000)
     ).toEqual({ hideAt: cap, kind: 'extend' });
     // ...and once the cap is reached they add nothing and show nothing new.
-    expect(resolveChatTypingThoughtArrival({ ...onScreen, hideAt: cap }, building, 17_000)).toEqual(
+    expect(resolveChatTypingThoughtArrival({ ...onScreen, hideAt: cap }, building, 21_000)).toEqual(
         {
             kind: 'absorb',
         }

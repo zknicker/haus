@@ -11,8 +11,6 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     admitComputerAgentThought,
     createAgentThoughts,
-    thoughtFirstSpacingMs,
-    thoughtSpacingMs,
 } from '../src/server-agents/agent-thought.ts';
 import type { ThoughtSummary } from '../src/server-agents/agent-thought-summarizer.ts';
 import {
@@ -20,6 +18,7 @@ import {
     collectBackground,
     excerpt,
     fakeSummarizer,
+    pastThoughtGap,
     phrase,
     reasoning,
 } from './agent-thought-harness.ts';
@@ -82,8 +81,8 @@ test('rephrases titles and excerpts, drops SKIP, and falls back to the filtered 
     const { runner, seed, wakeMessage } = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
     const answers: (ThoughtSummary | null)[] = [
-        { kind: 'phrase', text: 'Now checking Halloween bid changes' },
-        { kind: 'phrase', text: "I'm comparing Halloween bids to last week" },
+        { kind: 'phrase', stream: 'new', text: 'Pulling the deploy log' },
+        { kind: 'phrase', stream: 'new', text: 'Comparing the two deploys' },
         { kind: 'skip' },
         { kind: 'skip' },
         null,
@@ -94,15 +93,13 @@ test('rephrases titles and excerpts, drops SKIP, and falls back to the filtered 
     const thoughts = createAgentThoughts({ now: () => clock, summarizer: summarizer.summarizer });
     const ingest = async (frame: AgentThoughtFrame) => {
         const heard = await recorder(seed)(thoughts, frame);
-        clock += thoughtSpacingMs;
+        clock += pastThoughtGap;
         return heard;
     };
 
-    expect(await ingest(phrase(seed.agentId, runner.runId))).toEqual([
-        'Now checking Halloween bid changes',
-    ]);
+    expect(await ingest(phrase(seed.agentId, runner.runId))).toEqual(['Pulling the deploy log']);
     expect(await ingest(reasoning(seed.agentId, runner.runId))).toEqual([
-        "I'm comparing Halloween bids to last week",
+        'Comparing the two deploys',
     ]);
     // SKIP is final: no bubble, and no heuristic second opinion.
     expect(await ingest(phrase(seed.agentId, runner.runId))).toEqual([]);
@@ -118,16 +115,15 @@ test('rephrases titles and excerpts, drops SKIP, and falls back to the filtered 
     const request = 'Can you check the deploy?';
     const title = { kind: 'title', request, title: 'Checking Halloween bid changes' };
     const reasoned = { kind: 'reasoning', reasoning: excerpt, request };
-    // After the first shown line, each source also carries the run's last two shown lines.
-    const first = 'Now checking Halloween bid changes';
-    const second = "I'm comparing Halloween bids to last week";
+    // After the first shown line, each source also carries the run's shown lines.
+    const shown = ['Pulling the deploy log', 'Comparing the two deploys'];
     expect(summarizer.seen).toEqual([
         title,
-        { ...reasoned, previous: [first] },
-        { ...title, previous: [first, second] },
-        { ...reasoned, previous: [first, second] },
-        { ...title, previous: [first, second] },
-        { ...reasoned, previous: [second, 'Checking Halloween bid changes'] },
+        { ...reasoned, previous: shown.slice(0, 1) },
+        { ...title, previous: shown },
+        { ...reasoned, previous: shown },
+        { ...title, previous: shown },
+        { ...reasoned, previous: [...shown, 'Checking Halloween bid changes'] },
     ]);
 });
 
@@ -157,50 +153,14 @@ test('without a key, shows the heuristic unless it is housekeeping', async () =>
     ).toEqual([]);
 });
 
-test('ignores a run’s titles and excerpts closer than the spacing window, before any summary', async () => {
-    const { runner, seed, wakeMessage } = await wakeOn(connection.db);
-    await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
-    const summarizer = fakeSummarizer(async () => ({ kind: 'phrase', text: 'Comparing bids' }));
-    let clock = 0;
-    const thoughts = createAgentThoughts({ now: () => clock, summarizer: summarizer.summarizer });
-    const ingest = recorder(seed);
-
-    expect(await ingest(thoughts, reasoning(seed.agentId, runner.runId))).toEqual([
-        'Comparing bids',
-    ]);
-    clock += thoughtSpacingMs - 1;
-    expect(await ingest(thoughts, reasoning(seed.agentId, runner.runId))).toEqual([]);
-    // Titles are paid summarizer calls too, so the guard spaces them the same way.
-    expect(await ingest(thoughts, phrase(seed.agentId, runner.runId))).toEqual([]);
-    clock += 1;
-    expect(await ingest(thoughts, phrase(seed.agentId, runner.runId))).toEqual(['Comparing bids']);
-    expect(summarizer.seen).toHaveLength(2);
-});
-
-test('lets a run’s first shown thought through the spacing window after a skipped opening', async () => {
-    const { runner, seed, wakeMessage } = await wakeOn(connection.db);
-    await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
-    const answers: ThoughtSummary[] = [{ kind: 'skip' }, { kind: 'phrase', text: 'Fetching' }];
-    const summarizer = fakeSummarizer(async () => answers.shift() ?? null);
-    let clock = 0;
-    const thoughts = createAgentThoughts({ now: () => clock, summarizer: summarizer.summarizer });
-    const ingest = async (step: number) => {
-        clock += step;
-        return await recorder(seed)(thoughts, phrase(seed.agentId, runner.runId));
-    };
-    // A skipped "Claiming the task" never holds back the work title behind it.
-    expect(await ingest(0)).toEqual([]);
-    expect(await ingest(thoughtFirstSpacingMs - 1)).toEqual([]);
-    expect(await ingest(1)).toEqual(['Fetching']);
-    // Once a thought has shown, the full window applies again.
-    expect(await ingest(thoughtFirstSpacingMs)).toEqual([]);
-    expect(summarizer.seen).toHaveLength(2);
-});
-
 test('consumes but never summarizes a thought from the wrong Computer, and passes other frames on', async () => {
     const { runner, seed, wakeMessage } = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
-    const summarizer = fakeSummarizer(async () => ({ kind: 'phrase', text: 'Comparing bids' }));
+    const summarizer = fakeSummarizer(async () => ({
+        kind: 'phrase',
+        stream: 'new',
+        text: 'Comparing bids',
+    }));
     const thoughts = createAgentThoughts({ summarizer: summarizer.summarizer });
     const background = collectBackground();
     const input = { computerId: createOpaqueId('cmp'), serverId: seed.serverId };

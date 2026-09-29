@@ -40,7 +40,7 @@ test('phrases an action against the request through the summarizer, and drops SK
     const { runner, seed, wakeMessage } = await wakeOn(connection.db, 'Weather in NYC?');
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
     const answers = [
-        { kind: 'phrase', text: 'Pulling the NYC weather' },
+        { kind: 'phrase', stream: 'new', text: 'Pulling the NYC weather' },
         { kind: 'skip' },
     ] as const;
     const summarizer = fakeSummarizer(async () => answers[summarizer.seen.length - 1] ?? null);
@@ -58,6 +58,30 @@ test('phrases an action against the request through the summarizer, and drops SK
     });
 });
 
+test('sends a finished action’s result excerpt to the summarizer for that call only', async () => {
+    const { runner, seed, wakeMessage } = await wakeOn(connection.db, 'Chicago this weekend?');
+    await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
+    const summarizer = fakeSummarizer(async () => ({
+        kind: 'phrase',
+        stream: 'new',
+        text: "Saturday looks wet, Sunday's clearer",
+    }));
+    const result = 'Saturday: rain likely, high 58\nSunday: sunny, high 66';
+    expect(
+        await heard(seed, summarizer.summarizer, { ...action(seed.agentId, runner.runId), result })
+    ).toEqual(["Saturday looks wet, Sunday's clearer"]);
+    expect(summarizer.seen).toEqual([
+        {
+            action: 'curl -fsS api.open-meteo.com/v1/forecast',
+            kind: 'action',
+            request: 'Chicago this weekend?',
+            result,
+        },
+    ]);
+    // Without a summarizer, a result is never shown or condensed.
+    expect(await heard(seed, null, { ...action(seed.agentId, runner.runId), result })).toEqual([]);
+});
+
 test('shows nothing for an action when there is no summary to phrase it', async () => {
     const { runner, seed, wakeMessage } = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
@@ -69,7 +93,7 @@ test('shows nothing for an action when there is no summary to phrase it', async 
 
 test('passes a thought frame of a kind it does not know on, without error', async () => {
     const { runner, seed } = await wakeOn(connection.db);
-    const summarizer = fakeSummarizer(async () => ({ kind: 'phrase', text: 'x' }));
+    const summarizer = fakeSummarizer(async () => ({ kind: 'phrase', stream: 'new', text: 'x' }));
     const background = collectBackground();
     const consumed = await ingestAgentRunFrame(
         connection.db,

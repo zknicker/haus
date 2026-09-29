@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     agentThoughtActionMaxLength,
     agentThoughtFrameSchema,
+    agentThoughtResultMaxLength,
     agentThoughtTextMaxLength,
 } from './agent-thought.ts';
 
@@ -76,6 +77,21 @@ describe('Agent thought contract', () => {
             );
         }
         expect(agentThoughtFrameSchema.safeParse({ ...action, text: 'x' }).success).toBe(false);
+    });
+
+    test('an action may carry a bounded multi-line result excerpt', () => {
+        const withResult = { ...action, result: 'Sat: rain 80%, high 58\nSun: sunny, high 66' };
+        expect(agentThoughtFrameSchema.parse(withResult)).toEqual(withResult);
+        const longest = 'a'.repeat(agentThoughtResultMaxLength);
+        expect(agentThoughtFrameSchema.safeParse({ ...action, result: longest }).success).toBe(
+            true
+        );
+        for (const result of [`${longest}a`, '  ', 'bell\u0007']) {
+            expect(agentThoughtFrameSchema.safeParse({ ...action, result }).success).toBe(false);
+        }
+        expect(agentThoughtFrameSchema.safeParse({ ...phrase, result: 'Sat: rain' }).success).toBe(
+            false
+        );
     });
 
     test('an action frame fits no earlier kind, so a Server that predates it drops it', () => {

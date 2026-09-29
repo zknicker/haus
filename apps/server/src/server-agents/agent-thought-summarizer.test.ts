@@ -1,9 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import {
-    createGeminiThoughtSummarizer,
-    thoughtOpenings,
-    thoughtSummaryModel,
-} from './agent-thought-summarizer.ts';
+import { createGeminiThoughtSummarizer, thoughtSummaryModel } from './agent-thought-summarizer.ts';
 
 function fakeGemini(respond: (init: RequestInit) => Promise<Response>) {
     const calls: { body: Record<string, unknown>; headers: Record<string, string>; url: string }[] =
@@ -30,14 +26,13 @@ describe('Gemini thought summarizer', () => {
         const summarizer = createGeminiThoughtSummarizer({
             apiKey: 'test-key',
             fetch: gemini.fetcher,
-            random: () => 0.99,
         });
         expect(
             await summarizer.summarize({
                 kind: 'reasoning',
                 reasoning: 'The user wants the Halloween bids compared.',
             })
-        ).toEqual({ kind: 'phrase', text: 'Comparing Halloween bids to last week' });
+        ).toEqual({ kind: 'phrase', stream: 'new', text: 'Comparing Halloween bids to last week' });
         const [call] = gemini.calls;
         expect(call?.url).toContain(`/models/${thoughtSummaryModel}:generateContent`);
         expect(call?.headers['x-goog-api-key']).toBe('test-key');
@@ -50,7 +45,7 @@ describe('Gemini thought summarizer', () => {
             {
                 parts: [
                     {
-                        text: `<reasoning>\nThe user wants the Halloween bids compared.\n</reasoning>\n${thoughtOpenings.at(-1)}`,
+                        text: '<reasoning>\nThe user wants the Halloween bids compared.\n</reasoning>\nReply with the status line, or SKIP if this is only housekeeping.',
                     },
                 ],
                 role: 'user',
@@ -58,28 +53,14 @@ describe('Gemini thought summarizer', () => {
         ]);
     });
 
-    test('draws a different opening per request so lines vary', async () => {
-        const gemini = fakeGemini(async () => answer('Pulling royalties first'));
-        const draws = [0, 0.2, 0.99];
-        const summarizer = createGeminiThoughtSummarizer({
-            apiKey: 'test-key',
-            fetch: gemini.fetcher,
-            random: () => draws.shift() ?? 0,
+    test('drops a filler opener the model adds anyway', async () => {
+        const gemini = fakeGemini(async () => answer('Next, pulling the royalties'));
+        const summarizer = createGeminiThoughtSummarizer({ apiKey: 'k', fetch: gemini.fetcher });
+        expect(await summarizer.summarize({ kind: 'title', title: 'Pulling royalties' })).toEqual({
+            kind: 'phrase',
+            stream: 'new',
+            text: 'Pulling the royalties',
         });
-        for (let index = 0; index < 3; index += 1) {
-            expect(
-                await summarizer.summarize({
-                    kind: 'reasoning',
-                    reasoning: 'Pulling royalties before comparing weeks.',
-                })
-            ).toEqual({ kind: 'phrase', text: 'Pulling royalties first' });
-        }
-        const openings = gemini.calls.map((call) =>
-            String((call.body.contents as { parts: { text: string }[] }[])[0]?.parts[0]?.text)
-                .split('\n')
-                .at(-1)
-        );
-        expect(openings).toEqual([thoughtOpenings[0], thoughtOpenings[1], thoughtOpenings.at(-1)]);
     });
 
     test('answers null on an error status, an empty answer, or a transport failure', async () => {
@@ -155,6 +136,7 @@ describe('Gemini thought summarizer', () => {
         });
         expect(await filler.summarize({ kind: 'title', title: 'Checking the weather' })).toEqual({
             kind: 'phrase',
+            stream: 'new',
             text: 'Checking NYC weather conditions',
         });
     });
@@ -173,15 +155,10 @@ describe('Gemini thought summarizer', () => {
             });
             expect(await summarizer.summarize({ kind: 'title', title: line })).toEqual({
                 kind: 'phrase',
+                stream: 'new',
                 text: line,
             });
         }
-    });
-
-    test('keeps openings mostly pronoun-free', () => {
-        const iOpenings = thoughtOpenings.filter((opening) => opening.startsWith('Start with "I'));
-        expect(iOpenings.length / thoughtOpenings.length).toBeLessThanOrEqual(1 / 3);
-        expect(thoughtOpenings.some((opening) => /"Now"/u.test(opening))).toBe(false);
     });
 
     test('asks for a title in the same request shape and instructs SKIP for housekeeping', async () => {
@@ -189,16 +166,17 @@ describe('Gemini thought summarizer', () => {
         const summarizer = createGeminiThoughtSummarizer({
             apiKey: 'k',
             fetch: gemini.fetcher,
-            random: () => 0,
         });
         expect(
             await summarizer.summarize({ kind: 'title', title: "I'm inspecting chart data" })
-        ).toEqual({ kind: 'phrase', text: 'Now inspecting the chart data' });
+        ).toEqual({ kind: 'phrase', stream: 'new', text: 'Now inspecting the chart data' });
         const [call] = gemini.calls;
         expect(call?.body.contents).toEqual([
             {
                 parts: [
-                    { text: `<title>\nI'm inspecting chart data\n</title>\n${thoughtOpenings[0]}` },
+                    {
+                        text: "<title>\nI'm inspecting chart data\n</title>\nReply with the status line, or SKIP if this is only housekeeping.",
+                    },
                 ],
                 role: 'user',
             },
@@ -208,15 +186,16 @@ describe('Gemini thought summarizer', () => {
         expect(system).toContain('claiming, assigning, syncing, or updating its tasks');
         // Reading what the request is about is work, and the line never invents details.
         expect(system).toContain('Reading the checklist doc');
-        expect(system).toContain('never add a place, day, or name');
+        expect(system).toContain('Never add a place, day, name, or result');
         expect(system).toContain('its own chat reply');
         expect(system).not.toContain('right now for');
         // Own voice: never narrate the requester's ask, and restating it alone is SKIP.
         expect(system).toContain('never say what the user, the person, or anyone by name wants');
         expect(system).toContain('only restating what the person asked or how the answer');
         expect(system).toContain('even when you could guess the next step');
-        // Specific, but inside the 8-word cap.
-        expect(system).toContain('the 8 words include the opening');
+        // Plain words about the subject, never the machinery or a filler opener.
+        expect(system).toContain('never how it is done');
+        expect(system).toContain('no opener like');
     });
 
     test('skips a line that narrates what the requester wants or asked', async () => {
@@ -248,7 +227,7 @@ describe('Gemini thought summarizer', () => {
             'Postgres wants an index here',
             'Stripe asked for a webhook secret',
         ]) {
-            expect(await summarize(text)).toEqual({ kind: 'phrase', text });
+            expect(await summarize(text)).toEqual({ kind: 'phrase', stream: 'new', text });
         }
     });
 });

@@ -3,12 +3,17 @@ import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { subscribeToAgentThoughts } from '../src/agent-delivery/thought-events.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { createAgentThoughts, thoughtSpacingMs } from '../src/server-agents/agent-thought.ts';
+import { createAgentThoughts } from '../src/server-agents/agent-thought.ts';
 import {
     createThoughtPreviousLines,
     thoughtPreviousLineTtlMs,
 } from '../src/server-agents/thought-previous-lines.ts';
-import { collectBackground, fakeSummarizer, phrase } from './agent-thought-harness.ts';
+import {
+    collectBackground,
+    fakeSummarizer,
+    pastThoughtGap,
+    phrase,
+} from './agent-thought-harness.ts';
 import { post, wakeOn } from './chat-engagement-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -26,35 +31,36 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-test('sends the run’s last shown lines in the Chat, only once one has shown', async () => {
+test('sends the run’s shown lines in the Chat, only once one has shown', async () => {
     const { runner, seed, wakeMessage } = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, runner as never, [wakeMessage], { composed: true });
-    const lines = ['Checking the deploy', 'Reading the deploy log', 'Comparing the two runs'];
+    const lines = ['Checking the deploy', 'Pulling the deploy log', 'Comparing the two runs'];
     const summarizer = fakeSummarizer(async () => {
         const text = lines[summarizer.seen.length - 1];
-        return text ? { kind: 'phrase', text } : { kind: 'skip' };
+        return text ? { kind: 'phrase', stream: 'new', text } : { kind: 'skip' };
     });
     let clock = 0;
     const thoughts = createAgentThoughts({ now: () => clock, summarizer: summarizer.summarizer });
     for (let index = 0; index < 5; index += 1) {
         await ingest(thoughts, seed, phrase(seed.agentId, runner.runId));
-        clock += thoughtSpacingMs;
+        clock += pastThoughtGap;
     }
 
     expect(summarizer.seen.map((source) => source.previous)).toEqual([
         undefined,
         ['Checking the deploy'],
-        ['Checking the deploy', 'Reading the deploy log'],
-        // A skipped thought showed nothing, so the last shown lines stay.
-        ['Reading the deploy log', 'Comparing the two runs'],
-        ['Reading the deploy log', 'Comparing the two runs'],
+        ['Checking the deploy', 'Pulling the deploy log'],
+        // A skipped thought showed nothing, so the shown lines stay.
+        lines,
+        lines,
     ]);
 });
 
-test('keeps previous lines per run and per Chat', async () => {
+test('starts over for a message steered into the run, and keeps runs apart', async () => {
     const summarizer = fakeSummarizer(async (source) => ({
         kind: 'phrase',
-        text: `Line after ${source.previous?.length ?? 0}`,
+        stream: 'new',
+        text: source.previous?.length ? 'Reading staging health' : 'Pulling the deploy',
     }));
     let clock = 0;
     const thoughts = createAgentThoughts({ now: () => clock, summarizer: summarizer.summarizer });
@@ -63,10 +69,11 @@ test('keeps previous lines per run and per Chat', async () => {
         composed: true,
     });
     await ingest(thoughts, first.seed, phrase(first.seed.agentId, first.runner.runId));
-    clock += thoughtSpacingMs;
+    // Well inside the gap after that line, which only binds the first request.
+    clock += 5000;
 
-    // The run starts engaging a DM too: the channel has a previous line, the DM none,
-    // so each is phrased on its own.
+    // The run starts engaging a DM too. That message is the run's newest request, so
+    // both Chats start over: one phrase, no earlier lines, and a fresh cadence.
     const dm = await post(
         connection.db,
         first.seed,
@@ -85,14 +92,16 @@ test('keeps previous lines per run and per Chat', async () => {
             .slice(1)
             .map((source) => source.previous?.join() ?? '(none)')
             .sort()
-    ).toEqual(['(none)', 'Line after 0']);
-    expect(heard.sort((a, b) => a.text.localeCompare(b.text))).toEqual([
-        { chatId: first.seed.dmChatId, text: 'Line after 0' },
-        { chatId: first.seed.channelId, text: 'Line after 1' },
-    ]);
+    ).toEqual(['(none)']);
+    expect(heard.sort((a, b) => a.chatId.localeCompare(b.chatId))).toEqual(
+        [
+            { chatId: first.seed.dmChatId, text: 'Pulling the deploy' },
+            { chatId: first.seed.channelId, text: 'Pulling the deploy' },
+        ].sort((a, b) => a.chatId.localeCompare(b.chatId))
+    );
 
     // Another run on the same Server starts with nothing to avoid.
-    clock += thoughtSpacingMs;
+    clock += pastThoughtGap;
     const other = await wakeOn(connection.db);
     await attestAgentEvents(connection.db, other.runner as never, [other.wakeMessage], {
         composed: true,
@@ -101,16 +110,25 @@ test('keeps previous lines per run and per Chat', async () => {
     expect(summarizer.seen.at(-1)?.previous).toBeUndefined();
 });
 
-test('forgets a run’s lines in a Chat after a long quiet stretch', () => {
+test('keeps lines per request and forgets them after a long quiet stretch', () => {
     let clock = 0;
     const lines = createThoughtPreviousLines(() => clock);
-    const scope = { chatId: 'cht_a', computerId: 'cmp_a', runId: 'run_a' };
+    const scope = { chatId: 'cht_a', computerId: 'cmp_a', requestId: 'msg_a', runId: 'run_a' };
     lines.remember(scope, 'Checking the deploy');
     lines.remember(scope, 'Reading the log');
     lines.remember(scope, 'Comparing runs');
-    expect(lines.read(scope)).toEqual(['Reading the log', 'Comparing runs']);
+    lines.remember(scope, 'Weighing the fix');
+    lines.remember(scope, 'Testing the fix');
+    expect(lines.read(scope)).toEqual([
+        'Reading the log',
+        'Comparing runs',
+        'Weighing the fix',
+        'Testing the fix',
+    ]);
     expect(lines.read({ ...scope, chatId: 'cht_b' })).toEqual([]);
     expect(lines.read({ ...scope, runId: 'run_b' })).toEqual([]);
+    // A message steered into the running turn starts over.
+    expect(lines.read({ ...scope, requestId: 'msg_b' })).toEqual([]);
     clock += thoughtPreviousLineTtlMs;
     expect(lines.read(scope)).toEqual([]);
 });

@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import type { AgentThoughtContent } from '@haus/api';
+import {
+    type AgentThoughtContent,
+    agentThoughtResultMaxLength,
+    agentThoughtResultSchema,
+} from '@haus/api';
 import { createAgentThoughtNarrator, thoughtIntervalMs } from './thought-narrator.ts';
 
 function harness() {
@@ -171,6 +175,52 @@ describe('Agent thought narrator', () => {
             'curl wttr.in/New',
             'Now I should compare the three days and pick the rainiest one for the tip.',
         ]);
+    });
+
+    test('a finished action with a result outranks a waiting title and a bare action', () => {
+        const run = harness();
+        run.block('r1', '**Planning weather fetch**');
+        run.narrator.observeAction('curl api.open-meteo.com/v1/forecast', 'Saturday: rain likely');
+        run.block('r2', '**Reviewing the forecast**');
+        run.narrator.observeAction('curl wttr.in/Chicago');
+        run.advance(thoughtIntervalMs);
+        expect(run.thoughts.slice(1)).toEqual([
+            {
+                action: 'curl api.open-meteo.com/v1/forecast',
+                at: '2026-09-24T12:00:04.000Z',
+                kind: 'action',
+                result: 'Saturday: rain likely',
+            },
+        ]);
+    });
+
+    test('results that finish together ride one frame, each halved', () => {
+        const run = harness();
+        run.narrator.observeAction('curl api.weather.gov/gridpoints/LOT/forecast');
+        run.narrator.observeAction(
+            'curl api.weather.gov/gridpoints/LOT/forecast',
+            'Saturday: Mostly Sunny, 61'
+        );
+        run.narrator.observeAction('curl api.weather.gov/alerts/active', 'count: 0, alerts:');
+        run.advance(thoughtIntervalMs);
+        expect(run.thoughts.at(-1)).toEqual({
+            action: 'curl api.weather.gov/gridpoints/LOT/forecast; curl api.weather.gov/alerts/active',
+            at: '2026-09-24T12:00:04.000Z',
+            kind: 'action',
+            result: 'Saturday: Mostly Sunny, 61\ncount: 0, alerts:',
+        });
+    });
+
+    test('merged full-length results still fit the result cap', () => {
+        const run = harness();
+        const full = 'x'.repeat(Math.floor(agentThoughtResultMaxLength / 2));
+        run.narrator.observeAction('curl a.example.com');
+        run.narrator.observeAction('curl a.example.com', full);
+        run.narrator.observeAction('curl b.example.com', full);
+        run.advance(thoughtIntervalMs);
+        const merged = run.thoughts.at(-1);
+        const result = merged?.kind === 'action' ? merged.result : undefined;
+        expect(agentThoughtResultSchema.safeParse(result).success).toBe(true);
     });
 
     test('drops actions after close', () => {

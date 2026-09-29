@@ -85,6 +85,23 @@ describe('phrase finishing', () => {
         expect(finishThoughtPhrase('Sending it to the')).toBe('Sending it');
     });
 
+    test('drops a leading filler opener', () => {
+        expect(finishThoughtPhrase('Next, requesting the forecast')).toBe(
+            'Requesting the forecast'
+        );
+        expect(finishThoughtPhrase('OK, cross-checking the alerts')).toBe(
+            'Cross-checking the alerts'
+        );
+        expect(finishThoughtPhrase('Still fetching the weekend forecast')).toBe(
+            'Fetching the weekend forecast'
+        );
+        // Only as filler: a real word stays.
+        expect(finishThoughtPhrase('Still no alerts for Chicago')).toBe(
+            'Still no alerts for Chicago'
+        );
+        expect(finishThoughtPhrase('Next release ships Friday')).toBe('Next release ships Friday');
+    });
+
     test('drops a trailing "now" or "right now" filler', () => {
         expect(finishThoughtPhrase('Checking the NYC forecast right now')).toBe(
             'Checking the NYC forecast'

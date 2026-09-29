@@ -65,7 +65,11 @@ test('filters a restatement by the requester’s display name, with or without a
         .set({ displayName: 'Zach Knickerbocker' })
         .where(eq(usersTable.id, seed.userId));
 
-    const summarizer = fakeSummarizer(async () => ({ kind: 'phrase', text: 'Checking' }));
+    const summarizer = fakeSummarizer(async () => ({
+        kind: 'phrase',
+        stream: 'new',
+        text: 'Checking',
+    }));
     await ingest(seed, summarizer.summarizer, phrase(seed.agentId, runner.runId));
     expect(summarizer.seen.map((source) => source.requester)).toEqual(['Zach Knickerbocker']);
 
@@ -81,7 +85,11 @@ async function requestsFor(
     seed: { computerId: string; serverId: string },
     frame: AgentThoughtFrame
 ) {
-    const summarizer = fakeSummarizer(async () => ({ kind: 'phrase', text: 'Checking' }));
+    const summarizer = fakeSummarizer(async () => ({
+        kind: 'phrase',
+        stream: 'new',
+        text: 'Checking',
+    }));
     const thoughts = createAgentThoughts({ summarizer: summarizer.summarizer });
     const background = collectBackground();
     await thoughts.ingest(
