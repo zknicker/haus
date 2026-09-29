@@ -63,6 +63,8 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(agent?.body).toContain('**Announce it in #all.**');
     expect(agent?.body).toContain('**Put it where the work is.**');
     expect(agent?.body).toContain('**Give it a brief.**');
+    expect(agent?.body).toContain('copy their ID-backed Markdown reference');
+    expect(agent?.body).not.toContain('@zach-knickerbocker');
     expect(agent?.body).toContain('you do not DM the new Agent');
     expect(agent?.body).toContain('haus channel add --target "#name" --agent @handle');
     expect(agent?.body).not.toContain('haus message send --target dm:@handle');

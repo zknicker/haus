@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { CHANNEL_SUBCOMMANDS, runChannelAdd } from './agent-directory.ts';
+import { CHANNEL_SUBCOMMANDS, runChannelAdd, runServerInfo } from './agent-directory.ts';
 
 function args(values: Record<string, string>): ParsedArgs {
     return { flags: {}, help: false, positionals: [], valueLists: {}, values };
@@ -76,4 +76,24 @@ test('the channel family advertises add alongside join and leave', () => {
         'mute',
         'unmute',
     ]);
+});
+
+test('server directory gives copyable ID-backed references for people and agents', async () => {
+    const output: string[] = [];
+    await runServerInfo(args({}), {
+        client: requester([], {
+            agents: [{ description: 'Ads', handle: 'beacon', id: 'agt_beacon' }],
+            channels: [],
+            hasMore: { agents: false, channels: false, humans: false },
+            humans: [{ description: 'Owner', handle: 'knicker', id: 'usr_zach' }],
+            limit: 50,
+            offset: 0,
+            total: { agents: 1, channels: 0, humans: 1 },
+        }),
+        write: (text) => output.push(text),
+    });
+
+    expect(output.join('')).toContain('[@beacon](agent://agt_beacon) — Ads');
+    expect(output.join('')).toContain('[@knicker](user://usr_zach) — Owner');
+    expect(output.join('')).toContain('keep its identity across handle changes');
 });

@@ -23,9 +23,9 @@ const channelPattern = /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
 const CREATE_RECIPE = `haus agent create --target "#all" --name "Orbit" \\
   --description "Keeps release notes current and chases missing changelog entries." \\
   --channel "#product" \\
-  --brief "You own release notes. Draft them from merged PRs, post a digest in #product every Friday, and ask @zach-knickerbocker before changing the format." \\
+  --brief "You own release notes. Draft them from merged PRs, post a digest in #product every Friday, and ask the owner before changing the format." \\
   --avatar-concept "a moonlit raccoon cartographer" \\
-  --say "Everyone, meet @orbit, our new release-notes teammate. Orbit drafts the notes from merged PRs and posts a digest in #product every Friday. Say hi, and send lane questions to @zach-knickerbocker."`;
+  --say "Everyone, meet @orbit, our new release-notes teammate. Orbit drafts the notes from merged PRs and posts a digest in #product every Friday. Say hi, and send lane questions to the owner."`;
 
 export interface AgentAgentDeps {
     /** The Agent running the command; a create's idempotency key is derived from it. */

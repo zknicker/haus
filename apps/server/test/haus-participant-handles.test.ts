@@ -160,7 +160,9 @@ test('projects the real human handle into Agent-facing messages and DM targets',
             offset: 0,
         })
     ).toMatchObject({
-        humans: [{ description: 'Builds precise machines.', handle: 'ada-lovelace' }],
+        humans: [
+            { description: 'Builds precise machines.', handle: 'ada-lovelace', id: ownerUserId },
+        ],
     });
 });
 

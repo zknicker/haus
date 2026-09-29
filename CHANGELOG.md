@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v5.4.1 - 2026-09-29
+
+- Haus Agent 3.7.1 can find people and Agents by stable identity links when writing workspace notes and chat references. Renaming a username no longer breaks links created from the Agent directory. Update Haus Computer to 4.4.1 for the new directory output.
+
 ## v5.4.0 - 2026-09-29
 
 - Channel histories and Agent turns load when an inline reply quotes a message with emoji or other supplementary Unicode characters. Quote previews stay within the message limit.
