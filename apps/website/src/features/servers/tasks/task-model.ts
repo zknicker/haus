@@ -8,6 +8,7 @@ import {
     taskStatusLabels,
 } from '../../tasks/task-presentation.ts';
 import type { HumanDirectory } from '../human-identity.ts';
+import { selectStalledClaims } from './stalled-claims.ts';
 
 export type TaskView = 'all' | 'active' | 'unassigned';
 
@@ -15,7 +16,6 @@ export interface TaskItem {
     assigneeAgentId: string | null;
     assigneeAvatarUrl: string | null;
     assigneeLabel: string;
-    assigneeUserId: string | null;
     chatId: string;
     chatLabel: string;
     claimedAt: string | null;
@@ -52,25 +52,6 @@ export function resolveTaskView(value: string | null): TaskView {
     return value === 'all' || value === 'unassigned' ? value : 'active';
 }
 
-export function taskClaimAction(
-    task: TaskItem,
-    viewerUserId: string
-): 'claim' | 'claim-reservation' | 'unclaim' | null {
-    if (task.status === 'done') {
-        return null;
-    }
-    if (task.assigneeAgentId !== null) {
-        return null;
-    }
-    if (task.assigneeUserId === null) {
-        return 'claim';
-    }
-    if (task.assigneeUserId !== viewerUserId) {
-        return null;
-    }
-    return task.claimedAt === null ? 'claim-reservation' : 'unclaim';
-}
-
 export function taskChatOptions(chats: Chat[], humans: HumanDirectory) {
     return chats
         .filter((chat) => !chat.peerAgentRetired)
@@ -83,30 +64,20 @@ export function taskChatOptions(chats: Chat[], humans: HumanDirectory) {
         }));
 }
 
-export function taskAssigneeName(
-    task: Pick<TaskItem, 'assigneeAgentId' | 'assigneeUserId'>,
-    agents: Agent[],
-    humans: HumanDirectory
-) {
+/** Tasks are Agent work (ADR 0037): the assignee is an Agent or nobody. */
+export function taskAssigneeName(task: Pick<TaskItem, 'assigneeAgentId'>, agents: Agent[]) {
     if (task.assigneeAgentId) {
         const agent = agents.find((candidate) => candidate.id === task.assigneeAgentId);
         return agent?.displayName ?? `Agent ${task.assigneeAgentId.slice(-6)}`;
     }
-    if (task.assigneeUserId) {
-        return humans.name(task.assigneeUserId);
-    }
     return 'Unassigned';
 }
 
-export function taskAssigneeAvatarUrl(
-    task: Pick<TaskItem, 'assigneeAgentId' | 'assigneeUserId'>,
-    agents: Agent[],
-    humans: HumanDirectory
-) {
-    if (task.assigneeAgentId) {
-        return agents.find((candidate) => candidate.id === task.assigneeAgentId)?.avatarUrl ?? null;
+export function taskAssigneeAvatarUrl(task: Pick<TaskItem, 'assigneeAgentId'>, agents: Agent[]) {
+    if (!task.assigneeAgentId) {
+        return null;
     }
-    return humans.avatarUrl(task.assigneeUserId);
+    return agents.find((candidate) => candidate.id === task.assigneeAgentId)?.avatarUrl ?? null;
 }
 
 export function toTaskItem(
@@ -116,9 +87,8 @@ export function toTaskItem(
 ): TaskItem {
     return {
         assigneeAgentId: item.task.assigneeAgentId,
-        assigneeAvatarUrl: taskAssigneeAvatarUrl(item.task, agents, humans),
-        assigneeLabel: taskAssigneeName(item.task, agents, humans),
-        assigneeUserId: item.task.assigneeUserId,
+        assigneeAvatarUrl: taskAssigneeAvatarUrl(item.task, agents),
+        assigneeLabel: taskAssigneeName(item.task, agents),
         chatId: item.task.chatId,
         chatLabel: taskChatLabel(item, humans),
         claimedAt: item.task.claimedAt,
@@ -143,8 +113,7 @@ export function toTaskItem(
 
 /**
  * Where the task lives. An Agent DM has no human peer to name, so it reads as
- * `DM` rather than claiming a peer that is not there — the same label the
- * Inbox Ask row uses.
+ * `DM` rather than claiming a peer that is not there.
  */
 function taskChatLabel(item: TaskListItem, humans: HumanDirectory): string {
     if (item.chatKind === 'channel') {
@@ -154,7 +123,7 @@ function taskChatLabel(item: TaskListItem, humans: HumanDirectory): string {
 }
 
 export interface TaskFilterInput {
-    /** An agent id, a user id, or the literal `unassigned`. */
+    /** An Agent id, or the literal `unassigned`. */
     assignee?: null | string;
     labelId?: null | string;
     priority?: null | string;
@@ -175,10 +144,7 @@ export function filterTasks(tasks: TaskItem[], input: TaskFilterInput) {
         ) {
             return false;
         }
-        if (
-            input.view === 'unassigned' &&
-            (task.assigneeAgentId !== null || task.assigneeUserId !== null)
-        ) {
+        if (input.view === 'unassigned' && task.assigneeAgentId !== null) {
             return false;
         }
         if (input.labelId && !task.labels.some((label) => label.id === input.labelId)) {
@@ -197,12 +163,12 @@ export function filterTasks(tasks: TaskItem[], input: TaskFilterInput) {
     });
 }
 
-/** `unassigned` is its own bucket; anything else is an agent or user id. */
+/** `unassigned` is its own bucket; anything else is an Agent id. */
 function matchesAssignee(task: TaskItem, assignee: string) {
     if (assignee === unassignedAssignee) {
-        return task.assigneeAgentId === null && task.assigneeUserId === null;
+        return task.assigneeAgentId === null;
     }
-    return task.assigneeAgentId === assignee || task.assigneeUserId === assignee;
+    return task.assigneeAgentId === assignee;
 }
 
 export const unassignedAssignee = 'unassigned';
@@ -225,13 +191,36 @@ export function groupTasks(tasks: TaskItem[]) {
 /**
  * The List's groups. `in_review` leads and says so in words: a task waiting on
  * a person is the only kind the reader can finish by looking at it, so the
- * review queue is what the page opens on.
+ * review queue is what the page opens on. Claims an Agent stopped short of
+ * finishing follow it as their own group, out of `in_progress`, because no
+ * run is coming back for them — the reader decides what happens next.
  */
-export function groupTasksForList(tasks: TaskItem[]) {
-    return groupTasksBy(tasks, taskListStatuses).map((group) => ({
+export function groupTasksForList(tasks: TaskItem[]): TaskListSection[] {
+    const stalled = new Set(selectStalledClaims(tasks));
+    const [review, ...rest] = groupTasksBy(
+        tasks.filter((task) => !stalled.has(task)),
+        taskListStatuses
+    ).map((group) => ({
         ...group,
+        key: group.status,
         title: taskListGroupTitles[group.status] ?? taskStatusLabels[group.status],
     }));
+    const stopped: TaskListSection = {
+        key: 'stopped',
+        status: 'in_progress',
+        tasks: groupTasksBy([...stalled], ['in_progress'])[0]?.tasks ?? [],
+        title: 'Stopped before finishing',
+    };
+
+    return review ? [review, stopped, ...rest] : [stopped, ...rest];
+}
+
+export interface TaskListSection {
+    /** Stable across renders; the stopped group shares `in_progress`'s status. */
+    key: 'stopped' | TaskStatus;
+    status: TaskStatus;
+    tasks: TaskItem[];
+    title: string;
 }
 
 const taskListStatuses: TaskStatus[] = ['in_review', 'todo', 'in_progress', 'done', 'closed'];

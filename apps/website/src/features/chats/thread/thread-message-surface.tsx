@@ -5,7 +5,6 @@ import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
-import { TranscriptAskMarker } from '../../asks/transcript-ask-marker.tsx';
 import { CloudAgentWorkCard } from '../../cloud-agents/cloud-agent-work-card.tsx';
 import {
     CloudAgentWorkDetail,
@@ -97,7 +96,6 @@ function ThreadSurfacePreview({
 }) {
     const context = useTranscriptRenderContextOptional();
     const label = threadSurfaceLabel({
-        ask: row.message.ask?.status === 'open',
         hoisted: hoisted.length > 0,
         taskNumber: task?.number,
         workTitle: work?.title,
@@ -170,7 +168,6 @@ function ThreadSurfaceMarks({
     return (
         <>
             {task ? <TranscriptTaskChip row={row} /> : null}
-            {row.message.ask ? <TranscriptAskMarker ask={row.message.ask} /> : null}
             {work ? <CloudAgentWorkHeader work={work} /> : null}
         </>
     );
@@ -183,19 +180,16 @@ function ThreadSurfaceMarks({
  * assignee are the header's job, and change under a reader who is not looking.
  */
 export function threadSurfaceLabel({
-    ask,
     hoisted,
     taskNumber,
     workTitle,
 }: {
-    ask: boolean;
     hoisted: boolean;
     taskNumber?: number;
     workTitle?: string;
 }): string | undefined {
     const parts = [
         taskNumber === undefined ? null : `Task #${taskNumber}`,
-        ask ? 'Ask' : null,
         workTitle === undefined ? null : `Cloud Agent work: ${workTitle}`,
         hoisted ? 'Cloud Agent work' : null,
     ].filter((part) => part !== null);

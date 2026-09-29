@@ -17,7 +17,7 @@ import { ThreadContent } from './thread-content.tsx';
 /**
  * Raft-style peek: opening a record from a list page shows its Thread work
  * surface in a dialog over that page instead of navigating into the parent
- * Chat. The Tasks page peeks a Task; the Inbox peeks an Ask. "View in chat"
+ * Chat. The Tasks page peeks a Task. "View in chat"
  * (and artifact opens, which are chat-scoped) still navigate to the Chat.
  */
 export function ThreadPeekDialog({

@@ -1,6 +1,5 @@
 import type { Agent, ChatMessage, ThreadSummary } from '@haus/api';
 import * as React from 'react';
-import type { HumanDirectory } from '../human-identity.ts';
 import {
     chatMessageDirectories,
     type ProjectedChatMessageRow,
@@ -9,7 +8,6 @@ import {
 
 export interface ChatMessageProjectionInput {
     agents: readonly Agent[];
-    humans?: HumanDirectory;
     messages: readonly ChatMessage[];
     threads: readonly ThreadSummary[];
 }
@@ -38,7 +36,7 @@ export const emptyChatMessageProjection: ChatMessageProjection = {
  * every message the server returned unchanged, so source identity is the
  * change signal — Server messages carry no version or `updatedAt` field. A row
  * is reprojected only when its message object, its thread summary, or (for a
- * task message) the Agent/human directories behind its assignee changed.
+ * task message) the Agent directory behind its assignee changed.
  * Everything else keeps its previous row object, which is what lets the
  * transcript's row memo skip re-rendering and re-parsing untouched markdown.
  */
@@ -49,8 +47,7 @@ export function projectStableChatMessages(
     if (
         previous.messages === input.messages &&
         previous.threads === input.threads &&
-        previous.agents === input.agents &&
-        previous.humans === input.humans
+        previous.agents === input.agents
     ) {
         return previous;
     }
@@ -58,8 +55,8 @@ export function projectStableChatMessages(
     const threadsByAnchor = new Map(
         input.threads.map((thread) => [thread.anchorMessageId, thread])
     );
-    const directories = chatMessageDirectories(input.agents, input.humans);
-    const directoriesChanged = previous.agents !== input.agents || previous.humans !== input.humans;
+    const directories = chatMessageDirectories(input.agents);
+    const directoriesChanged = previous.agents !== input.agents;
     const rowByMessage = new Map<ChatMessage, ProjectedChatMessageRow>();
     let reusedEveryRow = previous.rows.length === input.messages.length;
 
@@ -82,7 +79,6 @@ export function projectStableChatMessages(
 
     return {
         agents: input.agents,
-        humans: input.humans,
         messages: input.messages,
         // Keeping the array itself when nothing moved lets the downstream
         // entry and render-row memos hold too.
@@ -94,7 +90,6 @@ export function projectStableChatMessages(
 
 export function useStableChatMessageRows({
     agents,
-    humans,
     messages,
     threads,
 }: ChatMessageProjectionInput) {
@@ -102,12 +97,12 @@ export function useStableChatMessageRows({
 
     return React.useMemo(() => {
         const next = projectStableChatMessages(
-            { agents, humans, messages, threads },
+            { agents, messages, threads },
             projectionRef.current
         );
 
         projectionRef.current = next;
 
         return next.rows;
-    }, [agents, humans, messages, threads]);
+    }, [agents, messages, threads]);
 }

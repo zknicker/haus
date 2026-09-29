@@ -19,6 +19,7 @@ import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useDesktopMenuNavigation } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
+import { useNeedsYouNotifications } from '../../hooks/notifications/use-needs-you-notifications.ts';
 import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-listeners.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChats } from '../../hooks/servers/use-chats.ts';
@@ -51,6 +52,7 @@ export function ServerLayout() {
         settingsRoute: serverSettingsRoute(slug),
     });
     useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
+    useNeedsYouNotifications(server.data);
     useUnfocusableAppMain();
 
     React.useEffect(() => {

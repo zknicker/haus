@@ -19,7 +19,6 @@ const doubleQuoteEscape = /\\(["$\\`])/gu;
  * happens to be typed at a shell, so it reads as the verb.
  */
 const hausVerbs: Record<string, string> = {
-    ask: 'Asked a question with haus',
     'inbox check': 'Checked inbox with haus',
     'message check': 'Checked messages with haus',
     'message react': 'Reacted to a message with haus',

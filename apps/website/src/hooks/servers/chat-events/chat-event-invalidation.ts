@@ -5,7 +5,7 @@ import type { ChatEventOf, ChatEventType } from './chat-event-registry.ts';
 /** The tRPC cache handle every Chat event listener invalidates through. */
 export type ChatEventUtils = Pick<
     ReturnType<typeof hausTrpc.useUtils>,
-    'agent' | 'ask' | 'chat' | 'cloudAgentWork' | 'task' | 'taskLabel'
+    'agent' | 'chat' | 'cloudAgentWork' | 'inbox' | 'member' | 'task' | 'taskLabel'
 >;
 
 /** What one listener needs to invalidate the reads its own events change. */

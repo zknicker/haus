@@ -106,12 +106,6 @@ export interface TranscriptRenderContextValue {
      */
     taskChipHiddenMessageId?: string;
     threadActionsEnabled: boolean;
-    threadAskReply?: {
-        anchorMessageId: string;
-        chatId: string;
-        serverId: string;
-        answerableMessageId: string | null;
-    };
     turnDetails?: {
         access: 'journal' | 'summary';
         serverId: string;

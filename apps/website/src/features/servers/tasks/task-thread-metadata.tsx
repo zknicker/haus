@@ -32,13 +32,12 @@ export function TaskThreadMetadata({
     const task =
         tasks.data?.tasks.find((item) => item.task.messageId === messageId)?.task ?? fallbackTask;
     const agentDirectory = agents.data ?? [];
-    const assigneeLabel = taskAssigneeName(task, agentDirectory, humans);
+    const assigneeLabel = taskAssigneeName(task, agentDirectory);
     const creator = taskCreatorIdentity(task, agentDirectory, humans);
     const target = {
         assigneeAgentId: task.assigneeAgentId,
-        assigneeAvatarUrl: taskAssigneeAvatarUrl(task, agentDirectory, humans),
+        assigneeAvatarUrl: taskAssigneeAvatarUrl(task, agentDirectory),
         assigneeLabel,
-        assigneeUserId: task.assigneeUserId,
         id: messageId,
         number: task.number,
         status: task.status,

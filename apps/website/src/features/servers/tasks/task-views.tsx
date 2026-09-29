@@ -74,7 +74,7 @@ export function TaskList({ onOpenTask, tasks }: TaskViewProps) {
         <div className="min-h-0 flex-1 overflow-y-auto pb-8">
             {groups.map((group) => (
                 <TaskListGroup
-                    key={group.status}
+                    key={group.key}
                     onOpen={onOpenTask}
                     status={group.status}
                     tasks={group.tasks}
@@ -177,7 +177,7 @@ function TaskListRow({
                     <RelativeTime value={task.updatedAt} />
                 </span>
                 <span className="shrink-0" title={assigneeLabel}>
-                    {task.assigneeAgentId !== null || task.assigneeUserId !== null ? (
+                    {task.assigneeAgentId !== null ? (
                         <EntityAvatar name={assigneeLabel} size={20} src={task.assigneeAvatarUrl} />
                     ) : (
                         <span

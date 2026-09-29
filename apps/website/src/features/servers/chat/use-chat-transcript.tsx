@@ -69,7 +69,6 @@ export function useChatTranscript({
     const onToggleReaction = viewerUserId ? toggleReaction : undefined;
     const projectedRows = useStableChatMessageRows({
         agents: agentList,
-        humans,
         messages: messageList,
         threads,
     });

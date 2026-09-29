@@ -8,6 +8,7 @@ import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
+import { useNeedsYou } from '../../../hooks/servers/use-needs-you.ts';
 import { chatNavigationName } from '../../shell/chat-navigation-row.tsx';
 import { useServerContext } from '../server-context.ts';
 import { serverChatRoute } from '../server-routes.ts';
@@ -21,11 +22,16 @@ import {
 } from './inbox-row.tsx';
 import { InboxSection, InboxSectionPending } from './inbox-section.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
+import { needsYouChatIds } from './needs-you-rows.ts';
 
 /**
  * Unread conversation, newest first, each row quoting the line that is waiting.
  * Followed Threads join it once the Server can list them; the unread counts
  * themselves are the existing read state, which this page only reads.
+ *
+ * A Chat that has a Needs you row is left out, so one conversation is never
+ * listed twice; the section waits for both reads so a row never appears here
+ * and then moves up.
  */
 export function InboxConversations() {
     const { server } = useServerContext();
@@ -38,13 +44,17 @@ export function InboxConversations() {
         () => new Map((agents.data ?? []).map((agent) => [agent.id, agent])),
         [agents.data]
     );
-    const unread = React.useMemo(() => selectUnreadChats(chats.data ?? []), [chats.data]);
+    const needsYou = useNeedsYou(server.id);
+    const unread = React.useMemo(
+        () => selectUnreadChats(chats.data ?? [], needsYouChatIds(needsYou.data ?? [])),
+        [chats.data, needsYou.data]
+    );
     const viewerUserId = members.data?.viewerUserId ?? null;
     const viewerDisplayName = viewerUserId ? humans.name(viewerUserId) : null;
 
     return (
         <InboxSection title="Conversations">
-            {chats.data ? (
+            {chats.data && needsYou.data ? (
                 <InboxRowList
                     emptyLabel="All caught up."
                     listId="inbox-conversations"
@@ -111,13 +121,16 @@ function UnreadChatRow({
 }
 
 /**
- * Unread conversation, most recently active first. Timestamps carry an offset
+ * Unread conversation without a Needs you row, most recently active first. Timestamps carry an offset
  * rather than a fixed zone, so they are compared as instants — a lexical
  * compare would order `-04:00` against `Z` by its text.
  */
-function selectUnreadChats(chats: readonly Chat[]): Chat[] {
+export function selectUnreadChats(
+    chats: readonly Chat[],
+    needsYouChats: ReadonlySet<string>
+): Chat[] {
     return chats
-        .filter((chat) => chat.unreadCount > 0)
+        .filter((chat) => chat.unreadCount > 0 && !needsYouChats.has(chat.id))
         .sort((a, b) => lastActivityTime(b) - lastActivityTime(a));
 }
 

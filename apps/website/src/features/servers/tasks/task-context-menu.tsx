@@ -4,17 +4,13 @@ import {
     CircleArrowUpRightIcon,
     CopyLinkIcon,
     Navigation03Icon,
-    UserCheck01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useTaskAssign } from '../../../hooks/servers/use-task-assign.ts';
 import { useTaskAssignees } from '../../../hooks/servers/use-task-assignees.ts';
-import { useTaskClaim } from '../../../hooks/servers/use-task-claim.ts';
 import { useTaskLabels } from '../../../hooks/servers/use-task-labels.ts';
-import { useTaskUnclaim } from '../../../hooks/servers/use-task-unclaim.ts';
 import { useTaskUpdate } from '../../../hooks/servers/use-task-update.ts';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { useServerContext } from '../server-context.ts';
@@ -31,7 +27,7 @@ import {
     taskStatusActionPrefix,
 } from './task-context-submenus.tsx';
 import { taskAssignmentInput, taskUpdateInput, toggledTaskLabelIds } from './task-input.ts';
-import { type TaskItem, taskClaimAction } from './task-model.ts';
+import type { TaskItem } from './task-model.ts';
 
 export function TaskContextMenu({
     children,
@@ -44,16 +40,12 @@ export function TaskContextMenu({
 }) {
     const { server } = useServerContext();
     const navigate = useNavigate();
-    const humans = useHumanDirectory(server.id);
     const [open, setOpen] = React.useState(false);
     const assignees = useTaskAssignees(server.id, task.id, open);
     const labels = useTaskLabels(server.id, { enabled: open });
     const assign = useTaskAssign();
     const update = useTaskUpdate();
-    const claim = useTaskClaim();
-    const unclaim = useTaskUnclaim();
-    const claimAction = taskClaimAction(task, server.viewerUserId);
-    const pending = assign.isPending || update.isPending || claim.isPending || unclaim.isPending;
+    const pending = assign.isPending || update.isPending;
 
     const onAction = (key: React.Key) => {
         const action = String(key);
@@ -70,18 +62,6 @@ export function TaskContextMenu({
             writeClipboardText(new URL(route, window.location.origin).toString())
                 .then(() => toast.success('Task link copied'))
                 .catch(() => toast.danger('Could not copy the task link'));
-            return;
-        }
-        if (action === 'claim' || action === 'unclaim') {
-            const mutation = action === 'claim' ? claim : unclaim;
-            mutation.mutate(
-                {
-                    expectedVersion: task.version,
-                    messageId: task.id,
-                    serverId: server.id,
-                },
-                { onError: showTaskMutationError }
-            );
             return;
         }
         if (action.startsWith(taskStatusActionPrefix)) {
@@ -143,7 +123,6 @@ export function TaskContextMenu({
                     <TaskAssigneeSubmenu
                         assignees={assignees.data ?? []}
                         disabled={pending || assignees.isPending}
-                        humans={humans}
                         onAction={onAction}
                         task={task}
                     />
@@ -153,18 +132,6 @@ export function TaskContextMenu({
                         onAction={onAction}
                         task={task}
                     />
-                    {claimAction ? (
-                        <ContextMenu.Item
-                            id={claimAction === 'unclaim' ? 'unclaim' : 'claim'}
-                            isDisabled={pending}
-                            textValue={claimAction === 'unclaim' ? 'Unclaim task' : 'Claim task'}
-                        >
-                            <Icon aria-hidden="true" icon={UserCheck01Icon} size={16} />
-                            <Label>
-                                {claimAction === 'unclaim' ? 'Unclaim task' : 'Claim task'}
-                            </Label>
-                        </ContextMenu.Item>
-                    ) : null}
                     <ContextMenu.Separator />
                     <ContextMenu.Item id="view-chat" textValue="View in chat">
                         <Icon aria-hidden="true" icon={Navigation03Icon} size={16} />

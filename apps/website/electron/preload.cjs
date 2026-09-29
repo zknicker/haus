@@ -54,6 +54,7 @@ const bridge = {
     checkForUpdate: () => ipcRenderer.invoke('desktop:update:check'),
     downloadUpdate: () => ipcRenderer.invoke('desktop:update:download'),
     closeWindow: () => ipcRenderer.invoke('desktop:window:close'),
+    focusWindow: () => ipcRenderer.invoke('desktop:window:focus'),
     getInfo: () => ipcRenderer.invoke('desktop:get-info'),
     openWindow: (route) => ipcRenderer.invoke('desktop:window:open', route),
     onUpdateStatus: (listener) => {

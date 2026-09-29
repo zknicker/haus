@@ -81,6 +81,7 @@ export function ChatEventStreamProvider({
             utils.chat.search.invalidate({ serverId }),
             utils.cloudAgentWork.listActive.invalidate({ serverId }),
             utils.cloudAgentWork.listForChat.invalidate({ serverId }),
+            utils.inbox.needsYou.invalidate({ serverId }),
             utils.task.list.invalidate({ serverId }, { refetchType: 'all' }),
             utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' }),
         ]);

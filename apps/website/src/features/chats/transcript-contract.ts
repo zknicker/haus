@@ -1,6 +1,5 @@
 import type {
     AgentAvailability,
-    Ask,
     ChatMessage,
     CloudAgentWork,
     MessageCause,
@@ -91,8 +90,6 @@ export interface TranscriptMessageReaction {
 
 export interface TranscriptMessage {
     actor?: TranscriptActor | null;
-    /** The Ask this Message anchors, projected from its typed body. */
-    ask?: Ask | null;
     attachments?: TranscriptAttachment[];
     /**
      * The automation fire this message answers. A fire writes no transcript

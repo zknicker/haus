@@ -16,8 +16,8 @@ export interface MessageTaskAssigneeProfile {
  * One Task as it reads in the header of its Message's recessed Thread surface:
  * the number, a status disc, and the assignee whose work it is. Task-chip
  * grammar — annotation scale, neutral throughout, with only the disc carrying
- * lifecycle color, the same shape the Ask marker and the Cloud Agent work
- * header take in that slot.
+ * lifecycle color, the same shape the Cloud Agent work
+ * header takes in that slot.
  *
  * The surface itself is the way into the work, so the chip is inert: it is a
  * label on a button, not a second target inside one.

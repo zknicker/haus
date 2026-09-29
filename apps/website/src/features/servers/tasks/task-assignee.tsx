@@ -1,10 +1,8 @@
-import type { TaskAssignee as TaskAssigneeOption } from '@haus/api';
 import { Description, Label, ListBox, Select } from '@heroui/react';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { EntityName } from '../../../components/ui/entity-name.tsx';
-import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useTaskAssign } from '../../../hooks/servers/use-task-assign.ts';
 import { useTaskAssignees } from '../../../hooks/servers/use-task-assignees.ts';
 import type { HausInputs } from '../../../lib/haus-server.tsx';
@@ -14,22 +12,15 @@ import type { TaskItem } from './task-model.ts';
 
 type TaskAssigneeTarget = Pick<
     TaskItem,
-    | 'assigneeAgentId'
-    | 'assigneeAvatarUrl'
-    | 'assigneeLabel'
-    | 'assigneeUserId'
-    | 'id'
-    | 'number'
-    | 'version'
+    'assigneeAgentId' | 'assigneeAvatarUrl' | 'assigneeLabel' | 'id' | 'number' | 'version'
 >;
 
 export const unassignedAssigneeKey = 'unassigned';
-const agentKeyPrefix = 'agent:';
 
 /**
- * Who owns a task. Agents and people are offered together — a task is normally
- * handed to an Agent and completed by one — and assignment only reserves: the
- * assignee still claims the task before starting.
+ * Which Agent holds a task. Tasks are Agent work (ADR 0037): the picker lists
+ * the Chat's Agents only, any member of the Chat may pick one, and assignment
+ * only reserves — the Agent still claims the task before starting.
  */
 export function TaskAssignee({
     presentation = 'boxed',
@@ -40,15 +31,12 @@ export function TaskAssignee({
     task: TaskAssigneeTarget;
 }) {
     const { server } = useServerContext();
-    const humans = useHumanDirectory(server.id);
     const [open, setOpen] = React.useState(false);
     const assignees = useTaskAssignees(server.id, task.id, open);
     const assign = useTaskAssign();
-    const value = task.assigneeAgentId
-        ? `${agentKeyPrefix}${task.assigneeAgentId}`
-        : (task.assigneeUserId ?? unassignedAssigneeKey);
+    const value = task.assigneeAgentId ?? unassignedAssigneeKey;
     const valueLabel = task.assigneeLabel;
-    const isAssigned = Boolean(task.assigneeAgentId || task.assigneeUserId);
+    const isAssigned = task.assigneeAgentId !== null;
 
     const onChange = (next: unknown) => {
         const key = String(next);
@@ -65,22 +53,16 @@ export function TaskAssignee({
             </ListBox.Item>
             {(assignees.data ?? []).map((option) => (
                 <ListBox.Item
-                    id={taskAssigneeOptionKey(option)}
-                    key={taskAssigneeOptionKey(option)}
-                    textValue={taskAssigneeOptionName(option, humans)}
+                    id={option.agentId}
+                    key={option.agentId}
+                    textValue={option.displayName}
                 >
-                    <EntityAvatar
-                        name={taskAssigneeOptionName(option, humans)}
-                        size={20}
-                        src={optionAvatarUrl(option, humans)}
-                    />
-                    {/* Name over role/handle: on one line a long name outran the
+                    <EntityAvatar name={option.displayName} size={20} src={option.avatarUrl} />
+                    {/* Name over handle: on one line a long name outran the
                         popover, because Label does not shrink its own content. */}
                     <div className="flex min-w-0 flex-col">
-                        <Label className="truncate">{taskAssigneeOptionName(option, humans)}</Label>
-                        <Description className="capitalize">
-                            {option.kind === 'agent' ? `@${option.handle}` : option.role}
-                        </Description>
+                        <Label className="truncate">{option.displayName}</Label>
+                        <Description>{`@${option.handle}`}</Description>
                     </div>
                     <ListBox.ItemIndicator />
                 </ListBox.Item>
@@ -154,28 +136,5 @@ export function TaskAssignee({
 }
 
 export function taskAssigneeFromKey(key: string): HausInputs['task']['assign']['assignee'] {
-    if (key === unassignedAssigneeKey) {
-        return null;
-    }
-    return key.startsWith(agentKeyPrefix)
-        ? { agentId: key.slice(agentKeyPrefix.length), kind: 'agent' }
-        : { kind: 'human', userId: key };
-}
-
-export function taskAssigneeOptionKey(option: TaskAssigneeOption): string {
-    return option.kind === 'agent' ? `${agentKeyPrefix}${option.agentId}` : option.userId;
-}
-
-export function taskAssigneeOptionName(
-    option: TaskAssigneeOption,
-    humans: ReturnType<typeof useHumanDirectory>
-): string {
-    return option.kind === 'agent' ? option.displayName : humans.name(option.userId);
-}
-
-function optionAvatarUrl(
-    option: TaskAssigneeOption,
-    humans: ReturnType<typeof useHumanDirectory>
-): null | string {
-    return option.kind === 'agent' ? option.avatarUrl : humans.avatarUrl(option.userId);
+    return key === unassignedAssigneeKey ? null : { agentId: key };
 }

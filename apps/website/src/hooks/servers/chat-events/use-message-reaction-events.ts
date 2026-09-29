@@ -28,7 +28,6 @@ export async function invalidateMessageReactionChanges({
     const threadChatIds = uniqueChatIds(events.map((event) => event.chatId));
 
     await Promise.all([
-        utils.ask.listOpen.invalidate({ serverId }),
         utils.chat.search.invalidate({ serverId }),
         utils.cloudAgentWork.listActive.invalidate({ serverId }),
         ...messageChatIds.map((chatId) => utils.chat.messages.invalidate({ chatId, serverId })),

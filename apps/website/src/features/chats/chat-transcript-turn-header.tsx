@@ -52,7 +52,7 @@ export function TurnHeader({
             {/*
              * Only provenance lives here. Cause first when both apply: why the
              * Agent spoke comes before what it had already forgotten. What the
-             * message *is* — a Task, an Ask, delegated work — states itself
+             * message *is* — a Task, delegated work — states itself
              * below the header, where its lifecycle can be followed.
              */}
             {cause ? <MessageCauseMark cause={cause} /> : null}

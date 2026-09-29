@@ -1,91 +1,96 @@
-import type { TaskItem } from '../tasks/task-model.ts';
-import type { NeedsYouAsk } from './needs-you-asks.ts';
+import type { Agent, NeedsYouRow } from '@haus/api';
+import type { HumanDirectory } from '../human-identity.ts';
+import { serverChatRoute, serverChatThreadRoute } from '../server-routes.ts';
 
-/** What every Needs-you row shows, whatever record it projects. */
-interface NeedsYouRowFace {
-    /** The Agent whose face leads the row: the one asking, or the one that stopped. */
-    agentId: null | string;
-    avatarUrl: null | string;
-    /**
-     * The list key, namespaced by kind. An Ask and a stalled claim can name the
-     * same Message — nothing stops an ask-bodied Message from being claimed as
-     * a task — so the raw Message id would collide across the two halves of the
-     * union and hide the second row. Never use it as a deep-link target; read
-     * the target off `ask` or `claim` instead.
-     */
+/**
+ * One Needs you row as the Inbox and a notification read it: who addressed
+ * the viewer, what they said, and where. The Server row rides along so the
+ * row can be opened and marked Done.
+ */
+export interface NeedsYouRowView {
+    /** The Agent whose face leads the row, when an Agent wrote the message. */
+    authorAgentId: null | string;
+    authorAvatarUrl: null | string;
+    authorName: string;
+    /** The Chat the row stands for; one Chat has at most one row. */
     id: string;
-    /** The name behind the mark, for an Agent the Server no longer lists. */
-    markName: string;
-    /** Where it came from, and what kind of row it is. */
-    meta: string;
-    /** The line that says why, beside the title. */
+    /** Where the addressing happened, for a mention or reply; a DM is its own place. */
+    place: null | string;
     preview: string;
-    title: string;
+    row: NeedsYouRow;
+}
+
+export interface NeedsYouNames {
+    agents: readonly Agent[];
+    humans: HumanDirectory;
+}
+
+export function toNeedsYouRowView(row: NeedsYouRow, names: NeedsYouNames): NeedsYouRowView {
+    const author = row.latest.author;
+    const agent =
+        author.kind === 'agent'
+            ? (names.agents.find((candidate) => candidate.id === author.agentId) ?? null)
+            : null;
+
+    return {
+        authorAgentId: author.kind === 'agent' ? author.agentId : null,
+        authorAvatarUrl:
+            agent?.avatarUrl ??
+            author.profile?.avatarUrl ??
+            (author.kind === 'human' ? names.humans.avatarUrl(author.userId) : null),
+        authorName: needsYouAuthorName(row, names),
+        id: row.chatId,
+        place: needsYouPlace(row),
+        preview: row.latest.preview,
+        row,
+    };
 }
 
 /**
- * One row in Needs you. The record rides along so the row can be opened: an
- * Ask carries the Message its Thread hangs off, a stalled claim the task.
+ * The live name first, then the name stored with the message, then a stable
+ * id label — so a retired Agent or departed member still reads as someone.
  */
-export type NeedsYouRow =
-    | (NeedsYouRowFace & { ask: NeedsYouAsk; kind: 'ask' })
-    | (NeedsYouRowFace & { claim: TaskItem; kind: 'claim' });
-
-/**
- * Asks and stalled claims as one list.
- *
- * They were two lists in one card, which meant the seam between them was the
- * only place in the section with no divider — the reader could see the join.
- * One list over a discriminated row settles that: the same row anatomy, the
- * same dividers, and the kind stated in words rather than by a change of
- * shape.
- *
- * Asks lead. An Ask is a decision only this human can make; a stalled claim is
- * work that fell over and will still be there in a minute.
- */
-export function toNeedsYouRows(
-    asks: readonly NeedsYouAsk[],
-    claims: readonly TaskItem[]
-): NeedsYouRow[] {
-    return [
-        ...asks.map(
-            (ask): NeedsYouRow => ({
-                agentId: ask.agentId,
-                ask,
-                avatarUrl: null,
-                id: `ask:${ask.id}`,
-                kind: 'ask',
-                markName: ask.agentName,
-                meta: `Ask · ${ask.chatLabel}`,
-                preview: ask.summary,
-                title: ask.title,
-            })
-        ),
-        ...claims.map(
-            (claim): NeedsYouRow => ({
-                agentId: claim.assigneeAgentId,
-                avatarUrl: claim.assigneeAvatarUrl,
-                claim,
-                id: `claim:${claim.id}`,
-                kind: 'claim',
-                markName: claim.assigneeLabel,
-                meta: `${claim.chatLabel} · Task #${claim.number}`,
-                preview: claim.title,
-                title: stalledClaimTitle(claim),
-            })
-        ),
-    ];
+export function needsYouAuthorName(row: NeedsYouRow, names: NeedsYouNames): string {
+    const author = row.latest.author;
+    if (author.kind === 'agent') {
+        const agent = names.agents.find((candidate) => candidate.id === author.agentId);
+        return (
+            agent?.displayName ?? author.profile?.displayName ?? `Agent ${author.agentId.slice(-6)}`
+        );
+    }
+    return author.profile?.displayName ?? names.humans.name(author.userId);
 }
 
 /**
- * The Message a row deep-links to: the Ask's own Message for `?ask=`, the
- * claimed task's Message for `?task=`. Read it here rather than off `row.id`,
- * which is namespaced and belongs to the list, not to the URL.
+ * `#channel` for a mention or an inline reply to the viewer, `#channel › thread`
+ * inside a Thread, null for a DM.
  */
-export function needsYouRowTarget(row: NeedsYouRow): string {
-    return row.kind === 'ask' ? row.ask.id : row.claim.id;
+export function needsYouPlace(row: NeedsYouRow): null | string {
+    if (row.reason === 'dm') {
+        return row.threadAnchorMessageId ? 'DM › thread' : null;
+    }
+    return row.threadAnchorMessageId ? `#${row.chatName} › thread` : `#${row.chatName}`;
 }
 
-export function stalledClaimTitle(claim: Pick<TaskItem, 'assigneeLabel'>): string {
-    return `${claim.assigneeLabel} stopped before finishing`;
+/**
+ * Where a row opens: the conversation itself, or the conversation with the
+ * Thread open beside it. Replying there is what clears the row.
+ */
+export function needsYouConversationPath(slug: string, row: NeedsYouRow): string {
+    return row.threadAnchorMessageId
+        ? serverChatThreadRoute(slug, row.conversationChatId, row.threadAnchorMessageId)
+        : serverChatRoute(slug, row.conversationChatId);
+}
+
+/** The Chats Conversations leaves out, so one conversation is never listed twice. */
+export function needsYouChatIds(rows: readonly NeedsYouRow[]): ReadonlySet<string> {
+    return new Set(rows.map((row) => row.chatId));
+}
+
+/** A platform notification's text: the author and the place, then what they said. */
+export function needsYouNotificationText(view: NeedsYouRowView): { body: string; title: string } {
+    return {
+        body: view.preview,
+        title: view.place ? `${view.authorName} in ${view.place}` : view.authorName,
+    };
 }

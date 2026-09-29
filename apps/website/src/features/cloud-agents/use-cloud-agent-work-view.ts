@@ -2,8 +2,8 @@ import { useSearchParams } from 'react-router-dom';
 
 /**
  * Which Cloud Agent work is peeked open. `?work=<messageId>` makes it a deep
- * link and Back closes it — the same contract `?ask=` and `?task=` give the
- * Inbox and the Tasks page.
+ * link and Back closes it — the same contract `?task=` gives
+ * the Tasks page.
  */
 export function useCloudAgentWorkView() {
     const [searchParams, setSearchParams] = useSearchParams();

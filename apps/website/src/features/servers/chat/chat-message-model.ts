@@ -2,7 +2,6 @@ import type { Agent, ChatMessage, ThreadSummary } from '@haus/api';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
-import type { HumanDirectory } from '../human-identity.ts';
 
 export function mergeTaskAnchor(
     messages: ChatMessage[] | undefined,
@@ -19,27 +18,21 @@ export type ProjectedChatMessageRow = TranscriptMessageRow;
 /** The directories a message's task fields are resolved against. */
 export interface ChatMessageDirectories {
     handleByAgentId: ReadonlyMap<string, string>;
-    humans?: HumanDirectory;
 }
 
-export function chatMessageDirectories(
-    agents: readonly Agent[],
-    humans?: HumanDirectory
-): ChatMessageDirectories {
+export function chatMessageDirectories(agents: readonly Agent[]): ChatMessageDirectories {
     return {
         handleByAgentId: new Map(agents.map((agent) => [agent.id, agent.handle])),
-        humans,
     };
 }
 
 export function projectChatMessages(
     messages: readonly ChatMessage[],
     threads: readonly ThreadSummary[],
-    agents: readonly Agent[] = [],
-    humans?: HumanDirectory
+    agents: readonly Agent[] = []
 ): ProjectedChatMessageRow[] {
     const threadsByAnchor = new Map(threads.map((thread) => [thread.anchorMessageId, thread]));
-    const directories = chatMessageDirectories(agents, humans);
+    const directories = chatMessageDirectories(agents);
 
     return messages.map((message) =>
         projectChatMessage(message, threadsByAnchor.get(message.id) ?? null, directories)
@@ -64,7 +57,6 @@ export function projectChatMessage(
         kind: 'message',
         message: {
             actor,
-            ask: message.body.kind === 'ask' ? message.body.ask : null,
             attachments: message.attachments.map((attachment) => ({
                 filename: attachment.filename,
                 mediaType: attachment.mediaType,
@@ -87,7 +79,7 @@ export function projectChatMessage(
             reactions: message.reactions,
             reply: message.reply,
             sendNonce: message.nonce,
-            task: messageTask(message.task, directories.handleByAgentId, directories.humans),
+            task: messageTask(message.task, directories.handleByAgentId),
             timestamp: message.createdAt,
         },
         responseId: agentId ? message.id : undefined,
@@ -98,14 +90,13 @@ export function projectChatMessage(
 
 function messageTask(
     task: ChatMessage['task'],
-    handleByAgentId: ReadonlyMap<string, string>,
-    humans?: HumanDirectory
+    handleByAgentId: ReadonlyMap<string, string>
 ): TranscriptMessage['task'] {
     if (!task) {
         return null;
     }
     return {
-        assignee: taskAssignee(task, handleByAgentId, humans),
+        assignee: taskAssignee(task, handleByAgentId),
         claimed_at: task.claimedAt,
         created_at: task.createdAt,
         labels: task.labels,
@@ -123,24 +114,16 @@ function messageTask(
 
 function taskAssignee(
     task: NonNullable<ChatMessage['task']>,
-    handleByAgentId: ReadonlyMap<string, string>,
-    humans?: HumanDirectory
-): { handle: string | null; id: string; kind: 'agent' | 'human' } | null {
-    if (task.assigneeAgentId) {
-        return {
-            handle: handleByAgentId.get(task.assigneeAgentId) ?? null,
-            id: task.assigneeAgentId,
-            kind: 'agent',
-        };
+    handleByAgentId: ReadonlyMap<string, string>
+): { handle: string | null; id: string; kind: 'agent' } | null {
+    if (!task.assigneeAgentId) {
+        return null;
     }
-    if (task.assigneeUserId) {
-        return {
-            handle: humans?.member(task.assigneeUserId)?.handle ?? null,
-            id: task.assigneeUserId,
-            kind: 'human',
-        };
-    }
-    return null;
+    return {
+        handle: handleByAgentId.get(task.assigneeAgentId) ?? null,
+        id: task.assigneeAgentId,
+        kind: 'agent',
+    };
 }
 
 function messageActor(message: ChatMessage): TranscriptActor {

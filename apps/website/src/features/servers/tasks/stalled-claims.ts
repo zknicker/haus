@@ -1,6 +1,6 @@
 import type { TaskOrigin, TaskStatus, TaskTier } from '../../tasks/task-presentation.ts';
 
-/** The only Task fields the Inbox's stalled-claim question depends on. */
+/** The only Task fields the stalled-claim question depends on. */
 export interface StalledClaimTask {
     live: boolean;
     origin: TaskOrigin;
@@ -15,8 +15,8 @@ export interface StalledClaimTask {
  * `in_progress` means the work never landed; `tracked` is Server saying the
  * claiming run settled without answering, which is the one thing that lifts a
  * claim out of bookkeeping; and not `live` means no run holds it now, so no
- * reply is coming. Chat says nothing about these by default — this row is
- * where a person finds out.
+ * reply is coming. Chat says nothing about these by default — the Tasks
+ * List's "Stopped before finishing" group is where a person finds out.
  */
 export function selectStalledClaims<TTask extends StalledClaimTask>(
     items: readonly TTask[]

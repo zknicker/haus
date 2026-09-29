@@ -1,61 +1,16 @@
-import { Button } from '@heroui/react';
-import { useTaskClaim } from '../../../hooks/servers/use-task-claim.ts';
-import { useTaskUnclaim } from '../../../hooks/servers/use-task-unclaim.ts';
-import { useServerContext } from '../server-context.ts';
 import { TaskAssignee } from './task-assignee.tsx';
 import { TaskMetadata } from './task-metadata.tsx';
-import { type TaskItem, taskClaimAction } from './task-model.ts';
+import type { TaskItem } from './task-model.ts';
 
+/**
+ * A Board card's controls. People hand work to an Agent here; they never
+ * claim a task themselves (ADR 0037).
+ */
 export function TaskActions({ task }: { task: TaskItem }) {
-    const { server } = useServerContext();
-    const claim = useTaskClaim();
-    const unclaim = useTaskUnclaim();
-    const error = claim.error ?? unclaim.error;
-    const action = taskClaimAction(task, server.viewerUserId);
-
     return (
         <div className="relative z-20 flex flex-wrap items-center gap-2">
             <TaskMetadata task={task} />
             <TaskAssignee task={task} />
-            {action === 'claim' || action === 'claim-reservation' ? (
-                // Both branches run the same claim mutation; whether the task was
-                // already reserved for the viewer is internal bookkeeping, so the
-                // button says what it does rather than naming the record.
-                <Button
-                    isPending={claim.isPending}
-                    onPress={() =>
-                        claim.mutate({
-                            expectedVersion: task.version,
-                            messageId: task.id,
-                            serverId: server.id,
-                        })
-                    }
-                    size="sm"
-                    variant="secondary"
-                >
-                    Claim
-                </Button>
-            ) : action === 'unclaim' ? (
-                <Button
-                    isPending={unclaim.isPending}
-                    onPress={() =>
-                        unclaim.mutate({
-                            expectedVersion: task.version,
-                            messageId: task.id,
-                            serverId: server.id,
-                        })
-                    }
-                    size="sm"
-                    variant="ghost"
-                >
-                    Unclaim
-                </Button>
-            ) : null}
-            {error ? (
-                <span className="basis-full text-danger text-sm" role="alert">
-                    {error.message}
-                </span>
-            ) : null}
         </div>
     );
 }

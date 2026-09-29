@@ -17,12 +17,7 @@ import {
 } from '../../tasks/task-presentation.ts';
 import { TaskPriorityIcon } from '../../tasks/task-priority-icon.tsx';
 import { TaskStatusDisc } from '../../tasks/task-status-disc.tsx';
-import type { HumanDirectory } from '../human-identity.ts';
-import {
-    taskAssigneeOptionKey,
-    taskAssigneeOptionName,
-    unassignedAssigneeKey,
-} from './task-assignee.tsx';
+import { unassignedAssigneeKey } from './task-assignee.tsx';
 import type { TaskItem } from './task-model.ts';
 
 interface TaskSubmenuProps {
@@ -88,16 +83,12 @@ export function TaskPrioritySubmenu({ disabled, onAction, task }: TaskSubmenuPro
 export function TaskAssigneeSubmenu({
     assignees,
     disabled,
-    humans,
     onAction,
     task,
 }: TaskSubmenuProps & {
     assignees: TaskAssignee[];
-    humans: HumanDirectory;
 }) {
-    const selectedKey = task.assigneeAgentId
-        ? `agent:${task.assigneeAgentId}`
-        : (task.assigneeUserId ?? unassignedAssigneeKey);
+    const selectedKey = task.assigneeAgentId ?? unassignedAssigneeKey;
 
     return (
         <ContextMenu.SubmenuTrigger>
@@ -118,20 +109,19 @@ export function TaskAssigneeSubmenu({
                             <ContextMenu.ItemIndicator />
                         ) : null}
                     </ContextMenu.Item>
-                    {assignees.map((assignee) => {
-                        const key = taskAssigneeOptionKey(assignee);
-                        return (
-                            <ContextMenu.Item
-                                id={`${taskAssigneeActionPrefix}${key}`}
-                                key={key}
-                                textValue={taskAssigneeOptionName(assignee, humans)}
-                            >
-                                <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
-                                <Label>{taskAssigneeOptionName(assignee, humans)}</Label>
-                                {selectedKey === key ? <ContextMenu.ItemIndicator /> : null}
-                            </ContextMenu.Item>
-                        );
-                    })}
+                    {assignees.map((assignee) => (
+                        <ContextMenu.Item
+                            id={`${taskAssigneeActionPrefix}${assignee.agentId}`}
+                            key={assignee.agentId}
+                            textValue={assignee.displayName}
+                        >
+                            <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
+                            <Label>{assignee.displayName}</Label>
+                            {selectedKey === assignee.agentId ? (
+                                <ContextMenu.ItemIndicator />
+                            ) : null}
+                        </ContextMenu.Item>
+                    ))}
                 </ContextMenu.Menu>
             </ContextMenu.Popover>
         </ContextMenu.SubmenuTrigger>

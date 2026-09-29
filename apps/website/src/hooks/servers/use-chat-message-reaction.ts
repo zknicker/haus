@@ -18,7 +18,6 @@ export function useChatMessageReaction(chatId: string) {
                     serverId: input.serverId,
                 });
             }
-            void utils.ask.listOpen.invalidate({ serverId: input.serverId });
             void queryClient.invalidateQueries({
                 queryKey: threadMessagesQueryKey(input.serverId, result.message.chatId),
             });

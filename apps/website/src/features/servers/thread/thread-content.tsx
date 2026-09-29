@@ -136,23 +136,6 @@ export function ThreadContent({
         [renderContext]
     );
 
-    const threadRenderContext = {
-        ...renderContext,
-        threadAskReply: {
-            anchorMessageId: anchor.id,
-            chatId: chat.id,
-            serverId: chat.serverId,
-            answerableMessageId: readOnly
-                ? null
-                : ([anchor, ...replies]
-                      .reverse()
-                      .find(
-                          (message) =>
-                              message.body.kind === 'ask' && message.body.ask.status === 'open'
-                      )?.id ?? null),
-        },
-    };
-
     return (
         <div
             className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
@@ -178,7 +161,7 @@ export function ThreadContent({
                 target={titles.target}
                 threadExists={threadChatId !== undefined}
             />
-            <TranscriptRenderProvider value={threadRenderContext}>
+            <TranscriptRenderProvider value={renderContext}>
                 <div className="max-h-[50%] shrink-0 overflow-y-auto px-5">
                     {anchor.task ? (
                         <TaskThreadMetadata
@@ -206,7 +189,7 @@ export function ThreadContent({
                     />
                 }
             >
-                <TranscriptRenderProvider value={threadRenderContext}>
+                <TranscriptRenderProvider value={renderContext}>
                     <MessageScrollerProvider autoScroll={false} defaultScrollPosition="start">
                         <ThreadReadTracker
                             active={active}
@@ -249,7 +232,7 @@ export function ThreadContent({
                                                 value={
                                                     inParentChat
                                                         ? parentRenderContext
-                                                        : threadRenderContext
+                                                        : renderContext
                                                 }
                                             >
                                                 <TranscriptEntryView

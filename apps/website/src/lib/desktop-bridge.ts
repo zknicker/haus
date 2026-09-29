@@ -20,6 +20,8 @@ export interface HausDesktopBridge {
     checkForUpdate: () => Promise<void>;
     closeWindow: () => Promise<void>;
     downloadUpdate: () => Promise<void>;
+    /** Show, restore, and focus this window — including one hidden by closing it on macOS. */
+    focusWindow?: () => Promise<void>;
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
     /** Electron loads the canonical Haus App instead of a bundled renderer. */
     loadsApp?: true;

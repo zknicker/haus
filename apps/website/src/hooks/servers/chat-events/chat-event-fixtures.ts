@@ -4,17 +4,27 @@ import type { ChatEventOf } from './chat-event-registry.ts';
 export function messageEvent(
     cursor: string,
     chatId: string,
-    parentChatId: string | null = null
+    parentChatId: string | null = null,
+    author: {
+        authorUserId?: string | null;
+        mentionedUserIds?: string[];
+        replyToAuthorUserId?: string | null;
+        threadAnchorAuthorUserId?: string | null;
+    } = {}
 ): ChatEventOf<'message.created'> {
     return {
+        authorUserId: author.authorUserId ?? null,
         chatId,
         createdAt: '2026-07-26T12:00:00.000Z',
         cursor,
         id: `event_${cursor}`,
+        mentionedUserIds: author.mentionedUserIds ?? [],
         messageId: `message_${cursor}`,
         parentChatId,
+        replyToAuthorUserId: author.replyToAuthorUserId ?? null,
         sequence: Number(cursor),
         serverId: 'server_one',
+        threadAnchorAuthorUserId: author.threadAnchorAuthorUserId ?? null,
         type: 'message.created',
     };
 }
@@ -129,25 +139,6 @@ export function reminderEvent(cursor: string, chatId: string): ChatEventOf<'remi
         sequence: 0,
         serverId: 'server_one',
         type: 'reminder.changed',
-    };
-}
-
-export function askEvent(
-    cursor: string,
-    chatId: string,
-    parentChatId: string | null = null
-): ChatEventOf<'ask.updated'> {
-    return {
-        askId: `ask_${cursor}`,
-        chatId,
-        createdAt: '2026-09-02T12:00:00.000Z',
-        cursor,
-        id: `event_${cursor}`,
-        messageId: `message_${cursor}`,
-        parentChatId,
-        sequence: Number(cursor),
-        serverId: 'server_one',
-        type: 'ask.updated',
     };
 }
 

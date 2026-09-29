@@ -21,7 +21,7 @@ export interface HappeningNowWork {
 
 /**
  * The Server already returns only work the viewer can see, oldest first, so
- * nothing is filtered here. Names resolve the same way the Ask rows above do:
+ * nothing is filtered here. Names resolve the same way the Needs you rows above do:
  * the live Agent list and the shared human directory, with the Message's
  * stored author profile standing in for a retired Agent.
  */

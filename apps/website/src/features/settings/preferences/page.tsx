@@ -6,6 +6,7 @@ import { setShowTasksInChat, useShowTasksInChat } from '../../tasks/show-tasks-i
 import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';
 import { useHausUpdate } from '../../updates/use-haus-update.ts';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
+import { NotificationsSection } from './notifications-section.tsx';
 
 export function PreferencesSettings() {
     const update = useHausUpdate();
@@ -17,6 +18,7 @@ export function PreferencesSettings() {
             />
             <AppearanceSection />
             <ChatSection />
+            <NotificationsSection />
             <HausVersionSummary view={update.view} />
         </PageColumn>
     );

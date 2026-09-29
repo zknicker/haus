@@ -67,7 +67,7 @@ export interface MessageTask {
     assignee: {
         handle: string | null;
         id: string;
-        kind?: 'agent' | 'human';
+        kind?: 'agent';
     } | null;
     /** The assignee Agent is running a turn on this task right now. */
     live: boolean;
@@ -82,11 +82,5 @@ export interface MessageTask {
  * nothing rather than printing an opaque id.
  */
 export function messageTaskAssigneeLabel(task: MessageTask) {
-    if (!task.assignee) {
-        return null;
-    }
-    if (task.assignee.handle) {
-        return `@${task.assignee.handle}`;
-    }
-    return task.assignee.kind === 'human' ? `Human ${task.assignee.id.slice(-6)}` : null;
+    return task.assignee?.handle ? `@${task.assignee.handle}` : null;
 }

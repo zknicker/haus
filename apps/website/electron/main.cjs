@@ -24,6 +24,8 @@ const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs')
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 const { buildWindowUrl, isSafeWindowRoute, nextWindowBounds } = require('./window-routing.cjs');
 const { readWindowState, resolveInitialBounds, writeWindowState } = require('./window-state.cjs');
+const { hideLastWindowOnClose, markQuitting, showWindow } = require('./window-lifecycle.cjs');
+const { forwardWindowSignals } = require('./window-signals.cjs');
 
 // A broken stdout/stderr pipe (e.g. the dev launcher's reader went away, or a logging
 // library writes after the pipe closed) must never crash the app with an uncaught EPIPE.
@@ -127,33 +129,13 @@ function createWindow({ route, openerBounds } = {}) {
         window.show();
     });
 
-    window.on('focus', () => {
-        window.webContents.send('desktop:window:focus-state', true);
-    });
-
-    window.on('blur', () => {
-        window.webContents.send('desktop:window:focus-state', false);
-    });
+    forwardWindowSignals(window);
 
     window.webContents.on('did-finish-load', () => {
         if (currentDesktopUpdateStatus) {
             window.webContents.send('desktop:update:status', currentDesktopUpdateStatus);
         }
     });
-
-    if (process.platform === 'darwin') {
-        // "Swipe between pages" and mouse back/forward buttons. Electron
-        // reports the AppKit delta convention, not the physical finger
-        // direction: the back gesture arrives as 'left' (verified on device —
-        // do not "fix" this to match Safari intuition).
-        window.on('swipe', (_event, direction) => {
-            if (direction === 'left') {
-                window.webContents.send('desktop:window:history', 'back');
-            } else if (direction === 'right') {
-                window.webContents.send('desktop:window:history', 'forward');
-            }
-        });
-    }
 
     // Last interaction wins, so the app reopens where the user left it. The
     // end-of-operation events also cover force-quit, which skips 'close'.
@@ -163,6 +145,7 @@ function createWindow({ route, openerBounds } = {}) {
     window.on('resized', persistBounds);
     window.on('moved', persistBounds);
     window.on('close', persistBounds);
+    hideLastWindowOnClose(window, () => windows.size);
 
     window.on('closed', () => {
         windows.delete(window);
@@ -367,14 +350,14 @@ function installAppMenu() {
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-/** Routes the frontmost window (or a fresh one) to Settings for the ⌘, menu item. */
+/** Reveals the frontmost window (even one hidden by closing it) or a fresh one on Settings for ⌘,. */
 function openSettingsWindow() {
     const window = BrowserWindow.getFocusedWindow() ?? mainWindow;
     if (!window) {
         createWindow({ route: '/settings' });
         return;
     }
-
+    showWindow(app, window);
     window.webContents.send('desktop:settings:open');
 }
 
@@ -413,6 +396,11 @@ function registerIpcHandlers() {
         BrowserWindow.fromWebContents(event.sender)?.close();
     });
 
+    ipcMain.handle('desktop:window:focus', (event) => {
+        assertTrustedRenderer(event, appUrl);
+        showWindow(app, BrowserWindow.fromWebContents(event.sender));
+    });
+
     ipcMain.handle('desktop:dock:set-badge', (event, count) => {
         assertTrustedRenderer(event, appUrl);
         if (!Number.isInteger(count) || count < 0) {
@@ -449,6 +437,7 @@ function registerIpcHandlers() {
             return;
         }
 
+        markQuitting();
         autoUpdater.quitAndInstall(false, true);
     });
 }
@@ -618,10 +607,13 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
     if (windows.size === 0) {
         createWindow();
+    } else if (mainWindow && !mainWindow.isVisible()) {
+        showWindow(app, mainWindow);
     }
 });
 
 app.on('before-quit', () => {
+    markQuitting();
     if (updateCheckInterval) {
         clearInterval(updateCheckInterval);
     }
