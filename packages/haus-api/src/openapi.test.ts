@@ -168,7 +168,7 @@ describe('Haus OpenAPI contract', () => {
         expect(document.components?.schemas).toHaveProperty('AgentSkillSummary');
     });
 
-    it('carries the Message body kind and the Ask facts an Agent reads', () => {
+    it('carries the Message body kind an Agent reads', () => {
         const ajv = new Ajv2020({ allowUnionTypes: true, strictSchema: false });
         const validate = (schema: string, payload: unknown) =>
             ajv.compile({
@@ -178,42 +178,27 @@ describe('Haus OpenAPI contract', () => {
         const message = {
             attachments: [],
             author: { id: 'agt_orbit', kind: 'agent', label: 'Orbit', metadata: {} },
-            body_kind: 'ask',
+            body_kind: 'text',
             chat_id: 'cht_product',
-            content: 'The migration is staged. Should I run it?',
+            content: '[@Ada](user://usr_ada) the migration is staged. Should I run it?',
             created_at: '2026-09-03T12:00:00.000Z',
             deleted_at: null,
             delivery_id: null,
             id: 'msg_1234567890abcdef',
             metadata: {},
-            nonce: 'ask-1',
+            nonce: 'mention-1',
             role: 'assistant',
             sequence: 7,
         };
-        const ask = {
-            addressee_handle: 'ada',
-            id: 'ask_1234567890abcdef',
-            options: ['Approve the staged migration', 'Wait for the release window'],
-            status: 'open',
-            title: 'Run the staged migration?',
-        };
 
-        expect(validate('ChatMessage', { ...message, ask })).toBe(true);
-        expect(validate('ChatMessage', { ...message, ask: null, body_kind: 'text' })).toBe(true);
+        expect(validate('ChatMessage', message)).toBe(true);
         // The body kind is not optional: a reader must never have to infer it.
         expect(validate('ChatMessage', { ...message, body_kind: undefined })).toBe(false);
         expect(validate('ChatMessage', { ...message, body_kind: 'proposal' })).toBe(false);
-        expect(validate('MessageAsk', ask)).toBe(true);
-        expect(validate('MessageAsk', { ...ask, addressee_handle: null })).toBe(true);
-        expect(validate('MessageAsk', { ...ask, status: 'closed' })).toBe(false);
-        expect(validate('MessageAsk', { ...ask, summary: 'extra' })).toBe(false);
-        expect(validate('MessageAsk', { ...ask, options: [] })).toBe(true);
-        expect(validate('MessageAsk', { ...ask, options: undefined })).toBe(false);
-        expect(validate('MessageAsk', { ...ask, options: ['Yes', 'Yes'] })).toBe(false);
-        expect(validate('MessageAsk', { ...ask, options: ['a'.repeat(81)] })).toBe(false);
-        expect(
-            validate('MessageAsk', { ...ask, options: ['One', 'Two', 'Three', 'Four', 'Five'] })
-        ).toBe(false);
+        // Asks are retired (ADR 0037): a human is asked by @mention in a text Message.
+        expect(validate('ChatMessage', { ...message, body_kind: 'ask' })).toBe(false);
+        expect(validate('ChatMessage', { ...message, ask: null })).toBe(false);
+        expect(document.components?.schemas).not.toHaveProperty('MessageAsk');
     });
 
     it('maps agent send discriminator values to their response variants', () => {

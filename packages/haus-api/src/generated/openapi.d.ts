@@ -677,7 +677,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Assign one task to a member of its Chat without changing its status. */
+        /** Assign one task to an Agent member of its Chat without changing its status. */
         post: operations["assignAgentTask"];
         delete?: never;
         options?: never;
@@ -1478,6 +1478,7 @@ export interface components {
             task: components["schemas"]["AgentTaskRow"];
         };
         AgentTaskCreateRequest: {
+            /** @description @handle of an Agent member of the target Chat. */
             assignee?: string;
             content?: string;
             target: string;
@@ -1493,7 +1494,7 @@ export interface components {
             target: string;
         };
         AgentTaskAssignRequest: {
-            /** @description @handle of a human or Agent member of the task's Chat. Missing, retired, and out-of-Chat handles share one not-assignable refusal. */
+            /** @description @handle of an Agent member of the task's Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal. */
             assignee: string;
             /** @description Apply only if the task is still at this revision. */
             expectedRevision?: number;
@@ -1895,7 +1896,7 @@ export interface components {
             role: "user" | "assistant" | "system";
             content: string;
             /** @enum {string} */
-            body_kind: "text" | "ask" | "cloud-agent-work" | "agent-created";
+            body_kind: "text" | "cloud-agent-work" | "agent-created";
             attachments: components["schemas"]["JsonObject"][];
             nonce: string | null;
             delivery_id: components["schemas"]["DeliveryId"] | null;
@@ -1903,20 +1904,10 @@ export interface components {
             deleted_at: components["schemas"]["Timestamp"] | null;
             metadata: components["schemas"]["JsonObject"];
             task?: components["schemas"]["MessageTask"] | null;
-            ask?: components["schemas"]["MessageAsk"] | null;
             cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
             agent_created?: components["schemas"]["MessageAgentCreated"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
             reply?: components["schemas"]["ChatMessageReply"] | null;
-        };
-        MessageAsk: {
-            id: string;
-            /** @enum {string} */
-            status: "open" | "answered";
-            addressee_handle: string | null;
-            title: string;
-            /** @description Short replies the addressee can send as is, the first being the Agent's recommendation. Empty means an open question. */
-            options: string[];
         };
         MessageAgentCreated: {
             agent_id: string;
@@ -1964,6 +1955,7 @@ export interface components {
             created_at: components["schemas"]["Timestamp"];
             updated_at: components["schemas"]["Timestamp"];
         };
+        /** @description The Agent holding a task. Humans are never task assignees. */
         TaskActor: {
             id: string;
             handle: string | null;

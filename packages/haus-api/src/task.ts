@@ -48,34 +48,21 @@ export const taskAssigneesInputSchema = z
     .strict();
 
 /**
- * Who a task may be handed to. Agents and humans are both first-class
- * assignees; the tagged shape keeps "both set" unrepresentable rather than
- * validated after the fact.
+ * Who a task may be handed to: an Agent member of the task's Chat. Humans are
+ * never assignees (ADR 0037); an Agent hands work to a human by @mentioning
+ * them in the task Thread.
  */
-export const taskAssigneeSchema = z.discriminatedUnion('kind', [
-    z
-        .object({
-            agentId: idSchema,
-            avatarUrl: z.string().nullable(),
-            displayName: z.string(),
-            handle: z.string(),
-            kind: z.literal('agent'),
-        })
-        .strict(),
-    z
-        .object({
-            kind: z.literal('human'),
-            role: z.enum(['admin', 'member', 'owner']),
-            userId: idSchema,
-        })
-        .strict(),
-]);
+export const taskAssigneeSchema = z
+    .object({
+        agentId: idSchema,
+        avatarUrl: z.string().nullable(),
+        displayName: z.string(),
+        handle: z.string(),
+    })
+    .strict();
 
 /** The assignee a mutation names, without the presentation fields. */
-export const taskAssigneeRefSchema = z.discriminatedUnion('kind', [
-    z.object({ agentId: idSchema, kind: z.literal('agent') }).strict(),
-    z.object({ kind: z.literal('human'), userId: idSchema }).strict(),
-]);
+export const taskAssigneeRefSchema = z.object({ agentId: idSchema }).strict();
 
 export const taskAssigneesSchema = z.array(taskAssigneeSchema);
 
@@ -95,7 +82,6 @@ export const taskPromotionSchema = z
 
 export const taskCreateInputSchema = z
     .object({
-        assigneeUserId: idSchema.optional(),
         chatId: idSchema,
         content: z.string().trim().min(1).max(32_000),
         nonce: z.string().trim().min(1).max(128),

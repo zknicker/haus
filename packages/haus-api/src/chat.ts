@@ -365,21 +365,6 @@ export const messageCreatedEventSchema = z
     })
     .strict();
 
-export const askUpdatedEventSchema = z
-    .object({
-        askId: idSchema,
-        chatId: idSchema,
-        createdAt: timestampSchema,
-        cursor: z.string().regex(/^[1-9]\d*$/u),
-        id: idSchema,
-        messageId: idSchema,
-        parentChatId: idSchema.nullable(),
-        sequence: z.number().int().positive(),
-        serverId: idSchema,
-        type: z.literal('ask.updated'),
-    })
-    .strict();
-
 export const cloudAgentWorkUpdatedEventSchema = z
     .object({
         chatId: idSchema,
@@ -488,7 +473,6 @@ export const chatLifecycleEventSchema = z
 export const serverdurableeventSchema = z.discriminatedUnion('type', [
     messageCreatedEventSchema,
     reactionContracts.messageReactionUpdatedEventSchema,
-    askUpdatedEventSchema,
     cloudAgentWorkUpdatedEventSchema,
     chatReadEventSchema,
     threadFollowUpdatedEventSchema,

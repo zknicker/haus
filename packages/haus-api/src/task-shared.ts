@@ -40,8 +40,8 @@ export const taskLabelSchema = z
 
 export const messageTaskSchema = z
     .object({
+        /** Tasks are Agent work (ADR 0037): only an Agent ever holds one. */
         assigneeAgentId: taskIdSchema.nullable(),
-        assigneeUserId: taskIdSchema.nullable(),
         chatId: taskIdSchema,
         claimedAt: z.iso.datetime({ offset: true }).nullable(),
         createdAt: z.iso.datetime({ offset: true }),
@@ -74,7 +74,7 @@ export const taskClaimConflictSchema = z
         claimedAt: z.string().nullable(),
         conflictScope: z.literal('implementation_execution'),
         currentAssignee: z
-            .object({ name: z.string().nullable(), type: z.enum(['agent', 'user']) })
+            .object({ name: z.string().nullable(), type: z.literal('agent') })
             .nullable(),
         kind: z.literal('claim_conflict'),
         /** Assignment state as of this instant: a snapshot, not a standing ruling. */

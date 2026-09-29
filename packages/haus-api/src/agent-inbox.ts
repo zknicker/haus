@@ -1,5 +1,4 @@
 import * as z from 'zod';
-import { askStatusSchema } from './ask-shared.ts';
 import { chatMessageReplySchema, idSchema } from './chat.ts';
 import {
     cloudAgentBranchSchema,
@@ -33,16 +32,6 @@ export const cloudAgentWorkAttentionSchema = z
     .strict();
 
 export type CloudAgentWorkAttention = z.infer<typeof cloudAgentWorkAttentionSchema>;
-
-/** The inbox projection of an Ask: who owes the answer, and whether it is still owed. */
-export const inboxAskSchema = z
-    .object({
-        addresseeHandle: z.string().trim().min(1).max(128).nullable(),
-        status: askStatusSchema,
-    })
-    .strict();
-
-export type InboxAsk = z.infer<typeof inboxAskSchema>;
 
 /**
  * Why an item is addressed to this Agent personally rather than ambiently: a DM,
@@ -111,7 +100,6 @@ export const agentInboxItemSchema = z
         /** This item names the Agent personally: a DM, an @mention, or a committed Jev narrow. */
         addressed: z.boolean().optional(),
         addressedReason: addressedReasonSchema.optional(),
-        ask: inboxAskSchema.optional(),
         /** Typed Server attention; unlike a Chat message, it has no message cursor. */
         cloudAgentWork: cloudAgentWorkAttentionSchema.optional(),
         /** Canonical Agent API shape cached for Computer-local message checks. */

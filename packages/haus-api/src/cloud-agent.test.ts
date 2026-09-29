@@ -30,7 +30,7 @@ test('Cloud Agent work stores bounded, provider-safe execution state', () => {
     expect(cloudAgentWorkSchema.safeParse({ ...work, instructions: 'do it' }).success).toBe(false);
 });
 
-test('a Message body projects Cloud Agent work beside text and ask', () => {
+test('a Message body projects Cloud Agent work beside text', () => {
     expect(messageBodySchema.parse({ kind: 'cloud-agent-work', work })).toMatchObject({
         kind: 'cloud-agent-work',
         work: { id: 'caw_1234567890abcdef' },
@@ -157,7 +157,7 @@ test('Computer inventory reports Cloud Agent provider readiness on the current p
             runtimes: [],
         }).cloudAgentProviders
     ).toHaveLength(1);
-    expect(computerProtocolVersion).toBe(24);
+    expect(computerProtocolVersion).toBe(25);
 });
 
 test('a Cloud Agent capability state names exactly one of ready or a reason', () => {

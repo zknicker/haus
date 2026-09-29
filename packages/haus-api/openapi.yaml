@@ -976,7 +976,7 @@ paths:
     post:
       operationId: assignAgentTask
       tags: [Agent CLI]
-      summary: Assign one task to a member of its Chat without changing its status.
+      summary: Assign one task to an Agent member of its Chat without changing its status.
       requestBody:
         required: true
         content:
@@ -2184,7 +2184,10 @@ components:
       additionalProperties: false
       required: [target]
       properties:
-        assignee: { type: string, minLength: 1 }
+        assignee:
+          type: string
+          minLength: 1
+          description: '@handle of an Agent member of the target Chat.'
         content: { type: string }
         target: { type: string, minLength: 1 }
         titles:
@@ -2225,7 +2228,7 @@ components:
         assignee:
           type: string
           minLength: 1
-          description: '@handle of a human or Agent member of the task''s Chat. Missing, retired, and out-of-Chat handles share one not-assignable refusal.'
+          description: '@handle of an Agent member of the task''s Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal.'
         expectedRevision:
           type: integer
           minimum: 0
@@ -3026,7 +3029,7 @@ components:
           type: string
         body_kind:
           type: string
-          enum: [text, ask, cloud-agent-work, agent-created]
+          enum: [text, cloud-agent-work, agent-created]
         attachments:
           type: array
           items:
@@ -3049,10 +3052,6 @@ components:
           oneOf:
             - $ref: '#/components/schemas/MessageTask'
             - type: 'null'
-        ask:
-          oneOf:
-            - $ref: '#/components/schemas/MessageAsk'
-            - type: 'null'
         cloud_agent_work:
           oneOf:
             - $ref: '#/components/schemas/MessageCloudAgentWork'
@@ -3069,38 +3068,6 @@ components:
           oneOf:
             - $ref: '#/components/schemas/ChatMessageReply'
             - type: 'null'
-    MessageAsk:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - status
-        - addressee_handle
-        - title
-        - options
-      properties:
-        id:
-          type: string
-          minLength: 1
-        status:
-          type: string
-          enum: [open, answered]
-        addressee_handle:
-          type: [string, 'null']
-        title:
-          type: string
-          minLength: 1
-        options:
-          description: >-
-            Short replies the addressee can send as is, the first being the
-            Agent's recommendation. Empty means an open question.
-          type: array
-          maxItems: 4
-          uniqueItems: true
-          items:
-            type: string
-            minLength: 1
-            maxLength: 80
     MessageAgentCreated:
       type: object
       additionalProperties: false
@@ -3244,6 +3211,7 @@ components:
         updated_at:
           $ref: '#/components/schemas/Timestamp'
     TaskActor:
+      description: The Agent holding a task. Humans are never task assignees.
       type: object
       additionalProperties: false
       required:
