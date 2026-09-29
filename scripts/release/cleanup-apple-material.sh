@@ -12,7 +12,8 @@ fi
 for material_path in \
   "${HAUS_RELEASE_CERTIFICATE_PATH:-}" \
   "${APPLE_API_KEY_PATH:-}" \
-  "${HAUS_RELEASE_PROVISIONING_PROFILE_PATH:-}"; do
+  "${HAUS_RELEASE_PROVISIONING_PROFILE_PATH:-}" \
+  "${HAUS_RELEASE_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_PATH:-}"; do
   if [[ -n "${material_path}" ]]; then
     rm -f "${material_path}" || cleanup_failed=1
   fi

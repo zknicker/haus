@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -11,7 +11,10 @@ import {
     writeIOSBuildStatusSummary,
 } from './ios-build-status.mjs';
 import { assertInstalledIOSIcon, inspectIOSIconArtifact } from './ios-icon-artifact.mjs';
-import { installIOSProvisioningProfile } from './ios-provisioning-profile.mjs';
+import {
+    IOS_RELEASE_PROFILES,
+    installIOSProvisioningProfile,
+} from './ios-provisioning-profile.mjs';
 import {
     appStoreConnectAuthenticationArgs,
     appStoreConnectExportOptions,
@@ -24,6 +27,8 @@ import { fail, readJson, repoRoot } from './release-utils.mjs';
 
 const iosRoot = path.join(repoRoot, 'apps', 'ios-swift');
 const projectPath = path.join(iosRoot, 'Haus.xcodeproj');
+const notificationServiceBundle = 'HausNotificationService.appex';
+const communicationEntitlement = 'com.apple.developer.usernotifications.communication';
 const args = parseArgs();
 
 if (args.help) {
@@ -58,15 +63,23 @@ async function main(input) {
         fail('HAUS_PRECOMPILED_IOS_ICON_DIR is required for an iOS release');
     }
     inspectIOSIconArtifact(iconArtifactDirectory);
-    const provisioningProfile = await installIOSProvisioningProfile();
+    const provisioningProfiles = [];
+    for (const profile of IOS_RELEASE_PROFILES) {
+        provisioningProfiles.push(await installIOSProvisioningProfile(profile));
+    }
     const outputRoot = mkdtempSync(path.join(tmpdir(), 'haus-ios-release-'));
     const archivePath = path.join(outputRoot, 'Haus.xcarchive');
     const exportPath = path.join(outputRoot, 'export');
     const exportOptionsPath = path.join(outputRoot, 'ExportOptions.plist');
-    assertProvisioningProfileReadable(provisioningProfile.path);
+    for (const profile of provisioningProfiles) {
+        assertProvisioningProfileReadable(profile.path);
+    }
     writeFileSync(
         exportOptionsPath,
-        appStoreConnectExportOptions(teamId, provisioningProfile.uuid),
+        appStoreConnectExportOptions(
+            teamId,
+            Object.fromEntries(provisioningProfiles.map(({ bundleId, uuid }) => [bundleId, uuid]))
+        ),
         'utf8'
     );
 
@@ -105,11 +118,9 @@ async function main(input) {
         exportOptionsPath,
     ]);
     const ipaPath = findExportedIPA(exportPath);
-    assertExportedIOSIcon({
-        artifactDirectory: iconArtifactDirectory,
-        ipaPath,
-        outputRoot,
-    });
+    const exportedApp = extractExportedApp({ ipaPath, outputRoot });
+    assertInstalledIOSIcon({ appDirectory: exportedApp, artifactDirectory: iconArtifactDirectory });
+    assertExportedCommunicationNotifications(exportedApp);
     run('xcrun', appStoreConnectUploadArgs(ipaPath));
 
     console.log(`Uploaded iOS ${input.version} (${input.buildNumber}) to App Store Connect`);
@@ -153,7 +164,7 @@ function findExportedIPA(exportPath) {
     return path.join(exportPath, ipaFiles[0]);
 }
 
-function assertExportedIOSIcon({ artifactDirectory, ipaPath, outputRoot }) {
+function extractExportedApp({ ipaPath, outputRoot }) {
     const extractionRoot = mkdtempSync(path.join(outputRoot, 'ipa-'));
     run('unzip', ['-q', ipaPath, '-d', extractionRoot]);
     const payloadDirectory = path.join(extractionRoot, 'Payload');
@@ -161,10 +172,31 @@ function assertExportedIOSIcon({ artifactDirectory, ipaPath, outputRoot }) {
     if (apps.length !== 1) {
         fail(`expected exactly one app in the exported IPA, found ${apps.length}`);
     }
-    assertInstalledIOSIcon({
-        appDirectory: path.join(payloadDirectory, apps[0]),
-        artifactDirectory,
+    return path.join(payloadDirectory, apps[0]);
+}
+
+/**
+ * Avatar banners need both the embedded Notification Service extension and
+ * the app's communication entitlement; a profile missing the capability
+ * silently strips it at export.
+ */
+function assertExportedCommunicationNotifications(appDirectory) {
+    if (!existsSync(path.join(appDirectory, 'PlugIns', notificationServiceBundle))) {
+        fail(`exported IPA is missing PlugIns/${notificationServiceBundle}`);
+    }
+    const result = spawnSync('codesign', ['-d', '--entitlements', '-', '--xml', appDirectory], {
+        encoding: 'utf8',
     });
+    if (result.status !== 0) {
+        fail('could not read the exported app entitlements');
+    }
+    const pattern = new RegExp(
+        `<key>${communicationEntitlement.replaceAll('.', '\\.')}</key>\\s*<true/>`,
+        'u'
+    );
+    if (!pattern.test(result.stdout)) {
+        fail(`exported app is not signed with ${communicationEntitlement}`);
+    }
 }
 
 function parseArgs() {
@@ -206,7 +238,12 @@ function buildArguments(input) {
 }
 
 function verifyGeneratedProject() {
-    const generatedPaths = ['apps/ios-swift/Config/Info.plist', 'apps/ios-swift/Haus.xcodeproj'];
+    const generatedPaths = [
+        'apps/ios-swift/Config/Haus.entitlements',
+        'apps/ios-swift/Config/Info.plist',
+        'apps/ios-swift/Config/NotificationService-Info.plist',
+        'apps/ios-swift/Haus.xcodeproj',
+    ];
     assertGeneratedPathsClean(generatedPaths);
     run('xcodegen', ['generate', '--spec', 'project.yml', '--quiet'], { cwd: iosRoot });
     if (

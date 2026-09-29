@@ -69,9 +69,26 @@ export function appStoreConnectAuthenticationArgs(environment = process.env) {
     ];
 }
 
-export function appStoreConnectExportOptions(teamId, profileSpecifier) {
+/**
+ * @param profilesByBundleId every signed bundle in the IPA mapped to its
+ *   provisioning profile UUID; manual signing fails export for a bundle
+ *   without one.
+ */
+export function appStoreConnectExportOptions(teamId, profilesByBundleId) {
     assertPlistToken('team ID', teamId);
-    assertPlistToken('provisioning profile specifier', profileSpecifier);
+    const entries = Object.entries(profilesByBundleId ?? {}).sort(([left], [right]) =>
+        left.localeCompare(right)
+    );
+    if (entries.length === 0) {
+        throw new Error('at least one provisioning profile is required');
+    }
+    const profiles = entries
+        .map(([bundleId, specifier]) => {
+            assertPlistToken('bundle ID', bundleId);
+            assertPlistToken('provisioning profile specifier', specifier);
+            return `        <key>${bundleId}</key>\n        <string>${specifier}</string>`;
+        })
+        .join('\n');
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -84,8 +101,7 @@ export function appStoreConnectExportOptions(teamId, profileSpecifier) {
     <string>app-store-connect</string>
     <key>provisioningProfiles</key>
     <dict>
-        <key>chat.haus.ios</key>
-        <string>${profileSpecifier}</string>
+${profiles}
     </dict>
     <key>signingCertificate</key>
     <string>Apple Distribution</string>
