@@ -12,6 +12,7 @@ import { inboxRouter } from './inbox/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
+import { pushRouter } from './push/router.ts';
 import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
 import { statsRouter } from './stats/router.ts';
@@ -39,6 +40,7 @@ export const hausRouter = createRouter({
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,
+    push: pushRouter,
     reminder: reminderRouter,
     server: serverRouter,
     stats: statsRouter,

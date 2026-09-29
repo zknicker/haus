@@ -3,6 +3,7 @@ import type { SweepTimers } from './boot-sweep.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
 import type { MessageRouter } from './message-routing/jev.ts';
+import type { PushSender } from './push/push-sender.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
 import type { ThoughtSummarizer } from './server-agents/agent-thought-summarizer.ts';
 
@@ -30,6 +31,8 @@ export interface HausServerApplicationOptions {
     messageRouter?: MessageRouter;
     /** Server-owned OpenAI key; omitted when avatar generation is unavailable. */
     openAiApiKey?: string;
+    /** iPhone push (APNs); absent or null when no APNs key is configured. */
+    pushSender?: PushSender | null;
     /** Exact identity of the running release; absent for an ordinary development Server. */
     releaseIdentity?: HausReleaseIdentity | null;
     /** Controlled time seam for deterministic reminder and sweep lifecycle tests. */

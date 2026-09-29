@@ -50,6 +50,10 @@ export function getDefaultAppOrigin() {
 
 const envSchema = z
     .object({
+        // Format is checked by iPhone push setup, which disables push rather than failing boot.
+        APPLE_TEAM_ID: z.string().optional(),
+        HAUS_APNS_KEY_ID: z.string().min(1).optional(),
+        HAUS_APNS_PRIVATE_KEY: z.string().min(1).optional(),
         HAUS_APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
         HAUS_AGENT_E2E_AVATAR_FIXTURE: z.literal('1').optional(),
         HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH: z.string().min(1).optional(),

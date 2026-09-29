@@ -7,11 +7,13 @@ import {
 } from './haus-server-application.ts';
 import { createJevRouter } from './message-routing/jev-client.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
+import { createPushSender } from './push/push-configuration.ts';
 import { createGeminiThoughtSummarizer } from './server-agents/agent-thought-summarizer.ts';
 import {
     logStartupBanner,
     logStartupComplete,
     logStartupDetail,
+    logStartupEvent,
     logStartupFailure,
     logStartupSection,
 } from './startup-log.ts';
@@ -22,6 +24,11 @@ async function start() {
         ? readHausReleaseIdentity(env.HAUS_RELEASE_MANIFEST)
         : null;
 
+    const push = await createPushSender({
+        keyId: env.HAUS_APNS_KEY_ID,
+        privateKey: env.HAUS_APNS_PRIVATE_KEY,
+        teamId: env.APPLE_TEAM_ID,
+    });
     const application = await createHausServerApplication({
         appOrigin: env.HAUS_APP_ORIGIN,
         attachmentRoot: env.HAUS_ATTACHMENT_ROOT,
@@ -35,6 +42,7 @@ async function start() {
         messageRouter: env.HAUS_TYPESAFE_API_KEY
             ? createJevRouter(env.HAUS_TYPESAFE_API_KEY)
             : undefined,
+        pushSender: push.sender,
         releaseIdentity: release,
         staticAppRoot: env.HAUS_STATIC_APP_ROOT,
         thoughtSummarizer: env.HAUS_GEMINI_API_KEY
@@ -70,6 +78,7 @@ async function start() {
             ? 'Gemini summaries'
             : 'local condensation — set HAUS_GEMINI_API_KEY for Gemini summaries'
     );
+    logStartupEvent('📱', push.status, push.sender ? 'success' : 'warning');
     logStartupDetail('🌐', 'Haus App origin', env.HAUS_APP_ORIGIN);
     logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.HAUS_SERVER_PORT}`);
     logStartupDetail('🔌', 'WebSocket', `ws://127.0.0.1:${env.HAUS_SERVER_PORT}/trpc`);

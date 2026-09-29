@@ -3,9 +3,10 @@ import { needsYouPreviewMaxLength, parseHausRichReferences } from '@haus/api';
 /**
  * A Needs you row's plain-text excerpt: rich references read as their sigiled
  * label (`@Ada`, `#product`), whitespace collapses to single spaces, and the
- * result is cut to the contract's preview budget with an ellipsis.
+ * result is cut to the preview budget (the Needs you row's by default) with
+ * an ellipsis.
  */
-export function needsYouPreview(content: string): string {
+export function needsYouPreview(content: string, maxLength = needsYouPreviewMaxLength): string {
     let plain = '';
     let cursor = 0;
     for (const reference of parseHausRichReferences(content)) {
@@ -13,12 +14,12 @@ export function needsYouPreview(content: string): string {
         cursor = reference.end;
     }
     plain = (plain + content.slice(cursor)).replace(/\s+/gu, ' ').trim();
-    if (plain.length <= needsYouPreviewMaxLength) {
+    if (plain.length <= maxLength) {
         return plain;
     }
     let end = 0;
     for (const character of plain) {
-        if (end + character.length >= needsYouPreviewMaxLength) {
+        if (end + character.length >= maxLength) {
             break;
         }
         end += character.length;

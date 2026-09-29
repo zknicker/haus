@@ -1,7 +1,7 @@
 import cors from '@fastify/cors';
 import { makeProcessTelemetryRelay, settle, tracePromise } from '@haus/effect';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
-import { Effect, Exit, Scope } from 'effect';
+import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerAgentApiRoutes } from './agent-api/routes.ts';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
@@ -32,7 +32,6 @@ import { createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
 import { type ServerRecurringWork, startServerRecurringWork } from './recurring-work.ts';
-import { startReminderRetentionSweep } from './reminders/retention-sweep.ts';
 import { tickReminders } from './reminders/scheduler.ts';
 import { makeMcpIconResolver } from './server-mcp/icons.ts';
 import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
@@ -40,9 +39,8 @@ import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
 import { McpRuntime } from './server-mcp/runtime.ts';
 import { ServerPostCommitWork } from './server-post-commit-work.ts';
 import { makeServerRuntime } from './server-runtime.ts';
+import { startServerSweeps } from './server-sweeps.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
-import { startStaleTaskSweep } from './tasks/close-stale-tasks.ts';
-import { startTriggerRetentionSweep } from './triggers/retention-sweep.ts';
 import { TriggerRateLimiter } from './triggers/trigger-rate-limit.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
@@ -223,24 +221,12 @@ export async function createHausServerApplication(
         );
         computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
-        for (const startSweep of [
-            startReminderRetentionSweep,
-            startTriggerRetentionSweep,
-            startStaleTaskSweep,
-        ]) {
-            await settle(
-                runtime,
-                Scope.extend(
-                    Effect.acquireRelease(
-                        Effect.sync(() =>
-                            startSweep(connectedHaus.db, reminderClock, options.sweepTimers)
-                        ),
-                        (sweep) => Effect.promise(() => sweep.close())
-                    ),
-                    scope
-                )
-            );
-        }
+        await startServerSweeps(runtime, scope, {
+            clock: reminderClock,
+            db: connectedHaus.db,
+            pushSender: options.pushSender ?? null,
+            timers: options.sweepTimers,
+        });
         recurringWork = await startServerRecurringWork({
             delivery: agentDelivery,
             reminderClock,

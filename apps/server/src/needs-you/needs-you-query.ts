@@ -1,5 +1,5 @@
 import type { NeedsYouReason } from '@haus/api';
-import { sql } from 'drizzle-orm';
+import { type SQL, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 
@@ -50,8 +50,75 @@ export async function readNeedsYouChats(
     db: Pick<HausDatabase, 'execute'>,
     input: { serverId: string; viewerUserId: string }
 ): Promise<NeedsYouChatRow[]> {
-    const { serverId, viewerUserId: viewer } = input;
+    const { serverId } = input;
     const rows = await db.execute(sql`
+        ${needsYouGroupedCte(serverId, input.viewerUserId)}
+        select
+            grouped.addressed_count as "addressedCount",
+            vc.anchor_message_id as "anchorMessageId",
+            agent.avatar_id as "authorAgentAvatarId",
+            agent.description as "authorAgentDescription",
+            agent.display_name as "authorAgentDisplayName",
+            latest.author_agent_id as "authorAgentId",
+            agent.retired_at as "authorAgentRetiredAt",
+            author.avatar_id as "authorUserAvatarId",
+            author.description as "authorUserDescription",
+            author.display_name as "authorUserDisplayName",
+            latest.author_user_id as "authorUserId",
+            membership.revoked_at as "authorUserRevokedAt",
+            grouped.chat_id as "chatId",
+            latest.content,
+            vc.conversation_chat_id as "conversationChatId",
+            vc.conversation_kind as "conversationKind",
+            vc.conversation_name as "conversationName",
+            latest.created_at as "createdAt",
+            vc.dm_agent_id as "dmAgentId",
+            latest.id as "messageId",
+            vc.peer_user_id as "peerUserId",
+            grouped.reason,
+            latest.sequence
+        from grouped
+        join viewer_chats vc on vc.chat_id = grouped.chat_id
+        join chat_messages latest
+            on latest.server_id = ${serverId}
+            and latest.chat_id = grouped.chat_id
+            and latest.sequence = grouped.sequence
+        left join agents agent
+            on agent.server_id = latest.server_id and agent.id = latest.author_agent_id
+        left join users author on author.id = latest.author_user_id
+        left join server_memberships membership
+            on membership.server_id = latest.server_id
+            and membership.user_id = latest.author_user_id
+        order by latest.created_at desc, grouped.chat_id
+    `);
+    return rows as NeedsYouChatRow[];
+}
+
+/**
+ * Counts Needs you Chats for one human across `serverIds` in one statement,
+ * from the same `grouped` CTE `readNeedsYouChats` lists, so the count always
+ * matches the list. Used for the iPhone badge.
+ */
+export async function countNeedsYouChats(
+    db: Pick<HausDatabase, 'execute'>,
+    input: { serverIds: readonly string[]; viewerUserId: string }
+): Promise<number> {
+    if (input.serverIds.length === 0) {
+        return 0;
+    }
+    const perServer = input.serverIds.map(
+        (serverId) =>
+            sql`(${needsYouGroupedCte(serverId, input.viewerUserId)} select count(*) from grouped)`
+    );
+    const rows = (await db.execute(
+        sql`select (${sql.join(perServer, sql` + `)})::int as count`
+    )) as Array<{ count: number }>;
+    return rows[0]?.count ?? 0;
+}
+
+/** The addressing rules, ending in `grouped`: one row per Needs you Chat. */
+function needsYouGroupedCte(serverId: string, viewer: string): SQL {
+    return sql`
         with viewer_chats as (
             select
                 chats.id as chat_id,
@@ -212,43 +279,5 @@ export async function readNeedsYouChats(
             from addressing
             group by chat_id
         )
-        select
-            grouped.addressed_count as "addressedCount",
-            vc.anchor_message_id as "anchorMessageId",
-            agent.avatar_id as "authorAgentAvatarId",
-            agent.description as "authorAgentDescription",
-            agent.display_name as "authorAgentDisplayName",
-            latest.author_agent_id as "authorAgentId",
-            agent.retired_at as "authorAgentRetiredAt",
-            author.avatar_id as "authorUserAvatarId",
-            author.description as "authorUserDescription",
-            author.display_name as "authorUserDisplayName",
-            latest.author_user_id as "authorUserId",
-            membership.revoked_at as "authorUserRevokedAt",
-            grouped.chat_id as "chatId",
-            latest.content,
-            vc.conversation_chat_id as "conversationChatId",
-            vc.conversation_kind as "conversationKind",
-            vc.conversation_name as "conversationName",
-            latest.created_at as "createdAt",
-            vc.dm_agent_id as "dmAgentId",
-            latest.id as "messageId",
-            vc.peer_user_id as "peerUserId",
-            grouped.reason,
-            latest.sequence
-        from grouped
-        join viewer_chats vc on vc.chat_id = grouped.chat_id
-        join chat_messages latest
-            on latest.server_id = ${serverId}
-            and latest.chat_id = grouped.chat_id
-            and latest.sequence = grouped.sequence
-        left join agents agent
-            on agent.server_id = latest.server_id and agent.id = latest.author_agent_id
-        left join users author on author.id = latest.author_user_id
-        left join server_memberships membership
-            on membership.server_id = latest.server_id
-            and membership.user_id = latest.author_user_id
-        order by latest.created_at desc, grouped.chat_id
-    `);
-    return rows as NeedsYouChatRow[];
+    `;
 }
