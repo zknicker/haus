@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
+import { developmentArtifactFiles } from '../src/development/seed-artifact-files.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { readPendingCoveCommand } from '../src/onboarding/create-cove.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
@@ -68,7 +69,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(59);
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(60);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -110,6 +111,40 @@ test('creates one idempotent Server-owned demo workspace', async () => {
         runtimeId: 'codex',
         type: 'cove-apply',
     });
+    // Blippy shares real workspace artifacts in #product, once, with the
+    // channel's sequence still matching its latest message.
+    const blippy = agents.find((agent) => agent.handle === 'blippy');
+    const product = (await connection.db.select().from(chatsTable)).find(
+        (chat) => chat.name === 'product'
+    );
+    const artifactMessages = (await connection.db.select().from(chatMessagesTable)).filter(
+        (message) => message.nonce === 'dev-artifact-tabs'
+    );
+    expect(artifactMessages).toMatchObject([
+        { authorAgentId: blippy?.id, chatId: product?.id, sequence: 3 },
+    ]);
+    expect(artifactMessages[0]?.content).toContain(
+        `haus://workspace/${developmentArtifactFiles.notes.path}`
+    );
+    expect(artifactMessages[0]?.content).toContain('```artifact');
+    expect(product?.lastMessageSequence).toBe(
+        Math.max(
+            ...(await connection.db.select().from(chatMessagesTable))
+                .filter((message) => message.chatId === product?.id)
+                .map((message) => message.sequence)
+        )
+    );
+    const workspace = join(
+        computerDataRoot,
+        'servers',
+        first.id,
+        'agents',
+        blippy?.id ?? '',
+        'workspace'
+    );
+    for (const file of Object.values(developmentArtifactFiles)) {
+        expect(await readFile(join(workspace, file.path), 'utf8')).toBe(file.content);
+    }
     await rm(computerDataRoot, { force: true, recursive: true });
 });
 
