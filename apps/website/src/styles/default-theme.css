@@ -586,6 +586,37 @@
     }
 
     /*
+     * The gutter fits a one-digit marker ("9."); each extra digit in the
+     * largest number widens it by 1ch, or "10." pokes past the gutter. CSS
+     * cannot read `start`, so the digit count comes from item count plus the
+     * `start` values that reach 10 (a start of 100+ still overhangs).
+     */
+    .markdown ol {
+        --markdown-ol-extra-digits: 0;
+
+        padding-inline-start: calc(var(--spacing) * 6 + var(--markdown-ol-extra-digits) * 1ch);
+    }
+
+    .markdown ol:is(
+            :has(> li:nth-child(10)),
+            [start]:not([start='0'], [start='1'], [start='2'], [start='3'], [start='4'], [start='5'], [start='6'], [start='7'], [start='8'], [start='9']),
+            [start='2']:has(> li:nth-child(9)),
+            [start='3']:has(> li:nth-child(8)),
+            [start='4']:has(> li:nth-child(7)),
+            [start='5']:has(> li:nth-child(6)),
+            [start='6']:has(> li:nth-child(5)),
+            [start='7']:has(> li:nth-child(4)),
+            [start='8']:has(> li:nth-child(3)),
+            [start='9']:has(> li:nth-child(2))
+        ) {
+        --markdown-ol-extra-digits: 1;
+    }
+
+    .markdown ol:has(> li:nth-child(100)) {
+        --markdown-ol-extra-digits: 2;
+    }
+
+    /*
      * HeroUI resets each block's last child, so the block gap lives here. It
      * is the transcript's paragraph step (×2, about half a line): smaller than
      * the gap between messages, larger than the gap between list items.
