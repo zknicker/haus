@@ -3,7 +3,15 @@
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 const { createBrowserWorkspace } = require('./browser-workspace.cjs');
 
-function registerBrowserWorkspace({ appUrl, BrowserWindow, WebContentsView, ipcMain, session }) {
+/** `page` is the page-facing service set `createBrowserWorkspace` documents. */
+function registerBrowserWorkspace({
+    appUrl,
+    BrowserWindow,
+    WebContentsView,
+    ipcMain,
+    page,
+    session,
+}) {
     const workspaces = new WeakMap();
     const browserSession = session.fromPartition('persist:haus-browser');
     browserSession.setPermissionRequestHandler((_contents, _permission, callback) =>
@@ -12,7 +20,7 @@ function registerBrowserWorkspace({ appUrl, BrowserWindow, WebContentsView, ipcM
     browserSession.setPermissionCheckHandler(() => false);
     browserSession.on('will-download', (event) => event.preventDefault());
     const attach = (window) => {
-        const workspace = createBrowserWorkspace(window, { WebContentsView, browserSession });
+        const workspace = createBrowserWorkspace(window, { WebContentsView, browserSession, page });
         workspaces.set(window, workspace);
         return workspace;
     };
@@ -37,8 +45,9 @@ function registerBrowserWorkspace({ appUrl, BrowserWindow, WebContentsView, ipcM
         forSender(event).command(command)
     );
     ipcMain.handle('desktop:browser:snapshot', (event) => forSender(event).snapshot());
+    ipcMain.handle('desktop:browser:capture', (event, id) => forSender(event).capture(id));
     ipcMain.handle('desktop:browser:bounds', (event, bounds) => forSender(event).setBounds(bounds));
-    return { attach };
+    return { attach, forWindow: (window) => workspaces.get(window) ?? null };
 }
 
 module.exports = { registerBrowserWorkspace };

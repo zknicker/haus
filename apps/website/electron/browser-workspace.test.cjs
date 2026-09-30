@@ -1,82 +1,23 @@
 'use strict';
 
 const { EventEmitter } = require('node:events');
+const { readdirSync } = require('node:fs');
 const { describe, expect, test } = require('bun:test');
-const { browserUrl, createBrowserWorkspace } = require('./browser-workspace.cjs');
+const { browserUrl } = require('./browser-url.cjs');
 const { registerBrowserWorkspace } = require('./browser-workspace-ipc.cjs');
+const { FakeContents, FakeView, fixture, page } = require('./browser-test-fakes.cjs');
 const desktopBuild = require('../electron-builder.config.cjs');
 
 test('desktop builds package every browser module and the extracted dock setup', () => {
-    expect(desktopBuild.files).toContain('electron/browser-workspace.cjs');
-    expect(desktopBuild.files).toContain('electron/browser-workspace-ipc.cjs');
+    const modules = readdirSync(__dirname).filter(
+        (name) => /^browser-.*\.cjs$/.test(name) && !/(\.test|-test-fakes)\.cjs$/.test(name)
+    );
+    expect(modules.length).toBeGreaterThan(10);
+    for (const name of modules) {
+        expect(desktopBuild.files).toContain(`electron/${name}`);
+    }
     expect(desktopBuild.files).toContain('electron/development-dock-icon.cjs');
 });
-
-class FakeContents extends EventEmitter {
-    url = '';
-    title = '';
-    closed = false;
-    loading = false;
-    navigationHistory = { canGoBack: () => false, canGoForward: () => false };
-    getURL() {
-        return this.url;
-    }
-    getTitle() {
-        return this.title;
-    }
-    isDestroyed() {
-        return this.closed;
-    }
-    isLoading() {
-        return this.loading;
-    }
-    async loadURL(url) {
-        this.url = url;
-        this.emit('did-navigate');
-    }
-    setWindowOpenHandler(handler) {
-        this.popup = handler;
-    }
-    close() {
-        this.closed = true;
-    }
-    reload() {
-        this.reloaded = true;
-    }
-    send(_channel, state) {
-        this.state = state;
-    }
-}
-class FakeView {
-    constructor(options) {
-        this.options = options;
-        this.webContents = new FakeContents();
-    }
-    setVisible(value) {
-        this.visible = value;
-    }
-    setBounds(value) {
-        this.bounds = value;
-    }
-}
-function fixture() {
-    const window = new EventEmitter();
-    window.webContents = new FakeContents();
-    window.children = new Set();
-    window.contentView = {
-        addChildView: (view) => window.children.add(view),
-        removeChildView: (view) => window.children.delete(view),
-    };
-    window.getContentSize = () => [1000, 700];
-    const browserSession = {};
-    const workspace = createBrowserWorkspace(window, { WebContentsView: FakeView, browserSession });
-    workspace.command({ kind: 'mount' });
-    return {
-        window,
-        browserSession,
-        workspace,
-    };
-}
 
 describe('desktop browser workspace', () => {
     test('accepts web addresses and rejects local files, scripts and embedded credentials', () => {
@@ -147,6 +88,25 @@ describe('desktop browser workspace', () => {
         contents.emit('did-fail-load', {}, -105, 'Name not resolved', 'https://example.com', true);
         expect(workspace.snapshot().tabs[0].error).toBe('Name not resolved');
     });
+    test('tabs carry the page favicon, only as a web or inline image, until the next document', () => {
+        const { workspace, window } = fixture();
+        workspace.open('https://example.com');
+        const contents = [...window.children][0].webContents;
+        const favicon = () => workspace.snapshot().tabs[0].faviconUrl;
+        expect(favicon()).toBeNull();
+        contents.emit('page-favicon-updated', {}, [
+            'file:///etc/icon.png',
+            'https://example.com/favicon.ico',
+        ]);
+        expect(favicon()).toBe('https://example.com/favicon.ico');
+        expect(window.webContents.state.tabs[0].faviconUrl).toBe('https://example.com/favicon.ico');
+        contents.emit('did-navigate');
+        expect(favicon()).toBeNull();
+        contents.emit('page-favicon-updated', {}, ['javascript:alert(1)']);
+        expect(favicon()).toBeNull();
+        contents.emit('page-favicon-updated', {}, ['data:image/png;base64,AAAA']);
+        expect(favicon()).toBe('data:image/png;base64,AAAA');
+    });
     test('a new tab starts blank and reset disposes every page', () => {
         const { workspace, window } = fixture();
         workspace.command({ kind: 'new' });
@@ -165,11 +125,38 @@ describe('desktop browser workspace', () => {
         expect(() => workspace.open('https://example.com')).toThrow('not mounted');
         expect(() => workspace.command({ kind: 'new' })).toThrow('Open a Server');
     });
+    test('the shown page follows the shell card corner, scaled with App zoom', () => {
+        const { window, workspace } = fixture();
+        workspace.open('https://example.com');
+        const view = [...window.children][0];
+        workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
+        expect(view.borderRadius).toBe(0);
+        workspace.setBounds({ x: 8, y: 40, width: 800, height: 600, radius: 16.2 });
+        expect(view.borderRadius).toBe(16);
+        window.webContents.getZoomFactor = () => 1.5;
+        workspace.setBounds({ x: 8, y: 40, width: 400, height: 300, radius: 16 });
+        expect(view.borderRadius).toBe(24);
+        workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
+        expect(view.borderRadius).toBe(0);
+    });
     test('invalid bounds and stale selections fail at the bridge boundary', () => {
         const { workspace } = fixture();
         expect(() => workspace.setBounds({ x: Number.NaN, y: 0, width: 1, height: 1 })).toThrow();
+        expect(() =>
+            workspace.setBounds({ x: 0, y: 0, width: 1, height: 1, radius: -1 })
+        ).toThrow();
         expect(() => workspace.command({ kind: 'select', id: 'missing' })).toThrow();
         expect(() => workspace.command({ kind: 'unknown' })).toThrow();
+    });
+    test('only the shown active page can be captured', async () => {
+        const { workspace } = fixture();
+        workspace.open('https://example.com');
+        workspace.open('https://example.org');
+        const [first, second] = workspace.snapshot().tabs.map((tab) => tab.id);
+        expect(await workspace.capture(second)).toBeNull();
+        workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
+        expect(await workspace.capture(first)).toBeNull();
+        expect(await workspace.capture(second)).toStartWith('data:image/jpeg;base64,');
     });
     test('window destruction closes native pages without using the destroyed content view', () => {
         const { workspace, window } = fixture();
@@ -199,6 +186,7 @@ test('browser IPC authenticates the App main frame even when a page visits the A
         BrowserWindow: { fromWebContents: () => window },
         WebContentsView: FakeView,
         ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+        page: page(),
         session: { fromPartition: () => browserSession },
     });
     registration.attach(window);

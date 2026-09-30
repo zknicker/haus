@@ -11,15 +11,18 @@ const preloadPath = path.join(__dirname, 'preload.cjs');
 // and record what it hands to `contextBridge`.
 function exposeDesktopBridge() {
     const exposed = new Map();
-    const electron = {
+    runPreload({
         contextBridge: {
             exposeInMainWorld: (name, value) => {
                 exposed.set(name, value);
             },
         },
         ipcRenderer: { invoke: () => undefined, off: () => undefined, on: () => undefined },
-    };
+    });
+    return exposed;
+}
 
+function runPreload(electron) {
     const preloadModule = { exports: {} };
     const compiled = new Function(
         'require',
@@ -39,8 +42,6 @@ function exposeDesktopBridge() {
         preloadPath,
         __dirname
     );
-
-    return exposed;
 }
 
 describe('desktop preload bridge', () => {
@@ -57,8 +58,16 @@ describe('desktop preload bridge', () => {
         expect(typeof bridge.browserCommand).toBe('function');
         expect(typeof bridge.browserSnapshot).toBe('function');
         expect(typeof bridge.browserBounds).toBe('function');
+        expect(typeof bridge.browserCapture).toBe('function');
         expect(typeof bridge.onBrowserState).toBe('function');
         expect(typeof bridge.focusWindow).toBe('function');
         expect(typeof bridge.prepareSsoCallback).toBe('function');
+    });
+
+    test('the window layout stays renderer-only: no bridge channel carries it', () => {
+        const bridge = exposeDesktopBridge().get('hausDesktop');
+
+        expect(bridge.setShellVariant).toBeUndefined();
+        expect(bridge.onShellVariantSelect).toBeUndefined();
     });
 });

@@ -18,6 +18,8 @@ export interface HausDesktopBridge {
     /** Persist or clear Clerk's native client JWT in main-process storage. */
     authTokenSet: (token: string | null) => Promise<void>;
     browserBounds?: (bounds: BrowserBounds | null) => Promise<void>;
+    /** Captures the shown page of a tab as an inline image; validate with `parseBrowserCapture`. */
+    browserCapture?: (tabId: string) => Promise<unknown>;
     browserCommand?: (command: BrowserCommand) => Promise<unknown>;
     browserSnapshot?: () => Promise<unknown>;
     /** Stop waiting for a development loopback OAuth callback. */
