@@ -41,4 +41,19 @@ struct ReactionStickerBoardTests {
 
         #expect(board.stamps(messageID: "m1").isEmpty)
     }
+
+    /// A reaction chosen from the menu or the emoji picker waits for that
+    /// surface to close before it stamps.
+    @Test func coveredAddStampsAfterItsDelay() {
+        let board = ReactionStickerBoard()
+        // The pile reads pending adds against the clock, so this runs on it.
+        let now = Date()
+        board.observe(messageID: "m1", reactions: [], pile: board.pile(messageID: "m1", reactions: []), now: now)
+
+        board.toggle(messageID: "m1", emoji: "🦖", remove: false, stampDelay: 0.5)
+        board.addPending(messageID: "m1", emoji: "🦖", viewerUserID: "user_1", now: now)
+        board.observe(messageID: "m1", reactions: [], pile: board.pile(messageID: "m1", reactions: []), now: now)
+
+        #expect(board.stamps(messageID: "m1").values.map(\.start) == [now.addingTimeInterval(0.5)])
+    }
 }

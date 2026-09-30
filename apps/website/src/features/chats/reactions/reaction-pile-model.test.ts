@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatMessageReaction } from '@haus/api';
-import { buildReactionPile, pileWidths, stickerPose } from './reaction-pile-model.ts';
+import { buildReactionPile, pileWidths, stickerTilt } from './reaction-pile-model.ts';
 import { scheduleStamps } from './use-reaction-stamps.ts';
 
 const tiny = { handle: 'tiny', id: 'agent-tiny', kind: 'agent' } as const;
@@ -90,38 +90,16 @@ describe('buildReactionPile', () => {
     });
 });
 
-describe('stickerPose', () => {
-    const sticker = (emoji: string, actor: ChatMessageReaction['actors'][number]) => ({
-        actor,
-        emoji,
-    });
-
-    test('is stable for one reactor’s emoji on one message', () => {
-        expect(stickerPose('message-1', sticker('💛', tiny))).toEqual(
-            stickerPose('message-1', sticker('💛', tiny))
-        );
-    });
-
-    test('tilts two reactors’ copies of one emoji differently', () => {
-        expect(stickerPose('message-1', sticker('👍', tiny))).not.toEqual(
-            stickerPose('message-1', sticker('👍', blippy))
-        );
-    });
-
-    test('tilts ±5–14° and jitters ±3px', () => {
-        for (let index = 0; index < 200; index += 1) {
-            const pose = stickerPose(`message-${index}`, sticker(index % 2 ? '🎉' : '👍', tiny));
-            expect(Math.abs(pose.tilt)).toBeGreaterThanOrEqual(5);
-            expect(Math.abs(pose.tilt)).toBeLessThanOrEqual(14);
-            expect(Math.abs(pose.jitter)).toBeLessThanOrEqual(3);
-        }
+describe('stickerTilt', () => {
+    test('leans exactly 8°, neighbours opposite ways, even indices left', () => {
+        expect([0, 1, 2, 3, 4].map(stickerTilt)).toEqual([-8, 8, -8, 8, -8]);
     });
 });
 
 describe('pileWidths', () => {
-    test('fans to 28px steps from 15px steps, so the hit area always covers the resting pile', () => {
-        expect(pileWidths(1)).toEqual({ fan: 46, rest: 28 });
-        expect(pileWidths(5)).toEqual({ fan: 158, rest: 88 });
+    test('fans to 30px steps from 19px steps, so the hit area always covers the resting pile', () => {
+        expect(pileWidths(1)).toEqual({ fan: 48, rest: 32 });
+        expect(pileWidths(5)).toEqual({ fan: 168, rest: 108 });
     });
 });
 

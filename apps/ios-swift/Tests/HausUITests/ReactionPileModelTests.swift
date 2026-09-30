@@ -60,29 +60,18 @@ struct ReactionPileModelTests {
         #expect(confirmed.stickers.map(\.id) == pending.stickers.map(\.id))
     }
 
-    @Test func poseIsStableAndMatchesTheApp() {
+    /// The burst seed is the App's `stickerSeed`, value for value.
+    @Test func seedMatchesTheApp() {
         let mine = ReactionSticker(emoji: "👍", reactor: you, isOwn: true)
-        let theirs = ReactionSticker(emoji: "👍", reactor: tiny, isOwn: false)
-
-        // Values computed by the App's `stableHash` and `stickerPose`.
         #expect(StickerPose.stableHash("message_1:👍:user_1") == 389_736_605)
-        let minePose = StickerPose(messageID: "message_1", sticker: mine)
-        let theirPose = StickerPose(messageID: "message_1", sticker: theirs)
-        #expect(minePose.jitter == 3 && minePose.tilt == -7)
-        #expect(theirPose.jitter == -2 && theirPose.tilt == 6)
+        #expect(StickerPose.seed(messageID: "message_1", sticker: mine) == 389_736_605)
     }
 
-    @Test func everyPoseStaysInsideTheHandStuckRange() {
-        for index in 0..<200 {
-            let sticker = ReactionSticker(
-                emoji: "😂",
-                reactor: ReactorPresentation(id: "user_\(index)", name: "U"),
-                isOwn: false
-            )
-            let pose = StickerPose(messageID: "message_\(index)", sticker: sticker)
-            #expect((5...14).contains(abs(pose.tilt)))
-            #expect((-3...3).contains(pose.jitter))
-        }
+    /// Exactly ±8°, neighbours opposite ways, as the App's `stickerTilt`
+    /// ([-8, 8, -8, 8, -8] in its own test), and the App's 19-step rest.
+    @Test func tiltAlternatesEightDegreesLikeTheApp() {
+        #expect((0..<5).map(StickerPose.tilt(index:)) == [-8, 8, -8, 8, -8])
+        #expect(ReactionPile.restStep == 19)
     }
 
     @Test func burstMatchesTheAppForTheSameSeed() {
