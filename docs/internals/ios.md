@@ -907,6 +907,33 @@ main timelines and Thread replies. Opening an image attachment opens the attachm
 above; every other kind resolves its cached file and presents the native Quick Look surface. The
 client enforces the Server's 50 MiB limit before reservation.
 
+Message reactions render as the App's die-cut stickers (`Sources/HausUI/Chat/Reactions/`), on a
+compact row under the body: one sticker per reactor per emoji in the Server's order, four drawn and
+the rest behind a "+N", each tilted and jittered from the App's own FNV hash so a sticker leans the
+same way on both clients. The pile scales with Dynamic Type as one piece, capped at 1.6×. A sticker
+is a bitmap `StickerImageRenderer` draws once per emoji: the glyph at 160pt, its alpha blurred and
+thresholded back to a hard edge in Core Image for a round-brush outline, and a soft close
+shadow. The outline is white in light mode and near-black (`#0A0A0B`) with a lighter shadow in dark
+mode, matching the App's `--reaction-diecut` token; bitmaps cache per emoji and appearance. `chat.react` sends the viewer's reaction; its receipt patches every loaded page carrying the
+message and `message.reaction.updated` refetches the affected lenses. Tapping a sticker toggles the
+viewer's own emoji. The row's long-press menu leads with the App's quick reactions as one row of
+small elements and, when the message has reactions, a submenu naming who stuck each sticker, which
+is iOS's place for what the App shows on hover. Every line is one line; the viewer's own come first
+with the system checkmark and remove on selection, and anyone else's leave the menu open. The row
+lifts as `TranscriptCell.liftedPreview`: its content on an opaque card in the chat's elevated
+system background with a continuous 18pt corner, the way Mail lifts rows without a bubble.
+
+Only a reaction that arrives live stamps in: the 0.65s fall from 8×, squash, and a dust burst drawn
+in a `Canvas`, with a 2pt row thud and a rigid haptic on the landing frame. `ReactionStickerBoard`
+holds that app-local state beside, never inside, the durable pages: the fresh-reaction ledger
+(ported from the App's `fresh-reactions.ts`), the viewer's unconfirmed adds, and running stamps,
+which the sticker samples by time so a recycled cell picks a stamp up at the right frame. Every row
+reports its pile, empty ones included, because a message's first pile is its baseline; history and
+relaunches therefore render at rest. Reduce Motion keeps the haptic and drops the stamp. Transcript
+cells do not clip and stack newer rows over older ones (`TranscriptCell`) so a fall can pass over
+the messages above, and an add chosen from the menu waits for the menu's lift to close before it
+stamps.
+
 ## Ownership
 
 Haus Server remains the canonical owner of collaboration state. Haus Computer does not know whether
