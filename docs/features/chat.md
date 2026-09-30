@@ -45,8 +45,8 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Sticker reactions.** The web app draws reactions as die-cut emoji stickers
   on a compact row under the message body, left-aligned with its text and never
   covering it: one sticker per reactor per emoji (two people's 👍 are two
-  stickers, each tilted differently), in the Server's order, and a "+N" chip
-  past four. Hovering or focusing fans the pile and names each sticker's
+  stickers), in the Server's order, 19px apart on one baseline so repeated
+  emoji stay separate shapes, each leaning exactly 8° opposite its neighbour, and a "+N" chip past four. Hovering or focusing fans the pile and names each sticker's
   reactor; pressing a sticker toggles your own reaction with that emoji. A
   reaction that arrives live — a realtime `message.reaction.updated`, or your
   own add, which shows at once as an app-local pending sticker — stamps in with

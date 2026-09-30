@@ -163,7 +163,7 @@ line break, the way `remark-breaks` makes it one on the App.
 
 Blocks draw as a `VStack` of `RichMessageBlockView`, and every run of running text — prose, headings,
 list rows, quoted prose — goes through the same TextKit body the chips need, so selection, copy, the
-row's context menu, and link taps are exactly what they were. A table is a native `Grid` inside a
+row's long press, and link taps are exactly what they were. A table is a native `Grid` inside a
 horizontal `ScrollView` rather than another `WKWebView`, because a web view per table in a scrolling
 transcript is a content process per table: hairline rules between rows, a medium-weight muted column
 label with no fill behind it, 12×8pt cells, tabular digits, and the `:---` / `:---:` / `---:`
@@ -209,7 +209,7 @@ bounded at both ends (`AttachmentImageStripSize`) — and anything past three sc
 a row that is never more than one square tall. Non-image attachments keep their file rows, below the
 pictures. The strip is safe inside the transcript for the same structural reason the viewer's zoom is
 safe inside its pager: with `scrollBounceBehavior(.basedOnSize)` a strip that fits does not bounce, so
-its pan never begins and the table's vertical drag and long-press menu see an untouched hierarchy. The
+its pan never begins and the table's vertical drag and long press see an untouched hierarchy. The
 cell's content view is flipped on Y, which leaves horizontal direction, momentum, and hit-testing
 exactly as they are.
 
@@ -604,9 +604,9 @@ The flip has known UIKit seams, all owned inside `TranscriptListView`: the syste
 hidden (they compute their region from safe areas the flipped table lacks and wash the viewport —
 the dissolve is `transcriptTopDissolve`), the opening entrance runs as a UIKit animation because a
 SwiftUI opacity animation over a platform view can freeze mid-flight, hosting-configuration cells
-carry `minSize` zero so continuation rows keep their tight rhythm, and long-press menus are the
-table delegate's, with an upright `layer.render` snapshot as the lifted preview, because a
-context-menu lift of a flipped cell renders upside down.
+carry `minSize` zero so continuation rows keep their tight rhythm, and a row's long press is the
+table's own `UILongPressGestureRecognizer` rather than a context menu, because a context-menu lift
+of a flipped cell renders upside down; the screen answers it with the message drawer.
 
 Cloud agents use the same Server records as the web App. Settings → Cloud agents lets an Owner or
 Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
@@ -909,19 +909,42 @@ client enforces the Server's 50 MiB limit before reservation.
 
 Message reactions render as the App's die-cut stickers (`Sources/HausUI/Chat/Reactions/`), on a
 compact row under the body: one sticker per reactor per emoji in the Server's order, four drawn and
-the rest behind a "+N", each tilted and jittered from the App's own FNV hash so a sticker leans the
-same way on both clients. The pile scales with Dynamic Type as one piece, capped at 1.6×. A sticker
+the rest behind a "+N", 19pt apart on one baseline. Each leans exactly 8°, even places left and odd
+right, the App's `stickerTilt`, so a pile poses the same on both clients; the landing burst's seed is
+the App's FNV hash. The pile scales with Dynamic Type as one piece, capped at 1.6×. A sticker
 is a bitmap `StickerImageRenderer` draws once per emoji: the glyph at 160pt, its alpha blurred and
 thresholded back to a hard edge in Core Image for a round-brush outline, and a soft close
 shadow. The outline is white in light mode and near-black (`#0A0A0B`) with a lighter shadow in dark
-mode, matching the App's `--reaction-diecut` token; bitmaps cache per emoji and appearance. `chat.react` sends the viewer's reaction; its receipt patches every loaded page carrying the
+mode, matching the App's `--reaction-diecut` token; bitmaps cache per emoji and appearance.
+`chat.react` sends the viewer's reaction; its receipt patches every loaded page carrying the
 message and `message.reaction.updated` refetches the affected lenses. Tapping a sticker toggles the
-viewer's own emoji. The row's long-press menu leads with the App's quick reactions as one row of
-small elements and, when the message has reactions, a submenu naming who stuck each sticker, which
-is iOS's place for what the App shows on hover. Every line is one line; the viewer's own come first
-with the system checkmark and remove on selection, and anyone else's leave the menu open. The row
-lifts as `TranscriptCell.liftedPreview`: its content on an opaque card in the chat's elevated
-system background with a continuous 18pt corner, the way Mail lifts rows without a bubble.
+viewer's own emoji.
+
+Long-pressing a durable message, in a Chat or a Thread, opens the message drawer
+(`Sources/HausUI/Chat/MessageActions/`): a stock sheet with the grabber and system dimming, its
+height a custom detent measured from the actions list so it ends at the last card for any Dynamic Type
+size. The sheet sits over the transcript, which never scrolls or insets for it, so the pressed row may
+end up covered. It leads with six rounded tiles — the head of the viewer's
+frequently used emoji, kept in `UserDefaults` by `FrequentEmoji` and seeded with the App's quick
+four plus 🔥 and 👋 — tinted where the viewer already reacted, so pressing one takes it back; then a
+smiley tile. When the message has reactions, a "6 reactions · You, Blippy, Cove" row pushes the
+reactors list inside the sheet, one line per sticker, the viewer's own first with a checkmark and
+removed on press, which is iOS's place for what the App shows on hover. Inset grouped cards follow:
+Reply (where the Chat has inline replies) and Reply in Thread or Open Thread, then Copy Text. The
+Thread's drawer keeps reactions and Copy Text. A chosen action runs after the sheet has gone, so a
+push or the composer's focus never races the dismissal.
+
+The smiley turns the drawer, in place, into the emoji picker at 75% of the screen (draggable to full;
+the reactors list opens the same way)
+(`Sources/HausUI/Chat/Reactions/Picker/`): a search field on the ordinary keyboard, Frequently used,
+then every Unicode group in one lazy grid with a category bar along the bottom, and a long press on
+an emoji that takes skin tones offering them in a popover. The data is
+`Resources/emoji-catalog.json`, generated by `scripts/generate-emoji-catalog.ts` from the pinned MIT
+datasets `unicode-emoji-json` (order, groups, CLDR names, versions, skin-tone support) and `emojilib`
+(search keywords, so "dino" finds 🦖). `EmojiCatalog` drops emoji newer than the OS draws (Emoji 15.1
+before iOS 18.4, 16.0 before iOS 26.4, then 17.0) and anything `ReactionEmoji` (a port of the
+Server's `normalizeReactionEmoji`) rejects, and every pick is checked by it again before sending. A
+reaction chosen in the drawer is sent at once and its stamp waits for the sheet to close.
 
 Only a reaction that arrives live stamps in: the 0.65s fall from 8×, squash, and a dust burst drawn
 in a `Canvas`, with a 2pt row thud and a rigid haptic on the landing frame. `ReactionStickerBoard`
@@ -931,7 +954,7 @@ which the sticker samples by time so a recycled cell picks a stamp up at the rig
 reports its pile, empty ones included, because a message's first pile is its baseline; history and
 relaunches therefore render at rest. Reduce Motion keeps the haptic and drops the stamp. Transcript
 cells do not clip and stack newer rows over older ones (`TranscriptCell`) so a fall can pass over
-the messages above, and an add chosen from the menu waits for the menu's lift to close before it
+the messages above, and an add chosen in the drawer waits for the drawer to close before it
 stamps.
 
 ## Ownership
@@ -1035,7 +1058,7 @@ and stays inert because nothing on the phone routes one yet, and an Agent or Cha
 tap, and `RichMessageLinkCoordinator` — the representable's `UITextViewDelegate` — decides only what
 it means: `textView(_:primaryActionFor:defaultAction:)` returns a `UIAction` that hands the address
 to `UIApplication.open`, and `textView(_:menuConfigurationFor:defaultMenu:)` returns nil so a link
-offers no menu of its own against the row's. The long press still belongs to the row's context menu,
+offers no menu of its own against the row's. The long press still belongs to the row's message drawer,
 which this view refuses for `UILongPressGestureRecognizer`; word selection, its handles, and its
 edit menu are the text view's own and untouched, which is what a recognizer of ours could not manage
 — UITextView's word selection is a `UITextMultiTapRecognizer`, not a `UITapGestureRecognizer`, so
@@ -1118,7 +1141,7 @@ until its attributed text changes. This avoids repeated TextKit measurement duri
 probes while still invalidating for content, Dynamic Type, and Bold Text changes. Reference-mark
 revision is computed once per message body, rather than scanning every block for every block.
 A long press belongs to the row, not the text: the text
-view refuses its own long-press recognizers so `TranscriptListView`'s context menu wins, leaving
+view refuses its own long-press recognizers so `TranscriptListView`'s row press wins, leaving
 double-tap word selection intact. The body carries an accessibility label naming each reference's
 kind, and the text view's value is suppressed so VoiceOver reads the sentence once, as
 `Agent reference, Marlow`.
