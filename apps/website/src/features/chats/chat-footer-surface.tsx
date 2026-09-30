@@ -12,9 +12,9 @@ export const chatFooterClearanceClassName = 'pb-[calc(var(--chat-footer-height,0
 /**
  * A transcript region whose footer (the composer, or what replaces it) floats
  * over its bottom edge, so the conversation scrolls behind the composer and
- * fades out at the window's bottom. The footer's measured height is published
- * as `--chat-footer-height` for the viewport padding, the veil the transcript
- * dissolves into, and the jump-to-latest button.
+ * blurs out under it. The footer's measured height is published as
+ * `--chat-footer-height` for the viewport padding, the transcript's bottom
+ * edge blur (`MessageScroller`), and the jump-to-latest button.
  */
 export function ChatFooterSurface({
     children,
@@ -36,7 +36,6 @@ export function ChatFooterSurface({
             ref={surfaceRef}
         >
             {children}
-            <span aria-hidden="true" className="chat-footer-veil" data-slot="chat-footer-veil" />
             <div className="chat-footer-dock" data-slot="chat-footer" ref={footerRef}>
                 {footer}
             </div>

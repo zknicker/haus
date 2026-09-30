@@ -18,10 +18,14 @@
         background: transparent;
     }
 
+    /*
+     * No border-radius: macOS already clips the titled window's content to its
+     * own corner. A rounded clip here is also what made Chromium drop the mask
+     * on the transcript's backdrop blur (full-strength blur, hard cutoff).
+     */
     html.macos-electron .app-window-shell {
         min-height: 100vh;
         overflow: hidden;
-        border-radius: var(--radius-2xl);
     }
 
     [data-window-drag-region] {
