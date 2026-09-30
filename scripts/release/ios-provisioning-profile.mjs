@@ -105,7 +105,10 @@ function profilesRequestURL(name) {
 }
 
 function selectProfile(document, release, now) {
-    const profiles = Array.isArray(document?.data) ? document.data : [];
+    // Apple's name filter also returns profiles whose names contain the query.
+    const profiles = (Array.isArray(document?.data) ? document.data : []).filter(
+        (profile) => profile?.attributes?.name === release.name
+    );
     if (profiles.length !== 1) {
         throw new Error(
             `expected exactly one active ${release.name} profile, found ${profiles.length}`

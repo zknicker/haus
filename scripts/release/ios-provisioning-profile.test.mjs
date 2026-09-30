@@ -89,7 +89,25 @@ test('installs the Notification Service extension profile under its own cleanup 
             home: fixture.home,
             now,
         })
-    ).rejects.toThrow('does not match the requested release profile');
+    ).rejects.toThrow('found 0');
+});
+
+test('selects the exact profile when Apple returns a substring match', async () => {
+    const fixture = createFixture();
+    const exact = profileDocument();
+    const extension = profileDocument({ name: notificationServiceProfile.name });
+    const result = await installIOSProvisioningProfile(appProfile, {
+        environment: fixture.environment,
+        fetchImpl: async () =>
+            Response.json({
+                ...exact,
+                data: [...extension.data, ...exact.data],
+            }),
+        home: fixture.home,
+        now,
+    });
+    expect(result.name).toBe(appProfile.name);
+    expect(readFileSync(result.path, 'utf8')).toBe('signed profile bytes');
 });
 
 test('signs a valid short-lived App Store Connect JWT', () => {
@@ -133,6 +151,10 @@ test('refuses ambiguous, expired, or wrong-bundle profiles', async () => {
         });
 
     await expect(install({ data: [], included: [] })).rejects.toThrow('found 0');
+    const duplicate = profileDocument();
+    await expect(
+        install({ ...duplicate, data: [...duplicate.data, ...duplicate.data] })
+    ).rejects.toThrow('found 2');
     await expect(
         install(profileDocument({ expirationDate: '2026-08-27T23:59:59Z' }))
     ).rejects.toThrow('expired');

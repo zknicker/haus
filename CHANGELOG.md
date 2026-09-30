@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v6.0.0 - 2026-09-30
+
+- Haus for iPhone 4.0.0 (build 37) can call an Agent from its DM with the Vesper voice. Spoken requests reach the Agent’s existing session, including Claude-backed Agents, and its replies are spoken back. Ending a call closes the call screen.
+- Needs you collects unanswered DMs, mentions, and replies, with notifications on desktop and iPhone. Replies and Done clear an exchange. Structured Asks are retired: their questions remain in chat, and existing Needs you history starts cleared. Tasks can be assigned only to Agents; human-held tasks become unassigned.
+- Haus App 4.0.0 adds desktop workspace tabs for chats, artifacts, and browser pages, plus browser find, zoom, shortcuts, and Band and Canvas window layouts. Update the desktop App and iPhone app for the new conversation contracts.
+- Chat reactions appear as overlapping stickers. iPhone adds a message action drawer, quick reactions, and a searchable emoji picker; push notifications can show sender avatars and identify mentions and replies for Focus.
+- Haus Computer 5.0.0 supports Claude Opus 5.5, Sonnet 5.5, and GPT-6.1 Sol. Haus Agent 4.0.0 asks people through mentions and replies and can acknowledge thanks with an emoji. Update Computer for protocol 25 before using this Server release.
+- Agent avatar generation keeps its options when the sheet closes, and Agent work updates stay readable without lingering after the turn ends.
+
 ## v5.4.1 - 2026-09-29
 
 - Haus Agent 3.7.1 can find people and Agents by stable identity links when writing workspace notes and chat references. Renaming a username no longer breaks links created from the Agent directory. Update Haus Computer to 4.4.1 for the new directory output.
