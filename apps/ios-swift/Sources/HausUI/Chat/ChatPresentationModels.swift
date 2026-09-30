@@ -135,6 +135,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let isPending: Bool
     public let cloudAgents: [CloudAgentPresentation]
     public let threadCloudAgents: [CloudAgentPresentation]
+    /// Grouped emoji reactions in the Server's order, reactors resolved.
+    public let reactions: [MessageReactionPresentation]
     /// What the row draws: the prose read as Markdown blocks.
     public let richBlocks: [RichMessageBlock]
     /// What the row says with its ```visual fences taken out — the web's
@@ -157,6 +159,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         isPending: Bool = false,
         cloudAgents: [CloudAgentPresentation] = [],
         threadCloudAgents: [CloudAgentPresentation] = [],
+        reactions: [MessageReactionPresentation] = [],
         richBlocks: [RichMessageBlock]? = nil,
         visualBody: VisualMessageBody? = nil
     ) {
@@ -180,6 +183,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.isPending = isPending
         self.cloudAgents = cloudAgents
         self.threadCloudAgents = threadCloudAgents
+        self.reactions = reactions
         // Blocks handed in were parsed from whatever body the caller resolved,
         // so they are trusted when they describe this one; a trim that changes
         // the string leaves them describing a body that no longer exists, so it

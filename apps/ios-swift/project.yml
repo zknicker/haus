@@ -7,6 +7,17 @@ options:
   createIntermediateGroups: true
   xcodeVersion: "26.0"
 
+settings:
+  base:
+    # Project level so the app and its Notification Service extension always
+    # share one version; App Store Connect rejects an extension that differs.
+    # Local/dev default only. A real TestFlight upload always overrides both
+    # via explicit xcodebuild args from `bun run ios:release`; see
+    # docs/operations/ios-testflight.md. Both values mirror the latest
+    # published iOS target in releases.json via release:sync-versions.
+    CURRENT_PROJECT_VERSION: "36"
+    MARKETING_VERSION: 3.4.0
+
 packages:
   HausIOS:
     path: .
@@ -36,16 +47,11 @@ targets:
         product: HausUI
       - package: ClerkKit
         product: ClerkKit
+      - target: HausNotificationService
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: chat.haus.ios
         ASSETCATALOG_COMPILER_APPICON_NAME: mac-icon
-        # Local/dev default only. A real TestFlight upload always overrides both
-        # via explicit xcodebuild args from `bun run ios:release`; see
-        # docs/operations/ios-testflight.md. Both values mirror the latest
-        # published iOS target in releases.json via release:sync-versions.
-        CURRENT_PROJECT_VERSION: "36"
-        MARKETING_VERSION: 3.4.0
         SWIFT_VERSION: "6.0"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1"
@@ -76,6 +82,10 @@ targets:
         NSCameraUsageDescription: Take photos to attach to Haus messages.
         NSPhotoLibraryUsageDescription: Choose photos to attach to Haus messages.
         UIRequiresFullScreen: true
+        # Lets the Notification Service extension present pushes as
+        # communication notifications with the sender's avatar.
+        NSUserActivityTypes:
+          - INSendMessageIntent
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
     entitlements:
@@ -86,10 +96,37 @@ targets:
         aps-environment: development
         com.apple.developer.associated-domains:
           - webcredentials:clerk.haus.chat
+        com.apple.developer.usernotifications.communication: true
     postBuildScripts:
       - name: Install precompiled iOS icon
         path: scripts/install-precompiled-icon.sh
         basedOnDependencyAnalysis: false
+
+  HausNotificationService:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Sources/HausNotificationService
+    dependencies:
+      - package: HausIOS
+        product: HausModels
+      - sdk: Intents.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: chat.haus.ios.NotificationService
+        SWIFT_VERSION: "6.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: false
+    info:
+      path: Config/NotificationService-Info.plist
+      properties:
+        CFBundleDisplayName: Haus Notifications
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
 
   HausRenderingTests:
     type: bundle.unit-test

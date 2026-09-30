@@ -40,6 +40,9 @@ public struct MessageTimelineView: View {
     /// than through the `openingEntrance` modifier.
     @Environment(\.opensWithEntrance) private var opensWithEntrance
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Rows are hosted in table cells, which do not inherit this environment,
+    /// so the screen reads the board and hands it to each row.
+    @Environment(\.reactionStickers) private var reactionBoard
 
     public init(
         messages: [MessagePresentation],
@@ -87,6 +90,9 @@ public struct MessageTimelineView: View {
         // reaches `updateUIView` and its `reconfigureVisibleRows`. Every screen
         // that owns a registry has to read `revision` for its cards to grow.
         _ = visualHeights.revision
+        // The same for a pending own reaction, which grows a row's pile before
+        // any page changes.
+        _ = reactionBoard?.revision
         return GeometryReader { proxy in
             if messages.isEmpty && isMessageHistoryLoaded {
                 ContentUnavailableView(
@@ -124,7 +130,8 @@ public struct MessageTimelineView: View {
                     animatesEntrance: opensWithEntrance,
                     menuActions: { message in
                         guard !message.isPending else { return [] }
-                        var actions = [
+                        var actions = reactionMenu(for: message).map { [$0] } ?? []
+                        actions += [
                             TranscriptMenuAction(
                                 title: message.thread == nil ? "Reply in thread" : "Open thread",
                                 systemImage: "bubble.left.and.bubble.right",
@@ -249,11 +256,27 @@ public struct MessageTimelineView: View {
             attachmentPreview: $attachmentPreview,
             attachmentTiles: attachmentTiles,
             visualHeights: visualHeights,
+            reactionBoard: reactionBoard,
             onOpenThread: { onOpenThread(message) },
             onOpenInlineReply: requestInlineReply,
             onOpenAttachment: onOpenAttachment
         )
         .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)
+    }
+
+    /// Quick reactions and who reacted, for a durable message on a live board.
+    private func reactionMenu(for message: MessagePresentation) -> TranscriptMenuAction? {
+        guard let board = reactionBoard else { return nil }
+        let pile = board.pile(messageID: message.id, reactions: message.reactions)
+        return .reactions(TranscriptReactionMenu(
+            ownEmoji: Set(pile.all.filter(\.reactor.isViewer).map(\.emoji)),
+            entries: pile.all,
+            onToggle: { emoji, remove in
+                // The row stays hidden behind the menu's lift until the menu
+                // has closed, so the stamp waits for it instead of falling unseen.
+                board.toggle(messageID: message.id, emoji: emoji, remove: remove, stampDelay: 0.7)
+            }
+        ))
     }
 
     private func isContinuation(at index: Int) -> Bool {

@@ -18,7 +18,7 @@ extension HausStore {
     /// projection; read/follow/lifecycle events do not need a filtered fetch.
     func inlineReplyRefreshChatIDs(for event: ChatEvent) -> Set<String> {
         switch event.type {
-        case .messageCreated, .cloudAgentWorkUpdated, .taskCreated, .taskUpdated:
+        case .messageCreated, .messageReactionUpdated, .cloudAgentWorkUpdated, .taskCreated, .taskUpdated:
             return Set([event.chatID, event.parentChatID].compactMap { $0 })
         default:
             return []

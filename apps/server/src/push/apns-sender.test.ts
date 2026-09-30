@@ -57,12 +57,16 @@ afterAll(async () => {
 const payload: PushNotificationPayload = {
     aps: {
         alert: { body: 'Ship it?', title: 'Orbit in #launch' },
+        'mutable-content': 1,
         sound: 'default',
         'thread-id': 'chat_1',
     },
     chatId: 'chat_1',
+    conversation: { kind: 'channel', name: 'launch' },
     conversationChatId: 'chat_1',
     messageId: 'msg_1',
+    reason: 'dm',
+    sender: { avatarUrl: null, id: 'agt_orbit', kind: 'agent', name: 'Orbit' },
     serverId: 'srv_1',
     threadAnchorMessageId: null,
 };

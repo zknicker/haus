@@ -154,6 +154,23 @@
     --border-width-field: var(--hairline-width);
     --field-border: var(--hairline);
     --field-shadow: var(--elevation-resting);
+
+    /*
+     * Sticker reactions' landing burst: pale puffs and faster specks that read
+     * as dust against the page, never as a color of their own.
+     */
+    --reaction-puff: rgba(203, 205, 214, 0.55);
+    --reaction-speck: rgba(170, 174, 188, 0.8);
+    /* The die-cut outline: white on the light page, near-black on the dark one,
+       where a white rim shouts over emoji that are colorful enough already. */
+    --reaction-diecut: #fff;
+}
+
+[data-theme="dark"],
+.dark {
+    --reaction-puff: rgba(120, 122, 134, 0.45);
+    --reaction-speck: rgba(170, 172, 184, 0.7);
+    --reaction-diecut: #0a0a0b;
 }
 
 /*
@@ -980,6 +997,37 @@
     .markdown :is(ul, ol) {
         list-style-position: outside;
         padding-inline-start: calc(var(--spacing) * 6);
+    }
+
+    /*
+     * The gutter fits a one-digit marker ("9."); each extra digit in the
+     * largest number widens it by 1ch, or "10." pokes past the gutter. CSS
+     * cannot read `start`, so the digit count comes from item count plus the
+     * `start` values that reach 10 (a start of 100+ still overhangs).
+     */
+    .markdown ol {
+        --markdown-ol-extra-digits: 0;
+
+        padding-inline-start: calc(var(--spacing) * 6 + var(--markdown-ol-extra-digits) * 1ch);
+    }
+
+    .markdown ol:is(
+            :has(> li:nth-child(10)),
+            [start]:not([start='0'], [start='1'], [start='2'], [start='3'], [start='4'], [start='5'], [start='6'], [start='7'], [start='8'], [start='9']),
+            [start='2']:has(> li:nth-child(9)),
+            [start='3']:has(> li:nth-child(8)),
+            [start='4']:has(> li:nth-child(7)),
+            [start='5']:has(> li:nth-child(6)),
+            [start='6']:has(> li:nth-child(5)),
+            [start='7']:has(> li:nth-child(4)),
+            [start='8']:has(> li:nth-child(3)),
+            [start='9']:has(> li:nth-child(2))
+        ) {
+        --markdown-ol-extra-digits: 1;
+    }
+
+    .markdown ol:has(> li:nth-child(100)) {
+        --markdown-ol-extra-digits: 2;
     }
 
     /*

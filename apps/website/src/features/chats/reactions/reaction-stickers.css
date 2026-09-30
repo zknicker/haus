@@ -1,0 +1,238 @@
+/*
+ * Sticker reactions: layout and motion HeroUI cannot express. The pile sits
+ * on its own row under the message body (see reaction-pile.tsx); its stickers,
+ * stamp, and landing burst are product behavior. The "+N" is a stock HeroUI
+ * Chip; the tooltips are stock Tooltip.
+ */
+
+.reaction-row {
+    /* The pile's own fanned-width fallback measures the text column with cqw. */
+    container-type: inline-size;
+}
+
+/*
+ * One compact row under the message body: the 24px sticker box plus a few
+ * px. Tilt, jitter and the die-cut outline may spill a little past it, but
+ * never far enough to reach the text above or the next message's header.
+ */
+.reaction-pile {
+    position: relative;
+    z-index: 5;
+    width: var(--rest-width);
+    height: 28px;
+    /* A wide pile in a narrow column fans leftward instead of overflowing. */
+    --shift: max(0px, var(--fan-width) - 100cqw);
+}
+
+/*
+ * The fanned hit area widens at once, not with the stickers' spring. Without
+ * it the cursor falls into the gap before "+N" mid-spring, the pile
+ * collapses, re-fans under the cursor, and loops.
+ */
+.reaction-pile:is(:hover, :focus-within)::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: calc(-1 * var(--shift));
+    width: var(--fan-width);
+}
+
+.reaction-pile__defs {
+    position: absolute;
+}
+
+.reaction-sticker,
+.reaction-overflow {
+    position: absolute;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    transition: left 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+/* Stickers stack in DOM order, later on top. */
+.reaction-sticker {
+    top: calc(2px + var(--jy));
+    left: calc(var(--i) * 15px);
+    width: 24px;
+    height: 24px;
+    transition:
+        left 0.35s cubic-bezier(0.3, 1.5, 0.5, 1),
+        transform 0.2s ease-out;
+}
+
+.reaction-overflow {
+    top: 4px;
+    left: calc(var(--i) * 15px + 3px);
+    display: grid;
+    height: 20px;
+    place-items: center;
+}
+
+.reaction-pile:is(:hover, :focus-within) .reaction-sticker {
+    left: calc(var(--i) * 28px - var(--shift));
+}
+
+.reaction-pile:is(:hover, :focus-within) .reaction-overflow {
+    left: calc(var(--i) * 28px + 3px - var(--shift));
+}
+
+.reaction-sticker:is([data-hovered], [data-focus-visible]) {
+    z-index: 40;
+    transform: translateY(-4px) scale(1.12);
+}
+
+/*
+ * Drawn at Apple's 160px emoji bitmap size and scaled by 0.125 to a 20px
+ * sticker, so the die-cut filter runs at full resolution and the glyph
+ * never upscales past its bitmap.
+ */
+.reaction-sticker__glyph {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    transform: scale(0.125) rotate(var(--tilt));
+}
+
+.reaction-sticker__emoji {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    padding: 64px;
+    font-size: 160px;
+    line-height: 1.3;
+    filter: var(--diecut);
+    transform: translate(-50%, -52%);
+}
+
+.reaction-sticker[data-stamping] .reaction-sticker__glyph {
+    animation: reaction-stamp 0.65s both;
+    animation-delay: var(--d);
+}
+
+.reaction-burst {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.reaction-burst > i {
+    position: absolute;
+    top: 70%;
+    left: 50%;
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.reaction-burst__puff {
+    background: var(--reaction-puff);
+    animation: reaction-puff 0.85s cubic-bezier(0.12, 0.8, 0.3, 1) both;
+    animation-delay: calc(var(--d) + 0.29s + var(--pd));
+}
+
+.reaction-burst__speck {
+    background: var(--reaction-speck);
+    animation: reaction-speck 0.6s cubic-bezier(0.1, 0.9, 0.3, 1) both;
+    animation-delay: calc(var(--d) + 0.29s + var(--pd));
+}
+
+.reaction-burst > .reaction-burst__ring {
+    top: 62%;
+    box-sizing: border-box;
+    width: 26px;
+    height: 11px;
+    border: 1.5px solid var(--reaction-speck);
+    animation: reaction-ring 0.45s ease-out both;
+    animation-delay: calc(var(--d) + 0.29s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reaction-sticker[data-stamping] .reaction-sticker__glyph {
+        animation: none;
+    }
+
+    .reaction-burst {
+        display: none;
+    }
+}
+
+/*
+ * Fades in at 8× over the first 10% (the same on-screen peak the 26px
+ * sticker reached at 6.15×), falls on an accelerating curve to 1× at 44%
+ * (the landing frame, 0.29s), squashes, rebounds, settles.
+ */
+@keyframes reaction-stamp {
+    0% {
+        opacity: 0;
+        transform: scale(calc(0.125 * 8)) rotate(calc(var(--tilt) - 18deg));
+        animation-timing-function: ease-out;
+    }
+    10% {
+        opacity: 1;
+        transform: scale(calc(0.125 * 7.02)) rotate(calc(var(--tilt) - 14deg));
+        animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+    }
+    44% {
+        transform: scale(0.125) rotate(var(--tilt));
+        animation-timing-function: ease-out;
+    }
+    52% {
+        transform: scale(calc(0.125 * 1.22), calc(0.125 * 0.76)) rotate(var(--tilt));
+    }
+    70% {
+        transform: scale(calc(0.125 * 0.94), calc(0.125 * 1.07)) rotate(var(--tilt));
+    }
+    100% {
+        opacity: 1;
+        transform: scale(0.125) rotate(var(--tilt));
+    }
+}
+
+@keyframes reaction-puff {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.2);
+    }
+    12% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) - 8px)) scale(1);
+    }
+}
+
+@keyframes reaction-speck {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    8% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.3);
+    }
+}
+
+@keyframes reaction-ring {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    6% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(2.3);
+    }
+}

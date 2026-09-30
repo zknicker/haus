@@ -65,6 +65,7 @@ public struct AgentLifecycleEvent: Codable, Identifiable, Sendable, Equatable {
 
 public enum ChatEventKind: String, Codable, Sendable {
     case messageCreated = "message.created"
+    case messageReactionUpdated = "message.reaction.updated"
     case cloudAgentWorkUpdated = "cloud-agent-work.updated"
     case chatRead = "chat.read"
     case threadFollowUpdated = "thread.follow.updated"

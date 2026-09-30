@@ -22,7 +22,8 @@ extension ThreadDetailView {
                 preview: $attachmentPreview,
                 tiles: attachmentTiles,
                 visualHeights: visualHeights,
-                onOpenAgent: onOpenAgent
+                onOpenAgent: onOpenAgent,
+                reactionBoard: reactionBoard
             )
             .padding(.top, 4)
         case .threadHeader:
@@ -47,7 +48,8 @@ extension ThreadDetailView {
             tiles: attachmentTiles,
             visualHeights: visualHeights,
             onOpenAgent: onOpenAgent,
-            onCancelCloudAgent: onCancelCloudAgent
+            onCancelCloudAgent: onCancelCloudAgent,
+            reactionBoard: reactionBoard
         )
     }
 

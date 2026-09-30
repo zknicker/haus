@@ -18,8 +18,8 @@ typealias AvatarPlatformImage = NSImage
 /// `URLCache`, so a cold launch paints known identities instead of showing
 /// initials until the network answers.
 @MainActor
-final class AvatarImageCache {
-    static let shared = AvatarImageCache()
+public final class AvatarImageCache {
+    public static let shared = AvatarImageCache()
 
     private let images = NSCache<NSURL, PlatformImageBox>()
     private var loads: [URL: Task<PlatformImageBox?, Never>] = [:]
@@ -28,6 +28,9 @@ final class AvatarImageCache {
     /// row would read "no avatar", raster initials over an avatar it had
     /// already drawn, and reload — a visible flip and two junk chip bitmaps.
     private var resolvedURLs: Set<URL> = []
+    /// Bumped by `removeAll()`, so a load that began before it can neither
+    /// store its image nor clear the slot of a load that began after it.
+    private var generation = 0
 
     init() {
         images.countLimit = 100
@@ -64,15 +67,29 @@ final class AvatarImageCache {
             return await active.value?.image
         }
         let request = fetch ?? Self.fetch
+        let loadGeneration = generation
         let task = Task { () -> PlatformImageBox? in
-            defer { loads[url] = nil }
+            defer { if loadGeneration == generation { loads[url] = nil } }
             guard let data = await request(url),
-                  let decoded = await AvatarImageDecoder.decode(data)
+                  let decoded = await AvatarImageDecoder.decode(data),
+                  loadGeneration == generation
             else { return nil }
             return store(decoded, for: url)
         }
         loads[url] = task
         return await task.value?.image
+    }
+
+    /// Forgets every avatar, decoded and on disk. Sign-out calls this so the
+    /// next account on this device starts from its own Server's avatars.
+    /// In-flight loads are cancelled and cannot repopulate the emptied cache.
+    public func removeAll() {
+        generation += 1
+        for load in loads.values { load.cancel() }
+        loads.removeAll()
+        images.removeAllObjects()
+        resolvedURLs.removeAll()
+        Self.byteCache.removeAllCachedResponses()
     }
 
     private func store(_ decoded: DecodedAvatarBitmap, for url: URL) -> PlatformImageBox {

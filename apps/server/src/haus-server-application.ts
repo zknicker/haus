@@ -222,6 +222,7 @@ export async function createHausServerApplication(
         computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, {
+            appOrigin: options.appOrigin,
             clock: reminderClock,
             db: connectedHaus.db,
             pushSender: options.pushSender ?? null,

@@ -1039,7 +1039,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add or remove a reaction on a readable message. */
+        /**
+         * Add or remove a reaction on a readable message.
+         * @description Adds accept exactly one emoji grapheme (`normalizeReactionEmoji`), stored fully qualified; removes accept any value so older reactions stay removable.
+         */
         post: operations["reactToAgentMessage"];
         delete?: never;
         options?: never;

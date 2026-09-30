@@ -66,6 +66,23 @@ struct AttachmentFullImageCacheTests {
         #expect(cache.image(for: "huge") != nil)
     }
 
+    /// Sign-out: a decode that began before the wipe lands after it and must
+    /// not put the previous account's picture back.
+    @Test func removeAllEmptiesTheCacheAndRefusesADecodeFromBeforeIt() {
+        let cache = AttachmentFullImageCache()
+        cache.store(full(cost: 16), for: "a")
+        let staleGeneration = cache.generation
+
+        cache.removeAll()
+        cache.store(full(cost: 16), for: "late", loadedIn: staleGeneration)
+        cache.store(full(cost: 16), for: "fresh", loadedIn: cache.generation)
+
+        #expect(cache.image(for: "a") == nil)
+        #expect(cache.image(for: "late") == nil)
+        #expect(cache.image(for: "fresh") != nil)
+        #expect(cache.totalCost == 16)
+    }
+
     @Test func replacingAPageDoesNotDoubleCountItsBytes() {
         let cache = AttachmentFullImageCache(countLimit: 4, costLimit: .max)
         cache.store(full(cost: 40), for: "a")

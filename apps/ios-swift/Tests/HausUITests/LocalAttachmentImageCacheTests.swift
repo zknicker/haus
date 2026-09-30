@@ -58,6 +58,18 @@ struct LocalAttachmentImageCacheTests {
         #expect(bitmap.sourcePixelHeight == 256)
     }
 
+    @Test func removeAllForgetsEveryStagedDecode() async throws {
+        let cache = LocalAttachmentImageCache()
+        let url = try Self.writeOnePixelPNG()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        #expect(await cache.load(url: url) != nil)
+
+        cache.removeAll()
+
+        #expect(cache.entry(for: url) == nil)
+        #expect(await cache.load(url: url) != nil)
+    }
+
     @Test func returnsNilForAMissingFile() async {
         let cache = LocalAttachmentImageCache()
         let missing = FileManager.default.temporaryDirectory

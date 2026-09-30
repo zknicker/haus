@@ -13,6 +13,7 @@ struct ThreadMessageRow: View {
     let visualHeights: VisualHeightRegistry
     var onOpenAgent: (String) -> Void = { _ in }
     var onCancelCloudAgent: ((String) async throws -> Void)?
+    var reactionBoard: ReactionStickerBoard?
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -62,6 +63,10 @@ struct ThreadMessageRow: View {
                     CloudAgentCard(agent: agent, onCancel: onCancelCloudAgent).padding(.top, 6)
                 }
 
+                if !message.isPending {
+                    ReactionPileView(messageID: message.id, reactions: message.reactions, board: reactionBoard)
+                }
+
                 if message.isPending {
                     HStack(spacing: 5) {
                         ProgressView()
@@ -74,6 +79,8 @@ struct ThreadMessageRow: View {
                 }
             }
         }
+        .modifier(ReactionThud(stamps: reactionBoard?.stamps(messageID: message.id) ?? [:]))
+        .modifier(ReactionObservation(messageID: message.id, reactions: message.reactions, board: reactionBoard))
         .padding(emphasized ? 12 : 0)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(

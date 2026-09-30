@@ -50,7 +50,8 @@ export async function readChatMessageReactions(
                 inArray(messageReactionsTable.messageId, messageIds)
             )
         )
-        .orderBy(asc(messageReactionsTable.emoji), asc(messageReactionsTable.createdAt));
+        // First reaction first: clients stack reactions in the order they arrived.
+        .orderBy(asc(messageReactionsTable.createdAt), asc(messageReactionsTable.emoji));
 
     for (const row of rows) {
         const actor = row.actorAgentId

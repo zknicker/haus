@@ -54,12 +54,16 @@ test('a DM message pushes its other member with the routing payload', async () =
                 aps: {
                     alert: { body: 'Got a minute, @Ada? It is about the launch.', title: 'Bo' },
                     badge: 1,
+                    'mutable-content': 1,
                     sound: 'default',
                     'thread-id': dmChatId,
                 },
                 chatId: dmChatId,
+                conversation: { kind: 'dm', name: null },
                 conversationChatId: dmChatId,
                 messageId: sent.message.id,
+                reason: 'dm',
+                sender: { avatarUrl: null, id: fixture.peerUserId, kind: 'human', name: 'Bo' },
                 serverId,
                 threadAnchorMessageId: null,
             },
@@ -90,6 +94,9 @@ test('a Channel mention pushes only mentioned humans with access, never the auth
     expect(pushes.map((push) => push.device.token)).toEqual([adaToken]);
     const alert = pushes[0]?.payload.aps.alert;
     expect(alert?.title).toBe('Bo in #push-mentions');
+    expect(pushes[0]?.payload.conversation).toEqual({ kind: 'channel', name: 'push-mentions' });
+    expect(pushes[0]?.payload.reason).toBe('mention');
+    expect(pushes[0]?.payload.sender).toMatchObject({ id: peerUserId, kind: 'human', name: 'Bo' });
     expect(alert?.body.length).toBeLessThanOrEqual(180);
     expect(alert?.body.startsWith('@Ada @Bo @Cass xxx')).toBe(true);
     expect(alert?.body.endsWith('…')).toBe(true);
@@ -116,6 +123,7 @@ test('an inline reply or a Thread answer pushes the author of the message it ans
     expect(replyPushes[0]?.payload).toMatchObject({
         chatId: channelId,
         conversationChatId: channelId,
+        reason: 'reply',
         threadAnchorMessageId: null,
     });
 
@@ -132,6 +140,7 @@ test('an inline reply or a Thread answer pushes the author of the message it ans
         aps: { alert: { title: 'Bo in #push-replies' }, 'thread-id': channelId },
         chatId: answer.threadChatId,
         conversationChatId: channelId,
+        reason: 'reply',
         threadAnchorMessageId: question.message.id,
     });
 
@@ -160,6 +169,7 @@ test('an Agent DM pushes its human, and APNs calling a token gone deletes it', a
     expect(pushes.map((push) => push.payload.aps.alert)).toEqual([
         { body: 'Should I run it?', title: 'Orbit' },
     ]);
+    expect(pushes[0]?.payload.sender).toMatchObject({ id: orbitAgentId, kind: 'agent' });
     expect(
         await harness.sql`select token from push_devices where token = ${adaToken}`
     ).toHaveLength(0);

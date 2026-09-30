@@ -83,6 +83,7 @@ final class AttachmentImageViewerSession {
     @discardableResult
     func load(_ attachment: MessageAttachmentPresentation) async -> AttachmentFullImage? {
         if let cached = fullImage(for: attachment) { return cached }
+        let loadGeneration = AttachmentFullImageCache.shared.generation
         do {
             let url = try await resolve(attachment)
             guard let bitmap = await AttachmentImageDecoder.decode(
@@ -95,7 +96,7 @@ final class AttachmentImageViewerSession {
                 backdrop: backdrop,
                 pixelCost: bitmap.pixelCost
             )
-            AttachmentFullImageCache.shared.store(full, for: attachment.id)
+            AttachmentFullImageCache.shared.store(full, for: attachment.id, loadedIn: loadGeneration)
             return full
         } catch {
             // The tile stays on screen behind the failure; a page that cannot

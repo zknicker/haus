@@ -80,20 +80,24 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
     },
     {
         examples: [
-            'haus message react --message-id 1a2b3c4d --emoji 👍',
-            'haus message react --message-id 1a2b3c4d --emoji 👍 --remove',
+            'haus message react --message-id 1a2b3c4d --emoji <emoji>',
+            'haus message react --message-id 1a2b3c4d --emoji <emoji> --remove',
         ],
         flags: [
             { name: '--message-id', valueName: '<id>', description: 'Message to react to' },
-            { name: '--emoji', valueName: '<e>', description: 'Reaction emoji' },
+            {
+                name: '--emoji',
+                valueName: '<emoji>',
+                description: 'Exactly one emoji that fits the message',
+            },
             { name: '--remove', description: 'Remove your matching reaction' },
         ],
         name: 'react',
         positionals: [],
         run: (args) => runReact(args, defaultMessageDeps()),
         summary:
-            'React only when a human asks or as a clear acknowledgement; never auto-react to routine events',
-        usage: 'haus message react --message-id <id> --emoji <e> [--remove]',
+            "Acknowledge a human's message that needs no reply instead of sending one; never react to routine events",
+        usage: 'haus message react --message-id <id> --emoji <emoji> [--remove]',
     },
 ];
 

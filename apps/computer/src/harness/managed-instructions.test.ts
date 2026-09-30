@@ -61,11 +61,13 @@ test('the Agent prompt keeps collaboration principles and leaves notice mechanic
     expect(prompt).not.toContain('Your process stays alive across turns');
     expect(prompt).not.toContain('The notice is not itself a request');
 
-    // Step 4 is Raft's; the FYI carve-out is Haus's single documented divergence there
-    // (specs/inbox.md silence semantics, scripts/agent-tests fyi-silence-*).
+    // Step 4 is Raft's; the no-reply carve-out is Haus's single documented divergence there
+    // (specs/inbox.md silence semantics, scripts/agent-tests fyi-silence-* and ack-reaction-*).
     expect(prompt).toContain(
-        '4. When a message needs a reply, send it with `haus message send`. Haus exception: an explicit FYI / no-response-needed message settles silently, with no send at all.'
+        "4. When a message needs a reply, send it with `haus message send`. Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (`haus message react --message-id <id> --emoji <emoji>`); an explicit FYI gets nothing."
     );
+    // A literal emoji anywhere in the prompt becomes every Agent's default reaction.
+    expect(prompt).not.toMatch(/\p{Extended_Pictographic}/u);
 });
 
 test('the @Mentions section separates display name from the stable name', () => {
@@ -195,8 +197,11 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // measured render (32,395 → 32,393) when that rule learned to mention even the asker, paid for by
     // cutting the capability section's redundant surface bullet. Lowered (32,393 → 32,281) when an
     // inline reply to a human's message came to reach their Needs you like a mention, so the
-    // "even when replying to whoever asked" clause was cut.
-    expect(prompt.length).toBeLessThanOrEqual(32_281);
+    // "even when replying to whoever asked" clause was cut. Lowered (32,281 → 32,220) when step 4 and the
+    // DM silence rule came to require one acknowledgement reaction whose emoji fits the message,
+    // paid for by relocating the Cloud agents section's `cloud-agent send` and work-thread
+    // sentences to the `cloud-agents` Manual topic.
+    expect(prompt.length).toBeLessThanOrEqual(32_220);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

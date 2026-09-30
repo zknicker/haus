@@ -14,6 +14,11 @@ export interface MessagePush {
     close(): Promise<void>;
 }
 
+export interface MessagePushOptions {
+    /** The App origin avatar URLs in a push are absolute against. */
+    appOrigin: string;
+}
+
 /** Enough to absorb an idempotent replay re-emitting a recent message. */
 const rememberedMessages = 1000;
 /** Messages pushed at once; each reads Needs you and sends to every device. */
@@ -27,7 +32,11 @@ const pushBacklog = 1000;
  * sent off the send path. Failures are logged and recorded on the device;
  * they never reach the sender of the message.
  */
-export function startMessagePush(db: HausDatabase, sender: PushSender): MessagePush {
+export function startMessagePush(
+    db: HausDatabase,
+    sender: PushSender,
+    options: MessagePushOptions
+): MessagePush {
     const abort = new AbortController();
     const queue = createPushQueue({ concurrency: pushConcurrency, maxBacklog: pushBacklog });
     const seen = new Set<string>();
@@ -41,7 +50,7 @@ export function startMessagePush(db: HausDatabase, sender: PushSender): MessageP
             seen.delete(seen.values().next().value as string);
         }
         const queued = queue.enqueue(() =>
-            pushMessage(db, sender, event).catch((error: unknown) => {
+            pushMessage(db, sender, event, options).catch((error: unknown) => {
                 console.warn(
                     '[haus] iPhone push failed for a message',
                     error instanceof Error ? error.name : 'unknown error'
@@ -84,14 +93,22 @@ export function startMessagePush(db: HausDatabase, sender: PushSender): MessageP
 export async function pushMessage(
     db: HausDatabase,
     sender: PushSender,
-    event: MessageCreatedEvent
+    event: MessageCreatedEvent,
+    options: MessagePushOptions
 ): Promise<void> {
     const recipients = await readPushRecipients(db, event);
     for (const recipient of recipients) {
         const payload = buildPushPayload(recipient.row, {
+            appOrigin: options.appOrigin,
             badge: recipient.badge,
             serverId: event.serverId,
         });
+        if (!payload) {
+            console.warn(
+                '[haus] iPhone push skipped a message with no resolvable author or Channel'
+            );
+            continue;
+        }
         for (const device of await listPushDevices(db, recipient.userId)) {
             const outcome = await sender.send({ collapseId: event.messageId, device, payload });
             if (outcome.kind === 'device-gone') {

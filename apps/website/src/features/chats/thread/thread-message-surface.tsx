@@ -23,8 +23,8 @@ import {
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
+import { ReactionPile } from '../reactions/reaction-pile.tsx';
 import { MessageContextMenu } from './message-context-menu.tsx';
-import { MessageReactionPills } from './message-reactions.tsx';
 import { isThreadAnchorRow } from './thread-anchor.ts';
 import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
@@ -63,10 +63,10 @@ export function ThreadMessageSurface({
             row={row}
         >
             {children}
-            <div className="flex flex-wrap items-center gap-1.5">
-                {canOpenThread ? null : marks}
-                <MessageReactionPills row={row} />
-            </div>
+            <ReactionPile row={row} />
+            {canOpenThread ? null : (
+                <div className="flex flex-wrap items-center gap-1.5">{marks}</div>
+            )}
             {work && !canOpenThread ? <CloudAgentWorkCard work={work} /> : null}
             {canOpenThread ? (
                 <ThreadSurfacePreview

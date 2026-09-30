@@ -4,18 +4,35 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 
 export const IOS_BUNDLE_ID = 'chat.haus.ios';
-export const IOS_PROVISIONING_PROFILE_NAME = 'Haus CI App Store';
+
+/**
+ * Every signed bundle in the IPA needs its own App Store profile: the app and
+ * its Notification Service extension. `cleanupVariable` names the GITHUB_ENV
+ * key cleanup-apple-material.sh deletes after the job.
+ */
+export const IOS_RELEASE_PROFILES = Object.freeze([
+    Object.freeze({
+        bundleId: IOS_BUNDLE_ID,
+        cleanupVariable: 'HAUS_RELEASE_PROVISIONING_PROFILE_PATH',
+        name: 'Haus CI App Store',
+    }),
+    Object.freeze({
+        bundleId: `${IOS_BUNDLE_ID}.NotificationService`,
+        cleanupVariable: 'HAUS_RELEASE_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_PATH',
+        name: 'Haus CI App Store NotificationService',
+    }),
+]);
 
 const profilesEndpoint = 'https://api.appstoreconnect.apple.com/v1/profiles';
 
-export async function installIOSProvisioningProfile(options = {}) {
+export async function installIOSProvisioningProfile(release, options = {}) {
     const environment = options.environment ?? process.env;
     const fetchImpl = options.fetchImpl ?? fetch;
     const now = options.now ?? Date.now();
     const home = options.home ?? homedir();
     const credentials = readCredentials(environment);
     const token = createAppStoreConnectToken({ ...credentials, now });
-    const response = await fetchImpl(profilesRequestURL(), {
+    const response = await fetchImpl(profilesRequestURL(release.name), {
         headers: { Authorization: `Bearer ${token}` },
         signal: options.signal ?? AbortSignal.timeout(30_000),
     });
@@ -23,7 +40,7 @@ export async function installIOSProvisioningProfile(options = {}) {
         throw new Error(`App Store Connect profiles request failed with status ${response.status}`);
     }
 
-    const profile = selectProfile(await response.json(), now);
+    const profile = selectProfile(await response.json(), release, now);
     const profileDirectory = path.join(
         home,
         'Library',
@@ -35,8 +52,13 @@ export async function installIOSProvisioningProfile(options = {}) {
     const profilePath = path.join(profileDirectory, `${profile.uuid}.mobileprovision`);
     mkdirSync(profileDirectory, { mode: 0o700, recursive: true });
     writeFileSync(profilePath, profile.content, { mode: 0o600 });
-    exposeCleanupPath(environment.GITHUB_ENV, profilePath);
-    return { name: profile.name, path: profilePath, uuid: profile.uuid };
+    exposeCleanupPath(environment.GITHUB_ENV, release.cleanupVariable, profilePath);
+    return {
+        bundleId: release.bundleId,
+        name: profile.name,
+        path: profilePath,
+        uuid: profile.uuid,
+    };
 }
 
 export function createAppStoreConnectToken({ apiKeyId, issuerId, privateKey, now = Date.now() }) {
@@ -68,9 +90,9 @@ function readCredentials(environment) {
     return { apiKeyId, issuerId, privateKey: readFileSync(path.resolve(keyPath), 'utf8') };
 }
 
-function profilesRequestURL() {
+function profilesRequestURL(name) {
     const url = new URL(profilesEndpoint);
-    url.searchParams.set('filter[name]', IOS_PROVISIONING_PROFILE_NAME);
+    url.searchParams.set('filter[name]', name);
     url.searchParams.set('filter[profileType]', 'IOS_APP_STORE');
     url.searchParams.set('filter[profileState]', 'ACTIVE');
     url.searchParams.set('include', 'bundleId');
@@ -82,17 +104,17 @@ function profilesRequestURL() {
     return url;
 }
 
-function selectProfile(document, now) {
+function selectProfile(document, release, now) {
     const profiles = Array.isArray(document?.data) ? document.data : [];
     if (profiles.length !== 1) {
         throw new Error(
-            `expected exactly one active ${IOS_PROVISIONING_PROFILE_NAME} profile, found ${profiles.length}`
+            `expected exactly one active ${release.name} profile, found ${profiles.length}`
         );
     }
     const profile = profiles[0];
     const attributes = profile?.attributes;
     if (
-        attributes?.name !== IOS_PROVISIONING_PROFILE_NAME ||
+        attributes?.name !== release.name ||
         attributes?.profileType !== 'IOS_APP_STORE' ||
         attributes?.profileState !== 'ACTIVE'
     ) {
@@ -111,8 +133,8 @@ function selectProfile(document, now) {
     const includedBundle = document.included?.find(
         (entry) => entry?.type === 'bundleIds' && entry.id === bundleId
     );
-    if (includedBundle?.attributes?.identifier !== IOS_BUNDLE_ID) {
-        throw new Error(`App Store provisioning profile does not belong to ${IOS_BUNDLE_ID}`);
+    if (includedBundle?.attributes?.identifier !== release.bundleId) {
+        throw new Error(`App Store provisioning profile does not belong to ${release.bundleId}`);
     }
     const encodedContent = attributes.profileContent;
     if (!(typeof encodedContent === 'string' && encodedContent.length > 0)) {
@@ -125,15 +147,11 @@ function selectProfile(document, now) {
     return { content, name: attributes.name, uuid };
 }
 
-function exposeCleanupPath(githubEnvironmentPath, profilePath) {
+function exposeCleanupPath(githubEnvironmentPath, variable, profilePath) {
     if (!githubEnvironmentPath) {
         return;
     }
-    appendFileSync(
-        githubEnvironmentPath,
-        `HAUS_RELEASE_PROVISIONING_PROFILE_PATH=${profilePath}\n`,
-        'utf8'
-    );
+    appendFileSync(githubEnvironmentPath, `${variable}=${profilePath}\n`, 'utf8');
 }
 
 function encodeJSON(value) {
