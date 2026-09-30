@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
+import type { WebSocket } from 'ws';
 import type {
     AvatarGenerationLogger,
     AvatarImageProvider,
@@ -64,6 +65,8 @@ export async function startHausServerHarness(
         postgresIcuLocale?: string;
         messageRouter?: MessageRouter;
         pushSender?: PushSender;
+        openAiApiKey?: string;
+        connectLive?: () => WebSocket;
     } = {}
 ): Promise<HausServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster({
@@ -114,6 +117,8 @@ export async function startHausServerHarness(
                 clerkUsers,
                 databaseUrl: cluster.databaseUrl,
                 pushSender: options.pushSender,
+                openAiApiKey: options.openAiApiKey,
+                connectLive: options.connectLive,
             });
             await next.app.listen({ host: '127.0.0.1', port: 0 });
             application = next;

@@ -55,7 +55,9 @@ test('drains recurring work before closing Server transports', async () => {
             await releaseRecurringWork.promise;
             events.push('recurring-end');
         },
-        closeWebSocketServer: () => events.push('websocket'),
+        closeWebSocketServer: () => {
+            events.push('websocket');
+        },
     });
 
     try {
@@ -111,7 +113,9 @@ test('runs every finalizer after multiple failures and preserves the first one',
             events.push('recurring');
             throw firstFailure;
         },
-        closeWebSocketServer: () => events.push('websocket'),
+        closeWebSocketServer: () => {
+            events.push('websocket');
+        },
     });
 
     try {
@@ -157,7 +161,9 @@ test('preserves the full composite Scope Cause at the lifecycle settlement seam'
         closeRecurringWork: async () => {
             events.push('recurring');
         },
-        closeWebSocketServer: () => events.push('websocket'),
+        closeWebSocketServer: () => {
+            events.push('websocket');
+        },
     });
 
     try {
