@@ -21,6 +21,17 @@
     }
   },
   "lifecycleCandidates": {
+    "apps/server/src/voice/voice-call.ts": {
+      "disposition": "effect-owned",
+      "reason": "The Server runtime owns each call's scoped fixed-rate synchronization fiber and joins in-flight database delivery on socket shutdown. Four bounded timers adapt foreign WebSocket startup, idle-call duration, and graceful closure deadlines.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 4
+      }
+    },
     "apps/computer/src/cloud-agents/cursor/provider.ts": {
       "disposition": "external-adapter",
       "reason": "Cursor terminal stream handling aborts only the local subscription. The daemon Effect supervisor owns polling, retries and joined subscription teardown.",

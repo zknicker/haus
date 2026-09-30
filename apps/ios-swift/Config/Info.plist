@@ -59,6 +59,8 @@
 	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos to attach to Haus messages.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Talk with your Haus Agents during voice calls.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos to attach to Haus messages.</string>
 	<key>UILaunchScreen</key>

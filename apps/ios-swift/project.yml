@@ -74,6 +74,7 @@ targets:
         UILaunchScreen: {}
         ITSAppUsesNonExemptEncryption: false
         NSCameraUsageDescription: Take photos to attach to Haus messages.
+        NSMicrophoneUsageDescription: Talk with your Haus Agents during voice calls.
         NSPhotoLibraryUsageDescription: Choose photos to attach to Haus messages.
         UIRequiresFullScreen: true
         UISupportedInterfaceOrientations:
