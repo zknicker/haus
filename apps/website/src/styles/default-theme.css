@@ -154,6 +154,19 @@
     --border-width-field: var(--hairline-width);
     --field-border: var(--hairline);
     --field-shadow: var(--elevation-resting);
+
+    /*
+     * Sticker reactions' landing burst: pale puffs and faster specks that read
+     * as dust against the page, never as a color of their own.
+     */
+    --reaction-puff: rgba(203, 205, 214, 0.55);
+    --reaction-speck: rgba(170, 174, 188, 0.8);
+}
+
+[data-theme="dark"],
+.dark {
+    --reaction-puff: rgba(120, 122, 134, 0.45);
+    --reaction-speck: rgba(170, 172, 184, 0.7);
 }
 
 /*

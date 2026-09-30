@@ -1,15 +1,23 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
+import { freshReactions } from '../fresh-reactions.ts';
 import { threadMessagesQueryKey } from '../use-thread-messages.ts';
 import { type ChatEventInvalidation, uniqueChatIds } from './chat-event-invalidation.ts';
 import { useChatEvent } from './use-chat-event-stream.tsx';
 
-/** Refetches every message lens affected by a durable reaction change. */
+/**
+ * Refetches every message lens affected by a durable reaction change, and
+ * marks those messages live so the arriving reaction stamps in.
+ */
 export function useMessageReactionEvents() {
     const queryClient = useQueryClient();
     const utils = hausTrpc.useUtils();
 
     useChatEvent('message.reaction.updated', async (events, serverId) => {
+        const now = Date.now();
+        for (const event of events) {
+            freshReactions.noteLive(event.messageId, Date.parse(event.createdAt), now);
+        }
         await invalidateMessageReactionChanges({ events, queryClient, serverId, utils });
     });
 }
