@@ -9,7 +9,7 @@ export interface HausServerShutdownResources {
     closeMcpRuntime(): Promise<void>;
     closePostCommitWork(): Promise<void>;
     closeRecurringWork(): Promise<void>;
-    closeWebSocketServer(): void;
+    closeWebSocketServer(): Promise<void> | void;
 }
 
 export interface HausServerShutdown {

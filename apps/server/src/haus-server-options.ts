@@ -1,3 +1,4 @@
+import type { WebSocket } from 'ws';
 import type { AvatarGenerationLogger, AvatarImageProvider } from './avatar-generation/index.ts';
 import type { SweepTimers } from './boot-sweep.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
@@ -26,10 +27,12 @@ export interface HausServerApplicationOptions {
     clerkUsers?: ClerkUsers;
     /** Signed latest-production Computer release descriptor. */
     computerReleaseManifestUrl?: string;
+    /** Test boundary for the external GPT-Live socket. */
+    connectLive?: () => WebSocket;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
     messageRouter?: MessageRouter;
-    /** Server-owned OpenAI key; omitted when avatar generation is unavailable. */
+    /** Server-owned OpenAI key for avatar generation and GPT-Live calls. */
     openAiApiKey?: string;
     /** iPhone push (APNs); absent or null when no APNs key is configured. */
     pushSender?: PushSender | null;

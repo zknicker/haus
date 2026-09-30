@@ -43,6 +43,7 @@ import { startServerSweeps } from './server-sweeps.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
 import { TriggerRateLimiter } from './triggers/trigger-rate-limit.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
+import { startVoiceSocket } from './voice/voice-socket.ts';
 
 export type { HausServerApplicationOptions } from './haus-server-options.ts';
 export interface HausServerApplication {
@@ -80,6 +81,7 @@ export async function createHausServerApplication(
     let mcpRuntime: McpRuntime | null = null;
     let computerSocket: ReturnType<typeof startComputerAttachmentSocket> | null = null;
     let webSocketServer: ReturnType<typeof startHausWebSocketServer> | null = null;
+    let voiceSocket: ReturnType<typeof startVoiceSocket> | null = null;
     const resources = {
         broadcastReconnectNotification: () => webSocketServer?.broadcastReconnectNotification(),
         closeComputerSocket: () => computerSocket?.close(),
@@ -99,7 +101,10 @@ export async function createHausServerApplication(
         closeRecurringWork: async () => {
             await recurringWork?.close();
         },
-        closeWebSocketServer: () => webSocketServer?.close(),
+        closeWebSocketServer: async () => {
+            await voiceSocket?.close();
+            webSocketServer?.close();
+        },
     } satisfies HausServerShutdownResources;
 
     try {
@@ -211,6 +216,12 @@ export async function createHausServerApplication(
             isAllowedOrigin,
         });
         webSocketServer = startedWebSocketServer;
+        voiceSocket = startVoiceSocket(startedApp.server, {
+            apiKey: options.openAiApiKey,
+            connectLive: options.connectLive,
+            createContext,
+            isAllowedOrigin,
+        });
         const startedComputerSocket = startComputerAttachmentSocket(
             startedApp.server,
             connectedHaus.db,

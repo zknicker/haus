@@ -14,6 +14,7 @@ public struct ChatScreenView: View {
         ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
+    private let onCall: (() -> Void)?
     private let history: MessageHistoryNavigation
     private let mentionOptions: [MentionOptionPresentation]
     private let onLoadMentionOptions: () async -> Void
@@ -51,6 +52,7 @@ public struct ChatScreenView: View {
             return localURL
         },
         onOpenAgent: @escaping (String) -> Void = { _ in },
+        onCall: (() -> Void)? = nil,
         history: MessageHistoryNavigation = .init(),
         mentionOptions: [MentionOptionPresentation] = [],
         onLoadMentionOptions: @escaping () async -> Void = {},
@@ -74,6 +76,7 @@ public struct ChatScreenView: View {
         self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
         self.onOpenAgent = onOpenAgent
+        self.onCall = onCall
         self.history = history
         self.mentionOptions = mentionOptions
         self.onLoadMentionOptions = onLoadMentionOptions
@@ -220,7 +223,12 @@ public struct ChatScreenView: View {
             }
             .buttonStyle(.plain)
         } trailing: {
-            GlassChromeButton(.icon(.search), label: "Search messages", action: onOpenSearch)
+            HStack(spacing: 8) {
+                if let onCall {
+                    GlassChromeButton(.system("phone"), label: "Call Agent", action: onCall)
+                }
+                GlassChromeButton(.icon(.search), label: "Search messages", action: onOpenSearch)
+            }
         }
     }
 

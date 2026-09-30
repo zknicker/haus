@@ -21,6 +21,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     let onSendInlineReply:
         ((ChatDestination, String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
+    let onCallAgent: ((ChatDestination) -> Void)?
     let messageHistory: (ChatPresentation) -> MessageHistoryNavigation
     private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
     private let searchRecoveryRevision: Int
@@ -88,6 +89,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
         },
+        onCallAgent: ((ChatDestination) -> Void)? = nil,
         messageHistory: @escaping (ChatPresentation) -> MessageHistoryNavigation = { _ in .init() },
         searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation] = { _ in [] },
         searchRecoveryRevision: Int = 0,
@@ -121,6 +123,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.onSend = onSend
         self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
+        self.onCallAgent = onCallAgent
         self.messageHistory = messageHistory
         self.searchMessages = searchMessages
         self.searchRecoveryRevision = searchRecoveryRevision

@@ -1,8 +1,8 @@
 import type { components, operations, paths } from './generated/openapi.d.ts';
 
 export * from './amazon-products.ts';
-
 export type { components, operations, paths, webhooks } from './generated/openapi.d.ts';
+export * from './voice.ts';
 
 export type HausApiComponents = components;
 export type HausApiPaths = paths;

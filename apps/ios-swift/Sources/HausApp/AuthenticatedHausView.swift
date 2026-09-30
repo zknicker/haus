@@ -13,6 +13,7 @@ struct AuthenticatedHausView: View {
     /// the Store's read acknowledgements always name the same Chat.
     @State var selectedDestinationID: ChatDestination.ID?
     @State var path: [HausRootRoute] = []
+    @State var agentCall: AgentCallRequest?
     /// A cold start lands on the Inbox, which is the canvas itself rather than
     /// a screen over it; see `AuthenticatedHausView+Routes`.
     @State var showsInboxCanvas = true
@@ -69,6 +70,7 @@ struct AuthenticatedHausView: View {
             }
         }
         .task { await store.start() }
+        .sheet(item: $agentCall) { request in AgentCallView(request: request, client: store.client) }
         .onChange(of: selectedDestinationID) { previous, current in
             // The first selection lands from the shell's own sync; a change
             // from one destination to another is the user navigating, and a
@@ -165,6 +167,7 @@ struct AuthenticatedHausView: View {
                     onOpenAttachment: { attachment in
                         try await store.downloadAttachment(attachment)
                     },
+                    onCallAgent: openAgentCall,
                     messageHistory: { store.messageHistory(chatID: $0.id) },
                     searchMessages: { query in
                         try await store.searchMessagePresentations(query: query)

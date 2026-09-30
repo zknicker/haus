@@ -81,6 +81,7 @@ extension HausShellView {
                         onSendInlineReply: inlineReplySender(for: selectedDestination),
                         onOpenAttachment: onOpenAttachment,
                         onOpenAgent: openAgent,
+                        onCall: callAction(for: selectedDestination),
                         history: selectedDestination.durableChat.map(messageHistory) ?? .init(),
                         mentionOptions: mentionOptions(selectedDestination),
                         onLoadMentionOptions: { await loadMentionOptions(selectedDestination) },
@@ -142,5 +143,12 @@ extension HausShellView {
         return { content, attachments, reference in
             await onSendInlineReply(destination, content, attachments, reference)
         }
+    }
+
+    private func callAction(for destination: ChatDestination) -> (() -> Void)? {
+        guard destination.durableChat != nil,
+              case .agentDirectMessage = destination.kind,
+              let onCallAgent else { return nil }
+        return { onCallAgent(destination) }
     }
 }
