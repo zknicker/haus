@@ -20,9 +20,13 @@ export interface ReactionPile {
 
 /** Stickers drawn before the rest collapse into a "+N" chip. */
 export const maxPileStickers = 4;
-/** Horizontal step between stickers at rest and fanned. */
-export const restStep = 15;
-export const fanStep = 28;
+/**
+ * Horizontal step between stickers at rest and fanned. At rest a sticker
+ * overlaps its neighbour only slightly, so repeated copies of one emoji
+ * still read as separate silhouettes.
+ */
+export const restStep = 19;
+export const fanStep = 30;
 
 /**
  * One sticker per reactor per emoji, so two people's 👍 are two stickers.
@@ -72,30 +76,21 @@ export function buildReactionPile({
     return { overflow: all.slice(maxPileStickers), stickers: all.slice(0, maxPileStickers) };
 }
 
-export interface StickerPose {
-    /** Vertical jitter in px, −3…3. */
-    jitter: number;
-    /** Tilt in degrees, ±5…14. */
-    tilt: number;
-}
+/** How far every sticker leans, in degrees. */
+export const stickerLean = 8;
 
 /**
- * A sticker's tilt and jitter, stable for one reactor's emoji on one message,
- * so two people's 👍 sit at different angles, as if stuck by hand.
+ * A sticker's tilt: exactly ±8°, alternating by its place in the pile, so
+ * neighbours' edges part instead of stacking into one shape. Every sticker
+ * sits on the same baseline.
  */
-export function stickerPose(messageId: string, sticker: StickerIdentity): StickerPose {
-    const hash = stickerSeed(messageId, sticker);
-    const sign = hash & 1 ? -1 : 1;
-
-    return {
-        jitter: ((hash >>> 8) % 7) - 3,
-        tilt: sign * (5 + ((hash >>> 1) % 10)),
-    };
+export function stickerTilt(index: number) {
+    return index % 2 === 0 ? -stickerLean : stickerLean;
 }
 
 type StickerIdentity = Pick<ReactionSticker, 'actor' | 'emoji'>;
 
-/** The stable seed for one sticker's pose and landing burst. */
+/** The stable seed for one sticker's landing burst. */
 export function stickerSeed(messageId: string, sticker: StickerIdentity) {
     return stableHash(`${messageId}:${sticker.emoji}:${sticker.actor.id}`);
 }

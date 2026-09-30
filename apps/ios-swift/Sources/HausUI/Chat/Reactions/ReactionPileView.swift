@@ -15,7 +15,7 @@ struct ReactionPileView: View {
     /// compact row at accessibility sizes.
     @ScaledMetric(relativeTo: .body) private var textScale: CGFloat = 1
 
-    /// The row: the 24pt sticker box plus a few points. Tilt, jitter, and the
+    /// The row: the 24pt sticker box plus a few points. The tilt and the
     /// outline may spill a little past it, never onto the text above.
     static let height: CGFloat = 28
 
@@ -31,6 +31,7 @@ struct ReactionPileView: View {
                     ReactionStickerView(
                         messageID: messageID,
                         sticker: sticker,
+                        index: index,
                         stamp: stamps[sticker.id],
                         onToggle: board.map { board in { board.toggle(messageID: messageID, sticker: sticker) } }
                     )

@@ -12,7 +12,7 @@
 
 /*
  * One compact row under the message body: the 24px sticker box plus a few
- * px. Tilt, jitter and the die-cut outline may spill a little past it, but
+ * px. The tilt and the die-cut outline may spill a little past it, but
  * never far enough to reach the text above or the next message's header.
  */
 .reaction-pile {
@@ -53,8 +53,8 @@
 
 /* Stickers stack in DOM order, later on top. */
 .reaction-sticker {
-    top: calc(2px + var(--jy));
-    left: calc(var(--i) * 15px);
+    top: 2px;
+    left: calc(var(--i) * 19px);
     width: 24px;
     height: 24px;
     transition:
@@ -64,18 +64,18 @@
 
 .reaction-overflow {
     top: 4px;
-    left: calc(var(--i) * 15px + 3px);
+    left: calc(var(--i) * 19px + 3px);
     display: grid;
     height: 20px;
     place-items: center;
 }
 
 .reaction-pile:is(:hover, :focus-within) .reaction-sticker {
-    left: calc(var(--i) * 28px - var(--shift));
+    left: calc(var(--i) * 30px - var(--shift));
 }
 
 .reaction-pile:is(:hover, :focus-within) .reaction-overflow {
-    left: calc(var(--i) * 28px + 3px - var(--shift));
+    left: calc(var(--i) * 30px + 3px - var(--shift));
 }
 
 .reaction-sticker:is([data-hovered], [data-focus-visible]) {

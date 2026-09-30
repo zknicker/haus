@@ -3,8 +3,8 @@ import type * as React from 'react';
 import { Button } from 'react-aria-components';
 import {
     type ReactionSticker as ReactionStickerModel,
-    stickerPose,
     stickerSeed,
+    stickerTilt,
 } from './reaction-pile-model.ts';
 import { ReactorFace, useReactors } from './reactor-identity.tsx';
 import { StickerBurst } from './sticker-burst.tsx';
@@ -31,7 +31,6 @@ export function ReactionSticker({
     sticker: ReactionStickerModel;
 }) {
     const reactor = useReactors()(sticker.actor);
-    const pose = stickerPose(messageId, sticker);
 
     return (
         <Tooltip closeDelay={0} delay={0}>
@@ -45,8 +44,7 @@ export function ReactionSticker({
                     {
                         '--d': `${stamp?.delay ?? 0}s`,
                         '--i': index,
-                        '--jy': `${pose.jitter}px`,
-                        '--tilt': `${pose.tilt}deg`,
+                        '--tilt': `${stickerTilt(index)}deg`,
                     } as React.CSSProperties
                 }
             >

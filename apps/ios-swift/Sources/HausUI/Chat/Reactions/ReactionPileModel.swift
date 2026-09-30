@@ -43,8 +43,10 @@ struct ReactionSticker: Identifiable, Hashable, Sendable {
 struct ReactionPile: Hashable, Sendable {
     /// Stickers drawn before the rest collapse into a "+N" chip.
     static let maxStickers = 4
-    /// Horizontal step between resting stickers, so neighbours overlap.
-    static let restStep: CGFloat = 15
+    /// Horizontal step between resting stickers: neighbours overlap only
+    /// slightly, so repeated copies of one emoji still read as separate
+    /// silhouettes. The App's `restStep`.
+    static let restStep: CGFloat = 19
 
     let stickers: [ReactionSticker]
     let overflow: [ReactionSticker]
@@ -89,29 +91,25 @@ struct ReactionPile: Hashable, Sendable {
     }
 }
 
-/// A sticker's hand-stuck pose: tilt and vertical jitter, stable for one
-/// reactor's emoji on one message, so two people's 👍 sit at different angles
-/// and nothing jumps between renders.
-struct StickerPose: Equatable, Sendable {
-    /// Vertical jitter in points, −3…3.
-    let jitter: CGFloat
-    /// Tilt in degrees, ±5…14.
-    let tilt: Double
+/// A sticker's lean and its landing burst's seed, value for value the App's
+/// `stickerTilt` and `stickerSeed`.
+enum StickerPose {
+    /// How far every sticker leans, in degrees.
+    static let lean: Double = 8
 
-    init(messageID: String, sticker: ReactionSticker) {
-        let hash = Self.seed(messageID: messageID, sticker: sticker)
-        let sign: Double = hash & 1 == 1 ? -1 : 1
-        jitter = CGFloat(Int((hash >> 8) % 7) - 3)
-        tilt = sign * Double(5 + (hash >> 1) % 10)
+    /// Exactly ±8°, alternating by place in the pile so neighbours' edges part
+    /// instead of stacking into one shape. Every sticker shares one baseline.
+    static func tilt(index: Int) -> Double {
+        index.isMultiple(of: 2) ? -lean : lean
     }
 
-    /// The stable seed for one sticker's pose and landing burst.
+    /// The stable seed for one sticker's landing burst.
     static func seed(messageID: String, sticker: ReactionSticker) -> UInt32 {
         stableHash("\(messageID):\(sticker.emoji):\(sticker.reactor.id)")
     }
 
     /// 32-bit FNV-1a over UTF-16 code units — the App's `stableHash`, so a
-    /// sticker leans the same way on the phone as on the desktop.
+    /// sticker's burst scatters the same way on the phone as on the desktop.
     static func stableHash(_ text: String) -> UInt32 {
         var hash: UInt32 = 0x811C_9DC5
         for unit in text.utf16 {

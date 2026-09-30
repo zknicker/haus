@@ -3,35 +3,37 @@ import SwiftUI
 import UIKit
 #endif
 
-/// One die-cut emoji sticker, tilted and jittered by its stable pose. While a
+/// One die-cut emoji sticker, leaning ±8° by its place in the pile. While a
 /// stamp runs it is sampled per frame from `StampMotion`, with its landing
 /// burst underneath; otherwise it sits at rest.
 struct ReactionStickerView: View {
     let messageID: String
     let sticker: ReactionSticker
+    /// Its place in the pile, which sets the way it leans.
+    let index: Int
     let stamp: ReactionStamp?
     let onToggle: (() -> Void)?
 
     static let box: CGFloat = 24
 
     var body: some View {
-        let pose = StickerPose(messageID: messageID, sticker: sticker)
+        let tilt = StickerPose.tilt(index: index)
         Button { onToggle?() } label: {
             Color.clear
                 .frame(width: Self.box, height: Self.box)
-                .overlay { stamped(pose: pose) }
+                .overlay { stamped(tilt: tilt) }
                 .contentShape(.rect)
         }
         .buttonStyle(StickerButtonStyle())
         .disabled(onToggle == nil)
-        .offset(y: 2 + pose.jitter)
+        .offset(y: 2)
         .accessibilityLabel("\(sticker.emoji) from \(sticker.reactor.name)")
         .accessibilityAddTraits(sticker.isOwn ? .isSelected : [])
         .accessibilityHint(sticker.isOwn ? "Removes your reaction" : "Adds this reaction")
     }
 
     @ViewBuilder
-    private func stamped(pose: StickerPose) -> some View {
+    private func stamped(tilt: Double) -> some View {
         if let stamp {
             TimelineView(.animation) { context in
                 let elapsed = context.date.timeIntervalSince(stamp.start)
@@ -43,7 +45,7 @@ struct ReactionStickerView: View {
                     )
                     .offset(y: 4.8)
                     StickerGlyph(emoji: sticker.emoji)
-                        .rotationEffect(.degrees(pose.tilt + motion.rotation))
+                        .rotationEffect(.degrees(tilt + motion.rotation))
                         .scaleEffect(x: motion.scaleX, y: motion.scaleY)
                         .opacity(motion.opacity)
                 }
@@ -51,7 +53,7 @@ struct ReactionStickerView: View {
             .id(stamp.token)
         } else {
             StickerGlyph(emoji: sticker.emoji)
-                .rotationEffect(.degrees(pose.tilt))
+                .rotationEffect(.degrees(tilt))
         }
     }
 }
