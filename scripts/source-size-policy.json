@@ -48,7 +48,7 @@
     "apps/computer/src/setup-resume.test.ts": 325,
     "apps/computer/src/update.test.ts": 340,
     "apps/ios-swift/Sources/HausUI/Chat/MessageComposerView.swift": 380,
-    "apps/ios-swift/Sources/HausUI/Platform/TranscriptListView.swift": 363,
+    "apps/ios-swift/Sources/HausUI/Platform/TranscriptListView.swift": 341,
     "apps/ios-swift/Sources/HausUI/Settings/SettingsModels.swift": 305,
     "apps/ios-swift/Sources/HausUI/Settings/SettingsProfileViews.swift": 306,
     "apps/ios-swift/Tests/HausModelsTests/HausModelsTests.swift": 350,
