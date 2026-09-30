@@ -1,7 +1,11 @@
-import { Button } from '@heroui/react';
 import * as React from 'react';
-import { useBrowserViewBounds } from '../../hooks/browser/use-browser-view-bounds.ts';
+import {
+    type BrowserPageSnapshot,
+    useBrowserViewBounds,
+} from '../../hooks/browser/use-browser-view-bounds.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
+import { BrowserFindBar } from './browser-find-bar.tsx';
+import { BrowserStartPage } from './browser-start-page.tsx';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 import { BrowserWorkspaceToolbar } from './browser-workspace-toolbar.tsx';
 
@@ -13,14 +17,20 @@ export function BrowserWorkspacePage() {
 
 function BrowserPage({ tab }: { tab: BrowserTab }) {
     const host = React.useRef<HTMLDivElement>(null);
-    useBrowserViewBounds(host, tab.error !== null || tab.url === 'about:blank');
+    const snapshot = useBrowserViewBounds(
+        host,
+        tab.id,
+        tab.error !== null || tab.url === 'about:blank'
+    );
     return (
         <section
             aria-label={`Browser: ${tab.title}`}
             className="absolute inset-0 z-10 flex flex-col bg-background"
         >
             <BrowserWorkspaceToolbar tab={tab} />
-            <div className="min-h-0 flex-1" ref={host}>
+            <BrowserFindBar tab={tab} />
+            <div className="relative min-h-0 flex-1 overflow-hidden" ref={host}>
+                {snapshot ? <BrowserSnapshot snapshot={snapshot} /> : null}
                 {tab.error ? (
                     <p className="p-6 text-muted text-sm" role="alert">
                         {tab.error}. Reload or open this page in your default browser.
@@ -32,30 +42,17 @@ function BrowserPage({ tab }: { tab: BrowserTab }) {
     );
 }
 
-function BrowserStartPage() {
-    const workspace = useBrowserWorkspace();
+/** Stands in for the native page while an overlay hides it; pinned top-left at capture size. */
+function BrowserSnapshot({ snapshot }: { snapshot: BrowserPageSnapshot }) {
     return (
-        <div className="mx-auto mt-24 max-w-lg px-6">
-            <p className="text-muted text-sm">Search the web or enter a website address above.</p>
-            {workspace?.history.length ? (
-                <section aria-label="Suggested pages" className="mt-6 flex flex-wrap gap-3">
-                    {workspace.history.slice(0, 6).map((entry) => (
-                        <Button
-                            key={entry.url}
-                            onPress={() =>
-                                workspace.command({
-                                    kind: 'navigate',
-                                    action: 'url',
-                                    url: entry.url,
-                                })
-                            }
-                            variant="ghost"
-                        >
-                            <span className="max-w-40 truncate">{entry.title}</span>
-                        </Button>
-                    ))}
-                </section>
-            ) : null}
-        </div>
+        <img
+            alt=""
+            className="pointer-events-none absolute top-0 left-0 max-w-none select-none"
+            draggable={false}
+            height={snapshot.height}
+            src={snapshot.src}
+            style={{ width: snapshot.width, height: snapshot.height }}
+            width={snapshot.width}
+        />
     );
 }
