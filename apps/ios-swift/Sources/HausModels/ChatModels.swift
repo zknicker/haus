@@ -228,6 +228,9 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     /// The direct parent and chain root for an inline reply, when this Message
     /// was sent in a Channel or DM as a reply to another Message.
     public let reply: ChatMessageReply?
+    /// Grouped emoji reactions, emoji by first arrival. Servers that predate
+    /// reactions omit the field, so it decodes as empty.
+    public var reactions: [ChatMessageReaction] = []
     public let runID: String?
     public let sequence: Int
     public let serverID: String
@@ -247,6 +250,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case createdAt
         case id
         case nonce
+        case reactions
         case reply
         case runID = "runId"
         case sequence

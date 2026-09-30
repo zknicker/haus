@@ -36,6 +36,8 @@ public struct ThreadDetailView: View {
     /// Visual heights are the screen's for the same structural reason attachment
     /// tiles are; see `VisualHeightRegistry`.
     @State var visualHeights = VisualHeightRegistry()
+    /// Hosted rows do not inherit the environment; see `MessageTimelineView`.
+    @Environment(\.reactionStickers) var reactionBoard
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -114,6 +116,7 @@ public struct ThreadDetailView: View {
     }
 
     public var body: some View {
+        _ = reactionBoard?.revision
         let replies = replyProvider()
         let inlineReplyMessages = inlineReplies?.messages() ?? []
         let items = ThreadTranscriptItem.items(

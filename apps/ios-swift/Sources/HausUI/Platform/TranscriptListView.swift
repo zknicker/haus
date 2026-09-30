@@ -66,7 +66,7 @@ where Item.ID == String {
         table.keyboardDismissMode = .interactive
         table.rowHeight = UITableView.automaticDimension
         table.estimatedRowHeight = 72
-        table.register(UITableViewCell.self, forCellReuseIdentifier: "row")
+        table.register(TranscriptCell.self, forCellReuseIdentifier: "row")
         table.dataSource = context.coordinator
         table.delegate = context.coordinator
         if #available(iOS 26, *) {
@@ -228,6 +228,7 @@ where Item.ID == String {
         // and a flip set beforehand would ride away on the discarded view,
         // leaving that row mirrored inside the flipped table.
         cell.contentView.transform = CGAffineTransform(scaleX: 1, y: -1)
+        cell.stackForReactionStamps(order: items.count - 1 - indexPath.row)
     }
 
     // MARK: Context menus
@@ -252,11 +253,7 @@ where Item.ID == String {
             identifier: indexPath as NSIndexPath,
             previewProvider: nil
         ) { _ in
-            UIMenu(children: actions.map { action in
-                UIAction(title: action.title, image: UIImage(systemName: action.systemImage)) { _ in
-                    action.handler()
-                }
-            })
+            UIMenu(children: actions.map(\.menuElement))
         }
     }
 
@@ -311,26 +308,7 @@ where Item.ID == String {
               let cell = tableView.cellForRow(at: indexPath),
               let container = tableView.superview
         else { return nil }
-        let content = cell.contentView
-        let renderer = UIGraphicsImageRenderer(bounds: content.bounds)
-        // `layer.render` composites the subtree without the root layer's own
-        // transform, so the flipped contentView yields an upright image;
-        // `drawHierarchy` bakes the flip in.
-        let image = renderer.image { ctx in
-            content.layer.render(in: ctx.cgContext)
-        }
-        let snapshot = UIImageView(image: image)
-        let parameters = UIPreviewParameters()
-        parameters.backgroundColor = .clear
-        let center = content.convert(
-            CGPoint(x: content.bounds.midX, y: content.bounds.midY),
-            to: container
-        )
-        return UITargetedPreview(
-            view: snapshot,
-            parameters: parameters,
-            target: UIPreviewTarget(container: container, center: center)
-        )
+        return TranscriptCell.liftedPreview(of: cell.contentView, in: container)
     }
 
     // MARK: UITableViewDelegate

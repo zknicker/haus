@@ -61,6 +61,7 @@ struct AuthenticatedHausView: View {
             case .loaded:
                 loadedContent
                     .environment(\.opensWithEntrance, !openingEntranceFinished)
+                    .environment(\.reactionStickers, store.reactionStickers)
                     .task {
                         guard !openingEntranceFinished else { return }
                         try? await Task.sleep(for: .seconds(1.2))
