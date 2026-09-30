@@ -186,12 +186,10 @@ test('offsets the sidebar’s first navigation row onto the shell band’s midli
     // Nothing left to clear: the mark never sits beside the lights, so the
     // gutter token went with the rule that read it.
     expect(shellCss).not.toContain('--app-shell-traffic-light-gutter');
-    // Both declaration sites stand: the web's plain scope, and the macOS one
-    // that owns the traffic-light arithmetic behind the same value.
+    // One declaration site: the web's. The desktop window layouts drop the
+    // strip, so no macOS traffic-light arithmetic declares it any more.
     expect(shellCss).toMatch(/\n\s*\.app-shell \{\s*--app-shell-titlebar-inset:/);
-    expect(shellCss).toMatch(
-        /html\.macos-electron \.app-shell \{[\s\S]*?--app-shell-titlebar-inset:/
-    );
+    expect(shellCss).not.toMatch(/html\.macos-electron \.app-shell \{/);
 });
 
 test('renders back navigation with the shared sidebar menu anatomy', () => {

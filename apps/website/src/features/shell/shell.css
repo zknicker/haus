@@ -1,14 +1,15 @@
 @layer base {
     :root {
         /*
-         * The height every top-of-column band shares: the shell topbar, local
-         * SectionBars, the sidebar header band, and the native titlebar that
-         * hosts the macOS traffic lights. Declared as a length rather than a
-         * spacing-scale step because the native window must center its traffic
-         * lights on the same number (electron/main.cjs topbarHeightPx), and
-         * that side cannot read the theme's density.
+         * The height every top-of-column band shares: the web's shell topbar,
+         * local SectionBars, and the sidebar header band. Declared as a length
+         * rather than a spacing-scale step so a band's height never moves with
+         * density. The desktop window band is its own height
+         * (--app-shell-top-band-height, default-theme.css → Shell variants).
          */
         --app-shell-band-height: 3rem;
+        /* The invisible window-drag strip (AppShellDragRegion); the desktop window band re-points it. */
+        --app-shell-drag-height: calc(var(--app-shell-band-height) + 2px);
         --cursor-interactive: default;
     }
 
@@ -123,71 +124,31 @@
     }
 
     /*
-     * The titlebar strip: the opening every surface leaves at the top of the
-     * sidebar, before the navigation starts. macOS needs it to clear the
-     * traffic lights; the web takes the same value so both surfaces read alike
-     * and the Haus mark and Settings gear have one home. This is the web's
-     * declaration site — a web-specific strip is tuned here, without touching
-     * the macOS arithmetic below.
+     * The titlebar strip: the web's opening at the top of the sidebar, before
+     * the navigation starts — the home of the Haus mark and the Settings gear.
+     * The desktop window layouts drop the strip (their window band holds the
+     * traffic lights and Settings; see default-theme.css → Shell variants).
      */
     .app-shell {
         --app-shell-titlebar-inset: calc(var(--app-shell-band-height) * 0.8);
     }
 
     /*
-     * The native titlebar band is the shared shell band seen from the window's
-     * side, so it reads the same value rather than restating a height that can
-     * drift. electron/main.cjs centers the traffic lights on it too.
-     */
-    html.macos-electron .app-shell {
-        /*
-         * The strip only has to clear the traffic lights, not stand as tall as
-         * a band. electron/main.cjs seats them at `(band - 12) / 2 - 1`, so the
-         * dots end 5px past the band's midpoint — y=29 — and a full 48 left a
-         * visible shelf of dead space above the navigation.
-         *
-         * Four fifths leaves 19px of air between the lights and the first
-         * navigation row's pill. Three quarters was the earlier value and read
-         * tight at 17px once the lead row stopped standing in a full band and
-         * started sitting on a half-band offset instead.
-         */
-        --app-shell-titlebar-inset: calc(var(--app-shell-band-height) * 0.8);
-    }
-
-    /*
      * Keep HeroUI's sidebar panels full-height, then reserve the titlebar strip
-     * inside them, masking any panel edge behind the macOS traffic lights. The
-     * strip is unconditional: the lights are why macOS has one, and the air
-     * above the lead row plus a home for the Haus mark and the Settings gear
-     * are why the web takes the same one.
-     *
-     * The band paints the sidebar's own surface and draws no line. It used to
-     * do both the other way round — `--background` plus a hairline continuing
-     * the shell topbar's — which read as one continuous rule back when the
-     * sidebar was `--background` too. Once the sidebar took its own tint that
-     * band became a lighter rectangle over it, and its hairline crossed the
-     * sidebar's trailing edge to grid the top-left corner. The tint already
-     * separates chrome from content, so the line has nothing left to do: the
-     * sidebar is one unbroken column and the topbar's rule stops at it.
+     * inside them. The band paints the sidebar's own surface and draws no
+     * line: the tint already separates chrome from content, so the sidebar is
+     * one unbroken column and the topbar's rule stops at it.
      */
     .app-shell [data-slot='sidebar'] {
         /*
          * The strip's clearance and nothing else. The rest of the air before
          * the first navigation row is that row's own half-band offset (the
-         * lead-row rule in the components layer), which reads the same on
-         * every platform; the two stack into the clearance under the macOS
-         * traffic lights, and into the same opening on the web.
+         * lead-row rule in the components layer).
          */
         padding-block-start: var(--app-shell-titlebar-inset);
     }
 
-    /*
-     * The mask paints the sidebar's own surface, so on the web it covers the
-     * surface with itself and changes nothing visible. It stays because it is
-     * what keeps the two platforms one layout: the same box still hides the
-     * panel edge behind the traffic lights, still stays solid while the native
-     * window is unfocused, and is one rule rather than a platform fork.
-     */
+    /* The strip's mask, painted in the sidebar's own surface. */
     .app-shell [data-slot='sidebar']::before {
         position: absolute;
         z-index: 1;
@@ -200,22 +161,11 @@
     }
 
     /*
-     * The strip's contents: Settings at the trailing end, and on the web the
-     * Haus mark at the leading one. Neither earned a row, so neither takes one
-     * — the strip is reserved space and the navigation below leads the column
-     * flush. On the macOS desktop the traffic lights already lead this line, so
-     * only the gear is in the box and the mark stays on the Inbox row.
-     *
-     * The sidebar root is already positioned, so this is one absolute box
-     * spanning the strip rather than two floating corners kept level by hand.
-     *
-     * Its height is the lights' axis, not the strip's: the same arithmetic
-     * main.cjs uses puts their midline at `band / 2 - 1`, so a box of twice
-     * that centres its contents on that axis whatever the strip's own height
-     * is. That box runs past the strip and over the first navigation row, so
-     * the strip itself takes no pointer events and hands them back to its
-     * contents; `app-region: no-drag` still reaches the gear as a button, so
-     * the strip stays draggable around both.
+     * The strip's contents: the Haus mark at the leading end and Settings at
+     * the trailing one. Neither earned a row, so neither takes one. One
+     * absolute box spans the strip, centred on the band's midline; it runs
+     * over the first navigation row, so it takes no pointer events and hands
+     * them back to its contents.
      */
     .app-shell [data-slot='sidebar'] .app-shell-titlebar-strip {
         position: absolute;
@@ -281,7 +231,7 @@
      * The sidebar's lead navigation row meets the shared shell band's midline.
      *
      * Every top-of-column zone is one `--app-shell-band-height` box — the
-     * content topbar, a local SectionBar, the macOS titlebar strip — and the
+     * content topbar, a local SectionBar, the titlebar strip — and the
      * sidebar used to lead with one too, a Server band whose midline met the
      * content topbar's across the divider. The Inbox row replaced that band
      * with a stock menu row, and the midlines came apart.
