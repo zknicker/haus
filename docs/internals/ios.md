@@ -14,6 +14,11 @@ Computer, Clerk instance, and tRPC procedures; it does not add a mobile backend.
 
 ## Architecture
 
+The foreground [Agent voice-call preview](../features/voice-calls.md) adds an
+authenticated Server WebSocket and native audio in `HausApp/Voice`. Server owns
+OpenAI access and delegation into existing Agent delivery; the phone owns audio
+capture, playback, captions, and call presentation.
+
 The app is split into four focused layers:
 
 - `HausModels` owns small Codable projections of the existing first-party wire contracts.
