@@ -58,6 +58,17 @@ the website actually deployed, including rollbacks. Haus Server serves the marke
 `index.html` response with `Cache-Control: no-store`. Reload keeps the current URL and loads the
 deployed renderer; an existing window continues running its loaded code until the user reloads.
 
+## Window Layouts
+
+The desktop window layout ([feature](../features/desktop-window-layout.md)) is App-local
+presentation state: `lib/shell-variant.ts` and `hooks/shell/use-shell-variant.ts` (`band` or
+`canvas`; null on the web), persisted in `localStorage` and followed across windows through storage
+events. The renderer stamps `data-shell-variant` on the document root; the "Shell variants" section
+of `default-theme.css` owns every visual difference, including the Codex tab values, and
+`features/shell/window-band.tsx` is the window band. Both layouts share one band height, so
+`electron/main.cjs` seats the traffic lights once at window creation and no IPC carries the layout.
+The web keeps its column topbar and full-height sidebar.
+
 ## Session Refresh And Reconnect
 
 The App keeps one tRPC client and React provider mounted for the signed-in human. Clerk token

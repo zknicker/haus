@@ -50,7 +50,11 @@ them, hovering a copy button's tooltip dismisses its enclosing HoverCard.
 Cards still share their own exclusivity group, and ordinary tooltips retain
 theirs; hover travel, delays, and keyboard behavior remain dependency-owned.
 Remove both patches when upstream supports tooltips inside PreviewTrigger
-without closing the preview. Verify with
+without closing the preview: track
+[adobe/react-spectrum#10460](https://github.com/adobe/react-spectrum/issues/10460)
+(related #10443). Still open, and still unfixed on upstream `main`, as of
+`react-aria-components` 1.21.1 / `react-stately` 3.50.0 (September 2026).
+Verify with
 `bun run --filter @haus/website test:app runtime-issue-hover.spec.ts` after
 restarting Vite so it rebuilds optimized dependencies.
 
@@ -144,6 +148,12 @@ has your reply, so it is no Needs you row. It also seeds one claim Blippy left s
 on the Tasks page under **Stopped before finishing**), one
 settled Cloud Agent work, and seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.
+
+Another idempotent seed (`seed-artifact-message.ts`) gives fresh and existing demo workspaces a
+Blippy message in `#product` that shares two artifacts: a `haus://workspace` link to
+`notes/tab-strip-polish.md` and an artifact card for `workbench/tab-strip-states.html`. It writes
+both files into Blippy's workspace under `HAUS_COMPUTER_DATA_ROOT` when they are missing, so the
+card, the link, and desktop artifact tabs have real files to open.
 
 A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
 anchor messages cover human @mentions in Channels and Threads, all task statuses,

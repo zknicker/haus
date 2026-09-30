@@ -572,6 +572,42 @@ HeroUI's values untouched. Never put a themed value in the bare `:root` block �
 | `overlay shadow` | `Light: 0 2px 8px 0 rgba(0, 0, 0, 0.06), 0 -6px 12px 0 rgba(0, 0, 0, 0.03), 0 14px 28px 0 rgba(0, 0, 0, 0.08); Dark: 0 0 1px 0 rgba(255, 255, 255, 0.3) inset` |  | `--overlay-shadow` | Prefer HeroUI overlay components and `shadow-overlay`. | Elevation shadow for floating layers such as popovers, menus, modals, and sheets. |
 | `field shadow` | `Light: var(--elevation-resting); Dark: 0 0 0 0 transparent inset` | Owned in `default-theme.css` | `--field-shadow` | Prefer HeroUI field components. | A field is a surface: same resting lift, and `--field-border` draws the same hairline. |
 
+### Transcript edge blur
+
+Rows scrolling under a transcript's top or bottom edge blur progressively and
+dissolve into the content plane, modelled on the Codex room view.
+`MessageScroller` (`components/chats/message-scroller.tsx`) renders two inert,
+`aria-hidden` `.transcript-edge-blur` bands over its viewport,
+`data-side="top"` and `data-side="bottom"`, so the chat, DM, and thread
+transcripts all get them; the theme layer owns the look. After Skiper UI's
+progressive blur, each band is ONE element carrying three things together:
+`backdrop-filter: blur(var(--edge-blur))`, a mask fading it out from
+`--edge-blur-stop` toward the content, and a wash of `--color-background` to
+clear. The base rule sets `--edge-blur: 2.5px` and `--edge-blur-stop: 10%`, so
+the blur is soft and full strength only right at the edge.
+
+The top band is `4rem` tall. The bottom band sits behind the floating composer
+and covers `--chat-footer-height` (published by `ChatFooterSurface`) plus
+`1.5rem`, never less than `4rem`. It replaces the old viewport mask and composer
+veil. It stacks above the rows (`z-index: 1`) and below the jump-to-latest
+button and `.chat-footer-dock`, so the composer stays crisp and interactive. The
+viewport's bottom padding (`chatFooterClearanceClassName`) still lets the last
+message scroll clear of the composer.
+
+Never put a band inside a rounded clip: a `border-radius` or `clip-path`
+clipping ancestor makes Chromium drop the mask, leaving full-strength blur with
+a hard line. That was the desktop-only `.app-window-shell` rounding (redundant —
+macOS already clips the titled window to its corner), which is why the web
+never showed it; a contract test guards it. `--color-background` is re-pointed
+inside shell cards, so the wash matches every shell variant. The top band shows
+while the root's `data-scrollable` includes `start`, which the scroller
+primitive writes without a re-render; it switches on by visibility. The bottom
+band is always on: at rest it covers only the empty footer clearance, and
+gating it on `end` left rows unblurred under the composer when scrolled up by
+less than that clearance. Never animate its opacity or `backdrop-filter`. Under
+`prefers-reduced-transparency` or forced colours the blur drops out and the
+wash alone fades the rows.
+
 ## Shapes
 Use HeroUI's default rounded shape language and Tailwind radius utilities. Custom components should match the same radius scale rather than introducing unrelated corner values.
 ### Radius
@@ -709,6 +745,46 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   `--background-hover`: a 50% `background-secondary` wash, including messages in task and thread views.
 - **Thread transcript fade:** Task and thread views fade messages over the final 4rem,
   reaching transparency 0.75rem above the composer so content clears its rounded edges.
+- **Workspace tabs:** Desktop only, in the window band. One anatomy for the primary tab and every
+  browser and artifact tab (`WorkspaceTab`, base rules on `.workspace-tab` and Codex's window-tab
+  values on `.shell-window-band .workspace-tab…`, tokens `--shell-tab-*`, in `default-theme.css`).
+  It copies Codex's window tabs: a 32px box with a 10px corner, a 20px mark slot, a regular-weight
+  `text-sm` (13px) title 8px after it, a start inset equal to the slot's vertical inset (6px) and a
+  4px end inset. A cut-off title fades over its last 1rem instead of ending in an ellipsis. Identity
+  marks fill the slot and derive their radius from that box (the 20px `tab` ChannelIconBox, a 20px
+  DM avatar) — a touch larger than a bare favicon because the box eats into the glyph — while 16px
+  glyphs, favicons, and artifact icons center in it, so titles start at one inset across kinds. Resting tabs are bare 50%-foreground
+  titles; hover (and a dragged tab) lays a 5% foreground wash (8% in dark) without lifting the title;
+  the selected tab is the card color with a half-pixel 12% foreground border and a faint shadow-sm.
+  Every tab, the primary one included, holds a 240px basis (`--workspace-tab-width` in the band)
+  while there is room, so switching chats never moves the strip, and all tabs shrink evenly together
+  down to mark-only when the strip is crowded. The primary tab carries no trailing action and sorts
+  with the other tabs in one draggable list. Browser and artifact tabs
+  show a 20px ghost close button (14px glyph, 7px from the end) on select, hover, or focus. Tabs
+  sit 4px apart; a 1 × 12px divider at 8% foreground centered in each gap (and before the new-tab
+  button) keeps adjacent resting tabs apart, and hides beside the selected, hovered, or dragged tab.
+  The stock Button fills the tab, so the whole tab is the hit target and the focus ring follows its
+  corner. Marks are identity, not decoration: a channel's own icon box, the DM Agent's avatar, the
+  section glyph, the page favicon, or the artifact file glyph. The page's actions (the chat's "…"
+  menu) and then Settings sit as icon-only ghost `sm` Buttons at the band's end
+  (`.workspace-band-end`), outside the window drag region. Browser and artifact tabs share the
+  closable-tab rules (`.workspace-tab:not([data-kind="primary"])`).
+- **Desktop window layout:** The desktop app has two layouts (Settings > Preferences > Window
+  layout), both with a 44px full-width grey window band holding the traffic lights over a
+  sidebar-width segment, then the tab strip from the content column's edge. **Band** (default) puts
+  the sidebar and content in one rounded, bordered card inset 3px from the window; **Canvas** sets
+  the sidebar on the grey and the content in its own card. The theme layer's "Shell variants"
+  section owns both; the web keeps its single-column topbar.
+- **New-tab page:** Recent sites are stock ghost Buttons stacked as 92px tiles (`.browser-start-site`
+  in `default-theme.css`), centered a third of the way down: a 40px chip on the resting surface
+  material (`--surface` + `--surface-shadow`, so it still reads on the ghost hover fill) at the
+  identity-mark curve `×2.5`, holding a 20px favicon or globe, over one muted `text-sm` label that
+  ends in an ellipsis. The tile takes the shell corner. No instruction copy; no history, no tiles.
+- **Find in page:** A row under the page toolbar (`.browser-find-bar`), never an overlay, so the
+  native page stays live: a right-aligned stock `TextField` + secondary `InputGroup` (288px) with a
+  muted tabular match count in its suffix, then Previous, Next, and Close as the toolbar's icon-only
+  ghost `sm` buttons in the same tight cluster. It shares the toolbar's bottom hairline. A page not at
+  100% shows its zoom as a ghost `sm` text Button at the start of the page actions.
 - **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`. The sidebar updater keeps its primary opacity while pending because pending blocks presses there but also represents live status.
 - **Cursors:** Keep the desktop arrow on buttons and other app controls. Reserve the pointer for
   true hyperlinks and specialized cursors for an active manipulation such as dragging or resizing;
@@ -765,12 +841,13 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   the grid is a hairline on horizontals alone, and labels are 12px. The app's usage chart and
   agent-authored visuals share the same tokens.
 
-The desktop content topbar keeps one primary Chat tab and additional browser tabs. The sidebar is
-unchanged. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the white
-canvas without a background tray; selected tabs use a low-contrast `surface-secondary` fill and pill-shaped corners through `.workspace-tab` in
-`default-theme.css`. Tab actions are stock HeroUI Buttons with sibling Close controls, so interactive
-controls are never nested. The primary tab keeps the same icon, inset, and dimensions when selected; channel actions live in
-its sibling ellipsis button. The desktop tab does not carry an artifact-panel toggle.
+The desktop window band keeps one primary Chat tab and additional browser and artifact tabs in one
+sortable strip; the page's band content, actions, and Settings follow it at the band's end. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the page
+ground without a background tray; their fill, corner, and selected material follow **Workspace tabs**
+above. Each tab's stock HeroUI Button and its trailing Close action are siblings inside the tab, so
+interactive controls are never nested. The primary
+tab keeps the same mark, inset, and dimensions when selected. The desktop tab does not carry an
+artifact-panel toggle; artifacts open as their own tabs.
 
 ## Do's and Don'ts
 
