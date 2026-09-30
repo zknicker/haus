@@ -1,3 +1,4 @@
+import { normalizeReactionEmoji, reactionEmojiRule } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
@@ -24,8 +25,12 @@ export function registerAgentReactionRoutes(app: FastifyInstance, db: HausDataba
                 'The reaction request was invalid.'
             );
         }
+        const emoji = agentReactionEmojiFor(parsed.data);
+        if (!emoji) {
+            return sendAgentApiError(reply, 400, 'INVALID_ARG', reactionEmojiRule);
+        }
         try {
-            const result = await changeAgentReaction(db, runner, parsed.data);
+            const result = await changeAgentReaction(db, runner, { ...parsed.data, emoji });
             if (result.event) {
                 emitDurableChatEvent({ audienceUserId: null, event: result.event });
             }
@@ -34,4 +39,9 @@ export function registerAgentReactionRoutes(app: FastifyInstance, db: HausDataba
             return sendAgentReadError(reply, cause);
         }
     });
+}
+
+/** Adds must be one emoji; a remove may clear anything so older reactions stay removable. */
+function agentReactionEmojiFor(input: { emoji: string; remove: boolean }): string | null {
+    return normalizeReactionEmoji(input.emoji) ?? (input.remove ? input.emoji : null);
 }

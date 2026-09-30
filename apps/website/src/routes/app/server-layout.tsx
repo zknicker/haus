@@ -10,23 +10,27 @@ import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { BrowserWorkspaceBody } from '../../features/shell/browser-workspace-body.tsx';
 import { BrowserWorkspaceProvider } from '../../features/shell/browser-workspace-context.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
+import { resolvePrimaryTabIdentity } from '../../features/shell/primary-tab-identity.ts';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarSettingsAction } from '../../features/shell/sidebar-settings-action.tsx';
+import { WindowBand } from '../../features/shell/window-band.tsx';
 import { HausUpdateFooterContainer } from '../../features/updates/haus-update-footer-container.tsx';
 import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useDesktopMenuNavigation } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
+import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useNeedsYouNotifications } from '../../hooks/notifications/use-needs-you-notifications.ts';
 import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-listeners.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useAppSidebarWidth } from '../../hooks/shell/use-app-sidebar-width.ts';
+import { useShellVariantSync } from '../../hooks/shell/use-shell-variant.ts';
 import { useUnfocusableAppMain } from '../../hooks/shell/use-unfocusable-app-main.ts';
 import { cn } from '../../lib/utils.ts';
 import { preloadServerRoutes, preloadServerSection } from './server-route-modules.ts';
@@ -45,9 +49,27 @@ export function ServerLayout() {
     const navigate = useNavigate();
     const server = useServer(slug);
     const chats = useChats(server.data?.id);
+    const agents = useAgents(server.data?.id);
     const currentServerSlug = server.data?.slug;
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const selectedAgentDmId = resolveSelectedAgentDmId(location.pathname, slug);
+
+    const active = resolveActiveSection(location.pathname, slug);
+    // Memoized: the workspace context fans this identity out to every tab consumer.
+    const primaryTab = React.useMemo(() => {
+        const primaryChat =
+            chats.data?.find((chat) =>
+                selectedChatId
+                    ? chat.id === selectedChatId
+                    : chat.kind === 'dm' && chat.peerAgentId === selectedAgentDmId
+            ) ?? null;
+        const peerAgentId = primaryChat ? primaryChat.peerAgentId : selectedAgentDmId;
+        return resolvePrimaryTabIdentity({
+            agent: agents.data?.find((agent) => agent.id === peerAgentId) ?? null,
+            chat: primaryChat,
+            section: active,
+        });
+    }, [active, agents.data, chats.data, selectedAgentDmId, selectedChatId]);
 
     useDesktopMenuNavigation({
         searchRoute: serverSearchRoute(slug),
@@ -56,6 +78,9 @@ export function ServerLayout() {
     useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
     useNeedsYouNotifications(server.data);
     useUnfocusableAppMain();
+    // Desktop: the window layout's full-width band holds the tab strip. The web
+    // has no layout and keeps its topbar in the main column.
+    const topbarInWindow = useShellVariantSync() !== null;
 
     React.useEffect(() => {
         if (
@@ -92,15 +117,6 @@ export function ServerLayout() {
         return null;
     }
 
-    const active = resolveActiveSection(location.pathname, slug);
-    const primaryChat = chats.data?.find((chat) =>
-        selectedChatId
-            ? chat.id === selectedChatId
-            : chat.kind === 'dm' && chat.peerAgentId === selectedAgentDmId
-    );
-    const primaryTabLabel = primaryChat
-        ? (primaryChat.name ?? primaryChat.peerAgentDisplayName ?? 'Chat')
-        : active.charAt(0).toUpperCase() + active.slice(1);
     const settingsSection = resolveSettingsSection(location.pathname, slug);
     const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
     const activeSidebarPage = resolveSidebarPage(active);
@@ -108,6 +124,12 @@ export function ServerLayout() {
         chats.data ?? [],
         selectedChatId ?? readLastChatId(slug),
         slug
+    );
+    const settingsAction = (
+        <SidebarSettingsAction
+            onOpenSettings={() => navigate(serverSettingsRoute(slug))}
+            onPreloadSettings={() => preloadServerSection('settings')}
+        />
     );
     return (
         <HausUpdateProvider canOperate={canOperate} serverId={server.data.id}>
@@ -117,14 +139,20 @@ export function ServerLayout() {
                         <BrowserWorkspaceProvider
                             chatRoute={active === 'chat'}
                             key={server.data.id}
-                            routeLabel={primaryTabLabel}
+                            primaryTab={primaryTab}
+                            serverId={server.data.id}
                         >
                             <AppShell className="w-full">
                                 <ChatEventListeners serverId={server.data.id} />
                                 <SyncHumanIdentity serverId={server.data.id} />
                                 <AppShellDragRegion />
                                 <CommandMenu server={server.data} />
-                                <div className="flex min-h-0 flex-1">
+                                {topbarInWindow ? (
+                                    <WindowBand>
+                                        <ShellTopbar trailingAction={settingsAction} />
+                                    </WindowBand>
+                                ) : null}
+                                <div className="app-shell-body flex min-h-0 flex-1">
                                     <AgentLifecycleProvider serverId={server.data.id}>
                                         <AgentActivityProvider serverId={server.data.id}>
                                             <ResizableAppLayout
@@ -138,16 +166,7 @@ export function ServerLayout() {
                                                             />
                                                         }
                                                         settingsAction={
-                                                            <SidebarSettingsAction
-                                                                onOpenSettings={() =>
-                                                                    navigate(
-                                                                        serverSettingsRoute(slug)
-                                                                    )
-                                                                }
-                                                                onPreloadSettings={() =>
-                                                                    preloadServerSection('settings')
-                                                                }
-                                                            />
+                                                            topbarInWindow ? null : settingsAction
                                                         }
                                                         slug={slug}
                                                     >
@@ -181,8 +200,8 @@ export function ServerLayout() {
                                                     </ShellSidebar>
                                                 }
                                             >
-                                                <div className="flex h-full min-h-0 flex-col">
-                                                    <ShellTopbar />
+                                                <div className="app-shell-main flex h-full min-h-0 flex-col">
+                                                    {topbarInWindow ? null : <ShellTopbar />}
                                                     <BrowserWorkspaceBody>
                                                         <ShellFrame>
                                                             <ConnectionNotice

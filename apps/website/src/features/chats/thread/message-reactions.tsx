@@ -1,8 +1,7 @@
 import { Button } from '@heroui/react';
-import { ChatMessage, EmojiPicker, EmojiReactionButton } from '@heroui-pro/react';
+import { ChatMessage, EmojiPicker } from '@heroui-pro/react';
 import { SmileIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { cn } from '../../../lib/utils.ts';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {
     type TranscriptMessageRow,
@@ -13,55 +12,6 @@ export const quickReactionEmoji = ['👍', '❤️', '🎉', '👀', '🔥', '�
 
 // The standard quick reactions offered directly in the hover actions bar.
 const actionBarEmoji = ['👍', '❤️', '😂', '💯'] as const;
-
-/** Existing reactions as stock pills below the message, Discord-style. */
-export function MessageReactionPills({ row }: { row: TranscriptMessageRow }) {
-    const context = useTranscriptRenderContextOptional();
-    const toggle = context?.onToggleReaction;
-    const reactions = row.message.reactions ?? [];
-
-    if (!toggle || reactions.length === 0) {
-        return null;
-    }
-
-    return (
-        <>
-            {reactions.map((reaction) => {
-                const own = hasOwnReaction(row, reaction.emoji, context?.viewerUserId);
-                const handles = reaction.actors
-                    .map(({ handle, id }) => handle ?? (id === context?.viewerUserId ? 'you' : id))
-                    .join(', ');
-
-                return (
-                    <EmojiReactionButton
-                        aria-label={`${reaction.emoji} reaction from ${handles}`}
-                        isSelected={own}
-                        key={reaction.emoji}
-                        onChange={() =>
-                            toggle({
-                                emoji: reaction.emoji,
-                                messageId: row.message.id,
-                                remove: own,
-                            })
-                        }
-                    >
-                        <EmojiReactionButton.Emoji>{reaction.emoji}</EmojiReactionButton.Emoji>
-                        <EmojiReactionButton.Count>
-                            {reaction.actors.length}
-                        </EmojiReactionButton.Count>
-                    </EmojiReactionButton>
-                );
-            })}
-            <MessageReactionPicker
-                row={row}
-                // aria-expanded holds the trigger visible while its popover is
-                // open — the popover is portaled, so the row loses :hover the
-                // moment the pointer moves into it.
-                triggerClassName="opacity-0 focus-visible:opacity-100 aria-expanded:opacity-100 group-hover/message-row:opacity-100"
-            />
-        </>
-    );
-}
 
 /** Quick standard emoji plus the full picker for the hover actions bar. */
 export function MessageReactionActions({
@@ -107,13 +57,7 @@ export function MessageReactionActions({
 }
 
 /** The full searchable picker behind a compact smiley trigger. */
-export function MessageReactionPicker({
-    row,
-    triggerClassName,
-}: {
-    row: TranscriptMessageRow;
-    triggerClassName?: string;
-}) {
+export function MessageReactionPicker({ row }: { row: TranscriptMessageRow }) {
     const context = useTranscriptRenderContextOptional();
     const toggle = context?.onToggleReaction;
 
@@ -138,13 +82,10 @@ export function MessageReactionPicker({
             >
                 <EmojiPicker.Trigger
                     aria-label="Add reaction"
-                    className={cn(
-                        // The stock trigger ships unstyled by design; these
-                        // documented HeroUI button classes make it identical
-                        // to its ChatMessage.Action siblings in the bar.
-                        'button button--icon-only button--sm button--ghost chat-message__action size-7 shrink-0 [&_svg]:size-4',
-                        triggerClassName
-                    )}
+                    // The stock trigger ships unstyled by design; these
+                    // documented HeroUI button classes make it identical
+                    // to its ChatMessage.Action siblings in the bar.
+                    className="button button--icon-only button--sm button--ghost chat-message__action size-7 shrink-0 [&_svg]:size-4"
                 >
                     <Icon icon={SmileIcon} />
                 </EmojiPicker.Trigger>

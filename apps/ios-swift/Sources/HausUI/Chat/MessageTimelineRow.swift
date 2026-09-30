@@ -12,6 +12,7 @@ struct MessageTimelineRow: View {
     @Binding var attachmentPreview: AttachmentPreview?
     let attachmentTiles: AttachmentImageTileRegistry
     let visualHeights: VisualHeightRegistry
+    let reactionBoard: ReactionStickerBoard?
     let onOpenThread: () -> Void
     let onOpenInlineReply: (MessageReplyReferencePresentation) -> Void
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
@@ -80,6 +81,14 @@ struct MessageTimelineRow: View {
                     CloudAgentCard(agent: agent).padding(.top, 6)
                 }
 
+                if !message.isPending {
+                    ReactionPileView(
+                        messageID: message.id,
+                        reactions: message.reactions,
+                        board: reactionBoard
+                    )
+                }
+
                 if message.isPending {
                     HStack(spacing: 5) {
                         ProgressView().controlSize(.mini)
@@ -102,6 +111,8 @@ struct MessageTimelineRow: View {
                 }
             }
         }
+        .modifier(ReactionThud(stamps: reactionBoard?.stamps(messageID: message.id) ?? [:]))
+        .modifier(ReactionObservation(messageID: message.id, reactions: message.reactions, board: reactionBoard))
         .overlayPreferenceValue(ThreadIngressAnchor.self) { anchor in
             ThreadIngressConnector(anchor: anchor, isContinuation: isContinuation)
         }

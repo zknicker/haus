@@ -46,8 +46,9 @@ where Item.ID == String {
     /// because a SwiftUI opacity animation over a platform view can be dropped
     /// mid-flight by the table's own layout, freezing the fade partway.
     var animatesEntrance = false
-    /// Long-press menu for a row; empty means no menu.
-    var menuActions: (Item) -> [TranscriptMenuAction] = { _ in [] }
+    /// A long press on a row, which opens the screen's message drawer; nil
+    /// means rows take no long press.
+    var onLongPress: ((Item) -> Void)? = nil
     @ViewBuilder let row: (Item) -> Row
     @ViewBuilder let accessory: () -> Accessory
 
@@ -66,7 +67,7 @@ where Item.ID == String {
         table.keyboardDismissMode = .interactive
         table.rowHeight = UITableView.automaticDimension
         table.estimatedRowHeight = 72
-        table.register(UITableViewCell.self, forCellReuseIdentifier: "row")
+        table.register(TranscriptCell.self, forCellReuseIdentifier: "row")
         table.dataSource = context.coordinator
         table.delegate = context.coordinator
         if #available(iOS 26, *) {
@@ -84,6 +85,15 @@ where Item.ID == String {
             )
             tap.cancelsTouchesInView = false
             table.addGestureRecognizer(tap)
+        }
+        if onLongPress != nil {
+            let press = UILongPressGestureRecognizer(
+                target: context.coordinator,
+                action: #selector(TranscriptListCoordinator<Item, Row, Accessory>.rowLongPressed(_:))
+            )
+            press.minimumPressDuration = 0.4
+            press.delegate = context.coordinator
+            table.addGestureRecognizer(press)
         }
         context.coordinator.install(view: self, table: table)
         if animatesEntrance, !UIAccessibility.isReduceMotionEnabled {
@@ -114,7 +124,7 @@ where Item.ID == String {
 
 @MainActor
 final class TranscriptListCoordinator<Item: Identifiable & Equatable, Row: View, Accessory: View>:
-    NSObject, UITableViewDataSource, UITableViewDelegate
+    NSObject, UITableViewDataSource, UITableViewDelegate, UIGestureRecognizerDelegate
 where Item.ID == String {
     /// Internal, not private: `TranscriptListView+NearNewest` publishes through
     /// it.
@@ -123,9 +133,6 @@ where Item.ID == String {
     var showsAccessory = false
     private var appliedInsets: UIEdgeInsets?
     var handledRevealToken: UUID?
-    /// The row whose context menu is open, kept directly because the
-    /// configuration identifier round-trips through `NSCopying` unreliably.
-    private var menuIndexPath: IndexPath?
     /// The near-newest answer the view currently holds. It is cached here and
     /// not read back from the binding: the binding write is asynchronous, so a
     /// second reading inside the same turn would compare against a value the
@@ -220,117 +227,38 @@ where Item.ID == String {
             .minSize(width: 0, height: 0)
         }
         // The counter-flip lives on the UIKit contentView, not inside the
-        // hosted SwiftUI: the hosting view's own layer then renders upright,
-        // so a context-menu interaction snapshots a readable preview. It is
-        // applied *after* the configuration, because assigning one that the
+        // hosted SwiftUI, so the hosting view's own layer renders upright. It
+        // is applied *after* the configuration, because assigning one that the
         // cell cannot reuse — a brand-new cell, or a swap between the row and
         // accessory configurations — replaces `contentView` with a fresh one,
         // and a flip set beforehand would ride away on the discarded view,
         // leaving that row mirrored inside the flipped table.
         cell.contentView.transform = CGAffineTransform(scaleX: 1, y: -1)
+        cell.stackForReactionStamps(order: items.count - 1 - indexPath.row)
     }
 
-    // MARK: Context menus
+    // MARK: Long press
 
-    /// The system context menu lifts a snapshot of the pressed view, and the
-    /// pressed cell is flipped — its lift renders upside down. These delegate
-    /// methods substitute an upright preview: `drawHierarchy` on the flipped
-    /// `contentView` ignores the view's own transform, and the targeted
-    /// preview is anchored through the table's unflipped superview so the
-    /// container cannot flip it back.
-    func tableView(
-        _ tableView: UITableView,
-        contextMenuConfigurationForRowAt indexPath: IndexPath,
-        point: CGPoint
-    ) -> UIContextMenuConfiguration? {
-        guard let view, indexPath.row < items.count else { return nil }
-        let item = items[items.count - 1 - indexPath.row]
-        let actions = view.menuActions(item)
-        guard !actions.isEmpty else { return nil }
-        menuIndexPath = indexPath
-        return UIContextMenuConfiguration(
-            identifier: indexPath as NSIndexPath,
-            previewProvider: nil
-        ) { _ in
-            UIMenu(children: actions.map { action in
-                UIAction(title: action.title, image: UIImage(systemName: action.systemImage)) { _ in
-                    action.handler()
-                }
-            })
-        }
-    }
-
-    func tableView(
-        _ tableView: UITableView,
-        previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration
-    ) -> UITargetedPreview? {
-        uprightPreview(tableView: tableView, configuration: configuration)
-    }
-
-    func tableView(
-        _ tableView: UITableView,
-        previewForDismissingContextMenuWithConfiguration configuration: UIContextMenuConfiguration
-    ) -> UITargetedPreview? {
-        uprightPreview(tableView: tableView, configuration: configuration)
-    }
-
-    /// The custom lift is a snapshot, so the pressed cell would show twice;
-    /// it hides for exactly the menu's lifetime.
-    func tableView(
-        _ tableView: UITableView,
-        willDisplayContextMenu configuration: UIContextMenuConfiguration,
-        animator: UIContextMenuInteractionAnimating?
-    ) {
-        guard let indexPath = menuIndexPath,
-              let cell = tableView.cellForRow(at: indexPath)
+    /// The row stays where it is: the drawer the screen presents dims
+    /// everything behind it, so nothing lifts or moves.
+    @objc func rowLongPressed(_ press: UILongPressGestureRecognizer) {
+        guard press.state == .began,
+              let table = press.view as? UITableView,
+              let indexPath = table.indexPathForRow(at: press.location(in: table)),
+              indexPath.row < items.count,
+              let onLongPress = view?.onLongPress
         else { return }
-        cell.contentView.isHidden = true
+        onLongPress(items[items.count - 1 - indexPath.row])
     }
 
-    func tableView(
-        _ tableView: UITableView,
-        willEndContextMenuInteraction configuration: UIContextMenuConfiguration,
-        animator: UIContextMenuInteractionAnimating?
-    ) {
-        guard let indexPath = menuIndexPath,
-              let cell = tableView.cellForRow(at: indexPath)
-        else { return }
-        menuIndexPath = nil
-        if let animator {
-            animator.addCompletion { cell.contentView.isHidden = false }
-        } else {
-            cell.contentView.isHidden = false
-        }
-    }
-
-    private func uprightPreview(
-        tableView: UITableView,
-        configuration: UIContextMenuConfiguration
-    ) -> UITargetedPreview? {
-        guard let indexPath = menuIndexPath,
-              let cell = tableView.cellForRow(at: indexPath),
-              let container = tableView.superview
-        else { return nil }
-        let content = cell.contentView
-        let renderer = UIGraphicsImageRenderer(bounds: content.bounds)
-        // `layer.render` composites the subtree without the root layer's own
-        // transform, so the flipped contentView yields an upright image;
-        // `drawHierarchy` bakes the flip in.
-        let image = renderer.image { ctx in
-            content.layer.render(in: ctx.cgContext)
-        }
-        let snapshot = UIImageView(image: image)
-        let parameters = UIPreviewParameters()
-        parameters.backgroundColor = .clear
-        let center = content.convert(
-            CGPoint(x: content.bounds.midX, y: content.bounds.midY),
-            to: container
-        )
-        return UITargetedPreview(
-            view: snapshot,
-            parameters: parameters,
-            target: UIPreviewTarget(container: container, center: center)
-        )
+    /// A body's text view holds presses of its own — the loupe, text drag —
+    /// that would win the hold on its words. They wait for the row's press.
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldBeRequiredToFailBy other: UIGestureRecognizer
+    ) -> Bool {
+        guard let table = gestureRecognizer.view, let view = other.view else { return false }
+        return view is UITextView && view.isDescendant(of: table)
     }
 
     // MARK: UITableViewDelegate

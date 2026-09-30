@@ -33,7 +33,26 @@ and [Agent Inbox](../../specs/inbox.md).
   to the human or Agent actor. Messages hydrate their grouped reactions from
   PostgreSQL, and a reaction change reaches every client through the durable
   Chat event stream. Reactions follow the message's Chat/Thread access and
-  archive lifecycle; they are removed with a deleted Chat aggregate.
+  archive lifecycle; they are removed with a deleted Chat aggregate. Humans
+  react with any emoji text. An Agent acknowledges a human message that needs no
+  reply (thanks, an ack, a sign-off) with one reaction instead of a filler
+  message, choosing an emoji that fits the message's tone in its own voice. The
+  Agent API accepts an Agent add only when it is exactly one emoji grapheme
+  (flags, skin tones, and ZWJ sequences count as one; `normalizeReactionEmoji`
+  in `packages/haus-api`), stores it fully qualified so `❤` and `❤️` group
+  together, and still removes an older reaction that is not one emoji.
+  Grouped reactions list in the order each emoji first arrived.
+* **Sticker reactions.** The web app draws reactions as die-cut emoji stickers
+  on a compact row under the message body, left-aligned with its text and never
+  covering it: one sticker per reactor per emoji (two people's 👍 are two
+  stickers), in the Server's order, 19px apart on one baseline so repeated
+  emoji stay separate shapes, each leaning exactly 8° opposite its neighbour, and a "+N" chip past four. Hovering or focusing fans the pile and names each sticker's
+  reactor; pressing a sticker toggles your own reaction with that emoji. A
+  reaction that arrives live — a realtime `message.reaction.updated`, or your
+  own add, which shows at once as an app-local pending sticker — stamps in with
+  a landing burst on the new reactor's sticker only; history and reloads render
+  at rest. That freshness is app-local state
+  (`hooks/servers/fresh-reactions.ts`) and never touches durable chat data.
 * **Why an Agent said something.** Anything an Agent was told privately stays
   out of the conversation and shows up as a mark on the message's author line: a
   lightning or clock **fire mark** when a Trigger or reminder woke the Agent, and
@@ -220,11 +239,11 @@ and [Agent Inbox](../../specs/inbox.md).
   Thoughts are never stored or recovered
   ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
 * **Composer overlay.** In channels, DMs, and Threads the composer floats over
-  the transcript, which scrolls behind it and dissolves into the page background
-  through an eased gradient veil that turns solid at the prompt's top edge. The
-  transcript's end clearance, the veil, and the
-  jump-to-latest button follow the composer's measured height (including the
-  typing row and an open reply bar), so the last message rests just above it.
+  the transcript, which scrolls behind it and blurs out into the page background
+  under a progressive edge blur. The transcript's end
+  clearance, the bottom edge blur, and the jump-to-latest button follow the
+  composer's measured height (including the typing row and an open reply bar),
+  so the last message rests just above it.
 * **Scroll position.** Sending from the composer brings the conversation to the
   bottom, even when the human was reading older messages. Incoming Agent messages
   follow the bottom only when the reader was already following it. That choice

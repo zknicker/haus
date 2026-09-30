@@ -16,6 +16,7 @@ function MessageScrollerProvider(
 }
 
 function MessageScroller({
+    children,
     className,
     ...props
 }: React.ComponentProps<typeof MessageScrollerPrimitive.Root>) {
@@ -27,7 +28,35 @@ function MessageScroller({
             )}
             data-slot="message-scroller"
             {...props}
-        />
+        >
+            {children}
+            <MessageScrollerEdgeBlur />
+        </MessageScrollerPrimitive.Root>
+    );
+}
+
+// Pinned over the viewport's top and bottom edges, outside the scrolling node,
+// so rows blur and dissolve as they slide under either edge (the bottom band
+// sits behind the floating composer). The theme shows the top band only while
+// the root's `data-scrollable` (written by the primitive, no re-render)
+// includes `start`; the bottom band is always on. Each element carries its
+// blur, fade mask, and colour wash together: `.transcript-edge-blur`.
+function MessageScrollerEdgeBlur() {
+    return (
+        <>
+            <div
+                aria-hidden="true"
+                className="transcript-edge-blur"
+                data-side="top"
+                data-slot="transcript-edge-blur"
+            />
+            <div
+                aria-hidden="true"
+                className="transcript-edge-blur"
+                data-side="bottom"
+                data-slot="transcript-edge-blur"
+            />
+        </>
     );
 }
 
@@ -42,13 +71,9 @@ function MessageScrollerViewport({
     ...props
 }: React.ComponentProps<typeof MessageScrollerPrimitive.Viewport>) {
     return (
-        // HeroUI's ScrollShadow/useScrollShadow cannot drive this one: the
-        // scroller primitive declares a `ref` prop but never forwards it to the
-        // scrolling node, so the hook has no element to measure. The mask stays
-        // hand-rolled until the primitive forwards its ref.
         <MessageScrollerPrimitive.Viewport
             className={cn(
-                'scroll-fade-b scrollbar-gutter-stable data-autoscrolling:scrollbar-thumb-transparent data-autoscrolling:scrollbar-track-transparent size-full min-h-0 min-w-0 overflow-y-auto overscroll-contain contain-content',
+                'scrollbar-gutter-stable data-autoscrolling:scrollbar-thumb-transparent data-autoscrolling:scrollbar-track-transparent size-full min-h-0 min-w-0 overflow-y-auto overscroll-contain contain-content',
                 className
             )}
             data-slot="message-scroller-viewport"

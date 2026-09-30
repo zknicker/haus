@@ -22,7 +22,10 @@ test('parses an iOS version and monotonically increasing build number', () => {
 });
 
 test('preserves the coordinated version and build during App Store export', () => {
-    const options = appStoreConnectExportOptions('TEAM123', 'PROFILE-UUID');
+    const options = appStoreConnectExportOptions('TEAM123', {
+        'chat.haus.ios': 'PROFILE-UUID',
+        'chat.haus.ios.NotificationService': 'EXTENSION-UUID',
+    });
     expect(options).toContain('<key>manageAppVersionAndBuildNumber</key>\n    <false/>');
     expect(options).toContain('<key>teamID</key>\n    <string>TEAM123</string>');
     expect(options).toContain('<key>signingStyle</key>\n    <string>manual</string>');
@@ -30,10 +33,17 @@ test('preserves the coordinated version and build during App Store export', () =
         '<key>signingCertificate</key>\n    <string>Apple Distribution</string>'
     );
     expect(options).toContain('<key>chat.haus.ios</key>\n        <string>PROFILE-UUID</string>');
-    expect(options).toContain('<key>destination</key>\n    <string>export</string>');
-    expect(() => appStoreConnectExportOptions('TEAM<bad', 'PROFILE-UUID')).toThrow(
-        'team ID contains unsupported characters'
+    expect(options).toContain(
+        '<key>chat.haus.ios.NotificationService</key>\n        <string>EXTENSION-UUID</string>'
     );
+    expect(options).toContain('<key>destination</key>\n    <string>export</string>');
+    expect(() =>
+        appStoreConnectExportOptions('TEAM<bad', { 'chat.haus.ios': 'PROFILE-UUID' })
+    ).toThrow('team ID contains unsupported characters');
+    expect(() => appStoreConnectExportOptions('TEAM123', { 'chat.haus.ios': 'bad<uuid' })).toThrow(
+        'provisioning profile specifier contains unsupported characters'
+    );
+    expect(() => appStoreConnectExportOptions('TEAM123', {})).toThrow('at least one');
 });
 
 test('requires the exact declared iOS release', () => {

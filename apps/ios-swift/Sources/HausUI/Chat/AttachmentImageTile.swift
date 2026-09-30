@@ -153,6 +153,7 @@ struct AttachmentImageTile: View {
             loaded = LoadedAttachmentThumbnail(attachmentID: attachment.id, thumbnail: thumbnail)
             return
         }
+        let loadGeneration = AttachmentImageCache.shared.generation
         do {
             // The resolved file is owned by the caller's attachment cache and
             // must survive this decode: Quick Look opens the same bytes, and
@@ -185,7 +186,8 @@ struct AttachmentImageTile: View {
             AttachmentImageCache.shared.store(
                 thumbnail,
                 for: attachment.id,
-                decodedPixelCost: bitmap.pixelCost
+                decodedPixelCost: bitmap.pixelCost,
+                loadedIn: loadGeneration
             )
             loaded = LoadedAttachmentThumbnail(attachmentID: attachment.id, thumbnail: thumbnail)
         } catch is CancellationError {

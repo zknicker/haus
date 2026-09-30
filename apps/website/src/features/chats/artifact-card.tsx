@@ -7,7 +7,7 @@ import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
 /**
  * Compact transcript card for an agent artifact. The card itself reads
  * nothing — clicking opens the workspace HTML page in the artifact pane's
- * sandboxed preview with host tokens injected. Outside a pane context
+ * sandboxed preview with host tokens injected (its own workspace tab in desktop tabs). Outside a pane context
  * (static render, tests) the card is inert.
  */
 export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
@@ -24,7 +24,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
                     ? 'cursor-(--cursor-interactive) hover:border-border-secondary hover:bg-surface-tertiary/70'
                     : 'cursor-default'
             )}
-            onClick={() => openArtifactPanel?.({ kind: 'workspaceFile', path: props.path })}
+            onClick={() => openArtifactPanel?.({ kind: 'workspaceFile', path: props.path }, title)}
             type="button"
         >
             <span className="card-shell flex size-9 shrink-0 items-center justify-center border border-border/70 bg-default/35">

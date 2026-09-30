@@ -17,11 +17,3 @@ struct TranscriptReveal: Equatable {
     let animated: Bool
 }
 
-/// One long-press menu action for a transcript row. The list owns the menu
-/// presentation (see the coordinator's context-menu delegate methods) because
-/// SwiftUI's `contextMenu` inside a flipped cell lifts an upside-down preview.
-struct TranscriptMenuAction {
-    let title: String
-    let systemImage: String
-    let handler: () -> Void
-}

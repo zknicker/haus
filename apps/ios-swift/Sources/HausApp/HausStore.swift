@@ -78,6 +78,7 @@ final class HausStore {
     var sendError: String?
     var chatEventServerID: String?
     var chatEventReplay = ChatEventReplayState()
+    @ObservationIgnored lazy var reactionStickers = Self.makeReactionStickerBoard { [weak self] in self }
     var chatEventCatchUpInFlight = false
     var chatEventCatchUpPending = false
     /// The deepest Chat surface on the user's stack, and the only Chat that

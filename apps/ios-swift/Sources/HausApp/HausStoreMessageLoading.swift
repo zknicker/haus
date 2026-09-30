@@ -43,6 +43,13 @@ extension HausStore {
                 ) {
                     shouldReloadNeedsYou = true
                 }
+            case .messageReactionUpdated:
+                // Both lenses can show the message: its Thread and the parent
+                // transcript an anchor or inline reply sits in.
+                affectedChatIDs.formUnion([event.chatID, event.parentChatID].compactMap { $0 })
+                if let messageID = event.messageID {
+                    reactionStickers.noteLive(messageID: messageID, eventAt: event.createdAt)
+                }
             case .cloudAgentWorkUpdated:
                 if let chatID = event.chatID {
                     affectedChatIDs.insert(chatID)

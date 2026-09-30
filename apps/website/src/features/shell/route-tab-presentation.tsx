@@ -1,15 +1,19 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     Activity03Icon,
+    Analytics01Icon,
     Chat01Icon,
     CheckListIcon,
     InboxIcon,
     Search01Icon,
+    Settings01Icon,
+    UserCircleIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { RouteTab } from '../../hooks/shell/use-route-tab.ts';
 import { cn } from '../../lib/utils.ts';
+import type { AppSection } from '../../routes/app/server-route-state.ts';
 
 export function RouteTabIcon({
     className,
@@ -48,5 +52,19 @@ export function getRouteTabIcon(tab: RouteTab): IconSvgElement {
             return Activity03Icon;
         case 'members':
             return UserMultiple02Icon;
+    }
+}
+
+/** The glyph a routed section wears as the primary workspace tab's mark. */
+export function getSectionTabIcon(section: AppSection): IconSvgElement {
+    switch (section) {
+        case 'agent':
+            return UserCircleIcon;
+        case 'settings':
+            return Settings01Icon;
+        case 'usage':
+            return Analytics01Icon;
+        default:
+            return getRouteTabIcon(section);
     }
 }

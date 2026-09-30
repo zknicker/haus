@@ -107,6 +107,7 @@ extension HausStore {
                 task: message.task.map(taskPresentation),
                 cloudAgents: cloudAgentPresentation(message.body).map { [$0] } ?? [],
                 threadCloudAgents: cloudAgentPresentations(cloudAgentWork.filter { $0.anchorMessageId == message.id }),
+                reactions: reactionPresentations(message.reactions),
                 richBlocks: richMessageBlocks(fenced.prose),
                 visualBody: fenced
             )

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useWorkspaceBandTabLabel } from './shell-topbar.tsx';
 
 /**
  * The band height every top-of-column zone shares: the shell topbar, local
@@ -56,14 +57,18 @@ export function SectionBar({ children }: { children?: ReactNode }) {
  * chrome — render it inside the shell band via PageTopbar, or inside a
  * local SectionBar. Title is for content identity (a chat's name); section
  * pages omit it — the rail and the window title already say where you are.
+ *
+ * Beside the desktop primary workspace tab, the tab is the page's identity:
+ * its mark replaces `leading`, and a title repeating its label is dropped, so
+ * only content the tab does not carry (a more specific title, actions) shows.
  */
 export function SectionHeader({
     center,
     children,
     description,
-    leading,
+    leading: pageLeading,
     meta,
-    title,
+    title: pageTitle,
 }: {
     center?: ReactNode;
     children?: ReactNode;
@@ -72,6 +77,12 @@ export function SectionHeader({
     meta?: ReactNode;
     title?: ReactNode;
 }) {
+    const tabLabel = useWorkspaceBandTabLabel();
+    const leading = tabLabel === null ? pageLeading : null;
+    const title = tabLabel !== null && pageTitle === tabLabel ? null : pageTitle;
+    if (!(leading || title || meta || description || center || children)) {
+        return null;
+    }
     if (center) {
         // Equal flexible side columns anchor the center slot to the band's
         // true middle, so it does not drift with the title's width.

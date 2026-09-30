@@ -63,6 +63,10 @@
 	<string>Talk with your Haus Agents during voice calls.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos to attach to Haus messages.</string>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>INSendMessageIntent</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiresFullScreen</key>

@@ -1,80 +1,58 @@
-import { Button } from '@heroui/react';
-import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../components/ui/icon.tsx';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
-import { BrowserWorkspaceTabs } from './browser-workspace-tabs.tsx';
+import { WorkspaceTabStrip } from './workspace-tab-strip.tsx';
 
 interface TopbarSlot {
+    actionsContainer: HTMLElement | null;
     container: HTMLElement | null;
+    setActionsContainer: (element: HTMLElement | null) => void;
     setContainer: (element: HTMLElement | null) => void;
 }
 
 const TopbarContext = React.createContext<TopbarSlot | null>(null);
 
-/** Owns the shell topbar slot; wrap the layout that renders ShellTopbar. */
+/** Owns the shell topbar slots; wrap the layout that renders ShellTopbar. */
 export function TopbarProvider({ children }: { children: React.ReactNode }) {
     const [container, setContainer] = React.useState<HTMLElement | null>(null);
-    const slot = React.useMemo<TopbarSlot>(() => ({ container, setContainer }), [container]);
+    const [actionsContainer, setActionsContainer] = React.useState<HTMLElement | null>(null);
+    const slot = React.useMemo<TopbarSlot>(
+        () => ({ actionsContainer, container, setActionsContainer, setContainer }),
+        [actionsContainer, container]
+    );
     return <TopbarContext value={slot}>{children}</TopbarContext>;
 }
 
 /**
- * The shell's one topbar band above the routed content. Pages fill it
- * through PageTopbar; the band (and its height) render even while a page
- * registers nothing, so chrome never jumps between routes.
+ * The shell's one topbar band. Pages fill it through PageTopbar; the band
+ * (and its height) render even while a page registers nothing, so chrome
+ * never jumps between routes. On desktop it sits in the window band
+ * (WindowBand) and is the workspace tab strip: every tab in one sortable
+ * list, then the page's band content, its actions, and the global
+ * `trailingAction` (Settings) at the band's end. On the web it is the main
+ * column's top band.
  */
-export function ShellTopbar() {
+export function ShellTopbar({ trailingAction }: { trailingAction?: React.ReactNode } = {}) {
     const slot = React.use(TopbarContext);
-    const workspace = useBrowserWorkspace();
-    const desktop = Boolean(getDesktopBridge()?.browserCommand);
-    const browserActive =
-        workspace?.state.activeId !== null && workspace?.state.activeId !== undefined;
+    if (getDesktopBridge()?.browserCommand) {
+        return (
+            <header className="workspace-titlebar app-shell-band" data-window-drag-region="">
+                <WorkspaceTabStrip />
+                <div className="workspace-page-slot" ref={slot?.setContainer} />
+                <div className="workspace-band-end no-drag">
+                    <div className="workspace-band-actions" ref={slot?.setActionsContainer} />
+                    {trailingAction}
+                </div>
+            </header>
+        );
+    }
     return (
         <header
-            className={
-                desktop
-                    ? 'workspace-titlebar app-shell-band'
-                    : 'app-shell-band flex h-[var(--app-shell-band-height)] shrink-0 items-center px-3'
-            }
+            className="app-shell-band flex h-[var(--app-shell-band-height)] shrink-0 items-center px-3"
             data-window-drag-region=""
         >
-            <div className="workspace-tab-strip flex min-w-0 flex-1 items-center gap-2">
-                <div
-                    className={
-                        desktop
-                            ? 'workspace-tab workspace-primary-tab'
-                            : 'flex min-w-0 flex-1 items-center'
-                    }
-                    data-active={!browserActive}
-                >
-                    {desktop ? (
-                        <Button
-                            aria-pressed={!browserActive}
-                            onPress={() => workspace?.command({ kind: 'select', id: null })}
-                            size="sm"
-                            variant="ghost"
-                        >
-                            <Icon aria-hidden="true" icon={BubbleChatIcon} size={16} />
-                            <span className="max-w-48 truncate">{workspace?.routeLabel}</span>
-                        </Button>
-                    ) : null}
-                    {!desktop && workspace && !workspace.chatRoute && !browserActive ? (
-                        <span className="text-sm">{workspace.routeLabel}</span>
-                    ) : null}
-                    <div
-                        className={
-                            desktop
-                                ? 'flex shrink-0 items-center'
-                                : 'flex min-w-0 flex-1 items-center'
-                        }
-                        ref={slot?.setContainer}
-                    />
-                </div>
-                {desktop ? <BrowserWorkspaceTabs /> : null}
-            </div>
+            <div className="flex min-w-0 flex-1 items-center" ref={slot?.setContainer} />
         </header>
     );
 }
@@ -85,10 +63,42 @@ export function ShellTopbar() {
  */
 export function PageTopbar({ children }: { children: React.ReactNode }) {
     const slot = React.use(TopbarContext);
+    const workspace = useBrowserWorkspace();
 
     if (!slot?.container) {
         return null;
     }
 
-    return createPortal(children, slot.container);
+    const tabLabel =
+        workspace && getDesktopBridge()?.browserCommand ? workspace.primaryTab.label : null;
+    return createPortal(
+        <WorkspaceBandTabLabel value={tabLabel}>{children}</WorkspaceBandTabLabel>,
+        slot.container
+    );
+}
+
+const WorkspaceBandTabLabel = React.createContext<string | null>(null);
+
+/**
+ * The primary workspace tab's label when band content renders beside it in
+ * the desktop tab strip; null anywhere else. Band content uses it to drop what
+ * the tab already says (SectionHeader).
+ */
+export function useWorkspaceBandTabLabel(): string | null {
+    return React.use(WorkspaceBandTabLabel);
+}
+
+/**
+ * Portals a page's actions to the desktop tab strip's end — the chat's
+ * actions menu sits at the band's top-right corner. Renders nothing outside
+ * the desktop strip, where pages keep their actions in their band content.
+ */
+export function WorkspaceBandActions({ children }: { children: React.ReactNode }) {
+    const slot = React.use(TopbarContext);
+
+    if (!slot?.actionsContainer) {
+        return null;
+    }
+
+    return createPortal(children, slot.actionsContainer);
 }

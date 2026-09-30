@@ -1,21 +1,22 @@
 'use strict';
 
+const { captureBrowserPage } = require('./browser-capture.cjs');
 const { reorderBrowserTabs } = require('./browser-tab-order.cjs');
 const { installBrowserShortcuts } = require('./browser-shortcuts.cjs');
+const { browserUrl } = require('./browser-url.cjs');
+const { findInPage, runPageAction, stopFindInPage } = require('./browser-page-actions.cjs');
+const { installBrowserPageLinks } = require('./browser-page-links.cjs');
+const { installBrowserPageMenu } = require('./browser-page-menu.cjs');
+const { trackBrowserTabState } = require('./browser-tab-state.cjs');
+const { runBrowserWindowAction } = require('./browser-window-actions.cjs');
 const { randomUUID } = require('node:crypto');
 
-function browserUrl(value) {
-    if (typeof value !== 'string') {
-        throw new Error('Enter an HTTP or HTTPS address.');
-    }
-    const url = new URL(value);
-    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) {
-        throw new Error('Only HTTP and HTTPS pages can open in Haus.');
-    }
-    return url.href;
-}
-
-function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
+/**
+ * `page` carries the page-facing Electron services: `Menu` and `clipboard` for
+ * the context menu, `openExternal` for mail links, and `inspect` (development
+ * builds only) for Inspect Element.
+ */
+function createBrowserWorkspace(window, { WebContentsView, browserSession, page }) {
     const tabs = new Map();
     let activeId = null;
     let bounds = null;
@@ -44,6 +45,8 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
                     width: Math.max(0, Math.min(width - x, Math.round(bounds.width * zoom))),
                     height: Math.max(0, Math.min(height - y, Math.round(bounds.height * zoom))),
                 });
+                // Follows the shell card's corner (Canvas and Band window layouts); 0 is square.
+                tab.view.setBorderRadius(Math.round((bounds.radius ?? 0) * zoom));
             }
         }
     };
@@ -55,11 +58,14 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
         layout();
         publish();
     };
-    const open = (value, blank = false) => {
+    /** A background tab (⌘-click, Open Link in New Tab) opens without taking the selection. */
+    const open = (value, { blank = false, background = false } = {}) => {
         const url = blank ? 'about:blank' : browserUrl(value);
         const existing = !blank && [...tabs].find(([, tab]) => tab.state.url === url);
         if (existing) {
-            select(existing[0]);
+            if (!background) {
+                select(existing[0]);
+            }
             return;
         }
         if (tabs.size >= 20) {
@@ -81,70 +87,46 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
             state: {
                 url,
                 title: blank ? 'New tab' : new URL(url).hostname,
+                faviconUrl: null,
                 loading: true,
                 error: null,
                 canGoBack: false,
                 canGoForward: false,
+                zoomFactor: 1,
+                find: null,
             },
         };
         tabs.set(id, tab);
         window.contentView.addChildView(view);
         const contents = view.webContents;
-        installBrowserShortcuts(contents, window);
-        const update = () => {
-            if (!tabs.has(id) || contents.isDestroyed()) {
-                return;
-            }
-            tab.state.url = contents.getURL() || url;
-            tab.state.title =
-                tab.state.url === 'about:blank'
-                    ? 'New tab'
-                    : contents.getTitle() || new URL(tab.state.url).hostname;
-            tab.state.loading = contents.isLoading();
-            tab.state.canGoBack = contents.navigationHistory.canGoBack();
-            tab.state.canGoForward = contents.navigationHistory.canGoForward();
-            publish();
-        };
-        for (const event of [
-            'did-start-loading',
-            'did-stop-loading',
-            'did-navigate',
-            'did-navigate-in-page',
-            'page-title-updated',
-        ]) {
-            contents.on(event, update);
-        }
-        contents.on('did-fail-load', (_event, code, description, _url, isMainFrame) => {
-            if (isMainFrame && code !== -3) {
-                tab.state.error = description;
-                update();
-            }
+        installBrowserShortcuts(contents, (action) => runBrowserWindowAction(window, api, action));
+        trackBrowserTabState(contents, tab.state, {
+            fallbackUrl: url,
+            isLive: () => tabs.has(id),
+            publish,
         });
-        contents.on('render-process-gone', () => {
-            tab.state.error = 'This page stopped responding. Reload to try again.';
-            tab.state.loading = false;
-            publish();
-        });
-        const guardNavigation = (event, target) => {
+        const openTab = (target, options) => {
             try {
-                browserUrl(target);
-                tab.state.error = null;
-            } catch {
-                event.preventDefault();
-            }
-        };
-        contents.on('will-navigate', guardNavigation);
-        contents.on('will-redirect', guardNavigation);
-        contents.setWindowOpenHandler(({ url: target }) => {
-            try {
-                open(target);
+                open(target, options);
             } catch (error) {
                 tab.state.error = error.message;
                 publish();
             }
-            return { action: 'deny' };
+        };
+        installBrowserPageLinks(contents, {
+            openExternal: page.openExternal,
+            openTab,
+            onNavigate: () => {
+                tab.state.error = null;
+            },
         });
-        select(id);
+        installBrowserPageMenu(contents, window, { ...page, openTab });
+        if (background) {
+            layout();
+            publish();
+        } else {
+            select(id);
+        }
         void contents.loadURL(url).catch((error) => {
             if (tabs.has(id) && error.code !== 'ERR_ABORTED') {
                 tab.state.error = error.message;
@@ -174,45 +156,19 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
         }
         bounds = null;
     };
-    const navigate = (input) => {
+    const activeTab = () => {
         const tab = tabs.get(activeId);
         if (!tab) {
             throw new Error('Select a browser tab first.');
         }
-        const contents = tab.view.webContents;
-        switch (input.action) {
-            case 'back':
-                if (contents.navigationHistory.canGoBack()) {
-                    contents.navigationHistory.goBack();
-                }
-                break;
-            case 'forward':
-                if (contents.navigationHistory.canGoForward()) {
-                    contents.navigationHistory.goForward();
-                }
-                break;
-            case 'stop':
-                contents.stop();
-                break;
-            case 'reload':
-                tab.state.error = null;
-                contents.reload();
-                break;
-            case 'url': {
-                const target = browserUrl(input.url);
-                tab.state.error = null;
-                void contents.loadURL(target).catch((error) => {
-                    if (contents.isDestroyed() || error.code === 'ERR_ABORTED') {
-                        return;
-                    }
-                    tab.state.error = error.message;
-                    publish();
-                });
-                break;
-            }
-            default:
-                throw new Error('Unknown browser navigation action.');
+        return tab;
+    };
+    const pageTab = (id) => {
+        const tab = tabs.get(id);
+        if (!tab) {
+            throw new Error('Browser tab no longer exists.');
         }
+        return tab;
     };
     const command = (input) => {
         if (!mounted && ['open', 'new'].includes(input?.kind)) {
@@ -223,11 +179,23 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
                 mounted = true;
                 break;
             case 'new':
-                open(null, true);
+                open(null, { blank: true });
                 break;
             case 'open':
                 open(input.url);
                 break;
+            case 'find': {
+                const tab = pageTab(input.id);
+                findInPage(tab.view.webContents, tab.state, input);
+                break;
+            }
+            case 'stop-find': {
+                const tab = tabs.get(input.id);
+                if (tab && !tab.view.webContents.isDestroyed()) {
+                    stopFindInPage(tab.view.webContents, tab.state, publish);
+                }
+                break;
+            }
             case 'reorder':
                 reorderBrowserTabs(tabs, input.ids);
                 publish();
@@ -241,9 +209,11 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
             case 'reset':
                 reset();
                 break;
-            case 'navigate':
-                navigate(input);
+            case 'navigate': {
+                const tab = activeTab();
+                runPageAction(tab.view.webContents, tab.state, input, publish);
                 break;
+            }
             default:
                 throw new Error('Unknown browser command.');
         }
@@ -256,7 +226,8 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
                 value &&
                 ['x', 'y', 'width', 'height'].every(
                     (key) => Number.isFinite(value[key]) && value[key] >= 0
-                )
+                ) &&
+                (value.radius === undefined || (Number.isFinite(value.radius) && value.radius >= 0))
             )
         ) {
             throw new Error('Invalid browser bounds.');
@@ -281,7 +252,8 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
             layout();
         }
     });
-    return {
+    const api = {
+        capture: (id) => captureBrowserPage(tabs.get(id), () => activeId === id && bounds !== null),
         command,
         open: (value) => {
             if (!mounted) {
@@ -289,9 +261,20 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession }) {
             }
             open(value);
         },
+        hasActiveTab: () => activeId !== null,
+        /** Runs a page action on the selected tab; false when no browser tab is selected. */
+        pageAction: (action) => {
+            const tab = tabs.get(activeId);
+            if (!tab) {
+                return false;
+            }
+            runPageAction(tab.view.webContents, tab.state, { action }, publish);
+            return true;
+        },
         setBounds,
         snapshot,
     };
+    return api;
 }
 
-module.exports = { browserUrl, createBrowserWorkspace };
+module.exports = { createBrowserWorkspace };

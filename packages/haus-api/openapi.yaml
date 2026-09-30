@@ -1432,6 +1432,9 @@ paths:
       operationId: reactToAgentMessage
       tags: [Agent CLI]
       summary: Add or remove a reaction on a readable message.
+      description: >-
+        Adds accept exactly one emoji grapheme (`normalizeReactionEmoji`), stored fully qualified;
+        removes accept any value so older reactions stay removable.
       requestBody:
         required: true
         content:

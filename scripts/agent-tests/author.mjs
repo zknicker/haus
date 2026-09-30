@@ -57,8 +57,8 @@ export function createAgentAuthor({ repositoryRoot = process.cwd(), serverId, se
         const token = await mint(agentId, chatId);
         const messageNonce = nonce ?? `agenttests_${stamp}_${crypto.randomUUID()}`;
         const holds = [];
-        for (const sendDraft of [false, true]) {
-            const result = await send(token, { content, nonce: messageNonce, sendDraft, target });
+        for (const body of agentSendAttempts({ content, nonce: messageNonce, target })) {
+            const result = await send(token, body);
             if (result.state === 'sent') {
                 return result;
             }
@@ -85,6 +85,17 @@ export function createAgentAuthor({ repositoryRoot = process.cwd(), serverId, se
     }
 
     return { authorAsAgent, credentialHash, mint };
+}
+
+/**
+ * The two sends `authorAsAgent` makes: the message itself, then — after a hold
+ * saved it as the Agent's draft — a draft send, which carries no content.
+ */
+export function agentSendAttempts({ content, nonce, target }) {
+    return [
+        { content, nonce, sendDraft: false, target },
+        { nonce, sendDraft: true, target },
+    ];
 }
 
 /** The dev Computer writes its credential beside its attachment for this Server. */

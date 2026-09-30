@@ -6,6 +6,7 @@ const bridge = {
     loadsApp: true,
     browserCommand: (command) => ipcRenderer.invoke('desktop:browser:command', command),
     browserSnapshot: () => ipcRenderer.invoke('desktop:browser:snapshot'),
+    browserCapture: (id) => ipcRenderer.invoke('desktop:browser:capture', id),
     browserBounds: (bounds) => ipcRenderer.invoke('desktop:browser:bounds', bounds),
     onBrowserShortcut: (listener) => {
         const handler = (_event, shortcut) => listener(shortcut);

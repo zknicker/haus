@@ -40,6 +40,11 @@ public struct MessageTimelineView: View {
     /// than through the `openingEntrance` modifier.
     @Environment(\.opensWithEntrance) private var opensWithEntrance
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Rows are hosted in table cells, which do not inherit this environment,
+    /// so the screen reads the board and hands it to each row.
+    @Environment(\.reactionStickers) private var reactionBoard
+    /// The message whose long-press drawer is open.
+    @State private var actionMessage: MessagePresentation?
 
     public init(
         messages: [MessagePresentation],
@@ -87,6 +92,9 @@ public struct MessageTimelineView: View {
         // reaches `updateUIView` and its `reconfigureVisibleRows`. Every screen
         // that owns a registry has to read `revision` for its cards to grow.
         _ = visualHeights.revision
+        // The same for a pending own reaction, which grows a row's pile before
+        // any page changes.
+        _ = reactionBoard?.revision
         return GeometryReader { proxy in
             if messages.isEmpty && isMessageHistoryLoaded {
                 ContentUnavailableView(
@@ -122,39 +130,8 @@ public struct MessageTimelineView: View {
                     isNearNewest: $isNearNewest,
                     onVisibleItems: onVisibleMessagesChange,
                     animatesEntrance: opensWithEntrance,
-                    menuActions: { message in
-                        guard !message.isPending else { return [] }
-                        var actions = [
-                            TranscriptMenuAction(
-                                title: message.thread == nil ? "Reply in thread" : "Open thread",
-                                systemImage: "bubble.left.and.bubble.right",
-                                handler: { onOpenThread(message) }
-                            )
-                        ]
-                        if allowsInlineReplies {
-                            actions.append(
-                                TranscriptMenuAction(
-                                    title: "Reply",
-                                    systemImage: "arrowshape.turn.up.left",
-                                    handler: { onSelectInlineReply(message) }
-                                )
-                            )
-                        }
-                        #if canImport(UIKit)
-                        // A body is drawn block by block now, and a selection
-                        // cannot cross two text views — so copying the whole
-                        // message is the row's job rather than a long drag.
-                        if !message.prose.isEmpty {
-                            actions.append(
-                                TranscriptMenuAction(
-                                    title: "Copy text",
-                                    systemImage: "doc.on.doc",
-                                    handler: { UIPasteboard.general.string = message.prose }
-                                )
-                            )
-                        }
-                        #endif
-                        return actions
+                    onLongPress: { message in
+                        if !message.isPending { actionMessage = message }
                     },
                     row: { message in
                         timelineRow(message, indexByID: indexByID)
@@ -195,6 +172,12 @@ public struct MessageTimelineView: View {
         .task(id: historyRevealAttempt) {
             await resolveHistoryReveal()
         }
+        .messageActionDrawer(
+            for: $actionMessage,
+            board: reactionBoard,
+            onReply: allowsInlineReplies ? onSelectInlineReply : nil,
+            onOpenThread: onOpenThread
+        )
         .alert("Message unavailable", isPresented: historyRevealErrorPresented) {
             Button("Retry") {
                 historyRevealError = nil
@@ -249,6 +232,7 @@ public struct MessageTimelineView: View {
             attachmentPreview: $attachmentPreview,
             attachmentTiles: attachmentTiles,
             visualHeights: visualHeights,
+            reactionBoard: reactionBoard,
             onOpenThread: { onOpenThread(message) },
             onOpenInlineReply: requestInlineReply,
             onOpenAttachment: onOpenAttachment

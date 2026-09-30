@@ -211,6 +211,9 @@ A new or newer Needs you row notifies the viewer while Haus is in the background
   conversation (or Thread). The human's own messages, Chats they cannot see, archived Chats, and
   exchanges already answered or marked Done never push. The Server sends only when an APNs key is
   configured; see [iPhone Push](../operations/ios-push.md).
+- **iPhone Focus**: a push tells iOS why it addresses the human. A DM breaks through a Focus when
+  its sender is an allowed person; in a Channel or Thread, only a mention of the human or a reply
+  to their message does (for an allowed sender). Haus never marks pushes Time Sensitive.
 
 Deferred until the operator provides credentials: browser Web Push while Haus is closed (a VAPID
 key pair and a service worker). A closed browser tab learns about Needs you rows only when opened.

@@ -75,7 +75,7 @@ export function ArtifactPanelChrome({
     );
 }
 
-function ArtifactOptionsMenu({ target }: { target: HausResourceTarget }) {
+export function ArtifactOptionsMenu({ target }: { target: HausResourceTarget }) {
     return (
         <Dropdown>
             <Button aria-label="Artifact options" isIconOnly size="sm" variant="ghost">

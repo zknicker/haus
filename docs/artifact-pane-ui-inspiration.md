@@ -10,6 +10,9 @@ read_when:
 
 The artifact pane should feel like a compact assistant workspace attached to the chat, not a full browser. It opens when the user clicks a linked output such as a Wiki page, Markdown file, HTML preview, image, or generated asset.
 
+On desktop, linked outputs open as workspace tabs instead of this pane; see
+`docs/features/browser-tabs.md`. These notes cover the website pane.
+
 ## Chrome
 
 - Tabs sit in the top row.

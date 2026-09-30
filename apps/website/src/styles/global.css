@@ -8,6 +8,7 @@
 @import "./artifact-tokens.css" layer(theme);
 @import "./default-theme.css";
 @import "../features/chats/chat.css";
+@import "../features/chats/reactions/reaction-stickers.css";
 @import "../features/shell/shell.css";
 
 @custom-variant dark (&:where(.dark, .dark *));

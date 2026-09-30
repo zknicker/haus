@@ -73,9 +73,11 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
         const certificatePath = path.join(directory, 'certificate.p12');
         const apiKeyPath = path.join(directory, 'AuthKey_TEST.p8');
         const provisioningProfilePath = path.join(directory, 'profile.mobileprovision');
+        const extensionProfilePath = path.join(directory, 'extension.mobileprovision');
         writeFileSync(certificatePath, 'temporary certificate');
         writeFileSync(apiKeyPath, 'temporary key');
         writeFileSync(provisioningProfilePath, 'temporary profile');
+        writeFileSync(extensionProfilePath, 'temporary extension profile');
         const cleanup = spawnSync('bash', [cleanupApple], {
             cwd: repositoryRoot,
             encoding: 'utf8',
@@ -85,12 +87,14 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
                 HAUS_RELEASE_CERTIFICATE_PATH: certificatePath,
                 APPLE_API_KEY_PATH: apiKeyPath,
                 HAUS_RELEASE_PROVISIONING_PROFILE_PATH: provisioningProfilePath,
+                HAUS_RELEASE_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_PATH: extensionProfilePath,
             },
         });
         assert.equal(cleanup.status, 0, cleanup.stderr);
         assert.equal(existsSync(certificatePath), false);
         assert.equal(existsSync(apiKeyPath), false);
         assert.equal(existsSync(provisioningProfilePath), false);
+        assert.equal(existsSync(extensionProfilePath), false);
     } finally {
         rmSync(directory, { force: true, recursive: true });
     }
@@ -174,7 +178,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(publishIOSSource, /EXCLUDED_SOURCE_FILE_NAMES=mac-icon\.icon/);
     assert.match(
         publishIOSSource,
-        /const ipaPath = findExportedIPA\(exportPath\);[\s\S]*?assertExportedIOSIcon\([\s\S]*?run\('xcrun', appStoreConnectUploadArgs\(ipaPath\)\)/
+        /const ipaPath = findExportedIPA\(exportPath\);[\s\S]*?assertInstalledIOSIcon\([\s\S]*?assertExportedCommunicationNotifications\(exportedApp\);[\s\S]*?run\('xcrun', appStoreConnectUploadArgs\(ipaPath\)\)/
     );
     assert.match(publishIOSSource, /HAUS_PRECOMPILED_IOS_ICON_DIR/);
     assert.match(publishIOSSource, /inspectIOSIconArtifact\(iconArtifactDirectory\)/);

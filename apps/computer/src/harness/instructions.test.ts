@@ -63,7 +63,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     );
     expect(instructions).not.toContain('closed gate set');
     expect(instructions).toContain(
-        'explicit FYI / no-response-needed messages should settle with zero sends'
+        'step 4 holds: an explicit FYI gets nothing, a thanks or ack one reaction'
     );
     expect(instructions).toContain(
         'use every relevant durable user preference as an execution constraint'

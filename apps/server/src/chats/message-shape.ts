@@ -68,6 +68,26 @@ export function readStoredAuthorIdentity(
     return undefined;
 }
 
+/**
+ * The stored author's id, kind, name, and avatar id, for surfaces that build
+ * their own avatar URL (iPhone push). Undefined when the author is unresolvable.
+ */
+export function readStoredAuthor(
+    message: Pick<StoredChatMessageAuthorProfileRow, 'authorAgentAvatarId' | 'authorUserAvatarId'> &
+        StoredChatMessageAuthorRow
+):
+    | { avatarId: string | null; displayName: string; id: string; kind: 'agent' | 'human' }
+    | undefined {
+    const identity = readStoredAuthorIdentity(message);
+    if (identity?.kind === 'agent' && message.authorAgentId) {
+        return { ...identity, avatarId: message.authorAgentAvatarId, id: message.authorAgentId };
+    }
+    if (identity?.kind === 'human' && message.authorUserId) {
+        return { ...identity, avatarId: message.authorUserAvatarId, id: message.authorUserId };
+    }
+    return undefined;
+}
+
 export function readStoredAuthorProfile(
     message: StoredChatMessageAuthorProfileRow
 ): StoredChatMessageAuthorProfile | undefined {

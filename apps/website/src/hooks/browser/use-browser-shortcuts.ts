@@ -1,90 +1,129 @@
 import * as React from 'react';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
-import type { BrowserCommand, BrowserWorkspaceState } from '../../lib/desktop-browser.ts';
+import type { BrowserCommand, BrowserTab } from '../../lib/desktop-browser.ts';
+import { numberedTab, relativeTab } from '../workspace-tabs/strip-navigation.ts';
+import type { WorkspaceTabs } from '../workspace-tabs/use-workspace-tabs.ts';
+import type { WorkspaceTabRef } from '../workspace-tabs/workspace-tabs-model.ts';
+import {
+    appShortcut,
+    type BrowserShortcut,
+    parseBrowserShortcut,
+} from './browser-shortcut-keys.ts';
+import type { BrowserFind } from './use-browser-find.ts';
 
-export function useBrowserShortcuts(
-    state: BrowserWorkspaceState,
-    command: (input: BrowserCommand) => void
-) {
+type ShortcutTabs = Pick<WorkspaceTabs, 'activeTab' | 'reopenClosedTab' | 'selectTab' | 'tabs'>;
+
+interface ShortcutTarget {
+    /** The selected browser tab, if a browser tab is selected. */
+    browserTab: BrowserTab | null;
+    command: (input: BrowserCommand) => void;
+    find: BrowserFind;
+    tabs: ShortcutTabs;
+}
+
+/** Shortcuts that only mean something while a browser tab is selected. */
+const pageShortcuts = new Set<BrowserShortcut>([
+    'address',
+    'find',
+    'find-next',
+    'find-previous',
+    'hard-reload',
+    'reload',
+    'stop',
+]);
+
+/**
+ * Runs workspace tab and page shortcuts from both focus paths: the App's own
+ * keydown events, and shortcuts the main process forwards from the App menu or
+ * a focused native page (electron/browser-shortcuts.cjs).
+ */
+export function useBrowserShortcuts(target: ShortcutTarget) {
+    const latest = React.useRef(target);
+    latest.current = target;
     React.useEffect(() => {
         const bridge = getDesktopBridge();
         if (!bridge?.browserCommand) {
             return;
         }
-        const run = (shortcut: string) => runBrowserShortcut(shortcut, state, command);
         const onKeyDown = (event: KeyboardEvent) => {
-            const shortcut = keyboardShortcut(event);
-            if (!shortcut || (!state.activeId && ['address', 'reload'].includes(shortcut))) {
+            const shortcut = appShortcut(event);
+            if (!shortcut || event.defaultPrevented || !applies(shortcut, latest.current)) {
+                return;
+            }
+            // Esc stays with fields and overlays; it stops a load only from the page chrome.
+            if (shortcut === 'stop' && isEditable(event.target)) {
                 return;
             }
             event.preventDefault();
-            run(shortcut);
+            runBrowserShortcut(shortcut, latest.current);
         };
-        const unsubscribe = bridge.onBrowserShortcut?.(run);
+        const unsubscribe = bridge.onBrowserShortcut?.((value) => {
+            const shortcut = parseBrowserShortcut(value);
+            if (shortcut && applies(shortcut, latest.current)) {
+                runBrowserShortcut(shortcut, latest.current);
+            }
+        });
         window.addEventListener('keydown', onKeyDown);
         return () => {
             unsubscribe?.();
             window.removeEventListener('keydown', onKeyDown);
         };
-    }, [state, command]);
+    }, []);
 }
 
-function runBrowserShortcut(
-    shortcut: string,
-    state: BrowserWorkspaceState,
-    command: (input: BrowserCommand) => void
-) {
-    if (shortcut === 'address' && state.activeId) {
-        const address = document.getElementById('browser-address') as HTMLInputElement | null;
-        address?.focus();
-        address?.select();
-        return;
+function applies(shortcut: BrowserShortcut, { browserTab }: ShortcutTarget) {
+    if (shortcut === 'stop') {
+        return browserTab?.loading === true;
     }
-    if (shortcut === 'reload' && state.activeId) {
-        command({ kind: 'navigate', action: 'reload' });
-        return;
-    }
-    const ids = [null, ...state.tabs.map((tab) => tab.id)];
-    if (shortcut === 'next-tab' || shortcut === 'previous-tab') {
-        const offset = shortcut === 'next-tab' ? 1 : -1;
-        const index = (ids.indexOf(state.activeId) + offset + ids.length) % ids.length;
-        command({ kind: 'select', id: ids[index] ?? null });
-        return;
-    }
-    if (/^tab-[1-9]$/.test(shortcut)) {
-        const index = Number(shortcut.slice(4));
-        const id = index === 9 ? ids.at(-1) : ids[index - 1];
-        if (id !== undefined) {
-            command({ kind: 'select', id });
+    return browserTab !== null || !pageShortcuts.has(shortcut);
+}
+
+function runBrowserShortcut(shortcut: BrowserShortcut, { command, find, tabs }: ShortcutTarget) {
+    switch (shortcut) {
+        case 'address': {
+            const address = document.getElementById('browser-address') as HTMLInputElement | null;
+            address?.focus();
+            address?.select();
+            return;
         }
+        case 'reload':
+        case 'hard-reload':
+        case 'stop':
+            command({ kind: 'navigate', action: shortcut });
+            return;
+        case 'find':
+            find.open();
+            return;
+        case 'find-next':
+        case 'find-previous':
+            find.step(shortcut === 'find-next');
+            return;
+        case 'reopen-tab':
+            tabs.reopenClosedTab();
+            return;
+        case 'next-tab':
+        case 'previous-tab':
+            selectIfAny(
+                tabs,
+                relativeTab(tabs.tabs, tabs.activeTab, shortcut === 'next-tab' ? 1 : -1)
+            );
+            return;
+        default:
+            if (shortcut.startsWith('tab-')) {
+                selectIfAny(tabs, numberedTab(tabs.tabs, Number(shortcut.slice(4))));
+            }
     }
 }
 
-function keyboardShortcut(event: KeyboardEvent): string | null {
-    if (event.altKey) {
-        return null;
+function selectIfAny({ selectTab }: ShortcutTabs, ref: WorkspaceTabRef | null) {
+    if (ref) {
+        selectTab(ref);
     }
-    const key = event.key.toLowerCase();
-    if (event.ctrlKey && key === 'tab') {
-        return event.shiftKey ? 'previous-tab' : 'next-tab';
-    }
-    if (!(event.metaKey || event.ctrlKey)) {
-        return null;
-    }
-    if (key === 'l') {
-        return 'address';
-    }
-    if (key === 'r') {
-        return 'reload';
-    }
-    if (/^[1-9]$/.test(key)) {
-        return `tab-${key}`;
-    }
-    if (event.shiftKey && key === '[') {
-        return 'previous-tab';
-    }
-    if (event.shiftKey && key === ']') {
-        return 'next-tab';
-    }
-    return null;
+}
+
+function isEditable(target: EventTarget | null) {
+    return (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName))
+    );
 }

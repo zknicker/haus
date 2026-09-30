@@ -11,7 +11,7 @@ import SwiftUI
 /// squares scroll sideways inside it. The horizontal scroll is safe inside the
 /// transcript for the same structural reason the viewer's zoom is safe inside
 /// the pager — with `.basedOnSize` a strip that fits does not bounce, so its
-/// pan never begins and the table's vertical drag and long-press menu see an
+/// pan never begins and the table's vertical drag and long press see an
 /// untouched hierarchy. The cell's content view is flipped on Y, which leaves
 /// horizontal direction, momentum, and hit-testing exactly as they are.
 struct MessageImageStrip: View {

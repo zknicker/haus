@@ -45,4 +45,27 @@ struct AttachmentImageCacheTests {
         #expect(cache.adoptStagedThumbnail(filename: "Photo.jpg", sizeBytes: 999, as: "a") == nil)
         #expect(cache.adoptStagedThumbnail(filename: "Other.jpg", sizeBytes: 1234, as: "b") == nil)
     }
+
+    /// Sign-out: a decode that began before the wipe lands after it and must
+    /// not put the previous account's picture back.
+    @Test func removeAllEmptiesTheCacheAndRefusesADecodeFromBeforeIt() {
+        let cache = AttachmentImageCache()
+        let thumbnail = AttachmentThumbnail(bitmap: AttachmentBitmapFixture.bitmap(), size: .init(width: 180, height: 180))
+        cache.store(
+            thumbnail,
+            for: "a",
+            decodedPixelCost: 4,
+            stagedContentKey: AttachmentImageCache.stagedContentKey(filename: "Photo.jpg", sizeBytes: 1234)
+        )
+        let staleGeneration = cache.generation
+
+        cache.removeAll()
+        cache.store(thumbnail, for: "late", decodedPixelCost: 4, loadedIn: staleGeneration)
+        cache.store(thumbnail, for: "fresh", decodedPixelCost: 4, loadedIn: cache.generation)
+
+        #expect(cache.thumbnail(for: "a") == nil)
+        #expect(cache.adoptStagedThumbnail(filename: "Photo.jpg", sizeBytes: 1234, as: "b") == nil)
+        #expect(cache.thumbnail(for: "late") == nil)
+        #expect(cache.thumbnail(for: "fresh") != nil)
+    }
 }

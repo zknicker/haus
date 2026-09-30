@@ -4,6 +4,7 @@ const {
     app,
     BrowserWindow,
     WebContentsView,
+    clipboard,
     ipcMain,
     Menu,
     nativeTheme,
@@ -22,6 +23,8 @@ const { registerNativeClerkRequestHeaders } = require('./clerk-native-requests.c
 const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
 const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs');
 const { registerBrowserWorkspace } = require('./browser-workspace-ipc.cjs');
+const { runBrowserWindowAction } = require('./browser-window-actions.cjs');
+const { tabMenuItems, zoomMenuItems } = require('./browser-menu-items.cjs');
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 const { buildWindowUrl, isSafeWindowRoute, nextWindowBounds } = require('./window-routing.cjs');
 const { readWindowState, resolveInitialBounds, writeWindowState } = require('./window-state.cjs');
@@ -42,14 +45,9 @@ for (const stream of [process.stdout, process.stderr]) {
 const updateCheckIntervalMs = 10 * 60 * 1000;
 const openDevtoolsMenuId = 'open-devtools';
 const productionAppUrl = 'https://haus.chat';
-// Matches --app-shell-band-height in src/features/shell/shell.css, the height
-// every top-of-column band shares.
-const topbarHeightPx = 48;
-const macosTrafficLightDiameterPx = 12;
-const macosTrafficLightPosition = {
-    x: 17,
-    y: (topbarHeightPx - macosTrafficLightDiameterPx) / 2 - 1,
-};
+// Centered exactly on the 44px window band (--app-shell-top-band-height in
+// src/styles/default-theme.css), the midline the tabs and band actions share.
+const macosTrafficLightPosition = { x: 16, y: 16 };
 const { autoUpdater } = electronUpdater;
 const useMockUpdater = !app.isPackaged && process.env.HAUS_ELECTRON_UPDATER_MOCK === '1';
 const appUrl = app.isPackaged
@@ -227,35 +225,7 @@ function installAppMenu() {
                     },
                     label: 'New Window',
                 },
-                {
-                    accelerator: 'CmdOrCtrl+T',
-                    click: () => {
-                        BrowserWindow.getFocusedWindow()?.webContents.send(
-                            'desktop:window:new-tab'
-                        );
-                    },
-                    label: 'New Tab',
-                },
-                { type: 'separator' },
-                {
-                    // Not role: 'close' — the renderer closes an open artifact
-                    // tab first and only falls back to closing the window.
-                    accelerator: 'CmdOrCtrl+W',
-                    click: () => {
-                        const window = BrowserWindow.getFocusedWindow();
-                        if (!window) {
-                            return;
-                        }
-
-                        if (window.webContents.isCrashed()) {
-                            window.close();
-                            return;
-                        }
-
-                        window.webContents.send('desktop:window:close-request');
-                    },
-                    label: 'Close',
-                },
+                ...tabMenuItems(runFocusedWindowAction),
             ],
         },
         {
@@ -270,8 +240,9 @@ function installAppMenu() {
                 { role: 'selectAll' },
                 { type: 'separator' },
                 {
+                    // Finds in the selected browser page; otherwise opens Search.
                     accelerator: 'CmdOrCtrl+F',
-                    click: () => sendToFocusedWindow('desktop:search:open'),
+                    click: () => runFocusedWindowAction('find'),
                     label: 'Find…',
                 },
             ],
@@ -279,9 +250,7 @@ function installAppMenu() {
         {
             label: 'View',
             submenu: [
-                { role: 'resetZoom' },
-                { role: 'zoomIn' },
-                { role: 'zoomOut' },
+                ...zoomMenuItems(runFocusedWindowAction),
                 { type: 'separator' },
                 { role: 'togglefullscreen' },
             ],
@@ -353,6 +322,14 @@ function openSettingsWindow() {
     window.webContents.send('desktop:settings:open');
 }
 
+/** Menu accelerators and page-focused keys share one action path per window. */
+function runFocusedWindowAction(action) {
+    const window = BrowserWindow.getFocusedWindow();
+    if (window) {
+        runBrowserWindowAction(window, browserWorkspaces?.forWindow(window), action);
+    }
+}
+
 function sendToFocusedWindow(channel, ...args) {
     BrowserWindow.getFocusedWindow()?.webContents.send(channel, ...args);
 }
@@ -363,6 +340,12 @@ function registerIpcHandlers() {
         BrowserWindow,
         WebContentsView,
         ipcMain,
+        page: {
+            clipboard,
+            inspect: !app.isPackaged,
+            Menu,
+            openExternal: (url) => shell.openExternal(url),
+        },
         session,
     });
     registerEditContextMenuHandlers({ appUrl, ipcMain });

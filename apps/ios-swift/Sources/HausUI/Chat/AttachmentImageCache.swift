@@ -101,6 +101,10 @@ final class AttachmentImageCache {
     static let shared = AttachmentImageCache()
 
     private let cache = NSCache<NSString, ThumbnailBox>()
+    /// Bumped by `removeAll()`. A decode captures it before its first await
+    /// and hands it back to `store`, so one that began before a sign-out
+    /// cannot repopulate the emptied cache.
+    private(set) var generation = 0
 
     init() {
         cache.countLimit = 80
@@ -115,8 +119,10 @@ final class AttachmentImageCache {
         _ thumbnail: AttachmentThumbnail,
         for attachmentID: String,
         decodedPixelCost: Int,
-        stagedContentKey: String? = nil
+        stagedContentKey: String? = nil,
+        loadedIn loadGeneration: Int? = nil
     ) {
+        guard loadGeneration.map({ $0 == generation }) ?? true else { return }
         let box = ThumbnailBox(thumbnail: thumbnail, pixelCost: decodedPixelCost)
         cache.setObject(box, forKey: attachmentID as NSString, cost: decodedPixelCost)
         if let stagedContentKey {
@@ -138,6 +144,11 @@ final class AttachmentImageCache {
         guard let box = cache.object(forKey: key as NSString) else { return nil }
         cache.setObject(box, forKey: attachmentID as NSString, cost: box.pixelCost)
         return box.thumbnail
+    }
+
+    func removeAll() {
+        generation += 1
+        cache.removeAllObjects()
     }
 
     static func stagedContentKey(filename: String, sizeBytes: Int) -> String {
