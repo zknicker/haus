@@ -26,6 +26,8 @@ const channelIconBoxVariants = {
     // Fixed, not size-6: the box must hold the 24px Agent avatars' scale
     // rather than shrinking with the sidebar's spacing token.
     sidebar: { boxClassName: 'channel-icon-box--sidebar', boxSize: 24, iconSize: 16 },
+    /** A workspace tab's leading mark: a touch larger than a 16px favicon, since the box eats into the glyph. */
+    tab: { boxSize: 20, iconSize: 14 },
     topbar: { boxSize: 24, iconSize: 16 },
 } as const;
 

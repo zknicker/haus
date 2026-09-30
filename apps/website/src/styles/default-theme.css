@@ -236,50 +236,447 @@
         .browser-loading-line { transition: none; }
     }
 
-    .browser-toolbar {
-        justify-content: space-between;
+    /*
+     * The page toolbar sits on the page ground, so a hairline rather than
+     * empty space separates it from the native page below. The loading line
+     * rides this edge.
+     */
+    .browser-toolbar,
+    .browser-find-bar,
+    .artifact-toolbar {
+        border-bottom: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
     }
 
-    .browser-toolbar > div:not(.browser-loading-line) {
-        width: 100px;
+    /* Back, Forward, and Reload (and the find bar's steps) read as one tight cluster. */
+    .browser-toolbar .toolbar,
+    .browser-find-bar .toolbar {
+        gap: calc(var(--spacing) * 0.5);
     }
 
-    .browser-address {
-        max-width: 720px;
-    }
-
+    /*
+     * The address matches the toolbar's `sm` icon buttons in height rather
+     * than the taller form-field default. It keeps the stock field material —
+     * `--field` fill and hairline — so it reads as a field on the page ground,
+     * but not the resting lift: a raised bar would outrank the flat toolbar
+     * buttons beside it. The resting label centers like a title; editing
+     * starts at the line start like any field.
+     *
+     * With no trigger there is no input group, so the Input sits straight in
+     * the ComboBox's column and its stock `flex: 1` (0 basis) sized it to its
+     * text, ignoring the height. `flex: none` lets the height hold.
+     */
     .browser-address .input {
-        border-radius: var(--radius-full, 9999px);
+        flex: none;
+        height: calc(var(--spacing) * 8);
+        padding-block: 0;
         text-align: center;
+    }
+
+    /* Only at rest: the stock focus ring is itself a box-shadow. */
+    .browser-address .input:not(:focus) {
+        box-shadow: none;
     }
 
     .browser-address .input:focus {
         text-align: start;
     }
 
+    /* The find field wears the address field's size and material, so the two read as one family. */
+    .browser-find-bar .input-group {
+        min-height: 0;
+        height: calc(var(--spacing) * 8);
+    }
+
+    .browser-find-bar .input-group:not(:focus-within) {
+        box-shadow: none;
+    }
+
+    .browser-find-bar .input-group__input {
+        padding-block: 0;
+    }
+
+    /*
+     * Address suggestions (features/shell/browser-address-suggestion-row.tsx):
+     * the list is exactly as wide as the field, and each stock row reads as
+     * one line — mark, title, then the condensed URL, muted. The title keeps
+     * most of the line; both end in an ellipsis rather than wrapping.
+     */
+    .browser-address-popover {
+        width: var(--trigger-width);
+    }
+
+    .browser-address-popover .list-box-item {
+        gap: calc(var(--spacing) * 2);
+
+        & > img,
+        & > svg {
+            flex-shrink: 0;
+        }
+
+        & [data-slot='label'],
+        & [data-slot='description'] {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        & [data-slot='label'] {
+            flex: 0 1 auto;
+            max-width: 70%;
+        }
+
+        & [data-slot='label']:last-child {
+            max-width: none;
+        }
+
+        & [data-slot='description'] {
+            flex: 1 1 0;
+        }
+    }
+
+    /*
+     * Workspace tabs (features/shell/workspace-tab.tsx). Every tab kind — the
+     * routed primary tab, each browser tab, and each artifact tab — shares one anatomy: a 32px
+     * rounded rect (HeroUI's `sm` control height plus 2px) holding a 20px mark slot, a
+     * 13px label that ends in an ellipsis, and, on closable tabs, a trailing
+     * close button.
+     * The strip sits on the page ground with no band of its own, so the
+     * selected tab wears HeroUI's selected-segment material (`--segment` +
+     * `--surface-shadow`, exactly the Tabs indicator) and hover takes the
+     * ghost-button fill a step below it. The corner is the ×2 items tier, the same as
+     * the sidebar rows beside the strip; the nested action is a small
+     * adornment at ×1.5.
+     *
+     * The tab's stock Button fills the tab so the whole tab is the hit target
+     * and its focus ring follows the tab's corner; the fill and label color
+     * live on the tab itself, so the Button's own pill hover and press scale
+     * are neutralized here.
+     */
     .workspace-titlebar {
+        /* The sm control height plus 1px above and below: tabs read a touch roomier than the toolbar controls. */
+        --workspace-tab-height: calc(var(--spacing) * 8 + 2px);
+        /* One width basis every tab kind holds while there is room and shrinks from together. */
+        --workspace-tab-width: 12.5rem;
         display: flex;
         height: var(--app-shell-band-height);
         flex-shrink: 0;
         align-items: center;
-        gap: calc(var(--spacing) * 3);
-        padding-inline: calc(var(--spacing) * 3);
+        gap: calc(var(--spacing) * 2);
+        padding-inline: calc(var(--spacing) * 2);
     }
 
-    .workspace-primary-tab {
-        max-width: 280px;
-        overflow: hidden;
+    .workspace-page-slot {
+        display: flex;
+        min-width: 0;
+        flex-shrink: 0;
+        align-items: center;
+    }
+
+    /*
+     * With nothing visible to hold (empty, or only a chat's sr-only heading)
+     * the slot cancels one strip gap rather than hiding, which would drop
+     * that heading from the accessibility tree.
+     */
+    .workspace-page-slot:not(:has(> :not(.sr-only))) {
+        margin-inline-start: calc(var(--spacing) * -2);
     }
 
     .workspace-tab {
+        position: relative;
         display: flex;
-        align-items: center;
-        flex-shrink: 0;
-        border-radius: var(--radius-full, 9999px);
+        height: var(--workspace-tab-height);
+        border-radius: calc(var(--radius) * 2);
+        color: var(--muted);
+        transition:
+            background-color 100ms var(--ease-out),
+            box-shadow 100ms var(--ease-out),
+            color 100ms var(--ease-out);
+    }
+
+    @media (hover: hover) {
+        .workspace-tab:not([data-active="true"]):hover {
+            background: var(--default);
+            color: var(--foreground);
+        }
     }
 
     .workspace-tab[data-active="true"] {
-        background: var(--surface-secondary);
+        background: var(--segment);
+        box-shadow: var(--surface-shadow);
+        color: var(--segment-foreground);
+    }
+
+
+    .workspace-tab > .button {
+        --button-bg-hover: transparent;
+        --button-bg-pressed: transparent;
+        --button-fg: currentColor;
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 100%;
+        justify-content: flex-start;
+        gap: calc(var(--spacing) * 1.5);
+        /* Start inset equals the mark slot's vertical inset, so marks sit centered in the tab's corner. */
+        padding-inline: calc((var(--workspace-tab-height) - 1.25rem) / 2) calc(var(--spacing) * 2);
+        border-radius: inherit;
+        font-weight: 400;
+    }
+
+    .workspace-tab > .button:active,
+    .workspace-tab > .button[data-pressed="true"] {
+        transform: none;
+    }
+
+    /*
+     * Identity marks (channel box, DM avatar) fill the 20px slot and derive
+     * their own radius; 16px glyphs and favicons center in it, so every tab
+     * kind's title starts at the same inset.
+     */
+    .workspace-tab__mark {
+        display: flex;
+        width: 1.25rem;
+        height: 1.25rem;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Beats `.button--sm svg`, which would draw the 16px mark at 15px. */
+    .workspace-tab__mark > svg,
+    .workspace-tab__mark > img {
+        width: 1rem;
+        height: 1rem;
+        margin: 0;
+    }
+
+    .workspace-tab__label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .workspace-tab__action {
+        position: absolute;
+        top: 50%;
+        inset-inline-end: var(--spacing);
+        display: none;
+        align-items: center;
+        translate: 0 -50%;
+    }
+
+    /*
+     * A closable tab's close button shows only when selected, hovered, or
+     * focused; the label reclaims its room otherwise.
+     */
+    .workspace-tab:is([data-active="true"], :hover, :focus-within) > .workspace-tab__action {
+        display: flex;
+    }
+
+    .workspace-tab:has(> .workspace-tab__action):is([data-active="true"], :hover, :focus-within)
+        > .button {
+        padding-inline-end: calc(var(--spacing) * 2 + 1.25rem);
+    }
+
+    .workspace-tab__action .button {
+        --button-bg-hover: var(--default-hover);
+        --button-bg-pressed: var(--default-hover);
+        --button-fg: currentColor;
+        width: 1.25rem;
+        min-width: 0;
+        height: 1.25rem;
+        padding: 0;
+        border-radius: calc(var(--radius) * 1.5);
+    }
+
+    .workspace-tab__action .button svg {
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+
+    /*
+     * New-tab recent sites (features/shell/browser-start-page.tsx). Each tile
+     * is a stock ghost Button stacked as a 92px column: a 40px neutral chip
+     * holding the site's 20px favicon, then one muted `text-sm` label line. The
+     * chip wears the resting surface material so it still reads on the
+     * tile's ghost hover fill; its corner is the identity-mark curve for a
+     * 40px box (×2.5). The tile takes the shell corner.
+     */
+    .browser-start-site > .button {
+        --button-fg: var(--muted);
+        flex-direction: column;
+        width: 5.75rem;
+        height: auto;
+        gap: calc(var(--spacing) * 2);
+        padding: calc(var(--spacing) * 3) calc(var(--spacing) * 1.5) calc(var(--spacing) * 2.5);
+        border-radius: min(32px, var(--radius-3xl));
+        font-size: var(--text-sm);
+        line-height: var(--text-sm--line-height);
+        font-weight: 400;
+    }
+
+    .browser-start-site > .button:hover {
+        --button-fg: var(--foreground);
+    }
+
+    .browser-start-site__mark {
+        display: flex;
+        width: 2.5rem;
+        height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: calc(var(--radius) * 2.5);
+        background: var(--surface);
+        box-shadow: var(--surface-shadow);
+        color: var(--muted);
+    }
+
+    .browser-start-site__mark > img,
+    .browser-start-site__mark > svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin: 0;
+    }
+
+    .browser-start-site__label {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* A dragged tab rides above its siblings and keeps its hover fill. */
+    .workspace-tab[data-dragging="true"] {
+        z-index: 1;
+    }
+
+    .workspace-tab[data-dragging="true"]:not([data-active="true"]) {
+        background: var(--default);
+        color: var(--foreground);
+    }
+
+    /*
+     * Chrome-style dividers, centered in the half-step gap before each tab and
+     * before the new-tab button, so two adjacent unfilled tabs stay apart. A
+     * filled tab (selected, hovered, dragged) needs no divider on either side.
+     * The tab never clips, so the pseudo-element can sit in the gap.
+     */
+    .workspace-tab::before,
+    .workspace-new-tab::before {
+        position: absolute;
+        top: 50%;
+        inset-inline-start: calc(var(--spacing) * 0.5 / -2 - 0.5px);
+        width: 1px;
+        height: 1rem;
+        background: var(--separator);
+        content: "";
+        pointer-events: none;
+        transform: translateY(-50%);
+        transition: opacity 100ms var(--ease-out);
+    }
+
+    .workspace-tab:first-child::before,
+    .workspace-tab:is([data-active="true"], [data-dragging="true"])::before,
+    .workspace-tab:is([data-active="true"], [data-dragging="true"]) + .workspace-tab::before,
+    .workspace-tabs:has(.workspace-tab:last-child:is([data-active="true"], [data-dragging="true"]))
+        .workspace-new-tab::before {
+        opacity: 0;
+    }
+
+    @media (hover: hover) {
+        .workspace-tab:hover::before,
+        .workspace-tab:hover + .workspace-tab::before,
+        .workspace-tabs:has(.workspace-tab:last-child:hover) .workspace-new-tab::before,
+        .workspace-new-tab:hover::before {
+            opacity: 0;
+        }
+    }
+
+    /*
+     * One strip of every tab kind. The strip never scrolls: the fixed 200px
+     * primary tab holds its width while browser and artifact tabs share the
+     * rest evenly from the same 200px basis down to a favicon-only 40px, and the
+     * selected tab keeps room for its close button. The list pads out and
+     * margins back so the selected tab's shadow and focus ring are not
+     * clipped by its overflow guard.
+     */
+    .workspace-tabs {
+        display: flex;
+        min-width: 0;
+        flex: 1 1 0;
+        align-items: center;
+        gap: calc(var(--spacing) * 0.5);
+    }
+
+    .workspace-tab-list {
+        display: flex;
+        min-width: 0;
+        flex: 0 1 auto;
+        align-items: center;
+        gap: calc(var(--spacing) * 0.5);
+        margin: -0.25rem;
+        padding: 0.25rem;
+        overflow: hidden;
+    }
+
+    /*
+     * The container query below needs inline-size containment, which zeroes
+     * the tab's intrinsic width — and the list sizes to its tabs' intrinsic
+     * widths, so without an explicit one every tab collapses to favicon-only
+     * however much room the strip has. The intrinsic width restates the basis.
+     */
+    /*
+     * Every tab kind, the chat tab included, holds one basis while there is
+     * room (so switching chats never moves the strip) and shrinks evenly with
+     * the rest when the strip is crowded.
+     */
+    .workspace-tab {
+        container-type: inline-size;
+        contain-intrinsic-inline-size: var(--workspace-tab-width);
+        flex: 0 1 var(--workspace-tab-width);
+        min-width: 2.5rem;
+    }
+
+    .workspace-tab[data-active="true"] {
+        min-width: 3.5rem;
+    }
+
+    @container (max-width: 4.5rem) {
+        .workspace-tab:not([data-active="true"]) > .workspace-tab__action {
+            display: none;
+        }
+
+        .workspace-tab:not([data-active="true"]) > .button {
+            justify-content: center;
+            padding-inline: 0;
+        }
+
+        .workspace-tab:not([data-active="true"]) .workspace-tab__label {
+            display: none;
+        }
+    }
+
+    .workspace-new-tab {
+        position: relative;
+        display: flex;
+        flex-shrink: 0;
+    }
+
+    .workspace-new-tab .button {
+        width: var(--workspace-tab-height);
+        height: var(--workspace-tab-height);
+    }
+
+    /* The page's actions at the band's end; collapses (and drops its gap) when empty. */
+    .workspace-band-actions {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+    }
+
+    .workspace-band-actions:empty {
+        display: none;
     }
 
     /*
@@ -1271,4 +1668,416 @@
     0%, 100% { opacity: 0; transform: scale(0.5) rotate(-15deg); }
     35% { opacity: 1; transform: scale(1.15) rotate(8deg); }
     65% { opacity: 0.5; transform: scale(0.9) rotate(15deg); }
+}
+
+/*
+ * ==========================================================================
+ * Shell variants — desktop window layouts
+ * ==========================================================================
+ *
+ * The desktop app stamps `data-shell-variant` (Settings > Preferences >
+ * Window layout: `band`, the default, or `canvas`) on the document root; the
+ * web has no window layout and none of this applies to it. Both layouts put a
+ * full-width window band (WindowBand) on a grey canvas: a leading segment the
+ * sidebar's width holds the traffic lights, and the workspace topbar starts
+ * at the content column's edge, so tabs align with the content below. The
+ * band's workspace tabs copy Codex's window tabs (values below).
+ *
+ *   canvas  the sidebar sits straight on the canvas; content is a rounded
+ *           card inset from it (native browser views clip to the card's
+ *           corner through `setBorderRadius`).
+ *   band    Codex's shell: one rounded, bordered card inset from a light
+ *           grey canvas holds the off-white sidebar and the white content,
+ *           split by a faint divider. Values sampled from Codex (light).
+ *
+ * The canvas is the chrome grey the sidebar already wears; the card is the
+ * brightest ground each theme has. Inside a card, `--background` is re-pointed
+ * at the card so every page's own ground matches it.
+ */
+:root {
+    --app-shell-ground: var(--background);
+    /*
+     * 32px tabs with 6px above and below. electron/main.cjs centers the
+     * traffic lights on this height (y = (44 - 12) / 2); keep the two in step.
+     */
+    --app-shell-top-band-height: 2.75rem;
+    /* A card-ground row fill: HeroUI's stock pairing, before the sidebar tint re-seats it. */
+    --shell-card-row-fill: var(--default);
+    --shell-card-row-fill-hover: var(--default-hover);
+    /*
+     * The card nests concentric in the window corner. Measured on the Haus
+     * window (circle fits on 2x screenshots): window corner 15.8pt, window
+     * edge to card edge 3.3pt, so the card radius is the window radius minus
+     * the gutter. macOS picks the window radius (Electron cannot set it);
+     * re-measure if a macOS release changes it. Canvas's content card and
+     * band's whole-shell card share this geometry.
+     */
+    --shell-card-gutter: 3px;
+    --shell-card-border-width: 1px;
+    --shell-window-corner: 16px;
+    --shell-card-radius: calc(var(--shell-window-corner) - var(--shell-card-gutter));
+    /*
+     * Codex's window tabs, read from its app bundle (webview/assets/
+     * app-initial-*.js tab component, resolved against app-shared-*.css):
+     * h-8 tab, rounded-md surface (.5rem × 1.25 corner scale), ps-2.5 / pe-1
+     * content inset, gap-2 between mark and title, a 16px icon slot, a 20px
+     * ghost close button 7px from the end with a 14px glyph, gap-1 between
+     * tabs, and a shared width of at most 240px.
+     */
+    --shell-tab-height: 2rem;
+    --shell-tab-width: 15rem;
+    --shell-tab-radius: 10px;
+    --shell-tab-gap: 4px;
+    /* The slot's own vertical inset, so a 20px identity mark sits evenly in the tab's corner. */
+    --shell-tab-inset-start: calc((var(--shell-tab-height) - var(--shell-tab-mark-size)) / 2);
+    --shell-tab-inset-end: 4px;
+    --shell-tab-content-gap: 8px;
+    --shell-tab-mark-size: 1.25rem;
+    --shell-tab-close-size: 20px;
+    --shell-tab-close-inset: 7px;
+    --shell-tab-close-glyph: 14px;
+    --shell-tab-separator-height: 12px;
+    /* Codex's text roles, from the foreground: primary, tertiary (50%), and its 12% strong border and 8% border. */
+    --shell-tab-foreground: var(--foreground);
+    --shell-tab-foreground-muted: color-mix(in oklab, var(--foreground) 50%, transparent);
+    --shell-tab-active-border: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --shell-tab-separator: color-mix(in oklab, var(--foreground) 8%, transparent);
+    --shell-tab-active-background: var(--shell-card);
+}
+
+[data-theme="light"],
+[data-theme="default"],
+.light,
+.default {
+    --shell-canvas: var(--sidebar-surface);
+    --shell-card: var(--surface);
+    /* Codex light, sampled: #f2f2f2, #fcfbfc, #e5e5e5, #f0f0f0 (fills keep the cool trace, lines none). */
+    --shell-band-canvas: oklch(96.12% 0.0013 286.4);
+    --shell-band-sidebar: oklch(98.91% 0.0013 286.4);
+    --shell-card-border: oklch(92.19% 0 0);
+    --shell-band-divider: oklch(95.51% 0 0);
+    --shell-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    /* Codex: ghost hover 5% foreground; selected shadow-sm at 1.25 × the .08 shadow alpha. */
+    --shell-tab-hover: color-mix(in oklab, var(--foreground) 5%, transparent);
+    --shell-tab-active-shadow: 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"],
+.dark {
+    /* Dark has no sidebar tint; the canvas steps below the page instead. */
+    --shell-canvas: color-mix(in oklab, var(--background) 72%, black);
+    --shell-card: var(--background);
+    /* The same ladder in dark: canvas under the card, lines a step lighter than it. */
+    --shell-band-canvas: color-mix(in oklab, var(--background) 72%, black);
+    --shell-band-sidebar: color-mix(in oklab, var(--background) 98%, white);
+    --shell-card-border: color-mix(in oklab, var(--background) 88%, white);
+    --shell-band-divider: color-mix(in oklab, var(--background) 94%, white);
+    --shell-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    /* Codex dark: ghost hover 8%; selected shadow-sm at 1.25 × the .2 shadow alpha. */
+    --shell-tab-hover: color-mix(in oklab, var(--foreground) 8%, transparent);
+    --shell-tab-active-shadow: 0 1px 2px -1px rgba(0, 0, 0, 0.25);
+}
+
+:root:is([data-shell-variant="canvas"], [data-shell-variant="band"]) {
+    --app-shell-ground: var(--shell-canvas);
+    --app-shell-drag-height: var(--app-shell-top-band-height);
+}
+
+:root[data-shell-variant="band"] {
+    --app-shell-ground: var(--shell-band-canvas);
+}
+
+@layer components {
+    /*
+     * The window band sits on the grey canvas (95–96%), where HeroUI's ghost
+     * hover (`--default`, 94%) nearly vanishes. Re-seat it the way the tinted
+     * sidebar does, so band buttons and tab hovers read. Light only: dark
+     * keeps HeroUI's own offset from its darker canvas.
+     */
+    [data-theme="light"] .shell-window-band,
+    [data-theme="default"] .shell-window-band,
+    .light .shell-window-band,
+    .default .shell-window-band {
+        --default: oklch(91% 0.0013 286.4);
+        --default-hover: color-mix(
+            in oklab,
+            oklch(91% 0.0013 286.4) 96%,
+            oklch(0.2103 0.0059 285.89) 4%
+        );
+    }
+
+    .shell-window-band {
+        display: flex;
+        height: var(--app-shell-top-band-height);
+        flex-shrink: 0;
+        align-items: center;
+    }
+
+    /*
+     * The traffic lights' segment: exactly the sidebar's width, so the topbar
+     * after it starts at the card's left edge (canvas) or the divider (band).
+     */
+    .shell-window-band__lead {
+        width: var(--app-sidebar-width, 240px);
+        height: 100%;
+        flex-shrink: 0;
+    }
+
+    /*
+     * The band's right end: the page's contextual actions, then Settings at
+     * the far end — contextual buttons accumulate leftward from the one
+     * global action, which never moves. Icon buttons in a group sit one step
+     * apart, like HeroUI's toolbar spacing.
+     */
+    .workspace-band-end {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        gap: var(--spacing);
+    }
+
+    /* No start inset: the first tab's edge lands on the card edge (canvas) or divider (band). */
+    .shell-window-band > .workspace-titlebar {
+        --workspace-tab-height: var(--shell-tab-height);
+        --workspace-tab-width: var(--shell-tab-width);
+        min-width: 0;
+        height: 100%;
+        flex: 1;
+        padding-inline-start: 0;
+    }
+
+    /* Codex's window tabs: one step of air between tabs. */
+    .shell-window-band :is(.workspace-tabs, .workspace-tab-list) {
+        gap: var(--shell-tab-gap);
+    }
+
+    /* Resting tabs are bare tertiary text; hover lays a ghost fill without lifting the text. */
+    .shell-window-band .workspace-tab {
+        border-radius: var(--shell-tab-radius);
+        color: var(--shell-tab-foreground-muted);
+    }
+
+    @media (hover: hover) {
+        .shell-window-band .workspace-tab:not([data-active="true"]):hover {
+            background: var(--shell-tab-hover);
+            color: var(--shell-tab-foreground-muted);
+        }
+    }
+
+    .shell-window-band .workspace-tab[data-dragging="true"]:not([data-active="true"]) {
+        background: var(--shell-tab-hover);
+        color: var(--shell-tab-foreground-muted);
+    }
+
+    /* The selected tab is the card's own white, a half-pixel strong border, and shadow-sm. */
+    .shell-window-band .workspace-tab[data-active="true"] {
+        background: var(--shell-tab-active-background);
+        box-shadow:
+            0 0 0 0.5px var(--shell-tab-active-border),
+            var(--shell-tab-active-shadow);
+        color: var(--shell-tab-foreground);
+    }
+
+    .shell-window-band .workspace-tab > .button {
+        gap: var(--shell-tab-content-gap);
+        padding-inline: var(--shell-tab-inset-start) var(--shell-tab-inset-end);
+    }
+
+    .shell-window-band .workspace-tab__mark {
+        width: var(--shell-tab-mark-size);
+        height: var(--shell-tab-mark-size);
+    }
+
+    /* A cut-off title fades over its last 1rem instead of an ellipsis. */
+    .shell-window-band .workspace-tab__label[data-overflowing] {
+        mask-image: linear-gradient(to right, #000 calc(100% - 1rem), transparent);
+        text-overflow: clip;
+    }
+
+    .shell-window-band .workspace-tab__label[data-overflowing]:dir(rtl) {
+        mask-image: linear-gradient(to left, #000 calc(100% - 1rem), transparent);
+    }
+
+    .shell-window-band .workspace-tab__action {
+        inset-inline-end: var(--shell-tab-close-inset);
+    }
+
+    .shell-window-band
+        .workspace-tab:has(> .workspace-tab__action):is([data-active="true"], :hover, :focus-within)
+        > .button {
+        padding-inline-end: calc(var(--shell-tab-close-inset) + var(--shell-tab-close-size));
+    }
+
+    .shell-window-band .workspace-tab__action .button {
+        --button-bg-hover: var(--shell-tab-hover);
+        --button-bg-pressed: var(--shell-tab-hover);
+        width: var(--shell-tab-close-size);
+        height: var(--shell-tab-close-size);
+        border-radius: var(--shell-tab-radius);
+    }
+
+    .shell-window-band .workspace-tab__action .button svg {
+        width: var(--shell-tab-close-glyph);
+        height: var(--shell-tab-close-glyph);
+    }
+
+    /* Codex's divider: 1 × 12px at 8% foreground, only between two resting tabs. */
+    .shell-window-band :is(.workspace-tab, .workspace-new-tab)::before {
+        inset-inline-start: calc(var(--shell-tab-gap) / -2 - 0.5px);
+        height: var(--shell-tab-separator-height);
+        background: var(--shell-tab-separator);
+    }
+
+    .shell-window-band .workspace-new-tab .button {
+        --button-fg: var(--shell-tab-foreground-muted);
+    }
+
+    :is([data-shell-variant="canvas"], [data-shell-variant="band"]) .app-shell [data-slot="sidebar"] {
+        /* HeroUI sizes the sidebar to the viewport; below the band it fills its row. */
+        height: 100%;
+        /* The gear moved into the band, so the sidebar reserves no titlebar strip. */
+        --app-shell-titlebar-inset: 0px;
+    }
+
+    :is([data-shell-variant="canvas"], [data-shell-variant="band"])
+        .app-shell
+        [data-slot="sidebar"]
+        .app-shell-titlebar-strip {
+        display: none;
+    }
+
+    /* The lead row starts flush under the band, level with the card's top edge. */
+    :is([data-shell-variant="canvas"], [data-shell-variant="band"])
+        .app-shell
+        [data-slot="sidebar-content"]
+        > [data-slot="sidebar-group"]:first-child
+        [data-slot="sidebar-menu-item"]:first-child {
+        margin-block-start: 0;
+    }
+
+    /* canvas: the sidebar is not a panel, just navigation on the canvas. */
+    [data-shell-variant="canvas"] .app-shell [data-slot="sidebar"] {
+        --sidebar-surface: transparent;
+        box-shadow: none;
+    }
+
+    [data-shell-variant="canvas"] .app-shell [data-slot="app-layout-main"] {
+        padding-inline-end: var(--shell-card-gutter);
+        padding-block-end: var(--shell-card-gutter);
+    }
+
+    /* The band card's geometry and edge: hairline border, faint shadow, round 12px corners. */
+    [data-shell-variant="canvas"] .app-shell .app-shell-main {
+        --background: var(--shell-card);
+        overflow: hidden;
+        border: var(--shell-card-border-width) solid var(--shell-card-border);
+        corner-shape: round;
+        border-radius: var(--shell-card-radius);
+        background-color: var(--shell-card);
+        box-shadow: var(--shell-card-shadow);
+    }
+
+    /* band: one rounded card, inset from the canvas, holds sidebar and content. */
+    [data-shell-variant="band"] .app-shell .app-shell-body {
+        padding-inline: var(--shell-card-gutter);
+        padding-block-end: var(--shell-card-gutter);
+    }
+
+    /* The lead segment spans the gutter and card border too, so tabs start at the divider. */
+    [data-shell-variant="band"] .shell-window-band__lead {
+        width: calc(
+            var(--app-sidebar-width, 240px) + var(--shell-card-gutter) +
+                var(--shell-card-border-width)
+        );
+    }
+
+    [data-shell-variant="band"] .app-shell [data-app-layout] {
+        --background: var(--shell-card);
+        --sidebar-surface: var(--shell-band-sidebar);
+        overflow: hidden;
+        border: var(--shell-card-border-width) solid var(--shell-card-border);
+        /*
+         * Plain circular corners. The theme's global superellipse(1.5) is
+         * squarer than a circle, so a 16px corner drew a curve spanning only
+         * ~8px and never read as nested in the window's; round spans its full
+         * radius, and matches the native browser view's circular clip.
+         */
+        corner-shape: round;
+        border-radius: var(--shell-card-radius);
+        background-color: var(--shell-card);
+        box-shadow: var(--shell-card-shadow);
+    }
+
+    /* Inside the band card the lead row gets the same air above it as the rows' side inset. */
+    [data-shell-variant="band"]
+        .app-shell
+        [data-slot="sidebar-content"]
+        > [data-slot="sidebar-group"]:first-child
+        [data-slot="sidebar-menu-item"]:first-child {
+        margin-block-start: calc(var(--spacing-compact) * 3);
+    }
+
+    [data-shell-variant="band"] .app-shell [data-slot="sidebar"] {
+        --default: var(--shell-card-row-fill);
+        --default-hover: var(--shell-card-row-fill-hover);
+        --sidebar-edge-outline: var(--shell-band-divider);
+    }
+
+    /*
+     * Transcript edge blur (components/chats/message-scroller.tsx), after
+     * Skiper UI's progressive blur: ONE element per edge carries the backdrop
+     * blur, the mask that fades it out toward the content, and a colour wash
+     * from the content plane to clear. The bottom band sits behind the floating
+     * composer (below `.chat-footer-dock`, z-index 20) and covers the measured
+     * footer plus a little. Neither may sit inside a rounded clip: a
+     * border-radius or clip-path clipping ancestor makes Chromium drop the mask
+     * (full-strength blur, hard line) — the desktop window shell's old rounded
+     * clip did exactly that. The top band shows by visibility only while
+     * scrolled past the start; the bottom band is always shown. Never animate
+     * either band's opacity or backdrop-filter.
+     */
+    .transcript-edge-blur {
+        --edge-blur: 2.5px;
+        --edge-blur-stop: 10%;
+        position: absolute;
+        inset-inline: 0;
+        z-index: 1;
+        pointer-events: none;
+        visibility: hidden;
+        -webkit-backdrop-filter: blur(var(--edge-blur));
+        backdrop-filter: blur(var(--edge-blur));
+    }
+
+    .transcript-edge-blur[data-side="top"] {
+        top: 0;
+        height: 4rem;
+        background-image: linear-gradient(to bottom, var(--color-background), transparent);
+        -webkit-mask-image: linear-gradient(to bottom, #000 var(--edge-blur-stop), transparent);
+        mask-image: linear-gradient(to bottom, #000 var(--edge-blur-stop), transparent);
+    }
+
+    .transcript-edge-blur[data-side="bottom"] {
+        bottom: 0;
+        height: max(4rem, calc(var(--chat-footer-height, 0px) + 1.5rem));
+        background-image: linear-gradient(to top, var(--color-background), transparent);
+        -webkit-mask-image: linear-gradient(to top, #000 var(--edge-blur-stop), transparent);
+        mask-image: linear-gradient(to top, #000 var(--edge-blur-stop), transparent);
+    }
+
+    /* The bottom band is always on: at rest it covers only the empty footer
+       clearance, and gating it on `end` left rows unblurred under the composer
+       while scrolled up by less than that clearance. */
+    [data-slot="message-scroller"][data-scrollable~="start"]
+        > .transcript-edge-blur[data-side="top"],
+    .transcript-edge-blur[data-side="bottom"] {
+        visibility: visible;
+    }
+
+    /* Without translucency the blur goes and the wash alone fades the rows. */
+    @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+        .transcript-edge-blur {
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+        }
+    }
 }
