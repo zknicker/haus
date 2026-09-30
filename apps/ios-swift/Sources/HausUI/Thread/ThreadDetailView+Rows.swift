@@ -53,4 +53,14 @@ extension ThreadDetailView {
         )
     }
 
+    /// The message a row's long press opens the drawer for: a durable anchor
+    /// or reply, never the task facts or a send still in flight.
+    static func drawerMessage(for item: ThreadTranscriptItem) -> MessagePresentation? {
+        switch item {
+        case .anchor(let message, _), .inlineReply(let message), .reply(let message):
+            message.isPending ? nil : message
+        case .taskMetadata, .inlineReplies, .threadHeader, .pendingSend:
+            nil
+        }
+    }
 }

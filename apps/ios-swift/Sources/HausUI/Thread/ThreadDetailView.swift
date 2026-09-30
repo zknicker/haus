@@ -38,6 +38,8 @@ public struct ThreadDetailView: View {
     @State var visualHeights = VisualHeightRegistry()
     /// Hosted rows do not inherit the environment; see `MessageTimelineView`.
     @Environment(\.reactionStickers) var reactionBoard
+    /// The message whose long-press drawer is open.
+    @State private var actionMessage: MessagePresentation?
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -188,6 +190,8 @@ public struct ThreadDetailView: View {
             }
         }
         .task(id: inlineReplies?.id) { if let inlineReplies { _ = await inlineReplies.load() } }
+        // Already in the Thread, so the drawer offers reactions and copying.
+        .messageActionDrawer(for: $actionMessage, board: reactionBoard)
     }
 
     /// The replies sit on the same flipped-table substrate as the Chat
@@ -218,6 +222,7 @@ public struct ThreadDetailView: View {
                 isNearNewest: $isNearNewest,
                 onContentTap: { isComposerFocused = false },
                 onVisibleItems: onVisibleMessagesChange,
+                onLongPress: { item in actionMessage = Self.drawerMessage(for: item) },
                 row: { item in threadRow(item) },
                 accessory: {
                     loadOlderAccessory

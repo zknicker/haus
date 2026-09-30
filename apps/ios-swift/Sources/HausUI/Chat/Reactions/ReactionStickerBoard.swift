@@ -29,8 +29,10 @@ public final class ReactionStickerBoard {
     @ObservationIgnored private var viewerUserID: String?
     @ObservationIgnored private var nextToken = 0
     /// Extra wait before an own add stamps, per message, for a row that is
-    /// still covered when the add lands (the long-press menu's lift).
-    @ObservationIgnored private var ownStampDelay: [String: TimeInterval] = [:]
+    /// still covered when the add lands (the message drawer sliding away).
+    /// It lapses quickly, so an add that stamped nothing (the emoji was
+    /// already there) cannot hold back a later arrival.
+    @ObservationIgnored private var ownStampDelay: [String: (delay: TimeInterval, until: Date)] = [:]
     @ObservationIgnored private let onToggle: @MainActor (String, String, Bool) -> Void
 
     /// `onToggle(messageID, emoji, remove)` sends the viewer's reaction.
@@ -60,7 +62,9 @@ public final class ReactionStickerBoard {
     }
 
     public func toggle(messageID: String, emoji: String, remove: Bool, stampDelay: TimeInterval = 0) {
-        if !remove, stampDelay > 0 { ownStampDelay[messageID] = stampDelay }
+        if !remove, stampDelay > 0 {
+            ownStampDelay[messageID] = (stampDelay, Date.now.addingTimeInterval(stampDelay + 2))
+        }
         onToggle(messageID, emoji, remove)
     }
 
@@ -94,7 +98,8 @@ public final class ReactionStickerBoard {
             dropPending(messageID: messageID, emoji: reaction.emoji)
         }
         let fresh = ledger.observe(messageID: messageID, keys: pile.all.map(\.id), now: now)
-        let extra = fresh.isEmpty ? 0 : ownStampDelay.removeValue(forKey: messageID) ?? 0
+        let held = fresh.isEmpty ? nil : ownStampDelay.removeValue(forKey: messageID)
+        let extra = held.map { $0.until > now ? $0.delay : 0 } ?? 0
         let landing = ReactionStampSchedule.delays(pileOrder: pile.stickers.map(\.id), fresh: fresh)
             .map { (key: $0.key, delay: $0.delay + extra) }
         guard !landing.isEmpty else { return }

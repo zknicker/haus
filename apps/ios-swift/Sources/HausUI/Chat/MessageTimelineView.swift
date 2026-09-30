@@ -43,6 +43,8 @@ public struct MessageTimelineView: View {
     /// Rows are hosted in table cells, which do not inherit this environment,
     /// so the screen reads the board and hands it to each row.
     @Environment(\.reactionStickers) private var reactionBoard
+    /// The message whose long-press drawer is open.
+    @State private var actionMessage: MessagePresentation?
 
     public init(
         messages: [MessagePresentation],
@@ -128,40 +130,8 @@ public struct MessageTimelineView: View {
                     isNearNewest: $isNearNewest,
                     onVisibleItems: onVisibleMessagesChange,
                     animatesEntrance: opensWithEntrance,
-                    menuActions: { message in
-                        guard !message.isPending else { return [] }
-                        var actions = reactionMenu(for: message).map { [$0] } ?? []
-                        actions += [
-                            TranscriptMenuAction(
-                                title: message.thread == nil ? "Reply in thread" : "Open thread",
-                                systemImage: "bubble.left.and.bubble.right",
-                                handler: { onOpenThread(message) }
-                            )
-                        ]
-                        if allowsInlineReplies {
-                            actions.append(
-                                TranscriptMenuAction(
-                                    title: "Reply",
-                                    systemImage: "arrowshape.turn.up.left",
-                                    handler: { onSelectInlineReply(message) }
-                                )
-                            )
-                        }
-                        #if canImport(UIKit)
-                        // A body is drawn block by block now, and a selection
-                        // cannot cross two text views — so copying the whole
-                        // message is the row's job rather than a long drag.
-                        if !message.prose.isEmpty {
-                            actions.append(
-                                TranscriptMenuAction(
-                                    title: "Copy text",
-                                    systemImage: "doc.on.doc",
-                                    handler: { UIPasteboard.general.string = message.prose }
-                                )
-                            )
-                        }
-                        #endif
-                        return actions
+                    onLongPress: { message in
+                        if !message.isPending { actionMessage = message }
                     },
                     row: { message in
                         timelineRow(message, indexByID: indexByID)
@@ -202,6 +172,12 @@ public struct MessageTimelineView: View {
         .task(id: historyRevealAttempt) {
             await resolveHistoryReveal()
         }
+        .messageActionDrawer(
+            for: $actionMessage,
+            board: reactionBoard,
+            onReply: allowsInlineReplies ? onSelectInlineReply : nil,
+            onOpenThread: onOpenThread
+        )
         .alert("Message unavailable", isPresented: historyRevealErrorPresented) {
             Button("Retry") {
                 historyRevealError = nil
@@ -262,21 +238,6 @@ public struct MessageTimelineView: View {
             onOpenAttachment: onOpenAttachment
         )
         .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)
-    }
-
-    /// Quick reactions and who reacted, for a durable message on a live board.
-    private func reactionMenu(for message: MessagePresentation) -> TranscriptMenuAction? {
-        guard let board = reactionBoard else { return nil }
-        let pile = board.pile(messageID: message.id, reactions: message.reactions)
-        return .reactions(TranscriptReactionMenu(
-            ownEmoji: Set(pile.all.filter(\.reactor.isViewer).map(\.emoji)),
-            entries: pile.all,
-            onToggle: { emoji, remove in
-                // The row stays hidden behind the menu's lift until the menu
-                // has closed, so the stamp waits for it instead of falling unseen.
-                board.toggle(messageID: message.id, emoji: emoji, remove: remove, stampDelay: 0.7)
-            }
-        ))
     }
 
     private func isContinuation(at index: Int) -> Bool {

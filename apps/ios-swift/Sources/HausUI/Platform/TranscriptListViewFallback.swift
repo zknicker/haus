@@ -17,7 +17,7 @@ where Item.ID == String {
     var onContentTap: (() -> Void)? = nil
     var onVisibleItems: (([String]) -> Void)? = nil
     var animatesEntrance = false
-    var menuActions: (Item) -> [TranscriptMenuAction] = { _ in [] }
+    var onLongPress: ((Item) -> Void)? = nil
     @ViewBuilder let row: (Item) -> Row
     @ViewBuilder let accessory: () -> Accessory
 
