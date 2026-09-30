@@ -1,6 +1,3 @@
-import { createHash } from 'node:crypto';
-import { mkdir, rename, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { computerProtocolVersion, hausAgentVersion } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
@@ -26,7 +23,13 @@ import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import type { ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/haus-user.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
+import { ensureDevelopmentArtifactMessage } from './seed-artifact-message.ts';
 import { ensureDevelopmentChatAttachment } from './seed-chat-attachment.ts';
+import {
+    developmentComputerCredentialHash,
+    developmentComputerDataRoot,
+    ensureDevelopmentComputerAttachment,
+} from './seed-computer-attachment.ts';
 import { ensureDevelopmentCove } from './seed-cove.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
 import { seedDevelopmentInboxActivity } from './seed-inbox-activity.ts';
@@ -46,26 +49,22 @@ const demoInventory = {
     ],
 };
 
+interface SeedDevelopmentServerOptions {
+    attachmentRoot?: AttachmentRoot;
+    computerDataRoot?: string;
+    serverOrigin?: string;
+}
+
 /** Creates the one idempotent Server-owned demo workspace for a signed-in dev user. */
 export async function seedDevelopmentServer(
     db: HausDatabase,
     clerkUserId: string,
-    options: {
-        attachmentRoot?: AttachmentRoot;
-        computerDataRoot?: string;
-        serverOrigin?: string;
-    } = {}
+    options: SeedDevelopmentServerOptions = {}
 ): Promise<ServerSummary> {
     const user = await ensureUserByClerkId(db, clerkUserId);
     const existing = await listAccessibleServers(db, user.id);
     if (existing[0]) {
-        await ensureDevelopmentCove(db, { serverId: existing[0].id, userId: user.id });
-        await ensureDevelopmentComputerAttachment(db, existing[0], options);
-        if (options.attachmentRoot) {
-            await ensureDevelopmentChatAttachment(db, options.attachmentRoot, existing[0].id);
-        }
-        await seedDevelopmentInboxActivity(db, { serverId: existing[0].id, userId: user.id });
-        await seedDevelopmentUiGallery(db, { serverId: existing[0].id, userId: user.id });
+        await ensureDevelopmentSeedSteps(db, existing[0], user.id, options);
         return existing[0];
     }
 
@@ -165,7 +164,7 @@ export async function seedDevelopmentServer(
         await tx.insert(computersTable).values({
             architecture: process.arch,
             attachedByUserId: user.id,
-            credentialHash: hash(developmentComputerCredential(serverId, computerId)),
+            credentialHash: developmentComputerCredentialHash(serverId, computerId),
             health: 'offline',
             id: computerId,
             operatingSystem: process.platform,
@@ -336,72 +335,28 @@ export async function seedDevelopmentServer(
 
         return { displayName: 'Dev Server', id: serverId, role: 'owner' as const, slug: 'dev' };
     });
-    await ensureDevelopmentCove(db, { serverId: seeded.id, userId: user.id });
-    await ensureDevelopmentComputerAttachment(db, seeded, options);
-    if (options.attachmentRoot) {
-        await ensureDevelopmentChatAttachment(db, options.attachmentRoot, seeded.id);
-    }
-    await seedDevelopmentInboxActivity(db, { serverId: seeded.id, userId: user.id });
-    await seedDevelopmentUiGallery(db, { serverId: seeded.id, userId: user.id });
+    await ensureDevelopmentSeedSteps(db, seeded, user.id, options);
     return seeded;
 }
 
-async function ensureDevelopmentComputerAttachment(
+/** Idempotent seed steps that run on every sign-in, for a fresh or an existing Server. */
+async function ensureDevelopmentSeedSteps(
     db: HausDatabase,
     server: ServerSummary,
-    options: { computerDataRoot?: string; serverOrigin?: string }
+    userId: string,
+    options: SeedDevelopmentServerOptions
 ) {
-    const computerDataRoot =
-        options.computerDataRoot ?? process.env.HAUS_COMPUTER_DATA_ROOT?.trim();
-    if (!computerDataRoot) {
-        return;
+    await ensureDevelopmentCove(db, { serverId: server.id, userId });
+    await ensureDevelopmentComputerAttachment(db, server, options);
+    if (options.attachmentRoot) {
+        await ensureDevelopmentChatAttachment(db, options.attachmentRoot, server.id);
     }
-    const [computer] = await db
-        .select({ id: computersTable.id })
-        .from(computersTable)
-        .innerJoin(serverOnboardingTable, eq(serverOnboardingTable.computerId, computersTable.id))
-        .where(eq(computersTable.serverId, server.id))
-        .limit(1);
-    if (!computer) {
-        throw new Error('The development Server has no Computer.');
-    }
-    const credential = developmentComputerCredential(server.id, computer.id);
-    await db
-        .update(computersTable)
-        .set({ credentialHash: hash(credential) })
-        .where(eq(computersTable.id, computer.id));
-
-    const directory = join(computerDataRoot, 'servers', server.id);
-    const target = join(directory, 'attachment.json');
-    const temporary = join(directory, 'attachment.json.tmp');
-    await mkdir(directory, { mode: 0o700, recursive: true });
-    await writeFile(
-        temporary,
-        `${JSON.stringify(
-            {
-                computerId: computer.id,
-                credential,
-                serverId: server.id,
-                serverOrigin:
-                    options.serverOrigin ??
-                    process.env.HAUS_SERVER_ORIGIN ??
-                    `http://127.0.0.1:${process.env.HAUS_SERVER_PORT ?? '18791'}`,
-                slug: server.slug,
-            },
-            null,
-            2
-        )}\n`,
-        { mode: 0o600 }
-    );
-    await rename(temporary, target);
-}
-
-function developmentComputerCredential(serverId: string, computerId: string) {
-    return `dev-computer:${serverId}:${computerId}:local-only`;
-}
-
-function hash(value: string) {
-    return createHash('sha256').update(value).digest('hex');
+    await ensureDevelopmentArtifactMessage(db, {
+        computerDataRoot: developmentComputerDataRoot(options),
+        serverId: server.id,
+    });
+    await seedDevelopmentInboxActivity(db, { serverId: server.id, userId });
+    await seedDevelopmentUiGallery(db, { serverId: server.id, userId });
 }
 
 /** Mirrors the deterministic anchor id used by `ensureThread`. */

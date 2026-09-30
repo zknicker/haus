@@ -60,8 +60,8 @@ function ReasoningBody({ body }: { body: string }) {
                 animate={{
                     height: folded ? `${reasoningCollapsedLines * markdownLineHeightEm}em` : 'auto',
                 }}
-                // `scroll-fade-b` is the transcript's bottom fade: a folded
-                // thought trails off rather than ending mid-sentence on a hard edge.
+                // `scroll-fade-b`: a folded thought trails off rather than
+                // ending mid-sentence on a hard edge.
                 className={cn('w-full overflow-hidden', folded && 'scroll-fade-b')}
                 id={bodyId}
                 initial={false}

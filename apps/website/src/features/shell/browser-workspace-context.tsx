@@ -1,6 +1,7 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
+import { type BrowserFind, useBrowserFind } from '../../hooks/browser/use-browser-find.ts';
 import {
     type BrowserHistoryEntry,
     useBrowserHistory,
@@ -8,31 +9,41 @@ import {
 import { useBrowserShortcuts } from '../../hooks/browser/use-browser-shortcuts.ts';
 import { useBrowserWorkspaceLinks } from '../../hooks/browser/use-browser-workspace-links.ts';
 import { useDesktopTabPane } from '../../hooks/desktop/use-desktop-window-commands.ts';
+import {
+    useWorkspaceTabs,
+    type WorkspaceTabs,
+} from '../../hooks/workspace-tabs/use-workspace-tabs.ts';
+import { primaryTabRef } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import {
     type BrowserCommand,
     type BrowserWorkspaceState,
     parseBrowserWorkspace,
 } from '../../lib/desktop-browser.ts';
+import type { PrimaryTabIdentity } from './primary-tab-identity.ts';
 
 const emptyState: BrowserWorkspaceState = { activeId: null, tabs: [] };
-interface BrowserWorkspace {
+interface BrowserWorkspace extends WorkspaceTabs {
     chatRoute: boolean;
     command: (command: BrowserCommand) => void;
+    find: BrowserFind;
     history: BrowserHistoryEntry[];
-    routeLabel: string;
+    primaryTab: PrimaryTabIdentity;
+    serverId: string;
     state: BrowserWorkspaceState;
 }
 const BrowserWorkspaceContext = React.createContext<BrowserWorkspace | null>(null);
 
 export function BrowserWorkspaceProvider({
     children,
-    routeLabel,
+    primaryTab,
     chatRoute,
+    serverId,
 }: {
     children: React.ReactNode;
-    routeLabel: string;
+    primaryTab: PrimaryTabIdentity;
     chatRoute: boolean;
+    serverId: string;
 }) {
     const [state, setState] = React.useState(emptyState);
     const history = useBrowserHistory(state.tabs);
@@ -46,8 +57,20 @@ export function BrowserWorkspaceProvider({
         },
         [bridge]
     );
+    const tabs = useWorkspaceTabs({
+        browser: state,
+        command,
+        serverId,
+        source: chatRoute ? primaryTab.label : null,
+    });
     useBrowserWorkspaceLinks(command);
-    useBrowserShortcuts(state, command);
+    const find = useBrowserFind(state.activeId, command);
+    useBrowserShortcuts({
+        browserTab: state.tabs.find((tab) => tab.id === state.activeId) ?? null,
+        command,
+        find,
+        tabs,
+    });
     React.useEffect(() => {
         if (!(bridge?.browserSnapshot && bridge.onBrowserState)) {
             return;
@@ -81,18 +104,19 @@ export function BrowserWorkspaceProvider({
             command({ kind: 'reset' });
         };
     }, [bridge, command]);
+    const { activeTab, closeTab, selectTab } = tabs;
     React.useEffect(() => {
         if (location.key) {
-            command({ kind: 'select', id: null });
+            selectTab(primaryTabRef);
         }
-    }, [command, location.key]);
+    }, [selectTab, location.key]);
     useDesktopTabPane({
-        active: state.activeId !== null,
+        active: activeTab.kind !== 'primary',
         closeActiveTab: () => {
-            if (!state.activeId) {
+            if (activeTab.kind === 'primary') {
                 return false;
             }
-            command({ kind: 'close', id: state.activeId });
+            closeTab(activeTab);
             return true;
         },
         openNewTab: () => {
@@ -101,12 +125,18 @@ export function BrowserWorkspaceProvider({
         },
     });
     const value = React.useMemo(
-        () => ({ state, history, command, routeLabel, chatRoute }),
-        [state, history, command, routeLabel, chatRoute]
+        () => ({ ...tabs, state, history, command, find, primaryTab, chatRoute, serverId }),
+        [tabs, state, history, command, find, primaryTab, chatRoute, serverId]
     );
     return <BrowserWorkspaceContext value={value}>{children}</BrowserWorkspaceContext>;
 }
 
 export function useBrowserWorkspace() {
     return React.use(BrowserWorkspaceContext);
+}
+
+/** True while a browser or artifact tab covers the routed page. */
+export function useCoveringTabSelected(): boolean {
+    const kind = React.use(BrowserWorkspaceContext)?.activeTab.kind;
+    return kind !== undefined && kind !== 'primary';
 }

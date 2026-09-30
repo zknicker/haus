@@ -7,6 +7,7 @@ import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';
 import { useHausUpdate } from '../../updates/use-haus-update.ts';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { NotificationsSection } from './notifications-section.tsx';
+import { WindowLayoutRow } from './window-layout-row.tsx';
 
 export function PreferencesSettings() {
     const update = useHausUpdate();
@@ -66,6 +67,7 @@ function AppearanceSection() {
                         </Select>
                     </ItemCard.Action>
                 </ItemCard>
+                <WindowLayoutRow />
             </ItemCardGroup>
         </ItemCardGroup>
     );

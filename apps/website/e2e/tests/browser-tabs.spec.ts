@@ -20,8 +20,11 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
                         title: url === 'about:blank' ? 'New tab' : new URL(url).hostname,
                         loading: false,
                         error: null,
+                        faviconUrl: null,
                         canGoBack: false,
                         canGoForward: false,
+                        zoomFactor: 1,
+                        find: null,
                     });
                 }
                 state.activeId = id;
@@ -91,8 +94,9 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     const composer = page.getByRole('textbox', { name: 'Message all' });
     await composer.fill('Keep this draft');
     await page.getByRole('link', { name: 'Open B012345678 on Amazon' }).click();
+    // At rest the address shows the condensed label: no scheme, `www.`, or query.
     await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
-        'https://www.amazon.com/dp/B012345678'
+        'amazon.com/dp/B012345678'
     );
     const primaryTab = page.locator('.workspace-primary-tab');
     const inactiveBounds = await primaryTab.boundingBox();
@@ -102,6 +106,8 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     await expect(composer).toHaveText('Keep this draft');
     const activeBounds = await primaryTab.boundingBox();
     expect(activeBounds?.width).toBe(inactiveBounds?.width);
+    // The Band layout's 240px basis: a short name like "all" does not shrink the primary tab.
+    expect(activeBounds?.width).toBe(240);
     expect(activeBounds?.height).toBe(inactiveBounds?.height);
     expect(await primaryTab.evaluate((node) => getComputedStyle(node).borderRadius)).not.toBe(
         '0px'
@@ -117,8 +123,9 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     expect(titlebar?.y).toBe(0);
     expect(titlebar?.x).toBeGreaterThan(0);
     expect(titlebar?.width).toBeLessThan(page.viewportSize()?.width ?? 1280);
-    if (sidebar) {
-        expect(sidebar.y).toBe(0);
+    // The window band spans the window; the sidebar starts below it.
+    if (sidebar && titlebar) {
+        expect(sidebar.y).toBeGreaterThanOrEqual(titlebar.y + titlebar.height);
     }
     const chatUrl = page.url();
     await page.evaluate(() => window.dispatchEvent(new Event('test:desktop-history')));
@@ -130,7 +137,12 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     const composerBounds = await composer.boundingBox();
     expect(composerBounds?.y).toBeGreaterThan((page.viewportSize()?.height ?? 720) - 90);
     await page.screenshot({ path: testInfo.outputPath('workspace-tabs.png') });
-    await page.getByRole('button', { name: /all.*channel actions/ }).click();
+    // The chat's actions menu sits at the band's end, not inside the primary tab.
+    await expect(primaryTab.getByRole('button', { name: /channel actions/ })).toHaveCount(0);
+    await page
+        .locator('.workspace-band-actions')
+        .getByRole('button', { name: /all.*channel actions/ })
+        .click();
     await expect(page.getByRole('menuitem', { name: 'Rename channel' })).toBeVisible();
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'www.amazon.com', exact: true }).click();
@@ -142,14 +154,17 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     await page
         .getByRole('combobox', { name: 'Page address', exact: true })
         .fill('https://www.amazon.com/dp/B012345');
-    await expect(page.getByRole('option', { name: /www.amazon.com/ })).toBeVisible();
+    // Typing puts "Go to" first, highlighted, with matching history below it.
+    await expect(
+        page.getByRole('option', { name: 'Go to https://www.amazon.com/dp/B012345', exact: true })
+    ).toBeVisible();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('button', { name: 'www.amazon.com', exact: true })).toHaveCount(2);
     await page.getByRole('combobox', { name: 'Page address' }).fill('Amazon');
     await expect(page.getByRole('option', { name: /B012345678/ })).toBeVisible();
     await page.getByRole('option', { name: /B012345678/ }).click();
     await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
-        'https://www.amazon.com/dp/B012345678'
+        'amazon.com/dp/B012345678'
     );
     await page.getByRole('button', { name: 'New browser tab' }).click();
     await page
@@ -157,9 +172,10 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
         .fill('Haus browser tabs');
     await page.getByRole('combobox', { name: 'Page address', exact: true }).press('Enter');
     await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
-        'https://www.google.com/search?q=Haus%20browser%20tabs'
+        'google.com/search'
     );
-    const browserTabs = page.getByRole('navigation', { name: 'Browser tabs' });
+    // The strip holds every tab: the primary tab leads, then two Amazon tabs and Google.
+    const browserTabs = page.getByRole('navigation', { name: 'Workspace tabs' });
     const google = browserTabs.getByRole('button', { name: 'www.google.com', exact: true });
     const initialGoogleX = (await google.boundingBox())?.x ?? 0;
     await google.focus();
@@ -173,7 +189,7 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
         .poll(async () => (await google.boundingBox())?.x ?? 0)
         .toBeLessThan(initialGoogleX);
     await google.press('Space');
-    await expect(browserTabs.locator('.workspace-tab').nth(1)).toContainText('www.google.com');
+    await expect(browserTabs.locator('.workspace-tab').nth(2)).toContainText('www.google.com');
     const googleBounds = await google.boundingBox();
     const firstBounds = await browserTabs.locator('.workspace-tab').first().boundingBox();
     expect(googleBounds).not.toBeNull();
@@ -191,13 +207,15 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
         );
         await page.mouse.up();
     }
+    // Dropped on the primary tab, Google moves before it: nothing is pinned first.
     await expect(browserTabs.locator('.workspace-tab').first()).toContainText('www.google.com');
+    await expect(browserTabs.locator('.workspace-tab').nth(1)).toHaveClass(/workspace-primary-tab/);
     await page.getByRole('button', { name: 'Close www.google.com' }).press('Enter');
     await expect(page.getByRole('button', { name: 'Close www.google.com' })).toHaveCount(0);
     await page.getByRole('button', { name: 'New browser tab' }).click();
     await page.getByRole('button', { name: 'Close New tab' }).click();
     await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
-        'https://www.amazon.com/dp/B012345678'
+        'amazon.com/dp/B012345678'
     );
     while (await page.getByRole('button', { name: 'Close www.amazon.com' }).count()) {
         await page.getByRole('button', { name: 'Close www.amazon.com' }).first().click();

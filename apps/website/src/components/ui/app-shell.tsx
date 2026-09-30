@@ -4,8 +4,6 @@ import type React from 'react';
 import { cn } from '../../lib/utils.ts';
 import { canStartWindowDrag, startCurrentWindowDrag } from '../../lib/window-drag.ts';
 
-const appShellDragRegionHeight = 50;
-
 /**
  * AppShell — root container for the desktop window. The body fills the
  * full window height (sidebar + main both reach y=0); the topbar overlays
@@ -23,7 +21,7 @@ export function AppShell({
         if (
             event.defaultPrevented ||
             event.button !== 0 ||
-            event.clientY > appShellDragRegionHeight
+            event.clientY > dragRegionBottom(event.currentTarget)
         ) {
             return;
         }
@@ -44,7 +42,7 @@ export function AppShell({
         // biome-ignore lint/a11y/noStaticElementInteractions: native window-drag plumbing, not an interactive control
         <div
             className={cn(
-                'app-shell group/app-shell relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground md:h-dvh md:min-h-0 md:overscroll-none',
+                'app-shell group/app-shell relative flex min-h-screen flex-col overflow-hidden bg-(--app-shell-ground) text-foreground md:h-dvh md:min-h-0 md:overscroll-none',
                 className
             )}
             data-slot="app-shell"
@@ -67,7 +65,7 @@ export function AppShellDragRegion({
         <div
             aria-hidden="true"
             className={cn(
-                'app-shell-drag-region pointer-events-none absolute top-0 left-0 z-30 h-[calc(var(--app-shell-band-height)+2px)] w-full cursor-default select-none',
+                'app-shell-drag-region pointer-events-none absolute top-0 left-0 z-30 h-(--app-shell-drag-height) w-full cursor-default select-none',
                 className
             )}
             data-slot="app-shell-drag-region"
@@ -75,4 +73,10 @@ export function AppShellDragRegion({
             {...props}
         />
     );
+}
+
+/** The drag strip's bottom edge; its height is a theme token that follows the shell variant. */
+function dragRegionBottom(shell: HTMLElement) {
+    const strip = shell.querySelector('[data-slot="app-shell-drag-region"]');
+    return strip ? strip.getBoundingClientRect().bottom : 0;
 }

@@ -239,11 +239,11 @@ and [Agent Inbox](../../specs/inbox.md).
   Thoughts are never stored or recovered
   ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
 * **Composer overlay.** In channels, DMs, and Threads the composer floats over
-  the transcript, which scrolls behind it and dissolves into the page background
-  through an eased gradient veil that turns solid at the prompt's top edge. The
-  transcript's end clearance, the veil, and the
-  jump-to-latest button follow the composer's measured height (including the
-  typing row and an open reply bar), so the last message rests just above it.
+  the transcript, which scrolls behind it and blurs out into the page background
+  under a progressive edge blur. The transcript's end
+  clearance, the bottom edge blur, and the jump-to-latest button follow the
+  composer's measured height (including the typing row and an open reply bar),
+  so the last message rests just above it.
 * **Scroll position.** Sending from the composer brings the conversation to the
   bottom, even when the human was reading older messages. Incoming Agent messages
   follow the bottom only when the reader was already following it. That choice

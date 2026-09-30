@@ -1,16 +1,18 @@
 import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
+import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
-import { PageTopbar } from '../../shell/shell-topbar.tsx';
+import { PageTopbar, WorkspaceBandActions } from '../../shell/shell-topbar.tsx';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
 import { ImplicitAgentDmComposer } from './chat-composer-variants.tsx';
-
+import { ChatTopbarIdentity } from './chat-topbar.tsx';
 import { DmActions } from './dm-actions.tsx';
 
 export function ImplicitAgentDmPage({
@@ -33,6 +35,15 @@ export function ImplicitAgentDmPage({
     }
 
     const selectionKey = `implicit-agent-dm:${agent.id}`;
+    const compact = Boolean(getDesktopBridge()?.browserCommand);
+    const actions = (
+        <DmActions
+            chatName={agent.displayName}
+            content={null}
+            peerAgent={agent}
+            slug={server.slug}
+        />
+    );
 
     return (
         <section
@@ -41,18 +52,31 @@ export function ImplicitAgentDmPage({
             data-slot="chat-surface"
         >
             <PageTopbar>
-                <SectionHeader
-                    leading={
-                        <DmActions
-                            chatName={agent.displayName}
-                            content={null}
-                            peerAgent={agent}
-                            slug={server.slug}
-                        />
-                    }
-                >
-                    <h1 className="sr-only">{agent.displayName}</h1>
-                </SectionHeader>
+                {compact ? (
+                    // Desktop: the primary workspace tab already names the Agent,
+                    // so only the actions menu rides along, at the band's end.
+                    <>
+                        <WorkspaceBandActions>{actions}</WorkspaceBandActions>
+                        <h1 className="sr-only">{agent.displayName}</h1>
+                    </>
+                ) : (
+                    <SectionHeader
+                        leading={
+                            <ChatTopbarIdentity
+                                mark={
+                                    <EntityAvatar
+                                        name={agent.displayName}
+                                        size={24}
+                                        src={agent.avatarUrl ?? null}
+                                    />
+                                }
+                                name={agent.displayName}
+                            />
+                        }
+                    >
+                        {actions}
+                    </SectionHeader>
+                )}
             </PageTopbar>
             <ChatDetailFrame
                 activeReplies={[]}

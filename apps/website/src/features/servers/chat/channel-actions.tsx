@@ -1,5 +1,5 @@
 import type { Chat } from '@haus/api';
-import { Button, Dropdown, Label, toast } from '@heroui/react';
+import { Button, Dropdown, Label, Tooltip, toast } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import {
     ArchiveIcon,
@@ -14,7 +14,6 @@ import {
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { channelColorOptions } from '../../../components/chats/channel-color-options.ts';
-import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import {
     useChannelArchive,
@@ -41,13 +40,11 @@ export function ChannelActions({
     chatName,
     onOpenFiles,
     server,
-    compact,
 }: {
     chat: Chat;
     chatName: string;
     onOpenFiles: () => void;
     server: ServerDetail;
-    compact: boolean;
 }) {
     const navigate = useNavigate();
     const archive = useChannelArchive();
@@ -111,33 +108,23 @@ export function ChannelActions({
             <ContextMenu>
                 <ContextMenu.Trigger className="min-w-0">
                     <Dropdown>
-                        <Button
-                            aria-label={`${chatName} — channel actions`}
-                            className={compact ? undefined : '-ms-2 min-w-0 gap-2 px-2'}
-                            isIconOnly={compact}
-                            size="sm"
-                            variant="ghost"
-                        >
-                            {compact ? null : (
-                                <>
-                                    <ChannelIconBox
-                                        color={chat.color}
-                                        icon={chat.icon}
-                                        size="topbar"
-                                    />
-                                    <span className="truncate font-semibold text-sm">
-                                        {chatName}
-                                    </span>
-                                </>
-                            )}
-                            <Icon
-                                aria-hidden="true"
-                                className="text-muted"
-                                icon={MoreHorizontalIcon}
-                                size={15}
-                            />
-                        </Button>
-                        <Dropdown.Popover placement="bottom start">
+                        <Tooltip>
+                            <Button
+                                aria-label={`${chatName} — channel actions`}
+                                isIconOnly
+                                size="sm"
+                                variant="ghost"
+                            >
+                                <Icon
+                                    aria-hidden="true"
+                                    className="text-muted"
+                                    icon={MoreHorizontalIcon}
+                                    size={15}
+                                />
+                            </Button>
+                            <Tooltip.Content>Channel actions</Tooltip.Content>
+                        </Tooltip>
+                        <Dropdown.Popover placement="bottom end">
                             <ChannelActionsMenu
                                 canManage={canManage}
                                 chat={chat}

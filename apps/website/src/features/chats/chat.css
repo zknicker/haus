@@ -107,9 +107,8 @@
 }
 
 @layer utilities {
-    /* The message scroller cannot hand HeroUI ScrollShadow the ref it needs.
-       The fade eases in and out (smoothstep stops) so neither end of the
-       ramp reads as a line. */
+    /* A folded reasoning body trails off at its bottom edge. The fade eases in
+       and out (smoothstep stops) so neither end of the ramp reads as a line. */
     .scroll-fade-b {
         --scroll-fade-size: 3rem;
         --scroll-fade-inset: 0.25rem;
@@ -125,45 +124,6 @@
         );
         -webkit-mask-image: var(--scroll-fade-mask);
         mask-image: var(--scroll-fade-mask);
-    }
-
-    /* The composer floats over the transcript (`ChatFooterSurface`), which
-       publishes the footer's measured height for the veil below. */
-    .chat-footer-surface {
-        --chat-veil-fade: 3.5rem;
-    }
-
-    /* Under a floating footer the veil does the fading, so the viewport's own
-       mask would only fade the text a second time. */
-    .chat-footer-surface [data-slot="message-scroller-viewport"].scroll-fade-b {
-        -webkit-mask-image: none;
-        mask-image: none;
-    }
-
-    /* The transcript dissolves into the page background as it slides under the
-       composer: transparent at the top, eased to solid by the prompt's top
-       edge, solid to the window's bottom. Painted in the background colour,
-       so there is no backdrop filter and no layer boundary to show. */
-    .chat-footer-veil {
-        position: absolute;
-        inset-inline: 0;
-        bottom: 0;
-        z-index: 5;
-        height: calc(var(--chat-footer-height, 0px) + 1.5rem);
-        pointer-events: none;
-        background: linear-gradient(
-            to bottom,
-            color-mix(in oklab, var(--color-background) 0%, transparent) 0,
-            color-mix(in oklab, var(--color-background) 8%, transparent)
-                calc(var(--chat-veil-fade) * 0.2),
-            color-mix(in oklab, var(--color-background) 26%, transparent)
-                calc(var(--chat-veil-fade) * 0.4),
-            color-mix(in oklab, var(--color-background) 52%, transparent)
-                calc(var(--chat-veil-fade) * 0.6),
-            color-mix(in oklab, var(--color-background) 80%, transparent)
-                calc(var(--chat-veil-fade) * 0.8),
-            var(--color-background) var(--chat-veil-fade)
-        );
     }
 
     /* Only the footer's own surfaces take the pointer; its transparent

@@ -3,7 +3,7 @@ import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopTabPane } from '../../hooks/desktop/use-desktop-window-commands.ts';
-import { useBrowserWorkspace } from '../shell/browser-workspace-context.tsx';
+import { useCoveringTabSelected } from '../shell/browser-workspace-context.tsx';
 import { bandHeightClassName } from '../shell/section-header.tsx';
 import { ArtifactPanelChrome } from './chat-artifact-panel-chrome.tsx';
 import type { ChatArtifactPanelState } from './chat-artifact-panel-state.ts';
@@ -28,11 +28,11 @@ export function ChatArtifactPanel({
     state: ChatArtifactPanelState;
     takeover?: boolean;
 }) {
-    const browserActive = useBrowserWorkspace()?.state.activeId != null;
+    const workspaceTabActive = useCoveringTabSelected();
     // ⌘W closes the active tab, then the pane, and only then the window;
     // ⌘T opens the workspace tab while the pane is visible.
     useDesktopTabPane({
-        active: open && state.visible && !browserActive,
+        active: open && state.visible && !workspaceTabActive,
         closeActiveTab: () => {
             if (state.activeKey) {
                 state.closeActiveTarget();
