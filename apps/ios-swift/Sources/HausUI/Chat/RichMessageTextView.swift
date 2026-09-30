@@ -137,14 +137,18 @@ final class RichMessageUITextView: UITextView {
         return result
     }
 
-    /// A long press on a row opens the transcript's own menu, which
-    /// `TranscriptListView` vends from `UITableViewDelegate`. A selectable text
+    /// A long press on a row opens the message drawer through
+    /// `TranscriptListView`'s own long-press recognizer. A selectable text
     /// view's loupe gesture sits on a nearer view and would swallow that press,
     /// so it is refused here. The tap that opens a link, double-tap word
     /// selection, its handles, and the edit menu they bring are untouched —
     /// only the press that belongs to the row is given back.
+    ///
+    /// UIKit asks the touched view about its ancestors' recognizers too, so
+    /// only the view's own long presses are refused: refusing every one
+    /// refused the transcript's, and a press on the words did nothing.
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        if gestureRecognizer is UILongPressGestureRecognizer {
+        if gestureRecognizer is UILongPressGestureRecognizer, gestureRecognizer.view === self {
             return false
         }
         return super.gestureRecognizerShouldBegin(gestureRecognizer)
@@ -175,7 +179,7 @@ final class RichMessageUITextView: UITextView {
 /// tap means. A single tap hands the address to the system — a website or
 /// pull-request chip, an ordinary anchor, a `mailto:` or `tel:` — and a long
 /// press offers no menu of its own, because the press belongs to the row's
-/// context menu, which `RichMessageUITextView` already refuses its own
+/// message drawer, which `RichMessageUITextView` already refuses its own
 /// recognizers for.
 @MainActor
 final class RichMessageLinkCoordinator: NSObject, UITextViewDelegate {
