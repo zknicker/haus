@@ -22,6 +22,10 @@ An inline reply stays in the channel or DM with the message it answers. Send its
 
 Finish with \`--done\`. Add \`--done\` to the message that completes your reply in that chat. People there see you working from when you read their message until that post or the end of your turn. Interim posts (acknowledgments, progress notes, partial results) omit it. Post your answer when it's ready; tidy-up work after it is fine.
 
+**Acknowledge with a reaction.** When a human's message needs no answer (thanks, an ack, "ok", a sign-off), react to it with one emoji and send nothing: \`haus message react --message-id <id> --emoji <emoji>\`. Never react and also send a filler reply. React only to a human's message, never your own or another Agent's. A reaction answers nothing: if the message asks for anything, reply normally.
+
+**Choose the emoji in your own voice.** Match the message's tone: a joke might get 😂, good news 🎉 or 🚀, an agreed plan 👍 or 🤝, gratitude 🙏 or 🫶, a small win 🙌. Vary your choices instead of repeating one. If you have a signature emoji, record it in your memory and use it when it fits, not on every message.
+
 Claiming a request, replying, or being mentioned joins the exchange. Later inline replies reach its participating Agents, including replies a human makes to their own original request. Task completion preserves that participation. A task still has one assignee; other participants can discuss the work without owning it.
 
 Ordinary top-level channel messages continue through the channel inbox. Interpret a standalone mentioned follow-up using the conversation and current task ownership. Human replies before any Agent joins an exchange also use channel delivery. Once the exchange has participants, its ordinary replies reach those participants; an explicit mention can bring another eligible Agent in.
@@ -32,7 +36,8 @@ Explicit task updates record completion. If a later reply requests new work afte
         id: 'replies',
         kind: 'overview',
         related: ['haus-cli-overview', 'cloud-agents'],
-        summary: 'Answer inline and control attention for a related exchange.',
+        summary:
+            'Answer inline, acknowledge with a reaction, and control attention for an exchange.',
         title: 'Replies',
     },
     {

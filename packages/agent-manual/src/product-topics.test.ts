@@ -24,15 +24,25 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     expect(topic?.body).toContain(
         'Interim posts (acknowledgments, progress notes, partial results) omit it.'
     );
+    expect(topic?.body).toContain('Never react and also send a filler reply.');
+    expect(topic?.body).toContain('if the message asks for anything, reply normally');
+    expect(topic?.body).toContain('Vary your choices instead of repeating one.');
+    expect(topic?.body).toContain('--emoji <emoji>');
     expect(getManualTopic('haus-cli-overview')?.body).toContain('adding --done');
     expect(
         searchManualTopics('inline replies', { limit: 5, scope: 'all' }).map(({ id }) => id)
+    ).toContain('replies');
+    expect(
+        searchManualTopics('acknowledge thanks with a reaction', { limit: 5, scope: 'all' }).map(
+            ({ id }) => id
+        )
     ).toContain('replies');
 });
 
 test('cloud work keeps implementation details and requester outcomes in their conversations', () => {
     const body = getManualTopic('cloud-agents')?.body;
     expect(body).toContain('The work thread holds implementation details and revisions.');
+    expect(body).toContain('`haus cloud-agent send --work <workId>`');
     expect(body).toContain('back to the requester’s conversation');
     expect(body).toContain('following their lead when they join the work thread');
 });
