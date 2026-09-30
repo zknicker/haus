@@ -95,8 +95,9 @@ const emptyReactions: NonNullable<TranscriptMessageRow['message']['reactions']> 
 
 /**
  * A round-brush die-cut outline: blur the glyph's alpha, threshold it back to
- * a hard edge, fill white, then lay a soft, close shadow under it. Dilation
- * would square off pointed tips and stacked drop-shadows would stair-step.
+ * a hard edge, fill it with the theme's die-cut color (`--reaction-diecut`),
+ * then lay a soft, close shadow under it. Dilation would square off pointed
+ * tips and stacked drop-shadows would stair-step.
  */
 function DiecutFilter({ id }: { id: string }) {
     return (
@@ -113,8 +114,8 @@ function DiecutFilter({ id }: { id: string }) {
                 <feComponentTransfer in="grow" result="edge">
                     <feFuncA intercept="-0.35" slope="16" type="linear" />
                 </feComponentTransfer>
-                <feFlood floodColor="#fff" />
-                <feComposite in2="edge" operator="in" result="white" />
+                <feFlood style={{ floodColor: 'var(--reaction-diecut)' }} />
+                <feComposite in2="edge" operator="in" result="cut" />
                 <feGaussianBlur in="edge" result="sb" stdDeviation="5" />
                 <feOffset dy="5" in="sb" result="so" />
                 <feComponentTransfer in="so" result="shadow">
@@ -122,7 +123,7 @@ function DiecutFilter({ id }: { id: string }) {
                 </feComponentTransfer>
                 <feMerge>
                     <feMergeNode in="shadow" />
-                    <feMergeNode in="white" />
+                    <feMergeNode in="cut" />
                     <feMergeNode in="SourceGraphic" />
                 </feMerge>
             </filter>
