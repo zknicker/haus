@@ -1,6 +1,7 @@
 import { cloudAgentPullRequestNumber, parseAmazonProduct } from '@haus/api';
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
+import { escapeBareOrderedMarkers } from '../chats/bare-ordered-marker.ts';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
 import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
 import { amazonMarkdownComponents } from './amazon-markdown-components.tsx';
@@ -69,7 +70,7 @@ export const ReferenceMarkdown = React.memo(
                     ),
                 }}
             >
-                {prepared.content}
+                {escapeBareOrderedMarkers(prepared.content)}
             </Markdown>
         );
     },
