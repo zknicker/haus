@@ -190,7 +190,8 @@ test('split mode keeps the routed page and puts every other tab in the side pane
     const sidePane = page.getByRole('complementary', { name: 'Side pane' });
     const sideTabs = page.getByRole('navigation', { name: 'Side pane tabs' });
     const strip = page.getByRole('navigation', { name: 'Workspace tabs' });
-    const sidePaneToggle = page.getByRole('button', { name: 'Side pane', exact: true });
+    const hideTabs = page.getByRole('button', { name: 'Hide tabs', exact: true });
+    const showTabs = page.getByRole('button', { name: 'Show tabs', exact: true });
     const expand = page.getByRole('button', { name: 'Open as tabs' });
     const newTab = page.getByRole('button', { name: 'New tab', exact: true });
     const address = page.getByRole('combobox', { name: 'Page address', exact: true });
@@ -202,15 +203,24 @@ test('split mode keeps the routed page and puts every other tab in the side pane
     // With no closable tab, a New tab button stands in for the layout controls.
     await expect(newTab).toBeVisible();
     await expect(expand).toHaveCount(0);
-    await expect(sidePaneToggle).toHaveCount(0);
+    await expect(hideTabs).toHaveCount(0);
+    await expect(showTabs).toHaveCount(0);
 
     // An Agent profile opens in the side pane, beside the DM.
     await page.getByRole('button', { name: /Scout — chat actions/u }).click();
     await page.getByRole('menuitem', { name: 'View agent profile' }).click();
     await expect(sidePane.getByRole('region', { name: 'Agent profile' })).toBeVisible();
     await expect(sideTabs.locator('.workspace-tab')).toHaveCount(1);
-    await expect(sidePaneToggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(hideTabs).toHaveAttribute('aria-pressed', 'true');
     await expect(newTab).toHaveCount(0);
+    // Its tooltip names the Codex shortcut, which hides and shows the pane.
+    await hideTabs.hover();
+    await expect(page.getByRole('tooltip')).toHaveText('Hide tabs⇧⌘B');
+    await page.keyboard.press('Meta+Shift+B');
+    await expect(sidePane).toHaveCount(0);
+    await expect(showTabs).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press('Meta+Shift+B');
+    await expect(sidePane.getByRole('region', { name: 'Agent profile' })).toBeVisible();
 
     // A browser tab lands in the side pane too, its strip starting over the pane's edge.
     await sideTabs.page().getByRole('button', { name: 'New browser tab' }).click();
@@ -230,24 +240,24 @@ test('split mode keeps the routed page and puts every other tab in the side pane
     await expect(strip.locator('.workspace-tab').first()).toHaveClass(/workspace-primary-tab/);
     await expect(address).toBeVisible();
     await expect(expand).toHaveAttribute('aria-pressed', 'true');
-    await expect(sidePaneToggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(showTabs).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('.workspace-band-trail .badge')).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('expanded.png') });
 
     // The side pane toggle collapses back to the pane, the same tab selected.
-    await sidePaneToggle.click();
+    await showTabs.click();
     await expect(strip).toHaveCount(0);
-    await expect(sidePaneToggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(hideTabs).toHaveAttribute('aria-pressed', 'true');
     await expect(
         sidePane.getByRole('combobox', { name: 'Page address', exact: true })
     ).toBeVisible();
 
     // Hiding the pane keeps its tabs behind a count; the hover list reveals one.
-    await sidePaneToggle.click();
+    await hideTabs.click();
     await expect(sidePane).toHaveCount(0);
     await expect(address).toHaveCount(0);
     await expect(page.locator('.workspace-band-trail .badge')).toHaveText('2');
-    await sidePaneToggle.hover();
+    await showTabs.hover();
     const openTabs = page.getByRole('navigation', { name: 'Open tabs' });
     await expect(openTabs).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('hidden-pane.png') });

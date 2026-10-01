@@ -89,7 +89,7 @@ test('Threads open in the side pane, one preview at a time', async ({ page }, te
     await page.reload();
     await expect(sidePane).toHaveCount(0);
     await expect(page.locator('.workspace-band-trail .badge')).toHaveText('2');
-    await page.getByRole('button', { name: 'Side pane', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tabs', exact: true }).click();
     await expect(sideTabs).toHaveCount(2);
     await expect(
         page.getByRole('navigation', { name: 'Side pane tabs' }).getByRole('button', {

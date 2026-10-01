@@ -1,4 +1,4 @@
-import { Badge, Button, Separator, ToggleButton, Tooltip } from '@heroui/react';
+import { Badge, Button, Kbd, Separator, ToggleButton, Tooltip } from '@heroui/react';
 import { HoverCard } from '@heroui-pro/react';
 import {
     AddSquareIcon,
@@ -68,8 +68,11 @@ export function WorkspaceLayoutControls() {
 
 /**
  * Hides or shows the side pane; in expanded mode it collapses back to the
- * pane. While a split-mode pane hides tabs, a badge counts them and hovering
- * lists them; pressing one reveals the pane on it.
+ * pane (Command-Shift-B either way). While a split-mode pane hides tabs, a
+ * badge counts them and hovering lists them in place of the tooltip; pressing
+ * one reveals the pane on it. The tree never changes shape, so the button
+ * keeps focus across a toggle; the card stays armed (it renders nothing with
+ * no list) so pressing Hide under a resting pointer still opens the list.
  */
 function SidePaneToggle() {
     const workspace = useBrowserWorkspace();
@@ -77,20 +80,27 @@ function SidePaneToggle() {
         return null;
     }
     const hidden = workspace.mode === 'split' && !workspace.sidePaneShown ? workspace.tabs : [];
+    const label = workspace.sidePaneShown ? 'Hide tabs' : 'Show tabs';
     return (
         <HoverCard closeDelay={200} openDelay={400}>
             <HoverCard.Trigger>
                 <Badge.Anchor>
-                    <ToggleButton
-                        aria-label="Side pane"
-                        isIconOnly
-                        isSelected={workspace.sidePaneShown}
-                        onChange={workspace.toggleSidePane}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Icon aria-hidden="true" icon={PanelRightIcon} size={16} />
-                    </ToggleButton>
+                    <Tooltip isDisabled={hidden.length > 0}>
+                        <ToggleButton
+                            aria-label={label}
+                            isIconOnly
+                            isSelected={workspace.sidePaneShown}
+                            onChange={workspace.toggleSidePane}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <Icon aria-hidden="true" icon={PanelRightIcon} size={16} />
+                        </ToggleButton>
+                        <Tooltip.Content>
+                            {label}
+                            <Kbd>⇧⌘B</Kbd>
+                        </Tooltip.Content>
+                    </Tooltip>
                     {hidden.length > 0 ? (
                         <Badge aria-hidden="true" size="sm">
                             {hidden.length}
@@ -98,11 +108,8 @@ function SidePaneToggle() {
                     ) : null}
                 </Badge.Anchor>
             </HoverCard.Trigger>
-            <HoverCard.Content
-                aria-label={hidden.length > 0 ? 'Open tabs' : undefined}
-                placement="bottom"
-            >
-                {hidden.length > 0 ? (
+            {hidden.length > 0 ? (
+                <HoverCard.Content aria-label="Open tabs" placement="bottom">
                     <nav aria-label="Open tabs" className="workspace-open-tabs">
                         <p className="workspace-open-tabs__title">Open tabs</p>
                         <WorkspaceTabVariant value="list">
@@ -111,12 +118,8 @@ function SidePaneToggle() {
                             ))}
                         </WorkspaceTabVariant>
                     </nav>
-                ) : (
-                    <p className="text-sm">
-                        {workspace.sidePaneShown ? 'Hide side pane' : 'Show side pane'}
-                    </p>
-                )}
-            </HoverCard.Content>
+                </HoverCard.Content>
+            ) : null}
         </HoverCard>
     );
 }

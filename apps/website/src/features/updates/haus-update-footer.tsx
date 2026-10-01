@@ -90,7 +90,7 @@ function UpdateTooltipButton({
                 </Button>
             </Tooltip.Trigger>
             <Tooltip.Content
-                className="haus-status-tooltip--contrast w-fit max-w-md p-3"
+                className="tooltip--card haus-status-tooltip--contrast w-fit max-w-md p-3"
                 offset={10}
                 placement="top start"
             >
@@ -128,7 +128,7 @@ function OfflineComputersButton({
                 </Button>
             </Tooltip.Trigger>
             <Tooltip.Content
-                className="haus-status-tooltip--contrast w-fit min-w-72 p-3"
+                className="tooltip--card haus-status-tooltip--contrast w-fit min-w-72 p-3"
                 offset={10}
                 placement="top start"
             >

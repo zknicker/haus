@@ -443,6 +443,15 @@ Product copy uses `base`; compact app chrome uses `sm`. Tooltips are globally pr
 HeroUI's stock `xs` to `sm` in `default-theme.css` so action labels never read as fine print,
 and their stock `word-break: break-all` is relaxed to `overflow-wrap: anywhere` so a help
 sentence wraps between words while a long path can still break.
+
+Plain tooltips (after Codex) are a near-black chip in both themes: `--tooltip` ground (lifted a
+step in dark so it separates from the page and popovers), `--tooltip-foreground` white ink, a
+compact `×1.5` block by `×2.75` inline inset, HeroUI's stock `×1.5` tooltip radius and overlay
+shadow, no border. A shortcut renders inline after the label as a stock `Kbd`; inside a tooltip
+the theme turns it into a small `--tooltip-kbd` translucent-white chip — call sites pass only
+`{label}<Kbd>⇧⌘B</Kbd>`, never spacing or color classes. Rich previews built on Tooltip
+(`CursorHoverCard` and the update footer's status cards) carry the `tooltip--card` modifier and
+keep their own card material; the plain-tooltip rule skips them.
 Base text retains a 1.6 line-height ratio. HeroUI Markdown uses its own 1.625 ratio,
 giving chat messages a 22.75px line height at the shared 14px base size.
 Chat paragraphs and lists retain three spacing units between Markdown blocks.

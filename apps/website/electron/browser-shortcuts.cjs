@@ -26,6 +26,7 @@ const plainKeys = {
     w: 'close-tab',
 };
 const shiftedKeys = {
+    b: 'toggle-side-pane',
     g: 'find-previous',
     r: 'hard-reload',
     t: 'reopen-tab',

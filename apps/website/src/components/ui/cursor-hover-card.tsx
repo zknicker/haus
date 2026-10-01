@@ -140,7 +140,7 @@ export function CursorHoverCard({
             </Tooltip.Trigger>
             <Tooltip.Content
                 className={cn(
-                    'hover-card__content cursor-hover-card',
+                    'tooltip--card hover-card__content cursor-hover-card',
                     hausHoverCardClassName,
                     className
                 )}

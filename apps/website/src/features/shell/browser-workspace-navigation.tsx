@@ -1,4 +1,4 @@
-import { Button, Toolbar, Tooltip } from '@heroui/react';
+import { Button, Kbd, Toolbar, Tooltip } from '@heroui/react';
 import {
     ArrowLeft02Icon,
     ArrowRight02Icon,
@@ -74,7 +74,7 @@ export function BrowserToolbarButton({
             {/* Top placement keeps hover tooltips off the native page, so it never swaps to a snapshot (see useBrowserViewBounds). */}
             <Tooltip.Content placement="top">
                 {label}
-                {shortcut ? <kbd className="ms-2 font-sans text-muted">{shortcut}</kbd> : null}
+                {shortcut ? <Kbd>{shortcut}</Kbd> : null}
             </Tooltip.Content>
         </Tooltip>
     );

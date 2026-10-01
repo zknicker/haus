@@ -13,7 +13,7 @@ import type { BrowserFind } from './use-browser-find.ts';
 
 type ShortcutTabs = Pick<
     WorkspaceTabs,
-    'reopenClosedTab' | 'selectTab' | 'selectedTab' | 'stripTabs'
+    'reopenClosedTab' | 'selectTab' | 'selectedTab' | 'stripTabs' | 'tabs' | 'toggleSidePane'
 >;
 
 interface ShortcutTarget {
@@ -74,9 +74,13 @@ export function useBrowserShortcuts(target: ShortcutTarget) {
     }, []);
 }
 
-function applies(shortcut: BrowserShortcut, { browserTab }: ShortcutTarget) {
+function applies(shortcut: BrowserShortcut, { browserTab, tabs }: ShortcutTarget) {
     if (shortcut === 'stop') {
         return browserTab?.loading === true;
+    }
+    // The toggle exists only while a closable tab is open (WorkspaceLayoutControls).
+    if (shortcut === 'toggle-side-pane') {
+        return tabs.tabs.length > 0;
     }
     return browserTab !== null || !pageShortcuts.has(shortcut);
 }
@@ -103,6 +107,9 @@ function runBrowserShortcut(shortcut: BrowserShortcut, { command, find, tabs }: 
             return;
         case 'reopen-tab':
             tabs.reopenClosedTab();
+            return;
+        case 'toggle-side-pane':
+            tabs.toggleSidePane();
             return;
         case 'next-tab':
         case 'previous-tab':

@@ -164,6 +164,16 @@
     /* The die-cut outline: white on the light page, near-black on the dark one,
        where a white rim shouts over emoji that are colorful enough already. */
     --reaction-diecut: #fff;
+
+    /*
+     * Plain tooltips are near-black in both themes (after Codex): a label
+     * should read as transient chrome over the page, not as another surface.
+     * The shortcut chip is a translucent wash of the tooltip's own ink.
+     */
+    --tooltip: oklch(21% 0.004 286.4);
+    --tooltip-foreground: var(--snow);
+    --tooltip-muted: oklch(75% 0.008 286.4);
+    --tooltip-kbd: color-mix(in oklab, var(--snow) 16%, transparent);
 }
 
 [data-theme="dark"],
@@ -171,6 +181,13 @@
     --reaction-puff: rgba(120, 122, 134, 0.45);
     --reaction-speck: rgba(170, 172, 184, 0.7);
     --reaction-diecut: #0a0a0b;
+
+    /* Lifted off the near-black page (12%) and its popovers (21%) so the
+       tooltip still separates; HeroUI's dark overlay shadow adds the rim. */
+    --tooltip: oklch(29% 0.005 286.4);
+    --tooltip-foreground: var(--snow);
+    --tooltip-muted: oklch(75% 0.008 286.4);
+    --tooltip-kbd: color-mix(in oklab, var(--snow) 14%, transparent);
 }
 
 /*
@@ -1362,6 +1379,38 @@
         line-height: var(--text-sm--line-height);
         word-break: normal;
         overflow-wrap: anywhere;
+    }
+
+    /*
+     * Plain tooltips — a label, a help sentence, an identity line — are the
+     * near-black Codex chip in both themes with a compact inset. Rich previews
+     * built on Tooltip (cursor hover cards, status cards) carry
+     * `tooltip--card` and keep their own material. Rebinding `--overlay`
+     * repaints HeroUI's ground and arrow together; `--foreground` and `--muted`
+     * follow so nested copy reads on the dark ground.
+     */
+    .tooltip:not(.tooltip--card) {
+        --overlay: var(--tooltip);
+        --foreground: var(--tooltip-foreground);
+        --muted: var(--tooltip-muted);
+        color: var(--tooltip-foreground);
+        padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2.75);
+    }
+
+    .tooltip:not(.tooltip--card) [data-slot="overlay-arrow"] {
+        stroke: none;
+    }
+
+    /* A shortcut sits inline after the label as a small translucent chip. */
+    .tooltip:not(.tooltip--card) .kbd {
+        height: auto;
+        margin-inline-start: calc(var(--spacing) * 2);
+        padding: 0 calc(var(--spacing) * 1.25);
+        background: var(--tooltip-kbd);
+        color: var(--tooltip-foreground);
+        font-size: var(--text-xs);
+        line-height: var(--text-sm--line-height);
+        vertical-align: baseline;
     }
 
     /*

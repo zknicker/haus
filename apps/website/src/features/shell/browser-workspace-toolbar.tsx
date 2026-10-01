@@ -1,4 +1,4 @@
-import { Button, ProgressBar, Toolbar, Tooltip, toast } from '@heroui/react';
+import { Button, Kbd, ProgressBar, Toolbar, Tooltip, toast } from '@heroui/react';
 import { LinkSquare02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -61,7 +61,7 @@ export function BrowserWorkspaceToolbar({ tab }: { tab: BrowserTab }) {
                         </Button>
                         <Tooltip.Content placement="top">
                             Reset zoom
-                            <kbd className="ms-2 font-sans text-muted">⌘0</kbd>
+                            <Kbd>⌘0</Kbd>
                         </Tooltip.Content>
                     </Tooltip>
                 )}

@@ -18,6 +18,7 @@ export type BrowserShortcut =
     | 'reload'
     | 'reopen-tab'
     | 'stop'
+    | 'toggle-side-pane'
     | 'zoom-in'
     | 'zoom-out'
     | 'zoom-reset'
@@ -77,6 +78,7 @@ const plainKeys: Record<string, BrowserShortcut> = {
     r: 'reload',
 };
 const shiftedKeys: Record<string, BrowserShortcut> = {
+    b: 'toggle-side-pane',
     g: 'find-previous',
     r: 'hard-reload',
 };
@@ -93,6 +95,7 @@ const shortcutNames = [
     'reload',
     'reopen-tab',
     'stop',
+    'toggle-side-pane',
     'zoom-in',
     'zoom-out',
     'zoom-reset',
