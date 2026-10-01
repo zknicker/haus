@@ -38,7 +38,7 @@ pages, artifacts, Agent profiles, Threads) beside the primary tab, which is the 
 An **expand** button switches to expanded mode (selecting the side pane's tab if it was showing);
 pressed, it collapses back, every closable tab returning to the side pane with the same tab
 selected; in expanded mode the side pane toggle stays visible and collapses back the same way.
-After Codex, the controls sit after a divider from the page's actions. The mode is remembered per
+The controls follow the page's actions. The mode is remembered per
 device. Opening a destination that is already open selects its
 existing tab instead of duplicating it. There is no placement choice: no Cmd-click routing, no
 moving tabs between groups.
