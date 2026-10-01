@@ -17,6 +17,6 @@ final class VoiceCallRequestTests: XCTestCase {
         XCTAssertEqual(parameters?.first(where: { $0.name == "chatId" })?.value, "cht_voice")
         XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_voice")
         XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "test")
-        XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "7")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "8")
     }
 }

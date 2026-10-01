@@ -41,6 +41,12 @@ test('App protocol 4 receives an update requirement', async () => {
     expect(await response.text()).toContain('Update required');
 });
 
+test('pre-unread-Inbox App protocol 7 receives an update requirement', async () => {
+    const response = await request(7);
+    expect(response.status).toBe(412);
+    expect(await response.text()).toContain('Update required');
+});
+
 test('development mode still requires a Clerk session', async () => {
     const previous = process.env.HAUS_DEV_STACK;
     process.env.HAUS_DEV_STACK = '1';
