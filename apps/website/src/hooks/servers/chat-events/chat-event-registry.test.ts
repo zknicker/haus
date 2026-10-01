@@ -29,7 +29,8 @@ test('a burst reaches each listener once, carrying only its own event type', asy
             readEvent('4', 'chat_one'),
             lifecycleEvent('5', 'chat_three', 'created'),
         ],
-        serverId
+        serverId,
+        'live'
     );
 
     expect(messagePasses).toEqual([['chat_one', 'chat_two']]);
@@ -46,25 +47,27 @@ test('one lane registered for several types receives them in a single pass', asy
 
     await registry.dispatch(
         [taskEvent('2', 'chat_one', 'task.created'), taskEvent('3', 'chat_one', 'task.updated')],
-        serverId
+        serverId,
+        'live'
     );
 
     expect(passes).toEqual([['task.created', 'task.updated']]);
 });
 
-test('an unmatched event type dispatches nothing, and the Server travels with the pass', async () => {
+test('an unmatched event type dispatches nothing; the Server and delivery travel with the pass', async () => {
     const registry = createChatEventRegistry();
     const passes: string[] = [];
 
-    registry.register(['message.created'], (_events, eventServerId) => {
-        passes.push(eventServerId);
+    registry.register(['message.created'], (_events, eventServerId, delivery) => {
+        passes.push(`${eventServerId}:${delivery}`);
     });
 
-    await registry.dispatch([reminderEvent('2', 'chat_one')], serverId);
+    await registry.dispatch([reminderEvent('2', 'chat_one')], serverId, 'live');
     expect(passes).toEqual([]);
 
-    await registry.dispatch([messageEvent('3', 'chat_one')], serverId);
-    expect(passes).toEqual([serverId]);
+    await registry.dispatch([messageEvent('3', 'chat_one')], serverId, 'live');
+    await registry.dispatch([messageEvent('4', 'chat_one')], serverId, 'catch-up');
+    expect(passes).toEqual([`${serverId}:live`, `${serverId}:catch-up`]);
 });
 
 test('dispatch awaits every listener and stops once a listener unregisters', async () => {
@@ -75,10 +78,10 @@ test('dispatch awaits every listener and stops once a listener unregisters', asy
         settled.push('message');
     });
 
-    await registry.dispatch([messageEvent('2', 'chat_one')], serverId);
+    await registry.dispatch([messageEvent('2', 'chat_one')], serverId, 'live');
     expect(settled).toEqual(['message']);
 
     unregister();
-    await registry.dispatch([messageEvent('3', 'chat_one')], serverId);
+    await registry.dispatch([messageEvent('3', 'chat_one')], serverId, 'live');
     expect(settled).toEqual(['message']);
 });

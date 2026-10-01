@@ -13,10 +13,10 @@ export interface NotificationLeadership {
 }
 
 /**
- * Elects one tab of this browser profile to raise Needs you notifications for
+ * Elects one tab of this browser profile to raise message notifications for
  * one Server, so several open tabs do not each notify for the same message.
  * The leader holds a Web Lock until it releases or closes; the next waiting tab
- * then takes over with the rows it has already seen. The lock is per profile,
+ * then takes over from the next message. The lock is per profile,
  * so the Electron app and a browser each keep their own leader. Without Web
  * Locks every tab leads, as before.
  */

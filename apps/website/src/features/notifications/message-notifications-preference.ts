@@ -1,22 +1,23 @@
 import * as React from 'react';
 
 /**
- * Per-device switch for Needs you notifications (ADR 0037). It is on only
- * when the reader turned it on here and the platform granted permission;
+ * Per-device switch for message notifications (ADR 0038). It is on only when
+ * the reader turned it on here and the platform granted permission;
  * permission is requested from the Settings toggle, never on page load.
  */
+// Persisted key predates the rename; changing it resets every user's choice.
 const storageKey = 'haus.notifications.needsYou';
 
 export type NotificationPermissionState = 'default' | 'denied' | 'granted' | 'unsupported';
 
-let enabled = readNeedsYouNotificationsPreference();
+let enabled = readMessageNotificationsPreference();
 const listeners = new Set<() => void>();
 
-export function useNeedsYouNotificationsPreference(): boolean {
+export function useMessageNotificationsPreference(): boolean {
     return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
-export function setNeedsYouNotificationsPreference(next: boolean) {
+export function setMessageNotificationsPreference(next: boolean) {
     enabled = next;
     try {
         window.localStorage.setItem(storageKey, next ? 'on' : 'off');
@@ -29,7 +30,7 @@ export function setNeedsYouNotificationsPreference(next: boolean) {
 }
 
 /** Nothing stored and anything unrecognized both mean off. */
-export function readNeedsYouNotificationsPreference(
+export function readMessageNotificationsPreference(
     storage: Pick<Storage, 'getItem'> | undefined = typeof window === 'undefined'
         ? undefined
         : window.localStorage
@@ -49,7 +50,7 @@ export function notificationPermission(): NotificationPermissionState {
  * Turning the switch on asks the platform first and only sticks once granted,
  * so the switch never reads on while nothing can be shown.
  */
-export async function enableNeedsYouNotifications(): Promise<NotificationPermissionState> {
+export async function enableMessageNotifications(): Promise<NotificationPermissionState> {
     if (typeof Notification === 'undefined') {
         return 'unsupported';
     }
@@ -58,7 +59,7 @@ export async function enableNeedsYouNotifications(): Promise<NotificationPermiss
             ? await Notification.requestPermission()
             : Notification.permission;
     if (permission === 'granted') {
-        setNeedsYouNotificationsPreference(true);
+        setMessageNotificationsPreference(true);
     }
     return permission;
 }

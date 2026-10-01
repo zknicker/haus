@@ -2,19 +2,19 @@ import { Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import {
-    enableNeedsYouNotifications,
+    enableMessageNotifications,
     type NotificationPermissionState,
     notificationPermission,
-    setNeedsYouNotificationsPreference,
-    useNeedsYouNotificationsPreference,
-} from '../../notifications/needs-you-notifications-preference.ts';
+    setMessageNotificationsPreference,
+    useMessageNotificationsPreference,
+} from '../../notifications/message-notifications-preference.ts';
 
 /**
  * The one place Haus asks for notification permission. Turning the switch on
  * requests it; the switch reads on only once the platform granted it.
  */
 export function NotificationsSection() {
-    const preference = useNeedsYouNotificationsPreference();
+    const preference = useMessageNotificationsPreference();
     const [permission, setPermission] =
         React.useState<NotificationPermissionState>(notificationPermission);
     const [isRequesting, setIsRequesting] = React.useState(false);
@@ -23,11 +23,11 @@ export function NotificationsSection() {
 
     const onChange = (next: boolean) => {
         if (!next) {
-            setNeedsYouNotificationsPreference(false);
+            setMessageNotificationsPreference(false);
             return;
         }
         setIsRequesting(true);
-        enableNeedsYouNotifications()
+        enableMessageNotifications()
             .then(setPermission)
             .finally(() => setIsRequesting(false));
     };
@@ -42,7 +42,8 @@ export function NotificationsSection() {
                     <ItemCard.Content>
                         <ItemCard.Title>Notify me when I'm needed</ItemCard.Title>
                         <ItemCard.Description>
-                            {blocked ?? 'DMs and @mentions while Haus is in the background.'}
+                            {blocked ??
+                                'DMs, @mentions, and replies while Haus is in the background.'}
                         </ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>

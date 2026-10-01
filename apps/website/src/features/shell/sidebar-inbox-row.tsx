@@ -27,7 +27,7 @@ export type SidebarInboxMark = 'ghost' | 'inbox';
  * stock menu row: the route's own glyph at the same measure Search and Tasks
  * use, no overflow and no nudge to explain.
  *
- * `needsYouCount` badges the row with the Inbox's own "Needs you" total,
+ * `unreadCount` badges the row with how many Chats the Inbox lists as Unread,
  * wearing the same chip the Chat rows wear for unread messages and, like them,
  * showing nothing at zero. The chip sits at the row's natural trailing edge.
  *
@@ -38,15 +38,15 @@ export type SidebarInboxMark = 'ghost' | 'inbox';
 export function SidebarInboxRow({
     isCurrent,
     mark,
-    needsYouCount,
     onPreload,
     slug,
+    unreadCount,
 }: {
     isCurrent: boolean;
     mark: SidebarInboxMark;
-    needsYouCount: number;
     onPreload: () => void;
     slug: string;
+    unreadCount: number;
 }) {
     // The mesh drifts with the Server's live work wherever the mark is drawn,
     // so the tempo is read whether or not this row is the one drawing it.
@@ -75,10 +75,10 @@ export function SidebarInboxRow({
             </Sidebar.MenuIcon>
             <Sidebar.MenuItemContent>
                 <Sidebar.MenuLabel>Inbox</Sidebar.MenuLabel>
-                {needsYouCount > 0 ? (
+                {unreadCount > 0 ? (
                     <UnreadCountChip
-                        ariaLabel={`${needsYouCount} needs you`}
-                        count={needsYouCount}
+                        ariaLabel={`${unreadCount} unread chats`}
+                        count={unreadCount}
                     />
                 ) : null}
             </Sidebar.MenuItemContent>

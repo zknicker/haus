@@ -8,6 +8,7 @@ import {
     walkEventCatchUp,
 } from './chat-event-cursor.ts';
 import {
+    type ChatEventDelivery,
     type ChatEventHandler,
     type ChatEventRegistry,
     type ChatEventType,
@@ -46,12 +47,12 @@ export function ChatEventStreamProvider({
     }
 
     const dispatchEvents = React.useCallback(
-        async (events: ServerDurableEvent[]) => {
+        async (events: ServerDurableEvent[], delivery: ChatEventDelivery) => {
             if (serverId === undefined) {
                 return;
             }
 
-            await registry.dispatch(events, serverId);
+            await registry.dispatch(events, serverId, delivery);
         },
         [registry, serverId]
     );
@@ -64,7 +65,7 @@ export function ChatEventStreamProvider({
 
         const events = batchRef.current.drain();
         if (events) {
-            void dispatchEvents(events);
+            void dispatchEvents(events, 'live');
         }
     }, [dispatchEvents]);
 
@@ -81,7 +82,6 @@ export function ChatEventStreamProvider({
             utils.chat.search.invalidate({ serverId }),
             utils.cloudAgentWork.listActive.invalidate({ serverId }),
             utils.cloudAgentWork.listForChat.invalidate({ serverId }),
-            utils.inbox.needsYou.invalidate({ serverId }),
             utils.task.list.invalidate({ serverId }, { refetchType: 'all' }),
             utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' }),
         ]);
@@ -114,7 +114,8 @@ export function ChatEventStreamProvider({
             afterCursor: current.cursor,
             fetchPage: async (afterCursor, limit) =>
                 await utils.chat.events.fetch({ afterCursor, limit, serverId }),
-            onEvents: dispatchEvents,
+            // Replayed, not new: listeners refresh caches but never announce.
+            onEvents: (events) => dispatchEvents(events, 'catch-up'),
         });
 
         if (eventStateRef.current.serverId === serverId) {
@@ -183,8 +184,8 @@ export function useChatEvent<Type extends ChatEventType>(
 
     React.useEffect(
         () =>
-            registry.register(typeKey.split(' ') as Type[], (events, eventServerId) =>
-                handlerRef.current(events, eventServerId)
+            registry.register(typeKey.split(' ') as Type[], (events, eventServerId, delivery) =>
+                handlerRef.current(events, eventServerId, delivery)
             ),
         [registry, typeKey]
     );

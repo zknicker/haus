@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ChatEventStreamProvider } from './use-chat-event-stream.tsx';
 import { useChatLifecycleEvents } from './use-chat-lifecycle-events.ts';
 import { useChatReadEvents } from './use-chat-read-events.ts';
@@ -10,12 +11,20 @@ import { useThreadFollowEvents } from './use-thread-follow-events.ts';
 
 /**
  * Every Chat event listener on one Server, over one durable stream. Each hook
- * below owns exactly what its own event type refetches.
+ * below owns exactly what its own event type refetches; `children` are other
+ * listeners on the same stream, such as message notifications.
  */
-export function ChatEventListeners({ serverId }: { serverId: string | undefined }) {
+export function ChatEventListeners({
+    children,
+    serverId,
+}: {
+    children?: ReactNode;
+    serverId: string | undefined;
+}) {
     return (
         <ChatEventStreamProvider serverId={serverId}>
             <ChatEventInvalidations />
+            {children}
         </ChatEventStreamProvider>
     );
 }

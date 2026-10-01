@@ -45,17 +45,17 @@ test('lets Inbox read at the same weight and x as Search and Tasks', () => {
     expect(inboxLabel).not.toContain('ms-');
 });
 
-test('badges Inbox with the Needs-you count in the Chat rows own chip', () => {
-    const markup = navigationMarkup({ needsYouCount: 3 });
+test('badges Inbox with its unread Chat count in the Chat rows own chip', () => {
+    const markup = navigationMarkup({ inboxUnreadCount: 3 });
 
-    expect(markup).toContain('aria-label="3 needs you"');
+    expect(markup).toContain('aria-label="3 unread chats"');
     // The same chip the unread counts wear, inside the row's own content, at
     // the row's natural trailing edge.
-    expect(/data-sidebar="label"[^>]*>(?:(?!<\/li>).)*?3 needs you/s.test(markup)).toBe(true);
+    expect(/data-sidebar="label"[^>]*>(?:(?!<\/li>).)*?3 unread chats/s.test(markup)).toBe(true);
 });
 
-test('says nothing when nothing needs you', () => {
-    expect(navigationMarkup({ needsYouCount: 0 })).not.toContain('needs you');
+test('says nothing when nothing is unread', () => {
+    expect(navigationMarkup({ inboxUnreadCount: 0 })).not.toContain('unread chats');
 });
 
 test('leads the sidebar with Inbox, which is the row the shell offsets', () => {
@@ -97,7 +97,7 @@ function inboxLabelClasses(markup: string): string {
     );
 }
 
-function navigationMarkup(options?: { needsYouCount?: number }) {
+function navigationMarkup(options?: { inboxUnreadCount?: number }) {
     return renderToStaticMarkup(
         <MemoryRouter>
             <CommandMenuProvider>
@@ -107,7 +107,7 @@ function navigationMarkup(options?: { needsYouCount?: number }) {
                             <ChatNavigation
                                 agents={[]}
                                 chats={[]}
-                                needsYouCount={options?.needsYouCount ?? 0}
+                                inboxUnreadCount={options?.inboxUnreadCount ?? 0}
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}

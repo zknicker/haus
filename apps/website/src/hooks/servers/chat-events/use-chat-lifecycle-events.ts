@@ -4,9 +4,8 @@ import { useChatEvent } from './use-chat-event-stream.tsx';
 
 /**
  * Creating, renaming, retiring, or deleting a Chat moves the active and
- * archived lists, that Chat's own snapshot, Agent chat rows — the viewer's
- * visible Chats filtered by Agent membership — and Needs you, which drops an
- * archived or deleted Chat's rows.
+ * archived lists, that Chat's own snapshot, and Agent chat rows — the
+ * viewer's visible Chats filtered by Agent membership.
  */
 export function useChatLifecycleEvents() {
     const utils = hausTrpc.useUtils();
@@ -27,7 +26,6 @@ export async function invalidateChatLifecycle({
         utils.chat.list.invalidate({ serverId }),
         utils.agent.chats.invalidate({ serverId }),
         utils.chat.listArchived.invalidate({ serverId }),
-        utils.inbox.needsYou.invalidate({ serverId }),
         ...lifecycleChatIds.map((chatId) => utils.chat.get.invalidate({ chatId, serverId })),
     ]);
 }

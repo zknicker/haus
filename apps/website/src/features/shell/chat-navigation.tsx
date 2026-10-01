@@ -21,7 +21,7 @@ import { SortableChannelList } from './sortable-channel-list.tsx';
 export function ChatNavigation({
     agents,
     chats,
-    needsYouCount = 0,
+    inboxUnreadCount = 0,
     onChangeChannelColor,
     onCreateAgent,
     onCreateChannel,
@@ -33,8 +33,8 @@ export function ChatNavigation({
 }: {
     agents: Agent[];
     chats: Chat[];
-    /** The Inbox's "Needs you" total; 0 while it is unknown, which shows no badge. */
-    needsYouCount?: number;
+    /** How many Chats the Inbox lists as Unread; 0 while unknown, which shows no badge. */
+    inboxUnreadCount?: number;
     onChangeChannelColor?: (chat: Chat, color: string) => void;
     onCreateAgent?: () => void;
     onCreateChannel: () => void;
@@ -89,9 +89,9 @@ export function ChatNavigation({
                     <SidebarInboxRow
                         isCurrent={location.pathname.startsWith(inboxRoute(slug))}
                         mark={inboxMark}
-                        needsYouCount={needsYouCount}
                         onPreload={() => onPreloadSection('inbox')}
                         slug={slug}
+                        unreadCount={inboxUnreadCount}
                     />
                     <Sidebar.MenuItem
                         id="search"

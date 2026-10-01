@@ -4,14 +4,9 @@ import { InboxEmptySlot, InboxRowList, inboxRowHeight } from './inbox-section-ro
 
 /**
  * Only one section is empty on any given Server, so the live page can never
- * show all four slots at once. These are the four facts, rendered.
+ * show all three slots at once. These are the three facts, rendered.
  */
-const labels = [
-    'No activity this week.',
-    'Nothing needs you.',
-    'All caught up.',
-    'Nothing running.',
-];
+const labels = ['No activity this week.', 'All caught up.', 'Nothing running.'];
 
 test('a settled, empty section draws a slot the size of the row that is missing', () => {
     for (const label of labels) {
