@@ -6,7 +6,7 @@
 export const agentSections = [
     'home',
     'runtime',
-    'instructions',
+    'profile',
     'automations',
     'skills',
     'connections',

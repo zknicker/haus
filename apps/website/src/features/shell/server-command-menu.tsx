@@ -5,6 +5,7 @@ import { buildTaskCommandGroup } from '../../commands/task-commands.ts';
 import { buildThemeCommandGroup } from '../../commands/theme-commands.ts';
 import { useDevMode } from '../../components/dev-mode-provider.tsx';
 import { useTheme } from '../../components/theme-provider.tsx';
+import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
@@ -19,6 +20,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { devMode, setDevMode } = useDevMode();
     const { setTheme } = useTheme();
     const showTasksInChat = useShowTasksInChat();
+    const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(server.id);
     const chats = useChats(server.id);
     const agentItems = React.useMemo(() => agents.data ?? [], [agents.data]);
@@ -36,6 +38,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
                 chats: chatItems,
                 devMode,
                 navigate,
+                openAgentProfile,
                 pathname,
                 role: server.role,
                 serverSlug: server.slug,
@@ -49,6 +52,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
             chatItems,
             devMode,
             navigate,
+            openAgentProfile,
             pathname,
             server,
             setDevMode,

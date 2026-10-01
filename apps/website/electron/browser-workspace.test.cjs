@@ -168,6 +168,13 @@ describe('desktop browser workspace', () => {
         window.emit('closed');
         expect(contents.closed).toBe(true);
     });
+    test('a page taking keyboard focus tells the App', () => {
+        const { workspace, window } = fixture();
+        workspace.open('https://example.com');
+        window.webContents.sent = [];
+        [...window.children][0].webContents.emit('focus');
+        expect(window.webContents.sent).toEqual([['desktop:browser:focus', undefined]]);
+    });
 });
 
 test('browser IPC authenticates the App main frame even when a page visits the App origin', () => {

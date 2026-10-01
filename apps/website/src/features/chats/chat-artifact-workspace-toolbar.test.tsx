@@ -34,6 +34,20 @@ describe('workspace toolbars', () => {
         );
     });
 
+    test('a page the host already titles shows no fallback label until a file opens', () => {
+        const markup = renderToStaticMarkup(
+            <WorkspacePageToolbar
+                includeHidden={false}
+                onIncludeHiddenChange={vi.fn()}
+                selectedPath={null}
+                title={null}
+            />
+        );
+
+        expect(markup).not.toContain('Workspace</span>');
+        expect(markup).toContain('aria-label="Filter files"');
+    });
+
     test('the panel rail keeps its compact search and filter controls', () => {
         const markup = renderToStaticMarkup(
             <WorkspaceRailToolbar

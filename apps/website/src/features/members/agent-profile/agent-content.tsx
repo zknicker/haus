@@ -5,17 +5,14 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { WorkspaceBrowserContent } from '../../chats/chat-artifact-workspace-content.tsx';
-import { AgentOverview } from './agent-overview.tsx';
 import { AgentReminders } from './agent-reminders.tsx';
 import { AgentTriggers } from './agent-triggers.tsx';
 
 export { AgentActivity } from './agent-activity.tsx';
-export { AgentOverview };
-export { AgentSetup } from './agent-setup.tsx';
 
 /**
- * Both of an Agent's standing automations on one tab: Reminders answer "at this
- * time", Triggers answer "when this outside thing happens". One tab, because a
+ * Both of an Agent's standing automations in one section: Reminders answer "at this
+ * time", Triggers answer "when this outside thing happens". One section, because a
  * reader asking "what wakes this Agent on its own?" is asking one question.
  *
  * Each section owns its own query, so a slow one never blanks the other.
@@ -96,6 +93,7 @@ export function AgentWorkspace({ agent, server }: { agent: Agent; server: Server
         // block of app-sidebar chrome.
         <WorkspaceBrowserContent
             agentId={agent.id}
+            pageTitle={null}
             railVariant="sidebar"
             serverId={server.id}
             treeSide="end"

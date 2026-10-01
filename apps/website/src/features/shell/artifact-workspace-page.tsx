@@ -1,8 +1,5 @@
 import { Toolbar } from '@heroui/react';
-import {
-    type ArtifactTab,
-    artifactTabLabel,
-} from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
+import type { ArtifactTab } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { ArtifactOptionsMenu } from '../chats/chat-artifact-panel-chrome.tsx';
 import { WorkspaceBrowserContent } from '../chats/chat-artifact-workspace-content.tsx';
 import {
@@ -14,32 +11,14 @@ import {
     WorkspaceArtifactEmpty,
 } from '../chats/chat-artifact-workspace-preview.tsx';
 import type { HausResourceTarget } from '../chats/haus-resource-link.ts';
-import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 
 /**
- * The selected artifact tab's body. It covers the mounted chat like a browser
- * page does, but renders in the DOM with the Artifact Panel's own renderers:
- * a file shows its preview, a workspace folder shows the workspace browser.
+ * An artifact tab's body, in either tab group. It renders in the DOM with the
+ * Artifact Panel's own renderers: a file shows its preview, a workspace
+ * folder shows the workspace browser.
  */
-export function ArtifactWorkspacePage() {
-    const workspace = useBrowserWorkspace();
-    const active = workspace?.activeTab;
-    const tab =
-        active?.kind === 'artifact'
-            ? workspace?.artifacts.find((item) => item.key === active.key)
-            : undefined;
-    if (!(workspace && tab)) {
-        return null;
-    }
-    return (
-        <section
-            aria-label={`Artifact: ${artifactTabLabel(tab)}`}
-            className="absolute inset-0 z-10 flex flex-col bg-background"
-            key={tab.key}
-        >
-            <ArtifactPageContent serverId={workspace.serverId} tab={tab} />
-        </section>
-    );
+export function ArtifactWorkspacePage({ serverId, tab }: { serverId: string; tab: ArtifactTab }) {
+    return <ArtifactPageContent serverId={serverId} tab={tab} />;
 }
 
 function ArtifactPageContent({ serverId, tab }: { serverId: string; tab: ArtifactTab }) {

@@ -3,12 +3,13 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../../hooks/agents/use-current-agent-activity.tsx';
+import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useUsage } from '../../../hooks/servers/use-usage.ts';
 import { summarizeAgentTokenUsage } from '../../stats/agent-usage-summary.ts';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 import { useServerContext } from '../server-context.ts';
-import { agentProfileRoute, serverChatRoute } from '../server-routes.ts';
+import { serverChatRoute } from '../server-routes.ts';
 import { activeAgentWindowDays, rankActiveAgents, toActiveAgent } from './active-agents.ts';
 import { AgentWeekCard } from './agent-week-card.tsx';
 import { AgentWeekStrip } from './agent-week-strip.tsx';
@@ -44,6 +45,7 @@ import { InboxEmptySlot, InboxMotionItem } from './inbox-section-rows.tsx';
 export function InboxActiveAgents() {
     const { server } = useServerContext();
     const navigate = useNavigate();
+    const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(server.id);
     const usage = useUsage(server.id);
     const currentActivity = useOptionalCurrentAgentActivity();
@@ -100,19 +102,18 @@ export function InboxActiveAgents() {
                                     <InboxMotionItem className="shrink-0" key={row.agent.id}>
                                         <AgentWeekCard
                                             activity={row}
-                                            onPress={() =>
-                                                navigate(
-                                                    row.agent.dmChatId
-                                                        ? serverChatRoute(
-                                                              server.slug,
-                                                              row.agent.dmChatId
-                                                          )
-                                                        : agentProfileRoute(
-                                                              server.slug,
-                                                              row.agent.id
-                                                          )
-                                                )
-                                            }
+                                            onPress={() => {
+                                                if (row.agent.dmChatId) {
+                                                    navigate(
+                                                        serverChatRoute(
+                                                            server.slug,
+                                                            row.agent.dmChatId
+                                                        )
+                                                    );
+                                                } else {
+                                                    openAgentProfile(row.agent.id);
+                                                }
+                                            }}
                                         />
                                     </InboxMotionItem>
                                 ))

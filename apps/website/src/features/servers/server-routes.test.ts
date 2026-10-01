@@ -1,5 +1,10 @@
 import { expect, test } from 'bun:test';
-import { invitationLink, serverSearchRoute, usageRoute } from './server-routes.ts';
+import {
+    agentProfileRoute,
+    invitationLink,
+    serverSearchRoute,
+    usageRoute,
+} from './server-routes.ts';
 
 test('invitation links use the configured browser-reachable Haus App origin', () => {
     expect(invitationLink('secret-token', 'https://app.haus.test')).toBe(
@@ -20,4 +25,11 @@ test('Agent usage links carry removable Agent, Computer, and runtime filters', (
     ).toBe('/s/dev/usage?computer=cmp_one&runtime=pi');
     expect(usageRoute('dev', { agentId: 'agt_one' })).toBe('/s/dev/usage?agent=agt_one');
     expect(usageRoute('dev')).toBe('/s/dev/usage');
+});
+
+test('an Agent profile opens on its hub unless a section is named', () => {
+    expect(agentProfileRoute('dev', 'agt one')).toBe('/s/dev/agents/agt%20one/home');
+    expect(agentProfileRoute('dev', 'agt_one', 'connections')).toBe(
+        '/s/dev/agents/agt_one/connections'
+    );
 });

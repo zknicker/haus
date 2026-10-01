@@ -36,6 +36,7 @@ export function WorkspaceBrowserContent({
     sidebarStorageKey = 'haus.artifactPane.workspaceSidebar.width',
     selectedPath: controlledSelectedPath,
     onSelectPath,
+    pageTitle,
     serverId,
     treeSide = 'end',
 }: {
@@ -49,6 +50,8 @@ export function WorkspaceBrowserContent({
         survives the tab moving to another window. Omitted callers keep local state. */
     selectedPath?: null | string;
     onSelectPath?: (path: null | string) => void;
+    /** The sidebar-rail toolbar's label while no file is open; null when the host titles the page. */
+    pageTitle?: null | string;
     serverId: string;
     /** Which edge the file rail sits on. The Artifact Panel keeps it trailing,
         beside the chat it belongs to; a page reads it as navigation and leads. */
@@ -258,6 +261,7 @@ export function WorkspaceBrowserContent({
                         includeHidden={includeHidden}
                         onIncludeHiddenChange={changeHiddenFiles}
                         selectedPath={selectedPath}
+                        title={pageTitle}
                     >
                         {fileViewControls}
                     </WorkspacePageToolbar>

@@ -697,6 +697,33 @@
     }
 
     /*
+     * The split (features/shell/workspace-split-pane.tsx): a second tab group
+     * docked right of the content area, a hairline from it. Its strip is one
+     * band tall, holds the same tab anatomy as the main strip at the same
+     * height, and starts each tab from a narrower basis because the column
+     * is narrow (420px and up).
+     */
+    .workspace-split {
+        position: relative;
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        flex-shrink: 0;
+        flex-direction: column;
+        border-inline-start: 1px solid var(--separator);
+        background: var(--background);
+    }
+
+    .workspace-split__strip {
+        --workspace-tab-height: calc(var(--spacing) * 8 + 2px);
+        --workspace-tab-width: 10rem;
+        height: var(--app-shell-band-height);
+        flex: 0 0 auto;
+        padding-inline: calc(var(--spacing) * 2);
+        border-block-end: 1px solid var(--separator);
+    }
+
+    /*
      * A Select inside a Toolbar is a filter, not form input: it opens a menu
      * and never takes typed text. HeroUI assigns chrome by component family,
      * so it would otherwise wear the field tier's ×1.5 corner and
@@ -1252,6 +1279,14 @@
     .table__column {
         font-size: var(--text-sm);
         line-height: var(--text-sm--line-height);
+    }
+
+    /* HeroUI sizes these `w-fit truncate` with no cap, so a long line outgrows
+       the content column and runs under the trailing action instead of
+       ending in an ellipsis. */
+    .item-card__title,
+    .item-card__description {
+        max-width: 100%;
     }
 
     /* Transcript panes own the gutter; message bodies need no second inset. */

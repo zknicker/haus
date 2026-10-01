@@ -57,6 +57,24 @@ export function ArtifactTabMark() {
     );
 }
 
+/**
+ * An Agent tab's mark: the Agent's avatar, the same identity mark a DM tab
+ * shows; an empty slot while the Agent loads.
+ */
+export function AgentTabMark({
+    agent,
+}: {
+    agent: { avatarUrl: string | null; name: string } | null;
+}) {
+    return (
+        <WorkspaceTabMark>
+            {agent ? (
+                <EntityAvatar name={agent.name} size={identityMarkSize} src={agent.avatarUrl} />
+            ) : null}
+        </WorkspaceTabMark>
+    );
+}
+
 function renderIdentity(identity: PrimaryTabIdentity) {
     switch (identity.kind) {
         case 'channel':

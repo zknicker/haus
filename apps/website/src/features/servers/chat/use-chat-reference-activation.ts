@@ -1,15 +1,16 @@
 import { parseAgentReferenceTarget, parseChatReferenceTarget } from '@haus/api';
 import { useCallback } from 'react';
-import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';
+import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
 
-export function useChatReferenceActivation(chatId: string, onOpenChat: (id: string) => void) {
+export function useChatReferenceActivation(onOpenChat: (id: string) => void) {
+    const openAgentProfile = useOpenAgentProfile();
     return useCallback(
         (reference: ReferenceActivationTarget) => {
             if (reference.kind === 'agent') {
                 const agentId = parseAgentReferenceTarget(reference.id);
                 if (agentId) {
-                    openAgentProfilePane(chatId, agentId);
+                    openAgentProfile(agentId);
                 }
                 return;
             }
@@ -20,6 +21,6 @@ export function useChatReferenceActivation(chatId: string, onOpenChat: (id: stri
                 }
             }
         },
-        [chatId, onOpenChat]
+        [onOpenChat, openAgentProfile]
     );
 }

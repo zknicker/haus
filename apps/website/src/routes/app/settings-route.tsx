@@ -6,7 +6,6 @@ import { HumanDirectory } from '../../features/servers/human-directory.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import {
-    agentProfileRoute,
     serverArchivedChatsRoute,
     serverSettingsSectionRoute,
     usageRoute,
@@ -122,7 +121,6 @@ export function SettingsHumanRoute() {
 
     return (
         <HumanProfile
-            agentHref={(agentId) => agentProfileRoute(server.slug, agentId)}
             error={member.data ? undefined : member.error?.message}
             key={userId}
             member={member.data}

@@ -10,7 +10,6 @@ import {
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
-    agentProfileRoute,
     inboxRoute,
     serverArchivedChatsRoute,
     serverChatRoute,
@@ -33,6 +32,8 @@ export interface CommandContext {
     chats: Chat[];
     devMode: boolean;
     navigate: (path: string) => void;
+    /** Opens an Agent's profile: a workspace tab on desktop, the profile route on web. */
+    openAgentProfile: (agentId: string) => void;
     pathname: string;
     role: 'admin' | 'member' | 'owner';
     serverSlug: string;
@@ -210,8 +211,7 @@ function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppC
                           icon: UserCircleIcon,
                           id: 'current-chat.open-agent-profile',
                           keywords: ['chat', 'agent', 'profile', 'assistant'],
-                          run: () =>
-                              context.navigate(agentProfileRoute(context.serverSlug, agent.id)),
+                          run: () => context.openAgentProfile(agent.id),
                           title: 'Agent Profile',
                       } satisfies AppCommand,
                   ]

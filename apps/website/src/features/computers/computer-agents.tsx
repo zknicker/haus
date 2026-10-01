@@ -1,13 +1,12 @@
 import { Chip } from '@heroui/react';
 import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react';
 import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
-import { agentProfileRoute } from '../servers/server-routes.ts';
 import { ComputerDataGridState } from './computer-data-grid-state.tsx';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
@@ -27,16 +26,8 @@ type ComputerAgentGridState =
     | { status: 'loading' | 'ready' }
     | { onRetry: () => void; status: 'unavailable' };
 
-export function ComputerAgents({
-    computerId,
-    serverId,
-    serverSlug,
-}: {
-    computerId: string;
-    serverId: string;
-    serverSlug: string;
-}) {
-    const navigate = useNavigate();
+export function ComputerAgents({ computerId, serverId }: { computerId: string; serverId: string }) {
+    const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(serverId);
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
@@ -65,11 +56,7 @@ export function ComputerAgents({
                         ) : null}
                     </ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                <ComputerAgentGrid
-                    onOpenAgent={(agentId) => navigate(agentProfileRoute(serverSlug, agentId))}
-                    rows={rows}
-                    state={gridState}
-                />
+                <ComputerAgentGrid onOpenAgent={openAgentProfile} rows={rows} state={gridState} />
             </ItemCardGroup>
         </section>
     );

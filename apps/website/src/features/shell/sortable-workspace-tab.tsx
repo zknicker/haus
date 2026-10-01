@@ -33,7 +33,11 @@ export function SortableWorkspaceTab({
 }) {
     const workspace = useBrowserWorkspace();
     const id = workspaceTabId(tabRef);
-    const active = workspace ? workspaceTabId(workspace.activeTab) === id : false;
+    // Ids are unique across groups, so a tab is selected when either group selects it.
+    const active = workspace
+        ? workspaceTabId(workspace.activeTab) === id ||
+          (workspace.split.active !== null && workspaceTabId(workspace.split.active) === id)
+        : false;
     const {
         setNodeRef,
         setActivatorNodeRef,
@@ -74,6 +78,7 @@ export function SortableWorkspaceTab({
             active={active}
             className={className}
             data-dragging={isDragging}
+            data-tab-id={id}
             kind={tabRef.kind}
             onAuxClick={onAuxClick}
             ref={(node) => {

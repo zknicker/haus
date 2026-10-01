@@ -24,7 +24,7 @@ export function LegacyMemberRedirect({ kind }: { kind: 'agents' | 'humans' }) {
     return (
         <Navigate
             replace
-            to={agentProfileRoute(slugFrom(location.pathname), agentId ?? '', tab || 'overview')}
+            to={agentProfileRoute(slugFrom(location.pathname), agentId ?? '', tab || 'home')}
         />
     );
 }

@@ -46,14 +46,23 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await createDialog.getByRole('button', { name: 'Create Agent' }).click();
 
     await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
-    // A new Agent lands on its own page outside Settings, on the Overview tab.
-    await expect(page).toHaveURL(/\/s\/agent-hq\/agents\/[^/]+\/overview$/u);
+    // A new Agent lands on its own page outside Settings, on the profile hub.
+    await expect(page).toHaveURL(/\/s\/agent-hq\/agents\/[^/]+\/home$/u);
 
-    // The current hosted profile owns the same lifecycle and configuration
-    // contracts the retired local profile exposed.
-    for (const section of ['Overview', 'Setup', 'Automations', 'Activity', 'Workspace']) {
-        await expect(page.getByRole('radio', { name: section })).toBeVisible();
+    // The hub opens every section through a card, not titlebar tabs.
+    for (const section of [
+        'Runs on',
+        'Profile',
+        'Automations',
+        'Skills',
+        'Connections',
+        'Workspace',
+    ]) {
+        await expect(
+            page.getByRole('button', { name: new RegExp(`^${section}`, 'u') })
+        ).toBeVisible();
     }
+    await expect(page.getByRole('radio', { name: 'Overview' })).toHaveCount(0);
 
     // Every lifecycle verb is a menu item on the header now. Stop is the one
     // that needs something to stop, so it is inert on an idle Agent.
@@ -71,9 +80,10 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await resetConfirmation.getByRole('button', { name: 'Cancel' }).click();
     await expect(resetConfirmation).toBeHidden();
 
-    // Execution configuration is a Setup fact, and Setup owns its Edit dialog.
-    await page.getByRole('radio', { name: 'Setup' }).click();
-    await expect(page).toHaveURL(/\/agents\/[^/]+\/setup$/u);
+    // Execution configuration lives behind Runs on, which owns its Edit dialog.
+    await page.getByRole('button', { name: /^Runs on/u }).click();
+    await expect(page).toHaveURL(/\/agents\/[^/]+\/runtime$/u);
+    await expect(page.getByRole('link', { exact: true, name: 'Scout' })).toBeVisible();
     await expect(page.getByText('Applies when Computer reconnects')).toBeVisible();
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     const runtimeDialog = page.getByRole('dialog', { name: 'Runtime Config' });
@@ -86,7 +96,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(runtimeDialog).toBeHidden();
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
     await expect(page.getByText('Max', { exact: true })).toBeVisible();
-    // The tab is in the URL, so a reload comes back to Setup rather than Overview.
+    // The section is in the URL, so a reload comes back to Runs on rather than the hub.
     await page.reload();
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
     await expect(page.getByText('Max', { exact: true })).toBeVisible();

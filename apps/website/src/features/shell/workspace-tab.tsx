@@ -1,9 +1,10 @@
 import * as React from 'react';
+import type { WorkspaceTabRef } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { cn } from '../../lib/utils.ts';
 
 /**
- * One workspace tab, for every kind: the routed primary tab, each browser
- * tab, and each artifact tab share this anatomy. The first child is the tab's own stock Button —
+ * One workspace tab, for every kind: the routed primary tab, each browser,
+ * artifact, and Agent tab share this anatomy, in either tab group. The first child is the tab's own stock Button —
  * mark, then label — and it fills the tab, so the whole tab is the hit
  * target. A closable tab's trailing `action` rides inside the tab's end. Geometry, fill
  * states, and when the action shows live on `.workspace-tab` in
@@ -22,7 +23,7 @@ export function WorkspaceTab({
     action?: React.ReactNode;
     active: boolean;
     children: React.ReactNode;
-    kind: 'artifact' | 'browser' | 'primary';
+    kind: WorkspaceTabRef['kind'];
     ref?: React.Ref<HTMLDivElement>;
 }) {
     return (

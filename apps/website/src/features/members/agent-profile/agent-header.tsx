@@ -16,14 +16,15 @@ import { AgentAvatarGenerator } from './agent-avatar-generator.tsx';
 const headerAvatarSize = 64;
 
 /**
- * The Agent's identity band, once per page above the tabs: the mark, the name
+ * The Agent's identity at the top of its hub: the mark, the name
  * with its role and current presence, and one muted line of handle and
  * description. The far end carries the two things a reader acts on here —
  * editing the profile, and the lifecycle verbs behind one overflow menu.
  *
- * Created date is deliberately absent: it is a Setup fact, not an identity one,
- * and it lives in the Profile card there. Model, runtime, and Computer are
- * absent for the same reason — the Overview strip and Setup own them.
+ * Created date is deliberately absent: it is a provenance fact, not an identity one,
+ * and it lives in the Profile section. Model, runtime, and Computer are absent
+ * for the same reason — the Runs on card and its section own them. Nothing
+ * else names this Agent on its page, so the name is the page's `h1`.
  */
 export function AgentHeader({
     agent,
@@ -41,7 +42,7 @@ export function AgentHeader({
     const error = avatarError ?? setAvatar.error?.message ?? updateIdentity.error?.message ?? null;
     const canEdit = server.role === 'owner' || server.role === 'admin';
     // Factory Agents (Cove) carry a product-owned identity the Server refuses
-    // to change, so no editor rather than a guaranteed error. Setup says why.
+    // to change, so no editor rather than a guaranteed error. Profile says why.
     const canEditIdentity = canEdit && agent.factoryKind === 'ordinary';
     // The menu always offers Generate for an ordinary Agent; without the
     // Server capability the item renders disabled with the reason inline.
@@ -117,10 +118,6 @@ export function AgentHeader({
                 </Chip>
             }
             description={agent.description}
-            // The shell band above already titles this page with the Agent's
-            // name, so the identity line states it again at the reading size
-            // without claiming a second `h1`.
-            headingLevel={2}
             name={agent.displayName}
             subtitle={`@${agent.handle}`}
         >

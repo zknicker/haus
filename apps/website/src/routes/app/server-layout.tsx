@@ -18,6 +18,7 @@ import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sideb
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarSettingsAction } from '../../features/shell/sidebar-settings-action.tsx';
 import { WindowBand } from '../../features/shell/window-band.tsx';
+import { WorkspaceSplitPane } from '../../features/shell/workspace-split-pane.tsx';
 import { HausUpdateFooterContainer } from '../../features/updates/haus-update-footer-container.tsx';
 import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
@@ -140,7 +141,7 @@ export function ServerLayout() {
                             chatRoute={active === 'chat'}
                             key={server.data.id}
                             primaryTab={primaryTab}
-                            serverId={server.data.id}
+                            server={server.data}
                         >
                             <AppShell className="w-full">
                                 <ChatEventListeners serverId={server.data.id} />
@@ -202,17 +203,24 @@ export function ServerLayout() {
                                             >
                                                 <div className="app-shell-main flex h-full min-h-0 flex-col">
                                                     {topbarInWindow ? null : <ShellTopbar />}
-                                                    <BrowserWorkspaceBody>
-                                                        <ShellFrame>
-                                                            <ConnectionNotice
-                                                                serverError={Boolean(server.error)}
-                                                                serverId={server.data.id}
-                                                            />
-                                                            <Outlet
-                                                                context={{ server: server.data }}
-                                                            />
-                                                        </ShellFrame>
-                                                    </BrowserWorkspaceBody>
+                                                    <div className="flex min-h-0 flex-1">
+                                                        <BrowserWorkspaceBody>
+                                                            <ShellFrame>
+                                                                <ConnectionNotice
+                                                                    serverError={Boolean(
+                                                                        server.error
+                                                                    )}
+                                                                    serverId={server.data.id}
+                                                                />
+                                                                <Outlet
+                                                                    context={{
+                                                                        server: server.data,
+                                                                    }}
+                                                                />
+                                                            </ShellFrame>
+                                                        </BrowserWorkspaceBody>
+                                                        <WorkspaceSplitPane />
+                                                    </div>
                                                 </div>
                                             </ResizableAppLayout>
                                         </AgentActivityProvider>

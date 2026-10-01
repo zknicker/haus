@@ -8,15 +8,13 @@ import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts
 /**
  * The Agent's identity as settled facts. Editing lives on the profile header,
  * where the name and the photo already are, so this card states the record —
- * including the created date, which is a Setup fact rather than an identity one.
+ * including the created date, which is provenance rather than identity.
  *
  * A factory Agent (Cove) reads the same, with the reason its identity is fixed
  * stated here rather than left as a missing button.
  */
 export function AgentProfileCard({ agent }: { agent: Agent }) {
-    const agents = useAgents(agent.serverId);
-    const humans = useHumanDirectory(agent.serverId);
-    const creator = agentCreatorName(agent, agents.data ?? [], humans.name);
+    const creator = useAgentCreatorName(agent);
     const rows = [
         { label: 'Name', value: agent.displayName },
         { label: 'Handle', value: `@${agent.handle}` },
@@ -51,6 +49,25 @@ export function AgentProfileCard({ agent }: { agent: Agent }) {
     );
 }
 
+/** The Agent's creator by name, from the Agent and member directories. */
+export function useAgentCreatorName(agent: Agent): string | null {
+    const agents = useAgents(agent.serverId);
+    const humans = useHumanDirectory(agent.serverId);
+    return agentCreatorName(agent, agents.data ?? [], humans.name);
+}
+
+/**
+ * The hub's Profile card fact: provenance, which the header never states, so
+ * the card does not repeat the header's description. Without a known creator
+ * it falls back to the handle.
+ */
+export function formatAgentProfileFact(
+    agent: Pick<Agent, 'createdAt' | 'handle'>,
+    creator: string | null
+): string {
+    return creator ? `Created by ${creator} · ${formatDate(agent.createdAt)}` : `@${agent.handle}`;
+}
+
 /**
  * A creating Agent is named from the directory; a creating human from members.
  *
@@ -73,8 +90,10 @@ export function agentCreatorName(
 }
 
 function formatCreatedAt(value: Date | string, creator: string | null) {
-    const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(
-        new Date(value)
-    );
+    const date = formatDate(value);
     return creator ? `${date} by ${creator}` : date;
+}
+
+function formatDate(value: Date | string) {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
 }

@@ -90,6 +90,7 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
     const markup = renderTranscript(rows, {
         chatId: 'chat-history',
         composerId: 'chat-history',
+        opensAgentProfiles: true,
         resolveActorProfile: (actor) =>
             actor?.kind === 'agent'
                 ? {
@@ -107,8 +108,7 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
     assert.match(markup, />DELETED</);
     assert.match(markup, /opacity-50 grayscale/);
     assert.match(markup, /text-muted/);
-    assert.doesNotMatch(markup, /Mention Cove/);
-    assert.doesNotMatch(markup, /Agent details: Cove/);
+    assert.doesNotMatch(markup, /Mention Cove|Open Cove&#x27;s profile/);
 });
 
 test('ChatTranscript bleeds message rows to both detail lane edges', () => {
@@ -1571,17 +1571,16 @@ test('ChatTranscript marks a message an automation provoked, in the header besid
 
 test('ChatTranscript keeps an ordinary Agent header to a name and a time', () => {
     const row = causedRow();
-    const markup = renderTranscript(
-        [{ ...row, message: { ...row.message, cause: null } }],
-        causedOverrides()
-    );
+    const plain = { ...row, message: { ...row.message, cause: null } };
+    const context = { ...causedOverrides(), chatId: 'chat-1', opensAgentProfiles: true };
+    const markup = renderTranscript([plain], context);
 
-    assert.doesNotMatch(markup, /Deploy finished/);
-    assert.doesNotMatch(markup, /text-trigger-mark/);
+    assert.doesNotMatch(markup, /Deploy finished|text-trigger-mark/);
     // No description tagline: what an Agent is generally for belongs to its
     // hover card and profile, not to every message it writes.
     const header = /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
     assert.equal(header.replace(/<[^>]*>/g, ''), 'Blippy12:00 pm');
+    assert.match(markup, /aria-label="Open Blippy&#x27;s profile"/);
 });
 
 test('ChatTranscript marks a message an Agent wrote after starting a new session', () => {

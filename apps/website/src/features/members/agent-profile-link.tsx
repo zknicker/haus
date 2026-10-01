@@ -1,0 +1,44 @@
+import type * as React from 'react';
+import { Link, type LinkProps, useParams } from 'react-router-dom';
+import {
+    type OpenAgentProfileOptions,
+    useOpenAgentProfile,
+} from '../../hooks/agents/use-open-agent-profile.ts';
+import { agentProfileRoute } from '../servers/server-routes.ts';
+import type { AgentSection } from './agent-profile/agent-sections.ts';
+
+/**
+ * A real link to an Agent's profile — middle-click and copy-link keep the
+ * route — whose primary click opens the profile through `useOpenAgentProfile`
+ * (a tab on desktop, the profile route on web; ADR 0038).
+ */
+export function AgentProfileLink({
+    agentId,
+    section,
+    ...props
+}: Omit<LinkProps, 'onClick' | 'to'> & { agentId: string; section?: AgentSection }) {
+    const { slug = '' } = useParams();
+    const openAgentProfile = useOpenAgentProfile();
+
+    return (
+        <Link
+            {...props}
+            onClick={(event) => {
+                const placement = agentProfilePlacement(event);
+                if (event.button !== 0 || event.shiftKey || event.altKey) {
+                    return;
+                }
+                event.preventDefault();
+                openAgentProfile(agentId, { placement, section });
+            }}
+            to={agentProfileRoute(slug, agentId, section)}
+        />
+    );
+}
+
+/** Cmd/Ctrl-click always lands in the main strip (ADR 0038). */
+export function agentProfilePlacement(
+    event: Pick<React.MouseEvent, 'ctrlKey' | 'metaKey'>
+): OpenAgentProfileOptions['placement'] {
+    return event.metaKey || event.ctrlKey ? 'main' : 'auto';
+}

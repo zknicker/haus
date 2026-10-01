@@ -215,7 +215,7 @@ export function useChatTranscript({
                 onSelectInlineReply: onSelectInlineReply ? handleSelectInlineReply : undefined,
                 onToggleReaction,
                 onUnfollowThread: () => undefined,
-                profilePaneChatId: chatId,
+                opensAgentProfiles: true,
                 renderMessageAttachments,
                 renderMessageContent: (message) => (
                     <ServerChatMessageContent

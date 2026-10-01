@@ -145,10 +145,10 @@ export function createAppRouter() {
                                                     // beside Usage rather than
                                                     // inside the settings rail.
                                                     path: 'agents/:agentId',
-                                                    element: <Navigate replace to="overview" />,
+                                                    element: <Navigate replace to="home" />,
                                                 },
                                                 {
-                                                    path: 'agents/:agentId/:tab',
+                                                    path: 'agents/:agentId/:section',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.agent,
                                                         'AgentProfileRoute'

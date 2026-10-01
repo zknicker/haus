@@ -24,6 +24,8 @@ interface WorkspaceSearchProps extends WorkspaceFilterProps {
 interface WorkspacePageToolbarProps extends WorkspaceFilterProps {
     children?: ReactNode;
     selectedPath: null | string;
+    /** Shown while no file is open; null when the host already titles the page. */
+    title?: null | string;
 }
 
 export function WorkspacePageToolbar({
@@ -31,18 +33,22 @@ export function WorkspacePageToolbar({
     includeHidden,
     onIncludeHiddenChange,
     selectedPath,
+    title = 'Workspace',
 }: WorkspacePageToolbarProps) {
+    const label = selectedPath ?? title;
     return (
         <div className="shrink-0 border-separator border-y">
             <SectionBar>
                 <Toolbar aria-label="Workspace tools" className="flex w-full gap-1">
                     <div className="flex min-w-0 flex-1 items-center gap-1">
-                        <span
-                            className="min-w-0 truncate px-2 text-muted text-sm"
-                            title={selectedPath ?? 'Workspace'}
-                        >
-                            {selectedPath ?? 'Workspace'}
-                        </span>
+                        {label ? (
+                            <span
+                                className="min-w-0 truncate px-2 text-muted text-sm"
+                                title={label}
+                            >
+                                {label}
+                            </span>
+                        ) : null}
                         {children}
                     </div>
                     <WorkspaceFilter

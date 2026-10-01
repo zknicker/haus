@@ -177,7 +177,7 @@ export function ChatView({
         (peerUserId: string) => ensureDm.mutate({ peerUserId, serverId: chat.serverId }),
         [chat.serverId, ensureDm.mutate]
     );
-    const handleReferenceActivate = useChatReferenceActivation(chat.id, onOpenChat);
+    const handleReferenceActivate = useChatReferenceActivation(onOpenChat);
     const threadPanel = threadSelection ? (
         <ThreadPanel
             active={activeSidePane === 'thread'}
@@ -229,7 +229,6 @@ export function ChatView({
                     chat={chat}
                     filesPane={filesPane}
                     messages={messages.data?.messages}
-                    server={server}
                     takeover={threadTakeover}
                     threadPanel={threadPanel}
                 />

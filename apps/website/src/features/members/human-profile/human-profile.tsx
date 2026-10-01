@@ -12,19 +12,12 @@ import { HumanIdentity } from './human-identity.tsx';
  * their own — so this composes straight into a `PageColumn`.
  */
 export function HumanProfile({
-    agentHref,
     error,
     member,
     server,
     userId,
     viewerUserId,
 }: {
-    /**
-     * Where an Agent row goes. This profile has two hosts — the members browser
-     * and Settings — and a row must stay inside the one the reader is in, so the
-     * destination belongs to the host rather than to the list.
-     */
-    agentHref: (agentId: string) => string;
     error?: string;
     member: ServerMember | undefined;
     server: ServerDetail;
@@ -58,7 +51,7 @@ export function HumanProfile({
                     </div>
                 </MemberProfileHeader>
             )}
-            <CreatedAgents agentHref={agentHref} serverId={server.id} userId={userId} />
+            <CreatedAgents serverId={server.id} userId={userId} />
         </PageColumn>
     );
 }

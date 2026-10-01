@@ -3,29 +3,30 @@ import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 
-export interface GlanceValue {
+export interface HubCardStatus {
     color: React.ComponentProps<typeof Chip>['color'];
     label: string;
 }
 
 /**
- * Stock ItemCard rendered as a button, per its Pressable pattern — the same
- * anatomy the profile's list rows use, so a tile and a row read as one family.
- * A tile with nowhere to go (a Member cannot open Computers) renders inert
- * rather than as a button that refuses.
+ * One hub card: a section's name over the fact it holds, the doorway into that
+ * section. Stock ItemCard rendered as a button, per its Pressable pattern — the
+ * same anatomy the profile's list rows use, so a card and a row read as one
+ * family. The fact stays blank while its query settles rather than flashing a
+ * zero; `status` is for a state worth color (a Computer offline), not a count.
  */
-export function GlanceTile({
+export function AgentHubCard({
+    fact,
     icon,
-    label,
     onPress,
-    secondary,
-    value,
+    status,
+    title,
 }: {
+    fact: string | undefined;
     icon: Parameters<typeof Icon>[0]['icon'];
-    label: string;
-    onPress?: () => void;
-    secondary?: string;
-    value: GlanceValue | null;
+    onPress: () => void;
+    status?: HubCardStatus | null;
+    title: string;
 }) {
     const body = (
         <>
@@ -33,22 +34,20 @@ export function GlanceTile({
                 <Icon aria-hidden="true" icon={icon} />
             </ItemCard.Icon>
             <ItemCard.Content>
-                <ItemCard.Title>{label}</ItemCard.Title>
-                {secondary ? <ItemCard.Description>{secondary}</ItemCard.Description> : null}
+                <ItemCard.Title>{title}</ItemCard.Title>
+                {/* A non-breaking space holds the line while the fact loads, so the
+                    card does not grow when it lands. */}
+                <ItemCard.Description>{fact ?? '\u00a0'}</ItemCard.Description>
             </ItemCard.Content>
-            {value ? (
+            {status ? (
                 <ItemCard.Action>
-                    <Chip color={value.color} size="sm" variant="soft">
-                        <Chip.Label className="tabular-nums">{value.label}</Chip.Label>
+                    <Chip color={status.color} size="sm" variant="soft">
+                        <Chip.Label>{status.label}</Chip.Label>
                     </Chip>
                 </ItemCard.Action>
             ) : null}
         </>
     );
-
-    if (!onPress) {
-        return <ItemCard>{body}</ItemCard>;
-    }
 
     return (
         <ItemCard<'button'>

@@ -32,6 +32,8 @@ export interface HausDesktopBridge {
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
     /** Electron loads the canonical Haus App instead of a bundled renderer. */
     loadsApp?: true;
+    /** Main → renderer: a native browser page took keyboard focus. */
+    onBrowserFocus?: (listener: () => void) => () => void;
     onBrowserShortcut?: (listener: (shortcut: string) => void) => () => void;
     onBrowserState?: (listener: (state: unknown) => void) => () => void;
     /** Main → renderer: File > Close (⌘W); close a tab first or fall back to closeWindow. */

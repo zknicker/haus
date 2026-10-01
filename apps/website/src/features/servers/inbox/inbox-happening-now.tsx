@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../../hooks/agents/use-current-agent-activity.tsx';
+import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useActiveCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useCloudAgentWorkView } from '../../cloud-agents/use-cloud-agent-work-view.ts';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 import { useServerContext } from '../server-context.ts';
-import { agentProfileRoute } from '../server-routes.ts';
 import { HappeningNowList } from './happening-now-list.tsx';
 import { type HappeningNowRow, toHappeningNowRows } from './happening-now-rows.ts';
 import { toHappeningNowWork } from './happening-now-work.ts';
@@ -22,7 +21,7 @@ import { InboxSection, InboxSectionPending } from './inbox-section.tsx';
  */
 export function InboxHappeningNow() {
     const { server } = useServerContext();
-    const navigate = useNavigate();
+    const openAgentProfile = useOpenAgentProfile();
     const { openWork } = useCloudAgentWorkView();
     const currentActivity = useOptionalCurrentAgentActivity();
     const lifecycles = useAgentLifecycle();
@@ -46,7 +45,7 @@ export function InboxHappeningNow() {
             openWork(row.id);
             return;
         }
-        navigate(agentProfileRoute(server.slug, row.id));
+        openAgentProfile(row.id);
     };
     // Both reads make the same claim — that nothing is running — so the section
     // stays neutral until both have settled rather than emptying, then filling.

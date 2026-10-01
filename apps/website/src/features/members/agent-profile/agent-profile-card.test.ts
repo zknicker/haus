@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { Agent } from '@haus/api';
-import { agentCreatorName } from './agent-profile-card.tsx';
+import { agentCreatorName, formatAgentProfileFact } from './agent-profile-card.tsx';
 
 test('the profile names the Agent that created this one, or the human who did', () => {
     const cove = { displayName: 'Cove', id: 'agt_cove' } as Agent;
@@ -19,4 +19,11 @@ test('the profile names the Agent that created this one, or the human who did', 
     expect(
         agentCreatorName({ createdByAgentId: 'agt_gone', createdByUserId: null }, [cove], humanName)
     ).toBeNull();
+});
+
+test('the Profile card states provenance, or the handle when no creator is known', () => {
+    const agent = { createdAt: '2026-09-14T12:00:00.000Z', handle: 'scout' };
+
+    expect(formatAgentProfileFact(agent, 'Ada')).toMatch(/^Created by Ada · .*2026$/u);
+    expect(formatAgentProfileFact(agent, null)).toBe('@scout');
 });

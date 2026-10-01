@@ -1,6 +1,6 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { type Location, useLocation, useNavigationType } from 'react-router-dom';
 import { type BrowserFind, useBrowserFind } from '../../hooks/browser/use-browser-find.ts';
 import {
     type BrowserHistoryEntry,
@@ -20,7 +20,9 @@ import {
     type BrowserWorkspaceState,
     parseBrowserWorkspace,
 } from '../../lib/desktop-browser.ts';
+import type { ServerDetail } from '../../lib/haus-server.tsx';
 import type { PrimaryTabIdentity } from './primary-tab-identity.ts';
+import { revealsRoutedPage } from './routed-page-reveal.ts';
 
 const emptyState: BrowserWorkspaceState = { activeId: null, tabs: [] };
 interface BrowserWorkspace extends WorkspaceTabs {
@@ -29,6 +31,7 @@ interface BrowserWorkspace extends WorkspaceTabs {
     find: BrowserFind;
     history: BrowserHistoryEntry[];
     primaryTab: PrimaryTabIdentity;
+    server: ServerDetail;
     serverId: string;
     state: BrowserWorkspaceState;
 }
@@ -38,16 +41,18 @@ export function BrowserWorkspaceProvider({
     children,
     primaryTab,
     chatRoute,
-    serverId,
+    server,
 }: {
     children: React.ReactNode;
     primaryTab: PrimaryTabIdentity;
     chatRoute: boolean;
-    serverId: string;
+    server: ServerDetail;
 }) {
+    const serverId = server.id;
     const [state, setState] = React.useState(emptyState);
     const history = useBrowserHistory(state.tabs);
     const location = useLocation();
+    const navigationType = useNavigationType();
     const bridge = getDesktopBridge();
     const command = React.useCallback(
         (input: BrowserCommand) => {
@@ -104,29 +109,28 @@ export function BrowserWorkspaceProvider({
             command({ kind: 'reset' });
         };
     }, [bridge, command]);
-    const { activeTab, closeTab, selectTab } = tabs;
+    const { activeTab, closeFocusedTab, focusGroup, selectTab, split } = tabs;
+    const routed = React.useRef<Location | null>(null);
     React.useEffect(() => {
-        if (location.key) {
+        const previous = routed.current;
+        routed.current = location;
+        if (revealsRoutedPage(previous, location, navigationType)) {
             selectTab(primaryTabRef);
         }
-    }, [selectTab, location.key]);
+    }, [selectTab, location, navigationType]);
+    // Native browser pages take focus without a DOM event; they only live in the main strip.
+    React.useEffect(() => bridge?.onBrowserFocus?.(() => focusGroup('main')), [bridge, focusGroup]);
     useDesktopTabPane({
-        active: activeTab.kind !== 'primary',
-        closeActiveTab: () => {
-            if (activeTab.kind === 'primary') {
-                return false;
-            }
-            closeTab(activeTab);
-            return true;
-        },
+        active: activeTab.kind !== 'primary' || split.active !== null,
+        closeActiveTab: closeFocusedTab,
         openNewTab: () => {
             command({ kind: 'new' });
             return true;
         },
     });
     const value = React.useMemo(
-        () => ({ ...tabs, state, history, command, find, primaryTab, chatRoute, serverId }),
-        [tabs, state, history, command, find, primaryTab, chatRoute, serverId]
+        () => ({ ...tabs, state, history, command, find, primaryTab, chatRoute, server, serverId }),
+        [tabs, state, history, command, find, primaryTab, chatRoute, server, serverId]
     );
     return <BrowserWorkspaceContext value={value}>{children}</BrowserWorkspaceContext>;
 }
@@ -135,7 +139,7 @@ export function useBrowserWorkspace() {
     return React.use(BrowserWorkspaceContext);
 }
 
-/** True while a browser or artifact tab covers the routed page. */
+/** True while a main-strip browser, artifact, or Agent tab covers the routed page; split tabs never do. */
 export function useCoveringTabSelected(): boolean {
     const kind = React.use(BrowserWorkspaceContext)?.activeTab.kind;
     return kind !== undefined && kind !== 'primary';

@@ -77,7 +77,8 @@ export interface TranscriptRenderContextValue {
      */
     onToggleReaction?: (input: { emoji: string; messageId: string; remove: boolean }) => void;
     onUnfollowThread: (threadChatId: string) => void;
-    profilePaneChatId?: string;
+    /** Agent avatars open the Agent's profile on click (ADR 0038). */
+    opensAgentProfiles?: boolean;
     renderMessageAttachments?: (message: TranscriptMessage) => React.ReactNode;
     /**
      * A surface-owned block that belongs to one message but is not its body —

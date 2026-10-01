@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
+import { WorkspaceSplitToggle } from './workspace-split-pane.tsx';
 import { WorkspaceTabStrip } from './workspace-tab-strip.tsx';
 
 interface TopbarSlot {
@@ -29,8 +30,8 @@ export function TopbarProvider({ children }: { children: React.ReactNode }) {
  * (and its height) render even while a page registers nothing, so chrome
  * never jumps between routes. On desktop it sits in the window band
  * (WindowBand) and is the workspace tab strip: every tab in one sortable
- * list, then the page's band content, its actions, and the global
- * `trailingAction` (Settings) at the band's end. On the web it is the main
+ * list, then the page's band content, its actions, the split toggle, and the
+ * global `trailingAction` (Settings) at the band's end. On the web it is the main
  * column's top band.
  */
 export function ShellTopbar({ trailingAction }: { trailingAction?: React.ReactNode } = {}) {
@@ -42,6 +43,7 @@ export function ShellTopbar({ trailingAction }: { trailingAction?: React.ReactNo
                 <div className="workspace-page-slot" ref={slot?.setContainer} />
                 <div className="workspace-band-end no-drag">
                     <div className="workspace-band-actions" ref={slot?.setActionsContainer} />
+                    <WorkspaceSplitToggle />
                     {trailingAction}
                 </div>
             </header>

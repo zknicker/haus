@@ -27,17 +27,27 @@ export function countAgentAutomations(
     };
 }
 
-/** The one muted line under the count, naming which half is which. */
-export function formatAgentAutomations(counts: AgentAutomationCounts): string {
-    return `${counts.scheduledReminders} scheduled · ${counts.armedTriggers} armed`;
+/**
+ * The Automations card's fact: what is standing, named by kind, with zero
+ * halves dropped rather than read out as "0 armed".
+ */
+export function formatAutomationsFact(counts: AgentAutomationCounts): string {
+    const parts = [
+        counts.scheduledReminders > 0
+            ? `${counts.scheduledReminders} ${pluralize(counts.scheduledReminders, 'reminder')}`
+            : null,
+        counts.armedTriggers > 0
+            ? `${counts.armedTriggers} ${pluralize(counts.armedTriggers, 'trigger')}`
+            : null,
+    ].filter((part): part is string => part !== null);
+    return parts.length > 0 ? parts.join(' · ') : 'Nothing scheduled';
 }
 
 /**
  * Connections this Agent can actually use right now: granted, connected, and
  * carrying at least one tool. The one definition of "this Agent's connections"
- * — the Overview tile counts this set and the peek names it, so the two can
- * never disagree. The Setup tab lists a different set on purpose: every
- * connection that is toggleable, granted or not.
+ * — the hub card names this set, and the Connections section lists a
+ * different set on purpose: every connection that is toggleable, granted or not.
  */
 export function grantedAgentConnections<
     Connection extends {
@@ -55,9 +65,26 @@ export function grantedAgentConnections<
 }
 
 /** Skills are Agent-owned copies, reported by the Agent's Computer. */
-export function countAgentSkills(
-    agentSkills: readonly { agentId: string; skills: readonly unknown[] }[] | undefined,
+export function agentSkillNames(
+    agentSkills: readonly { agentId: string; skills: readonly { name: string }[] }[] | undefined,
     agentId: string
-): number {
-    return agentSkills?.find((entry) => entry.agentId === agentId)?.skills.length ?? 0;
+): string[] {
+    return agentSkills?.find((entry) => entry.agentId === agentId)?.skills.map((s) => s.name) ?? [];
+}
+
+/**
+ * A card names the first few members of a set and counts the rest, so the fact
+ * stays one line at any width: `Atlas, BidBeacon +2`.
+ */
+export function formatNameList(names: readonly string[], visible = 2): string {
+    if (names.length === 0) {
+        return 'None';
+    }
+    const shown = names.slice(0, visible).join(', ');
+    const rest = names.length - visible;
+    return rest > 0 ? `${shown} +${rest}` : shown;
+}
+
+function pluralize(count: number, singular: string): string {
+    return count === 1 ? singular : `${singular}s`;
 }

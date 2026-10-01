@@ -74,10 +74,12 @@ export function serverSettingsRoute(slug: string) {
 /**
  * An Agent's own page, outside Settings. Agents are first-class product
  * records, so their profile renders in the Server layout like Usage does
- * rather than as a Members row inside the settings rail.
+ * rather than as a Members row inside the settings rail. The last segment is
+ * the profile section (ADR 0038), `home` being the hub; retired tab names
+ * still resolve, because the route redirects them to their section.
  */
-export function agentProfileRoute(slug: string, agentId: string, tab = 'overview') {
-    return `${serverRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
+export function agentProfileRoute(slug: string, agentId: string, section = 'home') {
+    return `${serverRoute(slug)}/agents/${encodeURIComponent(agentId)}/${section}`;
 }
 
 /**

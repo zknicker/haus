@@ -3,13 +3,10 @@ import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { RelativeTime } from '../../components/time/relative-time.tsx';
-import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { openAgentProfilePane } from '../../hooks/pane/use-agent-profile-pane.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { cn } from '../../lib/utils.ts';
-import { AgentAvatar } from '../members/agent-avatar.tsx';
-import { AgentHoverCard } from '../members/agent-hover-card.tsx';
+import { AgentTurnProfileAvatar, TurnAvatar } from './agent-turn-avatar.tsx';
 import { AssistantReplyBody } from './assistant-reply-body.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import {
@@ -277,60 +274,6 @@ function getActiveReplyText(items: TranscriptItem[]) {
     return '';
 }
 
-/**
- * Agents and people share one identity mark: the uploaded square image when
- * there is one, initials otherwise.
- *
- * EntityAvatar rather than `ChatMessage.Avatar`, which takes no size and
- * hardcodes HeroUI's `md` preset. `md` rounds at `--radius * 3` while `sm` —
- * what the live-Agent path renders at 32px — rounds at `* 2`, so the two sat
- * side by side in the same column with visibly different corners at any
- * radius. One component and one preset is what actually keeps them identical.
- */
-function TurnAvatar({
-    avatarUrl,
-    deleted = false,
-    name,
-}: {
-    avatarUrl?: string | null;
-    deleted?: boolean;
-    name: string;
-}) {
-    return (
-        <EntityAvatar
-            className={cn(transcriptTurnGeometry.avatar, deleted && 'opacity-50 grayscale')}
-            name={name}
-            size={32}
-            src={avatarUrl}
-        />
-    );
-}
-
-function AgentTurnAvatar({
-    profile,
-    name,
-}: {
-    profile: TranscriptActorProfile | null;
-    name: string;
-}) {
-    if (profile?.availability.kind === 'live') {
-        return (
-            <AgentAvatar
-                agent={{
-                    availability: profile.availability.value,
-                    avatarUrl: profile.avatarUrl,
-                    displayName: name,
-                    id: profile.id,
-                }}
-                className={transcriptTurnGeometry.avatar}
-                size={32}
-            />
-        );
-    }
-
-    return <TurnAvatar avatarUrl={profile?.avatarUrl} deleted={profile?.deleted} name={name} />;
-}
-
 function AgentTurn({
     activeReply,
     chatId,
@@ -398,7 +341,7 @@ function AgentTurnPresentation({
         composerId,
         turnDetails,
         onToggleReaction,
-        profilePaneChatId,
+        opensAgentProfiles,
         repliedRunIds,
         sessionMarks,
     } = context;
@@ -475,8 +418,8 @@ function AgentTurnPresentation({
                             actorId={actorId}
                             chatId={chatId}
                             displayName={displayName}
+                            opensAgentProfile={opensAgentProfiles ?? false}
                             profile={actorProfile}
-                            profilePaneChatId={profilePaneChatId}
                             serverId={turnDetails?.serverId}
                         />
                         <ChatMessage.Body className={transcriptTurnGeometry.body}>
@@ -539,46 +482,6 @@ function AgentTurnPresentation({
                 </div>
             </InlineReplyHoverProvider>
         </MessageContextActionsProvider>
-    );
-}
-
-function AgentTurnProfileAvatar({
-    actorId,
-    chatId,
-    displayName,
-    profile,
-    profilePaneChatId,
-    serverId,
-}: {
-    actorId: string | null;
-    chatId?: string;
-    displayName: string;
-    profile: TranscriptActorProfile | null;
-    profilePaneChatId?: string;
-    serverId?: string;
-}) {
-    const avatar = <AgentTurnAvatar name={displayName} profile={profile} />;
-    if (!(chatId && actorId && profilePaneChatId) || profile?.deleted) {
-        return avatar;
-    }
-
-    const trigger = (
-        <button
-            aria-label={`Agent details: ${displayName}`}
-            className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
-            type="button"
-        >
-            {avatar}
-        </button>
-    );
-
-    return serverId && profile?.kind === 'agent' ? (
-        <AgentHoverCard agentId={actorId} agentName={displayName} serverId={serverId}>
-            {trigger}
-        </AgentHoverCard>
-    ) : (
-        trigger
     );
 }
 

@@ -11,7 +11,6 @@ import { ComputerPage } from '../computers/computer-page.tsx';
 import { ProfileSettings } from '../settings/profile/page.tsx';
 import { AgentUsageTile } from '../usage/agent-usage-tile.tsx';
 import { testAgent } from './agent-fixtures.ts';
-import { AgentPeekHeader } from './agent-peek/agent-peek-header.tsx';
 
 test('an unresolved human profile keeps identity labels and its independent Agent section', () => {
     const markup = render(
@@ -50,20 +49,6 @@ test('Computer profile reserves all its sections before its roster resolves', ()
     }
     expect(markup).not.toContain('Attach a Computer');
     expect(markup).not.toContain('No Agents assigned');
-});
-
-test('Agent peek keeps its navigation controls without an Agent snapshot', () => {
-    const markup = render(
-        <AgentPeekHeader
-            agent={undefined}
-            onClose={() => undefined}
-            onOpenProfile={() => undefined}
-            server={server}
-        />
-    );
-    expect(markup).toContain('Profile');
-    expect(markup).toContain('Open profile');
-    expect(markup).toContain('aria-label="Close"');
 });
 
 test('Agent usage reserves the tile and link without inventing a token total', () => {

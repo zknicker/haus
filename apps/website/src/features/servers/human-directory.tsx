@@ -5,8 +5,8 @@ import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useMembershipActions } from '../../hooks/servers/use-membership-actions.ts';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
@@ -20,7 +20,6 @@ import {
     ServerMemberConfirmDialog,
 } from './server-member-confirm-dialog.tsx';
 import { ServerMemberList } from './server-member-list.tsx';
-import { agentProfileRoute } from './server-routes.ts';
 
 export function HumanDirectory({
     canManage,
@@ -33,7 +32,7 @@ export function HumanDirectory({
     serverId: string;
     serverSlug: string;
 }) {
-    const navigate = useNavigate();
+    const openAgentProfile = useOpenAgentProfile();
     const canInvite = directory ? canManageServerInvitations(directory.viewerRole) : false;
     const commands = useMembershipActions(serverId);
     const agents = useAgents(serverId);
@@ -70,7 +69,6 @@ export function HumanDirectory({
                     agents={agents.data}
                     canManage={canManage}
                     onCreateAgent={() => setCreatingAgent(true)}
-                    serverSlug={serverSlug}
                 />
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header>
@@ -107,7 +105,7 @@ export function HumanDirectory({
                 agents={agents.data ?? []}
                 onCreated={(agentId) => {
                     setCreatingAgent(false);
-                    navigate(agentProfileRoute(serverSlug, agentId));
+                    openAgentProfile(agentId);
                 }}
                 onOpenChange={setCreatingAgent}
                 open={creatingAgent}
@@ -126,12 +124,10 @@ function AgentsSection({
     agents,
     canManage,
     onCreateAgent,
-    serverSlug,
 }: {
     agents: Agent[] | undefined;
     canManage: boolean;
     onCreateAgent: () => void;
-    serverSlug: string;
 }) {
     const items = agents ?? [];
 
@@ -172,7 +168,7 @@ function AgentsSection({
                         </ItemCard.Content>
                     </ItemCard>
                 ) : (
-                    <ServerAgentList agents={items} serverSlug={serverSlug} />
+                    <ServerAgentList agents={items} />
                 )}
             </ItemCardGroup>
         </ItemCardGroup>

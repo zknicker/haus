@@ -233,7 +233,7 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
 
             return chatBox && panelBox ? Math.round(chatBox.y - panelBox.y) : null;
         })
-        .toBe(48);
+        .toBe(0);
     const initialPane = await panel.elementHandle();
     if (!initialPane) {
         throw new Error('The hosted Thread test did not resolve the open pane.');
@@ -392,12 +392,12 @@ test('Agent-authored typed references render as interactive Agent and Chat chips
     }
 
     await blippyChip.click();
-    const profile = page.getByRole('complementary', { name: 'Agent profile' });
-    await expect(profile.getByText('Blippy', { exact: true })).toBeVisible();
-    await expect(profile.getByRole('button', { name: 'Open profile' })).toBeVisible();
-    await profile.getByRole('button', { name: 'Close', exact: true }).click();
-    await expect(profile).toHaveCount(0);
+    await expect(page).toHaveURL(/\/s\/hosted-messages\/agents\/[^/]+\/home$/u);
+    await expect(page.getByText('Blippy', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Agent profile' })).toHaveCount(0);
 
+    await page.goBack();
+    await expect(message).toBeVisible();
     await productChip.click();
     await expect(page).toHaveURL(/\/s\/hosted-messages\/chats\/cht_e2e_product$/u);
     await expect(page.getByRole('textbox', { name: 'Message product' })).toBeVisible();

@@ -100,6 +100,12 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
         window.contentView.addChildView(view);
         const contents = view.webContents;
         installBrowserShortcuts(contents, (action) => runBrowserWindowAction(window, api, action));
+        // A native page takes keyboard focus without any App DOM event; tell the App (⌘W targets main).
+        contents.on('focus', () => {
+            if (!window.webContents.isDestroyed()) {
+                window.webContents.send('desktop:browser:focus');
+            }
+        });
         trackBrowserTabState(contents, tab.state, {
             fallbackUrl: url,
             isLive: () => tabs.has(id),

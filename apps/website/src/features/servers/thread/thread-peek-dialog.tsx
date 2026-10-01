@@ -7,7 +7,7 @@ import {
 } from '@haus/api';
 import { Modal } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
-import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';
+import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { getTurnDetailAccess } from '../../members/agent-profile/agent-activity-model.ts';
 import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
 import { useServerContext } from '../server-context.ts';
@@ -39,6 +39,7 @@ export function ThreadPeekDialog({
 }) {
     const navigate = useNavigate();
     const { server } = useServerContext();
+    const openAgentProfile = useOpenAgentProfile();
     const openParentChat = () => {
         onClose();
         navigate(serverChatRoute(server.slug, chat.id));
@@ -51,8 +52,7 @@ export function ThreadPeekDialog({
             }
 
             onClose();
-            openAgentProfilePane(chat.id, agentId);
-            navigate(serverChatRoute(server.slug, chat.id));
+            openAgentProfile(agentId);
             return;
         }
 

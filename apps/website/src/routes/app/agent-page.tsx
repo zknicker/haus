@@ -1,7 +1,7 @@
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AgentLoading } from '../../features/members/agent-profile/agent-loading.tsx';
-import { AgentProfilePage } from '../../features/members/agent-profile/agent-profile.tsx';
-import { isAgentTab } from '../../features/members/agent-profile/agent-tabs.ts';
+import { AgentProfileView } from '../../features/members/agent-profile/agent-profile-view.tsx';
+import { resolveAgentSectionParam } from '../../features/members/agent-profile/agent-section-route.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import {
     agentProfileRoute,
@@ -11,24 +11,25 @@ import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
 /**
- * An Agent's own page, in the Server layout beside Usage.
+ * An Agent's own page on web, in the Server layout beside Usage: the profile
+ * hub, or one of its drill-down sections named by the last path segment
+ * (ADR 0038). The body is the same view a desktop agent tab renders; this
+ * route only resolves the Agent and maps section changes onto the address.
  *
- * This rendered inside Settings, which read an Agent as a Members row: the
- * settings rail replaced the chat navigation and a breadcrumb claimed the
- * Agent belonged to a section. An Agent is a first-class product record, so
- * its page keeps the app's own navigation and owns its address. Humans stay
- * records under Settings > Members, and the old settings links redirect here.
+ * Humans stay records under Settings > Members, and the old settings links
+ * redirect here.
  */
 export function AgentProfileRoute() {
-    const { agentId = '', tab } = useParams();
+    const { agentId = '', section: sectionParam } = useParams();
     const navigate = useNavigate();
     const { server } = useServerContext();
     const agent = useAgent(server.id, agentId);
     const membersRoute = serverSettingsSectionRoute(server.slug, 'members');
+    const section = resolveAgentSectionParam(sectionParam);
     useWindowTitle(agent.data?.displayName);
 
-    if (!isAgentTab(tab)) {
-        return <Navigate replace to={agentProfileRoute(server.slug, agentId)} />;
+    if (section.kind === 'redirect') {
+        return <Navigate replace to={agentProfileRoute(server.slug, agentId, section.section)} />;
     }
     if (agent.isPending) {
         return (
@@ -42,13 +43,13 @@ export function AgentProfileRoute() {
     }
 
     return (
-        <AgentProfilePage
+        <AgentProfileView
             agent={agent.data}
             key={agent.data.id}
             onDeleted={() => navigate(membersRoute, { replace: true })}
-            onTabChange={(nextTab) => navigate(agentProfileRoute(server.slug, agentId, nextTab))}
+            onSectionChange={(next) => navigate(agentProfileRoute(server.slug, agentId, next))}
+            section={section.section}
             server={server}
-            tab={tab}
         />
     );
 }

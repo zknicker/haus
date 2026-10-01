@@ -2,21 +2,14 @@ import type { Agent } from '@haus/api';
 import { Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
+import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { availabilityBadgeColor } from '../agent-avatar.tsx';
+import { agentProfilePlacement } from '../agent-profile-link.tsx';
 
 /** Agents created by one human, with its own focused list read. */
-export function CreatedAgents({
-    agentHref,
-    serverId,
-    userId,
-}: {
-    agentHref: (agentId: string) => string;
-    serverId: string;
-    userId: string;
-}) {
+export function CreatedAgents({ serverId, userId }: { serverId: string; userId: string }) {
     const agents = useAgents(serverId);
     const created = (agents.data ?? []).filter((agent) => agent.createdByUserId === userId);
 
@@ -51,7 +44,7 @@ export function CreatedAgents({
                         created.map((agent, index) => (
                             <React.Fragment key={agent.id}>
                                 {index > 0 ? <Separator /> : null}
-                                <CreatedAgentRow agent={agent} href={agentHref(agent.id)} />
+                                <CreatedAgentRow agent={agent} />
                             </React.Fragment>
                         ))
                     )}
@@ -61,13 +54,15 @@ export function CreatedAgents({
     );
 }
 
-function CreatedAgentRow({ agent, href }: { agent: Agent; href: string }) {
-    const navigate = useNavigate();
+function CreatedAgentRow({ agent }: { agent: Agent }) {
+    const openAgentProfile = useOpenAgentProfile();
 
     return (
         <ItemCard<'button'>
             className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={() => navigate(href)}
+            onClick={(event) =>
+                openAgentProfile(agent.id, { placement: agentProfilePlacement(event) })
+            }
             render={(props) => <button type="button" {...props} />}
         >
             <PressableFeedback.Highlight />

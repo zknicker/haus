@@ -1,5 +1,6 @@
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import {
+    type AgentTab,
     type ArtifactTab,
     type ClosableTabRef,
     type WorkspaceTabRef,
@@ -8,7 +9,9 @@ import {
 
 /**
  * A tab closed this session, newest last, for Reopen Closed Tab (⌘⇧T).
- * `index` is its position in the whole strip, primary tab included, when it closed.
+ * `index` is its position in the main strip, primary tab included, when it
+ * closed; a split tab remembers its place after the main strip's tabs, and
+ * every closed tab reopens in the main strip.
  */
 export type ClosedTab =
     | {
@@ -18,6 +21,7 @@ export type ClosedTab =
           title: string;
           faviconUrl: string | null;
       }
+    | { kind: 'agent'; index: number; tab: AgentTab }
     | { kind: 'artifact'; index: number; tab: ArtifactTab };
 
 export const closedTabLimit = 20;
@@ -27,11 +31,16 @@ export function closedTabEntry(
     ref: ClosableTabRef,
     strip: readonly WorkspaceTabRef[],
     browserTabs: readonly BrowserTab[],
-    artifacts: readonly ArtifactTab[]
+    artifacts: readonly ArtifactTab[],
+    agents: readonly AgentTab[] = []
 ): ClosedTab | null {
     const index = strip.findIndex((item) => workspaceTabId(item) === workspaceTabId(ref));
     if (index < 0) {
         return null;
+    }
+    if (ref.kind === 'agent') {
+        const tab = agents.find((item) => item.agentId === ref.agentId);
+        return tab ? { kind: 'agent', index, tab } : null;
     }
     if (ref.kind === 'artifact') {
         const tab = artifacts.find((item) => item.key === ref.key);

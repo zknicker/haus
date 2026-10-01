@@ -1,9 +1,8 @@
 import type { Agent } from '@haus/api';
 import { Separator } from '@heroui/react';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import { AgentAvatar, availabilityLabel } from '../members/agent-avatar.tsx';
-import { agentProfileRoute } from './server-routes.ts';
+import { AgentProfileLink } from '../members/agent-profile-link.tsx';
 
 /**
  * The Agents on one Server, in the Members directory beside the humans. Both
@@ -14,15 +13,15 @@ import { agentProfileRoute } from './server-routes.ts';
  * Rows are read-only on purpose. Deletion belongs to the Agent's own Danger
  * section, so the row identifies and links rather than pretending to manage.
  */
-export function ServerAgentList({ agents, serverSlug }: { agents: Agent[]; serverSlug: string }) {
+export function ServerAgentList({ agents }: { agents: Agent[] }) {
     return (
         <>
             {agents.map((agent, index) => (
                 <React.Fragment key={agent.id}>
                     {index > 0 ? <Separator /> : null}
-                    <Link
+                    <AgentProfileLink
+                        agentId={agent.id}
                         className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 outline-none hover:bg-default/40 focus-visible:ring-2 focus-visible:ring-focus"
-                        to={agentProfileRoute(serverSlug, agent.id)}
                     >
                         <span className="flex min-w-0 items-center gap-2.5">
                             <AgentAvatar agent={agent} size={24} />
@@ -34,7 +33,7 @@ export function ServerAgentList({ agents, serverSlug }: { agents: Agent[]; serve
                         <span className="shrink-0 text-muted text-sm">
                             {availabilityLabel(agent.availability)}
                         </span>
-                    </Link>
+                    </AgentProfileLink>
                 </React.Fragment>
             ))}
         </>

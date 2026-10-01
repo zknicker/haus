@@ -145,7 +145,7 @@ export function ComputerDetail({
 
             <BrowserCapabilityCard computerId={computerId} serverId={serverId} />
             <CloudAgentCapabilityCard computerId={computerId} serverId={serverId} />
-            <ComputerAgents computerId={computerId} serverId={serverId} serverSlug={serverSlug} />
+            <ComputerAgents computerId={computerId} serverId={serverId} />
             <ComputerSystemLog computerId={computerId} key={computerId} serverId={serverId} />
             <ComputerActions
                 computerId={computerId}

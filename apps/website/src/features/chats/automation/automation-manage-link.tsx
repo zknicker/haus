@@ -1,7 +1,6 @@
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { Link, useParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { agentProfileRoute } from '../../servers/server-routes.ts';
+import { AgentProfileLink } from '../../members/agent-profile-link.tsx';
 
 /**
  * Out of the transcript and into the automation itself. The owning Agent's
@@ -10,15 +9,14 @@ import { agentProfileRoute } from '../../servers/server-routes.ts';
  * neither tries to be an editor.
  */
 export function ManageInAutomationsLink({ agentId }: { agentId: string }) {
-    const { slug = '' } = useParams();
-
     return (
-        <Link
+        <AgentProfileLink
+            agentId={agentId}
             className="inline-flex w-fit items-center gap-1 font-semibold text-accent text-xs"
-            to={agentProfileRoute(slug, agentId, 'automations')}
+            section="automations"
         >
             Manage in Automations
             <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={11} />
-        </Link>
+        </AgentProfileLink>
     );
 }

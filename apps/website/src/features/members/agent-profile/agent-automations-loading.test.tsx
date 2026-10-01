@@ -20,7 +20,11 @@ test('pending profile lists keep headings and actions without premature empty st
                 <MemoryRouter>
                     <AgentAutomations agent={testAgent()} server={server} />
                     <AgentChats agent={testAgent()} server={server} />
-                    <AgentRecentActivity agent={testAgent()} server={server} />
+                    <AgentRecentActivity
+                        agent={testAgent()}
+                        onSeeAll={() => undefined}
+                        server={server}
+                    />
                 </MemoryRouter>
             </hausTrpc.Provider>
         </QueryClientProvider>

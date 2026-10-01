@@ -10,11 +10,12 @@ import { usageRoute } from '../servers/server-routes.ts';
 import { agentUsageSparkline, summarizeAgentTokenUsage } from '../stats/agent-usage-summary.ts';
 
 const tileDays = 30;
-const sparklineHeight = 64;
+const sparklineHeight = 40;
 
 /**
- * One Agent's token volume on its profile: the 30-day number and its daily
- * shape, then the way through to the dashboard that can slice it.
+ * One Agent's token volume on its profile hub: the 30-day number beside its
+ * daily shape, with the way through to the dashboard that can slice it in the
+ * header. Compact on purpose — it is the hub's last line, not a dashboard.
  *
  * The profile used to carry the whole Usage view — range picker, stacked chart,
  * and a per-configuration grid — which made a summary page host a second
@@ -35,6 +36,13 @@ export function AgentUsageTile({ agent, server }: { agent: Agent; server: Server
         <KPI>
             <KPI.Header>
                 <KPI.Title>Processed tokens</KPI.Title>
+                <Link
+                    className="ms-auto inline-flex w-fit items-center gap-1 font-semibold text-accent text-sm"
+                    to={usageRoute(server.slug, { agentId: agent.id })}
+                >
+                    See in Usage
+                    <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={12} />
+                </Link>
             </KPI.Header>
             {/* Two equal columns put the sparkline beside the number rather than
                 under it, per KPI's own inline-chart recipe. Without a series to
@@ -74,16 +82,6 @@ export function AgentUsageTile({ agent, server }: { agent: Agent; server: Server
                     </div>
                 )}
             </KPI.Content>
-            <KPI.Separator />
-            <KPI.Footer>
-                <Link
-                    className="inline-flex w-fit items-center gap-1 font-semibold text-accent text-sm"
-                    to={usageRoute(server.slug, { agentId: agent.id })}
-                >
-                    See in Usage
-                    <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={12} />
-                </Link>
-            </KPI.Footer>
         </KPI>
     );
 }

@@ -3,8 +3,8 @@ import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-s
 
 /**
  * Chat Files pane visibility. Files shares the chat side panel with the
- * artifact, profile, and thread panes; the latest opener wins the slot, and
- * closing hands the slot back to the artifact pane like the profile pane does.
+ * artifact and thread panes; the latest opener wins the slot, and closing
+ * hands the slot back to the artifact pane.
  */
 export function useChatFilesPane(chatId: string) {
     const activeSidePane = useChatSidePane(chatId);

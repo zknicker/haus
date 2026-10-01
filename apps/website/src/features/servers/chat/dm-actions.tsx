@@ -5,7 +5,8 @@ import { MoreHorizontalIcon, UserCircleIcon } from '@hugeicons-pro/core-stroke-r
 import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { agentProfileRoute, tasksRoute } from '../server-routes.ts';
+import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
+import { tasksRoute } from '../server-routes.ts';
 import { ChatContextSurfaceItems, ChatSurfaceItems } from './chat-surface-items.tsx';
 
 export function DmActions({
@@ -20,9 +21,10 @@ export function DmActions({
     slug: string;
 }) {
     const navigate = useNavigate();
+    const openAgentProfile = useOpenAgentProfile();
     const runAction = (key: React.Key) => {
         if (key === 'profile' && peerAgent) {
-            navigate(agentProfileRoute(slug, peerAgent.id));
+            openAgentProfile(peerAgent.id);
             return;
         }
         if (key === 'tasks' && content) {
