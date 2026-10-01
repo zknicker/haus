@@ -188,7 +188,7 @@ import Testing
             "Ask [@Blippy](agent://agt_blippy) and [@Ada](user://usr_ada)\nabout the [#product](chat://cht_product) review"
         )
 
-        #expect(preview == "Ask @Blippy and @Ada about the Product review")
+        #expect(preview == "Ask @Blippy and @Ada about the #product review")
     }
 
     @Test func oneLinePreviewKeepsTheMentionSigilTheWayTheAppDoes() {
@@ -197,12 +197,34 @@ import Testing
         #expect(preview == "@you Task +1")
     }
 
-    @Test func oneLinePreviewReadsASkillAsItsProductName() {
-        let preview = RichMessageParser.oneLinePreview(
-            "Run [$agent-browser](skill://agent-browser) on it"
+    @Test func oneLinePreviewReadsEveryLinkAsItsTextTheWayTheAppDoes() {
+        #expect(
+            RichMessageParser.oneLinePreview("Run [$agent-browser](skill://agent-browser) on it")
+                == "Run $agent-browser on it"
         )
+        #expect(
+            RichMessageParser.oneLinePreview("Opened [PR 112](https://github.com/zknicker/haus/pull/112)")
+                == "Opened PR 112"
+        )
+    }
 
-        #expect(preview == "Run Agent Browser on it")
+    @Test func oneLinePreviewKeepsABareChannelSigilButDropsHeadings() {
+        #expect(RichMessageParser.oneLinePreview("#product ships today") == "#product ships today")
+        #expect(RichMessageParser.oneLinePreview("## Summary\nFixed the README.") == "Summary Fixed the README.")
+        #expect(RichMessageParser.oneLinePreview("# Top\n### Deeper") == "Top Deeper")
+    }
+
+    @Test func oneLinePreviewReadsBulletsAndEmphasisAsPlainProse() {
+        #expect(
+            RichMessageParser.oneLinePreview("Did this:\n- Read the file\n* Fixed it\n  + Shipped it")
+                == "Did this: Read the file Fixed it Shipped it"
+        )
+        #expect(RichMessageParser.oneLinePreview("Ran -5m behind") == "Ran -5m behind")
+        #expect(
+            RichMessageParser.oneLinePreview("**Fixed** the `README` and __shipped__ it")
+                == "Fixed the README and shipped it"
+        )
+        #expect(RichMessageParser.oneLinePreview("Ran:\n```bash\nbun test\n```") == "Ran: bash bun test")
     }
 
     @Test func oneLinePreviewCollapsesAWebLinkToItsText() {

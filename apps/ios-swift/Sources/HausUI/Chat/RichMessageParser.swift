@@ -71,68 +71,35 @@ public enum RichMessageParser {
         appendAutolinked(run.text[cursor...], style: run.style, into: &segments)
     }
 
-    /// A one-line preview of a message: every visual fence reads as the visual's
-    /// name, every Markdown link reads as the words a person sees on the chip —
-    /// a typed reference through `ReferenceLabel`, so a preview says `Product`
-    /// and `Agent Browser` rather than `#product` and `$agent-browser`, and an
-    /// ordinary web link as its own link text. Each run of whitespace becomes a
-    /// single space.
+    /// A one-line preview of a message, mirroring the App's `messagePreviewLine`
+    /// so every quoting surface reads the same on both clients: a visual fence
+    /// reads as the visual's name, every Markdown link reads as its link text
+    /// as written (`#product`, `@Blippy`, `$agent-browser`), heading and bullet
+    /// markers and emphasis or code ticks drop away, and each run of whitespace
+    /// becomes a single space.
     public static func oneLinePreview(_ content: String) -> String {
-        let named = VisualFence.previewText(content)
-        let unlinked = linkExpression.map { previewText(named, expression: $0) } ?? named
-        return unlinked.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
-    }
-
-    private static func previewText(
-        _ content: String,
-        expression: NSRegularExpression
-    ) -> String {
-        var preview = ""
-        var cursor = content.startIndex
-        let matches = expression.matches(
-            in: content,
-            range: NSRange(content.startIndex..., in: content)
-        )
-        for match in matches {
-            guard let range = Range(match.range(at: 0), in: content),
-                  let textRange = Range(match.range(at: 1), in: content),
-                  let targetRange = Range(match.range(at: 2), in: content),
-                  range.lowerBound >= cursor
-            else { continue }
-            preview += content[cursor..<range.lowerBound]
-            preview += previewLabel(
-                text: String(content[textRange]),
-                target: String(content[targetRange])
+        var line = VisualFence.previewText(content)
+        for (expression, template) in previewRewrites {
+            line = expression.stringByReplacingMatches(
+                in: line,
+                range: NSRange(line.startIndex..., in: line),
+                withTemplate: template
             )
-            cursor = range.upperBound
         }
-        return preview + content[cursor...]
+        return line.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
     }
 
-    /// The same shaping the chip does: a typed target names its kind, and
-    /// `ReferenceLabel` reads the link text for that kind. A target this client
-    /// does not chip keeps its link text as written.
-    ///
-    /// A mention keeps its `@`, as the App's preview line does: flat text has
-    /// no chip to say "this is a person", so the sigil says it — `Cove: you
-    /// Task` read as prose, `Cove: @you Task` reads as an address.
-    private static func previewLabel(text: String, target: String) -> String {
-        guard let reference = RichReferenceWireForm.read(target: target, text: text) else {
-            return text
-        }
-        let label = reference.label
-            ?? ReferenceLabel.display(text, kind: reference.kind, id: reference.id)
-        switch reference.kind {
-        case .agent, .human: return "@" + ReferenceLabel.strippingSigil(label)
-        default: return label
-        }
+    /// The App's three rewrites, in its order. The link grammar is the one
+    /// `parseHausRichReferences` reads; heading and bullet markers need the
+    /// space Markdown itself needs, so `#product` and `-5m` keep their first
+    /// character.
+    private static let previewRewrites: [(NSRegularExpression, String)] = [
+        (#"\[([^\]\n]+)\]\([^)\n]+\)"#, "$1"),
+        (#"^[\t ]*(?:#{1,6}|[*+-])[\t ]+"#, ""),
+        (#"\*\*|__|`"#, "")
+    ].compactMap { pattern, template in
+        (try? NSRegularExpression(pattern: pattern, options: .anchorsMatchLines)).map { ($0, template) }
     }
-
-    // The reference grammar without its scheme constraint: a preview reads the
-    // words of every link, whether or not this client chips its target.
-    private static let linkExpression = try? NSRegularExpression(
-        pattern: #"\[([^\]]+)\]\(([^\)]+)\)"#
-    )
 
     /// One Markdown link the body carries, and what this client makes of it.
     private struct MarkdownLink {

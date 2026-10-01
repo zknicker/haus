@@ -23,7 +23,7 @@ struct InboxActiveAgentsSection: View {
                             .padding(.horizontal, InboxMetrics.rowInset)
                     } else {
                         ScrollView(.horizontal) {
-                            HStack(spacing: 12) {
+                            HStack(alignment: .top, spacing: 12) {
                                 ForEach(weeks) { week in
                                     InboxAgentWeekCard(week: week) { onOpen(.agent(week.id)) }
                                 }

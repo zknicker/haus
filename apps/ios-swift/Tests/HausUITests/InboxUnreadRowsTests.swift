@@ -76,7 +76,7 @@ struct InboxUnreadRowsTests {
     }
 
     /// The quote goes through the same flattener every other quoting surface
-    /// on the phone uses, so a reference reads as the words on its chip.
+    /// on the phone uses, so a reference reads as its link text, as on the App.
     @Test func flattensTheQuotedLineToOneLine() {
         let preview = InboxUnreadRows.previewLine(
             InboxFixtures.lastMessage(
@@ -87,7 +87,7 @@ struct InboxUnreadRowsTests {
             viewerDisplayName: nil
         )
 
-        #expect(preview == "Shipped the Product build")
+        #expect(preview == "Shipped the #product build")
     }
 
     @Test func aMessageThatFlattensToNothingStillNamesItsAuthor() {

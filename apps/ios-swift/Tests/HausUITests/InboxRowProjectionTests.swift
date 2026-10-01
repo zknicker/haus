@@ -95,12 +95,12 @@ struct InboxHappeningNowRowsTests {
     }
 
     @Test func formatsElapsedTimeTheWayEveryOtherHausSurfaceDoes() {
-        #expect(InboxElapsed.duration(seconds: 0) == "0s")
-        #expect(InboxElapsed.duration(seconds: 59) == "59s")
-        #expect(InboxElapsed.duration(seconds: 60) == "1m")
-        #expect(InboxElapsed.duration(seconds: 3_599) == "59m")
-        #expect(InboxElapsed.duration(seconds: 7_200) == "2h")
-        #expect(InboxElapsed.duration(seconds: 7_500) == "2h 5m")
+        #expect(CloudAgentPresentation.duration(seconds: 0) == "0s")
+        #expect(CloudAgentPresentation.duration(seconds: 59) == "59s")
+        #expect(CloudAgentPresentation.duration(seconds: 60) == "1m")
+        #expect(CloudAgentPresentation.duration(seconds: 3_599) == "59m")
+        #expect(CloudAgentPresentation.duration(seconds: 7_200) == "2h")
+        #expect(CloudAgentPresentation.duration(seconds: 7_500) == "2h 5m")
     }
 }
 
