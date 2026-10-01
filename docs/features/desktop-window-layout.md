@@ -15,6 +15,11 @@ pane docks right of the routed page, inside the card, behind a hairline, and its
 the band starting over the pane's edge (see
 [Workspace tabs → Split and expanded modes](browser-tabs.md#split-and-expanded-modes)).
 
+As in Codex, short hairlines in the band continue each content column's leading edge: one where the
+routed page's column starts (the sidebar divider in Band, the content card's edge in Canvas) and,
+while the side pane shows, one at the pane's edge before its strip. Each is the tab strip's own
+divider (same color, thickness, and height), not a full-height border.
+
 Settings > Preferences > Appearance > **Window layout** picks what sits under the band. It applies
 instantly, is remembered per device, and stays in step across open windows.
 

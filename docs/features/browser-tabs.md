@@ -29,7 +29,8 @@ glyph (Inbox, Tasks, Search, Settings, and so on). In split mode that identity i
 plain title instead of a tab. In expanded mode the primary tab holds the same width basis as every
 other tab, so switching between chats with long and short names never moves the strip; when the
 strip is crowded it shrinks with the rest. In a Chat, the channel or DM actions menu is an icon-only
-"…" button in the band at the routed page's top-right corner, not part of the tab. Because the tab names the page, band content beside it drops what repeats
+"…" button in the band at the routed page's top-right corner, not part of the tab; in expanded mode
+it shows only while the primary tab is selected, since another selected tab covers the page. Because the tab names the page, band content beside it drops what repeats
 that identity (a section's breadcrumb or glyph, a title matching the tab) and keeps only actions or a more
 specific title. A browser tab's mark is the page's favicon, a spinner while the page
 loads, or a globe when the page has no usable icon. An artifact tab's mark is the Artifact Panel's
@@ -60,7 +61,7 @@ Control-Shift-Tab cycle through the visible strip's tabs in order (the side pane
 revealing a hidden pane); Command-1 through Command-9 select tabs directly, with 9 selecting the
 last tab. These shortcuts also work inside isolated websites.
 Middle-click closes a browser or artifact tab. The strip never scrolls: every tab, the primary
-one included, shares the width evenly and shrinks down to mark-only tabs, the selected tab keeps its close button, and the plus button stays
+one included, holds one width basis (Codex's 240px, the side pane's strip too), shares the width evenly and shrinks down to mark-only tabs, the selected tab keeps its close button, and the plus button stays
 pinned after the last tab. Reload becomes Stop while a page loads; a thin accent-colored loading line fades away without moving
 the page. Toolbar buttons and tab titles have tooltips.
 The page toolbar is one compact row above a hairline: Back, Forward, and Reload on the left, the
@@ -194,7 +195,8 @@ and starts in split mode.
 - **Split mode**: the routed page fills the left column under its plain title (mark and name), with
   its band content and actions at its top-right. Every closable tab lives in the **side pane**,
   docked right of the routed page on every route, resizable from its leading edge (420px minimum
-  while the routed page keeps 360px; session-only width). Its strip and new-tab button sit in the
+  while the routed page keeps 360px; session-only width). The resize handle sits just outside the
+  pane's edge, so a browser page's native view never covers it. Its strip and new-tab button sit in the
   window band starting over the pane's edge. Routed navigation never hides the side pane.
 - **Expanded mode**: one strip in the band, the primary tab first, then every closable tab; the
   selected tab takes the whole content width, covering the routed page. Routed navigation selects
@@ -207,7 +209,7 @@ square) replaces the expand button and the side pane toggle:
 | Control | Split mode | Expanded mode |
 | --- | --- | --- |
 | Expand (outward diagonal arrows) | Switches to expanded mode, selecting the side pane's tab if it was showing, else the primary tab | Pressed, as collapse (inward arrows): back to split mode, every closable tab in the side pane, the same tab selected and the pane showing |
-| Side pane toggle (right panel; Hide tabs / Show tabs, Command-Shift-B) | Pressed while the pane shows; hides or shows it. While hidden it badges the number of open tabs, and hovering lists them in place of its tooltip; pressing one reveals the pane on it | Unpressed: collapses back to split mode with the pane showing the selected tab |
+| Side pane toggle (right panel; named "Side pane tabs", its tooltip Hide tabs / Show tabs, Command-Shift-B) | Pressed while the pane shows; hides or shows it. While hidden it badges the number of open tabs, and hovering lists them in place of its tooltip; pressing one reveals the pane on it | Unpressed: collapses back to split mode with the pane showing the selected tab |
 | New tab (no closable tabs) | Opens a blank browser tab in the side pane | Opens a blank browser tab, selected |
 | Strip new-tab button | Opens a blank browser tab in the side pane | Opens a blank browser tab, selected |
 
@@ -235,7 +237,9 @@ Electron has no browser tab selected, so no native page shows above it. A browse
 follows its DOM host wherever the layout renders it — the side pane or the full content width — so
 resizing the pane, the sidebar, or the window moves it. A selected page that is not on screen (the
 side pane hidden, or the primary tab selected in expanded mode) reports no bounds: Electron hides its
-view and treats it as not shown, so page shortcuts and menu actions do nothing to it.
+view and treats it as not shown, so page shortcuts and menu actions do nothing to it. Hiding,
+showing, or moving a page only changes its view's bounds and visibility; the page keeps running and
+never reloads.
 
 Pages run in sandboxed WebContentsViews without Node integration or the App preload. Only the App's
 main frame can issue browser IPC commands, even when a browser page visits the Haus origin. Popups
