@@ -775,6 +775,15 @@
         gap: calc(var(--spacing) * 2);
     }
 
+    /*
+     * With no side strip between them, the page's actions and the layout
+     * controls read as one cluster: close the titlebar's 2-step gap to the
+     * cluster's own 1-step gap so ⋯, expand, and the toggle space evenly.
+     */
+    .workspace-band-actions:not([hidden]) + .workspace-band-trail:not([data-side-pane]) {
+        margin-inline-start: calc(var(--spacing) * -1);
+    }
+
     .workspace-band-trail[data-side-pane] {
         width: calc(
             var(--workspace-side-pane-width) + var(--shell-card-gutter, 0px) +
