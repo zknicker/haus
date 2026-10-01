@@ -237,6 +237,7 @@ export async function createHausServerApplication(
             appOrigin: options.appOrigin,
             clock: reminderClock,
             db: connectedHaus.db,
+            pushReadGraceMs: options.pushReadGraceMs,
             pushSender: options.pushSender ?? null,
             timers: options.sweepTimers,
         });

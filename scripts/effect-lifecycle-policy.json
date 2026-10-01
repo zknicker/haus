@@ -540,13 +540,13 @@
     },
     "apps/server/src/push/push-queue.ts": {
       "disposition": "external-adapter",
-      "reason": "Bounded-concurrency queue for iPhone push tasks owned by message-push; tasks settle their own errors, and drain resolves once every queued and running task has settled.",
+      "reason": "Bounded-concurrency queue for iPhone push tasks owned by message-push; a task's read-grace delay is one setTimeout counted in the backlog, tasks settle their own errors, and drain resolves once every delayed, queued, and running task has settled.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 1,
         "finallyBlock": 0,
         "manualPromise": 1,
-        "timer": 0
+        "timer": 1
       }
     },
     "apps/server/src/server-mcp/client-cache.ts": {

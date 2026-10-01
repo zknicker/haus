@@ -11,7 +11,7 @@ const cassToken = deviceToken('c3');
 let fixture: NotificationFixture;
 
 beforeAll(async () => {
-    fixture = await startNotificationFixture({ pushSender: sender });
+    fixture = await startNotificationFixture({ pushReadGraceMs: 0, pushSender: sender });
     const bundleId = 'chat.haus.ios';
     await fixture.owner.trpc.push.registerDevice.mutate({
         bundleId,

@@ -66,6 +66,7 @@ export async function startHausServerHarness(
         postgresIcuLocale?: string;
         messageRouter?: MessageRouter;
         pushSender?: PushSender;
+        pushReadGraceMs?: number;
         openAiApiKey?: string;
         connectLive?: () => WebSocket;
         computerSocketLiveness?: ComputerSocketLivenessTiming;
@@ -119,6 +120,7 @@ export async function startHausServerHarness(
                 clerkUsers,
                 databaseUrl: cluster.databaseUrl,
                 pushSender: options.pushSender,
+                pushReadGraceMs: options.pushReadGraceMs,
                 openAiApiKey: options.openAiApiKey,
                 connectLive: options.connectLive,
                 computerSocketLiveness: options.computerSocketLiveness,

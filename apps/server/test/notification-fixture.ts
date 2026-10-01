@@ -15,7 +15,9 @@ export type NotificationFixture = Awaited<ReturnType<typeof startNotificationFix
  * (member outside every test Channel), and the Agents Orbit and Scout on one
  * Computer. Agent sends go through the real Agent API.
  */
-export async function startNotificationFixture(options: { pushSender?: PushSender } = {}) {
+export async function startNotificationFixture(
+    options: { pushReadGraceMs?: number; pushSender?: PushSender } = {}
+) {
     const harness = await startHausServerHarness(options);
     const database = await connectHausDatabase(harness.databaseUrl);
     const signIn = async (clerkUserId: string, verifiedEmails: string[]) => {

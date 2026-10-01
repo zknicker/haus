@@ -37,6 +37,8 @@ export interface HausServerApplicationOptions {
     messageRouter?: MessageRouter;
     /** Server-owned OpenAI key for avatar generation and GPT-Live calls. */
     openAiApiKey?: string;
+    /** How long an iPhone push waits for its human to read the message elsewhere; tests shorten it. */
+    pushReadGraceMs?: number;
     /** iPhone push (APNs); absent or null when no APNs key is configured. */
     pushSender?: PushSender | null;
     /** Exact identity of the running release; absent for an ordinary development Server. */
