@@ -82,8 +82,8 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 Profile loading follows the same rule. Human profiles reserve identity facts and load Created
 Agents independently. Profile settings keeps Identity rows and Account actions visible while
 the member directory resolves, with identity inputs disabled until the real member arrives.
-Computer profiles reserve their named sections during the first roster read. The Agent peek
-keeps its header, Close, and Open profile controls outside its Agent query boundary.
+Computer profiles reserve their named sections during the first roster read. An Agent profile
+tab stays blank while its Agent loads, and its strip tab closes it once the Agent is gone.
 
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
@@ -165,6 +165,14 @@ keeps its header, Close, and Open profile controls outside its Agent query bound
   open and close motion.
 * The shell renders one `ShellTopbar`. Pages compose its content through
   `PageTopbar` and `SectionHeader`. Embedded surfaces use `SectionBar`.
+* Desktop workspace tabs are owned by `BrowserWorkspaceProvider`
+  (`useWorkspaceTabs`, a reducer over `hooks/workspace-tabs/`). The Server layout
+  renders the main column (`BrowserWorkspaceBody`, which the main strip's
+  selected tab covers) and the split column (`WorkspaceSplitPane`) as siblings,
+  so the split sits beside every route. Destinations open through the provider
+  (`openArtifact`, `openAgent`) and never pick a group themselves; the routing
+  rule lives in the model. A tab-able page renders host-agnostically (no
+  outlet context, no band portals) and works at 420px.
 * Routed destinations render their content inside one `PageColumn`, which owns
   the page gutter, max width, and the rhythm between sections. It encodes
   HeroUI's page idiom (`mx-auto flex w-full flex-col gap-8` plus page padding)
@@ -208,12 +216,14 @@ keeps its header, Close, and Open profile controls outside its Agent query bound
   app's own navigation. Humans stay roster records under Settings → Members at
   `settings/members/humans/:userId`. The old `settings/members/agents/…`
   addresses redirect to the page; there is no second route for the same record.
-* **Navigating goes to the page, peeking opens a pane.** Clicking an Agent's
-  avatar in chat opens a read-only peek pane beside the message
-  (`hooks/pane/use-agent-profile-pane.ts`): one column, no tabs, and its only
-  path to editing is its **Open profile** action. Every other surface — the
-  Inbox's live Agent rows, the chat-rail context menu, the Computer page's Agent table,
-  the command palette — navigates to the page.
+* **One command opens an Agent's profile.** Every surface — transcript avatars,
+  Agent chips, the Inbox's live Agent rows, the chat-rail and DM menus, the
+  Computer page's Agent table, Settings → Members — calls
+  `useOpenAgentProfile` (`hooks/agents/use-open-agent-profile.ts`), which opens
+  a tab on desktop and the profile route on web. Real links use
+  `AgentProfileLink`, which keeps the href and routes its click through the
+  same command. Hover shows the Agent hover card; there is no profile pane
+  ([ADR 0038](../adr/0038-destinations-open-as-tabs.md)).
 * Usage is a dashboard, not a member. It lives at `/s/:slug/usage` — it was the
   index of the deleted `/members` browser, which made a dashboard wear a
   roster's URL.

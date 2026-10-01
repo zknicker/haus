@@ -37,7 +37,7 @@ Electron views are positioned natively.
 Clicking opens the Agent's profile tab. The chat-scoped Profile side pane is removed.
 
 **The Agent profile is a hub.** The profile's home page holds identity, a grid of six summary cards
-(Runs on, Instructions, Automations, Skills, Connections, Workspace), the Agent's chats, recent
+(Runs on, Profile, Automations, Skills, Connections, Workspace), the Agent's chats, recent
 activity with repeated failures collapsed, and compact usage. Each card states its fact rather than
 defining itself (`Atlas, BidBeacon +2`, not `MCP servers this Agent may call`). Clicking a card
 drills into that section **inside the same tab**, with a breadcrumb back to the hub. Nothing is

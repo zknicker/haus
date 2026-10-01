@@ -1,8 +1,9 @@
 ---
-summary: Desktop workspace tabs (primary, browser, and artifact tabs), in-app browsing, and the boundary between the Haus browser and the user's personal browser.
+summary: Desktop workspace tabs (primary, browser, artifact, and Agent tabs), the split, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
 read_when:
   - changing desktop browser tabs, external-link opening, or browser session storage
   - changing desktop artifact tabs or where artifacts open on desktop
+  - changing desktop Agent profile tabs, the split, or where new tabs land
   - changing the shell topbar or browser access by Agents
   - changing workspace tab identity, favicons, or tab strip overflow
   - changing browser shortcuts, find in page, page zoom, reopening closed tabs, or the page context menu
@@ -86,7 +87,7 @@ maps the rest from the same table (`hooks/browser/browser-shortcut-keys.ts`, par
 | Keys | Action |
 | --- | --- |
 | Command-T | New blank browser tab |
-| Command-W | Close the selected browser or artifact tab (the window when none) |
+| Command-W | Close the focused group's selected browser, artifact, or Agent tab (the window when none) |
 | Command-Shift-T | Reopen the most recently closed tab |
 | Command-L | Focus and select the address |
 | Command-R / Command-Shift-R | Reload / reload bypassing the cache (browser tab only) |
@@ -103,7 +104,7 @@ every tab of the same site; with no browser tab selected, the zoom items zoom th
 a page is not at 100%, the toolbar shows its zoom level; pressing it resets.
 
 Reopen Closed Tab keeps up to 20 closed tabs for the window's session, in memory. A browser tab
-reopens its last address (not its back/forward history); an artifact tab reopens its artifact. Either
+reopens its last address (not its back/forward history); an artifact or Agent tab reopens it. Either
 returns to its old position in the strip and is selected. Blank new tabs are not remembered.
 
 Find in page opens a compact row under the toolbar, right-aligned, with a field, a match count
@@ -140,6 +141,45 @@ selection is not restored, and the primary tab is selected after a reload. Brows
 restored, so after a restart artifact tabs and the primary tab keep their order among themselves (a
 saved order from before the primary tab could move restores it first).
 
+## Agent tabs
+
+On desktop, opening an Agent's profile (clicking an Agent avatar or chip, a profile link, the DM
+menu's View agent profile, or the command menu's Agent Profile) opens an Agent tab through
+`useOpenAgentProfile`; the website navigates to the profile route instead (ADR 0038). Identity is the
+Agent id: opening an Agent that already has a tab selects that tab where it is. The tab shows the
+Agent's avatar and display name, blank while the Agent loads. Its body is the profile hub; drilling
+into a section (Runs on, Skills, Workspace, and so on) stays inside the tab, which remembers its
+section. Opening with a section moves the open tab to that section. Deleting the Agent, or an Agent
+the Server no longer has, closes its tab. Agent tabs persist per Server with artifact tabs, section
+included.
+
+## Split
+
+The window can show a **split**: a second tab group docked right of the content area, on every
+route, with its own small tab strip and a resizable leading edge (420px minimum, session-only width).
+One routing rule places new artifact and Agent tabs: while the split is open they open in it,
+otherwise in the main strip; an opener that asks for the main strip (Cmd-click) always gets it. A
+tab that is already open is selected where it is. Browser tabs stay in the main strip, because their
+native views are positioned in the main column.
+
+The band's split button (between the page's actions and Settings) toggles the split:
+
+- Opening it moves the main strip's selected artifact or Agent tab into the split; the main strip
+  selects the last remaining tab, as if the moved tab had closed. With a browser or the primary tab
+  selected, nothing moves: the split opens empty and draws no column, and the next opened tab lands
+  there and shows it.
+- Closing it folds every split tab into the main strip right after the selected tab, keeping the
+  main selection.
+- Closing or moving out the split's last tab closes the split.
+
+Right-clicking an artifact or Agent tab offers Move to split view (or Move to main) and Close tab.
+Tabs reorder by dragging within their own strip; dragging between strips is not supported yet.
+Split tabs never cover the routed page; only the main strip's selected tab does. Command-W closes
+the selected tab of the focused group: the group last clicked, focused, selected, or opened into.
+Strip shortcuts (Control-Tab, Command-1 … 9, Reopen Closed Tab) act on the main strip; a reopened tab
+returns to the main strip. The split is per window and not restored: after a reload its tabs are at
+the end of the main strip and the split is closed.
+
 ## Desktop ownership
 
 Electron owns native pages, their navigation history, their favicons, and their lifecycle. Favicons
@@ -151,11 +191,11 @@ page, the App asks Electron to capture the page (an inline JPEG, validated befor
 in the page region, and only then hides the native view; closing the overlay shows the native view
 before the still is released. The overlay appears to float over a frozen page instead of a blank one.
 Stale captures (after a tab switch, navigation, or a newer request) are discarded, and blank, failed, or
-crashed pages fall back to the plain page background. Hidden chat controls are inert while a browser or artifact tab is selected, and messages behind one
-do not receive new read receipts until the primary tab is selected. The App owns artifact tabs and the
-one strip order across every kind, primary tab included; it references Electron's browser tabs by id and mirrors their
-relative order back to Electron. An artifact tab is selected only while Electron has no browser tab
-selected, so no native page shows above it.
+crashed pages fall back to the plain page background. Hidden chat controls are inert while a main-strip browser, artifact, or Agent tab is selected, and messages behind one
+do not receive new read receipts until the primary tab is selected. The App owns artifact and Agent tabs, the
+split, and the main strip order across every kind, primary tab included; it references Electron's browser tabs by id and mirrors their
+relative order back to Electron. A main-strip artifact or Agent tab is selected only while Electron
+has no browser tab selected, so no native page shows above it.
 
 Pages run in sandboxed WebContentsViews without Node integration or the App preload. Only the App's
 main frame can issue browser IPC commands, even when a browser page visits the Haus origin. Popups

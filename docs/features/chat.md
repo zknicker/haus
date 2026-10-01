@@ -77,7 +77,7 @@ and [Agent Inbox](../../specs/inbox.md).
   `haus agent create`, its `--say` text is the Message body and nothing is
   rendered beneath it. The announcement must name the new teammate by `@handle`,
   and that mention is the way to the profile — the same inline chip every other
-  Agent mention gets, opening the Agent profile pane. The `agent-created` body
+  Agent mention gets, opening the Agent's profile. The `agent-created` body
   kind stays as provenance; it is terminal, with no pending state, no approval
   control, and no second Chat receipt. The App never treats it as a Widget,
   visual fence, artifact, or model-authored form. Dropped realtime events
@@ -335,11 +335,12 @@ and [Agent Inbox](../../specs/inbox.md).
   a Channel mute without unmuting it and restores an explicitly unfollowed Thread. Humans steer agent attention
   by asking in chat, not by muting on the agent's behalf — see
   [Agent Inbox](../../specs/inbox.md).
-* **Agent profile pane.** Clicking an agent's transcript avatar opens the
-  Agent profile in the resizable right pane. The pane is a full-height app
-  column with its own topbar beside the chat topbar. Artifact, Agent profile,
-  and thread panes share one visible slot and width per chat; the latest
-  opener wins without clearing another pane's state. Clicking the transcript name
+* **Agent profile.** Hovering an Agent's transcript avatar or chip shows its
+  hover card; clicking opens the Agent's profile (a tab on desktop, the profile
+  page on web; Cmd-click lands in the main strip) — see [ADR 0038](../adr/0038-destinations-open-as-tabs.md).
+  The chat's right pane holds only artifact, files, and thread panes, which
+  share one visible slot and width per chat; the latest opener wins without
+  clearing another pane's state. Clicking the transcript name
   inserts an Agent mention, while the DM topbar name remains inert. Session
   resets stay agent-wide in Agent settings (specs/sessions.md) and reach a chat
   only as the session mark described above. Execution evidence (turn

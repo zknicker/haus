@@ -355,7 +355,7 @@ default (currently Haus's Medium), which the App selects when a prior choice is 
 `default` is reserved for models without an effort control, shown as Not configurable; it omits
 the effort setting at the adapter boundary. An applied value records the requested policy, not measured thinking.
 
-The Agent profile pane is the human's canonical edit surface. `agent.update`, `agent.configure`, and
+The Agent profile is the human's canonical edit surface. `agent.update`, `agent.configure`, and
 the avatar mutations on the Server `agent` tRPC router remain the Owner/Admin path for every field,
 including runtime, model, and reasoning effort, which no Agent-facing route exposes.
 

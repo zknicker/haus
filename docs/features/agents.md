@@ -50,43 +50,52 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 
 ## Product surfaces
 
-- An Agent's profile is its own destination at `/s/:slug/agents/:agentId/:tab`, in the Server
-  layout beside Usage rather than inside Settings. Its header states the Agent's photo, name, role,
-  and current availability, offers **Edit Profile** for an ordinary Agent, and holds one overflow
-  menu of lifecycle verbs — Stop, Restart, Start fresh session, Full reset, Delete Agent — for
-  Owners and Admins. Members see the header without that menu.
-- The profile has five tabs. **Overview** reads: a glance strip of the assigned Computer, model,
-  Chats, Automations, Skills, and Connections, each the doorway to what owns it; one 30-day
-  processed-token tile; the newest turns; and the Chats this Agent belongs to. **Setup** configures:
-  identity facts, model and runtime, Connection grants, and Skills. **Automations** carries
-  Reminders and Triggers, **Activity** the turn-by-turn execution history, and **Workspace** the
-  Agent's files.
-- Tab changes keep the profile navigation visible. Workspace renders its toolbar, search rail,
-  and preview frame before the file listing arrives; pending reads and errors stay in the rail.
-  Automations keeps section headings and actions visible while each list loads, without showing
-  an empty count before its first result. Cached lists remain visible during refreshes.
+- An Agent's profile is one hub page with drill-down sections
+  ([ADR 0038](../adr/0038-destinations-open-as-tabs.md)). On web it is its own destination at
+  `/s/:slug/agents/:agentId/:section`, in the Server layout beside Usage; `home` is the hub, and
+  the retired tab names redirect (`overview` to `home`, `setup` to `runtime`). On desktop the same
+  view renders in the Agent's workspace tab. Nothing is injected into the window titlebar, and the
+  view lays out from its container width, so it works in a 420px split column.
+- The hub's header states the Agent's photo, name, role, and current availability, offers
+  **Edit Profile** for an ordinary Agent, and holds one overflow menu of lifecycle verbs — Stop,
+  Restart, Start fresh session, Full reset, Delete Agent — for Owners and Admins. Members see the
+  header without that menu. A runtime sign-in issue leads under the header.
+- Below the header, six cards each state a fact and open a section: **Runs on** (Computer and
+  model, with the Computer's health), **Profile** (who created the Agent and when, else its handle), **Automations**
+  (standing reminders and triggers), **Skills** and **Connections** (the first display names, `+N` for the
+  rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity with consecutive
+  identical failures folded into one row (`Failed after 2m · 5× since …`) and **See all** into
+  Activity, and a compact 30-day processed-token tile linking to Usage.
+- A drill-down section shows a breadcrumb (`Juniper / Connections`) back to the hub, with the
+  lifecycle menu at its end for Owners and Admins; it is the section's only header. **Runs on**
+  holds the assigned Computer and the model/runtime/effort editor; **Profile** the identity
+  facts (name, handle, description, created by); **Automations** Reminders and Triggers;
+  **Skills** and **Connections** their editors; **Activity** the turn-by-turn execution history;
+  **Workspace** the Agent's files as a full-height browser. Workspace renders its toolbar, search
+  rail, and preview frame before the file listing arrives; pending reads and errors stay in the
+  rail. Automations keeps section headings and actions visible while each list loads, without
+  showing an empty count before its first result. Cached lists remain visible during refreshes.
 - Members in Settings lists Agents and Humans and links into these profiles. Member lists stay
   lightweight; Agent and human profile routes load one focused detail record so profile refreshes
   do not rebuild the directory.
-- Clicking an Agent avatar in Chat opens a read-only peek pane beside the conversation, with an
-  **Open profile** action for the page that owns editing. Hover or keyboard focus previews the
+- Clicking an Agent avatar in Chat opens its profile. Hover or keyboard focus previews the
   Agent's current availability, compact runtime/model/reasoning configuration, and newest durable
   activity; Agent reference chips use the same preview.
 - Activity and Automations are what the marks on an Agent's messages link to: a
   fire mark opens the automation, a session mark opens Activity. See
   [Chat](chat.md#in-the-box) for the marks themselves.
-- The header edits identity; Setup edits desired model, runtime, and reasoning effort.
+- The header edits identity; **Runs on** edits desired model, runtime, and reasoning effort.
   Effort choices come from the assigned Computer's model inventory. Changing models preserves
   a supported choice and otherwise selects the model's concrete default. Haus currently defaults
   configurable models to Medium; there is no Runtime default option. Models without an effort
   control show Not configurable. Existing Agents retain their saved effort until edited.
   Effort changes apply on the next turn, preserving session context. The running turn keeps its
   original effort; multiple edits before the next turn use the latest saved value. Grok Build
-  requires a new session for effort changes; Setup states this exception before saving.
-- Overview's glance strip names the Agent's assigned Computer with its health and, for operators,
-  opens that Computer's detail for remediation; it never substitutes another Computer.
+  requires a new session for effort changes; the editor states this exception before saving.
+- **Runs on** names the Agent's assigned Computer with its health and, for operators, opens that
+  Computer's detail for remediation; it never substitutes another Computer.
 - Skills are independent Agent-owned copies. An Owner or Admin imports a host
-  bundle into one Agent library from the Agent's Setup tab.
+  bundle into one Agent library from the Agent's Skills section.
 - MCP connections are Server-owned; Agent-level grants choose which
   connections the Agent may use.
 - Every active Agent is already present in the Direct messages sidebar; there
@@ -165,7 +174,7 @@ human and an Agent.
 
 `haus agent update --agent @handle --description <text>` and
 `haus agent avatar --agent @handle --concept <text>` edit an existing Agent
-from Chat. Neither renames an Agent, and both refuse Cove. The Agent profile pane
+from Chat. Neither renames an Agent, and both refuse Cove. The Agent profile
 is the human's canonical edit surface for every field, including runtime, model,
 and reasoning effort, which no Agent-facing command exposes.
 

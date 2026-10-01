@@ -95,8 +95,10 @@ rendering.
   send time. Human-authored composer references remain explicit typed links.
 - Unknown or protected bare tokens remain unchanged. Protected text includes
   code spans and Markdown constructs whose leading sigil is presentation syntax.
-- Agent chips open the referenced Agent profile. Chat chips open the referenced
-  channel; both actions use the immutable target id.
+- Agent chips open the referenced Agent's profile (a tab on desktop, the profile
+  page on web; see [ADR 0038](../adr/0038-destinations-open-as-tabs.md)); hover
+  shows the Agent hover card. Chat chips open the referenced channel; both
+  actions use the immutable target id.
 - One-line previews, such as the thread preview under a message, show a
   reference by its label text alone (`#product`, `@Blippy`), never its target.
 - Human references bind to immutable user ids. Their visible chip label and
@@ -190,7 +192,7 @@ rendering.
   without a connection the reference renders from the URL alone.
 - Ordinary web links use the same chip shell with the site's favicon and a
   globe fallback. Activating one opens the original URL. Agent and chat chips
-  are interactive: they open the referenced Agent profile or channel.
+  are interactive: they open the referenced Agent's profile or channel.
 - The native iPhone app renders every chip kind above — Agent, human, Channel,
   Skill, app, plugin, file, directory, pull request, and web link — as runs of
   the message body's own text through TextKit, with the same target precedence,

@@ -162,7 +162,7 @@ implementation](https://github.com/xai-org/grok-build/blob/main/crates/codegen/x
 A native execution authentication failure becomes a Computer-owned issue scoped to that runtime.
 Computer persists the issue and reports its kind and observation time in its existing inventory;
 Server shares that sanitized status with the App. Raw provider errors and credentials stay local.
-Agent hover cards, profile pages, and profile panes show the issue for their assigned Computer and
+Agent hover cards, and profile pages show the issue for their assigned Computer and
 runtime, with a link to Computer settings. The Computer page owns native sign-in instructions.
 Other runtimes on the same Computer remain unaffected.
 
