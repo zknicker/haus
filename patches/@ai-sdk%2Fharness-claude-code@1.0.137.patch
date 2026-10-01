@@ -51,6 +51,44 @@ index b12b9f9..2a94379 100644
            // The conversation this turn belongs to, resumable outside the
            // SDK with `claude --resume <sessionId>` and captured by the
            // adapter for exact cross-process resume.
+diff --git a/dist/index.js b/dist/index.js
+index fcdfc031818cf25b8ab2e01822f2256ae20d3899..ac8a92497907480249c352f2406ef3906352c591 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1170,12 +1170,12 @@ function createClaudeCode(settings = {}) {
+         sessionId: startOpts.sessionId
+       });
+       let supportsUserMessageResponses = false;
+-      const buildConnect = (endpoint2) => async ({
++      const buildConnect = (endpoint2, connectTimeoutMs = timeoutMs) => async ({
+         abortSignal
+       }) => {
+         return openBridgeWebSocket({
+           endpoint: endpoint2,
+-          timeoutMs,
++          timeoutMs: connectTimeoutMs,
+           abortSignal,
+           onHello: (supportsResponses) => {
+             supportsUserMessageResponses = supportsResponses;
+@@ -1194,7 +1194,9 @@ function createClaudeCode(settings = {}) {
+             token: coords.token
+           });
+           const attachChannel = new SandboxChannel({
+-            connect: buildConnect(attachEndpoint),
++            // A bridge that survived answers within milliseconds; a dead one must
++            // not consume the startup budget the spawn fallback needs.
++            connect: buildConnect(attachEndpoint, Math.min(timeoutMs, BRIDGE_ATTACH_TIMEOUT_MS)),
+             outboundSchema: outboundMessageSchema,
+             initialLastSeenEventId: coords.lastSeenEventId,
+             onDiagnostic,
+@@ -1522,6 +1524,7 @@ function openWebSocketAndWaitForBridgeHello({
+     abortSignal.addEventListener("abort", onAbort, { once: true });
+   });
+ }
++var BRIDGE_ATTACH_TIMEOUT_MS = 1e4;
+ async function openBridgeWebSocket({
+   endpoint,
+   timeoutMs,
 diff --git a/src/bridge/index.ts b/src/bridge/index.ts
 index c24c8f4..aa32677 100644
 --- a/src/bridge/index.ts
@@ -94,3 +132,48 @@ index c24c8f4..aa32677 100644
                // The conversation this turn belongs to, resumable outside the
                // SDK with `claude --resume <sessionId>` and captured by the
                // adapter for exact cross-process resume.
+diff --git a/src/claude-code-harness.ts b/src/claude-code-harness.ts
+index 26b043e61e818bf58a0395f7388e5777cf3531d8..8c8a48acd7868cb726c617f3dbd9e43446ff0189 100644
+--- a/src/claude-code-harness.ts
++++ b/src/claude-code-harness.ts
+@@ -974,7 +974,7 @@ export function createClaudeCode(
+       // (re)connect: open the socket, then wait for `bridge-hello` so the
+       // end-to-end link is proven live before any frame is sent.
+       const buildConnect =
+-        (endpoint: HarnessV1PortEndpoint) =>
++        (endpoint: HarnessV1PortEndpoint, connectTimeoutMs = timeoutMs) =>
+         async ({
+           abortSignal,
+         }: {
+@@ -982,7 +982,7 @@ export function createClaudeCode(
+         }): Promise<WebSocket> => {
+           return openBridgeWebSocket({
+             endpoint,
+-            timeoutMs,
++            timeoutMs: connectTimeoutMs,
+             abortSignal,
+             onHello: supportsResponses => {
+               supportsUserMessageResponses = supportsResponses;
+@@ -1010,7 +1010,12 @@ export function createClaudeCode(
+             token: coords.token,
+           });
+           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
+-            connect: buildConnect(attachEndpoint),
++            // A bridge that survived answers within milliseconds; a dead one must
++            // not consume the startup budget the spawn fallback needs.
++            connect: buildConnect(
++              attachEndpoint,
++              Math.min(timeoutMs, BRIDGE_ATTACH_TIMEOUT_MS),
++            ),
+             outboundSchema: outboundMessageSchema,
+             initialLastSeenEventId: coords.lastSeenEventId,
+             onDiagnostic,
+@@ -1439,6 +1444,8 @@ function openWebSocketAndWaitForBridgeHello({
+   });
+ }
+ 
++const BRIDGE_ATTACH_TIMEOUT_MS = 10_000;
++
+ async function openBridgeWebSocket({
+   endpoint,
+   timeoutMs,

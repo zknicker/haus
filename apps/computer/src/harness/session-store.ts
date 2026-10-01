@@ -102,6 +102,50 @@ export function resolveTurnSession(
     return stored;
 }
 
+/**
+ * Records a failed turn on its stored session. A failure keeps the generation and fingerprints for
+ * retry, but a destroyed live session took its bridge with it, so its coordinates are dropped.
+ */
+export async function writeFailedTurnSession(
+    agentRoot: string,
+    session: AgentSessionState,
+    failure: { bridgeDestroyed: boolean; versionFailed: boolean }
+): Promise<void> {
+    const resumeState = failure.bridgeDestroyed
+        ? withoutDeadBridge(session.resumeState)
+        : session.resumeState;
+    // A failed cold start has nothing to forget; its generation persists only once a turn succeeds.
+    if (!failure.versionFailed && resumeState === session.resumeState) {
+        return;
+    }
+    await writeAgentSessionState(agentRoot, {
+        ...session,
+        hausAgentStatus: failure.versionFailed ? 'failed' : session.hausAgentStatus,
+        resumeState,
+    });
+}
+
+/**
+ * Drops a Claude Code resume state's bridge coordinates once that bridge is gone, keeping the
+ * Claude conversation id so the next turn respawns a bridge that resumes the same conversation.
+ * ACP states keep theirs: their process-loss recovery reads the coordinates.
+ */
+function withoutDeadBridge(
+    resumeState: AgentSessionState['resumeState']
+): AgentSessionState['resumeState'] {
+    const data = resumeState?.data;
+    if (
+        resumeState?.harnessId !== 'claude-code' ||
+        typeof data !== 'object' ||
+        data === null ||
+        !('bridge' in data)
+    ) {
+        return resumeState;
+    }
+    const { bridge: _deadBridge, ...rest } = data as Record<string, unknown>;
+    return { ...resumeState, data: rest };
+}
+
 function parseFingerprint(value: unknown): string | null {
     return typeof value === 'string' && value.length > 0 ? value : null;
 }

@@ -36,8 +36,11 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   executor but never schedules an empty bootstrap turn. Startup never races a
   second mid-turn delivery.
 - A Computer starts at most five Agent runtimes at once; further starts queue. A runtime that
-  has not produced a live session within two minutes fails the turn as a retryable timeout. A
-  live turn that emits nothing for fifteen minutes with no tool call in flight is interrupted and
+  has not produced a live session within two minutes fails the turn as a retryable timeout.
+  Reattaching to a stored Claude Code bridge gets at most ten seconds of that window, so a bridge
+  lost to a restart or crash falls through to a respawn that resumes the same conversation. A
+  failed turn destroys its bridge, so it also clears the stored Claude Code bridge coordinates
+  (ACP coordinates stay, because its process-loss recovery reads them). A live turn that emits nothing for fifteen minutes with no tool call in flight is interrupted and
   resume state is kept, but it settles as a retryable `timeout` failure, so a turn that stalls
   every time backs off and degrades instead of looping. A Stop or Restart during startup settles
   as interrupted, never as a resume failure.

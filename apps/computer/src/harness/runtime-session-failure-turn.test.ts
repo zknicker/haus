@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
@@ -11,6 +11,7 @@ import {
     type HarnessTurnInput,
     runHarnessTurn,
     setHarnessAgentFactoryForTesting,
+    setHarnessBootstrapRefreshForTesting,
 } from './executor.ts';
 
 // The exact error Codex settled Blippy's turn with after ~28s of silent retries.
@@ -46,16 +47,19 @@ let attempts: number;
 let destroyedSessions: number;
 let parts: (signal: AbortSignal | undefined) => AsyncGenerator<unknown>;
 let restore: () => void;
+let restoreBootstrapRefresh: () => void;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-session-failure-'));
     attempts = 0;
     destroyedSessions = 0;
     restore = setHarnessAgentFactoryForTesting(() => fakeAgent());
+    restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => undefined);
 });
 
 afterEach(async () => {
     restore();
+    restoreBootstrapRefresh();
     await rm(agentRoot, { force: true, recursive: true });
 });
 
@@ -95,6 +99,72 @@ test('a terminal provider failure reported beside end_turn settles the turn as f
         'authentication'
     );
 });
+
+// Juniper, 2026-09-30: a turn whose bridge died left that bridge's port stored, and every resume
+// retried the dead port until the startup deadline.
+test('a failed turn forgets its destroyed Claude bridge but keeps the conversation', async () => {
+    const claudeState = {
+        data: {
+            bridge: { lastSeenEventId: 7202, port: 55_172, sandboxId: 'agt-5', token: 'dead' },
+            claudeSessionId: 'claude_session_1',
+        },
+        harnessId: 'claude-code',
+        type: 'resume-session',
+    };
+    await storeSession('claude-code', 'claude-opus-4-8', claudeState);
+    parts = failingStream;
+
+    await expect(
+        runHarnessTurn(turnInput({ modelId: 'claude-opus-4-8', runtimeId: 'claude-code' }))
+    ).rejects.toBeInstanceOf(HarnessTurnFailedError);
+
+    expect(destroyedSessions).toBe(1);
+    expect(await storedResumeState()).toEqual({
+        ...claudeState,
+        data: { claudeSessionId: 'claude_session_1' },
+    });
+});
+
+test('a failed turn keeps ACP bridge coordinates for process-loss recovery', async () => {
+    const acpState = {
+        data: { acpSessionId: 'acp_1', bridge: { lastSeenEventId: 3, port: 1, token: 't' } },
+        harnessId: 'codex',
+        type: 'resume-session',
+    };
+    await storeSession('codex', 'gpt-5.6-sol', acpState);
+    parts = failingStream;
+
+    await expect(runHarnessTurn(turnInput())).rejects.toBeInstanceOf(HarnessTurnFailedError);
+
+    expect(await storedResumeState()).toEqual(acpState);
+});
+
+async function* failingStream(): AsyncGenerator<unknown> {
+    yield { error: new Error('provider failed'), type: 'error' };
+}
+
+async function storeSession(runtimeId: string, modelId: string, resumeState: unknown) {
+    await mkdir(agentRoot, { recursive: true });
+    await writeFile(
+        join(agentRoot, 'session.json'),
+        JSON.stringify({
+            bootstrapFingerprint: null,
+            effectiveModel: { modelId, runtimeId },
+            effectiveReasoningEffort: 'medium',
+            generation: 1,
+            hausAgentAppliedAt: null,
+            hausAgentStatus: 'current',
+            hausAgentVersion: null,
+            instructionFingerprint: null,
+            resumeState,
+            runtimeSessionId: 'engine_session_1',
+        })
+    );
+}
+
+async function storedResumeState(): Promise<unknown> {
+    return JSON.parse(await readFile(join(agentRoot, 'session.json'), 'utf8')).resumeState;
+}
 
 /** codex-acp's five reconnect warnings, then the terminal failure beside `end_turn`. */
 async function* retryingProvider(
@@ -164,7 +234,7 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
     };
 }
 
-function turnInput(): HarnessTurnInput {
+function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput {
     return {
         activity: new AgentActivityRun(runtime, () => undefined),
         agentId: 'agt_test',
@@ -193,5 +263,6 @@ function turnInput(): HarnessTurnInput {
         warmDrainItemIds: [],
         webAccess: null,
         workspaceDir: join(agentRoot, 'workspace'),
+        ...overrides,
     };
 }

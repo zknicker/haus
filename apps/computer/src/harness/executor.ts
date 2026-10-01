@@ -49,6 +49,7 @@ import {
     readAgentSessionState,
     resolveTurnSession,
     writeAgentSessionState,
+    writeFailedTurnSession,
 } from './session-store.ts';
 import { readAgentSkills } from './skills.ts';
 import { createNoticeDelivery } from './steer-inbox-notice.ts';
@@ -457,16 +458,14 @@ async function executeHarnessTurn(
             instructionActivityKey,
             input.signal?.aborted ? 'interrupted' : 'failed'
         );
-        if (hausAgentVersionDrift) {
-            await writeAgentSessionState(input.agentRoot, {
-                ...session,
-                hausAgentStatus: 'failed',
-            });
-        }
         if (live || !lease.stopping) {
             lease.discard();
         }
         await live?.destroy().catch(() => undefined);
+        await writeFailedTurnSession(input.agentRoot, session, {
+            bridgeDestroyed: live !== undefined,
+            versionFailed: hausAgentVersionDrift,
+        });
         throw error;
     }
 }
