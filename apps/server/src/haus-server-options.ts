@@ -1,6 +1,7 @@
 import type { WebSocket } from 'ws';
 import type { AvatarGenerationLogger, AvatarImageProvider } from './avatar-generation/index.ts';
 import type { SweepTimers } from './boot-sweep.ts';
+import type { ComputerSocketLivenessTiming } from './computers/socket-liveness.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
 import type { MessageRouter } from './message-routing/jev.ts';
@@ -27,6 +28,8 @@ export interface HausServerApplicationOptions {
     clerkUsers?: ClerkUsers;
     /** Signed latest-production Computer release descriptor. */
     computerReleaseManifestUrl?: string;
+    /** Attachment socket ping cadence and silence limit; tests shorten it. */
+    computerSocketLiveness?: ComputerSocketLivenessTiming;
     /** Test boundary for the external GPT-Live socket. */
     connectLive?: () => WebSocket;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */

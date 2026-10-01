@@ -450,12 +450,23 @@
         "timer": 0
       }
     },
+    "apps/server/src/computers/socket-liveness.ts": {
+      "disposition": "external-adapter",
+      "reason": "One unref'd ping interval per attachment socket adapts ws transport liveness; the socket close handler stops it. An on-demand presence probe adapts one ping to a Promise with a bounded deadline that settles on pong, frame, timeout, or stop.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 2
+      }
+    },
     "apps/server/src/computers/socket.ts": {
       "disposition": "external-adapter",
       "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks.",
       "risks": {
         "abortController": 0,
-        "catchAndIgnore": 1,
+        "catchAndIgnore": 2,
         "finallyBlock": 0,
         "manualPromise": 0,
         "timer": 2

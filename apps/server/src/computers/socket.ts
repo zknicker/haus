@@ -6,7 +6,7 @@ import {
     computerHeartbeatSchema,
     computerProtocolVersion,
 } from '@haus/api';
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import { emitServerUpdated } from '../haus-api/server-events.ts';
@@ -25,10 +25,16 @@ import {
     reportComputerHandshake,
     resolveComputerCredential,
 } from './service.ts';
+import {
+    type ComputerSocketLivenessTiming,
+    defaultComputerSocketLiveness,
+    watchComputerSocketLiveness,
+} from './socket-liveness.ts';
 
+// The app-level heartbeat shares the transport's routine timings.
 const heartbeatConfiguration = {
-    intervalMs: 10_000,
-    timeoutMs: 30_000,
+    intervalMs: defaultComputerSocketLiveness.intervalMs,
+    timeoutMs: defaultComputerSocketLiveness.timeoutMs,
     type: 'heartbeat-configuration',
 } as const;
 
@@ -39,7 +45,8 @@ export function startComputerAttachmentSocket(
     connections: ComputerConnections,
     delivery: AgentDelivery,
     postCommitWork: ServerPostCommitWork,
-    thoughtSummarizer: ThoughtSummarizer | null
+    thoughtSummarizer: ThoughtSummarizer | null,
+    liveness: ComputerSocketLivenessTiming = defaultComputerSocketLiveness
 ) {
     const thoughts = createAgentThoughts({ summarizer: thoughtSummarizer });
     // A settled turn drops its held and waiting thoughts (ADR 0036).
@@ -48,7 +55,7 @@ export function startComputerAttachmentSocket(
             thoughts.endRun(event.runId);
         }
     });
-    const sockets = new Map<string, import('ws').WebSocket>();
+    const sockets = new Map<string, WebSocket>();
     const socketServer = new WebSocketServer({ noServer: true });
     const onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) => {
         const path = new URL(request.url ?? '/', 'http://localhost').pathname;
@@ -69,14 +76,41 @@ export function startComputerAttachmentSocket(
         let disconnectReason: 'heartbeat-timeout' | 'socket-closed' = 'socket-closed';
         let messageQueue = Promise.resolve();
         let heartbeatTimeout: ReturnType<typeof setTimeout> | null = null;
+        let offlineMarked = false;
+        const reapSilentSocket = () => {
+            disconnectReason = 'heartbeat-timeout';
+            socket.terminate();
+        };
+        const socketLiveness = watchComputerSocketLiveness(socket, liveness, reapSilentSocket);
         const armHeartbeatTimeout = () => {
             if (heartbeatTimeout) {
                 clearTimeout(heartbeatTimeout);
             }
-            heartbeatTimeout = setTimeout(() => {
-                disconnectReason = 'heartbeat-timeout';
-                socket.terminate();
-            }, heartbeatConfiguration.timeoutMs);
+            heartbeatTimeout = setTimeout(reapSilentSocket, heartbeatConfiguration.timeoutMs);
+        };
+        // Marks this socket's committed handshake offline exactly once. The close
+        // can land before the handshake commits, so bootstrap calls this too.
+        const markClosedOffline = () => {
+            if (offlineMarked || !(closed && computerId && attachedServerId)) {
+                return;
+            }
+            if (!connectionGeneration) {
+                return;
+            }
+            offlineMarked = true;
+            const closedComputerId = computerId;
+            const serverId = attachedServerId;
+            markComputerOffline(db, closedComputerId, connectionGeneration, disconnectReason)
+                .then(() => {
+                    emitServerUpdated({
+                        computerId: closedComputerId,
+                        scope: 'computer',
+                        serverId,
+                    });
+                })
+                .catch((error: unknown) => {
+                    console.error('[haus] failed to mark a closed Computer offline', error);
+                });
         };
         const handleHeartbeatFrame = (raw: string) => {
             if (!(computerId && attachedServerId)) {
@@ -98,6 +132,65 @@ export function startComputerAttachmentSocket(
                 armHeartbeatTimeout();
             }
             return true;
+        };
+        const bootstrap = async (rawString: string) => {
+            const hello = computerBootstrapHelloSchema.parse(JSON.parse(rawString));
+            const resolvedComputer = await resolveComputerCredential(
+                db,
+                hashComputerSecret(hello.credential)
+            );
+            if (closed) {
+                return;
+            }
+            if (sockets.has(resolvedComputer.id)) {
+                socket.close(4409, 'A Computer may have one attachment socket.');
+                return;
+            }
+            computerId = resolvedComputer.id;
+            attachedServerId = resolvedComputer.serverId;
+            sockets.set(resolvedComputer.id, socket);
+            const computer = await reportComputerHandshake(db, resolvedComputer, hello);
+            connectionGeneration = computer.connectionGeneration;
+            if (closed) {
+                markClosedOffline();
+                return;
+            }
+            await clearHausAgentState(db, computer.id);
+            if (closed) {
+                // The close handler already marked this generation offline.
+                return;
+            }
+            ordinary = hello.protocolVersion === computerProtocolVersion;
+            connections.register(computer.id, {
+                disconnect: (reason) => socket.close(4000, reason),
+                ordinary,
+                isOpen: () => socket.readyState === WebSocket.OPEN,
+                probe: () => socketLiveness.probe(liveness.probeTimeoutMs),
+                send: (frame) => socket.send(JSON.stringify(frame)),
+                serverId: computer.serverId,
+                updatePhase: hello.update.phase,
+            });
+            socket.send(
+                JSON.stringify({
+                    mode: ordinary ? 'ordinary' : 'update-required',
+                    type: 'bootstrap-accepted',
+                })
+            );
+            emitServerUpdated({
+                computerId: computer.id,
+                scope: 'computer',
+                serverId: computer.serverId,
+            });
+            if (!ordinary) {
+                return;
+            }
+            void sendPendingCoveApplication(db, connections, computer.id).catch(() => undefined);
+            // Idempotent reconnect: resend unacknowledged deliveries and drain
+            // any pending inbox for this Computer's Agents.
+            void delivery.onComputerReconnect(computer.id).catch(() => undefined);
+            void postCommitWork.run('cloud-agent.reconcile-on-connect', () =>
+                sendCloudAgentReconcile(db, connections, computer)
+            );
         };
         socket.on('message', (raw) => {
             const rawString = raw.toString();
@@ -125,52 +218,7 @@ export function startComputerAttachmentSocket(
                         return;
                     }
                     try {
-                        const hello = computerBootstrapHelloSchema.parse(JSON.parse(rawString));
-                        const resolvedComputer = await resolveComputerCredential(
-                            db,
-                            hashComputerSecret(hello.credential)
-                        );
-                        if (sockets.has(resolvedComputer.id)) {
-                            socket.close(4409, 'A Computer may have one attachment socket.');
-                            return;
-                        }
-                        computerId = resolvedComputer.id;
-                        attachedServerId = resolvedComputer.serverId;
-                        sockets.set(resolvedComputer.id, socket);
-                        const computer = await reportComputerHandshake(db, resolvedComputer, hello);
-                        connectionGeneration = computer.connectionGeneration;
-                        await clearHausAgentState(db, computer.id);
-                        ordinary = hello.protocolVersion === computerProtocolVersion;
-                        connections.register(computer.id, {
-                            disconnect: (reason) => socket.close(4000, reason),
-                            ordinary,
-                            send: (frame) => socket.send(JSON.stringify(frame)),
-                            serverId: computer.serverId,
-                            updatePhase: hello.update.phase,
-                        });
-                        socket.send(
-                            JSON.stringify({
-                                mode: ordinary ? 'ordinary' : 'update-required',
-                                type: 'bootstrap-accepted',
-                            })
-                        );
-                        emitServerUpdated({
-                            computerId: computer.id,
-                            scope: 'computer',
-                            serverId: computer.serverId,
-                        });
-                        if (!ordinary) {
-                            return;
-                        }
-                        void sendPendingCoveApplication(db, connections, computer.id).catch(
-                            () => undefined
-                        );
-                        // Idempotent reconnect: resend unacknowledged deliveries and drain
-                        // any pending inbox for this Computer's Agents.
-                        void delivery.onComputerReconnect(computer.id).catch(() => undefined);
-                        void postCommitWork.run('cloud-agent.reconcile-on-connect', () =>
-                            sendCloudAgentReconcile(db, connections, computer)
-                        );
+                        await bootstrap(rawString);
                     } catch {
                         socket.close(4403, 'Computer credential was rejected.');
                     }
@@ -181,29 +229,16 @@ export function startComputerAttachmentSocket(
         });
         socket.on('close', () => {
             closed = true;
+            socketLiveness.stop();
             if (heartbeatTimeout) {
                 clearTimeout(heartbeatTimeout);
             }
             if (computerId && sockets.get(computerId) === socket) {
-                const closedComputerId = computerId;
                 sockets.delete(computerId);
                 connections.unregister(computerId);
-                if (attachedServerId && connectionGeneration) {
-                    const serverId = attachedServerId;
-                    void markComputerOffline(
-                        db,
-                        closedComputerId,
-                        connectionGeneration,
-                        disconnectReason
-                    ).then(() => {
-                        emitServerUpdated({
-                            computerId: closedComputerId,
-                            scope: 'computer',
-                            serverId,
-                        });
-                    });
-                }
             }
+            // Generation-guarded, so a newer attachment's row is never touched.
+            markClosedOffline();
         });
     });
     return {

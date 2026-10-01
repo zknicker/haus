@@ -1,14 +1,16 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { ComputerSetupDeniedError, listServerComputers } from '../../computers/service.ts';
+import { checkServerComputerPresence } from '../../computers/check-presence.ts';
+import { ComputerSetupDeniedError } from '../../computers/service.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-export const listComputersProcedure = memberProcedure
+/** Probes the Server's attached Computers now and returns the verified Computer list. */
+export const checkComputerPresenceProcedure = memberProcedure
     .input(z.object({ serverId: serverIdSchema }).strict())
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
         try {
-            return await listServerComputers(
+            return await checkServerComputerPresence(
                 ctx.hausDb,
                 ctx.computerConnections,
                 ctx.member,

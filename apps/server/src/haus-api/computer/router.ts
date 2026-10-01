@@ -1,4 +1,5 @@
 import { createRouter } from '../trpc.ts';
+import { checkComputerPresenceProcedure } from './check-presence.ts';
 import { checkComputerUpdateProcedure } from './check-update.ts';
 import { listComputersProcedure } from './list.ts';
 import { computerLoginRouter } from './login/router.ts';
@@ -9,6 +10,7 @@ import { computerSystemLogProcedure } from './system-log.ts';
 import { validateComputerProcedure } from './validate.ts';
 
 export const computerRouter = createRouter({
+    checkPresence: checkComputerPresenceProcedure,
     checkUpdate: checkComputerUpdateProcedure,
     list: listComputersProcedure,
     login: computerLoginRouter,

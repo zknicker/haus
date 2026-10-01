@@ -23,7 +23,11 @@ import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
 
 interface AttachedComputer {
     disconnect?(reason: string): void;
+    /** Whether the transport can still carry a frame; absent means always (in-process transports). */
+    isOpen?(): boolean;
     ordinary: boolean;
+    /** Confirms the transport answers now; absent means always (in-process transports). */
+    probe?(): Promise<boolean>;
     send(frame: unknown): void;
     serverId: string;
     updatePhase: ComputerUpdatePhase;
@@ -90,15 +94,28 @@ export class ComputerConnections implements DeliveryTransport {
     }
 
     isOnline(computerId: string): boolean {
-        const computer = this.attached.get(computerId);
+        const computer = this.live(computerId);
         return Boolean(
             computer?.ordinary &&
                 !['waiting-for-agents', 'installing', 'restarting'].includes(computer.updatePhase)
         );
     }
 
+    /** A registered attachment whose socket can no longer send is not attached. */
     hasAttachment(computerId: string): boolean {
-        return this.attached.has(computerId);
+        return this.live(computerId) !== null;
+    }
+
+    /**
+     * Verifies the attachment answers right now. An unanswered probe reaps the
+     * socket, so presence afterwards reads offline.
+     */
+    async probe(computerId: string): Promise<boolean> {
+        const computer = this.live(computerId);
+        if (!computer) {
+            return false;
+        }
+        return (await computer.probe?.()) ?? true;
     }
 
     /** Sends cleanup to every online Computer for a Server, then disconnects it without waiting. */
@@ -126,7 +143,7 @@ export class ComputerConnections implements DeliveryTransport {
 
     /** Sends a typed frame to the Computer, reporting whether it was online. */
     send(computerId: string, frame: AgentCommand): boolean {
-        const computer = this.attached.get(computerId);
+        const computer = this.live(computerId);
         if (!(computer?.ordinary && (frame.type === 'stop' || this.isOnline(computerId)))) {
             return false;
         }
@@ -241,11 +258,19 @@ export class ComputerConnections implements DeliveryTransport {
     }
 
     sendUpdate(computerId: string, release: SignedComputerRelease): boolean {
-        const computer = this.attached.get(computerId);
+        const computer = this.live(computerId);
         if (!computer) {
             return false;
         }
         computer.send({ release, type: 'update' });
         return true;
+    }
+
+    private live(computerId: string): AttachedComputer | null {
+        const computer = this.attached.get(computerId);
+        if (!computer || computer.isOpen?.() === false) {
+            return null;
+        }
+        return computer;
     }
 }
