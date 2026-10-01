@@ -5,9 +5,9 @@ import { useServerList } from '../../../hooks/servers/use-server-list.ts';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';
 import { CreateServerDialog } from '../../servers/create-server-dialog.tsx';
 import { JoinServerDialog } from '../../servers/join-server-dialog.tsx';
-import { ServerSwitcher } from '../../servers/server-switcher.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
+import { ServerList } from './server-list.tsx';
 
 /**
  * Which Servers you belong to, and the way into another one.
@@ -45,7 +45,7 @@ export function ServersSettingsView({ servers }: { servers: ServerSummary[] | un
                         </Button>
                     </div>
                 </ItemCardGroup.Header>
-                {servers ? <ServerSwitcher servers={servers} /> : null}
+                {servers ? <ServerList servers={servers} /> : null}
             </ItemCardGroup>
             <CreateServerDialog
                 isOpen={dialog === 'create'}
