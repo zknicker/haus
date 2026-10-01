@@ -65,8 +65,9 @@ query sharing `chat.list`'s scope and unread expression, so it always equals `ch
 
 **The old path is deleted.** `inbox.needsYou`, `inbox.markDone`, the `inbox` router,
 `packages/haus-api/src/needs-you.ts`, `apps/server/src/needs-you/`, and the App's Needs you
-components and hooks go. Migration `0054_drop_chat_reads_done_sequence` drops
-`chat_reads.done_sequence`.
+components and hooks go. Migration `0054_drop_chat_reads_done_sequence` retains
+`chat_reads.done_sequence` solely for rollback to Server 5.0.0. Physical removal waits for a
+new migration after that Server leaves the production rollback window.
 
 ## Consequences
 
