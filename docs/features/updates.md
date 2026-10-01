@@ -15,6 +15,12 @@ state. An offline Computer creates no new update opportunity from its last repor
 which may no longer describe the installed software. An update already in progress may remain
 visible while Haus waits for reconnection.
 
+When the App opens and whenever it regains focus, the updater asks Server to verify which
+Computers answer right now (`computer.checkPresence`) and replaces its Computer list with the
+result. Until the first check of the session settles, the updater shows nothing at all, not even
+App or website updates, so it never flashes a Computer update that the check would retract. If the
+check fails, the updater offers no Computer updates but still shows App and website updates.
+
 The anchored update tooltip lists only surfaces that still need attention. A current App or
 Computer stays out of the tooltip. Every Computer row includes its user-facing name, such as
 **Computer · Home**, so simultaneous updates remain unambiguous. Haus Agent receipts are internal
@@ -41,7 +47,14 @@ and Computer Settings say the outcome is unconfirmed and direct the operator to 
 Computer. The sidebar does not offer a retry while it is offline, and other reachable updates may
 continue. Reconnection replaces the last reported phase with the Computer's installed version and
 actual update result. Server requires a live Computer attachment before checking or starting an
-update, so a retained old version alone never starts one.
+update, so a retained old version alone never starts one. A requested update or check that the
+Computer has not advanced within two minutes is reported as failed, so the updater never shows an
+update in progress indefinitely. The App applies the same bound to any update phase on a connected
+Computer: two minutes without a progress report turns it into a failure with a retry. A Computer
+that keeps reporting an unchanged phase, such as waiting for a long Agent turn, is never failed
+while it reports. Server stamps each progress report with its own receive time, so a Computer
+clock running behind never makes a live update read as stalled. The App
+update is offered only when the native updater reports one; a newer release alone is not enough.
 
 The hosted website contributes a reload opportunity to the same updater. Its build marker ships
 with the website files; the App checks it every minute while visible and when returning to Haus.
