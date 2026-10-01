@@ -1509,6 +1509,20 @@
     }
 
     /*
+     * A hover card that is really a tooltip with rows (the hidden-tabs list):
+     * the plain tooltip's near-black ground, radius, and compact inset. It
+     * carries HeroUI's `.dark` scope so the rows inside resolve dark tokens.
+     */
+    .hover-card__content.hover-card__content--tooltip {
+        --overlay: var(--tooltip);
+        --foreground: var(--tooltip-foreground);
+        --muted: var(--tooltip-muted);
+        color: var(--tooltip-foreground);
+        padding: calc(var(--spacing) * 1.5);
+        border-radius: calc(var(--radius) * 1.5);
+    }
+
+    /*
      * Every preview hover card — references, Agents, automation and session
      * marks, runtime help — is one always-dark glass material in both app
      * themes. The card carries HeroUI's `.dark` scope so nested Alerts,

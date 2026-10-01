@@ -110,7 +110,11 @@ function SidePaneToggle() {
                 </Badge.Anchor>
             </HoverCard.Trigger>
             {hidden.length > 0 ? (
-                <HoverCard.Content aria-label="Open tabs" placement="bottom">
+                <HoverCard.Content
+                    aria-label="Open tabs"
+                    className="dark hover-card__content--tooltip"
+                    placement="bottom"
+                >
                     <nav aria-label="Open tabs" className="workspace-open-tabs">
                         <p className="workspace-open-tabs__title">Open tabs</p>
                         <WorkspaceTabVariant value="list">
