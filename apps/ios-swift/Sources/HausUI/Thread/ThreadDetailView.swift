@@ -40,6 +40,9 @@ public struct ThreadDetailView: View {
     @Environment(\.reactionStickers) var reactionBoard
     /// The message whose long-press drawer is open.
     @State private var actionMessage: MessagePresentation?
+    /// The message a resting finger is holding; with `actionMessage` it tints
+    /// the row. See `MessageTimelineView`.
+    @State private var heldMessageID: String?
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -133,6 +136,8 @@ public struct ThreadDetailView: View {
         // only inside a row it would land on the cell's hosting view, which the
         // table never asks about.
         _ = visualHeights.revision
+        // The press tint, read here for the same reason.
+        _ = (heldMessageID, actionMessage?.id)
 
         return GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
@@ -223,6 +228,7 @@ public struct ThreadDetailView: View {
                 onContentTap: { isComposerFocused = false },
                 onVisibleItems: onVisibleMessagesChange,
                 onLongPress: { item in actionMessage = Self.drawerMessage(for: item) },
+                onHoldChange: { item in heldMessageID = item.flatMap(Self.drawerMessage(for:))?.id },
                 row: { item in threadRow(item) },
                 accessory: {
                     loadOlderAccessory
@@ -249,4 +255,8 @@ public struct ThreadDetailView: View {
         }
     }
 
+    /// Whether a row shows the press tint: held now, or its drawer is open.
+    func isPressed(_ message: MessagePresentation) -> Bool {
+        message.id == heldMessageID || message.id == actionMessage?.id
+    }
 }

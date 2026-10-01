@@ -45,6 +45,9 @@ public struct MessageTimelineView: View {
     @Environment(\.reactionStickers) private var reactionBoard
     /// The message whose long-press drawer is open.
     @State private var actionMessage: MessagePresentation?
+    /// The message a resting finger is holding, before and through its long
+    /// press. Together with `actionMessage` it tints the row.
+    @State private var heldMessageID: String?
 
     public init(
         messages: [MessagePresentation],
@@ -95,6 +98,9 @@ public struct MessageTimelineView: View {
         // The same for a pending own reaction, which grows a row's pile before
         // any page changes.
         _ = reactionBoard?.revision
+        // And for the press tint: rows read these inside the table's row
+        // closure, which SwiftUI does not track as this body's dependency.
+        _ = (heldMessageID, actionMessage?.id)
         return GeometryReader { proxy in
             if messages.isEmpty && isMessageHistoryLoaded {
                 ContentUnavailableView(
@@ -132,6 +138,10 @@ public struct MessageTimelineView: View {
                     animatesEntrance: opensWithEntrance,
                     onLongPress: { message in
                         if !message.isPending { actionMessage = message }
+                    },
+                    // A pending message opens no drawer, so it takes no tint.
+                    onHoldChange: { message in
+                        heldMessageID = message?.isPending == false ? message?.id : nil
                     },
                     row: { message in
                         timelineRow(message, indexByID: indexByID)
@@ -229,6 +239,7 @@ public struct MessageTimelineView: View {
             message: message,
             isContinuation: continuation,
             isHighlighted: highlightedMessageID == message.id,
+            isPressed: message.id == heldMessageID || message.id == actionMessage?.id,
             attachmentPreview: $attachmentPreview,
             attachmentTiles: attachmentTiles,
             visualHeights: visualHeights,

@@ -18,6 +18,7 @@ where Item.ID == String {
     var onVisibleItems: (([String]) -> Void)? = nil
     var animatesEntrance = false
     var onLongPress: ((Item) -> Void)? = nil
+    var onHoldChange: ((Item?) -> Void)? = nil
     @ViewBuilder let row: (Item) -> Row
     @ViewBuilder let accessory: () -> Accessory
 

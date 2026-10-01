@@ -9,6 +9,8 @@ struct MessageTimelineRow: View {
     let message: MessagePresentation
     let isContinuation: Bool
     let isHighlighted: Bool
+    /// Held under a finger, or the target of the open action drawer.
+    var isPressed = false
     @Binding var attachmentPreview: AttachmentPreview?
     let attachmentTiles: AttachmentImageTileRegistry
     let visualHeights: VisualHeightRegistry
@@ -116,15 +118,7 @@ struct MessageTimelineRow: View {
         .overlayPreferenceValue(ThreadIngressAnchor.self) { anchor in
             ThreadIngressConnector(anchor: anchor, isContinuation: isContinuation)
         }
-        // The tint is drawn behind the row without changing its layout, so a
-        // revealed message keeps the timeline's ordinary rhythm.
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(HausPlatformColor.inputSurface)
-                .opacity(isHighlighted ? 1 : 0)
-                .padding(.horizontal, -8)
-                .padding(.vertical, -5)
-        }
+        .messageRowTint(isHighlighted: isHighlighted, isPressed: isPressed)
     }
 
     /// The task this row states, or nil for a claim the reader has not asked
