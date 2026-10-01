@@ -103,6 +103,7 @@ maps the rest from the same table (`hooks/browser/browser-shortcut-keys.ts`, par
 | Command-= (or +), Command--, Command-0 | Zoom the page in, out, and back to 100% |
 | Command-1 … Command-9 | Select a tab by position in the visible strip (expanded: primary tab first); 9 selects the last |
 | Control-Tab / Control-Shift-Tab, Command-Shift-] / [ | Next / previous tab |
+| Command-Shift-B | Hide or show the side pane's tabs (expanded: collapse back to the pane); only while a closable tab is open |
 
 Command-R never reloads the Haus App: with no browser page on screen it does nothing. Page
 shortcuts act only on a page that is on screen, never on one hidden behind the primary tab or a
@@ -206,7 +207,7 @@ square) replaces the expand button and the side pane toggle:
 | Control | Split mode | Expanded mode |
 | --- | --- | --- |
 | Expand (outward diagonal arrows) | Switches to expanded mode, selecting the side pane's tab if it was showing, else the primary tab | Pressed, as collapse (inward arrows): back to split mode, every closable tab in the side pane, the same tab selected and the pane showing |
-| Side pane toggle (right panel) | Pressed while the pane shows; hides or shows it. While hidden it badges the number of open tabs, and hovering lists them; pressing one reveals the pane on it | Unpressed: collapses back to split mode with the pane showing the selected tab |
+| Side pane toggle (right panel; Hide tabs / Show tabs, Command-Shift-B) | Pressed while the pane shows; hides or shows it. While hidden it badges the number of open tabs, and hovering lists them in place of its tooltip; pressing one reveals the pane on it | Unpressed: collapses back to split mode with the pane showing the selected tab |
 | New tab (no closable tabs) | Opens a blank browser tab in the side pane | Opens a blank browser tab, selected |
 | Strip new-tab button | Opens a blank browser tab in the side pane | Opens a blank browser tab, selected |
 
