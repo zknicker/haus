@@ -340,7 +340,12 @@ and [Agent Inbox](../../specs/inbox.md).
   page on web; Cmd-click lands in the main strip) — see [ADR 0038](../adr/0038-destinations-open-as-tabs.md).
   The chat's right pane holds only artifact, files, and thread panes, which
   share one visible slot and width per chat; the latest opener wins without
-  clearing another pane's state. Clicking the transcript name
+  clearing another pane's state. On desktop the pane holds no Threads: every
+  Thread opener (reply counts, Thread cards, Reply in thread, Inbox and
+  notification links, `?thread=` and `?task=` links) opens a Thread tab in the
+  split beside the chat through `useOpenThread`, as the split's preview tab
+  (Cmd-click opens it in the main strip) — see [Workspace tabs](browser-tabs.md#thread-tabs)
+  and ADR 0038's companion amendment. Clicking the transcript name
   inserts an Agent mention, while the DM topbar name remains inert. Session
   resets stay agent-wide in Agent settings (specs/sessions.md) and reach a chat
   only as the session mark described above. Execution evidence (turn

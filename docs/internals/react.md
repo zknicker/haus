@@ -170,8 +170,10 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   renders the main column (`BrowserWorkspaceBody`, which the main strip's
   selected tab covers) and the split column (`WorkspaceSplitPane`) as siblings,
   so the split sits beside every route. Destinations open through the provider
-  (`openArtifact`, `openAgent`) and never pick a group themselves; the routing
-  rule lives in the model. A tab-able page renders host-agnostically (no
+  (`openArtifact`, `openAgent`, `openThread`) and never pick a group themselves; the routing
+  rule and placement classes live in the model. Thread openers go through
+  `useOpenThread`, which is null on the website, where the chat's own side pane
+  (`useChatThreadPane`) hosts Threads. A tab-able page renders host-agnostically (no
   outlet context, no band portals) and works at 420px.
 * Routed destinations render their content inside one `PageColumn`, which owns
   the page gutter, max width, and the rhythm between sections. It encodes

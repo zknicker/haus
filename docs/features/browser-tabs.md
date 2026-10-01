@@ -1,9 +1,10 @@
 ---
-summary: Desktop workspace tabs (primary, browser, artifact, and Agent tabs), the split, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
+summary: Desktop workspace tabs (primary, browser, artifact, Agent, and Thread tabs), the split, preview tabs, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
 read_when:
   - changing desktop browser tabs, external-link opening, or browser session storage
   - changing desktop artifact tabs or where artifacts open on desktop
   - changing desktop Agent profile tabs, the split, or where new tabs land
+  - changing desktop Thread tabs, preview tabs, or where Threads open on desktop
   - changing the shell topbar or browser access by Agents
   - changing workspace tab identity, favicons, or tab strip overflow
   - changing browser shortcuts, find in page, page zoom, reopening closed tabs, or the page context menu
@@ -87,7 +88,7 @@ maps the rest from the same table (`hooks/browser/browser-shortcut-keys.ts`, par
 | Keys | Action |
 | --- | --- |
 | Command-T | New blank browser tab |
-| Command-W | Close the focused group's selected browser, artifact, or Agent tab (the window when none) |
+| Command-W | Close the focused group's selected browser, artifact, Agent, or Thread tab (the window when none) |
 | Command-Shift-T | Reopen the most recently closed tab |
 | Command-L | Focus and select the address |
 | Command-R / Command-Shift-R | Reload / reload bypassing the cache (browser tab only) |
@@ -104,7 +105,7 @@ every tab of the same site; with no browser tab selected, the zoom items zoom th
 a page is not at 100%, the toolbar shows its zoom level; pressing it resets.
 
 Reopen Closed Tab keeps up to 20 closed tabs for the window's session, in memory. A browser tab
-reopens its last address (not its back/forward history); an artifact or Agent tab reopens it. Either
+reopens its last address (not its back/forward history); an artifact, Agent, or Thread tab reopens it. Either
 returns to its old position in the strip and is selected. Blank new tabs are not remembered.
 
 Find in page opens a compact row under the toolbar, right-aligned, with a field, a match count
@@ -153,18 +154,42 @@ section. Opening with a section moves the open tab to that section. Deleting the
 the Server no longer has, closes its tab. Agent tabs persist per Server with artifact tabs, section
 included.
 
+## Thread tabs
+
+On desktop every Thread opener — a reply count or Thread card in the transcript, Reply in thread,
+an Inbox or notification link, and a `?thread=` or `?task=` chat link — opens the Thread as a tab
+through `useOpenThread`; the website keeps the chat side pane (ADR 0038, threads are companions).
+A deep link opens the tab and then drops its parameter from the URL with a replace, which leaves
+the routed page where it is. Identity is the chat plus the Thread's anchor message: reopening an
+open Thread selects its tab where it is. The tab shows the anchor message's first line beside its
+chat's mark (the channel's icon or the DM's Agent avatar), blank while either loads; the tooltip
+adds the chat (`#name`, or `DM`). Its body is the same Thread surface the chat side pane hosts, in a centered reading
+column, so it reads at split width and in the main strip. The tab's own close button closes it, so
+the Thread header has none; View in chat opens the chat scrolled to the anchor, flashing it. A
+Thread whose chat or anchor is gone closes its tab without being remembered for Reopen Closed Tab.
+
+Threads are **companions**: a new Thread tab always opens in the split, opening the split if it is
+closed, and leaves the main strip as it is; Cmd-click opens it in the main strip instead. It opens
+as the split's **preview tab**, its title in italics. The split holds at most one preview tab:
+opening another Thread replaces it in the same strip position instead of adding a tab. A preview
+tab pins, keeping its place and dropping the italics, when you send a reply in it, double-click
+its tab, or move it to the other group (Move to main, or closing the split). Cmd-clicked Threads
+and reopened Threads open pinned. Pinned Thread tabs persist with artifact and Agent tabs; the
+preview tab does not.
+
 ## Split
 
 The window can show a **split**: a second tab group docked right of the content area, on every
 route, with its own small tab strip and a resizable leading edge (420px minimum, session-only width).
-One routing rule places new artifact and Agent tabs: while the split is open they open in it,
-otherwise in the main strip; an opener that asks for the main strip (Cmd-click) always gets it. A
-tab that is already open is selected where it is. Browser tabs stay in the main strip, because their
+Destinations have a placement class. Pages (artifact and Agent tabs) follow one routing rule:
+while the split is open they open in it, otherwise in the main strip. Companions (Thread tabs)
+always open in the split, opening it. An opener that asks for the main strip (Cmd-click) always
+gets it. A tab that is already open is selected where it is. Browser tabs stay in the main strip, because their
 native views are positioned in the main column.
 
 The band's split button (between the page's actions and Settings) toggles the split:
 
-- Opening it moves the main strip's selected artifact or Agent tab into the split; the main strip
+- Opening it moves the main strip's selected artifact, Agent, or Thread tab into the split; the main strip
   selects the last remaining tab, as if the moved tab had closed. With a browser or the primary tab
   selected, nothing moves: the split opens empty and draws no column, and the next opened tab lands
   there and shows it.
@@ -172,7 +197,8 @@ The band's split button (between the page's actions and Settings) toggles the sp
   main selection.
 - Closing or moving out the split's last tab closes the split.
 
-Right-clicking an artifact or Agent tab offers Move to split view (or Move to main) and Close tab.
+Right-clicking an artifact, Agent, or Thread tab offers Move to split view (or Move to main) and
+Close tab.
 Tabs reorder by dragging within their own strip; dragging between strips is not supported yet.
 Split tabs never cover the routed page; only the main strip's selected tab does. Command-W closes
 the selected tab of the focused group: the group last clicked, focused, selected, or opened into.
@@ -191,10 +217,10 @@ page, the App asks Electron to capture the page (an inline JPEG, validated befor
 in the page region, and only then hides the native view; closing the overlay shows the native view
 before the still is released. The overlay appears to float over a frozen page instead of a blank one.
 Stale captures (after a tab switch, navigation, or a newer request) are discarded, and blank, failed, or
-crashed pages fall back to the plain page background. Hidden chat controls are inert while a main-strip browser, artifact, or Agent tab is selected, and messages behind one
+crashed pages fall back to the plain page background. Hidden chat controls are inert while a main-strip browser, artifact, Agent, or Thread tab is selected, and messages behind one
 do not receive new read receipts until the primary tab is selected. The App owns artifact and Agent tabs, the
 split, and the main strip order across every kind, primary tab included; it references Electron's browser tabs by id and mirrors their
-relative order back to Electron. A main-strip artifact or Agent tab is selected only while Electron
+relative order back to Electron. A main-strip artifact, Agent, or Thread tab is selected only while Electron
 has no browser tab selected, so no native page shows above it.
 
 Pages run in sandboxed WebContentsViews without Node integration or the App preload. Only the App's

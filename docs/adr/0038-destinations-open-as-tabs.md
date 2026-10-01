@@ -51,5 +51,21 @@ the same hub and drill-down. The chat side pane keeps artifacts, files, and thre
 - One command, `useOpenAgentProfile`, replaces every direct profile navigation and pane opener; it
   routes to a tab on desktop and to the profile route on web.
 - The chat side pane no longer hosts profiles; ADR 0004 still governs the web Artifact Panel.
-- Thread and file panes stay chat-scoped inside the chat page and are unaffected by the split.
 - Follow-up: browser tabs in the split, once Electron view bounds can follow the split column.
+
+## Amendment, 2026-10-01: threads are companions
+
+Destinations have one of two placement classes. **Pages** (Agent profiles, artifacts) follow the
+routing rule above. **Companions** (threads) always open in the split, opening it if it is closed;
+Cmd-click still forces the main strip. A thread read next to its chat is the common case, and a
+companion opened as a main tab would cover the conversation it belongs to.
+
+Companions open as a **preview tab**: the split holds at most one preview tab, and opening another
+companion replaces it instead of stacking. Replying in the thread, double-clicking its tab, or
+moving it pins the tab, and a pinned tab stays until closed. Thread tab identity is chat id plus
+thread root, so reopening an open thread selects it. Only pinned tabs persist.
+
+On desktop the chat side pane no longer hosts threads, so the split is the window's single side
+surface. Thread links and deep links (inbox, notifications, `?thread=`) open the thread tab. Web has
+no tabs and keeps the chat side pane for threads, files, and artifacts unchanged.
+
