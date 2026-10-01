@@ -184,13 +184,13 @@ keeps its header, Close, and Open profile controls outside its Agent query bound
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
 * One Settings page separates **Preferences** (Profile, Preferences, Servers)
-  from **Server** (Server, Members, Connections, Models, Skills, then Usage and
+  from **Server** (Server, Members, Connections, Models, Skills, Usage, then
   Archived chats), followed by the roster-driven **Computers**. Agent
   capabilities belong to the shared Server scope, not a separate settings
   category. Which Servers you belong to is about you, so switching, creating,
-  and joining sit in the personal scope. Usage and Archived chats are
-  link-outs, not settings pages: they keep their own standalone routes and the
-  rail hands off to them (`settingsNavLinkItems`, resolved by
+  and joining sit in the personal scope. Archived chats is a
+  link-out, not a settings page: it keeps its own standalone route and the
+  rail hands off to it (`settingsNavLinkItems`, resolved by
   `SettingsSectionRoute`). Browser controls live on each
   Computer; the former Browser URL redirects there. Back is a stock
   `Sidebar.Group` inside the same `Sidebar.Content` as the settings rows.
@@ -214,9 +214,11 @@ keeps its header, Close, and Open profile controls outside its Agent query bound
   path to editing is its **Open profile** action. Every other surface — the
   Inbox's live Agent rows, the chat-rail context menu, the Computer page's Agent table,
   the command palette — navigates to the page.
-* Usage is a dashboard, not a member. It lives at `/s/:slug/usage` — it was the
-  index of the deleted `/members` browser, which made a dashboard wear a
-  roster's URL.
+* Usage is a dashboard, not a member. It is the Settings section
+  `/s/:slug/settings/usage`, so the settings rail stays while you read it.
+  The Agent tile and Computer detail build filtered links with `usageRoute`;
+  the rail and command palette reach it as an ordinary settings section.
+  There is no shell-level `/s/:slug/usage` route.
 * A preference is a row with a control, not a page. Theme is a `Select` in
   Preferences, not three window mockups on a route of its own — a value with
   three options does not earn a destination, and it has to survive that list
