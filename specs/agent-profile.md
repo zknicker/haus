@@ -18,8 +18,8 @@ drills into its section with a breadcrumb back to the hub
 ## Hosting
 
 - **Desktop**: an Agent profile is a workspace tab (`agent` tab, identity =
-  Agent id). It opens in the split when the split is open, otherwise in the
-  main strip; Cmd-click always opens in the main strip. Drill-down stays
+  Agent id). It opens in the side pane in split mode, or as the selected tab
+  in expanded mode (ADR 0038). Drill-down stays
   inside the tab as its section. Opening an open profile selects its tab. A
   deleted Agent's tab closes itself.
 - **Web**: the profile is a routed page at

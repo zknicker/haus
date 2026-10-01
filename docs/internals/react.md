@@ -167,11 +167,14 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   `PageTopbar` and `SectionHeader`. Embedded surfaces use `SectionBar`.
 * Desktop workspace tabs are owned by `BrowserWorkspaceProvider`
   (`useWorkspaceTabs`, a reducer over `hooks/workspace-tabs/`). The Server layout
-  renders the main column (`BrowserWorkspaceBody`, which the main strip's
-  selected tab covers) and the split column (`WorkspaceSplitPane`) as siblings,
-  so the split sits beside every route. Destinations open through the provider
-  (`openArtifact`, `openAgent`, `openThread`) and never pick a group themselves; the routing
-  rule and placement classes live in the model. Thread openers go through
+  renders the routed column (`BrowserWorkspaceBody`, which expanded mode's
+  selected tab covers) and the side pane (`WorkspaceSidePane`) as siblings, so
+  the side pane sits beside every route. The model is a mode (`split` or
+  `expanded`) over one closable tab list; `workspaceSelection` derives what
+  shows, and one `ClosableTabPage` renders a tab's body wherever the mode puts
+  it, a browser page's native view following its host. Destinations open
+  through the provider (`openArtifact`, `openAgent`, `openThread`) and never
+  pick a place themselves. Thread openers go through
   `useOpenThread`, which is null on the website, where the chat's own side pane
   (`useChatThreadPane`) hosts Threads. A tab-able page renders host-agnostically (no
   outlet context, no band portals) and works at 420px.

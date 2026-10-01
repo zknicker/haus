@@ -1,9 +1,9 @@
 ---
-summary: Desktop workspace tabs (primary, browser, artifact, Agent, and Thread tabs), the split, preview tabs, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
+summary: Desktop workspace tabs (primary, browser, artifact, Agent, and Thread tabs), split and expanded modes and the side pane, preview tabs, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
 read_when:
   - changing desktop browser tabs, external-link opening, or browser session storage
   - changing desktop artifact tabs or where artifacts open on desktop
-  - changing desktop Agent profile tabs, the split, or where new tabs land
+  - changing desktop Agent profile tabs, the side pane, split or expanded mode, or where new tabs land
   - changing desktop Thread tabs, preview tabs, or where Threads open on desktop
   - changing the shell topbar or browser access by Agents
   - changing workspace tab identity, favicons, or tab strip overflow
@@ -12,20 +12,24 @@ read_when:
 
 # Workspace tabs
 
-The desktop App has a tab strip above the content area, on the page background with no band of its
-own. The sidebar keeps its existing layout and controls. Browser navigation belongs to the browser
-toolbar below the tabs. There is one primary tab that follows sidebar navigation. Visiting another
-channel selects the primary tab without creating another Chat tab. The mounted Chat stays intact while
-a browser or artifact tab is selected, including its composer draft. Artifacts open as their own
+The desktop App shows tabs in the window band, in one of two modes (see
+[Split and expanded modes](#split-and-expanded-modes)). In split mode, the default, the routed page
+fills the left column under a plain title and every other tab lives in a side pane on the right; in
+expanded mode one strip holds every tab. The sidebar keeps its existing layout and controls. Browser
+navigation belongs to the browser toolbar inside the page. There is one primary tab, the routed
+page, that follows sidebar navigation. Visiting another channel never creates another Chat tab. The
+mounted Chat stays intact while another tab is selected, including its composer draft. Artifacts open as their own
 tabs (see [Artifact tabs](#artifact-tabs)); the Artifact Panel and its toggle do not appear in desktop
 tabs.
 
 Every tab shares one anatomy: a compact rounded tab holding a leading mark and a title that ends in
 an ellipsis when cut off. The whole tab selects it. The primary tab borrows
 the identity the sidebar shows: a channel's own icon and color, a DM's Agent avatar, or the section's
-glyph (Inbox, Tasks, Search, Settings, and so on). It holds the same width basis as every other tab, so switching between
-chats with long and short names never moves the strip; when the strip is crowded it shrinks with the rest. In a Chat, the channel or DM actions menu is
-an icon-only "…" button at the band's top-right corner, not part of the tab. Because the tab names the page, band content beside it drops what repeats
+glyph (Inbox, Tasks, Search, Settings, and so on). In split mode that identity is the routed page's
+plain title instead of a tab. In expanded mode the primary tab holds the same width basis as every
+other tab, so switching between chats with long and short names never moves the strip; when the
+strip is crowded it shrinks with the rest. In a Chat, the channel or DM actions menu is an icon-only
+"…" button in the band at the routed page's top-right corner, not part of the tab. Because the tab names the page, band content beside it drops what repeats
 that identity (a section's breadcrumb or glyph, a title matching the tab) and keeps only actions or a more
 specific title. A browser tab's mark is the page's favicon, a spinner while the page
 loads, or a globe when the page has no usable icon. An artifact tab's mark is the Artifact Panel's
@@ -42,18 +46,19 @@ each the site's favicon on a neutral chip (a globe when it has none or it fails 
 latest page title (the host when untitled); pressing a tile opens that page in the current tab.
 With no history the page is blank; the focused address field is the prompt. Successful visits
 retain up to 50 addresses, titles, and favicon URLs in App-local storage; no personal browser
-history is imported. Every tab — the primary tab, browser tabs, and artifact tabs — sits in one evenly
+history is imported. Every closable tab — browser, artifact, Agent, and Thread — sits in one evenly
 spaced strip with one order, and any tab can be reordered across kinds by dragging its title or using
-Space, arrow keys, and Space on a focused tab. The primary tab is not pinned: it starts first, can move
-anywhere, and other tabs can drop before it; it never closes. A dragged tab moves only along the
-strip and stays inside it, the other tabs slide aside to preview the new order, the order commits on
-drop, and Escape cancels. Closing the selected tab selects the last remaining tab in the strip, which
-is the primary tab when it sits last or no other tab remains.
-Command-W closes a selected browser or artifact tab; Command-T opens a blank browser tab unless the
-visible Artifact Panel owns that command.
+Space, arrow keys, and Space on a focused tab. In expanded mode the primary tab leads the strip; it
+never moves or closes. A dragged tab moves only along the strip and stays inside it, the other tabs
+slide aside to preview the new order, the order commits on drop, and Escape cancels. Closing the
+selected tab selects the last remaining tab in its strip: in expanded mode the primary tab when no
+other tab remains; in split mode the side pane closes with its last tab.
+Command-W closes the selected tab Command-W points at (see the shortcut table); Command-T opens a
+blank browser tab unless the visible Artifact Panel owns that command.
 Command-L focuses and selects the address; Command-R reloads the website. Control-Tab and
-Control-Shift-Tab cycle through every tab in strip order; Command-1 through Command-9 select
-tabs directly, with 9 selecting the last tab. These shortcuts also work inside isolated websites.
+Control-Shift-Tab cycle through the visible strip's tabs in order (the side pane's in split mode,
+revealing a hidden pane); Command-1 through Command-9 select tabs directly, with 9 selecting the
+last tab. These shortcuts also work inside isolated websites.
 Middle-click closes a browser or artifact tab. The strip never scrolls: every tab, the primary
 one included, shares the width evenly and shrinks down to mark-only tabs, the selected tab keeps its close button, and the plus button stays
 pinned after the last tab. Reload becomes Stop while a page loads; a thin accent-colored loading line fades away without moving
@@ -88,7 +93,7 @@ maps the rest from the same table (`hooks/browser/browser-shortcut-keys.ts`, par
 | Keys | Action |
 | --- | --- |
 | Command-T | New blank browser tab |
-| Command-W | Close the focused group's selected browser, artifact, Agent, or Thread tab (the window when none) |
+| Command-W | Expanded: close the selected closable tab. Split: close the side pane's selected tab while focus is in the side pane or its page (the window otherwise, or when none) |
 | Command-Shift-T | Reopen the most recently closed tab |
 | Command-L | Focus and select the address |
 | Command-R / Command-Shift-R | Reload / reload bypassing the cache (browser tab only) |
@@ -96,17 +101,20 @@ maps the rest from the same table (`hooks/browser/browser-shortcut-keys.ts`, par
 | Command-F | Find in page (browser tab); Search otherwise |
 | Command-G / Command-Shift-G | Next / previous match |
 | Command-= (or +), Command--, Command-0 | Zoom the page in, out, and back to 100% |
-| Command-1 … Command-9 | Select a tab by strip position, primary tab included; 9 selects the last |
+| Command-1 … Command-9 | Select a tab by position in the visible strip (expanded: primary tab first); 9 selects the last |
 | Control-Tab / Control-Shift-Tab, Command-Shift-] / [ | Next / previous tab |
 
-Command-R never reloads the Haus App: with the primary or an artifact tab selected it does nothing.
+Command-R never reloads the Haus App: with no browser page on screen it does nothing. Page
+shortcuts act only on a page that is on screen, never on one hidden behind the primary tab or a
+hidden side pane.
 Zoom acts on the selected page only, in Chrome's steps (25% to 500%), and like Chrome it applies to
 every tab of the same site; with no browser tab selected, the zoom items zoom the App as before. While
 a page is not at 100%, the toolbar shows its zoom level; pressing it resets.
 
 Reopen Closed Tab keeps up to 20 closed tabs for the window's session, in memory. A browser tab
-reopens its last address (not its back/forward history); an artifact, Agent, or Thread tab reopens it. Either
-returns to its old position in the strip and is selected. Blank new tabs are not remembered.
+reopens its last address (not its back/forward history); an artifact, Agent, or Thread tab reopens it
+(a Thread pinned). Either returns to its old position among the closable tabs and is selected,
+revealing a hidden side pane. Blank new tabs are not remembered.
 
 Find in page opens a compact row under the toolbar, right-aligned, with a field, a match count
 ("2 of 7" or "No results"), and Previous, Next, and Close. The page region shrinks by the row's height
@@ -131,22 +139,24 @@ identity is the Agent plus the workspace path. The tab title is the artifact's a
 file name. The tooltip adds the chat it was opened from and its path. The website keeps opening
 artifacts in the chat's Artifact Panel (ADR 0004).
 
-A selected artifact tab covers the mounted Chat with the Artifact Panel's own renderers: a file shows
+A selected artifact tab shows the Artifact Panel's own renderers (in the side pane, or covering the
+mounted Chat in expanded mode): a file shows
 its preview under a compact row with its path and the panel's actions (copy contents, Markdown raw
 toggle, copy link, copy path); a workspace folder shows the workspace browser. An artifact whose file
 was moved or deleted, or whose workspace is offline, shows "Artifact unavailable" in the tab body.
 
 Artifact tabs are App-local presentation state, not Server records. They are scoped per Server and
-kept in App-local storage with the primary tab's place, so they survive reloads and restarts;
-selection is not restored, and the primary tab is selected after a reload. Browser tabs are not
-restored, so after a restart artifact tabs and the primary tab keep their order among themselves (a
-saved order from before the primary tab could move restores it first).
+kept in App-local storage with their order, so they survive reloads and restarts; selection is not
+restored, so after a reload the side pane starts hidden, its badge counting the restored tabs, and
+expanded mode selects the primary tab. Browser tabs are not restored, so after a restart App-local
+tabs keep their order among themselves. A primary-tab position saved by earlier versions is dropped.
 
 ## Agent tabs
 
 On desktop, opening an Agent's profile (clicking an Agent avatar or chip, a profile link, the DM
 menu's View agent profile, or the command menu's Agent Profile) opens an Agent tab through
-`useOpenAgentProfile`; the website navigates to the profile route instead (ADR 0038). Identity is the
+`useOpenAgentProfile`; the website navigates to the profile route instead (ADR 0038). In split
+mode it opens in the side pane beside the routed page. Identity is the
 Agent id: opening an Agent that already has a tab selects that tab where it is. The tab shows the
 Agent's avatar and display name, blank while the Agent loads. Its body is the profile hub; drilling
 into a section (Runs on, Skills, Workspace, and so on) stays inside the tab, which remembers its
@@ -158,53 +168,51 @@ included.
 
 On desktop every Thread opener — a reply count or Thread card in the transcript, Reply in thread,
 an Inbox or notification link, and a `?thread=` or `?task=` chat link — opens the Thread as a tab
-through `useOpenThread`; the website keeps the chat side pane (ADR 0038, threads are companions).
+through `useOpenThread`; the website keeps the chat side pane (ADR 0038, threads amendment).
 A deep link opens the tab and then drops its parameter from the URL with a replace, which leaves
 the routed page where it is. Identity is the chat plus the Thread's anchor message: reopening an
 open Thread selects its tab where it is. The tab shows the anchor message's first line beside its
 chat's mark (the channel's icon or the DM's Agent avatar), blank while either loads; the tooltip
 adds the chat (`#name`, or `DM`). Its body is the same Thread surface the chat side pane hosts, in a centered reading
-column, so it reads at split width and in the main strip. The tab's own close button closes it, so
+column, so it reads at side pane width and full width. The tab's own close button closes it, so
 the Thread header has none; View in chat opens the chat scrolled to the anchor, flashing it. A
 Thread whose chat or anchor is gone closes its tab without being remembered for Reopen Closed Tab.
 
-Threads are **companions**: a new Thread tab always opens in the split, opening the split if it is
-closed, and leaves the main strip as it is; Cmd-click opens it in the main strip instead. It opens
-as the split's **preview tab**, its title in italics. The split holds at most one preview tab:
-opening another Thread replaces it in the same strip position instead of adding a tab. A preview
-tab pins, keeping its place and dropping the italics, when you send a reply in it, double-click
-its tab, or move it to the other group (Move to main, or closing the split). Cmd-clicked Threads
-and reopened Threads open pinned. Pinned Thread tabs persist with artifact and Agent tabs; the
-preview tab does not.
+A Thread opens like any other tab: in split mode in the side pane beside its chat, in expanded mode
+as the selected tab. It opens as the **preview tab**, its title in italics. There is at most one
+preview tab: opening another Thread replaces it in the same strip position instead of adding a
+tab. A preview tab pins, keeping its place and dropping the italics, when you send a reply in it
+or double-click its tab. Reopened Threads open pinned. Pinned Thread tabs persist with artifact and
+Agent tabs; the preview tab does not.
 
-## Split
+## Split and expanded modes
 
-The window can show a **split**: a second tab group docked right of the content area, on every
-route, with its own small tab strip and a resizable leading edge (420px minimum, session-only width).
-Destinations have a placement class. Pages (artifact and Agent tabs) follow one routing rule:
-while the split is open they open in it, otherwise in the main strip. Companions (Thread tabs)
-always open in the split, opening it. An opener that asks for the main strip (Cmd-click) always
-gets it. A tab that is already open is selected where it is. Browser tabs stay in the main strip, because their
-native views are positioned in the main column.
+The window follows Codex's layout: a mode, not two tab groups. The mode is remembered per device
+and starts in split mode.
 
-The band's split button (between the page's actions and Settings) toggles the split:
+- **Split mode**: the routed page fills the left column under its plain title (mark and name), with
+  its band content and actions at its top-right. Every closable tab lives in the **side pane**,
+  docked right of the routed page on every route, resizable from its leading edge (420px minimum
+  while the routed page keeps 360px; session-only width). Its strip and new-tab button sit in the
+  window band starting over the pane's edge. Routed navigation never hides the side pane.
+- **Expanded mode**: one strip in the band, the primary tab first, then every closable tab; the
+  selected tab takes the whole content width, covering the routed page. Routed navigation selects
+  the primary tab.
 
-- Opening it moves the main strip's selected artifact, Agent, or Thread tab into the split; the main strip
-  selects the last remaining tab, as if the moved tab had closed. With a browser or the primary tab
-  selected, nothing moves: the split opens empty and draws no column, and the next opened tab lands
-  there and shows it.
-- Closing it folds every split tab into the main strip right after the selected tab, keeping the
-  main selection.
-- Closing or moving out the split's last tab closes the split.
+The band ends, as in Codex, with the page's actions, a thin divider, the layout controls, then
+Settings (Haus-only). With no closable tab open, in either mode, a single New tab button (plus in a
+square) replaces the expand button and the side pane toggle:
 
-Right-clicking an artifact, Agent, or Thread tab offers Move to split view (or Move to main) and
-Close tab.
-Tabs reorder by dragging within their own strip; dragging between strips is not supported yet.
-Split tabs never cover the routed page; only the main strip's selected tab does. Command-W closes
-the selected tab of the focused group: the group last clicked, focused, selected, or opened into.
-Strip shortcuts (Control-Tab, Command-1 … 9, Reopen Closed Tab) act on the main strip; a reopened tab
-returns to the main strip. The split is per window and not restored: after a reload its tabs are at
-the end of the main strip and the split is closed.
+| Control | Split mode | Expanded mode |
+| --- | --- | --- |
+| Expand (outward diagonal arrows) | Switches to expanded mode, selecting the side pane's tab if it was showing, else the primary tab | Pressed, as collapse (inward arrows): back to split mode, every closable tab in the side pane, the same tab selected and the pane showing |
+| Side pane toggle (right panel) | Pressed while the pane shows; hides or shows it. While hidden it badges the number of open tabs, and hovering lists them; pressing one reveals the pane on it | Unpressed: collapses back to split mode with the pane showing the selected tab |
+| New tab (no closable tabs) | Opens a blank browser tab in the side pane | Opens a blank browser tab, selected |
+| Strip new-tab button | Opens a blank browser tab in the side pane | Opens a blank browser tab, selected |
+
+Opening any tab (a link, a profile, a Thread, a new browser tab) while the side pane is hidden
+reveals it. A shown pane always shows a tab: when its selected tab goes away it shows its last tab.
+Right-clicking an artifact, Agent, or Thread tab offers Close tab.
 
 ## Desktop ownership
 
@@ -217,11 +225,16 @@ page, the App asks Electron to capture the page (an inline JPEG, validated befor
 in the page region, and only then hides the native view; closing the overlay shows the native view
 before the still is released. The overlay appears to float over a frozen page instead of a blank one.
 Stale captures (after a tab switch, navigation, or a newer request) are discarded, and blank, failed, or
-crashed pages fall back to the plain page background. Hidden chat controls are inert while a main-strip browser, artifact, Agent, or Thread tab is selected, and messages behind one
-do not receive new read receipts until the primary tab is selected. The App owns artifact and Agent tabs, the
-split, and the main strip order across every kind, primary tab included; it references Electron's browser tabs by id and mirrors their
-relative order back to Electron. A main-strip artifact, Agent, or Thread tab is selected only while Electron
-has no browser tab selected, so no native page shows above it.
+crashed pages fall back to the plain page background. In expanded mode, hidden chat controls are inert while a closable tab covers the Chat, and messages
+behind one do not receive new read receipts until the primary tab is selected; the side pane never
+covers the Chat. The App owns artifact, Agent, and Thread tabs, the mode, the side pane, and the
+closable strip order across every kind; it references Electron's browser tabs by id and mirrors
+their relative order back to Electron. An App-local tab is the selected closable tab only while
+Electron has no browser tab selected, so no native page shows above it. A browser page's native view
+follows its DOM host wherever the layout renders it — the side pane or the full content width — so
+resizing the pane, the sidebar, or the window moves it. A selected page that is not on screen (the
+side pane hidden, or the primary tab selected in expanded mode) reports no bounds: Electron hides its
+view and treats it as not shown, so page shortcuts and menu actions do nothing to it.
 
 Pages run in sandboxed WebContentsViews without Node integration or the App preload. Only the App's
 main frame can issue browser IPC commands, even when a browser page visits the Haus origin. Popups

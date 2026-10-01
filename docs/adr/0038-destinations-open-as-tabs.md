@@ -1,8 +1,8 @@
 ---
-summary: Decision that desktop destinations open as workspace tabs, a window split decides where a new tab lands, and the Agent profile is one hub page with drill-down sections instead of titlebar tabs.
+summary: Decision that desktop destinations open as workspace tabs, the window follows Codex's split and expanded modes (a side pane beside the routed page, or one strip), and the Agent profile is one hub page with drill-down sections instead of titlebar tabs.
 read_when:
   - changing where an Agent profile opens, or adding a new tab-able destination
-  - changing the desktop split pane, its toggle, or where new tabs land
+  - changing the desktop side pane, the expand or side pane controls, or where new tabs land
   - changing the Agent profile hub, its cards, or its drill-down sections
 ---
 
@@ -10,7 +10,8 @@ read_when:
 
 ## Status
 
-Accepted, 2026-10-01.
+Accepted, 2026-10-01. Revised the same day: the two-group split and its routing rule were replaced
+by Codex's split and expanded modes after the split toggle proved confusing in use.
 
 ## Context
 
@@ -21,17 +22,30 @@ second, weaker way to show a destination, and the titlebar is reserved for tabs.
 
 ## Decision
 
-**Every desktop destination is a tab; the layout decides where it lands.** The window has a main
-tab strip and an optional **split**: a second tab group docked on the right with its own strip. One
-routing rule places new tabs: if the split is open, a new tab opens there; otherwise it opens in the
-main strip. Cmd-click always opens in the main strip. Tabs drag between groups. A band button
-toggles the split; closing it folds its tabs into the main strip, and opening it moves the active
-closable tab across. Split state is per window. Opening a destination that is already open selects
-its existing tab instead of duplicating it.
+**Every desktop destination is a tab; the window's mode decides where it shows.** The layout
+follows Codex: a mode, not two tab groups. There is one ordered list of closable tabs (browser
+pages, artifacts, Agent profiles, Threads) beside the primary tab, which is the routed page.
 
-Agent profiles are the first destination kind under this rule (`agent` tabs, identity = Agent id).
-Artifact tabs follow the same rule. Browser tabs stay main-strip only for now because their
-Electron views are positioned natively.
+- **Split mode** (the default): the routed page fills the left column under a plain title, with no
+  tab strip over it. Every closable tab lives in a **side pane** docked on the right, whose strip
+  sits in the window band starting at the pane's edge, with its own new-tab button. A side pane
+  toggle hides and shows the pane; while hidden it badges the count of open tabs and lists them on
+  hover. Opening any tab while the pane is hidden reveals it. With no closable tab open, a New tab
+  button replaces both layout controls.
+- **Expanded mode**: one strip, the primary tab first, then every closable tab; the selected tab
+  takes the whole content width.
+
+An **expand** button switches to expanded mode (selecting the side pane's tab if it was showing);
+pressed, it collapses back, every closable tab returning to the side pane with the same tab
+selected; in expanded mode the side pane toggle stays visible and collapses back the same way.
+After Codex, the controls sit after a divider from the page's actions. The mode is remembered per
+device. Opening a destination that is already open selects its
+existing tab instead of duplicating it. There is no placement choice: no Cmd-click routing, no
+moving tabs between groups.
+
+Agent profiles are the first destination kind (`agent` tabs, identity = Agent id); artifact tabs,
+Thread tabs, and browser tabs follow the same model. Browser tabs work in the side pane: a page's
+native view is placed over its DOM host wherever the layout renders it.
 
 **Glance by hover, open by click.** Hovering an Agent avatar or chip shows the existing hover card.
 Clicking opens the Agent's profile tab. The chat-scoped Profile side pane is removed.
@@ -41,7 +55,7 @@ Clicking opens the Agent's profile tab. The chat-scoped Profile side pane is rem
 activity with repeated failures collapsed, and compact usage. Each card states its fact rather than
 defining itself (`Atlas, BidBeacon +2`, not `MCP servers this Agent may call`). Clicking a card
 drills into that section **inside the same tab**, with a breadcrumb back to the hub. Nothing is
-injected into the titlebar. Every tab-able page must work at split width (420px and up).
+injected into the titlebar. Every tab-able page must work at side pane width (420px and up).
 
 **Web** has no workspace tabs, so the profile stays a routed page (`agents/:agentId/:section`) with
 the same hub and drill-down. The chat side pane keeps artifacts, files, and threads.
@@ -51,21 +65,22 @@ the same hub and drill-down. The chat side pane keeps artifacts, files, and thre
 - One command, `useOpenAgentProfile`, replaces every direct profile navigation and pane opener; it
   routes to a tab on desktop and to the profile route on web.
 - The chat side pane no longer hosts profiles; ADR 0004 still governs the web Artifact Panel.
-- Follow-up: browser tabs in the split, once Electron view bounds can follow the split column.
+- A selected browser page that is not on screen (a hidden pane, the primary tab over it) stays
+  selected in Electron with no bounds; Electron then hides its view and page shortcuts do nothing.
 
-## Amendment, 2026-10-01: threads are companions
+## Amendment, 2026-10-01: threads are tabs with a preview
 
-Destinations have one of two placement classes. **Pages** (Agent profiles, artifacts) follow the
-routing rule above. **Companions** (threads) always open in the split, opening it if it is closed;
-Cmd-click still forces the main strip. A thread read next to its chat is the common case, and a
-companion opened as a main tab would cover the conversation it belongs to.
+Threads open like any other tab: in split mode in the side pane beside their chat, which is the
+common case; in expanded mode as the selected tab. (An earlier version of this amendment gave
+threads a "companion" placement class that always opened the split; the mode model makes that
+unnecessary, since split mode already keeps the chat beside every tab.)
 
-Companions open as a **preview tab**: the split holds at most one preview tab, and opening another
-companion replaces it instead of stacking. Replying in the thread, double-clicking its tab, or
-moving it pins the tab, and a pinned tab stays until closed. Thread tab identity is chat id plus
-thread root, so reopening an open thread selects it. Only pinned tabs persist.
+Threads open as a **preview tab**: there is at most one preview tab, and opening another thread
+replaces it in place instead of stacking. Replying in the thread or double-clicking its tab pins
+it, and a pinned tab stays until closed; a reopened thread opens pinned. Thread tab identity is
+chat id plus thread root, so reopening an open thread selects it. Only pinned tabs persist.
 
-On desktop the chat side pane no longer hosts threads, so the split is the window's single side
-surface. Thread links and deep links (inbox, notifications, `?thread=`) open the thread tab. Web has
+On desktop the chat side pane no longer hosts threads, so the workspace side pane is the window's
+single side surface. Thread links and deep links (inbox, notifications, `?thread=`) open the thread tab. Web has
 no tabs and keeps the chat side pane for threads, files, and artifacts unchanged.
 

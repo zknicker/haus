@@ -8,10 +8,12 @@ read_when:
 # Desktop Window Layout
 
 The desktop window always has a full-width grey band across its top: the traffic lights over a
-sidebar-width segment, then the workspace tabs (starting at the content's edge), the page's actions,
-the split toggle, and Settings at the far right. The tabs copy Codex's window tabs. An open split
-docks its own tab strip and pages right of the content, inside the card, behind a hairline (see
-[Workspace tabs → Split](browser-tabs.md#split)).
+sidebar-width segment, then — starting at the content's edge — the routed page's title (split mode)
+or the one tab strip (expanded mode), the page's actions, and at the far right the expand and side
+pane controls and Settings. The tabs and controls copy Codex's window tabs. In split mode the side
+pane docks right of the routed page, inside the card, behind a hairline, and its tab strip sits in
+the band starting over the pane's edge (see
+[Workspace tabs → Split and expanded modes](browser-tabs.md#split-and-expanded-modes)).
 
 Settings > Preferences > Appearance > **Window layout** picks what sits under the band. It applies
 instantly, is remembered per device, and stays in step across open windows.

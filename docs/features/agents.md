@@ -55,7 +55,7 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   `/s/:slug/agents/:agentId/:section`, in the Server layout beside Usage; `home` is the hub, and
   the retired tab names redirect (`overview` to `home`, `setup` to `runtime`). On desktop the same
   view renders in the Agent's workspace tab. Nothing is injected into the window titlebar, and the
-  view lays out from its container width, so it works in a 420px split column.
+  view lays out from its container width, so it works in a 420px side pane.
 - The hub's header states the Agent's photo, name, role, and current availability, offers
   **Edit Profile** for an ordinary Agent, and holds one overflow menu of lifecycle verbs — Stop,
   Restart, Start fresh session, Full reset, Delete Agent — for Owners and Admins. Members see the
