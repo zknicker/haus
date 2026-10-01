@@ -26,7 +26,7 @@ enum InboxFixtures {
         return nil
     }
 
-    static func activeWork(startedAt: Date) -> ActiveCloudAgentWork {
+    static func activeWork(startedAt: Date, title: String = "Ship the iPhone build") -> ActiveCloudAgentWork {
         decode(
             """
             {"chatKind":"channel","chatName":"all","chatPeerUserId":null,
@@ -38,7 +38,7 @@ enum InboxFixtures {
                "repository":"zknicker/haus","runs":[],
                "startedAt":\(quoted(HausISO8601.string(from: startedAt))),
                "startingRef":"main","status":"running","terminalAt":null,
-               "title":"Ship the iPhone build","updatedAt":"2026-09-11T09:00:00.000Z"}}
+               "title":\(quoted(title)),"updatedAt":"2026-09-11T09:00:00.000Z"}}
             """
         )
     }

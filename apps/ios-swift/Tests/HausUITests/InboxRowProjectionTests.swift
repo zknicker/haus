@@ -24,10 +24,34 @@ struct InboxHappeningNowRowsTests {
         ))
 
         #expect(rows.map(\.id) == ["work:message_work", "agent:agent_blippy"])
-        #expect(rows[0].meta == "Running · 25m")
-        #expect(rows[0].preview == "#all · Blippy")
-        #expect(rows[1].preview == "Editing files · 3m")
-        #expect(rows[1].meta == nil)
+        #expect(rows[0].status == "Running · 25m")
+        #expect(rows[0].detail == "#all · Blippy")
+        #expect(rows[0].title == "Ship the iPhone build")
+        #expect(rows[1].title == "Blippy")
+        #expect(rows[1].status == "3m")
+        #expect(rows[1].detail == "Editing files…")
+    }
+
+    @Test func untitledWorkAndStepFallBackToPlainLabels() throws {
+        let rows = try #require(InboxHappeningNowRows.rows(
+            work: [InboxFixtures.activeWork(startedAt: now, title: "  ")],
+            agents: [
+                InboxWorkingAgent(
+                    id: "agent_blippy",
+                    name: "Blippy",
+                    avatarURL: nil,
+                    presence: .working,
+                    step: "",
+                    occurredAt: now
+                )
+            ],
+            now: now,
+            resolveActor: InboxFixtures.directory
+        ))
+
+        #expect(rows[0].title == "Cloud work")
+        #expect(rows[0].detail == "#all · Blippy")
+        #expect(rows[1].detail == "Working…")
     }
 
     @Test func opensWorkAtItsMessageAndAnAgentAtItsChat() throws {

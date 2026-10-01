@@ -13,7 +13,7 @@ public enum InboxOpenRequest: Hashable, Sendable {
     case cloudAgentWork(messageID: String)
 }
 
-/// The 32pt mark every Inbox row leads with: a face, a Channel's icon box, or
+/// The mark every Inbox row leads with: a face, a Channel's icon box, or
 /// a Cloud Agent provider glyph.
 public enum InboxMark: Hashable, Sendable {
     case identity(name: String, avatarURL: URL?, presence: AgentPresence?)
@@ -21,7 +21,7 @@ public enum InboxMark: Hashable, Sendable {
     case cloudAgent
 }
 
-/// Every Inbox mark is this size, Agent, Channel, or week card alike.
+/// A week card's mark. Rows draw the same mark at `InboxMetrics.markSize`.
 public let inboxMarkSize: CGFloat = 32
 
 /// One unread Chat: its mark and title, the line that is waiting, and when.
@@ -51,29 +51,34 @@ public struct InboxUnreadRow: Identifiable, Hashable, Sendable {
     }
 }
 
+/// One thing running right now: what it is, how it is going, and where it
+/// came from — the same two lines an Unread row spends on name, age, and the
+/// waiting line.
 public struct InboxHappeningNowRow: Identifiable, Hashable, Sendable {
     public let id: String
     public let mark: InboxMark
+    /// The work's title, or the Agent's name.
     public let title: String
-    public let preview: String
-    /// The trailing status — `Running · 25m`. An Agent in a turn states its
-    /// step as the preview instead, so it carries none.
-    public let meta: String?
+    /// Trails the title: `Running · 25m`, `Queued`, or an Agent's time in its
+    /// step. It is the fact that changes while the row sits there.
+    public let status: String
+    /// The second line: where the work came from, or the step an Agent is on.
+    public let detail: String
     public let open: InboxOpenRequest
 
     public init(
         id: String,
         mark: InboxMark,
         title: String,
-        preview: String,
-        meta: String?,
+        status: String,
+        detail: String,
         open: InboxOpenRequest
     ) {
         self.id = id
         self.mark = mark
         self.title = title
-        self.preview = preview
-        self.meta = meta
+        self.status = status
+        self.detail = detail
         self.open = open
     }
 }

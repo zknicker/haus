@@ -18,12 +18,10 @@ struct InboxHappeningNowSection: View {
                         InboxRowView(
                             mark: row.mark,
                             title: row.title,
-                            preview: row.preview,
-                            onOpen: { onOpen(row.open) }
+                            trailing: row.status,
+                            detail: row.detail
                         ) {
-                            if let meta = row.meta {
-                                Text(meta).lineLimit(1)
-                            }
+                            onOpen(row.open)
                         }
                         .inboxCardRow()
                     }

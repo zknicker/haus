@@ -40,9 +40,13 @@ struct InboxSectionEmpty: View {
 extension View {
     /// A row on the section's grouped surface. The row owns its own insets, so
     /// the mark lands on the same column it did before the page was a List.
+    ///
+    /// The surface is the List's own cell background, never a
+    /// `listRowBackground`: on iOS 26 a custom row background stays square
+    /// and still while the row swipes, so the system cannot lift the row into
+    /// its rounded swipe shape beside the action.
     func inboxCardRow() -> some View {
         listRowInsets(EdgeInsets())
-            .listRowBackground(HausPlatformColor.groupedSurface)
     }
 
     /// A row with no surface: the greeting and the week strip read as page

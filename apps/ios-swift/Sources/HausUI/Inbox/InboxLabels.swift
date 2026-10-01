@@ -34,9 +34,8 @@ public enum InboxActorName {
 /// How long something has been going, in the Cloud Agent grammar every Haus
 /// surface already states elapsed time in: `45s`, `25m`, `2h`, `2h 5m`.
 public enum InboxElapsed {
-    public static func label(since start: Date?, now: Date) -> String? {
-        guard let start else { return nil }
-        return duration(seconds: max(0, Int(now.timeIntervalSince(start))))
+    public static func label(since start: Date, now: Date) -> String {
+        duration(seconds: max(0, Int(now.timeIntervalSince(start))))
     }
 
     static func duration(seconds: Int) -> String {
@@ -46,18 +45,6 @@ public enum InboxElapsed {
         let hours = minutes / 60
         let remainder = minutes % 60
         return remainder == 0 ? "\(hours)h" : "\(hours)h \(remainder)m"
-    }
-
-    /// A step label carries a trailing ellipsis to say "still going". Once an
-    /// elapsed clause follows it the clause says that instead, so the ellipsis
-    /// comes off rather than reading as `Editing files… · 3m`.
-    public static func stepWithElapsed(_ label: String, occurredAt: Date, now: Date) -> String {
-        guard let elapsed = Self.label(since: occurredAt, now: now) else { return label }
-        var step = label
-        while step.hasSuffix("…") || step.hasSuffix(".") {
-            step.removeLast()
-        }
-        return "\(step) · \(elapsed)"
     }
 }
 

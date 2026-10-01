@@ -61,7 +61,17 @@ public struct ChannelIconBox: View {
     /// wash of the foreground rather than a fixed grey.
     private var boxFill: Color {
         ChannelColorPalette.preset(for: appearance.color)?.boxFill(colorScheme)
-            ?? Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.075)
+            ?? Self.mutedFill(colorScheme)
+    }
+
+    /// The neutral box, shared with any mark that sits in a Channel's column.
+    static func mutedFill(_ colorScheme: ColorScheme) -> Color {
+        Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.075)
+    }
+
+    /// The box's corner follows its size, so a larger box keeps its shape.
+    static func cornerRadius(for size: CGFloat) -> CGFloat {
+        size / 3
     }
 
     private var boxShape: AnyShape {
@@ -69,7 +79,7 @@ public struct ChannelIconBox: View {
         case .circle:
             AnyShape(Circle())
         case .roundedRect:
-            AnyShape(RoundedRectangle(cornerRadius: size / 3, style: .continuous))
+            AnyShape(RoundedRectangle(cornerRadius: Self.cornerRadius(for: size), style: .continuous))
         }
     }
 }

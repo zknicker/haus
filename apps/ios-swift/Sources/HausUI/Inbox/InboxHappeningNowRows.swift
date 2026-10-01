@@ -64,12 +64,12 @@ public enum InboxHappeningNowRows {
         return InboxHappeningNowRow(
             id: "work:\(item.work.messageId)",
             mark: .cloudAgent,
-            title: item.work.title,
-            preview: "\(chatLabel) · \(name)",
-            // Status is the row's meta, not its preview: it is the fact that
-            // changes while the row sits there, so it keeps the fixed trailing
-            // column rather than competing with the Chat it came from.
-            meta: CloudAgentPresentation(work: item.work, delegatedBy: name).statusText(at: now),
+            title: workTitle(item.work.title),
+            // Status trails the title rather than joining this line: it is the
+            // fact that changes while the row sits there. The boxed glyph already
+            // says this is Cloud work, so the detail is only where and who.
+            status: CloudAgentPresentation(work: item.work, delegatedBy: name).statusText(at: now),
+            detail: "\(chatLabel) · \(name)",
             open: .cloudAgentWork(messageID: item.work.messageId)
         )
     }
@@ -82,9 +82,17 @@ public enum InboxHappeningNowRows {
             id: "agent:\(agent.id)",
             mark: .identity(name: agent.name, avatarURL: agent.avatarURL, presence: agent.presence),
             title: agent.name,
-            preview: InboxElapsed.stepWithElapsed(agent.step, occurredAt: agent.occurredAt, now: now),
-            meta: nil,
+            status: InboxElapsed.label(since: agent.occurredAt, now: now),
+            detail: agent.step.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? "Working…"
+                : agent.step,
             open: .agent(agent.id)
         )
+    }
+
+    /// Work can be delegated without a title; the row still needs a first line.
+    static func workTitle(_ title: String) -> String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Cloud work" : trimmed
     }
 }
