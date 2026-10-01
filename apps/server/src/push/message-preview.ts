@@ -1,12 +1,11 @@
-import { needsYouPreviewMaxLength, parseHausRichReferences } from '@haus/api';
+import { parseHausRichReferences } from '@haus/api';
 
 /**
- * A Needs you row's plain-text excerpt: rich references read as their sigiled
- * label (`@Ada`, `#product`), whitespace collapses to single spaces, and the
- * result is cut to the preview budget (the Needs you row's by default) with
- * an ellipsis.
+ * A pushed message's plain-text excerpt: rich references read as their
+ * sigiled label (`@Ada`, `#product`), whitespace collapses to single spaces,
+ * and the result is cut to `maxLength` with an ellipsis.
  */
-export function needsYouPreview(content: string, maxLength = needsYouPreviewMaxLength): string {
+export function messagePreview(content: string, maxLength: number): string {
     let plain = '';
     let cursor = 0;
     for (const reference of parseHausRichReferences(content)) {

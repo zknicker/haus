@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient } from './haus-client.ts';
-import { type NeedsYouFixture, startNeedsYouFixture } from './needs-you-fixture.ts';
+import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { deviceToken } from './push-fake-sender.ts';
 
-let fixture: NeedsYouFixture;
+let fixture: NotificationFixture;
 
 beforeAll(async () => {
-    fixture = await startNeedsYouFixture();
+    fixture = await startNotificationFixture();
 });
 
 afterAll(async () => {

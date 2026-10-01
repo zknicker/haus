@@ -196,7 +196,7 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // shorter Haus-only @mention rule in `## @Mentions` (32,401 → 32,395). Ratcheted to the
     // measured render (32,395 → 32,393) when that rule learned to mention even the asker, paid for by
     // cutting the capability section's redundant surface bullet. Lowered (32,393 → 32,281) when an
-    // inline reply to a human's message came to reach their Needs you like a mention, so the
+    // inline reply to a human's message came to address them like a mention, so the
     // "even when replying to whoever asked" clause was cut. Lowered (32,281 → 32,220) when step 4 and the
     // DM silence rule came to require one acknowledgement reaction whose emoji fits the message,
     // paid for by relocating the Cloud agents section's `cloud-agent send` and work-thread

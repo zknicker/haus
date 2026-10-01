@@ -79,7 +79,7 @@ async function seedMentionExamples(db: HausDatabase, context: GalleryContext) {
         discussion: true,
     });
     await galleryMention(db, context, {
-        content: 'Answered @mention · The reply in its Thread cleared it from Needs you.',
+        content: 'Answered @mention · The reply sits in its Thread.',
         answered: true,
     });
     const plain = await galleryMessage(

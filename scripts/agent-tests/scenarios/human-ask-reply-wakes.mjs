@@ -1,22 +1,14 @@
 // An Agent that needs a human asks where the work lives by @mentioning them,
-// inline-replying to their message, or answering in a Thread on it (ADR 0037).
-// Each lands in the human's
-// Inbox Needs you, the human's reply in that same place wakes the Agent for a
-// new turn, and the row clears.
+// inline-replying to their message, or answering in a Thread on it (ADR 0037),
+// and the human's reply in that same place wakes the Agent for a new turn.
 
-import {
-    answerPlacement,
-    findNeedsYouRow,
-    humanAddressingReason,
-    humanAuthorId,
-    staleNeedsYouRow,
-} from '../needs-you.mjs';
+import { answerPlacement, humanAddressingReason, humanAuthorId } from '../human-addressing.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'An Agent that needs a human decision addresses that human in an ordinary message — an @mention with a resolved user:// link, an inline reply to their message, or a message in a Thread on it — the exchange appears in the human’s inbox.needsYou, and the human’s reply in the same place wakes the Agent for a new turn and clears the row.',
+        'An Agent that needs a human decision addresses that human in an ordinary message — an @mention with a resolved user:// link, an inline reply to their message, or a message in a Thread on it — and the human’s reply in the same place wakes the Agent for a new turn.',
     name: 'human-ask-reply-wakes',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
@@ -60,14 +52,7 @@ export default defineScenario({
             questionId: question.message.id,
             thread: question.thread,
         });
-        const beforeAnswer = await kit.trpc('inbox.needsYou', { serverId });
-        const row = findNeedsYouRow(beforeAnswer, placement.needsYouChatId);
-        expect(Boolean(row), 'Needs you row for the question').toBe(true);
-        expect(row?.reason, 'Needs you reason').toBe(question.reason);
-        expect(
-            (row?.latest.sequence ?? 0) >= question.message.sequence,
-            'Needs you row covers the question'
-        ).toBe(true);
+        expect(question.reason !== null, 'the question addresses the human').toBe(true);
 
         log('answering where the question was asked');
         const answerToken = marker('PICK');
@@ -80,26 +65,17 @@ export default defineScenario({
             ...(placement.thread ? { thread: placement.thread } : {}),
             ...(placement.replyToMessageId ? { replyToMessageId: placement.replyToMessageId } : {}),
         });
-        const answer = (await kit.readMessages(placement.needsYouChatId)).find((message) =>
+        const answer = (await kit.readMessages(placement.answerChatId)).find((message) =>
             message.content.includes(answerToken)
         );
         if (!answer) {
-            throw new Error(`The human answer never landed in ${placement.needsYouChatId}.`);
+            throw new Error(`The human answer never landed in ${placement.answerChatId}.`);
         }
 
         const second = await settleTurn(worker.id);
         expect(second.status, 'woken turn status').toBe('completed');
         expect(second.failureKind ?? 'none', 'woken turn failure kind').toBe('none');
         expect(second.runId !== first.runId, 'the answer woke a new turn').toBe(true);
-
-        log('checking the row cleared');
-        const afterAnswer = await kit.trpc('inbox.needsYou', { serverId });
-        // A later @mention from the Agent is new addressing; only the answered
-        // question must be gone.
-        expect(
-            staleNeedsYouRow(afterAnswer, placement.needsYouChatId, answer.sequence),
-            'Needs you row for the answered question'
-        ).toBe(null);
     },
 });
 

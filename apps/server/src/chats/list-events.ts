@@ -10,6 +10,7 @@ import type { ChatLifecycleAction } from './lifecycle-events.ts';
 
 const replyParentMessages = alias(chatMessagesTable, 'reply_parent_message');
 const threadAnchorMessages = alias(chatMessagesTable, 'thread_anchor_message');
+const parentChats = alias(chatsTable, 'parent_chat');
 
 export async function listChatEvents(
     db: HausDatabase,
@@ -27,6 +28,7 @@ export async function listChatEvents(
             chatAction: chatEventsTable.chatAction,
             chatId: chatEventsTable.chatId,
             cloudAgentWorkId: chatEventsTable.cloudAgentWorkId,
+            conversationKind: sql<string | null>`coalesce(${parentChats.kind}, ${chatsTable.kind})`,
             createdAt: chatEventsTable.createdAt,
             cursor: chatEventsTable.cursor,
             id: chatEventsTable.id,
@@ -50,6 +52,13 @@ export async function listChatEvents(
             and(
                 eq(chatsTable.serverId, chatEventsTable.serverId),
                 eq(chatsTable.id, chatEventsTable.chatId)
+            )
+        )
+        .leftJoin(
+            parentChats,
+            and(
+                eq(parentChats.serverId, chatsTable.serverId),
+                eq(parentChats.id, chatsTable.parentChatId)
             )
         )
         .leftJoin(
@@ -161,6 +170,7 @@ export async function listChatEvents(
                 ...common,
                 authorUserId: event.messageAuthorUserId,
                 chatId: event.chatId as string,
+                conversationKind: readConversationKind(event.conversationKind, event.chatId),
                 mentionedUserIds: event.messageMentionedUserIds ?? [],
                 messageId: event.messageId as string,
                 parentChatId: event.parentChatId,
@@ -252,4 +262,11 @@ function replayableLifecycleChat(userId: string): SQL {
                 and ${visibleChats(userId)}
         )
     )`;
+}
+
+function readConversationKind(kind: string | null, chatId: string | null): 'channel' | 'dm' {
+    if (kind !== 'channel' && kind !== 'dm') {
+        throw new Error(`Message event Chat ${chatId ?? 'unknown'} has no Channel or DM.`);
+    }
+    return kind;
 }

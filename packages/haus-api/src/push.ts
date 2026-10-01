@@ -1,12 +1,12 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
-import { needsYouReasons } from './needs-you.ts';
+import { messageNotificationReasons } from './message-notification.ts';
 
 /**
  * iPhone push (APNs). A device registers its token for the signed-in human;
- * Server sends one alert per message that newly addresses that human under the
- * Needs you rules (ADR 0037). Registration is per human, not per Server: a
- * device receives pushes from every Server the human belongs to.
+ * Server sends one alert per message that notifies that human under
+ * `messageNotificationReason` (ADR 0038). Registration is per human, not per
+ * Server: a device receives pushes from every Server the human belongs to.
  */
 export const pushEnvironments = ['sandbox', 'production'] as const;
 
@@ -75,8 +75,8 @@ export const pushNotificationConversationSchema = z.discriminatedUnion('kind', [
  * Notification from `sender` and `conversation`; the plain alert is the
  * fallback when it cannot. `threadAnchorMessageId` is non-null
  * when the message is in a Thread, whose Chat is then `chatId`. `reason` is
- * the Needs you row's reason for this message; the extension maps it to Focus
- * donation metadata (`mention`, `reply`).
+ * why the message notifies the human (`messageNotificationReason`); the
+ * extension maps it to Focus donation metadata (`mention`, `reply`).
  */
 export const pushNotificationPayloadSchema = z
     .object({
@@ -88,7 +88,10 @@ export const pushNotificationPayloadSchema = z
                         title: z.string().min(1),
                     })
                     .strict(),
-                /** The human's Needs you row count across every Server. */
+                /**
+                 * The human's unread Chats across every Server: Channels and
+                 * DMs with an `unreadCount` above zero in `chat.list`.
+                 */
                 badge: z.number().int().nonnegative().optional(),
                 'mutable-content': z.literal(1),
                 sound: z.literal('default'),
@@ -99,7 +102,7 @@ export const pushNotificationPayloadSchema = z
         conversation: pushNotificationConversationSchema,
         conversationChatId: idSchema,
         messageId: idSchema,
-        reason: z.enum(needsYouReasons),
+        reason: z.enum(messageNotificationReasons),
         sender: pushNotificationSenderSchema,
         serverId: idSchema,
         threadAnchorMessageId: idSchema.nullable(),

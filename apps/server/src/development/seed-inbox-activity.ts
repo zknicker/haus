@@ -17,8 +17,8 @@ const hour = 60 * minute;
 
 /**
  * Gives the demo workspace the activity the human Inbox is a lens over: unread
- * conversations with a last line, two Needs you rows (Cove's @mention and
- * Tiny's DM question), a claim an Agent left behind,
+ * conversations with a last line (Tiny's DM question among them), Cove's
+ * @mention of the owner, a claim an Agent left behind,
  * one settled Cloud Agent work, and a week of Agent turns. Every row is shaped
  * the way the product writes it, so the page can be judged from a fresh boot
  * without hand-building data.
@@ -108,8 +108,8 @@ async function seedAllChannelActivity(
 }
 
 /**
- * Cove asks the owner by @mention where the work lives (ADR 0037): the Channel
- * Needs you row. There is no question record; the reply is the answer.
+ * Cove asks the owner by @mention where the work lives (ADR 0037). There is no
+ * question record; the reply is the answer.
  */
 async function seedCoveMention(tx: HausDatabase, context: InboxSeedContext, at: Date) {
     const [owner] = await tx
@@ -188,8 +188,8 @@ async function seedProductChannelActivity(
 }
 
 /**
- * Blippy's DM: an Agent line the owner already answered, so it is no Needs you
- * row. Tiny's DM: an unanswered question, the DM Needs you row.
+ * Blippy's DM: an Agent line the owner already answered. Tiny's DM: an
+ * unanswered question.
  */
 async function seedDirectMessageActivity(
     tx: HausDatabase,

@@ -1,15 +1,11 @@
 import { expect, test } from 'bun:test';
 import {
     answerPlacement,
-    findNeedsYouRow,
     humanAddressingReason,
     humanAuthorId,
     humanMentionLink,
     mentionsHuman,
-    staleNeedsYouRow,
-} from './needs-you.mjs';
-
-const row = (chatId, sequence) => ({ chatId, latest: { sequence } });
+} from './human-addressing.mjs';
 
 test('recognizes a resolved human mention by its user:// link, not the bare handle', () => {
     expect(humanMentionLink('usr_ada')).toBe('user://usr_ada');
@@ -66,15 +62,6 @@ test("any message in a Thread on the human's message addresses them as a reply",
     ).toBe(null);
 });
 
-test('a row answered through a sequence is stale; newer addressing is not', () => {
-    const rows = [row('cht_thread', 7), row('cht_other', 2)];
-    expect(findNeedsYouRow(rows, 'cht_thread')).toEqual(row('cht_thread', 7));
-    expect(findNeedsYouRow(rows, 'cht_missing')).toBe(null);
-    expect(staleNeedsYouRow(rows, 'cht_thread', 7)).toEqual(row('cht_thread', 7));
-    expect(staleNeedsYouRow(rows, 'cht_thread', 6)).toBe(null);
-    expect(staleNeedsYouRow(rows, 'cht_missing', 9)).toBe(null);
-});
-
 test('answers inside the Thread the question arrived in, or inline at top level', () => {
     expect(
         answerPlacement({
@@ -84,14 +71,14 @@ test('answers inside the Thread the question arrived in, or inline at top level'
         })
     ).toEqual({
         chatId: 'cht_channel',
-        needsYouChatId: 'cht_thread',
+        answerChatId: 'cht_thread',
         thread: { anchorMessageId: 'msg_anchor' },
     });
     expect(
         answerPlacement({ channelId: 'cht_channel', questionId: 'msg_question', thread: null })
     ).toEqual({
         chatId: 'cht_channel',
-        needsYouChatId: 'cht_channel',
+        answerChatId: 'cht_channel',
         replyToMessageId: 'msg_question',
     });
 });

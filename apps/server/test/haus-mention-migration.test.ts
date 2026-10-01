@@ -93,6 +93,19 @@ test('0052 retires Asks, releases human tasks, and backfills mentions', async ()
         const [bodyKind] = await database`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'chat_messages_body_kind'`;
         expect(bodyKind.definition).not.toContain("'ask'");
+
+        // ADR 0038 retires the Done marker; read markers survive untouched.
+        journal.entries = full.entries.filter((entry: { idx: number }) => entry.idx <= 54);
+        await writeFile(journalPath, JSON.stringify(journal));
+        await migrateHausDatabase(url.toString(), 'haus', 'haus', folder);
+        expect(
+            await database`SELECT chat_id, reader_user_id, sequence
+                FROM chat_reads ORDER BY chat_id, reader_user_id`
+        ).toEqual([
+            { chat_id: 'cht_dm', reader_user_id: 'usr_bo', sequence: 0 },
+            { chat_id: 'cht_product', reader_user_id: 'usr_ada', sequence: 1 },
+            { chat_id: 'cht_thread', reader_user_id: 'usr_ada', sequence: 0 },
+        ]);
     } finally {
         await database?.close();
         await admin.unsafe('DROP DATABASE IF EXISTS haus_mention_migration_test');

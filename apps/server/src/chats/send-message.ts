@@ -27,7 +27,7 @@ import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
 import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
-import { readThreadAnchorAuthorUserId } from './message-created-event.ts';
+import { readConversationKind, readThreadAnchorAuthorUserId } from './message-created-event.ts';
 import { toChatMessage } from './message-shape.ts';
 import {
     InvalidInlineReplyError,
@@ -252,6 +252,10 @@ export async function sendChatMessage(
                 {
                     authorUserId: message.authorUserId,
                     chatId: message.chatId,
+                    conversationKind: await readConversationKind(tx, {
+                        chatId: message.chatId,
+                        serverId: input.serverId,
+                    }),
                     createdAt: event.createdAt.toISOString(),
                     cursor: event.cursor.toString(),
                     id: event.id,

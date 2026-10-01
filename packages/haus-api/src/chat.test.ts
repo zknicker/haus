@@ -2,12 +2,12 @@ import { expect, test } from 'bun:test';
 import {
     channelCreateInputSchema,
     channelUpdateInputSchema,
-    chatMarkReadInputSchema,
     chatMessageSchema,
     chatMessagesInputSchema,
     chatSendInputSchema,
     serverdurableeventSchema,
 } from './chat.ts';
+import { chatMarkReadInputSchema } from './chat-read.ts';
 
 test('Chat sends accept only client intent and never an authoritative actor', () => {
     expect(
@@ -105,6 +105,7 @@ test('Server messages and durable events keep stable Server and Chat identity', 
         serverdurableeventSchema.parse({
             authorUserId: null,
             chatId: message.chatId,
+            conversationKind: 'channel',
             createdAt: message.createdAt,
             cursor: '4',
             id: 'evt_one',

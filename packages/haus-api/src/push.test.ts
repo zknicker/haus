@@ -24,7 +24,7 @@ const payload = {
 };
 
 describe('iPhone push payload contract', () => {
-    test('requires a known Needs you reason', () => {
+    test('requires a known notification reason', () => {
         for (const reason of ['dm', 'mention', 'reply']) {
             expect(pushNotificationPayloadSchema.safeParse({ ...payload, reason }).success).toBe(
                 true

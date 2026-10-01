@@ -23,6 +23,7 @@ import { reactToChatMessageProcedure } from './react.ts';
 import { searchChatMessagesProcedure } from './search.ts';
 import { sendChatMessageProcedure } from './send.ts';
 import { unarchiveChannelProcedure } from './unarchive-channel.ts';
+import { unreadChatCountProcedure } from './unread-chat-count.ts';
 import { updateChannelProcedure } from './update-channel.ts';
 
 export const chatRouter = createRouter({
@@ -51,4 +52,5 @@ export const chatRouter = createRouter({
     send: sendChatMessageProcedure,
     updateChannel: updateChannelProcedure,
     unarchiveChannel: unarchiveChannelProcedure,
+    unreadChatCount: unreadChatCountProcedure,
 });

@@ -6,6 +6,7 @@ import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
+import { readConversationKind } from '../chats/message-created-event.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -147,6 +148,10 @@ export async function createTask(
         const messageEvent: ServerDurableEvent = {
             authorUserId: message.authorUserId,
             chatId: input.chatId,
+            conversationKind: await readConversationKind(tx, {
+                chatId: input.chatId,
+                serverId: input.serverId,
+            }),
             createdAt: eventRow.createdAt.toISOString(),
             cursor: cursor.toString(),
             id: eventRow.id,

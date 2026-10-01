@@ -4,11 +4,11 @@ import {
     pushNotificationPayloadSchema,
     pushNotificationSenderNameMaxLength,
 } from '@haus/api';
-import type { NeedsYouChatRow } from '../needs-you/needs-you-query.ts';
+import type { PushMessage } from './push-message.ts';
 import { buildPushPayload } from './push-payload.ts';
 
 const appOrigin = 'https://app.haus.test';
-const input = { appOrigin, badge: 3, serverId: 'srv_main' };
+const input = { appOrigin, badge: 3, reason: 'dm', serverId: 'srv_main' } as const;
 
 describe('buildPushPayload', () => {
     test('an Agent DM carries the Agent as sender with an absolute avatar URL', () => {
@@ -66,7 +66,7 @@ describe('buildPushPayload', () => {
         });
     });
 
-    test('the push carries the reason of the Needs you row it tops', () => {
+    test('the push carries why the message notifies its recipient', () => {
         for (const reason of ['mention', 'reply'] as const) {
             const payload = buildPushPayload(
                 row({
@@ -74,9 +74,8 @@ describe('buildPushPayload', () => {
                     authorAgentId: 'agt_orbit',
                     conversationKind: 'channel',
                     conversationName: 'product',
-                    reason,
                 }),
-                input
+                { ...input, reason }
             );
             expect(payload?.reason).toBe(reason);
             expect(pushNotificationPayloadSchema.parse(payload).reason).toBe(reason);
@@ -125,11 +124,11 @@ describe('buildPushPayload', () => {
                 conversationKind: 'channel',
                 conversationName: 'x'.repeat(32),
                 messageId: `msg_${'d'.repeat(60)}`,
-                reason: 'mention',
             }),
             {
                 appOrigin: `https://${'h'.repeat(60)}.example.com`,
                 badge: 99_999,
+                reason: 'mention',
                 serverId: `srv_${'e'.repeat(60)}`,
             }
         );
@@ -143,31 +142,22 @@ describe('buildPushPayload', () => {
     });
 });
 
-function row(overrides: Partial<NeedsYouChatRow>): NeedsYouChatRow {
+function row(overrides: Partial<PushMessage>): PushMessage {
     return {
-        addressedCount: 1,
         anchorMessageId: null,
         authorAgentAvatarId: null,
-        authorAgentDescription: null,
         authorAgentDisplayName: null,
         authorAgentId: null,
-        authorAgentRetiredAt: null,
         authorUserAvatarId: null,
-        authorUserDescription: null,
         authorUserDisplayName: null,
         authorUserId: null,
-        authorUserRevokedAt: null,
         chatId: 'cht_dm',
         content: 'Should I run it?',
         conversationChatId: 'cht_dm',
         conversationKind: 'dm',
         conversationName: null,
-        createdAt: new Date('2026-09-29T12:00:00.000Z'),
-        dmAgentId: null,
+        dmMemberUserIds: ['usr_ada'],
         messageId: 'msg_1',
-        peerUserId: null,
-        reason: 'dm',
-        sequence: 1,
         ...overrides,
     };
 }
