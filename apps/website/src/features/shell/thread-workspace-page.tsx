@@ -9,9 +9,9 @@ import { ThreadContent } from '../servers/thread/thread-content.tsx';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 
 /**
- * A Thread tab's body, in either tab group: the same Thread surface the chat
- * side pane and the Task peek host, in a centered reading column that fills
- * the split and stays readable in the main strip. Replying pins a preview
+ * A Thread tab's body, in the side pane or full width: the same Thread surface
+ * the chat side pane and the Task peek host, in a centered reading column that
+ * fills the side pane and stays readable full width. Replying pins a preview
  * tab; "View in chat" opens the chat scrolled to the anchor, flashing it. The
  * tab's own close button closes it, so the Thread header shows none. Blank
  * while the Thread loads; the always-mounted tab (`ThreadWorkspaceTab`)

@@ -267,10 +267,15 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
             }
             open(value);
         },
-        hasActiveTab: () => activeId !== null,
-        /** Runs a page action on the selected tab; false when no browser tab is selected. */
+        /**
+         * True while the selected tab's page is on screen. The App keeps a
+         * selected tab while hiding its page (a hidden side pane, the primary
+         * tab over it) by reporting no bounds; page shortcuts then do nothing.
+         */
+        hasActiveTab: () => activeId !== null && bounds !== null,
+        /** Runs a page action on the shown tab; false when no browser page is shown. */
         pageAction: (action) => {
-            const tab = tabs.get(activeId);
+            const tab = bounds === null ? undefined : tabs.get(activeId);
             if (!tab) {
                 return false;
             }

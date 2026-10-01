@@ -82,7 +82,7 @@ test('reopened tabs return to their index, clamped to the current strip', () => 
     expect(insertTabAt([...strip, ref], ref, 0)[0]).toEqual(ref);
 });
 
-test('closing an Agent tab remembers its section; a split tab indexes after the main strip', () => {
+test('closing an Agent tab remembers its section at its strip index', () => {
     const agent = { agentId: 'blippy', section: 'skills' } as const;
     const ref: ClosableTabRef = { kind: 'agent', agentId: 'blippy' };
     expect(closedTabEntry(ref, [...strip, ref], pages, [artifact], [agent])).toEqual({

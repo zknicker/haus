@@ -475,7 +475,7 @@
     }
 
     /*
-     * The split's preview tab (an unpinned Thread the next one replaces) sets
+     * The preview tab (an unpinned Thread the next one replaces) sets
      * its title in italics, the editor convention for a tab that will not stay.
      */
     .workspace-tab--preview .workspace-tab__label {
@@ -705,13 +705,11 @@
     }
 
     /*
-     * The split (features/shell/workspace-split-pane.tsx): a second tab group
-     * docked right of the content area, a hairline from it. Its strip is one
-     * band tall, holds the same tab anatomy as the main strip at the same
-     * height, and starts each tab from a narrower basis because the column
-     * is narrow (420px and up).
+     * Split mode's side pane (features/shell/workspace-side-pane.tsx): docked
+     * right of the routed page, a hairline from it. Its strip sits in the
+     * window band above it (`.workspace-band-trail`).
      */
-    .workspace-split {
+    .workspace-side-pane {
         position: relative;
         display: flex;
         height: 100%;
@@ -722,13 +720,63 @@
         background: var(--background);
     }
 
-    .workspace-split__strip {
-        --workspace-tab-height: calc(var(--spacing) * 8 + 2px);
+    /*
+     * Split mode's title over the routed page: the primary tab's mark and name
+     * as plain band text, taking the room the expanded strip would.
+     */
+    .workspace-page-title {
+        display: flex;
+        min-width: 0;
+        flex: 1 1 0;
+        align-items: center;
+        gap: calc(var(--spacing) * 2);
+        padding-inline-start: calc(var(--spacing) * 3);
+    }
+
+    .workspace-page-title__label {
+        overflow: hidden;
+        font-size: var(--text-sm);
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /*
+     * The band's end: the layout controls and Settings. While the side pane
+     * shows, it also holds the pane's strip and is as wide as the pane plus the
+     * card's own inset past the band's end padding, so the strip starts over
+     * the pane's leading edge. The pane's tabs start from a narrower basis.
+     */
+    .workspace-band-trail {
+        display: flex;
+        min-width: 0;
+        height: 100%;
+        flex-shrink: 0;
+        align-items: center;
+        gap: calc(var(--spacing) * 2);
+    }
+
+    .workspace-band-trail[data-side-pane] {
         --workspace-tab-width: 10rem;
-        height: var(--app-shell-band-height);
-        flex: 0 0 auto;
+        width: calc(
+            var(--workspace-side-pane-width) + var(--shell-card-gutter, 0px) +
+                var(--shell-card-border-width, 0px) - var(--spacing) * 2
+        );
+    }
+
+    /* The hidden side pane's open-tabs list (features/shell/workspace-layout-controls.tsx). */
+    .workspace-open-tabs {
+        display: flex;
+        max-width: 18rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: calc(var(--spacing) * 0.5);
+    }
+
+    .workspace-open-tabs__title {
         padding-inline: calc(var(--spacing) * 2);
-        border-block-end: 1px solid var(--separator);
+        color: var(--muted);
+        font-size: var(--text-xs);
     }
 
     /*
@@ -1925,6 +1973,11 @@
         flex-shrink: 0;
         align-items: center;
         gap: var(--spacing);
+    }
+
+    /* The divider between the page's actions and the layout controls (workspace-layout-controls.tsx). */
+    .workspace-band-end > .separator--vertical {
+        height: calc(var(--spacing) * 4);
     }
 
     /* No start inset: the first tab's edge lands on the card edge (canvas) or divider (band). */

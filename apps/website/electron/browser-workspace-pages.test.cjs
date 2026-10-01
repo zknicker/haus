@@ -41,6 +41,7 @@ test('mail links leave for the OS while other schemes stay blocked', () => {
 test('reload, hard reload, and zoom act on the selected page and publish its zoom', () => {
     const { workspace, pageAt } = fixture();
     workspace.open('https://example.com');
+    workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
     const contents = pageAt(0);
     workspace.command({ kind: 'navigate', action: 'reload' });
     workspace.command({ kind: 'navigate', action: 'hard-reload' });
@@ -49,9 +50,15 @@ test('reload, hard reload, and zoom act on the selected page and publish its zoo
     expect(workspace.snapshot().tabs[0].zoomFactor).toBe(1.1);
     workspace.command({ kind: 'navigate', action: 'zoom-reset' });
     expect(workspace.snapshot().tabs[0].zoomFactor).toBe(1);
+    // A selected page the App hides (no bounds) takes no page shortcuts.
+    workspace.setBounds(null);
+    expect(workspace.pageAction('reload')).toBe(false);
+    expect(workspace.hasActiveTab()).toBe(false);
+    workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
     workspace.command({ kind: 'select', id: null });
     expect(workspace.pageAction('reload')).toBe(false);
     expect(workspace.hasActiveTab()).toBe(false);
+    expect(contents.calls).toEqual(['reload', 'reloadIgnoringCache']);
 });
 
 test('find reports match counts per tab until the session stops', () => {
@@ -94,6 +101,7 @@ test('right-clicking a page pops its native menu', () => {
 test('page-focused shortcuts reload the page in main and forward tab actions to the App', () => {
     const { workspace, pageAt, window } = fixture();
     workspace.open('https://example.com');
+    workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
     const contents = pageAt(0);
     const press = (input) => contents.emit('before-input-event', { preventDefault: noop }, input);
     press({ type: 'keyDown', key: 'r', meta: true });

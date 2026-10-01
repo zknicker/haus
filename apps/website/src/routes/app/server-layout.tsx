@@ -18,7 +18,7 @@ import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sideb
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarSettingsAction } from '../../features/shell/sidebar-settings-action.tsx';
 import { WindowBand } from '../../features/shell/window-band.tsx';
-import { WorkspaceSplitPane } from '../../features/shell/workspace-split-pane.tsx';
+import { WorkspaceSidePane } from '../../features/shell/workspace-side-pane.tsx';
 import { HausUpdateFooterContainer } from '../../features/updates/haus-update-footer-container.tsx';
 import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
@@ -219,7 +219,7 @@ export function ServerLayout() {
                                                                 />
                                                             </ShellFrame>
                                                         </BrowserWorkspaceBody>
-                                                        <WorkspaceSplitPane />
+                                                        <WorkspaceSidePane />
                                                     </div>
                                                 </div>
                                             </ResizableAppLayout>

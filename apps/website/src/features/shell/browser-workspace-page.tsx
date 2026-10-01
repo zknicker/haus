@@ -4,18 +4,20 @@ import {
     useBrowserViewBounds,
 } from '../../hooks/browser/use-browser-view-bounds.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
+import { cn } from '../../lib/utils.ts';
 import { BrowserFindBar } from './browser-find-bar.tsx';
 import { BrowserStartPage } from './browser-start-page.tsx';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 import { BrowserWorkspaceToolbar } from './browser-workspace-toolbar.tsx';
 
-export function BrowserWorkspacePage() {
+/** A browser tab's page: its toolbar, then the host its native view is placed over. */
+export function BrowserWorkspacePage({ className, id }: { className?: string; id: string }) {
     const workspace = useBrowserWorkspace();
-    const tab = workspace?.state.tabs.find((item) => item.id === workspace.state.activeId);
-    return tab ? <BrowserPage key={tab.id} tab={tab} /> : null;
+    const tab = workspace?.state.tabs.find((item) => item.id === id);
+    return tab ? <BrowserPage className={className} key={tab.id} tab={tab} /> : null;
 }
 
-function BrowserPage({ tab }: { tab: BrowserTab }) {
+function BrowserPage({ className, tab }: { className?: string; tab: BrowserTab }) {
     const host = React.useRef<HTMLDivElement>(null);
     const snapshot = useBrowserViewBounds(
         host,
@@ -25,7 +27,7 @@ function BrowserPage({ tab }: { tab: BrowserTab }) {
     return (
         <section
             aria-label={`Browser: ${tab.title}`}
-            className="absolute inset-0 z-10 flex flex-col bg-background"
+            className={cn('flex min-h-0 flex-col bg-background', className)}
         >
             <BrowserWorkspaceToolbar tab={tab} />
             <BrowserFindBar tab={tab} />

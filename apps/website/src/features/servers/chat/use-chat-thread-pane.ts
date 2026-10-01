@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom';
 import { setChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { usePendingMessageReveal } from '../../../hooks/servers/use-pending-message-reveal.ts';
 import { type OpenThread, useOpenThread } from '../../../hooks/threads/use-open-thread.ts';
-import type { TabPlacement } from '../../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-selection.ts';
 
 /**
@@ -86,9 +85,9 @@ export function useChatThreadPane({
     // The transcript's render context reaches rows through React context; fresh
     // callbacks would rebuild it and re-render the whole transcript.
     const open = React.useCallback(
-        (next: ChatMessage, initialSummary: ThreadSummary | null, placement?: TabPlacement) => {
+        (next: ChatMessage, initialSummary: ThreadSummary | null) => {
             if (openThreadTab) {
-                openThreadTab(chatId, next.id, { placement });
+                openThreadTab(chatId, next.id);
                 return;
             }
             closeRequestedRef.current = false;

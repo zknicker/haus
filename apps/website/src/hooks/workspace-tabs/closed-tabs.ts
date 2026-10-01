@@ -10,9 +10,8 @@ import {
 
 /**
  * A tab closed this session, newest last, for Reopen Closed Tab (⌘⇧T).
- * `index` is its position in the main strip, primary tab included, when it
- * closed; a split tab remembers its place after the main strip's tabs, and
- * every closed tab reopens in the main strip.
+ * `index` is its position among the closable tabs when it closed; it reopens
+ * there, selected.
  */
 export type ClosedTab =
     | {
@@ -73,11 +72,11 @@ export function rememberClosedTab(stack: readonly ClosedTab[], entry: ClosedTab)
 }
 
 /** Places `ref` at `index` (clamped) in the strip, moving it if it is already there. */
-export function insertTabAt(
-    strip: readonly WorkspaceTabRef[],
-    ref: WorkspaceTabRef,
+export function insertTabAt<Ref extends WorkspaceTabRef>(
+    strip: readonly Ref[],
+    ref: Ref,
     index: number
-): WorkspaceTabRef[] {
+): Ref[] {
     const id = workspaceTabId(ref);
     const rest = strip.filter((item) => workspaceTabId(item) !== id);
     const at = Math.max(0, Math.min(index, rest.length));

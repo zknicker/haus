@@ -1,6 +1,5 @@
 import type { CloudAgentWork } from '@haus/api';
 import * as React from 'react';
-import type { TabPlacement } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
 import type { SessionMark } from './session/session-mark-model.ts';
@@ -69,8 +68,7 @@ export interface TranscriptRenderContextValue {
     onActorClick?: (actor: TranscriptActor) => void;
     /** Reveals the parent excerpt's message in the current Channel/DM. */
     onOpenInlineReply?: InlineReplyNavigation;
-    /** `placement` carries a Cmd-click; desktop opens the Thread tab in the main strip. */
-    onOpenThread: (row: TranscriptMessageRow, placement?: TabPlacement) => void;
+    onOpenThread: (row: TranscriptMessageRow) => void;
     /** Selects a durable Channel/DM message as the next inline reply parent. */
     onSelectInlineReply?: (message: TranscriptMessage) => void;
     /**

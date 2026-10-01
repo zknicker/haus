@@ -4,7 +4,6 @@ import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.t
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
-import { agentProfilePlacement } from '../members/agent-profile-link.tsx';
 import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
 import type { TranscriptActorProfile } from './transcript-contract.ts';
 
@@ -111,9 +110,7 @@ function AgentTurnProfileButton({
         <button
             aria-label={`Open ${displayName}'s profile`}
             className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={(event) =>
-                openAgentProfile(agentId, { placement: agentProfilePlacement(event) })
-            }
+            onClick={() => openAgentProfile(agentId)}
             type="button"
         >
             {children}

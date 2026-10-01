@@ -11,10 +11,13 @@ import {
 } from './browser-shortcut-keys.ts';
 import type { BrowserFind } from './use-browser-find.ts';
 
-type ShortcutTabs = Pick<WorkspaceTabs, 'activeTab' | 'reopenClosedTab' | 'selectTab' | 'tabs'>;
+type ShortcutTabs = Pick<
+    WorkspaceTabs,
+    'reopenClosedTab' | 'selectTab' | 'selectedTab' | 'stripTabs'
+>;
 
 interface ShortcutTarget {
-    /** The selected browser tab, if a browser tab is selected. */
+    /** The shown browser tab, if a browser page is on screen. */
     browserTab: BrowserTab | null;
     command: (input: BrowserCommand) => void;
     find: BrowserFind;
@@ -105,12 +108,12 @@ function runBrowserShortcut(shortcut: BrowserShortcut, { command, find, tabs }: 
         case 'previous-tab':
             selectIfAny(
                 tabs,
-                relativeTab(tabs.tabs, tabs.activeTab, shortcut === 'next-tab' ? 1 : -1)
+                relativeTab(tabs.stripTabs, tabs.selectedTab, shortcut === 'next-tab' ? 1 : -1)
             );
             return;
         default:
             if (shortcut.startsWith('tab-')) {
-                selectIfAny(tabs, numberedTab(tabs.tabs, Number(shortcut.slice(4))));
+                selectIfAny(tabs, numberedTab(tabs.stripTabs, Number(shortcut.slice(4))));
             }
     }
 }

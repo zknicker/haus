@@ -1,30 +1,30 @@
 import type * as React from 'react';
 import { useBrowserWorkspace, useCoveringTabSelected } from './browser-workspace-context.tsx';
-import { BrowserWorkspacePage } from './browser-workspace-page.tsx';
-import { MainWorkspaceTabPage } from './workspace-tab-page.tsx';
+import { ClosableTabPage } from './workspace-tab-page.tsx';
 
+/** The routed page's column; in expanded mode the selected closable tab covers it. */
 export function BrowserWorkspaceBody({ children }: { children: React.ReactNode }) {
-    const active = useCoveringTabSelected();
-    const focusGroup = useBrowserWorkspace()?.focusGroup;
+    const covering = useCoveringTabSelected();
+    const workspace = useBrowserWorkspace();
+    const shown = covering ? workspace?.shownClosable : null;
     return (
-        // Pointer and focus inside the main column point Command-W at the main strip.
+        // Pointer and focus inside the routed page point Command-W away from the side pane.
         <div
             className="relative flex min-h-0 min-w-0 flex-1"
-            onFocusCapture={() => focusGroup?.('main')}
-            onPointerDownCapture={() => focusGroup?.('main')}
+            onFocusCapture={() => workspace?.focusPane('primary')}
+            onPointerDownCapture={() => workspace?.focusPane('primary')}
         >
             {/* `isolate` keeps the chat's own z-indexed layers (composer, side pane)
                 from stacking above the browser page, which is opaque while its
                 native view hides behind an overlay. */}
             <div
-                aria-hidden={active || undefined}
+                aria-hidden={covering || undefined}
                 className="isolate flex min-h-0 min-w-0 flex-1"
-                inert={active}
+                inert={covering}
             >
                 {children}
             </div>
-            <BrowserWorkspacePage />
-            <MainWorkspaceTabPage />
+            {shown ? <ClosableTabPage className="absolute inset-0 z-10" tabRef={shown} /> : null}
         </div>
     );
 }

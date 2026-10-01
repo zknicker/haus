@@ -12,7 +12,7 @@ import { PrimaryTabMark, WorkspaceTabMarkSlot } from './workspace-tab-mark.tsx';
 
 /**
  * A Thread tab: its root message's excerpt beside its chat's mark, blank while
- * either loads. The split's preview tab sets its title in italics until it is
+ * either loads. The preview tab sets its title in italics until it is
  * pinned; double-clicking pins it. It stays mounted while unselected, so it
  * closes itself once the Thread's chat or anchor is gone.
  */
@@ -31,7 +31,7 @@ export function ThreadWorkspaceTab({ tabRef }: { tabRef: ThreadTabRef }) {
     const chat = thread.chat;
     const label = thread.anchor ? threadTabLabel(thread.anchor.content) : '';
     const place = chat ? threadTabPlace(chat) : null;
-    const preview = sameTab(workspace?.split.preview ?? null, tabRef);
+    const preview = sameTab(workspace?.preview ?? null, tabRef);
     return (
         <ClosableWorkspaceTab
             className={preview ? 'workspace-tab--preview' : undefined}

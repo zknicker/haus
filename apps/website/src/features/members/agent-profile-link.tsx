@@ -1,9 +1,5 @@
-import type * as React from 'react';
 import { Link, type LinkProps, useParams } from 'react-router-dom';
-import {
-    type OpenAgentProfileOptions,
-    useOpenAgentProfile,
-} from '../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { agentProfileRoute } from '../servers/server-routes.ts';
 import type { AgentSection } from './agent-profile/agent-sections.ts';
 
@@ -24,21 +20,13 @@ export function AgentProfileLink({
         <Link
             {...props}
             onClick={(event) => {
-                const placement = agentProfilePlacement(event);
                 if (event.button !== 0 || event.shiftKey || event.altKey) {
                     return;
                 }
                 event.preventDefault();
-                openAgentProfile(agentId, { placement, section });
+                openAgentProfile(agentId, { section });
             }}
             to={agentProfileRoute(slug, agentId, section)}
         />
     );
-}
-
-/** Cmd/Ctrl-click always lands in the main strip (ADR 0038). */
-export function agentProfilePlacement(
-    event: Pick<React.MouseEvent, 'ctrlKey' | 'metaKey'>
-): OpenAgentProfileOptions['placement'] {
-    return event.metaKey || event.ctrlKey ? 'main' : 'auto';
 }

@@ -1,6 +1,10 @@
 import { type WorkspaceTabRef, workspaceTabId } from './workspace-tabs-model.ts';
 
-/** The tab `offset` steps from the selected one in strip order, wrapping (Control-Tab). */
+/**
+ * The tab `offset` steps from the selected one in strip order, wrapping
+ * (Control-Tab). With the selection outside the strip (the routed page beside
+ * the side pane), next is the first tab and previous the last.
+ */
 export function relativeTab(
     tabs: readonly WorkspaceTabRef[],
     active: WorkspaceTabRef,
@@ -10,6 +14,9 @@ export function relativeTab(
         return null;
     }
     const current = tabs.findIndex((ref) => workspaceTabId(ref) === workspaceTabId(active));
+    if (current < 0) {
+        return (offset === 1 ? tabs[0] : tabs.at(-1)) ?? null;
+    }
     return tabs[(current + offset + tabs.length) % tabs.length] ?? null;
 }
 

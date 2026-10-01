@@ -27,7 +27,6 @@ import { revealsRoutedPage } from './routed-page-reveal.ts';
 const emptyState: BrowserWorkspaceState = { activeId: null, tabs: [] };
 interface BrowserWorkspace extends WorkspaceTabs {
     chatRoute: boolean;
-    command: (command: BrowserCommand) => void;
     find: BrowserFind;
     history: BrowserHistoryEntry[];
     primaryTab: PrimaryTabIdentity;
@@ -54,24 +53,27 @@ export function BrowserWorkspaceProvider({
     const location = useLocation();
     const navigationType = useNavigationType();
     const bridge = getDesktopBridge();
-    const command = React.useCallback(
-        (input: BrowserCommand) => {
-            void bridge?.browserCommand?.(input).catch((error: Error) => {
+    const runCommand = React.useCallback(
+        async (input: BrowserCommand): Promise<unknown> =>
+            await bridge?.browserCommand?.(input).catch((error: Error) => {
                 toast.danger('Browser action failed', { description: error.message });
-            });
-        },
+                return null;
+            }),
         [bridge]
     );
     const tabs = useWorkspaceTabs({
         browser: state,
-        command,
+        command: runCommand,
         serverId,
         source: chatRoute ? primaryTab.label : null,
     });
+    const { command } = tabs;
     useBrowserWorkspaceLinks(command);
     const find = useBrowserFind(state.activeId, command);
+    // Page shortcuts act on the shown page only; a hidden selected page takes none.
+    const shownBrowserId = tabs.shownClosable?.kind === 'browser' ? tabs.shownClosable.id : null;
     useBrowserShortcuts({
-        browserTab: state.tabs.find((tab) => tab.id === state.activeId) ?? null,
+        browserTab: state.tabs.find((tab) => tab.id === shownBrowserId) ?? null,
         command,
         find,
         tabs,
@@ -92,7 +94,7 @@ export function BrowserWorkspaceProvider({
             receivedEvent = true;
             accept(value);
         });
-        command({ kind: 'mount' });
+        void runCommand({ kind: 'mount' });
         void bridge
             .browserSnapshot()
             .then((value) => {
@@ -106,22 +108,23 @@ export function BrowserWorkspaceProvider({
         return () => {
             mounted = false;
             unsubscribe();
-            command({ kind: 'reset' });
+            void runCommand({ kind: 'reset' });
         };
-    }, [bridge, command]);
-    const { activeTab, closeFocusedTab, focusGroup, selectTab, split } = tabs;
+    }, [bridge, runCommand]);
+    const { closeFocusedTab, focusPane, selectTab, shownClosable } = tabs;
     const routed = React.useRef<Location | null>(null);
-    React.useEffect(() => {
+    // A layout effect, so a page's own open on arrival (a `?thread=` link) lands after the reveal.
+    React.useLayoutEffect(() => {
         const previous = routed.current;
         routed.current = location;
         if (revealsRoutedPage(previous, location, navigationType)) {
             selectTab(primaryTabRef);
         }
     }, [selectTab, location, navigationType]);
-    // Native browser pages take focus without a DOM event; they only live in the main strip.
-    React.useEffect(() => bridge?.onBrowserFocus?.(() => focusGroup('main')), [bridge, focusGroup]);
+    // A native page takes focus without a DOM event; in split mode pages live in the side pane.
+    React.useEffect(() => bridge?.onBrowserFocus?.(() => focusPane('side')), [bridge, focusPane]);
     useDesktopTabPane({
-        active: activeTab.kind !== 'primary' || split.active !== null,
+        active: shownClosable !== null,
         closeActiveTab: closeFocusedTab,
         openNewTab: () => {
             command({ kind: 'new' });
@@ -129,8 +132,8 @@ export function BrowserWorkspaceProvider({
         },
     });
     const value = React.useMemo(
-        () => ({ ...tabs, state, history, command, find, primaryTab, chatRoute, server, serverId }),
-        [tabs, state, history, command, find, primaryTab, chatRoute, server, serverId]
+        () => ({ ...tabs, state, history, find, primaryTab, chatRoute, server, serverId }),
+        [tabs, state, history, find, primaryTab, chatRoute, server, serverId]
     );
     return <BrowserWorkspaceContext value={value}>{children}</BrowserWorkspaceContext>;
 }
@@ -139,8 +142,8 @@ export function useBrowserWorkspace() {
     return React.use(BrowserWorkspaceContext);
 }
 
-/** True while a main-strip browser, artifact, or Agent tab covers the routed page; split tabs never do. */
+/** True while an expanded-mode tab covers the routed page; the side pane never does. */
 export function useCoveringTabSelected(): boolean {
-    const kind = React.use(BrowserWorkspaceContext)?.activeTab.kind;
-    return kind !== undefined && kind !== 'primary';
+    const workspace = React.use(BrowserWorkspaceContext);
+    return workspace?.mode === 'expanded' && workspace.shownClosable !== null;
 }

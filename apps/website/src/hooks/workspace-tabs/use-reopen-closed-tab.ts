@@ -3,13 +3,13 @@ import * as React from 'react';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { type BrowserWorkspaceState, parseBrowserWorkspace } from '../../lib/desktop-browser.ts';
 import { type ClosedTab, insertTabAt } from './closed-tabs.ts';
-import type { AppTabRef, TabPlacement, WorkspaceTabRef } from './workspace-tabs-model.ts';
+import type { AppTabRef, ClosableTabRef } from './workspace-tabs-model.ts';
 import type { AppTabInput } from './workspace-tabs-reducer.ts';
 
 /**
- * Reopen Closed Tab (⌘⇧T): the newest closed tab returns to the main strip at
- * its old position. A browser page reopens through Electron; an already-open
- * page is selected where it is.
+ * Reopen Closed Tab (⌘⇧T): the newest closed tab returns to its old position
+ * among the closable tabs, selected; a Thread reopens pinned. A browser page
+ * reopens through Electron; an already-open page is selected where it is.
  */
 export function useReopenClosedTab({
     closed,
@@ -18,9 +18,9 @@ export function useReopenClosedTab({
     reorderTabs,
 }: {
     closed: React.RefObject<ClosedTab[]>;
-    latest: React.RefObject<{ browser: BrowserWorkspaceState; tabs: WorkspaceTabRef[] }>;
-    open: (input: AppTabInput, ref: AppTabRef, placement: TabPlacement) => void;
-    reorderTabs: (tabs: WorkspaceTabRef[]) => void;
+    latest: React.RefObject<{ browser: BrowserWorkspaceState; tabs: ClosableTabRef[] }>;
+    open: (input: AppTabInput) => void;
+    reorderTabs: (tabs: ClosableTabRef[]) => void;
 }) {
     return React.useCallback(() => {
         const entry = closed.current.at(-1);
@@ -30,7 +30,7 @@ export function useReopenClosedTab({
         closed.current = closed.current.slice(0, -1);
         if (entry.kind !== 'browser') {
             const [input, ref] = reopenedTab(entry);
-            open(input, ref, 'main');
+            open(input);
             reorderTabs(insertTabAt(latest.current.tabs, ref, entry.index));
             return;
         }
@@ -65,7 +65,7 @@ function reopenedTab(entry: Exclude<ClosedTab, { kind: 'browser' }>): [AppTabInp
             ];
         case 'thread':
             return [
-                { kind: 'thread', ...entry.tab },
+                { kind: 'thread', ...entry.tab, pinned: true },
                 { kind: 'thread', ...entry.tab },
             ];
     }

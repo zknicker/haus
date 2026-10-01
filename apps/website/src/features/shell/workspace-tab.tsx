@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils.ts';
 
 /**
  * One workspace tab, for every kind: the routed primary tab, each browser,
- * artifact, and Agent tab share this anatomy, in either tab group. The first child is the tab's own stock Button —
+ * artifact, and Agent tab share this anatomy, in either strip. The first child is the tab's own stock Button —
  * mark, then label — and it fills the tab, so the whole tab is the hit
  * target. A closable tab's trailing `action` rides inside the tab's end. Geometry, fill
  * states, and when the action shows live on `.workspace-tab` in

@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import {
     type AppTabRef,
-    artifactTabLabel,
     emptyWorkspaceTabs,
-    primaryTabRef,
+    type ThreadTabRef,
     type WorkspaceArtifactTarget,
     type WorkspaceTabsState,
+    workspaceSelection,
 } from './workspace-tabs-model.ts';
 import { type WorkspaceTabsAction, workspaceTabsReducer } from './workspace-tabs-reducer.ts';
 
@@ -14,195 +14,187 @@ const report: WorkspaceArtifactTarget = {
     kind: 'workspaceFile',
     path: 'reports/q3.html',
 };
-const notes: WorkspaceArtifactTarget = {
-    agentId: 'agent-1',
-    kind: 'workspaceFile',
-    path: 'notes.md',
-};
 const reportRef: AppTabRef = { kind: 'artifact', key: 'workspaceFile:agent-1:reports/q3.html' };
-const notesRef: AppTabRef = { kind: 'artifact', key: 'workspaceFile:agent-1:notes.md' };
 const blippy: AppTabRef = { kind: 'agent', agentId: 'blippy' };
-const tiny: AppTabRef = { kind: 'agent', agentId: 'tiny' };
+const thread = (anchorMessageId: string): ThreadTabRef => ({
+    kind: 'thread',
+    anchorMessageId,
+    chatId: 'chat-1',
+});
+const one = thread('msg-1');
+const two = thread('msg-2');
+const three = thread('msg-3');
 
-function run(...actions: WorkspaceTabsAction[]): WorkspaceTabsState {
-    return actions.reduce(workspaceTabsReducer, emptyWorkspaceTabs);
+const openAgent = (agentId: string): WorkspaceTabsAction => ({
+    kind: 'open',
+    tab: { kind: 'agent', agentId },
+});
+const openThread = (ref: ThreadTabRef): WorkspaceTabsAction => ({ kind: 'open', tab: ref });
+const openReport: WorkspaceTabsAction = {
+    kind: 'open',
+    tab: { kind: 'artifact', source: '#product', target: report, title: 'Q3' },
+};
+
+function run(start: Partial<WorkspaceTabsState>, ...actions: WorkspaceTabsAction[]) {
+    return actions.reduce(workspaceTabsReducer, { ...emptyWorkspaceTabs, ...start });
 }
-const openArtifact = (
-    target: WorkspaceArtifactTarget,
-    title: string | null = null
-): WorkspaceTabsAction => ({
-    kind: 'open',
-    placement: 'auto',
-    tab: { kind: 'artifact', source: 'all', target, title },
-});
-const openAgent = (
-    agentId: string,
-    extra: Partial<{ placement: 'auto' | 'main'; section: 'home' | 'skills' }> = {}
-): WorkspaceTabsAction => ({
-    kind: 'open',
-    placement: extra.placement ?? 'auto',
-    tab: { kind: 'agent', agentId, section: extra.section },
-});
+const split = { mode: 'split' as const };
+const expanded = { mode: 'expanded' as const };
 
-describe('artifact tabs', () => {
-    test('opening appends a selected artifact tab', () => {
-        const state = run(openArtifact(report, 'Q3 report'));
-        expect(state.mainActive).toEqual(reportRef);
-        expect(state.order).toEqual([reportRef]);
-        expect(artifactTabLabel(state.artifacts[0]!)).toBe('Q3 report');
+describe('split mode', () => {
+    test('opening a tab lands it in the side pane, selected, and focuses the pane', () => {
+        const state = run(split, openAgent('blippy'), openReport);
+        expect(state.order).toEqual([blippy, reportRef]);
+        expect(state.active).toEqual(reportRef);
+        expect(state.focus).toBe('side');
+        expect(workspaceSelection(state, null, state.order).shownClosable).toEqual(reportRef);
     });
 
-    test('opening an open artifact focuses its tab instead of adding one', () => {
-        const state = run(
-            openArtifact(report),
-            openArtifact(notes),
-            { kind: 'select', ref: null },
-            openArtifact(report)
-        );
-        expect(state.artifacts).toHaveLength(2);
-        expect(state.mainActive).toEqual(reportRef);
-    });
-
-    test('the file name labels an untitled artifact', () => {
-        expect(artifactTabLabel(run(openArtifact(report)).artifacts[0]!)).toBe('q3.html');
-    });
-
-    test('closing removes the tab and clears its selection', () => {
-        const state = run(openArtifact(report), openArtifact(notes), {
-            kind: 'close',
-            ref: notesRef,
-        });
-        expect(state.artifacts.map((tab) => tab.key)).toEqual([reportRef.key]);
-        expect(state.order).toEqual([reportRef]);
-        expect(state.mainActive).toBeNull();
-    });
-
-    test('selecting an unknown tab is ignored', () => {
-        const state = run(openArtifact(report));
-        expect(workspaceTabsReducer(state, { kind: 'select', ref: notesRef })).toBe(state);
-    });
-});
-
-describe('agent tabs', () => {
-    test('an Agent opens once, at home, and reopening selects it with the asked section', () => {
-        const state = run(openAgent('blippy'), { kind: 'select', ref: null });
-        expect(state.agents).toEqual([{ agentId: 'blippy', section: 'home' }]);
-        const again = workspaceTabsReducer(state, openAgent('blippy', { section: 'skills' }));
-        expect(again.agents).toEqual([{ agentId: 'blippy', section: 'skills' }]);
-        expect(again.mainActive).toEqual(blippy);
-        expect(again.order).toEqual([blippy]);
-    });
-
-    test('drill-down changes only that tab section', () => {
-        const state = run(openAgent('blippy'), openAgent('tiny'), {
-            kind: 'section',
-            agentId: 'tiny',
-            section: 'automations',
-        });
-        expect(state.agents).toEqual([
-            { agentId: 'blippy', section: 'home' },
-            { agentId: 'tiny', section: 'automations' },
-        ]);
-    });
-});
-
-describe('split', () => {
-    test('opening the split moves the selected main tab across and focuses it', () => {
-        const state = run(openArtifact(report), openAgent('blippy'), { kind: 'openSplit' });
-        expect(state.split).toEqual({ active: blippy, open: true, order: [blippy], preview: null });
-        expect(state.mainActive).toBeNull();
-        expect(state.order).toEqual([reportRef]);
-        expect(state.focus).toBe('split');
-    });
-
-    test('with nothing to move the split opens empty and the next new tab lands there', () => {
-        const state = run({ kind: 'openSplit' }, openAgent('blippy'));
-        expect(state.split).toEqual({ active: blippy, open: true, order: [blippy], preview: null });
-        expect(state.order).toEqual([]);
-    });
-
-    test('main placement opens in the main strip while the split is open', () => {
-        const state = run(
-            { kind: 'openSplit' },
-            openAgent('tiny'),
-            openAgent('blippy', { placement: 'main' })
-        );
-        expect(state.split.order).toEqual([tiny]);
-        expect(state.order).toEqual([blippy]);
-        expect(state.mainActive).toEqual(blippy);
-        expect(state.focus).toBe('main');
-    });
-
-    test('selecting a split tab keeps the main selection', () => {
-        const state = run(
-            { kind: 'openSplit' },
-            openAgent('tiny'),
-            openAgent('blippy'),
-            openArtifact(report, null),
-            { kind: 'select', ref: tiny }
-        );
-        expect(state.split.active).toEqual(tiny);
-        expect(state.mainActive).toBeNull();
-    });
-
-    test('closing a split tab selects its last neighbor; the last one closes the split', () => {
-        const state = run({ kind: 'openSplit' }, openAgent('tiny'), openAgent('blippy'), {
-            kind: 'close',
-            ref: blippy,
-        });
-        expect(state.split).toEqual({ active: tiny, open: true, order: [tiny], preview: null });
-        const closed = workspaceTabsReducer(state, { kind: 'close', ref: tiny });
-        expect(closed.split.open).toBe(false);
-        expect(closed.focus).toBe('main');
-    });
-
-    test('closing the split folds its tabs into the given main order', () => {
-        const state = run({ kind: 'openSplit' }, openAgent('tiny'), {
-            kind: 'closeSplit',
-            order: [primaryTabRef, tiny],
-        });
-        expect(state.split).toEqual({ active: null, open: false, order: [], preview: null });
-        expect(state.order).toEqual([primaryTabRef, tiny]);
+    test('opening an open tab selects it in place instead of duplicating it', () => {
+        const state = run(split, openAgent('blippy'), openReport, openAgent('blippy'));
+        expect(state.order).toEqual([blippy, reportRef]);
         expect(state.agents).toHaveLength(1);
+        expect(state.active).toEqual(blippy);
     });
 
-    test('moving tabs between groups', () => {
-        const toSplit = run(openArtifact(report), openArtifact(notes), {
-            kind: 'moveToSplit',
-            ref: reportRef,
+    test('hiding the pane keeps its tabs; the count is what it hides', () => {
+        const state = run(split, openAgent('blippy'), openReport, {
+            kind: 'sidePane',
+            visible: false,
         });
-        expect(toSplit.split.order).toEqual([reportRef]);
-        expect(toSplit.mainActive).toEqual(notesRef);
-        const back = workspaceTabsReducer(toSplit, {
-            kind: 'moveToMain',
-            order: [primaryTabRef, reportRef, notesRef],
-            ref: reportRef,
-        });
-        expect(back.split.open).toBe(false);
-        expect(back.order).toEqual([primaryTabRef, reportRef, notesRef]);
-        expect(back.mainActive).toEqual(reportRef);
+        const shown = workspaceSelection(state, null, state.order);
+        expect(shown.sidePaneShown).toBe(false);
+        expect(state.order).toHaveLength(2);
+        expect(state.active).toEqual(reportRef);
+        expect(state.focus).toBe('primary');
     });
 
-    test('a browser selection echoed by Electron after a split move keeps focus on the split', () => {
-        // The moved tab's main neighbor is a browser tab: main selection is released
-        // and focus goes to the split, then Electron reports the browser tab selected.
-        const moved = run(
-            openArtifact(report),
-            { kind: 'openSplit' },
-            { kind: 'select', ref: null },
-            {
-                kind: 'focus',
-                group: 'split',
-            }
-        );
-        const echoed = workspaceTabsReducer(moved, { kind: 'releaseMain' });
-        expect(echoed.focus).toBe('split');
-        expect(echoed.split.active).toEqual(reportRef);
-        const covered = workspaceTabsReducer(
-            run(openArtifact(notes), { kind: 'focus', group: 'split' }),
-            { kind: 'releaseMain' }
-        );
-        expect(covered.mainActive).toBeNull();
-        expect(covered.focus).toBe('split');
+    test('opening a tab while the pane is hidden reveals it', () => {
+        const hidden = run(split, openAgent('blippy'), { kind: 'sidePane', visible: false });
+        expect(run(hidden, openReport).sidePaneVisible).toBe(true);
+        expect(run(hidden, { kind: 'select', ref: blippy }).sidePaneVisible).toBe(true);
+        // Electron selecting a browser page (a link, a new tab) reveals it too.
+        const browser = run(hidden, { kind: 'selectBrowser' });
+        expect(browser.sidePaneVisible).toBe(true);
+        expect(browser.active).toBeNull();
     });
+
+    test('selecting the routed page points Command-W at it and leaves the pane showing', () => {
+        const state = run(split, openAgent('blippy'), { kind: 'selectPrimary' });
+        expect(state.focus).toBe('primary');
+        expect(workspaceSelection(state, null, state.order).shownClosable).toEqual(blippy);
+    });
+});
+
+describe('expanded mode', () => {
+    test('opening a tab selects it over the primary tab; selecting primary hides it', () => {
+        const opened = run(expanded, openAgent('blippy'));
+        expect(workspaceSelection(opened, null, opened.order).shownClosable).toEqual(blippy);
+        const primary = run(opened, { kind: 'selectPrimary' });
+        const shown = workspaceSelection(primary, null, primary.order);
+        expect(shown.shownClosable).toBeNull();
+        expect(shown.selectedClosable).toEqual(blippy);
+    });
+
+    test('closing the selected tab clears the selection for the shell to replace', () => {
+        const state = run(expanded, openAgent('blippy'), openReport, {
+            kind: 'close',
+            ref: reportRef,
+        });
+        expect(state.order).toEqual([blippy]);
+        expect(state.artifacts).toEqual([]);
+        expect(state.active).toBeNull();
+    });
+});
+
+describe('switching modes', () => {
+    test('expanding from a shown side pane selects its tab; from a hidden one, the primary tab', () => {
+        const shown = run(split, openAgent('blippy'), { kind: 'expand', showClosable: true });
+        expect(shown.mode).toBe('expanded');
+        expect(workspaceSelection(shown, null, shown.order).selectedTab).toEqual(blippy);
+        const hidden = run(split, openAgent('blippy'), { kind: 'expand', showClosable: false });
+        expect(workspaceSelection(hidden, null, hidden.order).shownClosable).toBeNull();
+    });
+
+    test('collapsing shows the side pane on the tab last selected, even behind the primary tab', () => {
+        const state = run(
+            expanded,
+            openAgent('blippy'),
+            openReport,
+            { kind: 'select', ref: blippy },
+            { kind: 'selectPrimary' },
+            { kind: 'collapse' }
+        );
+        expect(state.mode).toBe('split');
+        const shown = workspaceSelection(state, null, state.order);
+        expect(shown.sidePaneShown).toBe(true);
+        expect(shown.shownClosable).toEqual(blippy);
+    });
+
+    test('a hidden pane reopens on collapse', () => {
+        const state = run(
+            split,
+            openAgent('blippy'),
+            { kind: 'sidePane', visible: false },
+            { kind: 'expand', showClosable: false },
+            { kind: 'collapse' }
+        );
+        expect(workspaceSelection(state, null, state.order).sidePaneShown).toBe(true);
+    });
+});
+
+describe('preview tabs', () => {
+    for (const mode of [split, expanded]) {
+        test(`a Thread opens as the preview tab, which the next Thread replaces in place (${mode.mode})`, () => {
+            const state = run(mode, openAgent('blippy'), openThread(one), openThread(two));
+            expect(state.order).toEqual([blippy, two]);
+            expect(state.threads).toEqual([{ anchorMessageId: 'msg-2', chatId: 'chat-1' }]);
+            expect(state.preview).toEqual(two);
+            expect(state.active).toEqual(two);
+        });
+
+        test(`a pinned Thread stays; the next Thread opens beside it (${mode.mode})`, () => {
+            const state = run(
+                mode,
+                openThread(one),
+                { kind: 'pin', ref: one },
+                openThread(two),
+                openThread(three)
+            );
+            expect(state.order).toEqual([one, three]);
+            expect(state.preview).toEqual(three);
+        });
+    }
+
+    test('reopening an open preview Thread keeps it the preview', () => {
+        const state = run(split, openThread(one), openAgent('blippy'), openThread(one));
+        expect(state.preview).toEqual(one);
+        expect(state.order).toEqual([one, blippy]);
+        expect(state.active).toEqual(one);
+    });
+
+    test('a reopened Thread opens pinned', () => {
+        const state = run(split, openThread(one), {
+            kind: 'open',
+            tab: { ...two, pinned: true },
+        });
+        expect(state.order).toEqual([one, two]);
+        expect(state.preview).toEqual(one);
+    });
+
+    test('closing the preview tab leaves no preview; pinning anything else does nothing', () => {
+        const opened = run(split, openThread(one), openAgent('blippy'));
+        expect(run(opened, { kind: 'pin', ref: blippy })).toEqual(opened);
+        const closed = run(opened, { kind: 'close', ref: one });
+        expect(closed.preview).toBeNull();
+        expect(closed.threads).toEqual([]);
+    });
+});
+
+test('opening an Agent with a section moves its open tab to that section', () => {
+    const state = run(split, openAgent('blippy'), {
+        kind: 'open',
+        tab: { kind: 'agent', agentId: 'blippy', section: 'skills' },
+    });
+    expect(state.agents).toEqual([{ agentId: 'blippy', section: 'skills' }]);
 });

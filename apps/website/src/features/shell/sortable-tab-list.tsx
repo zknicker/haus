@@ -13,29 +13,29 @@ import {
     SortableContext,
     sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
+import type * as React from 'react';
 import {
-    type WorkspaceTabGroup,
-    type WorkspaceTabRef,
+    type ClosableTabRef,
     workspaceTabId,
 } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { WorkspaceTabItem } from './workspace-tab-item.tsx';
 import { WorkspaceTabMenu } from './workspace-tab-menu.tsx';
 
 /**
- * One group's evenly spaced sortable tab list. Dragging moves a tab along its
- * own strip only, siblings slide aside live, and the new order commits on
- * drop; Escape cancels. Moving a tab to the other group is the tab menu's job.
+ * An evenly spaced sortable tab list. Dragging moves a tab along the strip
+ * only, siblings slide aside live, and the new order commits on drop; Escape
+ * cancels. A `leading` tab (the primary tab) sits first and does not sort.
  */
-export function SortableTabList<Ref extends WorkspaceTabRef>({
-    group,
+export function SortableTabList({
     label,
+    leading,
     onReorder,
     tabs,
 }: {
-    group: WorkspaceTabGroup;
     label: string;
-    onReorder: (tabs: Ref[]) => void;
-    tabs: Ref[];
+    leading?: React.ReactNode;
+    onReorder: (tabs: ClosableTabRef[]) => void;
+    tabs: ClosableTabRef[];
 }) {
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -58,8 +58,9 @@ export function SortableTabList<Ref extends WorkspaceTabRef>({
             }}
             sensors={sensors}
         >
-            <WorkspaceTabMenu group={group}>
+            <WorkspaceTabMenu>
                 <nav aria-label={label} className="workspace-tab-list">
+                    {leading}
                     <SortableContext items={ids} strategy={horizontalListSortingStrategy}>
                         {tabs.map((ref) => (
                             <WorkspaceTabItem key={workspaceTabId(ref)} tabRef={ref} />
@@ -73,7 +74,7 @@ export function SortableTabList<Ref extends WorkspaceTabRef>({
 
 /**
  * Pins a dragged tab to the strip's axis and clamps it inside the whole tab
- * list (the dragged node's parent, primary tab included), whose overflow guard
+ * list (the dragged node's parent, a leading tab included), whose overflow guard
  * would otherwise clip it.
  */
 const restrictToTabStrip: Modifier = ({ containerNodeRect, draggingNodeRect, transform }) => {

@@ -4,10 +4,10 @@ import { SortableWorkspaceTab } from './sortable-workspace-tab.tsx';
 import { PrimaryTabMark } from './workspace-tab-mark.tsx';
 
 /**
- * The tab that follows sidebar navigation: the routed page's identity mark and
- * title, at a fixed width so switching chats never moves the strip. It sorts
- * like any other tab but never closes. The page's actions live at the band's
- * end (WorkspaceBandActions), not in this tab.
+ * The expanded strip's first tab, which follows sidebar navigation: the routed
+ * page's identity mark and title, at a fixed width so switching chats never
+ * moves the strip. It never moves or closes. The page's actions live in the
+ * band (WorkspaceBandActions), not in this tab.
  */
 export function PrimaryWorkspaceTab() {
     const workspace = useBrowserWorkspace();
@@ -22,5 +22,22 @@ export function PrimaryWorkspaceTab() {
             mark={<PrimaryTabMark identity={identity} />}
             tabRef={primaryTabRef}
         />
+    );
+}
+
+/**
+ * Split mode's title over the routed page: the same identity as the primary
+ * tab, as a plain heading-weight label rather than a tab (Codex).
+ */
+export function PrimaryPageTitle() {
+    const workspace = useBrowserWorkspace();
+    if (!workspace) {
+        return null;
+    }
+    return (
+        <div className="workspace-page-title">
+            <PrimaryTabMark identity={workspace.primaryTab} />
+            <span className="workspace-page-title__label">{workspace.primaryTab.label}</span>
+        </div>
     );
 }

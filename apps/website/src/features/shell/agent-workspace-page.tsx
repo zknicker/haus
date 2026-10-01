@@ -4,7 +4,7 @@ import { AgentProfileView } from '../members/agent-profile/agent-profile-view.ts
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 
 /**
- * An Agent profile tab's body, in either tab group. Drill-down stays inside
+ * An Agent profile tab's body, in the side pane or full width. Drill-down stays inside
  * the tab as its section. Blank while the Agent loads; the always-mounted tab
  * (`AgentWorkspaceTab`) closes a deleted or missing Agent's tab.
  */

@@ -1,50 +1,28 @@
 import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
-import { Cancel01Icon, LayoutRightIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     type AppTabRef,
-    type WorkspaceTabGroup,
+    isAppTab,
     workspaceTabId,
 } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 
 /**
  * One right-click menu for a whole strip: it opens for the artifact, Agent, or
- * Thread tab under the pointer and moves it to the other group (pinning a
- * preview tab) or closes it. Browser and primary tabs have no menu (browser
- * tabs stay in the main strip).
+ * Thread tab under the pointer and closes it. Browser and primary tabs have
+ * no menu.
  */
-export function WorkspaceTabMenu({
-    children,
-    group,
-}: {
-    children: React.ReactNode;
-    group: WorkspaceTabGroup;
-}) {
+export function WorkspaceTabMenu({ children }: { children: React.ReactNode }) {
     const workspace = useBrowserWorkspace();
     const [target, setTarget] = React.useState<AppTabRef | null>(null);
     const pending = React.useRef<AppTabRef | null>(null);
     if (!workspace) {
         return children;
     }
-    const appTabs: AppTabRef[] =
-        group === 'split'
-            ? workspace.split.order
-            : workspace.tabs.filter(
-                  (ref): ref is AppTabRef => ref.kind !== 'primary' && ref.kind !== 'browser'
-              );
-    const onAction = (key: React.Key) => {
-        if (!target) {
-            return;
-        }
-        if (key === 'move') {
-            workspace.moveTab(target, group === 'main' ? 'split' : 'main');
-        } else if (key === 'close') {
-            workspace.closeTab(target);
-        }
-    };
+    const appTabs = workspace.tabs.filter(isAppTab);
     return (
         <ContextMenu
             onOpenChange={(open) => {
@@ -67,15 +45,13 @@ export function WorkspaceTabMenu({
                 </div>
             </ContextMenu.Trigger>
             <ContextMenu.Popover>
-                <ContextMenu.Menu onAction={onAction}>
-                    <ContextMenu.Item
-                        id="move"
-                        textValue={group === 'main' ? 'Move to split view' : 'Move to main'}
-                    >
-                        <Icon aria-hidden="true" icon={LayoutRightIcon} size={16} />
-                        <Label>{group === 'main' ? 'Move to split view' : 'Move to main'}</Label>
-                    </ContextMenu.Item>
-                    <ContextMenu.Separator />
+                <ContextMenu.Menu
+                    onAction={() => {
+                        if (target) {
+                            workspace.closeTab(target);
+                        }
+                    }}
+                >
                     <ContextMenu.Item id="close" textValue="Close tab">
                         <Icon aria-hidden="true" icon={Cancel01Icon} size={16} />
                         <Label>Close tab</Label>

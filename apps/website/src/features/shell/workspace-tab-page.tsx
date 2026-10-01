@@ -1,28 +1,35 @@
 import {
     type AppTabRef,
     artifactTabLabel,
+    type ClosableTabRef,
     workspaceTabId,
 } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentWorkspacePage } from './agent-workspace-page.tsx';
 import { ArtifactWorkspacePage } from './artifact-workspace-page.tsx';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
+import { BrowserWorkspacePage } from './browser-workspace-page.tsx';
 import { ThreadWorkspacePage } from './thread-workspace-page.tsx';
 
 /**
- * The main strip's selected App-local tab. It covers the mounted routed page
- * like a browser page does; split tabs never cover it.
+ * One closable tab's body, wherever the layout shows it: the side pane in
+ * split mode, over the routed page in expanded mode. A browser tab's native
+ * page follows this body's host element, so it moves with it.
  */
-export function MainWorkspaceTabPage() {
-    const active = useBrowserWorkspace()?.activeTab;
-    if (!active || active.kind === 'primary' || active.kind === 'browser') {
-        return null;
+export function ClosableTabPage({
+    className,
+    tabRef,
+}: {
+    className?: string;
+    tabRef: ClosableTabRef;
+}) {
+    if (tabRef.kind === 'browser') {
+        return <BrowserWorkspacePage className={className} id={tabRef.id} />;
     }
-    return <WorkspaceTabPage className="absolute inset-0 z-10" tabRef={active} />;
+    return <AppTabPage className={className} tabRef={tabRef} />;
 }
 
-/** One App-local tab's body, in whichever group shows it. */
-export function WorkspaceTabPage({ className, tabRef }: { className?: string; tabRef: AppTabRef }) {
+function AppTabPage({ className, tabRef }: { className?: string; tabRef: AppTabRef }) {
     const workspace = useBrowserWorkspace();
     if (!workspace) {
         return null;

@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button, Tooltip } from '@heroui/react';
 import * as React from 'react';
 import {
+    sameTab,
     type WorkspaceTabRef,
     workspaceTabId,
 } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
@@ -35,11 +36,7 @@ export function SortableWorkspaceTab({
 }) {
     const workspace = useBrowserWorkspace();
     const id = workspaceTabId(tabRef);
-    // Ids are unique across groups, so a tab is selected when either group selects it.
-    const active = workspace
-        ? workspaceTabId(workspace.activeTab) === id ||
-          (workspace.split.active !== null && workspaceTabId(workspace.split.active) === id)
-        : false;
+    const active = sameTab(workspace?.selectedTab ?? null, tabRef);
     const {
         setNodeRef,
         setActivatorNodeRef,
@@ -48,7 +45,10 @@ export function SortableWorkspaceTab({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id });
+    } = useSortable({ disabled: tabRef.kind === 'primary', id });
+    // The primary tab leads the strip and never moves, so it takes no drag handle (whose
+    // attributes would also mark it aria-disabled).
+    const handle = tabRef.kind === 'primary' ? {} : { ...attributes, ...listeners };
     const element = React.useRef<HTMLDivElement | null>(null);
     React.useEffect(() => {
         if (active) {
@@ -57,8 +57,7 @@ export function SortableWorkspaceTab({
     }, [active]);
     const button = (
         <Button
-            {...attributes}
-            {...listeners}
+            {...handle}
             aria-pressed={active}
             onKeyDown={(event) => {
                 listeners?.onKeyDown?.(event);

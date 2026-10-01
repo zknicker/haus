@@ -6,7 +6,6 @@ import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { availabilityBadgeColor } from '../agent-avatar.tsx';
-import { agentProfilePlacement } from '../agent-profile-link.tsx';
 
 /** Agents created by one human, with its own focused list read. */
 export function CreatedAgents({ serverId, userId }: { serverId: string; userId: string }) {
@@ -60,9 +59,7 @@ function CreatedAgentRow({ agent }: { agent: Agent }) {
     return (
         <ItemCard<'button'>
             className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={(event) =>
-                openAgentProfile(agent.id, { placement: agentProfilePlacement(event) })
-            }
+            onClick={() => openAgentProfile(agent.id)}
             render={(props) => <button type="button" {...props} />}
         >
             <PressableFeedback.Highlight />

@@ -1,8 +1,8 @@
 import { installDesktopBrowserStub } from '../support/desktop-browser-stub.ts';
-import { assertOpaqueId, createTestServer, openChannel } from '../support/server.ts';
+import { assertOpaqueId, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('browser tabs preserve the chat draft, channel menu, and sidebar navigation', async ({
+test('expanded browser tabs preserve the chat draft, channel menu, and sidebar navigation', async ({
     page,
 }, testInfo) => {
     await installDesktopBrowserStub(page);
@@ -22,6 +22,9 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     const composer = page.getByRole('textbox', { name: 'Message all' });
     await composer.fill('Keep this draft');
     await page.getByRole('link', { name: 'Open B012345678 on Amazon' }).click();
+    // Expanded mode (offered once a tab is open): one strip, the primary tab
+    // first, the selected tab full width.
+    await page.getByRole('button', { name: 'Open as tabs' }).click();
     // At rest the address shows the condensed label: no scheme, `www.`, or query.
     await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
         'amazon.com/dp/B012345678'
@@ -119,7 +122,7 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     await google.press('Space');
     await expect(browserTabs.locator('.workspace-tab').nth(2)).toContainText('www.google.com');
     const googleBounds = await google.boundingBox();
-    const firstBounds = await browserTabs.locator('.workspace-tab').first().boundingBox();
+    const firstBounds = await browserTabs.locator('.workspace-tab').nth(1).boundingBox();
     expect(googleBounds).not.toBeNull();
     expect(firstBounds).not.toBeNull();
     if (googleBounds && firstBounds) {
@@ -135,9 +138,11 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
         );
         await page.mouse.up();
     }
-    // Dropped on the primary tab, Google moves before it: nothing is pinned first.
-    await expect(browserTabs.locator('.workspace-tab').first()).toContainText('www.google.com');
-    await expect(browserTabs.locator('.workspace-tab').nth(1)).toHaveClass(/workspace-primary-tab/);
+    // Dropped on the first Amazon tab, Google moves before it; the primary tab stays first.
+    await expect(browserTabs.locator('.workspace-tab').first()).toHaveClass(
+        /workspace-primary-tab/
+    );
+    await expect(browserTabs.locator('.workspace-tab').nth(1)).toContainText('www.google.com');
     await page.getByRole('button', { name: 'Close www.google.com' }).press('Enter');
     await expect(page.getByRole('button', { name: 'Close www.google.com' })).toHaveCount(0);
     await page.getByRole('button', { name: 'New browser tab' }).click();
@@ -152,98 +157,113 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveCount(0);
 });
 
-test('Threads open as companion tabs in the split, one preview at a time', async ({
+test('split mode keeps the routed page and puts every other tab in the side pane', async ({
     page,
 }, testInfo) => {
     await installDesktopBrowserStub(page);
-    const { client, server } = await createTestServer(page, {
-        displayName: 'Thread tabs',
-        slug: 'thread-tabs',
+    const { client, server, session } = await createTestServer(page, {
+        displayName: 'Side pane',
+        slug: 'side-pane',
     });
-    const chatId = server.channels.find((chat) => chat.name === 'all')?.id;
-    assertOpaqueId(chatId);
-    const roots: string[] = [];
-    for (const name of ['First', 'Second', 'Third']) {
-        const sent = await client.chat.send.mutate({
-            serverId: server.id,
-            chatId,
-            nonce: `thread-root-${name}`,
-            content: `${name} thread root`,
-        });
-        roots.push(sent.message.id);
-    }
-    for (const [index, name] of ['First', 'Second'].entries()) {
-        await client.chat.send.mutate({
-            serverId: server.id,
-            chatId,
-            nonce: `thread-reply-${name}`,
-            content: `${name} thread reply`,
-            thread: { anchorMessageId: roots[index] ?? '' },
-        });
-    }
-    // The desktop shell routes by hash, so the Server's path alone does not select it.
-    await page.goto(`/#/s/thread-tabs/chats/${chatId}`);
-    const split = page.getByRole('complementary', { name: 'Split view' });
-    const splitTabs = split.locator('.workspace-tab');
-    const preview = split.locator('.workspace-tab--preview');
-    const openThread = page.getByRole('button', { name: 'Open thread, 1 reply' });
+    const ownerUserId = runPsql(
+        session.databaseUrl,
+        "select id from users where clerk_user_id = 'user_e2e_human'"
+    );
+    assertOpaqueId(ownerUserId);
+    const inventory = {
+        runtimes: [{ id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] }],
+    };
+    runPsql(
+        session.databaseUrl,
+        `insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
+         values ('cmp_sidepane00000000', '${server.id}', '${ownerUserId}', '${'f'.repeat(64)}', '${JSON.stringify(inventory)}'::jsonb, 'healthy')`
+    );
+    const { agent } = await client.agent.create.mutate({
+        computerId: 'cmp_sidepane00000000',
+        displayName: 'Scout',
+        handle: 'scout',
+        modelId: 'gpt-5.6-sol',
+        runtimeId: 'codex',
+        serverId: server.id,
+    });
+    await page.goto(`/#/s/side-pane/dm/${agent.id}`);
+    const sidePane = page.getByRole('complementary', { name: 'Side pane' });
+    const sideTabs = page.getByRole('navigation', { name: 'Side pane tabs' });
+    const strip = page.getByRole('navigation', { name: 'Workspace tabs' });
+    const sidePaneToggle = page.getByRole('button', { name: 'Side pane', exact: true });
+    const expand = page.getByRole('button', { name: 'Open as tabs' });
+    const newTab = page.getByRole('button', { name: 'New tab', exact: true });
+    const address = page.getByRole('combobox', { name: 'Page address', exact: true });
 
-    // A companion opens the closed split, as its preview tab, beside the chat.
-    await openThread.first().click();
-    await expect(splitTabs).toHaveCount(1);
-    await expect(preview).toContainText('First thread root');
-    await expect(split.getByText('First thread reply', { exact: true })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
-    expect(page.url()).not.toContain('thread=');
+    // Split mode is the default: the routed page has a plain title, no strip.
+    await expect(page.locator('.workspace-page-title')).toContainText('Scout');
+    await expect(strip).toHaveCount(0);
+    await expect(sidePane).toHaveCount(0);
+    // With no closable tab, a New tab button stands in for the layout controls.
+    await expect(newTab).toBeVisible();
+    await expect(expand).toHaveCount(0);
+    await expect(sidePaneToggle).toHaveCount(0);
 
-    // The next companion replaces the preview in place instead of stacking.
-    await openThread.nth(1).click();
-    await expect(splitTabs).toHaveCount(1);
-    await expect(preview).toContainText('Second thread root');
+    // An Agent profile opens in the side pane, beside the DM.
+    await page.getByRole('button', { name: /Scout — chat actions/u }).click();
+    await page.getByRole('menuitem', { name: 'View agent profile' }).click();
+    await expect(sidePane.getByRole('region', { name: 'Agent profile' })).toBeVisible();
+    await expect(sideTabs.locator('.workspace-tab')).toHaveCount(1);
+    await expect(sidePaneToggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(newTab).toHaveCount(0);
 
-    // Double-clicking pins it; the next companion then opens beside it.
-    await splitTabs
-        .first()
-        .getByRole('button', { name: 'Second thread root', exact: true })
-        .dblclick();
-    await expect(preview).toHaveCount(0);
-    await openThread.first().click();
-    await expect(splitTabs).toHaveCount(2);
-    await expect(preview).toContainText('First thread root');
-
-    // Replying pins the preview tab.
-    const reply = split.getByRole('textbox', { name: /Message Thread/u });
-    await reply.fill('Pinned by this reply');
-    await reply.press('Enter');
-    await expect(split.getByText('Pinned by this reply', { exact: true })).toBeVisible();
-    await expect(preview).toHaveCount(0);
-    await page.screenshot({ path: testInfo.outputPath('thread-tabs.png') });
-
-    // The tab closes the Thread, so its header has no second close button. View in chat
-    // reveals the anchor in the chat's own transcript, flashing it.
-    await expect(split.getByRole('button', { name: 'Close thread' })).toHaveCount(0);
-    await split.getByRole('button', { name: /thread actions$/u }).click();
-    await page.getByRole('menuitem', { name: 'View in chat' }).click();
+    // A browser tab lands in the side pane too, its strip starting over the pane's edge.
+    await sideTabs.page().getByRole('button', { name: 'New browser tab' }).click();
     await expect(
-        page.getByLabel('Messages', { exact: true }).locator(`[data-message-id="${roots[0]}"]`)
-    ).toHaveClass(/chat-thread-flash/u);
+        sidePane.getByRole('combobox', { name: 'Page address', exact: true })
+    ).toBeFocused();
+    await expect(sideTabs.locator('.workspace-tab')).toHaveCount(2);
+    const paneBox = await sidePane.boundingBox();
+    const stripBox = await sideTabs.boundingBox();
+    expect(Math.abs((stripBox?.x ?? 0) - (paneBox?.x ?? 0))).toBeLessThanOrEqual(6);
+    await page.screenshot({ path: testInfo.outputPath('side-pane.png') });
 
-    // A `?thread=` link (a same-document hash navigation here) opens the Thread's tab
-    // and leaves the URL.
-    await page.goto(`/#/s/thread-tabs/chats/${chatId}?thread=${roots[2]}`);
-    await expect(preview).toContainText('Third thread root');
-    await expect(splitTabs).toHaveCount(3);
-    await expect.poll(() => page.url()).not.toContain('thread=');
+    // Expanding makes one strip, the primary tab first; the selected tab fills the content.
+    await expand.click();
+    await expect(sidePane).toHaveCount(0);
+    await expect(strip.locator('.workspace-tab')).toHaveCount(3);
+    await expect(strip.locator('.workspace-tab').first()).toHaveClass(/workspace-primary-tab/);
+    await expect(address).toBeVisible();
+    await expect(expand).toHaveAttribute('aria-pressed', 'true');
+    await expect(sidePaneToggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('.workspace-band-trail .badge')).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('expanded.png') });
 
-    // Pinned Threads persist, folded into the main strip; the preview does not.
-    await page.reload();
-    const mainTabs = page.getByRole('navigation', { name: 'Workspace tabs' });
-    await expect(mainTabs.locator('.workspace-tab')).toHaveCount(3);
+    // The side pane toggle collapses back to the pane, the same tab selected.
+    await sidePaneToggle.click();
+    await expect(strip).toHaveCount(0);
+    await expect(sidePaneToggle).toHaveAttribute('aria-pressed', 'true');
     await expect(
-        mainTabs.getByRole('button', { name: 'First thread root', exact: true })
+        sidePane.getByRole('combobox', { name: 'Page address', exact: true })
     ).toBeVisible();
+
+    // Hiding the pane keeps its tabs behind a count; the hover list reveals one.
+    await sidePaneToggle.click();
+    await expect(sidePane).toHaveCount(0);
+    await expect(address).toHaveCount(0);
+    await expect(page.locator('.workspace-band-trail .badge')).toHaveText('2');
+    await sidePaneToggle.hover();
+    const openTabs = page.getByRole('navigation', { name: 'Open tabs' });
+    await expect(openTabs).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('hidden-pane.png') });
+    await openTabs.getByRole('button', { name: 'Scout' }).click();
+    await expect(sidePane.getByRole('region', { name: 'Agent profile' })).toBeVisible();
+    await expect(page.locator('.workspace-band-trail .badge')).toHaveCount(0);
+
+    // Closing every tab brings the New tab button back; it opens a page in the pane.
+    const closeButtons = sideTabs.getByRole('button', { name: /^Close /u });
+    while (await closeButtons.count()) {
+        await closeButtons.first().click();
+    }
+    await expect(sidePane).toHaveCount(0);
+    await newTab.click();
     await expect(
-        mainTabs.getByRole('button', { name: 'Third thread root', exact: true })
-    ).toHaveCount(0);
-    await expect(split).toHaveCount(0);
+        sidePane.getByRole('combobox', { name: 'Page address', exact: true })
+    ).toBeFocused();
+    await expect(sideTabs.locator('.workspace-tab')).toHaveCount(1);
 });

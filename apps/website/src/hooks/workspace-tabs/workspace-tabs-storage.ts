@@ -3,54 +3,63 @@ import { getArtifactPanelTargetKey } from '../../features/chats/haus-resource-li
 import { isAgentSection } from '../../features/members/agent-profile/agent-sections.ts';
 import {
     type AgentTab,
+    type AppTabRef,
     type ArtifactTab,
     emptyWorkspaceTabs,
-    primaryTabRef,
     sameTab,
     type ThreadTab,
     type WorkspaceArtifactTarget,
-    type WorkspaceTabRef,
+    type WorkspaceMode,
     type WorkspaceTabsState,
     workspaceTabId,
 } from './workspace-tabs-model.ts';
 
+/** The window layout is a per-device choice, like the window layout setting. */
+export const workspaceModeStorageKey = 'haus.workspaceMode';
+
+export function parseWorkspaceMode(raw: string | null): WorkspaceMode {
+    return raw === 'expanded' ? 'expanded' : 'split';
+}
+
 /**
  * Persists App-local tabs per Server: artifacts, Agent profiles, pinned
- * Threads, and the main strip order. Browser tabs and the split's preview tab
- * are not restored, and the split is per window, so split tabs persist folded
- * onto the end of the main order.
+ * Threads, and their strip order. Browser tabs, the preview tab, and
+ * selection are not restored.
  */
 export function serializeWorkspaceTabs(state: WorkspaceTabsState): string {
-    const { preview } = state.split;
+    const { preview } = state;
     return JSON.stringify({
         agents: state.agents,
         artifacts: state.artifacts,
-        order: [
-            ...state.order.filter((ref) => ref.kind !== 'browser'),
-            ...state.split.order.filter((ref) => !sameTab(ref, preview)),
-        ],
+        order: state.order.filter((ref) => ref.kind !== 'browser' && !sameTab(ref, preview)),
         threads: state.threads.filter((tab) => !sameTab({ kind: 'thread', ...tab }, preview)),
     });
 }
 
 /**
- * Restores persisted tabs into the main strip, dropping anything malformed.
- * Selection is not restored. State saved before Agent or Thread tabs existed
- * (no `agents` or `threads`) still parses: it is a real contract in users'
+ * Restores persisted tabs, dropping anything malformed, into `mode` with
+ * nothing selected: the side pane starts hidden, its count badge showing what
+ * came back. Every shape saved so far parses — before Agent or Thread tabs
+ * existed (no `agents` or `threads`), and with a `primary` entry in `order`
+ * from when the primary tab could move: it is a real contract in users'
  * localStorage.
  */
-export function parseWorkspaceTabs(raw: string | null): WorkspaceTabsState {
+export function parseWorkspaceTabs(
+    raw: string | null,
+    mode: WorkspaceMode = 'split'
+): WorkspaceTabsState {
+    const empty = { ...emptyWorkspaceTabs, mode, sidePaneVisible: false };
     if (!raw) {
-        return emptyWorkspaceTabs;
+        return empty;
     }
     let value: unknown;
     try {
         value = JSON.parse(raw);
     } catch {
-        return emptyWorkspaceTabs;
+        return empty;
     }
     if (!(value && typeof value === 'object' && 'artifacts' in value && 'order' in value)) {
-        return emptyWorkspaceTabs;
+        return empty;
     }
     const artifacts = unique(
         (Array.isArray(value.artifacts) ? value.artifacts : []).map(parseArtifactTab),
@@ -72,21 +81,16 @@ export function parseWorkspaceTabs(raw: string | null): WorkspaceTabsState {
         ...threads.map((tab) => workspaceTabId({ kind: 'thread', ...tab })),
     ]);
     const order = Array.isArray(value.order) ? parseOrder(value.order, live) : [];
-    return { ...emptyWorkspaceTabs, agents, artifacts, order, threads };
+    return { ...empty, agents, artifacts, order, threads };
 }
 
-/** Keeps known App-local refs and the first primary ref; the resolver places a missing primary. */
-function parseOrder(entries: unknown[], live: ReadonlySet<string>): WorkspaceTabRef[] {
-    let primary = false;
-    return entries.flatMap((entry): WorkspaceTabRef[] => {
+/** Keeps known App-local refs; a legacy `primary` entry and unknown kinds drop. */
+function parseOrder(entries: unknown[], live: ReadonlySet<string>): AppTabRef[] {
+    return entries.flatMap((entry): AppTabRef[] => {
         if (!(entry && typeof entry === 'object' && 'kind' in entry)) {
             return [];
         }
-        if (entry.kind === 'primary' && !primary) {
-            primary = true;
-            return [primaryTabRef];
-        }
-        let ref: WorkspaceTabRef | null = null;
+        let ref: AppTabRef | null = null;
         if (entry.kind === 'artifact' && 'key' in entry && typeof entry.key === 'string') {
             ref = { kind: 'artifact', key: entry.key };
         } else if (

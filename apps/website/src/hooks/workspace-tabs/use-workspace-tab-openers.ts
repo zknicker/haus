@@ -1,36 +1,19 @@
 import * as React from 'react';
-import { getArtifactPanelTargetKey } from '../../features/chats/haus-resource-link.ts';
 import type { AgentSection } from '../../features/members/agent-profile/agent-sections.ts';
-import {
-    type AppTabRef,
-    openGroup,
-    type TabPlacement,
-    type WorkspaceArtifactTarget,
-    type WorkspaceTabsState,
-} from './workspace-tabs-model.ts';
+import type { WorkspaceArtifactTarget } from './workspace-tabs-model.ts';
 import type { AppTabInput, WorkspaceTabsAction } from './workspace-tabs-reducer.ts';
 
 export interface WorkspaceTabOpeners {
-    openAgent: (
-        agentId: string,
-        options?: { placement?: TabPlacement; section?: AgentSection }
-    ) => void;
-    openArtifact: (
-        target: WorkspaceArtifactTarget,
-        title?: string,
-        placement?: TabPlacement
-    ) => void;
-    /** Opens a Thread as a companion: the split's preview tab, unless `main` forces the main strip. */
-    openThread: (
-        chatId: string,
-        anchorMessageId: string,
-        options?: { placement?: TabPlacement }
-    ) => void;
+    openAgent: (agentId: string, options?: { section?: AgentSection }) => void;
+    openArtifact: (target: WorkspaceArtifactTarget, title?: string) => void;
+    /** Opens a Thread as the preview tab, which the next opened Thread replaces. */
+    openThread: (chatId: string, anchorMessageId: string) => void;
 }
 
 /**
- * Opens or selects App-local tabs by the routing rule. A tab landing in the
- * main strip releases Electron's browser selection so the tab shows.
+ * Opens or selects App-local tabs. An opened tab is the selected closable tab
+ * and shows (the side pane reveals, or the expanded strip selects it), so it
+ * releases Electron's browser selection.
  */
 export function useWorkspaceTabOpeners({
     dispatch,
@@ -38,43 +21,27 @@ export function useWorkspaceTabOpeners({
     releaseBrowser,
 }: {
     dispatch: React.Dispatch<WorkspaceTabsAction>;
-    latest: React.RefObject<{ source: string | null; state: WorkspaceTabsState }>;
+    latest: React.RefObject<{ source: string | null }>;
     releaseBrowser: () => void;
 }) {
     const open = React.useCallback(
-        (input: AppTabInput, ref: AppTabRef, placement: TabPlacement) => {
-            const group = openGroup(latest.current.state, ref, placement);
-            dispatch({ kind: 'open', placement, tab: input });
-            if (group === 'main') {
-                releaseBrowser();
-            }
+        (input: AppTabInput) => {
+            dispatch({ kind: 'open', tab: input });
+            releaseBrowser();
         },
-        [dispatch, latest, releaseBrowser]
+        [dispatch, releaseBrowser]
     );
     const openArtifact = React.useCallback<WorkspaceTabOpeners['openArtifact']>(
-        (target, title, placement = 'auto') => {
-            const input: AppTabInput = {
-                kind: 'artifact',
-                source: latest.current.source,
-                target,
-                title: title ?? null,
-            };
-            open(input, { kind: 'artifact', key: getArtifactPanelTargetKey(target) }, placement);
-        },
+        (target, title) =>
+            open({ kind: 'artifact', source: latest.current.source, target, title: title ?? null }),
         [latest, open]
     );
     const openAgent = React.useCallback<WorkspaceTabOpeners['openAgent']>(
-        (agentId, options = {}) => {
-            const input: AppTabInput = { kind: 'agent', agentId, section: options.section };
-            open(input, { kind: 'agent', agentId }, options.placement ?? 'auto');
-        },
+        (agentId, options = {}) => open({ kind: 'agent', agentId, section: options.section }),
         [open]
     );
     const openThread = React.useCallback<WorkspaceTabOpeners['openThread']>(
-        (chatId, anchorMessageId, options = {}) => {
-            const ref = { kind: 'thread', anchorMessageId, chatId } as const;
-            open(ref, ref, options.placement ?? 'auto');
-        },
+        (chatId, anchorMessageId) => open({ kind: 'thread', anchorMessageId, chatId }),
         [open]
     );
     return { open, openAgent, openArtifact, openThread };

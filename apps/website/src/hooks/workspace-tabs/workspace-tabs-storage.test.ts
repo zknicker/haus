@@ -1,13 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import {
     emptyWorkspaceTabs,
-    mainAppTabs,
-    primaryTabRef,
-    resolveWorkspaceTabs,
     type WorkspaceArtifactTarget,
+    type WorkspaceTabsState,
 } from './workspace-tabs-model.ts';
 import { workspaceTabsReducer } from './workspace-tabs-reducer.ts';
-import { parseWorkspaceTabs, serializeWorkspaceTabs } from './workspace-tabs-storage.ts';
+import {
+    parseWorkspaceMode,
+    parseWorkspaceTabs,
+    serializeWorkspaceTabs,
+} from './workspace-tabs-storage.ts';
 
 const report: WorkspaceArtifactTarget = {
     agentId: 'agent-1',
@@ -15,18 +17,27 @@ const report: WorkspaceArtifactTarget = {
     path: 'reports/q3.html',
 };
 const reportKey = 'workspaceFile:agent-1:reports/q3.html';
+const restoredEmpty: WorkspaceTabsState = { ...emptyWorkspaceTabs, sidePaneVisible: false };
 
 describe('workspace tab persistence', () => {
-    test('round-trips artifact and Agent tabs and the primary place without browser refs or selection', () => {
-        let state = workspaceTabsReducer(emptyWorkspaceTabs, {
-            kind: 'open',
-            placement: 'auto',
-            tab: { kind: 'artifact', source: null, target: report, title: 'Q3 report' },
+    test('round-trips App-local tabs and their order without browser refs, the preview, or selection', () => {
+        let state = [
+            { kind: 'artifact', source: null, target: report, title: 'Q3 report' } as const,
+            { kind: 'agent', agentId: 'blippy', section: 'skills' } as const,
+            { kind: 'thread', anchorMessageId: 'm1', chatId: 'c1' } as const,
+            { kind: 'thread', anchorMessageId: 'm2', chatId: 'c1' } as const,
+        ].reduce(
+            (current, tab) => workspaceTabsReducer(current, { kind: 'open', tab }),
+            emptyWorkspaceTabs
+        );
+        // m1 was the preview until m2 replaced it; pinning m2 keeps it.
+        state = workspaceTabsReducer(state, {
+            kind: 'pin',
+            ref: { kind: 'thread', anchorMessageId: 'm2', chatId: 'c1' },
         });
         state = workspaceTabsReducer(state, {
             kind: 'open',
-            placement: 'auto',
-            tab: { kind: 'agent', agentId: 'blippy', section: 'skills' },
+            tab: { kind: 'thread', anchorMessageId: 'm3', chatId: 'c1' },
         });
         state = workspaceTabsReducer(state, {
             kind: 'reorder',
@@ -34,46 +45,57 @@ describe('workspace tab persistence', () => {
                 { kind: 'browser', id: 'b1' },
                 { kind: 'agent', agentId: 'blippy' },
                 { kind: 'artifact', key: reportKey },
-                primaryTabRef,
+                ...state.order.filter((ref) => ref.kind === 'thread'),
             ],
         });
-        const restored = parseWorkspaceTabs(serializeWorkspaceTabs(state));
-        expect(restored.mainActive).toBeNull();
+        const restored = parseWorkspaceTabs(serializeWorkspaceTabs(state), 'expanded');
+        expect(restored.active).toBeNull();
+        expect(restored.preview).toBeNull();
+        expect(restored.mode).toBe('expanded');
+        expect(restored.sidePaneVisible).toBe(false);
+        expect(restored.primarySelected).toBe(true);
         expect(restored.order).toEqual([
             { kind: 'agent', agentId: 'blippy' },
             { kind: 'artifact', key: reportKey },
-            primaryTabRef,
+            { kind: 'thread', anchorMessageId: 'm2', chatId: 'c1' },
         ]);
         expect(restored.artifacts).toEqual(state.artifacts);
         expect(restored.agents).toEqual([{ agentId: 'blippy', section: 'skills' }]);
+        expect(restored.threads).toEqual([{ anchorMessageId: 'm2', chatId: 'c1' }]);
     });
 
-    test('split tabs persist folded onto the end of the main strip, split closed', () => {
-        let state = workspaceTabsReducer(emptyWorkspaceTabs, { kind: 'openSplit' });
-        state = workspaceTabsReducer(state, {
-            kind: 'open',
-            placement: 'auto',
-            tab: { kind: 'agent', agentId: 'tiny' },
-        });
-        const restored = parseWorkspaceTabs(serializeWorkspaceTabs(state));
-        expect(restored.split.open).toBe(false);
-        expect(resolveWorkspaceTabs(restored.order, [], mainAppTabs(restored))).toEqual([
-            primaryTabRef,
-            { kind: 'agent', agentId: 'tiny' },
-        ]);
+    test('the mode is a per-device choice that defaults to split', () => {
+        expect(parseWorkspaceMode('expanded')).toBe('expanded');
+        expect(parseWorkspaceMode('split')).toBe('split');
+        expect(parseWorkspaceMode(null)).toBe('split');
+        expect(parseWorkspaceMode('nonsense')).toBe('split');
     });
 
-    test('state saved before Agent tabs and the split still restores', () => {
+    test('state saved before Agent and Thread tabs still restores', () => {
         const raw = JSON.stringify({
             artifacts: [{ key: reportKey, target: report, title: null, source: null }],
-            order: [{ kind: 'artifact', key: reportKey }],
+            order: [{ kind: 'primary' }, { kind: 'artifact', key: reportKey }],
         });
         const restored = parseWorkspaceTabs(raw);
         expect(restored.agents).toEqual([]);
-        expect(restored.split).toEqual(emptyWorkspaceTabs.split);
-        expect(resolveWorkspaceTabs(restored.order, [], mainAppTabs(restored))).toEqual([
-            primaryTabRef,
-            { kind: 'artifact', key: reportKey },
+        expect(restored.threads).toEqual([]);
+        expect(restored.order).toEqual([{ kind: 'artifact', key: reportKey }]);
+    });
+
+    test('the split-era shape restores, its primary entry dropped', () => {
+        const raw = JSON.stringify({
+            agents: [{ agentId: 'tiny', section: 'home' }],
+            artifacts: [],
+            order: [
+                { kind: 'agent', agentId: 'tiny' },
+                { kind: 'primary' },
+                { kind: 'thread', anchorMessageId: 'm1', chatId: 'c1' },
+            ],
+            threads: [{ anchorMessageId: 'm1', chatId: 'c1' }],
+        });
+        expect(parseWorkspaceTabs(raw).order).toEqual([
+            { kind: 'agent', agentId: 'tiny' },
+            { kind: 'thread', anchorMessageId: 'm1', chatId: 'c1' },
         ]);
     });
 
@@ -108,12 +130,11 @@ describe('workspace tab persistence', () => {
         expect(restored.order).toEqual([
             { kind: 'artifact', key: reportKey },
             { kind: 'agent', agentId: 'blippy' },
-            primaryTabRef,
         ]);
     });
 
     test('unreadable storage restores nothing', () => {
-        expect(parseWorkspaceTabs('{not json')).toEqual(emptyWorkspaceTabs);
-        expect(parseWorkspaceTabs(null)).toEqual(emptyWorkspaceTabs);
+        expect(parseWorkspaceTabs('{not json')).toEqual(restoredEmpty);
+        expect(parseWorkspaceTabs(null)).toEqual(restoredEmpty);
     });
 });

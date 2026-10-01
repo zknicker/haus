@@ -34,8 +34,8 @@ import { resolveRuntimeConfig } from './runtime-model.ts';
 /**
  * The hub's six doorways, one per drill-down section, each stating the fact it
  * holds rather than defining itself. The grid follows its own container — three
- * columns in a wide tab, two in a mid one, one in a split column — because the
- * same page renders full-width on web and 420px wide in a desktop split.
+ * columns in a wide tab, two in a mid one, one in a side pane — because the
+ * same page renders full-width on web and 420px wide in the desktop side pane.
  */
 export function AgentHubCards({
     agent,

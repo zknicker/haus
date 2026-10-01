@@ -6,8 +6,6 @@ import { useBrowserWorkspace } from '../../features/shell/browser-workspace-cont
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 export interface OpenAgentProfileOptions {
-    /** `main` forces the main strip (Cmd-click); `auto` follows the split rule. */
-    placement?: 'auto' | 'main';
     section?: AgentSection;
 }
 
@@ -24,7 +22,7 @@ export function useOpenAgentProfile() {
     return useCallback(
         (agentId: string, options: OpenAgentProfileOptions = {}) => {
             if (openAgent && getDesktopBridge()?.browserCommand) {
-                openAgent(agentId, options);
+                openAgent(agentId, { section: options.section });
                 return;
             }
             navigate(agentProfileRoute(slug, agentId, options.section));

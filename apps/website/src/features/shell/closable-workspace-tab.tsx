@@ -1,11 +1,17 @@
 import { Button } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type * as React from 'react';
+import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ClosableTabRef } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 import { SortableWorkspaceTab } from './sortable-workspace-tab.tsx';
 import { WorkspaceTabAction } from './workspace-tab.tsx';
+
+/**
+ * How closable tabs render: as sortable strip tabs, or as plain rows in the
+ * hidden side pane's open-tabs list, where pressing one reveals the pane on it.
+ */
+export const WorkspaceTabVariant = React.createContext<'list' | 'strip'>('strip');
 
 /**
  * A browser page, artifact, Agent, or Thread tab. Every closable kind closes
@@ -29,6 +35,15 @@ export function ClosableWorkspaceTab({
     tooltip: React.ReactNode;
 }) {
     const workspace = useBrowserWorkspace();
+    const variant = React.use(WorkspaceTabVariant);
+    if (variant === 'list') {
+        return (
+            <Button onPress={() => workspace?.selectTab(tabRef)} size="sm" variant="ghost">
+                {mark}
+                {label}
+            </Button>
+        );
+    }
     const close = () => workspace?.closeTab(tabRef);
     return (
         <SortableWorkspaceTab

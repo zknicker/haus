@@ -6,7 +6,7 @@ import { BrowserWorkspaceTab } from './browser-workspace-tab.tsx';
 import { PrimaryWorkspaceTab } from './primary-workspace-tab.tsx';
 import { ThreadWorkspaceTab } from './thread-workspace-tab.tsx';
 
-/** One tab of any kind, in either strip; renders nothing for a tab that is gone. */
+/** One tab of any kind, in any strip or the open-tabs list; renders nothing for a tab that is gone. */
 export function WorkspaceTabItem({ tabRef }: { tabRef: WorkspaceTabRef }) {
     const workspace = useBrowserWorkspace();
     if (!workspace) {

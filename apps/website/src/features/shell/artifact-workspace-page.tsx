@@ -13,7 +13,7 @@ import {
 import type { HausResourceTarget } from '../chats/haus-resource-link.ts';
 
 /**
- * An artifact tab's body, in either tab group. It renders in the DOM with the
+ * An artifact tab's body, in the side pane or full width. It renders in the DOM with the
  * Artifact Panel's own renderers: a file shows its preview, a workspace
  * folder shows the workspace browser.
  */

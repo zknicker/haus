@@ -11,10 +11,7 @@ export interface ThreadTabRef {
     kind: 'thread';
 }
 
-/**
- * An App-local workspace tab: an artifact (by its stable target key), an
- * Agent profile (by Agent id), or a Thread. Only these can sit in the split.
- */
+/** An App-local workspace tab: an artifact (by its stable target key), an Agent profile, or a Thread. */
 export type AppTabRef =
     | { kind: 'agent'; agentId: string }
     | { kind: 'artifact'; key: string }
@@ -23,36 +20,19 @@ export type AppTabRef =
 /** A closable desktop workspace tab. Browser tabs are Electron-owned and referenced by id. */
 export type ClosableTabRef = AppTabRef | { kind: 'browser'; id: string };
 
-/**
- * Every desktop workspace tab. Exactly one primary tab (the routed page) is
- * always present in the main strip, can sit anywhere there, and never closes.
- */
+/** Every desktop workspace tab. The one primary tab is the routed page and never closes. */
 export type WorkspaceTabRef = { kind: 'primary' } | ClosableTabRef;
 
-/** The window's two tab groups: the main strip, and the split docked on the right. */
-export type WorkspaceTabGroup = 'main' | 'split';
-
-/** `main` forces the main strip (Cmd-click); `auto` follows the tab's placement class. */
-export type TabPlacement = 'auto' | 'main';
-
 /**
- * Where a new tab of a kind lands (ADR 0038). A page (Agent profile,
- * artifact) opens in the split only while it is open; a companion (Thread)
- * always opens in the split, opening it, as the split's preview tab.
+ * The window's tab layout (ADR 0038, after Codex). `split`: the routed page
+ * fills the left column and every closable tab lives in a side pane with its
+ * own strip. `expanded`: one strip, the primary tab first, and the selected
+ * tab takes the whole content width.
  */
-export type PlacementClass = 'companion' | 'page';
+export type WorkspaceMode = 'split' | 'expanded';
 
-export function placementClass(ref: AppTabRef): PlacementClass {
-    return ref.kind === 'thread' ? 'companion' : 'page';
-}
-
-/** Cmd/Ctrl-click always lands in the main strip. */
-export function placementFromModifiers(event: {
-    ctrlKey: boolean;
-    metaKey: boolean;
-}): TabPlacement {
-    return event.metaKey || event.ctrlKey ? 'main' : 'auto';
-}
+/** Where Command-W points in split mode: the routed page, or the side pane's selected tab. */
+export type WorkspaceFocus = 'primary' | 'side';
 
 export const primaryTabRef: WorkspaceTabRef = { kind: 'primary' };
 
@@ -77,45 +57,42 @@ export interface AgentTab {
 /** A Thread tab carries nothing beyond its identity. */
 export type ThreadTab = Omit<ThreadTabRef, 'kind'>;
 
-export interface WorkspaceSplit {
-    /** The split's selected tab; null only while it holds no tabs. */
-    active: AppTabRef | null;
-    /** True once toggled on, even before a tab lands in it; new tabs then open there. */
-    open: boolean;
-    order: AppTabRef[];
-    /**
-     * The split's one preview tab: an unpinned companion that the next opened
-     * companion replaces in place. Replying, double-clicking, or moving it pins it.
-     */
-    preview: ThreadTabRef | null;
-}
-
 export interface WorkspaceTabsState {
+    /**
+     * The selected App-local closable tab. Electron owns browser selection, so
+     * this is null while Electron has a browser tab selected (which then is the
+     * selected closable tab) or while nothing closable is selected.
+     */
+    active: AppTabRef | null;
     agents: AgentTab[];
     artifacts: ArtifactTab[];
-    /** The group Command-W acts on: the one last selected, opened into, or clicked. */
-    focus: WorkspaceTabGroup;
-    /** The selected App-local main tab; null while the primary or a browser tab is selected. */
-    mainActive: AppTabRef | null;
-    /** Main strip order; browser refs may be stale and are resolved against live tabs. */
-    order: WorkspaceTabRef[];
-    split: WorkspaceSplit;
+    focus: WorkspaceFocus;
+    mode: WorkspaceMode;
+    /** Closable tabs in strip order; browser refs may be stale and are resolved against live tabs. */
+    order: ClosableTabRef[];
+    /** The one preview Thread tab, which the next opened Thread replaces in place. */
+    preview: ThreadTabRef | null;
+    /** Expanded mode: the primary tab is selected, the selected closable tab waiting behind it. */
+    primarySelected: boolean;
+    /** Split mode: the side pane shows. Hiding it keeps its tabs and selection. */
+    sidePaneVisible: boolean;
     threads: ThreadTab[];
 }
 
-export const closedSplit: WorkspaceSplit = { active: null, open: false, order: [], preview: null };
-
 export const emptyWorkspaceTabs: WorkspaceTabsState = {
+    active: null,
     agents: [],
     artifacts: [],
-    focus: 'main',
-    mainActive: null,
+    focus: 'primary',
+    mode: 'split',
     order: [],
-    split: closedSplit,
+    preview: null,
+    primarySelected: true,
+    sidePaneVisible: true,
     threads: [],
 };
 
-/** Every App-local tab, whichever group holds it. */
+/** Every App-local tab record, as refs. */
 export function appTabRefs(
     state: Pick<WorkspaceTabsState, 'agents' | 'artifacts' | 'threads'>
 ): AppTabRef[] {
@@ -126,92 +103,85 @@ export function appTabRefs(
     ];
 }
 
-/** The group holding an open App-local tab, or null when it is not open. */
-export function tabGroup(state: WorkspaceTabsState, ref: AppTabRef): WorkspaceTabGroup | null {
-    const id = workspaceTabId(ref);
-    if (state.split.order.some((item) => workspaceTabId(item) === id)) {
-        return 'split';
-    }
-    return appTabRefs(state).some((item) => workspaceTabId(item) === id) ? 'main' : null;
+export function hasAppTab(state: WorkspaceTabsState, ref: AppTabRef): boolean {
+    return appTabRefs(state).some((item) => sameTab(item, ref));
 }
 
 /**
- * The routing rule (ADR 0038): an open tab stays where it is; `main` forces
- * the main strip; a new companion opens in the split; a new page opens in the
- * split while the split is open, else in the main strip.
+ * The closable tabs in strip order: persisted refs that still exist, then live
+ * browser tabs and App-local tabs the order has not placed yet (new ones append).
  */
-export function openGroup(
-    state: WorkspaceTabsState,
-    ref: AppTabRef,
-    placement: TabPlacement
-): WorkspaceTabGroup {
-    const open = tabGroup(state, ref);
-    if (open) {
-        return open;
-    }
-    if (placement === 'main') {
-        return 'main';
-    }
-    return placementClass(ref) === 'companion' || state.split.open ? 'split' : 'main';
-}
-
-/** App-local tabs that belong to the main strip. */
-export function mainAppTabs(state: WorkspaceTabsState): AppTabRef[] {
-    const split = new Set(state.split.order.map(workspaceTabId));
-    return appTabRefs(state).filter((ref) => !split.has(workspaceTabId(ref)));
-}
-
-/**
- * The main strip's tabs in order: persisted refs that still exist, then live
- * browser tabs and App-local tabs the order has not placed yet (new ones
- * append). The primary tab keeps its place, or leads when the order lacks it.
- */
-export function resolveWorkspaceTabs(
-    order: readonly WorkspaceTabRef[],
+export function resolveClosableTabs(
+    order: readonly ClosableTabRef[],
     browserIds: readonly string[],
     appTabs: readonly AppTabRef[]
-): WorkspaceTabRef[] {
-    const browserRefs = browserIds.map((id): WorkspaceTabRef => ({ kind: 'browser', id }));
-    const live = new Set([primaryTabRef, ...browserRefs, ...appTabs].map(workspaceTabId));
+): ClosableTabRef[] {
+    const browserRefs = browserIds.map((id): ClosableTabRef => ({ kind: 'browser', id }));
+    const live = new Set([...browserRefs, ...appTabs].map(workspaceTabId));
     const placed = new Set<string>();
-    const resolved: WorkspaceTabRef[] = [];
-    const place = (ref: WorkspaceTabRef) => {
+    return [...order, ...browserRefs, ...appTabs].filter((ref) => {
         const id = workspaceTabId(ref);
-        if (live.has(id) && !placed.has(id)) {
-            placed.add(id);
-            resolved.push(ref);
+        if (!live.has(id) || placed.has(id)) {
+            return false;
         }
-    };
-    if (!order.some((ref) => ref.kind === 'primary')) {
-        place(primaryTabRef);
-    }
-    for (const ref of [...order, ...browserRefs, ...appTabs]) {
-        place(ref);
-    }
-    return resolved;
+        placed.add(id);
+        return true;
+    });
 }
 
 /**
- * Closing the selected tab selects the last remaining tab in its strip, which
- * is the primary tab when it sits last or stands alone.
+ * What the window shows, from the state and Electron's selected browser tab.
+ * `selectedClosable` is the closable tab selected in its strip, shown or not;
+ * `shownClosable` is the closable tab whose page is on screen (the side pane's
+ * in split mode, the covering tab in expanded mode); `selectedTab` is the tab
+ * a strip highlights.
+ */
+export function workspaceSelection(
+    state: WorkspaceTabsState,
+    browserActiveId: string | null,
+    closable: readonly ClosableTabRef[]
+) {
+    const selectedClosable: ClosableTabRef | null = browserActiveId
+        ? { kind: 'browser', id: browserActiveId }
+        : state.active && closable.some((ref) => sameTab(ref, state.active))
+          ? state.active
+          : null;
+    const shown =
+        state.mode === 'split'
+            ? state.sidePaneVisible && closable.length > 0
+            : !state.primarySelected;
+    const shownClosable = shown ? selectedClosable : null;
+    const selectedTab: WorkspaceTabRef =
+        state.mode === 'split'
+            ? (selectedClosable ?? primaryTabRef)
+            : (shownClosable ?? primaryTabRef);
+    return {
+        selectedClosable,
+        selectedTab,
+        shownClosable,
+        sidePaneShown: state.mode === 'split' && state.sidePaneVisible && closable.length > 0,
+    };
+}
+
+export type WorkspaceSelection = ReturnType<typeof workspaceSelection>;
+
+/** The strip the user sees, for strip shortcuts: expanded leads with the primary tab. */
+export function visibleStrip(
+    mode: WorkspaceMode,
+    closable: readonly ClosableTabRef[]
+): WorkspaceTabRef[] {
+    return mode === 'expanded' ? [primaryTabRef, ...closable] : [...closable];
+}
+
+/**
+ * Closing the selected tab selects the last remaining tab in its strip; null
+ * when none remains (the expanded strip then falls back to the primary tab).
  */
 export function selectionAfterClose(
     tabs: readonly WorkspaceTabRef[],
     closing: ClosableTabRef
-): WorkspaceTabRef {
-    const id = workspaceTabId(closing);
-    return tabs.filter((ref) => workspaceTabId(ref) !== id).at(-1) ?? primaryTabRef;
-}
-
-/** Folds split tabs into the main strip right after its selected tab. */
-export function foldSplitIntoMain(
-    mainTabs: readonly WorkspaceTabRef[],
-    active: WorkspaceTabRef,
-    splitTabs: readonly AppTabRef[]
-): WorkspaceTabRef[] {
-    const index = mainTabs.findIndex((ref) => workspaceTabId(ref) === workspaceTabId(active));
-    const at = index < 0 ? mainTabs.length : index + 1;
-    return [...mainTabs.slice(0, at), ...splitTabs, ...mainTabs.slice(at)];
+): WorkspaceTabRef | null {
+    return tabs.filter((ref) => !sameTab(ref, closing)).at(-1) ?? null;
 }
 
 /** A unique id per tab across kinds; also the tab's drag-and-drop id. */
@@ -232,6 +202,10 @@ export function workspaceTabId(ref: WorkspaceTabRef): string {
 
 export function sameTab(a: WorkspaceTabRef | null, b: WorkspaceTabRef | null): boolean {
     return a !== null && b !== null && workspaceTabId(a) === workspaceTabId(b);
+}
+
+export function isAppTab(ref: WorkspaceTabRef): ref is AppTabRef {
+    return ref.kind !== 'primary' && ref.kind !== 'browser';
 }
 
 /** Desktop workspace tabs take artifacts bound to an Agent; everything else keeps the panel. */

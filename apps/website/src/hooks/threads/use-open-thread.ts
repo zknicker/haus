@@ -6,8 +6,7 @@ export type OpenThread = WorkspaceTabOpeners['openThread'];
 
 /**
  * The one way to open a Thread on desktop (ADR 0038, threads are companions):
- * opens or selects the Thread's tab, in the split as its preview tab unless
- * `placement: 'main'` (Cmd-click) forces the main strip. Null on the website,
+ * opens or selects the Thread's tab as the preview tab. Null on the website,
  * which has no tabs: there the open Chat's side pane hosts Threads, and links
  * elsewhere navigate to the Chat with `?thread=`.
  */
