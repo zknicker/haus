@@ -200,8 +200,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // "even when replying to whoever asked" clause was cut. Lowered (32,281 → 32,220) when step 4 and the
     // DM silence rule came to require one acknowledgement reaction whose emoji fits the message,
     // paid for by relocating the Cloud agents section's `cloud-agent send` and work-thread
-    // sentences to the `cloud-agents` Manual topic.
-    expect(prompt.length).toBeLessThanOrEqual(32_220);
+    // sentences to the `cloud-agents` Manual topic. Raised by operator decision (32,220 → 32,444)
+    // when the Formatting section gained a chat-register rule against bold-as-emphasis and
+    // structure-only lists, headings, and tables.
+    expect(prompt.length).toBeLessThanOrEqual(32_444);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
@@ -250,6 +252,17 @@ test('pins the rendered visuals and artifact fence contract', () => {
     );
     expect(prompt).toContain(
         'Artifact fences render a card the reader clicks to open in the artifact pane; nothing auto-opens.'
+    );
+});
+
+test('teaches a chat register for Markdown formatting', () => {
+    const prompt = renderPrompt();
+
+    expect(prompt).toContain(
+        'Haus renders your message as Markdown, GFM tables included, but it is a chat: write like a teammate messaging, in plain sentences.'
+    );
+    expect(prompt).toContain(
+        "Don't bold for emphasis or as labels; use lists, headings, or tables only when the content is genuinely structured, such as steps, comparisons, or data."
     );
 });
 
