@@ -47,14 +47,6 @@ final class PushDeviceSyncTests: XCTestCase {
         XCTAssertFalse(PendingPushUnregister(defaults: defaults).isPending)
     }
 
-    // MARK: - Badge
-
-    func testBadgeWaitsForNeedsYouToLoad() {
-        XCTAssertNil(PushBadge.count(needsYouCount: 0, isReady: false))
-        XCTAssertEqual(PushBadge.count(needsYouCount: 0, isReady: true), 0)
-        XCTAssertEqual(PushBadge.count(needsYouCount: 3, isReady: true), 3)
-    }
-
     // MARK: - Delivered cleanup
 
     func testOpeningAConversationClearsItsGroupAndThreads() {

@@ -9,8 +9,8 @@ import SwiftUI
 /// width. Without one the title takes the whole middle and truncates at its own
 /// tail.
 ///
-/// The whole row is the press target. The one control an Inbox row may carry —
-/// a Needs you row's Done — sits beside it rather than inside it.
+/// The whole row is the press target and carries no nested control; a row's
+/// secondary action — an Unread row's Mark read — rides its context menu.
 struct InboxRowView<Trailing: View>: View {
     let mark: InboxMark
     let title: String

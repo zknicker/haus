@@ -3,12 +3,12 @@ import SwiftUI
 /// The sidebar's anchor: Inbox, marked by the Haus ghost where a product's
 /// wordmark would sit. Nothing else shares its line.
 ///
-/// Waiting work shows as the disc every Chat row below hangs off the sidebar's
-/// leading edge, never as a number: the Inbox's own "Needs you" total is a
-/// count the reader cannot act on, and a chip on this row alone would break
-/// the column's one grammar. Like theirs it shows nothing at zero, which is
-/// also what it reads while the Store cannot answer honestly yet, so it never
-/// ticks upward in front of the reader.
+/// Any unread Chat shows as the disc every Chat row below hangs off the
+/// sidebar's leading edge, never as a number: a total is a count the reader
+/// cannot act on, and a chip on this row alone would break the column's one
+/// grammar. Like theirs it shows nothing when nothing is unread, which is also
+/// what it reads while the Store cannot answer honestly yet, so it never ticks
+/// upward in front of the reader.
 ///
 /// The mark is the iridescent ghost, not the app-icon tile: it shares a glyph
 /// column with Tasks directly below it, and a filled blue tile beside a stroked
@@ -20,7 +20,7 @@ import SwiftUI
 /// mesh drifts, quicker while an Agent here is working, and not at all while
 /// the drawer holding it is shut.
 struct SidebarInboxRow: View {
-    let needsYouCount: Int
+    let hasUnread: Bool
     let glyphSize: CGFloat
     let ghostTempo: HausGhostTempo
     let ghostPaused: Bool
@@ -46,10 +46,10 @@ struct SidebarInboxRow: View {
             .foregroundStyle(.primary)
             .padding(.horizontal, capsuleBleed)
             .frame(height: 42)
-            .sidebarUnreadDot(needsYouCount > 0, listInset: listInset)
+            .sidebarUnreadDot(hasUnread, listInset: listInset)
             .contentShape(Rectangle())
         }
         .buttonStyle(.pressableRow(cornerRadius: 21))
-        .accessibilityLabel(needsYouCount > 0 ? "Inbox, needs you" : "Inbox")
+        .accessibilityLabel(hasUnread ? "Inbox, unread" : "Inbox")
     }
 }

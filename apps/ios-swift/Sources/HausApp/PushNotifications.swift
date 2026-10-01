@@ -6,7 +6,7 @@ import OSLog
 import UIKit
 import UserNotifications
 
-/// Needs you pushes on this device: the Settings switch, the permission
+/// Message pushes on this device: the Settings switch, the permission
 /// request behind it, the APNs token, and the conversation a tapped
 /// notification should open.
 ///
@@ -20,7 +20,7 @@ final class PushNotifications {
     static let shared = PushNotifications()
     static let logger = Logger(subsystem: "chat.haus.ios", category: "push")
 
-    let setting: NeedsYouNotificationsSetting
+    let setting: PushNotificationsSetting
     /// A tapped notification waiting for the signed-in shell to open it.
     var pendingOpen: PushNotificationPayload?
     /// What the reader is looking at, reported by the shell, so a push for
@@ -36,8 +36,8 @@ final class PushNotifications {
     @ObservationIgnored private weak var store: HausStore?
 
     private init() {
-        setting = NeedsYouNotificationsSetting(
-            isPreferred: UserDefaults.standard.bool(forKey: NeedsYouNotificationsSetting.storageKey)
+        setting = PushNotificationsSetting(
+            isPreferred: UserDefaults.standard.bool(forKey: PushNotificationsSetting.storageKey)
         )
         setting.onChange = { [weak self] isOn in
             Task { await self?.setPreferred(isOn) }
@@ -74,9 +74,11 @@ final class PushNotifications {
         syncDevice()
     }
 
-    /// Mirrors the Needs you count on the app icon, once it is known.
-    func updateBadge(needsYouCount: Int, isReady: Bool) {
-        guard let count = PushBadge.count(needsYouCount: needsYouCount, isReady: isReady) else { return }
+    /// Mirrors the Server's cross-Server unread Chat count on the app icon —
+    /// the number push sets — once it is known. Nil until first read, so a
+    /// cold launch does not clear a badge the Server set.
+    func updateBadge(unreadChatCount: Int?) {
+        guard let count = unreadChatCount else { return }
         UNUserNotificationCenter.current().setBadgeCount(count) { error in
             if let error {
                 Self.logger.error("Setting the badge failed: \(error.localizedDescription, privacy: .public)")
@@ -209,7 +211,7 @@ final class PushNotifications {
 
     private func persistPreference(_ isOn: Bool) {
         setting.isPreferred = isOn
-        UserDefaults.standard.set(isOn, forKey: NeedsYouNotificationsSetting.storageKey)
+        UserDefaults.standard.set(isOn, forKey: PushNotificationsSetting.storageKey)
     }
 
     private static func permission(_ status: UNAuthorizationStatus) -> NotificationPermission {

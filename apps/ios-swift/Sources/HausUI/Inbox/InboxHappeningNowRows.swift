@@ -1,6 +1,10 @@
 import Foundation
 import HausModels
 
+/// The Agent or member behind a row, as the App layer's directory resolves it.
+/// Nil is an actor this client no longer lists, which each row names itself.
+public typealias InboxActorResolver = (_ agentID: String?, _ userID: String?) -> MessageAuthorPresentation?
+
 /// One Agent in a turn, as the App layer's activity snapshot reports it.
 public struct InboxWorkingAgent: Identifiable, Hashable, Sendable {
     public let id: String

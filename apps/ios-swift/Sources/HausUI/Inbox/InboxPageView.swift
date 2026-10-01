@@ -7,8 +7,8 @@ import SwiftUI
 ///
 /// The order is the reading order, and it is the contract the App page states:
 /// who is reading and what day it is, then the Agents that moved this week,
-/// then what is waiting on this person, then the conversation waiting on them,
-/// then what is moving without them.
+/// then the conversations waiting on this person, then what is moving without
+/// them.
 ///
 /// A section that has not settled renders nothing rather than an empty box: an
 /// unsettled read is not an empty collection, so nothing is claimed — and
@@ -22,13 +22,12 @@ import SwiftUI
 public struct InboxPageView: View {
     private let greetingName: String?
     private let agentWeeks: [InboxAgentWeek]?
-    private let needsYou: [InboxNeedsYouRow]?
-    private let conversations: [InboxConversationRow]?
+    private let unread: [InboxUnreadRow]?
     private let cloudAgentWork: [ActiveCloudAgentWork]?
     private let workingAgents: [InboxWorkingAgent]
     private let resolveActor: InboxActorResolver
     private let onOpen: (InboxOpenRequest) -> Void
-    private let onDone: (String) -> Void
+    private let onMarkRead: (String) -> Void
     private let onRefresh: () async -> Void
     private let onOpenSidebar: () -> Void
     /// The canvas ignores safe areas, so the chrome row carries its own
@@ -41,26 +40,24 @@ public struct InboxPageView: View {
     public init(
         greetingName: String?,
         agentWeeks: [InboxAgentWeek]?,
-        needsYou: [InboxNeedsYouRow]?,
-        conversations: [InboxConversationRow]?,
+        unread: [InboxUnreadRow]?,
         cloudAgentWork: [ActiveCloudAgentWork]?,
         workingAgents: [InboxWorkingAgent],
         resolveActor: @escaping InboxActorResolver,
         onOpen: @escaping (InboxOpenRequest) -> Void,
-        onDone: @escaping (String) -> Void,
+        onMarkRead: @escaping (String) -> Void,
         onRefresh: @escaping () async -> Void,
         onOpenSidebar: @escaping () -> Void,
         contentInsets: EdgeInsets = EdgeInsets()
     ) {
         self.greetingName = greetingName
         self.agentWeeks = agentWeeks
-        self.needsYou = needsYou
-        self.conversations = conversations
+        self.unread = unread
         self.cloudAgentWork = cloudAgentWork
         self.workingAgents = workingAgents
         self.resolveActor = resolveActor
         self.onOpen = onOpen
-        self.onDone = onDone
+        self.onMarkRead = onMarkRead
         self.onRefresh = onRefresh
         self.onOpenSidebar = onOpenSidebar
         self.contentInsets = contentInsets
@@ -85,8 +82,7 @@ public struct InboxPageView: View {
             VStack(alignment: .leading, spacing: 22) {
                 header
                 InboxActiveAgentsSection(weeks: agentWeeks, onOpen: onOpen)
-                InboxNeedsYouSection(rows: needsYou, now: now, onOpen: onOpen, onDone: onDone)
-                InboxConversationsSection(rows: conversations, now: now, onOpen: onOpen)
+                InboxUnreadSection(rows: unread, now: now, onOpen: onOpen, onMarkRead: onMarkRead)
                 InboxHappeningNowSection(rows: happeningNowRows, onOpen: onOpen)
             }
             .padding(.top, 4)

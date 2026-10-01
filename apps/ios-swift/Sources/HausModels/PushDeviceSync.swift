@@ -1,7 +1,7 @@
 import Foundation
 
 /// What this device should tell the Server about its APNs token. Turning
-/// Needs you pushes off must reach the Server even when the first attempt
+/// pushes off must reach the Server even when the first attempt
 /// fails, so the off intent is persisted (`PendingPushUnregister`) and retried
 /// on every launch, foreground, and token delivery until it lands.
 public enum PushDeviceSync {
@@ -54,15 +54,6 @@ public struct PendingPushUnregister {
     public var isPending: Bool {
         get { defaults.bool(forKey: Self.storageKey) }
         nonmutating set { defaults.set(newValue, forKey: Self.storageKey) }
-    }
-}
-
-/// The app icon badge mirrors Needs you.
-public enum PushBadge {
-    /// Nil until the Needs you rows have loaded, so a cold launch does not
-    /// clear a badge the Server set to a count the app has not read yet.
-    public static func count(needsYouCount: Int, isReady: Bool) -> Int? {
-        isReady ? needsYouCount : nil
     }
 }
 

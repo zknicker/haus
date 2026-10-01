@@ -91,99 +91,59 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
     /// Event-specific action. Reminder actions and Chat lifecycle actions use
     /// different unions on the Server, so preserve the wire string losslessly.
     public let action: String?
-    /// `message.created` only: the human author, nil for an Agent or system Message.
-    public let authorUserID: String?
     public let chatID: String?
     public let createdAt: Date
     public let cursor: String
     public let id: String
     public let labelID: String?
-    /// `message.created` only: the humans the Message mentions (ADR 0037).
-    public let mentionedUserIDs: [String]?
     public let messageID: String?
     public let parentChatID: String?
     public let reminderID: String?
-    /// `message.created` only: the human who wrote an inline reply's parent,
-    /// nil otherwise. A reply to the viewer addresses them (ADR 0037).
-    public let replyToAuthorUserID: String?
     public let sequence: Int
     public let serverID: String
-    /// `message.created` only: the human who wrote a Thread's anchor, nil
-    /// otherwise. A Thread on the viewer's message addresses them (ADR 0037).
-    public let threadAnchorAuthorUserID: String?
     public let type: ChatEventKind
 
     enum CodingKeys: String, CodingKey {
         case action
-        case authorUserID = "authorUserId"
         case chatID = "chatId"
         case createdAt
         case cursor
         case id
         case labelID = "labelId"
-        case mentionedUserIDs = "mentionedUserIds"
         case messageID = "messageId"
         case parentChatID = "parentChatId"
         case reminderID = "reminderId"
-        case replyToAuthorUserID = "replyToAuthorUserId"
         case sequence
         case serverID = "serverId"
-        case threadAnchorAuthorUserID = "threadAnchorAuthorUserId"
         case type
     }
 
     public init(
         action: String? = nil,
-        authorUserID: String? = nil,
         chatID: String?,
         createdAt: Date,
         cursor: String,
         id: String,
         labelID: String? = nil,
-        mentionedUserIDs: [String]? = nil,
         messageID: String? = nil,
         parentChatID: String?,
         reminderID: String? = nil,
-        replyToAuthorUserID: String? = nil,
         sequence: Int,
         serverID: String,
-        threadAnchorAuthorUserID: String? = nil,
         type: ChatEventKind
     ) {
         self.action = action
-        self.authorUserID = authorUserID
         self.chatID = chatID
         self.createdAt = createdAt
         self.cursor = cursor
         self.id = id
         self.labelID = labelID
-        self.mentionedUserIDs = mentionedUserIDs
         self.messageID = messageID
         self.parentChatID = parentChatID
         self.reminderID = reminderID
-        self.replyToAuthorUserID = replyToAuthorUserID
         self.sequence = sequence
         self.serverID = serverID
-        self.threadAnchorAuthorUserID = threadAnchorAuthorUserID
         self.type = type
-    }
-
-    /// Whether a `message.created` could move the viewer's Needs you rows: a
-    /// message in their DM (or a DM Thread), one mentioning them,
-    /// inline-replying to their message, or in a Thread on their message, or
-    /// one they wrote (a reply can clear
-    /// a row). An unknown viewer or conversation kind
-    /// answers yes, so a cold cache never hides a row.
-    public func mayChangeNeedsYou(viewerUserID: String?, conversationKind: ChatKind?) -> Bool {
-        guard type == .messageCreated else { return false }
-        guard let viewerUserID else { return true }
-        if authorUserID == viewerUserID
-            || replyToAuthorUserID == viewerUserID
-            || threadAnchorAuthorUserID == viewerUserID
-            || (mentionedUserIDs ?? []).contains(viewerUserID) {
-            return true
-        }
-        return conversationKind != .channel
     }
 }
 

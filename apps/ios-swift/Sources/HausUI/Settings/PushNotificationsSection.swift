@@ -9,8 +9,7 @@ public enum NotificationPermission: Sendable, Equatable {
     case denied
 }
 
-/// The per-device switch for Needs you pushes, mirroring the App's
-/// `haus.notifications.needsYou` preference: it reads on only when the reader
+/// The per-device switch for message pushes: it reads on only when the reader
 /// turned it on here and iOS granted permission. Permission is requested from
 /// this switch alone, never at launch.
 ///
@@ -18,7 +17,8 @@ public enum NotificationPermission: Sendable, Equatable {
 /// only what the row shows and the two things it can ask for.
 @MainActor
 @Observable
-public final class NeedsYouNotificationsSetting {
+public final class PushNotificationsSetting {
+    // Persisted key predates the rename; changing it resets every install's choice.
     public static let storageKey = "haus.notifications.needsYou"
 
     public var permission: NotificationPermission
@@ -42,22 +42,22 @@ public final class NeedsYouNotificationsSetting {
     public var isOn: Bool { isPreferred && permission == .granted }
 }
 
-/// The Needs you notifications section. Row titles stay short and the
+/// The notifications section. Row titles stay short and the
 /// explanation lives in the footer, where it wraps at any text size. Denied
 /// permission cannot be re-asked from inside the app, so that state adds the
 /// way to the Settings app beside the switch.
-public struct NeedsYouNotificationsSection: View {
-    let setting: NeedsYouNotificationsSetting
+public struct PushNotificationsSection: View {
+    let setting: PushNotificationsSetting
 
-    public init(setting: NeedsYouNotificationsSetting) {
+    public init(setting: PushNotificationsSetting) {
         self.setting = setting
     }
 
     public var body: some View {
-        SettingsSection("Needs you", footer: footer) {
+        SettingsSection("Notifications", footer: footer) {
             SettingsListGroup {
                 SettingsToggleRow(
-                    "Notifications",
+                    "Push notifications",
                     icon: .notification,
                     isOn: Binding(
                         get: { setting.isOn },
@@ -84,6 +84,6 @@ public struct NeedsYouNotificationsSection: View {
     private var footer: String {
         isDenied
             ? "Notifications are off for Haus. Allow them in Settings to hear about DMs, @mentions, and replies."
-            : "Get notified when someone DMs you, @mentions you, or replies to your message while Haus is in the background."
+            : "Get notified about new DMs, @mentions, and replies to your messages while Haus is in the background."
     }
 }

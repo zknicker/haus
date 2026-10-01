@@ -31,19 +31,6 @@ extension HausStore {
         )
     }
 
-    /// The Thread a Needs you row on a Thread opens. The row names only its
-    /// anchor, so the anchor Message is read from the loaded parent page when
-    /// there is one, and otherwise fetched around its id. Nil for a top-level
-    /// row, or when the anchor cannot be read.
-    func threadSelection(needsYou row: NeedsYouRow) async -> ThreadSelection? {
-        guard let anchorID = row.threadAnchorMessageID else { return nil }
-        return await threadSelection(
-            conversationChatID: row.conversationChatID,
-            threadChatID: row.chatID,
-            anchorMessageID: anchorID
-        )
-    }
-
     /// The Thread a row or a tapped notification names by ids alone. The
     /// anchor Message is read from the loaded parent page when there is one,
     /// and otherwise fetched around its id. Nil when it cannot be read.

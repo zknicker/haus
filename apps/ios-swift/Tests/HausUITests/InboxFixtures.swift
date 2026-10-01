@@ -26,34 +26,6 @@ enum InboxFixtures {
         return nil
     }
 
-    /// One Needs you row as `inbox.needsYou` returns it: a DM from Blippy, or
-    /// a mention in a Channel or one of its Threads.
-    static func needsYou(
-        reason: String = "mention",
-        chatID: String = "chat_1",
-        conversationChatID: String = "chat_1",
-        threadAnchorMessageID: String? = nil,
-        chatName: String = "onboarding",
-        preview: String = "Can you pick a rollout window?",
-        sequence: Int = 7,
-        createdAt: String = "2026-09-11T09:00:00.000Z"
-    ) -> NeedsYouRow {
-        let chatFacts = reason == "dm"
-            ? #""chatKind":"dm","chatPeerAgentId":"agent_blippy","chatPeerUserId":null"#
-            : #""chatKind":"channel","chatName":\#(quoted(chatName))"#
-        return decode(
-            """
-            {"addressedCount":1,"chatId":"\(chatID)","conversationChatId":"\(conversationChatID)",
-             \(chatFacts),"reason":"\(reason)",
-             "threadAnchorMessageId":\(threadAnchorMessageID.map(quoted) ?? "null"),
-             "latest":{"author":{"agentId":"agent_blippy","kind":"agent",
-               "profile":{"avatarUrl":null,"deleted":false,"description":null,"displayName":"Blippy"}},
-               "createdAt":"\(createdAt)","messageId":"message_\(sequence)",
-               "preview":\(quoted(preview)),"sequence":\(sequence)}}
-            """
-        )
-    }
-
     static func activeWork(startedAt: Date) -> ActiveCloudAgentWork {
         decode(
             """
@@ -79,8 +51,8 @@ enum InboxFixtures {
         unreadCount: Int = 1,
         lastActivityAt: Date? = Date(timeIntervalSince1970: 1_800_000_000),
         lastMessage: ChatLastMessage? = nil
-    ) -> InboxConversation {
-        InboxConversation(
+    ) -> InboxUnreadChat {
+        InboxUnreadChat(
             id: id,
             name: name,
             isChannel: isChannel,

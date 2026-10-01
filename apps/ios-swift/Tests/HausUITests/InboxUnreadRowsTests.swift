@@ -3,10 +3,10 @@ import HausModels
 @testable import HausUI
 import Testing
 
-/// What the Conversations section lists, and what its quoted line says.
-struct InboxConversationRowsTests {
+/// What the Unread section lists, and what its quoted line says.
+struct InboxUnreadRowsTests {
     @Test func listsOnlyUnreadChatsNewestFirst() {
-        let rows = InboxConversationRows.rows(
+        let rows = InboxUnreadRows.rows(
             [
                 InboxFixtures.chat(
                     id: "older",
@@ -27,36 +27,26 @@ struct InboxConversationRowsTests {
         #expect(rows.map(\.title) == ["#all", "#product"])
     }
 
-    /// A Chat Needs you already lists is not listed again.
-    @Test func leavesOutChatsThatHaveANeedsYouRow() {
-        let rows = InboxConversationRows.rows(
+    /// One row per Chat, DMs and Channels alike; a Chat with no activity
+    /// sorts last, and a tie falls back to the Chat id so rows never shuffle.
+    @Test func ordersTiesByIDAndChatsWithoutActivityLast() {
+        let at = Date(timeIntervalSince1970: 1_800_000_000)
+        let rows = InboxUnreadRows.rows(
             [
-                InboxFixtures.chat(id: "addressed", name: "product"),
-                InboxFixtures.chat(id: "waiting", name: "all"),
-            ],
-            viewerDisplayName: "Marlow",
-            hiding: ["addressed"]
-        )
-
-        #expect(rows.map(\.id) == ["waiting"])
-    }
-
-    /// The row carries whether it is waiting, never how many messages are: the
-    /// phone marks unread with a dot, so nothing downstream can render a count.
-    @Test func marksEveryListedRowUnread() {
-        let rows = InboxConversationRows.rows(
-            [
-                InboxFixtures.chat(id: "one", name: "product", unreadCount: 1),
-                InboxFixtures.chat(id: "many", name: "all", unreadCount: 12),
+                InboxFixtures.chat(id: "quiet", name: "quiet", lastActivityAt: nil),
+                InboxFixtures.chat(id: "b", name: "beta", lastActivityAt: at),
+                InboxFixtures.chat(id: "dm", name: "Blippy", isChannel: false, unreadCount: 4, lastActivityAt: at),
+                InboxFixtures.chat(id: "a", name: "alpha", lastActivityAt: at),
             ],
             viewerDisplayName: "Marlow"
         )
 
-        #expect(rows.map(\.isUnread) == [true, true])
+        #expect(rows.map(\.id) == ["a", "b", "dm", "quiet"])
+        #expect(rows.map(\.title) == ["#alpha", "#beta", "Blippy", "#quiet"])
     }
 
     @Test func keepsEveryAuthorNameInAChannel() {
-        let preview = InboxConversationRows.previewLine(
+        let preview = InboxUnreadRows.previewLine(
             InboxFixtures.lastMessage(author: "Blippy", content: "Finished the audit"),
             peerDisplayName: nil,
             viewerDisplayName: "Marlow"
@@ -66,7 +56,7 @@ struct InboxConversationRowsTests {
     }
 
     @Test func dropsThePeersNameInsideTheirOwnDM() {
-        let preview = InboxConversationRows.previewLine(
+        let preview = InboxUnreadRows.previewLine(
             InboxFixtures.lastMessage(author: "Tiny", content: "Finished the audit"),
             peerDisplayName: "Tiny",
             viewerDisplayName: "Marlow"
@@ -76,7 +66,7 @@ struct InboxConversationRowsTests {
     }
 
     @Test func marksTheViewersOwnLine() {
-        let preview = InboxConversationRows.previewLine(
+        let preview = InboxUnreadRows.previewLine(
             InboxFixtures.lastMessage(author: "Marlow", content: "On it"),
             peerDisplayName: "Tiny",
             viewerDisplayName: "Marlow"
@@ -88,7 +78,7 @@ struct InboxConversationRowsTests {
     /// The quote goes through the same flattener every other quoting surface
     /// on the phone uses, so a reference reads as the words on its chip.
     @Test func flattensTheQuotedLineToOneLine() {
-        let preview = InboxConversationRows.previewLine(
+        let preview = InboxUnreadRows.previewLine(
             InboxFixtures.lastMessage(
                 author: "Blippy",
                 content: "Shipped\n\nthe [#product](chat://chat_1) build"
@@ -101,7 +91,7 @@ struct InboxConversationRowsTests {
     }
 
     @Test func aMessageThatFlattensToNothingStillNamesItsAuthor() {
-        let preview = InboxConversationRows.previewLine(
+        let preview = InboxUnreadRows.previewLine(
             InboxFixtures.lastMessage(author: "Blippy", content: "   "),
             peerDisplayName: "Blippy",
             viewerDisplayName: nil
@@ -112,16 +102,16 @@ struct InboxConversationRowsTests {
 
     @Test func aChatHoldingNoMessageSaysSoRatherThanQuotingAnEmptyLine() {
         #expect(
-            InboxConversationRows.previewLine(nil, peerDisplayName: nil, viewerDisplayName: nil)
+            InboxUnreadRows.previewLine(nil, peerDisplayName: nil, viewerDisplayName: nil)
                 == nil
         )
 
-        let rows = InboxConversationRows.rows(
+        let rows = InboxUnreadRows.rows(
             [InboxFixtures.chat(id: "chat_1", name: "product")],
             viewerDisplayName: nil
         )
 
-        #expect(rows[0].preview == InboxConversationRows.noActivityPreview)
+        #expect(rows[0].preview == InboxUnreadRows.noActivityPreview)
     }
 }
 

@@ -1,11 +1,11 @@
 import Foundation
 import HausModels
 
-/// One Chat as the Conversations section reads it: the App layer has already
+/// One Chat as the Unread section reads it: the App layer has already
 /// resolved the name and the mark, so the section owns only the questions that
 /// are its own — which Chats are waiting, in what order, and what the quoted
 /// line says.
-public struct InboxConversation: Identifiable, Equatable, Sendable {
+public struct InboxUnreadChat: Identifiable, Equatable, Sendable {
     public let id: String
     /// The Chat's own name: a Channel's name without the hash, a DM's peer.
     public let name: String
@@ -39,20 +39,18 @@ public struct InboxConversation: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Unread conversation, newest activity first, each row quoting the line that
-/// is waiting. A Chat that already has a Needs you row is left out, so one
-/// conversation is never listed twice.
-public enum InboxConversationRows {
+/// Every unread Chat, newest activity first, one row per Chat, each quoting the
+/// line that is waiting.
+public enum InboxUnreadRows {
     /// What a Chat holding no message yet says instead of a quote.
     public static let noActivityPreview = "no activity yet"
 
     public static func rows(
-        _ chats: [InboxConversation],
-        viewerDisplayName: String?,
-        hiding needsYouChatIDs: Set<String> = []
-    ) -> [InboxConversationRow] {
+        _ chats: [InboxUnreadChat],
+        viewerDisplayName: String?
+    ) -> [InboxUnreadRow] {
         chats
-            .filter { $0.unreadCount > 0 && !needsYouChatIDs.contains($0.id) }
+            .filter { $0.unreadCount > 0 }
             .sorted { left, right in
                 let leftAt = left.lastActivityAt ?? .distantPast
                 let rightAt = right.lastActivityAt ?? .distantPast
@@ -60,7 +58,7 @@ public enum InboxConversationRows {
                 return left.id < right.id
             }
             .map { chat in
-                InboxConversationRow(
+                InboxUnreadRow(
                     id: chat.id,
                     mark: chat.mark,
                     title: chat.isChannel ? "#\(chat.name)" : chat.name,
@@ -69,8 +67,7 @@ public enum InboxConversationRows {
                         peerDisplayName: chat.isChannel ? nil : chat.peerDisplayName,
                         viewerDisplayName: viewerDisplayName
                     ) ?? noActivityPreview,
-                    lastActivityAt: chat.lastActivityAt,
-                    isUnread: chat.unreadCount > 0
+                    lastActivityAt: chat.lastActivityAt
                 )
             }
     }
