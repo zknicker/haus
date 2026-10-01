@@ -9,7 +9,6 @@ import {
     agentProfileRoute,
     serverArchivedChatsRoute,
     serverSettingsSectionRoute,
-    usageRoute,
 } from '../../features/servers/server-routes.ts';
 import type { SettingsNavLinkId } from '../../features/settings/layout/navigation.ts';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
@@ -19,6 +18,7 @@ import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { ServerSettings } from '../../features/settings/server/page.tsx';
 import { ServersSettings } from '../../features/settings/servers/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
+import { AgentsUsageOverview } from '../../features/usage/agents-usage-overview.tsx';
 import { useMember } from '../../hooks/members/use-member.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
@@ -45,17 +45,16 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
     server: ({ server }) => <ServerSettings server={server} />,
     servers: () => <ServersSettings />,
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,
+    usage: ({ server }) => <AgentsUsageOverview serverId={server.id} />,
 };
 
 /**
- * Entry points, not sections. Usage is a dashboard and Archived chats is a chat
- * list; both keep their standalone routes, and the settings rail links out to
- * them. The rail builds every row's href from its id, so the click lands here
+ * Entry points, not sections. Archived chats is a chat list with its own
+ * standalone route, and the settings rail links out to it. The rail builds every row's href from its id, so the click lands here
  * and hands off.
  */
 const linkedSectionRoutes: Record<SettingsNavLinkId, (server: ServerSummary) => string> = {
     archived: (server) => serverArchivedChatsRoute(server.slug),
-    usage: (server) => usageRoute(server.slug),
 };
 
 const linkedSections = new Map<string, (server: ServerSummary) => string>(

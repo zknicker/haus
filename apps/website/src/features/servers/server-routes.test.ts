@@ -17,7 +17,7 @@ test('Agent usage links carry removable Agent, Computer, and runtime filters', (
             computerId: 'cmp_one',
             runtimeId: 'pi',
         })
-    ).toBe('/s/dev/usage?computer=cmp_one&runtime=pi');
-    expect(usageRoute('dev', { agentId: 'agt_one' })).toBe('/s/dev/usage?agent=agt_one');
-    expect(usageRoute('dev')).toBe('/s/dev/usage');
+    ).toBe('/s/dev/settings/usage?computer=cmp_one&runtime=pi');
+    expect(usageRoute('dev', { agentId: 'agt_one' })).toBe('/s/dev/settings/usage?agent=agt_one');
+    expect(usageRoute('dev')).toBe('/s/dev/settings/usage');
 });

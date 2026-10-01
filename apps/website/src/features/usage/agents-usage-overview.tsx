@@ -5,9 +5,8 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { computerLabel } from '../computers/presentation.ts';
+import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
 import { PageColumn } from '../shell/page-column.tsx';
-import { SectionHeader } from '../shell/section-header.tsx';
-import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { AgentUsageScopePicker } from '../stats/agent-usage-scope.tsx';
 import { TokenUsageDashboard, TokenUsageRangePicker } from '../stats/token-usage-module.tsx';
 import { buildTokenUsageView, type TokenUsageRange } from '../stats/token-usage-view.ts';
@@ -84,66 +83,63 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
     );
 
     return (
-        <>
-            {/* Reached from the Server menu rather than the rail, so the band
-                names the destination. Scope and range stay in the column with
-                the cards they filter: the 3rem band fits compact chrome only
-                (Select has no compact size), and in the band they hug the
-                window edge instead of the content's own margins. */}
-            <PageTopbar>
-                <SectionHeader title="Usage" />
-            </PageTopbar>
-            <PageColumn>
-                {filterChips.length > 0 ? (
-                    <ActiveUsageFilters
-                        chips={filterChips}
-                        onRemove={(key) =>
-                            setSearchParams(
-                                (params) => {
-                                    const next = new URLSearchParams(params);
-                                    next.delete(key);
-                                    return next;
-                                },
-                                { replace: true }
-                            )
-                        }
-                    />
-                ) : null}
-                {isFilterPending ? (
-                    <TokenUsageSkeleton />
-                ) : view ? (
-                    <TokenUsageDashboard
-                        controls={
-                            <>
-                                {view.agents.length > 0 ? (
-                                    <AgentUsageScopePicker
-                                        agents={view.agents}
-                                        onSelect={selectAgent}
-                                        selectedAgentId={view.selectedAgent?.agentId ?? null}
-                                    />
-                                ) : null}
-                                <TokenUsageRangePicker days={days} onChange={setDays} />
-                            </>
-                        }
-                        emptyMessage={
-                            runtimeId === 'pi'
-                                ? 'Usage will appear after a Pi Agent completes a model turn.'
-                                : undefined
-                        }
-                        view={view}
-                    />
-                ) : usage.data ? (
-                    <UsageEmptyCard
-                        description="Usage will appear after an Agent completes a model turn."
-                        title="No Agent Usage Yet"
-                    />
-                ) : usage.error ? (
-                    <UsageEmptyCard description={usage.error.message} title="Usage Unavailable" />
-                ) : (
-                    <TokenUsageSkeleton />
-                )}
-            </PageColumn>
-        </>
+        // A Settings section: the settings frame owns the band's breadcrumb.
+        // Scope and range stay in the column with the cards they filter; the
+        // 3rem band fits compact chrome only (Select has no compact size).
+        <PageColumn>
+            <SettingsPageHeader
+                description="Processed tokens across this Server's Agents."
+                title="Usage"
+            />
+            {filterChips.length > 0 ? (
+                <ActiveUsageFilters
+                    chips={filterChips}
+                    onRemove={(key) =>
+                        setSearchParams(
+                            (params) => {
+                                const next = new URLSearchParams(params);
+                                next.delete(key);
+                                return next;
+                            },
+                            { replace: true }
+                        )
+                    }
+                />
+            ) : null}
+            {isFilterPending ? (
+                <TokenUsageSkeleton />
+            ) : view ? (
+                <TokenUsageDashboard
+                    controls={
+                        <>
+                            {view.agents.length > 0 ? (
+                                <AgentUsageScopePicker
+                                    agents={view.agents}
+                                    onSelect={selectAgent}
+                                    selectedAgentId={view.selectedAgent?.agentId ?? null}
+                                />
+                            ) : null}
+                            <TokenUsageRangePicker days={days} onChange={setDays} />
+                        </>
+                    }
+                    emptyMessage={
+                        runtimeId === 'pi'
+                            ? 'Usage will appear after a Pi Agent completes a model turn.'
+                            : undefined
+                    }
+                    view={view}
+                />
+            ) : usage.data ? (
+                <UsageEmptyCard
+                    description="Usage will appear after an Agent completes a model turn."
+                    title="No Agent Usage Yet"
+                />
+            ) : usage.error ? (
+                <UsageEmptyCard description={usage.error.message} title="Usage Unavailable" />
+            ) : (
+                <TokenUsageSkeleton />
+            )}
+        </PageColumn>
     );
 }
 

@@ -8,7 +8,6 @@ export const appRoutes = {
     inbox: '/inbox',
     tasks: '/tasks',
     activity: '/activity',
-    usage: '/usage',
 
     settings: '/settings',
     settingsPreferences: '/settings/preferences',
@@ -18,4 +17,5 @@ export const appRoutes = {
     settingsSkills: '/settings/skills',
     settingsConnections: '/settings/connections',
     settingsModels: '/settings/models',
+    settingsUsage: '/settings/usage',
 } as const;

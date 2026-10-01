@@ -43,4 +43,11 @@ describe('Server route state', () => {
         expect(resolveActiveSection('/s/dev/computers', 'dev')).toBe('settings');
         expect(resolveActiveSection('/s/dev/settings/computers', 'dev')).toBe('settings');
     });
+
+    // Usage left the shell for Settings so the settings rail stays on arrival.
+    test('keeps the settings sidebar on the Usage section', () => {
+        expect(resolveSidebarPage(resolveActiveSection('/s/dev/settings/usage', 'dev'))).toBe(
+            'settings'
+        );
+    });
 });

@@ -84,7 +84,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
     const personal = page.getByRole('treegrid', { name: 'Preferences', exact: true });
     const shared = page.getByRole('treegrid', { name: 'Server', exact: true });
     // Personal: Profile, Preferences, Servers. Server: the five pages that
-    // configure it, then Usage and Archived chats as link-outs.
+    // configure it, Usage, then Archived chats as a link-out.
     await expect(personal.getByRole('row')).toHaveCount(3);
     await expect(shared.getByRole('row')).toHaveCount(7);
     await expect(personal.getByRole('row', { name: 'Servers', exact: true })).toBeVisible();
@@ -99,6 +99,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
         'Connections',
         'Models',
         'Skills',
+        'Usage',
     ]) {
         await page.getByRole('row', { exact: true, name: label }).click();
         await expect(
@@ -123,15 +124,16 @@ test('settings navigation names the page and reaches Server deletion', async ({
 });
 
 /**
- * Usage is a dashboard and Archived chats is a chat list. The Server group is
- * their way in now that the sidebar's Server menu is gone, so each row has to
- * leave Settings rather than render a settings page.
+ * Usage is a settings page, so the rail stays while you read it. Archived chats
+ * is a chat list with its own route, so that row leaves Settings.
  */
-test('the Server group links out to Usage and Archived chats', async ({ page }) => {
+test('Usage keeps the settings rail and Archived chats links out', async ({ page }) => {
     await signInAsClerkHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
     await page.getByRole('row', { exact: true, name: 'Usage' }).click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/usage$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/usage$`, 'u'));
+    await expect(page.getByRole('heading', { exact: true, level: 1, name: 'Usage' })).toBeVisible();
+    await expect(page.getByRole('treegrid', { name: 'Server', exact: true })).toBeVisible();
 
     await page.goto(`/s/${slug}/settings/profile`);
     await page.getByRole('row', { exact: true, name: 'Archived chats' }).click();

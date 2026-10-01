@@ -37,9 +37,8 @@ export function tasksRoute(slug: string) {
 }
 
 /**
- * Server-wide token usage. This lived at the `/members` index, which made a
- * dashboard wear a roster's URL; a member is a record in Settings, and this is
- * neither a member nor a setting.
+ * Server-wide token usage, a Settings section so the settings rail stays put
+ * while you read it.
  *
  * Every scope the dashboard reads back off the URL is a filter here, so an
  * Agent, a Computer, and a runtime are all built the same way.
@@ -59,7 +58,7 @@ export function usageRoute(
         query.set('runtime', filters.runtimeId);
     }
     const suffix = query.toString();
-    return `${serverRoute(slug)}/usage${suffix ? `?${suffix}` : ''}`;
+    return `${serverSettingsRoute(slug)}/usage${suffix ? `?${suffix}` : ''}`;
 }
 
 /** Computers live as a Settings section; the legacy /computers path redirects here. */
@@ -73,8 +72,7 @@ export function serverSettingsRoute(slug: string) {
 
 /**
  * An Agent's own page, outside Settings. Agents are first-class product
- * records, so their profile renders in the Server layout like Usage does
- * rather than as a Members row inside the settings rail.
+ * records, so their profile renders in the Server layout rather than as a Members row inside the settings rail.
  */
 export function agentProfileRoute(slug: string, agentId: string, tab = 'overview') {
     return `${serverRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
