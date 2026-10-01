@@ -12,7 +12,7 @@ describe('Haus update reconciler', () => {
         let state = view([
             computer('alpha', 'available'),
             computer('beta', 'available'),
-            desktop('pending'),
+            desktop('available'),
         ]);
         const calls: string[] = [];
 
@@ -113,7 +113,7 @@ describe('Haus update reconciler', () => {
     });
 
     test('retries failed surfaces while starting other safe pending work', async () => {
-        let state = view([computer('alpha', 'failed'), desktop('pending')]);
+        let state = view([computer('alpha', 'failed'), desktop('available')]);
         const starts: string[] = [];
         const result = await runHausUpdateSequence({
             downloadDesktop: async () => {
@@ -153,7 +153,7 @@ describe('Haus update reconciler', () => {
     });
 
     test('does not retry an unreachable Computer while starting reachable work', async () => {
-        let state = view([computer('alpha', 'failed', null, false), desktop('pending')]);
+        let state = view([computer('alpha', 'failed', null, false), desktop('available')]);
         const starts: string[] = [];
         const result = await runHausUpdateSequence({
             downloadDesktop: async () => {
@@ -172,10 +172,27 @@ describe('Haus update reconciler', () => {
         expect(result).toEqual({ kind: 'restart-required', targetVersion: '1.8.40' });
     });
 
+    test('settles a Computer that disconnects mid-run without a retryable failure', async () => {
+        let state = view([computer('alpha', 'available')]);
+        const result = await runHausUpdateSequence({
+            downloadDesktop: async () => undefined,
+            readView: () => state,
+            restartDesktop: async () => undefined,
+            updateComputer: async () => {
+                state = view([computer('alpha', 'downloading')]);
+            },
+            waitForChange: async () => {
+                state = view([computer('alpha', 'failed', 'Disconnected.', false)]);
+            },
+        });
+
+        expect(result).toEqual({ kind: 'complete' });
+    });
+
     test('coalesces concurrent controller runs into one operation batch', async () => {
         let releaseDownload: () => void = () => undefined;
         let downloads = 0;
-        let state = view([desktop('pending')]);
+        let state = view([desktop('available')]);
         const controller = createHausUpdateController({
             downloadDesktop: async () => {
                 downloads += 1;
