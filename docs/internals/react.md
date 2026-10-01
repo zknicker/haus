@@ -217,7 +217,7 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   titles use the same Computer name as the sidebar; health belongs in metadata.
 * **An Agent has its own page; a human is a record in Settings.** Agents are
   first-class product records, so an Agent's page renders in the Server layout
-  at `/s/:slug/agents/:agentId/:tab` (`routes/app/agent-page.tsx`) and keeps the
+  at `/s/:slug/agents/:agentId/:section` (`routes/app/agent-page.tsx`) and keeps the
   app's own navigation. Humans stay roster records under Settings → Members at
   `settings/members/humans/:userId`. The old `settings/members/agents/…`
   addresses redirect to the page; there is no second route for the same record.
