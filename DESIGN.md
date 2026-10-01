@@ -483,6 +483,9 @@ anything a reader has to read. HeroUI ships several parts at `xs` that are
 plainly body copy in our layouts (`.item-card__description`,
 `.item-card-group__description`, `.table__column`); the theme layer moves them
 to `sm` once, globally, rather than each call site patching its own.
+A one-line row description keeps HeroUI's 16px subline leading rather than the
+20px prose line, so a stacked title and description read as one unit; a
+description that wraps (`whitespace-normal`) is prose and keeps the prose line.
 
 ### Font and Letter Spacing
 

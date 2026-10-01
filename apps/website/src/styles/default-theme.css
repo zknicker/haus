@@ -1254,6 +1254,17 @@
         line-height: var(--text-sm--line-height);
     }
 
+    /*
+     * A row's description is a subline under its title, not prose. The size
+     * bump above kept the 20px prose line, which opened a visible gap inside
+     * every stacked title/description pair; HeroUI's own subline leading
+     * (16px) keeps the pair reading as one unit. A description opted into
+     * wrapping is prose again and keeps the prose line.
+     */
+    .item-card__description:not(.whitespace-normal) {
+        line-height: calc(1 / 0.8125);
+    }
+
     /* Transcript panes own the gutter; message bodies need no second inset. */
     .chat-message__body {
         padding-inline-end: 0;
