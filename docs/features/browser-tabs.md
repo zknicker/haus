@@ -202,8 +202,8 @@ and starts in split mode.
   selected tab takes the whole content width, covering the routed page. Routed navigation selects
   the primary tab.
 
-The band ends, as in Codex, with the page's actions, a thin divider, the layout controls, then
-Settings (Haus-only). With no closable tab open, in either mode, a single New tab button (plus in a
+The band ends, as in Codex, with the page's actions, a thin divider, then the layout controls
+(Settings lives in the sidebar footer; see [Desktop window layout](desktop-window-layout.md)). With no closable tab open, in either mode, a single New tab button (plus in a
 square) replaces the expand button and the side pane toggle:
 
 | Control | Split mode | Expanded mode |

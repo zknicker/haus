@@ -113,8 +113,8 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   the Haus ghost sits is the sidebar's one platform fork. On the web the mark
   leads that strip, where a product's wordmark would sit, and the Inbox row
   wears the inbox glyph like every other navigation row. On the macOS desktop
-  the traffic lights already lead the strip, so the strip carries only the
-  settings gear and the mark stays on the Inbox row. On the web the strip's mark is a link to the
+  the traffic lights already lead the strip, so the mark stays on the Inbox
+  row and the strip carries nothing of ours. On the web the strip's mark is a link to the
   Inbox — the way home a wordmark in a product's corner is, with no hover
   treatment and a real tab stop — and the ghost inside it stays `aria-hidden`
   so the link carries the name. That name is "Haus", the product mark and the
@@ -130,17 +130,17 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   context (`useSidebarSurface`); `shell.css` forks on the same class, and
   nothing else reads it. The navigation below leads with the Inbox row, first
   in the Inbox/Search/Tasks menu, and chat navigation follows; the footer holds
-  live Agent activity above the bottom-pinned desktop update status. The gear
-  takes no row of its own: `resolveSettingsActionSlot` derives from the same
-  surface and keeps the footer's trailing end wired as the other slot, so the
-  gear's DOM position matches where it is drawn.
+  live Agent activity above the bottom-pinned desktop update status. The
+  Settings gear takes no row of its own: `ServerLayout` passes `settingsSlot`
+  — the footer's leading end wherever the desktop window band runs above (the
+  band keeps to tabs and layout controls), the strip's trailing end on the web
+  — so the gear's DOM position matches where it is drawn.
   A sidebar page's first navigation row is offset by half the shared
   `--app-shell-band-height` band — Inbox in chat navigation, the back-to-chat
   row elsewhere — so its midline meets the content topbar's across the divider
   while the menu's own pitch continues underneath; the row keeps HeroUI's own
   height, fill, and end padding. The column starts below the titlebar strip on
-  every surface — that is where the gear lands, beside the traffic lights on
-  macOS — and the strip plus that offset is the navigation's clearance under
+  every surface — that is where the web's gear lands — and the strip plus that offset is the navigation's clearance under
   them, so the lead row's midline sits one strip below the content topbar's
   everywhere, by construction. Only the strip's value is declared per platform
   (`--app-shell-titlebar-inset`, `shell.css`); the web currently takes the same
