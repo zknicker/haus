@@ -931,12 +931,12 @@
      */
     /*
      * The Settings gear's glyph carries more internal air than the sidebar's
-     * other marks, so it renders at 20px to read level with the navigation
+     * other marks, so it renders at 18px to read level with the navigation
      * rows' icons and identity marks.
      */
     .button.sidebar-settings-action {
         /* The shell's icon-button rule reads this; a direct svg size loses to it. */
-        --app-shell-band-icon-size: 20px;
+        --app-shell-band-icon-size: 18px;
     }
 
     /* Mirrors HeroUI's `:not(spinner)` guard, whose specificity otherwise wins (15px). */
