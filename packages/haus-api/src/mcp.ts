@@ -1,6 +1,8 @@
 import * as z from 'zod';
 import { idSchema } from './chat.ts';
 
+export { mcpPresetIcons } from './mcp-preset-icons.ts';
+
 const mcpConnectionIdSchema = z
     .string()
     .regex(/^mcp_[A-Za-z0-9_-]{16}$/u, 'Invalid MCP connection id.');

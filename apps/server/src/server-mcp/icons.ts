@@ -1,15 +1,25 @@
-import { type McpIcon, mcpIconMaxBytes, mcpIconSchema, mcpSummarySchema } from '@haus/api';
+import { type McpIcon, mcpIconSchema } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
+import { encodeFetchedIcon, iconMediaTypes, readDataUrl } from './icon-encoding.ts';
 import { loadRemoteIcon, type McpIconFetch } from './icon-loader.ts';
+import {
+    decodePage,
+    iconPageMaxBytes,
+    iconPageMaxCandidates,
+    parsePageIconLinks,
+    siteHomeUrl,
+} from './icon-page-links.ts';
 
 export type { McpIconFetch } from './icon-loader.ts';
 
 /**
  * Resolving a connection's icon to inline bytes, at discovery time.
  *
- * Two sources, in order: the icons an MCP server advertises in `serverInfo`
- * (SEP-973), then the favicon of the site behind its host. Both are fetched
+ * Three sources, in order: the icons an MCP server advertises in `serverInfo`
+ * (SEP-973), then the `/favicon.ico` of the site behind its host, then the
+ * icon `<link>`s on that site's home page — for SPAs whose `/favicon.ico` is
+ * an HTML fallback rather than an image. All are fetched
  * here, by Haus Server, once per refresh — never by the App. An `img` in the
  * App pointed at a connection's own host would report the viewer's IP and page
  * views back to that operator, which is exactly the tracking channel this
@@ -32,24 +42,13 @@ const upstreamIconSchema = z
 
 type UpstreamIcon = z.infer<typeof upstreamIconSchema>;
 
+/** What ranking reads: an advertised icon or a page `<link>` both fit. */
+type RankableIcon = Pick<UpstreamIcon, 'mimeType' | 'sizes'>;
+
 const upstreamIconsSchema = z.array(upstreamIconSchema).max(24);
 
 /** Rows render around 32px; at 2x DPR anything from 64px up is plenty. */
 const preferredMinimumPixels = 64;
-
-/**
- * Raster only. SVG is the one format that can carry script or pull
- * subresources, and screening it needs a parser rather than a token blocklist —
- * so it is refused outright and such a server falls through to its favicon.
- */
-const iconMediaTypes = new Map<string, string>([
-    ['image/jpeg', 'image/jpeg'],
-    ['image/jpg', 'image/jpeg'],
-    ['image/png', 'image/png'],
-    ['image/vnd.microsoft.icon', 'image/x-icon'],
-    ['image/webp', 'image/webp'],
-    ['image/x-icon', 'image/x-icon'],
-]);
 
 /** Hosts prefixed with a service label usually front a site that has a favicon. */
 const serviceHostLabels = new Set(['api', 'connect', 'mcp', 'remote', 'server']);
@@ -78,13 +77,51 @@ async function resolveMcpIcon(
     if (advertised) {
         return advertised;
     }
-    const favicon = await loadRemoteIcon(runtime, {
-        encode: encodeFetchedIcon,
-        fetchImpl,
-        timeoutMs: input.timeoutMs,
-        url: siteFaviconUrl(input.connectionUrl),
-    });
+    const faviconUrl = siteFaviconUrl(input.connectionUrl);
+    const favicon =
+        (await loadRemoteIcon(runtime, {
+            encode: encodeFetchedIcon,
+            fetchImpl,
+            timeoutMs: input.timeoutMs,
+            url: faviconUrl,
+        })) ??
+        (await resolvePageIcon(runtime, { faviconUrl, fetchImpl, timeoutMs: input.timeoutMs }));
     return favicon ? asIcon({ dark: favicon, light: favicon }) : null;
+}
+
+async function resolvePageIcon(
+    runtime: EffectRuntime<never>,
+    input: { faviconUrl: null | string; fetchImpl: McpIconFetch; timeoutMs: number }
+): Promise<string | null> {
+    const pageUrl = siteHomeUrl(input.faviconUrl);
+    if (!pageUrl) {
+        return null;
+    }
+    const html = await loadRemoteIcon(runtime, {
+        encode: decodePage,
+        fetchImpl: input.fetchImpl,
+        limit: { maxBytes: iconPageMaxBytes, overflow: 'truncate' },
+        timeoutMs: input.timeoutMs,
+        url: pageUrl,
+    });
+    if (!html) {
+        return null;
+    }
+    const candidates = rankIcons(parsePageIconLinks(html, pageUrl))
+        .filter((link) => link.src !== input.faviconUrl)
+        .slice(0, iconPageMaxCandidates);
+    for (const candidate of candidates) {
+        const loaded = await loadRemoteIcon(runtime, {
+            encode: encodeFetchedIcon,
+            fetchImpl: input.fetchImpl,
+            timeoutMs: input.timeoutMs,
+            url: candidate.src,
+        });
+        if (loaded) {
+            return loaded;
+        }
+    }
+    return null;
 }
 
 async function resolveAdvertisedIcon(
@@ -149,13 +186,13 @@ async function loadVariant(
  * type we do not accept are dropped here rather than fetched and rejected —
  * an SVG-only server should cost zero requests, not one per theme.
  */
-function rankIcons(icons: UpstreamIcon[]): UpstreamIcon[] {
+function rankIcons<Icon extends RankableIcon>(icons: Icon[]): Icon[] {
     return icons
         .filter((icon) => !icon.mimeType || iconMediaTypes.has(icon.mimeType.toLowerCase()))
         .sort((left, right) => iconRank(left) - iconRank(right));
 }
 
-function iconRank(icon: UpstreamIcon): number {
+function iconRank(icon: RankableIcon): number {
     const pixels = largestDeclaredPixels(icon);
     if (pixels === 'any') {
         return 0;
@@ -166,7 +203,7 @@ function iconRank(icon: UpstreamIcon): number {
     return pixels >= preferredMinimumPixels ? 1 + pixels / 100_000 : 3 - pixels / 100_000;
 }
 
-function largestDeclaredPixels(icon: UpstreamIcon): 'any' | null | number {
+function largestDeclaredPixels(icon: RankableIcon): 'any' | null | number {
     if (!icon.sizes || icon.sizes.length === 0) {
         return null;
     }
@@ -226,69 +263,6 @@ export function siteFaviconUrl(connectionUrl: string): null | string {
     }
 }
 
-function readDataUrl(src: string): string | null {
-    const match = /^data:([^;,]+);base64,(.*)$/su.exec(src);
-    if (!match) {
-        return null;
-    }
-    const mediaType = normalizeMediaType(match[1]);
-    try {
-        return encodeIcon(Uint8Array.from(Buffer.from(match[2] ?? '', 'base64')), mediaType);
-    } catch {
-        return null;
-    }
-}
-
-function encodeFetchedIcon(bytes: Uint8Array, mediaType: string | null): string | null {
-    return encodeIcon(bytes, normalizeMediaType(mediaType));
-}
-
-function encodeIcon(bytes: Uint8Array, mediaType: null | string): string | null {
-    if (!mediaType || bytes.byteLength === 0 || bytes.byteLength > mcpIconMaxBytes) {
-        return null;
-    }
-    const resolved = rasterMediaType(bytes);
-    if (!resolved || resolved !== mediaType) {
-        return null;
-    }
-    return `data:${resolved};base64,${Buffer.from(bytes).toString('base64')}`;
-}
-
-/** The declared type has to match the bytes, or the icon is discarded. */
-function rasterMediaType(bytes: Uint8Array): null | string {
-    if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
-        return 'image/png';
-    }
-    if (startsWith(bytes, [0xff, 0xd8, 0xff])) {
-        return 'image/jpeg';
-    }
-    if (startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && readAscii(bytes, 8, 4) === 'WEBP') {
-        return 'image/webp';
-    }
-    if (startsWith(bytes, [0x00, 0x00, 0x01, 0x00])) {
-        return 'image/x-icon';
-    }
-    return null;
-}
-
-function normalizeMediaType(value: null | string | undefined): null | string {
-    if (!value) {
-        return null;
-    }
-    return iconMediaTypes.get(value.split(';')[0]?.trim().toLowerCase() ?? '') ?? null;
-}
-
-function startsWith(bytes: Uint8Array, signature: number[]): boolean {
-    return (
-        bytes.byteLength >= signature.length &&
-        signature.every((byte, index) => bytes[index] === byte)
-    );
-}
-
-function readAscii(bytes: Uint8Array, offset: number, length: number): string {
-    return String.fromCharCode(...bytes.slice(offset, offset + length));
-}
-
 function asIcon(candidate: { dark: null | string; light: null | string }): McpIcon | null {
     // One icon serving both themes is stored once; the App falls back to the
     // light variant. `mcp.list` returns every connection's icon inline, so
@@ -308,28 +282,4 @@ export const iconRequestInit = { redirect: 'error' } as const satisfies RequestI
 
 async function defaultIconFetch(url: string, signal: AbortSignal): Promise<Response> {
     return await globalThis.fetch(url, { ...iconRequestInit, signal });
-}
-
-/**
- * The opening line of a server's `instructions`, as its description.
- *
- * `instructions` is written for a model — DeepWiki returns a 2,500-character
- * catalog of every tool it offers. The first line is the part that reads as a
- * description to a person; anything past it is guidance, not identity.
- */
-export function summarizeInstructions(instructions: unknown): string | null {
-    if (typeof instructions !== 'string') {
-        return null;
-    }
-    const firstLine = instructions
-        .split('\n')
-        .map((line) => line.trim())
-        .find((line) => line.length > 0);
-    if (!firstLine) {
-        return null;
-    }
-    const parsed = mcpSummarySchema.safeParse(
-        firstLine.length > 200 ? `${firstLine.slice(0, 199).trimEnd()}…` : firstLine
-    );
-    return parsed.success ? parsed.data : null;
 }
