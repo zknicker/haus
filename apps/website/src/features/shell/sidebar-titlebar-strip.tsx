@@ -7,20 +7,20 @@ import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts'
 
 /**
  * The strip every surface reserves above the sidebar's navigation, and what
- * rides in it: Settings at the trailing end always, and on the web the Haus
- * mark at the leading one.
+ * rides in it: Settings at the trailing end and the Haus mark at the leading
+ * one, both on the web.
  *
  * One component rather than two floating boxes, because the two ends only read
  * as one line if they share it. The strip is the line — `shell.css` gives it
  * the traffic lights' own vertical axis and the navigation's leading edge — so
  * whatever sits in it lands on one midline by construction instead of by two
- * absolute offsets kept equal by hand.
+ * absolute offsets kept equal by hand. Settings rides it on the web only; the
+ * desktop seats the gear in the sidebar footer instead.
  *
  * `leadsWithMark` is the platform fork, and the whole of it. The macOS desktop
  * already has something leading this line: the traffic lights, which the strip
  * exists to clear. Putting the mark after them read as a second row of chrome,
- * so there the mark stays where it has always been — on the Inbox row — and the
- * strip carries the gear alone. The web has nothing up there, so the mark takes
+ * so there the mark stays where it has always been — on the Inbox row. The web has nothing up there, so the mark takes
  * the corner a wordmark would.
  *
  * On the web the mark is also the way home: a plain link to the Inbox, the way
@@ -70,7 +70,11 @@ export function SidebarTitlebarStrip({
                     />
                 </Link>
             ) : null}
-            {settingsAction}
+            {settingsAction ? (
+                // `app-shell-band` is the glyph rank, not a box: the gear shares
+                // this line with the 22px Haus mark and is sized against it.
+                <div className="app-shell-band flex items-center">{settingsAction}</div>
+            ) : null}
         </div>
     );
 }

@@ -82,6 +82,33 @@ test('seats Settings in the titlebar strip on a plain document, above the naviga
     expect(footer).not.toContain('Settings');
 });
 
+test('leads the footer with Settings where the desktop band runs above', () => {
+    const markup = renderToStaticMarkup(
+        <MemoryRouter>
+            <Sidebar.Provider>
+                <ShellSidebar
+                    activePage="tasks"
+                    footer="Working"
+                    settingsAction="Settings"
+                    settingsSlot="footer"
+                    slug="dev"
+                >
+                    <ShellSidebarPage ariaLabel="Tasks" value="tasks">
+                        Tasks
+                    </ShellSidebarPage>
+                </ShellSidebar>
+            </Sidebar.Provider>
+        </MemoryRouter>
+    );
+
+    const footer = markup.slice(markup.indexOf('data-slot="sidebar-footer"'));
+    // Leading, so the gear never moves as status marks come and go after it.
+    expect(footer.indexOf('Settings')).toBeGreaterThan(-1);
+    expect(footer.indexOf('Settings')).toBeLessThan(footer.indexOf('Working'));
+    // Nowhere else: the titlebar strip above the navigation stays empty of it.
+    expect(markup.slice(0, markup.indexOf('data-slot="sidebar-footer"'))).not.toContain('Settings');
+});
+
 test('leaves the footer to its own contents while the gear rides the strip', () => {
     const markup = renderToStaticMarkup(
         <MemoryRouter>
@@ -143,7 +170,7 @@ test('leads the web strip with the Haus mark, ahead of the gear', () => {
     expect(mark).not.toContain('tabindex="-1"');
 });
 
-test('leaves the macOS desktop strip to the traffic lights and the gear', () => {
+test('leaves the macOS desktop strip to the traffic lights', () => {
     const markup = onMacosDesktop(sidebarMarkup);
     const strip = markup.slice(markup.indexOf('app-shell-titlebar-strip'));
 
@@ -151,7 +178,6 @@ test('leaves the macOS desktop strip to the traffic lights and the gear', () => 
     // stays down on the Inbox row, which is the navigation's business.
     expect(strip).not.toContain('app-shell-titlebar-mark');
     expect(markup).not.toContain('haus-ghost');
-    expect(strip).toContain('Settings');
 });
 
 test('offsets the sidebar’s first navigation row onto the shell band’s midline', () => {

@@ -35,6 +35,10 @@ function runBrowserWindowAction(window, workspace, action) {
             app.focus();
             app.send('desktop:window:new-tab');
             return;
+        case 'settings':
+            app.focus();
+            app.send('desktop:settings:open');
+            return;
         case 'find':
             if (!workspace?.hasActiveTab()) {
                 app.send('desktop:search:open');

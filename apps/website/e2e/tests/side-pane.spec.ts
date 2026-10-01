@@ -50,12 +50,25 @@ test('split mode keeps the routed page and puts every other tab in the side pane
     await expect(newTab).toBeVisible();
     await expect(expand).toHaveCount(0);
     await expect(paneToggle).toHaveCount(0);
+    // Settings sits in the sidebar footer, not the band; its tooltip names the App menu's ⌘,.
+    const settings = page
+        .locator('[data-slot="sidebar-footer"]')
+        .getByRole('button', { name: 'Settings', exact: true });
+    await expect(
+        page.locator('.workspace-titlebar').getByRole('button', { name: 'Settings' })
+    ).toHaveCount(0);
+    await expect(settings).toBeVisible();
 
     // An Agent profile opens in the side pane, beside the DM.
     await page.getByRole('button', { name: /Scout — chat actions/u }).click();
     await page.getByRole('menuitem', { name: 'View agent profile' }).click();
     await expect(sidePane.getByRole('region', { name: 'Agent profile' })).toBeVisible();
     await expect(sideTabs.locator('.workspace-tab')).toHaveCount(1);
+    // React Aria opens hover tooltips once a press has set pointer modality.
+    await settings.hover();
+    await expect(page.getByRole('tooltip')).toHaveText('Settings⌘,');
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
     await expect(paneToggle).toHaveAttribute('aria-pressed', 'true');
     await expect(newTab).toHaveCount(0);
     // The pane's tabs hold the band's one 240px basis rather than truncating beside free strip.

@@ -35,11 +35,11 @@ export function TopbarProvider({ children }: { children: React.ReactNode }) {
  * (WindowBand): in split mode the routed page's title, its band content and
  * actions (expanded mode shows those actions only while the primary tab is
  * selected), then the side pane's strip starting at the pane's edge; in
- * expanded mode one strip, primary tab first. The layout controls and the
- * global `trailingAction` (Settings) end the band. On the web it is the main
+ * expanded mode one strip, primary tab first. The layout controls end the
+ * band; Settings lives in the sidebar footer. On the web it is the main
  * column's top band.
  */
-export function ShellTopbar({ trailingAction }: { trailingAction?: React.ReactNode } = {}) {
+export function ShellTopbar() {
     const slot = React.use(TopbarContext);
     const workspace = useBrowserWorkspace();
     const covering = useCoveringTabSelected();
@@ -59,12 +59,7 @@ export function ShellTopbar({ trailingAction }: { trailingAction?: React.ReactNo
                     ref={slot?.setActionsContainer}
                 />
                 <WorkspaceBandTrail
-                    end={
-                        <>
-                            <WorkspaceLayoutControls />
-                            {trailingAction}
-                        </>
-                    }
+                    end={<WorkspaceLayoutControls />}
                     sideStrip={<WorkspaceTabStrip label="Side pane tabs" />}
                 />
             </header>

@@ -164,12 +164,14 @@ describe('window actions', () => {
         runBrowserWindowAction(win, null, 'reopen-tab');
         runBrowserWindowAction(win, null, 'new-tab');
         runBrowserWindowAction(win, null, 'close-tab');
+        runBrowserWindowAction(win, null, 'settings');
         expect(win.webContents.sent).toEqual([
             ['desktop:search:open', undefined],
             ['desktop:browser:shortcut', 'find'],
             ['desktop:browser:shortcut', 'reopen-tab'],
             ['desktop:window:new-tab', undefined],
             ['desktop:window:close-request', undefined],
+            ['desktop:settings:open', undefined],
         ]);
         win.webContents.isCrashed = () => true;
         runBrowserWindowAction(win, null, 'close-tab');

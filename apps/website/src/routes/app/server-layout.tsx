@@ -130,6 +130,8 @@ export function ServerLayout() {
         <SidebarSettingsAction
             onOpenSettings={() => navigate(serverSettingsRoute(slug))}
             onPreloadSettings={() => preloadServerSection('settings')}
+            // ⌘, is the desktop App menu's Settings… item; the web has no such key.
+            shortcut={topbarInWindow ? '⌘,' : undefined}
         />
     );
     return (
@@ -150,7 +152,7 @@ export function ServerLayout() {
                                 <CommandMenu server={server.data} />
                                 {topbarInWindow ? (
                                     <WindowBand>
-                                        <ShellTopbar trailingAction={settingsAction} />
+                                        <ShellTopbar />
                                     </WindowBand>
                                 ) : null}
                                 <div className="app-shell-body flex min-h-0 flex-1">
@@ -166,8 +168,9 @@ export function ServerLayout() {
                                                                 slug={slug}
                                                             />
                                                         }
-                                                        settingsAction={
-                                                            topbarInWindow ? null : settingsAction
+                                                        settingsAction={settingsAction}
+                                                        settingsSlot={
+                                                            topbarInWindow ? 'footer' : 'titlebar'
                                                         }
                                                         slug={slug}
                                                     >

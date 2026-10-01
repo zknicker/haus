@@ -21,6 +21,7 @@ const keys: [key: string, code: string][] = [
     ['{', 'BracketLeft'],
     [']', 'BracketRight'],
     ['}', 'BracketRight'],
+    [',', 'Comma'],
     ['Tab', 'Tab'],
     ['Escape', 'Escape'],
     ['Enter', 'Enter'],

@@ -1,52 +1,46 @@
-import { Button, Tooltip } from '@heroui/react';
+import { Button, Kbd, Tooltip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { ArrowLeft01Icon, Settings01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import { shellBandIconSize } from './section-header.tsx';
 
 /**
  * The sidebar's one piece of chrome: Settings, and nothing else. Server
  * identity moved out of the sidebar's navigation entirely, so what is left is a
  * single quiet action with no row to justify.
  *
- * So it takes none, on any surface. It rides the trailing end of the titlebar
- * strip (`sidebar-titlebar-strip.tsx`), opposite the Haus mark — beside the
- * traffic lights on the macOS desktop, in the same corner on the web. The
- * sidebar footer holds live Agent activity and the desktop update status, and
- * stays wired as the gear's other slot. `ShellSidebar` picks it; where the gear
- * lands is the shell's business, not this action's, so this owns the button and
- * none of its placement.
+ * Where it lands is the shell's business (`ShellSidebar`'s `settingsSlot`):
+ * the leading end of the sidebar footer on the desktop, where the window band
+ * stays for tabs and layout controls; the trailing end of the titlebar strip on
+ * the web. This owns the button and none of its placement or glyph rank — the
+ * strip sizes it against the Haus mark, the footer leaves it at the status
+ * marks' size. `shortcut` names the key that opens Settings where one exists.
  */
 export function SidebarSettingsAction({
     onOpenSettings,
     onPreloadSettings,
+    shortcut,
 }: {
     onOpenSettings: () => void;
     onPreloadSettings: () => void;
+    shortcut?: string;
 }) {
     return (
-        // `app-shell-band` is the glyph rank, not a box: the gear shares its
-        // line with the 22px Haus mark and is sized against it.
-        <div className="app-shell-band flex items-center">
-            <Tooltip>
-                <Button
-                    aria-label="Settings"
-                    isIconOnly
-                    onHoverStart={onPreloadSettings}
-                    onPress={onOpenSettings}
-                    size="sm"
-                    variant="ghost"
-                >
-                    <Icon
-                        aria-hidden="true"
-                        className="text-muted"
-                        icon={Settings01Icon}
-                        size={shellBandIconSize}
-                    />
-                </Button>
-                <Tooltip.Content>Settings</Tooltip.Content>
-            </Tooltip>
-        </div>
+        <Tooltip>
+            <Button
+                aria-label="Settings"
+                isIconOnly
+                onHoverStart={onPreloadSettings}
+                onPress={onOpenSettings}
+                size="sm"
+                variant="ghost"
+            >
+                <Icon aria-hidden="true" className="text-muted" icon={Settings01Icon} />
+            </Button>
+            <Tooltip.Content>
+                Settings
+                {shortcut ? <Kbd>{shortcut}</Kbd> : null}
+            </Tooltip.Content>
+        </Tooltip>
     );
 }
 

@@ -12,12 +12,14 @@ const appMenuShortcuts = new Set([
     'find',
     'new-tab',
     'reopen-tab',
+    'settings',
     'zoom-in',
     'zoom-out',
     'zoom-reset',
 ]);
 
 const plainKeys = {
+    ',': 'settings',
     f: 'find',
     g: 'find-next',
     l: 'address',

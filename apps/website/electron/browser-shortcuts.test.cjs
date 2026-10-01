@@ -50,6 +50,7 @@ test('browser shortcuts map Chrome keys and leave ordinary website input alone',
     expect(browserShortcut(key('0', { meta: true }))).toBe('zoom-reset');
     expect(browserShortcut(key('t', { meta: true }))).toBe('new-tab');
     expect(browserShortcut(key('w', { meta: true }))).toBe('close-tab');
+    expect(browserShortcut(key(',', { meta: true }))).toBe('settings');
     // Shift+[ reports `{` on US layouts; the physical key still counts.
     expect(browserShortcut(key('{', { meta: true, shift: true, code: 'BracketLeft' }))).toBe(
         'previous-tab'
@@ -57,7 +58,7 @@ test('browser shortcuts map Chrome keys and leave ordinary website input alone',
     expect(browserShortcut(key('}', { meta: true, shift: true }))).toBe('next-tab');
     expect(browserShortcut(key('[', { meta: true }))).toBeNull();
     expect(browserShortcut(key('Escape', { meta: true }))).toBeNull();
-    for (const action of ['find', 'new-tab', 'close-tab', 'reopen-tab', 'zoom-in']) {
+    for (const action of ['find', 'new-tab', 'close-tab', 'reopen-tab', 'settings', 'zoom-in']) {
         expect(appMenuShortcuts.has(action)).toBe(true);
     }
     expect(appMenuShortcuts.has('reload')).toBe(false);

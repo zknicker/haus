@@ -26,6 +26,8 @@ export type ShellSidebarPageId = 'members' | 'server' | 'settings' | 'tasks';
  */
 export type SidebarSurface = 'macos-desktop' | 'web';
 
+export type SettingsSlot = 'footer' | 'titlebar';
+
 const SidebarSurfaceContext = React.createContext<SidebarSurface>('web');
 
 /**
@@ -48,17 +50,21 @@ export function ShellSidebar({
     children,
     footer,
     settingsAction,
+    settingsSlot = 'titlebar',
     slug,
 }: {
     activePage: ShellSidebarPageId;
     children: React.ReactNode;
     footer?: React.ReactNode;
-    /**
-     * The sidebar's one piece of chrome. Where it lands is the shell's
-     * business, not the action's: the titlebar strip's trailing end today, with
-     * the footer's trailing end still wired as the other slot.
-     */
+    /** The sidebar's one piece of chrome; `settingsSlot` places it. */
     settingsAction?: React.ReactNode;
+    /**
+     * Where the gear goes, which is the shell's business, not the action's: the
+     * footer's leading end where the desktop window band runs above (the band
+     * keeps to tabs and layout controls), the titlebar strip's trailing end on
+     * the web, which has no band.
+     */
+    settingsSlot?: SettingsSlot;
     /** The Server the strip's mark links home to, the way the Inbox row does. */
     slug: string;
 }) {
@@ -67,7 +73,6 @@ export function ShellSidebar({
     // offcanvas wrapper (see the AppLayout host), while the rail lives here.
     const sidebarWidth = useAppSidebarWidth();
     const surface = resolveSidebarSurface();
-    const settingsSlot = resolveSettingsActionSlot(surface);
     let activePageContent: ShellSidebarPageProps | undefined;
     React.Children.forEach(children, (child) => {
         if (child === null) {
@@ -103,7 +108,7 @@ export function ShellSidebar({
                 {/* Every surface reserves the strip; only the web puts the Haus
                     mark in it. On the macOS desktop the traffic lights already
                     lead that line, so the mark stays down on the Inbox row and
-                    the strip carries the gear alone. */}
+                    the strip carries nothing of ours. */}
                 <SidebarTitlebarStrip
                     leadsWithMark={surface === 'web'}
                     settingsAction={settingsSlot === 'titlebar' ? settingsAction : null}
@@ -118,15 +123,12 @@ export function ShellSidebar({
                 </div>
                 {footer || settingsSlot === 'footer' ? (
                     <Sidebar.Footer>
-                        {/* One line: live Agent activity reads from the leading
-                            edge, and Settings sits at the trailing one whenever
-                            the gear takes this slot instead of the titlebar
-                            strip. `items-end` keeps it on the strip's last row,
-                            and on its own line at the sidebar's bottom-right
-                            when the strip has nothing to say. */}
-                        <div className="flex w-full items-end gap-2">
-                            <div className="min-w-0 flex-1">{footer}</div>
+                        {/* One line: Settings leads whenever the gear takes this
+                            slot, so it never moves as the status marks after it
+                            come and go. */}
+                        <div className="flex w-full items-center gap-2">
                             {settingsSlot === 'footer' ? settingsAction : null}
+                            <div className="min-w-0 flex-1">{footer}</div>
                         </div>
                     </Sidebar.Footer>
                 ) : null}
@@ -150,29 +152,6 @@ function resolveSidebarSurface(): SidebarSurface {
         return 'web';
     }
     return document.documentElement.classList.contains('macos-electron') ? 'macos-desktop' : 'web';
-}
-
-/**
- * Where the Settings gear goes.
- *
- * Every surface reserves the titlebar strip (`shell.css`) — the traffic lights
- * are why macOS has one, the air above the lead row is why the web took the
- * same one — and both have room for the gear at its trailing end. So both
- * surfaces resolve to the strip today, and the gear is rendered where it is
- * drawn so the tab order follows the eye.
- *
- * It still takes the surface rather than answering flat, because this is the
- * question that would fork first: the footer slot stays wired rather than
- * deleted, and the footer is where the gear goes back to if one surface's strip
- * stops earning it.
- */
-function resolveSettingsActionSlot(surface: SidebarSurface): 'footer' | 'titlebar' {
-    switch (surface) {
-        case 'macos-desktop':
-            return 'titlebar';
-        case 'web':
-            return 'titlebar';
-    }
 }
 
 /** Declarative page marker consumed by ShellSidebar. */

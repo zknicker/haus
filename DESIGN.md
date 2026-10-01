@@ -777,8 +777,9 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   The stock Button fills the tab, so the whole tab is the hit target and the focus ring follows its
   corner. Marks are identity, not decoration: a channel's own icon box, the DM Agent's avatar, the
   section glyph, the page favicon, or the artifact file glyph. The page's actions (the chat's "…"
-  menu) and then Settings sit as icon-only ghost `sm` Buttons at the band's end
-  (`.workspace-band-end`), outside the window drag region. Browser and artifact tabs share the
+  menu) and then the layout controls sit as icon-only ghost `sm` Buttons at the band's end
+  (`.workspace-band-end`), outside the window drag region. Settings is not in the band: on the
+  desktop its ghost `sm` gear leads the sidebar footer. Browser and artifact tabs share the
   closable-tab rules (`.workspace-tab:not([data-kind="primary"])`).
 - **Desktop window layout:** The desktop app has two layouts (Settings > Preferences > Window
   layout), both with a 44px full-width grey window band holding the traffic lights over a
@@ -853,7 +854,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   agent-authored visuals share the same tokens.
 
 The desktop window band keeps one primary Chat tab and additional browser and artifact tabs in one
-sortable strip; the page's band content, actions, and Settings follow it at the band's end. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the page
+sortable strip; the page's band content, actions, and layout controls follow it at the band's end. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the page
 ground without a background tray; their fill, corner, and selected material follow **Workspace tabs**
 above. Each tab's stock HeroUI Button and its trailing Close action are siblings inside the tab, so
 interactive controls are never nested. The primary
