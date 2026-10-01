@@ -1,4 +1,4 @@
-import { Badge, Button, Kbd, Separator, ToggleButton, Tooltip } from '@heroui/react';
+import { Badge, Button, Kbd, ToggleButton, Tooltip } from '@heroui/react';
 import { HoverCard } from '@heroui-pro/react';
 import {
     AddSquareIcon,
@@ -26,7 +26,6 @@ export function WorkspaceLayoutControls() {
     const expanded = workspace.mode === 'expanded';
     return (
         <>
-            <Separator orientation="vertical" />
             {workspace.tabs.length === 0 ? (
                 <Tooltip>
                     <Button

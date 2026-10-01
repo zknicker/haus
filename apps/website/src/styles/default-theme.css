@@ -2056,13 +2056,6 @@
         gap: var(--spacing);
     }
 
-    /* The divider between the page's actions and the layout controls (workspace-layout-controls.tsx). */
-    .workspace-band-end > .separator--vertical {
-        align-self: center;
-        height: var(--shell-tab-separator-height);
-        background: var(--shell-tab-separator);
-    }
-
     /*
      * Like Codex, the first tab sits one gutter right of its column's hairline,
      * lined up with the controls below it (the browser toolbar's px-2), so the
