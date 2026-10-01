@@ -213,7 +213,6 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     const recommendation = (description: string) =>
         page.locator('.item-card').filter({ hasText: description });
     const merchbase = recommendation('Query the MerchBase product catalog, designs, and sales.');
-    const calendar = recommendation('Read and schedule events on your Google calendars.');
     await merchbase.getByRole('button', { exact: true, name: 'Add MCP' }).click();
     await expect(merchbase).toHaveCount(0);
     const connection = page.getByRole('button', { name: /MerchBase Built in/u });
@@ -222,8 +221,13 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await page.reload();
     await expect(connection).toBeVisible();
     await expect(merchbase).toHaveCount(0);
-    await calendar.getByRole('button', { exact: true, name: 'Add MCP' }).click();
-    await expect(calendar).toHaveCount(0);
+    // Drain whatever presets remain so adding a new one never breaks this test;
+    // the Recommended heading leaves with the last card.
+    const addPreset = page.getByRole('button', { exact: true, name: 'Add MCP' });
+    for (let remaining = await addPreset.count(); remaining > 0; remaining -= 1) {
+        await addPreset.first().click();
+        await expect(addPreset).toHaveCount(remaining - 1);
+    }
     await expect(page.getByText('Recommended', { exact: true })).toHaveCount(0);
 
     await connection.click();
