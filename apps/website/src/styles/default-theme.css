@@ -1939,8 +1939,8 @@
     --shell-tab-close-size: 20px;
     --shell-tab-close-inset: 7px;
     --shell-tab-close-glyph: 14px;
-    /* Three quarters of the band, so tab groups and column hairlines read as grounded. */
-    --shell-tab-separator-height: calc(var(--app-shell-top-band-height) * 0.75);
+    /* Tab dividers, column hairlines, and the band-end divider share one height. */
+    --shell-tab-separator-height: 20px;
     /* Codex's text roles, from the foreground: primary, tertiary (50%), and its 12% strong border and 8% border. */
     --shell-tab-foreground: var(--foreground);
     --shell-tab-foreground-muted: color-mix(in oklab, var(--foreground) 50%, transparent);
@@ -2042,7 +2042,9 @@
 
     /* The divider between the page's actions and the layout controls (workspace-layout-controls.tsx). */
     .workspace-band-end > .separator--vertical {
-        height: calc(var(--spacing) * 4);
+        align-self: center;
+        height: var(--shell-tab-separator-height);
+        background: var(--shell-tab-separator);
     }
 
     /*
