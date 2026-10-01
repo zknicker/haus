@@ -17,7 +17,6 @@ extension HausStore {
         var affectedChatIDs: Set<String> = []
         var shouldReloadChats = false
         var shouldReloadActiveCloudAgentWork = false
-        var shouldReloadNeedsYou = false
         var shouldReloadTasks = false
         var inlineRefreshChatIDs: Set<String> = []
         for event in events {
@@ -34,15 +33,6 @@ extension HausStore {
                     affectedChatIDs.insert(parentChatID)
                 }
                 shouldReloadChats = true
-                // Only a message that could address the viewer, or be their
-                // reply that answers a row, refetches Needs you.
-                let conversationID = event.parentChatID ?? event.chatID
-                if event.mayChangeNeedsYou(
-                    viewerUserID: members?.viewerUserID,
-                    conversationKind: chats.first { $0.id == conversationID }?.kind
-                ) {
-                    shouldReloadNeedsYou = true
-                }
             case .messageReactionUpdated:
                 // Both lenses can show the message: its Thread and the parent
                 // transcript an anchor or inline reply sits in.
@@ -61,10 +51,8 @@ extension HausStore {
             case .chatRead:
                 // Server addresses this event to the reader alone, so every one
                 // that reaches this client is the echo of its own
-                // acknowledgement. It is the single refresh for that read, and
-                // the echo of a Done, which moves the Needs you rows.
+                // acknowledgement. It is the single refresh for that read.
                 shouldReloadChats = true
-                shouldReloadNeedsYou = true
             case .threadFollowUpdated:
                 if let parentChatID = event.parentChatID {
                     affectedChatIDs.insert(parentChatID)
@@ -79,8 +67,6 @@ extension HausStore {
                 shouldReloadTasks = true
             case .chatLifecycle:
                 shouldReloadChats = true
-                // Archiving or deleting a Chat drops its Needs you rows.
-                shouldReloadNeedsYou = true
             case .taskLabelUpdated, .reminderChanged:
                 break
             }
@@ -101,9 +87,6 @@ extension HausStore {
         // The Inbox snapshots refresh only when this client already holds them,
         // the way the App's invalidation only refetches a live query: an event
         // must not start a Server-wide read for a surface nobody has opened.
-        if shouldReloadNeedsYou, needsYouRows != nil {
-            await loadNeedsYou()
-        }
         if shouldReloadTasks, serverTasks != nil {
             await loadServerTasks()
         }

@@ -89,10 +89,14 @@ struct AuthenticatedHausView: View {
             case .background:
                 hasBackgrounded = true
             case .active:
-                // Pushes that arrived in the background may have moved the badge.
-                push.updateBadge(needsYouCount: store.needsYouCount, isReady: store.isNeedsYouCountReady)
                 Task { await push.clearDelivered(openedChatID: push.viewingChatID) }
-                guard hasBackgrounded else { return }
+                guard hasBackgrounded else {
+                    // Pushes that arrived while inactive may have moved the
+                    // badge; a return from the background refreshes it with
+                    // the rest of the snapshot.
+                    Task { await store.refreshIconBadge() }
+                    return
+                }
                 hasBackgrounded = false
                 Task {
                     await store.resumeAfterForeground()
@@ -139,7 +143,7 @@ struct AuthenticatedHausView: View {
                     inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
                     onOpenTasks: { path.append(.tasks) },
                     onOpenInbox: openInbox,
-                    needsYouCount: store.needsYouCount,
+                    inboxHasUnread: (store.unreadChatCount ?? 0) > 0,
                     ghostTempo: store.agentActivityGhostTempo,
                     onOpenThread: openThread,
                     onSend: { destination, content, attachments in
@@ -235,13 +239,14 @@ struct AuthenticatedHausView: View {
                 }
                 .onChange(of: viewingChatID, initial: true) { _, current in
                     push.viewingChatID = current
+                    // Reads follow what is on screen. With the Inbox or the
+                    // Task list showing, no Chat is open, so a covered canvas
+                    // transcript cannot acknowledge what nobody is reading.
+                    if current == nil { store.openChatID = nil }
                     Task { await push.clearDelivered(openedChatID: current) }
                 }
-                .onChange(of: PushBadge.count(
-                    needsYouCount: store.needsYouCount,
-                    isReady: store.isNeedsYouCountReady
-                ), initial: true) {
-                    push.updateBadge(needsYouCount: store.needsYouCount, isReady: store.isNeedsYouCountReady)
+                .onChange(of: store.iconBadgeCount, initial: true) { _, count in
+                    push.updateBadge(unreadChatCount: count)
                 }
                 .task { await push.attach(store) }
                 // Consumed outside the change handler: clearing the value a

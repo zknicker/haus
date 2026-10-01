@@ -71,14 +71,13 @@ test('device and Server settings are not filed together', () => {
 });
 
 /**
- * Usage is a dashboard and Archived chats is a chat list. Both keep their own
- * standalone routes; the rail is only their way in, so neither becomes a
- * settings page.
+ * Usage renders inside Settings so the rail stays while you read it. Archived
+ * chats is a chat list with its own standalone route; the rail only links out.
  */
-test('Usage and Archived chats are entry points, not settings pages', () => {
-    assert.deepEqual([...settingsNavLinkIds].sort(), ['archived', 'usage']);
+test('Usage is a settings page and Archived chats is a link-out', () => {
+    assert.deepEqual([...settingsNavLinkIds], ['archived']);
     const staticIds: string[] = staticSettingsNavItems.map((item) => item.id);
-    assert.ok(!staticIds.includes('usage'));
+    assert.ok(staticIds.includes('usage'));
     assert.ok(!staticIds.includes('archived'));
     // The dashboard never came back as a settings section under its old name.
     const ids: string[] = settingsNavItems.map((item) => item.id);

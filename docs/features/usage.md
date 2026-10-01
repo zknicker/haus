@@ -7,17 +7,28 @@ read_when:
 
 # Usage
 
-Usage turns Agent, runtime, and provider activity into contextual product views. It is not a
-Settings destination: configuration stays in Settings, while operational usage appears beside the
-Agent or Computer that owns its meaning. Settings navigation carries a **Usage** entry that links
-out to `/s/:slug/usage`; the dashboard stays its own page rather than becoming a settings section.
+Usage turns Agent, runtime, and provider activity into contextual product views. Operational usage
+appears beside the Agent or Computer that owns its meaning, and the Server-wide dashboard is the
+**Usage** section of Settings at `/s/:slug/settings/usage`, so the settings sidebar stays in place
+while you read it.
 
 ## Product surfaces
 
-* **Agents Overview.** `/s/:slug/usage` shows 7-, 30-, or 90-day processed-token volume across all
+* **Agents Overview.** `/s/:slug/settings/usage` shows 7-, 30-, or 90-day processed-token volume across all
   Haus Agents. An Agent scope picker narrows the chart and configuration grid, and that scope is
   URL-backed under `agent` alongside the Computer and runtime filters, so a contextual drill-down
-  stays visible, shareable, and removable.
+  stays visible, shareable, and removable. Four totals lead the page, each a distinct fact:
+  **Processed** (input plus output), **Fresh input** (input not served from cache), **Output**,
+  and **Cache hit rate** (cache reads over input). The daily chart stacks one series per Agent in
+  the categorical chart colors. The four Agents with the most processed volume in the range are
+  named and the rest fold into a neutral **Other** series, but volume never picks a color: each
+  Agent's color follows its roster position (the Server's Agent list, oldest first, then Agents seen
+  only in usage, by id). The first four roster Agents own slots 1–4, so with four or fewer Agents a
+  color is the same in every range, scope, and single-Agent view. Past four, a named Agent without
+  a home slot takes the lowest slot no other named Agent holds, so colors stay unique and never
+  cycle but may shift when the named set changes. The tooltip names the day like the axis and lists
+  segments top-down. The configuration grid's runtime chip is a plain label; the chart legend owns
+  the Agent-to-color mapping.
 * **Agent Overview.** An Agent profile carries one compact tile instead of a second dashboard: its
   processed-token total for the last 30 days and a sparkline of daily volume, with **See in Usage**
   opening Agents Overview already scoped to that Agent. Ranges, per-configuration breakdown, and

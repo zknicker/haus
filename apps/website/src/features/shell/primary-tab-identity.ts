@@ -18,7 +18,6 @@ const sectionLabels: Record<AppSection, string> = {
     search: 'Search',
     settings: 'Settings',
     tasks: 'Tasks',
-    usage: 'Usage',
 };
 
 /**

@@ -2,7 +2,9 @@ import {
     type McpConnection,
     type McpGrant,
     type McpIcon,
+    type McpPreset,
     mcpIconSchema,
+    mcpPresetIcons,
     mcpSummarySchema,
 } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
@@ -100,7 +102,7 @@ export function shapeMcpConnection(
         connected: row.connected,
         grants,
         headerNames: row.headerNames,
-        icon: storedIcon(row.icon),
+        icon: storedIcon(row.icon) ?? presetIcon(row.preset),
         id: row.id,
         name: row.name,
         preset: row.preset,
@@ -122,6 +124,16 @@ function storedIcon(value: unknown): McpIcon | null {
     }
     const parsed = mcpIconSchema.safeParse(value);
     return parsed.success ? parsed.data : null;
+}
+
+/**
+ * A first-party preset falls back to its bundled mark when discovery resolved
+ * none — before it connects, after its identity is cleared, and when its site
+ * publishes no usable favicon. Applied here, at the read boundary, so every
+ * client gets it and stored rows never need rewriting.
+ */
+function presetIcon(preset: McpPreset | null): McpIcon | null {
+    return preset ? mcpPresetIcons[preset] : null;
 }
 
 /** Same degrade-the-row rule as the icon: never fail the whole list. */

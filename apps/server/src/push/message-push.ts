@@ -17,19 +17,28 @@ export interface MessagePush {
 export interface MessagePushOptions {
     /** The App origin avatar URLs in a push are absolute against. */
     appOrigin: string;
+    /** How long a push waits for the human to read the message elsewhere; tests shorten it. */
+    readGraceMs?: number;
 }
+
+/**
+ * A focused App window marks an open Chat read as messages arrive, so a push
+ * that waits this long can skip a message its human already read elsewhere.
+ */
+export const pushReadGraceMs = 4000;
 
 /** Enough to absorb an idempotent replay re-emitting a recent message. */
 const rememberedMessages = 1000;
-/** Messages pushed at once; each reads Needs you and sends to every device. */
+/** Messages pushed at once; each reads its recipients and sends to every device. */
 const pushConcurrency = 4;
 const pushBacklog = 1000;
 
 /**
- * iPhone push for Needs you (ADR 0037). It listens to the same post-commit
+ * iPhone push for new messages (ADR 0038). It listens to the same post-commit
  * durable events realtime clients do, and for each `message.created` pushes
- * every human the message newly addresses: one alert per device per message,
- * sent off the send path. Failures are logged and recorded on the device;
+ * every human the shared notification rule names: one alert per device per message,
+ * sent off the send path after `pushReadGraceMs`, to humans who have not read it
+ * by then. Failures are logged and recorded on the device;
  * they never reach the sender of the message.
  */
 export function startMessagePush(
@@ -49,13 +58,17 @@ export function startMessagePush(
         if (seen.size > rememberedMessages) {
             seen.delete(seen.values().next().value as string);
         }
-        const queued = queue.enqueue(() =>
-            pushMessage(db, sender, event, options).catch((error: unknown) => {
-                console.warn(
-                    '[haus] iPhone push failed for a message',
-                    error instanceof Error ? error.name : 'unknown error'
-                );
-            })
+        // The grace wait lives in the in-memory queue, like the rest of push:
+        // a restart already drops queued pushes, and close() still sends them.
+        const queued = queue.enqueue(
+            () =>
+                pushMessage(db, sender, event, options).catch((error: unknown) => {
+                    console.warn(
+                        '[haus] iPhone push failed for a message',
+                        error instanceof Error ? error.name : 'unknown error'
+                    );
+                }),
+            options.readGraceMs ?? pushReadGraceMs
         );
         if (!queued) {
             console.warn('[haus] iPhone push backlog full; dropped a message push');
@@ -89,18 +102,22 @@ export function startMessagePush(
     };
 }
 
-/** Pushes one message to every human whose Needs you it newly tops. Exported for tests. */
+/** Pushes one message to every human it notifies. Exported for tests. */
 export async function pushMessage(
     db: HausDatabase,
     sender: PushSender,
     event: MessageCreatedEvent,
     options: MessagePushOptions
 ): Promise<void> {
-    const recipients = await readPushRecipients(db, event);
-    for (const recipient of recipients) {
-        const payload = buildPushPayload(recipient.row, {
+    const read = await readPushRecipients(db, event);
+    if (!read) {
+        return;
+    }
+    for (const recipient of read.recipients) {
+        const payload = buildPushPayload(read.message, {
             appOrigin: options.appOrigin,
             badge: recipient.badge,
+            reason: recipient.reason,
             serverId: event.serverId,
         });
         if (!payload) {

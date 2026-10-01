@@ -10,40 +10,33 @@ import SwiftUI
 struct InboxAgentWeekCard: View {
     let week: InboxAgentWeek
     let onOpen: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// At accessibility sizes the card stacks instead of truncating: the
+    /// header and the series each take their own line, the caption may wrap,
+    /// and the card widens so the figure still reads as one word.
+    private var isStacked: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         Button(action: onOpen) {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    AvatarView(
-                        name: week.name,
-                        url: week.avatarURL,
-                        presence: week.presence,
-                        size: inboxMarkSize
-                    )
-                    Text(week.name)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(1)
-                }
+                header
 
-                HStack(alignment: .bottom, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(InboxTokens.format(week.totalTokens))
-                            .font(.title2.weight(.semibold))
-                            .monospacedDigit()
-                        Text(week.unit)
-                            .font(.caption)
-                            .foregroundStyle(week.isLive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                            .lineLimit(1)
+                if isStacked {
+                    VStack(alignment: .leading, spacing: 10) {
+                        figure
+                        sparkline.frame(maxWidth: .infinity)
                     }
-                    Spacer(minLength: 0)
-                    InboxSparkline(values: week.days)
-                        .foregroundStyle(week.isLive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                        .frame(width: 64, height: 20)
+                } else {
+                    HStack(alignment: .bottom, spacing: 8) {
+                        figure
+                        Spacer(minLength: 0)
+                        sparkline.frame(width: 64)
+                    }
                 }
             }
             .padding(14)
-            .frame(width: 196, alignment: .leading)
+            .frame(width: isStacked ? 280 : 196, alignment: .leading)
             .background(
                 HausPlatformColor.groupedSurface,
                 in: .rect(cornerRadius: InboxMetrics.boxRadius)
@@ -57,6 +50,47 @@ struct InboxAgentWeekCard: View {
         .buttonStyle(.pressable)
         .foregroundStyle(HausPlatformColor.label)
         .accessibilityLabel("\(week.name), \(InboxTokens.format(week.totalTokens)) \(week.unit)")
+    }
+
+    private var header: some View {
+        let layout = isStacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 10))
+        return layout {
+            AvatarView(
+                name: week.name,
+                url: week.avatarURL,
+                presence: week.presence,
+                size: inboxMarkSize
+            )
+            Text(week.name)
+                .font(.subheadline.weight(.medium))
+                .lineLimit(isStacked ? 2 : 1)
+        }
+    }
+
+    private var figure: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(InboxTokens.format(week.totalTokens))
+                .font(.title2.weight(.semibold))
+                .monospacedDigit()
+                .lineLimit(1)
+            Text(week.unit)
+                .font(.caption)
+                .foregroundStyle(liveStyle)
+                .lineLimit(isStacked ? 3 : 1)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var sparkline: some View {
+        InboxSparkline(values: week.days)
+            .foregroundStyle(liveStyle)
+            .frame(height: 20)
+    }
+
+    private var liveStyle: AnyShapeStyle {
+        week.isLive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary)
     }
 }
 

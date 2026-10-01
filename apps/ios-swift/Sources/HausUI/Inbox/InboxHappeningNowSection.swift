@@ -9,25 +9,21 @@ struct InboxHappeningNowSection: View {
     let onOpen: (InboxOpenRequest) -> Void
 
     var body: some View {
-        InboxSectionView(title: "Happening now") {
-            if let rows {
+        if let rows {
+            InboxSectionView(title: "Happening now") {
                 if rows.isEmpty {
                     InboxSectionEmpty(description: "No agents are working right now.")
                 } else {
-                    InboxSectionRows {
-                        ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                            if index > 0 { InboxRowDivider() }
-                            InboxRowView(
-                                mark: row.mark,
-                                title: row.title,
-                                preview: row.preview,
-                                onOpen: { onOpen(row.open) }
-                            ) {
-                                if let meta = row.meta {
-                                    Text(meta).lineLimit(1)
-                                }
-                            }
+                    ForEach(rows) { row in
+                        InboxRowView(
+                            mark: row.mark,
+                            title: row.title,
+                            trailing: row.status,
+                            detail: row.detail
+                        ) {
+                            onOpen(row.open)
                         }
+                        .inboxCardRow()
                     }
                 }
             }

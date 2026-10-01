@@ -27,7 +27,7 @@ interface Invalidation {
 
 const serverId = 'server_one';
 
-test('a message pass refetches the chat list, search, Needs you, and both transcript reads', async () => {
+test('a message pass refetches the chat list, search, and both transcript reads', async () => {
     const { queryClient, recorded, utils } = recordingCaches();
 
     await invalidateMessageCreated({
@@ -40,7 +40,6 @@ test('a message pass refetches the chat list, search, Needs you, and both transc
     expect(recorded).toEqual([
         { input: { serverId }, name: 'chat.list' },
         { input: { serverId }, name: 'chat.search' },
-        { input: { serverId }, name: 'inbox.needsYou' },
         { input: { chatId: 'chat_thread', serverId }, name: 'chat.messages' },
         { input: { chatId: 'chat_parent', serverId }, name: 'chat.messages' },
         {
@@ -48,65 +47,6 @@ test('a message pass refetches the chat list, search, Needs you, and both transc
             name: 'threadMessages',
         },
     ]);
-});
-
-test('Needs you refetches only for a message that could address or answer for the viewer', async () => {
-    const chats = [
-        { id: 'chat_channel', kind: 'channel' as const },
-        { id: 'chat_dm', kind: 'dm' as const },
-    ];
-    const needsYouFor = async (event: ReturnType<typeof messageEvent>) => {
-        const { queryClient, recorded, utils } = recordingCaches({
-            chats,
-            viewerUserId: 'usr_viewer',
-        });
-        await invalidateMessageCreated({ events: [event], queryClient, serverId, utils });
-        return recorded.some((entry) => entry.name === 'inbox.needsYou');
-    };
-
-    expect(await needsYouFor(messageEvent('2', 'chat_channel'))).toBe(false);
-    expect(
-        await needsYouFor(
-            messageEvent('3', 'chat_thread', 'chat_channel', { authorUserId: 'usr_peer' })
-        )
-    ).toBe(false);
-    expect(
-        await needsYouFor(
-            messageEvent('4', 'chat_channel', null, { mentionedUserIds: ['usr_viewer'] })
-        )
-    ).toBe(true);
-    expect(
-        await needsYouFor(messageEvent('5', 'chat_channel', null, { authorUserId: 'usr_viewer' }))
-    ).toBe(true);
-    expect(await needsYouFor(messageEvent('6', 'chat_thread', 'chat_dm'))).toBe(true);
-    expect(
-        await needsYouFor(
-            messageEvent('8', 'chat_channel', null, { replyToAuthorUserId: 'usr_viewer' })
-        )
-    ).toBe(true);
-    expect(
-        await needsYouFor(
-            messageEvent('9', 'chat_channel', null, { replyToAuthorUserId: 'usr_peer' })
-        )
-    ).toBe(false);
-    // A message in a Thread on the viewer's message addresses them.
-    expect(
-        await needsYouFor(
-            messageEvent('10', 'chat_thread', 'chat_channel', {
-                authorUserId: 'usr_peer',
-                threadAnchorAuthorUserId: 'usr_viewer',
-            })
-        )
-    ).toBe(true);
-    expect(
-        await needsYouFor(
-            messageEvent('11', 'chat_thread', 'chat_channel', {
-                threadAnchorAuthorUserId: 'usr_peer',
-            })
-        )
-    ).toBe(false);
-    // A Chat the cache does not know yet refetches rather than hide a row.
-    expect(await needsYouFor(messageEvent('7', 'chat_unknown'))).toBe(true);
 });
 
 test('a message burst refetches each Chat once', async () => {
@@ -153,18 +93,15 @@ test('a reaction pass refetches message lenses and search, not read state', asyn
     ]);
 });
 
-test('a read pass refetches the chat list and the Needs you rows', async () => {
+test('a read pass refetches the chat list, where unread counts render', async () => {
     const { recorded, utils } = recordingCaches();
 
     await invalidateChatRead({ serverId, utils });
 
-    expect(recorded).toEqual([
-        { input: { serverId }, name: 'chat.list' },
-        { input: { serverId }, name: 'inbox.needsYou' },
-    ]);
+    expect(recorded).toEqual([{ input: { serverId }, name: 'chat.list' }]);
 });
 
-test('a lifecycle pass refetches chat lists, Needs you, the changed Chats, and Agent chat rows', async () => {
+test('a lifecycle pass refetches chat lists, the changed Chats, and Agent chat rows', async () => {
     const { recorded, utils } = recordingCaches();
 
     await invalidateChatLifecycle({
@@ -181,7 +118,6 @@ test('a lifecycle pass refetches chat lists, Needs you, the changed Chats, and A
         { input: { serverId }, name: 'chat.list' },
         { input: { serverId }, name: 'agent.chats' },
         { input: { serverId }, name: 'chat.listArchived' },
-        { input: { serverId }, name: 'inbox.needsYou' },
         { input: { chatId: 'chat_one', serverId }, name: 'chat.get' },
         { input: { chatId: 'chat_two', serverId }, name: 'chat.get' },
     ]);
@@ -256,9 +192,7 @@ test('a Cloud Agent work pass refetches the active list and both transcript read
     ]);
 });
 
-function recordingCaches(
-    cached: { chats?: Array<{ id: string; kind: 'channel' | 'dm' }>; viewerUserId?: string } = {}
-) {
+function recordingCaches() {
     const recorded: Invalidation[] = [];
     const record = (name: string) => async (input?: unknown, options?: unknown) => {
         recorded.push(options === undefined ? { input, name } : { input, name, options });
@@ -267,7 +201,7 @@ function recordingCaches(
         agent: { chats: { invalidate: record('agent.chats') } },
         chat: {
             get: { invalidate: record('chat.get') },
-            list: { getData: () => cached.chats, invalidate: record('chat.list') },
+            list: { invalidate: record('chat.list') },
             listArchived: { invalidate: record('chat.listArchived') },
             messages: { cancel: async () => {}, invalidate: record('chat.messages') },
             search: { invalidate: record('chat.search') },
@@ -275,15 +209,6 @@ function recordingCaches(
         cloudAgentWork: {
             listActive: { invalidate: record('cloudAgentWork.listActive') },
             listForChat: { invalidate: record('cloudAgentWork.listForChat') },
-        },
-        inbox: { needsYou: { invalidate: record('inbox.needsYou') } },
-        member: {
-            list: {
-                getData: () =>
-                    cached.viewerUserId === undefined
-                        ? undefined
-                        : { viewerUserId: cached.viewerUserId },
-            },
         },
         task: { list: { invalidate: record('task.list') } },
         taskLabel: { list: { invalidate: record('taskLabel.list') } },

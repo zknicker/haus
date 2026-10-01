@@ -1388,6 +1388,17 @@
         max-width: 100%;
     }
 
+    /*
+     * A row's description is a subline under its title, not prose. The size
+     * bump above kept the 20px prose line, which opened a visible gap inside
+     * every stacked title/description pair; HeroUI's own subline leading
+     * (16px) keeps the pair reading as one unit. A description opted into
+     * wrapping is prose again and keeps the prose line.
+     */
+    .item-card__description:not(.whitespace-normal) {
+        line-height: calc(1 / 0.8125);
+    }
+
     /* Transcript panes own the gutter; message bodies need no second inset. */
     .chat-message__body {
         padding-inline-end: 0;
@@ -1464,6 +1475,110 @@
     .item-card-group__title {
         font-size: var(--text-base);
         line-height: var(--text-base--line-height);
+    }
+
+    /*
+     * Stock grid layout paints every direct card with a surface and shadow
+     * (`.item-card-group--grid > [data-slot="item-card"]`), which outranks the
+     * card's own variant — a transparent card in a grid came back boxed. A
+     * card that asks for transparent stays transparent; its hover tint comes
+     * from PressableFeedback, not from a box.
+     */
+    .item-card-group--grid > .item-card--transparent {
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+    /*
+     * A Settings catalog (`features/settings/layout/settings-card-grid.tsx`,
+     * Skills and Connections). Its "See A, B, and N more" control is a quiet
+     * aside under the grid, not an action beside it: muted until hovered, set
+     * off by a full row gap, and inset so its text starts on the rows' text
+     * edge (the button's own ×3 padding plus ×1 meets the cards' ×4).
+     */
+    .item-card-group--catalog > .button--ghost {
+        --button-fg: var(--muted);
+        margin-block-start: calc(var(--spacing) * 3);
+        margin-inline-start: var(--spacing);
+        font-weight: var(--font-weight-normal);
+    }
+
+    @media (hover: hover) {
+        .item-card-group--catalog > .button--ghost:hover {
+            --button-fg: var(--foreground);
+        }
+    }
+
+    /*
+     * A catalog reads as a shelf of small products, not a stretched table.
+     * Two columns across the full 1152px page column made each row ~550px of
+     * mostly empty line, so the catalog keeps its own reading width (two
+     * ~460px columns) and leaves the rest of the column as page ground.
+     */
+    .item-card-group--catalog {
+        max-inline-size: 60rem;
+    }
+
+    /* The section title sits on a hairline that spans the catalog. */
+    .item-card-group--catalog > .item-card-group__header {
+        padding-block-end: calc(var(--spacing) * 2.5);
+        margin-block-end: calc(var(--spacing) * 2);
+        border-block-end: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
+    }
+
+    /* A wide gutter between the columns; rows land on a ~70px pitch. */
+    .item-card-group--catalog .item-card-group--grid {
+        column-gap: calc(var(--spacing) * 7);
+        row-gap: var(--spacing);
+    }
+
+    .item-card-group--catalog .item-card {
+        gap: calc(var(--spacing) * 3.5);
+    }
+
+    .item-card-group--catalog .item-card__title {
+        font-size: var(--text-base);
+        line-height: 1.25rem;
+    }
+
+    .item-card-group--catalog .item-card__description {
+        margin-block-start: var(--spacing);
+    }
+
+    /*
+     * A catalog mark is an app icon: a 40px surface tile with the hairline
+     * outline every surface carries, and a 24px illustration inside it.
+     * Full-tile art (favicons, built-in skill art) sizes itself to the tile.
+     * The skill dialog's header carries the same tile (`modal__icon--product`)
+     * so a skill looks the same opened as listed. Radius follows the
+     * identity-mark curve for a 40px box (`identityMarkRadius`).
+     */
+    .item-card-group--catalog .item-card__icon,
+    .modal__icon--product {
+        width: 2.5rem;
+        height: 2.5rem;
+        overflow: hidden;
+        border-radius: calc(var(--radius) * 2.5);
+        background-color: var(--surface);
+        box-shadow: var(--surface-shadow);
+        color: var(--foreground);
+    }
+
+    .item-card-group--catalog .item-card__icon svg,
+    .modal__icon--product svg {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+
+    /*
+     * A dialog that presents a document (Settings → Skills' SKILL.md): wider
+     * than stock `lg` so the rendered Markdown reads at a comfortable measure,
+     * and never taller than 85% of the window — the preview panel scrolls
+     * inside itself before the dialog grows.
+     */
+    .modal__dialog--document {
+        max-width: 39rem;
+        max-height: 85vh;
     }
 
     /* Rich references are enhanced inline text, not freestanding badges. */
@@ -2289,44 +2404,58 @@
     }
 
     /*
-     * Transcript edge blur (components/chats/message-scroller.tsx), after
-     * Skiper UI's progressive blur: ONE element per edge carries the backdrop
-     * blur, the mask that fades it out toward the content, and a colour wash
-     * from the content plane to clear. The bottom band sits behind the floating
-     * composer (below `.chat-footer-dock`, z-index 20) and covers the measured
-     * footer plus a little. Neither may sit inside a rounded clip: a
-     * border-radius or clip-path clipping ancestor makes Chromium drop the mask
-     * (full-strength blur, hard line) — the desktop window shell's old rounded
-     * clip did exactly that. The top band shows by visibility only while
-     * scrolled past the start; the bottom band is always shown. Never animate
-     * either band's opacity or backdrop-filter.
+     * Transcript edge fade (components/chats/message-scroller.tsx): ONE element
+     * per edge paints the content plane's colour, carries a faint backdrop blur,
+     * and masks both with the same eased ramp, so rows dissolve into the
+     * background with only a trace of softening (a stronger blur smears text
+     * into haze). The ramp's smoothstep-ish stops keep either end from reading
+     * as a line. The bottom band sits behind the floating composer (below
+     * `.chat-footer-dock`, z-index 20): it holds solid from the bottom into the
+     * prompt input, so no row shows beneath it, and ramps out over the rows
+     * just above it. The measured footer also counts the reserved typing
+     * row above the input; ending the solid there faded rows well short of it. Neither may sit inside a rounded clip: a border-radius or
+     * clip-path clipping ancestor makes Chromium drop the mask (full-strength
+     * blur, hard line) — the desktop window shell's old rounded clip did
+     * exactly that. The top band shows by visibility only while scrolled past
+     * the start; the bottom band is always shown. Never animate either band's
+     * opacity or backdrop-filter.
      */
     .transcript-edge-blur {
-        --edge-blur: 2.5px;
-        --edge-blur-stop: 10%;
+        --edge-blur: 1px;
+        --edge-solid: 0px;
+        --edge-ramp: 4rem;
+        --edge-fade: linear-gradient(
+            var(--edge-fade-direction),
+            #000 var(--edge-solid),
+            rgb(0 0 0 / 0.9) calc(var(--edge-solid) + var(--edge-ramp) * 0.2),
+            rgb(0 0 0 / 0.65) calc(var(--edge-solid) + var(--edge-ramp) * 0.4),
+            rgb(0 0 0 / 0.35) calc(var(--edge-solid) + var(--edge-ramp) * 0.6),
+            rgb(0 0 0 / 0.1) calc(var(--edge-solid) + var(--edge-ramp) * 0.8),
+            transparent calc(var(--edge-solid) + var(--edge-ramp))
+        );
         position: absolute;
         inset-inline: 0;
         z-index: 1;
         pointer-events: none;
+        height: calc(var(--edge-solid) + var(--edge-ramp));
         visibility: hidden;
+        background-color: var(--color-background);
         -webkit-backdrop-filter: blur(var(--edge-blur));
         backdrop-filter: blur(var(--edge-blur));
+        -webkit-mask-image: var(--edge-fade);
+        mask-image: var(--edge-fade);
     }
 
     .transcript-edge-blur[data-side="top"] {
+        --edge-fade-direction: to bottom;
         top: 0;
-        height: 4rem;
-        background-image: linear-gradient(to bottom, var(--color-background), transparent);
-        -webkit-mask-image: linear-gradient(to bottom, #000 var(--edge-blur-stop), transparent);
-        mask-image: linear-gradient(to bottom, #000 var(--edge-blur-stop), transparent);
     }
 
     .transcript-edge-blur[data-side="bottom"] {
+        --edge-fade-direction: to top;
+        --edge-solid: max(0px, calc(var(--chat-footer-height, 0px) - 3rem));
+        --edge-ramp: 4rem;
         bottom: 0;
-        height: max(4rem, calc(var(--chat-footer-height, 0px) + 1.5rem));
-        background-image: linear-gradient(to top, var(--color-background), transparent);
-        -webkit-mask-image: linear-gradient(to top, #000 var(--edge-blur-stop), transparent);
-        mask-image: linear-gradient(to top, #000 var(--edge-blur-stop), transparent);
     }
 
     /* The bottom band is always on: at rest it covers only the empty footer

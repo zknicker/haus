@@ -15,7 +15,7 @@ public struct PushNotificationCommunication: Sendable, Equatable {
     /// or an unknown value.
     public let reason: Reason?
 
-    /// The Needs you reason the Server pushed for.
+    /// Why the Server pushed this message to the viewer.
     public enum Reason: String, Sendable, Equatable {
         case dm
         case mention

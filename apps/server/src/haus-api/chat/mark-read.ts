@@ -9,8 +9,10 @@ export const markChatReadProcedure = chatProcedure
     .mutation(async ({ ctx, input }) => {
         const result = await markChatRead(ctx.hausDb, ctx.member, input);
 
-        if (result.event && ctx.member) {
-            emitDurableChatEvent({ audienceUserId: ctx.member.id, event: result.event });
+        if (ctx.member) {
+            for (const event of result.events) {
+                emitDurableChatEvent({ audienceUserId: ctx.member.id, event });
+            }
         }
 
         return result.receipt;

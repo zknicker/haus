@@ -492,6 +492,9 @@ anything a reader has to read. HeroUI ships several parts at `xs` that are
 plainly body copy in our layouts (`.item-card__description`,
 `.item-card-group__description`, `.table__column`); the theme layer moves them
 to `sm` once, globally, rather than each call site patching its own.
+A one-line row description keeps HeroUI's 16px subline leading rather than the
+20px prose line, so a stacked title and description read as one unit; a
+description that wraps (`whitespace-normal`) is prose and keeps the prose line.
 
 ### Font and Letter Spacing
 
@@ -797,7 +800,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   muted tabular match count in its suffix, then Previous, Next, and Close as the toolbar's icon-only
   ghost `sm` buttons in the same tight cluster. It shares the toolbar's bottom hairline. A page not at
   100% shows its zoom as a ghost `sm` text Button at the start of the page actions.
-- **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`. The sidebar updater keeps its primary opacity while pending because pending blocks presses there but also represents live status.
+- **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`. The sidebar updater keeps its primary opacity while pending because pending blocks presses there but also represents live status. Each sidebar status button (updater, offline Computers) enters once when it first appears — a 6px rise and 85% scale on a 420ms spring with one small overshoot, opacity on the 180ms ease-out — and leaves with a 160ms shrink-and-fade; phase and progress changes never replay it, and reduced motion fades only.
 - **Cursors:** Keep the desktop arrow on buttons and other app controls. Reserve the pointer for
   true hyperlinks and specialized cursors for an active manipulation such as dragging or resizing;
   use `--cursor-interactive` instead of a call-site `cursor-pointer` utility.

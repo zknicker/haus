@@ -49,6 +49,11 @@ where Item.ID == String {
     /// A long press on a row, which opens the screen's message drawer; nil
     /// means rows take no long press.
     var onLongPress: ((Item) -> Void)? = nil
+    /// The row a resting finger is holding, reported a beat before the long
+    /// press lands so the screen can tint it; nil once the finger lifts,
+    /// drifts off the row, or the transcript scrolls. A tap never reports.
+    /// Only installed alongside `onLongPress`.
+    var onHoldChange: ((Item?) -> Void)? = nil
     @ViewBuilder let row: (Item) -> Row
     @ViewBuilder let accessory: () -> Accessory
 
@@ -87,13 +92,7 @@ where Item.ID == String {
             table.addGestureRecognizer(tap)
         }
         if onLongPress != nil {
-            let press = UILongPressGestureRecognizer(
-                target: context.coordinator,
-                action: #selector(TranscriptListCoordinator<Item, Row, Accessory>.rowLongPressed(_:))
-            )
-            press.minimumPressDuration = 0.4
-            press.delegate = context.coordinator
-            table.addGestureRecognizer(press)
+            context.coordinator.installRowPress(on: table)
         }
         context.coordinator.install(view: self, table: table)
         if animatesEntrance, !UIAccessibility.isReduceMotionEnabled {
@@ -124,7 +123,7 @@ where Item.ID == String {
 
 @MainActor
 final class TranscriptListCoordinator<Item: Identifiable & Equatable, Row: View, Accessory: View>:
-    NSObject, UITableViewDataSource, UITableViewDelegate, UIGestureRecognizerDelegate
+    NSObject, UITableViewDataSource, UITableViewDelegate
 where Item.ID == String {
     /// Internal, not private: `TranscriptListView+NearNewest` publishes through
     /// it.
@@ -239,26 +238,25 @@ where Item.ID == String {
 
     // MARK: Long press
 
-    /// The row stays where it is: the drawer the screen presents dims
-    /// everything behind it, so nothing lifts or moves.
-    @objc func rowLongPressed(_ press: UILongPressGestureRecognizer) {
-        guard press.state == .began,
-              let table = press.view as? UITableView,
-              let indexPath = table.indexPathForRow(at: press.location(in: table)),
-              indexPath.row < items.count,
-              let onLongPress = view?.onLongPress
-        else { return }
-        onLongPress(items[items.count - 1 - indexPath.row])
+    private var rowPress: TranscriptRowPress?
+
+    func installRowPress(on table: UITableView) {
+        let press = TranscriptRowPress()
+        press.onHoldChange = { [weak self] indexPath in
+            guard let self else { return }
+            view?.onHoldChange?(indexPath.flatMap(item(at:)))
+        }
+        press.onPress = { [weak self] indexPath in
+            guard let self, let item = item(at: indexPath) else { return }
+            view?.onLongPress?(item)
+        }
+        press.install(on: table)
+        rowPress = press
     }
 
-    /// A body's text view holds presses of its own — the loupe, text drag —
-    /// that would win the hold on its words. They wait for the row's press.
-    func gestureRecognizer(
-        _ gestureRecognizer: UIGestureRecognizer,
-        shouldBeRequiredToFailBy other: UIGestureRecognizer
-    ) -> Bool {
-        guard let table = gestureRecognizer.view, let view = other.view else { return false }
-        return view is UITextView && view.isDescendant(of: table)
+    /// The item a row shows, or nil for the history accessory.
+    private func item(at indexPath: IndexPath) -> Item? {
+        indexPath.row < items.count ? items[items.count - 1 - indexPath.row] : nil
     }
 
     // MARK: UITableViewDelegate
@@ -272,8 +270,10 @@ where Item.ID == String {
     }
 
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-        // A touch owns the viewport from here; nothing is travelling to rest.
+        // A touch owns the viewport from here; nothing is travelling to rest,
+        // and nothing the finger rested on is being held any more.
         endSettling()
+        rowPress?.cancelHold()
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {

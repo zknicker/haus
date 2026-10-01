@@ -101,8 +101,10 @@ extension HausStore {
     /// a stagger of half-updated lists.
     func refreshServerSnapshot(serverID: String) async throws {
         let lifecycleRevisionAtStart = lifecycleRevision
+        async let iconBadge: Void = refreshIconBadge()
         let snapshot = try await fetchServerSnapshot(serverID: serverID)
         apply(snapshot, lifecycleRevisionAtStart: lifecycleRevisionAtStart)
+        await iconBadge
         await refreshInlineReplies()
 
         // Every Chat surface on the user's stack is refetched eagerly, not just

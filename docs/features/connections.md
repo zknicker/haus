@@ -8,7 +8,11 @@ read_when:
 
 # Connections
 
-Server Settings -> Connections manages remote MCP server accounts.
+Server Settings -> Connections manages remote MCP server accounts. It shares Settings -> Skills'
+catalog layout: titled sections of borderless two-column rows, each an icon tile, name, one-line
+description, and a trailing control. **Recommended** lists presets not yet added, each with a **+**
+button that adds it; **Added MCPs** lists saved connections with their status, opens a connection's
+detail dialog on press, and carries the **+** that opens the add drawer.
 
 **Add MCP** saves an MCP entry in Haus. For OAuth MCPs, **Sign in** then opens the remote
 account's authorization flow; until that completes, the entry says **Sign in required**. Header
@@ -18,8 +22,8 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-Google Calendar and MerchBase are presets for endpoint and auth defaults. They remain ordinary MCP
-connections. Once added, a preset disappears from Recommended, even while disconnected. Another
+RankWrangler, Google Calendar, and MerchBase are presets for endpoint and auth defaults. They remain
+ordinary MCP connections. Once added, a preset disappears from Recommended, even while disconnected. Another
 account can be added deliberately from the connection detail. Deleting the last account makes the
 preset available in Recommended again; the section is hidden when every preset has been added.
 
@@ -41,7 +45,9 @@ its conversation.
 
 Each connection shows the MCP server's own icon when one can be resolved, and a tinted monogram
 otherwise. Haus Server resolves and stores the image during discovery, so the settings page makes
-no third-party image requests. See [Connections API](../api/connections.md#connection-icons).
+no third-party image requests. Presets ship bundled marks: Recommended shows them before a preset
+is added, and an added preset whose server and site publish no usable icon keeps showing its
+bundled mark instead of a monogram. See [Connections API](../api/connections.md#connection-icons).
 
 A connection's detail dialog leads with the server's name, its connection status, and the server's
 own description of itself when it offers one. Long tool and Agent lists scroll inside the dialog so

@@ -2,11 +2,11 @@ import Foundation
 import HausModels
 import OSLog
 
-/// The Server-wide reads the Inbox and its sidebar badge stand on: the viewer's
-/// Needs you rows, the Cloud Agent work running right now, and the Server's
-/// token-usage snapshot.
+/// The Server-wide reads the Inbox and its sidebar dot stand on: the Chat
+/// list's unread Chats, the Cloud Agent work running right now, and the
+/// Server's token-usage snapshot.
 ///
-/// Each snapshot lives on the Store rather than on a screen because the badge
+/// Each snapshot lives on the Store rather than on a screen because the dot
 /// outlives the Inbox: a durable event refreshes what this client already
 /// holds, and nothing here pulls in a read nobody has asked for. A failed
 /// refresh keeps the previous snapshot and is logged — a stale Inbox row is
@@ -15,53 +15,52 @@ extension HausStore {
     /// Every Server-wide Inbox read at once, for a surface that shows all of
     /// them. The reads are independent, so they run concurrently.
     func loadInbox() async {
-        async let needsYou: Void = loadNeedsYou()
+        async let chats: Void = refreshInboxChats()
         async let work: Void = loadActiveCloudAgentWork()
         async let usage: Void = loadServerUsage()
-        _ = await (needsYou, work, usage)
+        _ = await (chats, work, usage)
     }
 
-    /// The Chats addressed to the viewer that they have not answered or marked
-    /// Done (ADR 0037), newest first. `message.created` and `chat.read` own
-    /// the refresh.
-    func loadNeedsYou() async {
-        guard let serverID = activeServer?.id else { return }
+    /// Mark read on one Inbox row: it leaves at once, the Server advances the
+    /// read marker through the Chat's newest message with the same
+    /// `chat.markRead` an open transcript sends, and a Chat-list refetch
+    /// reconciles before the row is allowed back. A failed Mark read puts the
+    /// row back, because nothing was recorded.
+    func markChatRead(chatID: String) async {
+        guard let serverID = activeServer?.id,
+              let chat = chats.first(where: { $0.id == chatID })
+        else { return }
+        let sequence = chat.lastMessageSequence
+        markedReadThrough[chatID] = sequence
+        defer { markedReadThrough[chatID] = nil }
         do {
-            let rows: [NeedsYouRow] = try await client.query(
-                "inbox.needsYou",
-                input: ServerScopedInput(serverId: serverID)
+            let _: ChatReadReceipt = try await client.mutation(
+                "chat.markRead",
+                input: ChatReadInput(
+                    chatID: chatID,
+                    sequence: sequence,
+                    serverID: serverID,
+                    includeThreads: true
+                )
             )
             guard activeServer?.id == serverID else { return }
-            if needsYouRows != rows { needsYouRows = rows }
+            try await reloadChats(serverID: serverID)
         } catch {
-            Self.logger.error("Loading needs you failed: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("Marking chat read failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    /// Done on one row: it leaves at once, the Server records the sequence it
-    /// covered and advances the read marker, and the refetch reconciles. A
-    /// failed Done puts the row back, because nothing was recorded.
-    func markNeedsYouDone(_ row: NeedsYouRow) async {
-        guard let serverID = activeServer?.id else { return }
-        needsYouDoneThrough[row.chatID] = row.latest.sequence
-        defer { needsYouDoneThrough[row.chatID] = nil }
-        do {
-            let _: InboxMarkDoneResult = try await client.mutation(
-                "inbox.markDone",
-                input: InboxMarkDoneInput(serverID: serverID, row: row)
-            )
-            guard activeServer?.id == serverID else { return }
-            await loadNeedsYou()
-        } catch {
-            Self.logger.error("Marking needs you done failed: \(error.localizedDescription, privacy: .public)")
-        }
+    /// The Chats the Inbox lists as unread: the Chat list's, less any Mark
+    /// read still settling. Nil until the Chat list has landed.
+    var unreadChats: [ChatSummary]? {
+        guard hasLoadedChats else { return nil }
+        return UnreadChats.visible(chats, markedReadThrough: markedReadThrough)
     }
 
-    /// The rows the Inbox shows: the Server's, less any Done still settling.
-    /// Nil until the first read lands.
-    var visibleNeedsYouRows: [NeedsYouRow]? {
-        needsYouRows.map { NeedsYou.visible($0, doneThrough: needsYouDoneThrough) }
-    }
+    /// How many Chats are unread, for surfaces that mark the Inbox instead of
+    /// opening it — the same Chats the section lists. Nil until the Chat list
+    /// has landed, so "nothing unread" is never confused with "not yet known".
+    var unreadChatCount: Int? { unreadChats?.count }
 
     /// Every queued or running Cloud Agent work the viewer can see on this
     /// Server, oldest first. `cloud-agent-work.updated` owns the refresh.
@@ -76,6 +75,17 @@ extension HausStore {
             if activeCloudAgentWork != rows { activeCloudAgentWork = rows }
         } catch {
             Self.logger.error("Loading active cloud agent work failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// The Chat list is part of the shell's own snapshot and durable events
+    /// keep it fresh; a pull on the Inbox asks for it again all the same.
+    private func refreshInboxChats() async {
+        guard let serverID = activeServer?.id else { return }
+        do {
+            try await reloadChats(serverID: serverID)
+        } catch {
+            Self.logger.error("Loading chats failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -95,16 +105,6 @@ extension HausStore {
             Self.logger.error("Loading server usage failed: \(error.localizedDescription, privacy: .public)")
         }
     }
-
-    /// How many conversations are waiting on this human right now, for
-    /// surfaces that badge the Inbox instead of opening it — the same rows the
-    /// section lists.
-    ///
-    /// Zero until the rows have landed. Ask `isNeedsYouCountReady` to tell
-    /// "nothing waiting" from "not yet known".
-    var needsYouCount: Int { visibleNeedsYouRows?.count ?? 0 }
-
-    var isNeedsYouCountReady: Bool { needsYouRows != nil }
 
     /// One Agent's week, sliced from the Server usage snapshot the Inbox
     /// already holds. Nil until that read lands, so a strip is blank rather

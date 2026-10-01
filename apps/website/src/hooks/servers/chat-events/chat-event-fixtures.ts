@@ -7,6 +7,7 @@ export function messageEvent(
     parentChatId: string | null = null,
     author: {
         authorUserId?: string | null;
+        conversationKind?: 'channel' | 'dm';
         mentionedUserIds?: string[];
         replyToAuthorUserId?: string | null;
         threadAnchorAuthorUserId?: string | null;
@@ -15,6 +16,7 @@ export function messageEvent(
     return {
         authorUserId: author.authorUserId ?? null,
         chatId,
+        conversationKind: author.conversationKind ?? 'channel',
         createdAt: '2026-07-26T12:00:00.000Z',
         cursor,
         id: `event_${cursor}`,
@@ -47,14 +49,18 @@ export function reactionEvent(
     };
 }
 
-export function readEvent(cursor: string, chatId: string): ChatEventOf<'chat.read'> {
+export function readEvent(
+    cursor: string,
+    chatId: string,
+    sequence = Number(cursor)
+): ChatEventOf<'chat.read'> {
     return {
         chatId,
         createdAt: '2026-07-26T12:00:00.000Z',
         cursor,
         id: `event_${cursor}`,
         parentChatId: null,
-        sequence: Number(cursor),
+        sequence,
         serverId: 'server_one',
         type: 'chat.read',
     };

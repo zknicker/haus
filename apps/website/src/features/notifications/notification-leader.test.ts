@@ -43,9 +43,9 @@ function fakeLocks(): LockManagerApi {
 
 test('one tab leads per Server and the next takes over when it leaves', async () => {
     const locks = fakeLocks();
-    const first = claimNotificationLeadership('needs-you:srv_one', locks);
-    const second = claimNotificationLeadership('needs-you:srv_one', locks);
-    const otherServer = claimNotificationLeadership('needs-you:srv_two', locks);
+    const first = claimNotificationLeadership('messages:srv_one', locks);
+    const second = claimNotificationLeadership('messages:srv_one', locks);
+    const otherServer = claimNotificationLeadership('messages:srv_two', locks);
     await Promise.resolve();
 
     expect(first.isLeader()).toBe(true);
@@ -58,7 +58,7 @@ test('one tab leads per Server and the next takes over when it leaves', async ()
     expect(second.isLeader()).toBe(true);
 
     // A waiting tab that leaves never becomes leader.
-    const third = claimNotificationLeadership('needs-you:srv_one', locks);
+    const third = claimNotificationLeadership('messages:srv_one', locks);
     third.release();
     second.release();
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -66,5 +66,5 @@ test('one tab leads per Server and the next takes over when it leaves', async ()
 });
 
 test('without Web Locks every tab leads', () => {
-    expect(claimNotificationLeadership('needs-you:srv_one', undefined).isLeader()).toBe(true);
+    expect(claimNotificationLeadership('messages:srv_one', undefined).isLeader()).toBe(true);
 });

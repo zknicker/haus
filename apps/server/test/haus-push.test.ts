@@ -1,17 +1,17 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { pushNotificationPayloadSchema } from '@haus/api';
-import { countNeedsYouChats, readNeedsYouChats } from '../src/needs-you/needs-you-query.ts';
-import { type NeedsYouFixture, startNeedsYouFixture } from './needs-you-fixture.ts';
+import type { HausClient } from './haus-client.ts';
+import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { deviceToken, FakePushSender } from './push-fake-sender.ts';
 
 const sender = new FakePushSender();
 const adaToken = deviceToken('a1');
 const boToken = deviceToken('b2');
 const cassToken = deviceToken('c3');
-let fixture: NeedsYouFixture;
+let fixture: NotificationFixture;
 
 beforeAll(async () => {
-    fixture = await startNeedsYouFixture({ pushSender: sender });
+    fixture = await startNotificationFixture({ pushReadGraceMs: 0, pushSender: sender });
     const bundleId = 'chat.haus.ios';
     await fixture.owner.trpc.push.registerDevice.mutate({
         bundleId,
@@ -53,7 +53,7 @@ test('a DM message pushes its other member with the routing payload', async () =
             payload: {
                 aps: {
                     alert: { body: 'Got a minute, @Ada? It is about the launch.', title: 'Bo' },
-                    badge: 1,
+                    badge: await unreadChatCount(fixture.owner, [serverId]),
                     'mutable-content': 1,
                     sound: 'default',
                     'thread-id': dmChatId,
@@ -79,7 +79,7 @@ test('a Channel mention pushes only mentioned humans with access, never the auth
     const channelId = await createChannel('push-mentions');
     const cassUserId = (
         (await harness.sql`
-            select id from users where clerk_user_id = 'user_needs_outsider'
+            select id from users where clerk_user_id = 'user_notify_outsider'
         `) as { id: string }[]
     )[0]?.id;
     const long = 'x'.repeat(400);
@@ -156,6 +156,49 @@ test('an inline reply or a Thread answer pushes the author of the message it ans
     expect(await sender.sentFor(own.message.id, 0)).toEqual([]);
 });
 
+test('every DM message pushes, whether or not the human read or answered the last one', async () => {
+    const { owner, ownerUserId, peer, serverId } = fixture;
+    const dmChatId = (await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId }))
+        .id;
+    const first = await peer.trpc.chat.send.mutate({
+        chatId: dmChatId,
+        content: 'First nudge.',
+        nonce: 'push-dm-every-1',
+        serverId,
+    });
+    expect((await sender.sentFor(first.message.id, 1)).map((push) => push.device.token)).toEqual([
+        adaToken,
+    ]);
+
+    // Reading the DM clears it from the badge but never stops the next push.
+    await owner.trpc.chat.markRead.mutate({
+        chatId: dmChatId,
+        sequence: first.message.sequence,
+        serverId,
+    });
+    const second = await peer.trpc.chat.send.mutate({
+        chatId: dmChatId,
+        content: 'Second nudge.',
+        nonce: 'push-dm-every-2',
+        serverId,
+    });
+    const pushes = await sender.sentFor(second.message.id, 1);
+    expect(pushes.map((push) => push.device.token)).toEqual([adaToken]);
+    expect(pushes[0]?.payload.aps.badge).toBe(await unreadChatCount(owner, [serverId]));
+});
+
+test('a Channel message that names nobody pushes nobody', async () => {
+    const { createChannel, peer, serverId } = fixture;
+    const channelId = await createChannel('push-quiet');
+    const sent = await peer.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'Deploy finished.',
+        nonce: 'push-quiet',
+        serverId,
+    });
+    expect(await sender.sentFor(sent.message.id, 0)).toEqual([]);
+});
+
 test('an Agent DM pushes its human, and APNs calling a token gone deletes it', async () => {
     const { harness, mintRunner, orbitAgentId, owner, sendAgentMessage, serverId } = fixture;
     const dmChatId = (
@@ -175,9 +218,8 @@ test('an Agent DM pushes its human, and APNs calling a token gone deletes it', a
     ).toHaveLength(0);
 });
 
-test('the badge counts Needs you across every Server in one statement, matching the lists', async () => {
+test('the badge counts unread Chats across every Server, as chat.list reports them', async () => {
     const { owner, ownerUserId, peer, serverId } = fixture;
-    const database = fixture.database.db;
     sender.outcomes.delete(adaToken);
     await owner.trpc.push.registerDevice.mutate({
         bundleId: 'chat.haus.ios',
@@ -202,19 +244,21 @@ test('the badge counts Needs you across every Server in one statement, matching 
         serverId: sideServerId,
     });
 
-    const here = await readNeedsYouChats(database, { serverId, viewerUserId: ownerUserId });
-    const there = await readNeedsYouChats(database, {
-        serverId: sideServerId,
-        viewerUserId: ownerUserId,
-    });
-    expect(here.length).toBeGreaterThan(0);
-    expect(there).toHaveLength(1);
-    expect(
-        await countNeedsYouChats(database, {
-            serverIds: [serverId, sideServerId],
-            viewerUserId: ownerUserId,
-        })
-    ).toBe(here.length + there.length);
+    const here = await unreadChatCount(owner, [serverId]);
+    expect(here).toBeGreaterThan(0);
+    expect(await unreadChatCount(owner, [sideServerId])).toBeGreaterThanOrEqual(1);
     const pushes = await sender.sentFor(sent.message.id, 1);
-    expect(pushes[0]?.payload.aps.badge).toBe(here.length + there.length);
+    expect(pushes[0]?.payload.aps.badge).toBe(
+        await unreadChatCount(owner, [serverId, sideServerId])
+    );
 });
+
+/** What the badge means: Chats in `chat.list` with anything unread, summed over Servers. */
+async function unreadChatCount(client: HausClient, serverIds: readonly string[]) {
+    let count = 0;
+    for (const serverId of serverIds) {
+        const chats = await client.trpc.chat.list.query({ serverId });
+        count += chats.filter((chat) => chat.unreadCount > 0).length;
+    }
+    return count;
+}

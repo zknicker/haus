@@ -268,6 +268,7 @@ function computer(overrides: Partial<HausUpdateComputer> = {}): HausUpdateComput
         name: 'Home',
         phase: 'available',
         reportedTargetVersion: '1.4.9',
+        updateUpdatedAt: new Date(observedAt - 5000).toISOString(),
         ...overrides,
     };
 }

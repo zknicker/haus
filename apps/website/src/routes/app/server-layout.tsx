@@ -2,6 +2,7 @@ import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
+import { MessageNotifications } from '../../features/notifications/message-notifications.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import { readLastChatId, rememberLastChatId } from '../../features/servers/server-choice.ts';
@@ -25,7 +26,6 @@ import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-acti
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useDesktopMenuNavigation } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
-import { useNeedsYouNotifications } from '../../hooks/notifications/use-needs-you-notifications.ts';
 import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-listeners.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChats } from '../../hooks/servers/use-chats.ts';
@@ -77,7 +77,6 @@ export function ServerLayout() {
         settingsRoute: serverSettingsRoute(slug),
     });
     useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
-    useNeedsYouNotifications(server.data);
     useUnfocusableAppMain();
     // Desktop: the window layout's full-width band holds the tab strip. The web
     // has no layout and keeps its topbar in the main column.
@@ -146,7 +145,12 @@ export function ServerLayout() {
                             server={server.data}
                         >
                             <AppShell className="w-full">
-                                <ChatEventListeners serverId={server.data.id} />
+                                <ChatEventListeners serverId={server.data.id}>
+                                    <MessageNotifications
+                                        key={server.data.id}
+                                        server={server.data}
+                                    />
+                                </ChatEventListeners>
                                 <SyncHumanIdentity serverId={server.data.id} />
                                 <AppShellDragRegion />
                                 <CommandMenu server={server.data} />

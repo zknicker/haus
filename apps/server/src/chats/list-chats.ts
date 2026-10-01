@@ -1,18 +1,17 @@
 import type { Chat } from '@haus/api';
-import { and, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, chatsTable, serverOnboardingTable } from '../postgres/schema.ts';
+import { agentsTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import { readThreadAttentionCounts } from '../threads/thread-attention.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { chatLastMessageLateral, toChatLastMessage } from './chat-last-message.ts';
-import { visibleChats } from './chat-visibility.ts';
+import { type ChatListArchive, chatUnreadCount, listedChats } from './chat-unread.ts';
 
 export async function listChats(
     db: HausDatabase,
-    member: HausUser | null,
+    member: Pick<HausUser, 'id'> | null,
     serverId: string,
-    archive: 'active' | 'all' | 'archived' = 'active'
+    archive: ChatListArchive = 'active'
 ): Promise<Chat[]> {
     await requireServerMembership(db, member, serverId);
 
@@ -97,28 +96,7 @@ export async function listChats(
                 end
             `,
             serverId: chatsTable.serverId,
-            unreadCount: sql<number>`
-                (
-                    select count(*)::integer
-                    from chat_messages message
-                    where message.server_id = "chats"."server_id"
-                        and message.chat_id = "chats"."id"
-                        and (
-                            message.author_user_id is null
-                            or message.author_user_id <> ${member.id}
-                        )
-                        and message.sequence > coalesce(
-                            (
-                                select read.sequence
-                                from chat_reads read
-                                where read.server_id = "chats"."server_id"
-                                    and read.chat_id = "chats"."id"
-                                    and read.reader_user_id = ${member.id}
-                            ),
-                            0
-                        )
-                )
-            `,
+            unreadCount: chatUnreadCount(member.id),
         })
         .from(chatsTable)
         .leftJoin(
@@ -128,37 +106,9 @@ export async function listChats(
                 eq(agentsTable.id, chatsTable.dmAgentId)
             )
         )
-        .innerJoin(serverOnboardingTable, eq(serverOnboardingTable.serverId, chatsTable.serverId))
         .leftJoinLateral(lastMessage, sql`true`)
-        .where(
-            and(
-                eq(chatsTable.serverId, serverId),
-                or(
-                    ne(chatsTable.id, serverOnboardingTable.channelId),
-                    eq(serverOnboardingTable.phase, 'complete')
-                ),
-                ne(chatsTable.kind, 'thread'),
-                or(
-                    ne(chatsTable.kind, 'dm'),
-                    isNull(chatsTable.dmAgentId),
-                    isNull(agentsTable.retiredAt)
-                ),
-                isNull(chatsTable.deletedAt),
-                archive === 'active'
-                    ? isNull(chatsTable.archivedAt)
-                    : archive === 'archived'
-                      ? isNotNull(chatsTable.archivedAt)
-                      : undefined,
-                visibleChats(member.id)
-            )
-        )
+        .where(and(eq(chatsTable.serverId, serverId), listedChats(member.id, archive)))
         .orderBy(sql`${chatsTable.lastActivityAt} desc nulls last`, chatsTable.createdAt);
-
-    const threadAttentionCounts = await readThreadAttentionCounts(db, {
-        parentChatIds: rows.map((chat) => chat.id),
-        readerUserId: member.id,
-        serverId,
-    });
 
     return rows.map(({ lastMessage: lastMessageRow, ...chat }) => ({
         ...chat,
@@ -166,6 +116,5 @@ export async function listChats(
         createdAt: chat.createdAt.toISOString(),
         lastActivityAt: chat.lastActivityAt?.toISOString() ?? null,
         lastMessage: toChatLastMessage(lastMessageRow),
-        unreadCount: chat.unreadCount + (threadAttentionCounts.get(chat.id) ?? 0),
     }));
 }

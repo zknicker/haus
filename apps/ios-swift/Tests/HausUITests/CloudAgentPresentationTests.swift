@@ -63,6 +63,18 @@ import Testing
         #expect(try !presentation().isStale(at: now))
     }
 
+    @Test func runningElapsedPastAnHourReadsInHoursAndMinutes() throws {
+        let agent = try presentation(status: "running")
+        let start = try #require(agent.work.startedAt)
+        for (minutes, text) in [
+            (59, "Running · 59m"), (60, "Running · 1h"), (119, "Running · 1h 59m"),
+            (27 * 60 + 5, "Running · 27h 5m")
+        ] {
+            #expect(agent.statusText(at: start.addingTimeInterval(Double(minutes * 60))) == text)
+        }
+        #expect(CloudAgentPresentation.duration(seconds: -5) == "0s")
+    }
+
     @Test func cloudUpdateDecodesAndReplaysWithoutBreakingChatStream() throws {
         let json = """
         {"type":"cloud-agent-work.updated","cloudAgentWorkId":"work-1",

@@ -14,7 +14,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     @ViewBuilder let inboxCanvas: (EdgeInsets, @escaping () -> Void) -> InboxCanvas
     let onOpenTasks: () -> Void
     let onOpenInbox: () -> Void
-    private let needsYouCount: Int
+    private let inboxHasUnread: Bool
     private let ghostTempo: HausGhostTempo
     let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
     let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
@@ -80,7 +80,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         @ViewBuilder inboxCanvas: @escaping (EdgeInsets, @escaping () -> Void) -> InboxCanvas,
         onOpenTasks: @escaping () -> Void = {},
         onOpenInbox: @escaping () -> Void = {},
-        needsYouCount: Int = 0,
+        inboxHasUnread: Bool = false,
         ghostTempo: HausGhostTempo = .calm,
         onOpenThread: @escaping (ChatPresentation, MessagePresentation) -> Void = { _, _ in },
         onSend: @escaping (ChatDestination, String, [ComposerAttachment]) async -> Bool,
@@ -117,7 +117,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.inboxCanvas = inboxCanvas
         self.onOpenTasks = onOpenTasks
         self.onOpenInbox = onOpenInbox
-        self.needsYouCount = needsYouCount
+        self.inboxHasUnread = inboxHasUnread
         self.ghostTempo = ghostTempo
         self.onOpenThread = onOpenThread
         self.onSend = onSend
@@ -151,7 +151,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                     onOpenSettings: { openSettings() },
                     onOpenSearch: { activeChatSheet = .search },
                     onOpenInbox: openInboxCanvas,
-                    needsYouCount: needsYouCount,
+                    inboxHasUnread: inboxHasUnread,
                     ghostTempo: ghostTempo,
                     // The sidebar stays mounted behind the canvas, so the mark
                     // would keep repainting on its drift grid for a shut

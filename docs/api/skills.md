@@ -73,3 +73,18 @@ conflict instead of overwriting newer Computer-local content.
 
 Successful mutations emit the ordinary Computer inventory report. App caches
 refresh from that Server event; there is no polling.
+
+## Operator host skill preview
+
+`computer.skillFile` accepts `serverId`, `computerId`, and a reported
+`importableSkills` source id, and returns `{ content }`: that host bundle's
+`SKILL.md`. Only a Server Owner or Admin may call it, and the Computer must be
+attached to that Server.
+
+The Server relays a typed `host-skill-file-request` over the Computer's live
+attachment. The Computer resolves the opaque source id against a fresh scan of
+its own host skill roots — no path crosses the wire — and reads `SKILL.md` up to
+2 MiB. It answers with the content or a typed failure: `not-found` (the source
+is gone; `NOT_FOUND`), `too-large` or `unreadable` (`UNPROCESSABLE_CONTENT`). An
+offline or silent Computer returns `SERVICE_UNAVAILABLE`. Content exists only in
+the live relay; the Server never stores it.

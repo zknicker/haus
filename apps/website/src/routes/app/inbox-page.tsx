@@ -1,10 +1,9 @@
 import { CloudAgentWorkDialog } from '../../features/cloud-agents/cloud-agent-work-dialog.tsx';
 import { InboxActiveAgents } from '../../features/servers/inbox/inbox-active-agents.tsx';
-import { InboxConversations } from '../../features/servers/inbox/inbox-conversations.tsx';
 import { InboxHappeningNow } from '../../features/servers/inbox/inbox-happening-now.tsx';
 import { InboxHeader } from '../../features/servers/inbox/inbox-header.tsx';
-import { InboxNeedsYou } from '../../features/servers/inbox/inbox-needs-you.tsx';
 import { InboxTopbar } from '../../features/servers/inbox/inbox-topbar.tsx';
+import { InboxUnread } from '../../features/servers/inbox/inbox-unread.tsx';
 import { PageColumn } from '../../features/shell/page-column.tsx';
 import { PageTopbar } from '../../features/shell/shell-topbar.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
@@ -15,8 +14,8 @@ import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
  * emit. Each section reads its own query and states its own result.
  *
  * The order is the reading order: who is reading, then the Agents that moved
- * this week, then what is waiting on this person, then the conversation
- * waiting on them, then what is moving without them.
+ * this week, then the conversation waiting on them, then what is moving
+ * without them.
  *
  * The sections stack full width, one per band, in the page column's own
  * rhythm. They were two columns while a row ran three lines deep and a section
@@ -42,8 +41,7 @@ export function InboxPage() {
             <PageColumn>
                 <InboxHeader />
                 <InboxActiveAgents />
-                <InboxNeedsYou />
-                <InboxConversations />
+                <InboxUnread />
                 <InboxHappeningNow />
             </PageColumn>
             <CloudAgentWorkDialog />

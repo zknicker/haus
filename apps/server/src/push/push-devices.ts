@@ -95,22 +95,3 @@ export async function readPushableMembers(
         .where(inArray(pushDevicesTable.userId, [...userIds]));
     return rows.map((row) => row.userId);
 }
-
-/** Every live Server the human currently belongs to, for the badge count. */
-export async function readMemberServerIds(
-    db: Pick<HausDatabase, 'select'>,
-    userId: string
-): Promise<string[]> {
-    const rows = await db
-        .select({ serverId: serverMembershipsTable.serverId })
-        .from(serverMembershipsTable)
-        .innerJoin(serversTable, eq(serversTable.id, serverMembershipsTable.serverId))
-        .where(
-            and(
-                eq(serverMembershipsTable.userId, userId),
-                isNull(serverMembershipsTable.revokedAt),
-                isNull(serversTable.deletedAt)
-            )
-        );
-    return rows.map((row) => row.serverId);
-}

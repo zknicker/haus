@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createWSClient,
     httpBatchLink,
+    httpLink,
     splitLink,
     type TRPCWebSocketClient,
     wsLink,
@@ -155,24 +156,26 @@ function createHausConnection(
         url: socketUrl.toString(),
     });
 
+    const headers = async () => {
+        const token = await getClerkSessionToken();
+        return {
+            [appProtocolHeaders.productVersion]: productVersion,
+            [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
+            ...(token ? { authorization: `Bearer ${token}` } : {}),
+        };
+    };
     return {
         client: hausTrpc.createClient({
             links: [
                 splitLink({
                     condition: (operation) => operation.type === 'subscription',
-                    // Batched: a screen's concurrent queries share one POST, so
-                    // a cold chat open costs one round trip, not five.
-                    false: httpBatchLink({
-                        headers: async () => {
-                            const token = await getClerkSessionToken();
-                            return {
-                                [appProtocolHeaders.productVersion]: productVersion,
-                                [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
-                                ...(token ? { authorization: `Bearer ${token}` } : {}),
-                            };
-                        },
-                        methodOverride: 'POST',
-                        url: httpUrl,
+                    // Batched: a screen's concurrent queries share one POST, so a cold
+                    // chat open costs one round trip. A slow operation
+                    // (`context.skipBatch`) gets its own request so it never holds a batch.
+                    false: splitLink({
+                        condition: (operation) => operation.context.skipBatch === true,
+                        false: httpBatchLink({ headers, methodOverride: 'POST', url: httpUrl }),
+                        true: httpLink({ headers, methodOverride: 'POST', url: httpUrl }),
                     }),
                     true: wsLink({ client: wsClient }),
                 }),

@@ -1,13 +1,13 @@
-import { Label, toast } from '@heroui/react';
+import { Button, Label, Toolbar, toast } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import {
     Activity01Icon,
     BubbleChatIcon,
     Copy01Icon,
     ReplyIcon,
-    SmileIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+import { useState } from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { cn } from '../../../lib/utils.ts';
@@ -36,6 +36,16 @@ export function MessageContextMenu({
     const canReply = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
     const canReplyInline = Boolean(context?.onSelectInlineReply && isThreadAnchorRow(row));
     const canReact = Boolean(context?.onToggleReaction && isThreadAnchorRow(row));
+    const [open, setOpen] = useState(false);
+
+    const react = (emoji: string) => {
+        setOpen(false);
+        context?.onToggleReaction?.({
+            emoji,
+            messageId: row.message.id,
+            remove: hasOwnReaction(row, emoji, context?.viewerUserId),
+        });
+    };
 
     const onAction = (key: React.Key) => {
         if (key === 'copy') {
@@ -54,20 +64,11 @@ export function MessageContextMenu({
         }
         if (key === 'details') {
             messageActions?.onViewTurnDetails();
-            return;
-        }
-        if (typeof key === 'string' && key.startsWith(reactionPrefix)) {
-            const emoji = key.slice(reactionPrefix.length);
-            context?.onToggleReaction?.({
-                emoji,
-                messageId: row.message.id,
-                remove: hasOwnReaction(row, emoji, context?.viewerUserId),
-            });
         }
     };
 
     return (
-        <ContextMenu>
+        <ContextMenu onOpenChange={setOpen} open={open}>
             <ContextMenu.Trigger
                 className={cn('group/message-row relative block min-w-0 rounded-lg', className)}
                 data-message-id={row.message.id}
@@ -76,6 +77,32 @@ export function MessageContextMenu({
                 {children}
             </ContextMenu.Trigger>
             <ContextMenu.Popover>
+                {canReact ? (
+                    <>
+                        <Toolbar
+                            aria-label="Add reaction"
+                            className="justify-between px-2.5 pt-2.5 pb-1.5"
+                        >
+                            {quickReactionEmoji.map((emoji) => (
+                                <Button
+                                    aria-label={`React with ${emoji}`}
+                                    isIconOnly
+                                    key={emoji}
+                                    onPress={() => react(emoji)}
+                                    size="md"
+                                    variant={
+                                        hasOwnReaction(row, emoji, context?.viewerUserId)
+                                            ? 'secondary'
+                                            : 'ghost'
+                                    }
+                                >
+                                    <span className="text-[17px] leading-none">{emoji}</span>
+                                </Button>
+                            ))}
+                        </Toolbar>
+                        <ContextMenu.Separator />
+                    </>
+                ) : null}
                 <ContextMenu.Menu aria-label="Message actions" onAction={onAction}>
                     <ContextMenu.Item id="copy" textValue="Copy message">
                         <Icon aria-hidden="true" icon={Copy01Icon} size={16} />
@@ -97,37 +124,8 @@ export function MessageContextMenu({
                             <Label>View turn details</Label>
                         </ContextMenu.Item>
                     ) : null}
-                    <ContextMenu.SubmenuTrigger>
-                        <ContextMenu.Item
-                            id="reactions"
-                            isDisabled={!canReact}
-                            textValue="Add reaction"
-                        >
-                            <Icon aria-hidden="true" icon={SmileIcon} size={16} />
-                            <Label>Add reaction</Label>
-                            <ContextMenu.SubmenuIndicator />
-                        </ContextMenu.Item>
-                        <ContextMenu.Popover>
-                            <ContextMenu.Menu aria-label="Add reaction" onAction={onAction}>
-                                {quickReactionEmoji.map((emoji) => (
-                                    <ContextMenu.Item
-                                        id={`${reactionPrefix}${emoji}`}
-                                        key={emoji}
-                                        textValue={`React with ${emoji}`}
-                                    >
-                                        <span aria-hidden="true" className="w-4 text-center">
-                                            {emoji}
-                                        </span>
-                                        <Label>React with {emoji}</Label>
-                                    </ContextMenu.Item>
-                                ))}
-                            </ContextMenu.Menu>
-                        </ContextMenu.Popover>
-                    </ContextMenu.SubmenuTrigger>
                 </ContextMenu.Menu>
             </ContextMenu.Popover>
         </ContextMenu>
     );
 }
-
-const reactionPrefix = 'reaction:';

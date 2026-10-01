@@ -55,6 +55,7 @@ test('Computer work precedes reload, including when it fails', () => {
                         phase,
                         reportedTargetVersion: '2.0.0',
                         detail: 'Connection failed',
+                        updateUpdatedAt: new Date().toISOString(),
                     },
                 ],
             }),
@@ -95,6 +96,7 @@ test('all three updates wait for Computer work before offering the desktop resta
         lastConnectedAt: null,
         currentVersion: '1.0.0',
         phase: 'downloading',
+        updateUpdatedAt: new Date().toISOString(),
     } as const;
     const running = withWebsiteUpdate(
         projectHausUpdate({ ...input, desktop, computers: [computer] }),

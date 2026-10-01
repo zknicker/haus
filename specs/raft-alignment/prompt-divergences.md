@@ -32,11 +32,13 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **32,395** characters — a reviewed
+`managed-instructions.test.ts` caps the composed prompt at **32,444** characters — a reviewed
 ratchet, not a runtime limit. History: introduced at 32,500 (2026-08-18), raised to 40,270 by
 2026-09-23, lowered to 32,359 by the 1.0.25 re-baseline, raised by exactly 42 to 32,401 when
-Raft's `task assign` / `task unassign` family entries were restored, and lowered to 32,395 when
-Asks were deleted (ADR 0037). Measured line-by-line against the pinned
+Raft's `task assign` / `task unassign` family entries were restored, lowered to 32,395 when
+Asks were deleted (ADR 0037), ratcheted down to 32,220 by later Haus-only simplifications, and
+raised by exactly 224 to 32,444 when the Formatting section gained the chat-register rule
+(operator decision, 2026-10-01). Measured line-by-line against the pinned
 render, about 18,500 characters of the Haus prompt are Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
@@ -79,11 +81,11 @@ Sections are in Haus's render order.
 | Reading history & references | Parity | — |
 | Tasks | Parity for the claim rule, top-level-only, failed-claim routing, and review-then-done sentence. Haus adds **Keep the conversation together**, same-turn `done`, reversible `closed`, the `TASK_IN_REVIEW_STALE_DAYS` stale close, and points to the `tasks` Manual topic where Raft points to "the Raft Manual" | Deliberate — operator-approved conversation policy; ADR 0015 (`closed`), `apps/server/src/tasks/close-stale-tasks.ts`; covered by `instructions.test.ts` and `product-topics.test.ts` |
 | Splitting tasks | Parity | — |
-| @Mentions | Parity **plus** one Haus-only bullet: to need a human's decision or action, @mention them where the work lives, with one question, a default only if reversible, and what you prepared; their reply wakes you; irreversible acts wait for an explicit yes. Raft keeps this in its `recipes/decision/when-to-ask-human` recipe; Haus lifts it into the prompt because deleting `haus ask` removed the only prompt-taught way to need a human. Haus renders one name, so the display-name bullet interpolates the same value twice | Deliberate — ADR 0037 (replaces the retired Asks family entry, net −6 characters; a later mention-the-asker clause was cut again once an inline reply to a human's message came to reach their Needs you like a mention, 32,393 → 32,281), specs/identity.md; `managed-instructions.test.ts`, `human-ask-reply-wakes` |
+| @Mentions | Parity **plus** one Haus-only bullet: to need a human's decision or action, @mention them where the work lives, with one question, a default only if reversible, and what you prepared; their reply wakes you; irreversible acts wait for an explicit yes. Raft keeps this in its `recipes/decision/when-to-ask-human` recipe; Haus lifts it into the prompt because deleting `haus ask` removed the only prompt-taught way to need a human. Haus renders one name, so the display-name bullet interpolates the same value twice | Deliberate — ADR 0037 (replaces the retired Asks family entry, net −6 characters; a later mention-the-asker clause was cut again once an inline reply to a human's message came to address them like a mention, 32,393 → 32,281), specs/identity.md; `managed-instructions.test.ts`, `human-ask-reply-wakes` |
 | Communication style | Parity | — |
 | Conversation etiquette | Parity **plus** "Silence is deliberate" (step 4 holds in a DM: an explicit FYI gets nothing, a thanks or ack one reaction), "DM knowledge is not room knowledge", and "Welcome new teammates" | Deliberate — specs/inbox.md (silence), specs/sessions.md §"Knowledge and discretion", ADR 0028 (welcome fires on a message, so it cannot live in a Manual topic) |
 | Live constraints | Parity | — |
-| Formatting — Mentions & Channel Refs | Haus drops Raft's `#1` numeric channel form and adds "Haus renders your message as Markdown, GFM tables included." | Deliberate — specs/mentions.md (no numeric refs); Haus App renders GFM (docs/internals/widgets.md) |
+| Formatting — Mentions & Channel Refs | Haus drops Raft's `#1` numeric channel form and adds "Haus renders your message as Markdown, GFM tables included," extended with a chat-register rule: plain sentences, no bold for emphasis or as labels, lists/headings/tables only for genuinely structured content | Deliberate — specs/mentions.md (no numeric refs); Haus App renders GFM (docs/internals/widgets.md); chat register is an operator decision 2026-10-01 (agents overused bold in chat), covered by managed-instructions.test.ts |
 | Workspace & Memory | Parity **plus** the MEMORY.md re-read sentence ("at natural boundaries … including after context compression"; "Your session resets rarely…") and the "Apply remembered preferences" bullet | Deliberate — ADR 0009, ADR 0011 (one long-lived session, so startup-only reads are insufficient); asserted in `managed-instructions.test.ts` and `instructions.test.ts` |
 | What to memorize, compaction safety | Parity | — |
 | Outputs | Haus-only | Deliberate — ADR 0003, ADR 0004, ADR 0010 |

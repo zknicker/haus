@@ -23,6 +23,7 @@ import {
 } from './agent-workspace-files.ts';
 import { idSchema } from './chat.ts';
 import { computerInventoryRefreshRequestSchema } from './computer-inventory-refresh.ts';
+import { hostSkillFileRequestSchema } from './host-skill-file.ts';
 import {
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
@@ -144,11 +145,7 @@ export const reminderScriptCommandSchema = z
 export type ReminderScriptCommand = z.infer<typeof reminderScriptCommandSchema>;
 
 /** Best-effort instruction to erase this Server attachment's Computer-local state. */
-export const serverDeleteCommandSchema = z
-    .object({
-        type: z.literal('server-delete'),
-    })
-    .strict();
+export const serverDeleteCommandSchema = z.object({ type: z.literal('server-delete') }).strict();
 
 export type ServerDeleteCommand = z.infer<typeof serverDeleteCommandSchema>;
 
@@ -186,6 +183,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     coveApplyCommandSchema,
     agentSkillImportCommandSchema,
     agentSkillFileRequestSchema,
+    hostSkillFileRequestSchema,
     agentWorkspaceRequestSchema,
     agentExecutionJournalRequestSchema,
     browserRequestSchema,

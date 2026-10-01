@@ -1,7 +1,7 @@
 import Foundation
 import HausModels
 
-/// The Server side of Needs you pushes: which devices this signed-in human
+/// The Server side of message pushes: which devices this signed-in human
 /// reaches. Neither call is Server-scoped; a device belongs to the account.
 extension HausStore {
     func registerPushDevice(token: String, environment: PushEnvironment) async {

@@ -1,7 +1,6 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     Activity03Icon,
-    Analytics01Icon,
     Chat01Icon,
     CheckListIcon,
     InboxIcon,
@@ -62,8 +61,6 @@ export function getSectionTabIcon(section: AppSection): IconSvgElement {
             return UserCircleIcon;
         case 'settings':
             return Settings01Icon;
-        case 'usage':
-            return Analytics01Icon;
         default:
             return getRouteTabIcon(section);
     }

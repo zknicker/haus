@@ -24,6 +24,8 @@ export async function startServerSweeps(
         db: HausDatabase;
         /** iPhone push; absent when no APNs key is configured. */
         pushSender: PushSender | null;
+        /** How long a push waits for its human to read the message elsewhere; tests shorten it. */
+        pushReadGraceMs?: number;
         timers?: SweepTimers;
     }
 ) {
@@ -33,7 +35,13 @@ export async function startServerSweeps(
         () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
         () => startStaleTaskSweep(input.db, input.clock, input.timers),
         ...(pushSender
-            ? [() => startMessagePush(input.db, pushSender, { appOrigin: input.appOrigin })]
+            ? [
+                  () =>
+                      startMessagePush(input.db, pushSender, {
+                          appOrigin: input.appOrigin,
+                          readGraceMs: input.pushReadGraceMs,
+                      }),
+              ]
             : []),
     ]) {
         await settle(

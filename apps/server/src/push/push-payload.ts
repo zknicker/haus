@@ -1,4 +1,5 @@
 import {
+    type MessageNotificationReason,
     type PushNotificationConversation,
     type PushNotificationPayload,
     pushAlertBodyMaxLength,
@@ -6,20 +7,24 @@ import {
 } from '@haus/api';
 import { absoluteAvatarUrlFor } from '../avatars/avatar-url.ts';
 import { readStoredAuthor } from '../chats/message-shape.ts';
-import { needsYouPreview } from '../needs-you/needs-you-preview.ts';
-import type { NeedsYouChatRow } from '../needs-you/needs-you-query.ts';
+import { messagePreview } from './message-preview.ts';
+import type { PushMessage } from './push-message.ts';
 
 /**
- * The iPhone alert for a Needs you row's newest message: the author (and the
- * Channel, outside a DM) as the title, the same plain-text preview the Inbox
- * shows as the body, the sender and conversation the Notification Service
+ * The iPhone alert for a new message: the author (and the Channel, outside a
+ * DM) as the title, a plain-text preview as the body, the sender and conversation the Notification Service
  * extension renders as a Communication Notification, and the ids a tap routes
  * by. Returns null when the author or Channel name cannot be resolved, rather
  * than inventing either.
  */
 export function buildPushPayload(
-    row: NeedsYouChatRow,
-    input: { appOrigin: string; badge: number | null; serverId: string }
+    row: PushMessage,
+    input: {
+        appOrigin: string;
+        badge: number | null;
+        reason: MessageNotificationReason;
+        serverId: string;
+    }
 ): PushNotificationPayload | null {
     const author = readStoredAuthor(row);
     const conversation = readConversation(row);
@@ -30,7 +35,7 @@ export function buildPushPayload(
     const title = conversation.kind === 'channel' ? `${name} in #${conversation.name}` : name;
     return {
         aps: {
-            alert: { body: needsYouPreview(row.content, pushAlertBodyMaxLength), title },
+            alert: { body: messagePreview(row.content, pushAlertBodyMaxLength), title },
             ...(input.badge === null ? {} : { badge: input.badge }),
             'mutable-content': 1,
             sound: 'default',
@@ -40,7 +45,7 @@ export function buildPushPayload(
         conversation,
         conversationChatId: row.conversationChatId,
         messageId: row.messageId,
-        reason: row.reason,
+        reason: input.reason,
         sender: {
             avatarUrl: absoluteAvatarUrlFor(author.avatarId, input.appOrigin),
             id: author.id,
@@ -52,7 +57,7 @@ export function buildPushPayload(
     };
 }
 
-function readConversation(row: NeedsYouChatRow): PushNotificationConversation | null {
+function readConversation(row: PushMessage): PushNotificationConversation | null {
     if (row.conversationKind === 'dm') {
         return { kind: 'dm', name: null };
     }

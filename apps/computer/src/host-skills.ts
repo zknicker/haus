@@ -17,7 +17,7 @@ export {
     listAgentSkillImportReports,
 } from './host-skill-import-store.ts';
 
-interface HostSkillSource extends ImportableSkill {
+export interface HostSkillSource extends ImportableSkill {
     directory: string;
 }
 
@@ -59,9 +59,7 @@ export async function importHostSkill(input: {
     serverId: string;
     sourceId: string;
 }): Promise<AgentSkillMetadata> {
-    const source = (await scanHostSkills(input.roots ?? defaultImportRoots())).find(
-        (candidate) => candidate.id === input.sourceId
-    );
+    const source = await findHostSkillSource(input.sourceId, input.roots);
     if (!source) {
         throw new Error('That host skill is no longer available.');
     }
@@ -92,6 +90,14 @@ export async function importHostSkill(input: {
         throw new Error('The imported skill could not be verified.');
     }
     return metadata;
+}
+
+/** Resolves an opaque reported source id against a fresh scan of the host roots. */
+export async function findHostSkillSource(
+    sourceId: string,
+    roots = defaultImportRoots()
+): Promise<HostSkillSource | null> {
+    return (await scanHostSkills(roots)).find((candidate) => candidate.id === sourceId) ?? null;
 }
 
 async function scanHostSkills(roots: string[]): Promise<HostSkillSource[]> {

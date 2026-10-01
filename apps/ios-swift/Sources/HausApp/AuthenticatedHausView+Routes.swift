@@ -22,17 +22,15 @@ extension AuthenticatedHausView {
         InboxPageView(
             greetingName: store.inboxGreetingName,
             agentWeeks: store.inboxAgentWeeks(),
-            needsYou: store.inboxNeedsYouRows,
-            conversations: store.inboxConversationRows,
+            unread: store.inboxUnreadRows,
             cloudAgentWork: store.activeCloudAgentWork,
             workingAgents: store.inboxWorkingAgents,
             resolveActor: { agentID, userID in
                 store.actorPresentation(agentID: agentID, userID: userID)
             },
             onOpen: openInboxRequest,
-            onDone: { chatID in
-                guard let row = store.needsYouRows?.first(where: { $0.chatID == chatID }) else { return }
-                Task { await store.markNeedsYouDone(row) }
+            onMarkRead: { chatID in
+                Task { await store.markChatRead(chatID: chatID) }
             },
             onRefresh: { await store.loadInbox() },
             onOpenSidebar: onOpenSidebar,
@@ -50,20 +48,13 @@ extension AuthenticatedHausView {
 
     /// A row states a record and opens it where that record is fully readable.
     ///
-    /// A Needs you Thread row and a Cloud Agent work both open the Thread they
-    /// hang off, which is the same pair a Thread composer sends to: the
-    /// conversation's Chat and the anchor Message. A top-level Needs you row
-    /// opens its DM or Channel, where the reply that clears it is written.
+    /// An Unread row opens its DM or Channel. A Cloud Agent work opens the
+    /// Thread it hangs off, which is the same pair a Thread composer sends to:
+    /// the conversation's Chat and the anchor Message.
     func openInboxRequest(_ request: InboxOpenRequest) {
         switch request {
         case .agent(let agentID):
             openAgentDM(agentID)
-        case .needsYouThread(let chatID):
-            guard let row = store.needsYouRows?.first(where: { $0.chatID == chatID }) else { return }
-            Task {
-                guard let selection = await store.threadSelection(needsYou: row) else { return }
-                pushConversationThread(selection)
-            }
         case .chat(let chatID):
             openCanvasChat(.chat(chatID))
         case .cloudAgentWork(let messageID):
@@ -79,8 +70,8 @@ extension AuthenticatedHausView {
         }
     }
 
-    /// A tapped notification opens what its Needs you row would: a DM or
-    /// Channel on the canvas, or its Thread pushed over whatever is showing.
+    /// A tapped notification opens the conversation it names: a DM or Channel
+    /// on the canvas, or its Thread pushed over whatever is showing.
     /// A push for another Server opens nothing — this app shows one Server.
     func openPushNotification(_ payload: PushNotificationPayload) async {
         guard payload.serverID == store.activeServer?.id else {

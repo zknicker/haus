@@ -133,17 +133,10 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
-                                                    path: 'usage',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.usage,
-                                                        'UsagePage'
-                                                    ),
-                                                },
-                                                {
                                                     // An Agent is a first-class
                                                     // record, so its page lives
-                                                    // beside Usage rather than
-                                                    // inside the settings rail.
+                                                    // in the Server layout rather
+                                                    // than inside the settings rail.
                                                     path: 'agents/:agentId',
                                                     element: <Navigate replace to="home" />,
                                                 },

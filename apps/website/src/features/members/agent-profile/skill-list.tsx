@@ -3,7 +3,7 @@ import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { PickerPopover } from '../../agents/picker-popover.tsx';
-import { SkillGlyph } from '../../skills/skill-glyph.tsx';
+import { SkillMark } from '../../skills/skill-mark.tsx';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
 
 /** Agent skill library: the Agent's own SKILL.md copies plus in-flight imports. */
@@ -62,7 +62,7 @@ export function SkillList({
                             {index > 0 ? <Separator /> : null}
                             <ItemCard>
                                 <ItemCard.Icon>
-                                    <SkillGlyph name={skill.name} />
+                                    <SkillMark name={skill.name} />
                                 </ItemCard.Icon>
                                 <ItemCard.Content>
                                     {/* The pretty name everywhere a human reads it —

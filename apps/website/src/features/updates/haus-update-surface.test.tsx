@@ -5,7 +5,7 @@ import {
     UpdateTooltipContent,
 } from './haus-status-tooltip-content.tsx';
 import { updateDonutSegments } from './haus-update-donut.tsx';
-import { HausUpdateFooter } from './haus-update-footer.tsx';
+import { donutSteps, HausUpdateFooter } from './haus-update-footer.tsx';
 import type {
     HausReleaseSnapshot,
     HausUpdateComputer,
@@ -123,6 +123,22 @@ describe('Haus update surfaces', () => {
         expect(html.match(/stroke-dasharray=/gu)).toHaveLength(2);
     });
 
+    test('draws only the pressed batch, then only live active steps once it settles', () => {
+        const view = updateView({
+            computers: [
+                computer({ id: 'cmp_home', phase: 'downloading' }),
+                computer({ health: 'offline', id: 'cmp_away', phase: 'idle' }),
+                computer({ currentVersion: '1.4.9', id: 'cmp_done', phase: 'idle' }),
+            ],
+        });
+
+        expect(donutSteps(view.steps, ['cmp_home', 'cmp_done']).map((step) => step.id)).toEqual([
+            'cmp_done',
+            'cmp_home',
+        ]);
+        expect(donutSteps(view.steps, null).map((step) => step.id)).toEqual(['cmp_home']);
+    });
+
     test('shows desktop App download progress in the update tooltip', () => {
         const tooltip = renderToStaticMarkup(
             <UpdateTooltipContent
@@ -219,6 +235,7 @@ function computer(overrides: Partial<HausUpdateComputer>): HausUpdateComputer {
         name: "Zach's MacBook Pro",
         phase: 'available',
         reportedTargetVersion: '1.4.9',
+        updateUpdatedAt: new Date().toISOString(),
         ...overrides,
     };
 }

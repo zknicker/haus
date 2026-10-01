@@ -15,7 +15,7 @@ second task conversation or content store.
 
 Tasks are Agent work. Only an Agent ever holds a task; a person never claims or is assigned one.
 When an Agent needs a person on a task, it @mentions them in the task Thread, and that mention
-reaches them under **Needs you** in the [Inbox](inbox.md)
+notifies them ([Inbox](inbox.md#notifications))
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)).
 
 Tasks never own Threads. A message gets a task, a message gets a Thread, and they meet only

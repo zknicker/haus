@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentCommand, AgentExecutionJournalResult, SignedComputerRelease } from '@haus/api';
+import type { AgentCommand, SignedComputerRelease } from '@haus/api';
 import { registerTestConnections } from './test-computer-connections.ts';
 
 const computerId = 'cmp_1234567890123456';
@@ -42,6 +42,28 @@ test('update-required permits signed update control but rejects ordinary work', 
     expect(connections.send(computerId, start)).toBe(false);
     expect(connections.sendUpdate(computerId, release)).toBe(true);
     expect(frames).toEqual([{ release, type: 'update' }]);
+});
+test('an attachment whose socket can no longer send is not attached', () => {
+    const frames: unknown[] = [];
+    let open = true;
+    const connections = makeConnections();
+    connections.register(computerId, {
+        isOpen: () => open,
+        ordinary: true,
+        send: (frame) => frames.push(frame),
+        serverId: 'srv_1234567890123456',
+        updatePhase: 'idle',
+    });
+    expect(connections.hasAttachment(computerId)).toBe(true);
+
+    open = false;
+
+    expect(connections.hasAttachment(computerId)).toBe(false);
+    expect(connections.isOnline(computerId)).toBe(false);
+    expect(connections.send(computerId, start)).toBe(false);
+    expect(connections.send(computerId, stop)).toBe(false);
+    expect(connections.sendUpdate(computerId, release)).toBe(false);
+    expect(frames).toEqual([]);
 });
 test('waiting for Agents closes admission until reconnect completes', () => {
     const frames: unknown[] = [];
@@ -248,82 +270,4 @@ test('Browser relay accepts a response only from the requested Computer', async 
         })
     ).toBe(true);
     expect(await pending).toEqual(result);
-});
-
-test('execution journal relay is paired to the assigned Computer, Agent, and run', async () => {
-    const frames: Record<string, unknown>[] = [];
-    const connections = makeConnections();
-    connections.register(computerId, {
-        ordinary: true,
-        send: (frame) => frames.push(frame as Record<string, unknown>),
-        serverId: 'srv_1234567890123456',
-        updatePhase: 'idle',
-    });
-
-    const pending = connections.requestExecutionJournal(computerId, {
-        agentId: start.agentId,
-        runId: start.runId,
-        serverId: 'srv_1234567890123456',
-    });
-    const requestId = String(frames[0]?.requestId);
-    expect(frames[0]).toEqual({
-        agentId: start.agentId,
-        requestId,
-        runId: start.runId,
-        type: 'agent-execution-journal-request',
-    });
-    const available: AgentExecutionJournalResult = {
-        agentId: start.agentId,
-        journal: {
-            runId: start.runId,
-            startedAt: '2026-08-11T00:00:00.000Z',
-            status: 'completed',
-            tools: [],
-        },
-        requestId,
-        runId: start.runId,
-        status: 'available',
-        type: 'agent-execution-journal-result',
-    };
-    expect(connections.acceptExecutionJournalResult('cmp_0000000000000000', available)).toBe(false);
-    expect(
-        connections.acceptExecutionJournalResult(computerId, {
-            ...available,
-            agentId: 'agt_0000000000000000',
-        })
-    ).toBe(false);
-    expect(connections.acceptExecutionJournalResult(computerId, available)).toBe(true);
-    expect(await pending).toEqual(available);
-});
-test('execution journal detail is explicitly unavailable when its Computer is offline', async () => {
-    const connections = makeConnections();
-    await expect(
-        connections.requestExecutionJournal('cmp_missing', {
-            agentId: start.agentId,
-            runId: start.runId,
-            serverId: 'srv_1234567890123456',
-        })
-    ).resolves.toMatchObject({
-        reason: 'offline',
-        runId: start.runId,
-        status: 'unavailable',
-    });
-});
-
-test('execution journal relay refuses a Computer attached to another Server', async () => {
-    const connections = makeConnections();
-    connections.register(computerId, {
-        ordinary: true,
-        send: () => undefined,
-        serverId: 'srv_1234567890123456',
-        updatePhase: 'idle',
-    });
-
-    await expect(
-        connections.requestExecutionJournal(computerId, {
-            agentId: start.agentId,
-            runId: start.runId,
-            serverId: 'srv_other123456789012',
-        })
-    ).resolves.toMatchObject({ reason: 'offline', status: 'unavailable' });
 });

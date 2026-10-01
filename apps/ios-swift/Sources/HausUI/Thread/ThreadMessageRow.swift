@@ -14,6 +14,8 @@ struct ThreadMessageRow: View {
     var onOpenAgent: (String) -> Void = { _ in }
     var onCancelCloudAgent: ((String) async throws -> Void)?
     var reactionBoard: ReactionStickerBoard?
+    /// Held under a finger, or the target of the open action drawer.
+    var isPressed = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -87,5 +89,6 @@ struct ThreadMessageRow: View {
             emphasized ? HausPlatformColor.inputSurface : .clear,
             in: .rect(cornerRadius: emphasized ? 16 : 0)
         )
+        .messageRowTint(isPressed: isPressed, card: emphasized)
     }
 }

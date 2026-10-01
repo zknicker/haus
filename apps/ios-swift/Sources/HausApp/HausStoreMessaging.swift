@@ -202,10 +202,12 @@ extension HausStore {
     }
 
     func reloadChats(serverID: String) async throws {
+        async let iconBadge: Void = refreshIconBadge()
         let refreshed: [ChatSummary] = try await client.query(
             "chat.list",
             input: ServerScopedInput(serverId: serverID)
         )
+        await iconBadge
         guard activeServer?.id == serverID else { return }
         // Events, sends, and reads all land here, and most of those reads come
         // back byte-identical. A freshly decoded equal value is still a write

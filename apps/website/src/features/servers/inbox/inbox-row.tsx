@@ -43,7 +43,7 @@ export function InboxRow({
 }
 
 /**
- * An Inbox row that carries one action of its own — Done on a Needs you row.
+ * An Inbox row that carries one action of its own — Mark read on an Unread row.
  *
  * The card cannot be the button here, because a button may not hold another
  * interactive element. So the card stays a plain `ItemCard`, and the press
@@ -51,24 +51,32 @@ export function InboxRow({
  * on the card, takes the tab stop, and carries the row's name. The action
  * sits above that button in `ItemCard.Action`, beside the press target rather
  * than inside it.
+ *
+ * The trailing cluster reads meta · action · badge, so the badge holds the
+ * right edge of every row in the column. The action is quiet until the row is
+ * hovered or holds focus, and keeps its box while hidden so nothing shifts
+ * when it appears; a touch pointer has no hover, so there it always shows.
  */
 export function InboxActionRow({
     action,
+    badge,
     children,
     label,
     meta,
     onOpen,
 }: {
-    /** The one control the row carries, at the trailing edge. */
+    /** The one control the row carries, revealed on hover or focus. */
     action: ReactNode;
+    /** The right-most fact — an unread count — which the action never moves. */
+    badge: ReactNode;
     children: ReactNode;
     label: string;
-    /** The trailing cluster `InboxRowMeta` carries on a plain row. */
+    /** The trailing facts `InboxRowMeta` carries on a plain row. */
     meta: ReactNode;
     onOpen: () => void;
 }) {
     return (
-        <ItemCard className="item-card--inbox relative w-full overflow-hidden">
+        <ItemCard className="item-card--inbox group/inbox-row relative w-full overflow-hidden">
             <PressableFeedback.Highlight />
             <button
                 aria-label={label}
@@ -81,7 +89,10 @@ export function InboxActionRow({
                 <span className="flex items-center gap-2 text-muted text-xs">
                     {meta}
                     {/* Positioned, so it paints above the stretched button. */}
-                    <span className="relative flex items-center">{action}</span>
+                    <span className="relative flex items-center opacity-0 pointer-coarse:opacity-100 transition-opacity group-focus-within/inbox-row:opacity-100 group-hover/inbox-row:opacity-100 motion-reduce:transition-none">
+                        {action}
+                    </span>
+                    {badge}
                 </span>
             </ItemCard.Action>
         </ItemCard>

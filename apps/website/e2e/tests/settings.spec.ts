@@ -84,7 +84,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
     const personal = page.getByRole('treegrid', { name: 'Preferences', exact: true });
     const shared = page.getByRole('treegrid', { name: 'Server', exact: true });
     // Personal: Profile, Preferences, Servers. Server: the five pages that
-    // configure it, then Usage and Archived chats as link-outs.
+    // configure it, Usage, then Archived chats as a link-out.
     await expect(personal.getByRole('row')).toHaveCount(3);
     await expect(shared.getByRole('row')).toHaveCount(7);
     await expect(personal.getByRole('row', { name: 'Servers', exact: true })).toBeVisible();
@@ -99,6 +99,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
         'Connections',
         'Models',
         'Skills',
+        'Usage',
     ]) {
         await page.getByRole('row', { exact: true, name: label }).click();
         await expect(
@@ -123,15 +124,16 @@ test('settings navigation names the page and reaches Server deletion', async ({
 });
 
 /**
- * Usage is a dashboard and Archived chats is a chat list. The Server group is
- * their way in now that the sidebar's Server menu is gone, so each row has to
- * leave Settings rather than render a settings page.
+ * Usage is a settings page, so the rail stays while you read it. Archived chats
+ * is a chat list with its own route, so that row leaves Settings.
  */
-test('the Server group links out to Usage and Archived chats', async ({ page }) => {
+test('Usage keeps the settings rail and Archived chats links out', async ({ page }) => {
     await signInAsClerkHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
     await page.getByRole('row', { exact: true, name: 'Usage' }).click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/usage$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/usage$`, 'u'));
+    await expect(page.getByRole('heading', { exact: true, level: 1, name: 'Usage' })).toBeVisible();
+    await expect(page.getByRole('treegrid', { name: 'Server', exact: true })).toBeVisible();
 
     await page.goto(`/s/${slug}/settings/profile`);
     await page.getByRole('row', { exact: true, name: 'Archived chats' }).click();
@@ -173,10 +175,13 @@ test('reports current Computer models and skills in Server Settings', async ({ p
     await expect(page.getByText('gpt-5.6-terra', { exact: true })).toBeVisible();
 
     await page.goto(`/s/${slug}/settings/skills`);
-    const skills = page.getByRole('treegrid', { name: 'Skills' });
-    await expect(skills.getByRole('row', { exact: true, name: 'durable-testing' })).toBeVisible();
-    await expect(page.getByRole('heading', { level: 2, name: 'Durable Testing' })).toBeVisible();
-    await expect(page.getByText('E2E fixture', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /Durable Testing/u }).click();
+    const skill = page.getByRole('dialog', { name: /Durable Testing/u });
+    await expect(skill.getByRole('heading', { name: /Durable Testing/u })).toBeVisible();
+    // Where the skill lives sits behind the dialog's collapsed Details.
+    await skill.getByRole('button', { name: 'Details' }).click();
+    await expect(skill.getByText('E2E fixture', { exact: true })).toBeVisible();
+    await expect(skill.getByText('Settings Computer', { exact: true })).toBeVisible();
 });
 
 test('creates and deletes a custom Server MCP connection', async ({ page }) => {
@@ -192,7 +197,7 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     await page.getByRole('option', { name: 'OAuth' }).click();
     await drawer.getByRole('button', { name: 'Add MCP' }).click();
 
-    // The Added list renders each connection as a card button, not a row.
+    // The Added grid renders each connection as a card button, not a row.
     const connection = page.getByRole('button', { name: new RegExp(name, 'u') });
     await expect(connection).toBeVisible();
     await connection.click();
@@ -211,8 +216,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     const recommendation = (description: string) =>
         page.locator('.item-card').filter({ hasText: description });
     const merchbase = recommendation('Query the MerchBase product catalog, designs, and sales.');
-    const calendar = recommendation('Read and schedule events on your Google calendars.');
-    await merchbase.getByRole('button', { exact: true, name: 'Add MCP' }).click();
+    await merchbase.getByRole('button', { exact: true, name: 'Add MerchBase' }).click();
     await expect(merchbase).toHaveCount(0);
     const connection = page.getByRole('button', { name: /MerchBase Built in/u });
     await expect(connection).toBeVisible();
@@ -220,8 +224,13 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await page.reload();
     await expect(connection).toBeVisible();
     await expect(merchbase).toHaveCount(0);
-    await calendar.getByRole('button', { exact: true, name: 'Add MCP' }).click();
-    await expect(calendar).toHaveCount(0);
+    // Drain whatever presets remain so adding a new one never breaks this test;
+    // the Recommended heading leaves with the last card.
+    const addPreset = page.locator('.item-card').getByRole('button', { name: /^Add /u });
+    for (let remaining = await addPreset.count(); remaining > 0; remaining -= 1) {
+        await addPreset.first().click();
+        await expect(addPreset).toHaveCount(remaining - 1);
+    }
     await expect(page.getByText('Recommended', { exact: true })).toHaveCount(0);
 
     await connection.click();
@@ -257,8 +266,12 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await detail.getByRole('button', { exact: true, name: 'Remove' }).click();
     await confirmation.getByRole('button', { exact: true, name: 'Remove' }).click();
     await expect(connection).toHaveCount(0);
-    await expect(merchbase.getByRole('button', { exact: true, name: 'Add MCP' })).toBeVisible();
+    await expect(
+        merchbase.getByRole('button', { exact: true, name: 'Add MerchBase' })
+    ).toBeVisible();
     await page.reload();
-    await expect(merchbase.getByRole('button', { exact: true, name: 'Add MCP' })).toBeVisible();
+    await expect(
+        merchbase.getByRole('button', { exact: true, name: 'Add MerchBase' })
+    ).toBeVisible();
     await expect(connection).toHaveCount(0);
 });

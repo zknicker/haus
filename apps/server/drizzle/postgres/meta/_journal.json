@@ -379,6 +379,13 @@
       "when": 1790706207750,
       "tag": "0053_push_devices",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790868844655,
+      "tag": "0054_drop_chat_reads_done_sequence",
+      "breakpoints": true
     }
   ]
 }

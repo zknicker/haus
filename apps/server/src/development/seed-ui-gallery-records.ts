@@ -94,7 +94,7 @@ export async function galleryTask(
 /**
  * An Agent asking the gallery's human by @mention (ADR 0037). An answered one
  * carries the human's reply in the Thread on it (or in the same Thread when it
- * is already inside one), which clears it from Needs you.
+ * is already inside one).
  */
 export async function galleryMention(
     db: HausDatabase,

@@ -19,11 +19,16 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { AgentReplyOffice } from './agent-reply-office.ts';
 import { BrowserReplyOffice } from './browser-reply-office.ts';
 import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
+import { HostSkillFileReplies } from './host-skill-file-replies.ts';
 import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
 
 interface AttachedComputer {
     disconnect?(reason: string): void;
+    /** Whether the transport can still carry a frame; absent means always (in-process transports). */
+    isOpen?(): boolean;
     ordinary: boolean;
+    /** Confirms the transport answers now; absent means always (in-process transports). */
+    probe?(): Promise<boolean>;
     send(frame: unknown): void;
     serverId: string;
     updatePhase: ComputerUpdatePhase;
@@ -37,6 +42,7 @@ interface AttachedComputer {
  * hands a typed frame here to send.
  */
 export class ComputerConnections implements DeliveryTransport {
+    readonly hostSkillFiles: HostSkillFileReplies;
     readonly inventoryRefresh: InventoryRefreshReplies;
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly agentReplies: AgentReplyOffice;
@@ -44,6 +50,10 @@ export class ComputerConnections implements DeliveryTransport {
     private readonly cloudAgentCapabilityReplies: CloudAgentCapabilityReplyOffice;
 
     constructor(runtime: EffectRuntime<never>) {
+        this.hostSkillFiles = new HostSkillFileReplies({
+            runtime,
+            send: (computerId, frame) => this.send(computerId, frame),
+        });
         this.inventoryRefresh = new InventoryRefreshReplies({
             runtime,
             send: (computerId, frame) => this.send(computerId, frame),
@@ -67,6 +77,7 @@ export class ComputerConnections implements DeliveryTransport {
     }
 
     unregister(computerId: string): void {
+        this.hostSkillFiles.disconnect(computerId);
         this.inventoryRefresh.disconnect(computerId);
         this.attached.delete(computerId);
         this.agentReplies.disconnect(computerId);
@@ -90,15 +101,28 @@ export class ComputerConnections implements DeliveryTransport {
     }
 
     isOnline(computerId: string): boolean {
-        const computer = this.attached.get(computerId);
+        const computer = this.live(computerId);
         return Boolean(
             computer?.ordinary &&
                 !['waiting-for-agents', 'installing', 'restarting'].includes(computer.updatePhase)
         );
     }
 
+    /** A registered attachment whose socket can no longer send is not attached. */
     hasAttachment(computerId: string): boolean {
-        return this.attached.has(computerId);
+        return this.live(computerId) !== null;
+    }
+
+    /**
+     * Verifies the attachment answers right now. An unanswered probe reaps the
+     * socket, so presence afterwards reads offline.
+     */
+    async probe(computerId: string): Promise<boolean> {
+        const computer = this.live(computerId);
+        if (!computer) {
+            return false;
+        }
+        return (await computer.probe?.()) ?? true;
     }
 
     /** Sends cleanup to every online Computer for a Server, then disconnects it without waiting. */
@@ -126,7 +150,7 @@ export class ComputerConnections implements DeliveryTransport {
 
     /** Sends a typed frame to the Computer, reporting whether it was online. */
     send(computerId: string, frame: AgentCommand): boolean {
-        const computer = this.attached.get(computerId);
+        const computer = this.live(computerId);
         if (!(computer?.ordinary && (frame.type === 'stop' || this.isOnline(computerId)))) {
             return false;
         }
@@ -241,11 +265,19 @@ export class ComputerConnections implements DeliveryTransport {
     }
 
     sendUpdate(computerId: string, release: SignedComputerRelease): boolean {
-        const computer = this.attached.get(computerId);
+        const computer = this.live(computerId);
         if (!computer) {
             return false;
         }
         computer.send({ release, type: 'update' });
         return true;
+    }
+
+    private live(computerId: string): AttachedComputer | null {
+        const computer = this.attached.get(computerId);
+        if (!computer || computer.isOpen?.() === false) {
+            return null;
+        }
+        return computer;
     }
 }

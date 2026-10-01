@@ -55,34 +55,32 @@ describe('transcript edge blur contract', () => {
         expect(themeCss).not.toContain('data-scrollable~="end"');
     });
 
-    test('the blur is soft and strongest only right at each edge', () => {
+    test('the blur is a trace; the eased fade does the hiding', () => {
         const band = base();
-        expect(band).toContain('--edge-blur: 2.5px;');
-        expect(band).toContain('--edge-blur-stop: 10%;');
+        expect(band).toContain('--edge-blur: 1px;');
         expect(band).toContain('backdrop-filter: blur(var(--edge-blur));');
+        expect(band).toContain(
+            'rgb(0 0 0 / 0.65) calc(var(--edge-solid) + var(--edge-ramp) * 0.4)'
+        );
     });
 
     test('each element carries its blur, fade mask, and wash together', () => {
         // A masked backdrop-filter on an element that paints nothing itself was
         // drawn unmasked by Electron's compositor: every band that is blurred
         // also paints its wash and masks itself, on the same element.
-        expect(side('top')).toContain(
-            'mask-image: linear-gradient(to bottom, #000 var(--edge-blur-stop), transparent);'
-        );
-        expect(side('top')).toContain(
-            'background-image: linear-gradient(to bottom, var(--color-background), transparent);'
-        );
-        expect(side('bottom')).toContain(
-            'mask-image: linear-gradient(to top, #000 var(--edge-blur-stop), transparent);'
-        );
-        expect(side('bottom')).toContain(
-            'background-image: linear-gradient(to top, var(--color-background), transparent);'
-        );
+        const band = base();
+        expect(band).toContain('background-color: var(--color-background);');
+        expect(band).toContain('mask-image: var(--edge-fade);');
+        expect(side('top')).toContain('--edge-fade-direction: to bottom;');
+        expect(side('bottom')).toContain('--edge-fade-direction: to top;');
         expect(themeCss).not.toContain('.transcript-edge-blur__');
     });
 
     test('the bottom band covers the floating composer and stays under its dock', () => {
-        expect(side('bottom')).toContain('var(--chat-footer-height, 0px)');
+        // Solid from the bottom into the prompt input: no row may show beneath it.
+        expect(side('bottom')).toContain(
+            '--edge-solid: max(0px, calc(var(--chat-footer-height, 0px) - 3rem));'
+        );
         const zIndex = (rule: string) => Number(/z-index: (\d+);/u.exec(rule)?.[1]);
         expect(zIndex(base())).toBeLessThan(zIndex(ruleBody(chatCss, '.chat-footer-dock')));
     });

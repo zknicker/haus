@@ -1,100 +1,103 @@
 import SwiftUI
 
-/// One Inbox row, exactly one line tall, in the email-inbox grammar the App's
-/// own rows use: a 32pt leading mark, the title that keeps its own width, the
-/// muted preview that gives way first, and a trailing cluster that never
-/// shrinks.
+/// One Inbox row in the Messages conversation-row grammar, shared by Unread and
+/// Happening now so the two sections read as one list: a large leading mark,
+/// the title with its perishable fact trailing on the first line (an age, a
+/// status), and the context below it in secondary.
 ///
-/// The preview is optional because not every row has a second fact worth the
-/// width. Without one the title takes the whole middle and truncates at its own
-/// tail.
+/// Exactly two lines, each capped at one, so every row in both sections is the
+/// same height at a given text size: the list reads as one column, not a stack
+/// of differently sized cards. The height is deliberate too: an Unread row's
+/// leading swipe reveals the system's icon-only circle, which only reads as
+/// Messages' when the row is tall enough to center it with room around it.
 ///
-/// The whole row is the press target. The one control an Inbox row may carry —
-/// a Needs you row's Done — sits beside it rather than inside it.
-struct InboxRowView<Trailing: View>: View {
+/// The whole row is the press target and carries no nested control.
+struct InboxRowView: View {
     let mark: InboxMark
     let title: String
-    let preview: String?
+    let trailing: String?
+    let detail: String
     let onOpen: () -> Void
-    @ViewBuilder var trailing: Trailing
 
     var body: some View {
         Button(action: onOpen) {
-            HStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
                 InboxMarkView(mark: mark)
 
-                HStack(spacing: 6) {
-                    // The title is what the eye scans, so it takes the width it
-                    // needs first and a short one leaves the rest to the
-                    // preview. What stops a long one from taking the whole line
-                    // is the preview's own floor below — the phone's read of the
-                    // App's 40% title cap, stated from the other side so the
-                    // preview always starts right after the title.
-                    Text(title)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .layoutPriority(1)
-                    if let preview {
-                        Text(preview)
-                            .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(title)
+                            .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                            .frame(
-                                minWidth: InboxMetrics.previewFloor,
-                                maxWidth: .infinity,
-                                alignment: .leading
-                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        if let trailing {
+                            Text(trailing)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .monospacedDigit()
+                                .layoutPriority(1)
+                        }
                     }
+                    Text(detail)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                trailing
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .layoutPriority(2)
             }
-            .font(.subheadline)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, InboxMetrics.rowInset)
-            .padding(.vertical, 11)
+            .padding(.vertical, InboxMetrics.rowVerticalPadding)
             .contentShape(Rectangle())
         }
         .buttonStyle(.pressableRow(cornerRadius: InboxMetrics.boxRadius))
         .accessibilityLabel(title)
-    }
-}
-
-extension InboxRowView where Trailing == EmptyView {
-    init(mark: InboxMark, title: String, preview: String?, onOpen: @escaping () -> Void) {
-        self.init(mark: mark, title: title, preview: preview, onOpen: onOpen) { EmptyView() }
+        .accessibilityValue([trailing, detail].compactMap { $0 }.joined(separator: ", "))
     }
 }
 
 /// One identity grammar for every Inbox row: an Agent's own face, a Channel's
-/// icon box, or a Cloud Agent provider glyph in the same mark column.
+/// icon box, or a Cloud Agent provider glyph boxed the way a Channel is, so
+/// every mark in the column has the same footprint.
 struct InboxMarkView: View {
     let mark: InboxMark
+    var size: CGFloat = InboxMetrics.markSize
+
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         switch mark {
         case .identity(let name, let avatarURL, let presence):
-            AvatarView(name: name, url: avatarURL, presence: presence, size: inboxMarkSize)
+            AvatarView(name: name, url: avatarURL, presence: presence, size: size)
         case .channel(let appearance):
-            ChannelIconBox(appearance: appearance, size: inboxMarkSize)
+            ChannelIconBox(appearance: appearance, size: size)
         case .cloudAgent:
-            CloudAgentMark(size: inboxMarkSize, style: .glyph)
+            CloudAgentMark(size: size * 0.5, style: .glyph)
+                .frame(width: size, height: size)
+                .background(
+                    ChannelIconBox.mutedFill(colorScheme),
+                    in: RoundedRectangle(
+                        cornerRadius: ChannelIconBox.cornerRadius(for: size),
+                        style: .continuous
+                    )
+                )
         }
     }
 }
 
-/// One left edge for every line on the page: the greeting, the section labels,
-/// and each row's mark all start here.
+/// The Inbox's own metrics inside the List's inset column: each row's mark and
+/// the greeting start `rowInset` inside the column's edge.
 enum InboxMetrics {
-    static let pageInset: CGFloat = 20
+    /// The gap between sections, which the List owns as its section spacing.
+    static let sectionSpacing: CGFloat = 22
     static let rowInset: CGFloat = 14
+    /// Messages-like breathing room above and below a row's two lines.
+    static let rowVerticalPadding: CGFloat = 12
     static let boxRadius: CGFloat = 14
-    /// The width a preview keeps whatever the title does. It is the App's 40%
-    /// title cap read from the other side: a long title truncates once the
-    /// preview would drop below this, so no row is a title alone.
-    static let previewFloor: CGFloat = 64
+    /// Messages' conversation avatar on a phone. A boxed mark derives its
+    /// corner from this size, so the rounded square keeps its shape.
+    static let markSize: CGFloat = 44
 }

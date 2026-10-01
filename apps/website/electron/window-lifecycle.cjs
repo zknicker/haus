@@ -13,7 +13,7 @@ function markQuitting() {
 
 /**
  * macOS keeps Haus running when its last window closes: that window hides
- * instead, so its renderer stays connected and keeps raising Needs you
+ * instead, so its renderer stays connected and keeps raising message
  * notifications. A real quit closes normally; other windows and other
  * platforms always close.
  */

@@ -39,9 +39,9 @@ public struct ChatSidebarView: View {
     private let onOpenSettings: () -> Void
     private let onOpenSearch: () -> Void
     private let onOpenInbox: () -> Void
-    /// The Inbox's own "Needs you" total. The row spends it as the same unread
-    /// dot the Chat rows wear, so it shows nothing at zero.
-    private let needsYouCount: Int
+    /// Whether any Chat is unread. The Inbox row spends it as the same unread
+    /// dot the Chat rows wear, so it shows nothing when nothing is.
+    private let inboxHasUnread: Bool
     /// How fast the Inbox mark's mesh drifts: `lively` only while an Agent on
     /// this Server is working.
     private let ghostTempo: HausGhostTempo
@@ -63,7 +63,7 @@ public struct ChatSidebarView: View {
         onOpenSettings: @escaping () -> Void,
         onOpenSearch: @escaping () -> Void = {},
         onOpenInbox: @escaping () -> Void = {},
-        needsYouCount: Int = 0,
+        inboxHasUnread: Bool = false,
         ghostTempo: HausGhostTempo = .calm,
         ghostPaused: Bool = false,
         onOpenTasks: @escaping () -> Void = {},
@@ -77,7 +77,7 @@ public struct ChatSidebarView: View {
         self.onOpenSettings = onOpenSettings
         self.onOpenSearch = onOpenSearch
         self.onOpenInbox = onOpenInbox
-        self.needsYouCount = needsYouCount
+        self.inboxHasUnread = inboxHasUnread
         self.ghostTempo = ghostTempo
         self.ghostPaused = ghostPaused
         self.onOpenTasks = onOpenTasks
@@ -105,7 +105,7 @@ public struct ChatSidebarView: View {
                             // Server-wide destinations lead, then the chat
                             // lists — the App's own sidebar order, Inbox first.
                             SidebarInboxRow(
-                                needsYouCount: needsYouCount,
+                                hasUnread: inboxHasUnread,
                                 glyphSize: Self.inboxGhostSize,
                                 ghostTempo: ghostTempo,
                                 ghostPaused: ghostPaused,
@@ -132,9 +132,9 @@ public struct ChatSidebarView: View {
                             ForEach(directMessages) { row($0) }
                         }
                         // The inset rides on the list, not on the scroll
-                        // view: the scroll view has to reach the sidebar's own
-                        // leading edge, because that edge is what cuts the
-                        // unread markers in half.
+                        // view: the unread markers sit in the gutter outside
+                        // each row, and the scroll view's clip must not reach
+                        // them.
                         .padding(.horizontal, Self.listInset)
                         .padding(.bottom, 72)
                     }
@@ -236,7 +236,11 @@ public struct ChatSidebarView: View {
                 selectedDestinationID == chat.id ? selectedRowFill : .clear,
                 in: .capsule
             )
-            .sidebarUnreadDot(chat.unreadCount > 0, listInset: Self.listInset)
+            .sidebarUnreadDot(
+                chat.unreadCount > 0,
+                listInset: Self.listInset,
+                glyphInset: Self.rowCapsuleBleed
+            )
             // The label's own drawing stops at the title, so without this the
             // tappable area is the glyph and the text rather than the row.
             .contentShape(Rectangle())

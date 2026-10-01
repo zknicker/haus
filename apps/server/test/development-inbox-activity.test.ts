@@ -29,7 +29,7 @@ afterAll(async () => {
 
 // The demo workspace is judged from the Inbox, so every section of that page
 // is proved through the read the App actually issues.
-test('Conversations reads unread demo Chats with their last line', async () => {
+test('Unread reads the demo Chats with their last line', async () => {
     const chats = await owner.trpc.chat.list.query({ serverId });
     const all = chats.find((chat) => chat.isAll);
     const product = chats.find((chat) => chat.name === 'product');
@@ -56,39 +56,15 @@ test('Conversations reads unread demo Chats with their last line', async () => {
     expect(dms.every((chat) => chat.unreadCount > 0 || chat.lastMessage === null)).toBe(true);
 });
 
-test('Needs you reads Cove’s @mention and Tiny’s DM question; the claim is on Tasks', async () => {
+test('Unread holds Tiny’s DM question; the claim is on Tasks', async () => {
     const agents = await owner.trpc.agent.list.query({ serverId });
     const agentId = (handle: string) => agents.find((agent) => agent.handle === handle)?.id;
-    const rows = (await owner.trpc.inbox.needsYou.query({ serverId })).filter(
-        (row) => row.chatKind === 'dm' || row.chatName !== 'ui-gallery'
+    const chats = await owner.trpc.chat.list.query({ serverId });
+    const tiny = chats.find((chat) => chat.peerAgentId === agentId('tiny'));
+    expect(tiny?.unreadCount).toBeGreaterThan(0);
+    expect(tiny?.lastMessage?.content).toContain(
+        'Which of the three stale strings should I fix first?'
     );
-    expect(rows).toHaveLength(2);
-    const [dm, mention] = rows;
-
-    expect(dm).toMatchObject({
-        chatPeerAgentId: agentId('tiny'),
-        chatPeerUserId: null,
-        latest: {
-            author: { agentId: agentId('tiny'), kind: 'agent' },
-            preview:
-                'Which of the three stale strings should I fix first? I can fold the rest into the same PR once I know where to start.',
-        },
-        reason: 'dm',
-        threadAnchorMessageId: null,
-    });
-    // Blippy's DM line is answered, so only Tiny's DM needs the owner.
-    expect(dm?.chatId).toBe(
-        (await owner.trpc.chat.list.query({ serverId })).find(
-            (chat) => chat.peerAgentId === agentId('tiny')
-        )?.id
-    );
-    expect(mention).toMatchObject({
-        addressedCount: 1,
-        chatName: 'onboarding-owner',
-        latest: { author: { agentId: agentId('cove'), kind: 'agent' } },
-        reason: 'mention',
-    });
-    expect(mention?.latest.preview).toMatch(/^@\S+ Rename #product to #build\?/u);
 
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id;
     const { tasks } = await owner.trpc.task.list.query({ includeBackground: false, serverId });
@@ -201,7 +177,6 @@ test('a Server without the demo shape is left alone', async () => {
     expect(after.map((chat) => chat.lastMessageSequence)).toEqual(
         before.map((chat) => chat.lastMessageSequence)
     );
-    expect(await owner.trpc.inbox.needsYou.query({ serverId: plain.id })).toEqual([]);
 });
 
 test('UI gallery reads the attachment combinations and isolates live samples', async () => {

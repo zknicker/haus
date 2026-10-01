@@ -1,5 +1,5 @@
 ---
-summary: iPhone push (APNs) for Needs you — the device and payload contract, the Server sender, its environment, and the one-time Apple and 1Password setup.
+summary: iPhone push (APNs) for message notifications — the device and payload contract, the Server sender, its environment, and the one-time Apple and 1Password setup.
 read_when:
   - enabling, rotating, or debugging iPhone push notifications
   - changing `push.registerDevice`, `push.unregisterDevice`, or the push payload
@@ -9,8 +9,12 @@ read_when:
 
 # iPhone Push
 
-The Haus Server pushes an iPhone alert for every message that newly tops a human's Needs you row
-([Inbox](../features/inbox.md#notifications), [ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)).
+The Haus Server pushes an iPhone alert for every message that notifies a human under the shared
+message notification rule ([Inbox](../features/inbox.md#notifications),
+[ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)): every message from someone else in
+their DMs, and in a Channel or Thread one that @mentions them, inline-replies to their message, or
+sits in a Thread on their message. Reading a Chat never stops the next push, but a push waits a
+short grace period and is skipped if you have already read that message anywhere.
 Haus Server owns the device registrations and the APNs connection; the iPhone only registers.
 
 ## Contract
@@ -27,14 +31,14 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
   off, and clears delivered notifications and the badge, so the next account opts in itself.
 - Payload: `aps.alert.title` (author, plus ` in #channel` outside a DM), `aps.alert.body` (plain
   preview, mentions as display names, at most 180 characters), `aps.sound: "default"`,
-  `aps.thread-id` = conversation Chat id, `aps.badge` = Needs you rows across every Server, and the
+  `aps.thread-id` = conversation Chat id, `aps.badge` = unread Chats across every Server, and the
   tap-routing keys `serverId`, `chatId`, `conversationChatId`, `threadAnchorMessageId` (null outside
   a Thread), `messageId`. For Communication Notifications (sender avatar banners) it also carries
   `aps.mutable-content: 1`, `sender` (`id`, `kind` `agent` | `human`, `name` cut to 80 characters,
   `avatarUrl` absolute on `HAUS_APP_ORIGIN` or null when the sender has none — avatar routes are
   public by opaque id), and `conversation` (`{ kind: "channel", name }` without `#`, or
-  `{ kind: "dm", name: null }`). `reason` (`dm` | `mention` | `reply`) is the reason of the Needs
-  you row the push tops; the extension donates it as `INSendMessageIntentDonationMetadata`
+  `{ kind: "dm", name: null }`). `reason` (`dm` | `mention` | `reply`) is why the message notifies
+  the human (`messageNotificationReason`); the extension donates it as `INSendMessageIntentDonationMetadata`
   (`mentionsCurrentUser` for `mention`, `isReplyToCurrentUser` for `reply`, iOS defaults for `dm`
   or a push without it) so Focus lets mentions and replies to the human through. Pushes are never
   Time Sensitive. The alert title and body stay as the fallback when the Notification
@@ -45,13 +49,23 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
 
 ## Server behavior
 
-`apps/server/src/push/` listens to post-commit `message.created` events. It narrows candidates from
-the event's addressing ids and the DM's members, keeps humans with a live membership and a device,
-and pushes each whose Needs you row for that Chat now ends at the message, so every Needs you rule
-(own messages, access, archive, Done, answered) applies once. Sends run off the send path and never
-fail it, at most four messages at a time (a backlog past 1,000 drops new pushes). The badge is this
-Server's Needs you rows plus one count statement over the human's other Servers, built from the same
-query as the list.
+`apps/server/src/push/` listens to post-commit `message.created` events. It applies
+`messageNotificationReason` (`packages/haus-api/src/message-notification.ts`, the same rule the
+App's desktop and web notifications use) to the humans the event names and the DM's members, then
+keeps humans with a live membership, a device, and access to the Chat; an archived or deleted Chat
+pushes nobody, and the author is never pushed. Each message waits `pushReadGraceMs` (4 seconds)
+before its recipients are read, and a human whose read marker in the message's own Chat already
+covers it (`chat_reads.sequence >= message.sequence`) is skipped: the App marks an open Chat read
+as messages arrive in a visible, focused window, so a message read on the desktop does not also
+buzz the phone. A Thread message checks the Thread's own marker, which the open Thread pane or the
+Inbox's Mark read advances; reading the Channel alone does not. The wait sits in the in-memory push
+queue and holds no send slot. Like the rest of the queue it is lost on restart, and shutdown waits
+it out before sending. Sends run off the send path and never fail it, at most four messages at a
+time (a backlog past 1,000, counting messages still waiting, drops new pushes). The badge is the human's
+unread Chats across every Server they belong to — each Server's `chat.list` Chats with an
+`unreadCount` above zero, counted in one query (`countUnreadChats`) built from the same
+`listedChats` scope and `chatUnreadCount` expression as `chat.list` (`apps/server/src/chats/chat-unread.ts`).
+The iPhone app badges its icon from the same count through `chat.unreadChatCount`.
 
 APNs uses token auth: an ES256 JWT (`kid` = key id, `iss` = team id, `iat`) reused for 40 minutes
 and re-minted early after `ExpiredProviderToken`, never within 20 minutes of the last mint.

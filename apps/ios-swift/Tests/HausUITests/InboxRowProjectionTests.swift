@@ -3,60 +3,6 @@ import HausModels
 @testable import HausUI
 import Testing
 
-/// Needs you: who addressed the reader, what they wrote, and where.
-struct InboxNeedsYouRowsTests {
-    @Test func namesTheAuthorTheLineAndWhereAMentionCameFrom() throws {
-        let rows = try #require(InboxNeedsYouRows.rows(
-            [
-                InboxFixtures.needsYou(),
-                InboxFixtures.needsYou(reason: "dm", chatID: "chat_dm", conversationChatID: "chat_dm"),
-                InboxFixtures.needsYou(reason: "reply", chatID: "chat_2", conversationChatID: "chat_2"),
-            ],
-            resolveActor: InboxFixtures.directory
-        ))
-
-        #expect(rows.map(\.title) == ["Blippy", "Blippy", "Blippy"])
-        #expect(rows.map(\.context) == ["#onboarding", nil, "#onboarding"])
-        #expect(rows.map(\.id) == ["chat_1", "chat_dm", "chat_2"])
-    }
-
-    @Test func opensATopLevelRowInItsChatAndAThreadRowAsItsThread() throws {
-        let rows = try #require(InboxNeedsYouRows.rows(
-            [
-                InboxFixtures.needsYou(),
-                InboxFixtures.needsYou(chatID: "chat_thread", threadAnchorMessageID: "message_anchor"),
-            ],
-            resolveActor: InboxFixtures.directory
-        ))
-
-        #expect(rows[0].open == .chat("chat_1"))
-        #expect(rows[1].open == .needsYouThread(chatID: "chat_thread"))
-    }
-
-    @Test func flattensThePreviewToOneLine() throws {
-        let rows = try #require(InboxNeedsYouRows.rows(
-            [InboxFixtures.needsYou(preview: "Ship on\n\nFriday  or Monday?")],
-            resolveActor: InboxFixtures.directory
-        ))
-
-        #expect(rows[0].preview == "Ship on Friday  or Monday?")
-    }
-
-    @Test func staysNeutralUntilTheReadHasLanded() {
-        #expect(InboxNeedsYouRows.rows(nil, resolveActor: InboxFixtures.directory) == nil)
-        #expect(InboxNeedsYouRows.rows([], resolveActor: InboxFixtures.directory) == [])
-    }
-
-    @Test func fallsBackToTheStoredAuthorProfileForARetiredAgent() throws {
-        let rows = try #require(InboxNeedsYouRows.rows(
-            [InboxFixtures.needsYou()],
-            resolveActor: { _, _ in nil }
-        ))
-
-        #expect(rows[0].mark == .identity(name: "Blippy", avatarURL: nil, presence: nil))
-    }
-}
-
 struct InboxHappeningNowRowsTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -78,10 +24,34 @@ struct InboxHappeningNowRowsTests {
         ))
 
         #expect(rows.map(\.id) == ["work:message_work", "agent:agent_blippy"])
-        #expect(rows[0].meta == "Running · 25m")
-        #expect(rows[0].preview == "#all · Blippy")
-        #expect(rows[1].preview == "Editing files · 3m")
-        #expect(rows[1].meta == nil)
+        #expect(rows[0].status == "Running · 25m")
+        #expect(rows[0].detail == "#all · Blippy")
+        #expect(rows[0].title == "Ship the iPhone build")
+        #expect(rows[1].title == "Blippy")
+        #expect(rows[1].status == "3m")
+        #expect(rows[1].detail == "Editing files…")
+    }
+
+    @Test func untitledWorkAndStepFallBackToPlainLabels() throws {
+        let rows = try #require(InboxHappeningNowRows.rows(
+            work: [InboxFixtures.activeWork(startedAt: now, title: "  ")],
+            agents: [
+                InboxWorkingAgent(
+                    id: "agent_blippy",
+                    name: "Blippy",
+                    avatarURL: nil,
+                    presence: .working,
+                    step: "",
+                    occurredAt: now
+                )
+            ],
+            now: now,
+            resolveActor: InboxFixtures.directory
+        ))
+
+        #expect(rows[0].title == "Cloud work")
+        #expect(rows[0].detail == "#all · Blippy")
+        #expect(rows[1].detail == "Working…")
     }
 
     @Test func opensWorkAtItsMessageAndAnAgentAtItsChat() throws {
@@ -125,12 +95,12 @@ struct InboxHappeningNowRowsTests {
     }
 
     @Test func formatsElapsedTimeTheWayEveryOtherHausSurfaceDoes() {
-        #expect(InboxElapsed.duration(seconds: 0) == "0s")
-        #expect(InboxElapsed.duration(seconds: 59) == "59s")
-        #expect(InboxElapsed.duration(seconds: 60) == "1m")
-        #expect(InboxElapsed.duration(seconds: 3_599) == "59m")
-        #expect(InboxElapsed.duration(seconds: 7_200) == "2h")
-        #expect(InboxElapsed.duration(seconds: 7_500) == "2h 5m")
+        #expect(CloudAgentPresentation.duration(seconds: 0) == "0s")
+        #expect(CloudAgentPresentation.duration(seconds: 59) == "59s")
+        #expect(CloudAgentPresentation.duration(seconds: 60) == "1m")
+        #expect(CloudAgentPresentation.duration(seconds: 3_599) == "59m")
+        #expect(CloudAgentPresentation.duration(seconds: 7_200) == "2h")
+        #expect(CloudAgentPresentation.duration(seconds: 7_500) == "2h 5m")
     }
 }
 

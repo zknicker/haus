@@ -5,11 +5,27 @@ import { McpIconIoError, mcpFailureKind } from './errors.ts';
 
 export type McpIconFetch = (url: string, signal: AbortSignal) => Promise<Response>;
 
+/**
+ * How much of a body to read. An icon past the cap is discarded whole; a page
+ * keeps its leading bytes, because the `<head>` it is read for comes first.
+ */
+export interface McpBodyLimit {
+    maxBytes: number;
+    overflow: 'discard' | 'truncate';
+}
+
+const iconBodyLimit: McpBodyLimit = { maxBytes: mcpIconMaxBytes, overflow: 'discard' };
+
+/**
+ * Fetches one URL and hands its capped body to `encode`. Used for icon bytes
+ * and, with a truncating limit, for the site page whose `<link>` tags name one.
+ */
 export async function loadRemoteIcon(
     runtime: EffectRuntime<never>,
     input: {
         encode(bytes: Uint8Array, mediaType: string | null): string | null;
         fetchImpl: McpIconFetch;
+        limit?: McpBodyLimit;
         timeoutMs: number;
         url: null | string;
     }
@@ -17,7 +33,11 @@ export async function loadRemoteIcon(
     if (!input.url) {
         return null;
     }
-    const request = { fetchImpl: input.fetchImpl, url: input.url };
+    const request = {
+        fetchImpl: input.fetchImpl,
+        limit: input.limit ?? iconBodyLimit,
+        url: input.url,
+    };
     const load = Effect.acquireUseRelease(
         Effect.sync(() => new AbortController()),
         (controller) => loadResponse(request, controller, input.encode),
@@ -36,7 +56,7 @@ export async function loadRemoteIcon(
 }
 
 function loadResponse(
-    input: { fetchImpl: McpIconFetch; url: string },
+    input: { fetchImpl: McpIconFetch; limit: McpBodyLimit; url: string },
     controller: AbortController,
     encode: (bytes: Uint8Array, mediaType: string | null) => string | null
 ) {
@@ -47,7 +67,7 @@ function loadResponse(
         Effect.flatMap((response) => inspectResponse(response)),
         Effect.flatMap((response) =>
             response.ok
-                ? readCappedBody(response.body, response.contentLength, controller).pipe(
+                ? readCappedBody(response, input.limit, controller).pipe(
                       Effect.map((bytes) => (bytes ? encode(bytes, response.mediaType) : null))
                   )
                 : Effect.succeed(null)
@@ -68,12 +88,12 @@ function inspectResponse(response: Response): Effect.Effect<IconResponse, McpIco
 }
 
 function readCappedBody(
-    body: ReadableStream<Uint8Array> | null,
-    contentLength: string | null,
+    { body, contentLength }: IconResponse,
+    limit: McpBodyLimit,
     controller: AbortController
 ): Effect.Effect<Uint8Array | null, McpIconIoError> {
     const declared = Number(contentLength);
-    if (Number.isFinite(declared) && declared > mcpIconMaxBytes) {
+    if (limit.overflow === 'discard' && Number.isFinite(declared) && declared > limit.maxBytes) {
         controller.abort();
         return Effect.succeed(null);
     }
@@ -85,7 +105,7 @@ function readCappedBody(
             catch: (cause) => new McpIconIoError({ cause, operation: 'mcp.icon.reader.acquire' }),
             try: () => body.getReader(),
         }),
-        (reader) => readChunks(reader, controller),
+        (reader) => readChunks(reader, limit, controller),
         (reader) => releaseReader(reader, controller)
     );
 }
@@ -129,6 +149,7 @@ function releaseReader(
 
 function readChunks(
     reader: ReadableStreamDefaultReader<Uint8Array>,
+    limit: McpBodyLimit,
     controller: AbortController
 ): Effect.Effect<Uint8Array | null, McpIconIoError> {
     const chunks: Uint8Array[] = [];
@@ -142,11 +163,17 @@ function readChunks(
             if (done) {
                 break;
             }
-            total += value.byteLength;
-            if (total > mcpIconMaxBytes) {
+            if (total + value.byteLength > limit.maxBytes) {
                 controller.abort();
-                return null;
+                if (limit.overflow === 'discard') {
+                    return null;
+                }
+                const kept = value.subarray(0, limit.maxBytes - total);
+                chunks.push(kept);
+                total += kept.byteLength;
+                break;
             }
+            total += value.byteLength;
             chunks.push(value);
         }
         return concatenateBytes(chunks, total);

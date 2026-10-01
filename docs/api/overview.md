@@ -38,7 +38,20 @@ The attachment protocol negotiates heartbeats after bootstrap without changing t
 frame. Computer closes a connection that misses the negotiated acknowledgement deadline and its
 resident supervisor reconnects; Server independently expires negotiated Computers that stop sending
 heartbeats. Heartbeats require an explicit post-bootstrap opt-in, so either Server or Computer can
-roll out first without changing the behavior of an older peer.
+roll out first without changing the behavior of an older peer. Independently of that opt-in,
+Server pings every attachment socket at the WebSocket transport level, which any client answers.
+Routine timings match Raft: Server pings every 30 seconds, negotiates the same 30-second interval
+and 60-second timeout for app-level heartbeats, and reaps a socket that stays silent for 60 seconds
+as a `heartbeat-timeout` disconnect. Any inbound frame counts as alive. Server's live attachment
+registry, not the stored `health` column, decides whether `computer.list` reports a Computer as
+connected.
+
+Because a silent socket can look attached for up to a minute, Server also probes on demand: it pings
+the live socket and treats a pong or any inbound frame within 3 seconds as present. An unanswered
+probe reaps the socket through the same generation-guarded `heartbeat-timeout` path. The
+`computer.checkPresence` mutation, authorized like `computer.list`, probes all of a Server's
+attached Computers in parallel and returns the fresh `computer.list` shape. `computer.update` probes
+its target before sending the update frame and rejects an unanswered Computer as not connected.
 
 After bootstrap, Computer sends its bounded management-event outbox in a separate system-event
 report. Server inserts those stable event ids idempotently and also records the connection events it

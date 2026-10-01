@@ -34,7 +34,6 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
         {
             cell: (item) => (
                 <Chip size="sm" variant="soft">
-                    <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} />
                     <Chip.Label>{item.runtimeLabel}</Chip.Label>
                 </Chip>
             ),

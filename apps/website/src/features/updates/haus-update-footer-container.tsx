@@ -8,6 +8,9 @@ export function HausUpdateFooterContainer({ slug }: { slug: string }) {
     const update = useHausUpdate();
     const navigate = useNavigate();
     const reload = useReloadWebsite();
+    if (!update.isSettled) {
+        return null;
+    }
     return (
         <HausUpdateFooter
             isRunning={update.isRunning}

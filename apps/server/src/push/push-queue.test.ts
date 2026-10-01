@@ -33,3 +33,22 @@ test('a full backlog drops new tasks; a failing task does not stall the queue', 
     expect(ran).toBe(1);
     await queue.drain();
 });
+
+test('a delayed task waits without holding a slot, and drain waits for it', async () => {
+    const queue = createPushQueue({ concurrency: 1, maxBacklog: 10 });
+    const order: string[] = [];
+    queue.enqueue(async () => {
+        order.push('delayed');
+    }, 50);
+    queue.enqueue(async () => {
+        order.push('now');
+    });
+    await queue.drain();
+    expect(order).toEqual(['now', 'delayed']);
+
+    // A delayed task counts toward the backlog while it waits.
+    const full = createPushQueue({ concurrency: 1, maxBacklog: 1 });
+    expect(full.enqueue(() => Promise.resolve(), 20)).toBe(true);
+    expect(full.enqueue(() => Promise.resolve())).toBe(false);
+    await full.drain();
+});

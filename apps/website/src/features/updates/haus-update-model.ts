@@ -14,6 +14,7 @@ import {
     offlineComputerUpdateExpiry,
     unconfirmedComputerUpdate,
 } from './offline-computer-update.ts';
+import { stalledComputerUpdate } from './stalled-computer-update.ts';
 
 export type {
     ComputerUpdateStep,
@@ -89,16 +90,20 @@ function projectComputerStep(
         return null;
     }
     const current = isVersionCurrent(computer.currentVersion, targetVersion);
+    const stalled = unconfirmed || current ? null : stalledComputerUpdate(computer, observedAt);
+    const failure = unconfirmed ?? stalled;
     const phase = unconfirmed
         ? 'failed'
         : current
           ? 'current'
-          : normalizeComputerPhase(computer, targetVersion);
+          : stalled
+            ? 'failed'
+            : normalizeComputerPhase(computer, targetVersion);
     return {
         connected: computer.health !== 'offline',
         currentVersion: computer.currentVersion,
-        detail: unconfirmed?.detail ?? computer.detail ?? null,
-        failedPhase: unconfirmed?.failedPhase ?? computer.failedPhase ?? null,
+        detail: failure?.detail ?? computer.detail ?? null,
+        failedPhase: failure?.failedPhase ?? computer.failedPhase ?? null,
         id: computer.id,
         kind: 'computer',
         label: computer.name,
@@ -131,15 +136,10 @@ function projectDesktopStep(
     if (!targetVersion) {
         return null;
     }
-    const phase = isVersionCurrent(desktop.currentVersion, targetVersion)
-        ? 'current'
-        : desktop.phase === 'error'
-          ? 'failed'
-          : desktop.phase === 'ready'
-            ? 'restart-required'
-            : desktop.phase === 'idle' || desktop.phase === 'current'
-              ? 'pending'
-              : desktop.phase;
+    const phase = desktopStepPhase(desktop, targetVersion);
+    if (!phase) {
+        return null;
+    }
     return {
         currentVersion: desktop.currentVersion,
         detail: desktop.detail ?? null,
@@ -150,6 +150,28 @@ function projectDesktopStep(
         progress: desktop.progress ?? null,
         targetVersion,
     };
+}
+
+function desktopStepPhase(
+    desktop: Extract<HausUpdateDesktop, { kind: 'desktop' }>,
+    targetVersion: string
+): DesktopUpdateStep['phase'] | null {
+    if (isVersionCurrent(desktop.currentVersion, targetVersion)) {
+        return 'current';
+    }
+    switch (desktop.phase) {
+        // Only the native updater knows whether this App has an installable update;
+        // a newer release snapshot alone is not work Haus can act on.
+        case 'idle':
+        case 'current':
+            return null;
+        case 'error':
+            return 'failed';
+        case 'ready':
+            return 'restart-required';
+        default:
+            return desktop.phase;
+    }
 }
 
 function aggregatePhase(steps: readonly HausUpdateStep[]): HausUpdatePhase {

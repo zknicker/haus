@@ -8,6 +8,7 @@ import type {
     AvatarGenerationLogger,
     AvatarImageProvider,
 } from '../src/avatar-generation/service.ts';
+import type { ComputerSocketLivenessTiming } from '../src/computers/socket-liveness.ts';
 import {
     createHausServerApplication,
     type HausServerApplication,
@@ -65,8 +66,10 @@ export async function startHausServerHarness(
         postgresIcuLocale?: string;
         messageRouter?: MessageRouter;
         pushSender?: PushSender;
+        pushReadGraceMs?: number;
         openAiApiKey?: string;
         connectLive?: () => WebSocket;
+        computerSocketLiveness?: ComputerSocketLivenessTiming;
     } = {}
 ): Promise<HausServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster({
@@ -117,8 +120,10 @@ export async function startHausServerHarness(
                 clerkUsers,
                 databaseUrl: cluster.databaseUrl,
                 pushSender: options.pushSender,
+                pushReadGraceMs: options.pushReadGraceMs,
                 openAiApiKey: options.openAiApiKey,
                 connectLive: options.connectLive,
+                computerSocketLiveness: options.computerSocketLiveness,
             });
             await next.app.listen({ host: '127.0.0.1', port: 0 });
             application = next;

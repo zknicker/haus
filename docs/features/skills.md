@@ -25,7 +25,21 @@ the operator's standard skill directories. The Server stores the latest report
 so Settings -> Skills remains useful while the Computer is offline. Skill
 contents never persist on the Server.
 
-Settings -> Skills is the Server's browse-only view of these reported sources.
+Settings -> Skills is the Server's browse-only view of these reported sources:
+a grid of skill cards (mark, name, one-line description, a quiet check for
+installed) in one "Installed" section, or one section per Computer when several
+report skills. Long sections collapse to their first six cards behind a "See A,
+B, and N more" control. Opening a card shows a compact dialog: the skill's mark,
+name, and description, then a rendered `SKILL.md` preview in one panel that
+scrolls inside itself, read live from the Computer for Server Owners and Admins;
+Members, or anyone while that Computer is offline, see one quiet line instead.
+The source path and Computer sit behind a collapsed "Details" disclosure, and
+the footer names the Agents whose library carries a skill of that name ("Used
+by Blippy and Tiny") beside Done. Every skill shares one illustrated cube mark;
+the factory-managed skills Haus ships draw their own illustration instead
+(`features/skills/built-in-skill-icons.tsx`), on Settings and the Agent Profile
+alike.
+
 An Owner or Admin adds one from the searchable Skills picker on an Agent's
 Profile while that Computer is online. The Computer durably records acceptance
 before the App stops showing the request as pending, then copies the complete

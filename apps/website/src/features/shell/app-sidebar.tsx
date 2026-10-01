@@ -5,7 +5,7 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
-import { useInboxNeedsYouCount } from '../../hooks/servers/use-inbox-needs-you-count.ts';
+import { useInboxUnreadCount } from '../../hooks/servers/use-inbox-unread-count.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import type { ChannelAgentOption } from '../chats/channel-agent-picker.tsx';
 import { ChannelCreateDialog } from '../chats/channel-create-dialog.tsx';
@@ -31,7 +31,7 @@ export function AppSidebar({
     const createChannel = useCreateServerChannel();
     // The sidebar owns the Inbox badge's read, the same way it owns the chat
     // list the unread chips ride on; the rows below stay presentation.
-    const needsYou = useInboxNeedsYouCount(currentServer.id);
+    const inboxUnread = useInboxUnreadCount(currentServer.id);
     const updateChannel = useChannelUpdate();
     const [creatingChannel, setCreatingChannel] = React.useState(false);
     const [creatingAgent, setCreatingAgent] = React.useState(false);
@@ -54,7 +54,7 @@ export function AppSidebar({
             <ChatNavigation
                 agents={agentItems}
                 chats={chatItems}
-                needsYouCount={needsYou.count}
+                inboxUnreadCount={inboxUnread.count}
                 onChangeChannelColor={(chat, color) => {
                     updateChannel
                         .mutateAsync({

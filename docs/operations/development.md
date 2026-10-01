@@ -142,9 +142,9 @@ the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages, a Thread, two tasks, and one MCP
 connection — enough to open any surface without hand-building data. It then
 seeds the activity the Inbox is a lens over: unread lines in both Channels and
-both Agent DMs, and two **Needs you** rows: Cove @mentioning you with its rename question in
-`#onboarding-owner`, and Tiny's unanswered stale-copy question in its DM. Blippy's DM line already
-has your reply, so it is no Needs you row. It also seeds one claim Blippy left stalled (shown
+both Agent DMs (Tiny's DM ends on its unanswered stale-copy question; Blippy's DM line already has
+your reply), and Cove @mentioning you with its rename question in `#onboarding-owner`. It also
+seeds one claim Blippy left stalled (shown
 on the Tasks page under **Stopped before finishing**), one
 settled Cloud Agent work, and seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.

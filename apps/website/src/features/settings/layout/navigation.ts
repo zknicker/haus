@@ -66,6 +66,12 @@ export const staticSettingsNavItems = [
         label: 'Skills',
         to: appRoutes.settingsSkills,
     },
+    {
+        icon: Analytics01Icon,
+        id: 'usage',
+        label: 'Usage',
+        to: appRoutes.settingsUsage,
+    },
 ] as const satisfies ReadonlyArray<{
     icon: IconSvgElement;
     id: string;
@@ -74,22 +80,16 @@ export const staticSettingsNavItems = [
 }>;
 
 /**
- * Entry points, not settings pages. Usage is a dashboard and Archived chats is
- * a chat list; both keep their own standalone routes, and the rail links out to
- * them so they still have a home now that the sidebar's Server menu is gone.
- * `SettingsSectionRoute` maps each id to its destination and hands off.
+ * Entry points, not settings pages. Archived chats is a chat list with its own
+ * standalone route, and the rail links out to it so it still has a home now
+ * that the sidebar's Server menu is gone. `SettingsSectionRoute` maps each id
+ * to its destination and hands off.
  *
- * They stay out of `staticSettingsNavItems` because the command palette builds
- * its Settings group from that list and already carries its own Usage and
- * Archived chats commands.
+ * It stays out of `staticSettingsNavItems` because the command palette builds
+ * its Settings group from that list and already carries its own Archived chats
+ * command.
  */
 export const settingsNavLinkItems = [
-    {
-        icon: Analytics01Icon,
-        id: 'usage',
-        label: 'Usage',
-        to: appRoutes.usage,
-    },
     {
         icon: ArchiveIcon,
         id: 'archived',
@@ -121,8 +121,8 @@ export const settingsNavSections = [
     },
     {
         id: 'server',
-        // Usage and Archived chats close the group as link-outs, after the
-        // pages that configure the Server itself.
+        // Usage reads the Server's activity after the pages that configure
+        // it; Archived chats closes the group as a link-out.
         itemIds: ['server', 'members', 'connections', 'models', 'skills', 'usage', 'archived'],
         label: 'Server',
     },

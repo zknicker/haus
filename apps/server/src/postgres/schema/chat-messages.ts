@@ -128,13 +128,11 @@ export const chatMessagesTable = pgTable(
         ),
         index('chat_messages_search_idx').using('gin', table.searchVector),
         index('chat_messages_mentioned_users_idx').using('gin', table.mentionedUserIds),
-        // Needs you reads the viewer's own latest Message per Chat and their
-        // replies after an addressing Message; both are range reads here.
+        // Range reads of one human's own Messages in a Chat.
         index('chat_messages_author_user_idx')
             .on(table.serverId, table.chatId, table.authorUserId, table.sequence)
             .where(sql`${table.authorUserId} is not null`),
-        // Needs you reads a Chat's inline replies since Done to find replies
-        // to the viewer's own Messages.
+        // A Chat's inline replies in sequence order.
         index('chat_messages_inline_reply_idx')
             .on(table.serverId, table.chatId, table.sequence)
             .where(sql`${table.replyToMessageId} is not null`),

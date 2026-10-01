@@ -30,7 +30,7 @@ export class ServerAccessDeniedError extends Error {
  */
 export async function requireServerMembership(
     db: Pick<HausDatabase, 'select'>,
-    member: HausUser | null,
+    member: Pick<HausUser, 'id'> | null,
     serverId: string
 ): Promise<ServerSummary> {
     const [server] = await db

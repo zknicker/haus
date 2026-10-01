@@ -78,14 +78,19 @@ failures do not disconnect the account or erase its connection-level Agent grant
 whole field is `null`. It is identity-derived state: Haus Server resolves it during discovery
 beside `accountLabel`, and clears it wherever identity is cleared.
 
-Resolution order is the MCP server's advertised `serverInfo.icons` (SEP-973), then the favicon of
-the site behind its host. Server fetches and inlines the bytes, so the contract never carries a
+Resolution order is the MCP server's advertised `serverInfo.icons` (SEP-973), then `/favicon.ico`
+on the site behind its host, then the icon `<link>`s (`icon`, `shortcut icon`, `apple-touch-icon`)
+in that site's home page `<head>` — the step that covers SPAs whose `/favicon.ico` is the HTML
+shell. Page links are ranked like advertised icons (smallest declared size of at least 64px first;
+an unsized `apple-touch-icon` counts as 180px), must share the page's origin, and at most three are
+tried. The page itself must be `text/html` and is read up to 256 KiB. Server fetches and inlines the bytes, so the contract never carries a
 remote URL — an `img` pointed at a connection's own host would report the viewer's IP and page
 views back to that operator on every render.
 
 Constraints the Server enforces before storing: HTTPS only, no redirects, PNG/JPEG/WebP/ICO only,
 at most 64 KiB per variant enforced against the response stream, declared media type must match the
-bytes, and an advertised icon URL must share the connection URL's origin. That last rule is what
+bytes, an advertised icon URL must share the connection URL's origin, and a page-linked icon must
+share the site's origin. That last rule is what
 keeps a remote server from steering Server-side fetches at arbitrary hosts.
 
 SVG is refused outright. It is the one image format that can carry script or pull subresources, and
@@ -94,6 +99,11 @@ a server advertising only SVG falls through to its favicon.
 
 One icon serving both themes is stored in `light` alone and the App falls back to it, so a
 connection never carries the same bytes twice on a query that returns every row inline.
+
+A preset connection whose stored icon is `null` (or malformed) reads its bundled mark
+(`mcpPresetIcons` in `@haus/api`) instead. Server applies that at the read boundary, so the stored
+row stays the discovery result and every client gets the same fallback; the App draws the same
+bundled marks on Recommended presets before they exist. A custom connection has no fallback.
 
 Icons refresh on connect and refresh, exactly like `accountLabel`. A connection created before this
 shipped reads `icon: null` until its next refresh; there is no backfill.

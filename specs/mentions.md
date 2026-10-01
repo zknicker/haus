@@ -2,7 +2,7 @@
 summary: Rich reference model for explicit markdown mentions, chip rendering, agent and human addressing, and runtime skill projection.
 read_when:
   - changing composer @ or $ autocomplete, rich reference rendering, runtime mention projection, transcript mention rendering, or agent addressing
-  - changing how a human @mention addresses that human or reaches their Needs you Inbox
+  - changing how a human @mention addresses or notifies that human
   - adding new rich reference kinds such as skills, plugins, apps, files, directories, agents, chats, pull requests, sessions, memories, or product cards
 ---
 
@@ -75,7 +75,7 @@ notes are not silently rebound after a rename.
 | --- | --- | --- | --- |
 | `agent` | `agent://<encoded-agent-id>` | `agent-reference` | Channel messages deliver to eligible joined Agents while the linked participant receives durable direct-attention metadata, unless Jev judges, at Choice confidence of at least 0.80, a top-level human message to be for the mentioned Agents alone (ADR 0030); a mention bypasses that Agent's Channel mute, while a direct Thread mention restores an explicit unfollow and resumes ordinary Thread delivery. Agent DMs address their one Agent participant without a link. |
 | `chat` | `chat://<encoded-chat-id>` | `chat-reference` | Visual channel reference. The chip opens the referenced channel by immutable chat id. |
-| `user` | `user://<encoded-user-id>` | `user-reference` | Addresses that human ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Server records the mentioned user ids on the message (`chat_messages.mentioned_user_ids`), and a Channel or Thread message that mentions a human becomes a **Needs you** row in that human's [Inbox](../docs/features/inbox.md) until they reply or mark it Done (an inline reply to the human's own message, or a message in a Thread on it, addresses them the same way); the desktop and web App notify for it. Resolve the current display name/avatar by immutable user id; unknown or departed humans keep the persisted label. It wakes no Agent. |
+| `user` | `user://<encoded-user-id>` | `user-reference` | Addresses that human ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Server records the mentioned user ids on the message (`chat_messages.mentioned_user_ids`), and a Channel or Thread message that mentions a human notifies them on iPhone, desktop, and web (an inline reply to the human's own message, or a message in a Thread on it, addresses them the same way; [ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)). Resolve the current display name/avatar by immutable user id; unknown or departed humans keep the persisted label. It wakes no Agent. |
 | `skill` | `skill://<encoded-skill-id>` | `skill-activation` | Runtime adds a compact turn hint only if the addressed Agent already has that skill enabled. |
 | `plugin` | `plugin://<name>@<marketplace>` | `capability-reference` | Preserve the link. Do not enable, install, connect, or authorize the plugin from the reference alone. |
 | `app` | `app://computer-use/<encoded-app-id>` | `capability-reference` | Preserve the link with the selected app label. Computer Use resolves the app when tools are invoked. |

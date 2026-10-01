@@ -135,8 +135,8 @@ export const cloudAgentWorkCancelInputSchema = z
 
 /**
  * One queued or running work visible to the viewer, with everything the Inbox
- * "Happening now" section needs to name it and open its conversation. Like
- * a Needs you row, the Chat facts always name the Channel or DM, never a Thread.
+ * "Happening now" section needs to name it and open its conversation. The
+ * Chat facts always name the Channel or DM, never a Thread.
  */
 export const activeCloudAgentWorkSchema = z
     .object({

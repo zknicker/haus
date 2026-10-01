@@ -55,11 +55,11 @@ aggregate cascades its reactions.
 
 `chat_messages.mentioned_user_ids` is the set of human user ids a Message's content mentions
 through `user://` references, written on every send path from the same parse that follows
-mentioned humans into Threads and GIN-indexed. `chat_reads.done_sequence` is the viewer's **Done**
-marker for a Chat. Together with DM membership they are the whole of **Needs you**
-([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)): a Chat has a row for a viewer while
-it holds an addressing message newer than both that marker and the viewer's own latest reply
-there. There is no Ask table.
+mentioned humans into Threads and GIN-indexed. With the inline parent's and Thread anchor's
+authors and DM membership, it is what decides a message notification
+([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). `chat_reads.sequence` is the viewer's
+read marker, the only Inbox state: a Chat is unread while it holds someone else's message above it.
+There is no Ask table and no Done marker.
 
 `message_tasks.assignee_agent_id` is the only task assignee; tasks are Agent work and carry no
 human assignee.

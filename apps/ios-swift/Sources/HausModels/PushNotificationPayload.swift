@@ -1,8 +1,7 @@
 import Foundation
 
-/// The Haus keys a Needs you push carries beside the standard `aps` dictionary.
-/// They name the same conversation a Needs you row does, so a tap opens what
-/// the row would have opened.
+/// The Haus keys a message push carries beside the standard `aps` dictionary.
+/// They name the conversation the message landed in, so a tap opens it.
 public struct PushNotificationPayload: Sendable, Equatable {
     public let serverID: String
     /// The Chat holding the addressing message: a Thread's own Chat for a
@@ -38,7 +37,7 @@ public struct PushNotificationPayload: Sendable, Equatable {
               let messageID = Self.string(userInfo["messageId"])
         else { return nil }
         let anchor = Self.string(userInfo["threadAnchorMessageId"])
-        // The Needs you contract's own rule: a Thread names its anchor, and a
+        // The push contract's own rule: a Thread names its anchor, and a
         // top-level Chat is its own conversation.
         guard (anchor == nil) == (chatID == conversationChatID) else { return nil }
         self.init(
@@ -69,7 +68,7 @@ public struct PushNotificationPayload: Sendable, Equatable {
 }
 
 /// The screen a tapped notification opens: a DM or Channel on the canvas, or
-/// a Thread pushed over it — the same two places a Needs you row opens.
+/// a Thread pushed over it.
 public enum PushNotificationRoute: Sendable, Equatable {
     case chat(chatID: String)
     case thread(conversationChatID: String, threadChatID: String, anchorMessageID: String)

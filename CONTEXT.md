@@ -226,17 +226,24 @@ The Haus App presentation of a Message body or recognized reference. A card has 
 identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
-**Needs you**:
-The Inbox section listing each Chat where someone addressed one human — a DM message from someone
-else, or a Channel or Thread message that @mentions them — and that human has not replied there or
-marked it Done. Done covers the messages it saw; newer addressing brings the row back. An @mention
-is how an Agent asks a person anything (ADR 0037).
-_Avoid_: Ask, approval card, action card, notification center, escalation
+**Unread**:
+The Inbox section listing every Channel and DM with something one human has not read — its own
+messages or the Thread replies it rolls up — newest activity first. Viewing a Chat while Haus is
+in view clears it; **Mark read** clears it without opening it. There is no attention tier above
+unread (ADR 0038).
+_Avoid_: Needs you, attention, Done, notification center
+
+**Message notification**:
+A platform alert (iPhone push, desktop or web notification) for a new message one human did not
+write: every message in their DMs, and in a Channel or Thread one that @mentions them, inline-replies
+to their message, or sits in a Thread on their message. One shared rule decides it; it is
+independent of the Inbox. An @mention is how an Agent asks a person anything (ADR 0037).
+_Avoid_: Needs you alert, attention, escalation
 
 **Inbox**:
-The Haus App page below Search where one human sees Needs you, Agent and Cloud Agent work running
-now, and unread Chats and followed Threads. It is a lens over existing records; its only state is
-each viewer's Done marker, kept beside their read marker.
+The Haus App page below Search where one human sees the week's active Agents, their Unread Chats,
+and Agent and Cloud Agent work running now. It is a lens over existing records and owns no state
+of its own; unread is the viewer's read marker.
 _Avoid_: Agent inbox, notification center, activity feed, task list
 
 **Agent inbox**:

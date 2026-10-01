@@ -1,6 +1,6 @@
 import { ChartTooltip, Widget } from '@heroui-pro/react';
 import { BarChart } from '@heroui-pro/react/bar-chart';
-import type { TokenUsageView } from './token-usage-view.ts';
+import { formatUsageDay, type TokenUsageView } from './token-usage-view.ts';
 import { formatTokens } from './usage-format.ts';
 
 export function TokenUsageChart({
@@ -30,7 +30,7 @@ export function TokenUsageChart({
                         <BarChart.Grid syncWithTicks vertical={false} />
                         <BarChart.XAxis
                             dataKey="date"
-                            tickFormatter={(value: string) => formatChartDate(value)}
+                            tickFormatter={(value: string) => formatUsageDay(value)}
                             tickMargin={8}
                         />
                         <BarChart.YAxis
@@ -54,9 +54,9 @@ export function TokenUsageChart({
             <Widget.Header>
                 <Widget.Title>Daily processed tokens</Widget.Title>
                 <Widget.Legend>
-                    {view.chartConfigurations.map((configuration) => (
-                        <Widget.LegendItem color={configuration.color} key={configuration.id}>
-                            {configurationLabel(configuration)}
+                    {view.chartSeries.map((series) => (
+                        <Widget.LegendItem color={series.color} key={series.id}>
+                            {series.label}
                         </Widget.LegendItem>
                     ))}
                 </Widget.Legend>
@@ -66,57 +66,35 @@ export function TokenUsageChart({
                     <BarChart.Grid vertical={false} />
                     <BarChart.XAxis
                         dataKey="date"
-                        tickFormatter={(value: string) => formatChartDate(value)}
+                        tickFormatter={(value: string) => formatUsageDay(value)}
                         tickMargin={8}
                     />
                     <BarChart.YAxis
                         tickFormatter={(value: number) => formatTokens(value)}
                         width={48}
                     />
-                    {view.chartConfigurations.map((configuration, index) => (
+                    {view.chartSeries.map((series, index) => (
                         <BarChart.Bar
-                            dataKey={configuration.id}
-                            fill={configuration.color}
-                            key={configuration.id}
-                            name={configurationLabel(configuration)}
+                            dataKey={series.id}
+                            fill={series.color}
+                            key={series.id}
+                            name={series.label}
                             radius={
-                                index === view.chartConfigurations.length - 1
-                                    ? [4, 4, 0, 0]
-                                    : undefined
+                                index === view.chartSeries.length - 1 ? [4, 4, 0, 0] : undefined
                             }
                             stackId="tokens"
                         />
                     ))}
                     <BarChart.Tooltip
-                        content={({ active, label, payload }) => {
-                            if (!(active && payload?.length)) {
-                                return null;
-                            }
-                            return (
-                                <ChartTooltip indicator="line">
-                                    <ChartTooltip.Header>{label}</ChartTooltip.Header>
-                                    {payload
-                                        .filter((entry) => Number(entry.value) > 0)
-                                        .map((entry) => (
-                                            <ChartTooltip.Item key={String(entry.dataKey)}>
-                                                <ChartTooltip.Indicator
-                                                    color={
-                                                        view.chartConfigurations.find(
-                                                            (item) => item.id === entry.dataKey
-                                                        )?.color
-                                                    }
-                                                />
-                                                <ChartTooltip.Label>
-                                                    {entry.name}
-                                                </ChartTooltip.Label>
-                                                <ChartTooltip.Value>
-                                                    {formatTokens(Number(entry.value))}
-                                                </ChartTooltip.Value>
-                                            </ChartTooltip.Item>
-                                        ))}
-                                </ChartTooltip>
-                            );
-                        }}
+                        content={({ active, label, payload }) =>
+                            active && payload?.length ? (
+                                <TokenUsageTooltip
+                                    date={String(label)}
+                                    series={view.chartSeries}
+                                    values={payload}
+                                />
+                            ) : null
+                        }
                     />
                 </BarChart>
             </Widget.Content>
@@ -124,16 +102,33 @@ export function TokenUsageChart({
     );
 }
 
-function formatChartDate(value: string) {
-    return new Intl.DateTimeFormat(undefined, {
-        day: 'numeric',
-        month: 'short',
-        timeZone: 'UTC',
-    }).format(new Date(`${value}T00:00:00.000Z`));
-}
-
-function configurationLabel(configuration: TokenUsageView['chartConfigurations'][number]) {
-    return configuration.isOther
-        ? `${configuration.agentName} · ${configuration.modelId}`
-        : `${configuration.agentName} · ${configuration.runtimeLabel} · ${configuration.modelId}`;
+/**
+ * Rows read top-down like the stack: the last-drawn (top) segment first, so
+ * Other leads when present.
+ */
+export function TokenUsageTooltip({
+    date,
+    series,
+    values,
+}: {
+    date: string;
+    series: TokenUsageView['chartSeries'];
+    values: readonly { dataKey?: unknown; value?: unknown }[];
+}) {
+    const rows = [...series].reverse().flatMap((item) => {
+        const value = Number(values.find((entry) => entry.dataKey === item.id)?.value ?? 0);
+        return value > 0 ? [{ item, value }] : [];
+    });
+    return (
+        <ChartTooltip indicator="line">
+            <ChartTooltip.Header>{formatUsageDay(date)}</ChartTooltip.Header>
+            {rows.map(({ item, value }) => (
+                <ChartTooltip.Item key={item.id}>
+                    <ChartTooltip.Indicator color={item.color} />
+                    <ChartTooltip.Label>{item.label}</ChartTooltip.Label>
+                    <ChartTooltip.Value>{formatTokens(value)}</ChartTooltip.Value>
+                </ChartTooltip.Item>
+            ))}
+        </ChartTooltip>
+    );
 }

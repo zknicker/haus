@@ -16,7 +16,8 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { McpDeniedError } from './errors.ts';
-import { type McpIconResolver, summarizeInstructions } from './icons.ts';
+import type { McpIconResolver } from './icons.ts';
+import { summarizeInstructions } from './instructions-summary.ts';
 import type { McpOAuthRelay } from './oauth-relay.ts';
 import { emptySecret, type McpRuntime } from './runtime.ts';
 import { shapeMcpConnection } from './state.ts';

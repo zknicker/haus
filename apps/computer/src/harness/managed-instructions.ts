@@ -350,7 +350,7 @@ ${refs}
 
 Write them inline as plain words in your sentence — the same way you'd type any other word — and Haus turns them into clickable references.
 
-Haus renders your message as Markdown, GFM tables included.
+Haus renders your message as Markdown, GFM tables included, but it is a chat: write like a teammate messaging, in plain sentences. Don't bold for emphasis or as labels; use lists, headings, or tables only when the content is genuinely structured, such as steps, comparisons, or data.
 
 Markdown markup expresses presentation semantics; do not mix markup delimiters into literal payloads. Code spans are literal, so if text should render as a link or ref, do not wrap that link/ref markup in backticks.`;
 }

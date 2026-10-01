@@ -1,5 +1,5 @@
 import type { ServerDurableEvent } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -12,7 +12,7 @@ export interface DurableEventChat {
 }
 
 export async function insertMessageCreatedEvent(
-    db: Pick<HausDatabase, 'insert' | 'select' | 'update'>,
+    db: Pick<HausDatabase, 'execute' | 'insert' | 'select' | 'update'>,
     input: {
         chat: DurableEventChat;
         message: {
@@ -52,6 +52,10 @@ export async function insertMessageCreatedEvent(
     return {
         authorUserId: input.message.authorUserId,
         chatId: input.message.chatId,
+        conversationKind: await readConversationKind(db, {
+            chatId: input.message.chatId,
+            serverId: input.serverId,
+        }),
         createdAt: event.createdAt.toISOString(),
         cursor: event.cursor.toString(),
         id: event.id,
@@ -73,8 +77,31 @@ export async function insertMessageCreatedEvent(
 }
 
 /**
+ * The Channel or DM a Chat belongs to: its own kind, or its parent's for a
+ * Thread. `message.created` carries it so the notification rule can tell a
+ * DM message from a Channel one (ADR 0038).
+ */
+export async function readConversationKind(
+    db: Pick<HausDatabase, 'execute'>,
+    input: { chatId: string; serverId: string }
+): Promise<'channel' | 'dm'> {
+    const rows = (await db.execute(sql`
+        select coalesce(parent.kind, chat.kind) as kind
+        from chats chat
+        left join chats parent
+            on parent.server_id = chat.server_id and parent.id = chat.parent_chat_id
+        where chat.server_id = ${input.serverId} and chat.id = ${input.chatId}
+    `)) as Array<{ kind: string }>;
+    const kind = rows[0]?.kind;
+    if (kind !== 'channel' && kind !== 'dm') {
+        throw new Error(`Chat ${input.chatId} has no Channel or DM conversation.`);
+    }
+    return kind;
+}
+
+/**
  * The human who wrote a Thread's anchor Message, or null for an Agent anchor
- * or a Chat that is not a Thread. A Thread answers its anchor author (ADR 0037).
+ * or a Chat that is not a Thread. A Thread answers its anchor author.
  */
 export async function readThreadAnchorAuthorUserId(
     db: Pick<HausDatabase, 'select'>,

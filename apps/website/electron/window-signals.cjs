@@ -2,7 +2,7 @@
 
 /**
  * Native window events the renderer listens for: focus state (which also
- * tells Needs you notifications whether the reader can see Haus) and macOS
+ * tells message notifications whether the reader can see Haus) and macOS
  * history swipes.
  */
 function forwardWindowSignals(window) {

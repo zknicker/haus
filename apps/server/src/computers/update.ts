@@ -12,6 +12,9 @@ import type { HausUser } from '../users/haus-user.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ComputerSetupDeniedError } from './service.ts';
 
+const unreachableComputerMessage =
+    'Reconnect this Computer before checking for or installing updates.';
+
 export const productionComputerManifestUrl = 'https://releases.haus.chat/computer/latest.json';
 
 export async function checkComputerUpdate(input: {
@@ -58,6 +61,10 @@ export async function startComputerUpdate(input: {
 }) {
     const computer = await requireComputerAdmin(input);
     requireConnectedComputer(computer, input.connections);
+    // A socket can look attached until the heartbeat timeout; verify it answers now.
+    if (!(await input.connections.probe(computer.id))) {
+        throw new ComputerSetupDeniedError(unreachableComputerMessage);
+    }
     await setChecking(input.db, computer.id);
     let failedPhase: ComputerUpdateProgress['failedPhase'] = 'checking';
     try {
@@ -153,9 +160,7 @@ function requireConnectedComputer(
     connections: ComputerConnections
 ) {
     if (computer.health === 'offline' || !connections.hasAttachment(computer.id)) {
-        throw new ComputerSetupDeniedError(
-            'Reconnect this Computer before checking for or installing updates.'
-        );
+        throw new ComputerSetupDeniedError(unreachableComputerMessage);
     }
 }
 

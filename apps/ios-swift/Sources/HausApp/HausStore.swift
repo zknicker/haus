@@ -49,16 +49,19 @@ final class HausStore {
     var inlineReplyLoadsInFlight: Set<String> = []
     // MARK: - Inbox snapshots
     //
-    // The Server-wide reads the Inbox and its sidebar badge stand on, loaded
-    // and refreshed by `HausStoreInbox.swift`. Each stays nil until its first
-    // load, which is what lets `needsYouCount` stay silent until it can answer
-    // honestly, and what lets a durable event refresh only what this client
-    // actually holds.
-    var needsYouRows: [NeedsYouRow]?
-    /// Done presses still settling, by Chat id and the sequence each covered.
-    /// A row stays hidden until the Server answers unless newer addressing
-    /// arrives first (`NeedsYou.visible`).
-    var needsYouDoneThrough: [String: Int] = [:]
+    // The Server-wide reads the Inbox stands on, loaded and refreshed by
+    // `HausStoreInbox.swift`. Each stays nil until its first load, which is
+    // what lets a durable event refresh only what this client actually holds.
+    /// Inbox Mark read presses still settling, by Chat id and the sequence
+    /// each covered. A Chat stays hidden until the Server answers unless a
+    /// newer message arrives first (`UnreadChats.isUnread`).
+    var markedReadThrough: [String: Int] = [:]
+    /// Whether the Chat list has landed once, so the unread count stays silent
+    /// until it can answer honestly.
+    private(set) var hasLoadedChats = false
+    /// The app icon badge: unread Chats across every Server, as the Server
+    /// counts them for push. Nil until first read (`HausStoreIconBadge.swift`).
+    var iconBadgeCount: Int?
     /// The Server-wide default Task lens (`task.list`), which the Task list
     /// reads and durable task events refresh.
     var serverTasks: [TaskListItem]?
@@ -175,34 +178,6 @@ final class HausStore {
         await start()
     }
 
-    private func reloadServer(_ serverID: String) async throws {
-        async let loadedChats: [ChatSummary] = client.query(
-            "chat.list",
-            input: ServerScopedInput(serverId: serverID)
-        )
-        async let loadedAgents: [AgentSummary] = client.query(
-            "agent.list",
-            input: ServerScopedInput(serverId: serverID)
-        )
-        async let loadedMembers: MemberList = client.query(
-            "member.list",
-            input: ServerScopedInput(serverId: serverID)
-        )
-        chats = try await loadedChats
-        agents = try await loadedAgents
-        if !lifecycleAvailability.isEmpty { lifecycleAvailability.removeAll() }
-        members = try await loadedMembers
-        await reloadActiveActivity(serverID: serverID)
-        await loadComputers(serverID: serverID)
-
-        let initialChatID = preferredInitialChatID
-            .flatMap { preferred in chats.first { $0.id == preferred }?.id }
-            ?? chats.first?.id
-        if let initialChatID {
-            await loadMessages(chatID: initialChatID)
-        }
-    }
-
     /// Observation notifies on equal-value writes, so the event paths must not
     /// restate a connection they already have: doing so invalidated the root
     /// body once per SSE frame. `markDisconnected` is the same rule for the
@@ -263,6 +238,7 @@ final class HausStore {
     var chats: [ChatSummary] {
         get { storedChats }
         set {
+            if !hasLoadedChats { hasLoadedChats = true }
             guard storedChats != newValue else { return }
             storedChats = newValue
             projections.retireChatListProjection()

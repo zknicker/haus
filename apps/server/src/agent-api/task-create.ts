@@ -6,6 +6,7 @@ import { planAgentMessageRecipients } from '../agent-delivery/message-recipients
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
+import { readConversationKind } from '../chats/message-created-event.ts';
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -251,6 +252,10 @@ async function insertAgentMessageCreatedEvent(
     return {
         authorUserId: null,
         chatId: input.chatId,
+        conversationKind: await readConversationKind(db, {
+            chatId: input.chatId,
+            serverId: input.serverId,
+        }),
         createdAt: event.createdAt.toISOString(),
         cursor: cursor.toString(),
         id: event.id,

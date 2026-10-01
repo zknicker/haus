@@ -38,25 +38,13 @@ extension HausStore {
         )
     }
 
-    /// The conversations addressed to the viewer, less any Done still
-    /// settling. Nil until the read has landed.
-    var inboxNeedsYouRows: [InboxNeedsYouRow]? {
-        InboxNeedsYouRows.rows(visibleNeedsYouRows) { agentID, userID in
-            actorPresentation(agentID: agentID, userID: userID)
-        }
-    }
-
-    /// Unread Chats, newest first, less the ones Needs you already lists. The
-    /// Chat list is part of the Server snapshot the shell already stands on,
-    /// but which Chats Needs you claims is not known until its read lands, so
-    /// the section waits for it rather than listing a Chat and then taking it
-    /// back.
-    var inboxConversationRows: [InboxConversationRow]? {
-        guard let needsYou = visibleNeedsYouRows else { return nil }
-        return InboxConversationRows.rows(
-            chats.map(inboxConversation),
-            viewerDisplayName: inboxGreetingName,
-            hiding: NeedsYou.chatIDs(needsYou)
+    /// Every unread Chat, newest first, less any Mark read still settling.
+    /// Nil until the Chat list has landed.
+    var inboxUnreadRows: [InboxUnreadRow]? {
+        guard let unreadChats else { return nil }
+        return InboxUnreadRows.rows(
+            unreadChats.map(inboxUnreadChat),
+            viewerDisplayName: inboxGreetingName
         )
     }
 
@@ -76,7 +64,7 @@ extension HausStore {
         }
     }
 
-    private func inboxConversation(_ chat: ChatSummary) -> InboxConversation {
+    private func inboxUnreadChat(_ chat: ChatSummary) -> InboxUnreadChat {
         let name: String
         let mark: InboxMark
         switch chat.kind {
@@ -92,7 +80,7 @@ extension HausStore {
                 presence: actor?.presence
             )
         }
-        return InboxConversation(
+        return InboxUnreadChat(
             id: chat.id,
             name: name,
             isChannel: chat.kind == .channel,

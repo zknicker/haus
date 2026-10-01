@@ -8,7 +8,12 @@ export const listComputersProcedure = memberProcedure
     .input(z.object({ serverId: serverIdSchema }).strict())
     .query(async ({ ctx, input }) => {
         try {
-            return await listServerComputers(ctx.hausDb, ctx.member, input.serverId);
+            return await listServerComputers(
+                ctx.hausDb,
+                ctx.computerConnections,
+                ctx.member,
+                input.serverId
+            );
         } catch (cause) {
             if (cause instanceof ComputerSetupDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

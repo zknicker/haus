@@ -308,28 +308,6 @@ export const threadFollowReceiptSchema = z
     })
     .strict();
 
-export const chatMarkReadInputSchema = z
-    .object({
-        chatId: idSchema,
-        sequence: z.number().int().nonnegative(),
-        serverId: idSchema,
-    })
-    .strict();
-
-export const chatReadReceiptSchema = z
-    .object({
-        chatId: idSchema,
-        eventCursor: z
-            .string()
-            .regex(/^[1-9]\d*$/u)
-            .nullable(),
-        sequence: z.number().int().nonnegative(),
-        serverId: idSchema,
-    })
-    .strict();
-
-export type ChatReadReceipt = z.infer<typeof chatReadReceiptSchema>;
-
 export const chatSearchInputSchema = z
     .object({
         /** Only messages created at or after this instant. */
@@ -355,10 +333,11 @@ export const messageCreatedEventSchema = z
     .object({
         authorUserId: idSchema.nullable(),
         chatId: idSchema,
+        conversationKind: z.enum(['channel', 'dm']), // A Thread reports its parent's kind.
         createdAt: timestampSchema,
         cursor: z.string().regex(/^[1-9]\d*$/u),
         id: idSchema,
-        /** With the author, reply, and Thread anchor ids, gates Needs you refetches (ADR 0037). */
+        /** With the author, kind, and reply/anchor authors: `messageNotificationReason`'s facts. */
         mentionedUserIds: z.array(z.string()),
         messageId: idSchema,
         parentChatId: idSchema.nullable(),

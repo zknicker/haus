@@ -3,9 +3,9 @@ import type { ChatEventInvalidation } from './chat-event-invalidation.ts';
 import { useChatEvent } from './use-chat-event-stream.tsx';
 
 /**
- * A read moves unread counts, and `chat.list` is where they render. Needs you
- * Done emits the same reader-scoped event, so the Needs you rows refetch here
- * too. The transcript itself is left alone.
+ * A read moves unread counts, and `chat.list` is where they render — the
+ * sidebar, the Inbox's Unread section, and its badge. The transcript itself is
+ * left alone.
  */
 export function useChatReadEvents() {
     const utils = hausTrpc.useUtils();
@@ -19,8 +19,5 @@ export async function invalidateChatRead({
     serverId,
     utils,
 }: Pick<ChatEventInvalidation<'chat.read'>, 'serverId' | 'utils'>) {
-    await Promise.all([
-        utils.chat.list.invalidate({ serverId }),
-        utils.inbox.needsYou.invalidate({ serverId }),
-    ]);
+    await utils.chat.list.invalidate({ serverId });
 }
