@@ -90,7 +90,6 @@ export interface DesktopUpdateStep {
         | 'current'
         | 'downloading'
         | 'failed'
-        | 'pending'
         | 'restart-required'
         | 'restarting';
     progress: number | null;

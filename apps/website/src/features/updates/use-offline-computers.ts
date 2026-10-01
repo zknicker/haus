@@ -3,6 +3,7 @@ import type { ComputerUpdateComputer } from '../computers/computer-update-card.t
 import { computerLabel } from '../computers/presentation.ts';
 import { expectedComputerRestartMs, offlineComputerNoticeDelayMs } from './haus-update-timing.ts';
 import { offlineComputerUpdateExpiry } from './offline-computer-update.ts';
+import { stalledComputerUpdateExpiry } from './stalled-computer-update.ts';
 
 export interface OfflineComputerNotice {
     id: string;
@@ -108,11 +109,14 @@ export function nextUpdateExpiry(
     observedAt: number
 ) {
     const expiries = computers.flatMap((computer) => {
-        const expiry = offlineComputerUpdateExpiry({
+        const progress = {
             health: computer.health,
             phase: computer.updatePhase,
             updateUpdatedAt: computer.updateUpdatedAt,
-        });
+        };
+        // Offline and stalled-while-connected updates both turn into failures at expiry.
+        const expiry =
+            offlineComputerUpdateExpiry(progress) ?? stalledComputerUpdateExpiry(progress);
         return expiry !== null && expiry > observedAt ? [expiry] : [];
     });
     return expiries.length > 0 ? Math.min(...expiries) : null;

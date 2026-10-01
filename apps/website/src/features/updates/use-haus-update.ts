@@ -2,16 +2,20 @@ import { hausReleaseDiscoverySchema } from '@haus/api';
 import { useQuery } from '@tanstack/react-query';
 import * as React from 'react';
 import { useDesktopUpdate } from '../../hooks/desktop/use-desktop-update.ts';
+import { useComputerPresenceCheck } from '../../hooks/servers/use-computer-presence-check.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useWebsiteUpdate } from '../../hooks/updates/use-website-update.ts';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { ComputerUpdateComputer } from '../computers/computer-update-card.tsx';
 import { computerLabel } from '../computers/presentation.ts';
+import { gateComputersByPresence } from './computer-presence-gate.ts';
 import type { HausUpdateComputer, HausUpdateDesktop, HausUpdateView } from './haus-update-model.ts';
 import { projectHausUpdate } from './haus-update-model.ts';
 import { createHausUpdateController, type HausUpdateRunResult } from './haus-update-reconciler.ts';
+import { applyRunFailures } from './haus-update-run-failures.ts';
 import { useOfflineComputers } from './use-offline-computers.ts';
+import { waitForUpdateStepChange } from './wait-for-update-step.ts';
 import { withWebsiteUpdate } from './website-update-model.ts';
 
 const productionReleaseUrl = '/api/haus-release';
@@ -45,7 +49,11 @@ export function useHausUpdate() {
 function useHausUpdateState(serverId: string, canOperate: boolean) {
     const websiteUpdate = useWebsiteUpdate();
     const computers = useComputers(serverId, { enabled: canOperate });
-    const visibleComputers = canOperate ? (computers.data ?? []) : [];
+    const presence = useComputerPresenceCheck(serverId, { enabled: canOperate });
+    const gatedComputers = canOperate
+        ? gateComputersByPresence(presence, computers.data ?? [])
+        : [];
+    const visibleComputers = gatedComputers ?? [];
     const offlineComputers = useOfflineComputers(visibleComputers);
     const desktop = useDesktopUpdate();
     const updateComputer = hausTrpc.computer.update.useMutation();
@@ -90,25 +98,16 @@ function useHausUpdateState(serverId: string, canOperate: boolean) {
             updateComputer: async ({ computerId, targetVersion }) => {
                 await updateComputer.mutateAsync({ computerId, serverId, targetVersion });
             },
-            waitForChange: async (step) => {
-                const initial = stepSignature(step);
-                const maximumAttempts =
-                    step.kind === 'computer' && step.phase === 'waiting-for-agents'
-                        ? Number.POSITIVE_INFINITY
-                        : 120;
-                for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
-                    await wait(1000);
-                    if (step.kind === 'computer') {
-                        const computerResult = await computers.refetch();
-                        observations.current.computers = computerResult.data ?? [];
-                    }
-                    const next = readView().steps.find((candidate) => candidate.id === step.id);
-                    if (!next || stepSignature(next) !== initial) {
-                        return;
-                    }
-                }
-                throw new Error(`${step.label} did not finish updating.`);
-            },
+            waitForChange: (step) =>
+                waitForUpdateStepChange(step, {
+                    readView,
+                    refreshComputers: async () => {
+                        // Parallel steps share one in-flight request instead of cancelling it.
+                        const result = await computers.refetch({ cancelRefetch: false });
+                        observations.current.computers = result.data ?? [];
+                    },
+                    sleep: wait,
+                }),
         });
         const task = controller
             .run()
@@ -144,6 +143,7 @@ function useHausUpdateState(serverId: string, canOperate: boolean) {
     return {
         canOperate,
         isRunning,
+        isSettled: gatedComputers !== null,
         offlineComputers,
         releaseError: release.error,
         run,
@@ -185,48 +185,6 @@ function projectComputer(computer: ComputerUpdateComputer): HausUpdateComputer {
     };
 }
 
-function applyRunFailures(
-    view: HausUpdateView,
-    result: HausUpdateRunResult | null
-): HausUpdateView {
-    if (result?.kind !== 'failed') {
-        return view;
-    }
-    const failures = new Map(
-        result.failures.flatMap((failure) => {
-            if (failure.stepId === 'update-sequence') {
-                return [[failure.stepId, failure.detail] as const];
-            }
-            const fact = view.componentFacts.find((candidate) => candidate.id === failure.stepId);
-            return fact && fact.status !== 'current'
-                ? [[failure.stepId, failure.detail] as const]
-                : [];
-        })
-    );
-    if (failures.size === 0) {
-        return view;
-    }
-    const firstFailure = failures.values().next().value ?? 'Haus could not update.';
-    return {
-        ...view,
-        componentFacts: view.componentFacts.map((fact) => {
-            const detail = failures.get(fact.id);
-            return detail
-                ? {
-                      ...fact,
-                      detail,
-                      remedy: fact.remedy ?? 'Try again. If the problem continues, open Settings.',
-                      status: 'failed' as const,
-                  }
-                : fact;
-        }),
-        detail: firstFailure,
-        headline: 'Update needs attention',
-        phase: 'failed',
-        primaryAction: { kind: 'retry', label: 'Try again' },
-    };
-}
-
 function projectDesktop(desktop: ReturnType<typeof useDesktopUpdate>): HausUpdateDesktop {
     if (!isElectronDesktopApp()) {
         return { kind: 'web' };
@@ -246,10 +204,6 @@ async function fetchLatestRelease() {
         throw new Error(`Haus update check failed (${response.status}).`);
     }
     return hausReleaseDiscoverySchema.parse(await response.json());
-}
-
-function stepSignature(step: HausUpdateView['steps'][number]) {
-    return JSON.stringify([step.phase, step.currentVersion, step.progress, step.detail]);
 }
 
 function wait(milliseconds: number) {

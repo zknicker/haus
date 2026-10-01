@@ -58,9 +58,7 @@ export async function runHausUpdateSequence(
         }
     }
 
-    const selectedSteps = initialView.steps.filter(
-        (step) => !isCompleteUpdateStep(step) && (step.kind !== 'computer' || step.connected)
-    );
+    const selectedSteps = selectHausUpdateBatch(initialView.steps);
     const outcomes = await Promise.all(
         selectedSteps.map((step) => reconcileStep(step, operations))
     );
@@ -82,9 +80,23 @@ export async function runHausUpdateSequence(
         ...finalFailures,
     ]).filter((failure) => {
         const step = finalView.steps.find((candidate) => candidate.id === failure.stepId);
-        return !(step && isCompleteUpdateStep(step));
+        // A disconnected Computer's outcome is unconfirmed, not retryable; the
+        // projected view owns that state until it reconnects.
+        return !(step && (isCompleteUpdateStep(step) || isDisconnectedComputer(step)));
     });
     return failures.length > 0 ? { failures, kind: 'failed' } : { kind: 'complete' };
+}
+
+/**
+ * The steps one press acts on: a ready App restart alone, otherwise every
+ * incomplete step whose surface is reachable now.
+ */
+export function selectHausUpdateBatch(steps: readonly HausUpdateStep[]): HausUpdateStep[] {
+    const restart = desktopRestartStep(steps);
+    if (restart) {
+        return [restart];
+    }
+    return steps.filter((step) => !(isCompleteUpdateStep(step) || isDisconnectedComputer(step)));
 }
 
 async function reconcileStep(
@@ -127,16 +139,20 @@ function shouldStartComputer(step: HausUpdateStep): step is ComputerUpdateStep {
 }
 
 function shouldDownloadDesktop(step: HausUpdateStep): step is DesktopUpdateStep {
-    return (
-        step.kind === 'desktop-app' &&
-        (step.phase === 'available' || step.phase === 'failed' || step.phase === 'pending')
-    );
+    return step.kind === 'desktop-app' && (step.phase === 'available' || step.phase === 'failed');
 }
 
 function isSettled(step: HausUpdateStep) {
     return (
-        isCompleteUpdateStep(step) || step.phase === 'failed' || step.phase === 'restart-required'
+        isCompleteUpdateStep(step) ||
+        isDisconnectedComputer(step) ||
+        step.phase === 'failed' ||
+        step.phase === 'restart-required'
     );
+}
+
+function isDisconnectedComputer(step: HausUpdateStep) {
+    return step.kind === 'computer' && !step.connected;
 }
 
 function desktopRestartStep(steps: readonly HausUpdateStep[]) {
