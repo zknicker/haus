@@ -3916,6 +3916,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "done_sequence": {
+          "name": "done_sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "reader_user_id": {
           "name": "reader_user_id",
           "type": "text",
