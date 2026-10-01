@@ -134,28 +134,36 @@ async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
         'cancelled',
         'expired',
     ];
+    const stateTitles: Record<CloudAgentStatus, string> = {
+        queued: 'Compact attachment previews',
+        running: 'Tighten sidebar spacing',
+        completed: 'Rename Computer settings labels',
+        failed: 'Migrate reminder schedules',
+        cancelled: 'Draft release notes',
+        expired: 'Audit empty-state copy',
+    };
     for (const status of states) {
         const work = await galleryWork(db, context, {
-            title: `Cloud work · ${status} · Compact attachment`,
+            title: stateTitles[status],
             status,
             withBranch: status === 'completed',
         });
         await galleryThread(db, context, work);
     }
     const cancelling = await galleryWork(db, context, {
-        title: 'Cloud work · Cancelling',
+        title: 'Accessibility pass on settings',
         status: 'running',
         cancelling: true,
     });
     await galleryThread(db, context, cancelling);
     const stale = await galleryWork(db, context, {
-        title: 'Cloud work · Stale progress',
+        title: 'Fix stale reminder copy',
         status: 'running',
         stale: true,
     });
     await galleryThread(db, context, stale);
     const discussed = await galleryWork(db, context, {
-        title: 'Cloud work with replies · Review the navigation fix',
+        title: 'Review the navigation fix',
         status: 'completed',
         withBranch: true,
     });
