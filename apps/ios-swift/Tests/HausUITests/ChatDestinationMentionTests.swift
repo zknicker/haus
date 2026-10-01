@@ -188,7 +188,13 @@ import Testing
             "Ask [@Blippy](agent://agt_blippy) and [@Ada](user://usr_ada)\nabout the [#product](chat://cht_product) review"
         )
 
-        #expect(preview == "Ask Blippy and Ada about the Product review")
+        #expect(preview == "Ask @Blippy and @Ada about the Product review")
+    }
+
+    @Test func oneLinePreviewKeepsTheMentionSigilTheWayTheAppDoes() {
+        let preview = RichMessageParser.oneLinePreview("[@you](user://usr_viewer) Task +1")
+
+        #expect(preview == "@you Task +1")
     }
 
     @Test func oneLinePreviewReadsASkillAsItsProductName() {

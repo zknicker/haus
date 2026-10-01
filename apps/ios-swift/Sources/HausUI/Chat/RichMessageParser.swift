@@ -112,12 +112,20 @@ public enum RichMessageParser {
     /// The same shaping the chip does: a typed target names its kind, and
     /// `ReferenceLabel` reads the link text for that kind. A target this client
     /// does not chip keeps its link text as written.
+    ///
+    /// A mention keeps its `@`, as the App's preview line does: flat text has
+    /// no chip to say "this is a person", so the sigil says it — `Cove: you
+    /// Task` read as prose, `Cove: @you Task` reads as an address.
     private static func previewLabel(text: String, target: String) -> String {
         guard let reference = RichReferenceWireForm.read(target: target, text: text) else {
             return text
         }
-        return reference.label
+        let label = reference.label
             ?? ReferenceLabel.display(text, kind: reference.kind, id: reference.id)
+        switch reference.kind {
+        case .agent, .human: return "@" + ReferenceLabel.strippingSigil(label)
+        default: return label
+        }
     }
 
     // The reference grammar without its scheme constraint: a preview reads the

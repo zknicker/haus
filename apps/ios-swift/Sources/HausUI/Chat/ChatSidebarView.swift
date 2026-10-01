@@ -132,9 +132,9 @@ public struct ChatSidebarView: View {
                             ForEach(directMessages) { row($0) }
                         }
                         // The inset rides on the list, not on the scroll
-                        // view: the scroll view has to reach the sidebar's own
-                        // leading edge, because that edge is what cuts the
-                        // unread markers in half.
+                        // view: the unread markers sit in the gutter outside
+                        // each row, and the scroll view's clip must not reach
+                        // them.
                         .padding(.horizontal, Self.listInset)
                         .padding(.bottom, 72)
                     }
@@ -236,7 +236,11 @@ public struct ChatSidebarView: View {
                 selectedDestinationID == chat.id ? selectedRowFill : .clear,
                 in: .capsule
             )
-            .sidebarUnreadDot(chat.unreadCount > 0, listInset: Self.listInset)
+            .sidebarUnreadDot(
+                chat.unreadCount > 0,
+                listInset: Self.listInset,
+                glyphInset: Self.rowCapsuleBleed
+            )
             // The label's own drawing stops at the title, so without this the
             // tappable area is the glyph and the text rather than the row.
             .contentShape(Rectangle())

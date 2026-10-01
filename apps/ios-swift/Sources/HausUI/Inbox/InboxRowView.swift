@@ -10,7 +10,8 @@ import SwiftUI
 /// tail.
 ///
 /// The whole row is the press target and carries no nested control; a row's
-/// secondary action — an Unread row's Mark read — rides its context menu.
+/// secondary action — an Unread row's Mark read — rides its swipe and context
+/// menu.
 struct InboxRowView<Trailing: View>: View {
     let mark: InboxMark
     let title: String
@@ -87,10 +88,11 @@ struct InboxMarkView: View {
     }
 }
 
-/// One left edge for every line on the page: the greeting, the section labels,
-/// and each row's mark all start here.
+/// The Inbox's own metrics inside the List's inset column: each row's mark and
+/// the greeting start `rowInset` inside the column's edge.
 enum InboxMetrics {
-    static let pageInset: CGFloat = 20
+    /// The gap between sections, which the List owns as its section spacing.
+    static let sectionSpacing: CGFloat = 22
     static let rowInset: CGFloat = 14
     static let boxRadius: CGFloat = 14
     /// The width a preview keeps whatever the title does. It is the App's 40%

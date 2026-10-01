@@ -3,8 +3,8 @@ import SwiftUI
 /// The sidebar's anchor: Inbox, marked by the Haus ghost where a product's
 /// wordmark would sit. Nothing else shares its line.
 ///
-/// Any unread Chat shows as the disc every Chat row below hangs off the
-/// sidebar's leading edge, never as a number: a total is a count the reader
+/// Any unread Chat shows as the disc every Chat row below wears in the
+/// sidebar's leading gutter, never as a number: a total is a count the reader
 /// cannot act on, and a chip on this row alone would break the column's one
 /// grammar. Like theirs it shows nothing when nothing is unread, which is also
 /// what it reads while the Store cannot answer honestly yet, so it never ticks
@@ -46,7 +46,7 @@ struct SidebarInboxRow: View {
             .foregroundStyle(.primary)
             .padding(.horizontal, capsuleBleed)
             .frame(height: 42)
-            .sidebarUnreadDot(hasUnread, listInset: listInset)
+            .sidebarUnreadDot(hasUnread, listInset: listInset, glyphInset: capsuleBleed)
             .contentShape(Rectangle())
         }
         .buttonStyle(.pressableRow(cornerRadius: 21))

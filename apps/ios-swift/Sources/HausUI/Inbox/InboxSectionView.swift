@@ -1,39 +1,22 @@
 import SwiftUI
 
-/// One Inbox section: the label at the page column's left edge, and below it
-/// whatever that section shows. Three sections put a bordered group of rows
-/// there; the week strip puts its cards there instead, because cards already
-/// carry their own edges.
+/// One Inbox section: a stock List `Section` whose header is the section's
+/// label. The List's grouped surface is the box under it, so a section draws
+/// no card of its own — rows sit on `inboxCardRow()`, and the week strip sits
+/// on `inboxBareRow()` because its cards already carry their own edges.
 struct InboxSectionView<Content: View>: View {
     let title: String
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Section {
+            content
+        } header: {
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, InboxMetrics.pageInset)
-            content
+                .textCase(nil)
         }
-    }
-}
-
-/// The box under a section's label: its rows, separated, inside one group.
-struct InboxSectionRows<Content: View>: View {
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        VStack(spacing: 0) { content }
-            .background(
-                HausPlatformColor.groupedSurface,
-                in: .rect(cornerRadius: InboxMetrics.boxRadius)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: InboxMetrics.boxRadius)
-                    .strokeBorder(Color.primary.opacity(0.07))
-            )
-            .padding(.horizontal, InboxMetrics.pageInset)
     }
 }
 
@@ -44,21 +27,29 @@ struct InboxSectionEmpty: View {
     let description: String
 
     var body: some View {
-        InboxSectionRows {
-            Text(description)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, InboxMetrics.rowInset)
-                .padding(.vertical, 14)
-        }
+        Text(description)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, InboxMetrics.rowInset)
+            .padding(.vertical, 14)
+            .inboxCardRow()
     }
 }
 
-/// The divider between a pair of rows. The first row carries none, so the box
-/// never opens on a rule.
-struct InboxRowDivider: View {
-    var body: some View {
-        Divider().padding(.leading, InboxMetrics.rowInset + inboxMarkSize + 10)
+extension View {
+    /// A row on the section's grouped surface. The row owns its own insets, so
+    /// the mark lands on the same column it did before the page was a List.
+    func inboxCardRow() -> some View {
+        listRowInsets(EdgeInsets())
+            .listRowBackground(HausPlatformColor.groupedSurface)
+    }
+
+    /// A row with no surface: the greeting and the week strip read as page
+    /// content, not as a card.
+    func inboxBareRow() -> some View {
+        listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 }

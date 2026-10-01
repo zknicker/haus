@@ -7,12 +7,8 @@ import SwiftUI
 /// cannot act on costs a chip's worth of color and width to say what the disc
 /// already said, so the drawer, the Inbox, and Search all wear this instead.
 struct UnreadDot: View {
-    /// What a row inside a box shows: the whole disc, at the width the
-    /// sidebar's halved one leaves standing past its edge.
+    /// What a row inside a box shows, and what the sidebar shows in its gutter.
     static let inlineDiameter: CGFloat = 8
-    /// What the sidebar hangs off its leading edge for that edge to cut in
-    /// half. Half of this is what the reader actually sees.
-    static let sidebarDiameter: CGFloat = 14
 
     var diameter: CGFloat = UnreadDot.inlineDiameter
 
@@ -25,19 +21,24 @@ struct UnreadDot: View {
 }
 
 extension View {
-    /// The sidebar's placement of that mark: pushed out until its centre lands
-    /// on the sidebar's leading edge, where the scroll view's clip takes the
-    /// other half. `listInset` is how far the row's own leading edge sits
-    /// inside that edge.
+    /// The sidebar's placement of that mark: the whole disc, centred in the
+    /// gutter between the sidebar's leading edge and the row's glyph column,
+    /// the way Mail and Messages hang theirs. `listInset` is how far the row's
+    /// own leading edge sits inside the sidebar's edge, and `glyphInset` how
+    /// far the glyph sits inside the row's.
+    ///
+    /// It used to straddle the sidebar's edge for the scroll view's clip to
+    /// cut in half; on device that read as a clipped half-circle rather than a
+    /// mark, so the disc now sits fully inside the gutter.
     ///
     /// Every row in the drawer marks unread this way — the Inbox included, so
     /// the column reads as one system rather than one row keeping its own
     /// score.
-    func sidebarUnreadDot(_ isUnread: Bool, listInset: CGFloat) -> some View {
+    func sidebarUnreadDot(_ isUnread: Bool, listInset: CGFloat, glyphInset: CGFloat) -> some View {
         overlay(alignment: .leading) {
             if isUnread {
-                UnreadDot(diameter: UnreadDot.sidebarDiameter)
-                    .offset(x: -listInset - UnreadDot.sidebarDiameter / 2)
+                UnreadDot()
+                    .offset(x: (glyphInset - listInset - UnreadDot.inlineDiameter) / 2)
             }
         }
     }
