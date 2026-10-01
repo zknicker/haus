@@ -52,7 +52,8 @@ Thread anchored on their message. `messageNotificationReason` in
 `packages/haus-api/src/message-notification.ts` is the rule; `message.created` carries every fact
 it reads (`authorUserId`, `conversationKind`, `mentionedUserIds`, `replyToAuthorUserId`,
 `threadAnchorAuthorUserId`). iPhone push on the Server and desktop/web notifications in the App
-both call it, so they cannot drift. Reading a Chat never suppresses the next notification; the
+both call it, so they cannot drift. Reading a Chat never suppresses the next notification (a
+push for a message already read is skipped; see Consequences); the
 App's own suppression (window visible and focused, Settings toggle, permission, one tab per Server
 by Web Lock, nothing from before load or from a reconnect's catch-up replay, nothing already read)
 stays.
@@ -77,7 +78,9 @@ components and hooks go. Migration `0054_drop_chat_reads_done_sequence` drops
   and the mention chip are its whole presentation.
 - The onboarding Channel is not in `chat.list` until setup completes, so a mention there notifies
   but does not appear under Unread until then.
-- Haus does not yet skip a push while the human is looking at the Chat on another device, as
-  Raft does.
+- An iPhone push waits a short grace period (`pushReadGraceMs`, 4 seconds) and is skipped when
+  the human's read marker already covers the message, so a message read in a focused App window
+  does not also buzz the phone. This is Raft's "already looking" skip built on read state, with no
+  presence tracking; it only reaches clients that mark read as messages arrive.
 - The web notification switch moved to a new storage key, so a device that had it on must turn it
   on again once.

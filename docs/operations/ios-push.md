@@ -13,7 +13,8 @@ The Haus Server pushes an iPhone alert for every message that notifies a human u
 message notification rule ([Inbox](../features/inbox.md#notifications),
 [ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)): every message from someone else in
 their DMs, and in a Channel or Thread one that @mentions them, inline-replies to their message, or
-sits in a Thread on their message. Reading a Chat never stops the next push.
+sits in a Thread on their message. Reading a Chat never stops the next push, but a push waits a
+short grace period and is skipped if you have already read that message anywhere.
 Haus Server owns the device registrations and the APNs connection; the iPhone only registers.
 
 ## Contract
@@ -52,8 +53,15 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
 `messageNotificationReason` (`packages/haus-api/src/message-notification.ts`, the same rule the
 App's desktop and web notifications use) to the humans the event names and the DM's members, then
 keeps humans with a live membership, a device, and access to the Chat; an archived or deleted Chat
-pushes nobody, and the author is never pushed. Sends run off the send path and never fail it, at
-most four messages at a time (a backlog past 1,000 drops new pushes). The badge is the human's
+pushes nobody, and the author is never pushed. Each message waits `pushReadGraceMs` (4 seconds)
+before its recipients are read, and a human whose read marker in the message's own Chat already
+covers it (`chat_reads.sequence >= message.sequence`) is skipped: the App marks an open Chat read
+as messages arrive in a visible, focused window, so a message read on the desktop does not also
+buzz the phone. A Thread message checks the Thread's own marker, which the open Thread pane or the
+Inbox's Mark read advances; reading the Channel alone does not. The wait sits in the in-memory push
+queue and holds no send slot. Like the rest of the queue it is lost on restart, and shutdown waits
+it out before sending. Sends run off the send path and never fail it, at most four messages at a
+time (a backlog past 1,000, counting messages still waiting, drops new pushes). The badge is the human's
 unread Chats across every Server they belong to — each Server's `chat.list` Chats with an
 `unreadCount` above zero, counted in one query (`countUnreadChats`) built from the same
 `listedChats` scope and `chatUnreadCount` expression as `chat.list` (`apps/server/src/chats/chat-unread.ts`).

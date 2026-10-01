@@ -177,7 +177,7 @@ message — or, in a Channel or Thread, when it @mentions them, inline-replies t
 sits in a Thread anchored on their message. `messageNotificationReason` in
 `packages/haus-api/src/message-notification.ts` is that rule, over the facts `message.created`
 carries; the Server and the App both call it. Reading a Chat clears it from the Inbox but never
-stops the next notification.
+stops the next notification; only a message already read is not notified.
 
 - **Desktop (Electron) and web** apply the rule to the `message.created` events their Chat event
   stream delivers, and use the platform `Notification` API while the window is hidden or
@@ -196,7 +196,9 @@ stops the next notification.
 - **macOS** keeps the app running when its last window closes: closing hides the window, and
   Cmd+Q or the menu's Quit quits. Notifications therefore keep arriving with no window open.
 - **iPhone** gets an APNs alert, even while Haus is closed, for every message the rule names: one
-  push per human per message, to each device they registered, if they can still see the Chat. The
+  push per human per message, to each device they registered, if they can still see the Chat. A
+  push waits about 4 seconds and is skipped if the human has read the message by then anywhere —
+  typically a focused App window that has the Chat (or the Thread) open. The
   title is the author, plus ` in #channel` outside a DM; the body is a plain-text preview cut to
   180 characters; the badge is the human's unread Chats across every Server — the same count the
   sidebar badge shows per Server, summed. The app sets its icon from the same Server count

@@ -682,6 +682,8 @@ always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. A Clo
 pushes the Thread it hangs off, carrying the conversation's Chat id and the anchor Message — the
 same pair a Thread composer sends to — and leaving the canvas selection alone for the same reason a
 Task does; an Unread row opens its DM or Channel.
+The page is a stock `.insetGrouped` `List`, so an Unread row marks read the Mail way: a leading
+swipe (`.swipeActions`, full swipe allowed) or the long-press peek's **Mark Read**.
 Stalled claims live on the Task list, in its **Stopped before finishing** group. One row still lands somewhere the App does not send it, because the phone
 has nowhere else: an Agent in **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
 Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
