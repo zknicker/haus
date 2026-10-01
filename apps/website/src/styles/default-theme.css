@@ -939,7 +939,8 @@
         --app-shell-band-icon-size: 20px;
     }
 
-    .button.sidebar-settings-action svg {
+    /* Mirrors HeroUI's `:not(spinner)` guard, whose specificity otherwise wins (15px). */
+    .button.sidebar-settings-action svg:not([data-slot="spinner"] svg) {
         width: var(--app-shell-band-icon-size);
         height: var(--app-shell-band-icon-size);
     }
