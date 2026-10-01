@@ -2072,44 +2072,58 @@
     }
 
     /*
-     * Transcript edge blur (components/chats/message-scroller.tsx), after
-     * Skiper UI's progressive blur: ONE element per edge carries the backdrop
-     * blur, the mask that fades it out toward the content, and a colour wash
-     * from the content plane to clear. The bottom band sits behind the floating
-     * composer (below `.chat-footer-dock`, z-index 20) and covers the measured
-     * footer plus a little. Neither may sit inside a rounded clip: a
-     * border-radius or clip-path clipping ancestor makes Chromium drop the mask
-     * (full-strength blur, hard line) — the desktop window shell's old rounded
-     * clip did exactly that. The top band shows by visibility only while
-     * scrolled past the start; the bottom band is always shown. Never animate
-     * either band's opacity or backdrop-filter.
+     * Transcript edge fade (components/chats/message-scroller.tsx): ONE element
+     * per edge paints the content plane's colour, carries a faint backdrop blur,
+     * and masks both with the same eased ramp, so rows dissolve into the
+     * background with only a trace of softening (a stronger blur smears text
+     * into haze). The ramp's smoothstep-ish stops keep either end from reading
+     * as a line. The bottom band sits behind the floating composer (below
+     * `.chat-footer-dock`, z-index 20): it holds solid from the bottom into the
+     * prompt input, so no row shows beneath it, and ramps out over the rows
+     * just above it. The measured footer also counts the reserved typing
+     * row above the input; ending the solid there faded rows well short of it. Neither may sit inside a rounded clip: a border-radius or
+     * clip-path clipping ancestor makes Chromium drop the mask (full-strength
+     * blur, hard line) — the desktop window shell's old rounded clip did
+     * exactly that. The top band shows by visibility only while scrolled past
+     * the start; the bottom band is always shown. Never animate either band's
+     * opacity or backdrop-filter.
      */
     .transcript-edge-blur {
-        --edge-blur: 2.5px;
-        --edge-blur-stop: 10%;
+        --edge-blur: 1px;
+        --edge-solid: 0px;
+        --edge-ramp: 4rem;
+        --edge-fade: linear-gradient(
+            var(--edge-fade-direction),
+            #000 var(--edge-solid),
+            rgb(0 0 0 / 0.9) calc(var(--edge-solid) + var(--edge-ramp) * 0.2),
+            rgb(0 0 0 / 0.65) calc(var(--edge-solid) + var(--edge-ramp) * 0.4),
+            rgb(0 0 0 / 0.35) calc(var(--edge-solid) + var(--edge-ramp) * 0.6),
+            rgb(0 0 0 / 0.1) calc(var(--edge-solid) + var(--edge-ramp) * 0.8),
+            transparent calc(var(--edge-solid) + var(--edge-ramp))
+        );
         position: absolute;
         inset-inline: 0;
         z-index: 1;
         pointer-events: none;
+        height: calc(var(--edge-solid) + var(--edge-ramp));
         visibility: hidden;
+        background-color: var(--color-background);
         -webkit-backdrop-filter: blur(var(--edge-blur));
         backdrop-filter: blur(var(--edge-blur));
+        -webkit-mask-image: var(--edge-fade);
+        mask-image: var(--edge-fade);
     }
 
     .transcript-edge-blur[data-side="top"] {
+        --edge-fade-direction: to bottom;
         top: 0;
-        height: 4rem;
-        background-image: linear-gradient(to bottom, var(--color-background), transparent);
-        -webkit-mask-image: linear-gradient(to bottom, #000 var(--edge-blur-stop), transparent);
-        mask-image: linear-gradient(to bottom, #000 var(--edge-blur-stop), transparent);
     }
 
     .transcript-edge-blur[data-side="bottom"] {
+        --edge-fade-direction: to top;
+        --edge-solid: max(0px, calc(var(--chat-footer-height, 0px) - 3rem));
+        --edge-ramp: 4rem;
         bottom: 0;
-        height: max(4rem, calc(var(--chat-footer-height, 0px) + 1.5rem));
-        background-image: linear-gradient(to top, var(--color-background), transparent);
-        -webkit-mask-image: linear-gradient(to top, #000 var(--edge-blur-stop), transparent);
-        mask-image: linear-gradient(to top, #000 var(--edge-blur-stop), transparent);
     }
 
     /* The bottom band is always on: at rest it covers only the empty footer
