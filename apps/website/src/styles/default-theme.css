@@ -929,6 +929,16 @@
      * A fixed `1rem` rather than a spacing multiple, for the same reason a
      * radio is a circle: this pairs with text, not with density.
      */
+    /*
+     * The Settings gear's glyph carries more internal air than the status
+     * marks beside it, so at their 16px it reads a size smaller; 18px lands it
+     * optically level with them and with the navigation icons.
+     */
+    .button.sidebar-settings-action svg {
+        width: 18px;
+        height: 18px;
+    }
+
     .sidebar__menu-icon svg {
         width: 1rem;
         height: 1rem;
@@ -2182,7 +2192,7 @@
     :is([data-shell-variant="canvas"], [data-shell-variant="band"]) .app-shell [data-slot="sidebar"] {
         /* HeroUI sizes the sidebar to the viewport; below the band it fills its row. */
         height: 100%;
-        /* The gear moved into the band, so the sidebar reserves no titlebar strip. */
+        /* The gear sits in the sidebar footer, so the sidebar reserves no titlebar strip. */
         --app-shell-titlebar-inset: 0px;
     }
 

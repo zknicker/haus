@@ -28,6 +28,7 @@ export function SidebarSettingsAction({
         <Tooltip>
             <Button
                 aria-label="Settings"
+                className="sidebar-settings-action"
                 isIconOnly
                 onHoverStart={onPreloadSettings}
                 onPress={onOpenSettings}
