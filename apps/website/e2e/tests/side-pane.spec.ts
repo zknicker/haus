@@ -77,7 +77,12 @@ test('split mode keeps the routed page and puts every other tab in the side pane
     await expect(sideTabs.locator('.workspace-tab')).toHaveCount(2);
     const paneBox = await sidePane.boundingBox();
     const stripBox = await sideTabs.boundingBox();
-    expect(Math.abs((stripBox?.x ?? 0) - (paneBox?.x ?? 0))).toBeLessThanOrEqual(6);
+    // The first tab sits one gutter (px-2) right of the pane's edge, over the toolbar's controls.
+    const firstTabBox = await sideTabs.locator('.workspace-tab').first().boundingBox();
+    const tabInset = (firstTabBox?.x ?? 0) - (paneBox?.x ?? 0);
+    expect(tabInset).toBeGreaterThanOrEqual(6);
+    expect(tabInset).toBeLessThanOrEqual(12);
+    expect(stripBox).not.toBeNull();
     // Hairlines continue the routed page's and the pane's leading edges up through the band.
     const sidebarBox = await page.getByRole('complementary', { name: 'Server' }).boundingBox();
     expect(await hairlineX(page.locator('.workspace-titlebar'))).toBe(

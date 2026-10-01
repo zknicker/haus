@@ -2045,14 +2045,22 @@
         height: calc(var(--spacing) * 4);
     }
 
-    /* No start inset: the first tab's edge lands on the card edge (canvas) or divider (band). */
+    /*
+     * Like Codex, the first tab sits one gutter right of its column's hairline,
+     * lined up with the controls below it (the browser toolbar's px-2), so the
+     * hairline reads as the column edge rather than the tab's border.
+     */
+    .shell-window-band > .workspace-titlebar,
+    .shell-window-band .workspace-band-trail[data-side-pane] {
+        padding-inline-start: calc(var(--spacing) * 2);
+    }
+
     .shell-window-band > .workspace-titlebar {
         --workspace-tab-height: var(--shell-tab-height);
         --workspace-tab-width: var(--shell-tab-width);
         min-width: 0;
         height: 100%;
         flex: 1;
-        padding-inline-start: 0;
     }
 
     /* Codex's window tabs: one step of air between tabs. */
