@@ -934,9 +934,14 @@
      * other marks, so it renders at 20px to read level with the navigation
      * rows' icons and identity marks.
      */
+    .button.sidebar-settings-action {
+        /* The shell's icon-button rule reads this; a direct svg size loses to it. */
+        --app-shell-band-icon-size: 20px;
+    }
+
     .button.sidebar-settings-action svg {
-        width: 20px;
-        height: 20px;
+        width: var(--app-shell-band-icon-size);
+        height: var(--app-shell-band-icon-size);
     }
 
     .sidebar__menu-icon svg {
