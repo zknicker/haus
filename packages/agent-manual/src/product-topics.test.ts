@@ -100,9 +100,11 @@ test('retires the Ask topic and teaches asking a human by @mention', () => {
     const recipe = getManualTopic('recipes/decision/when-to-ask-human');
     expect(recipe?.body).toContain('### In Haus');
     expect(recipe?.body).toContain(
-        'An @mention of them or an inline reply to their message (`haus message send --reply-to`) both put it in their Inbox'
+        'An @mention of them or an inline reply to their message (`haus message send --reply-to`) both notify them'
     );
-    expect(recipe?.body).toContain('their reply there wakes you');
+    expect(recipe?.body).toContain('any other message only shows as unread');
+    expect(recipe?.body).toContain('Every message in their DM notifies them too');
+    expect(recipe?.body).toContain('Their reply there wakes you');
     expect(getManualTopic('cloud-agents')?.body).toContain('**Launch approval.**');
     expect(getManualTopic('cloud-agents')?.body).toContain(
         'wait for an explicit yes in reply before `start`'
