@@ -79,7 +79,10 @@ export async function installDesktopBrowserStub(page: Page) {
             value: {
                 browserCommand: command,
                 browserSnapshot: async () => structuredClone(state),
-                browserBounds: async () => undefined,
+                // The last region the App reported for the native page (null: hidden).
+                browserBounds: async (bounds: unknown) => {
+                    Object.assign(window, { __browserBounds: bounds });
+                },
                 onBrowserState: (listener: (state: BrowserWorkspaceState) => void) => {
                     listeners.add(listener);
                     return () => listeners.delete(listener);

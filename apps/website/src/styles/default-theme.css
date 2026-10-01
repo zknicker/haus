@@ -762,7 +762,9 @@
      * The band's end: the layout controls and Settings. While the side pane
      * shows, it also holds the pane's strip and is as wide as the pane plus the
      * card's own inset past the band's end padding, so the strip starts over
-     * the pane's leading edge. The pane's tabs start from a narrower basis.
+     * the pane's leading edge. The pane's tabs share the band's one basis
+     * (Codex's at-most-240px tabs) and shrink evenly from it, so a few tabs
+     * read whole instead of truncating beside free strip.
      */
     .workspace-band-trail {
         display: flex;
@@ -774,7 +776,6 @@
     }
 
     .workspace-band-trail[data-side-pane] {
-        --workspace-tab-width: 10rem;
         width: calc(
             var(--workspace-side-pane-width) + var(--shell-card-gutter, 0px) +
                 var(--shell-card-border-width, 0px) - var(--spacing) * 2
@@ -2119,6 +2120,34 @@
         inset-inline-start: calc(var(--shell-tab-gap) / -2 - 0.5px);
         height: var(--shell-tab-separator-height);
         background: var(--shell-tab-separator);
+    }
+
+    /*
+     * Codex's column hairlines: the tab divider above, continued at each content
+     * column's leading edge so every tab group sits on its column — the routed
+     * page's (the sidebar's 1px edge in band, the card's border in canvas) and,
+     * while it shows, the side pane's (the trail starts on the pane's border).
+     */
+    .shell-window-band > .workspace-titlebar,
+    .shell-window-band .workspace-band-trail[data-side-pane] {
+        position: relative;
+    }
+
+    .shell-window-band > .workspace-titlebar::before,
+    .shell-window-band .workspace-band-trail[data-side-pane]::before {
+        position: absolute;
+        top: 50%;
+        inset-inline-start: 0;
+        width: 1px;
+        height: var(--shell-tab-separator-height);
+        background: var(--shell-tab-separator);
+        content: "";
+        pointer-events: none;
+        transform: translateY(-50%);
+    }
+
+    [data-shell-variant="band"] .shell-window-band > .workspace-titlebar::before {
+        inset-inline-start: -1px;
     }
 
     .shell-window-band .workspace-new-tab .button {

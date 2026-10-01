@@ -54,6 +54,34 @@ describe('desktop browser workspace', () => {
         expect(view.visible).toBe(false);
         expect(view.webContents.closed).toBe(false);
     });
+    test('hiding, moving, and reselecting a page keeps its live page', () => {
+        // The App hides a selected page (hidden side pane, the primary tab over it) with no
+        // bounds and moves it (split ↔ expanded, a resize) with new bounds; neither reloads.
+        const { window, workspace } = fixture();
+        workspace.open('https://example.com');
+        workspace.open('https://example.org');
+        const [first, second] = workspace.snapshot().tabs.map((tab) => tab.id);
+        const view = [...window.children][0];
+        const contents = view.webContents;
+        workspace.command({ kind: 'select', id: first });
+        for (const bounds of [
+            { x: 600, y: 40, width: 400, height: 600 },
+            null,
+            { x: 240, y: 40, width: 760, height: 600 },
+            null,
+            { x: 600, y: 40, width: 400, height: 600 },
+        ]) {
+            workspace.setBounds(bounds);
+            expect(view.visible).toBe(bounds !== null);
+        }
+        workspace.command({ kind: 'select', id: null });
+        workspace.command({ kind: 'select', id: second });
+        workspace.command({ kind: 'select', id: first });
+        expect(contents.loads).toEqual(['https://example.com/']);
+        expect(contents.calls).toEqual([]);
+        expect(contents.closed).toBe(false);
+        expect(window.children.has(view)).toBe(true);
+    });
     test('reopening a link reuses its tab and closing returns to another page or chat', () => {
         const { workspace, window } = fixture();
         workspace.open('https://example.com/one');

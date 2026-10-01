@@ -36,6 +36,16 @@ describe('workspace tab sizing contract', () => {
         expect(ruleBody('.workspace-titlebar')).toContain('--workspace-tab-width: 12.5rem;');
     });
 
+    test('the side pane strip holds the same basis as every other strip', () => {
+        // A narrower side basis truncated short titles while most of the strip sat empty.
+        expect(ruleBody('.workspace-band-trail[data-side-pane]')).not.toContain(
+            '--workspace-tab-width'
+        );
+        expect(ruleBody('.shell-window-band > .workspace-titlebar')).toContain(
+            '--workspace-tab-width: var(--shell-tab-width);'
+        );
+    });
+
     test('every tab kind restates its basis as its intrinsic width and shrinks from it', () => {
         // The sizing rule, not the base `.workspace-tab` anatomy rule above it.
         const tab = ruleStartingWith('.workspace-tab { container-type: inline-size;');

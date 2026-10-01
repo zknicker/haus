@@ -80,14 +80,15 @@ function SidePaneToggle() {
         return null;
     }
     const hidden = workspace.mode === 'split' && !workspace.sidePaneShown ? workspace.tabs : [];
-    const label = workspace.sidePaneShown ? 'Hide tabs' : 'Show tabs';
+    const tooltip = workspace.sidePaneShown ? 'Hide tabs' : 'Show tabs';
     return (
         <HoverCard closeDelay={200} openDelay={400}>
             <HoverCard.Trigger>
                 <Badge.Anchor>
                     <Tooltip isDisabled={hidden.length > 0}>
+                        {/* A fixed name: aria-pressed carries the state, the tooltip the action. */}
                         <ToggleButton
-                            aria-label={label}
+                            aria-label="Side pane tabs"
                             isIconOnly
                             isSelected={workspace.sidePaneShown}
                             onChange={workspace.toggleSidePane}
@@ -97,7 +98,7 @@ function SidePaneToggle() {
                             <Icon aria-hidden="true" icon={PanelRightIcon} size={16} />
                         </ToggleButton>
                         <Tooltip.Content>
-                            {label}
+                            {tooltip}
                             <Kbd>⇧⌘B</Kbd>
                         </Tooltip.Content>
                     </Tooltip>

@@ -12,6 +12,8 @@ class FakeContents extends EventEmitter {
     zoomFactor = 1;
     zoomLevel = 0;
     calls = [];
+    /** Every loadURL target, so tests can prove a page was never reloaded. */
+    loads = [];
     navigationHistory = {
         canGoBack: () => false,
         canGoForward: () => false,
@@ -37,6 +39,7 @@ class FakeContents extends EventEmitter {
         return { isEmpty: () => false, toJPEG: () => Buffer.from('page') };
     }
     async loadURL(url) {
+        this.loads.push(url);
         this.url = url;
         this.emit('did-navigate');
     }

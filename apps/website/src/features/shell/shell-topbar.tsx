@@ -2,7 +2,7 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { useSidePaneShownWidth } from '../../hooks/workspace-tabs/use-side-pane-width.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
-import { useBrowserWorkspace } from './browser-workspace-context.tsx';
+import { useBrowserWorkspace, useCoveringTabSelected } from './browser-workspace-context.tsx';
 import { PrimaryPageTitle, PrimaryWorkspaceTab } from './primary-workspace-tab.tsx';
 import { WorkspaceBandTabLabel } from './workspace-band-tab-label.ts';
 import { WorkspaceLayoutControls } from './workspace-layout-controls.tsx';
@@ -33,7 +33,8 @@ export function TopbarProvider({ children }: { children: React.ReactNode }) {
  * (and its height) render even while a page registers nothing, so chrome
  * never jumps between routes. On desktop it sits in the window band
  * (WindowBand): in split mode the routed page's title, its band content and
- * actions, then the side pane's strip starting at the pane's edge; in
+ * actions (expanded mode shows those actions only while the primary tab is
+ * selected), then the side pane's strip starting at the pane's edge; in
  * expanded mode one strip, primary tab first. The layout controls and the
  * global `trailingAction` (Settings) end the band. On the web it is the main
  * column's top band.
@@ -41,6 +42,7 @@ export function TopbarProvider({ children }: { children: React.ReactNode }) {
 export function ShellTopbar({ trailingAction }: { trailingAction?: React.ReactNode } = {}) {
     const slot = React.use(TopbarContext);
     const workspace = useBrowserWorkspace();
+    const covering = useCoveringTabSelected();
     if (workspace && getDesktopBridge()?.browserCommand) {
         return (
             <header className="workspace-titlebar app-shell-band" data-window-drag-region="">
@@ -50,7 +52,12 @@ export function ShellTopbar({ trailingAction }: { trailingAction?: React.ReactNo
                     <PrimaryPageTitle />
                 )}
                 <div className="workspace-page-slot" ref={slot?.setContainer} />
-                <div className="workspace-band-actions no-drag" ref={slot?.setActionsContainer} />
+                {/* The routed page's actions; hidden (still mounted) while an expanded tab covers it. */}
+                <div
+                    className="workspace-band-actions no-drag"
+                    hidden={covering}
+                    ref={slot?.setActionsContainer}
+                />
                 <WorkspaceBandTrail
                     end={
                         <>

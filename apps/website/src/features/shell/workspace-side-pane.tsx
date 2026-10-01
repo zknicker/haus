@@ -27,8 +27,11 @@ export function WorkspaceSidePane() {
             ref={width.ref}
             style={{ width: width.width }}
         >
+            {/* The rail sits wholly outside the pane: a browser page's native view paints
+                above DOM, so any part of the rail over the page could not be grabbed. */}
             <ResizablePaneRail
                 aria-label="Resize side pane"
+                className="-left-2 w-2 before:left-[calc(100%-0.5px)]"
                 maxWidth={width.maxWidth}
                 minWidth={width.minWidth}
                 onWidthChange={width.setWidth}
