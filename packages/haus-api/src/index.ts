@@ -84,6 +84,7 @@ export * from './computer-update.ts';
 export * from './development-chat-demos.ts';
 export * from './haus-agent-version.ts';
 export * from './haus-release.ts';
+export * from './host-skill-file.ts';
 export * from './manual.ts';
 export * from './mcp.ts';
 export * from './membership.ts';

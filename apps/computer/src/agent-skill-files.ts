@@ -3,11 +3,49 @@ import { lstat, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AgentSkillFile, AgentSkillFileRequest, AgentSkillFileResult } from '@haus/api';
 import { agentSkillFileRequestSchema } from '@haus/api';
+import { reportStateError } from './computer-report.ts';
 import { readSkillBundle, skillNamePattern } from './host-skill-bundle.ts';
 
 export function parseAgentSkillFileRequest(frame: unknown): AgentSkillFileRequest | null {
     const parsed = agentSkillFileRequestSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
+}
+
+/** Answers a relayed Agent skill file request; returns false when the frame is not one. */
+export function handleAgentSkillFileRequest(
+    frame: unknown,
+    input: {
+        dataRoot: string;
+        refreshReport(): Promise<void>;
+        send(frame: unknown): boolean;
+        serverId: string;
+        track<T>(work: Promise<T>): Promise<T>;
+        waitForRun(agentId: string): Promise<void>;
+    }
+): boolean {
+    const request = parseAgentSkillFileRequest(frame);
+    if (!request) {
+        return false;
+    }
+    const mutates = request.operation.kind !== 'read';
+    void input.track(
+        (mutates ? input.waitForRun(request.agentId) : Promise.resolve())
+            .then(() =>
+                runAgentSkillFileRequest({
+                    dataRoot: input.dataRoot,
+                    request,
+                    serverId: input.serverId,
+                })
+            )
+            .then(async (result) => {
+                input.send(result);
+                if (mutates && result.result) {
+                    await input.refreshReport();
+                }
+            })
+            .catch(reportStateError)
+    );
+    return true;
 }
 
 export async function runAgentSkillFileRequest(input: {

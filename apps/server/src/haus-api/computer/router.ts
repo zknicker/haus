@@ -5,6 +5,7 @@ import { listComputersProcedure } from './list.ts';
 import { computerLoginRouter } from './login/router.ts';
 import { refreshComputerInventoryProcedure } from './refresh-inventory.ts';
 import { removeComputerProcedure } from './remove.ts';
+import { computerSkillFileProcedure } from './skill-file.ts';
 import { startComputerUpdateProcedure } from './start-update.ts';
 import { computerSystemLogProcedure } from './system-log.ts';
 import { validateComputerProcedure } from './validate.ts';
@@ -16,6 +17,7 @@ export const computerRouter = createRouter({
     login: computerLoginRouter,
     remove: removeComputerProcedure,
     refreshInventory: refreshComputerInventoryProcedure,
+    skillFile: computerSkillFileProcedure,
     systemLog: computerSystemLogProcedure,
     update: startComputerUpdateProcedure,
     validate: validateComputerProcedure,

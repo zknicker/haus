@@ -14,6 +14,7 @@ import {
     computerUpdateProgressFrameSchema,
     coveApplyResultSchema,
     hausAgentReportFrameSchema,
+    hostSkillFileResultSchema,
     reminderScriptResultSchema,
     usageReportSchema,
 } from '@haus/api';
@@ -206,6 +207,12 @@ function acceptComputerReply(connections: ComputerConnections, computerId: strin
     const skillImport = agentSkillImportResultSchema.safeParse(frame);
     if (skillImport.success) {
         connections.acceptSkillImport(computerId, skillImport.data);
+        return true;
+    }
+
+    const hostSkillFile = hostSkillFileResultSchema.safeParse(frame);
+    if (hostSkillFile.success) {
+        connections.hostSkillFiles.accept(computerId, hostSkillFile.data);
         return true;
     }
 

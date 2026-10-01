@@ -8,7 +8,7 @@ import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-con
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
-import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
+import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
 import { traceAgentTurn } from './agent-turn-telemetry.ts';
 import { handleCloudAgentFrame } from './attachment-cloud-agents.ts';
@@ -71,6 +71,7 @@ import {
 } from './execution-journal-relay.ts';
 import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
+import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
     acceptHostSkillImport,
     finishHostSkillImport,
@@ -1289,32 +1290,18 @@ async function connect(
                 void trackWriter(acceptSkillImport(skillImport).catch(reportStateError));
                 return;
             }
-            const skillFileRequest = parseAgentSkillFileRequest(frame);
-            if (skillFileRequest) {
-                void trackWriter(
-                    (skillFileRequest.operation.kind === 'read'
-                        ? Promise.resolve()
-                        : agentWork.waitForRun(skillFileRequest.agentId)
-                    )
-                        .then(() =>
-                            runAgentSkillFileRequest({
-                                dataRoot,
-                                request: skillFileRequest,
-                                serverId: attachment.serverId,
-                            })
-                        )
-                        .then(async (result) => {
-                            sendFrame(result);
-                            if (skillFileRequest.operation.kind !== 'read' && result.result) {
-                                await sendComputerReport(
-                                    sendFrame,
-                                    attachment.serverId,
-                                    computerName
-                                );
-                            }
-                        })
-                        .catch(reportStateError)
-                );
+            if (
+                handleHostSkillFileRequest(frame, { send: sendFrame, track: trackWriter }) ||
+                handleAgentSkillFileRequest(frame, {
+                    dataRoot,
+                    refreshReport: () =>
+                        sendComputerReport(sendFrame, attachment.serverId, computerName),
+                    send: sendFrame,
+                    serverId: attachment.serverId,
+                    track: trackWriter,
+                    waitForRun: (agentId) => agentWork.waitForRun(agentId),
+                })
+            ) {
                 return;
             }
             const workspaceRequest = parseAgentWorkspaceRequest(frame);
