@@ -1,5 +1,6 @@
 import type { TokenUsageOverview } from '@haus/api';
 import { expect, test } from 'vitest';
+import { agentSeriesColorMap } from './token-usage-colors.ts';
 import { buildTokenUsageView } from './token-usage-view.ts';
 
 const zero = {
@@ -92,10 +93,8 @@ test('builds a range-scoped token view by runtime, model, and Haus agent', () =>
         ['claude-sonnet-5', 40],
     ]);
     expect(view.chartData).toHaveLength(7);
-    expect(view.chartData.at(-1)).toMatchObject({
-        'agt_cove:codex:gpt-5.6-sol': 0,
-        'agt_scout:claude-code:claude-sonnet-5': 40,
-    });
+    expect(view.chartSeries.map((series) => series.label)).toEqual(['Cove', 'Scout']);
+    expect(view.chartData.at(-1)).toMatchObject({ 'agent:agt_cove': 0, 'agent:agt_scout': 40 });
 });
 
 test('scopes totals and configurations to one agent without losing the agent picker', () => {
@@ -178,51 +177,75 @@ test('leaves out known Agents excluded by the Computer scope', () => {
     expect(view.agents.map((agent) => agent.agentId)).toEqual(['agt_scout']);
 });
 
-test('assigns distinct stable colors to each visible Agent and model configuration', () => {
-    const sameModelUsage: TokenUsageOverview = {
-        ...usage,
-        breakdown: [
-            usage.breakdown[0]!,
-            {
-                ...usage.breakdown[0]!,
-                agentHandle: 'echo',
-                agentId: 'agt_echo',
-                agentName: 'Echo',
-                totalTokens: 50,
-            },
-        ],
-    };
+const roster = ['cove', 'scout', 'future'].map((handle) => ({
+    agentAvatarUrl: null,
+    agentHandle: handle,
+    agentId: `agt_${handle}`,
+    agentName: handle[0]?.toUpperCase() + handle.slice(1),
+}));
 
-    const view = buildTokenUsageView(sameModelUsage, 7, null, new Date('2026-08-13T18:00:00.000Z'));
+test('keeps an Agent color when a different range reverses the ranking', () => {
+    // Cove leads the 90-day range on its July spike; Future leads the last 7 days.
+    const now = new Date('2026-08-14T18:00:00.000Z');
+    const colorsOf = (view: ReturnType<typeof buildTokenUsageView>) =>
+        Object.fromEntries(view.chartSeries.map((series) => [series.label, series.color]));
+    const week = buildTokenUsageView(usage, 7, null, now, { knownAgents: roster });
+    const quarter = buildTokenUsageView(usage, 90, null, now, { knownAgents: roster });
 
-    expect(new Set(view.configurations.map((item) => item.color))).toHaveLength(2);
-    expect(view.agents.map((agent) => agent.color)).toEqual(
-        view.configurations.map((configuration) => configuration.color)
-    );
-    const reversedView = buildTokenUsageView(
-        { ...sameModelUsage, breakdown: [...sameModelUsage.breakdown].reverse() },
-        7,
-        null,
-        new Date('2026-08-13T18:00:00.000Z')
-    );
-    expect(Object.fromEntries(view.configurations.map((item) => [item.id, item.color]))).toEqual(
-        Object.fromEntries(reversedView.configurations.map((item) => [item.id, item.color]))
-    );
+    expect(week.chartSeries.map((series) => series.label)).toEqual(['Future', 'Cove', 'Scout']);
+    expect(quarter.chartSeries.map((series) => series.label)).toEqual(['Cove', 'Future', 'Scout']);
+    expect(colorsOf(week)).toEqual(colorsOf(quarter));
+    expect(colorsOf(week)).toEqual({
+        Cove: 'var(--chart-1)',
+        Future: 'var(--chart-3)',
+        Scout: 'var(--chart-2)',
+    });
 });
 
-test('rolls configurations beyond the chart limit into a reconciled Other series', () => {
+test('stacks one series per Agent with a distinct categorical color', () => {
+    const twoModels: TokenUsageOverview = {
+        ...usage,
+        breakdown: [
+            ...usage.breakdown,
+            { ...usage.breakdown[0]!, modelId: 'gpt-5.6-mini', runtimeId: 'pi', totalTokens: 7 },
+        ],
+    };
+    const view = buildTokenUsageView(twoModels, 7, null, new Date('2026-08-13T18:00:00.000Z'), {
+        knownAgents: roster,
+    });
+
+    expect(view.chartSeries.map((series) => [series.label, series.totalTokens])).toEqual([
+        ['Cove', 107],
+        ['Scout', 40],
+    ]);
+    expect(view.chartSeries.map((series) => series.color)).toEqual([
+        'var(--chart-1)',
+        'var(--chart-2)',
+    ]);
+});
+
+test('keeps an Agent color when the view narrows to that Agent', () => {
+    const view = buildTokenUsageView(usage, 7, 'agt_scout', new Date('2026-08-13T18:00:00.000Z'), {
+        knownAgents: roster,
+    });
+
+    expect(view.chartSeries).toHaveLength(1);
+    expect(view.chartSeries[0]).toMatchObject({ color: 'var(--chart-2)', label: 'Scout' });
+});
+
+test('folds Agents past the color slots into a reconciled neutral Other series', () => {
     const crowded: TokenUsageOverview = {
         ...usage,
-        breakdown: Array.from({ length: 9 }, (_, index) => ({
+        breakdown: Array.from({ length: 6 }, (_, index) => ({
             agentAvatarUrl: null,
-            agentHandle: 'cove',
-            agentId: 'agt_cove',
-            agentName: 'Cove',
+            agentHandle: `agent-${index}`,
+            agentId: `agt_${index}`,
+            agentName: `Agent ${index}`,
             cacheReadTokens: 0,
             cacheWriteTokens: 0,
             date: '2026-08-13',
             inputTokens: index + 1,
-            modelId: `model-${index}`,
+            modelId: 'gpt-5.6-sol',
             outputTokens: 0,
             runtimeId: 'codex',
             totalTokens: index + 1,
@@ -231,12 +254,33 @@ test('rolls configurations beyond the chart limit into a reconciled Other series
 
     const view = buildTokenUsageView(crowded, 7, null, new Date('2026-08-13T18:00:00.000Z'));
     const lastPoint = view.chartData.at(-1) ?? {};
-    const plottedTotal = view.chartConfigurations.reduce(
-        (sum, configuration) => sum + Number(lastPoint[configuration.id] ?? 0),
+    const plottedTotal = view.chartSeries.reduce(
+        (sum, series) => sum + Number(lastPoint[series.id] ?? 0),
         0
     );
+    const other = view.chartSeries.at(-1);
 
-    expect(view.chartConfigurations).toHaveLength(8);
-    expect(view.chartConfigurations.at(-1)?.isOther).toBe(true);
+    expect(view.chartSeries.map((series) => series.label)).toEqual([
+        'Agent 5',
+        'Agent 4',
+        'Agent 3',
+        'Agent 2',
+        'Other',
+    ]);
+    expect(new Set(view.chartSeries.map((series) => series.color)).size).toBe(5);
+    expect(other).toMatchObject({ agentCount: 2, color: 'var(--chart-5)', isOther: true });
     expect(plottedTotal).toBe(view.totals.totalTokens);
+});
+
+test('gives named Agents past the roster slots the free colors, never a repeat', () => {
+    expect(
+        Object.fromEntries(
+            agentSeriesColorMap(['a', 'b', 'c', 'd', 'e', 'f'], ['f', 'b', 'e', 'd'])
+        )
+    ).toEqual({
+        b: 'var(--chart-2)',
+        d: 'var(--chart-4)',
+        e: 'var(--chart-1)',
+        f: 'var(--chart-3)',
+    });
 });

@@ -1,77 +1,64 @@
 import { KPIGroup } from '@heroui-pro/react';
 import { KPI } from '@heroui-pro/react/kpi';
+import {
+    ArrowDownLeft01Icon,
+    ArrowUpRight01Icon,
+    ChartHistogramIcon,
+    DatabaseIcon,
+} from '@hugeicons-pro/core-stroke-rounded';
+import { Icon } from '../../components/ui/icon.tsx';
 import type { TokenTotals } from './token-usage-view.ts';
 
-// KPIGroup stretches every card to one height and KPI.Content defaults to
-// `flex: 1`, so a card whose footer wraps to one line instead of two hands that
-// slack to its value row and drops the number below its peers. Sizing content to
-// its own height keeps values and footers on one line each and parks the slack
-// at the bottom of the short card.
+type IconSvg = Parameters<typeof Icon>[0]['icon'];
+
+/**
+ * Four facts that never overlap: input already includes cache reads and
+ * writes, and processed is input plus output, so the cards show the total,
+ * the input not served from cache, output, and the share of input that was.
+ */
 export function TokenTotalKpis({ totals }: { totals: TokenTotals }) {
-    const cacheRate = totals.inputTokens > 0 ? totals.cacheReadTokens / totals.inputTokens : 0;
+    const freshInput = Math.max(0, totals.inputTokens - totals.cacheReadTokens);
+    const cacheHitRate = totals.inputTokens > 0 ? totals.cacheReadTokens / totals.inputTokens : 0;
     return (
         <KPIGroup className="overflow-x-auto">
-            <KPI>
-                <KPI.Header>
-                    <KPI.Title>Input</KPI.Title>
-                </KPI.Header>
-                <KPI.Content className="grow-0">
-                    <KPI.Value
-                        maximumFractionDigits={1}
-                        notation="compact"
-                        value={totals.inputTokens}
-                    />
-                </KPI.Content>
-                <KPI.Footer className="text-sm">Includes cached input</KPI.Footer>
-            </KPI>
+            <TokenKpi icon={ChartHistogramIcon} title="Processed" value={totals.totalTokens} />
             <KPIGroup.Separator />
-            <KPI>
-                <KPI.Header>
-                    <KPI.Title>Output</KPI.Title>
-                </KPI.Header>
-                <KPI.Content className="grow-0">
-                    <KPI.Value
-                        maximumFractionDigits={1}
-                        notation="compact"
-                        value={totals.outputTokens}
-                    />
-                </KPI.Content>
-                <KPI.Footer className="text-sm">Responses and reasoning</KPI.Footer>
-            </KPI>
+            <TokenKpi icon={ArrowDownLeft01Icon} title="Fresh input" value={freshInput} />
             <KPIGroup.Separator />
-            <KPI>
-                <KPI.Header>
-                    <KPI.Title>Cache read</KPI.Title>
-                </KPI.Header>
-                <KPI.Content className="grow-0">
-                    <KPI.Value
-                        maximumFractionDigits={1}
-                        notation="compact"
-                        value={totals.cacheReadTokens}
-                    />
-                </KPI.Content>
-                <KPI.Footer className="text-sm">
-                    {new Intl.NumberFormat(undefined, {
-                        maximumFractionDigits: 1,
-                        style: 'percent',
-                    }).format(cacheRate)}{' '}
-                    of input
-                </KPI.Footer>
-            </KPI>
+            <TokenKpi icon={ArrowUpRight01Icon} title="Output" value={totals.outputTokens} />
             <KPIGroup.Separator />
-            <KPI>
-                <KPI.Header>
-                    <KPI.Title>Cache write</KPI.Title>
-                </KPI.Header>
-                <KPI.Content className="grow-0">
-                    <KPI.Value
-                        maximumFractionDigits={1}
-                        notation="compact"
-                        value={totals.cacheWriteTokens}
-                    />
-                </KPI.Content>
-                <KPI.Footer className="text-sm">New reusable context</KPI.Footer>
-            </KPI>
+            <TokenKpi icon={DatabaseIcon} percent title="Cache hit rate" value={cacheHitRate} />
         </KPIGroup>
+    );
+}
+
+function TokenKpi({
+    icon,
+    percent = false,
+    title,
+    value,
+}: {
+    icon: IconSvg;
+    percent?: boolean;
+    title: string;
+    value: number;
+}) {
+    return (
+        <KPI>
+            <KPI.Header>
+                {/* KPI.Icon is a 32px status-tinted box; a neutral metric takes
+                    the bare muted glyph the KPI anatomy uses instead. */}
+                <Icon className="size-4 text-muted" icon={icon} />
+                <KPI.Title>{title}</KPI.Title>
+            </KPI.Header>
+            <KPI.Content>
+                <KPI.Value
+                    maximumFractionDigits={1}
+                    notation={percent ? 'standard' : 'compact'}
+                    style={percent ? 'percent' : 'decimal'}
+                    value={value}
+                />
+            </KPI.Content>
+        </KPI>
     );
 }
