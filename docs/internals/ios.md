@@ -686,8 +686,9 @@ Unread and **Happening now** rows share one Messages-style two-line row (`InboxR
 mark, the title with its perishable fact trailing, and the context below in secondary. Each line is
 capped at one, so every row in both sections is the same height at a given text size. An Unread row
 is the Chat's name, its age, and the quoted line truncated to one line. A Cloud Agent work row is
-the work's title (`Cloud work` when untitled), its status (`Running · 3m`, `Queued`,
-`Cancelling`), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
+the work's title (`Cloud work` when untitled), its status (`Running · 3m`, `Running · 1h 59m`,
+`Queued`, `Cancelling` — `CloudAgentPresentation.duration`, the App's `formatCloudAgentDuration`,
+whose hours never roll into days), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
 it is Cloud work. An Agent mid-turn is its name, time in its step, and the step itself. The page is a stock `.insetGrouped` `List`, so an Unread
 row marks read the Messages way: a leading swipe (`.swipeActions`, full swipe allowed) whose button
 is a bare image, which iOS 26 draws as an icon-only circle (its accessibility label is "Mark read"),
@@ -730,7 +731,9 @@ presentation of a question ([Inbox](../features/inbox.md#notifications)).
 
 A Task lens widens through `loadTasks(includeBackground:)`, and
 a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N
-background" without a second round trip. The week behind "Active this week" is sliced per Agent out
+background" without a second round trip. An "Active this week" card keeps its figure and sparkline
+on one row at standard text sizes; at accessibility sizes it widens, stacks the header, figure, and
+sparkline, and lets the caption wrap rather than truncate. The week behind "Active this week" is sliced per Agent out
 of that one usage snapshot (`AgentTokenUsage.summarize`, the App's `summarizeAgentTokenUsage`) on
 UTC days, because ranking a week is a question about every Agent at once and a per-Agent read was
 never its shape. A Chat row's quoted last line is Server's own `lastMessage` projection and stays
@@ -1017,9 +1020,10 @@ name, a channel by its `ChannelIconBox` glyph and configured color from the Chat
 the persisted label when the target is unresolvable. Chip and picker labels carry no `@`, `#`, or `$`: the mark
 already says what the reference is, so `ReferenceLabel` strips the sigil from resolved and fallback labels
 alike and reads a channel's stored slug as a title, `onboarding-owner` as `Onboarding Owner`. The inserted
-markdown and the reference target are untouched, and a one-line chat or thread preview reads its
-references through the same labels — `Product` and `Agent Browser`, never `#product` or
-`$agent-browser` — while an ordinary web link keeps its own link text. Human references remain visual and do not create
+markdown and the reference target are untouched. A one-line preview has no mark to say what a
+reference is, so `RichMessageParser.oneLinePreview` mirrors the App's `messagePreviewLine` instead:
+every link reads as its link text as written (`#product`, `@Blippy`, `$agent-browser`), and heading,
+bullet, emphasis, and code markers drop away. Human references remain visual and do not create
 attention or notification behavior.
 
 The phone chips every kind the App chips, not just the three the picker offers. `RichReferenceWireForm`
