@@ -930,13 +930,13 @@
      * radio is a circle: this pairs with text, not with density.
      */
     /*
-     * The Settings gear's glyph carries more internal air than the status
-     * marks beside it, so at their 16px it reads a size smaller; 18px lands it
-     * optically level with them and with the navigation icons.
+     * The Settings gear's glyph carries more internal air than the sidebar's
+     * other marks, so it renders at 20px to read level with the navigation
+     * rows' icons and identity marks.
      */
     .button.sidebar-settings-action svg {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
     }
 
     .sidebar__menu-icon svg {
