@@ -10,11 +10,12 @@ import type { McpConnection } from './mcp-server-shared.ts';
  * still an MCP server, and drawing it bare made the Recommended list read as a
  * different kind of thing from the Added one.
  *
- * A preset has no stored icon: Haus Server resolves and inlines that at
- * discovery, which only happens once the connection exists. So a preset shows
- * the palette monogram, and swaps to the real icon after it is added. Do not
- * bundle brand art for the two presets to close that gap — it would disagree
- * with whatever the server actually reports.
+ * A first-party preset carries bundled art (`mcpPresetIcons` in `@haus/api`),
+ * so a Recommended preset shows its real mark before it is added. Once added,
+ * Haus Server reports whatever discovery resolved and falls back to that same
+ * bundled art when discovery finds nothing, so the mark never regresses to a
+ * monogram. Custom connections get no bundled art: theirs comes only from the
+ * server's own resolution.
  */
 
 /**
@@ -45,7 +46,7 @@ export function ConnectionGlyph({ connection }: { connection: ConnectionMarkSubj
 }
 
 /**
- * Enough of a connection to draw one. A preset satisfies this with a null icon,
- * so presets and saved connections resolve through the same function.
+ * Enough of a connection to draw one. A preset satisfies this with its bundled
+ * icon, so presets and saved connections resolve through the same function.
  */
 export type ConnectionMarkSubject = Pick<McpConnection, 'icon' | 'id' | 'name'>;

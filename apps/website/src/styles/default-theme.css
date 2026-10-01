@@ -1311,6 +1311,110 @@
         line-height: var(--text-base--line-height);
     }
 
+    /*
+     * Stock grid layout paints every direct card with a surface and shadow
+     * (`.item-card-group--grid > [data-slot="item-card"]`), which outranks the
+     * card's own variant — a transparent card in a grid came back boxed. A
+     * card that asks for transparent stays transparent; its hover tint comes
+     * from PressableFeedback, not from a box.
+     */
+    .item-card-group--grid > .item-card--transparent {
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+    /*
+     * A Settings catalog (`features/settings/layout/settings-card-grid.tsx`,
+     * Skills and Connections). Its "See A, B, and N more" control is a quiet
+     * aside under the grid, not an action beside it: muted until hovered, set
+     * off by a full row gap, and inset so its text starts on the rows' text
+     * edge (the button's own ×3 padding plus ×1 meets the cards' ×4).
+     */
+    .item-card-group--catalog > .button--ghost {
+        --button-fg: var(--muted);
+        margin-block-start: calc(var(--spacing) * 3);
+        margin-inline-start: var(--spacing);
+        font-weight: var(--font-weight-normal);
+    }
+
+    @media (hover: hover) {
+        .item-card-group--catalog > .button--ghost:hover {
+            --button-fg: var(--foreground);
+        }
+    }
+
+    /*
+     * A catalog reads as a shelf of small products, not a stretched table.
+     * Two columns across the full 1152px page column made each row ~550px of
+     * mostly empty line, so the catalog keeps its own reading width (two
+     * ~460px columns) and leaves the rest of the column as page ground.
+     */
+    .item-card-group--catalog {
+        max-inline-size: 60rem;
+    }
+
+    /* The section title sits on a hairline that spans the catalog. */
+    .item-card-group--catalog > .item-card-group__header {
+        padding-block-end: calc(var(--spacing) * 2.5);
+        margin-block-end: calc(var(--spacing) * 2);
+        border-block-end: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
+    }
+
+    /* A wide gutter between the columns; rows land on a ~70px pitch. */
+    .item-card-group--catalog .item-card-group--grid {
+        column-gap: calc(var(--spacing) * 7);
+        row-gap: var(--spacing);
+    }
+
+    .item-card-group--catalog .item-card {
+        gap: calc(var(--spacing) * 3.5);
+    }
+
+    .item-card-group--catalog .item-card__title {
+        font-size: var(--text-base);
+        line-height: 1.25rem;
+    }
+
+    .item-card-group--catalog .item-card__description {
+        margin-block-start: var(--spacing);
+    }
+
+    /*
+     * A catalog mark is an app icon: a 40px surface tile with the hairline
+     * outline every surface carries, and a 24px illustration inside it.
+     * Full-tile art (favicons, built-in skill art) sizes itself to the tile.
+     * The skill dialog's header carries the same tile (`modal__icon--product`)
+     * so a skill looks the same opened as listed. Radius follows the
+     * identity-mark curve for a 40px box (`identityMarkRadius`).
+     */
+    .item-card-group--catalog .item-card__icon,
+    .modal__icon--product {
+        width: 2.5rem;
+        height: 2.5rem;
+        overflow: hidden;
+        border-radius: calc(var(--radius) * 2.5);
+        background-color: var(--surface);
+        box-shadow: var(--surface-shadow);
+        color: var(--foreground);
+    }
+
+    .item-card-group--catalog .item-card__icon svg,
+    .modal__icon--product svg {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+
+    /*
+     * A dialog that presents a document (Settings → Skills' SKILL.md): wider
+     * than stock `lg` so the rendered Markdown reads at a comfortable measure,
+     * and never taller than 85% of the window — the preview panel scrolls
+     * inside itself before the dialog grows.
+     */
+    .modal__dialog--document {
+        max-width: 39rem;
+        max-height: 85vh;
+    }
+
     /* Rich references are enhanced inline text, not freestanding badges. */
     .chip.reference-chip {
         gap: var(--spacing);

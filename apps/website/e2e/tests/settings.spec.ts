@@ -175,10 +175,13 @@ test('reports current Computer models and skills in Server Settings', async ({ p
     await expect(page.getByText('gpt-5.6-terra', { exact: true })).toBeVisible();
 
     await page.goto(`/s/${slug}/settings/skills`);
-    const skills = page.getByRole('treegrid', { name: 'Skills' });
-    await expect(skills.getByRole('row', { exact: true, name: 'durable-testing' })).toBeVisible();
-    await expect(page.getByRole('heading', { level: 2, name: 'Durable Testing' })).toBeVisible();
-    await expect(page.getByText('E2E fixture', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /Durable Testing/u }).click();
+    const skill = page.getByRole('dialog', { name: /Durable Testing/u });
+    await expect(skill.getByRole('heading', { name: /Durable Testing/u })).toBeVisible();
+    // Where the skill lives sits behind the dialog's collapsed Details.
+    await skill.getByRole('button', { name: 'Details' }).click();
+    await expect(skill.getByText('E2E fixture', { exact: true })).toBeVisible();
+    await expect(skill.getByText('Settings Computer', { exact: true })).toBeVisible();
 });
 
 test('creates and deletes a custom Server MCP connection', async ({ page }) => {
@@ -194,7 +197,7 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     await page.getByRole('option', { name: 'OAuth' }).click();
     await drawer.getByRole('button', { name: 'Add MCP' }).click();
 
-    // The Added list renders each connection as a card button, not a row.
+    // The Added grid renders each connection as a card button, not a row.
     const connection = page.getByRole('button', { name: new RegExp(name, 'u') });
     await expect(connection).toBeVisible();
     await connection.click();
@@ -213,7 +216,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     const recommendation = (description: string) =>
         page.locator('.item-card').filter({ hasText: description });
     const merchbase = recommendation('Query the MerchBase product catalog, designs, and sales.');
-    await merchbase.getByRole('button', { exact: true, name: 'Add MCP' }).click();
+    await merchbase.getByRole('button', { exact: true, name: 'Add MerchBase' }).click();
     await expect(merchbase).toHaveCount(0);
     const connection = page.getByRole('button', { name: /MerchBase Built in/u });
     await expect(connection).toBeVisible();
@@ -223,7 +226,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await expect(merchbase).toHaveCount(0);
     // Drain whatever presets remain so adding a new one never breaks this test;
     // the Recommended heading leaves with the last card.
-    const addPreset = page.getByRole('button', { exact: true, name: 'Add MCP' });
+    const addPreset = page.locator('.item-card').getByRole('button', { name: /^Add /u });
     for (let remaining = await addPreset.count(); remaining > 0; remaining -= 1) {
         await addPreset.first().click();
         await expect(addPreset).toHaveCount(remaining - 1);
@@ -263,8 +266,12 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await detail.getByRole('button', { exact: true, name: 'Remove' }).click();
     await confirmation.getByRole('button', { exact: true, name: 'Remove' }).click();
     await expect(connection).toHaveCount(0);
-    await expect(merchbase.getByRole('button', { exact: true, name: 'Add MCP' })).toBeVisible();
+    await expect(
+        merchbase.getByRole('button', { exact: true, name: 'Add MerchBase' })
+    ).toBeVisible();
     await page.reload();
-    await expect(merchbase.getByRole('button', { exact: true, name: 'Add MCP' })).toBeVisible();
+    await expect(
+        merchbase.getByRole('button', { exact: true, name: 'Add MerchBase' })
+    ).toBeVisible();
     await expect(connection).toHaveCount(0);
 });

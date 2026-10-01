@@ -1,9 +1,11 @@
-import type { McpPreset } from '@haus/api';
-import { Button, Separator } from '@heroui/react';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Fragment } from 'react';
+import { type McpPreset, mcpPresetIcons } from '@haus/api';
+import { Button, Tooltip } from '@heroui/react';
+import { ItemCard } from '@heroui-pro/react';
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
+import { SettingsCardGrid, SettingsGridItem } from '../layout/settings-card-grid.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 
 const presets: Array<{ description: string; id: McpPreset; name: string }> = [
@@ -24,6 +26,7 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
     },
 ];
 
+/** Presets not yet added, each one press away from being an Added MCP. */
 export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const addPreset = useConnectionPresetAdd(serverId);
     const connections = useConnections(serverId);
@@ -36,54 +39,56 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     }
 
     return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Recommended</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
-                {availablePresets.map((preset, index) => (
-                    <Fragment key={preset.id}>
-                        {index > 0 ? <Separator /> : null}
-                        <ItemCard>
-                            {/* A preset is an MCP server like any other row on
-                                this page, so it draws its mark the same way. */}
-                            <ItemCard.Icon>
-                                <ConnectionGlyph
-                                    connection={{
-                                        icon: null,
-                                        id: preset.id,
+        <SettingsCardGrid count={availablePresets.length} title="Recommended">
+            {availablePresets.map((preset) => (
+                <SettingsGridItem key={preset.id}>
+                    {/* A preset is an MCP server like any Added row, so it
+                        draws its mark the same way — from the bundled art
+                        Server also falls back to. */}
+                    <ItemCard.Icon>
+                        <ConnectionGlyph
+                            connection={{
+                                icon: mcpPresetIcons[preset.id],
+                                id: preset.id,
+                                name: preset.name,
+                            }}
+                        />
+                    </ItemCard.Icon>
+                    <ItemCard.Content>
+                        <ItemCard.Title>{preset.name}</ItemCard.Title>
+                        {/* `max-w-full`: the stock description is
+                            `width:fit-content`, which a nowrap line grows past
+                            its column instead of ellipsizing. */}
+                        <ItemCard.Description className="max-w-full">
+                            {preset.description}
+                        </ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Tooltip delay={0}>
+                            <Button
+                                aria-label={`Add ${preset.name}`}
+                                isDisabled={addPreset.isPending}
+                                isIconOnly
+                                isPending={
+                                    addPreset.isPending && addPreset.variables?.preset === preset.id
+                                }
+                                onPress={() =>
+                                    addPreset.mutate({
                                         name: preset.name,
-                                    }}
-                                />
-                            </ItemCard.Icon>
-                            <ItemCard.Content>
-                                <ItemCard.Title>{preset.name}</ItemCard.Title>
-                                <ItemCard.Description>{preset.description}</ItemCard.Description>
-                            </ItemCard.Content>
-                            <ItemCard.Action>
-                                <Button
-                                    isDisabled={addPreset.isPending}
-                                    isPending={
-                                        addPreset.isPending &&
-                                        addPreset.variables?.preset === preset.id
-                                    }
-                                    onPress={() =>
-                                        addPreset.mutate({
-                                            name: preset.name,
-                                            preset: preset.id,
-                                            serverId,
-                                        })
-                                    }
-                                    size="sm"
-                                    variant="secondary"
-                                >
-                                    Add MCP
-                                </Button>
-                            </ItemCard.Action>
-                        </ItemCard>
-                    </Fragment>
-                ))}
-            </ItemCardGroup>
-        </ItemCardGroup>
+                                        preset: preset.id,
+                                        serverId,
+                                    })
+                                }
+                                size="sm"
+                                variant="ghost"
+                            >
+                                <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+                            </Button>
+                            <Tooltip.Content>Add {preset.name}</Tooltip.Content>
+                        </Tooltip>
+                    </ItemCard.Action>
+                </SettingsGridItem>
+            ))}
+        </SettingsCardGrid>
     );
 }
