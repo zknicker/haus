@@ -249,8 +249,8 @@ Haus has no question route. An Agent asks a person by @mentioning them, or by in
 their message (`--reply-to`), in an ordinary `haus message send` where the work lives, and their
 reply wakes it through ordinary delivery
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). The mention writes the Message's
-`mentioned_user_ids` (an inline reply its `reply_to_message_id`); either puts it in that human's
-**Needs you** ([Inbox](../features/inbox.md)). Every Agent-facing Message states its `body_kind`
+`mentioned_user_ids` (an inline reply its `reply_to_message_id`); either notifies that human
+([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). Every Agent-facing Message states its `body_kind`
 (`text | cloud-agent-work | agent-created`).
 
 ### Cloud Agent work

@@ -1,9 +1,9 @@
 ---
-summary: The human Inbox page — a sidebar lens over the day, the week's most active Agents, the DMs and @mentions that need you (with Done and desktop notifications), live Agent work, and unread conversation.
+summary: The human Inbox page — a sidebar lens over the day, the week's most active Agents, every unread Chat (with Mark read), and live Agent work — plus the one rule for desktop, web, and iPhone message notifications.
 read_when:
-  - changing the Inbox page, its sections, empty states, or realtime invalidation
-  - adding a record that should ask a human to act or should stay observable between turns
-  - changing Needs you rows, Done, or desktop/web/iPhone notifications for them
+  - changing the Inbox page, its sections, empty states, Mark read, or realtime invalidation
+  - changing what counts as unread, the sidebar Inbox badge, or the iPhone badge
+  - changing who a new message notifies on desktop, web, or iPhone
   - deciding where background work that outlives an Agent turn becomes visible to humans
 ---
 
@@ -13,9 +13,9 @@ The Inbox is a Haus App page in the sidebar. Its row is the sidebar's anchor —
 Inbox/Search/Tasks menu. What it wears there follows the surface: on the web the Haus ghost mark
 leads the titlebar strip above — named "Haus", so it does not repeat this row's name one tab stop
 earlier — and the row takes the inbox glyph at the same measure Search and Tasks do; on the macOS desktop the traffic lights lead that strip, so the mark stays on this row.
-The row badges the **Needs you** total in the same count chip the Channel and DM rows wear for
-unread messages, and shows nothing when nothing needs you. It shows one human what they need to know
-right now.
+The row badges how many Chats are **Unread** in the same count chip the Channel and DM rows wear
+for unread messages, and shows nothing when nothing is unread. It shows one human what they need to
+know right now ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)).
 
 The Inbox is a lens, not a store. It owns no state of its own, creates no records, and duplicates no
 lifecycle. Every row projects an existing Server record and links to that record's canonical place —
@@ -27,8 +27,8 @@ delivery ledger that wakes Agents. Say "Agent inbox" wherever the two could be c
 ## Layout
 
 The page opens on a header with no card: the greeting that names the reader, set at the same
-page-title step every settings page opens with, and the weekday and date beneath it. Under that sits the **Active this week** strip, and under that three full-width sections stacked in reading order —
-**Needs you**, **Conversations**, **Happening now** — in the page column's own rhythm.
+page-title step every settings page opens with, and the weekday and date beneath it. Under that sits the **Active this week** strip, and under that two full-width sections stacked in reading order —
+**Unread**, **Happening now** — in the page column's own rhythm.
 
 The page fills the shell band the way Settings does: every band's trail leads with a **Haus**
 crumb linking back to the Inbox, and the Inbox band reads **Haus › Inbox** with the current page as
@@ -40,10 +40,10 @@ tall narrow thing, and two columns were how a 1152px page held them; a one-line 
 a wide shallow one, and every part of that row — the title, the preview it leaves room for, and the
 trailing meta — wants width. Splitting the page took width from all three at once.
 
-All four sections share one composition, `ItemCardGroup`'s own: a transparent group whose
+All three sections share one composition, `ItemCardGroup`'s own: a transparent group whose
 `ItemCardGroup.Header` carries the label at the page column's left edge, and whose body is what the
-label names. Three of them put a bordered group of `ItemCard` rows there, divided by `Separator`;
-the strip puts its cards there instead, because cards already carry their own edges. All four labels
+label names. Two of them put a bordered group of `ItemCard` rows there, divided by `Separator`;
+the strip puts its cards there instead, because cards already carry their own edges. All three labels
 are therefore the same type at the same edge
 ([`inbox-section.tsx`](../../apps/website/src/features/servers/inbox/inbox-section.tsx)).
 
@@ -74,50 +74,24 @@ eight. When none qualify it says **No Agent activity this week**; while the usag
 it shows nothing at all, because a partly-loaded set would rank Agents against zeroes and reorder
 under the reader.
 
-The remaining three sections share one grammar: the label above, and below it one bordered group
+The remaining two sections share one grammar: the label above, and below it one bordered group
 holding that section's rows with a separator between each pair. A quiet section says so in one muted
 row inside that same box, so it keeps the section's shape rather than changing it to say so.
 
-**Needs you** — conversations addressed to this human that they have not answered
-([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). An Agent asks a person by
-@mentioning them, inline-replying to their message, answering in a Thread on it, or writing in
-their DM; there is no separate
-question record. A row is one
-Chat — a DM, a Channel, or a Thread — holding at least one addressing message:
+**Unread** — every Channel and DM with something the viewer has not read, newest activity first,
+one row per Chat. It is `chat.list`'s own `unreadCount` above zero: messages from others above the
+viewer's read marker, plus the replies in Threads the viewer follows or is mentioned in, which a
+Chat rolls up ([`unread-chats.ts`](../../apps/website/src/features/servers/inbox/unread-chats.ts)).
+There is no attention tier above it — no "unanswered" state and no Done marker
+([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). An Agent asks a person by @mention,
+inline reply, a Thread on their message, or their DM
+([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); that question is unread here like
+any other message, and it notifies them (see [Notifications](#notifications)).
 
-- **DM** (`reason: 'dm'`) — a message from someone else in a DM the viewer belongs to. Every
-  unanswered Agent DM message counts, as in Raft.
-- **Mention** (`reason: 'mention'`) — a Channel or Thread message whose content carries a
-  `user://<viewerId>` mention ([Rich References](../../specs/mentions.md)).
-- **Reply** (`reason: 'reply'`) — a Channel message that inline-replies to a message the viewer
-  wrote ([ADR 0029](../adr/0029-inline-replies-preserve-conversation.md)), or any message from
-  someone else in a Thread anchored on one (a Thread row). It reads like a mention, under its
-  Channel's name. When a message both mentions and replies to the viewer, it is a
-  mention; a row carries the reason of its newest addressing message.
-
-The row carries the newest addressing message — its author, a plain-text preview, and its time —
-plus how many addressing messages it stands for. It **clears** when the viewer replies where the
-addresser will see it (the same Thread, the same DM, an inline reply in the same exchange, or a
-later message in the same Channel that @mentions the author — a reply that reaches the author), or
-presses **Done**. Done records the sequence it covered; newer addressing activity in that Chat
-brings the row back, the same `throughActivitySeq` rule Raft's Inbox uses. Done also advances the
-viewer's read marker to that sequence.
-
-A Chat that has a Needs you row is left out of **Conversations**, so one conversation is never
-listed twice.
-
-Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to the
-Tasks page, in its **Stopped before finishing** group after **Needs your review**
-([Tasks](tasks.md)). Tasks are Agent work; when an Agent needs a person on one, it @mentions them
-in the task Thread, and that mention is the Needs you row.
-
-A failed Server onboarding appears on the owner's setup screen. Until setup completes,
-owners remain in setup and members and Admins remain on the waiting page, outside the Inbox.
-
-**Conversations** — unread Chats, newest activity first: the Chat's identity and name, the last
-message beside it, and the time and unread count trailing. The quoted line is flattened by the same
-helper every other quoting surface uses, so a reference reads as `#product` and a visual reads as its
-title. A Chat holding no message yet says so instead.
+A row carries the Chat's identity and name, the last message beside it, and the time and unread
+count trailing. The quoted line is flattened by the same helper every other quoting surface uses,
+so a reference reads as `#product` and a visual reads as its title. A Chat holding no message yet
+says so instead.
 
 The author prefix is dropped when the row's own title already answers it. In a DM the peer Agent
 speaks unattributed — `Tiny: Finished the audit` inside Tiny's own DM stated the name twice — and
@@ -125,6 +99,17 @@ only the viewer's own line is marked, as `You:`. A Channel keeps every name, bec
 author is the fact the reader is scanning for. `ChatLastMessage` carries no author id, so the match
 is by display name; it is a presentation choice inside one row and never identity, and the worst a
 collision does is drop or add a prefix.
+
+A row **clears** when the viewer reads the Chat — opening it while Haus is visible and focused —
+or presses **Mark read**. Mark read reads the Chat through its newest message and every Thread
+under it, so the Thread replies it rolls up clear too; newer activity brings the row back.
+
+Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to the
+Tasks page, in its **Stopped before finishing** group after **Needs your review**
+([Tasks](tasks.md)).
+
+A failed Server onboarding appears on the owner's setup screen. Until setup completes,
+owners remain in setup and members and Admins remain on the waiting page, outside the Inbox.
 
 **Happening now** — work running right now, whether or not this human started it, also as one list:
 
@@ -150,14 +135,13 @@ grammar:
   its own ground, and that slot exists to give a bare glyph one.
 - The **title**, which keeps its own width rather than shrinking, and truncates only past 40% of the
   line so one long title cannot take the preview's width with it.
-- The **preview**, muted, filling whatever the title leaves and truncating first: the addressing
-  message, a Chat's waiting line, the Chat and Agent behind a Cloud Agent work.
-- The **trailing cluster**, which never wraps or shrinks: where the row came from and how it stands
-  — a mention reads `#onboarding-owner · 2m`, a DM its time, a Chat its time and unread count. A
-  Needs you row adds one **Done** action at the trailing edge; no other row carries a control.
+- The **preview**, muted, filling whatever the title leaves and truncating first: a Chat's waiting
+  line, the Chat and Agent behind a Cloud Agent work.
+- The **trailing cluster**, which never wraps or shrinks: how the row stands — a Chat its time and
+  unread count, a run its status. An Unread row adds one **Mark read** action at the trailing
+  edge; no other row carries a control.
 
-A Needs you row leads with the addressing author's face, so every row in the section shares one
-identity grammar. The row is composed from `ItemCard`'s own parts in
+The row is composed from `ItemCard`'s own parts in
 [`inbox-row.tsx`](../../apps/website/src/features/servers/inbox/inbox-row.tsx), and carries no height
 of its own: the card's padding around a 32px mark is the band, which measures 54.5px at the app's
 spacing scale. The theme layer holds exactly two Inbox rules — the section header's inset, and the
@@ -168,60 +152,69 @@ component's spacing to fit it, are gone.
 Pressing anywhere on a row opens it. The card itself is the press target — `ItemCard`'s own
 Pressable composition, rendered as a `button` with `PressableFeedback.Highlight` inside it, the same
 shape the week cards in the strip use. It takes the tab stop, carries the row's title as its
-accessible name, and shows an inset `:focus-visible` ring. Done is the one row action; it sits
+accessible name, and shows an inset `:focus-visible` ring. Mark read is the one row action; it sits
 beside the press target rather than inside it, so no interactive element nests in another.
 
 ## Current stub
 
-The page is live at `/s/:slug/inbox`. A Needs you row opens its conversation: a DM or Channel row
-opens that Chat at `/s/<slug>/chats/<conversationChatId>`, and a Thread row opens its conversation
-with the Thread beside it at `/s/<slug>/chats/<conversationChatId>?thread=<anchorId>`. The reply
-goes through the ordinary composer, and replying there clears the row. A Cloud Agent work row
-peeks its conversation at `?work=<messageId>` — the same Thread timeline the Chat opens, work card
-and all; an Agent row in **Happening now** opens that Agent's page.
+The page is live at `/s/:slug/inbox`. An Unread row opens its Chat at
+`/s/<slug>/chats/<chatId>`. A Cloud Agent work row peeks its conversation at `?work=<messageId>` —
+the same Thread timeline the Chat opens, work card and all; an Agent row in **Happening now** opens
+that Agent's page.
 
-The rows come from `inbox.needsYou({ serverId })`, and Done is
-`inbox.markDone({ serverId, chatId, throughSequence })` with the row's `chatId` and
-`latest.sequence` (`packages/haus-api/src/needs-you.ts`). Done removes the row optimistically and
-reconciles on the refetch.
-
-One source has no Server list procedure yet and is absent until it does: followed Threads
-(**Conversations**).
+The rows come from `chat.list({ serverId })`. Mark read is
+`chat.markRead({ serverId, chatId, sequence: lastMessageSequence, includeThreads: true })`
+(`packages/haus-api/src/chat-read.ts`), the same procedure an open transcript sends without
+`includeThreads`. It zeroes the row's count in the cached list at once and reconciles on the
+refetch ([`use-mark-chat-read.ts`](../../apps/website/src/hooks/servers/use-mark-chat-read.ts)).
 
 ## Notifications
 
-A new or newer Needs you row notifies the viewer while Haus is in the background:
+One rule decides who a new message notifies, and it is independent of the Inbox
+([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). A human is notified about a message
+they did not write when it is in a DM they belong to (directly or in a Thread on it) — every
+message — or, in a Channel or Thread, when it @mentions them, inline-replies to their message, or
+sits in a Thread anchored on their message. `messageNotificationReason` in
+`packages/haus-api/src/message-notification.ts` is that rule, over the facts `message.created`
+carries; the Server and the App both call it. Reading a Chat clears it from the Inbox but never
+stops the next notification.
 
-- **Desktop (Electron) and web** use the platform `Notification` API when the window is hidden
-  or unfocused. The title names the author and the Chat; the body is the row's preview. Clicking
-  it focuses the window and opens the conversation. A row notifies once per `latest.messageId`;
-  Done and replies never notify.
+- **Desktop (Electron) and web** apply the rule to the `message.created` events their Chat event
+  stream delivers, and use the platform `Notification` API while the window is hidden or
+  unfocused. Only a message that passes is read for its text. The title names the author, plus
+  the place outside a DM (`#product`, `#product › thread`, `DM › thread`); the body is the
+  message as one line. Clicking it focuses the window and opens the conversation (or Thread).
+  Notifications are tagged by Chat, so a newer one replaces the older, and each message notifies
+  once. Only live events notify: a cold stream starts at the event head, and a reconnect's
+  catch-up replay refreshes caches without notifying, so messages that arrived while the App was
+  asleep or offline are the Inbox's to show. A message whose Chat has since been read through it
+  never notifies.
 - With several tabs open on the same Server, one tab (elected through a Web Lock) notifies, so
   each message notifies once per browser. The Electron app and a browser each notify separately.
 - Permission is requested only from the notifications toggle in Settings, never on page load.
   With the toggle off or permission denied, nothing is shown.
 - **macOS** keeps the app running when its last window closes: closing hides the window, and
   Cmd+Q or the menu's Quit quits. Notifications therefore keep arriving with no window open.
-
-- **iPhone** gets an APNs alert, even while Haus is closed, for every message that newly tops one
-  of the human's Needs you rows: one push per addressed human per message, to each device they
-  registered. The title is the author, plus ` in #channel` outside a DM; the body is the row's
-  plain-text preview cut to 180 characters; the badge is the human's Needs you row count across
-  every Server. Pushes group by conversation and collapse by message id, and a tap opens the
-  conversation (or Thread). The human's own messages, Chats they cannot see, archived Chats, and
-  exchanges already answered or marked Done never push. The Server sends only when an APNs key is
-  configured; see [iPhone Push](../operations/ios-push.md).
+- **iPhone** gets an APNs alert, even while Haus is closed, for every message the rule names: one
+  push per human per message, to each device they registered, if they can still see the Chat. The
+  title is the author, plus ` in #channel` outside a DM; the body is a plain-text preview cut to
+  180 characters; the badge is the human's unread Chats across every Server — the same count the
+  sidebar badge shows per Server, summed. The app sets its icon from the same Server count
+  (`chat.unreadChatCount`), so a badge never shrinks when the app opens. Pushes group by conversation and collapse by message id, and a
+  tap opens the conversation (or Thread). The human's own messages, Chats they cannot see, and
+  archived Chats never push. The Server sends only when an APNs key is configured; see
+  [iPhone Push](../operations/ios-push.md).
 - **iPhone Focus**: a push tells iOS why it addresses the human. A DM breaks through a Focus when
   its sender is an allowed person; in a Channel or Thread, only a mention of the human or a reply
   to their message does (for an allowed sender). Haus never marks pushes Time Sensitive.
 
 Deferred until the operator provides credentials: browser Web Push while Haus is closed (a VAPID
-key pair and a service worker). A closed browser tab learns about Needs you rows only when opened.
+key pair and a service worker). A closed browser tab learns about new messages only when opened.
 
 ## Rules
 
 - A settled, empty section draws a **slot**: inside the same frame its rows would share, one
-  dashed outline exactly one row tall, carrying the short fact in muted text (`Nothing needs you.`,
+  dashed outline exactly one row tall, carrying the short fact in muted text (`All caught up.`,
   `Nothing running.`). The week strip has no frame, so its slot rides the card track bare and the
   still week keeps the filled week's frameless shape. It is the outline of the row that is missing, so it says where the next one
   lands as well as that none is there. It is deliberately not a filled block — a filled block that
@@ -239,16 +232,17 @@ key pair and a service worker). A closed browser tab learns about Needs you rows
   than ranking against zeroes.
 - The page updates from the durable events the underlying records already emit —
   `message.created`, `chat.read`, `cloud-agent-work.updated`, and Agent activity and lifecycle —
-  through the existing invalidations; Needs you refetches on `message.created` and `chat.read`.
-  The Inbox adds no event of its own. The strip's token figure is
+  through the existing invalidations; Unread is `chat.list`, refetched on `message.created` and
+  `chat.read`. The Inbox adds no event of its own. The strip's token figure is
   the exception that needs none: it rides the usage snapshot's own freshness, the same one every
   other usage surface reads, while the live step on a card still comes from Agent activity.
-- The Inbox owns no read state of its own. Unread counts and the Done marker both live in
-  `chat_reads`; running work comes from the work records. Opening the Inbox marks nothing read.
-- The Inbox adds no store, no cache, and no page-local lifecycle beyond Done's optimistic removal. Authorization is the ordinary
+- The Inbox owns no read state of its own. Unread counts live in `chat_reads`; running work comes
+  from the work records. Opening the Inbox marks nothing read.
+- The Inbox adds no store, no cache, and no page-local lifecycle beyond Mark read's optimistic
+  removal. Authorization is the ordinary
   Server membership and Chat access of each projected record.
 - iOS mirrors this page, and the sections and their ordering above are the contract it mirrors:
-  the same header, the same **Active this week** strip, and the same three lists in the same order,
+  the same header, the same **Active this week** strip, and the same two lists in the same order,
   reading the same Server records through Store-owned snapshots
   ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Cloud Agent work gets its
   first iPhone presentation. One row differs, because the phone has nowhere else to send it: an

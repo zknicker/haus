@@ -73,7 +73,9 @@ App-side, one transport owns the subscription, the cursor, the burst window, and
 catch-up; it maps no event to a query. Each event type has its own listener hook
 that registers with that transport and receives its events — one call per pass,
 so a burst of thirty messages is one invalidation pass. Task creation and update
-are one lane and register together.
+are one lane and register together. Every pass carries its delivery, `live` or
+`catch-up`: cache listeners treat both alike, while a listener that announces
+something (message notifications) acts on `live` passes only.
 
 Each event invalidates only the reads it changes. `chat.list` renders Chat
 ordering, unread counts, and Thread attention, so only `message.created`,
@@ -200,18 +202,24 @@ announced once per Chat the run engages; `chat.onThought({ serverId, chatId })` 
 `{ agentId, runId, chatId, serverId, text, at }` with `chat.onEngagement`'s access checks. There
 is no read or recovery.
 
-**Needs you** ([Inbox](../features/inbox.md)) adds no event. `inbox.needsYou` is refetched on
-`message.created` (a new addressing message or the viewer's reply; the payload's
-`mentionedUserIds`, `replyToAuthorUserId`, `threadAnchorAuthorUserId`, and `authorUserId` let a
-client skip Channel messages
-that cannot address the viewer) and on the reader-scoped
-`chat.read` that `inbox.markDone` emits when it advances the viewer's read marker. Reconnect
-recovery walks those same events.
+The [Inbox](../features/inbox.md) adds no event: its Unread section and badge are `chat.list`,
+refetched on `message.created` and on the reader-scoped `chat.read`. `chat.unreadChatCount` (no
+input) returns `{ count }`, the caller's unread Chats across every Server — the APNs badge, which
+the iPhone app also puts on its icon. `chat.markRead` emits one
+`chat.read` per marker it moves — with `includeThreads`, also one per Thread it reads.
+
+**Message notifications** ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) ride
+`message.created`. The event carries the notification facts — `authorUserId`, `conversationKind`
+(the Channel or DM, a Thread reporting its parent's), `mentionedUserIds`, `replyToAuthorUserId`,
+and `threadAnchorAuthorUserId` — and `messageNotificationReason` in
+`packages/haus-api/src/message-notification.ts` reads them. The App applies it to the live events
+its stream delivers for desktop and web notifications — never to a reconnect's catch-up replay —
+and also reads `chat.read`, so a message whose Chat is read through it never notifies.
 
 **iPhone push** is a Server-side consumer of the same post-commit `message.created` stream, not a
-client subscription: `apps/server/src/push/` narrows candidates from the event's addressing ids and
-DM members, then pushes each human whose Needs you row for the Chat now ends at that message. The
-device contract is `push.registerDevice` / `push.unregisterDevice`
+client subscription: `apps/server/src/push/` applies the same rule to the event's named humans and
+the DM's members, keeps those who can still see the Chat and have a registered device, and pushes
+each. The device contract is `push.registerDevice` / `push.unregisterDevice`
 (`packages/haus-api/src/push.ts`); see [iPhone push](../operations/ios-push.md).
 
 `cloud-agent-work.updated` is a participant-gated durable event for Cloud Agent work: the work id,

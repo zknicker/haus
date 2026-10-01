@@ -662,13 +662,13 @@ the covered canvas Chat stays named so its page keeps refreshing underneath, but
 acknowledgements belong to the deepest surface alone.
 
 The Inbox is the phone's landing screen and the sidebar's anchor. It mirrors the App page section
-for section — header, **Active this week**, **Needs you**, **Conversations**, **Happening now** —
+for section — header, **Active this week**, **Unread**, **Happening now** —
 because [that page's order is the contract](../features/inbox.md), and it renders from the Store
 snapshots below rather than from reads of its own: `HausUI/Inbox` owns the row projections and the
 page, and `HausApp/InboxPresentationAdapters.swift` is the only place the Store's records become
 them. A section renders nothing at all until its read lands, so an unsettled section is blank rather
-than an empty box that fills a moment later; **Needs you** waits for its one read, which is the
-same read the sidebar badge waits for.
+than an empty box that fills a moment later; **Unread** waits for the Chat list, which is the
+same read the sidebar dot waits for.
 
 It is the canvas itself, not a push on the root stack. A cold start shows the Inbox page as the
 shell's canvas — no navigation bar, no title, no Back chevron, because there is nothing behind a
@@ -678,44 +678,45 @@ than to either of them: the leading chrome button sits where it sits on a Chat s
 and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
-always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. A Needs you row on a Thread
-and a Cloud Agent work row each push the Thread they hang off, carrying the conversation's Chat id
-and the anchor Message — the same pair a Thread composer sends to — and leaving the canvas
-selection alone for the same reason a Task does; a top-level Needs you row opens its DM or Channel.
+always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. A Cloud Agent work row
+pushes the Thread it hangs off, carrying the conversation's Chat id and the anchor Message — the
+same pair a Thread composer sends to — and leaving the canvas selection alone for the same reason a
+Task does; an Unread row opens its DM or Channel.
 Stalled claims live on the Task list, in its **Stopped before finishing** group. One row still lands somewhere the App does not send it, because the phone
 has nowhere else: an Agent in **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
 Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
 column every other row uses — a deliberate exception to the column's 26-point boxed glyphs, because
 this mark is the logo rather than a screen's icon, and it grows inside the shared column so the
 `Inbox` label stays on the `Tasks` label's edge. It marks
-`needsYouCount` with the unread dot the Chat rows wear — absent at zero, which is also
+`unreadChatCount` with the unread dot the Chat rows wear — absent at zero, which is also
 what it reads while the count is still unknown. Its mesh drifts, and drifts quicker while an Agent
 on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App's own rule through
 `HausGhostTempo.resolve`, and reads one stored bit rather than the activity dictionary
 `agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
 
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
-holds four reads — the viewer's Needs you rows (`inbox.needsYou`), the default Server-wide Task
-lens (`task.list`), the Cloud Agent work running right now (`cloudAgentWork.listActive`), and the
-Server's token-usage snapshot (`stats.live`) — and each stays nil until its first load. That nil is
-load-bearing: `needsYouCount` answers zero until the Needs you rows have landed; ask
-`isNeedsYouCountReady` to tell "nothing waiting" from "not yet known". The count is the number of
-Needs you rows, the same rows the App lists. Durable events refresh only what this client already
-holds, the way the App's invalidation only refetches a live query: `message.created` and
-`chat.read` reload the Needs you rows, `task.created` and `task.updated` reload the Server Task
-lens beside the affected Chat page, and `cloud-agent-work.updated` reloads the active work list
-beside its own.
+reads the Chat list's unread Chats, the Cloud Agent work running right now
+(`cloudAgentWork.listActive`), and the Server's token-usage snapshot (`stats.live`), and each stays
+nil until its first load. That nil is load-bearing: `unreadChatCount` is nil until the Chat list
+has landed, so "nothing unread" is never confused with "not yet known". The count is the number of
+Chats with an `unreadCount` above zero on the active Server, the same Chats the App lists, and it
+drives the sidebar's Inbox dot. The app icon badge is not that count: it is the Server's cross-Server
+`chat.unreadChatCount`, the number push puts on `aps.badge`. `HausStoreIconBadge` reads it into
+`iconBadgeCount` wherever the Chat list reloads (Server load, snapshot refresh on foreground or
+reconnect, every `reloadChats`) and on becoming active without a background trip. Durable events refresh only what this
+client already holds, the way the App's invalidation only refetches a live query:
+`message.created` and `chat.read` reload the Chat list, `task.created` and `task.updated` reload the
+Server Task lens beside the affected Chat page, and `cloud-agent-work.updated` reloads the active
+work list beside its own.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.
 
-A Needs you row ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)) is one Chat
-addressed to the viewer — a DM message from someone else, or a `user://` mention of them — decoded
-from `NeedsYouRow` in `packages/haus-api/src/needs-you.ts`. The phone answers it the only way
-there is: an ordinary reply in that DM, Channel, or Thread, which clears the row on the Server. Done
-calls `inbox.markDone` with the row's `chatId` and `latest.sequence`; newer addressing activity
-brings the row back. There is no question screen, card, or marker — the mention chip in the
-transcript is the whole presentation. iPhone push is deferred until APNs credentials exist
-([Inbox](../features/inbox.md#notifications)).
+An Unread row ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) is one Chat from the
+Chat list with an `unreadCount` above zero. Opening it reads it the way any open transcript does;
+**Mark read** sends `chat.markRead` with the Chat's `lastMessageSequence` and `includeThreads: true`,
+so the Thread replies its count rolls up clear with it, and newer activity brings the row back.
+There is no question screen, card, or marker — the mention chip in the transcript is the whole
+presentation of a question ([Inbox](../features/inbox.md#notifications)).
 
 A Task lens widens through `loadTasks(includeBackground:)`, and
 a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N

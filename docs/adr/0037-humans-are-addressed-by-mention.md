@@ -1,8 +1,8 @@
 ---
-summary: An Agent asks a human by @mentioning them, inline-replying to or answering in a Thread on their message, or writing in their DM where the work lives; the Inbox's Needs you lists those unanswered exchanges with Done, desktop and web notify for them, Asks are deleted, and tasks are Agent-only.
+summary: An Agent asks a human by @mentioning them, inline-replying to or answering in a Thread on their message, or writing in their DM where the work lives; Asks are deleted and tasks are Agent-only. Its Needs you section, Done marker, and notify-on-Needs-you rule are superseded by ADR 0038.
 read_when:
   - changing how an Agent asks a human for a decision, approval, or input
-  - changing Inbox Needs you, its Done marker, or desktop/web notifications
+  - reading the history behind ADR 0038 (the Inbox is unread; Needs you and Done are gone)
   - changing human `user://` mention semantics or `chat_messages.mentioned_user_ids`
   - changing task assignees, claiming, or who can hold a task
   - considering a question record, action card, or option buttons for humans
@@ -12,7 +12,14 @@ read_when:
 
 ## Status
 
-Accepted 2026-09-29. Supersedes the retired Asks spec (`specs/asks.md`, deleted) and the `ask`
+Accepted 2026-09-29. **Partially superseded** by
+[ADR 0038](0038-inbox-is-unread-not-attention.md) on 2026-10-01: the **Needs you** section, its
+**Done** marker (`chat_reads.done_sequence`), `inbox.needsYou` / `inbox.markDone`, and pushing on
+Needs you are gone. Addressing a human by @mention, inline reply, a Thread on their message, or
+their DM stands, and now decides who a message notifies. The Needs you and push passages below are
+history.
+
+Supersedes the retired Asks spec (`specs/asks.md`, deleted) and the `ask`
 Message body. Amends [ADR 0015](0015-tasks-are-promoted-messages.md) (tasks are Agent-only),
 [ADR 0025](0025-messages-carry-typed-product-bodies.md) (the `ask` body kind is retired), and
 [ADR 0021](0021-cove-onboards-and-agents-share-a-manual.md) (the `asks` Manual topic is retired).
