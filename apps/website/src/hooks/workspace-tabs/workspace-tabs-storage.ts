@@ -6,6 +6,8 @@ import {
     type ArtifactTab,
     emptyWorkspaceTabs,
     primaryTabRef,
+    sameTab,
+    type ThreadTab,
     type WorkspaceArtifactTarget,
     type WorkspaceTabRef,
     type WorkspaceTabsState,
@@ -13,22 +15,29 @@ import {
 } from './workspace-tabs-model.ts';
 
 /**
- * Persists App-local tabs per Server: artifacts, Agent profiles, and the main
- * strip order. Browser tabs are not restored, and the split is per window, so
- * split tabs persist folded onto the end of the main order.
+ * Persists App-local tabs per Server: artifacts, Agent profiles, pinned
+ * Threads, and the main strip order. Browser tabs and the split's preview tab
+ * are not restored, and the split is per window, so split tabs persist folded
+ * onto the end of the main order.
  */
 export function serializeWorkspaceTabs(state: WorkspaceTabsState): string {
+    const { preview } = state.split;
     return JSON.stringify({
         agents: state.agents,
         artifacts: state.artifacts,
-        order: [...state.order.filter((ref) => ref.kind !== 'browser'), ...state.split.order],
+        order: [
+            ...state.order.filter((ref) => ref.kind !== 'browser'),
+            ...state.split.order.filter((ref) => !sameTab(ref, preview)),
+        ],
+        threads: state.threads.filter((tab) => !sameTab({ kind: 'thread', ...tab }, preview)),
     });
 }
 
 /**
  * Restores persisted tabs into the main strip, dropping anything malformed.
- * Selection is not restored. State saved before Agent tabs existed (no
- * `agents`) still parses: it is a real contract in users' localStorage.
+ * Selection is not restored. State saved before Agent or Thread tabs existed
+ * (no `agents` or `threads`) still parses: it is a real contract in users'
+ * localStorage.
  */
 export function parseWorkspaceTabs(raw: string | null): WorkspaceTabsState {
     if (!raw) {
@@ -51,12 +60,19 @@ export function parseWorkspaceTabs(raw: string | null): WorkspaceTabsState {
         ('agents' in value && Array.isArray(value.agents) ? value.agents : []).map(parseAgentTab),
         (tab) => tab.agentId
     );
+    const threads = unique(
+        ('threads' in value && Array.isArray(value.threads) ? value.threads : []).map(
+            parseThreadTab
+        ),
+        (tab) => workspaceTabId({ kind: 'thread', ...tab })
+    );
     const live = new Set([
         ...artifacts.map((tab) => workspaceTabId({ kind: 'artifact', key: tab.key })),
         ...agents.map((tab) => workspaceTabId({ kind: 'agent', agentId: tab.agentId })),
+        ...threads.map((tab) => workspaceTabId({ kind: 'thread', ...tab })),
     ]);
     const order = Array.isArray(value.order) ? parseOrder(value.order, live) : [];
-    return { ...emptyWorkspaceTabs, agents, artifacts, order };
+    return { ...emptyWorkspaceTabs, agents, artifacts, order, threads };
 }
 
 /** Keeps known App-local refs and the first primary ref; the resolver places a missing primary. */
@@ -79,9 +95,28 @@ function parseOrder(entries: unknown[], live: ReadonlySet<string>): WorkspaceTab
             typeof entry.agentId === 'string'
         ) {
             ref = { kind: 'agent', agentId: entry.agentId };
+        } else if (entry.kind === 'thread') {
+            const tab = parseThreadTab(entry);
+            ref = tab && { kind: 'thread', ...tab };
         }
         return ref && live.has(workspaceTabId(ref)) ? [ref] : [];
     });
+}
+
+function parseThreadTab(entry: unknown): ThreadTab | null {
+    if (
+        entry &&
+        typeof entry === 'object' &&
+        'chatId' in entry &&
+        typeof entry.chatId === 'string' &&
+        entry.chatId.length > 0 &&
+        'anchorMessageId' in entry &&
+        typeof entry.anchorMessageId === 'string' &&
+        entry.anchorMessageId.length > 0
+    ) {
+        return { anchorMessageId: entry.anchorMessageId, chatId: entry.chatId };
+    }
+    return null;
 }
 
 function parseAgentTab(entry: unknown): AgentTab | null {

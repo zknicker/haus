@@ -1,32 +1,30 @@
 import * as React from 'react';
-import { getArtifactPanelTargetKey } from '../../features/chats/haus-resource-link.ts';
 import type { AgentSection } from '../../features/members/agent-profile/agent-sections.ts';
 import type { BrowserCommand, BrowserWorkspaceState } from '../../lib/desktop-browser.ts';
 import { type ClosedTab, closedTabEntry, rememberClosedTab } from './closed-tabs.ts';
 import { useReopenClosedTab } from './use-reopen-closed-tab.ts';
 import { useWorkspaceSplit, type WorkspaceSplitCommands } from './use-workspace-split.ts';
+import { useWorkspaceTabOpeners, type WorkspaceTabOpeners } from './use-workspace-tab-openers.ts';
 import {
     type AgentTab,
     type AppTabRef,
     type ArtifactTab,
     type ClosableTabRef,
     mainAppTabs,
-    openGroup,
     primaryTabRef,
     resolveWorkspaceTabs,
     selectionAfterClose,
-    type TabPlacement,
+    type ThreadTab,
     tabGroup,
-    type WorkspaceArtifactTarget,
     type WorkspaceSplit,
     type WorkspaceTabGroup,
     type WorkspaceTabRef,
     workspaceTabId,
 } from './workspace-tabs-model.ts';
-import { type AppTabInput, workspaceTabsReducer } from './workspace-tabs-reducer.ts';
+import { workspaceTabsReducer } from './workspace-tabs-reducer.ts';
 import { parseWorkspaceTabs, serializeWorkspaceTabs } from './workspace-tabs-storage.ts';
 
-export interface WorkspaceTabs extends WorkspaceSplitCommands {
+export interface WorkspaceTabs extends WorkspaceSplitCommands, WorkspaceTabOpeners {
     /** The main strip's selected tab. */
     activeTab: WorkspaceTabRef;
     agents: AgentTab[];
@@ -37,15 +35,8 @@ export interface WorkspaceTabs extends WorkspaceSplitCommands {
     closeTab: (ref: ClosableTabRef, options?: { remember?: boolean }) => void;
     focusedGroup: WorkspaceTabGroup;
     focusGroup: (group: WorkspaceTabGroup) => void;
-    openAgent: (
-        agentId: string,
-        options?: { placement?: TabPlacement; section?: AgentSection }
-    ) => void;
-    openArtifact: (
-        target: WorkspaceArtifactTarget,
-        title?: string,
-        placement?: TabPlacement
-    ) => void;
+    /** Pins the split's preview tab; anything else is already pinned. */
+    pinTab: (ref: AppTabRef) => void;
     /** Reopens the most recently closed tab this session at its old position (⌘⇧T). */
     reopenClosedTab: () => void;
     reorderTabs: (tabs: WorkspaceTabRef[]) => void;
@@ -55,6 +46,7 @@ export interface WorkspaceTabs extends WorkspaceSplitCommands {
     split: WorkspaceSplit;
     /** Every main strip tab, the primary tab included, in strip order. */
     tabs: WorkspaceTabRef[];
+    threads: ThreadTab[];
 }
 
 /**
@@ -129,7 +121,7 @@ export function useWorkspaceTabs({
 
     const selectTab = React.useCallback(
         (ref: WorkspaceTabRef) => {
-            if (ref.kind === 'artifact' || ref.kind === 'agent') {
+            if (ref.kind !== 'primary' && ref.kind !== 'browser') {
                 dispatch({ kind: 'select', ref });
                 if (tabGroup(latest.current.state, ref) === 'main') {
                     releaseBrowser();
@@ -178,35 +170,12 @@ export function useWorkspaceTabs({
         closeTab(target);
         return true;
     }, [closeTab]);
-    const open = React.useCallback(
-        (input: AppTabInput, ref: AppTabRef, placement: TabPlacement) => {
-            const group = openGroup(latest.current.state, ref, placement);
-            dispatch({ kind: 'open', placement, tab: input });
-            if (group === 'main') {
-                releaseBrowser();
-            }
-        },
-        [releaseBrowser]
-    );
-    const openArtifact = React.useCallback(
-        (target: WorkspaceArtifactTarget, title?: string, placement: TabPlacement = 'auto') => {
-            const input: AppTabInput = {
-                kind: 'artifact',
-                source: latest.current.source,
-                target,
-                title: title ?? null,
-            };
-            open(input, artifactRef(target), placement);
-        },
-        [open]
-    );
-    const openAgent = React.useCallback<WorkspaceTabs['openAgent']>(
-        (agentId, options = {}) => {
-            const input: AppTabInput = { kind: 'agent', agentId, section: options.section };
-            open(input, { kind: 'agent', agentId }, options.placement ?? 'auto');
-        },
-        [open]
-    );
+    const { open, openAgent, openArtifact, openThread } = useWorkspaceTabOpeners({
+        dispatch,
+        latest,
+        releaseBrowser,
+    });
+    const pinTab = React.useCallback((ref: AppTabRef) => dispatch({ kind: 'pin', ref }), []);
     const setAgentSection = React.useCallback((agentId: string, section: AgentSection) => {
         dispatch({ kind: 'section', agentId, section });
     }, []);
@@ -238,12 +207,15 @@ export function useWorkspaceTabs({
             focusGroup,
             openAgent,
             openArtifact,
+            openThread,
+            pinTab,
             reopenClosedTab,
             reorderTabs,
             selectTab,
             setAgentSection,
             split: state.split,
             tabs,
+            threads: state.threads,
         }),
         [
             splitCommands,
@@ -257,17 +229,16 @@ export function useWorkspaceTabs({
             focusGroup,
             openAgent,
             openArtifact,
+            openThread,
+            pinTab,
             reopenClosedTab,
             reorderTabs,
             selectTab,
             setAgentSection,
             tabs,
+            state.threads,
         ]
     );
-}
-
-function artifactRef(target: WorkspaceArtifactTarget): AppTabRef {
-    return { kind: 'artifact', key: getArtifactPanelTargetKey(target) };
 }
 
 function readStoredTabs(storageKey: string) {

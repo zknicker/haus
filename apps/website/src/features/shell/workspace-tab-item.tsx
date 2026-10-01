@@ -4,6 +4,7 @@ import { ArtifactWorkspaceTab } from './artifact-workspace-tab.tsx';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 import { BrowserWorkspaceTab } from './browser-workspace-tab.tsx';
 import { PrimaryWorkspaceTab } from './primary-workspace-tab.tsx';
+import { ThreadWorkspaceTab } from './thread-workspace-tab.tsx';
 
 /** One tab of any kind, in either strip; renders nothing for a tab that is gone. */
 export function WorkspaceTabItem({ tabRef }: { tabRef: WorkspaceTabRef }) {
@@ -24,5 +25,7 @@ export function WorkspaceTabItem({ tabRef }: { tabRef: WorkspaceTabRef }) {
         }
         case 'agent':
             return <AgentWorkspaceTab agentId={tabRef.agentId} />;
+        case 'thread':
+            return <ThreadWorkspaceTab tabRef={tabRef} />;
     }
 }

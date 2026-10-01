@@ -11,9 +11,10 @@ import {
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 
 /**
- * One right-click menu for a whole strip: it opens for the artifact or Agent
- * tab under the pointer and moves it to the other group or closes it. Browser
- * and primary tabs have no menu (browser tabs stay in the main strip).
+ * One right-click menu for a whole strip: it opens for the artifact, Agent, or
+ * Thread tab under the pointer and moves it to the other group (pinning a
+ * preview tab) or closes it. Browser and primary tabs have no menu (browser
+ * tabs stay in the main strip).
  */
 export function WorkspaceTabMenu({
     children,
@@ -32,7 +33,7 @@ export function WorkspaceTabMenu({
         group === 'split'
             ? workspace.split.order
             : workspace.tabs.filter(
-                  (ref): ref is AppTabRef => ref.kind === 'artifact' || ref.kind === 'agent'
+                  (ref): ref is AppTabRef => ref.kind !== 'primary' && ref.kind !== 'browser'
               );
     const onAction = (key: React.Key) => {
         if (!target) {

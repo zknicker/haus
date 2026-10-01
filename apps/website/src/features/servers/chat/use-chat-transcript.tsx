@@ -5,6 +5,7 @@ import { useChatMessageReaction } from '../../../hooks/servers/use-chat-message-
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useChatCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
+import type { TabPlacement } from '../../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type {
     TranscriptMessageRow,
@@ -159,7 +160,7 @@ export function useChatTranscript({
         [downloadAttachment, downloadPending, lookupRef]
     );
     const handleOpenThread = React.useCallback(
-        (row: TranscriptMessageRow) => {
+        (row: TranscriptMessageRow, placement?: TabPlacement) => {
             const message = lookupRef.current.messagesById.get(row.message.id);
 
             if (!message) {
@@ -171,7 +172,7 @@ export function useChatTranscript({
                     (candidate) => candidate.anchorMessageId === message.id
                 ) ?? null;
 
-            onOpenThread?.(message, summary);
+            onOpenThread?.(message, summary, placement);
         },
         [lookupRef, onOpenThread]
     );

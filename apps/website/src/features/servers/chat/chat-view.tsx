@@ -1,10 +1,9 @@
-import type { Chat, ChatMessage, ThreadSummary } from '@haus/api';
+import type { Chat } from '@haus/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
+import { useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { useChatMessageNavigation } from '../../../hooks/servers/use-chat-message-navigation.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
@@ -26,7 +25,8 @@ import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
 import { useChatInlineReply } from './use-chat-inline-reply.ts';
 import { useChatReferenceActivation } from './use-chat-reference-activation.ts';
-import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-selection.ts';
+import { useChatThreadPane } from './use-chat-thread-pane.ts';
+import type { ChatInitialTask } from './use-chat-thread-selection.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
 import { useVisibleChatSequence } from './use-visible-chat-sequence.ts';
 
@@ -42,10 +42,8 @@ export function ChatView({
     server: ServerDetail;
 }) {
     const filesPane = useChatFilesPane(chat.id);
-    const [searchParams, setSearchParams] = useSearchParams();
     const artifactState = useChatArtifactPanel(chat.id);
     const activeSidePane = useChatSidePane(chat.id);
-    const [threadSelection, setThreadSelection] = useChatThreadSelection(chat.id, initialTask);
     // Keep chat beside an open pane until the window is narrow enough
     // that the pane needs to take over the content area.
     const threadTakeover = useViewportBelow(1024);
@@ -68,6 +66,13 @@ export function ChatView({
         () => mergeTaskAnchor(sourceMessages, anchorMessage),
         [anchorMessage, sourceMessages]
     );
+    const thread = useChatThreadPane({
+        chatId: chat.id,
+        initialTask,
+        revealMessage,
+        transcriptMessages,
+    });
+    const threadSelection = thread.selection;
     const visibleRead = useVisibleChatSequence(chat.id);
     const read = useChatRead({
         chatId: messages.data ? chat.id : undefined,
@@ -92,84 +97,6 @@ export function ChatView({
         ) ??
         threadSelection?.initialSummary ??
         null;
-    // The selection carries identity; the record itself is read live from the
-    // transcript, so a Thread left open follows its anchor's own changes — a
-    // Task claimed, a Cloud Agent work that finished. The captured message is
-    // the fallback for an anchor this transcript has not loaded.
-    const threadAnchor = React.useMemo(
-        () =>
-            threadSelection
-                ? (transcriptMessages?.find(
-                      (message) => message.id === threadSelection.anchor.id
-                  ) ?? threadSelection.anchor)
-                : null,
-        [threadSelection, transcriptMessages]
-    );
-    const threadAnchorId = searchParams.get('thread');
-    const threadCloseRequestedRef = React.useRef(false);
-    const restoredThreadAnchorRef = React.useRef<string | null>(null);
-    React.useEffect(() => {
-        if (!threadAnchorId) {
-            restoredThreadAnchorRef.current = null;
-            return;
-        }
-        if (!transcriptMessages || restoredThreadAnchorRef.current === threadAnchorId) {
-            return;
-        }
-        const anchor = transcriptMessages.find((message) => message.id === threadAnchorId);
-        if (!anchor) {
-            return;
-        }
-        restoredThreadAnchorRef.current = threadAnchorId;
-        if (threadSelection?.anchor.id === anchor.id) {
-            return;
-        }
-        setThreadSelection({ anchor, initialSummary: null });
-        setChatSidePane(chat.id, 'thread');
-    }, [
-        chat.id,
-        setThreadSelection,
-        threadAnchorId,
-        threadSelection?.anchor.id,
-        transcriptMessages,
-    ]);
-    const closeThread = React.useCallback(() => {
-        threadCloseRequestedRef.current = true;
-        setSearchParams(
-            (current) => {
-                const next = new URLSearchParams(current);
-                next.delete('thread');
-                return next;
-            },
-            { replace: true }
-        );
-        setChatSidePane(chat.id, 'artifact');
-    }, [chat.id, setSearchParams]);
-    // The transcript's render context reaches rows through React context; fresh
-    // callbacks would rebuild it and re-render the whole transcript.
-    const openThread = React.useCallback(
-        (anchor: ChatMessage, initialSummary: ThreadSummary | null) => {
-            threadCloseRequestedRef.current = false;
-            setThreadSelection({ anchor, initialSummary });
-            setSearchParams(
-                (current) => {
-                    const next = new URLSearchParams(current);
-                    next.set('thread', anchor.id);
-                    return next;
-                },
-                { replace: true }
-            );
-            setChatSidePane(chat.id, 'thread');
-        },
-        [chat.id, setSearchParams, setThreadSelection]
-    );
-    const viewThreadInChannel = () => {
-        const anchor = threadSelection?.anchor;
-        closeThread();
-        if (anchor) {
-            revealMessage({ id: anchor.id, sequence: anchor.sequence });
-        }
-    };
     // The chat-scoped pane and Thread share the side panel. The latest
     // artifact opener wins and reveals the pane.
     const openArtifact = artifactState.open;
@@ -181,19 +108,14 @@ export function ChatView({
     const threadPanel = threadSelection ? (
         <ThreadPanel
             active={activeSidePane === 'thread'}
-            anchor={threadAnchor ?? threadSelection.anchor}
+            anchor={thread.anchor ?? threadSelection.anchor}
             chat={chat}
             initialThreadChatId={threadSelection.initialThreadChatId}
-            onClose={closeThread}
-            onExitComplete={() => {
-                if (threadCloseRequestedRef.current) {
-                    threadCloseRequestedRef.current = false;
-                    setThreadSelection(null);
-                }
-            }}
+            onClose={thread.close}
+            onExitComplete={thread.onExitComplete}
             onOpenArtifact={openArtifact}
             onReferenceActivate={handleReferenceActivate}
-            onViewInChannel={viewThreadInChannel}
+            onViewInChannel={thread.viewInChannel}
             readOnly={readOnly}
             summary={threadSummary}
             takeover={threadTakeover}
@@ -280,7 +202,7 @@ export function ChatView({
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}
                         onOpenInlineReply={revealMessage}
-                        onOpenThread={openThread}
+                        onOpenThread={thread.open}
                         onReferenceActivate={handleReferenceActivate}
                         onSelectInlineReply={selectInlineReply}
                         onStartDm={startDm}

@@ -16,7 +16,8 @@ import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { channelListModifiers } from './channel-drag-modifiers.ts';
 import { orderChannels, readChannelOrder, writeChannelOrder } from './channel-order.ts';
-import { ChatNavigationRowContent, chatNavigationName } from './chat-navigation-row.tsx';
+import { chatNavigationName } from './chat-navigation-name.ts';
+import { ChatNavigationRowContent } from './chat-navigation-row.tsx';
 import {
     type KeyboardCommand,
     keyboardCommand,

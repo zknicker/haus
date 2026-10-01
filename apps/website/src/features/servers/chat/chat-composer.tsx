@@ -40,6 +40,7 @@ export function ServerChatComposer({
     onMaterialized,
     onInlineReplyCancel,
     onInlineReplySent,
+    onSend,
     onThreadCreated,
     pendingChatId,
     placeholder,
@@ -56,6 +57,7 @@ export function ServerChatComposer({
     onMaterialized?: (chatId: string) => void;
     onInlineReplyCancel?: () => void;
     onInlineReplySent?: (messageId: string) => void;
+    onSend?: () => void;
     onThreadCreated?: (threadChatId: string) => void;
     /**
      * The transcript that shows this composer's sends while they are in flight.
@@ -149,6 +151,7 @@ export function ServerChatComposer({
             inlineReply: activeInlineReply,
             onMaterialized,
             onInlineReplySent,
+            onSend,
             onThreadCreated,
             pendingChatId,
             send,

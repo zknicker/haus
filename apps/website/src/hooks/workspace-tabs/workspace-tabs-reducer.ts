@@ -4,6 +4,7 @@ import {
     type AppTabRef,
     closedSplit,
     openGroup,
+    placementClass,
     sameTab,
     type TabPlacement,
     tabGroup,
@@ -23,7 +24,8 @@ export type AppTabInput =
           source: string | null;
           target: WorkspaceArtifactTarget;
           title: string | null;
-      };
+      }
+    | { kind: 'thread'; anchorMessageId: string; chatId: string };
 
 export type WorkspaceTabsAction =
     | { kind: 'close'; ref: AppTabRef }
@@ -35,6 +37,8 @@ export type WorkspaceTabsAction =
     | { kind: 'open'; placement: TabPlacement; tab: AppTabInput }
     /** Opens the split, moving the selected App-local main tab across. */
     | { kind: 'openSplit' }
+    /** Keeps the split's preview tab: the next companion opens beside it instead of replacing it. */
+    | { kind: 'pin'; ref: AppTabRef }
     | { kind: 'reorder'; order: WorkspaceTabRef[] }
     /** Electron selected a browser tab: drops the main App-local selection, leaving focus alone. */
     | { kind: 'releaseMain' }
@@ -54,6 +58,10 @@ export function workspaceTabsReducer(
             return select(state, action.ref);
         case 'close':
             return close(state, action.ref);
+        case 'pin':
+            return sameTab(state.split.preview, action.ref)
+                ? { ...state, split: { ...state.split, preview: null } }
+                : state;
         case 'releaseMain':
             return state.mainActive === null ? state : { ...state, mainActive: null };
         case 'focus':
@@ -91,7 +99,6 @@ function open(
     placement: TabPlacement
 ): WorkspaceTabsState {
     const ref = inputRef(input);
-    const group = openGroup(state, ref, placement);
     let next = state;
     if (input.kind === 'agent' && input.section) {
         next = workspaceTabsReducer(next, {
@@ -101,33 +108,69 @@ function open(
         });
     }
     if (tabGroup(state, ref) === null) {
-        next =
-            input.kind === 'agent'
-                ? {
-                      ...next,
-                      agents: [
-                          ...next.agents,
-                          { agentId: input.agentId, section: input.section ?? 'home' },
-                      ],
-                  }
-                : {
-                      ...next,
-                      artifacts: [
-                          ...next.artifacts,
-                          {
-                              key: getArtifactPanelTargetKey(input.target),
-                              source: input.source,
-                              target: input.target,
-                              title: input.title,
-                          },
-                      ],
-                  };
+        const group = openGroup(state, ref, placement);
+        next = withTabRecord(next, input);
         next =
             group === 'split'
-                ? { ...next, split: { ...next.split, order: [...next.split.order, ref] } }
+                ? { ...next, split: placeInSplit(next.split, ref) }
                 : { ...next, order: [...next.order, ref] };
+        const replaced = state.split.preview;
+        if (group === 'split' && replaced && ref.kind === 'thread') {
+            next = { ...next, threads: next.threads.filter((tab) => !sameThread(tab, replaced)) };
+        }
     }
     return select(next, ref);
+}
+
+/**
+ * Lands a new tab in the split, opening it. A companion becomes the split's
+ * preview tab, taking the current preview's place in the strip when there is one.
+ */
+function placeInSplit(split: WorkspaceSplit, ref: AppTabRef): WorkspaceSplit {
+    if (placementClass(ref) === 'page' || ref.kind !== 'thread') {
+        return { ...split, open: true, order: [...split.order, ref] };
+    }
+    const previewId = split.preview ? workspaceTabId(split.preview) : null;
+    const at = split.order.findIndex((item) => workspaceTabId(item) === previewId);
+    const order =
+        at < 0
+            ? [...split.order, ref]
+            : [...split.order.slice(0, at), ref, ...split.order.slice(at + 1)];
+    return { ...split, open: true, order, preview: ref };
+}
+
+function withTabRecord(state: WorkspaceTabsState, input: AppTabInput): WorkspaceTabsState {
+    switch (input.kind) {
+        case 'agent':
+            return {
+                ...state,
+                agents: [
+                    ...state.agents,
+                    { agentId: input.agentId, section: input.section ?? 'home' },
+                ],
+            };
+        case 'artifact':
+            return {
+                ...state,
+                artifacts: [
+                    ...state.artifacts,
+                    {
+                        key: getArtifactPanelTargetKey(input.target),
+                        source: input.source,
+                        target: input.target,
+                        title: input.title,
+                    },
+                ],
+            };
+        case 'thread':
+            return {
+                ...state,
+                threads: [
+                    ...state.threads,
+                    { anchorMessageId: input.anchorMessageId, chatId: input.chatId },
+                ],
+            };
+    }
 }
 
 function select(state: WorkspaceTabsState, ref: AppTabRef | null): WorkspaceTabsState {
@@ -161,6 +204,7 @@ function close(state: WorkspaceTabsState, ref: AppTabRef): WorkspaceTabsState {
         mainActive: sameTab(state.mainActive, ref) ? null : state.mainActive,
         order: state.order.filter(keep),
         split,
+        threads: state.threads.filter((tab) => keep({ kind: 'thread', ...tab })),
     };
 }
 
@@ -176,7 +220,12 @@ function moveToSplit(state: WorkspaceTabsState, ref: AppTabRef, index?: number) 
         focus: 'split' as const,
         mainActive: sameTab(state.mainActive, ref) ? null : state.mainActive,
         order: state.order.filter((item) => workspaceTabId(item) !== id),
-        split: { active: ref, open: true, order: [...rest.slice(0, at), ref, ...rest.slice(at)] },
+        split: {
+            ...state.split,
+            active: ref,
+            open: true,
+            order: [...rest.slice(0, at), ref, ...rest.slice(at)],
+        },
     };
 }
 
@@ -195,7 +244,8 @@ function moveToMain(state: WorkspaceTabsState, ref: AppTabRef, order: WorkspaceT
 
 /**
  * Removes a tab from the split. The split's selection falls to its last
- * remaining tab, and the split closes once its last tab leaves.
+ * remaining tab, and the split closes once its last tab leaves. A preview tab
+ * that leaves is no longer the preview: closed, or pinned by the move.
  */
 function withoutSplitTab(split: WorkspaceSplit, ref: AppTabRef): WorkspaceSplit {
     const id = workspaceTabId(ref);
@@ -210,11 +260,21 @@ function withoutSplitTab(split: WorkspaceSplit, ref: AppTabRef): WorkspaceSplit 
         active: sameTab(split.active, ref) ? (order.at(-1) ?? null) : split.active,
         open: true,
         order,
+        preview: sameTab(split.preview, ref) ? null : split.preview,
     };
 }
 
+function sameThread(tab: { anchorMessageId: string; chatId: string }, ref: AppTabRef): boolean {
+    return sameTab({ kind: 'thread', ...tab }, ref);
+}
+
 function inputRef(input: AppTabInput): AppTabRef {
-    return input.kind === 'agent'
-        ? { kind: 'agent', agentId: input.agentId }
-        : { kind: 'artifact', key: getArtifactPanelTargetKey(input.target) };
+    switch (input.kind) {
+        case 'agent':
+            return { kind: 'agent', agentId: input.agentId };
+        case 'artifact':
+            return { kind: 'artifact', key: getArtifactPanelTargetKey(input.target) };
+        case 'thread':
+            return { kind: 'thread', anchorMessageId: input.anchorMessageId, chatId: input.chatId };
+    }
 }

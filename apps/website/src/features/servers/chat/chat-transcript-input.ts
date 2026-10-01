@@ -1,4 +1,5 @@
 import type { ChatMessage, ThreadSummary } from '@haus/api';
+import type { TabPlacement } from '../../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import type { InlineReplyNavigation } from '../../chats/transcript-reply-contract.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
@@ -13,7 +14,12 @@ export interface ChatTranscriptInput {
     messages: readonly ChatMessage[] | undefined;
     onOpenArtifact: (target: HausResourceTarget) => void;
     onOpenInlineReply?: InlineReplyNavigation;
-    onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
+    /** `placement` is the opener's Cmd-click intent; only desktop Thread tabs read it. */
+    onOpenThread?: (
+        message: ChatMessage,
+        summary: ThreadSummary | null,
+        placement?: TabPlacement
+    ) => void;
     onReferenceActivate?: ReferenceActivation;
     onSelectInlineReply?: (message: ChatMessage) => void;
     onStartDm?: (userId: string) => void;

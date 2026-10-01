@@ -108,4 +108,10 @@ describe('workspace tab sizing contract', () => {
     test('a cut-off title ends in an ellipsis', () => {
         expect(ruleBody('.workspace-tab__label')).toContain('text-overflow: ellipsis;');
     });
+
+    test('a preview tab is marked by an italic title alone, keeping the shared geometry', () => {
+        const preview = ruleBody('.workspace-tab--preview .workspace-tab__label');
+        expect(preview).toContain('font-style: italic;');
+        expect(themeCss).not.toContain('.workspace-tab--preview {');
+    });
 });

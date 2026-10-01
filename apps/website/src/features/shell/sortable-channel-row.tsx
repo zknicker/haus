@@ -3,7 +3,8 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Agent, Chat } from '@haus/api';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-import { ChatNavigationRow, chatNavigationName } from './chat-navigation-row.tsx';
+import { chatNavigationName } from './chat-navigation-name.ts';
+import { ChatNavigationRow } from './chat-navigation-row.tsx';
 
 export type KeyboardCommand = 'cancel' | 'drop' | 'move-down' | 'move-up' | 'pick-up';
 

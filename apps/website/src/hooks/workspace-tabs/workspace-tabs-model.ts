@@ -4,11 +4,21 @@ import {
 } from '../../features/chats/haus-resource-link.ts';
 import type { AgentSection } from '../../features/members/agent-profile/agent-sections.ts';
 
+/** A Thread tab, by its parent chat and the Thread's anchor (root) message. */
+export interface ThreadTabRef {
+    anchorMessageId: string;
+    chatId: string;
+    kind: 'thread';
+}
+
 /**
- * An App-local workspace tab: an artifact (by its stable target key) or an
- * Agent profile (by Agent id). Only these can sit in the split.
+ * An App-local workspace tab: an artifact (by its stable target key), an
+ * Agent profile (by Agent id), or a Thread. Only these can sit in the split.
  */
-export type AppTabRef = { kind: 'agent'; agentId: string } | { kind: 'artifact'; key: string };
+export type AppTabRef =
+    | { kind: 'agent'; agentId: string }
+    | { kind: 'artifact'; key: string }
+    | ThreadTabRef;
 
 /** A closable desktop workspace tab. Browser tabs are Electron-owned and referenced by id. */
 export type ClosableTabRef = AppTabRef | { kind: 'browser'; id: string };
@@ -22,8 +32,27 @@ export type WorkspaceTabRef = { kind: 'primary' } | ClosableTabRef;
 /** The window's two tab groups: the main strip, and the split docked on the right. */
 export type WorkspaceTabGroup = 'main' | 'split';
 
-/** `main` forces the main strip (Cmd-click); `auto` follows the split rule. */
+/** `main` forces the main strip (Cmd-click); `auto` follows the tab's placement class. */
 export type TabPlacement = 'auto' | 'main';
+
+/**
+ * Where a new tab of a kind lands (ADR 0038). A page (Agent profile,
+ * artifact) opens in the split only while it is open; a companion (Thread)
+ * always opens in the split, opening it, as the split's preview tab.
+ */
+export type PlacementClass = 'companion' | 'page';
+
+export function placementClass(ref: AppTabRef): PlacementClass {
+    return ref.kind === 'thread' ? 'companion' : 'page';
+}
+
+/** Cmd/Ctrl-click always lands in the main strip. */
+export function placementFromModifiers(event: {
+    ctrlKey: boolean;
+    metaKey: boolean;
+}): TabPlacement {
+    return event.metaKey || event.ctrlKey ? 'main' : 'auto';
+}
 
 export const primaryTabRef: WorkspaceTabRef = { kind: 'primary' };
 
@@ -45,12 +74,20 @@ export interface AgentTab {
     section: AgentSection;
 }
 
+/** A Thread tab carries nothing beyond its identity. */
+export type ThreadTab = Omit<ThreadTabRef, 'kind'>;
+
 export interface WorkspaceSplit {
     /** The split's selected tab; null only while it holds no tabs. */
     active: AppTabRef | null;
     /** True once toggled on, even before a tab lands in it; new tabs then open there. */
     open: boolean;
     order: AppTabRef[];
+    /**
+     * The split's one preview tab: an unpinned companion that the next opened
+     * companion replaces in place. Replying, double-clicking, or moving it pins it.
+     */
+    preview: ThreadTabRef | null;
 }
 
 export interface WorkspaceTabsState {
@@ -63,9 +100,10 @@ export interface WorkspaceTabsState {
     /** Main strip order; browser refs may be stale and are resolved against live tabs. */
     order: WorkspaceTabRef[];
     split: WorkspaceSplit;
+    threads: ThreadTab[];
 }
 
-export const closedSplit: WorkspaceSplit = { active: null, open: false, order: [] };
+export const closedSplit: WorkspaceSplit = { active: null, open: false, order: [], preview: null };
 
 export const emptyWorkspaceTabs: WorkspaceTabsState = {
     agents: [],
@@ -74,13 +112,17 @@ export const emptyWorkspaceTabs: WorkspaceTabsState = {
     mainActive: null,
     order: [],
     split: closedSplit,
+    threads: [],
 };
 
 /** Every App-local tab, whichever group holds it. */
-export function appTabRefs(state: Pick<WorkspaceTabsState, 'agents' | 'artifacts'>): AppTabRef[] {
+export function appTabRefs(
+    state: Pick<WorkspaceTabsState, 'agents' | 'artifacts' | 'threads'>
+): AppTabRef[] {
     return [
         ...state.artifacts.map((tab): AppTabRef => ({ kind: 'artifact', key: tab.key })),
         ...state.agents.map((tab): AppTabRef => ({ kind: 'agent', agentId: tab.agentId })),
+        ...state.threads.map((tab): AppTabRef => ({ kind: 'thread', ...tab })),
     ];
 }
 
@@ -94,16 +136,23 @@ export function tabGroup(state: WorkspaceTabsState, ref: AppTabRef): WorkspaceTa
 }
 
 /**
- * The routing rule (ADR 0038): an open tab stays where it is; a new one opens
- * in the split while the split is open, else in the main strip; `main` forces
- * the main strip.
+ * The routing rule (ADR 0038): an open tab stays where it is; `main` forces
+ * the main strip; a new companion opens in the split; a new page opens in the
+ * split while the split is open, else in the main strip.
  */
 export function openGroup(
     state: WorkspaceTabsState,
     ref: AppTabRef,
     placement: TabPlacement
 ): WorkspaceTabGroup {
-    return tabGroup(state, ref) ?? (placement === 'auto' && state.split.open ? 'split' : 'main');
+    const open = tabGroup(state, ref);
+    if (open) {
+        return open;
+    }
+    if (placement === 'main') {
+        return 'main';
+    }
+    return placementClass(ref) === 'companion' || state.split.open ? 'split' : 'main';
 }
 
 /** App-local tabs that belong to the main strip. */
@@ -176,6 +225,8 @@ export function workspaceTabId(ref: WorkspaceTabRef): string {
             return `artifact:${ref.key}`;
         case 'agent':
             return `agent:${ref.agentId}`;
+        case 'thread':
+            return `thread:${ref.chatId}:${ref.anchorMessageId}`;
     }
 }
 

@@ -7,6 +7,7 @@ import { cn } from '../../lib/utils.ts';
 import { AgentWorkspacePage } from './agent-workspace-page.tsx';
 import { ArtifactWorkspacePage } from './artifact-workspace-page.tsx';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
+import { ThreadWorkspacePage } from './thread-workspace-page.tsx';
 
 /**
  * The main strip's selected App-local tab. It covers the mounted routed page
@@ -14,7 +15,7 @@ import { useBrowserWorkspace } from './browser-workspace-context.tsx';
  */
 export function MainWorkspaceTabPage() {
     const active = useBrowserWorkspace()?.activeTab;
-    if (!(active && (active.kind === 'artifact' || active.kind === 'agent'))) {
+    if (!active || active.kind === 'primary' || active.kind === 'browser') {
         return null;
     }
     return <WorkspaceTabPage className="absolute inset-0 z-10" tabRef={active} />;
@@ -38,6 +39,13 @@ export function WorkspaceTabPage({ className, tabRef }: { className?: string; ta
                 <AgentWorkspacePage tab={tab} />
             </section>
         ) : null;
+    }
+    if (tabRef.kind === 'thread') {
+        return (
+            <section aria-label="Thread" className={sectionClass} key={workspaceTabId(tabRef)}>
+                <ThreadWorkspacePage tabRef={tabRef} />
+            </section>
+        );
     }
     const tab = workspace.artifacts.find((item) => item.key === tabRef.key);
     return tab ? (

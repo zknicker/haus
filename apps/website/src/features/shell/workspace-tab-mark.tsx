@@ -14,9 +14,14 @@ const markSize = 16;
 /** Identity marks — a channel box or an avatar — fill the 20px slot: a boxed mark needs the extra size to read level with a bare favicon. */
 const identityMarkSize = 20;
 
-/** The primary tab's mark: the same identity the sidebar row shows. */
+/** The primary tab's mark, and a Thread tab's chat mark: the same identity the sidebar row shows. */
 export function PrimaryTabMark({ identity }: { identity: PrimaryTabIdentity }) {
     return <WorkspaceTabMark>{renderIdentity(identity)}</WorkspaceTabMark>;
+}
+
+/** An empty mark slot, so a loading tab's title keeps its inset. */
+export function WorkspaceTabMarkSlot() {
+    return <WorkspaceTabMark>{null}</WorkspaceTabMark>;
 }
 
 /**

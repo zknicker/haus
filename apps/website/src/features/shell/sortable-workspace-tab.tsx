@@ -20,6 +20,7 @@ export function SortableWorkspaceTab({
     label,
     mark,
     onAuxClick,
+    onDoubleClick,
     tabRef,
     tooltip,
 }: {
@@ -28,6 +29,7 @@ export function SortableWorkspaceTab({
     label: string;
     mark: React.ReactNode;
     onAuxClick?: React.MouseEventHandler<HTMLDivElement>;
+    onDoubleClick?: React.MouseEventHandler<HTMLDivElement>;
     tabRef: WorkspaceTabRef;
     tooltip?: React.ReactNode;
 }) {
@@ -81,6 +83,7 @@ export function SortableWorkspaceTab({
             data-tab-id={id}
             kind={tabRef.kind}
             onAuxClick={onAuxClick}
+            onDoubleClick={onDoubleClick}
             ref={(node) => {
                 element.current = node;
                 setNodeRef(node);

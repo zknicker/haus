@@ -29,16 +29,7 @@ export function useReopenClosedTab({
         }
         closed.current = closed.current.slice(0, -1);
         if (entry.kind !== 'browser') {
-            const [input, ref]: [AppTabInput, AppTabRef] =
-                entry.kind === 'agent'
-                    ? [
-                          { kind: 'agent', ...entry.tab },
-                          { kind: 'agent', agentId: entry.tab.agentId },
-                      ]
-                    : [
-                          { kind: 'artifact', ...entry.tab },
-                          { kind: 'artifact', key: entry.tab.key },
-                      ];
+            const [input, ref] = reopenedTab(entry);
             open(input, ref, 'main');
             reorderTabs(insertTabAt(latest.current.tabs, ref, entry.index));
             return;
@@ -58,4 +49,24 @@ export function useReopenClosedTab({
                 toast.danger('Could not reopen the tab', { description: error.message })
             );
     }, [closed, latest, open, reorderTabs]);
+}
+
+function reopenedTab(entry: Exclude<ClosedTab, { kind: 'browser' }>): [AppTabInput, AppTabRef] {
+    switch (entry.kind) {
+        case 'agent':
+            return [
+                { kind: 'agent', ...entry.tab },
+                { kind: 'agent', agentId: entry.tab.agentId },
+            ];
+        case 'artifact':
+            return [
+                { kind: 'artifact', ...entry.tab },
+                { kind: 'artifact', key: entry.tab.key },
+            ];
+        case 'thread':
+            return [
+                { kind: 'thread', ...entry.tab },
+                { kind: 'thread', ...entry.tab },
+            ];
+    }
 }

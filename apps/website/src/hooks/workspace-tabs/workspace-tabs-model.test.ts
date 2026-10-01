@@ -87,7 +87,7 @@ describe('split routing rule', () => {
         ...emptyWorkspaceTabs,
         agents: [{ agentId: 'blippy', section: 'home' }],
         artifacts: [{ key: reportKey, source: null, target: report, title: null }],
-        split: { active: split[0] ?? null, open, order: split },
+        split: { active: split[0] ?? null, open, order: split, preview: null },
     });
 
     test('a new tab opens in the main strip while the split is closed', () => {

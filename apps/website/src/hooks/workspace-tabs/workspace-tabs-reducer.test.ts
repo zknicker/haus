@@ -109,7 +109,7 @@ describe('agent tabs', () => {
 describe('split', () => {
     test('opening the split moves the selected main tab across and focuses it', () => {
         const state = run(openArtifact(report), openAgent('blippy'), { kind: 'openSplit' });
-        expect(state.split).toEqual({ active: blippy, open: true, order: [blippy] });
+        expect(state.split).toEqual({ active: blippy, open: true, order: [blippy], preview: null });
         expect(state.mainActive).toBeNull();
         expect(state.order).toEqual([reportRef]);
         expect(state.focus).toBe('split');
@@ -117,7 +117,7 @@ describe('split', () => {
 
     test('with nothing to move the split opens empty and the next new tab lands there', () => {
         const state = run({ kind: 'openSplit' }, openAgent('blippy'));
-        expect(state.split).toEqual({ active: blippy, open: true, order: [blippy] });
+        expect(state.split).toEqual({ active: blippy, open: true, order: [blippy], preview: null });
         expect(state.order).toEqual([]);
     });
 
@@ -150,7 +150,7 @@ describe('split', () => {
             kind: 'close',
             ref: blippy,
         });
-        expect(state.split).toEqual({ active: tiny, open: true, order: [tiny] });
+        expect(state.split).toEqual({ active: tiny, open: true, order: [tiny], preview: null });
         const closed = workspaceTabsReducer(state, { kind: 'close', ref: tiny });
         expect(closed.split.open).toBe(false);
         expect(closed.focus).toBe('main');
@@ -161,7 +161,7 @@ describe('split', () => {
             kind: 'closeSplit',
             order: [primaryTabRef, tiny],
         });
-        expect(state.split).toEqual({ active: null, open: false, order: [] });
+        expect(state.split).toEqual({ active: null, open: false, order: [], preview: null });
         expect(state.order).toEqual([primaryTabRef, tiny]);
         expect(state.agents).toHaveLength(1);
     });

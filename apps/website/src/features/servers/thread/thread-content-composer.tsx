@@ -7,6 +7,7 @@ export function ThreadContentComposer({
     chatName,
     composerVariant,
     anchorMessageId,
+    onReplySent,
     onThreadCreated,
     pendingChatId,
     readOnly,
@@ -18,6 +19,7 @@ export function ThreadContentComposer({
     chatName: string;
     composerVariant: 'primary' | 'secondary';
     anchorMessageId: string;
+    onReplySent?: () => void;
     onThreadCreated: (threadChatId: string) => void;
     pendingChatId: string;
     readOnly: boolean;
@@ -38,6 +40,7 @@ export function ThreadContentComposer({
         <ChatComposer
             chatId={chatId}
             chatName={chatName}
+            onSend={onReplySent}
             onThreadCreated={onThreadCreated}
             pendingChatId={pendingChatId}
             placeholder={task ? 'Reply in thread…' : 'Add a reply…'}

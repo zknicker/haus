@@ -26,6 +26,7 @@ export async function submitChatComposer({
     inlineReply,
     onMaterialized,
     onInlineReplySent,
+    onSend,
     onThreadCreated,
     pendingChatId,
     send,
@@ -43,6 +44,8 @@ export async function submitChatComposer({
     inlineReply?: ChatInlineReplyTarget | null;
     onMaterialized?: (chatId: string) => void;
     onInlineReplySent?: (messageId: string) => void;
+    /** A non-empty send started; it is optimistic, so this does not wait for the receipt. */
+    onSend?: () => void;
     onThreadCreated?: (threadChatId: string) => void;
     pendingChatId?: string;
     send: Pick<ReturnType<typeof useChatMessageSend>, 'mutateAsync'>;
@@ -62,6 +65,7 @@ export async function submitChatComposer({
     }
 
     const submitted = takeChatDraftForSend(draftKey);
+    onSend?.();
     if (attachmentInput.current) {
         attachmentInput.current.value = '';
     }

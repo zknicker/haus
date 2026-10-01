@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useWorkspaceBandTabLabel } from './shell-topbar.tsx';
+import { useWorkspaceBandTabLabel } from './workspace-band-tab-label.ts';
 
 /**
  * The band height every top-of-column zone shares: the shell topbar, local

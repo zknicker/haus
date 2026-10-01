@@ -28,8 +28,9 @@ export function ThreadPanelHeader({
     followed: boolean;
     followPending: boolean;
     header: string;
-    onBack: () => void;
-    onClose: () => void;
+    onBack?: () => void;
+    /** Absent when the host closes the Thread itself (a workspace tab's own close button). */
+    onClose?: () => void;
     onFollowChange: (follow: boolean) => void;
     onViewInChannel: () => void;
     target: null | string;
@@ -54,7 +55,7 @@ export function ThreadPanelHeader({
 
     return (
         <header className={`flex ${bandHeightClassName} shrink-0 items-center gap-3 px-5`}>
-            {takeover ? (
+            {takeover && onBack ? (
                 <Tooltip>
                     <Button
                         aria-label="Back to chat"
@@ -131,23 +132,25 @@ export function ThreadPanelHeader({
                     </ContextMenu.Popover>
                 </ContextMenu>
             </div>
-            <Tooltip>
-                <Button
-                    aria-label="Close thread"
-                    isIconOnly
-                    onPress={onClose}
-                    size="sm"
-                    variant="ghost"
-                >
-                    <Icon
-                        aria-hidden="true"
-                        className="rotate-45"
-                        icon={PlusSignIcon}
-                        size={shellBandIconSize}
-                    />
-                </Button>
-                <Tooltip.Content>Close thread</Tooltip.Content>
-            </Tooltip>
+            {onClose ? (
+                <Tooltip>
+                    <Button
+                        aria-label="Close thread"
+                        isIconOnly
+                        onPress={onClose}
+                        size="sm"
+                        variant="ghost"
+                    >
+                        <Icon
+                            aria-hidden="true"
+                            className="rotate-45"
+                            icon={PlusSignIcon}
+                            size={shellBandIconSize}
+                        />
+                    </Button>
+                    <Tooltip.Content>Close thread</Tooltip.Content>
+                </Tooltip>
+            ) : null}
         </header>
     );
 }

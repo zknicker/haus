@@ -97,12 +97,6 @@ export function ChatNavigationRowContent({
     );
 }
 
-export function chatNavigationName(chat: Chat, agent: Agent | null): string {
-    return chat.kind === 'channel'
-        ? (chat.name ?? 'channel')
-        : (agent?.displayName ?? chat.peerAgentDisplayName ?? 'DM');
-}
-
 function ChatRowChip({ chat }: { chat: Chat }) {
     if (chat.unreadCount === 0) {
         return null;

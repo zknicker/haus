@@ -8,17 +8,23 @@ import { SortableWorkspaceTab } from './sortable-workspace-tab.tsx';
 import { WorkspaceTabAction } from './workspace-tab.tsx';
 
 /**
- * A browser page or artifact tab. Both kinds close from their trailing button
- * or a middle-click, and reorder with every other tab in the one strip.
+ * A browser page, artifact, Agent, or Thread tab. Every closable kind closes
+ * from its trailing button or a middle-click, and reorders with every other
+ * tab in its strip.
  */
 export function ClosableWorkspaceTab({
+    className,
     label,
     mark,
+    onDoubleClick,
     tabRef,
     tooltip,
 }: {
+    /** A `.workspace-tab` BEM modifier, such as the preview tab's. */
+    className?: string;
     label: string;
     mark: React.ReactNode;
+    onDoubleClick?: React.MouseEventHandler<HTMLDivElement>;
     tabRef: ClosableTabRef;
     tooltip: React.ReactNode;
 }) {
@@ -39,6 +45,7 @@ export function ClosableWorkspaceTab({
                     </Button>
                 </WorkspaceTabAction>
             }
+            className={className}
             label={label}
             mark={mark}
             onAuxClick={(event) => {
@@ -47,6 +54,7 @@ export function ClosableWorkspaceTab({
                     close();
                 }
             }}
+            onDoubleClick={onDoubleClick}
             tabRef={tabRef}
             tooltip={tooltip}
         />

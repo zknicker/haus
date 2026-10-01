@@ -474,6 +474,14 @@
         white-space: nowrap;
     }
 
+    /*
+     * The split's preview tab (an unpinned Thread the next one replaces) sets
+     * its title in italics, the editor convention for a tab that will not stay.
+     */
+    .workspace-tab--preview .workspace-tab__label {
+        font-style: italic;
+    }
+
     .workspace-tab__action {
         position: absolute;
         top: 50%;

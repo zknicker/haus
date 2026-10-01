@@ -10,6 +10,7 @@ export function ChatComposer(props: {
     inlineReply?: ChatInlineReplyTarget | null;
     onInlineReplyCancel?: () => void;
     onInlineReplySent?: (messageId: string) => void;
+    onSend?: () => void;
     onThreadCreated?: (threadChatId: string) => void;
     pendingChatId?: string;
     placeholder?: string;

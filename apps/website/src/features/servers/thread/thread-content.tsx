@@ -44,6 +44,7 @@ export function ThreadContent({
     onClose,
     onOpenArtifact,
     onReferenceActivate,
+    onReplySent,
     onViewInChannel,
     readOnly,
     summary,
@@ -62,9 +63,15 @@ export function ThreadContent({
      */
     headerTitle?: string;
     initialThreadChatId?: string;
-    onClose: () => void;
+    /**
+     * Omitted by a host that already closes the Thread, such as a workspace
+     * tab, so the header shows no second close button.
+     */
+    onClose?: () => void;
     onOpenArtifact: (target: HausResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
+    /** The viewer sent a reply here; a preview Thread tab pins on it. */
+    onReplySent?: () => void;
     onViewInChannel: () => void;
     readOnly: boolean;
     summary: ThreadSummary | null;
@@ -180,6 +187,7 @@ export function ThreadContent({
                         chatId={chat.id}
                         chatName={titles.header}
                         composerVariant={composerVariant}
+                        onReplySent={onReplySent}
                         onThreadCreated={setCreatedThreadChatId}
                         pendingChatId={pendingThreadReplyKey(anchor.id)}
                         readOnly={readOnly}

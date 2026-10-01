@@ -9,7 +9,7 @@ import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { useNeedsYou } from '../../../hooks/servers/use-needs-you.ts';
-import { chatNavigationName } from '../../shell/chat-navigation-row.tsx';
+import { chatNavigationName } from '../../shell/chat-navigation-name.ts';
 import { useServerContext } from '../server-context.ts';
 import { serverChatRoute } from '../server-routes.ts';
 import { conversationPreviewLine } from './conversation-preview.ts';

@@ -1,83 +1,11 @@
-import type { BrowserCommand, BrowserWorkspaceState } from '../../src/lib/desktop-browser.ts';
+import { installDesktopBrowserStub } from '../support/desktop-browser-stub.ts';
 import { assertOpaqueId, createTestServer, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('browser tabs preserve the chat draft, channel menu, and sidebar navigation', async ({
     page,
 }, testInfo) => {
-    await page.addInitScript(() => {
-        let state: BrowserWorkspaceState = { activeId: null, tabs: [] };
-        const listeners = new Set<(state: BrowserWorkspaceState) => void>();
-        const command = async (input: BrowserCommand) => {
-            if (input.kind === 'new' || input.kind === 'open') {
-                const url = input.kind === 'new' ? 'about:blank' : input.url;
-                const existing = input.kind === 'open' && state.tabs.find((tab) => tab.url === url);
-                const id = existing?.id ?? crypto.randomUUID();
-                if (!existing) {
-                    state.tabs.push({
-                        id,
-                        url,
-                        title: url === 'about:blank' ? 'New tab' : new URL(url).hostname,
-                        loading: false,
-                        error: null,
-                        faviconUrl: null,
-                        canGoBack: false,
-                        canGoForward: false,
-                        zoomFactor: 1,
-                        find: null,
-                    });
-                }
-                state.activeId = id;
-            } else if (input.kind === 'reorder') {
-                state.tabs = input.ids.flatMap((id) => state.tabs.filter((tab) => tab.id === id));
-            } else if (input.kind === 'select') {
-                state.activeId = input.id;
-            } else if (input.kind === 'close') {
-                state.tabs = state.tabs.filter((tab) => tab.id !== input.id);
-                state.activeId = state.tabs.at(-1)?.id ?? null;
-            } else if (input.kind === 'reset') {
-                state = { activeId: null, tabs: [] };
-            } else if (input.kind === 'navigate' && input.action === 'url') {
-                const tab = state.tabs.find((item) => item.id === state.activeId);
-                if (tab) {
-                    tab.url = input.url;
-                    tab.title = new URL(input.url).hostname;
-                    tab.loading = false;
-                }
-            } else if (input.kind === 'navigate' && input.action === 'back') {
-                document.documentElement.dataset.browserHistory = 'back';
-            }
-            for (const listener of listeners) {
-                listener(structuredClone(state));
-            }
-            return state;
-        };
-        Object.defineProperty(window, 'hausDesktop', {
-            value: {
-                browserCommand: command,
-                browserSnapshot: async () => structuredClone(state),
-                browserBounds: async () => undefined,
-                onBrowserState: (listener: (state: BrowserWorkspaceState) => void) => {
-                    listeners.add(listener);
-                    return () => listeners.delete(listener);
-                },
-                getInfo: async () => ({ platform: 'darwin', isPackaged: false, version: '0.0.0' }),
-                authTokenGet: async () => null,
-                setTheme: async () => undefined,
-                setDockBadge: async () => undefined,
-                onUpdateStatus: () => () => undefined,
-                onHistoryNavigate: (listener: (direction: 'back' | 'forward') => void) => {
-                    const handler = () => listener('back');
-                    window.addEventListener('test:desktop-history', handler);
-                    return () => window.removeEventListener('test:desktop-history', handler);
-                },
-                onSsoCallback: () => () => undefined,
-                runEditCommand: async () => undefined,
-                checkForUpdate: async () => undefined,
-                startWindowDrag: async () => undefined,
-            },
-        });
-    });
+    await installDesktopBrowserStub(page);
     const { client, server } = await createTestServer(page, {
         displayName: 'Browser tabs',
         slug: 'browser-tabs',
@@ -222,4 +150,100 @@ test('browser tabs preserve the chat draft, channel menu, and sidebar navigation
     }
     await expect(composer).toHaveText('Keep this draft');
     await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveCount(0);
+});
+
+test('Threads open as companion tabs in the split, one preview at a time', async ({
+    page,
+}, testInfo) => {
+    await installDesktopBrowserStub(page);
+    const { client, server } = await createTestServer(page, {
+        displayName: 'Thread tabs',
+        slug: 'thread-tabs',
+    });
+    const chatId = server.channels.find((chat) => chat.name === 'all')?.id;
+    assertOpaqueId(chatId);
+    const roots: string[] = [];
+    for (const name of ['First', 'Second', 'Third']) {
+        const sent = await client.chat.send.mutate({
+            serverId: server.id,
+            chatId,
+            nonce: `thread-root-${name}`,
+            content: `${name} thread root`,
+        });
+        roots.push(sent.message.id);
+    }
+    for (const [index, name] of ['First', 'Second'].entries()) {
+        await client.chat.send.mutate({
+            serverId: server.id,
+            chatId,
+            nonce: `thread-reply-${name}`,
+            content: `${name} thread reply`,
+            thread: { anchorMessageId: roots[index] ?? '' },
+        });
+    }
+    // The desktop shell routes by hash, so the Server's path alone does not select it.
+    await page.goto(`/#/s/thread-tabs/chats/${chatId}`);
+    const split = page.getByRole('complementary', { name: 'Split view' });
+    const splitTabs = split.locator('.workspace-tab');
+    const preview = split.locator('.workspace-tab--preview');
+    const openThread = page.getByRole('button', { name: 'Open thread, 1 reply' });
+
+    // A companion opens the closed split, as its preview tab, beside the chat.
+    await openThread.first().click();
+    await expect(splitTabs).toHaveCount(1);
+    await expect(preview).toContainText('First thread root');
+    await expect(split.getByText('First thread reply', { exact: true })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    expect(page.url()).not.toContain('thread=');
+
+    // The next companion replaces the preview in place instead of stacking.
+    await openThread.nth(1).click();
+    await expect(splitTabs).toHaveCount(1);
+    await expect(preview).toContainText('Second thread root');
+
+    // Double-clicking pins it; the next companion then opens beside it.
+    await splitTabs
+        .first()
+        .getByRole('button', { name: 'Second thread root', exact: true })
+        .dblclick();
+    await expect(preview).toHaveCount(0);
+    await openThread.first().click();
+    await expect(splitTabs).toHaveCount(2);
+    await expect(preview).toContainText('First thread root');
+
+    // Replying pins the preview tab.
+    const reply = split.getByRole('textbox', { name: /Message Thread/u });
+    await reply.fill('Pinned by this reply');
+    await reply.press('Enter');
+    await expect(split.getByText('Pinned by this reply', { exact: true })).toBeVisible();
+    await expect(preview).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('thread-tabs.png') });
+
+    // The tab closes the Thread, so its header has no second close button. View in chat
+    // reveals the anchor in the chat's own transcript, flashing it.
+    await expect(split.getByRole('button', { name: 'Close thread' })).toHaveCount(0);
+    await split.getByRole('button', { name: /thread actions$/u }).click();
+    await page.getByRole('menuitem', { name: 'View in chat' }).click();
+    await expect(
+        page.getByLabel('Messages', { exact: true }).locator(`[data-message-id="${roots[0]}"]`)
+    ).toHaveClass(/chat-thread-flash/u);
+
+    // A `?thread=` link (a same-document hash navigation here) opens the Thread's tab
+    // and leaves the URL.
+    await page.goto(`/#/s/thread-tabs/chats/${chatId}?thread=${roots[2]}`);
+    await expect(preview).toContainText('Third thread root');
+    await expect(splitTabs).toHaveCount(3);
+    await expect.poll(() => page.url()).not.toContain('thread=');
+
+    // Pinned Threads persist, folded into the main strip; the preview does not.
+    await page.reload();
+    const mainTabs = page.getByRole('navigation', { name: 'Workspace tabs' });
+    await expect(mainTabs.locator('.workspace-tab')).toHaveCount(3);
+    await expect(
+        mainTabs.getByRole('button', { name: 'First thread root', exact: true })
+    ).toBeVisible();
+    await expect(
+        mainTabs.getByRole('button', { name: 'Third thread root', exact: true })
+    ).toHaveCount(0);
+    await expect(split).toHaveCount(0);
 });

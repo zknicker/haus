@@ -3,6 +3,7 @@ import {
     type AgentTab,
     type ArtifactTab,
     type ClosableTabRef,
+    type ThreadTab,
     type WorkspaceTabRef,
     workspaceTabId,
 } from './workspace-tabs-model.ts';
@@ -22,7 +23,8 @@ export type ClosedTab =
           faviconUrl: string | null;
       }
     | { kind: 'agent'; index: number; tab: AgentTab }
-    | { kind: 'artifact'; index: number; tab: ArtifactTab };
+    | { kind: 'artifact'; index: number; tab: ArtifactTab }
+    | { kind: 'thread'; index: number; tab: ThreadTab };
 
 export const closedTabLimit = 20;
 
@@ -45,6 +47,13 @@ export function closedTabEntry(
     if (ref.kind === 'artifact') {
         const tab = artifacts.find((item) => item.key === ref.key);
         return tab ? { kind: 'artifact', index, tab } : null;
+    }
+    if (ref.kind === 'thread') {
+        return {
+            kind: 'thread',
+            index,
+            tab: { anchorMessageId: ref.anchorMessageId, chatId: ref.chatId },
+        };
     }
     const tab = browserTabs.find((item) => item.id === ref.id);
     if (!tab || tab.url === 'about:blank') {

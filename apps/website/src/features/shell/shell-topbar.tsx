@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
+import { WorkspaceBandTabLabel } from './workspace-band-tab-label.ts';
 import { WorkspaceSplitToggle } from './workspace-split-pane.tsx';
 import { WorkspaceTabStrip } from './workspace-tab-strip.tsx';
 
@@ -77,17 +78,6 @@ export function PageTopbar({ children }: { children: React.ReactNode }) {
         <WorkspaceBandTabLabel value={tabLabel}>{children}</WorkspaceBandTabLabel>,
         slot.container
     );
-}
-
-const WorkspaceBandTabLabel = React.createContext<string | null>(null);
-
-/**
- * The primary workspace tab's label when band content renders beside it in
- * the desktop tab strip; null anywhere else. Band content uses it to drop what
- * the tab already says (SectionHeader).
- */
-export function useWorkspaceBandTabLabel(): string | null {
-    return React.use(WorkspaceBandTabLabel);
 }
 
 /**
