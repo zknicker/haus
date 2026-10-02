@@ -6,7 +6,6 @@ import { EntityName } from '../../../components/ui/entity-name.tsx';
 import { useTaskAssign } from '../../../hooks/servers/use-task-assign.ts';
 import { useTaskAssignees } from '../../../hooks/servers/use-task-assignees.ts';
 import type { HausInputs } from '../../../lib/haus-server.tsx';
-import { useServerContext } from '../server-context.ts';
 import { taskAssignmentInput } from './task-input.ts';
 import type { TaskItem } from './task-model.ts';
 
@@ -25,14 +24,15 @@ export const unassignedAssigneeKey = 'unassigned';
 export function TaskAssignee({
     presentation = 'boxed',
     task,
+    serverId,
 }: {
     /** `inline` drops the field box so the value reads as text. */
     presentation?: 'boxed' | 'inline';
     task: TaskAssigneeTarget;
+    serverId: string;
 }) {
-    const { server } = useServerContext();
     const [open, setOpen] = React.useState(false);
-    const assignees = useTaskAssignees(server.id, task.id, open);
+    const assignees = useTaskAssignees(serverId, task.id, open);
     const assign = useTaskAssign();
     const value = task.assigneeAgentId ?? unassignedAssigneeKey;
     const valueLabel = task.assigneeLabel;
@@ -43,7 +43,7 @@ export function TaskAssignee({
         if (!key || key === value) {
             return;
         }
-        assign.mutate(taskAssignmentInput(server.id, task, taskAssigneeFromKey(key)));
+        assign.mutate(taskAssignmentInput(serverId, task, taskAssigneeFromKey(key)));
     };
     const options = (
         <ListBox>

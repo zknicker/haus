@@ -6,7 +6,6 @@ import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts
 import { useTaskUpdate } from '../../../hooks/servers/use-task-update.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
 import type { HumanDirectory } from '../human-identity.ts';
-import { useServerContext } from '../server-context.ts';
 import { TaskAssignee } from './task-assignee.tsx';
 import { taskUpdateInput } from './task-input.ts';
 import { taskAssigneeAvatarUrl, taskAssigneeName } from './task-model.ts';
@@ -17,17 +16,18 @@ export function TaskThreadMetadata({
     chatId,
     fallbackTask,
     messageId,
+    serverId,
 }: {
     /** The parent chat, shown as a field so its role is explicit. */
     chat?: Chat;
     chatId: string;
     fallbackTask: MessageTask;
     messageId: string;
+    serverId: string;
 }) {
-    const { server } = useServerContext();
-    const agents = useAgents(server.id);
-    const humans = useHumanDirectory(server.id);
-    const tasks = useTasks(server.id, chatId);
+    const agents = useAgents(serverId);
+    const humans = useHumanDirectory(serverId);
+    const tasks = useTasks(serverId, chatId);
     const update = useTaskUpdate();
     const task =
         tasks.data?.tasks.find((item) => item.task.messageId === messageId)?.task ?? fallbackTask;
@@ -62,7 +62,7 @@ export function TaskThreadMetadata({
                             error={update.error}
                             isDisabled={update.isPending}
                             onStatusChange={(status) =>
-                                update.mutate(taskUpdateInput(server.id, target, { status }))
+                                update.mutate(taskUpdateInput(serverId, target, { status }))
                             }
                             presentation="inline"
                             task={target}
@@ -72,7 +72,7 @@ export function TaskThreadMetadata({
                 <div className="flex min-w-0 max-w-52 flex-col gap-1.5">
                     <dt className="text-muted text-sm">Assignee</dt>
                     <dd className="flex min-h-7 min-w-0 items-center">
-                        <TaskAssignee presentation="inline" task={target} />
+                        <TaskAssignee presentation="inline" serverId={serverId} task={target} />
                     </dd>
                 </div>
                 <div className="flex min-w-0 flex-col gap-1.5">

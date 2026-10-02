@@ -176,6 +176,7 @@ export function ThreadContent({
                             chatId={chat.id}
                             fallbackTask={anchor.task}
                             messageId={anchor.id}
+                            serverId={chat.serverId}
                         />
                     ) : null}
                 </div>
