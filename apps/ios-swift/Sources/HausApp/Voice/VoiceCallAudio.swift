@@ -7,6 +7,10 @@ final class VoiceCallAudio {
     private var installedTap = false
     private var queuedFrames = 0
     private var playbackGeneration = 0
+    private var configurationObserver: NSObjectProtocol?
+    private var inputContinuation: AsyncThrowingStream<Data, Error>.Continuation?
+    private var startupContinuation: AsyncThrowingStream<Void, Error>.Continuation?
+    private var captureFormat: AVAudioFormat?
 
     func requestPermission() async throws {
         guard await AVAudioApplication.requestRecordPermission() else { throw VoiceAudioError.permissionDenied }
@@ -25,31 +29,53 @@ final class VoiceCallAudio {
             #else
             try engine.inputNode.setVoiceProcessingEnabled(true)
             #endif
-            let encoder = try VoicePCMEncoder(input: engine.inputNode.outputFormat(forBus: 0))
+            let inputFormat = engine.inputNode.outputFormat(forBus: 0)
+            captureFormat = inputFormat
+            let encoder = try VoicePCMEncoder(input: inputFormat)
             let (stream, continuation) = AsyncThrowingStream<Data, Error>.makeStream(bufferingPolicy: .bufferingNewest(20))
+            let (capture, started) = AsyncThrowingStream<Void, Error>.makeStream(bufferingPolicy: .bufferingNewest(1))
+            inputContinuation = continuation
+            startupContinuation = started
             engine.inputNode.installTap(onBus: 0, bufferSize: 2400, format: nil) { @Sendable buffer, _ in
                 do {
                     let data = try encoder.encode(buffer)
                     if !data.isEmpty {
+                        started.yield(())
+                        started.finish()
                         if case .dropped = continuation.yield(data) {
                             continuation.finish(throwing: VoiceAudioError.playbackBehind)
                         }
                     }
-                } catch { continuation.finish(throwing: error) }
+                } catch { started.finish(throwing: error); continuation.finish(throwing: error) }
             }
             installedTap = true
             engine.attach(player)
             let format = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)
             engine.connect(player, to: engine.mainMixerNode, format: format)
+            configurationObserver = NotificationCenter.default.addObserver(
+                forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
+            ) { @Sendable [weak self] _ in
+                Task { @MainActor in self?.resumeAfterConfigurationChange() }
+            }
             engine.prepare()
             try engine.start()
-            player.play()
-            guard engine.isRunning else { throw VoiceAudioError.formatUnavailable }
+            // Voice processing can reconfigure and stop the engine after start returns.
+            try await VoiceAudioStartup.waitForCapture(capture)
+            try Task.checkCancellation()
+            guard installedTap, engine.isRunning else { throw VoiceAudioError.formatUnavailable }
             return stream
-        } catch { stop(); throw error }
+        } catch {
+            stop()
+            if error is VoiceAudioStartup.Failure { throw VoiceAudioError.formatUnavailable }
+            throw error
+        }
     }
 
     func play(_ data: Data) throws {
+        guard installedTap, engine.isRunning,
+              engine.outputNode.lastRenderTime?.isSampleTimeValid == true else {
+            throw VoiceAudioError.formatUnavailable
+        }
         let count = data.count / 2
         guard queuedFrames + count <= 48_000 else { throw VoiceAudioError.playbackBehind }
         guard let format = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1),
@@ -70,6 +96,7 @@ final class VoiceCallAudio {
                 self.queuedFrames = max(0, self.queuedFrames - count)
             }
         }
+        if !player.isPlaying { player.play() }
     }
 
     func mute(_ muted: Bool) {
@@ -77,11 +104,35 @@ final class VoiceCallAudio {
     }
 
     func stop() {
+        if let configurationObserver {
+            NotificationCenter.default.removeObserver(configurationObserver)
+            self.configurationObserver = nil
+        }
+        startupContinuation?.finish(); startupContinuation = nil
+        inputContinuation?.finish(); inputContinuation = nil
+        captureFormat = nil
         if installedTap { engine.inputNode.removeTap(onBus: 0); installedTap = false }
         player.stop()
         engine.stop()
         playbackGeneration += 1
         queuedFrames = 0
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    private func resumeAfterConfigurationChange() {
+        guard installedTap else { return }
+        playbackGeneration += 1
+        queuedFrames = 0
+        player.stop()
+        do {
+            guard engine.inputNode.outputFormat(forBus: 0) == captureFormat else {
+                throw VoiceAudioError.formatUnavailable
+            }
+            if !engine.isRunning { try engine.start() }
+        } catch {
+            startupContinuation?.finish(throwing: error)
+            inputContinuation?.finish(throwing: error)
+            stop()
+        }
     }
 }
