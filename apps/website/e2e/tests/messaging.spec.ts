@@ -219,10 +219,7 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await openMessageThread(anchorArticle);
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
-    const openingWidth = await panel.evaluate((element) => element.getBoundingClientRect().width);
-    await expect
-        .poll(async () => (await panel.boundingBox())?.width ?? 0)
-        .toBeGreaterThan(openingWidth + 20);
+    await expect.poll(async () => (await panel.boundingBox())?.width ?? 0).toBe(560);
     await expect(panel).toBeVisible();
     await expect
         .poll(async () => {

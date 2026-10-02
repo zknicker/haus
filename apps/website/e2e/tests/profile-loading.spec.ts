@@ -50,7 +50,7 @@ test('Computers reserves its sections until the first roster confirms an empty r
         displayName: 'Computer loading',
         slug: 'computer-loading',
     });
-    const held = await holdQuery(page, 'computer.list');
+    const held = await holdQuery(page, 'computer.list', 'computer.checkPresence');
     try {
         await page.goto(`/s/${server.slug}/settings/computers`);
         await held.requested;
@@ -71,14 +71,17 @@ test('Computers reserves its sections until the first roster confirms an empty r
     await expect(page.getByText('Attach a Computer', { exact: true })).toBeVisible();
 });
 
-async function holdQuery(page: Page, procedure: string) {
+async function holdQuery(page: Page, ...procedures: string[]) {
     let release = () => {};
     const gate = new Promise<void>((resolve) => {
         release = resolve;
     });
     const matches = (url: URL) =>
         url.pathname.startsWith('/trpc/') &&
-        url.pathname.slice('/trpc/'.length).split(',').includes(procedure);
+        url.pathname
+            .slice('/trpc/'.length)
+            .split(',')
+            .some((name) => procedures.includes(name));
     const requested = page.waitForRequest((request) => matches(new URL(request.url())));
     await page.route(matches, async (route) => {
         await gate;

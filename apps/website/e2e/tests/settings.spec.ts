@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { assertOpaqueId, completeOnboarding, createClient, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -45,7 +46,7 @@ test.beforeAll(async () => {
         `insert into computers (
            id, server_id, attached_by_user_id, credential_hash, reported_inventory, health
          ) values (
-           'cmp_e2esettings00000', '${server.id}', '${ownerUserId}', '${'e'.repeat(64)}',
+           'cmp_e2esettings00000', '${server.id}', '${ownerUserId}', '${randomBytes(32).toString('hex')}',
            '${inventory}'::jsonb, 'healthy'
          )`
     );

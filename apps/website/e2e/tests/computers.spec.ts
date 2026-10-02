@@ -13,21 +13,30 @@ test('a populated Computer page never presents its attach flow while inventory l
         credential: 'computer-loading-test-credential-1234',
         slug: 'loading-computer-hq',
     });
-    // Matches the batched form too: httpBatchLink joins concurrent procedures
-    // into one `/trpc/a,b?batch=1` request, so the single-procedure path alone
-    // would never intercept — and the skeletons would resolve unobserved.
-    await page.route('**/trpc/*computer.list*', async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        await route.continue();
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+        release = resolve;
     });
-
-    await page.goto('/s/loading-computer-hq/computers');
-
-    // The settings sidebar and the lazily-chunked section mount at different
-    // moments, so their two skeletons no longer overlap reliably — what
-    // matters is that a skeleton shows and the attach flow never flashes.
-    await expect(page.getByText('Loading Computers').first()).toBeVisible();
-    await expect(page.getByText('Attach a Computer')).toHaveCount(0);
+    await page.route(
+        (url) =>
+            url.pathname.startsWith('/trpc/') &&
+            url.pathname
+                .slice('/trpc/'.length)
+                .split(',')
+                .some((name) => name === 'computer.list' || name === 'computer.checkPresence'),
+        async (route) => {
+            await held;
+            await route.continue();
+        }
+    );
+    try {
+        await page.goto('/s/loading-computer-hq/computers');
+        await expect(page.getByRole('heading', { name: 'Runtimes', exact: true })).toBeVisible();
+        await expect(page.getByText('Attach a Computer')).toHaveCount(0);
+        await expect(page.locator('.skeleton')).toHaveCount(0);
+    } finally {
+        release();
+    }
     await expect(page.getByText('Computers · 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Attach a Computer')).toHaveCount(0);
 });

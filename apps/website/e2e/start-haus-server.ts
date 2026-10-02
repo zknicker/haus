@@ -31,7 +31,7 @@ mkdirSync(stateDirectory, { recursive: true });
 rmSync(clerkSessionPath, { force: true });
 
 const cluster = await startPostgresCluster();
-const clerk = await startClerkTestIssuer(appOrigin);
+const clerk = await startClerkTestIssuer(appOrigin, { sessionTokenLifetimeSeconds: 3600 });
 const computerReleaseServer = Bun.serve({
     async fetch() {
         await Bun.sleep(400);

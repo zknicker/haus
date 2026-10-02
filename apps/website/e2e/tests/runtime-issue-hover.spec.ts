@@ -96,7 +96,7 @@ test('runtime sign-in help stays open while hovering and copying the command', a
             await trigger.hover();
             await expect(card).toBeVisible({ timeout: 1500 });
         }).toPass({ timeout: 10_000 });
-        await card.getByRole('heading').hover();
+        await card.getByText('Claude Code', { exact: true }).hover();
         // Stay beyond the close delay to catch a pending dismissal after leaving the trigger.
         await page.waitForTimeout(700);
         await expect(card).toBeVisible();

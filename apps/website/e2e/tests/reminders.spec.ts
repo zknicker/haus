@@ -26,10 +26,10 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
     await page.goto('/s/reminders/members');
     await page.getByRole('link', { name: 'Cove' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
-    await page.getByRole('radio', { name: 'Automations' }).click();
+    await page.getByRole('button', { name: /^Automations/u }).click();
     await expect(page.getByText('Local watchdog', { exact: true })).toBeVisible();
     await expect(page.getByText(/daily@09:00/u)).toBeVisible();
-    // Reminders and Triggers share the Automations tab, each as its own section.
+    // Reminders and Triggers share the Automations page, each as its own section.
     await expect(page.getByText(/No triggers yet\./u)).toBeVisible();
 
     // The section is the schedule: nothing that has already happened is listed
@@ -77,7 +77,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
            )`
     );
     await page.reload();
-    await page.getByRole('radio', { name: 'Automations' }).click();
+    await expect(page.getByRole('link', { name: 'Automations', exact: true })).toBeVisible();
     await expect(page.getByText(/Nothing scheduled\./u)).toBeVisible();
     await expect(page.getByText('Local watchdog', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /view .* history/iu })).toHaveCount(0);

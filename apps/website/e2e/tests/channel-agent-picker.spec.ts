@@ -2,22 +2,25 @@ import { attachComputer, createTestServer, runPsql } from '../support/server.ts'
 import { expect, test } from '../support/test.ts';
 
 for (const selection of ['mouse', 'keyboard'] as const) {
-    test(`last Agent closes and disables the channel picker (${selection})`, async ({ page }) => {
+    test(`last Agent closes and disables the channel picker (${selection})`, async ({
+        page,
+    }, testInfo) => {
+        const fixtureKey = `${selection}-${testInfo.repeatEachIndex}`;
         const { client, server, session } = await createTestServer(page, {
             displayName: `Channel picker ${selection}`,
-            slug: `channel-picker-${selection}`,
+            slug: `channel-picker-${fixtureKey}`,
         });
         const computer = await attachComputer(client, {
-            credential: `channel-picker-${selection}-credential-1234567890`,
+            credential: `channel-picker-${fixtureKey}-credential-1234567890`,
             slug: server.slug,
         });
         runPsql(
             session.databaseUrl,
             `insert into agents (id, server_id, computer_id, handle, display_name,
                                  home_timezone, desired_runtime_id, desired_model_id, created_at)
-             values ('agt_picker_${selection}', '${server.id}', '${computer.computerId}',
+             values ('agt_picker_${fixtureKey}', '${server.id}', '${computer.computerId}',
                      'iris', 'Iris', 'America/New_York', 'codex', 'gpt-5.6-sol', now()),
-                    ('agt_picker_default_${selection}', '${server.id}', '${computer.computerId}',
+                    ('agt_picker_default_${fixtureKey}', '${server.id}', '${computer.computerId}',
                      'scout', 'Scout', 'America/New_York', 'codex', 'gpt-5.6-sol', now() - interval '1 second')`
         );
         await page.reload();
@@ -31,7 +34,15 @@ for (const selection of ['mouse', 'keyboard'] as const) {
 
         if (selection === 'mouse') {
             await picker.click();
-            await expect(picker).toHaveAttribute('aria-expanded', 'true');
+            // Focus may open the menu before its toggle is pressed.
+            await expect(async () => {
+                if ((await picker.getAttribute('aria-expanded')) !== 'true') {
+                    await dialog
+                        .getByRole('button', { name: 'Show suggestions Agents', exact: true })
+                        .click();
+                }
+                await expect(picker).toHaveAttribute('aria-expanded', 'true', { timeout: 500 });
+            }).toPass({ timeout: 5000 });
             await page.getByRole('option', { name: 'IR Iris', exact: true }).click();
         } else {
             await picker.fill('Iris');

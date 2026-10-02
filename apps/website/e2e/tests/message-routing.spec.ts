@@ -19,7 +19,10 @@ test('Dev Mode shows saved routing, persists on reload, and hides it when disabl
         nonce: 'routing-debug-browser',
     });
     await openChannel(page, 'all');
-    const routing = page.getByRole('button', { name: '→ None · routing off', exact: true });
+    const routing = page.getByRole('button', {
+        name: '→ None · fewer than two agents',
+        exact: true,
+    });
     await expect(page.getByText('Please investigate the export path too.')).toBeVisible();
     await expect(routing).toHaveCount(0);
     const composer = page.getByRole('textbox', { name: 'Message all', exact: true });
@@ -29,7 +32,7 @@ test('Dev Mode shows saved routing, persists on reload, and hides it when disabl
     await expect(page.getByText('Not called', { exact: true })).toBeVisible();
     await expect(
         page.getByText(
-            'Jev was skipped: routing off. Recipients came from the normal delivery rules.'
+            'Jev was skipped: fewer than two agents. Recipients came from the normal delivery rules.'
         )
     ).toBeVisible();
     await page.reload();

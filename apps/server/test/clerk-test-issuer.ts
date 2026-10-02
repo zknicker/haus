@@ -27,10 +27,14 @@ export interface ClerkTestIssuer {
 }
 
 const keyId = 'haus-test-key';
-const tokenLifetimeSeconds = 300;
+const defaultTokenLifetimeSeconds = 300;
 const expiredTokenAgeSeconds = 600;
 
-export async function startClerkTestIssuer(appOrigin: string): Promise<ClerkTestIssuer> {
+export async function startClerkTestIssuer(
+    appOrigin: string,
+    options: { sessionTokenLifetimeSeconds?: number } = {}
+): Promise<ClerkTestIssuer> {
+    const tokenLifetimeSeconds = options.sessionTokenLifetimeSeconds ?? defaultTokenLifetimeSeconds;
     const authorizedParty = new URL(appOrigin).origin;
     const { privateKey, publicKey } = await generateKeyPair('RS256', { extractable: true });
     const jwk = await exportJWK(publicKey as KeyObject);

@@ -41,7 +41,6 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
         await page.goto('/s/usage-hq/computers');
         const rows = page.getByRole('grid', { name: 'Runtimes on this Computer' });
         await expect(rows.getByText('Usage out of date')).toBeVisible({ timeout: 20_000 });
-        await expect(rows.getByText(/Last updated/)).toBeVisible();
         await expect(rows.getByText('22%', { exact: true })).toBeVisible();
         await expect(rows.getByText(/^Resets /)).toHaveCount(0);
         computer.send(

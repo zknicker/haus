@@ -8,6 +8,14 @@ import type { BrowserCommand, BrowserWorkspaceState } from '../../src/lib/deskto
  */
 export async function installDesktopBrowserStub(page: Page) {
     await page.addInitScript(() => {
+        // Mirror test URLs into Electron's hash routes before its router boots.
+        if (location.pathname.startsWith('/s/') && !location.hash) {
+            history.replaceState(
+                null,
+                '',
+                `${location.pathname}${location.search}#${location.pathname}${location.search}`
+            );
+        }
         let state: BrowserWorkspaceState = { activeId: null, tabs: [] };
         const listeners = new Set<(state: BrowserWorkspaceState) => void>();
         const openTab = (url: string, reuse: boolean) => {

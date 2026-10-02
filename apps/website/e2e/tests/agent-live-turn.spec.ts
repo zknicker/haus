@@ -106,10 +106,8 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
             }
         });
         await page.goto(`/s/live-turn/agents/${agent.id}/activity`);
-        for (const part of ['.accordion__panel', '.accordion__indicator']) {
-            await expect(page.locator(part)).toHaveCSS('transition-duration', '0s');
-        }
         await page.locator('.accordion__trigger').click();
+        await expect(page.locator('.accordion__panel')).toHaveCSS('will-change', 'auto');
         await expect(page.getByText('Inspecting the active queue.', { exact: true })).toBeVisible();
         const inspected = page.locator('[data-trace-anchor="tool:call_2"]');
         const trigger = inspected.getByRole('button').first();
@@ -184,6 +182,13 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
         await expect
             .poll(async () => Math.abs((await inspected.boundingBox())!.y - before!.y))
             .toBeLessThan(2);
+
+        const beforeHumanScroll = (await inspected.boundingBox())!.y;
+        await inspected.hover();
+        await page.mouse.wheel(0, 160);
+        await expect
+            .poll(async () => beforeHumanScroll - (await inspected.boundingBox())!.y)
+            .toBeGreaterThan(80);
 
         // Reasoning changes without a semantic activity event still reach the open view.
         journal = {
