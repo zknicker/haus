@@ -187,6 +187,8 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   outlet context, no band portals) and works at 420px.
   Thread Task metadata and assignment controls receive the parent Chat's `serverId`
   explicitly; route-only Server context is unavailable in sibling workspace tabs.
+  Cloud Agent work controls read the cached Server query using the route's Server slug,
+  which remains available in workspace tabs; they do not read outlet context.
 * Routed destinations render their content inside one `PageColumn`, which owns
   the page gutter, max width, and the rhythm between sections. It encodes
   HeroUI's page idiom (`mx-auto flex w-full flex-col gap-8` plus page padding)
