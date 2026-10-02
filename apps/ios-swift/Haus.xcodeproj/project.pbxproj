@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01100AC621CCA8668751E9E9 /* HausStoreThreads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A37944B4BE5E4BA55D847B0 /* HausStoreThreads.swift */; };
+		0B354A8B657EE023A9EE4E61 /* VoiceAudioStartup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */; };
 		0B67D21B536544ECD8D683BA /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = 90EB0C6AE5B5B260F56140C2 /* ClerkKit */; };
 		0B98EA28D4EB397868C03D7F /* PresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6479EFBFB200B67B041489C1 /* PresentationAdapters.swift */; };
 		0DE10FD705D86DDDD6DC2CBC /* HausStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289CE0DDE04F299E41767304 /* HausStore.swift */; };
@@ -41,9 +42,11 @@
 		816A3D99028641C226608DAF /* HausModels in Frameworks */ = {isa = PBXBuildFile; productRef = 1397DB42B0E113FE68BA5BA5 /* HausModels */; };
 		841294F8BCF8D400843DFF93 /* HausRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599DA44C9DA817DC367BE98B /* HausRuntimeConfiguration.swift */; };
 		89D8EF10B9318198A0BDB33E /* SenderAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707CB06A0A216FDE227C67B8 /* SenderAvatar.swift */; };
+		8EAEDF93D0FA4AE035B57605 /* VoiceAudioStartupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D6A4874EFA3EF4859BCD4F /* VoiceAudioStartupTests.swift */; };
 		8FE296002F3C29657170772A /* HausStoreMessaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36E0B52EFEAC490DDCC5888 /* HausStoreMessaging.swift */; };
 		91CD1375E99A47E7F7363F09 /* HausTransport in Frameworks */ = {isa = PBXBuildFile; productRef = 1DB905D686A4CE7B1959646B /* HausTransport */; };
 		9478CA0B56335FE8DE0B45B6 /* HausOpeningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020A718A9A0014626B19C74B /* HausOpeningView.swift */; };
+		96550EF01529DFA5F7B037B9 /* VoiceAudioStartup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */; };
 		A57173988EB2AAA7F998517A /* AuthenticatedHausView+Reads.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA7862918F19A262989712BD /* AuthenticatedHausView+Reads.swift */; };
 		AF15E7CEEDD94078E44902A6 /* TranscriptRenderingPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0771A40C5602C904730B80CD /* TranscriptRenderingPerformanceTests.swift */; };
 		B7EBCFDD218F89C868E6FE75 /* SettingsPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */; };
@@ -114,6 +117,7 @@
 		2CCA5EAECEFF7A9AE34DFB26 /* MessageHistoryNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageHistoryNavigationTests.swift; sourceTree = "<group>"; };
 		2EA9AD3B9155443B2AE9B5B4 /* AuthenticatedHausView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatedHausView.swift; sourceTree = "<group>"; };
 		3245FFB40F82AA7C35827964 /* VoicePCMEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoicePCMEncoder.swift; sourceTree = "<group>"; };
+		33D6A4874EFA3EF4859BCD4F /* VoiceAudioStartupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAudioStartupTests.swift; sourceTree = "<group>"; };
 		418FFEC09EE99BB4ADABBF7D /* HausStoreIconBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreIconBadge.swift; sourceTree = "<group>"; };
 		440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilityPresentationAdapters.swift; sourceTree = "<group>"; };
 		48C78DBB9691AD8E16A14C9E /* HausNotificationService.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = HausNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -156,6 +160,7 @@
 		DB87577C6DF7147FA7C8E74D /* HausStoreReactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreReactions.swift; sourceTree = "<group>"; };
 		DC799CB8FAC41CB382B7ACC9 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
 		E0892F4FABCDEEA08CCCF6BB /* VoiceCallAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCallAudio.swift; sourceTree = "<group>"; };
+		E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAudioStartup.swift; sourceTree = "<group>"; };
 		E45EDC3114F9952D72C4F7DA /* InboxPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxPresentationAdapters.swift; sourceTree = "<group>"; };
 		E56E7535CC7FF21EC23A66EF /* HausStoreComputers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreComputers.swift; sourceTree = "<group>"; };
 		E5CD0E9C85581C948DF53EC2 /* HausStoreInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreInbox.swift; sourceTree = "<group>"; };
@@ -250,6 +255,7 @@
 				0C0F44CF7F9F5FCFA3C846AD /* MessageRenderingPerformanceTests.swift */,
 				0771A40C5602C904730B80CD /* TranscriptRenderingPerformanceTests.swift */,
 				6B53C2D0C19204903D3EE0F3 /* TranscriptWindowScrollingTests.swift */,
+				33D6A4874EFA3EF4859BCD4F /* VoiceAudioStartupTests.swift */,
 			);
 			path = SimulatorTests;
 			sourceTree = "<group>";
@@ -329,6 +335,7 @@
 			children = (
 				A36840BDE2C8BF0E48A3D72E /* AgentCallView.swift */,
 				CACE5B858776957137DD4839 /* AuthenticatedHausView+Calls.swift */,
+				E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */,
 				E0892F4FABCDEEA08CCCF6BB /* VoiceCallAudio.swift */,
 				6D29006F0E77B5BBD69D81CA /* VoiceCallSession.swift */,
 				3245FFB40F82AA7C35827964 /* VoicePCMEncoder.swift */,
@@ -482,6 +489,8 @@
 				5EF0958A96B24C8375100293 /* MessageRenderingPerformanceTests.swift in Sources */,
 				AF15E7CEEDD94078E44902A6 /* TranscriptRenderingPerformanceTests.swift in Sources */,
 				E7AED1D7D7B0AA1AE73102EE /* TranscriptWindowScrollingTests.swift in Sources */,
+				0B354A8B657EE023A9EE4E61 /* VoiceAudioStartup.swift in Sources */,
+				8EAEDF93D0FA4AE035B57605 /* VoiceAudioStartupTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,6 +553,7 @@
 				B7EBCFDD218F89C868E6FE75 /* SettingsPresentationAdapters.swift in Sources */,
 				70E765489388474DB798D67F /* ThreadRouteAdapters.swift in Sources */,
 				52551422BE2056D26C78745F /* UtilityPresentationAdapters.swift in Sources */,
+				96550EF01529DFA5F7B037B9 /* VoiceAudioStartup.swift in Sources */,
 				7C9046426418FE8EC9E82F4C /* VoiceCallAudio.swift in Sources */,
 				675687D5715FBD4EED8CA425 /* VoiceCallSession.swift in Sources */,
 				BC06046AA4A782C42B2B80B3 /* VoicePCMEncoder.swift in Sources */,
