@@ -25,6 +25,14 @@ messages within a conservative context budget, and its current turn identifier,
 activity category, and execution model. Server refreshes DM messages and activity
 once per second. It does not copy the Computer's full execution trace or history
 from other chats. Live delegates when that partial context cannot answer a question.
+Live speaks in first person as the named Agent, using its description and standing
+brief. It describes workspace access and verified results as the Agent's own work,
+keeps delegation out of routine conversation, and explains the voice-model bridge
+honestly if asked. This identity does not grant facts or completion without evidence.
+Pickup uses a brief greeting without an unsolicited activity report. The voice
+acknowledges a request once; routine dispatch and activity changes stay quiet.
+Instructions allow reassurance after roughly ten seconds of waiting or meaningful
+progress. This is conversational guidance, not a client-enforced speech timer.
 
 When Live requests delegation, Server waits for a quiet transcription interval,
 deduplicates the request, and saves the accumulated spoken excerpt as a human DM
@@ -40,9 +48,13 @@ target. One call per human is allowed on a Server process; preview calls last at
 most ten minutes.
 
 The native app captures and plays mono PCM16 at 24 kHz with voice processing for
-echo cancellation on physical iPhones. Simulator uses ordinary capture: enabling
-voice processing in Device Hub stopped the engine immediately after startup,
-yielding no microphone frames. Calls support captions, microphone mute, and hangup.
+echo cancellation on physical iPhones. Voice processing can trigger a delayed
+audio-engine configuration change that stops capture after startup; the app
+restarts the engine and player on that notification. Listening begins only after
+the first captured audio frame, with a three-second startup timeout. Hangup removes
+the observer and prevents a queued notification from restarting capture. Simulator
+uses ordinary capture because voice processing prevented microphone frames in
+Device Hub. Calls support captions, microphone mute, and hangup.
 The call sheet closes when a call ends; connection failures remain visible. Calls end
 when the app backgrounds, audio is interrupted, or the current audio device is
 removed. Background calling, CallKit, reconnection, and turn-specific cancellation
@@ -66,6 +78,11 @@ up to five seconds for `session.closed` before releasing the socket.
 
 ## Try it
 
+Automated synthetic voice tests use the worktree's local development Server and
+Computer with fresh, cleanup-tracked test Agents. Assert a loopback Server URL
+before authentication or sending messages. Production Agents and workspaces are
+excluded unless the operator explicitly requests a production test.
+
 Run a voice-enabled Haus Server and its connected Computer, launch the iPhone
 app against that Server, and open an existing Agent DM. Tap the phone button,
 allow microphone access, and ask about the Agent's current work. Ask it to do a
@@ -82,9 +99,14 @@ Simulator validation caught an executor assertion in the input tap before this f
 Local validation observed one Simulator RemoteIO startup abort immediately after
 the first microphone permission prompt; a subsequent call reached Listening and
 passed mute and hangup. Device audio, Bluetooth changes, and first-permission
-startup still require iPhone validation.
+startup require a physical-device check for each audio lifecycle change.
 
 Simulator diagnosis verified the capture boundary: with voice processing enabled,
 the engine was stopped and no chunks were sent; with it disabled, the engine stayed
 running, captured PCM was sent, and OpenAI audio replies reached the phone. Mute
 also suppresses outgoing microphone chunks, independent of hardware voice processing.
+
+Physical iPhone diagnosis reproduced the delayed stop on the built-in microphone
+and speaker. Restarting after the configuration notification restored continuous
+capture with voice processing enabled. Headphones are optional; startup failures
+refer to the microphone or speaker rather than requiring a headphone reconnect.
