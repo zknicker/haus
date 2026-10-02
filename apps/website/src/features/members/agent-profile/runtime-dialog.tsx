@@ -85,9 +85,6 @@ function RuntimeConfigForm({
                     <Icon className="size-5" icon={CpuIcon} />
                 </Modal.Icon>
                 <Modal.Heading>Runtime Config</Modal.Heading>
-                <p className="mt-1.5 text-muted text-sm leading-5">
-                    Choose the runtime, model, and reasoning effort this Agent uses.
-                </p>
             </Modal.Header>
             <Modal.Body>
                 <Form
@@ -190,10 +187,12 @@ function RuntimeConfigForm({
                         onChange={setPreferredEffort}
                         value={reasoningEffort}
                     />
-                    <Description>
+                    <Description className="text-base">
+                        Changes apply on the next turn. Changing the model or runtime starts a fresh
+                        session and keeps your workspace, memory, and chat history.
                         {reasoningChangeResetsSession(runtimeId)
-                            ? 'Changes apply on the next turn. Grok requires a new session when reasoning effort changes.'
-                            : 'Reasoning changes apply on the next turn and preserve conversation context.'}
+                            ? ' Grok also starts a fresh session when reasoning effort changes.'
+                            : null}
                     </Description>
                     <SettingsRowError>{error}</SettingsRowError>
                 </Form>

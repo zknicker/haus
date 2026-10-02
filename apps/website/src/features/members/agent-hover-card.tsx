@@ -1,4 +1,3 @@
-import type { Agent, AgentReasoningEffort } from '@haus/api';
 import { Spinner } from '@heroui/react';
 import type * as React from 'react';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
@@ -19,6 +18,10 @@ import {
     ReferencePreviewText,
 } from '../mentions/reference-preview-header.tsx';
 import { AgentExecutionChips } from './agent-execution-chips.tsx';
+import {
+    resolveAgentHoverExecution,
+    resolveAgentHoverModelChange,
+} from './agent-hover-execution.ts';
 import {
     formatAgentActivityEvent,
     getAgentActivityColor,
@@ -96,6 +99,8 @@ export function AgentHoverCardContent({
             : null;
     const events = activity.data?.events ?? [];
     const issue = agentRuntimeIssue(value, computer?.reportedInventory ?? null);
+    const modelChange = resolveAgentHoverModelChange(value);
+    const desiredExecution = agentExecutionLabels(value, computer?.reportedInventory ?? null);
 
     return (
         <div className="flex min-w-0 flex-col gap-2.5">
@@ -136,6 +141,12 @@ export function AgentHoverCardContent({
                     let {value.displayName} continue.
                 </p>
             ) : null}
+            {modelChange ? (
+                <p className="text-muted text-xs">
+                    Switching to {desiredExecution.runtime} · {desiredExecution.model} ·{' '}
+                    {modelChange}
+                </p>
+            ) : null}
             <section
                 aria-label="Recent activity"
                 className="flex min-w-0 flex-col gap-1 border-separator border-t pt-2.5 text-xs"
@@ -174,36 +185,6 @@ export function AgentHoverCardContent({
             </section>
         </div>
     );
-}
-
-export type AgentHoverExecution =
-    | {
-          kind: 'effective';
-          modelId: string;
-          reasoningEffort: AgentReasoningEffort;
-          runtimeId: string;
-      }
-    | { kind: 'unavailable'; label: string };
-
-export function resolveAgentHoverExecution(
-    agent: Pick<
-        Agent,
-        'effectiveModelId' | 'effectiveReasoningEffort' | 'effectiveRuntimeId' | 'status'
-    >
-): AgentHoverExecution {
-    if (agent.effectiveModelId && agent.effectiveReasoningEffort && agent.effectiveRuntimeId) {
-        return {
-            kind: 'effective',
-            modelId: agent.effectiveModelId,
-            reasoningEffort: agent.effectiveReasoningEffort,
-            runtimeId: agent.effectiveRuntimeId,
-        };
-    }
-
-    return {
-        kind: 'unavailable',
-        label: agent.status === 'degraded' ? 'Configuration unavailable' : 'Configuration pending',
-    };
 }
 
 function activityDotClassName(color: ReturnType<typeof getAgentActivityColor>) {
