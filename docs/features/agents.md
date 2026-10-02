@@ -81,10 +81,14 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Clicking an Agent avatar in Chat opens its profile. Hover or keyboard focus previews the
   Agent's current availability, compact runtime/model/reasoning configuration, and newest durable
   activity; Agent reference chips use the same preview.
+  The preview shows the Computer-confirmed configuration. When a saved model or runtime differs,
+  it also names the pending choice and when it applies, or notes that it needs attention.
 - Activity and Automations are what the marks on an Agent's messages link to: a
   fire mark opens the automation, a session mark opens Activity. See
   [Chat](chat.md#in-the-box) for the marks themselves.
 - The header edits identity; **Runs on** edits desired model, runtime, and reasoning effort.
+  The editor explains that model and runtime changes apply on the next turn with a fresh session,
+  preserving workspace, memory, and Chat history. A running turn finishes with its original model.
   Effort choices come from the assigned Computer's model inventory. Changing models preserves
   a supported choice and otherwise selects the model's concrete default. Haus currently defaults
   configurable models to Medium; there is no Runtime default option. Models without an effort
