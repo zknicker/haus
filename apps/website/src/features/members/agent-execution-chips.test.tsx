@@ -4,7 +4,11 @@ import { LowSignalIcon, MediumSignalIcon, SignalFull02Icon } from '@hugeicons/co
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Icon } from '../../components/ui/icon.tsx';
 import { AgentExecutionChips } from './agent-execution-chips.tsx';
-import { resolveAgentHoverExecution } from './agent-hover-card.tsx';
+import { testAgent } from './agent-fixtures.ts';
+import {
+    resolveAgentHoverExecution,
+    resolveAgentHoverModelChange,
+} from './agent-hover-execution.ts';
 
 test('combines runtime and model while presenting the exact reasoning scale', () => {
     const markup = renderToStaticMarkup(
@@ -79,4 +83,29 @@ test('reasoning intensity uses a distinct signal icon and cool-to-hot tone for e
             )
         );
     }
+});
+
+test('hover names a saved model switch until the Computer confirms it', () => {
+    const pending = testAgent({ desiredModelId: 'model_two', status: 'pending' });
+    expect(resolveAgentHoverModelChange(pending)).toBe('next turn');
+    expect(resolveAgentHoverModelChange({ ...pending, availability: 'working' })).toBe('next turn');
+    expect(resolveAgentHoverModelChange({ ...pending, availability: 'offline' })).toBe(
+        'when Computer reconnects'
+    );
+    expect(resolveAgentHoverModelChange({ ...pending, status: 'degraded' })).toBe(
+        'needs attention'
+    );
+    expect(resolveAgentHoverModelChange({ ...pending, effectiveModelId: 'model_two' })).toBeNull();
+});
+
+test('hover handles runtime switches without mislabeling initial setup or effort changes', () => {
+    expect(resolveAgentHoverModelChange(testAgent({ desiredRuntimeId: 'runtime_two' }))).toBe(
+        'next turn'
+    );
+    expect(resolveAgentHoverModelChange(testAgent({ desiredReasoningEffort: 'high' }))).toBeNull();
+    expect(
+        resolveAgentHoverModelChange(
+            testAgent({ effectiveModelId: null, effectiveRuntimeId: null, status: 'pending' })
+        )
+    ).toBeNull();
 });
