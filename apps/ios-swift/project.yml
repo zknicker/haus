@@ -134,6 +134,7 @@ targets:
     platform: iOS
     sources:
       - path: SimulatorTests
+      - path: Sources/HausApp/Voice/VoiceAudioStartup.swift
     dependencies:
       - package: HausIOS
         product: HausUI
