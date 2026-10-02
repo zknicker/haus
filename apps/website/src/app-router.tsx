@@ -7,7 +7,7 @@ import { HausServerRoutes } from './features/servers/haus-server-routes.tsx';
 import { serverRoute } from './features/servers/server-routes.ts';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import { LegacyComputersRedirect, LegacyMemberRedirect } from './routes/app/legacy-redirects.tsx';
-import { serverRouteModules } from './routes/app/server-route-modules.ts';
+import { readServerRouteShells, serverRouteModules } from './routes/app/server-route-modules.ts';
 
 const ServerErrorPage = React.lazy(async () => {
     const module = await import('./routes/app/server-error-page.tsx');
@@ -75,62 +75,43 @@ export function createAppRouter() {
                             ),
                             children: [
                                 {
-                                    lazy: lazyRoute(
-                                        () => import('./routes/app/server-layout.tsx'),
-                                        'ServerLayout'
-                                    ),
+                                    lazy: lazyRoute(serverRouteModules.shell, 'ServerLayout'),
                                     children: [
                                         {
                                             errorElement: <ServerErrorBoundary />,
                                             children: [
                                                 {
                                                     index: true,
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.default,
-                                                        'ServerDefaultPage'
-                                                    ),
+                                                    Component:
+                                                        serverRouteComponent('ServerDefaultPage'),
                                                 },
                                                 {
                                                     path: 'search',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.search,
-                                                        'SearchRoute'
-                                                    ),
+                                                    Component: serverRouteComponent('SearchRoute'),
                                                 },
                                                 {
                                                     path: 'archived',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.archivedChats,
-                                                        'ArchivedChatsRoute'
-                                                    ),
+                                                    Component:
+                                                        serverRouteComponent('ArchivedChatsRoute'),
                                                 },
                                                 {
                                                     path: 'chats/:chatId',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.chat,
-                                                        'ChatRoute'
-                                                    ),
+                                                    Component: serverRouteComponent('ChatRoute'),
                                                 },
                                                 {
                                                     path: 'dm/:agentId',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.chat,
-                                                        'ImplicitAgentDmRoute'
-                                                    ),
+                                                    Component:
+                                                        serverRouteComponent(
+                                                            'ImplicitAgentDmRoute'
+                                                        ),
                                                 },
                                                 {
                                                     path: 'inbox',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.inbox,
-                                                        'InboxPage'
-                                                    ),
+                                                    Component: serverRouteComponent('InboxPage'),
                                                 },
                                                 {
                                                     path: 'tasks',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.tasks,
-                                                        'TasksPage'
-                                                    ),
+                                                    Component: serverRouteComponent('TasksPage'),
                                                 },
                                                 {
                                                     // An Agent is a first-class
@@ -142,10 +123,8 @@ export function createAppRouter() {
                                                 },
                                                 {
                                                     path: 'agents/:agentId/:section',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.agent,
-                                                        'AgentProfileRoute'
-                                                    ),
+                                                    Component:
+                                                        serverRouteComponent('AgentProfileRoute'),
                                                 },
                                                 {
                                                     // The members browser is gone: an Agent has
@@ -187,10 +166,8 @@ export function createAppRouter() {
                                                 },
                                                 {
                                                     path: 'settings',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.settings,
-                                                        'ServerSettingsPage'
-                                                    ),
+                                                    Component:
+                                                        serverRouteComponent('ServerSettingsPage'),
                                                     children: [
                                                         {
                                                             index: true,
@@ -209,16 +186,14 @@ export function createAppRouter() {
                                                         },
                                                         {
                                                             path: 'members/humans/:userId',
-                                                            lazy: lazyRoute(
-                                                                serverRouteModules.settingsSection,
-                                                                'SettingsHumanRoute'
+                                                            Component: serverRouteComponent(
+                                                                'DeferredSettingsHumanRoute'
                                                             ),
                                                         },
                                                         {
                                                             path: ':section',
-                                                            lazy: lazyRoute(
-                                                                serverRouteModules.settingsSection,
-                                                                'SettingsSectionRoute'
+                                                            Component: serverRouteComponent(
+                                                                'DeferredSettingsSectionRoute'
                                                             ),
                                                         },
                                                     ],
@@ -262,6 +237,13 @@ export function createAppRouter() {
 function ServerUnknownPage() {
     const { slug = '' } = useParams();
     return <Navigate replace to={serverRoute(slug)} />;
+}
+
+function serverRouteComponent(exportName: keyof ReturnType<typeof readServerRouteShells>) {
+    return function ServerRouteFrame() {
+        const Component = readServerRouteShells()[exportName];
+        return <Component />;
+    };
 }
 
 function ServerErrorBoundary() {

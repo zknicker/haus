@@ -17,7 +17,7 @@ import { useServerContext } from '../server-context.ts';
 import { serverChatRoute } from '../server-routes.ts';
 import { conversationPreviewLine } from './conversation-preview.ts';
 import { InboxActionRow, InboxGlyphMark, InboxIdentityMark, InboxRowBody } from './inbox-row.tsx';
-import { InboxSection, InboxSectionPending } from './inbox-section.tsx';
+import { InboxSectionPending } from './inbox-section.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
 import { selectUnreadChats } from './unread-chats.ts';
 
@@ -43,36 +43,30 @@ export function InboxUnread() {
     const viewerUserId = members.data?.viewerUserId ?? null;
     const viewerDisplayName = viewerUserId ? humans.name(viewerUserId) : null;
 
-    return (
-        <InboxSection title="Unread">
-            {chats.data ? (
-                <InboxRowList
-                    emptyLabel="All caught up."
-                    listId="inbox-unread"
-                    renderRow={(chat) => (
-                        <UnreadChatRow
-                            agent={
-                                chat.peerAgentId ? (agentById.get(chat.peerAgentId) ?? null) : null
-                            }
-                            chat={chat}
-                            onMarkRead={() =>
-                                markRead.mutate({
-                                    chatId: chat.id,
-                                    includeThreads: true,
-                                    sequence: chat.lastMessageSequence,
-                                    serverId: server.id,
-                                })
-                            }
-                            onOpen={() => navigate(serverChatRoute(server.slug, chat.id))}
-                            viewerDisplayName={viewerDisplayName}
-                        />
-                    )}
-                    rows={unread}
+    return chats.data ? (
+        <InboxRowList
+            emptyLabel="All caught up."
+            listId="inbox-unread"
+            renderRow={(chat) => (
+                <UnreadChatRow
+                    agent={chat.peerAgentId ? (agentById.get(chat.peerAgentId) ?? null) : null}
+                    chat={chat}
+                    onMarkRead={() =>
+                        markRead.mutate({
+                            chatId: chat.id,
+                            includeThreads: true,
+                            sequence: chat.lastMessageSequence,
+                            serverId: server.id,
+                        })
+                    }
+                    onOpen={() => navigate(serverChatRoute(server.slug, chat.id))}
+                    viewerDisplayName={viewerDisplayName}
                 />
-            ) : (
-                <InboxSectionPending label="Loading unread chats" />
             )}
-        </InboxSection>
+            rows={unread}
+        />
+    ) : (
+        <InboxSectionPending label="Loading unread chats" />
     );
 }
 

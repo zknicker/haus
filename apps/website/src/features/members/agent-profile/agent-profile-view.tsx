@@ -1,18 +1,21 @@
 import type { Agent } from '@haus/api';
 import { Breadcrumbs } from '@heroui/react';
+import * as React from 'react';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { AgentActionsMenu } from './agent-actions-menu.tsx';
 import { canRunAgentActions } from './agent-actions-model.ts';
-import { AgentActivity, AgentAutomations, AgentWorkspace } from './agent-content.tsx';
 import { AgentHub } from './agent-hub.tsx';
-import { AgentProfileCard } from './agent-profile-card.tsx';
+import { AgentLoading } from './agent-loading.tsx';
+import { loadAgentProfileContent } from './agent-profile-module.ts';
 import type { AgentSection } from './agent-sections.ts';
-import {
-    AgentConnectionsSection,
-    AgentRuntimeSection,
-    AgentSkillsSection,
-} from './agent-setup-sections.tsx';
+
+const AgentWorkspace = React.lazy(async () => ({
+    default: (await loadAgentProfileContent()).AgentWorkspace,
+}));
+const AgentSectionBody = React.lazy(async () => ({
+    default: (await loadAgentProfileContent()).AgentSectionBody,
+}));
 
 export interface AgentProfileViewProps {
     agent: Agent;
@@ -63,7 +66,9 @@ export function AgentProfileView({
                     />
                 </div>
                 <div className="min-h-0 flex-1 overflow-hidden">
-                    <AgentWorkspace agent={agent} server={server} />
+                    <React.Suspense fallback={<AgentLoading label="Loading workspace" />}>
+                        <AgentWorkspace agent={agent} server={server} />
+                    </React.Suspense>
                 </div>
             </div>
         );
@@ -92,7 +97,9 @@ export function AgentProfileView({
                         onHome={() => onSectionChange('home')}
                         server={server}
                     />
-                    <SectionBody agent={agent} section={section} server={server} />
+                    <React.Suspense fallback={<AgentLoading label="Loading Agent section" />}>
+                        <AgentSectionBody agent={agent} section={section} server={server} />
+                    </React.Suspense>
                 </PageColumn>
             )}
         </div>
@@ -127,29 +134,4 @@ function SectionTrail({
             ) : null}
         </div>
     );
-}
-
-function SectionBody({
-    agent,
-    section,
-    server,
-}: {
-    agent: Agent;
-    section: Exclude<AgentSection, 'home' | 'workspace'>;
-    server: ServerDetail;
-}) {
-    switch (section) {
-        case 'runtime':
-            return <AgentRuntimeSection agent={agent} server={server} />;
-        case 'profile':
-            return <AgentProfileCard agent={agent} />;
-        case 'automations':
-            return <AgentAutomations agent={agent} server={server} />;
-        case 'skills':
-            return <AgentSkillsSection agent={agent} server={server} />;
-        case 'connections':
-            return <AgentConnectionsSection agent={agent} server={server} />;
-        case 'activity':
-            return <AgentActivity agent={agent} server={server} />;
-    }
 }

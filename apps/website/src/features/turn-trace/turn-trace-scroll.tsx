@@ -2,10 +2,25 @@ import * as React from 'react';
 
 type ScrollSnapshot = { anchor: HTMLElement; offset: number; scroller: HTMLElement } | null;
 
-/** Capture before React changes layout, then keep the inspected row at the same offset. */
+/** Keep the inspected row at its offset through React commits and animated growth. */
 // biome-ignore lint/style/useReactFunctionComponents: React has no function-hook equivalent of getSnapshotBeforeUpdate.
 export class TurnTraceScroll extends React.Component<{ children: React.ReactNode }> {
     private readonly root = React.createRef<HTMLDivElement>();
+    private observer: ResizeObserver | null = null;
+    private snapshot: ScrollSnapshot = null;
+    private scroller: HTMLElement | null = null;
+
+    componentDidMount() {
+        this.observer = new ResizeObserver(() => this.restoreScroll());
+        if (this.root.current) {
+            this.observer.observe(this.root.current);
+        }
+    }
+
+    componentWillUnmount() {
+        this.observer?.disconnect();
+        this.watchScroller(null);
+    }
 
     getSnapshotBeforeUpdate(): ScrollSnapshot {
         const root = this.root.current;
@@ -18,8 +33,12 @@ export class TurnTraceScroll extends React.Component<{ children: React.ReactNode
         }
         const top = scroller.getBoundingClientRect().top;
         const bottom = top + scroller.clientHeight;
+        const active = document.activeElement;
+        const focused = active?.closest<HTMLElement>('[data-trace-anchor]');
+        if (active && root.contains(active) && !focused) {
+            return null;
+        }
         const anchors = [...root.querySelectorAll<HTMLElement>('[data-trace-anchor]')];
-        const focused = document.activeElement?.closest<HTMLElement>('[data-trace-anchor]');
         const inspected = anchors.filter((anchor) =>
             anchor.querySelector('[aria-expanded="true"]')
         );
@@ -41,13 +60,9 @@ export class TurnTraceScroll extends React.Component<{ children: React.ReactNode
         _state: unknown,
         snapshot: ScrollSnapshot
     ) {
-        if (!snapshot?.anchor.isConnected) {
-            return;
-        }
-        const { anchor, offset, scroller } = snapshot;
-        const nextOffset =
-            anchor.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
-        scroller.scrollTop += nextOffset - offset;
+        this.snapshot = snapshot;
+        this.watchScroller(snapshot?.scroller ?? null);
+        this.restoreScroll();
     }
 
     render() {
@@ -56,6 +71,32 @@ export class TurnTraceScroll extends React.Component<{ children: React.ReactNode
                 {this.props.children}
             </div>
         );
+    }
+
+    private readonly forgetScroll = () => {
+        this.snapshot = null;
+    };
+
+    private restoreScroll() {
+        if (!this.snapshot?.anchor.isConnected) {
+            this.snapshot = null;
+            return;
+        }
+        const { anchor, offset, scroller } = this.snapshot;
+        const nextOffset =
+            anchor.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+        scroller.scrollTop += nextOffset - offset;
+    }
+
+    private watchScroller(scroller: HTMLElement | null) {
+        if (scroller === this.scroller) {
+            return;
+        }
+        for (const event of ['wheel', 'touchstart', 'pointerdown', 'keydown']) {
+            this.scroller?.removeEventListener(event, this.forgetScroll, true);
+            scroller?.addEventListener(event, this.forgetScroll, { capture: true, passive: true });
+        }
+        this.scroller = scroller;
     }
 }
 

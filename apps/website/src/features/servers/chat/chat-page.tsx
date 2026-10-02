@@ -1,11 +1,17 @@
+import * as React from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useChat } from '../../../hooks/servers/use-chat.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { serverRouteModules } from '../../../routes/app/server-route-modules.ts';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
+import { ChatPagePending } from './chat-page-pending.tsx';
 import { resolveChatPageChat } from './chat-page-state.ts';
-import { ChatView } from './chat-view.tsx';
+
+const ChatView = React.lazy(async () => ({
+    default: (await serverRouteModules.chat()).ChatView,
+}));
 
 export function ChatPage({ chatId, server }: { chatId: string; server: ServerDetail }) {
     const [searchParams] = useSearchParams();
@@ -27,7 +33,7 @@ export function ChatPage({ chatId, server }: { chatId: string; server: ServerDet
     const initialTask = tasks.data?.tasks.find((item) => item.task.messageId === taskMessageId);
 
     if (!chat && chatQuery.isPending) {
-        return null;
+        return <ChatPagePending />;
     }
 
     if (!chat) {
@@ -35,20 +41,22 @@ export function ChatPage({ chatId, server }: { chatId: string; server: ServerDet
     }
 
     return (
-        <ChatView
-            chat={chat}
-            initialTask={
-                initialTask
-                    ? {
-                          message: initialTask.message,
-                          summary: initialTask.threadSummary,
-                          threadChatId: initialTask.task.threadChatId,
-                      }
-                    : undefined
-            }
-            key={chat.id}
-            onOpenChat={(nextChatId) => navigate(serverChatRoute(server.slug, nextChatId))}
-            server={server}
-        />
+        <React.Suspense fallback={<ChatPagePending chat={chat} />} key={chat.id}>
+            <ChatView
+                chat={chat}
+                initialTask={
+                    initialTask
+                        ? {
+                              message: initialTask.message,
+                              summary: initialTask.threadSummary,
+                              threadChatId: initialTask.task.threadChatId,
+                          }
+                        : undefined
+                }
+                key={chat.id}
+                onOpenChat={(nextChatId) => navigate(serverChatRoute(server.slug, nextChatId))}
+                server={server}
+            />
+        </React.Suspense>
     );
 }

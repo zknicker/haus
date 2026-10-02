@@ -1,12 +1,24 @@
-import { CloudAgentWorkDialog } from '../../features/cloud-agents/cloud-agent-work-dialog.tsx';
-import { InboxActiveAgents } from '../../features/servers/inbox/inbox-active-agents.tsx';
-import { InboxHappeningNow } from '../../features/servers/inbox/inbox-happening-now.tsx';
+import * as React from 'react';
 import { InboxHeader } from '../../features/servers/inbox/inbox-header.tsx';
+import { InboxSection, InboxSectionPending } from '../../features/servers/inbox/inbox-section.tsx';
 import { InboxTopbar } from '../../features/servers/inbox/inbox-topbar.tsx';
-import { InboxUnread } from '../../features/servers/inbox/inbox-unread.tsx';
 import { PageColumn } from '../../features/shell/page-column.tsx';
 import { PageTopbar } from '../../features/shell/shell-topbar.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
+import { serverRouteModules } from './server-route-modules.ts';
+
+const InboxActiveAgents = React.lazy(async () => ({
+    default: (await serverRouteModules.inbox()).InboxActiveAgents,
+}));
+const InboxUnread = React.lazy(async () => ({
+    default: (await serverRouteModules.inbox()).InboxUnread,
+}));
+const InboxHappeningNow = React.lazy(async () => ({
+    default: (await serverRouteModules.inbox()).InboxHappeningNow,
+}));
+const CloudAgentWorkDialog = React.lazy(async () => ({
+    default: (await serverRouteModules.inbox()).CloudAgentWorkDialog,
+}));
 
 /**
  * The human Inbox: a lens over records that already exist elsewhere. It owns
@@ -40,11 +52,29 @@ export function InboxPage() {
             </PageTopbar>
             <PageColumn>
                 <InboxHeader />
-                <InboxActiveAgents />
-                <InboxUnread />
-                <InboxHappeningNow />
+                <InboxSection title="Active this week">
+                    <React.Suspense
+                        fallback={<InboxSectionPending label="Loading Agent activity" />}
+                    >
+                        <InboxActiveAgents />
+                    </React.Suspense>
+                </InboxSection>
+                <InboxSection title="Unread">
+                    <React.Suspense fallback={<InboxSectionPending label="Loading unread chats" />}>
+                        <InboxUnread />
+                    </React.Suspense>
+                </InboxSection>
+                <InboxSection title="Happening now">
+                    <React.Suspense
+                        fallback={<InboxSectionPending label="Loading current Agent work" />}
+                    >
+                        <InboxHappeningNow />
+                    </React.Suspense>
+                </InboxSection>
             </PageColumn>
-            <CloudAgentWorkDialog />
+            <React.Suspense fallback={null}>
+                <CloudAgentWorkDialog />
+            </React.Suspense>
         </>
     );
 }

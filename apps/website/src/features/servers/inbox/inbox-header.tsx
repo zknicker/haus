@@ -18,9 +18,8 @@ import { greetingLine, todayLabel } from './inbox-today.ts';
  * `px-4`, because the Inbox's section titles below it sit on the column's
  * own edge and the greeting leads that same edge.
  *
- * A greeting needs a name, so nothing renders until the member directory
- * lands. A bare "Good afternoon" addresses nobody, and a date that jumps down
- * a line when the name arrives is worse than a beat of blank.
+ * Reserve the greeting line before the directory arrives, so the date and
+ * the sections below it keep their position while the name resolves.
  */
 export function InboxHeader() {
     const { server } = useServerContext();
@@ -31,14 +30,10 @@ export function InboxHeader() {
     const now = useRelativeNow(60_000);
     const viewerUserId = members.data?.viewerUserId ?? null;
 
-    if (!viewerUserId) {
-        return null;
-    }
-
     return (
         <header className="flex flex-col gap-1.5">
-            <h1 className="font-semibold text-2xl text-foreground tracking-tight">
-                {greetingLine(now, humans.name(viewerUserId))}
+            <h1 className="min-h-[1lh] font-semibold text-2xl text-foreground tracking-tight">
+                {viewerUserId ? greetingLine(now, humans.name(viewerUserId)) : null}
             </h1>
             <p className="text-muted text-sm">{todayLabel(now)}</p>
         </header>

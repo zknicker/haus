@@ -80,7 +80,11 @@ export function useBrowserViewBounds(
             });
         };
         const observer = new ResizeObserver(resize);
-        const overlays = new MutationObserver(resize);
+        const overlays = new MutationObserver((mutations) => {
+            if (mutations.some(affectsOverlay)) {
+                resize();
+            }
+        });
         const shellVariant = new MutationObserver(resize);
         observer.observe(element);
         overlays.observe(document.body, { childList: true, subtree: true });
@@ -155,4 +159,15 @@ async function decodeImage(src: string) {
     image.src = src;
     // A decode failure still renders as a broken image at worst; the native view hides regardless.
     await image.decode().catch(() => undefined);
+}
+
+function affectsOverlay(mutation: MutationRecord) {
+    if (mutation.target instanceof Element && mutation.target.closest(overlaySelector)) {
+        return true;
+    }
+    return [...mutation.addedNodes, ...mutation.removedNodes].some(
+        (node) =>
+            node instanceof Element &&
+            (node.matches(overlaySelector) || node.querySelector(overlaySelector) !== null)
+    );
 }

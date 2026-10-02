@@ -46,21 +46,23 @@ export function loadChannelIconCatalog(): Promise<ChannelIconCatalog> {
 }
 
 /** The loaded catalog, or null while the chunk is still in flight. */
-export function useChannelIconCatalog(): ChannelIconCatalog | null {
+export function useChannelIconCatalog(enabled = true): ChannelIconCatalog | null {
     const loaded = React.useSyncExternalStore(subscribe, getCatalog, getCatalog);
 
     React.useEffect(() => {
         // The hash fallback already covers a failed load; this effect only
         // needs to kick the retryable import off.
-        loadChannelIconCatalog().catch(() => undefined);
-    }, []);
+        if (enabled) {
+            loadChannelIconCatalog().catch(() => undefined);
+        }
+    }, [enabled]);
 
     return loaded;
 }
 
 /** A channel's glyph, falling back to the hash while loading or when unknown. */
 export function useChannelIconGlyph(name: string | null | undefined): IconSvgElement {
-    const loaded = useChannelIconCatalog();
+    const loaded = useChannelIconCatalog(Boolean(name));
 
     return (name ? loaded?.byName.get(name)?.glyph : null) ?? channelHashGlyph;
 }

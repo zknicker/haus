@@ -1,12 +1,16 @@
 import type { Agent } from '@haus/api';
+import * as React from 'react';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
-import { AgentUsageTile } from '../../usage/agent-usage-tile.tsx';
 import { AgentRuntimeIssue } from '../agent-runtime-issue.tsx';
-import { AgentChats } from './agent-chats.tsx';
 import { AgentHeader } from './agent-header.tsx';
 import { AgentHubCards } from './agent-hub-cards.tsx';
-import { AgentRecentActivity } from './agent-recent-activity.tsx';
+import { AgentLoading } from './agent-loading.tsx';
+import { loadAgentProfileContent } from './agent-profile-module.ts';
 import type { AgentSection } from './agent-sections.ts';
+
+const AgentHubContent = React.lazy(async () => ({
+    default: (await loadAgentProfileContent()).AgentHubContent,
+}));
 
 /**
  * The profile's home: who the Agent is, a doorway card per section, the Chats
@@ -30,13 +34,9 @@ export function AgentHub({
             <AgentHeader agent={agent} onDeleted={onDeleted} server={server} />
             <AgentRuntimeIssue agent={agent} />
             <AgentHubCards agent={agent} onOpen={onSectionChange} server={server} />
-            <AgentChats agent={agent} server={server} />
-            <AgentRecentActivity
-                agent={agent}
-                onSeeAll={() => onSectionChange('activity')}
-                server={server}
-            />
-            <AgentUsageTile agent={agent} server={server} />
+            <React.Suspense fallback={<AgentLoading label="Loading Agent activity" />}>
+                <AgentHubContent agent={agent} onSectionChange={onSectionChange} server={server} />
+            </React.Suspense>
         </>
     );
 }

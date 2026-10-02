@@ -14,7 +14,6 @@ import { activeAgentWindowDays, rankActiveAgents, toActiveAgent } from './active
 import { AgentWeekCard } from './agent-week-card.tsx';
 import { AgentWeekStrip } from './agent-week-strip.tsx';
 import { currentAgentActivityLabels } from './inbox-agent-activity.ts';
-import { InboxSection } from './inbox-section.tsx';
 import { InboxEmptySlot, InboxMotionItem } from './inbox-section-rows.tsx';
 
 /**
@@ -85,43 +84,36 @@ export function InboxActiveAgents() {
         [labels, weeks]
     );
 
-    return (
-        <InboxSection title="Active this week">
-            {rows === null ? null : (
-                <AgentWeekStrip>
-                    <LayoutGroup id="inbox-active-agents">
-                        <AnimatePresence initial={false} mode="popLayout">
-                            {rows.length === 0 ? (
-                                <InboxEmptySlot
-                                    className="w-full p-1.5"
-                                    key="inbox-active-agents-empty"
-                                    label="No activity this week."
+    return rows === null ? null : (
+        <AgentWeekStrip>
+            <LayoutGroup id="inbox-active-agents">
+                <AnimatePresence initial={false} mode="popLayout">
+                    {rows.length === 0 ? (
+                        <InboxEmptySlot
+                            className="w-full p-1.5"
+                            key="inbox-active-agents-empty"
+                            label="No activity this week."
+                        />
+                    ) : (
+                        rows.map((row) => (
+                            <InboxMotionItem className="shrink-0" key={row.agent.id}>
+                                <AgentWeekCard
+                                    activity={row}
+                                    onPress={() => {
+                                        if (row.agent.dmChatId) {
+                                            navigate(
+                                                serverChatRoute(server.slug, row.agent.dmChatId)
+                                            );
+                                        } else {
+                                            openAgentProfile(row.agent.id);
+                                        }
+                                    }}
                                 />
-                            ) : (
-                                rows.map((row) => (
-                                    <InboxMotionItem className="shrink-0" key={row.agent.id}>
-                                        <AgentWeekCard
-                                            activity={row}
-                                            onPress={() => {
-                                                if (row.agent.dmChatId) {
-                                                    navigate(
-                                                        serverChatRoute(
-                                                            server.slug,
-                                                            row.agent.dmChatId
-                                                        )
-                                                    );
-                                                } else {
-                                                    openAgentProfile(row.agent.id);
-                                                }
-                                            }}
-                                        />
-                                    </InboxMotionItem>
-                                ))
-                            )}
-                        </AnimatePresence>
-                    </LayoutGroup>
-                </AgentWeekStrip>
-            )}
-        </InboxSection>
+                            </InboxMotionItem>
+                        ))
+                    )}
+                </AnimatePresence>
+            </LayoutGroup>
+        </AgentWeekStrip>
     );
 }

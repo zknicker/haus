@@ -5,7 +5,6 @@ import { Plus } from '@hugeicons/core-free-icons';
 import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
-import { loadChannelIconCatalog } from '../../components/chats/channel-icon-catalog.ts';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { inboxRoute, tasksRoute } from '../servers/server-routes.ts';
@@ -51,13 +50,6 @@ export function ChatNavigation({
     // glyph there; on the macOS desktop the lights lead that strip and the mark
     // stays on this row.
     const inboxMark = useSidebarSurface() === 'macos-desktop' ? 'ghost' : 'inbox';
-    // Channel glyphs live in a lazily imported catalog. Warm it as soon as the
-    // chat list mounts so rows and the picker have it before they need it.
-    React.useEffect(() => {
-        // The hash fallback already covers a failed load; this warm-up just
-        // needs to kick the retryable import off.
-        loadChannelIconCatalog().catch(() => undefined);
-    }, []);
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
     const channels = chats.filter((chat) => chat.kind === 'channel');
     const humanDirectMessages = chats.filter((chat) => chat.kind === 'dm' && !chat.peerAgentId);

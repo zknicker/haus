@@ -8,6 +8,7 @@ import {
     serverSettingsSectionRoute,
 } from '../../features/servers/server-routes.ts';
 import { useAgent } from '../../hooks/members/use-agent.ts';
+import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
 /**
@@ -24,28 +25,30 @@ export function AgentProfileRoute() {
     const navigate = useNavigate();
     const { server } = useServerContext();
     const agent = useAgent(server.id, agentId);
+    const agents = useAgents(server.id);
+    const record = agent.data ?? agents.data?.find((candidate) => candidate.id === agentId);
     const membersRoute = serverSettingsSectionRoute(server.slug, 'members');
     const section = resolveAgentSectionParam(sectionParam);
-    useWindowTitle(agent.data?.displayName);
+    useWindowTitle(record?.displayName);
 
     if (section.kind === 'redirect') {
         return <Navigate replace to={agentProfileRoute(server.slug, agentId, section.section)} />;
     }
-    if (agent.isPending) {
+    if (agent.isPending && !record) {
         return (
             <div className="mx-auto w-full max-w-3xl px-6 pt-8">
                 <AgentLoading label="Loading Agent" />
             </div>
         );
     }
-    if (!agent.data) {
+    if (!record) {
         return <Navigate replace to={membersRoute} />;
     }
 
     return (
         <AgentProfileView
-            agent={agent.data}
-            key={agent.data.id}
+            agent={record}
+            key={record.id}
             onDeleted={() => navigate(membersRoute, { replace: true })}
             onSectionChange={(next) => navigate(agentProfileRoute(server.slug, agentId, next))}
             section={section.section}

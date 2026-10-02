@@ -12,7 +12,7 @@ import { HappeningNowList } from './happening-now-list.tsx';
 import { type HappeningNowRow, toHappeningNowRows } from './happening-now-rows.ts';
 import { toHappeningNowWork } from './happening-now-work.ts';
 import { happeningNowAgentRows } from './inbox-agent-activity.ts';
-import { InboxSection, InboxSectionPending } from './inbox-section.tsx';
+import { InboxSectionPending } from './inbox-section.tsx';
 
 /**
  * Work running right now, whether or not this human started it. Both sources
@@ -51,13 +51,9 @@ export function InboxHappeningNow() {
     // stays neutral until both have settled rather than emptying, then filling.
     const settled = currentActivity?.isSnapshotReady === true && Boolean(cloudAgentWork.data);
 
-    return (
-        <InboxSection title="Happening now">
-            {settled ? (
-                <HappeningNowList onOpenRow={openRow} rows={rows} />
-            ) : (
-                <InboxSectionPending label="Loading current Agent work" />
-            )}
-        </InboxSection>
+    return settled ? (
+        <HappeningNowList onOpenRow={openRow} rows={rows} />
+    ) : (
+        <InboxSectionPending label="Loading current Agent work" />
     );
 }

@@ -1,4 +1,16 @@
+import { loadAgentProfileContent } from '../../features/members/agent-profile/agent-profile-module.ts';
 import type { AppSection } from './server-route-state.ts';
+
+type ServerRouteShells = typeof import('./server-route-shells.tsx');
+let loadedShells: ServerRouteShells | undefined;
+
+/** The parent Server layout loads these before any destination can render. */
+export function readServerRouteShells(): ServerRouteShells {
+    if (!loadedShells) {
+        throw new Error('The Server layout must load before its destination frames.');
+    }
+    return loadedShells;
+}
 
 export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
     let pending: Promise<TModule> | undefined;
@@ -13,15 +25,15 @@ export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
 }
 
 export const serverRouteModules = {
-    agent: cachedRouteModule(() => import('./agent-page.tsx')),
-    archivedChats: cachedRouteModule(() => import('./archived-chats-route.tsx')),
-    chat: cachedRouteModule(() => import('./chat-route.tsx')),
-    default: cachedRouteModule(() => import('./server-default-page.tsx')),
-    inbox: cachedRouteModule(() => import('./inbox-page.tsx')),
-    search: cachedRouteModule(() => import('./search-route.tsx')),
-    settings: cachedRouteModule(() => import('./server-settings-page.tsx')),
+    shell: cachedRouteModule(async () => {
+        loadedShells = await import('./server-route-shells.tsx');
+        return loadedShells;
+    }),
+    agent: cachedRouteModule(loadAgentProfileContent),
+    chat: cachedRouteModule(() => import('./chat-page-content.tsx')),
+    inbox: cachedRouteModule(() => import('./inbox-page-content.tsx')),
     settingsSection: cachedRouteModule(() => import('./settings-route.tsx')),
-    tasks: cachedRouteModule(() => import('./tasks-page.tsx')),
+    tasks: cachedRouteModule(() => import('./tasks-page-content.tsx')),
 };
 
 const routeModulesBySection: Record<
@@ -29,10 +41,10 @@ const routeModulesBySection: Record<
     ReadonlyArray<() => Promise<Record<string, unknown>>>
 > = {
     agent: [serverRouteModules.agent],
-    chat: [serverRouteModules.chat, serverRouteModules.archivedChats],
+    chat: [serverRouteModules.chat],
     inbox: [serverRouteModules.inbox],
-    search: [serverRouteModules.search],
-    settings: [serverRouteModules.settings, serverRouteModules.settingsSection],
+    search: [],
+    settings: [serverRouteModules.settingsSection],
     tasks: [serverRouteModules.tasks],
 };
 
