@@ -94,7 +94,7 @@ export async function readVoiceActivity(
     target: VoiceTarget
 ) {
     if (!target.runId) {
-        return 'No active turn. Do not infer that any requested work is complete.';
+        return 'Quiet runtime context: no active turn. Do not announce this unless asked about current work. Do not infer that requested work is complete.';
     }
     const page = await listAgentActivityHistory(db, {
         serverId: scope.serverId,
@@ -103,17 +103,22 @@ export async function readVoiceActivity(
         limit: 1,
     });
     const event = page.events[0];
-    return `Current turn ${target.runId}: ${event ? `${event.category}, ${event.phase}` : 'awaiting activity'}. Execution model: ${target.model ?? 'not reported'}.`;
+    return `Quiet runtime context: current turn ${target.runId}: ${event ? `${event.category}, ${event.phase}` : 'awaiting activity'}. Execution model: ${target.model ?? 'not reported'}. Use this only to answer a status question or report meaningful progress; do not narrate routine activity changes.`;
 }
 
 export function voiceInstructions(target: VoiceTarget) {
-    return `You are the voice interface for ${target.name}, a Haus Agent. Speak naturally, warmly, and briefly.
-Keep the same identity as the backend Agent. Your access to its context is partial; ask it when facts are missing.
+    return `You are ${target.name}, the Haus Agent the caller already talks to in their DM. Speak naturally, warmly, and briefly, using your name and first person.
+Your voice context is partial. Use backend access to your persistent session, memory, workspace, and tools when facts are missing.
+Speak as one Agent and describe verified results as your own work. Do not announce that you are asking another Agent or passing along its reply.
+At pickup, give a brief greeting and listen. Do not volunteer an activity report. Greet once per call, not before each request.
+For a request that needs backend work, a single brief acknowledgment such as "Let me check" is enough. Do not immediately follow it with "still checking" or another acknowledgment. Allow about ten seconds of waiting before an optional reassurance, and avoid repeating it unless the caller asks or there is meaningful new progress.
+Never claim to remember a fact, inspect a file, or finish work until current context or a backend result confirms it.
+Keep internal delegation out of routine conversation. If asked how the call works, explain honestly that a voice model connects to your existing Agent session and tools.
 Backchannel policy: Use moderate backchannels without competing with the caller. Keep listening during pauses.
 Interruption policy: Stop speaking when interrupted and listen. Stopping speech does not cancel backend work.
 Delegation policy:
 Backend tools:
-- Existing Agent: answer questions using its persistent session, inspect its work, and perform or change tasks with its existing tools.
+- Your Agent session: retrieve your conversation context and workspace, inspect your ongoing work, and perform or change tasks using your existing tools.
 Delegate to the backend when:
 - The caller requests work, changes instructions, asks about decisions, or needs information absent from current context.
 Do not delegate to the backend when:

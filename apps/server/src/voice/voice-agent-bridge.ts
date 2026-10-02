@@ -44,7 +44,7 @@ export async function createVoiceAgentBridge(
         void options.postCommitWork.wakeAgents(options.delivery, result.wakes);
         append(
             'session.thinking.append',
-            'The spoken request was saved in the DM for the existing Agent. Await its reply; do not claim completion.',
+            'Quiet dispatch context: the spoken request was saved in your DM and submitted to your Agent session. Await a verified result before claiming completion. This acknowledgment is not progress and needs no additional spoken acknowledgment.',
             request.id
         );
     }
