@@ -229,9 +229,10 @@ key pair and a service worker). A closed browser tab learns about new messages o
   its cards the same way, with its slot and its cards inside one presence so the last card leaving
   and the slot arriving are the same exchange. Under `prefers-reduced-motion` every one of these is an instant swap.
 - A section stays blank while its reads settle. An unsettled query is not an empty collection, so
-  nothing is claimed — and nothing flashes — on the way there. This holds for the header, which
-  waits for the name it greets, and for the week strip, which waits for the usage snapshot rather
-  than ranking against zeroes.
+  nothing is claimed — and nothing flashes — on the way there. The header reserves its greeting
+  line while the name resolves, with the known date underneath. The week strip waits for the
+  usage snapshot rather than ranking against zeroes. Page chrome and section labels load with
+  the Server shell; the section bodies can arrive independently of navigation.
 - The page updates from the durable events the underlying records already emit —
   `message.created`, `chat.read`, `cloud-agent-work.updated`, and Agent activity and lifecycle —
   through the existing invalidations; Unread is `chat.list`, refetched on `message.created` and

@@ -252,3 +252,11 @@ not grant Agents browser access. Downloads and website permission requests are d
 require unsupported permissions or reject embedded browsers can be opened in the default browser.
 Chrome profile import and Agent browser access require separate product contracts and explicit access
 controls before implementation.
+
+## Native page layout observation
+
+The App measures the native page host when it resizes, the window resizes, the shell layout
+changes, or an overlay is inserted, removed, or changes its contents. Ordinary DOM changes
+elsewhere, including conversation updates, must not schedule native page measurements.
+Overlay detection checks both changed subtrees and mutations inside an existing overlay, so
+menus and dialogs still cover the native view when their content changes.

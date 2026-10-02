@@ -269,5 +269,7 @@ deltas do not emit semantic activity events. Requests serialize and coalesce bur
 read. Closing the turn discards its relay, and settlement requests a final snapshot. Raw evidence
 never enters the persisted App query cache or Server storage.
 
-New trace entries fade in without height animation. Updates preserve the visible entry's scroll
-offset, including when reasoning grows above an expanded tool. Inspection does not follow the bottom.
+New trace entries reveal with a height spring and fade. Updates preserve the visible entry's scroll
+offset through both the React commit and subsequent animated growth, including when reasoning grows
+above an expanded tool. Human scrolling or interaction releases that retained offset. Inspection
+does not follow the bottom.

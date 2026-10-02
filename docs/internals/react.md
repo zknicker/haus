@@ -93,9 +93,16 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   become React keys. Only a genuine human identity change may clear hosted query
   ownership or replace the authenticated surface; key that identity-owned provider
   by the known Clerk user id rather than clearing a shared cache after render.
-* Keep primary Server destinations code-split, but share their cached module
-  loaders between router navigation and preloading. The persistent shell warms
-  them while idle; sidebar-row hover warms the destination before selection.
+* Load primary destination frames with the authenticated Server shell through
+  `server-route-shells.tsx`. The parent layout loads it; child routes render its cached
+  frames synchronously instead of using router `lazy` callbacks, so destination chrome
+  never waits for an import or an asynchronous route callback. Keep conversation bodies, Inbox sections,
+  task views, Agent activity and section content, and Settings section content code-split behind local
+  Suspense boundaries with neutral data regions, without skeletons or loading decoration.
+  Share their cached module loaders with preloading. The persistent shell warms
+  content while idle; sidebar-row hover warms the destination before selection.
+  The shared Agent profile frame also serves desktop tabs: identity, navigation cards,
+  and section trails remain available while activity, usage, workspace, or section code loads.
   Channel and existing DM rows also warm Chat detail and paginated history on
   hover or keyboard focus. Preloads use the mounted query's options and cache,
   retain loaded history pages, and respect realtime invalidation. An implicit
@@ -178,6 +185,8 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   `useOpenThread`, which is null on the website, where the chat's own side pane
   (`useChatThreadPane`) hosts Threads. A tab-able page renders host-agnostically (no
   outlet context, no band portals) and works at 420px.
+  Thread Task metadata and assignment controls receive the parent Chat's `serverId`
+  explicitly; route-only Server context is unavailable in sibling workspace tabs.
 * Routed destinations render their content inside one `PageColumn`, which owns
   the page gutter, max width, and the rhythm between sections. It encodes
   HeroUI's page idiom (`mx-auto flex w-full flex-col gap-8` plus page padding)

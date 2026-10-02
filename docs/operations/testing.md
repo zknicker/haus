@@ -99,6 +99,10 @@ that matches multiple rows, run the union of their required proof.
 
 ## Quality CI And Check Lanes
 
+The App browser suite signs in through a local Clerk issuer. Its fixture session tokens last one
+hour because the browser fixture does not load Clerk's token-refresh client. The shared issuer's
+default remains five minutes for Server identity tests, and expired-token fixtures remain expired.
+
 Per-commit CI answers exactly one question: is the contract intact and does the
 fast stuff pass? The `Quality` workflow runs `bun run check:fast` on
 `pull_request` and on `push` to `main`, and nothing else. That is policy, not
