@@ -70,8 +70,7 @@ the stored runtimes and models, then emits a Computer update event before the mu
 Failed, disconnected, or unanswered requests preserve the last inventory. Computer separately
 reports refreshed usage. These optional frames leave older peers' ordinary reports intact.
 
-Haus 1.16 requires Computer protocol 17 for Agent configuration briefs and the current Browser
-and task contracts. Older Computers retain bootstrap update control but cannot execute ordinary
-work. App protocol 5 gates the task-list envelope and the removal of Agent roles and prepared
-actions; the hosted App and iPhone 1.6 send that version. Older iPhone builds require an update,
-and an already-open hosted App requires a reload.
+Haus 7.0 requires Computer protocol 25. Older Computers retain bootstrap update control but
+cannot execute ordinary work. App protocol 8 gates the unread Inbox, the removal of Needs you
+and Done, and the shared notification facts. Haus App 5.0.0 and iPhone 5.0.0 send that version.
+Older installed clients require an update, and an already-open hosted App requires a reload.

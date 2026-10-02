@@ -234,6 +234,10 @@ rollback does not reverse database changes. Destructive cleanup lands only in a
 later release after every deployed Server version has stopped using the old
 shape.
 
+The retired `chat_reads.done_sequence` column remains solely for rollback to Server 5.0.0.
+Migration 0054 deliberately keeps it and its values. Remove it in a new migration only after
+Server 5.0.0 is outside the production rollback window; never reinstate the Done feature.
+
 ## Supervision and health
 
 Colima owns PostgreSQL recovery through Compose `restart: unless-stopped`.

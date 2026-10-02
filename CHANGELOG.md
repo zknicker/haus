@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v7.0.0 - 2026-10-01
+
+- The Inbox lists unread Channels and DMs alongside Happening now. Viewing a Chat clears it; Mark read also clears its Threads. Needs you and Done are retired. Update Haus App to 5.0.0 and Haus for iPhone to 5.0.0 (build 38) for the new Inbox contract.
+- Notifications follow one rule across desktop and iPhone: every DM message, plus Channel mentions, replies, and Threads on your messages. iPhone skips pushes for messages you have already read elsewhere, and its badge counts unread Chats.
+- Haus App opens Agent profiles and Threads as workspace tabs, with a split companion pane or one expanded tab strip. Profiles have a hub for their settings, Usage moves into Settings, and Skills cards can open installed skill instructions.
+- Haus for iPhone adds swipe to Mark read and two-line Inbox previews, keeps week cards readable at larger text sizes, and highlights a held message while its action drawer is open.
+- Haus Computer 5.1.0 recovers Claude Code Agents when their bridge has died. Update Computer for installed skill reads and Haus Agent 5.0.0, which uses the unread Inbox contract and keeps chat Markdown concise.
+- Haus checks that a Computer attachment is live before offering updates, avoiding update requests to disconnected machines.
+
 ## v6.0.0 - 2026-09-30
 
 - Haus for iPhone 4.0.0 (build 37) can call an Agent from its DM with the Vesper voice. Spoken requests reach the Agent’s existing session, including Claude-backed Agents, and its replies are spoken back. Ending a call closes the call screen.

@@ -58,6 +58,13 @@ test('upgrades the preceding production schema without replaying migrations', as
             { display_name: 'Before upgrade' },
         ]);
         expect(
+            await upgraded`SELECT data_type, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'chat_reads' AND column_name = 'done_sequence'`
+        ).toEqual([{ data_type: 'integer', is_nullable: 'NO', column_default: '0' }]);
+        // Server 5.0.0 must still be able to execute its read projection after migration.
+        await upgraded`SELECT done_sequence FROM chat_reads`;
+        expect(
             await upgraded`SELECT data_type, is_nullable FROM information_schema.columns
             WHERE table_name = 'chat_messages' AND column_name = 'delivery_routing'`
         ).toEqual([{ data_type: 'jsonb', is_nullable: 'YES' }]);

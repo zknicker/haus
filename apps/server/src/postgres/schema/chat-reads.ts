@@ -6,6 +6,8 @@ export const chatReadsTable = pgTable(
     'chat_reads',
     {
         chatId: text('chat_id').notNull(),
+        /** Retained until Server 5.0.0 leaves the production rollback window. */
+        doneSequence: integer('done_sequence').notNull().default(0),
         readerUserId: text('reader_user_id').notNull(),
         sequence: integer('sequence').notNull().default(0),
         serverId: text('server_id').notNull(),
