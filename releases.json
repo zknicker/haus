@@ -1181,5 +1181,16 @@
       "computer": "5.1.0",
       "agent": "5.0.0"
     }
+  },
+  {
+    "version": "7.0.1",
+    "date": "2026-10-02",
+    "targets": {
+      "server": "6.0.1",
+      "app": null,
+      "ios": { "version": "5.0.1", "buildNumber": 39 },
+      "computer": null,
+      "agent": null
+    }
   }
 ]

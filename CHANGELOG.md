@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v7.0.1 - 2026-10-02
+
+- Haus for iPhone 5.0.1 (build 39) restores microphone capture when voice processing reconfigures the audio device. Calls work with the built-in microphone and speaker, and start listening only after audio capture begins.
+- Voice calls speak as the named Agent, keep pickup free of unsolicited status reports, and avoid rapid repeated waiting updates. Workspace access and completed work remain grounded in the Agent's existing session.
+- Chats, Inbox, Tasks, and Agent profiles keep their frames visible while content loads. Task Thread controls use the correct Server, and activity traces avoid unnecessary rendering work.
+
 ## v7.0.0 - 2026-10-01
 
 - The Inbox lists unread Channels and DMs alongside Happening now. Viewing a Chat clears it; Mark read also clears its Threads. Needs you and Done are retired. Update Haus App to 5.0.0 and Haus for iPhone to 5.0.0 (build 38) for the new Inbox contract.
