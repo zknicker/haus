@@ -1,7 +1,8 @@
 import type { CloudAgentWork } from '@haus/api';
 import { toast } from '@heroui/react';
+import { useParams } from 'react-router-dom';
 import { useCloudAgentWorkCancel } from '../../hooks/servers/use-cloud-agent-work.ts';
-import { useServerContext } from '../servers/server-context.ts';
+import { useServer } from '../../hooks/servers/use-server.ts';
 import { canCancelCloudAgentWork } from './cloud-agent-presentation.ts';
 
 /**
@@ -11,17 +12,23 @@ import { canCancelCloudAgentWork } from './cloud-agent-presentation.ts';
  * work reads as cancelling until `cloud-agent-work.updated` arrives.
  */
 export function useCloudAgentCancelAction(work: CloudAgentWork) {
-    const { server } = useServerContext();
+    const { slug = '' } = useParams();
+    const { data: server } = useServer(slug, Boolean(slug));
     const cancel = useCloudAgentWorkCancel();
 
     return {
-        canCancel: canCancelCloudAgentWork({
-            cancelRequestedAt: work.cancelRequestedAt,
-            role: server.role,
-            status: work.status,
-        }),
+        canCancel:
+            server !== undefined &&
+            canCancelCloudAgentWork({
+                cancelRequestedAt: work.cancelRequestedAt,
+                role: server.role,
+                status: work.status,
+            }),
         isPending: cancel.isPending,
         requestCancel: () => {
+            if (!server) {
+                return;
+            }
             cancel
                 .mutateAsync({ serverId: server.id, workId: work.id })
                 .then(() => toast.success('Cancel requested'))

@@ -8,11 +8,12 @@ import {
     GitPullRequestIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useServer } from '../../hooks/servers/use-server.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { openExternalLink } from '../../lib/open-external-link.ts';
 import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
-import { useServerContext } from '../servers/server-context.ts';
 import { appLink, serverChatRoute } from '../servers/server-routes.ts';
 import {
     openCloudAgentProviderUrl,
@@ -33,7 +34,8 @@ export function CloudAgentWorkActions({
     pullRequestUrl: null | string;
     work: CloudAgentWork;
 }) {
-    const { server } = useServerContext();
+    const { slug = '' } = useParams();
+    const { data: server } = useServer(slug, Boolean(slug));
     const context = useTranscriptRenderContextOptional();
     const cancel = useCloudAgentCancelAction(work);
     const conversationChatId = context?.conversationChatId ?? context?.chatId ?? null;
@@ -45,7 +47,7 @@ export function CloudAgentWorkActions({
             openCloudAgentProviderUrl(work.provider, providerUrl);
             return;
         }
-        if (key === 'link' && conversationChatId) {
+        if (key === 'link' && conversationChatId && server) {
             writeClipboardText(appLink(serverChatRoute(server.slug, conversationChatId)))
                 .then(() => toast.success('Link copied'))
                 .catch(() => toast.danger('Could not copy the link'));
@@ -98,7 +100,7 @@ export function CloudAgentWorkActions({
                         </Dropdown.Item>
                         <Dropdown.Item
                             id="link"
-                            isDisabled={!conversationChatId}
+                            isDisabled={!(conversationChatId && server)}
                             textValue="Copy link"
                         >
                             <Icon icon={Copy01Icon} size={16} />

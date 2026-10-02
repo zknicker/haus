@@ -8,10 +8,11 @@ import {
     MoreHorizontalIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useServer } from '../../hooks/servers/use-server.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { cn } from '../../lib/utils.ts';
-import { useServerContext } from '../servers/server-context.ts';
 import { appLink, serverChatRoute } from '../servers/server-routes.ts';
 import {
     openCloudAgentProviderUrl,
@@ -37,7 +38,8 @@ export function CloudAgentWorkMenu({
     onOpenThread?: () => void;
     work: CloudAgentWork;
 }) {
-    const { server } = useServerContext();
+    const { slug = '' } = useParams();
+    const { data: server } = useServer(slug, Boolean(slug));
     const cancel = useCloudAgentCancelAction(work);
     const providerLabel = openInCloudAgentProviderLabel(work.provider);
 
@@ -50,7 +52,7 @@ export function CloudAgentWorkMenu({
             openCloudAgentProviderUrl(work.provider, work.providerUrl);
             return;
         }
-        if (key === 'link') {
+        if (key === 'link' && server) {
             writeClipboardText(appLink(serverChatRoute(server.slug, conversationChatId)))
                 .then(() => toast.success('Link copied'))
                 .catch(() => toast.danger('Could not copy the link'));
@@ -88,7 +90,7 @@ export function CloudAgentWorkMenu({
                         <Icon icon={ArrowUpRight01Icon} size={16} />
                         <Label>{providerLabel}</Label>
                     </Dropdown.Item>
-                    <Dropdown.Item id="link" textValue="Copy link">
+                    <Dropdown.Item id="link" isDisabled={!server} textValue="Copy link">
                         <Icon icon={Copy01Icon} size={16} />
                         <Label>Copy link</Label>
                     </Dropdown.Item>
