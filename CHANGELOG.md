@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v7.1.0 - 2026-10-03
+
+- Connections adds GitHub sign-in and X bearer-token accounts. Each connection has its own Settings page for credentials, tools, and Agent access, with one-press sign-in for another account.
+- Chats show readable Thread references with compact previews. Cloud Agent work shows its full card in the transcript, including its controls and workspace changes.
+- Haus for iPhone 5.1.0 (build 40) shows inline replies as a compact parent line above the message and uses the same Cloud Agent card in Chats and Threads.
+- Haus Agent 5.1.0 keeps solo progress in a Thread on its acknowledgment and returns results where the request arrived. Update Haus Computer to 5.2.0 for this behavior.
+- Agent model settings explain when a change takes effect and which execution runtimes start a new session.
+
 ## v7.0.1 - 2026-10-02
 
 - Haus for iPhone 5.0.1 (build 39) restores microphone capture when voice processing reconfigures the audio device. Calls work with the built-in microphone and speaker, and start listening only after audio capture begins.
