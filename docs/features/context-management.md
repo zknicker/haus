@@ -3,6 +3,7 @@ summary: Fresh-session instruction composition and persistent Agent context.
 read_when:
   - changing generated Agent instructions
   - changing session resume, reset, model switching, or recovery
+  - changing runtime launch config, Agent HOME setup, or what a runtime loads from disk (AGENTS.md, CLAUDE.md, settings)
 ---
 
 # Context Management
@@ -13,8 +14,8 @@ model session. Per-turn message delivery is an inbox concern; see
 
 ## Contract
 
-- Computer composes managed product instructions, the Agent description,
-  assigned skills, and tool guidance for every accepted turn. It persists the
+- Computer composes managed product instructions, the Agent description, its
+  private personality (when set, as a closing `## Personality` section), assigned skills, and tool guidance for every accepted turn. It persists the
   applied instruction and Harness bootstrap fingerprints with the resumed session.
 - Computer does not append Haus-specific model-family steering. Every model receives the same
   managed product contract; executor-native instructions remain owned by that executor.
@@ -89,6 +90,27 @@ other Haus-only text into Manual topics or skills. See AGENTS.md and
 Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and
 notes), not an injected memory system. Agents read older canonical Chat history
 through the `haus` CLI when inbox delivery is insufficient.
+
+A model's context is the composed instructions, the workspace files the Agent
+chooses to read, and its isolated `HOME` (skill links and runtime state). No
+runtime auto-loads `AGENTS.md`, `CLAUDE.md`, or an equivalent from the
+workspace, its ancestors, or the operator's home; the Agent reads `MEMORY.md`
+itself, as the prompt directs. Computer enforces this per runtime:
+
+| Runtime | Ambient instruction loading | Haus setting |
+| --- | --- | --- |
+| Claude Code | `project`/`local` settings (`CLAUDE.md`, `.claude/`) in the workspace and every ancestor | `settingSources: ['user']`; Agent `HOME` keeps its own `.claude.json`, never a link to the operator's (login resolves from host credentials) |
+| Codex | `AGENTS.md` in the workspace and every directory up to its git root | `project_doc_max_bytes = 0` in `CODEX_CONFIG`; isolated `CODEX_HOME` |
+| Pi | `AGENTS.md`/`CLAUDE.md` in the workspace and every ancestor to `/` | `noContextFiles` ([Dependency Patches](../operations/dependency-patches.md)) |
+| Grok Build | Claude/Cursor files (`.claude/CLAUDE.md`, `.claude/rules/`, `~/.claude/`), plus generic names below | `GROK_{CLAUDE,CURSOR}_{AGENTS,RULES}_ENABLED=false`; isolated `GROK_HOME` |
+
+Known gap: Grok Build 1.0.13 has no switch for generic `AGENTS.md`,
+`CLAUDE.md`, `AGENT.md`, `CLAUDE.local.md`, or `.grok/rules/` in the workspace
+and every directory up to its git root, and its binary cannot be patched. Outside a git repository
+(the shipped `~/.haus/computer` layout) it reads only the workspace itself, so a
+Grok Agent still sees such files it or a repository puts in its workspace. Haus instructions reach Grok through `$GROK_HOME/AGENTS.md`. The
+`*-context-isolation*.test.ts` files under `apps/computer/src/harness/` prove
+each row; the Grok live test fails when Grok changes this behavior.
 
 The Server stores desired configuration and canonical history. Computer stores
 effective harness state and resume evidence. The App reports that distinction

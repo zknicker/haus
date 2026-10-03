@@ -37,6 +37,24 @@ resume compatibility identity and requires rotation. Computer stops a parked nat
 differs (or is unknown), then resumes its saved session with a newly configured adapter. The new
 effort remains fixed throughout that turn, including tool continuations.
 
+## Description And Personality
+
+Every description write — `agent.create`, `agent.updateProfile`, `haus agent create`,
+`haus agent update`, and `haus profile update` — is capped at 280 characters after trimming
+(`AGENT_DESCRIPTION_MAX_LENGTH`). The Agent routes refuse a longer one with `INVALID_ARG` and a
+message that names the limit and points longer context at the standing brief. Reads keep the
+500-character stored bound, so descriptions written before the cap still load and can be
+shortened in place. The cap applies only to a new or changed value: the update paths accept up to
+500 characters on the wire and pass a description equal to the stored one, because clients such
+as iOS resend it with every profile save (`isAgentDescriptionWriteAllowed`).
+
+`personality` (up to 2000 characters, optional) is how the Agent talks. Only Owners and Admins
+read it (`agent.personality`) or write it (`agent.updateProfile`, where omitting the field leaves
+it unchanged and blank clears it); Cove refuses it like the rest of its identity. It is absent from
+the `Agent` projection, every Agent route, rosters, envelopes, and `agent-configure` frames. It
+reaches the assigned Computer only as `agentPersonality` on the `start` frame, which renders it as
+the prompt's closing `## Personality` section.
+
 ## Turn And Delivery Observability
 
 Two member-scoped queries expose what an Agent actually did, without reading
@@ -202,7 +220,7 @@ haus agent update --agent @orbit --description "Release and rollback helper"
 haus agent avatar --agent @orbit --concept "a small brass orbit at dusk"
 ```
 
-`POST /api/agent/agents` takes `target`, `displayName` (1–80), `description` (1–500), optional
+`POST /api/agent/agents` takes `target`, `displayName` (1–80), `description` (1–280), optional
 `avatarConcept` (1–280), `content` (the `--say` announcement, 1–4000), and a `nonce`. The Server
 resolves the target from the scoped runner, verifies the Agent's exact current Chat view, derives an
 available `@handle` from the display name under the Server row lock, writes the announcement Message
@@ -231,7 +249,7 @@ Server while the first attempt was still generating its avatar replays too; that
 first one. A target the Agent has not read since it changed returns `CHAT_VIEW_STALE`. An Agent with
 no assigned Computer returns `AGENT_NO_COMPUTER`.
 
-`POST /api/agent/agents/update` rewrites an Agent's `description`; `POST /api/agent/agents/avatar`
+`POST /api/agent/agents/update` rewrites an Agent's `description` (1–280); `POST /api/agent/agents/avatar`
 generates and applies a replacement avatar from a `concept`. Both resolve `@handle` within the
 runner's Server and refuse Cove with `AGENT_IDENTITY_PROTECTED`. Neither renames an Agent: the handle
 is the Server-scoped alias that mentions, targets, and history all key on.

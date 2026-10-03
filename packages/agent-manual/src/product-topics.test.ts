@@ -78,6 +78,9 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
         'The identical command returns the teammate the first run created and creates nothing new'
     );
     expect(agent?.body).toContain('Name them by `@handle`');
+    expect(agent?.body).toContain(
+        '`--description` is one or two sentences, at most 280 characters'
+    );
     expect(agent?.body).toContain('the refusal names the handle the Server minted instead');
     expect(agent?.body).not.toMatch(/Created @handle|Open control/u);
     expect(agent?.body).toContain('the Agent is created without one and the receipt says so');

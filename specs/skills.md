@@ -14,7 +14,11 @@ agents/<agent-id>/skills/
 
 The selected harness reads that exact library. Agents may view, create, patch,
 extend, and delete their copies through `haus skill`. Another Agent's library
-and the operator's host skill directories are never ambient inputs.
+and the operator's host skill directories are never ambient inputs. Computer
+enforces this by giving each executor an isolated `HOME` and by stopping
+ancestor-directory discovery: Claude Code loads only its `user` settings source,
+so `.claude/skills` above the workspace is never read. Instruction files follow
+the same rule ([Context Management](../docs/features/context-management.md)).
 
 The Server stores only the Computer's compact skill inventory. Skill bytes stay
 on the Computer except while an Owner/Admin request carries one `SKILL.md`

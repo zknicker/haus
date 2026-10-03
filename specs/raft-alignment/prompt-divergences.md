@@ -32,14 +32,16 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **32,416** characters — a reviewed
+`managed-instructions.test.ts` caps the composed prompt at **32,399** characters — a reviewed
 ratchet, not a runtime limit. History: introduced at 32,500 (2026-08-18), raised to 40,270 by
 2026-09-23, lowered to 32,359 by the 1.0.25 re-baseline, raised by exactly 42 to 32,401 when
 Raft's `task assign` / `task unassign` family entries were restored, lowered to 32,395 when
 Asks were deleted (ADR 0037), ratcheted down to 32,220 by later Haus-only simplifications, and
 raised by exactly 224 to 32,444 when the Formatting section gained the chat-register rule
 (operator decision, 2026-10-01), then lowered to 32,416 when solo step-by-step progress moved
-into a thread on the acknowledgment (ADR 0029 amendment, 2026-10-02). Measured line-by-line against the pinned
+into a thread on the acknowledgment (ADR 0029 amendment, 2026-10-02), then lowered to 32,399
+when the Haus-only `## Personality` section arrived (2026-10-03), paid for by shortening the Cloud
+agents section's delivery sentences and measured with a one-word personality. Measured line-by-line against the pinned
 render, about 18,500 characters of the Haus prompt are Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
@@ -93,6 +95,7 @@ Sections are in Haus's render order.
 | Visuals | Haus-only | Deliberate — ADR 0012, ADR 0031 |
 | Web access | Haus-only, rendered only when web access is granted | Deliberate — specs/tools.md |
 | Initial role | Parity | — |
+| Personality | Haus-only closing section, `## Personality` followed by the operator-set text verbatim; rendered only when an Owner or Admin set one. No framing sentence: the heading is the whole scaffold (18 characters) | Deliberate — README ruling W2 (2026-10-03 partial revisit); docs/features/agents.md; `personality-instructions.test.ts`, budget measured with a one-word personality in `managed-instructions.test.ts` |
 | Runtime Profile Control | Raft-only (configured variant's daemon release notice) | Deliberate — Computer upgrades are operator-driven, ADR 0020 |
 | Workspace seed (`packages/agent-workspace/src/starter-kit.ts`) | Not re-diffed at 1.0.25; last matched 1.0.16's `buildInitialMemoryMd` | Re-check on the next pin |
 

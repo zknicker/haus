@@ -130,7 +130,10 @@ to the Agent's canonical skill directory. The Computer reads that directory
 into the AI SDK harness skill contract, so its contents are the exact set
 visible to the executor. This deliberately diverges from Raft's ambient
 host-global discovery: harnesses never inherit the operator's global runtime
-skills or another Agent's skills. Changing an Agent between Codex, Claude Code,
+skills or another Agent's skills. Nor do they auto-load instruction files
+(`AGENTS.md`, `CLAUDE.md`) from the workspace, its ancestors, or the operator's
+home; Computer's per-runtime settings and the one Grok Build gap are listed in
+[Context Management](../features/context-management.md). Changing an Agent between Codex, Claude Code,
 or Pi preserves the same canonical library without copying, conversion,
 runtime-specific variants, or compatibility filtering. A runtime-specific
 instruction that does not work under the new executor remains ordinary

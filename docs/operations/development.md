@@ -44,19 +44,10 @@ inside the three-day `minimumReleaseAge` window needs its package added to
 `frozenLockfile = false` is a temporary flip that gets restored in the same
 change. Rerun `bun run setup:worktree` afterwards.
 
-The paired `react-aria-components@1.21.1` and `react-stately@3.50.0` patches
-separate preview cards from tooltips in the open-overlay registry. Without
-them, hovering a copy button's tooltip dismisses its enclosing HoverCard.
-Cards still share their own exclusivity group, and ordinary tooltips retain
-theirs; hover travel, delays, and keyboard behavior remain dependency-owned.
-Remove both patches when upstream supports tooltips inside PreviewTrigger
-without closing the preview: track
-[adobe/react-spectrum#10460](https://github.com/adobe/react-spectrum/issues/10460)
-(related #10443). Still open, and still unfixed on upstream `main`, as of
-`react-aria-components` 1.21.1 / `react-stately` 3.50.0 (September 2026).
-Verify with
-`bun run --filter @haus/website test:app runtime-issue-hover.spec.ts` after
-restarting Vite so it rebuilds optimized dependencies.
+The paired `react-aria-components` and `react-stately` patches keep a HoverCard
+open when a nested tooltip appears; [Dependency Patches](dependency-patches.md)
+owns their removal condition and proof. Restart Vite after touching them so it
+rebuilds optimized dependencies.
 
 ## Runtime Harness Upgrades
 
@@ -67,12 +58,11 @@ set whose exact dependencies agree. The AI SDK packages, including the core
 `ai`, `@ai-sdk/gateway`, and `@ai-sdk/provider` transitive pins, are excluded from the three-day
 `minimumReleaseAge` hold in `bunfig.toml` so current stable releases can install.
 
-Every adapter is patched locally, as is `@ai-sdk/harness` itself (its display
-text shows a bare workspace mention as `<workspace>` rather than `.`), and each
+Every adapter is patched locally, as is `@ai-sdk/harness` itself, and each
 `patchedDependencies` key carries an exact version, so an upgrade regenerates every adapter patch with `bun patch`
-rather than renaming the files. The patch contents are contracts covered by
-`apps/computer/src/harness/bridge-bootstrap.test.ts`, which greps the built
-bridge text: if a patch silently stops applying, that test fails first.
+rather than renaming the files. [Dependency Patches](dependency-patches.md) lists
+each patch with its proof and removal condition; check that table before
+regenerating, because its guard test fails on every renamed key.
 
 Each adapter also ships a bridge manifest pinning the vendor CLI it installs,
 and those pins trail the models Haus offers. Computer therefore owns the

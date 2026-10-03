@@ -67,8 +67,10 @@ per 24 hours, and only while the file is still over. There is no setting and no 
 
 There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
 automatic extraction or dreaming pipeline, or separate Wiki primitive.
-Personality comes from the Server-owned Agent description. Durable learned
-role and context live in the Agent-owned workspace.
+The Server-owned description is the Agent's role line. How it talks comes from
+the optional Server-owned Personality its Owners and Admins set, rendered as the
+prompt's `## Personality`; Agents cannot read or write it through any API. Durable
+learned role and context live in the Agent-owned workspace.
 
 ## Skills and credentials
 

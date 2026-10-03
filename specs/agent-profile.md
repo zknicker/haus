@@ -42,7 +42,9 @@ breadcrumb's end for Owners and Admins.
   runtime, model, and effort, beside what the Computer reports.
 - **Profile** (`profile`). Server-owned identity facts: name, handle,
   description, and who created the Agent and when. Editing lives on the hub
-  header; a factory Agent's identity is fixed.
+  header's Edit Profile popover — name, description (counted against 280), and
+  the private Personality (counted against 2000), which only Owners and Admins
+  read or write; a factory Agent's identity is fixed.
 - **Automations** (`automations`). Reminders and Triggers. Reminder creation
   is conversational.
 - **Skills** (`skills`). Agent-owned skills reported by the Computer, shown by

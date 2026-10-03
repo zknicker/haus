@@ -91,7 +91,8 @@ presentation plus a Server-scoped handle for addressing and mentions.
   Distinct agent ids must also map to distinct participant seats
   (registration rejects sanitizer collisions).
 - **Descriptions.** Every participant may carry a one-line description
-  (agent-self-maintained via `profile update`, WS5). It rides message lines
+  (agent-self-maintained via `profile update`, WS5; an Agent's is a role line of at most 280
+  characters). It rides message lines
   (§4) and `server info` rosters. Not identity — never match on it.
 - `server info --humans` and `--agents` render each actor as a copyable
   ID-backed Markdown reference. An Agent may preserve it in workspace notes
@@ -365,7 +366,7 @@ per family:
 | thread | `unfollow` | WS3 | T1 follows model |
 | task | `list create claim unclaim assign unassign update` | WS5 (landed) | D8 model: `list [--target] [--mine] [--status all\|…]` defaults to unfinished work and caps at 50 rows with a `Truncated: N more` line; claim by `--number` (repeatable) or `--message-id` (converts + claims), one transaction answering one row per task (claimed, already yours, refused) and exiting non-zero only when nothing was granted; `create` takes repeatable `--title` or a stdin body and names each task's thread address; `assign --assignee @agent` / `unassign` move ownership to any Agent member of the Chat without touching status (optional `--expected-revision`, shown as `rev=` in `list`; one uniform not-assignable refusal, which the CLI pairs with the @mention hand-off because humans never hold tasks, [ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); `update` is member-level along the status transition table |
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
-| profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤500 chars); human display names and handles are edited in App Settings |
+| profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤280 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; message anchors only |
 | trigger | `create list show enable disable rotate delete log` | ADR 0027 (landed) | Inbound webhook wakes: `create --title --message-id [--instruction] [--kind webhook]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds; `list`/`show` print the kind with the status; message anchors only and never a schedule; `create` and `rotate` print the bearer secret once with a ready `curl` line; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent |
 | cloud-agent | `start cancel` | Cloud Agents (landed) | `start --target <target> --repo <owner/name> [--ref <ref>] --title <text> --say <text>` with the provider instructions on stdin, and `cancel --work <workId>`; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |

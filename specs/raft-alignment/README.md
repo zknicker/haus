@@ -85,6 +85,12 @@ directory. The Computer passes that directory through the AI SDK harness skill c
 the exact set visible to every executor while excluding host-global, cross-Agent, and
 cross-Computer skills. This deliberately diverges from Raft's ambient host-global discovery:
 runtime-compatible global skill folders on the physical machine are opt-in import sources only.
+Haus also diverges from Raft on ambient instruction files: Raft treats a runtime's
+`CLAUDE.md`/`AGENTS.md` loading as a feature of the runtime (Raft source
+`manual/agent-knowledge/runtime.md`), while Haus turns it off on every runtime, workspace
+included, so an Agent's context is the composed prompt plus what it reads itself. The per-runtime
+settings and the one Grok Build gap live in
+[Context Management](../../docs/features/context-management.md).
 Changing an Agent between Codex, Claude Code, or Pi keeps that same library unchanged. Haus
 creates no per-runtime copies or variants, performs no conversion or compatibility filtering, and
 treats runtime-specific instructions as ordinary Agent-owned skill content.
@@ -439,6 +445,12 @@ inbox. Human **Start** resumes the current session and drains that work.
   family 9 (WS5); the
   save-as-a-skill habit teaching moves to WS8 seeded notes. Net: the composed prompt drops
   ~0.9k below Raft's own length.
+  *Partially revisited 2026-10-03 (operator decision):* the description is now a role line
+  capped at 280 characters, and tone moved to a separate **Personality** — a short (≤2000)
+  operator-owned Server setting edited by Owners and Admins, rendered as a closing Haus-only
+  `## Personality` prompt section and never in envelopes, rosters, or any Agent API. It is not
+  an Agent-owned file and not SOUL's return: the Agent cannot edit it, and evolved identity still
+  lives in MEMORY.md.
 - **I4 — Inbox visibility read-only; attention is agent-owned.** The agent detail panel gains a
   read-only inbox card (pending targets with counts, muted channels, followed threads;
   dev-mode: per-target cursors). No human-side mute/unfollow controls for agents — humans steer

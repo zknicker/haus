@@ -67,6 +67,7 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     expect(corpus.join('\n')).toContain('**Announce it in #all.**');
     expect(corpus.join('\n')).toContain('**Put it where the work is.**');
     expect(corpus.join('\n')).toContain('**Give it a brief.**');
+    expect(corpus.join('\n')).toContain('at most 280 characters');
     expect(corpus.join('\n')).not.toContain('haus message send --target dm:@handle');
     expect(corpus.join('\n')).not.toMatch(/Created @handle|Open control/u);
     expect(corpus.join('\n')).toContain(

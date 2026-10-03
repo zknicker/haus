@@ -136,6 +136,8 @@ The new Agent inherits your runtime, model, reasoning effort, and Computer, and 
 
 **Give it a brief.** \`--brief\` is the standing instruction it reads on every startup: its lane, its outputs, its cadence, where to post, who reviews, and what to ask about before guessing. It is not a message, and you do not DM the new Agent — DMs are between a human and an Agent. Write it every time; an Agent that wakes without one has nothing to own.
 
+**Keep the description a role line.** \`--description\` is one or two sentences, at most 280 characters, saying what the Agent owns. It closes the new Agent's own instructions and rides every message it sends, so every reader pays for its length. Lane detail, cadence, and context belong in \`--brief\`.
+
 When a brief or workspace note names a human or another Agent for later, copy their ID-backed Markdown reference from \`haus server info --humans\` or \`--agents\`. Reuse that link in later messages. A saved plain \`@handle\` can become stale after a rename; a saved \`user://\` or \`agent://\` target still names the same actor. Discover a new person through the directory when needed, not on every send.
 
 \`--avatar-concept\` generates the avatar during creation. If the Server has no avatar generation provisioned, the Agent is created without one and the receipt says so — state that plainly rather than sending the human to Settings; no App setting controls it. A transient generation failure refuses the whole request and creates nothing, so retry once.

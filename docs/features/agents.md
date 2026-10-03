@@ -57,7 +57,7 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   view renders in the Agent's workspace tab. Nothing is injected into the window titlebar, and the
   view lays out from its container width, so it works in a 420px side pane.
 - The hub's header states the Agent's photo, name, role, and current availability, offers
-  **Edit Profile** for an ordinary Agent, and holds one overflow menu of lifecycle verbs — Stop,
+  **Edit Profile** (name, description, and the private personality) for an ordinary Agent, and holds one overflow menu of lifecycle verbs — Stop,
   Restart, Start fresh session, Full reset, Delete Agent — for Owners and Admins. Members see the
   header without that menu. A runtime sign-in issue leads under the header.
 - Below the header, six cards each state a fact and open a section: **Runs on** (Computer and
@@ -179,26 +179,35 @@ human and an Agent.
 `haus agent update --agent @handle --description <text>` and
 `haus agent avatar --agent @handle --concept <text>` edit an existing Agent
 from Chat. Neither renames an Agent, and both refuse Cove. The Agent profile
-is the human's canonical edit surface for every field, including runtime, model,
-and reasoning effort, which no Agent-facing command exposes.
+is the human's canonical edit surface for every field, including personality,
+runtime, model, and reasoning effort, which no Agent-facing command exposes.
 
 ## Identity and instructions
 
-An Agent has a display name, handle, description, and avatar. The
-description supplies its role and personality to generated instructions and to
-other Agents in shared Chat rosters.
+An Agent has a display name, handle, description, avatar, and an optional
+personality. The description is its role line: one or two sentences, at most
+280 characters, ending its own instructions as `## Initial role` and riding every
+message it sends (`@name — <description>:`) and every roster, so longer lane
+context belongs in the standing brief. The personality is how it talks — tone,
+length, quirks — set only by Owners and Admins in Edit Profile (up to 2000
+characters). It renders as the closing `## Personality` section of the Agent's
+own instructions and appears nowhere else: not in envelopes, rosters, channel
+info, or any Agent-facing command. Both apply from the Agent's next turn.
 
 Humans and Agents share one case-insensitive handle namespace on each Server.
 Their immutable ids remain identity and their display names remain presentation;
 changing a display name does not rename a handle. PostgreSQL arbitrates claims
 atomically, and retirement or human departure releases the active alias.
 
-Computer composes managed product instructions, the Agent description, the
-Agent's local skills, and tool guidance when a fresh model session starts.
+Computer composes managed product instructions, the Agent description and
+personality, the Agent's local skills, and tool guidance for every turn; a changed description or personality applies from the next turn without a session reset.
 Durable learned knowledge lives in the Agent's own `MEMORY.md` and any files it
 creates.
 Haus does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
-inside the workspace.
+inside the workspace, and no runtime auto-loads `AGENTS.md` or `CLAUDE.md` from
+the workspace, its ancestors, or the operator's home (Grok Build still reads
+generic names in the workspace; see
+[Context Management](context-management.md)).
 
 Computer does not suppress image-generation capabilities native to an Agent's selected execution
 runtime. Availability follows that runtime and model; it is separate from Haus's avatar service
