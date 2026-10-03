@@ -22,8 +22,10 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, and MerchBase are presets for endpoint and auth defaults. They remain
-ordinary MCP connections. Once added, a preset disappears from Recommended, even while disconnected. Another
+RankWrangler, Google Calendar, MerchBase, and X are presets for endpoint and auth defaults. They remain
+ordinary MCP connections. X takes a token instead of a sign-in: pressing **+** asks for an app-only
+Bearer token from the owner's X developer app, which lets Agents search and read public posts on that
+app's credits. Its detail offers **Replace token** instead of a header editor. Once added, a preset disappears from Recommended, even while disconnected. Another
 account can be added deliberately from the connection detail. Deleting the last account makes the
 preset available in Recommended again; the section is hidden when every preset has been added.
 

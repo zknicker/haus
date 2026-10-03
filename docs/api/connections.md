@@ -15,6 +15,7 @@ The App uses the Haus Server `mcp` tRPC router:
 - `mcp.startOAuth`
 - `mcp.refresh`
 - `mcp.replaceHeaders`
+- `mcp.replacePresetToken`
 - `mcp.disconnect`
 - `mcp.delete`
 - `mcp.setGrant`
@@ -22,6 +23,12 @@ The App uses the Haus Server `mcp` tRPC router:
 `mcp.add` accepts one HTTPS remote endpoint plus no auth, secret headers, or MCP OAuth
 configuration. Public connection reads expose header names and discovered tool names, never secret
 values. Preset creation resolves immutable Server-owned coordinates.
+
+`mcp.addPresetAccount` is a union keyed by `preset`: an OAuth preset accepts no token, and a
+bearer-token preset (`x`) requires `bearerToken`, a single header-safe token. Server stores it as an
+`Authorization: Bearer` secret header and connects immediately; the token is never returned.
+`mcp.replacePresetToken` swaps that token and clears grants; `mcp.replaceHeaders` rejects
+bearer-token presets.
 
 `mcp.startOAuth` creates Server-held PKCE and routing state. The hosted callback validates state;
 Server exchanges the code, persists tokens and client registration, and performs refresh. Computer
