@@ -13,10 +13,10 @@ import { bunJsonb } from './bun-jsonb.ts';
  * cascades away the rows and local attachment bytes. It is never cleared —
  * deletion has no restore path.
  *
- * `cloudAgentModelId` is the human-chosen Cloud Agent model; `null` is the
- * Cursor default, which sends no model and lets the provider pick.
- * `cloudAgentModelParams` holds the effort and fast choices for that model; an
- * absent key is the model's own default, and the Cursor default has none.
+ * `cloudAgentModelId` is the human-chosen Cloud Agent model; `null` is Auto,
+ * Cursor's per-run model router. `cloudAgentModelParams` holds the effort and
+ * fast choices for that model; an absent key is the model's own default, and
+ * Auto has none.
  */
 export const serversTable = pgTable(
     'servers',

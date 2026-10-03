@@ -13,19 +13,25 @@ import type { CloudAgentModelListing } from './provider.ts';
 const listings: CloudAgentModelListing[] = cursorModels;
 
 function mapped(id: string) {
-    return mapCloudAgentModelCatalog(listings).find((model) => model.id === id);
+    return mapCloudAgentModelCatalog(listings).models.find((model) => model.id === id);
 }
 
-test('Cursor order is kept and Cursor’s own Auto entry is dropped', () => {
-    const models = mapCloudAgentModelCatalog(listings);
+test('Cursor order is kept and Cursor’s own Auto entry becomes a flag, not a model', () => {
+    const { autoAvailable, models } = mapCloudAgentModelCatalog(listings);
+    expect(autoAvailable).toBe(true);
     expect(models.map((model) => model.id)).toEqual(
         listings.map((listing) => listing.id).filter((id) => id !== 'default')
     );
     expect(models.map((model) => model.order)).toEqual(models.map((_, index) => index));
     expect(
-        cloudAgentModelCatalogSchema.safeParse({ models, refreshedAt: new Date().toISOString() })
-            .success
+        cloudAgentModelCatalogSchema.safeParse({
+            autoAvailable,
+            models,
+            refreshedAt: new Date().toISOString(),
+        }).success
     ).toBe(true);
+    const withoutAuto = listings.filter((listing) => listing.id !== 'default');
+    expect(mapCloudAgentModelCatalog(withoutAuto)).toEqual({ autoAvailable: false, models });
 });
 
 test('the three effort spellings become one effort control that remembers the wire id', () => {
@@ -60,7 +66,9 @@ test('fast is an on/off choice with the default variant’s value; context and t
 });
 
 test('families come from the id and name; Codex is GPT', () => {
-    expect(mapCloudAgentModelCatalog(listings).map((model) => [model.id, model.family])).toEqual([
+    expect(
+        mapCloudAgentModelCatalog(listings).models.map((model) => [model.id, model.family])
+    ).toEqual([
         ['grok-4.7', 'grok'],
         ['composer-2.5', 'composer'],
         ['claude-opus-5-5', 'claude'],
@@ -88,7 +96,7 @@ test('labels lose zero-width characters and doubled spaces', () => {
                 },
             ],
         },
-    ]);
+    ]).models;
     expect(model).toMatchObject({
         description: 'Fast model',
         displayName: 'Grok 4.7',
@@ -120,7 +128,7 @@ test('duplicates keep the first listing, a malformed param costs only that contr
             ],
         },
         ...many,
-    ]);
+    ]).models;
     expect(models[0]?.displayName).toBe('First');
     expect(models[1]).toMatchObject({
         effort: null,

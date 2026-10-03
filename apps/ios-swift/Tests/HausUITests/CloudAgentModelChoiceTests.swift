@@ -58,15 +58,15 @@ struct CloudAgentModelChoiceTests {
         #expect(legacy.model == nil)
     }
 
-    @Test("Cursor default leads, then family sections in Cursor's order")
+    @Test("Auto leads, then family sections in Cursor's order")
     func sections() throws {
         let choice = try choice(.auto)
         #expect(choice.sections().map(\.title) == [nil, "Claude", "GPT", "Gemini", "Grok", "Composer", "Other"])
         #expect(choice.sections()[1].options.map(\.name) == ["Claude Opus 5.5", "Claude Opus 4.5"])
         #expect(choice.sections().last?.options.map(\.name) == ["Kimi K3", "GLM 5.2"])
-        #expect(choice.value == "Cursor default")
+        #expect(choice.value == "Auto")
         #expect(choice.effort == nil && choice.fastIsOn == nil)
-        #expect(choice.footer(canManage: true, now: now) == "Uses your Cursor account's default model (Auto unless you've changed it). Model list updated 2 hours ago.")
+        #expect(choice.footer(canManage: true, now: now) == "Cursor picks a model for each run. Model list updated 2 hours ago.")
     }
 
     @Test("search matches names and ids and drops empty sections")
@@ -75,7 +75,7 @@ struct CloudAgentModelChoiceTests {
         #expect(choice.sections(matching: "opus").map(\.title) == ["Claude"])
         #expect(choice.sections(matching: "  OPUS ").first?.options.count == 2)
         #expect(choice.sections(matching: "gpt-5.6").first?.options.map(\.name) == ["GPT-5.6 Sol"])
-        #expect(choice.sections(matching: "cursor").map(\.title) == [nil])
+        #expect(choice.sections(matching: "auto").map(\.title) == [nil])
         #expect(choice.sections(matching: "zzz").isEmpty)
     }
 
@@ -156,13 +156,13 @@ struct CloudAgentModelChoiceTests {
         // Tapping the unavailable row saves nothing; it would resend an unlisted id.
         let goneRow = CloudAgentModelChoice.Option(setting: .model(id: "gpt-4o", params: .modelDefaults), name: "gpt-4o", detail: nil)
         #expect(gone.setting(selecting: goneRow) == nil)
-        #expect(gone.footer(canManage: true, now: now).hasPrefix("The saved model, gpt-4o, isn't available, so runs use Cursor default until an available model is picked."))
+        #expect(gone.footer(canManage: true, now: now).hasPrefix("The saved model, gpt-4o, isn't available, so runs use Auto until an available model is picked."))
     }
 
-    @Test("without a catalog only Cursor default exists; a saved model can still be cleared")
+    @Test("without a catalog only Auto exists; a saved model can still be cleared")
     func noCatalog() {
         let empty = CloudAgentModelChoice(settings: CloudAgentSettings(model: .auto, catalog: nil, savedModelUnavailable: false))
-        #expect(empty.sections().flatMap(\.options).map(\.name) == ["Cursor default"])
+        #expect(empty.sections().flatMap(\.options).map(\.name) == ["Auto"])
         #expect(!empty.isEditable(canManage: true))
         #expect(empty.footer(canManage: true, now: now).contains("appears once a Computer connected to Cursor reports it"))
         let saved = CloudAgentModelChoice(settings: CloudAgentSettings(model: .model(id: "gpt-4o", params: .modelDefaults), catalog: nil, savedModelUnavailable: true))

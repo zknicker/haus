@@ -53,7 +53,7 @@ export interface CloudAgentStartInput {
     idempotencyKey: string;
     /** The work the provider-hosted agent performs. It never reaches Server. */
     instructions: string;
-    /** The model Server resolved for this Run; `null` sends none (Cursor default). */
+    /** The model Server resolved for this Run (`default` is Auto); `null` sends none. */
     model: CloudAgentModelSelection | null;
     ref: string | null;
     repository: string;
@@ -70,7 +70,7 @@ export interface CloudAgentLaunch {
 export interface CloudAgentSendInput {
     idempotencyKey: string;
     instructions: string;
-    /** The model Server resolved for this Run; `null` sends none (Cursor default). */
+    /** The model Server resolved for this Run (`default` is Auto); `null` sends none. */
     model: CloudAgentModelSelection | null;
     providerAgentId: string;
 }

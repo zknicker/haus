@@ -464,19 +464,21 @@ repository is usable only when the Cursor account has the required source-contro
 
 ## Model
 
-A human picks the Cloud Agent model once per Server; the default is **Cursor default**: Haus
-sends no model, and Cursor resolves the account's configured default (Auto unless the account
-changed it). Agents cannot choose
+A human picks the Cloud Agent model once per Server; the default is **Auto**, Cursor's per-run
+model router. Haus sends Auto as Cursor's catalog id `default` on every Run, so the setting means
+the same thing whatever default model the Cursor account configured (sending no model would mean
+that account default, and no SDK API reports which model it is). Agents cannot choose
 or override it: no Agent route, CLI flag, or start input carries a model.
 
 **Catalog.** Cursor is the source of truth for which models exist. The Computer that holds the
 Cursor connection reads `Cursor.models.list()`, maps it, and reports the result inside its ordinary
-inventory, on the Cloud Agent provider line: `cloudAgentProviders[].models = { models,
-refreshedAt }`, or `null` when it has none. Each model is `{ id, displayName, description, family,
+inventory, on the Cloud Agent provider line: `cloudAgentProviders[].models = { autoAvailable,
+models, refreshedAt }`, or `null` when it has none. Each model is `{ id, displayName, description, family,
 order, effort, fast }`. Cursor publishes no price or tier, so Haus carries none. The mapping
 (`apps/computer/src/cloud-agents/model-catalog-mapping.ts`):
 
-- drops Cursor's own `default` ("Auto") entry, because Haus already offers Cursor default;
+- turns Cursor's own `default` ("Auto") entry into `autoAvailable: true` instead of a model, since
+  Haus offers Auto as its own option;
 - keeps Cursor's order as `order`, the first valid listing of each id, and at most 200 models;
 - strips zero-width characters and collapses whitespace in every label;
 - derives `family` from the id and name: `claude`, `gpt` (Codex included), `gemini`, `grok`,
@@ -495,8 +497,8 @@ connection. A failed read keeps the previous catalog for the same account with i
 inventory on `computers.reported_inventory`.
 
 **Setting.** The contract is the union `{ kind: 'auto' } | { kind: 'model', id, params: { effort?,
-fast? } }`. `auto` is Cursor default. An absent param means the model's own default, so `params: {}`
-is "this model as Cursor configures it". `servers.cloud_agent_model_id` (`null` is Cursor default)
+fast? } }`. `auto` is Auto. An absent param means the model's own default, so `params: {}`
+is "this model as Cursor configures it". `servers.cloud_agent_model_id` (`null` is Auto)
 and `servers.cloud_agent_model_params` (jsonb, `{}` whenever the id is `null`) hold it. Any member
 reads it through `cloudAgentSettings.get({ serverId })`; only an Owner or Admin writes it through
 `cloudAgentSettings.setModel({ serverId, model })`, which refuses (`BAD_REQUEST`) an id that the
@@ -507,19 +509,21 @@ reported one. `savedModelUnavailable` is true when a saved model is missing from
 
 **Launch.** Server resolves the model whenever it creates a Run, for a first launch and for each
 follow-up. It sends the saved model only when the **launching Computer's** newest catalog lists it.
-Otherwise it falls back to Cursor default and sends no model. With a listed model it sends each saved
+Otherwise it falls back to Auto. Auto, chosen or fallen back to, is sent as `default` when that
+catalog has `autoAvailable`; without it (or without a catalog) Haus sends no model, the only
+option left. With a listed model it sends each saved
 param that model still offers, under the model's own `providerParamId`. A saved param it no longer
 offers (value gone, or control gone) is dropped, so that Run takes the model's default. Unset params
 are never sent. Every Run records the outcome as `model: { id, params, fallbackFrom, droppedParams }`
 (`cloud_agent_runs.model_id`, `.model_params`, `.model_fallback_from`, `.model_dropped_params`).
-`id` is the model Haus sent, or `null` for Cursor default. `params` are
+`id` is the model Haus sent: a catalog id, `default` for Auto, or `null` when it sent none. `params` are
 `[{ name: 'effort' | 'fast', providerParamId, value }]` as sent. `fallbackFrom` names the saved model
-that fell back, and `droppedParams` names the saved params that were dropped. A Run without a model
-has neither params nor drops. Runs that predate the setting read
+that fell back, so it sits only beside `default` or `null`, and `droppedParams` names the saved
+params that were dropped. A Run without a catalog model has neither params nor drops. Runs that predate the setting read
 `{ id: null, params: [], fallbackFrom: null, droppedParams: [] }`, which is accurate because Haus sent
 no model then either. Computer passes `agent.send(..., { model: { id, params: [{ id:
-providerParamId, value }] } })`, leaves out `params` when there are none, and leaves out the option
-for Cursor default. Computer protocol 26 carries the catalog and the Run model.
+providerParamId, value }] } })`, leaves out `params` when there are none (Auto sends `{ id: 'default' }`), and leaves out the
+option when the id is `null`. Computer protocol 26 carries the catalog and the Run model.
 
 ## Settings and usage
 

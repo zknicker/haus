@@ -7,13 +7,16 @@ import type {
     CloudAgentRunModel,
     CloudAgentRunModelParam,
 } from './cloud-agent-model.ts';
+import { cursorAutoModelId } from './cloud-agent-model.ts';
 
 /** Cursor spells fast mode `fast` on every model that offers it. */
 export const cursorFastParamId = 'fast';
 
 /**
  * The one fallback rule: send the saved model only when the catalog lists it;
- * otherwise send none and record which saved model fell back. A saved
+ * otherwise use Auto and record which saved model fell back. Auto is sent as
+ * Cursor's `default` id only when the catalog offers it; without that Haus
+ * sends no model, which is all it can do. A saved
  * parameter the listed model no longer offers with the saved value is dropped,
  * so that Run takes the model's default for it, and the drop is recorded.
  */
@@ -21,12 +24,13 @@ export function resolveCloudAgentRunModel(
     setting: CloudAgentModelSetting,
     catalog: CloudAgentModelCatalog | null
 ): CloudAgentRunModel {
+    const autoId = catalog?.autoAvailable ? cursorAutoModelId : null;
     if (setting.kind === 'auto') {
-        return { droppedParams: [], fallbackFrom: null, id: null, params: [] };
+        return { droppedParams: [], fallbackFrom: null, id: autoId, params: [] };
     }
     const model = findCloudAgentModel(setting.id, catalog);
     if (!model) {
-        return { droppedParams: [], fallbackFrom: setting.id, id: null, params: [] };
+        return { droppedParams: [], fallbackFrom: setting.id, id: autoId, params: [] };
     }
     const params: CloudAgentRunModelParam[] = [];
     const { effort, fast } = setting.params;

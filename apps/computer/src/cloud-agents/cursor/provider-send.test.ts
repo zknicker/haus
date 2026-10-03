@@ -18,14 +18,14 @@ test('follow-up preserves the hosted Agent and returns the new Run', async () =>
         providerUrl: 'https://cursor.com/agents?id=existing-agent',
         status: 'running',
     });
-    expect(transport.requests).toEqual(['send existing-agent follow-up-1 model=auto']);
+    expect(transport.requests).toEqual(['send existing-agent follow-up-1 model=none']);
 });
 
 test('busy follow-up preserves the SDK error and never launches a replacement', async () => {
     const busy = recordedAgentBusyError();
     const transport = createRecordedCursorTransport({ sendFailure: busy });
     await expect(createCursorCloudAgentProvider(transport).send(input)).rejects.toBe(busy);
-    expect(transport.requests).toEqual(['send existing-agent follow-up-1 model=auto']);
+    expect(transport.requests).toEqual(['send existing-agent follow-up-1 model=none']);
 });
 
 test('follow-up rejects a provider response for another Agent', async () => {

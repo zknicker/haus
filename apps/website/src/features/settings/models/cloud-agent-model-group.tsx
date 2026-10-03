@@ -122,7 +122,7 @@ function ModelDetail({ view }: { view: CloudAgentModelView }) {
     if (view.state === 'unavailable') {
         return (
             <SettingsRowWarning>
-                Unavailable. Runs use Cursor default until you pick an available model.
+                Unavailable. Runs use Auto until you pick an available model.
             </SettingsRowWarning>
         );
     }
@@ -140,7 +140,7 @@ function ModelInfo({ view }: { view: CloudAgentModelView }) {
             <Tooltip.Content>
                 {view.catalogMissing
                     ? 'Models appear once a Computer with Cursor connected reports them.'
-                    : "Every Cloud Agent on this Server uses this model. Cursor default uses your Cursor account's default model (Auto unless you've changed it)."}
+                    : 'Every Cloud Agent on this Server uses this model. With Auto, Cursor picks a model for each run.'}
             </Tooltip.Content>
         </Tooltip>
     );

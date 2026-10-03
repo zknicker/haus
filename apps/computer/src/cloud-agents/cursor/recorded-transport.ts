@@ -175,7 +175,7 @@ export const recordedModels: CursorModelListing[] = [
 /** A start or send's model as the recorded request log spells it. */
 function modelLabel(model: CursorStartInput['model']): string {
     if (!model) {
-        return 'auto';
+        return 'none';
     }
     return [model.id, ...model.params.map((param) => `${param.id}:${param.value}`)].join(',');
 }

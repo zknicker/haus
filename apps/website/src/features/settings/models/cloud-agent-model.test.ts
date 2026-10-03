@@ -3,6 +3,7 @@ import type { CloudAgentModelCatalog, CloudAgentModelFamily } from '@haus/api';
 import { autoModelKey, cloudAgentModelView, modelSettingForKey } from './cloud-agent-model.ts';
 
 const catalog: CloudAgentModelCatalog = {
+    autoAvailable: true,
     models: [
         {
             description: 'Fast and capable',
@@ -26,7 +27,7 @@ const catalog: CloudAgentModelCatalog = {
     refreshedAt: '2026-10-02T12:00:00.000Z',
 };
 
-test('Cursor default is the first option and selected by default', () => {
+test('Auto is the first option and selected by default', () => {
     const view = cloudAgentModelView({
         catalog,
         model: { kind: 'auto' },
@@ -35,12 +36,9 @@ test('Cursor default is the first option and selected by default', () => {
 
     expect(view.state).toBe('auto');
     expect(view.selectedKey).toBe(autoModelKey);
-    expect(view.selectedLabel).toBe('Cursor default');
-    expect(view.options.map((option) => option.label)).toEqual([
-        'Cursor default',
-        'GPT-5.6',
-        'Composer 2',
-    ]);
+    expect(view.selectedLabel).toBe('Auto');
+    expect(view.options[0]?.description).toBe('Cursor picks a model for each run.');
+    expect(view.options.map((option) => option.label)).toEqual(['Auto', 'GPT-5.6', 'Composer 2']);
     expect(view.params).toBeNull();
     expect(view.pickable).toBe(true);
     expect(view.catalogMissing).toBe(false);
@@ -85,7 +83,7 @@ test('an unlisted saved model shows by raw id and cannot be picked again', () =>
     });
 });
 
-test('without a catalog only Cursor default exists, so the picker has nothing to offer', () => {
+test('without a catalog only Auto exists, so the picker has nothing to offer', () => {
     const view = cloudAgentModelView({
         catalog: null,
         model: { kind: 'auto' },
@@ -98,7 +96,7 @@ test('without a catalog only Cursor default exists, so the picker has nothing to
     expect(view.options.map((option) => option.id)).toEqual([autoModelKey]);
 });
 
-test('a saved model with no catalog can still be switched back to Cursor default', () => {
+test('a saved model with no catalog can still be switched back to Auto', () => {
     const view = cloudAgentModelView({
         catalog: null,
         model: { id: 'composer-2', kind: 'model', params: {} },
@@ -133,6 +131,7 @@ test('sections follow family order, Cursor order within a family, GLM and Kimi u
     });
     const view = cloudAgentModelView({
         catalog: {
+            autoAvailable: true,
             models: [
                 model('grok-4', 'grok', 0),
                 model('opus-5', 'claude', 3),

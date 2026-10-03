@@ -1,31 +1,33 @@
 import {
     type CloudAgentModel,
+    type CloudAgentModelCatalog,
     type CloudAgentModelEffort,
     type CloudAgentModelFamily,
     cloudAgentModelSchema,
     cloudAgentModelsListed,
+    cursorAutoModelId,
     cursorFastParamId,
 } from '@haus/api';
 import type { CloudAgentModelListing, CloudAgentModelParamValue } from './provider.ts';
-
-/** Cursor's own "Auto" entry, which Haus already offers as the Cursor default. */
-const cursorDefaultModelId = 'default';
 
 /** Cursor spells one effort control three ways; the first one a model lists wins. */
 const effortParamIds = new Set(['effort', 'reasoning', 'reasoning_effort']);
 
 /**
  * Maps Cursor's catalog to Haus's. Keeps Cursor's order and the first valid
- * listing of each id, drops Cursor's own Auto entry, cleans labels, derives a
- * family, and keeps only the effort and fast parameters with the default
- * variant's value for each. Context, thinking, and every other parameter keep
- * Cursor's defaults, so Haus never sends them.
+ * listing of each id, turns Cursor's own Auto entry into `autoAvailable`
+ * rather than a model, cleans labels, derives a family, and keeps only the
+ * effort and fast parameters with the default variant's value for each.
+ * Context, thinking, and every other parameter keep Cursor's defaults, so Haus
+ * never sends them.
  */
-export function mapCloudAgentModelCatalog(listings: CloudAgentModelListing[]): CloudAgentModel[] {
+export function mapCloudAgentModelCatalog(
+    listings: CloudAgentModelListing[]
+): Omit<CloudAgentModelCatalog, 'refreshedAt'> {
     const seen = new Set<string>();
     const models: CloudAgentModel[] = [];
     for (const listing of listings) {
-        if (listing.id === cursorDefaultModelId || seen.has(listing.id)) {
+        if (listing.id === cursorAutoModelId || seen.has(listing.id)) {
             continue;
         }
         const model = modelOf(listing, models.length);
@@ -47,7 +49,10 @@ export function mapCloudAgentModelCatalog(listings: CloudAgentModelListing[]): C
             break;
         }
     }
-    return models;
+    return {
+        autoAvailable: listings.some((listing) => listing.id === cursorAutoModelId),
+        models,
+    };
 }
 
 /** Strips zero-width characters and collapses the doubled spaces Cursor's labels carry. */

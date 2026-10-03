@@ -1,7 +1,7 @@
 import SwiftUI
 import HausModels
 
-/// The Server-wide Cloud Agent model. Owners and Admins pick from Cursor default plus
+/// The Server-wide Cloud Agent model. Owners and Admins pick from Auto plus
 /// the catalog Cursor reported, then the Effort and Fast the chosen model offers;
 /// everyone else reads the current values. Every edit saves immediately.
 struct CloudAgentModelSection: View {
@@ -39,7 +39,7 @@ struct CloudAgentModelSection: View {
                     valueRow("Model", value: choice.value)
                 }
             } else {
-                // A manager without a catalog sees the row disabled at Cursor default.
+                // A manager without a catalog sees the row disabled at Auto.
                 valueRow("Model", value: choice.value)
                     .disabled(canManage)
                     .foregroundStyle(canManage ? .secondary : .primary)

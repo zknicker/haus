@@ -14,8 +14,8 @@ public struct CloudAgentModelParams: Codable, Hashable, Sendable {
     public static let modelDefaults = Self()
 }
 
-/// The human-chosen Cloud Agent model for one Server. `auto` sends no model and
-/// lets Cursor pick; `model` names one id from Cursor's catalog and its params.
+/// The human-chosen Cloud Agent model for one Server. `auto` is Cursor's Auto,
+/// which picks a model for each run; `model` names one id from Cursor's catalog and its params.
 public enum CloudAgentModelSetting: Hashable, Sendable {
     case auto
     case model(id: String, params: CloudAgentModelParams)
@@ -167,7 +167,8 @@ public struct CloudAgentSettings: Codable, Hashable, Sendable {
     }
 }
 
-/// The model one Run asked Cursor for. `id` nil means Cursor default; `params`
+/// The model one Run asked Cursor for. `id` is a catalog model, `default` for
+/// Auto, or nil when none was sent (the catalog lacked Auto); `params`
 /// are what was sent with it; `fallbackFrom` names a saved model the launching
 /// Computer's catalog did not list; `droppedParams` names saved params the
 /// model no longer offered, so the Run took its default.

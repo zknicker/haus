@@ -102,7 +102,7 @@ test('the Computer inventory reports Cursor readiness truthfully', async () => {
     expect((await detectFullInventory()).cloudAgentProviders).toEqual([
         {
             models: {
-                models: mapCloudAgentModelCatalog(recordedModels),
+                ...mapCloudAgentModelCatalog(recordedModels),
                 refreshedAt: expect.any(String),
             },
             provider: 'cursor',

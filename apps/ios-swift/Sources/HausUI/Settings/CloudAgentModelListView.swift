@@ -1,7 +1,7 @@
 import SwiftUI
 import HausModels
 
-/// The pushed Model list: Cursor default, then one section per family in
+/// The pushed Model list: Auto, then one section per family in
 /// Cursor's order, searchable by name or id. Picking a row saves and returns.
 struct CloudAgentModelListView: View {
     let choice: CloudAgentModelChoice
@@ -29,7 +29,7 @@ struct CloudAgentModelListView: View {
                 } header: {
                     Text("Unavailable")
                 } footer: {
-                    Text("Cursor no longer lists this model, so runs use Cursor default.")
+                    Text("Cursor no longer lists this model, so runs use Auto.")
                 }
             }
         }

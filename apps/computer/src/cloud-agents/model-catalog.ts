@@ -46,7 +46,7 @@ export async function readCloudAgentModelCatalog(
     }
     try {
         const catalog = {
-            models: mapCloudAgentModelCatalog(await provider.listModels()),
+            ...mapCloudAgentModelCatalog(await provider.listModels()),
             refreshedAt: at.toISOString(),
         };
         cache.set(provider, { account, catalog, generation });

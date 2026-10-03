@@ -10,7 +10,7 @@ import { memberProcedure } from '../server/procedure.ts';
 import { emitServerUpdated } from '../server-events.ts';
 
 /**
- * An Owner or Admin saves the Server's Cloud Agent model: the Cursor default, or one
+ * An Owner or Admin saves the Server's Cloud Agent model: Auto, or one
  * listed model with offered effort and fast choices.
  */
 export const setCloudAgentModelProcedure = memberProcedure

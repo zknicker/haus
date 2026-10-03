@@ -69,9 +69,10 @@ human assignee.
 provider access, the provider and its agent id and URL, the title, repository, and starting ref,
 the lifecycle status with its started and terminal timestamps, the bounded one-line `activity`, and
 the cancel request with exactly one of the requesting human or Agent. `cloud_agent_runs` holds one
-row per provider Run — normalized and raw status, timestamps, the model it requested (`model_id`
-with the `model_params` sent and any `model_dropped_params`, or `model_fallback_from` when the
-Server's saved model was unlisted and the Run fell back to Cursor default; never both), bounded
+row per provider Run — normalized and raw status, timestamps, the model it requested (`model_id`,
+`default` for Auto or `null` when none was sent, with the `model_params` sent and any
+`model_dropped_params`; `model_fallback_from` when the Server's saved model was unlisted and the
+Run fell back to Auto, never beside a catalog model), bounded
 summary, error code, reported
 branches with their optional pull-request URLs and the Computer's optional dated GitHub snapshot of
 each (number, state, changed files, additions, deletions), optional token and cost usage, and the
@@ -83,7 +84,7 @@ tenant. Lifecycle changes append `cloud-agent-work.updated` to the `chat_events`
 the nullable `cloud_agent_work_id` column. Provider prompts, credentials, transcripts, and
 workspace files never reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
 Agent, in the same transaction that settles it. `servers.cloud_agent_model_id` is the Server's
-human-chosen Cloud Agent model (`null` is Cursor default) and `servers.cloud_agent_model_params` its
+human-chosen Cloud Agent model (`null` is Auto) and `servers.cloud_agent_model_params` its
 effort and fast choices; the Cursor catalog it is checked against lives in
 each Computer's `reported_inventory`.
 

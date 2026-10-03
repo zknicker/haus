@@ -102,8 +102,8 @@ export async function setCloudAgentModel(
 
 /**
  * The model a new Run asks the provider for: the Server's saved choice when the
- * launching Computer's newest catalog lists it, otherwise no model (Cursor
- * default) with the saved id recorded as the fallback. Saved params that model
+ * launching Computer's newest catalog lists it, otherwise Auto with the saved id
+ * recorded as the fallback. Saved params that model
  * no longer offers are dropped and recorded.
  */
 export async function resolveRunModel(

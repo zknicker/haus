@@ -138,9 +138,12 @@ export const cloudAgentRunsTable = pgTable(
             .notNull()
             .$type<CloudAgentModelParamName[]>()
             .default([]),
-        /** The saved model this Run could not send, so it fell back to the Cursor default. */
+        /** The saved model this Run could not send, so it fell back to Auto. */
         modelFallbackFrom: text('model_fallback_from'),
-        /** The model sent to the provider; `null` sent none, so the provider's default chose. */
+        /**
+         * The model sent to the provider: a catalog id, `default` for Auto, or
+         * `null` when none was sent, so the account's default model chose.
+         */
         modelId: text('model_id'),
         /** The params sent with `modelId`; an unsent one took the model's default. */
         modelParams: bunJsonb('model_params')
@@ -171,11 +174,11 @@ export const cloudAgentRunsTable = pgTable(
         check('cloud_agent_runs_status', sql.raw(`"cloud_agent_runs"."status" in ${statuses}`)),
         check(
             'cloud_agent_runs_model_shape',
-            sql`num_nonnulls(${table.modelId}, ${table.modelFallbackFrom}) <= 1`
+            sql`${table.modelFallbackFrom} is null or coalesce(${table.modelId}, 'default') = 'default'`
         ),
         check(
             'cloud_agent_runs_model_params_shape',
-            sql`jsonb_typeof(${table.modelParams}) = 'array' and jsonb_typeof(${table.modelDroppedParams}) = 'array' and (${table.modelId} is not null or (${table.modelParams} = '[]'::jsonb and ${table.modelDroppedParams} = '[]'::jsonb))`
+            sql`jsonb_typeof(${table.modelParams}) = 'array' and jsonb_typeof(${table.modelDroppedParams}) = 'array' and (coalesce(${table.modelId}, 'default') <> 'default' or (${table.modelParams} = '[]'::jsonb and ${table.modelDroppedParams} = '[]'::jsonb))`
         ),
         check(
             'cloud_agent_runs_terminal_shape',

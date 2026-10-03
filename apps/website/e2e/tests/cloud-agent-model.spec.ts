@@ -67,8 +67,8 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     const effort = group.getByRole('button', { name: /Cloud Agent effort$/u });
     const fast = group.getByRole('switch', { name: 'Cloud Agent fast mode' });
 
-    // No Computer has reported a catalog yet: Cursor default is all there is.
-    await expect(picker).toContainText('Cursor default');
+    // No Computer has reported a catalog yet: Auto is all there is.
+    await expect(picker).toContainText('Auto');
     await expect(pickerButton).toBeDisabled();
     await expect(effort).toHaveCount(0);
 
@@ -80,7 +80,7 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     const listbox = page.getByRole('listbox');
     // Family sections in product order, whatever Cursor's order across families.
     await expect(listbox.getByRole('option')).toHaveText([
-        'Cursor default',
+        /Auto\s*Cursor picks a model for each run\./u,
         'Claude Opus 5.5',
         'GPT-5.6',
         /Composer 2\s*Fast agentic coding/u,
@@ -117,10 +117,10 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     await expect(effort).toHaveCount(0);
     await expect(fast).toHaveCount(0);
 
-    // Cursor stops listing the saved model: it reads as unavailable, and runs use Cursor default.
+    // Cursor stops listing the saved model: it reads as unavailable, and runs use Auto.
     sendCatalog(computer, [gpt, opus]);
     const warning = group.getByText(
-        'Unavailable. Runs use Cursor default until you pick an available model.'
+        'Unavailable. Runs use Auto until you pick an available model.'
     );
     await expect(warning).toBeVisible();
     await expect(picker).toContainText('composer-2');
@@ -162,7 +162,11 @@ function sendCatalog(socket: WebSocket, models: CloudAgentModel[]) {
             inventory: {
                 cloudAgentProviders: [
                     {
-                        models: { models, refreshedAt: new Date().toISOString() },
+                        models: {
+                            autoAvailable: true,
+                            models,
+                            refreshedAt: new Date().toISOString(),
+                        },
                         provider: 'cursor',
                         ready: true,
                         reason: null,

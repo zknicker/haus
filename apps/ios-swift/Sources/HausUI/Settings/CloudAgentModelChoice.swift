@@ -15,7 +15,7 @@ public struct CloudAgentModelChoice: Equatable, Sendable {
     }
 
     public struct OptionSection: Identifiable, Hashable, Sendable {
-        /// Nil for the leading Cursor default section.
+        /// Nil for the leading Auto section.
         public let title: String?
         public let options: [Option]
 
@@ -33,9 +33,9 @@ public struct CloudAgentModelChoice: Equatable, Sendable {
         public let selection: String?
     }
 
-    /// Haus sends no model, so Cursor resolves the account's configured default.
-    static let cursorDefaultName = "Cursor default"
-    static let cursorDefaultDetail = "Uses your Cursor account's default model (Auto unless you've changed it)"
+    /// Cursor's own Auto router, which Server sends as Cursor's `default` id.
+    static let autoName = "Auto"
+    static let autoDetail = "Cursor picks a model for each run"
     /// List sections in display order; GLM, Kimi, and unknown families share Other.
     static let familySections: [(title: String, families: Set<CloudAgentModelFamily>)] = [
         ("Claude", [.claude]),
@@ -54,7 +54,7 @@ public struct CloudAgentModelChoice: Equatable, Sendable {
 
     // MARK: Model list
 
-    /// Cursor default alone first, then one section per family in Cursor's order.
+    /// Auto alone first, then one section per family in Cursor's order.
     /// A query matches a model's name or id, ignoring case and diacritics.
     public func sections(matching query: String = "") -> [OptionSection] {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -62,8 +62,8 @@ public struct CloudAgentModelChoice: Equatable, Sendable {
             query.isEmpty || text.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil
         }
         var sections: [OptionSection] = []
-        if matches(Self.cursorDefaultName) {
-            let auto = Option(setting: .auto, name: Self.cursorDefaultName, detail: Self.cursorDefaultDetail)
+        if matches(Self.autoName) {
+            let auto = Option(setting: .auto, name: Self.autoName, detail: Self.autoDetail)
             sections.append(OptionSection(title: nil, options: [auto]))
         }
         let models = (settings.catalog?.models ?? [])
@@ -104,11 +104,11 @@ public struct CloudAgentModelChoice: Equatable, Sendable {
 
     public var value: String {
         if unavailableModelID != nil { return "Unavailable" }
-        guard let id = settings.model.modelID else { return Self.cursorDefaultName }
+        guard let id = settings.model.modelID else { return Self.autoName }
         return selectedModel?.displayName ?? id
     }
 
-    /// Without a catalog only Cursor default exists, so the list opens only to clear a
+    /// Without a catalog only Auto exists, so the list opens only to clear a
     /// saved model that is no longer available.
     public func isEditable(canManage: Bool) -> Bool {
         canManage && (settings.catalog != nil || settings.model != .auto)
@@ -161,9 +161,9 @@ public struct CloudAgentModelChoice: Equatable, Sendable {
     public func footer(canManage: Bool, now: Date = Date()) -> String {
         var sentences: [String] = []
         if let unavailableModelID {
-            sentences.append("The saved model, \(unavailableModelID), isn't available, so runs use Cursor default until an available model is picked.")
+            sentences.append("The saved model, \(unavailableModelID), isn't available, so runs use Auto until an available model is picked.")
         } else if settings.model == .auto {
-            sentences.append("\(Self.cursorDefaultDetail).")
+            sentences.append("\(Self.autoDetail).")
         } else {
             sentences.append("New cloud agent runs use this model.")
             if !droppedParamNames.isEmpty {

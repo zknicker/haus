@@ -46,6 +46,7 @@ test('the catalog is read once per account per day, then re-read when stale or e
 
     const first = await readCloudAgentModelCatalog(provider, readiness, () => start);
     expect(first).toEqual({
+        autoAvailable: false,
         models: [
             mappedNano,
             {

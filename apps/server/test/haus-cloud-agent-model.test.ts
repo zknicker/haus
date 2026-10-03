@@ -35,6 +35,7 @@ const opus = {
     order: 1,
 };
 const noModel = { droppedParams: [], fallbackFrom: null, id: null, params: [] };
+const auto = { ...noModel, id: 'default' };
 
 async function reportCatalog(catalog: CloudAgentModelCatalog | null) {
     const inventory = {
@@ -62,7 +63,11 @@ test('a Server starts on Auto with no catalog until a Computer reports one', asy
         savedModelUnavailable: false,
     });
 
-    await reportCatalog({ models: [nano, opus], refreshedAt: '2026-10-02T12:00:00.000Z' });
+    await reportCatalog({
+        autoAvailable: true,
+        models: [nano, opus],
+        refreshedAt: '2026-10-02T12:00:00.000Z',
+    });
     expect(
         await fixture.peer.trpc.cloudAgentSettings.get.query({ serverId: fixture.serverId })
     ).toMatchObject({ catalog: { models: [nano, opus] }, model: { kind: 'auto' } });
@@ -77,7 +82,11 @@ test('a Server starts on Auto with no catalog until a Computer reports one', asy
 });
 
 test('only an Owner or Admin saves a model, and only one the catalog lists with offered params', async () => {
-    await reportCatalog({ models: [nano, opus], refreshedAt: '2026-10-02T12:00:00.000Z' });
+    await reportCatalog({
+        autoAvailable: true,
+        models: [nano, opus],
+        refreshedAt: '2026-10-02T12:00:00.000Z',
+    });
     const model = { id: nano.id, kind: 'model' as const, params: { effort: 'low', fast: false } };
     await expect(
         fixture.peer.trpc.cloudAgentSettings.setModel.mutate({ model, serverId: fixture.serverId })
@@ -103,7 +112,7 @@ test('only an Owner or Admin saves a model, and only one the catalog lists with 
             serverId: fixture.serverId,
         })
     ).toMatchObject({ model, savedModelUnavailable: false });
-    // A model saved without params keeps the model defaults; Cursor default clears them.
+    // A model saved without params keeps the model defaults; Auto clears them.
     expect(
         await fixture.owner.trpc.cloudAgentSettings.setModel.mutate({
             model: { id: opus.id, kind: 'model', params: {} },
@@ -120,8 +129,12 @@ test('only an Owner or Admin saves a model, and only one the catalog lists with 
     expect(server).toEqual({ cloud_agent_model_id: null, cloud_agent_model_params: {} });
 });
 
-test('every Run records the model and params it asked for, falling back when the catalog drops them', async () => {
-    await reportCatalog({ models: [nano, opus], refreshedAt: '2026-10-02T12:00:00.000Z' });
+test('every Run records the model and params it asked for, falling back to Auto when the catalog drops them', async () => {
+    await reportCatalog({
+        autoAvailable: true,
+        models: [nano, opus],
+        refreshedAt: '2026-10-02T12:00:00.000Z',
+    });
     await fixture.owner.trpc.cloudAgentSettings.setModel.mutate({
         model: { id: nano.id, kind: 'model', params: { effort: 'high', fast: false } },
         serverId: fixture.serverId,
@@ -144,7 +157,11 @@ test('every Run records the model and params it asked for, falling back when the
         effort: { ...nano.effort, options: nano.effort.options.slice(0, 2) },
         fast: null,
     };
-    await reportCatalog({ models: [narrowed, opus], refreshedAt: '2026-10-02T13:00:00.000Z' });
+    await reportCatalog({
+        autoAvailable: true,
+        models: [narrowed, opus],
+        refreshedAt: '2026-10-02T13:00:00.000Z',
+    });
     const dropped = await startWork('model-dropped-params');
     expect(dropped.receipt.work.runs[0]?.model).toEqual({
         droppedParams: ['effort', 'fast'],
@@ -153,7 +170,11 @@ test('every Run records the model and params it asked for, falling back when the
         params: [],
     });
 
-    await reportCatalog({ models: [opus], refreshedAt: '2026-10-03T12:00:00.000Z' });
+    await reportCatalog({
+        autoAvailable: true,
+        models: [opus],
+        refreshedAt: '2026-10-03T12:00:00.000Z',
+    });
     expect(
         await fixture.owner.trpc.cloudAgentSettings.get.query({ serverId: fixture.serverId })
     ).toMatchObject({ model: { id: nano.id, kind: 'model' }, savedModelUnavailable: true });
@@ -172,7 +193,7 @@ test('every Run records the model and params it asked for, falling back when the
     });
     const sent = agentCloudAgentSendReceiptSchema.parse(await followUp.json());
     expect(sent.work.runs.find((run) => run.runId === sent.runId)?.model).toEqual({
-        ...noModel,
+        ...auto,
         fallbackFrom: nano.id,
     });
     expect(sent.work.runs.find((run) => run.runId === chosen.receipt.runId)?.model).toEqual(
@@ -187,14 +208,34 @@ test('every Run records the model and params it asked for, falling back when the
         model: { kind: 'auto' },
         serverId: fixture.serverId,
     });
-    const auto = await startWork('model-auto');
-    expect(auto.receipt.work.runs[0]?.model).toEqual(noModel);
+    const autoWithoutCatalog = await startWork('model-auto-no-catalog');
+    expect(autoWithoutCatalog.receipt.work.runs[0]?.model).toEqual(noModel);
+
+    // Auto is sent as Cursor's own `default` id whenever the launching catalog offers it.
+    await reportCatalog({
+        autoAvailable: true,
+        models: [opus],
+        refreshedAt: '2026-10-03T14:00:00.000Z',
+    });
+    const autoSent = await startWork('model-auto');
+    expect(autoSent.receipt.work.runs[0]?.model).toEqual(auto);
+    await reportCatalog({
+        autoAvailable: false,
+        models: [opus],
+        refreshedAt: '2026-10-03T15:00:00.000Z',
+    });
+    const autoUnoffered = await startWork('model-auto-unoffered');
+    expect(autoUnoffered.receipt.work.runs[0]?.model).toEqual(noModel);
 });
 
 test('a Computer report carries the Cursor catalog to Server settings', async () => {
     const socket = await fixture.attachComputer();
     try {
-        const catalog = { models: [opus], refreshedAt: '2026-10-04T12:00:00.000Z' };
+        const catalog = {
+            autoAvailable: true,
+            models: [opus],
+            refreshedAt: '2026-10-04T12:00:00.000Z',
+        };
         socket.send(
             JSON.stringify({
                 agents: [],

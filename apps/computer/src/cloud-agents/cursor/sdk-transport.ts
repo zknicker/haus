@@ -168,7 +168,7 @@ async function sendWithHandle(
     input: Pick<CursorSendInput, 'instructions' | 'idempotencyKey' | 'model'>
 ): Promise<CursorLaunchReading> {
     try {
-        // No model means Cursor's own default; Haus never sends a placeholder id.
+        // Server resolves the id, `default` (Auto) included; `null` sends no model.
         // Unsent params take the model's default variant.
         const run = await agent.send(input.instructions, {
             idempotencyKey: input.idempotencyKey,

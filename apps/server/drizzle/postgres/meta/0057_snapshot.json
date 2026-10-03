@@ -4714,11 +4714,11 @@
         },
         "cloud_agent_runs_model_shape": {
           "name": "cloud_agent_runs_model_shape",
-          "value": "num_nonnulls(\"cloud_agent_runs\".\"model_id\", \"cloud_agent_runs\".\"model_fallback_from\") <= 1"
+          "value": "\"cloud_agent_runs\".\"model_fallback_from\" is null or coalesce(\"cloud_agent_runs\".\"model_id\", 'default') = 'default'"
         },
         "cloud_agent_runs_model_params_shape": {
           "name": "cloud_agent_runs_model_params_shape",
-          "value": "jsonb_typeof(\"cloud_agent_runs\".\"model_params\") = 'array' and jsonb_typeof(\"cloud_agent_runs\".\"model_dropped_params\") = 'array' and (\"cloud_agent_runs\".\"model_id\" is not null or (\"cloud_agent_runs\".\"model_params\" = '[]'::jsonb and \"cloud_agent_runs\".\"model_dropped_params\" = '[]'::jsonb))"
+          "value": "jsonb_typeof(\"cloud_agent_runs\".\"model_params\") = 'array' and jsonb_typeof(\"cloud_agent_runs\".\"model_dropped_params\") = 'array' and (coalesce(\"cloud_agent_runs\".\"model_id\", 'default') <> 'default' or (\"cloud_agent_runs\".\"model_params\" = '[]'::jsonb and \"cloud_agent_runs\".\"model_dropped_params\" = '[]'::jsonb))"
         },
         "cloud_agent_runs_terminal_shape": {
           "name": "cloud_agent_runs_terminal_shape",

@@ -274,10 +274,15 @@ test('a replayed rejection settles the same work without another provider launch
     expect(observations.map((entry) => entry.status)).toEqual(['failed', 'failed']);
 });
 
-test('a launch sends the model and params Server resolved onto the Run', async () => {
+const effort = { name: 'effort' as const, providerParamId: 'reasoning', value: 'low' };
+const resolved = { droppedParams: [], fallbackFrom: null, id: 'gpt-5.4-nano', params: [effort] };
+const autoFallback = { droppedParams: [], fallbackFrom: 'retired', id: 'default', params: [] };
+
+test.each([
+    [resolved, { id: 'gpt-5.4-nano', params: [{ id: 'reasoning', value: 'low' }] }],
+    [autoFallback, { id: 'default', params: [] }],
+])('a launch sends the model and params Server resolved onto the Run', async (model, sent) => {
     const provider = install(createFakeCloudAgentProvider());
-    const effort = { name: 'effort' as const, providerParamId: 'reasoning', value: 'low' };
-    const model = { droppedParams: [], fallbackFrom: null, id: 'gpt-5.4-nano', params: [effort] };
     const run = { branches: [], errorCode: null, model, providerRunId: null, rawStatus: null };
     const settled = { startedAt: null, summary: null, terminalAt: null, usage: null };
     const runs = [{ ...run, ...settled, runId, status: 'queued' }];
@@ -290,8 +295,5 @@ test('a launch sends the model and params Server resolved onto the Run', async (
         serverId,
         serverOrigin,
     });
-    expect(provider.launches[0]?.model).toEqual({
-        id: 'gpt-5.4-nano',
-        params: [{ id: 'reasoning', value: 'low' }],
-    });
+    expect(provider.launches[0]?.model).toEqual(sent);
 });

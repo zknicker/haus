@@ -323,21 +323,22 @@ Cloud Agent provider access is a Computer capability with its own credential sto
 the Cursor runtime harness even when both belong to one Cursor account. Each Computer reports it in
 its inventory as `cloudAgentProviders: [{ provider, ready, reason, models }]`, where an unready reason is
 `not-connected`, `expired`, or `provider-unavailable`. `models` is the provider's model catalog for
-the connected account, `{ models: [{ id, displayName, description, family, order, effort, fast }],
-refreshedAt }`, or `null`
+the connected account, `{ autoAvailable, models: [{ id, displayName, description, family, order,
+effort, fast }], refreshedAt }`, or `null`; `autoAvailable` says Cursor listed its Auto entry
 (see [Cloud Agents → Model](../../specs/cloud-agents.md#model)).
 
 `cloudAgentSettings.get({ serverId })` answers any member with
-`{ model, catalog, savedModelUnavailable }`. `model` is `{ kind: "auto" }`, shown as Cursor default
-(Haus sends no model, so Cursor uses the account's default), or
+`{ model, catalog, savedModelUnavailable }`. `model` is `{ kind: "auto" }`, shown as Auto
+(Haus sends Cursor's `default` id, so Cursor picks a model for each Run), or
 `{ kind: "model", id, params: { effort?, fast? } }`, where an absent param is the model's default.
 `catalog` is the freshest catalog any of the Server's Computers reported (or `null`).
 `cloudAgentSettings.setModel({ serverId, model })` is Owner/Admin only (`FORBIDDEN` otherwise),
 refuses an unlisted id or a param value that model does not offer with `BAD_REQUEST`, returns the
 same shape, and emits a `server` scope update. Each Run in `cloudAgentWork` carries
-`model: { id, params, fallbackFrom, droppedParams }`: the model id sent to the provider (or `null`
-when Haus sent none), the params sent with it (`[{ name, providerParamId, value }]`), the saved model
-that fell back to Cursor default when the launching Computer's catalog did not list it, and the
+`model: { id, params, fallbackFrom, droppedParams }`: the model id sent to the provider (`default`
+for Auto, or `null` when the launching Computer's catalog lacked Auto and Haus sent none), the params
+sent with a catalog model (`[{ name, providerParamId, value }]`), the saved model that fell back to
+Auto when the launching Computer's catalog did not list it, and the
 saved params dropped because that model no longer offered them.
 
 `cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect` take

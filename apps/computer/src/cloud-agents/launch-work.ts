@@ -139,7 +139,7 @@ export async function startCloudAgentWork(input: {
         launch = await provider.start({
             idempotencyKey: receipt.runId,
             instructions,
-            // Server resolved the Server's chosen model, or its default fallback, onto the Run.
+            // Server resolved the Server's chosen model, or its Auto fallback, onto the Run.
             model: cloudAgentModelSelectionOf(run?.model),
             ref: receipt.work.startingRef,
             repository: receipt.work.repository,

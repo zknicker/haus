@@ -15,7 +15,7 @@ const recordSchema = z.discriminatedUnion('phase', [
         phase: z.literal('pending'),
         workId: z.string(),
         instructions: z.string().min(1),
-        /** Absent in records written before Server resolved a model: Cursor default. */
+        /** Absent in records written before Server resolved a model: no model sent. */
         model: z
             .object({
                 id: z.string().min(1),

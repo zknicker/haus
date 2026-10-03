@@ -32,11 +32,21 @@ const composer = {
     id: 'composer-2.5',
     order: 1,
 };
-const catalog = { models: [nano, composer], refreshedAt: '2026-10-02T12:00:00.000Z' };
+const catalog = {
+    autoAvailable: true,
+    models: [nano, composer],
+    refreshedAt: '2026-10-02T12:00:00.000Z',
+};
+const noAutoCatalog = { ...catalog, autoAvailable: false };
 const none = { droppedParams: [], fallbackFrom: null, id: null, params: [] };
+const auto = { ...none, id: 'default' };
 
-test('Auto sends no model and never records a fallback', () => {
-    expect(resolveCloudAgentRunModel({ kind: 'auto' }, catalog)).toEqual(none);
+test("Auto sends Cursor's default id whenever the catalog offers it, and never falls back", () => {
+    expect(resolveCloudAgentRunModel({ kind: 'auto' }, catalog)).toEqual(auto);
+});
+
+test('Auto sends no model when the catalog lacks Auto or there is no catalog', () => {
+    expect(resolveCloudAgentRunModel({ kind: 'auto' }, noAutoCatalog)).toEqual(none);
     expect(resolveCloudAgentRunModel({ kind: 'auto' }, null)).toEqual(none);
 });
 
@@ -80,9 +90,13 @@ test('a saved parameter the model no longer offers is dropped and recorded', () 
     });
 });
 
-test('an unlisted saved model or a missing catalog falls back to the Cursor default and says so', () => {
+test('an unlisted saved model or a missing catalog falls back to Auto and says so', () => {
     const retired = { id: 'retired-model', kind: 'model' as const, params: { effort: 'low' } };
     expect(resolveCloudAgentRunModel(retired, catalog)).toEqual({
+        ...auto,
+        fallbackFrom: 'retired-model',
+    });
+    expect(resolveCloudAgentRunModel(retired, noAutoCatalog)).toEqual({
         ...none,
         fallbackFrom: 'retired-model',
     });
@@ -114,9 +128,16 @@ test('the setting is a narrow union; an empty params object means the model defa
     ).toBe(false);
 });
 
-test('a Run cannot both send and fall back, nor carry parameters without a model', () => {
+test('a Run cannot both send a catalog model and fall back, nor carry parameters without one', () => {
     expect(
         cloudAgentRunModelSchema.safeParse({ ...none, fallbackFrom: 'a', id: 'b' }).success
+    ).toBe(false);
+    expect(cloudAgentRunModelSchema.safeParse({ ...auto, fallbackFrom: 'a' }).success).toBe(true);
+    expect(
+        cloudAgentRunModelSchema.safeParse({
+            ...auto,
+            params: [{ name: 'fast', providerParamId: 'fast', value: 'true' }],
+        }).success
     ).toBe(false);
     expect(
         cloudAgentRunModelSchema.safeParse({
@@ -135,6 +156,8 @@ test('a catalog effort default must be one of its options', () => {
         false
     );
     expect(cloudAgentModelCatalogSchema.safeParse(catalog).success).toBe(true);
+    const { autoAvailable: _, ...withoutAutoFlag } = catalog;
+    expect(cloudAgentModelCatalogSchema.safeParse(withoutAutoFlag).success).toBe(false);
 });
 
 test('an inventory stored before catalogs reads as no catalog', () => {

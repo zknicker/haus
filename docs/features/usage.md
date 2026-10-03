@@ -52,8 +52,8 @@ while you read it.
   Cursor CLI and the Cursor SDK use different credential stores even for one account.
 
 * **Cloud Agent model.** Settings → Models carries a Server-wide **Model** row under **Cloud
-  Agents**. Owners and Admins pick **Cursor default** (the default, which uses the Cursor account's
-  default model: Auto unless the account changed it) or a model from Cursor's catalog, as the
+  Agents**. Owners and Admins pick **Auto** (the default: Cursor picks a model for each run, whatever
+  the account's own default model is) or a model from Cursor's catalog, as the
   freshest Computer report lists it, with "Updated … ago" dating that read. The picker searches
   inside its popover, matching a model's name or Cursor id, and groups models into Claude, GPT,
   Gemini, Grok, Composer, and Other sections in Cursor's order. When the chosen model offers them,
@@ -61,9 +61,9 @@ while you read it.
   follow; both start at the model's defaults, every pick of a new model resets them, and each
   change saves at once. Choosing a model's default leaves the param unset so Cursor's default
   keeps applying. Other members see model, effort, and fast as read-only facts. Until a Computer
-  with Cursor connected reports a catalog, the picker offers only Cursor default and is disabled.
-  A saved model Cursor no longer lists shows by its raw id with a warning that runs use Cursor
-  default until someone picks an available model; a saved effort the model no longer offers shows
+  with Cursor connected reports a catalog, the picker offers only Auto and is disabled.
+  A saved model Cursor no longer lists shows by its raw id with a warning that runs use Auto
+  until someone picks an available model; a saved effort the model no longer offers shows
   the model's default, which is what runs use.
 
 The atomic Haus token reporting unit is Agent × runtime × model, with input, output, cache-read,
