@@ -2,18 +2,21 @@ import SwiftUI
 import HausModels
 
 /// The Server-wide Cloud Agent model. Owners and Admins pick from Cursor default plus
-/// the catalog Cursor reported; everyone else reads the current value.
+/// the catalog Cursor reported, then the Effort and Fast the chosen model offers;
+/// everyone else reads the current values. Every edit saves immediately.
 struct CloudAgentModelSection: View {
     let canManage: Bool
     let actions: CloudAgentSettingsActions
     @State private var settings: CloudAgentSettings?
+    /// The edit in flight, shown until the Server answers so controls never snap back.
+    @State private var pending: CloudAgentModelSetting?
+    @State private var saveTask: Task<Void, Never>?
     @State private var loadFailed = false
     @State private var saveFailure: String?
-    @State private var isSaving = false
 
     var body: some View {
         if let settings {
-            loaded(CloudAgentModelChoice(settings: settings))
+            loaded(CloudAgentModelChoice(settings: displayed(settings)))
         } else if loadFailed {
             Section {
                 Text("The model setting is unavailable.")
@@ -30,12 +33,33 @@ struct CloudAgentModelSection: View {
     private func loaded(_ choice: CloudAgentModelChoice) -> some View {
         Section {
             if choice.isEditable(canManage: canManage) {
-                picker(choice)
+                NavigationLink {
+                    CloudAgentModelListView(choice: choice) { save($0) }
+                } label: {
+                    valueRow("Model", value: choice.value)
+                }
             } else {
                 // A manager without a catalog sees the row disabled at Cursor default.
-                valueRow(choice.value)
+                valueRow("Model", value: choice.value)
                     .disabled(canManage)
                     .foregroundStyle(canManage ? .secondary : .primary)
+            }
+            if let effort = choice.effort {
+                if canManage {
+                    effortPicker(effort, choice: choice)
+                } else {
+                    valueRow("Effort", value: effort.options.first { $0.value == effort.selection }?.name ?? "Default")
+                }
+            }
+            if let fastIsOn = choice.fastIsOn {
+                if canManage {
+                    Toggle("Fast", isOn: Binding(
+                        get: { fastIsOn },
+                        set: { isOn in choice.setting(fast: isOn).map(save) }
+                    ))
+                } else {
+                    valueRow("Fast", value: fastIsOn ? "On" : "Off")
+                }
             }
         } footer: {
             if let saveFailure {
@@ -46,20 +70,32 @@ struct CloudAgentModelSection: View {
         }
     }
 
-    /// A NavigationLink rather than a `Picker`: the stock picker label wraps
-    /// a long value beside the title, where settings rows must stack it.
-    private func picker(_ choice: CloudAgentModelChoice) -> some View {
-        NavigationLink {
-            CloudAgentModelOptionsView(choice: choice, selection: selection)
-        } label: {
-            valueRow(choice.value)
+    /// A menu for a short list; six or more options push a list instead.
+    @ViewBuilder
+    private func effortPicker(_ effort: CloudAgentModelChoice.EffortControl, choice: CloudAgentModelChoice) -> some View {
+        let selection = Binding<String?>(
+            get: { effort.selection },
+            set: { value in choice.setting(effort: value).map(save) }
+        )
+        let picker = Picker("Effort", selection: selection) {
+            ForEach(effort.options, id: \.self) { option in
+                Text(option.name).tag(option.value)
+            }
         }
-        .disabled(isSaving)
+        #if os(iOS)
+        if effort.options.count > 5 {
+            picker.pickerStyle(.navigationLink)
+        } else {
+            picker.pickerStyle(.menu)
+        }
+        #else
+        picker.pickerStyle(.menu)
+        #endif
     }
 
-    private func valueRow(_ value: String) -> some View {
+    private func valueRow(_ title: String, value: String) -> some View {
         SettingsValueLayout {
-            Text("Model")
+            Text(title)
         } value: {
             // Beside the title it stays one line; stacked, it wraps at words.
             Text(value)
@@ -69,11 +105,9 @@ struct CloudAgentModelSection: View {
         }
     }
 
-    private var selection: Binding<CloudAgentModelSetting> {
-        Binding(
-            get: { settings?.model ?? .auto },
-            set: { model in Task { await save(model) } }
-        )
+    private func displayed(_ settings: CloudAgentSettings) -> CloudAgentSettings {
+        guard let pending else { return settings }
+        return CloudAgentSettings(model: pending, catalog: settings.catalog, savedModelUnavailable: false)
     }
 
     private func load() async {
@@ -86,70 +120,29 @@ struct CloudAgentModelSection: View {
         }
     }
 
-    private func save(_ model: CloudAgentModelSetting) async {
-        guard let current = settings, model != current.model, !isSaving else { return }
-        isSaving = true
+    /// Saves in order; a newer edit supersedes the older one's result on screen.
+    private func save(_ model: CloudAgentModelSetting) {
+        guard model != (pending ?? settings?.model) else { return }
+        pending = model
         saveFailure = nil
-        defer { isSaving = false }
+        let previous = saveTask
+        saveTask = Task {
+            await previous?.value
+            await commit(model)
+        }
+    }
+
+    private func commit(_ model: CloudAgentModelSetting) async {
         do {
-            settings = try await actions.setModel(model)
-        } catch is CancellationError {
-            return
+            let saved = try await actions.setModel(model)
+            guard pending == model else { return }
+            settings = saved
+            pending = nil
         } catch {
+            guard pending == model else { return }
+            pending = nil
             saveFailure = "Could not change the model. Check your connection and try again."
-            settings = try? await actions.loadModel()
+            if let fresh = try? await actions.loadModel() { settings = fresh }
         }
     }
 }
-
-private struct CloudAgentModelOptionsView: View {
-    let choice: CloudAgentModelChoice
-    let selection: Binding<CloudAgentModelSetting>
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        Form {
-            Section {
-                ForEach(choice.options) { option in
-                    row(option.setting, name: option.name, detail: option.detail)
-                }
-            }
-            if let unavailableModelID = choice.unavailableModelID {
-                Section {
-                    row(.model(id: unavailableModelID), name: unavailableModelID, detail: nil)
-                } header: {
-                    Text("Unavailable")
-                } footer: {
-                    Text("Cursor no longer lists this model, so runs use Cursor default.")
-                }
-            }
-        }
-        .navigationTitle("Model")
-        .hausInlineNavigationTitle()
-    }
-
-    private func row(_ setting: CloudAgentModelSetting, name: String, detail: String?) -> some View {
-        let isSelected = selection.wrappedValue == setting
-        return Button {
-            selection.wrappedValue = setting
-            dismiss()
-        } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    // Explicit colors: a Form button tints hierarchical styles.
-                    Text(name).foregroundStyle(Color.primary)
-                    if let detail {
-                        Text(detail).font(.subheadline).foregroundStyle(Color.secondary)
-                    }
-                }
-                Spacer(minLength: 8)
-                if isSelected {
-                    Image(systemName: "checkmark").fontWeight(.semibold).foregroundStyle(.tint)
-                }
-            }
-            .contentShape(Rectangle())
-        }
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
