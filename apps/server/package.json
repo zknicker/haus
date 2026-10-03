@@ -34,7 +34,7 @@
     "bunqueue": "2.6.38",
     "drizzle-orm": "0.45.2",
     "effect": "3.22.1",
-    "fastify": "5.12.1",
+    "fastify": "5.12.5",
     "jose": "6.2.3",
     "protobufjs": "7.6.6",
     "ws": "8.21.0",
