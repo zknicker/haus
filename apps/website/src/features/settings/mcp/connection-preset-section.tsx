@@ -32,6 +32,11 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         name: 'MerchBase',
     },
     {
+        description: 'Work with repositories, issues, and pull requests.',
+        id: 'github',
+        name: 'GitHub',
+    },
+    {
         description: 'Search and read public posts on X.',
         id: 'x',
         name: 'X',

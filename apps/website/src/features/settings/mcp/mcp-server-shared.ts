@@ -107,3 +107,16 @@ export function toSecretRecord(entries: SecretDraftEntry[]) {
             .filter(([name]) => name.length > 0)
     );
 }
+
+/**
+ * The OAuth callback on the Haus Server. A loopback origin uses the literal
+ * 127.0.0.1 (RFC 8252 §7.3): providers such as GitHub accept any port only for
+ * the IP literal, never for `localhost`.
+ */
+export function mcpOAuthRedirectUrl(serverOrigin: string): string {
+    const url = new URL('/mcp/oauth/callback', serverOrigin);
+    if (url.hostname === 'localhost') {
+        url.hostname = '127.0.0.1';
+    }
+    return url.toString();
+}

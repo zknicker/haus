@@ -13,7 +13,7 @@ import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import { getHausServerOrigin } from '../../../lib/haus-server.tsx';
 import { ConnectionTrustDialog, toConnectionView } from './connection-view.tsx';
 import { McpConnectionDetailDialog } from './mcp-connection-detail-dialog.tsx';
-import type { McpConnection } from './mcp-server-shared.ts';
+import { type McpConnection, mcpOAuthRedirectUrl } from './mcp-server-shared.ts';
 
 export function ConnectionDetail({
     connectionId,
@@ -67,7 +67,7 @@ export function ConnectionDetail({
             const result = await startOAuth.mutateAsync({
                 allowAuthorizationServerOrigin,
                 connectionId: target.id,
-                redirectUrl: new URL('/mcp/oauth/callback', getHausServerOrigin()).toString(),
+                redirectUrl: mcpOAuthRedirectUrl(getHausServerOrigin()),
                 serverId,
             });
             if (result.status === 'trust-required') {

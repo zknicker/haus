@@ -5,6 +5,7 @@ import {
     connectionSetupDescription,
     connectionStatusLabel,
     createConnectionDraft,
+    mcpOAuthRedirectUrl,
     splitArgs,
 } from './mcp-server-shared.ts';
 
@@ -52,4 +53,12 @@ test('buildSaveInput includes optional static OAuth registration details', () =>
             url: 'https://example.com/mcp',
         }
     );
+});
+
+test('OAuth callback uses the loopback IP literal instead of localhost', () => {
+    assert.equal(
+        mcpOAuthRedirectUrl('http://localhost:33791'),
+        'http://127.0.0.1:33791/mcp/oauth/callback'
+    );
+    assert.equal(mcpOAuthRedirectUrl('https://haus.chat'), 'https://haus.chat/mcp/oauth/callback');
 });
