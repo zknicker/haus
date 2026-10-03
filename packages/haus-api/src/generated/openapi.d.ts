@@ -1225,7 +1225,6 @@ export interface components {
             brief: string | null;
             /** @default [] */
             channels: string[];
-            content: string;
             description: string;
             displayName: string;
             nonce: string;
@@ -1260,12 +1259,10 @@ export interface components {
             chatId: string;
             computerId: string;
             idempotent: boolean;
-            messageId: string;
             modelId: string;
             /** @enum {string} */
             reasoningEffort: "default" | "low" | "medium" | "high" | "xhigh" | "max";
             runtimeId: string;
-            sequence: number;
             target: string;
         };
         AgentAddChannelAgentRequest: {
