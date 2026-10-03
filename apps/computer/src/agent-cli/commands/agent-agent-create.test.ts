@@ -213,7 +213,7 @@ test('create refuses locally before spending a request on a bad flag', async () 
         [{ '--description': '' }, /--description is required/u],
         [{ '--target': 'product' }, /Invalid target/u],
         [{ '--name': 'x'.repeat(81) }, /--name must be 80 characters or fewer/u],
-        [{ '--description': 'x'.repeat(501) }, /--description must be 500 characters/u],
+        [{ '--description': 'x'.repeat(281) }, /--description must be 280 characters/u],
         [{ '--say': 'x'.repeat(4001) }, /--say must be 4000 characters/u],
         [{ '--avatar-concept': 'x'.repeat(281) }, /--avatar-concept must be 280 characters/u],
         [{ '--brief': 'x'.repeat(4001) }, /--brief must be 4000 characters/u],

@@ -72,6 +72,7 @@ export interface HarnessTurnInput extends TurnDelivery {
     initialRole: string | null;
     modelId: string;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
+    personality?: string | null;
     reasoningEffort: AgentReasoningEffort;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtime: DaemonRuntime;
@@ -178,12 +179,9 @@ async function executeHarnessTurn(
     // For the prompt's activation hints; runtimes read the library natively.
     const skills = await readAgentSkills(input.skillsDir);
     // A changed managed-instruction fingerprint restarts the adapter, preserving conversation.
+    // The turn input carries every Agent fact the prompt reads; only the workspace is renamed.
     const { fingerprint: instructionFingerprint, instructions } = composeAgentInstructions({
-        agentId: input.agentId,
-        agentName: input.agentName,
-        homeTimezone: input.homeTimezone,
-        initialRole: input.initialRole,
-        webAccess: input.webAccess,
+        ...input,
         workspacePath: input.workspaceDir,
     });
     const harness = createHarnessForRuntime(

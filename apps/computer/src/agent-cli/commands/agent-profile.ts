@@ -1,3 +1,4 @@
+import { AGENT_DESCRIPTION_MAX_LENGTH } from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { agentProfileResponseSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -24,7 +25,7 @@ export const PROFILE_SUBCOMMANDS: SubCommand[] = [
         examples: ['haus profile update --description "Resident systems investigator"'],
         flags: [
             {
-                description: 'One-line description (1–500 characters)',
+                description: `Your role in one or two sentences (1–${AGENT_DESCRIPTION_MAX_LENGTH} characters)`,
                 name: '--description',
                 valueName: '<text>',
             },
@@ -57,8 +58,15 @@ export async function runProfileShow(args: ParsedArgs, deps: ProfileDeps): Promi
 
 export async function runProfileUpdate(args: ParsedArgs, deps: ProfileDeps): Promise<number> {
     const description = args.values['--description'];
-    if (!description || description.length > 500) {
-        throw new AgentCliError('INVALID_ARG', 'Provide --description with 1–500 characters.');
+    if (!description || description.length > AGENT_DESCRIPTION_MAX_LENGTH) {
+        throw new AgentCliError(
+            'INVALID_ARG',
+            `Provide --description with 1–${AGENT_DESCRIPTION_MAX_LENGTH} characters.`,
+            {
+                nextAction:
+                    'Write a one-or-two-sentence role line; keep longer context in MEMORY.md.',
+            }
+        );
     }
     const response = await deps.client.request(
         '/api/agent/profile/update',

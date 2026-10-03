@@ -245,3 +245,12 @@ test('claims before acting and closes same-turn work without parking it', () => 
     );
     expect(instructions).toContain('live in the `tasks` Manual topic');
 });
+
+test('a personality change changes the instruction fingerprint, so it reaches the next turn', () => {
+    const plain = composeAgentInstructions(facts);
+    const voiced = composeAgentInstructions({ ...facts, personality: 'Terse. Dry humor.' });
+
+    expect(plain.instructions).not.toContain('## Personality');
+    expect(voiced.instructions).toContain('## Personality\n\nTerse. Dry humor.');
+    expect(voiced.fingerprint).not.toBe(plain.fingerprint);
+});

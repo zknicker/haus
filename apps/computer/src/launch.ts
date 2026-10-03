@@ -46,6 +46,7 @@ import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
+import { parseStartAgentFacts } from './start-command-facts.ts';
 import {
     type RuntimeTurnOutcome,
     reportHarnessTurnFailure,
@@ -300,10 +301,9 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     ) {
         return null;
     }
-    for (const field of ['agentDescription', 'agentName', 'homeTimezone'] as const) {
-        if (frame[field] !== undefined && typeof frame[field] !== 'string') {
-            return null;
-        }
+    const facts = parseStartAgentFacts(frame);
+    if (!facts) {
+        return null;
     }
     const webAccess = ['fetch-only', 'search', 'search-only'].includes(frame.webAccess as string)
         ? (frame.webAccess as 'fetch-only' | 'search' | 'search-only')
@@ -313,14 +313,10 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
         return null;
     }
     return {
+        ...facts,
         agentId: frame.agentId as string,
-        ...(typeof frame.agentDescription === 'string'
-            ? { agentDescription: frame.agentDescription }
-            : {}),
-        ...(typeof frame.agentName === 'string' ? { agentName: frame.agentName } : {}),
         chatId: frame.chatId as string,
         drainItemIds,
-        ...(typeof frame.homeTimezone === 'string' ? { homeTimezone: frame.homeTimezone } : {}),
         inbox,
         inboxDelivery: frame.inboxDelivery as 'concrete' | 'notice',
         modelId: frame.modelId as string,
@@ -563,6 +559,7 @@ async function runRealRuntime(
             homeTimezone: command.homeTimezone ?? 'UTC',
             harnessAgentFactory: input.harnessAgentFactory,
             initialRole: command.agentDescription ?? null,
+            personality: command.agentPersonality ?? null,
             modelId: command.modelId,
             reasoningEffort:
                 (await readAppliedAgentConfiguration(input.agentRoot))?.reasoningEffort ?? 'medium',

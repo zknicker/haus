@@ -177,6 +177,7 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     const prompt = renderPrompt({
         homeTimezone: 'America/Los_Angeles',
         initialRole: 'the operator’s right hand',
+        personality: 'Terse.',
         webAccess: 'search',
     });
 
@@ -206,8 +207,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // moved solo step-by-step progress into a thread on the acknowledgment (ADR 0029 amendment,
     // 2026-10-02), paid for by relocating the Cloud agents section's requester-update and
     // work-thread sentences to the `cloud-agents` Manual topic and shortening the Tasks
-    // conversation rule.
-    expect(prompt.length).toBeLessThanOrEqual(32_416);
+    // conversation rule. Lowered (32,416 → 32,399) when the Haus-only `## Personality` section
+    // arrived (measured here with a one-word personality), paid for by shortening the Cloud
+    // agents section's delivery sentences.
+    expect(prompt.length).toBeLessThanOrEqual(32_399);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

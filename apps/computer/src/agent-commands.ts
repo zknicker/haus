@@ -8,6 +8,8 @@ export interface AgentStartCommand {
     agentDescription?: string;
     agentId: string;
     agentName?: string;
+    /** Private tone guidance for this Agent's own prompt; never part of an inbox item. */
+    agentPersonality?: string;
     chatId: string;
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];

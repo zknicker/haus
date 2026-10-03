@@ -1,4 +1,8 @@
-import { agentSetAgentAvatarReceiptSchema, agentUpdateAgentReceiptSchema } from '@haus/api';
+import {
+    AGENT_DESCRIPTION_MAX_LENGTH,
+    agentSetAgentAvatarReceiptSchema,
+    agentUpdateAgentReceiptSchema,
+} from '@haus/api';
 import { AgentApiClient, type AgentApiRequester } from '../agent-api-client.ts';
 import { resolveAgentContext } from '../agent-context.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -12,7 +16,6 @@ import { requestAgentCreate } from './agent-create-request.ts';
 /** Avatar generation alone takes up to 75 s; an avatar call has to outwait it. */
 const avatarTimeoutMs = 75_000;
 const maxNameLength = 80;
-const maxDescriptionLength = 500;
 const maxConceptLength = 280;
 const maxSayLength = 4000;
 const maxBriefLength = 4000;
@@ -40,7 +43,7 @@ const CREATE_COMMAND: SubCommand = {
         { description: 'Channel, DM, or thread target', name: '--target', valueName: '<target>' },
         { description: 'Display name (1–80 characters)', name: '--name', valueName: '<name>' },
         {
-            description: 'What the new Agent is for (1–500 characters)',
+            description: `Its role in one or two sentences (1–${AGENT_DESCRIPTION_MAX_LENGTH} characters); longer context goes in --brief`,
             name: '--description',
             valueName: '<text>',
         },
@@ -84,7 +87,7 @@ const UPDATE_COMMAND: SubCommand = {
     flags: [
         { description: 'The Agent to update, as @handle', name: '--agent', valueName: '<@handle>' },
         {
-            description: 'Replacement description (1–500 characters)',
+            description: `Replacement role line (1–${AGENT_DESCRIPTION_MAX_LENGTH} characters)`,
             name: '--description',
             valueName: '<text>',
         },
@@ -123,11 +126,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
     const target = requiredValue(args, '--target');
     assertAgentTarget(target);
     const displayName = bounded(requiredValue(args, '--name'), '--name', maxNameLength);
-    const description = bounded(
-        requiredValue(args, '--description'),
-        '--description',
-        maxDescriptionLength
-    );
+    const description = boundedDescription(requiredValue(args, '--description'));
     const content = bounded(requiredValue(args, '--say'), '--say', maxSayLength);
     const rawConcept = args.values['--avatar-concept']?.trim();
     const avatarConcept = rawConcept
@@ -172,11 +171,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
 
 export async function runAgentUpdate(args: ParsedArgs, deps: AgentAgentDeps): Promise<number> {
     const agent = readAgentHandle(args);
-    const description = bounded(
-        requiredValue(args, '--description'),
-        '--description',
-        maxDescriptionLength
-    );
+    const description = boundedDescription(requiredValue(args, '--description'));
     const receipt = await deps.client.request(
         '/api/agent/agents/update',
         agentUpdateAgentReceiptSchema,
@@ -230,6 +225,21 @@ function readAgentHandle(args: ParsedArgs): string {
         });
     }
     return raw;
+}
+
+/** A description rides every message the Agent sends, so the refusal names where detail goes. */
+function boundedDescription(value: string): string {
+    if (value.length > AGENT_DESCRIPTION_MAX_LENGTH) {
+        throw new AgentCliError(
+            'INVALID_ARG',
+            `--description must be ${AGENT_DESCRIPTION_MAX_LENGTH} characters or fewer.`,
+            {
+                nextAction:
+                    'Write a one-or-two-sentence role line; longer context belongs in the standing brief.',
+            }
+        );
+    }
+    return value;
 }
 
 function bounded(value: string, flag: string, maximum: number): string {
