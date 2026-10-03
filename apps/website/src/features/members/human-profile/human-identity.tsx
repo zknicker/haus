@@ -35,6 +35,7 @@ export function HumanIdentity({
                 isSelf ? (
                     <ProfileEdit
                         description={member.description ?? ''}
+                        descriptionMaxLength={500}
                         displayName={member.displayName ?? name}
                         entityLabel="Your profile"
                         isDisabled={updateProfile.isPending}

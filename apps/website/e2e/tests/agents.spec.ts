@@ -64,6 +64,29 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     }
     await expect(page.getByRole('radio', { name: 'Overview' })).toHaveCount(0);
 
+    // The one profile editor carries the private personality beside the role line, and the
+    // description's 280-character budget blocks Save rather than truncating.
+    await page.getByRole('button', { name: 'Edit Profile', exact: true }).click();
+    const editor = page.getByRole('dialog', { name: 'Agent profile' });
+    const description = editor.getByRole('textbox', { name: 'Description', exact: true });
+    await description.fill('x'.repeat(281));
+    await expect(editor.getByText('Keep it to 280 characters.')).toBeVisible();
+    await expect(editor.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await description.fill('Scouts competitor launches and pricing moves.');
+    await editor
+        .getByRole('textbox', { name: 'Personality', exact: true })
+        .fill('Terse. Plain words. Dry humor.');
+    await editor.getByRole('button', { name: 'Save' }).click();
+    await expect(editor).toBeHidden();
+    await page.reload();
+    await page.getByRole('button', { name: 'Edit Profile', exact: true }).click();
+    await expect(
+        page
+            .getByRole('dialog', { name: 'Agent profile' })
+            .getByRole('textbox', { name: 'Personality', exact: true })
+    ).toHaveValue('Terse. Plain words. Dry humor.');
+    await page.keyboard.press('Escape');
+
     // Every lifecycle verb is a menu item on the header now. Stop is the one
     // that needs something to stop, so it is inert on an idle Agent.
     await page.getByRole('button', { name: 'Scout — Agent actions' }).click();

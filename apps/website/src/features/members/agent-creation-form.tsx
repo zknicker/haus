@@ -1,4 +1,4 @@
-import type { Agent, AgentReasoningEffort } from '@haus/api';
+import { AGENT_DESCRIPTION_MAX_LENGTH, type Agent, type AgentReasoningEffort } from '@haus/api';
 import {
     Alert,
     Button,
@@ -171,7 +171,7 @@ export function AgentCreationForm({
                     >
                         <Label>Description</Label>
                         <TextArea
-                            maxLength={500}
+                            maxLength={AGENT_DESCRIPTION_MAX_LENGTH}
                             placeholder="Leave blank for a general-purpose Agent, or describe a role…"
                             rows={4}
                         />

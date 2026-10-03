@@ -1,14 +1,15 @@
-import type { Agent } from '@haus/api';
+import { AGENT_DESCRIPTION_MAX_LENGTH, type Agent } from '@haus/api';
 import { Chip } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
 import { useAgentIdentity } from '../../../hooks/members/use-agent-identity.ts';
+import { useAgentPersonality } from '../../../hooks/members/use-agent-personality.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { availabilityLabel } from '../../computers/presentation.ts';
 import { MemberProfileHeader } from '../member-profile-header.tsx';
-import { ProfileEdit } from '../profile-edit.tsx';
+import { ProfileEdit, type ProfilePersonality } from '../profile-edit.tsx';
 import { AgentActionsMenu } from './agent-actions-menu.tsx';
 import { canRunAgentActions } from './agent-actions-model.ts';
 import { AgentAvatarGenerator } from './agent-avatar-generator.tsx';
@@ -44,6 +45,11 @@ export function AgentHeader({
     // Factory Agents (Cove) carry a product-owned identity the Server refuses
     // to change, so no editor rather than a guaranteed error. Profile says why.
     const canEditIdentity = canEdit && agent.factoryKind === 'ordinary';
+    // Read up front for the people who can edit it, so the editor opens filled.
+    const personality = useAgentPersonality(server.id, agent.id, canEditIdentity);
+    const personalityField: ProfilePersonality = personality.data
+        ? { status: 'ready', value: personality.data.personality ?? '' }
+        : { status: 'loading' };
     // The menu always offers Generate for an ordinary Agent; without the
     // Server capability the item renders disabled with the reason inline.
     const canGenerate = canEditIdentity;
@@ -55,11 +61,14 @@ export function AgentHeader({
                     {canEditIdentity ? (
                         <ProfileEdit
                             description={agent.description ?? ''}
+                            descriptionInfo="Its role in one or two sentences. Other Agents see it on every message this Agent sends."
+                            descriptionMaxLength={AGENT_DESCRIPTION_MAX_LENGTH}
                             displayName={agent.displayName}
                             entityLabel="Agent profile"
                             isDisabled={updateIdentity.isPending}
                             namePlaceholder="Agent name"
                             onSave={(draft) => updateIdentity.save(draft)}
+                            personality={personalityField}
                         />
                     ) : null}
                     {canRunAgentActions(server.role) ? (
