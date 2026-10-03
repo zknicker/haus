@@ -87,9 +87,9 @@ Status values:
 | ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | T1 | Promoting a message creates one task with that message's Thread as its work surface. | App E2E + deterministic | passing |
-| T2 | An Agent claims actionable work before acting and reports in the task Thread. | `test:agents task-thread-routing` | passing |
+| T2 | An Agent claims actionable work before acting and replies inline where the request arrived; the task Thread on the request stays empty. | `test:agents task-thread-routing` | passing |
 | T3 | Competing claims produce one owner; the loser stands down. | Deterministic race + prompt contract | passing |
-| T4 | An Agent can acknowledge work, deliver the result, and advance the task state. Useful unsolicited progress is model judgment and remains an observation. | `test:agents task-clarify-then-deliver` + observation | passing |
+| T4 | An Agent can acknowledge work, ask for missing input and deliver the result inline where the request arrived, and advance the task state. Useful unsolicited progress is model judgment and remains an observation. | `test:agents task-clarify-then-deliver` + observation | passing |
 | T5 | A task status update uses fresh Thread context rather than stale delivery context. | `test:agents mid-turn-freshness` + deterministic freshness | passing |
 | T6 | Losing membership or task access prevents further reads and mutations. | Deterministic authorization | passing |
 

@@ -1,24 +1,24 @@
-// A task explicitly requested in a Thread must be answered in that Thread — not in
-// the parent channel — and the Agent must take the task while it works.
+// An explicitly created task is claimed before the Agent replies, and the reply
+// lands inline in the channel where the request arrived. Agents never post into
+// the task Thread on the human's request (ADR 0029).
 
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A task explicitly requested in its Thread is claimed by that Agent before it replies, answered in the task Thread, leaves the parent channel silent, and the reply carries the requested marker.',
+        'An explicitly created task is claimed by that Agent before it replies, answered inline in the channel where it arrived with the requested marker, and its task Thread stays empty.',
     name: 'task-thread-routing',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
         const token = marker();
 
         const channel = await kit.createChannel({ agentIds: [worker.id] });
-        const channelHead = await kit.readHead(channel.id);
         log('sending task');
 
         const created = await kit.sendTask(
             channel.id,
-            `@${worker.handle} Draft a two-sentence Bluebird launch blurb for independent bookstores. Include the exact marker ${token}. Keep this work in the task thread.`
+            `@${worker.handle} Draft a two-sentence Bluebird launch blurb for independent bookstores. Include the exact marker ${token}.`
         );
 
         const turn = await settleTurn(worker.id);
@@ -36,23 +36,24 @@ export default defineScenario({
         ).toBe(true);
         expect(task.assigneeAgentId, 'task assignee').toBe(worker.id);
 
-        // Acknowledge-then-deliver is legitimate; the contract is that the
-        // delivery lands in the Thread, not how many messages carry it there.
-        const threadReplies = await turn.authoredMessagesIn(created.threadChatId);
-        expect(threadReplies.length > 0, 'the task Thread received a reply').toBe(true);
+        // Acknowledge-then-deliver is legitimate; the contract is that delivery
+        // lands inline in the channel, not how many messages carry it there.
+        const channelReplies = (await turn.authoredMessagesIn(channel.id)).filter(
+            (message) => message.chatId === channel.id
+        );
+        expect(channelReplies.length > 0, 'the channel received a reply').toBe(true);
         expect(
-            threadReplies.some((reply) => reply.content.includes(token)),
-            `a task Thread reply carries the marker ${token}`
+            channelReplies.some((reply) => reply.content.includes(token)),
+            `a channel reply carries the marker ${token}`
         ).toBe(true);
         expect(
-            Date.parse(task.claimedAt ?? '') <= Date.parse(threadReplies[0].createdAt),
-            'claim happened before the first Thread reply'
+            Date.parse(task.claimedAt ?? '') <= Date.parse(channelReplies[0].createdAt),
+            'claim happened before the first channel reply'
         ).toBe(true);
 
-        const channelMessages = await kit.readMessages(channel.id);
         expect(
-            kit.authoredBy(channelMessages, worker.id, channelHead),
-            'replies in the parent channel'
+            await turn.authoredMessagesIn(created.threadChatId),
+            'replies in the task Thread'
         ).toHaveLength(0);
     },
 });
