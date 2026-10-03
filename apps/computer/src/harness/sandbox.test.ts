@@ -59,6 +59,8 @@ test('provider credentials remain references to host-native auth, never copies',
     for (const reference of references) {
         expect((await lstat(reference)).isSymbolicLink()).toBe(true);
     }
+    // The operator's Claude Code state, with its MCP servers, never reaches the Agent.
+    expect(await exists(join(homeDir, '.claude.json'))).toBe(false);
 
     await writeFile(join(hostHomeDir, '.codex', 'auth.json'), '{"token":"codex-two"}');
     expect(await readFile(join(homeDir, '.codex', 'auth.json'), 'utf8')).toContain('codex-two');
@@ -95,6 +97,58 @@ test('Claude Agent HOME drops the legacy host .claude.json link and keeps its ow
 
     expect(await exists(join(linkedHome, '.claude.json'))).toBe(false);
     expect(await readFile(join(ownedHome, '.claude.json'), 'utf8')).toBe('{"numStartups":3}');
+});
+
+test('Claude Code state an Agent writes lands in the Agent home, not the operator file', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-claude-state-'));
+    roots.push(root);
+    const hostHomeDir = join(root, 'host');
+    const homeDir = join(root, 'agent-home');
+    const hostState = '{"mcpServers":{"operator":{"command":"operator-mcp"}}}';
+    await mkdir(join(hostHomeDir, '.claude'), { recursive: true });
+    await mkdir(homeDir, { recursive: true });
+    await writeFile(join(hostHomeDir, '.claude.json'), hostState);
+    await writeFile(join(hostHomeDir, '.claude', '.credentials.json'), '{"oauth":"one"}');
+    await symlink(join(hostHomeDir, '.claude.json'), join(homeDir, '.claude.json'));
+
+    const provider = createLocalTrustedSandboxProvider({
+        authProfiles: ['claude-code'],
+        homeDir,
+        hostHomeDir,
+        rootDir: join(root, 'workspace'),
+        runtime,
+    });
+    const session = await provider.createSession?.();
+    // What `claude mcp add --scope user` writes now lands in the Agent home only.
+    await session?.run({ command: `printf '{"mcpServers":{"agent":{}}}' > "$HOME/.claude.json"` });
+    await session?.destroy?.();
+
+    expect((await lstat(join(homeDir, '.claude.json'))).isSymbolicLink()).toBe(false);
+    expect(await readFile(join(homeDir, '.claude.json'), 'utf8')).toContain('"agent"');
+    expect(await readFile(join(hostHomeDir, '.claude.json'), 'utf8')).toBe(hostState);
+});
+
+test('any runtime drops a stale .claude.json link without following it', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-claude-stale-'));
+    roots.push(root);
+    const homeDir = join(root, 'agent-home');
+    const staleTarget = join(root, 'old-host', '.claude.json');
+    await mkdir(join(root, 'old-host'), { recursive: true });
+    await mkdir(homeDir, { recursive: true });
+    await writeFile(staleTarget, '{"mcpServers":{"operator":{}}}');
+    await symlink(staleTarget, join(homeDir, '.claude.json'));
+
+    const session = await createLocalTrustedSandboxProvider({
+        authProfiles: ['codex'],
+        homeDir,
+        hostHomeDir: join(root, 'host'),
+        rootDir: join(root, 'workspace'),
+        runtime,
+    }).createSession?.();
+    await session?.destroy?.();
+
+    expect(await exists(join(homeDir, '.claude.json'))).toBe(false);
+    expect(await readFile(staleTarget, 'utf8')).toBe('{"mcpServers":{"operator":{}}}');
 });
 
 test('restores native Codex image generation without changing other Codex config', async () => {

@@ -1,5 +1,6 @@
 import { afterAll, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
@@ -168,8 +169,48 @@ liveTest(
     180_000
 );
 
+liveTest(
+    `codex-acp starts no MCP server from the Agent's own Codex config${skipReason}`,
+    async () => {
+        const markers: string[] = [];
+        await withCodexAgent(
+            {
+                prepare: async ({ homeDir, rootDir }) => {
+                    // What `codex mcp add` writes, plus a project layer in the workspace.
+                    const server = (name: string) => {
+                        const marker = join(rootDir, `${name}-started`);
+                        markers.push(marker);
+                        return `[mcp_servers.${name}]\ncommand = "/bin/sh"\nargs = ["-c", "touch '${marker}'; sleep 5"]\n`;
+                    };
+                    await mkdir(join(homeDir, '.codex'), { recursive: true });
+                    await mkdir(join(rootDir, 'workspace', '.codex'), { recursive: true });
+                    await writeFile(join(homeDir, '.codex', 'config.toml'), server('agent_user'));
+                    await writeFile(
+                        join(rootDir, 'workspace', '.codex', 'config.toml'),
+                        server('agent_project')
+                    );
+                },
+            },
+            async (agent, session) => {
+                const result = await agent.generate({
+                    abortSignal: AbortSignal.timeout(120_000),
+                    prompt: 'Reply with exactly OK. Do not use tools.',
+                    session,
+                });
+
+                expect(result.text.trim()).toBe('OK');
+                expect(markers.filter((marker) => existsSync(marker))).toEqual([]);
+            }
+        );
+    },
+    180_000
+);
+
 async function withCodexAgent(
-    options: { tools?: ConstructorParameters<typeof HarnessAgent>[0]['tools'] },
+    options: {
+        prepare?: (paths: { homeDir: string; rootDir: string }) => Promise<void>;
+        tools?: ConstructorParameters<typeof HarnessAgent>[0]['tools'];
+    },
     run: (
         agent: HarnessAgent,
         session: Awaited<ReturnType<HarnessAgent['createSession']>>
@@ -178,6 +219,7 @@ async function withCodexAgent(
     const rootDir = await realpath(await mkdtemp(join(tmpdir(), 'haus-codex-live-')));
     const homeDir = join(rootDir, 'home');
     await mkdir(join(rootDir, 'workspace'), { recursive: true });
+    await options.prepare?.({ homeDir, rootDir });
     const agent = new HarnessAgent({
         harness: createHarnessForRuntime('codex', 'default', false, bridgeStoreDirForHost()),
         model,

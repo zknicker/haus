@@ -39,13 +39,17 @@ const grokInput = {
     workspaceDir: '/tmp/haus-constructor/workspace',
 } as const;
 
-test('Grok Build inlines MCP output up to the Claude-sized cap', () => {
+test('Grok Build inlines MCP output and loads no foreign MCP or instruction config', () => {
     expect(sandboxOptions(grokInput).env).toEqual({
         EXISTING: 'kept',
         GROK_CLAUDE_AGENTS_ENABLED: 'false',
         GROK_CLAUDE_RULES_ENABLED: 'false',
         GROK_CURSOR_AGENTS_ENABLED: 'false',
         GROK_CURSOR_RULES_ENABLED: 'false',
+        GROK_CLAUDE_MCPS_ENABLED: 'false',
+        GROK_CODEX_MCPS_ENABLED: 'false',
+        GROK_CURSOR_MCPS_ENABLED: 'false',
+        GROK_MANAGED_MCPS_ENABLED: 'false',
         GROK_HOME: '/tmp/haus-constructor/home/.grok',
         GROK_MAX_MCP_OUTPUT_BYTES: '102400',
         HOME: '/tmp/haus-constructor/home',
