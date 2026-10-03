@@ -1,9 +1,10 @@
-import type {
-    McpConnection,
-    McpConnectionCreate,
-    McpOAuthStart,
-    McpOAuthStartResult,
-    McpPreset,
+import {
+    isMcpBearerTokenPreset,
+    type McpConnection,
+    type McpConnectionCreate,
+    type McpOAuthStart,
+    type McpOAuthStartResult,
+    type McpPreset,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -13,8 +14,8 @@ import {
     mcpConnectionsTable,
     mcpSecretsTable,
 } from '../postgres/schema.ts';
-import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { requireAdmin, requireConnection, requireOperableConnection } from './connection-access.ts';
 import { McpDeniedError } from './errors.ts';
 import type { McpIconResolver } from './icons.ts';
 import { summarizeInstructions } from './instructions-summary.ts';
@@ -116,6 +117,7 @@ export async function disconnectMcpConnection(
     const connection = await requireOperableConnection(db, member, input);
     await runtime.closeConnection(input.connectionId);
     const secret = await runtime.readSecret(input.connectionId);
+    const headerNames = isMcpBearerTokenPreset(connection.preset) ? [] : connection.headerNames;
     await db.transaction(async (tx) => {
         await tx
             .delete(agentMcpConnectionGrantsTable)
@@ -127,7 +129,8 @@ export async function disconnectMcpConnection(
                     ...emptySecret(),
                     approvedAuthorizationServerOrigins: secret.approvedAuthorizationServerOrigins,
                     configuredClientInformation: secret.configuredClientInformation,
-                    headers: secret.headers,
+                    // A bearer-token preset's token is its account, so it goes too.
+                    headers: isMcpBearerTokenPreset(connection.preset) ? {} : secret.headers,
                     oauthScopes: secret.oauthScopes,
                 } as unknown as Record<string, unknown>,
                 updatedAt: new Date(),
@@ -135,13 +138,21 @@ export async function disconnectMcpConnection(
             .where(eq(mcpSecretsTable.connectionId, input.connectionId));
         await tx
             .update(mcpConnectionsTable)
-            .set({ accountLabel: null, connected: false, icon: null, summary: null, tools: [] })
+            .set({
+                accountLabel: null,
+                connected: false,
+                headerNames,
+                icon: null,
+                summary: null,
+                tools: [],
+            })
             .where(eq(mcpConnectionsTable.id, input.connectionId));
     });
     return shapeMcpConnection({
         ...connection,
         accountLabel: null,
         connected: false,
+        headerNames,
         tools: [],
     });
 }
@@ -180,27 +191,41 @@ export async function replaceMcpHeaders(
     if (connection.auth !== 'headers') {
         throw new McpDeniedError('This MCP connection does not use header credentials.');
     }
-    await runtime.closeConnection(input.connectionId);
-    const secret = await runtime.readSecret(input.connectionId);
-    await runtime.writeSecret(input.connectionId, { ...secret, headers: input.headers });
+    if (isMcpBearerTokenPreset(connection.preset)) {
+        throw new McpDeniedError("Replace this connection's token instead of its headers.");
+    }
+    return await saveMcpHeaders(db, runtime, resolveIcon, connection, input.headers);
+}
+
+/** Swaps a header connection's secret headers, clears its Agent access, and rediscovers. */
+export async function saveMcpHeaders(
+    db: HausDatabase,
+    runtime: McpRuntime,
+    resolveIcon: McpIconResolver,
+    connection: typeof mcpConnectionsTable.$inferSelect,
+    headers: Record<string, string>
+): Promise<McpConnection> {
+    await runtime.closeConnection(connection.id);
+    const secret = await runtime.readSecret(connection.id);
+    await runtime.writeSecret(connection.id, { ...secret, headers });
     const updated = await db
         .update(mcpConnectionsTable)
         .set({
             accountLabel: null,
             connected: false,
-            headerNames: Object.keys(input.headers).sort(),
+            headerNames: Object.keys(headers).sort(),
             tools: [],
         })
-        .where(eq(mcpConnectionsTable.id, input.connectionId))
+        .where(eq(mcpConnectionsTable.id, connection.id))
         .returning();
     await db
         .delete(agentMcpConnectionGrantsTable)
-        .where(eq(agentMcpConnectionGrantsTable.connectionId, input.connectionId));
+        .where(eq(agentMcpConnectionGrantsTable.connectionId, connection.id));
     const row = updated[0];
     if (!row) {
         throw new Error('MCP headers were not saved.');
     }
-    return Object.keys(input.headers).length > 0
+    return Object.keys(headers).length > 0
         ? shapeMcpConnection(await refreshInventory(db, runtime, resolveIcon, row))
         : shapeMcpConnection(row);
 }
@@ -256,45 +281,4 @@ async function refreshInventory(
         throw new Error('MCP inventory was not saved.');
     }
     return updated;
-}
-
-async function requireAdmin(
-    db: HausDatabase,
-    member: HausUser | null,
-    serverId: string,
-    action: string
-) {
-    const access = await requireServerMembership(db, member, serverId);
-    if (!member || (access.role !== 'owner' && access.role !== 'admin')) {
-        throw new McpDeniedError(`Only a Server Owner or Admin can ${action}.`);
-    }
-}
-
-async function requireConnection(
-    db: HausDatabase,
-    input: { connectionId: string; serverId: string }
-) {
-    const [row] = await db
-        .select()
-        .from(mcpConnectionsTable)
-        .where(
-            and(
-                eq(mcpConnectionsTable.serverId, input.serverId),
-                eq(mcpConnectionsTable.id, input.connectionId)
-            )
-        )
-        .limit(1);
-    if (!row) {
-        throw new McpDeniedError('The MCP connection was not found.');
-    }
-    return row;
-}
-
-async function requireOperableConnection(
-    db: HausDatabase,
-    member: HausUser | null,
-    input: { connectionId: string; serverId: string }
-) {
-    await requireAdmin(db, member, input.serverId, 'change a connection');
-    return await requireConnection(db, input);
 }

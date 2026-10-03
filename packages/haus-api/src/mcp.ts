@@ -7,7 +7,26 @@ const mcpConnectionIdSchema = z
     .string()
     .regex(/^mcp_[A-Za-z0-9_-]{16}$/u, 'Invalid MCP connection id.');
 const toolNameSchema = z.string().trim().min(1).max(200);
-export const mcpPresetSchema = z.enum(['google-calendar', 'merchbase', 'rankwrangler']);
+
+/**
+ * A preset's auth kind is fixed by which list it is in. OAuth presets sign in
+ * through MCP OAuth discovery; bearer-token presets take a static token the
+ * Server Owner pastes, which Server stores as an `Authorization` header secret.
+ */
+export const mcpOAuthPresetSchema = z.enum(['google-calendar', 'merchbase', 'rankwrangler']);
+export const mcpBearerTokenPresetSchema = z.enum(['x']);
+export const mcpPresetSchema = z.enum([
+    ...mcpOAuthPresetSchema.options,
+    ...mcpBearerTokenPresetSchema.options,
+]);
+
+/** Printable ASCII with no spaces: a header value that cannot smuggle a line break. */
+export const mcpBearerTokenSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(4000)
+    .regex(/^[\x21-\x7E]+$/u, 'Paste the token alone, without spaces or a "Bearer" prefix.');
 
 export const mcpGrantSchema = z
     .object({
@@ -132,13 +151,18 @@ export const mcpConnectionCreateSchema = z
         }
     });
 
-export const mcpPresetAccountCreateSchema = z
-    .object({
-        name: z.string().trim().min(1).max(100),
-        preset: mcpPresetSchema,
-        serverId: idSchema,
-    })
-    .strict();
+const presetAccountBaseSchema = z.object({
+    name: z.string().trim().min(1).max(100),
+    serverId: idSchema,
+});
+
+/** An OAuth preset cannot carry a token; a bearer-token preset cannot omit one. */
+export const mcpPresetAccountCreateSchema = z.discriminatedUnion('preset', [
+    presetAccountBaseSchema.extend({ preset: mcpOAuthPresetSchema }).strict(),
+    presetAccountBaseSchema
+        .extend({ bearerToken: mcpBearerTokenSchema, preset: mcpBearerTokenPresetSchema })
+        .strict(),
+]);
 
 export const mcpOAuthStartSchema = z
     .object({
@@ -175,6 +199,10 @@ export const mcpHeadersUpdateSchema = mcpConnectionInputSchema
     })
     .strict();
 
+export const mcpBearerTokenUpdateSchema = mcpConnectionInputSchema
+    .extend({ bearerToken: mcpBearerTokenSchema })
+    .strict();
+
 export const mcpGrantInputSchema = mcpGrantSchema.extend({
     enabled: z.boolean(),
     serverId: idSchema,
@@ -185,8 +213,15 @@ export type McpConnectionCreate = z.infer<typeof mcpConnectionCreateSchema>;
 export type McpGrant = z.infer<typeof mcpGrantSchema>;
 export type McpOAuthStart = z.infer<typeof mcpOAuthStartSchema>;
 export type McpOAuthStartResult = z.infer<typeof mcpOAuthStartResultSchema>;
+export type McpBearerTokenPreset = z.infer<typeof mcpBearerTokenPresetSchema>;
+export type McpBearerTokenUpdate = z.infer<typeof mcpBearerTokenUpdateSchema>;
+export type McpOAuthPreset = z.infer<typeof mcpOAuthPresetSchema>;
 export type McpPreset = z.infer<typeof mcpPresetSchema>;
 export type McpPresetAccountCreate = z.infer<typeof mcpPresetAccountCreateSchema>;
+
+export function isMcpBearerTokenPreset(preset: McpPreset | null): preset is McpBearerTokenPreset {
+    return mcpBearerTokenPresetSchema.safeParse(preset).success;
+}
 
 /** Agent-scoped catalog and invocation contracts; credentials stay on Server. */
 export const agentMcpToolSchema = z.object({

@@ -1,4 +1,5 @@
 import {
+    mcpBearerTokenUpdateSchema,
     mcpConnectionCreateSchema,
     mcpConnectionInputSchema,
     mcpConnectionListInputSchema,
@@ -13,7 +14,7 @@ import {
 } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import { McpDeniedError } from '../../server-mcp/errors.ts';
-import { createMcpPresetAccount } from '../../server-mcp/presets.ts';
+import { createMcpPresetAccount, replaceMcpPresetToken } from '../../server-mcp/presets.ts';
 import {
     createMcpConnection,
     deleteMcpConnection,
@@ -111,6 +112,20 @@ export const mcpRouter = createRouter({
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
                 replaceMcpHeaders(
+                    ctx.hausDb,
+                    ctx.mcpRuntime,
+                    ctx.mcpIconResolver,
+                    ctx.member,
+                    input
+                )
+            )
+        ),
+    replacePresetToken: guarded
+        .input(mcpBearerTokenUpdateSchema)
+        .output(mcpConnectionSchema)
+        .mutation(({ ctx, input }) =>
+            withMcpUpdate(input.serverId, () =>
+                replaceMcpPresetToken(
                     ctx.hausDb,
                     ctx.mcpRuntime,
                     ctx.mcpIconResolver,

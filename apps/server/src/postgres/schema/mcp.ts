@@ -1,4 +1,4 @@
-import type { McpIcon } from '@haus/api';
+import type { McpIcon, McpPreset } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,
@@ -25,7 +25,7 @@ export const mcpConnectionsTable = pgTable(
         icon: bunJsonb('icon').$type<McpIcon | null>(),
         id: text('id').primaryKey(),
         name: text('name').notNull(),
-        preset: text('preset').$type<'google-calendar' | 'merchbase' | 'rankwrangler' | null>(),
+        preset: text('preset').$type<McpPreset | null>(),
         summary: text('summary'),
         serverId: text('server_id')
             .notNull()
@@ -39,7 +39,7 @@ export const mcpConnectionsTable = pgTable(
         check('mcp_connections_auth', sql`${table.auth} in ('none', 'headers', 'oauth')`),
         check(
             'mcp_connections_preset',
-            sql`${table.preset} is null or ${table.preset} in ('google-calendar', 'merchbase', 'rankwrangler')`
+            sql`${table.preset} is null or ${table.preset} in ('google-calendar', 'merchbase', 'rankwrangler', 'x')`
         ),
     ]
 );

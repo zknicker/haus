@@ -3,7 +3,12 @@ import * as z from 'zod';
 export const agentRuntimeMcpConnectionIdSchema = z.string().trim().min(1).max(100);
 export const agentRuntimeMcpTransportSchema = z.enum(['http', 'stdio']);
 export const agentRuntimeMcpAuthSchema = z.enum(['none', 'headers', 'oauth']);
-export const agentRuntimeMcpPresetSchema = z.enum(['google-calendar', 'merchbase', 'rankwrangler']);
+export const agentRuntimeMcpPresetSchema = z.enum([
+    'google-calendar',
+    'merchbase',
+    'rankwrangler',
+    'x',
+]);
 
 export const agentRuntimeMcpToolSchema = z.object({
     annotations: z.record(z.string(), z.unknown()).optional(),
