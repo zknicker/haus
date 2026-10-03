@@ -1,3 +1,4 @@
+import { parseChatThreadReferenceTarget } from '@haus/api';
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     ChromeIcon,
@@ -11,12 +12,15 @@ import {
     PlugIcon,
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
-import { GitPullRequestIcon, Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import {
+    GitPullRequestIcon,
+    Globe02Icon,
+    MessageMultiple02Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import { formatSkillName } from '../skills/skill-name-format.ts';
 import { AiSparklesIcon } from './ai-sparkles-icon.ts';
 import type { ReferenceKind } from './mention-types.ts';
 
@@ -31,6 +35,7 @@ const mentionIconKeys = [
     'plugin',
     'pull-request',
     'skill',
+    'thread',
     'unknown',
     'user',
     'website',
@@ -112,18 +117,16 @@ const mentionIconMap = {
     plugin: PlugIcon,
     'pull-request': GitPullRequestIcon,
     skill: AiSparklesIcon,
+    thread: MessageMultiple02Icon,
     unknown: MagicWand01Icon,
     user: UserIcon,
     website: Globe02Icon,
 } satisfies Record<MentionIconKey, IconSvgElement>;
 
 export function getMentionAppearance(input: MentionAppearanceInput): MentionAppearance {
-    const base = defaultMentionAppearance[input.kind];
-    const override = getMentionAppearanceOverride(input);
-
     return {
-        ...base,
-        ...override,
+        ...defaultMentionAppearance[input.kind],
+        ...getMentionAppearanceOverride(input),
     };
 }
 
@@ -181,15 +184,6 @@ export function MentionAppearanceIcon({
     return <Icon className={className} icon={mentionIconMap[icon]} />;
 }
 
-export function getMentionDisplayLabel(input: MentionAppearanceInput) {
-    const appearanceLabel = getMentionAppearance(input).label;
-    if (appearanceLabel) {
-        return appearanceLabel;
-    }
-
-    return input.kind === 'skill' ? formatSkillName(input.label) : input.label;
-}
-
 function getMentionAppearanceOverride(input: MentionAppearanceInput) {
     const metadataIconDataUrl = readString(input.metadata?.iconDataUrl);
 
@@ -202,6 +196,12 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
     }
 
     if (input.kind === 'chat') {
+        if (parseChatThreadReferenceTarget(input.id)) {
+            return {
+                icon: 'thread',
+                channelAppearance: undefined,
+            } satisfies MentionAppearanceOverride;
+        }
         return {
             channelAppearance: {
                 color: readString(input.metadata?.chatColor),

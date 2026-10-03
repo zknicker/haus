@@ -1,8 +1,7 @@
 import type { ChatMessage, ThreadSummary } from '@haus/api';
-import { hausTrpc } from '../../lib/haus-server.tsx';
-import { queryPolicy } from '../../lib/query-policy.ts';
 import { useChat } from '../servers/use-chat.ts';
 import { useChatMessages } from '../servers/use-chat-messages.ts';
+import { useThreadAnchorMessage } from './use-thread-anchor-message.ts';
 
 export interface ThreadAnchor {
     anchor: ChatMessage | undefined;
@@ -26,16 +25,16 @@ export function useThreadAnchor(
     const chat = useChat(serverId, chatId);
     const parent = useChatMessages(serverId, chatId);
     const loaded = parent.data?.messages.find((message) => message.id === anchorMessageId);
-    const around = hausTrpc.chat.messages.useQuery(
-        { aroundMessageId: anchorMessageId, chatId, limit: 1, serverId },
-        { ...queryPolicy.syncedSnapshot, enabled: parent.data !== undefined && !loaded }
+    const around = useThreadAnchorMessage(
+        serverId,
+        chatId,
+        parent.data !== undefined && !loaded ? anchorMessageId : null
     );
-    const fetched = around.data?.messages.find((message) => message.id === anchorMessageId);
     const summary =
         [...(parent.data?.threads ?? []), ...(around.data?.threads ?? [])].find(
             (thread) => thread.anchorMessageId === anchorMessageId
         ) ?? null;
     const missing =
         chat.error?.data?.code === 'NOT_FOUND' || around.error?.data?.code === 'NOT_FOUND';
-    return { anchor: loaded ?? fetched, chat: chat.data, missing, summary };
+    return { anchor: loaded ?? around.anchor, chat: chat.data, missing, summary };
 }

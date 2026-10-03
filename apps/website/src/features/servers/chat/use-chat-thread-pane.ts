@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { setChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { usePendingMessageReveal } from '../../../hooks/servers/use-pending-message-reveal.ts';
 import { type OpenThread, useOpenThread } from '../../../hooks/threads/use-open-thread.ts';
+import { useThreadAnchorMessage } from '../../../hooks/threads/use-thread-anchor-message.ts';
 import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-selection.ts';
 
 /**
@@ -15,11 +16,13 @@ import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-
  */
 export function useChatThreadPane({
     chatId,
+    serverId,
     initialTask,
     revealMessage,
     transcriptMessages,
 }: {
     chatId: string;
+    serverId: string;
     initialTask: ChatInitialTask | undefined;
     revealMessage: (target: { id: string; sequence: number }) => void;
     transcriptMessages: ChatMessage[] | undefined;
@@ -49,6 +52,16 @@ export function useChatThreadPane({
         [selection, transcriptMessages]
     );
     const threadAnchorId = openThreadTab ? null : searchParams.get('thread');
+    const loadedAnchor = transcriptMessages?.find((message) => message.id === threadAnchorId);
+    const linkedAnchor = useThreadAnchorMessage(
+        serverId,
+        chatId,
+        transcriptMessages && !loadedAnchor ? threadAnchorId : null
+    );
+    const restoredAnchor = loadedAnchor ?? linkedAnchor.anchor;
+    const linkedSummary =
+        linkedAnchor.data?.threads.find((summary) => summary.anchorMessageId === threadAnchorId) ??
+        null;
     const closeRequestedRef = React.useRef(false);
     const restoredAnchorRef = React.useRef<string | null>(null);
     React.useEffect(() => {
@@ -59,7 +72,7 @@ export function useChatThreadPane({
         if (!transcriptMessages || restoredAnchorRef.current === threadAnchorId) {
             return;
         }
-        const restored = transcriptMessages.find((message) => message.id === threadAnchorId);
+        const restored = restoredAnchor;
         if (!restored) {
             return;
         }
@@ -67,9 +80,17 @@ export function useChatThreadPane({
         if (selection?.anchor.id === restored.id) {
             return;
         }
-        setSelection({ anchor: restored, initialSummary: null });
+        setSelection({ anchor: restored, initialSummary: linkedSummary });
         setChatSidePane(chatId, 'thread');
-    }, [chatId, selection?.anchor.id, setSelection, threadAnchorId, transcriptMessages]);
+    }, [
+        chatId,
+        linkedSummary,
+        restoredAnchor,
+        selection?.anchor.id,
+        setSelection,
+        threadAnchorId,
+        transcriptMessages,
+    ]);
     const close = React.useCallback(() => {
         closeRequestedRef.current = true;
         setSearchParams(

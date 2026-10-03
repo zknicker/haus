@@ -74,7 +74,7 @@ export function ReferencePreviewText({
     return (
         <p
             className={cn(
-                'text-xs leading-normal',
+                'text-sm leading-normal',
                 tone === 'muted' ? 'text-muted' : 'text-foreground',
                 className
             )}

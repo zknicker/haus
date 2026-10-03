@@ -1,11 +1,8 @@
 import { Spinner } from '@heroui/react';
 import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
-import {
-    getMentionAppearance,
-    getMentionDisplayLabel,
-    MentionAppearanceIcon,
-} from './mention-appearance.tsx';
+import { getMentionAppearance, MentionAppearanceIcon } from './mention-appearance.tsx';
+import { getMentionDisplayLabel } from './mention-display-label.ts';
 import type { MentionOption } from './mention-types.ts';
 
 export function MentionPicker({

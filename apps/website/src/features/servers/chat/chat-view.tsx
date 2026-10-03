@@ -68,6 +68,7 @@ export function ChatView({
     );
     const thread = useChatThreadPane({
         chatId: chat.id,
+        serverId: chat.serverId,
         initialTask,
         revealMessage,
         transcriptMessages,

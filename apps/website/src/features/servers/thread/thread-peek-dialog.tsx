@@ -1,15 +1,8 @@
-import {
-    type Chat,
-    type ChatMessage,
-    parseAgentReferenceTarget,
-    parseChatReferenceTarget,
-    type ThreadSummary,
-} from '@haus/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@haus/api';
 import { Modal } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
-import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { getTurnDetailAccess } from '../../members/agent-profile/agent-activity-model.ts';
-import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
+import { useChatReferenceActivation } from '../chat/use-chat-reference-activation.ts';
 import { useServerContext } from '../server-context.ts';
 import { serverChatRoute } from '../server-routes.ts';
 import { ThreadContent } from './thread-content.tsx';
@@ -39,32 +32,12 @@ export function ThreadPeekDialog({
 }) {
     const navigate = useNavigate();
     const { server } = useServerContext();
-    const openAgentProfile = useOpenAgentProfile();
+    const activateReference = useChatReferenceActivation((chatId) =>
+        navigate(serverChatRoute(server.slug, chatId))
+    );
     const openParentChat = () => {
         onClose();
         navigate(serverChatRoute(server.slug, chat.id));
-    };
-    const onReferenceActivate = (reference: ReferenceActivationTarget) => {
-        if (reference.kind === 'agent') {
-            const agentId = parseAgentReferenceTarget(reference.id);
-            if (!agentId) {
-                return;
-            }
-
-            onClose();
-            openAgentProfile(agentId);
-            return;
-        }
-
-        if (reference.kind === 'chat') {
-            const chatId = parseChatReferenceTarget(reference.id);
-            if (!chatId) {
-                return;
-            }
-
-            onClose();
-            navigate(serverChatRoute(server.slug, chatId));
-        }
     };
     const readOnly = (chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null;
 
@@ -96,7 +69,10 @@ export function ThreadPeekDialog({
                         key={anchor.id}
                         onClose={onClose}
                         onOpenArtifact={openParentChat}
-                        onReferenceActivate={onReferenceActivate}
+                        onReferenceActivate={(reference) => {
+                            onClose();
+                            activateReference(reference);
+                        }}
                         onViewInChannel={openParentChat}
                         readOnly={readOnly}
                         summary={summary}
