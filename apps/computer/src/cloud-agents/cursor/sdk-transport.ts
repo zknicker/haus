@@ -3,6 +3,7 @@ import { streamCursorRun } from './sdk-stream.ts';
 import {
     type CursorAuth,
     type CursorLaunchReading,
+    type CursorModelListing,
     type CursorRunAddress,
     type CursorRunEvent,
     type CursorRunReading,
@@ -15,7 +16,7 @@ import {
 
 interface CursorSdk {
     Agent: typeof CursorAgentApi;
-    Cursor: Pick<typeof CursorApi, 'auth'>;
+    Cursor: Pick<typeof CursorApi, 'auth' | 'models'>;
 }
 
 /**
@@ -86,6 +87,15 @@ export function createCursorSdkTransport(
                 expiresAt: new Date(result.apiKeyExpiresAtMs).toISOString(),
             };
         },
+        async listModels(): Promise<CursorModelListing[]> {
+            const { Cursor } = await load();
+            const models = await Cursor.models.list();
+            return models.map((model) => ({
+                description: model.description?.trim() || null,
+                displayName: model.displayName,
+                id: model.id,
+            }));
+        },
         async logout(): Promise<void> {
             const { Cursor } = await load();
             await Cursor.auth.logout();
@@ -146,11 +156,13 @@ export function createCursorSdkTransport(
 
 async function sendWithHandle(
     agent: Awaited<ReturnType<typeof CursorAgentApi.resume>>,
-    input: Pick<CursorSendInput, 'instructions' | 'idempotencyKey'>
+    input: Pick<CursorSendInput, 'instructions' | 'idempotencyKey' | 'model'>
 ): Promise<CursorLaunchReading> {
     try {
+        // No model means Cursor's own Auto; Haus never sends a placeholder id.
         const run = await agent.send(input.instructions, {
             idempotencyKey: input.idempotencyKey,
+            ...(input.model ? { model: { id: input.model } } : {}),
         });
         return {
             agentId: agent.agentId,

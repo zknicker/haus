@@ -39,6 +39,7 @@ export class CloudAgentSendQueue {
                         self.provider().send({
                             idempotencyKey: ref.runId,
                             instructions: record.instructions,
+                            model: record.model,
                             providerAgentId: record.providerAgentId,
                         })
                     );

@@ -1,6 +1,7 @@
 import type {
     CursorAuth,
     CursorLaunchReading,
+    CursorModelListing,
     CursorRunAddress,
     CursorRunEvent,
     CursorRunReading,
@@ -25,6 +26,8 @@ export interface RecordedCursorTransport extends CursorTransport {
 
 export interface RecordedCursorTransportOptions {
     auth?: CursorAuth;
+    models?: CursorModelListing[];
+    modelsFailure?: Error;
     /** Replayed in order; the last one repeats once the script runs out. */
     reads?: CursorRunReading[];
     sendFailure?: Error;
@@ -61,6 +64,13 @@ export function createRecordedCursorTransport(
             auth = recordedAuth.connected;
             return Promise.resolve(auth);
         },
+        listModels() {
+            requests.push('listModels');
+            if (options.modelsFailure) {
+                return Promise.reject(options.modelsFailure);
+            }
+            return Promise.resolve(options.models ?? recordedModels);
+        },
         logout() {
             requests.push('logout');
             auth = { connected: false, reason: 'not-connected' };
@@ -73,7 +83,9 @@ export function createRecordedCursorTransport(
         },
         requests,
         send(input: CursorSendInput) {
-            requests.push(`send ${input.agentId} ${input.idempotencyKey}`);
+            requests.push(
+                `send ${input.agentId} ${input.idempotencyKey} model=${input.model ?? 'auto'}`
+            );
             if (options.sendFailure) {
                 return Promise.reject(options.sendFailure);
             }
@@ -86,7 +98,7 @@ export function createRecordedCursorTransport(
         },
         start(input: CursorStartInput) {
             requests.push(
-                `start ${input.repository}@${input.ref ?? 'default'} ${input.idempotencyKey}`
+                `start ${input.repository}@${input.ref ?? 'default'} ${input.idempotencyKey} model=${input.model ?? 'auto'}`
             );
             if (options.startFailure) {
                 return Promise.reject(options.startFailure);
@@ -139,6 +151,12 @@ export const recordedAuth = {
     expired: { connected: false, reason: 'expired' },
     loggedOut: { connected: false, reason: 'not-connected' },
 } satisfies Record<string, CursorAuth>;
+
+/** Recorded from `Cursor.models.list()`; the cheapest tier is gpt-5.4-nano. */
+export const recordedModels: CursorModelListing[] = [
+    { description: null, displayName: 'GPT-5.4 Nano', id: 'gpt-5.4-nano' },
+    { description: 'Frontier reasoning', displayName: 'Claude Opus', id: 'claude-opus' },
+];
 
 export const recordedAgentId = 'bc-9f2c1d4e';
 export const recordedRunId = 'run-7a6b5c4d';

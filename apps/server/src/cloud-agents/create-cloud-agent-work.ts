@@ -19,6 +19,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { insertCloudAgentWorkEvent } from './cloud-agent-events.ts';
+import { resolveRunModel } from './cloud-agent-model.ts';
 import { findCloudAgentWorkByMessage } from './cloud-agent-shape.ts';
 import { CloudAgentAgentNotFoundError, CloudAgentWorkConflictError } from './errors.ts';
 
@@ -85,8 +86,11 @@ export async function createCloudAgentWork(
             title: input.title,
         });
         const runId = createOpaqueId('car');
+        const model = await resolveRunModel(tx, { computerId, serverId: runner.serverId });
         await tx.insert(cloudAgentRunsTable).values({
             id: runId,
+            modelFallbackFrom: model.fallbackFrom,
+            modelId: model.id,
             serverId: runner.serverId,
             workId,
         });

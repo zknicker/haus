@@ -273,3 +273,21 @@ test('a replayed rejection settles the same work without another provider launch
     expect(provider.launches).toHaveLength(0);
     expect(observations.map((entry) => entry.status)).toEqual(['failed', 'failed']);
 });
+
+test('a launch sends the model Server resolved onto the Run', async () => {
+    const provider = install(createFakeCloudAgentProvider());
+    const model = { fallbackFrom: null, id: 'gpt-5.4-nano' };
+    const run = { branches: [], errorCode: null, model, providerRunId: null, rawStatus: null };
+    const settled = { startedAt: null, summary: null, terminalAt: null, usage: null };
+    const runs = [{ ...run, ...settled, runId, status: 'queued' }];
+    stubServer({ ...receipt, work: { ...receipt.work, runs } });
+    await startCloudAgentWork({
+        dataRoot,
+        supervisor,
+        request,
+        runnerToken: 'grtr_x',
+        serverId,
+        serverOrigin,
+    });
+    expect(provider.launches[0]?.model).toBe('gpt-5.4-nano');
+});

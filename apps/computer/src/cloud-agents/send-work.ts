@@ -37,10 +37,10 @@ export async function sendCloudAgentWork(input: {
     if (!providerAgentId) {
         throw new Error('Cloud Agent identity is not confirmed yet. Inspect it before sending.');
     }
+    const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
     const ref = {
         providerAgentId,
-        providerRunId:
-            receipt.work.runs.find((run) => run.runId === receipt.runId)?.providerRunId ?? null,
+        providerRunId: run?.providerRunId ?? null,
         runId: receipt.runId,
         workId: receipt.work.id,
     };
@@ -50,6 +50,7 @@ export async function sendCloudAgentWork(input: {
         workId: ref.workId,
         instructions,
         interrupt,
+        model: run?.model.id ?? null,
         providerAgentId,
         predecessors: receipt.predecessors,
     });

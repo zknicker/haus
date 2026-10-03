@@ -66,6 +66,8 @@ export interface CursorStartInput {
     /** Haus's own Run id, handed to Cursor as its Agent and Send idempotency key. */
     idempotencyKey: string;
     instructions: string;
+    /** The Cursor model id to send, or `null` to send none and let Cursor's Auto pick. */
+    model: string | null;
     ref: string | null;
     /** `owner/name`, as Haus records it. The transport builds the clone URL. */
     repository: string;
@@ -76,6 +78,15 @@ export interface CursorSendInput {
     agentId: string;
     idempotencyKey: string;
     instructions: string;
+    /** The Cursor model id to send, or `null` to send none and let Cursor's Auto pick. */
+    model: string | null;
+}
+
+/** One entry of Cursor's model catalog for the connected account. */
+export interface CursorModelListing {
+    description: string | null;
+    displayName: string;
+    id: string;
 }
 
 /** What a Cursor credential resolves to, without ever carrying the key. */
@@ -107,6 +118,8 @@ export function isTerminalCursorRunStatus(status: CursorRunStatus): boolean {
 export interface CursorTransport {
     authStatus(): Promise<CursorAuth>;
     cancelRun(address: CursorRunAddress, signal?: AbortSignal): Promise<void>;
+    /** Cursor's model catalog for the connected account. */
+    listModels(): Promise<CursorModelListing[]>;
     /** Cursor's browser sign-in. Only a human action in settings reaches this. */
     login(options: {
         onLoginUrl?: (url: string) => void;

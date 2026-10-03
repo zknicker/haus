@@ -1,6 +1,7 @@
 import type { CloudAgentCapabilityState, CloudAgentProviderReadiness } from '@haus/api';
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import { createCursorSdkTransport } from './cursor/sdk-transport.ts';
+import { readCloudAgentModelCatalog } from './model-catalog.ts';
 import type { CloudAgentProvider, CloudAgentReadiness } from './provider.ts';
 
 /**
@@ -30,13 +31,15 @@ export function setCloudAgentProvider(provider: CloudAgentProvider): () => void 
  * separately from the runtime harnesses even when a provider shares a vendor
  * with one, because the two use different credential stores. It is read fresh
  * on every Computer report, so a credential that appears between reports shows
- * up on the next one.
+ * up on the next one. The provider's model catalog rides the same line; it is
+ * cached per account and read from the provider at most daily.
  */
 export async function detectCloudAgentProviders(): Promise<CloudAgentProviderReadiness[]> {
     const provider = cloudAgentProvider();
     const readiness = await readCloudAgentReadiness(provider);
     return [
         {
+            models: await readCloudAgentModelCatalog(provider, readiness),
             provider: provider.provider,
             ready: readiness.ready,
             reason: readiness.ready ? null : readiness.reason,

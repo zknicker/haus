@@ -131,6 +131,10 @@ export const cloudAgentRunsTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         errorCode: text('error_code'),
         id: text('id').primaryKey(),
+        /** The saved model this Run could not send, so it fell back to Auto. */
+        modelFallbackFrom: text('model_fallback_from'),
+        /** The model sent to the provider; `null` sent none, so the provider's Auto chose. */
+        modelId: text('model_id'),
         /** The Computer's newest applied observation, so a stale one is a no-op. */
         observedAt: timestamp('observed_at', { withTimezone: true }),
         providerRunId: text('provider_run_id'),
@@ -153,6 +157,10 @@ export const cloudAgentRunsTable = pgTable(
         }).onDelete('cascade'),
         check('cloud_agent_runs_id_shape', sql`${table.id} ~ '^car_[A-Za-z0-9_-]{16}$'`),
         check('cloud_agent_runs_status', sql.raw(`"cloud_agent_runs"."status" in ${statuses}`)),
+        check(
+            'cloud_agent_runs_model_shape',
+            sql`num_nonnulls(${table.modelId}, ${table.modelFallbackFrom}) <= 1`
+        ),
         check(
             'cloud_agent_runs_terminal_shape',
             sql.raw(

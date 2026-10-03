@@ -38,6 +38,10 @@ async function fixture(interrupt = false) {
     provider.send = async (input) => {
         sent.push(input.instructions);
         expect(input.providerAgentId).toBe('bc_same');
+        // The fixture's own pending send carries the model Server resolved for its Run.
+        expect(input.model).toBe(
+            input.instructions === 'Revise the same code' ? 'gpt-5.4-nano' : null
+        );
         return {
             providerAgentId: 'bc_same',
             providerRunId: `r_${input.idempotencyKey}`,
@@ -49,6 +53,7 @@ async function fixture(interrupt = false) {
         phase: 'pending',
         workId: 'work',
         providerAgentId: 'bc_same',
+        model: 'gpt-5.4-nano',
         instructions: 'Revise the same code',
         interrupt,
         predecessors: [prior],
@@ -121,6 +126,7 @@ test('multiple pending prompts preserve order', async () => {
         phase: 'pending',
         workId: 'work',
         providerAgentId: 'bc_same',
+        model: null,
         instructions: 'Last correction',
         interrupt: false,
         predecessors: [prior, next],
@@ -140,6 +146,7 @@ test('interrupt discards older queued prompts before sending the replacement', a
         phase: 'pending',
         workId: 'work',
         providerAgentId: 'bc_same',
+        model: null,
         instructions: 'Replacement',
         interrupt: true,
         predecessors: [prior, next],

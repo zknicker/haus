@@ -16,6 +16,7 @@ export const work = {
         {
             branches: [],
             errorCode: null,
+            model: { fallbackFrom: null, id: null },
             providerRunId: 'run_abc',
             rawStatus: 'RUNNING',
             runId: 'car_1234567890abcdef',

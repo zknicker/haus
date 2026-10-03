@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { cloudAgentRunModelSchema } from './cloud-agent-model.ts';
 
 const cloudAgentIdSchema = z.string().trim().min(1);
 const cloudAgentTimestampSchema = z.iso.datetime({ offset: true });
@@ -146,6 +147,7 @@ export const cloudAgentRunSchema = z
     .object({
         branches: z.array(cloudAgentBranchSchema).max(50),
         errorCode: z.string().trim().min(1).max(120).nullable(),
+        model: cloudAgentRunModelSchema,
         providerRunId: z.string().trim().min(1).max(200).nullable(),
         rawStatus: z.string().trim().min(1).max(120).nullable(),
         runId: cloudAgentIdSchema,

@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
+import { cloudAgentModelCatalogSchema } from './cloud-agent-model.ts';
 import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './cloud-agent-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -90,10 +91,14 @@ export type ImportableSkill = z.infer<typeof importableSkillSchema>;
 /**
  * One Cloud Agent provider this Computer can reach, and whether its credential
  * store currently resolves. Readiness is a Computer capability separate from
- * the runtime harness that happens to share a vendor.
+ * the runtime harness that happens to share a vendor. `models` is the newest
+ * model catalog the Computer read from the provider for the connected account;
+ * `null` (or absent, from an inventory stored before catalogs) means it has
+ * none: not connected, or never listed successfully.
  */
 export const cloudAgentProviderReadinessSchema = z
     .object({
+        models: cloudAgentModelCatalogSchema.nullable().default(null),
         provider: cloudAgentProviderSchema,
         ready: z.boolean(),
         reason: cloudAgentUnreadyReasonSchema.nullable(),

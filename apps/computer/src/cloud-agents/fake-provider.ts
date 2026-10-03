@@ -1,4 +1,4 @@
-import type { CloudAgentStatus } from '@haus/api';
+import type { CloudAgentModel, CloudAgentStatus } from '@haus/api';
 import type {
     CloudAgentLaunch,
     CloudAgentProvider,
@@ -20,6 +20,7 @@ export interface FakeCloudAgentProvider extends CloudAgentProvider {
 }
 
 export interface FakeCloudAgentProviderOptions {
+    models?: CloudAgentModel[];
     readiness?: CloudAgentReadiness;
     /** Scripted transitions, replayed in order by `advance`. */
     transitions?: CloudAgentProviderObservation[];
@@ -69,6 +70,9 @@ export function createFakeCloudAgentProvider(
             startFailure = message;
         },
         launches,
+        listModels() {
+            return Promise.resolve(options.models ?? []);
+        },
         provider: 'cursor',
         read(_ref: CloudAgentRunRef) {
             return Promise.resolve(latest);

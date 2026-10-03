@@ -52,6 +52,7 @@ import {
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
+import { startCloudAgentModelCatalogRefresh } from './cloud-agents/model-catalog.ts';
 import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { readComputerName } from './computer-name.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
@@ -910,6 +911,8 @@ async function connect(
     let detachSender: () => void = () => undefined;
     const sendFrame = (frame: unknown) => daemonWork.send(frame);
     const trackWriter = <Result>(operation: Promise<Result>) => daemonWork.track(operation);
+    const reportComputer = (recheckAuthentication = false) =>
+        sendComputerReport(sendFrame, attachment.serverId, computerName, recheckAuthentication);
     const startAgent = (command: AgentStartCommand) => {
         if (resettingAgents.has(command.agentId) || retiredAgents.has(command.agentId)) {
             return;
@@ -1115,6 +1118,9 @@ async function connect(
                             reportStateError
                         );
                     }
+                    startCloudAgentModelCatalogRefresh(connectionWork, () =>
+                        trackWriter(reportComputer())
+                    );
                     return;
                 }
                 if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
@@ -1128,8 +1134,7 @@ async function connect(
                     send: sendFrame,
                     track: trackWriter,
                     refreshUsage: () => sendUsageReport(sendFrame, 'refresh'),
-                    refreshReport: () =>
-                        sendComputerReport(sendFrame, attachment.serverId, computerName, true),
+                    refreshReport: () => reportComputer(true),
                 })
             ) {
                 return;
@@ -1204,9 +1209,7 @@ async function connect(
                                 serverId: attachment.serverId,
                             });
                         })
-                        .then(() =>
-                            sendComputerReport(sendFrame, attachment.serverId, computerName)
-                        )
+                        .then(() => reportComputer())
                         .catch(reportStateError)
                 );
                 return;
@@ -1250,9 +1253,7 @@ async function connect(
                                 serverId: attachment.serverId,
                             });
                         })
-                        .then(() =>
-                            sendComputerReport(sendFrame, attachment.serverId, computerName)
-                        )
+                        .then(() => reportComputer())
                         .catch(reportStateError)
                 );
                 return;
@@ -1274,11 +1275,7 @@ async function connect(
                             });
                             sendFrame(result);
                             if (result.status === 'applied') {
-                                await sendComputerReport(
-                                    sendFrame,
-                                    attachment.serverId,
-                                    computerName
-                                );
+                                await reportComputer();
                             }
                         })
                         .catch(reportStateError)
@@ -1294,8 +1291,7 @@ async function connect(
                 handleHostSkillFileRequest(frame, { send: sendFrame, track: trackWriter }) ||
                 handleAgentSkillFileRequest(frame, {
                     dataRoot,
-                    refreshReport: () =>
-                        sendComputerReport(sendFrame, attachment.serverId, computerName),
+                    refreshReport: () => reportComputer(),
                     send: sendFrame,
                     serverId: attachment.serverId,
                     track: trackWriter,
@@ -1370,9 +1366,7 @@ async function connect(
                                 },
                             });
                         })
-                        .then(() =>
-                            sendComputerReport(sendFrame, attachment.serverId, computerName)
-                        )
+                        .then(() => reportComputer())
                         .catch((error) => {
                             console.error(error instanceof Error ? error.message : error);
                         })

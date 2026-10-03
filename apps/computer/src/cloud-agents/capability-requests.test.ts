@@ -6,7 +6,11 @@ import {
     runCloudAgentCapabilityRequest,
 } from './capability-requests.ts';
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
-import { createRecordedCursorTransport, recordedAuth } from './cursor/recorded-transport.ts';
+import {
+    createRecordedCursorTransport,
+    recordedAuth,
+    recordedModels,
+} from './cursor/recorded-transport.ts';
 import { closeProviderSignIns } from './provider-sign-in.ts';
 import { setCloudAgentProvider } from './registry.ts';
 
@@ -90,11 +94,16 @@ test('a refused login answers with a retryable state, never raw authentication d
 test('the Computer inventory reports Cursor readiness truthfully', async () => {
     installDisconnectedCursor();
     expect((await detectFullInventory()).cloudAgentProviders).toEqual([
-        { provider: 'cursor', ready: false, reason: 'not-connected' },
+        { models: null, provider: 'cursor', ready: false, reason: 'not-connected' },
     ]);
 
     await runCloudAgentCapabilityRequest(request('connect'), runtime);
     expect((await detectFullInventory()).cloudAgentProviders).toEqual([
-        { provider: 'cursor', ready: true, reason: null },
+        {
+            models: { models: recordedModels, refreshedAt: expect.any(String) },
+            provider: 'cursor',
+            ready: true,
+            reason: null,
+        },
     ]);
 });

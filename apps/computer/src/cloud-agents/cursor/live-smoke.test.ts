@@ -29,6 +29,7 @@ test.skipIf(!enabled)(
             idempotencyKey: runId,
             instructions:
                 'Read the repository README and reply with one sentence describing what it is. Change no files and open no pull request.',
+            model: null,
             ref: null,
             repository,
             title: 'Haus live Cloud Agent smoke',

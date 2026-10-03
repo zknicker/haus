@@ -17,6 +17,7 @@ export function toCloudAgentRun(row: RunRow): CloudAgentRun {
     return cloudAgentRunSchema.parse({
         branches: row.branches,
         errorCode: row.errorCode,
+        model: { fallbackFrom: row.modelFallbackFrom, id: row.modelId },
         providerRunId: row.providerRunId,
         rawStatus: row.rawStatus,
         runId: row.id,

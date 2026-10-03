@@ -35,6 +35,9 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
             await run(() => transport.logout());
             return { ready: false as const, reason: 'not-connected' as const };
         },
+        listModels() {
+            return run(() => transport.listModels());
+        },
         provider: 'cursor',
         async read(
             ref: CloudAgentRunRef,
@@ -64,6 +67,7 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
                 agentId: input.providerAgentId,
                 idempotencyKey: input.idempotencyKey,
                 instructions: input.instructions,
+                model: input.model,
             });
             if (launch.agentId !== input.providerAgentId) {
                 throw new Error('Cursor follow-up returned a different provider Agent');
@@ -79,6 +83,7 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
             const launch = await transport.start({
                 idempotencyKey: input.idempotencyKey,
                 instructions: input.instructions,
+                model: input.model,
                 ref: input.ref,
                 repository: input.repository,
                 title: input.title,

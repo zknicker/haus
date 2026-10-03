@@ -65,6 +65,7 @@ test('a launch creates the provider Agent and returns its Run and page', async (
     const launch = await provider.start({
         idempotencyKey: 'car_1234567890abcdef',
         instructions: 'Reproduce the flake and open a pull request.',
+        model: 'gpt-5.4-nano',
         ref: 'main',
         repository: 'haus/haus',
         title: 'Fix the flaky delivery test',
@@ -76,7 +77,9 @@ test('a launch creates the provider Agent and returns its Run and page', async (
         providerUrl: `https://cursor.com/agents?id=${recordedAgentId}`,
         status: 'running',
     });
-    expect(transport.requests).toEqual(['start haus/haus@main car_1234567890abcdef']);
+    expect(transport.requests).toEqual([
+        'start haus/haus@main car_1234567890abcdef model=gpt-5.4-nano',
+    ]);
 });
 
 test('a provider refusal reaches the caller instead of settling the Run', async () => {
@@ -88,6 +91,7 @@ test('a provider refusal reaches the caller instead of settling the Run', async 
             provider.start({
                 idempotencyKey: 'car_1234567890abcdef',
                 instructions: 'Reproduce the flake.',
+                model: null,
                 ref: null,
                 repository: 'haus/haus',
                 title: 'Fix the flaky delivery test',

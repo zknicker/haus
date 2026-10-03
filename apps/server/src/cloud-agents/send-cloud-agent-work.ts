@@ -10,6 +10,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { emitWorkEvent } from './apply-cloud-agent-observation.ts';
+import { resolveRunModel } from './cloud-agent-model.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
 import { CloudAgentNotLaunchedError, CloudAgentWorkNotFoundError } from './errors.ts';
 import { listComputerCloudAgentWork } from './list-computer-cloud-agent-work.ts';
@@ -63,8 +64,14 @@ export async function sendCloudAgentWork(
             .limit(1);
         let event: ServerDurableEvent | null = null;
         if (!existing) {
+            const model = await resolveRunModel(tx, {
+                computerId: runner.computerId,
+                serverId: runner.serverId,
+            });
             await tx.insert(cloudAgentRunsTable).values({
                 id: runId,
+                modelFallbackFrom: model.fallbackFrom,
+                modelId: model.id,
                 serverId: runner.serverId,
                 workId: input.workId,
                 createdAt: sql`greatest(clock_timestamp(), (select max(created_at) + interval '1 millisecond' from cloud_agent_runs where server_id = ${runner.serverId} and work_id = ${input.workId}))`,

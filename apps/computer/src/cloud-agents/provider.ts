@@ -1,5 +1,6 @@
 import type {
     CloudAgentBranch,
+    CloudAgentModel,
     CloudAgentStatus,
     CloudAgentUnreadyReason,
     CloudAgentUsage,
@@ -24,6 +25,8 @@ export interface CloudAgentStartInput {
     idempotencyKey: string;
     /** The work the provider-hosted agent performs. It never reaches Server. */
     instructions: string;
+    /** The provider model id Server resolved for this Run; `null` sends none (Auto). */
+    model: string | null;
     ref: string | null;
     repository: string;
     title: string;
@@ -39,6 +42,8 @@ export interface CloudAgentLaunch {
 export interface CloudAgentSendInput {
     idempotencyKey: string;
     instructions: string;
+    /** The provider model id Server resolved for this Run; `null` sends none (Auto). */
+    model: string | null;
     providerAgentId: string;
 }
 
@@ -80,6 +85,8 @@ export interface CloudAgentProvider {
     }): Promise<CloudAgentReadiness>;
     /** Forgets the stored credential. The provider-side key stays revocable. */
     disconnect(): Promise<CloudAgentReadiness>;
+    /** The provider's model catalog for the connected account. */
+    listModels(): Promise<CloudAgentModel[]>;
     readonly provider: 'cursor';
     read(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<CloudAgentProviderObservation>;
     readiness(): Promise<CloudAgentReadiness>;
@@ -132,6 +139,8 @@ export function unavailableCloudAgentProvider(): CloudAgentProvider {
             Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         disconnect: () =>
             Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),
+        listModels: () =>
+            Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         provider: 'cursor',
         read: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         readiness: () => Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),

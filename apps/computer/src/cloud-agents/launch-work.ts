@@ -82,10 +82,10 @@ export async function startCloudAgentWork(input: {
     if (isTerminalCloudAgentStatus(receipt.work.status)) {
         return receipt;
     }
+    const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
     const ref: CloudAgentRunRef = {
         providerAgentId: receipt.work.providerAgentId,
-        providerRunId:
-            receipt.work.runs.find((run) => run.runId === receipt.runId)?.providerRunId ?? null,
+        providerRunId: run?.providerRunId ?? null,
         runId: receipt.runId,
         workId: receipt.work.id,
     };
@@ -138,6 +138,8 @@ export async function startCloudAgentWork(input: {
         launch = await provider.start({
             idempotencyKey: receipt.runId,
             instructions,
+            // Server resolved the Server's chosen model, or its Auto fallback, onto the Run.
+            model: run?.model.id ?? null,
             ref: receipt.work.startingRef,
             repository: receipt.work.repository,
             title: receipt.work.title,
