@@ -74,7 +74,7 @@ test('shutdown deadline still reaps sandbox owners and reports the incomplete ch
     );
     await runtime.runPromise(TestClock.adjust('20 seconds'));
     expect(await result).toBeInstanceOf(Error);
-    expect(String(await result)).toContain('timed out');
+    expect(String(await result)).toContain('timed out while draining accepted work');
     expect(reaped).toBe(true);
     expect(work.send({ type: 'late' })).toBe(false);
     await runtime.dispose();
