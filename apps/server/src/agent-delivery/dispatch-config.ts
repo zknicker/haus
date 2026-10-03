@@ -15,6 +15,8 @@ export interface AgentDispatchConfig {
     agentDescription: string | null;
     agentDisplayName: string;
     agentName: string;
+    /** Private; rides only the start frame into the Agent's own prompt. */
+    agentPersonality: string | null;
     brief: string | null;
     briefAuthorHandle: string | null;
     computerId: string | null;
@@ -40,6 +42,7 @@ export async function readAgentDispatchConfig(
             agentDescription: agentsTable.description,
             agentDisplayName: agentsTable.displayName,
             agentName: agentsTable.handle,
+            agentPersonality: agentsTable.personality,
             brief: agentsTable.brief,
             briefAuthorHandle: creator.handle,
             computerId: agentsTable.computerId,
@@ -147,4 +150,17 @@ export interface AgentConfigureRequest {
     modelId: string;
     reasoningEffort: AgentReasoningEffort;
     runtimeId: string;
+}
+
+/**
+ * The optional Agent facts a start frame carries into the Agent's own prompt. The personality
+ * rides here and nowhere else: never an inbox item, a configure frame, or another Agent's view.
+ */
+export function startPromptFacts(
+    config: Pick<AgentDispatchConfig, 'agentDescription' | 'agentPersonality'>
+): { agentDescription?: string; agentPersonality?: string } {
+    return {
+        ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
+        ...(config.agentPersonality ? { agentPersonality: config.agentPersonality } : {}),
+    };
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "agents" ADD COLUMN "personality" text;--> statement-breakpoint
+ALTER TABLE "agents" ADD CONSTRAINT "agents_personality_length" CHECK ("agents"."personality" is null or char_length("agents"."personality") between 1 and 2000);

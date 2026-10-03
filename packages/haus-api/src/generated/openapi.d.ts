@@ -1279,6 +1279,7 @@ export interface components {
         };
         AgentUpdateAgentRequest: {
             agent: string;
+            /** @description A changed description is capped at 280 characters; resending the stored value is accepted. */
             description: string;
         };
         AgentUpdateAgentResponse: {
@@ -1703,6 +1704,7 @@ export interface components {
             avatar: components["schemas"]["AgentGeneratedAvatar"];
         };
         AgentProfileUpdateRequest: {
+            /** @description A changed description is capped at 280 characters; resending the stored value is accepted. */
             description: string;
         };
         AgentReactionRequest: {

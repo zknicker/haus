@@ -18,6 +18,8 @@ export const agentStartCommandSchema = z
         agentId: idSchema,
         agentDescription: z.string().max(10_000).optional(),
         agentName: z.string().trim().min(1).max(64).optional(),
+        /** Private tone guidance for this Agent's own prompt; never part of an inbox item. */
+        agentPersonality: z.string().max(10_000).optional(),
         chatId: idSchema,
         /** Drainable on any start: concrete work, and human work addressed to this Agent. */
         drainItemIds: drainItemIdsSchema,

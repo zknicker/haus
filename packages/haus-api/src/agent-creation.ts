@@ -1,5 +1,9 @@
 import * as z from 'zod';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
+import {
+    agentDescriptionInputSchema,
+    agentDescriptionUpdateInputSchema,
+} from './agent-profile-text.ts';
 import { avatarMediaTypeSchema } from './avatar.ts';
 import { participantHandleSchema } from './participant-handle.ts';
 
@@ -47,7 +51,7 @@ export const agentCreateAgentInputSchema = z
         brief: z.string().trim().min(1).max(4000).nullable().default(null),
         channels: z.array(channelTargetSchema).max(20).default([]),
         content: z.string().trim().min(1).max(4000),
-        description: z.string().trim().min(1).max(500),
+        description: agentDescriptionInputSchema,
         displayName: z.string().trim().min(1).max(80),
         nonce: z.string().trim().min(1).max(128),
         target: z.string().trim().min(1).max(200),
@@ -104,7 +108,7 @@ export type AgentCreateAgentReceipt = z.infer<typeof agentCreateAgentReceiptSche
 export const agentUpdateAgentInputSchema = z
     .object({
         agent: z.string().trim().min(1).max(64),
-        description: z.string().trim().min(1).max(500),
+        description: agentDescriptionUpdateInputSchema,
     })
     .strict();
 

@@ -5,6 +5,7 @@ export * from './computer-inventory.ts';
 import * as z from 'zod';
 import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
+import { agentDescriptionInputSchema } from './agent-profile-text.ts';
 import { workspacePathSchema } from './agent-workspace-files.ts';
 import { avatarBytesInputSchema } from './avatar.ts';
 import { idSchema } from './chat.ts';
@@ -106,7 +107,7 @@ export const createAgentInputSchema = z
     .object({
         avatar: avatarBytesInputSchema.optional(),
         computerId: idSchema,
-        description: z.string().trim().min(1).max(500).nullable().optional(),
+        description: agentDescriptionInputSchema.nullable().optional(),
         displayName: z.string().trim().min(1).max(80),
         handle: participantHandleSchema,
         modelId: z.string().trim().min(1).max(128),
@@ -141,17 +142,6 @@ export const configureAgentInputSchema = z
     .strict();
 
 export type ConfigureAgentInput = z.infer<typeof configureAgentInputSchema>;
-
-export const updateAgentProfileInputSchema = z
-    .object({
-        agentId: idSchema,
-        description: z.string().trim().max(500).nullable(),
-        displayName: z.string().trim().min(1).max(80),
-        serverId: idSchema,
-    })
-    .strict();
-
-export type UpdateAgentProfileInput = z.infer<typeof updateAgentProfileInputSchema>;
 
 export const agentCreatedSchema = z.object({ agent: agentSchema }).strict();
 

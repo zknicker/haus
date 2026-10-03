@@ -67,6 +67,11 @@ export const agentsTable = pgTable(
         handle: text('handle').notNull(),
         homeTimezone: text('home_timezone').notNull(),
         id: text('id').primaryKey(),
+        /**
+         * How the Agent talks — tone, length, quirks — set only by Owners and Admins. The Computer
+         * renders it as the prompt's `## Personality`; no Agent API, roster, or envelope reads it.
+         */
+        personality: text('personality'),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
         sessionGeneration: integer('session_generation').notNull().default(1),
         sessionResetKind: text('session_reset_kind')
@@ -127,6 +132,10 @@ export const agentsTable = pgTable(
         check(
             'agents_description_length',
             sql`${table.description} is null or char_length(${table.description}) between 1 and 500`
+        ),
+        check(
+            'agents_personality_length',
+            sql`${table.personality} is null or char_length(${table.personality}) between 1 and 2000`
         ),
         check(
             'agents_brief_length',

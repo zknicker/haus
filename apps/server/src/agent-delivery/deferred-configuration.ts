@@ -80,6 +80,7 @@ export interface ConfiguredAgent {
     agentDescription: string | null;
     agentDisplayName: string;
     agentName: string;
+    agentPersonality: string | null;
     brief: string | null;
     briefAuthorHandle: string | null;
     computerId: string;

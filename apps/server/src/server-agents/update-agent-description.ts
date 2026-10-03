@@ -4,7 +4,11 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
-import { AgentIdentityProtectedError, AgentTargetNotFoundError } from './errors.ts';
+import {
+    AgentIdentityProtectedError,
+    AgentTargetNotFoundError,
+    assertAgentDescriptionWrite,
+} from './errors.ts';
 
 /**
  * Rewrites another Agent's description. The handle stays: it is derived from
@@ -17,6 +21,7 @@ export async function updateAgentDescription(
     input: { agent: string; description: string }
 ): Promise<CreatedAgentSummary> {
     const target = await resolveEditableAgent(db, runner.serverId, input.agent);
+    assertAgentDescriptionWrite(input.description, target.description);
     await db
         .update(agentsTable)
         .set({ description: input.description })
@@ -33,10 +38,11 @@ export async function resolveEditableAgent(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,
     reference: string
-): Promise<{ handle: string; id: string }> {
+): Promise<{ description: string | null; handle: string; id: string }> {
     const handle = reference.replace(/^@/u, '').toLowerCase();
     const [agent] = await db
         .select({
+            description: agentsTable.description,
             factoryKind: agentsTable.factoryKind,
             handle: agentsTable.handle,
             id: agentsTable.id,
@@ -56,5 +62,5 @@ export async function resolveEditableAgent(
     if (agent.factoryKind === 'cove') {
         throw new AgentIdentityProtectedError("Cove's product-owned identity cannot be changed.");
     }
-    return { handle: agent.handle, id: agent.id };
+    return { description: agent.description, handle: agent.handle, id: agent.id };
 }

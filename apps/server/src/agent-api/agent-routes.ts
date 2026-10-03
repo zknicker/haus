@@ -19,6 +19,7 @@ import {
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { generateCreationAvatar, sendAgentRouteFailure } from './agent-route-failures.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
+import { describeInvalidAgentProfileWrite } from './description-invalid.ts';
 
 /**
  * The Agent-scoped Agent routes. Any active managed Agent of the Server may
@@ -42,7 +43,12 @@ export function registerAgentAgentRoutes(
         }
         const parsed = agentCreateAgentInputSchema.safeParse(request.body);
         if (!parsed.success) {
-            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The Agent request was invalid.');
+            return sendAgentApiError(
+                reply,
+                400,
+                'INVALID_ARG',
+                describeInvalidAgentProfileWrite(parsed.error, 'The Agent request was invalid.')
+            );
         }
         try {
             // A request that cannot succeed — an announcement naming nobody, a
@@ -95,7 +101,12 @@ export function registerAgentAgentRoutes(
         }
         const parsed = agentUpdateAgentInputSchema.safeParse(request.body);
         if (!parsed.success) {
-            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The update request was invalid.');
+            return sendAgentApiError(
+                reply,
+                400,
+                'INVALID_ARG',
+                describeInvalidAgentProfileWrite(parsed.error, 'The update request was invalid.')
+            );
         }
         try {
             const agent = await updateAgentDescription(dependencies.db, runner, parsed.data);

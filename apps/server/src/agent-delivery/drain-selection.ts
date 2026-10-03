@@ -1,6 +1,6 @@
 import type { AgentCommand } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
-import type { AgentDispatchConfig } from './dispatch-config.ts';
+import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import type { AgentDeliveryRow } from './store.ts';
@@ -22,7 +22,7 @@ export async function startFrame(
     state: AgentDeliveryRow,
     config: Pick<
         AgentDispatchConfig,
-        'agentDescription' | 'agentName' | 'homeTimezone' | 'sessionGeneration'
+        'agentDescription' | 'agentName' | 'agentPersonality' | 'homeTimezone' | 'sessionGeneration'
     >
 ): Promise<AgentCommand> {
     const runRows = state.activeRunId
@@ -43,7 +43,7 @@ export async function startFrame(
     const humanDrain = await humanDrainSets(db, noticeRows);
     return {
         agentId: state.agentId,
-        ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
+        ...startPromptFacts(config),
         agentName: config.agentName,
         chatId: state.activeRunChatId ?? '',
         drainItemIds: [...runRows, ...humanDrain.drainRows].map((row) => row.dedupeKey),

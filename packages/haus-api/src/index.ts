@@ -61,6 +61,8 @@ export * from './agent.ts';
 export * from './agent-activity.ts';
 export * from './agent-creation.ts';
 export * from './agent-execution.ts';
+export * from './agent-profile.ts';
+export * from './agent-profile-text.ts';
 export * from './agent-runner.ts';
 export * from './agent-thought.ts';
 export * from './agent-thought-phrase.ts';

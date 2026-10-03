@@ -1756,7 +1756,7 @@ components:
           default: []
           items: { type: string, pattern: '^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$' }
         content: { type: string, minLength: 1, maxLength: 4000 }
-        description: { type: string, minLength: 1, maxLength: 500 }
+        description: { type: string, minLength: 1, maxLength: 280 }
         displayName: { type: string, minLength: 1, maxLength: 80 }
         nonce: { type: string, minLength: 1, maxLength: 128 }
         target: { type: string, minLength: 1, maxLength: 200 }
@@ -1833,7 +1833,11 @@ components:
       required: [agent, description]
       properties:
         agent: { type: string, minLength: 1, maxLength: 64 }
-        description: { type: string, minLength: 1, maxLength: 500 }
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: A changed description is capped at 280 characters; resending the stored value is accepted.
     AgentUpdateAgentResponse:
       type: object
       additionalProperties: false
@@ -2574,7 +2578,11 @@ components:
       additionalProperties: false
       required: [description]
       properties:
-        description: { type: string, minLength: 1, maxLength: 500 }
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: A changed description is capped at 280 characters; resending the stored value is accepted.
     AgentReactionRequest:
       type: object
       additionalProperties: false

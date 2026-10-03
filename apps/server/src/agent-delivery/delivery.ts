@@ -40,6 +40,7 @@ import {
     listComputerAgents,
     readAgentDispatchConfig,
     reconcileConfigureFrame,
+    startPromptFacts,
 } from './dispatch-config.ts';
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import {
@@ -57,7 +58,6 @@ import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
 import { isBackedOff, maxDeliveryFailures } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
-import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
@@ -1031,7 +1031,7 @@ export class AgentDelivery {
             }),
             frame: {
                 agentId,
-                ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
+                ...startPromptFacts(config),
                 agentName: config.agentName,
                 chatId,
                 drainItemIds: drainRows.map((row) => row.dedupeKey),
@@ -1157,7 +1157,7 @@ function emitTaskEvents(events: ServerDurableEvent[]): void {
 
 async function attachSummaryVisibility(
     db: HausDatabase,
-    state: AgentDeliveryRow,
+    state: store.AgentDeliveryRow,
     identities: AgentTurnSummary['visibleMessages'] | undefined
 ) {
     if (!(state.activeRunId && identities && identities.length > 0)) {

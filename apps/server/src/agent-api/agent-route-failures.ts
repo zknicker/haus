@@ -11,12 +11,14 @@ import {
     AgentCreateAnnouncementMissingHandleError,
     AgentCreateConflictError,
     AgentCreateNoComputerError,
+    AgentDescriptionTooLongError,
     AgentIdentityProtectedError,
     AgentTargetNotFoundError,
 } from '../server-agents/errors.ts';
 import { sendAgentApiError } from './auth.ts';
 import { avatarProviderUnavailableNote, sendAvatarGenerationFailure } from './avatar-errors.ts';
 import { AgentChatViewStaleError } from './chat-freshness-errors.ts';
+import { agentDescriptionTooLongRefusal } from './description-invalid.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 /**
@@ -95,6 +97,9 @@ export function sendAgentRouteFailure(
         return sendAgentApiError(reply, 409, 'AGENT_NO_COMPUTER', cause.message, {
             nextAction: 'Ask an Owner or Admin to assign you a Computer first.',
         });
+    }
+    if (cause instanceof AgentDescriptionTooLongError) {
+        return sendAgentApiError(reply, 400, 'INVALID_ARG', agentDescriptionTooLongRefusal);
     }
     if (cause instanceof AgentConfigDeniedError) {
         return sendAgentApiError(reply, 409, 'AGENT_CREATE_REFUSED', cause.message);
