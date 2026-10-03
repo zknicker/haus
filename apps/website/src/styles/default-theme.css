@@ -1527,10 +1527,45 @@
     }
 
     /* The section title sits on a hairline that spans the catalog. */
-    .item-card-group--catalog > .item-card-group__header {
+    .item-card-group--catalog > .item-card-group__header,
+    .item-card-group--section > .item-card-group__header {
         padding-block-end: calc(var(--spacing) * 2.5);
         margin-block-end: calc(var(--spacing) * 2);
         border-block-end: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
+    }
+
+    /*
+     * A section of a record page (an MCP connection's page): the same ruled
+     * title, set flush with the page's column so the mark, the name, each
+     * section title and the bordered cards all start on one edge. Bare rows
+     * (transparent cards) sit on that edge too; rows inside a bordered card
+     * keep their inset.
+     */
+    .item-card-group--section > .item-card-group__header {
+        padding-inline: 0;
+        padding-block-start: 0;
+    }
+
+    .item-card-group--section .item-card--transparent:not(.item-card-group--outline *) {
+        padding-inline: 0;
+    }
+
+    /*
+     * A section's "Show all" is a quiet aside under its content, like the
+     * catalog's. It hangs its `sm` padding (×3) outside the column so its
+     * label starts on the content edge; the hover fill hangs with it.
+     */
+    .item-card-group--section > .button--ghost {
+        --button-fg: var(--muted);
+        margin-block-start: var(--spacing);
+        margin-inline-start: calc(var(--spacing) * -3);
+        font-weight: var(--font-weight-normal);
+    }
+
+    @media (hover: hover) {
+        .item-card-group--section > .button--ghost:hover {
+            --button-fg: var(--foreground);
+        }
     }
 
     /* A wide gutter between the columns; rows land on a ~70px pitch. */
@@ -1561,7 +1596,8 @@
      * identity-mark curve for a 40px box (`identityMarkRadius`).
      */
     .item-card-group--catalog .item-card__icon,
-    .modal__icon--product {
+    .modal__icon--product,
+    .connection-hero-mark {
         width: 2.5rem;
         height: 2.5rem;
         overflow: hidden;
@@ -1572,9 +1608,25 @@
     }
 
     .item-card-group--catalog .item-card__icon svg,
-    .modal__icon--product svg {
+    .modal__icon--product svg,
+    .connection-hero-mark svg {
         width: 1.5rem;
         height: 1.5rem;
+    }
+
+    /*
+     * A connection page (Settings → Connections → one connection) leads with
+     * a larger mark, as a product page does: the same app-icon tile as its
+     * catalog row, at 48px on the identity-mark curve for that box (×3).
+     */
+    .connection-hero-mark {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+        border-radius: calc(var(--radius) * 3);
     }
 
     /*

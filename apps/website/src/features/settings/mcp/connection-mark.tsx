@@ -19,8 +19,8 @@ import type { McpConnection } from './mcp-server-shared.ts';
  */
 
 /**
- * Every host owns the box — `ItemCard.Icon` on both lists, `Modal.Icon` in the
- * detail dialog — so this draws only what goes inside one.
+ * Every host owns the box — `ItemCard.Icon` on both lists, the hero tile on the
+ * connection page — so this draws only what goes inside one.
  */
 export function ConnectionGlyph({ connection }: { connection: ConnectionMarkSubject }) {
     const icon = connectionIcon(connection, useResolvedThemeOptional());

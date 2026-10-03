@@ -1,129 +1,81 @@
-import { Button, Separator, Spinner, Tooltip } from '@heroui/react';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { ArrowReloadHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Fragment, type ReactNode } from 'react';
-import { Icon } from '../../../components/ui/icon.tsx';
-import { SettingsRowError } from '../layout/settings-text.tsx';
-import {
-    connectionSetupDescription,
-    type McpConnection,
-    type McpConnectionTool,
-} from './mcp-server-shared.ts';
+import { Button, Chip, Spinner } from '@heroui/react';
+import { ItemCard } from '@heroui-pro/react';
+import { useState } from 'react';
+import { ConnectionSection } from './connection-section.tsx';
+import { connectionSetupDescription, type McpConnection } from './mcp-server-shared.ts';
+
+/** About two wrapped lines of names at the page's reading width. */
+const collapsedToolCount = 8;
 
 /**
- * What this server exposes. The count belongs to the section title and the
- * refresh belongs to the section, so the rows stay a plain list of tool names.
- * While a refresh is in flight the header spinner is the only progress signal —
- * the list keeps the tools it already has rather than flashing a message.
+ * What this server exposes — reference material, so it sits below the
+ * actionable cards and starts collapsed. Haus Server reports tool names only,
+ * so each tool is one small chip. The list grows inline when expanded; only
+ * the page ever scrolls. While a refresh runs, the spinner beside the
+ * title is the only progress signal and the list keeps what it has.
  */
-export function McpToolsGroup({
+export function McpToolsSection({
     connection,
-    error,
-    onRefresh,
     pending,
     tools,
 }: {
     connection: McpConnection;
-    error: string | null;
-    onRefresh: () => void;
     pending: boolean;
-    tools: McpConnectionTool[] | null;
+    tools: readonly string[];
 }) {
-    const rows = toolRows({ connection, error, pending, tools });
+    const [expanded, setExpanded] = useState(false);
+    const collapsible = tools.length > collapsedToolCount;
+    const shown = expanded || !collapsible ? tools : tools.slice(0, collapsedToolCount);
 
     return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header className="flex items-center justify-between gap-3">
-                <ItemCardGroup.Title>
-                    Tools
-                    {tools && tools.length > 0 ? (
-                        <span className="ms-2 text-muted tabular-nums">{tools.length}</span>
-                    ) : null}
-                </ItemCardGroup.Title>
-                {pending ? (
-                    <Spinner size="sm" />
-                ) : (
-                    <Tooltip delay={0}>
+        <ConnectionSection
+            count={connection.connected ? tools.length : undefined}
+            title="Tools"
+            trailing={pending ? <Spinner className="ms-2 align-middle" size="sm" /> : null}
+        >
+            {connection.connected && tools.length > 0 ? (
+                <>
+                    <ul aria-label="Tools" className="flex flex-wrap gap-1.5">
+                        {shown.map((name) => (
+                            <li key={name}>
+                                <Chip size="sm" variant="soft">
+                                    {name}
+                                </Chip>
+                            </li>
+                        ))}
+                    </ul>
+                    {collapsible ? (
                         <Button
-                            aria-label="Refresh tools"
-                            isDisabled={!connection.connected}
-                            isIconOnly
-                            onPress={onRefresh}
+                            className="self-start"
+                            onPress={() => setExpanded((value) => !value)}
                             size="sm"
                             variant="ghost"
                         >
-                            <Icon icon={ArrowReloadHorizontalIcon} size={16} />
+                            {expanded ? 'Show less' : `Show all ${tools.length}`}
                         </Button>
-                        <Tooltip.Content>Refresh tools</Tooltip.Content>
-                    </Tooltip>
-                )}
-            </ItemCardGroup.Header>
-            {/* Bounded: a server with thirty tools would otherwise bury Agent
-                Access and Manage under a wall of rows. */}
-            {rows ? (
-                <ItemCardGroup className="max-h-72 overflow-y-auto">{rows}</ItemCardGroup>
-            ) : null}
-        </ItemCardGroup>
+                    ) : null}
+                </>
+            ) : (
+                <ToolMessage connection={connection} pending={pending} />
+            )}
+        </ConnectionSection>
     );
 }
 
-function toolRows({
-    connection,
-    error,
-    pending,
-    tools,
-}: {
-    connection: McpConnection;
-    error: string | null;
-    pending: boolean;
-    tools: McpConnectionTool[] | null;
-}): ReactNode {
-    if (!connection.connected) {
-        return (
-            <ToolMessage title="No tools yet">{connectionSetupDescription(connection)}</ToolMessage>
-        );
+function ToolMessage({ connection, pending }: { connection: McpConnection; pending: boolean }) {
+    // Nothing to report is a fact once loaded, and nothing at all while a
+    // refresh is still running.
+    if (connection.connected && pending) {
+        return null;
     }
-    if (error) {
-        return (
-            <ItemCard>
-                <ItemCard.Content>
-                    <ItemCard.Title>Couldn’t load tools</ItemCard.Title>
-                    <SettingsRowError>{error}</SettingsRowError>
-                </ItemCard.Content>
-            </ItemCard>
-        );
-    }
-    if (!tools || tools.length === 0) {
-        // Nothing to report is a fact once loaded, and nothing at all while a
-        // refresh is still running.
-        return pending ? null : <ToolMessage title="No tools reported" />;
-    }
-    return tools.map((tool, index) => (
-        <Fragment key={tool.name}>
-            {index > 0 ? <Separator /> : null}
-            <ItemCard>
-                <ItemCard.Content>
-                    <ItemCard.Title>{tool.title ?? tool.name}</ItemCard.Title>
-                    {tool.description ? (
-                        <ItemCard.Description>{tool.description}</ItemCard.Description>
-                    ) : null}
-                </ItemCard.Content>
-            </ItemCard>
-        </Fragment>
-    ));
-}
-
-/** A state the list can report, shaped like the rows it replaces. */
-function ToolMessage({ children, title }: { children?: ReactNode; title: string }) {
     return (
-        <ItemCard>
+        <ItemCard variant="transparent">
             <ItemCard.Content>
-                <ItemCard.Title>{title}</ItemCard.Title>
-                {children ? (
-                    <ItemCard.Description className="whitespace-normal">
-                        {children}
-                    </ItemCard.Description>
-                ) : null}
+                <ItemCard.Description className="whitespace-normal">
+                    {connection.connected
+                        ? 'No tools reported.'
+                        : connectionSetupDescription(connection)}
+                </ItemCard.Description>
             </ItemCard.Content>
         </ItemCard>
     );

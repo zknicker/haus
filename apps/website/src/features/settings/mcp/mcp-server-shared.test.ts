@@ -24,6 +24,13 @@ test('account authorization copy follows the MCP authentication method', () => {
     assert.doesNotMatch(connectionSetupDescription({ auth: 'none' }), /Sign in|credentials/u);
 });
 
+test('a bearer-token preset reads as a token, not generic credentials', () => {
+    const x = { auth: 'headers', preset: 'x' } as const;
+    assert.equal(connectionStatusLabel({ ...x, connected: false }), 'Token required');
+    assert.equal(connectionStatusLabel({ ...x, connected: true }), 'Token saved');
+    assert.match(connectionSetupDescription(x), /Add a token/u);
+});
+
 test('splitArgs splits on whitespace and drops empty parts', () => {
     assert.deepEqual(splitArgs('  serve  --port 8080 '), ['serve', '--port', '8080']);
 });

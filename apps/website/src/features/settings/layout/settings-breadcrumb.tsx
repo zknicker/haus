@@ -3,6 +3,7 @@ import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useMember } from '../../../hooks/members/use-member.ts';
+import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { humanDisplayName } from '../../servers/human-identity.ts';
 import {
     inboxRoute,
@@ -68,11 +69,13 @@ export function SettingsBreadcrumb({
                 </Breadcrumbs.Item>
                 {leaf ? (
                     <Breadcrumbs.Item>
-                        {/* The record's own mark beside its name — the crumb
-                            names a member, and members lead with their face
-                            everywhere else in the app. */}
+                        {/* A member leads with their face everywhere else in
+                            the app, so their crumb does too. A connection's
+                            mark is already the page's own header. */}
                         <span className="flex min-w-0 items-center gap-1.5">
-                            <EntityAvatar name={leaf.name} size={18} src={leaf.avatarUrl} />
+                            {leaf.kind === 'human' ? (
+                                <EntityAvatar name={leaf.name} size={18} src={leaf.avatarUrl} />
+                            ) : null}
                             <span className="min-w-0 truncate">{leaf.name}</span>
                         </span>
                     </Breadcrumbs.Item>
@@ -82,29 +85,38 @@ export function SettingsBreadcrumb({
     );
 }
 
-/**
- * The human a Members sub-route is showing: their name and identity mark.
- * Agents have their own page outside Settings, so only humans reach here.
- *
- * Read here rather than pushed up from the detail page: this is the query that
- * page already runs, so React Query serves it from the same cache entry and
- * nothing has to plumb a name back through context.
- */
-function useLeafCrumb(
-    pathname: string,
-    serverId: string
-): { avatarUrl: string | null; name: string } | undefined {
-    const userId = matchHumanId(pathname);
-    const member = useMember(serverId, userId);
+type LeafCrumb =
+    | { avatarUrl: string | null; kind: 'human'; name: string }
+    | { kind: 'connection'; name: string };
 
-    if (!(userId && member.data)) {
-        return undefined;
+/**
+ * The record a section sub-route is showing: a human in Members, or one MCP
+ * connection in Connections. Agents have their own page outside Settings.
+ *
+ * Read here rather than pushed up from the detail page: these are the queries
+ * those pages already run, so React Query serves them from the same cache
+ * entries and nothing has to plumb a name back through context.
+ */
+function useLeafCrumb(pathname: string, serverId: string): LeafCrumb | undefined {
+    const userId = matchRecordId(pathname, '/settings/members/humans/');
+    const connectionId = matchRecordId(pathname, '/settings/connections/');
+    const member = useMember(serverId, userId);
+    const connection = useConnection(serverId, connectionId).data;
+
+    if (userId && member.data) {
+        return {
+            avatarUrl: member.data.avatarUrl,
+            kind: 'human',
+            name: humanDisplayName(member.data),
+        };
     }
-    return { avatarUrl: member.data.avatarUrl, name: humanDisplayName(member.data) };
+    if (connectionId && connection) {
+        return { kind: 'connection', name: connection.name };
+    }
+    return undefined;
 }
 
-function matchHumanId(pathname: string): string | undefined {
-    const marker = '/settings/members/humans/';
+function matchRecordId(pathname: string, marker: string): string | undefined {
     const start = pathname.indexOf(marker);
     if (start === -1) {
         return undefined;

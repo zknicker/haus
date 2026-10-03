@@ -3,6 +3,7 @@ export { AgentProfileRoute } from './agent-page.tsx';
 export { ArchivedChatsRoute } from './archived-chats-route.tsx';
 export { ChatRoute, ImplicitAgentDmRoute } from './chat-route.tsx';
 export {
+    DeferredSettingsConnectionRoute,
     DeferredSettingsHumanRoute,
     DeferredSettingsSectionRoute,
 } from './deferred-settings-route.tsx';

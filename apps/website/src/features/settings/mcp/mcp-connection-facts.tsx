@@ -1,74 +1,47 @@
-import { Chip, Separator } from '@heroui/react';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { SettingsFact } from '../layout/settings-text.tsx';
-import { connectionStatusLabel, type McpConnection } from './mcp-server-shared.ts';
+import type { ReactNode } from 'react';
+import { ConnectionSection } from './connection-section.tsx';
+import type { McpConnection } from './mcp-server-shared.ts';
 
 /**
- * What the Server knows about this connection — a label on the left, one value
- * on the right, one row per fact. The chip here is the only place the
- * connection's state is spelled out, so the heading can carry the name alone.
+ * What the Server records about this connection that the header does not
+ * already say: a muted label column and a value column, one fact per row.
  */
-export function McpConnectionFacts({ connection }: { connection: McpConnection }) {
+export function McpConnectionFacts({
+    connection,
+    usesToken,
+}: {
+    connection: McpConnection;
+    /** A bearer-token preset stores its token as a header, but reads as a token. */
+    usesToken: boolean;
+}) {
     return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Connection</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
-                <ItemCard>
-                    <ItemCard.Content>
-                        <ItemCard.Title>Status</ItemCard.Title>
-                    </ItemCard.Content>
-                    <ItemCard.Action>
-                        <Chip color={statusColor(connection)} size="sm" variant="soft">
-                            {connectionStatusLabel(connection)}
-                        </Chip>
-                    </ItemCard.Action>
-                </ItemCard>
-                {connection.accountLabel ? (
-                    <>
-                        <Separator />
-                        <ItemCard>
-                            <ItemCard.Content className="shrink-0 basis-auto">
-                                <ItemCard.Title>Account</ItemCard.Title>
-                            </ItemCard.Content>
-                            <ItemCard.Action className="min-w-0 shrink">
-                                <SettingsFact
-                                    className="block truncate"
-                                    title={connection.accountLabel}
-                                >
-                                    {connection.accountLabel}
-                                </SettingsFact>
-                            </ItemCard.Action>
-                        </ItemCard>
-                    </>
-                ) : null}
-                <Separator />
-                <ItemCard>
-                    {/* The label keeps its own width and the address takes
-                        whatever is left, truncating from the row's trailing
-                        edge with the whole value in a title attribute. */}
-                    <ItemCard.Content className="shrink-0 basis-auto">
-                        <ItemCard.Title>Server</ItemCard.Title>
-                    </ItemCard.Content>
-                    <ItemCard.Action className="min-w-0 shrink">
-                        <SettingsFact
-                            className="block truncate text-right font-mono"
-                            title={connection.url}
-                        >
-                            {connection.url}
-                        </SettingsFact>
-                    </ItemCard.Action>
-                </ItemCard>
-            </ItemCardGroup>
-        </ItemCardGroup>
+        <ConnectionSection title="Information">
+            <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
+                <Fact label="Server">
+                    <span className="block truncate font-mono" title={connection.url}>
+                        {connection.url}
+                    </span>
+                </Fact>
+                <Fact label="Sign-in">
+                    {usesToken ? 'Bearer token' : signInLabels[connection.auth]}
+                </Fact>
+                <Fact label="Type">{connection.builtIn ? 'Built in' : 'Custom'}</Fact>
+            </dl>
+        </ConnectionSection>
     );
 }
 
-/** A server that takes no credentials and still cannot answer is broken. */
-function statusColor(connection: McpConnection) {
-    if (connection.connected) {
-        return 'success' as const;
-    }
-    return connection.auth === 'none' ? ('danger' as const) : ('default' as const);
+const signInLabels: Record<McpConnection['auth'], string> = {
+    headers: 'Headers',
+    none: 'None',
+    oauth: 'OAuth',
+};
+
+function Fact({ children, label }: { children: ReactNode; label: string }) {
+    return (
+        <>
+            <dt className="text-muted">{label}</dt>
+            <dd className="min-w-0 text-foreground">{children}</dd>
+        </>
+    );
 }

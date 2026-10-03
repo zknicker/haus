@@ -1,4 +1,4 @@
-import type { McpIcon, McpPreset } from '@haus/api';
+import { isMcpBearerTokenPreset, type McpIcon, type McpPreset } from '@haus/api';
 export interface McpConnection {
     accountLabel: string | null;
     affectedAgents: Array<{ id: string; name: string }>;
@@ -12,11 +12,6 @@ export interface McpConnection {
     preset: McpPreset | null;
     summary: string | null;
     url: string;
-}
-export interface McpConnectionTool {
-    description: string;
-    name: string;
-    title: string | null;
 }
 export interface McpConnectionSaveInput {
     auth: 'headers' | 'none' | 'oauth';
@@ -45,8 +40,11 @@ export interface McpConnectionDraft {
 }
 
 export function connectionStatusLabel(
-    connection: Pick<McpConnection, 'auth' | 'connected'>
+    connection: Pick<McpConnection, 'auth' | 'connected'> & { preset?: McpPreset | null }
 ): string {
+    if (isMcpBearerTokenPreset(connection.preset ?? null)) {
+        return connection.connected ? 'Token saved' : 'Token required';
+    }
     if (connection.auth === 'oauth') {
         return connection.connected ? 'Account connected' : 'Sign in required';
     }
@@ -56,7 +54,12 @@ export function connectionStatusLabel(
     return connection.connected ? 'Ready' : 'Unavailable';
 }
 
-export function connectionSetupDescription(connection: Pick<McpConnection, 'auth'>): string {
+export function connectionSetupDescription(
+    connection: Pick<McpConnection, 'auth'> & { preset?: McpPreset | null }
+): string {
+    if (isMcpBearerTokenPreset(connection.preset ?? null)) {
+        return 'This MCP is added to Haus. Add a token to authorize access and load its tools.';
+    }
     if (connection.auth === 'oauth') {
         return 'This MCP is added to Haus. Sign in to your account to authorize access and load its tools.';
     }

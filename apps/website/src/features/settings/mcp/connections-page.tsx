@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { RequireOperator } from '../../servers/require-operator.tsx';
 import { useServerContext } from '../../servers/server-context.ts';
-import { serverRoute } from '../../servers/server-routes.ts';
+import { serverRoute, settingsConnectionRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ConnectionAddDrawer } from './connection-add-drawer.tsx';
-import { ConnectionDetail } from './connection-detail.tsx';
 import { ConnectionListSection } from './connection-list-section.tsx';
 import { ConnectionPresetSection } from './connection-preset-section.tsx';
 
@@ -14,7 +13,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
     const { slug = '' } = useParams();
     const { server } = useServerContext();
     const [isAddOpen, setIsAddOpen] = React.useState(false);
-    const [selectedId, setSelectedId] = React.useState<string | null>(null);
+    const navigate = useNavigate();
 
     return (
         <RequireOperator
@@ -37,16 +36,11 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                 <ConnectionPresetSection serverId={server.id} />
                 <ConnectionListSection
                     onAdd={() => setIsAddOpen(true)}
-                    onSelect={setSelectedId}
+                    onSelect={(connectionId) =>
+                        navigate(settingsConnectionRoute(slug, connectionId))
+                    }
                     serverId={server.id}
                 />
-                {selectedId ? (
-                    <ConnectionDetail
-                        connectionId={selectedId}
-                        onClose={() => setSelectedId(null)}
-                        serverId={server.id}
-                    />
-                ) : null}
                 <ConnectionAddDrawer
                     onOpenChange={setIsAddOpen}
                     open={isAddOpen}

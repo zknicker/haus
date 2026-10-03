@@ -9,6 +9,10 @@ const SettingsHumanRoute = React.lazy(async () => ({
     default: (await serverRouteModules.settingsSection()).SettingsHumanRoute,
 }));
 
+const SettingsConnectionRoute = React.lazy(async () => ({
+    default: (await serverRouteModules.settingsSection()).SettingsConnectionRoute,
+}));
+
 export function DeferredSettingsSectionRoute() {
     const { pathname } = useLocation();
     return (
@@ -23,6 +27,15 @@ export function DeferredSettingsHumanRoute() {
     return (
         <React.Suspense fallback={<div aria-busy="true" />} key={pathname}>
             <SettingsHumanRoute />
+        </React.Suspense>
+    );
+}
+
+export function DeferredSettingsConnectionRoute() {
+    const { pathname } = useLocation();
+    return (
+        <React.Suspense fallback={<div aria-busy="true" />} key={pathname}>
+            <SettingsConnectionRoute />
         </React.Suspense>
     );
 }

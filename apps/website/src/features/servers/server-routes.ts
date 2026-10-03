@@ -90,6 +90,11 @@ export function settingsHumanRoute(slug: string, userId: string) {
     return `${serverSettingsSectionRoute(slug, 'members')}/humans/${encodeURIComponent(userId)}`;
 }
 
+/** One MCP connection's page, a record inside Settings → Connections. */
+export function settingsConnectionRoute(slug: string, connectionId: string) {
+    return `${serverSettingsSectionRoute(slug, 'connections')}/${encodeURIComponent(connectionId)}`;
+}
+
 export function serverSettingsSectionRoute(slug: string, section: string) {
     return `${serverSettingsRoute(slug)}/${section}`;
 }

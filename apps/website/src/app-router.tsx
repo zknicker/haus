@@ -191,6 +191,12 @@ export function createAppRouter() {
                                                             ),
                                                         },
                                                         {
+                                                            path: 'connections/:connectionId',
+                                                            Component: serverRouteComponent(
+                                                                'DeferredSettingsConnectionRoute'
+                                                            ),
+                                                        },
+                                                        {
                                                             path: ':section',
                                                             Component: serverRouteComponent(
                                                                 'DeferredSettingsSectionRoute'

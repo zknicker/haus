@@ -10,6 +10,7 @@ import {
     serverSettingsSectionRoute,
 } from '../../features/servers/server-routes.ts';
 import type { SettingsNavLinkId } from '../../features/settings/layout/navigation.ts';
+import { ConnectionPage } from '../../features/settings/mcp/connection-page.tsx';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
 import { ModelsSettings } from '../../features/settings/models/page.tsx';
 import { PreferencesSettings } from '../../features/settings/preferences/page.tsx';
@@ -19,6 +20,7 @@ import { ServersSettings } from '../../features/settings/servers/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
 import { AgentsUsageOverview } from '../../features/usage/agents-usage-overview.tsx';
 import { useMember } from '../../hooks/members/use-member.ts';
+import { useConnection } from '../../hooks/servers/use-connection.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 
@@ -127,5 +129,29 @@ export function SettingsHumanRoute() {
             userId={userId}
             viewerUserId={server.viewerUserId}
         />
+    );
+}
+
+/**
+ * One MCP connection's page, inside Settings → Connections. A connection that
+ * is removed (from this page or anywhere else) or never existed sends the
+ * reader back to the list once the Server's list says so.
+ */
+export function SettingsConnectionRoute() {
+    const { connectionId = '' } = useParams();
+    const { server } = useServerContext();
+    const connection = useConnection(server.id, connectionId);
+
+    if (connection.data === null) {
+        return <Navigate replace to={serverSettingsSectionRoute(server.slug, 'connections')} />;
+    }
+
+    return (
+        <RequireOperator
+            description="MCP connections are managed by Server operators."
+            role={server.role}
+        >
+            <ConnectionPage connectionId={connectionId} key={connectionId} serverId={server.id} />
+        </RequireOperator>
     );
 }

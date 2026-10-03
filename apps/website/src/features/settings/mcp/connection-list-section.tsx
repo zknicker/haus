@@ -17,7 +17,7 @@ import { connectionStatusLabel, type McpConnection } from './mcp-server-shared.t
 /**
  * The connections this Server has, on the same grid as Recommended and as
  * Settings → Skills. Each row is name, account, and status; the server's
- * address lives in the detail dialog the row opens.
+ * address lives on the connection page the row opens.
  */
 export function ConnectionListSection({
     onAdd,

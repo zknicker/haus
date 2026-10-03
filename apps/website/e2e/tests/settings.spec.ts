@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import type { Page } from '@playwright/test';
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { assertOpaqueId, completeOnboarding, createClient, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -201,12 +202,16 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     // The Added grid renders each connection as a card button, not a row.
     const connection = page.getByRole('button', { name: new RegExp(name, 'u') });
     await expect(connection).toBeVisible();
+    // A saved connection opens its own settings page.
     await connection.click();
-    const detail = page.getByRole('dialog', { name });
-    await detail.getByRole('button', { name: 'Remove' }).click();
+    await expect(page).toHaveURL(/\/settings\/connections\/mcp_/u);
+    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+    await removeConnectionFromPage(page, name);
     const confirmation = page.getByRole('alertdialog', { name: `Remove ${name} from Haus?` });
     await expect(confirmation).toContainText('No Agents currently use this connection.');
     await confirmation.getByRole('button', { name: 'Remove' }).click();
+    // A removed connection's page hands the reader back to the list.
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/connections$`, 'u'));
     await expect(connection).toHaveCount(0);
 });
 
@@ -225,32 +230,38 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await page.reload();
     await expect(connection).toBeVisible();
     await expect(merchbase).toHaveCount(0);
-    // Drain whatever presets remain so adding a new one never breaks this test;
-    // the Recommended heading leaves with the last card.
-    const addPreset = page.locator('.item-card').getByRole('button', { name: /^Add /u });
+    // Drain whatever one-press presets remain so adding a new one never breaks
+    // this test. X takes a token first, so it stays until one is saved.
+    const addPreset = page.locator('.item-card').getByRole('button', { name: /^Add (?!X$)/u });
     for (let remaining = await addPreset.count(); remaining > 0; remaining -= 1) {
         await addPreset.first().click();
         await expect(addPreset).toHaveCount(remaining - 1);
     }
-    await expect(page.getByText('Recommended', { exact: true })).toHaveCount(0);
+    const x = recommendation('Search and read public posts on X.');
+    await x.getByRole('button', { exact: true, name: 'Add X' }).click();
+    const tokenDialog = page.getByRole('dialog', { name: 'Connect X' });
+    await expect(tokenDialog.getByLabel('Bearer token')).toBeVisible();
+    await tokenDialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(tokenDialog).toHaveCount(0);
+    await expect(x).toHaveCount(1);
 
     await connection.click();
-    // The heading carries the connection's name alone; its state is a fact row
-    // in the body, so `exact` keeps this off the "MerchBase account" dialog.
-    const detail = page.getByRole('dialog', { exact: true, name: 'MerchBase' });
-    await expect(detail.getByRole('button', { exact: true, name: 'Sign in' })).toBeVisible();
-    await expect(detail).toContainText('Sign in required');
-    await expect(detail).toContainText('This MCP is added to Haus. Sign in to your account');
-    await expect(detail).toContainText('Removes this MCP and its credentials from this Server.');
-    await detail.getByRole('button', { exact: true, name: 'Add' }).click();
-    await detail.getByRole('button', { name: 'Done' }).click();
+    const title = (text: string) =>
+        page.getByRole('heading', { exact: true, level: 1, name: text });
+    await expect(title('MerchBase')).toBeVisible();
+    await expect(page.getByRole('button', { exact: true, name: 'Sign in' })).toBeVisible();
+    await expect(page.getByText('Sign in required', { exact: true })).toBeVisible();
+    await expect(
+        page.getByText('This MCP is added to Haus. Sign in to your account', { exact: false })
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Add another account' }).click();
+    // Back in history is client-side, so the add mutation keeps running.
+    await page.goBack();
     const secondAccount = page.getByRole('button', { name: /MerchBase account Built in/u });
     await expect(secondAccount).toBeVisible();
     await secondAccount.click();
-    await page
-        .getByRole('dialog', { exact: true, name: 'MerchBase account' })
-        .getByRole('button', { exact: true, name: 'Remove' })
-        .click();
+    await expect(title('MerchBase account')).toBeVisible();
+    await removeConnectionFromPage(page, 'MerchBase account');
     await page
         .getByRole('alertdialog', { name: 'Remove MerchBase account from Haus?' })
         .getByRole('button', { exact: true, name: 'Remove' })
@@ -260,11 +271,11 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await expect(merchbase).toHaveCount(0);
 
     await connection.click();
-    await detail.getByRole('button', { exact: true, name: 'Remove' }).click();
+    await removeConnectionFromPage(page, 'MerchBase');
     const confirmation = page.getByRole('alertdialog', { name: 'Remove MerchBase from Haus?' });
     await confirmation.getByRole('button', { name: 'Cancel' }).click();
-    await expect(detail).toBeVisible();
-    await detail.getByRole('button', { exact: true, name: 'Remove' }).click();
+    await expect(title('MerchBase')).toBeVisible();
+    await removeConnectionFromPage(page, 'MerchBase');
     await confirmation.getByRole('button', { exact: true, name: 'Remove' }).click();
     await expect(connection).toHaveCount(0);
     await expect(
@@ -276,3 +287,9 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     ).toBeVisible();
     await expect(connection).toHaveCount(0);
 });
+
+/** Removal is a rare action, so it sits in the connection page's `···` menu. */
+async function removeConnectionFromPage(page: Page, name: string) {
+    await page.getByRole('button', { name: `${name} actions` }).click();
+    await page.getByRole('menuitem', { name: 'Remove from Haus' }).click();
+}
