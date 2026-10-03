@@ -6,8 +6,6 @@ import {
 import { AgentApiClient, type AgentApiRequester } from '../agent-api-client.ts';
 import { resolveAgentContext } from '../agent-context.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { shortMessageId } from '../agent-format.ts';
-import { isThreadTarget } from '../agent-render.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, requiredValue, valuesFor } from './agent-command-utils.ts';
@@ -17,7 +15,6 @@ import { requestAgentCreate } from './agent-create-request.ts';
 const avatarTimeoutMs = 75_000;
 const maxNameLength = 80;
 const maxConceptLength = 280;
-const maxSayLength = 4000;
 const maxBriefLength = 4000;
 const maxChannels = 20;
 const handlePattern = /^@?[a-z0-9][a-z0-9-]{1,30}$/u;
@@ -27,8 +24,7 @@ const CREATE_RECIPE = `haus agent create --target "#all" --name "Orbit" \\
   --description "Keeps release notes current and chases missing changelog entries." \\
   --channel "#product" \\
   --brief "You own release notes. Draft them from merged PRs, post a digest in #product every Friday, and ask the owner before changing the format." \\
-  --avatar-concept "a moonlit raccoon cartographer" \\
-  --say "Everyone, meet @orbit, our new release-notes teammate. Orbit drafts the notes from merged PRs and posts a digest in #product every Friday. Say hi, and send lane questions to the owner."`;
+  --avatar-concept "a moonlit raccoon cartographer"`;
 
 export interface AgentAgentDeps {
     /** The Agent running the command; a create's idempotency key is derived from it. */
@@ -40,7 +36,11 @@ export interface AgentAgentDeps {
 const CREATE_COMMAND: SubCommand = {
     examples: [CREATE_RECIPE],
     flags: [
-        { description: 'Channel, DM, or thread target', name: '--target', valueName: '<target>' },
+        {
+            description: 'Conversation where the human asked for this Agent',
+            name: '--target',
+            valueName: '<target>',
+        },
         { description: 'Display name (1–80 characters)', name: '--name', valueName: '<name>' },
         {
             description: `Its role in one or two sentences (1–${AGENT_DESCRIPTION_MAX_LENGTH} characters); longer context goes in --brief`,
@@ -62,11 +62,6 @@ const CREATE_COMMAND: SubCommand = {
             name: '--avatar-concept',
             valueName: '<text>',
         },
-        {
-            description: 'Your announcement; it must name the new Agent as @handle',
-            name: '--say',
-            valueName: '<text>',
-        },
     ],
     name: 'create',
     notes: [
@@ -77,7 +72,7 @@ const CREATE_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runAgentCreate(args, defaultDeps()),
     summary: 'Create one Agent that inherits your runtime, model, reasoning effort, and Computer',
-    usage: 'haus agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel <#name>] [--avatar-concept <text>] --say <text>',
+    usage: 'haus agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel <#name>] [--avatar-concept <text>]',
 };
 
 const UPDATE_COMMAND: SubCommand = {
@@ -127,7 +122,6 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
     assertAgentTarget(target);
     const displayName = bounded(requiredValue(args, '--name'), '--name', maxNameLength);
     const description = boundedDescription(requiredValue(args, '--description'));
-    const content = bounded(requiredValue(args, '--say'), '--say', maxSayLength);
     const rawConcept = args.values['--avatar-concept']?.trim();
     const avatarConcept = rawConcept
         ? bounded(rawConcept, '--avatar-concept', maxConceptLength)
@@ -140,7 +134,6 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
         avatarConcept,
         brief,
         channels,
-        content,
         description,
         displayName,
         target,
@@ -154,10 +147,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
         brief
             ? 'Its brief is in its memory; it reads it on every startup.'
             : 'No brief: it wakes without standing instructions, so tell it what it owns in the chat.',
-        `Posted to ${receipt.target}. Message ID: ${receipt.messageId}`,
-        isThreadTarget(receipt.target)
-            ? `(discussion continues in "${receipt.target}")`
-            : `(discussion continues in this message's thread, target "${receipt.target}:${shortMessageId(receipt.messageId)}")`,
+        `Next: introduce @${agent.handle} in #all with haus message send --target "#all", unless the human asked for a private introduction. Write it in your own voice.`,
     ];
     if (receipt.avatar.status === 'unavailable') {
         lines.push(`No avatar: ${receipt.avatar.note}`);

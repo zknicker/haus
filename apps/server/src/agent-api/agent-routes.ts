@@ -10,7 +10,7 @@ import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { emitServerUpdated } from '../haus-api/server-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createAgentFromAgent } from '../server-agents/create-agent-from-agent.ts';
-import { precheckAgentCreation } from '../server-agents/creation-announcement.ts';
+import { precheckAgentCreation } from '../server-agents/creation-request.ts';
 import { setAgentAvatarFromAgent } from '../server-agents/set-agent-avatar-from-agent.ts';
 import {
     resolveEditableAgent,
@@ -51,9 +51,7 @@ export function registerAgentAgentRoutes(
             );
         }
         try {
-            // A request that cannot succeed — an announcement naming nobody, a
-            // channel that is not there — is refused before a generation is
-            // spent on it; the authoritative checks run under the lock.
+            // Reject stale context or invalid channels before spending a generation.
             const precheck = await precheckAgentCreation(dependencies.db, runner, parsed.data);
             // Generation is a long provider round trip, so it finishes before
             // the transaction opens and never holds the Server row lock — and a
@@ -70,7 +68,6 @@ export function registerAgentAgentRoutes(
                 dependencies.db,
                 runner,
                 parsed.data,
-                dependencies.agentDelivery,
                 avatar
             );
             for (const event of created.events) {
@@ -82,7 +79,6 @@ export function registerAgentAgentRoutes(
                     dependencies.agentDelivery.configureAgent(configure)
                 );
             }
-            await dependencies.postCommitWork.wakeAgents(dependencies.agentDelivery, created.wakes);
             emitServerUpdated({
                 agentId: created.receipt.agent.agentId,
                 scope: 'agent',

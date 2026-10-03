@@ -8,7 +8,6 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import { AgentConfigDeniedError } from '../server-agents/agent-config-errors.ts';
 import type { CreationAvatar } from '../server-agents/create-agent-from-agent.ts';
 import {
-    AgentCreateAnnouncementMissingHandleError,
     AgentCreateConflictError,
     AgentCreateNoComputerError,
     AgentDescriptionTooLongError,
@@ -80,18 +79,6 @@ export function sendAgentRouteFailure(
     }
     if (cause instanceof AgentCreateConflictError) {
         return sendAgentApiError(reply, 409, 'AGENT_CREATE_IDEMPOTENCY_CONFLICT', cause.message);
-    }
-    if (cause instanceof AgentCreateAnnouncementMissingHandleError) {
-        return sendAgentApiError(
-            reply,
-            409,
-            'AGENT_CREATE_ANNOUNCEMENT_MISSING_HANDLE',
-            cause.message,
-            {
-                handle: cause.handle,
-                nextAction: `Mention @${cause.handle} in --say and run the command again.`,
-            }
-        );
     }
     if (cause instanceof AgentCreateNoComputerError) {
         return sendAgentApiError(reply, 409, 'AGENT_NO_COMPUTER', cause.message, {

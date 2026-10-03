@@ -33,6 +33,8 @@ export const agentsTable = pgTable(
          * what survives a reprovision, not the seeded file.
          */
         brief: text('brief'),
+        creationNonce: text('creation_nonce'),
+        creationRequestHash: text('creation_request_hash'),
         computerId: text('computer_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         createdByAgentId: text('created_by_agent_id'),
@@ -110,6 +112,17 @@ export const agentsTable = pgTable(
             name: 'agents_creation_message_fk',
         }).onDelete('set null (creation_message_id)' as UpdateDeleteAction),
         unique('agents_creation_message_key').on(table.serverId, table.creationMessageId),
+        unique('agents_creation_nonce_key').on(
+            table.serverId,
+            table.createdByAgentId,
+            table.creationNonce
+        ),
+        check(
+            'agents_creation_request',
+            sql`(${table.creationNonce} is null and ${table.creationRequestHash} is null)
+                or (${table.createdByAgentId} is not null and ${table.creationNonce} is not null
+                    and ${table.creationRequestHash} is not null)`
+        ),
         check(
             'agents_reasoning_effort',
             sql`${table.desiredReasoningEffort} in ('default', 'low', 'medium', 'high', 'xhigh', 'max')`

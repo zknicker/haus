@@ -71,9 +71,8 @@ export async function createAgentInTransaction(
     db: HausDatabase,
     creator: AgentCreator,
     input: CreateAgentInput & {
-        agentId?: string;
         brief?: string | null;
-        creationMessageId?: string;
+        creationRequest?: { hash: string; nonce: string };
     },
     avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null
 ): Promise<AgentCreated & { allChannelId: string | null }> {
@@ -97,9 +96,7 @@ export async function createAgentInTransaction(
         });
     }
 
-    // The caller may mint the id first when it has to appear in something else
-    // written in this same transaction, such as a creation announcement.
-    const agentId = input.agentId ?? createOpaqueId('agt');
+    const agentId = createOpaqueId('agt');
     try {
         await db.insert(agentsTable).values({
             avatarId,
@@ -107,7 +104,8 @@ export async function createAgentInTransaction(
             computerId: input.computerId,
             createdByAgentId,
             createdByUserId,
-            creationMessageId: input.creationMessageId ?? null,
+            creationNonce: input.creationRequest?.nonce ?? null,
+            creationRequestHash: input.creationRequest?.hash ?? null,
             description: input.description ?? null,
             desiredModelId: input.modelId,
             desiredReasoningEffort: input.reasoningEffort,

@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
-import { type AgentCreateAgentReceipt, agentCreateAgentReceiptSchema } from '@haus/api';
+import {
+    type AgentCreateAgentInput,
+    type AgentCreateAgentReceipt,
+    agentCreateAgentReceiptSchema,
+} from '@haus/api';
 import { type AgentApiRequester, AgentApiTransportError } from '../agent-api-client.ts';
 
 /** Avatar generation alone takes up to 75 s; a create that waits on one needs the headroom. */
@@ -7,23 +11,14 @@ const createWithAvatarTimeoutMs = 120_000;
 const CREATE_ROUTE = '/api/agent/agents';
 
 /** The create exactly as the Agent asked for it, before the nonce is derived from it. */
-export interface AgentCreateRequest {
-    avatarConcept: string | null;
-    brief: string | null;
-    channels: string[];
-    content: string;
-    description: string;
-    displayName: string;
-    target: string;
-}
+export type AgentCreateRequest = Omit<AgentCreateAgentInput, 'nonce'>;
 
 /**
  * The Server treats the nonce as the idempotency key, so it is derived from the
  * request rather than minted: re-issuing the identical command replays the
  * original creation instead of minting a second teammate, and changing any
- * field asks for a different one. The caller's Agent id is in it because the
- * Server scopes nonces to the Chat, not to the Agent, so two Agents announcing
- * the same teammate in the same Chat must not collide. Channel order and
+ * field asks for a different one. The Server scopes nonces to the creating
+ * Agent on its Server. Channel order and
  * repeats say nothing about which Agent this is, so they are normalized away.
  */
 export function deriveAgentCreateNonce(callerAgentId: string, request: AgentCreateRequest): string {
@@ -32,7 +27,6 @@ export function deriveAgentCreateNonce(callerAgentId: string, request: AgentCrea
         request.target,
         request.displayName,
         request.description,
-        request.content,
         request.avatarConcept,
         request.brief,
         [...new Set(request.channels)].sort(),

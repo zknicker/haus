@@ -8,32 +8,28 @@ import type {
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
-import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AvatarBytes } from '../avatars/avatar-bytes.ts';
-import {
-    findAgentMessageByNonce,
-    planAgentAuthoredMessage,
-    writeAgentAuthoredMessage,
-} from '../chats/agent-authored-message.ts';
 import { resolveAgentDmOwnerUserId } from '../chats/agent-dm-owner.ts';
-import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { suggestAvailableParticipantHandle } from '../servers/participant-handles.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { readCreatedAgent, readCreatedAgentForMessage } from './agent-created-shape.ts';
+import { readCreatedAgent } from './agent-created-shape.ts';
 import { createAgentInTransaction } from './create-agent.ts';
-import { assertAnnouncementNamesHandle } from './creation-announcement.ts';
 import {
     channelMembershipEvents,
     joinCreationChannels,
     readAgentChannels,
     requireCreationChannels,
 } from './creation-channels.ts';
-import { AgentCreateConflictError, AgentCreateNoComputerError } from './errors.ts';
+import {
+    agentCreationRequestHash,
+    readAgentCreationReplay,
+    resolveCreationContext,
+} from './creation-request.ts';
+import { AgentCreateNoComputerError } from './errors.ts';
 
 /** The avatar decision the route already made, generated outside this transaction. */
 export interface CreationAvatar {
@@ -56,73 +52,41 @@ export interface CreateAgentFromAgentResult {
     configure: AgentCreationConfiguration | null;
     events: ServerDurableEvent[];
     receipt: AgentCreateAgentReceipt;
-    wakes: Array<{ agentId: string; serverId: string }>;
 }
 
-/**
- * One Agent creates another: the Agent-authored Message that announces it, the
- * Agent row linked back to that Message, the deterministic child Thread,
- * delivery planning, and `message.created` — all in one transaction, idempotent
- * by the message nonce. The new Agent inherits the caller's Computer, runtime,
- * model, and reasoning effort, re-validated against that Computer's reported
- * inventory. Avatar bytes are generated before this call, never inside it.
- */
+/** Creates one Agent and its memberships. Introductions are ordinary later sends. */
 export async function createAgentFromAgent(
     db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentCreateAgentInput,
-    agentDelivery: AgentDelivery,
     avatar: CreationAvatar
 ): Promise<CreateAgentFromAgentResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
-        const plan = await planAgentAuthoredMessage(tx, runner, input.target);
+        const plan = await resolveCreationContext(tx, runner, input.target);
 
-        const replay = await readReplay(tx, runner, plan.chatId, input);
+        const replay = await readAgentCreationReplay(tx, runner, plan.chatId, input);
         if (replay) {
-            return { configure: null, events: [], receipt: replay, wakes: [] };
+            return { configure: null, events: [], receipt: replay };
         }
 
         await assertFreshAgentView(tx, runner, plan.chatId);
         // Nothing is written until every requested channel is there to join, so
-        // a typo in `--channel` costs no Agent, no Message, and no avatar.
+        // a typo in `--channel` creates nothing.
         const channels = await requireCreationChannels(tx, runner.serverId, input.channels);
         const execution = await requireCallerExecution(tx, runner);
-        // The Server is authoritative for handles: this runs under the Server row
-        // lock, scans live Agents and humans alike, and suffixes on collision.
-        // The pre-check outside this transaction read the same rule without the
-        // lock, so this is the answer that decides.
         const handle = await suggestAvailableParticipantHandle(
             tx,
             runner.serverId,
             input.displayName
         );
-        assertAnnouncementNamesHandle(input.content, handle);
-
-        // The new Agent's id has to exist before its own announcement is written,
-        // because the `@handle` in that announcement is the reader's way to it.
-        const agentId = createOpaqueId('agt');
-        const content = await canonicalizeAgentMessageContentForPersistence(tx, {
-            additionalAgents: [{ handle, id: agentId }],
-            content: input.content,
-            serverId: runner.serverId,
-        });
-
-        const written = await writeAgentAuthoredMessage(
-            tx,
-            runner,
-            plan,
-            { bodyKind: 'agent-created', content, nonce: input.nonce },
-            agentDelivery
-        );
         const created = await createAgentInTransaction(
             tx,
             { agentId: runner.agentId, kind: 'agent' },
             {
-                agentId,
                 brief: input.brief,
                 computerId: execution.computerId,
-                creationMessageId: written.messageId,
+                creationRequest: { hash: agentCreationRequestHash(input), nonce: input.nonce },
                 description: input.description,
                 displayName: input.displayName,
                 handle,
@@ -171,10 +135,7 @@ export async function createAgentFromAgent(
                 reasoningEffort: execution.reasoningEffort,
                 runtimeId: execution.runtimeId,
             },
-            events: [
-                written.event,
-                ...(await channelMembershipEvents(tx, runner.serverId, joined)),
-            ],
+            events: await channelMembershipEvents(tx, runner.serverId, joined),
             receipt: {
                 agent: summary,
                 avatar: avatar.outcome,
@@ -182,76 +143,13 @@ export async function createAgentFromAgent(
                 chatId: plan.chatId,
                 computerId: execution.computerId,
                 idempotent: false,
-                messageId: written.messageId,
                 modelId: execution.modelId,
                 reasoningEffort: execution.reasoningEffort,
                 runtimeId: execution.runtimeId,
-                sequence: written.sequence,
                 target: input.target,
             },
-            wakes: written.wakes,
         };
     });
-}
-
-/**
- * A retried create must find the same Message carrying the same Agent, or the
- * nonce is being reused for a different creation and the request is refused.
- *
- * The replay reports no avatar of its own. A retry that raced the first attempt
- * passed the route's pre-check before that attempt committed, so it generated an
- * image and then found the nonce here; those bytes are dropped, and reporting
- * them would claim this request illustrated an Agent it never touched. The
- * Agent summary already carries the avatar it actually wears.
- */
-async function readReplay(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    chatId: string,
-    input: AgentCreateAgentInput
-): Promise<AgentCreateAgentReceipt | null> {
-    const message = await findAgentMessageByNonce(db, {
-        chatId,
-        nonce: input.nonce,
-        serverId: runner.serverId,
-    });
-    if (!message) {
-        return null;
-    }
-    const agent = await readCreatedAgentForMessage(db, runner.serverId, message.id);
-    // The stored announcement carries stable reference links, so the retry's raw
-    // text is canonicalized against the targets already in it before comparison.
-    const content = await canonicalizeAgentMessageContentForPersistence(db, {
-        content: input.content,
-        existingContent: message.content,
-        serverId: runner.serverId,
-    });
-    if (
-        !agent ||
-        message.authorAgentId !== runner.agentId ||
-        message.content !== content ||
-        agent.displayName !== input.displayName ||
-        agent.description !== input.description
-    ) {
-        throw new AgentCreateConflictError();
-    }
-    const execution = await requireCallerExecution(db, runner);
-    return {
-        agent,
-        avatar: { status: 'none' },
-        channels: (await readAgentChannels(db, runner.serverId, agent.agentId)).map(
-            (channel) => `#${channel.name}`
-        ),
-        chatId,
-        computerId: execution.computerId,
-        idempotent: true,
-        messageId: message.id,
-        modelId: execution.modelId,
-        reasoningEffort: execution.reasoningEffort,
-        runtimeId: execution.runtimeId,
-        sequence: message.sequence,
-        target: input.target,
-    };
 }
 
 /** The new Agent inherits exactly what the creating Agent runs on. */

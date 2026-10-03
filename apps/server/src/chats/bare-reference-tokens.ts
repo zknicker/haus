@@ -65,14 +65,6 @@ export function readBareReferenceTokens(content: string): BareReferenceToken[] {
     return tokens;
 }
 
-/** Whether prose names one Agent by the bare `@handle` a reader can click. */
-export function mentionsBareAgentHandle(content: string, handle: string): boolean {
-    const wanted = handle.toLocaleLowerCase('en-US');
-    return readBareReferenceTokens(content).some(
-        (token) => token.sigil === '@' && token.key === wanted
-    );
-}
-
 function hasTokenBoundary(character: string | undefined) {
     return !(character && /[-A-Za-z0-9_@#]/u.test(character));
 }

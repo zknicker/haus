@@ -1746,7 +1746,7 @@ components:
     AgentCreateAgentRequest:
       type: object
       additionalProperties: false
-      required: [content, description, displayName, nonce, target]
+      required: [description, displayName, nonce, target]
       properties:
         avatarConcept: { type: [string, 'null'], minLength: 1, maxLength: 280, default: null }
         brief: { type: [string, 'null'], minLength: 1, maxLength: 4000, default: null }
@@ -1755,7 +1755,6 @@ components:
           maxItems: 20
           default: []
           items: { type: string, pattern: '^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$' }
-        content: { type: string, minLength: 1, maxLength: 4000 }
         description: { type: string, minLength: 1, maxLength: 280 }
         displayName: { type: string, minLength: 1, maxLength: 80 }
         nonce: { type: string, minLength: 1, maxLength: 128 }
@@ -1794,7 +1793,7 @@ components:
     AgentCreateAgentResponse:
       type: object
       additionalProperties: false
-      required: [agent, avatar, channels, chatId, computerId, idempotent, messageId, modelId, reasoningEffort, runtimeId, sequence, target]
+      required: [agent, avatar, channels, chatId, computerId, idempotent, modelId, reasoningEffort, runtimeId, target]
       properties:
         agent:
           $ref: '#/components/schemas/CreatedAgentSummary'
@@ -1806,11 +1805,9 @@ components:
         chatId: { type: string, minLength: 1 }
         computerId: { type: string, minLength: 1 }
         idempotent: { type: boolean }
-        messageId: { type: string, minLength: 1 }
         modelId: { type: string }
         reasoningEffort: { type: string, enum: [default, low, medium, high, xhigh, max] }
         runtimeId: { type: string }
-        sequence: { type: integer, minimum: 1 }
         target: { type: string, minLength: 1 }
     AgentAddChannelAgentRequest:
       type: object

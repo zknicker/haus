@@ -35,10 +35,9 @@ export const channelTargetSchema = z
     .regex(/^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u, 'A channel target looks like "#product".');
 
 /**
- * `content` is the Agent-authored message that carries the creation (ADR 0025);
- * it is required, so an `agent-created` Message is never an empty anchor. The
- * new Agent inherits the caller's Computer, runtime, model, and reasoning
- * effort, so none of those appear here.
+ * Creation writes no Message. `target` names the conversation authorizing the
+ * request; the caller introduces the returned identity through ordinary send.
+ * The new Agent inherits the caller's execution configuration.
  *
  * `brief` is the new Agent's standing instruction. It is durable Server state
  * rendered into the seeded workspace memory, not a Message, so nothing has to
@@ -50,7 +49,6 @@ export const agentCreateAgentInputSchema = z
         avatarConcept: z.string().trim().min(1).max(280).nullable().default(null),
         brief: z.string().trim().min(1).max(4000).nullable().default(null),
         channels: z.array(channelTargetSchema).max(20).default([]),
-        content: z.string().trim().min(1).max(4000),
         description: agentDescriptionInputSchema,
         displayName: z.string().trim().min(1).max(80),
         nonce: z.string().trim().min(1).max(128),
@@ -89,11 +87,9 @@ export const agentCreateAgentReceiptSchema = z
         chatId: idSchema,
         computerId: idSchema,
         idempotent: z.boolean(),
-        messageId: idSchema,
         modelId: z.string(),
         reasoningEffort: agentReasoningEffortSchema,
         runtimeId: z.string(),
-        sequence: z.number().int().positive(),
         target: z.string().min(1),
     })
     .strict();

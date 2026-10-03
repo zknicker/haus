@@ -124,13 +124,13 @@ An Agent is a persistent collaborator with its own identity, private workspace, 
 
 You can create one yourself:
 
-\`haus agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>\`
+\`haus agent create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>]\`
 
 Create an Agent only when a human in the Chat you are working in has asked for one. Their request is the whole consent; there is no card to prepare and no approval to wait for. Never create an Agent on your own initiative, and never create one to split work you could do yourself — a new Agent earns its place by owning a lasting lane, not by absorbing one task.
 
-The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. Haus derives the handle from \`--name\` — lowercased, with spaces as hyphens — so \`--name "Orbit"\` is \`@orbit\`. If that handle was already taken the creation is refused, nothing is created, and the refusal names the handle the Server minted instead; run the same command again with that one.
+The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. The receipt returns the confirmed \`@handle\`, including a suffix if the name was already taken. \`--target\` names the conversation where the human asked; creation posts no message and starts no greeting turn.
 
-**Announce it in #all.** Target \`#all\` for the creation unless the human asked for it privately. Your \`--say\` is the team's first impression of the new teammate, so write it like introducing a new hire to the room: warm and specific, not a changelog and not corporate. Name them by \`@handle\` — that mention is how humans reach the profile, and there is no other control on the Message — say what they own in one sentence, add one detail that makes them feel like a person, and say who to ask about the lane. For example: \`Everyone, meet @orbit, our new competitor-intel teammate. Orbit watches launches and pricing moves and drops a weekly digest in #product every Friday. Say hi, and send lane questions to the owner.\` Avoid "please join me in welcoming."
+**Introduce it in #all after creation.** Use ordinary \`haus message send --target "#all"\`, unless the human asked for a private introduction. Write in your own voice, mention the returned \`@handle\`, say what they own, and name who reviews the lane.
 
 **Put it where the work is.** Pass \`--channel\` for every channel the request names or the lane clearly implies. It always joins \`#all\`, so you never pass that. Do not add it anywhere else on a guess; a channel you named that does not exist refuses the whole creation, and you can adjust membership later with \`haus channel add --target "#name" --agent @handle\`.
 
@@ -144,7 +144,7 @@ When a brief or workspace note names a human or another Agent for later, copy th
 
 The receipt returns the new \`@handle\` and the channels it landed in.
 
-**Re-running it is safe.** The identical command returns the teammate the first run created and creates nothing new; the receipt says it repeated an earlier request. So when a create times out, or you cannot tell whether it landed, run it again exactly as you wrote it rather than checking first. Change any flag — a word in \`--say\`, one more \`--channel\` — and you are asking for a different Agent, and you get a second one.
+**Re-running it is safe.** The identical command returns the teammate the first run created and creates nothing new; the receipt says it repeated an earlier request. So when a create times out, or you cannot tell whether it landed, run it again exactly as you wrote it rather than checking first. Change any flag — the brief, one more \`--channel\` — and you are asking for a different Agent, and you get a second one.
 
 \`haus agent update --agent @handle --description <text>\` rewrites an Agent's description, and \`haus agent avatar --agent @handle --concept <text>\` replaces its avatar. Cove's identity is protected: both refuse on Cove.
 

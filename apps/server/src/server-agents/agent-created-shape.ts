@@ -35,16 +35,6 @@ export async function readCreatedAgentsForMessages(
     );
 }
 
-/** The Agent this Message created, when it created one. */
-export async function readCreatedAgentForMessage(
-    db: AgentReader,
-    serverId: string,
-    messageId: string
-): Promise<CreatedAgentSummary | null> {
-    const found = await readCreatedAgentsForMessages(db, serverId, [messageId]);
-    return found.get(messageId) ?? null;
-}
-
 /** The same projection addressed by Agent id, for the create and edit receipts. */
 export async function readCreatedAgent(
     db: AgentReader,
