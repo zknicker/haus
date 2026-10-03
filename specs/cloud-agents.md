@@ -470,30 +470,55 @@ changed it). Agents cannot choose
 or override it: no Agent route, CLI flag, or start input carries a model.
 
 **Catalog.** Cursor is the source of truth for which models exist. The Computer that holds the
-Cursor connection reads `Cursor.models.list()` and reports the result inside its ordinary inventory,
-on the Cloud Agent provider line: `cloudAgentProviders[].models = { models: [{ id, displayName,
-description }], refreshedAt }`, or `null` when it has none. Cursor publishes no price or tier, so
-Haus carries none. Computer caches the catalog per connected account and reads it again on start,
-whenever the account changes (a reconnect mints a key with a new expiry), and on a daily loop per
-attachment connection. A failed read keeps the previous catalog for the same account with its own
+Cursor connection reads `Cursor.models.list()`, maps it, and reports the result inside its ordinary
+inventory, on the Cloud Agent provider line: `cloudAgentProviders[].models = { models,
+refreshedAt }`, or `null` when it has none. Each model is `{ id, displayName, description, family,
+order, effort, fast }`. Cursor publishes no price or tier, so Haus carries none. The mapping
+(`apps/computer/src/cloud-agents/model-catalog-mapping.ts`):
+
+- drops Cursor's own `default` ("Auto") entry, because Haus already offers Cursor default;
+- keeps Cursor's order as `order`, the first valid listing of each id, and at most 200 models;
+- strips zero-width characters and collapses whitespace in every label;
+- derives `family` from the id and name: `claude`, `gpt` (Codex included), `gemini`, `grok`,
+  `composer`, `glm`, `kimi`, or `other`;
+- keeps only two user-facing parameters. `effort` normalizes Cursor's three spellings (`effort`,
+  `reasoning`, `reasoning_effort`) into `{ options: [{ value, displayName }], defaultValue,
+  providerParamId }`, where `providerParamId` is the spelling that model takes on the wire. `fast`
+  is `{ defaultValue }` when the model offers `fast` as true/false. Each `defaultValue` comes from
+  Cursor's `isDefault` variant. Context, thinking, and every other parameter are not offered and
+  never sent, so Cursor's defaults apply. A malformed parameter drops only that control.
+
+Computer caches the catalog per connected account and reads it again on start, whenever the
+account changes (a reconnect mints a key with a new expiry), and on a daily loop per attachment
+connection. A failed read keeps the previous catalog for the same account with its own
 `refreshedAt`; disconnecting reports `null`. Server stores it with the rest of the reported
 inventory on `computers.reported_inventory`.
 
-**Setting.** `servers.cloud_agent_model_id` holds the choice: `null` is Cursor default, otherwise one Cursor
-model id. The contract is the union `{ kind: 'auto' } | { kind: 'model', id }`. Any member reads it
-through `cloudAgentSettings.get({ serverId })`; only an Owner or Admin writes it through
-`cloudAgentSettings.setModel({ serverId, model })`, which also refuses an id that the freshest
-catalog on any of the Server's Computers does not list (`BAD_REQUEST`). The read returns
-`{ model, catalog, savedModelUnavailable }`. `catalog` is that freshest catalog, or `null` when no
-Computer has reported one. `savedModelUnavailable` is true when a saved model is missing from it.
+**Setting.** The contract is the union `{ kind: 'auto' } | { kind: 'model', id, params: { effort?,
+fast? } }`. `auto` is Cursor default. An absent param means the model's own default, so `params: {}`
+is "this model as Cursor configures it". `servers.cloud_agent_model_id` (`null` is Cursor default)
+and `servers.cloud_agent_model_params` (jsonb, `{}` whenever the id is `null`) hold it. Any member
+reads it through `cloudAgentSettings.get({ serverId })`; only an Owner or Admin writes it through
+`cloudAgentSettings.setModel({ serverId, model })`, which refuses (`BAD_REQUEST`) an id that the
+freshest catalog on any of the Server's Computers does not list, an `effort` value that model does
+not offer, or `fast` on a model without it. The read returns `{ model, catalog,
+savedModelUnavailable }`. `catalog` is that freshest catalog, or `null` when no Computer has
+reported one. `savedModelUnavailable` is true when a saved model is missing from it.
 
 **Launch.** Server resolves the model whenever it creates a Run, for a first launch and for each
 follow-up. It sends the saved model only when the **launching Computer's** newest catalog lists it.
-Otherwise it falls back to Cursor default and sends no model. Every Run records the outcome as
-`model: { id, fallbackFrom }` (`cloud_agent_runs.model_id`, `.model_fallback_from`). `id` is the
-model Haus sent, or `null` for Cursor default. `fallbackFrom` names the saved model that fell back. Runs that
-predate the setting read `{ id: null, fallbackFrom: null }`, which is accurate because Haus sent no
-model then either. Computer passes `id` to `agent.send(..., { model: { id } })` and omits the option
+Otherwise it falls back to Cursor default and sends no model. With a listed model it sends each saved
+param that model still offers, under the model's own `providerParamId`. A saved param it no longer
+offers (value gone, or control gone) is dropped, so that Run takes the model's default. Unset params
+are never sent. Every Run records the outcome as `model: { id, params, fallbackFrom, droppedParams }`
+(`cloud_agent_runs.model_id`, `.model_params`, `.model_fallback_from`, `.model_dropped_params`).
+`id` is the model Haus sent, or `null` for Cursor default. `params` are
+`[{ name: 'effort' | 'fast', providerParamId, value }]` as sent. `fallbackFrom` names the saved model
+that fell back, and `droppedParams` names the saved params that were dropped. A Run without a model
+has neither params nor drops. Runs that predate the setting read
+`{ id: null, params: [], fallbackFrom: null, droppedParams: [] }`, which is accurate because Haus sent
+no model then either. Computer passes `agent.send(..., { model: { id, params: [{ id:
+providerParamId, value }] } })`, leaves out `params` when there are none, and leaves out the option
 for Cursor default. Computer protocol 26 carries the catalog and the Run model.
 
 ## Settings and usage
