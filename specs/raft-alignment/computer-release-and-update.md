@@ -169,6 +169,19 @@ The UI uses these user-visible phases:
 | `complete` | Shows the installed version and restored connection. Queued work resumes. |
 | `failed` | Names the failed stage in plain language, preserves the last trustworthy progress, and presents the exact local recovery command. |
 
+Once an attachment daemon begins the update restart drain, shutdown is terminal. If the drain or
+service restart fails, it persists the failed update stage and releases the update lock before
+exiting with an error. The resident Computer replaces the exited daemon using the installed
+executable. A disposed runtime must never remain alive in the reconnect loop; recovery does not
+claim that the failed shutdown saved every session checkpoint.
+
+Shutdown drains accepted writers before saving parked Agent sessions, with a separate 20-second
+deadline for each stage. A completed writer cannot consume the session checkpoint deadline.
+Coordination cleanup has its own three-second deadline; telemetry flush uses the bounded
+finalizers owned by the telemetry layer. Timeout errors identify the stage that actually failed.
+The process controller waits up to 60 seconds for these stages before refusing a replacement;
+it never force-kills the attachment daemon to satisfy that deadline.
+
 The progress surface must feel live, not like a submitted form:
 
 - Computer reports downloaded bytes and expected total throughout the transfer.
