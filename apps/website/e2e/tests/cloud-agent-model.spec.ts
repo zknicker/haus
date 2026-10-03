@@ -75,7 +75,10 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     // A Computer report carrying a catalog refreshes the row without a reload.
     sendCatalog(computer, [composer, gpt, opus]);
     await expect(pickerButton).toBeEnabled();
-    await expect(group.getByText(/^Updated /u)).toBeVisible();
+    // Catalog freshness is the Model row's tooltip, not a row description.
+    await group.getByRole('button', { name: 'About Model' }).focus();
+    await expect(page.getByRole('tooltip')).toContainText('Model list updated just now.');
+    await page.keyboard.press('Escape');
     await picker.click();
     const listbox = page.getByRole('listbox');
     // Family sections in product order, whatever Cursor's order across families.
@@ -95,6 +98,13 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     // The model's own defaults show until a param is chosen; each choice saves at once.
     await expect(effort).toContainText('Medium');
     await expect(fast).not.toBeChecked();
+    // Model, Effort, and Fast rows share one height whatever their control.
+    const rowHeights = await page
+        .locator('.item-card-group', { has: page.getByRole('heading', { name: 'Cloud Agents' }) })
+        .locator('.item-card')
+        .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
+    expect(rowHeights).toHaveLength(3);
+    expect(new Set(rowHeights).size).toBe(1);
     await effort.click();
     await page.getByRole('option', { name: 'High' }).click();
     await expect

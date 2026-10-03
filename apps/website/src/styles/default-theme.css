@@ -1327,6 +1327,22 @@
     }
 
     /*
+     * Settings rows share one height. A row's height is whatever its tallest
+     * part is, so a title-only row with a Switch or a fact (~44px) sat short
+     * beside one with a Select, an input, or a title + description (~60px).
+     * Every settings list row takes the field row's height as its floor: the
+     * row's ×3 block padding twice, plus a field's ×2 block padding twice,
+     * its 20px `text-sm` line, and its two 1px borders. A card straight inside
+     * a transparent group is a note under a section heading, not a row in a
+     * list box, and keeps its own height.
+     */
+    .settings-frame
+        .item-card-group--list:not(.item-card-group--transparent)
+        > [data-slot='item-card'] {
+        min-block-size: calc(var(--spacing) * 10 + 1.25rem + 2px);
+    }
+
+    /*
      * And on FileTree rows: Pro ships `.file-tree__item` at ×1, while every
      * interactive item row (sidebar menu items, list-box items) sits on the
      * ×2 items tier — a file rail beside the app sidebar read as two corner

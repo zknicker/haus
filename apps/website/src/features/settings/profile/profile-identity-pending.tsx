@@ -1,6 +1,10 @@
 import { Input, Separator, TextField } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';
+import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
+
+/** The Handle row's explanation, shared by the live and pending rows. */
+export const handleInfo = 'Your unique @name on this Server.';
 
 /** Reserve the identity rows without inventing an editable member. */
 export function ProfileIdentityPending({ error }: { error?: string }) {
@@ -11,40 +15,43 @@ export function ProfileIdentityPending({ error }: { error?: string }) {
                     {error}
                 </p>
             ) : null}
-            {[
-                { title: 'Photo' },
-                { title: 'Display Name' },
-                { title: 'Handle', description: 'Your unique @name on this Server.' },
-            ].map((row, index) => (
-                <Fragment key={row.title}>
-                    {index > 0 ? <Separator /> : null}
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Title>{row.title}</ItemCard.Title>
-                            {row.description ? (
-                                <ItemCard.Description>{row.description}</ItemCard.Description>
-                            ) : null}
-                        </ItemCard.Content>
-                        <ItemCard.Action>
-                            {row.title === 'Photo' ? (
-                                <div aria-hidden="true" className="size-10" />
-                            ) : (
-                                <TextField
-                                    aria-label={
-                                        row.title === 'Display Name' ? 'Display name' : row.title
-                                    }
-                                    className="w-56 max-w-full"
-                                    isDisabled
-                                    value=""
-                                    variant="secondary"
-                                >
-                                    <Input />
-                                </TextField>
-                            )}
-                        </ItemCard.Action>
-                    </ItemCard>
-                </Fragment>
-            ))}
+            {[{ title: 'Photo' }, { title: 'Display Name' }, { title: 'Handle' }].map(
+                (row, index) => (
+                    <Fragment key={row.title}>
+                        {index > 0 ? <Separator /> : null}
+                        <ItemCard>
+                            <ItemCard.Content>
+                                {row.title === 'Handle' ? (
+                                    <SettingsRowTitle info={handleInfo}>
+                                        {row.title}
+                                    </SettingsRowTitle>
+                                ) : (
+                                    <ItemCard.Title>{row.title}</ItemCard.Title>
+                                )}
+                            </ItemCard.Content>
+                            <ItemCard.Action>
+                                {row.title === 'Photo' ? (
+                                    <div aria-hidden="true" className="size-10" />
+                                ) : (
+                                    <TextField
+                                        aria-label={
+                                            row.title === 'Display Name'
+                                                ? 'Display name'
+                                                : row.title
+                                        }
+                                        className="w-56 max-w-full"
+                                        isDisabled
+                                        value=""
+                                        variant="secondary"
+                                    >
+                                        <Input />
+                                    </TextField>
+                                )}
+                            </ItemCard.Action>
+                        </ItemCard>
+                    </Fragment>
+                )
+            )}
         </ItemCardGroup>
     );
 }

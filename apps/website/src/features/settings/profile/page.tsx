@@ -12,8 +12,9 @@ import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { humanDisplayName } from '../../servers/human-identity.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
+import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
-import { ProfileIdentityPending } from './profile-identity-pending.tsx';
+import { handleInfo, ProfileIdentityPending } from './profile-identity-pending.tsx';
 
 export function ProfileSettings({ serverId }: { serverId: string }) {
     const directory = useMembers(serverId);
@@ -148,8 +149,7 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
             <Separator />
             <ItemCard>
                 <ItemCard.Content>
-                    <ItemCard.Title>Handle</ItemCard.Title>
-                    <ItemCard.Description>Your unique @name on this Server.</ItemCard.Description>
+                    <SettingsRowTitle info={handleInfo}>Handle</SettingsRowTitle>
                     <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
                 </ItemCard.Content>
                 <ItemCard.Action>

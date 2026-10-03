@@ -1,4 +1,4 @@
-import { Description, Label, ListBox, Select, Switch } from '@heroui/react';
+import { Description, Label, ListBox, Select, Separator, Switch } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { useSetCloudAgentModel } from '../../../hooks/servers/use-cloud-agent-settings.ts';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
@@ -6,7 +6,8 @@ import { type CloudAgentModelParamsView, settingWithParam } from './cloud-agent-
 
 /**
  * The chosen model's Effort and Fast rows, each only when the model offers
- * it. Each change saves at once, like the model itself.
+ * it. Each change saves at once, like the model itself. They always follow
+ * the Model row, so each brings its own divider.
  */
 export function CloudAgentParamRows({
     canManage,
@@ -20,9 +21,17 @@ export function CloudAgentParamRows({
     return (
         <>
             {view.effort ? (
-                <EffortRow canManage={canManage} serverId={serverId} view={view} />
+                <>
+                    <Separator />
+                    <EffortRow canManage={canManage} serverId={serverId} view={view} />
+                </>
             ) : null}
-            {view.fast ? <FastRow canManage={canManage} serverId={serverId} view={view} /> : null}
+            {view.fast ? (
+                <>
+                    <Separator />
+                    <FastRow canManage={canManage} serverId={serverId} view={view} />
+                </>
+            ) : null}
         </>
     );
 }

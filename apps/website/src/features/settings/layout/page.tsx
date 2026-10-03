@@ -32,10 +32,11 @@ export function SettingsContentFrame({
 }) {
     return (
         <section
+            // `settings-frame` hangs the theme's one-row-height rule for settings lists.
             className={
                 isFullContentRoute
-                    ? 'flex min-h-0 flex-1 flex-col overflow-hidden'
-                    : 'flex min-h-0 flex-1 flex-col overflow-y-scroll [scrollbar-gutter:stable]'
+                    ? 'settings-frame flex min-h-0 flex-1 flex-col overflow-hidden'
+                    : 'settings-frame flex min-h-0 flex-1 flex-col overflow-y-scroll [scrollbar-gutter:stable]'
             }
         >
             <div

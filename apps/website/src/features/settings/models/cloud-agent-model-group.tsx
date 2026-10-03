@@ -1,12 +1,10 @@
-import { Button, Tooltip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Icon } from '../../../components/ui/icon.tsx';
 import {
     useCloudAgentSettings,
     useSetCloudAgentModel,
 } from '../../../hooks/servers/use-cloud-agent-settings.ts';
 import { formatRelativeTime } from '../../../lib/format.ts';
+import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError, SettingsRowWarning } from '../layout/settings-text.tsx';
 import {
     type CloudAgentModelView,
@@ -87,11 +85,12 @@ function CloudAgentModelRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <div className="flex items-center gap-0.5">
-                    <ItemCard.Title>Model</ItemCard.Title>
-                    <ModelInfo view={view} />
-                </div>
-                <ModelDetail view={view} />
+                <SettingsRowTitle info={modelInfo(view)}>Model</SettingsRowTitle>
+                {view.state === 'unavailable' ? (
+                    <SettingsRowWarning>
+                        Unavailable. Runs use Auto until you pick an available model.
+                    </SettingsRowWarning>
+                ) : null}
                 <SettingsRowError>{setModel.error?.message}</SettingsRowError>
             </ItemCard.Content>
             <ItemCard.Action>
@@ -117,31 +116,14 @@ function CloudAgentModelRow({
     );
 }
 
-/** One line under the title: the warning when there is one, else freshness. */
-function ModelDetail({ view }: { view: CloudAgentModelView }) {
-    if (view.state === 'unavailable') {
-        return (
-            <SettingsRowWarning>
-                Unavailable. Runs use Auto until you pick an available model.
-            </SettingsRowWarning>
-        );
+/** What the Model row means, and how fresh the catalog behind its picker is. */
+function modelInfo(view: CloudAgentModelView) {
+    if (view.catalogMissing) {
+        return 'Models appear once a Computer with Cursor connected reports them.';
     }
-    return view.refreshedAt ? (
-        <ItemCard.Description>Updated {formatRelativeTime(view.refreshedAt)}</ItemCard.Description>
-    ) : null;
-}
-
-function ModelInfo({ view }: { view: CloudAgentModelView }) {
-    return (
-        <Tooltip delay={0}>
-            <Button aria-label="About the Cloud Agent model" isIconOnly size="sm" variant="ghost">
-                <Icon aria-hidden="true" icon={InformationCircleIcon} size={14} />
-            </Button>
-            <Tooltip.Content>
-                {view.catalogMissing
-                    ? 'Models appear once a Computer with Cursor connected reports them.'
-                    : 'Every Cloud Agent on this Server uses this model. With Auto, Cursor picks a model for each run.'}
-            </Tooltip.Content>
-        </Tooltip>
-    );
+    const about =
+        'Every Cloud Agent on this Server uses this model. With Auto, Cursor picks a model for each run.';
+    return view.refreshedAt
+        ? `${about} Model list updated ${formatRelativeTime(view.refreshedAt)}.`
+        : about;
 }

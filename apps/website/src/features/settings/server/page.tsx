@@ -7,6 +7,7 @@ import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
+import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 
 export function ServerSettings({ server }: { server: ServerSummary }) {
@@ -43,10 +44,9 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     <Separator />
                     <ItemCard>
                         <ItemCard.Content>
-                            <ItemCard.Title>Address</ItemCard.Title>
-                            <ItemCard.Description>
-                                This permanent address identifies your Server and confirms deletion.
-                            </ItemCard.Description>
+                            <SettingsRowTitle info="This permanent address identifies your Server and confirms deletion.">
+                                Address
+                            </SettingsRowTitle>
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SettingsFact>{server.slug}</SettingsFact>

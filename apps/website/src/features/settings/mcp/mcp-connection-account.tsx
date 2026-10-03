@@ -85,9 +85,6 @@ function AccountRow({
                 <ItemCard.Title title={connection.accountLabel ?? undefined}>
                     {connection.accountLabel ?? status}
                 </ItemCard.Title>
-                {connection.accountLabel ? (
-                    <ItemCard.Description>Connected</ItemCard.Description>
-                ) : null}
             </ItemCard.Content>
             <ItemCard.Action>
                 <Dropdown>
