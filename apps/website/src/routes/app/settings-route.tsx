@@ -1,3 +1,4 @@
+import { hasServerAdminAuthority } from '@haus/api/membership';
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ComputerPage } from '../../features/computers/computer-page.tsx';
@@ -41,7 +42,9 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
     ),
     connections: () => <ConnectionsPage embedded />,
     members: ({ server }) => <MembersSection server={server} />,
-    models: ({ server }) => <ModelsSettings serverId={server.id} />,
+    models: ({ server }) => (
+        <ModelsSettings canManage={hasServerAdminAuthority(server.role)} serverId={server.id} />
+    ),
     preferences: () => <PreferencesSettings />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
     server: ({ server }) => <ServerSettings server={server} />,

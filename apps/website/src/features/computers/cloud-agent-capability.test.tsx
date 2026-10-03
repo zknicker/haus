@@ -115,7 +115,9 @@ test('the row reads as connecting while the Computer runs Cursor’s browser sig
 test('the Computer report renders the row before the settings read answers', () => {
     expect(
         reportedCloudAgentCapability({
-            cloudAgentProviders: [{ provider: 'cursor', ready: false, reason: 'expired' }],
+            cloudAgentProviders: [
+                { models: null, provider: 'cursor', ready: false, reason: 'expired' },
+            ],
             runtimes: [],
         })
     ).toEqual(unready('expired'));

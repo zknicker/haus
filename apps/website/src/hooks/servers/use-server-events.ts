@@ -84,6 +84,8 @@ export function createServerUpdateHandler(
             void utils.agent.workspaceFile.invalidate();
             void utils.agent.workspaceFiles.invalidate();
             void utils.stats.live.invalidate({ serverId });
+            // A Computer report can carry a new Cloud Agent model catalog.
+            void utils.cloudAgentSettings.get.invalidate({ serverId });
             return;
         }
         if (event.scope === 'mcp') {
@@ -98,6 +100,7 @@ export function createServerUpdateHandler(
         invalidateMemberDetail(utils, serverId, event.memberId);
         void utils.member.list.invalidate({ serverId });
         void utils.invitation.list.invalidate({ serverId });
+        void utils.cloudAgentSettings.get.invalidate({ serverId });
     };
 }
 

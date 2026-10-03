@@ -227,6 +227,7 @@ function run(overrides: Partial<CloudAgentRun>): CloudAgentRun {
     return {
         branches: [],
         errorCode: null,
+        model: { fallbackFrom: null, id: null },
         providerRunId: null,
         rawStatus: null,
         runId: 'car_one',

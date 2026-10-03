@@ -25,6 +25,7 @@ function recordingUtils() {
                 workspaceFiles: { invalidate: invalidate('agent.workspaceFiles') },
             },
             chat: { list: { invalidate: invalidate('chat.list') } },
+            cloudAgentSettings: { get: { invalidate: invalidate('cloudAgentSettings.get') } },
             computer: {
                 list: { invalidate: invalidate('computer.list') },
                 systemLog: { invalidate: invalidate('computer.systemLog') },
@@ -68,6 +69,7 @@ test('computer events refresh Server workspace reads without polling', () => {
         'agent.workspaceFile',
         'agent.workspaceFiles',
         'stats.live',
+        'cloudAgentSettings.get',
     ]);
 });
 
@@ -152,6 +154,7 @@ test('a named human refreshes only their own directory record', () => {
         { input: { serverId: 'server-one', userId: 'usr_ada' }, name: 'member.get' },
         { input: { serverId: 'server-one' }, name: 'member.list' },
         { input: { serverId: 'server-one' }, name: 'invitation.list' },
+        { input: { serverId: 'server-one' }, name: 'cloudAgentSettings.get' },
     ]);
 });
 

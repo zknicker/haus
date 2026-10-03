@@ -2,12 +2,13 @@ import type React from 'react';
 import { cn } from '../../../lib/utils.ts';
 
 /**
- * The two text roles HeroUI's ItemCard has no slot for.
+ * The text roles HeroUI's ItemCard has no slot for.
  *
  * Rows themselves are stock `ItemCard` — `.Title`, `.Description`, `.Action`.
  * These cover only what the component leaves to the product: the read-only
- * value a row reports, and the failure a row's action produced. Keep this file
- * at two text semantics; a row, a group, or a section belongs to
+ * value a row reports, the failure a row's action produced, and a standing
+ * warning about the row's current value. Keep this file at those text
+ * semantics; a row, a group, or a section belongs to
  * `ItemCardGroup`, not here.
  */
 
@@ -47,4 +48,17 @@ export function SettingsRowError({ children }: { children?: React.ReactNode }) {
             {children}
         </p>
     );
+}
+
+/**
+ * A standing warning about the row's current value, under the description.
+ * Unlike `SettingsRowError` it describes state, not a failed action, so it is
+ * not announced as an alert.
+ */
+export function SettingsRowWarning({ children }: { children?: React.ReactNode }) {
+    if (!children) {
+        return null;
+    }
+
+    return <p className="mt-1 text-sm text-warning">{children}</p>;
 }

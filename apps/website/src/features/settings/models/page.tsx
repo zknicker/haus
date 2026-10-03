@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
+import { CloudAgentModelGroup } from './cloud-agent-model-group.tsx';
 import {
     buildModelCatalog,
     buildRuntimeAccess,
@@ -18,7 +19,7 @@ interface RuntimeRow {
     models: string;
 }
 
-export function ModelsSettings({ serverId }: { serverId: string }) {
+export function ModelsSettings({ canManage, serverId }: { canManage: boolean; serverId: string }) {
     const computers = useComputers(serverId);
     const [query, setQuery] = React.useState('');
     const items: ModelsComputer[] = computers.data ?? [];
@@ -39,6 +40,9 @@ export function ModelsSettings({ serverId }: { serverId: string }) {
                     description="Models reported by runtimes detected on your Computers."
                     title="Models"
                 />
+                {/* The model is a Server setting every member reads, even one
+                    who cannot see the Computers that report runtimes. */}
+                <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
                 <Alert role="alert" status="danger">
                     <Alert.Indicator />
                     <Alert.Content>
@@ -56,6 +60,8 @@ export function ModelsSettings({ serverId }: { serverId: string }) {
                 description="Models reported by runtimes detected on your Computers."
                 title="Models"
             />
+
+            <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
 
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
