@@ -85,7 +85,11 @@ export class McpOAuthRelay {
                 emitServerUpdated({ scope: 'mcp', serverId: updated.serverId });
             }
             return { status: 'complete' };
-        } catch {
+        } catch (error) {
+            console.error(
+                `[haus] MCP OAuth callback failed for connection ${attempt.connectionId}`,
+                error
+            );
             return { status: 'failed' };
         }
     }
