@@ -277,6 +277,7 @@
     "@ai-sdk/harness@1.0.133": "patches/@ai-sdk%2Fharness@1.0.133.patch",
     "@ai-sdk/harness-acp@1.0.71": "patches/@ai-sdk%2Fharness-acp@1.0.71.patch",
     "@ai-sdk/harness-grok-build@1.0.70": "patches/@ai-sdk%2Fharness-grok-build@1.0.70.patch",
+    "@ai-sdk/harness-pi@1.0.135": "patches/@ai-sdk%2Fharness-pi@1.0.135.patch",
     "@cursor/sdk@1.0.30": "patches/@cursor%2Fsdk@1.0.30.patch",
     "react-stately@3.50.0": "patches/react-stately@3.50.0.patch",
   },
