@@ -338,8 +338,8 @@ bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes
 
 It proves a prose proposal that creates nothing, then exactly one Agent created
 by `haus agent create` with Cove's own runtime, model, reasoning effort, and
-Computer, announced by one `agent-created` Message in `#all` that mentions the
-new handle, joined to `#all` and the requested `#product`, carrying its standing
+Computer, introduced by one ordinary Message in `#all` that mentions the
+confirmed handle and carries Cove's unchanged session generation, joined to `#all` and the requested `#product`, carrying its standing
 brief in the workspace `MEMORY.md`, and no second Agent when the request is
 repeated. The scenario never uses browser E2E or
 asserts model wording, selected name, character, aesthetics, or acknowledgment. Its report is written under

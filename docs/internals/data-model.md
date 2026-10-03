@@ -42,7 +42,7 @@ Semantic Agent activity is durable Server metadata. Detailed execution journals 
 Computer-local and are read only through an authorized live relay.
 
 `chat_messages.body_kind` is the Message body discriminator (ADR 0025). It defaults to `text`, and
-`cloud-agent-work` and `agent-created` are the typed kinds; optional feature columns never define a Message's
+`cloud-agent-work` is the current typed kind and `agent-created` remains for historical reads; optional feature columns never define a Message's
 type. One Server Message reader projects the stored kind and its record together, and fails the
 mapping rather than downgrading a typed Message to text.
 
@@ -88,12 +88,13 @@ human-chosen Cloud Agent model (`null` is Auto) and `servers.cloud_agent_model_p
 effort and fast choices; the Cursor catalog it is checked against lives in
 each Computer's `reported_inventory`.
 
-An Agent created by another Agent (ADR 0028) is an ordinary `agents` row plus two nullable
-columns: `created_by_agent_id` (the creator, beside the existing `created_by_user_id`) and
-`creation_message_id`, the announcement Message the create wrote in the same transaction. That
-second column is unique per Server, so a Message projects at most one created Agent, and it is
-`ON DELETE SET NULL (creation_message_id)` — the column list is what keeps the composite key from
-nulling the tenant's own `server_id`, so deleting the Chat loses the anchor, never the Agent.
+An Agent created by another Agent (ADR 0028) records `created_by_agent_id`,
+`creation_nonce`, and `creation_request_hash` on `agents`. The nonce is unique per
+(Server, creating Agent); the hash covers the request with channel order and repeats normalized.
+Retries find that Agent under the Server lock, independently of later conversation.
+Creation writes no Message or Thread. The nullable `creation_message_id` and its foreign key remain
+only for existing production announcements and rollback; new creations leave it null.
+Deleting a historical announcement clears that link without deleting the Agent.
 `agents` carries no `role`; Server authority is a human membership property.
 
 `triggers` is the Agent-owned inbound wake: owner Agent, `kind` (checked against `webhook`),

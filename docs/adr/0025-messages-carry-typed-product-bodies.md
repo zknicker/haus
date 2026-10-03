@@ -37,8 +37,8 @@ Haus acts rather than generic actions, UI cards, or provider-specific implementa
 - One Server Message reader owns typed record projection for every consumer.
 - A related record owns mutable lifecycle and is unique to its Message; lifecycle events refetch
   the Message instead of creating receipt Messages.
-- Agent creation uses `agent-created` (ADR 0028); delegated hosted work uses `cloud-agent-work`; a
-  human decision request uses `ask`. Haus adds another body kind only when a distinct authored
+- Historical Agent creation messages retain `agent-created`; current creation posts no Message
+  and introductions use ordinary text (ADR 0028). Delegated hosted work uses `cloud-agent-work`. Haus adds another body kind only when a distinct authored
   product act requires one.
 - The canonicalization ships as one breaking release against a fresh production database; Haus
   carries no expand/contract compatibility path for it.

@@ -214,20 +214,19 @@ A managed Agent creates, updates, and re-avatars Agents on its own Server:
 
 ```sh
 haus agent create --target "#product" --name "Orbit" \
-  --description "Release helper" --avatar-concept "a small brass orbit" \
-  --say "Bringing Orbit on to own release checks."
+  --description "Release helper" --avatar-concept "a small brass orbit"
 haus agent update --agent @orbit --description "Release and rollback helper"
 haus agent avatar --agent @orbit --concept "a small brass orbit at dusk"
 ```
 
 `POST /api/agent/agents` takes `target`, `displayName` (1–80), `description` (1–280), optional
-`avatarConcept` (1–280), `content` (the `--say` announcement, 1–4000), and a `nonce`. The Server
-resolves the target from the scoped runner, verifies the Agent's exact current Chat view, derives an
-available `@handle` from the display name under the Server row lock, writes the announcement Message
-with body kind `agent-created`, and creates the Agent in one transaction. Runtime, model, reasoning
-effort, and Computer are read from the calling Agent's own row and revalidated against that
-Computer's reported inventory. The receipt carries the created Agent summary, the avatar outcome,
-the Chat anchor, sequence, and the idempotency result.
+`avatarConcept` (1–280), `brief` (1–4000), `channels`, and a `nonce`. The Server resolves the
+request's conversation from the scoped runner, verifies the Agent's current Chat view, derives an
+available handle under the Server row lock, and creates the Agent and memberships atomically.
+It writes no Message, Thread, or inbox delivery. Runtime, model, reasoning effort, and Computer
+are inherited from the caller and revalidated against the Computer's inventory. The receipt carries
+the confirmed Agent identity, channels, execution configuration, avatar outcome, and retry status.
+The CLI hints an introduction in `#all` through ordinary message send after creation succeeds.
 
 Avatar generation runs before the transaction, because it is a network call that must not hold the
 Server row lock. `AVATAR_PROVIDER_UNAVAILABLE` (no provider provisioned) creates the Agent anyway
@@ -235,13 +234,13 @@ with `avatar.status = "unavailable"`; a busy, provider, or output failure refuse
 as retryable and creates nothing.
 
 The nonce is the idempotency key, and the Agent CLI derives it from the request rather than minting
-one: a SHA-256 over the calling Agent, target, display name, description, announcement, avatar
+one: a SHA-256 over the calling Agent, target, display name, description, avatar
 concept, brief, and the de-duplicated sorted channel list. Re-issuing the identical command therefore
 replays the original creation instead of creating a second Agent, and changing any field asks for a
 different Agent and gets one. On a request that never got an answer — a timeout or a dropped
 connection, never an answered refusal — the CLI retries once on that same nonce.
 
-The same `(Chat, nonce)` from the same calling Agent with identical values returns the original
+The same `(Server, creating Agent, nonce)` with identical values returns the original
 receipt; reusing that nonce for different values returns `AGENT_CREATE_IDEMPOTENCY_CONFLICT`. The
 replay is read under the Server row lock and before the freshness check, so a retry that reached the
 Server while the first attempt was still generating its avatar replays too; that receipt carries
@@ -254,13 +253,10 @@ generates and applies a replacement avatar from a `concept`. Both resolve `@hand
 runner's Server and refuse Cove with `AGENT_IDENTITY_PROTECTED`. Neither renames an Agent: the handle
 is the Server-scoped alias that mentions, targets, and history all key on.
 
-The announcement must name the new Agent by its bare `@handle`, or the Server refuses with
-`AGENT_CREATE_ANNOUNCEMENT_MISSING_HANDLE` (409, carrying the derived `handle`) and creates nothing —
-the check runs before avatar generation, so a refusal spends none. The stored announcement carries
-that mention as a stable Agent reference, so every surface renders it as the chip that opens the
-profile. Chat message reads still project the created Agent through the `agent-created` body, which
-is provenance rather than something the App draws. Creation emits
-`message.created` and `server.updated{scope:'agent'}`; the body is terminal and has no update event.
+Creation nonces and request hashes live on `agents`; announcements are not retry anchors.
+A request that changes any creation input under an existing nonce is refused before avatar generation.
+Creation emits `server.updated{scope:'agent'}` and channel membership lifecycle events, never
+`message.created`. Historical `agent-created` bodies remain readable; new introductions are ordinary text.
 Creating an Agent does not wake it. Its standing brief is already in the memory the Computer seeds,
 so its first turn is its next ordinary delivery and nothing DMs it.
 

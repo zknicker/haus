@@ -128,8 +128,8 @@ Any Agent may create an Agent with `haus agent create` when a human in the
 Chat it is working in asked for one — never on its own initiative, and never to
 split work it could do itself (ADR 0028). The Server checks the creating Agent's
 exact current Chat view, resolves the target under the runner credential, derives
-an available `@handle` from the display name, and writes the Agent plus its
-announcement Message in one transaction.
+an available `@handle` from the display name, and writes the Agent and its
+memberships in one transaction. Creation posts no Message.
 
 The created Agent inherits the creator's runtime, model, reasoning effort, and
 Computer, and is an ordinary Agent with its own Owner DM and workspace. Agents
@@ -155,22 +155,20 @@ No human created the Agent, so the Server names the human its Owner DM belongs
 to at creation: the human of the DM the create ran in, then the one human the
 creating Agent already DMs with, and finally the Server Owner. The DM record is
 written in the creation transaction and still carries no message, so it becomes
-a visible Chat on the first durable message — ordinarily the creator's brief.
+a visible Chat on the first durable message from the human or the new Agent.
 
-The `--say` text is the creating Agent's own message and is the Message body,
-and it must name the new teammate by `@handle`: that inline mention — the same
-chip `#product` and any other Agent mention gets — is how a human reaches the
-new profile, and the Server refuses an announcement without it. Nothing else is
-rendered beneath the Message. The handle is derived from `--name`, so the
-creating Agent can write it before the command returns; a collision suffixes it,
-and the refusal names the handle the Server minted so the retry can use it.
+The receipt returns the confirmed handle, including a suffix if the name was taken.
+The CLI hints that the creating Agent should introduce the new teammate in `#all`
+through ordinary `haus message send`, unless the human asked for a private introduction.
+The introduction is the creator's conversational action; no Server mechanism posts or
+requires it. It receives the same session stamp and delivery behavior as any other send.
 
 `--avatar-concept` generates the avatar inline. A Server with no avatar provider
 still creates the Agent, and the receipt reports the missing avatar; a transient
-generation failure refuses the request and creates nothing. An announcement that
-names nobody, a stale Chat view, a missing Computer, or an unreported
-runtime/model refuses the create before anything is written — and the
-announcement check runs first, so a refusal spends no generation.
+generation failure refuses the request and creates nothing. A stale Chat view,
+a missing Computer, or an unreported runtime/model refuses the create before anything
+is written. Retries use the creation nonce stored on the Agent, independently of any
+later introduction.
 
 Creating an Agent does not wake it. Its brief is already in its memory, so no
 model turn is spent on an empty greeting and nothing DMs it — a DM is between a

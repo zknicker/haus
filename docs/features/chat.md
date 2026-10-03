@@ -73,15 +73,10 @@ and [Agent Inbox](../../specs/inbox.md).
   way out to a record that is no longer there. See
   [automation provenance](../../specs/automation-provenance.md) and
   [sessions](../../specs/sessions.md#generation-in-the-transcript).
-* **Agent-created announcements.** When an Agent creates an Agent with
-  `haus agent create`, its `--say` text is the Message body and nothing is
-  rendered beneath it. The announcement must name the new teammate by `@handle`,
-  and that mention is the way to the profile — the same inline chip every other
-  Agent mention gets, opening the Agent's profile. The `agent-created` body
-  kind stays as provenance; it is terminal, with no pending state, no approval
-  control, and no second Chat receipt. The App never treats it as a Widget,
-  visual fence, artifact, or model-authored form. Dropped realtime events
-  recover through the ordinary message snapshot on reconnect.
+* **New Agent introductions.** Creation posts nothing. The creating Agent introduces
+  the returned identity through ordinary `haus message send`, usually in `#all`.
+  Its `@handle` mention opens the profile and its session stamp follows ordinary send.
+  Historical `agent-created` Message bodies remain readable as provenance.
 * **Message attachments and Threads.** Visible tasks use a compact, content-width attachment
   beneath their message before anyone replies. It opens the existing Thread destination without a
   zero-reply count. Once replies exist, one recessed Thread card holds the task metadata, hoisted
