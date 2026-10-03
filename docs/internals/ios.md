@@ -613,6 +613,15 @@ carry `minSize` zero so continuation rows keep their tight rhythm, and a row's l
 table's own `UILongPressGestureRecognizer` rather than a context menu, because a context-menu lift
 of a flipped cell renders upside down; the screen answers it with the message drawer.
 
+An inline reply in a Channel or DM leads its identity block with one quiet parent line, the App's
+`InlineReplyPreview`: an elbow in the avatar rail curving toward the parent author's small avatar,
+name, and a one-line excerpt, with no card, bar, or icon. The whole line jumps to the parent.
+`TranscriptRowGrouping` owns the App's `markRepeatedReplyReferences` rule: a reply from the same
+author to the same parent as the row above skips the line and joins that row's block, so an
+acknowledgment and its follow-up read as one answer. A shown reference always opens a new identity
+block, and a plain message never joins a reply's block. The composer states the pending target as
+"Replying to **Name**" with a cancel control.
+
 Cloud agents use the same Server records as the web App. Settings → Cloud agents lets an Owner or
 Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
 sign-in browser on that Computer, not on the phone; iOS never receives the credential.
