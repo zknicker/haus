@@ -67,26 +67,29 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(getManualTopic('action-cards')).toBeNull();
     expect(agent?.kind).toBe('overview');
     expect(agent?.body).toContain(
-        'haus agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>'
+        'haus agent create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>]'
     );
     expect(agent?.body).toContain(
         'Create an Agent only when a human in the Chat you are working in has asked for one'
     );
     expect(agent?.body).toContain('never create one to split work you could do yourself');
+    expect(agent?.body).toContain('creation posts no message and starts no greeting turn');
+    expect(agent?.body).toContain('haus message send --target "#all"');
+    expect(agent?.body).not.toContain('--say');
     expect(agent?.body).toContain('inherits your runtime, model, reasoning effort, and Computer');
     expect(agent?.body).toContain(
         'The identical command returns the teammate the first run created and creates nothing new'
     );
-    expect(agent?.body).toContain('Name them by `@handle`');
     expect(agent?.body).toContain(
         '`--description` is one or two sentences, at most 280 characters'
     );
-    expect(agent?.body).toContain('the refusal names the handle the Server minted instead');
+    expect(agent?.body).toContain('mention the returned `@handle`');
+    expect(agent?.body).toContain('including a suffix if the name was already taken');
     expect(agent?.body).not.toMatch(/Created @handle|Open control/u);
     expect(agent?.body).toContain('the Agent is created without one and the receipt says so');
     // Where the announcement goes, where the Agent lives, and the standing brief
     // that replaced the follow-up DM.
-    expect(agent?.body).toContain('**Announce it in #all.**');
+    expect(agent?.body).toContain('**Introduce it in #all after creation.**');
     expect(agent?.body).toContain('**Put it where the work is.**');
     expect(agent?.body).toContain('**Give it a brief.**');
     expect(agent?.body).toContain('copy their ID-backed Markdown reference');

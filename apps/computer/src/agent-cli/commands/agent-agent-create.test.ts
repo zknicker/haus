@@ -20,11 +20,9 @@ const createReceipt = {
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     idempotent: false,
-    messageId: 'msg_1a2b3c4d5e6f7890',
     modelId: 'gpt-5.6-sol',
     reasoningEffort: 'medium',
     runtimeId: 'codex',
-    sequence: 7,
     target: '#product',
 };
 
@@ -37,7 +35,6 @@ function args(overrides: Record<string, string> = {}): ParsedArgs {
         values: {
             '--description': 'Keeps release notes current.',
             '--name': 'Orbit',
-            '--say': '@orbit is on the team now; I asked them to own release notes.',
             '--target': '#product',
             ...overrides,
         },
@@ -82,7 +79,7 @@ function deps(overrides: Partial<AgentAgentDeps> = {}): AgentAgentDeps {
     };
 }
 
-test('create posts the whole Agent and its authored message in one request', async () => {
+test('create returns an introduction hint without sending a message', async () => {
     const seen: AgentApiRequest[] = [];
     const routes: string[] = [];
     const output: string[] = [];
@@ -99,14 +96,12 @@ test('create posts the whole Agent and its authored message in one request', asy
         avatarConcept: 'a moonlit raccoon',
         brief: null,
         channels: [],
-        content: '@orbit is on the team now; I asked them to own release notes.',
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
         nonce: deriveAgentCreateNonce('agt_caller', {
             avatarConcept: 'a moonlit raccoon',
             brief: null,
             channels: [],
-            content: '@orbit is on the team now; I asked them to own release notes.',
             description: 'Keeps release notes current.',
             displayName: 'Orbit',
             target: '#product',
@@ -121,9 +116,10 @@ test('create posts the whole Agent and its authored message in one request', asy
     expect(printed).toContain(
         'Runtime codex · model gpt-5.6-sol · reasoning medium · Computer cmp_studio — inherited from you.'
     );
-    expect(printed).toContain('Posted to #product. Message ID: msg_1a2b3c4d5e6f7890');
+    expect(printed).toContain('Next: introduce @orbit in #all with haus message send');
+    expect(printed).not.toContain('Message ID:');
     expect(printed).toContain('In #all, #product.');
-    expect(printed).toContain('target "#product:1a2b3c4d"');
+    expect(printed).toContain('unless the human asked for a private introduction');
 });
 
 test('the brief and repeated channels ride the create, and the receipt says so', async () => {
@@ -165,7 +161,7 @@ test('a create without an avatar concept sends null and keeps the ordinary timeo
     expect(seen[0]?.timeoutMs).toBeUndefined();
 });
 
-test('create names a thread target as itself rather than inventing a child thread', async () => {
+test('creation in a thread still hints an ordinary introduction in #all', async () => {
     const output: string[] = [];
     await runAgentCreate(
         args({ '--target': '#product:1a2b3c4d' }),
@@ -177,7 +173,8 @@ test('create names a thread target as itself rather than inventing a child threa
         })
     );
 
-    expect(output.join('')).toContain('(discussion continues in "#product:1a2b3c4d")');
+    expect(output.join('')).toContain('Next: introduce @orbit in #all');
+    expect(output.join('')).not.toContain('discussion continues');
 });
 
 test('an unavailable avatar provider is stated on the receipt, not hidden', async () => {
@@ -208,13 +205,11 @@ test('create refuses locally before spending a request on a bad flag', async () 
     const seen: AgentApiRequest[] = [];
     const client = requester(seen);
     const cases: [Record<string, string>, RegExp][] = [
-        [{ '--say': '' }, /--say is required/u],
         [{ '--name': '' }, /--name is required/u],
         [{ '--description': '' }, /--description is required/u],
         [{ '--target': 'product' }, /Invalid target/u],
         [{ '--name': 'x'.repeat(81) }, /--name must be 80 characters or fewer/u],
         [{ '--description': 'x'.repeat(281) }, /--description must be 280 characters/u],
-        [{ '--say': 'x'.repeat(4001) }, /--say must be 4000 characters/u],
         [{ '--avatar-concept': 'x'.repeat(281) }, /--avatar-concept must be 280 characters/u],
         [{ '--brief': 'x'.repeat(4001) }, /--brief must be 4000 characters/u],
         [{ '--channel': 'product' }, /Invalid channel "product"/u],
@@ -223,4 +218,21 @@ test('create refuses locally before spending a request on a bad flag', async () 
         await expect(runAgentCreate(args(overrides), deps({ client }))).rejects.toThrow(expected);
     }
     expect(seen).toHaveLength(0);
+});
+
+test('the introduction hint uses the confirmed handle rather than predicting it from the name', async () => {
+    const output: string[] = [];
+    await runAgentCreate(
+        args(),
+        deps({
+            client: requester([], [], {
+                '/api/agent/agents': {
+                    ...createReceipt,
+                    agent: { ...createdAgent, handle: 'orbit-2' },
+                },
+            }),
+            write: (text) => output.push(text),
+        })
+    );
+    expect(output.join('')).toContain('Next: introduce @orbit-2 in #all');
 });

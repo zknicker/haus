@@ -3,7 +3,7 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();
 
-test('deleting the chat that carries a creation announcement detaches the Agent', async () => {
+test('deleting a legacy creation announcement detaches its link and preserves the Agent', async () => {
     const runner = await fixture.mintRunner('run_create_detach');
 
     const created = await fixture.postCreate(
@@ -13,6 +13,31 @@ test('deleting the chat that carries a creation announcement detaches the Agent'
 
     expect(created.status).toBe(200);
     const agentId = created.body.agent?.agentId ?? '';
+    const sent = await fixture.post('/api/agent/messages/send', runner, {
+        content: 'Historical introduction.',
+        nonce: 'legacy-announcement',
+        target: '#product',
+    });
+    expect(sent.status).toBe(200);
+    const [historical] = await fixture.harness.sql`
+        select id from chat_messages where server_id = ${fixture.serverId} and nonce = 'legacy-announcement'
+    `;
+    // Arrange an existing production announcement from before creation was separated.
+    await fixture.harness.sql`
+        update chat_messages set body_kind = 'agent-created' where id = ${historical.id}
+    `;
+    await fixture.harness.sql`
+        update agents set creation_message_id = ${historical.id} where id = ${agentId}
+    `;
+    const page = await fixture.owner.trpc.chat.messages.query({
+        chatId: fixture.channelId,
+        limit: 50,
+        serverId: fixture.serverId,
+    });
+    expect(page.messages.find((message) => message.id === historical.id)?.body).toMatchObject({
+        kind: 'agent-created',
+        agent: { agentId, handle: 'tether' },
+    });
     const before = await fixture.readAgentRow(agentId);
     expect(before?.creation_message_id).toBeTruthy();
 

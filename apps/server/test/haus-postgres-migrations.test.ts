@@ -57,6 +57,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0056_github_preset',
             '0057_cloud_agent_model',
             '0058_agent_personality',
+            '0059_agent_creation_request',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },

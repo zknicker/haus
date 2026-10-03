@@ -104,7 +104,7 @@ test('the brief is stored on the Agent row, not sent as a Message', async () => 
     `) as { brief: string | null }[];
     expect(row.brief).toBe(brief);
 
-    // The brief is memory, not conversation: the only Message is the announcement.
+    // The brief is memory, not conversation; creation posts nothing.
     const page = await fixture.owner.trpc.chat.messages.query({
         chatId: fixture.channelId,
         limit: 50,

@@ -5,86 +5,37 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();
 
-test('one Agent creating another writes the Message, the Agent, the Thread, and the events', async () => {
+test('creation records the Agent and memberships without messages, threads, or inbox work', async () => {
     const runner = await fixture.mintRunner('run_create_happy');
+    const before = await conversationCounts();
     const head = await fixture.owner.trpc.chat.eventHead.query({ serverId: fixture.serverId });
     const updates = watchServerUpdates();
-
-    const created = await fixture.postCreate(
-        runner,
-        fixture.createBody({ displayName: 'Scout', nonce: 'create-happy' })
-    );
+    const created = await fixture.postCreate(runner, fixture.createBody({ nonce: 'create-happy' }));
 
     expect(created.status).toBe(200);
     expect(created.body).toMatchObject({
-        agent: {
-            avatarUrl: null,
-            description: 'Watches the delivery lane.',
-            displayName: 'Scout',
-            handle: 'scout',
-            retired: false,
-        },
+        agent: { displayName: 'Scout', handle: 'scout', retired: false },
         avatar: { status: 'none' },
-        chatId: fixture.channelId,
         computerId: fixture.computerId,
         idempotent: false,
         modelId: 'gpt-5.6-sol',
         reasoningEffort: 'medium',
         runtimeId: 'codex',
-        target: '#product',
     });
-
+    expect(created.body).not.toHaveProperty('messageId');
+    expect(created.body).not.toHaveProperty('sequence');
     const agentId = created.body.agent?.agentId ?? '';
     expect(await fixture.readAgentRow(agentId)).toMatchObject({
-        computer_id: fixture.computerId,
         created_by_agent_id: fixture.orbitAgentId,
-        created_by_user_id: null,
-        creation_message_id: created.body.messageId,
+        creation_message_id: null,
         desired_model_id: 'gpt-5.6-sol',
-        desired_reasoning_effort: 'medium',
-        desired_runtime_id: 'codex',
     });
-
-    const threadChatId = `cht_thr_${(created.body.messageId ?? '').slice('msg_'.length)}`;
-    const [thread] = (await fixture.harness.sql`
-        select anchor_message_id, parent_chat_id from chats where id = ${threadChatId}
-    `) as { anchor_message_id: string; parent_chat_id: string }[];
-    expect(thread).toMatchObject({
-        anchor_message_id: created.body.messageId,
-        parent_chat_id: fixture.channelId,
-    });
-
+    expect(await conversationCounts()).toEqual(before);
     const events = await fixture.owner.trpc.chat.events.query({
         afterCursor: head.cursor,
         serverId: fixture.serverId,
     });
-    // The announcement, then the `#all` membership the Server guarantees every
-    // Agent — the same lifecycle event a human's channel save emits.
-    expect(events.map((event) => event.type)).toEqual(['message.created', 'chat.lifecycle']);
-
-    const page = await fixture.owner.trpc.chat.messages.query({
-        chatId: fixture.channelId,
-        limit: 50,
-        serverId: fixture.serverId,
-    });
-    const message = page.messages.find((row) => row.id === created.body.messageId);
-    // The announcement's `@scout` is stored as a stable Agent reference, so the
-    // mention chip in the transcript is what opens the new Agent's profile.
-    expect(message?.content).toBe(
-        `Bringing on [@scout](agent://${agentId}) for the delivery lane.`
-    );
-    expect(message?.body).toEqual({
-        agent: {
-            agentId,
-            avatarUrl: null,
-            description: 'Watches the delivery lane.',
-            displayName: 'Scout',
-            handle: 'scout',
-            retired: false,
-        },
-        kind: 'agent-created',
-    });
-
+    expect(events.map((event) => event.type)).toEqual(['chat.lifecycle']);
     expect(await updates.next()).toMatchObject({
         agentId,
         scope: 'agent',
@@ -93,29 +44,29 @@ test('one Agent creating another writes the Message, the Agent, the Thread, and 
     updates.stop();
 });
 
-test('the Agent API projects the created Agent onto its Message', async () => {
-    const runner = await fixture.mintRunner('run_create_view');
+test('the creator introduces the returned handle through ordinary send with a session stamp', async () => {
+    const runner = await fixture.mintRunner('run_create_intro');
     const created = await fixture.postCreate(
         runner,
-        fixture.createBody({ displayName: 'Lookout', nonce: 'create-view' })
+        fixture.createBody({
+            displayName: 'Lookout',
+            nonce: 'create-intro',
+        })
     );
     expect(created.status).toBe(200);
-
-    const response = await fetch(
-        new URL(`/api/agent/messages/${created.body.messageId}`, fixture.harness.url),
-        { headers: { authorization: `Bearer ${runner.token}` } }
-    );
-    const body = (await response.json()) as {
-        message: { agent_created?: Record<string, unknown>; body_kind: string };
-    };
-    expect(body.message.body_kind).toBe('agent-created');
-    expect(body.message.agent_created).toEqual({
-        agent_id: created.body.agent?.agentId,
-        description: 'Watches the delivery lane.',
-        display_name: 'Lookout',
-        handle: 'lookout',
-        retired: false,
+    const handle = created.body.agent?.handle ?? '';
+    const sent = await fixture.post('/api/agent/messages/send', runner, {
+        content: `Meet @${handle}, our delivery teammate.`,
+        nonce: 'ordinary-introduction',
+        target: '#all',
     });
+    expect(sent.status).toBe(200);
+    const [message] = await fixture.harness.sql`
+        select content, body_kind, session_generation from chat_messages
+        where server_id = ${fixture.serverId} and nonce = 'ordinary-introduction'
+    `;
+    expect(message).toMatchObject({ body_kind: 'text', session_generation: 1 });
+    expect(message.content).toContain(`agent://${created.body.agent?.agentId}`);
 });
 
 test('a replayed nonce returns the same Agent and creates nothing new', async () => {
@@ -130,7 +81,6 @@ test('a replayed nonce returns the same Agent and creates nothing new', async ()
     expect(second.body).toMatchObject({
         agent: { agentId: first.body.agent?.agentId },
         idempotent: true,
-        messageId: first.body.messageId,
     });
     expect(await countAgentsNamed('Echo')).toBe(1);
 });
@@ -152,32 +102,40 @@ test('a reused nonce with different values is refused as a conflict', async () =
     expect(await countAgentsNamed('Tally Two')).toBe(0);
 });
 
-test('a Thread target creates the Agent inside the Thread', async () => {
-    const anchorRunner = await fixture.mintRunner('run_create_thread_anchor');
-    const anchor = await fixture.postCreate(
-        anchorRunner,
-        fixture.createBody({ displayName: 'Anchorite', nonce: 'create-thread-anchor' })
-    );
-    expect(anchor.status).toBe(200);
-    const anchorMessageId = anchor.body.messageId ?? '';
-    const threadChatId = `cht_thr_${anchorMessageId.slice('msg_'.length)}`;
-    const runner = await fixture.mintRunner(
-        'run_create_thread',
-        fixture.orbitAgentId,
-        threadChatId
-    );
-
+test('creation can use a Thread as its request context without posting there', async () => {
+    const anchor = await fixture.owner.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: 'Create a teammate here.',
+        nonce: 'create-thread-anchor',
+        serverId: fixture.serverId,
+    });
+    const reply = await fixture.owner.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: 'In this thread.',
+        nonce: 'create-thread-reply',
+        serverId: fixture.serverId,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+    const threadId = reply.message.chatId;
+    const runner = await fixture.mintRunner('run_create_thread', fixture.orbitAgentId, threadId);
+    const target = `#product:${anchor.message.id.slice('msg_'.length)}`;
+    // Arrange the Computer's model-seen proof for the request in this Thread.
+    await fixture.harness.sql`
+        insert into agent_inbox_cursors (server_id, agent_id, session_generation, chat_id, seen_up_to_sequence)
+        values (${fixture.serverId}, ${fixture.orbitAgentId}, 1, ${threadId}, ${reply.message.sequence})
+    `;
+    const before = await conversationCounts();
     const created = await fixture.postCreate(
         runner,
         fixture.createBody({
             displayName: 'Threadling',
             nonce: 'create-thread',
-            target: `#product:${anchorMessageId.slice('msg_'.length)}`,
+            target,
         })
     );
-
     expect(created.status).toBe(200);
-    expect(created.body.chatId).toBe(threadChatId);
+    expect(created.body.chatId).toBe(threadId);
+    expect(await conversationCounts()).toEqual(before);
 });
 
 test('an archived target refuses the creation', async () => {
@@ -256,4 +214,14 @@ function watchServerUpdates() {
         pending.catch(() => undefined);
         return pending;
     }
+}
+
+async function conversationCounts() {
+    const [row] = await fixture.harness.sql`
+        select
+            (select count(*)::int from chat_messages where server_id = ${fixture.serverId}) as messages,
+            (select count(*)::int from chats where server_id = ${fixture.serverId} and kind = 'thread') as threads,
+            (select count(*)::int from agent_inbox where server_id = ${fixture.serverId}) as inbox
+    `;
+    return row;
 }

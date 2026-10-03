@@ -104,7 +104,7 @@ test('a replayed create spends no second avatar generation', async () => {
     expect(fixture.avatarRequests.length, 'no generation is spent on a replay').toBe(spent);
 });
 
-test('two identical creates make one Agent, one announcement, and one avatar', async () => {
+test('two identical creates make one Agent and one avatar without an announcement', async () => {
     const runner = await fixture.mintRunner('run_create_identical');
     const body = fixture.createBody({
         avatarConcept: 'a folded map',
@@ -122,13 +122,12 @@ test('two identical creates make one Agent, one announcement, and one avatar', a
     expect(second.body).toMatchObject({
         agent: { agentId: first.body.agent?.agentId },
         idempotent: true,
-        messageId: first.body.messageId,
     });
     // The replay illustrated nothing, and the Agent still wears the first image.
     expect(second.body.avatar).toEqual({ status: 'none' });
     expect(second.body.agent?.avatarUrl).toBe(first.body.agent?.avatarUrl ?? null);
     expect(await countAgentsNamed('Atlas')).toBe(1);
-    expect(await countAnnouncements('create-identical')).toBe(1);
+    expect(await countAnnouncements('create-identical')).toBe(0);
     expect(fixture.avatarRequests.length - spent).toBe(1);
 });
 
@@ -136,7 +135,7 @@ test('two identical creates make one Agent, one announcement, and one avatar', a
 // attempt is still generating its avatar: it passes the pre-check, generates
 // again, and only then blocks on the Server row lock. It must still find the
 // nonce and replay rather than mint a second teammate.
-test('a create that races its own retry still yields one Agent and one announcement', async () => {
+test('a create that races its own retry still yields one Agent without an announcement', async () => {
     const runner = await fixture.mintRunner('run_create_race');
     const body = fixture.createBody({
         avatarConcept: 'a brass sextant',
@@ -159,7 +158,7 @@ test('a create that races its own retry still yields one Agent and one announcem
     // claim this request illustrated an Agent it never touched.
     expect(replay.avatar).toEqual({ status: 'none' });
     expect(await countAgentsNamed('Sextant')).toBe(1);
-    expect(await countAnnouncements('create-race')).toBe(1);
+    expect(await countAnnouncements('create-race')).toBe(0);
 });
 
 async function countAnnouncements(nonce: string) {

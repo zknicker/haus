@@ -31,11 +31,9 @@ const createReceipt = {
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     idempotent: false,
-    messageId: 'msg_1a2b3c4d5e6f7890',
     modelId: 'gpt-5.6-sol',
     reasoningEffort: 'medium',
     runtimeId: 'codex',
-    sequence: 7,
     target: '#product',
 };
 
@@ -48,7 +46,6 @@ function args(overrides: Record<string, string> = {}): ParsedArgs {
         values: {
             '--description': 'Keeps release notes current.',
             '--name': 'Orbit',
-            '--say': '@orbit is on the team now; I asked them to own release notes.',
             '--target': '#product',
             ...overrides,
         },
@@ -175,7 +172,6 @@ test('a Server refusal reaches the Agent with its own code and next action', asy
     });
 
     for (const code of [
-        'AGENT_CREATE_ANNOUNCEMENT_MISSING_HANDLE',
         'AGENT_CREATE_IDEMPOTENCY_CONFLICT',
         'AGENT_CREATE_REFUSED',
         'AGENT_NO_COMPUTER',
@@ -205,7 +201,6 @@ test('the create nonce is the request itself, so an identical re-issue replays',
         avatarConcept: 'a moonlit raccoon',
         brief: 'Own release notes.',
         channels: ['#product', '#design'],
-        content: '@orbit is on the team now.',
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
         target: '#product',
@@ -228,7 +223,6 @@ test('the create nonce is the request itself, so an identical re-issue replays',
         { ...request, brief: 'Own the changelog.' },
         { ...request, brief: null },
         { ...request, channels: ['#product'] },
-        { ...request, content: '@orbit joins us today.' },
         { ...request, description: 'Keeps the changelog current.' },
         { ...request, displayName: 'Orbit II' },
         { ...request, target: '#all' },

@@ -1,10 +1,6 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
-import {
-    type AgentCreateAgentReceipt,
-    type CreatedAgentSummary,
-    suggestParticipantHandle,
-} from '@haus/api';
+import type { AgentCreateAgentReceipt, CreatedAgentSummary } from '@haus/api';
 import type {
     AvatarImageProvider,
     AvatarProviderRequest,
@@ -154,16 +150,10 @@ export function agentCreationFixture(messageRouter?: MessageRouter) {
         readUserId,
     };
 
-    /**
-     * The announcement names the new Agent, because the Server requires it, and
-     * derives the handle exactly as a creating Agent would predict it.
-     */
     function createBody(overrides: Record<string, unknown> = {}) {
-        const displayName = (overrides.displayName as string | undefined) ?? 'Scout';
         return {
-            content: `Bringing on @${suggestParticipantHandle(displayName)} for the delivery lane.`,
             description: 'Watches the delivery lane.',
-            displayName,
+            displayName: 'Scout',
             nonce: 'agent-create-default',
             target: '#product',
             ...overrides,

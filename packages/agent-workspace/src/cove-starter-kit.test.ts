@@ -60,11 +60,15 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     );
     expect(corpus.join('\n')).not.toContain('recipes/playbook/agent-creation');
     expect(corpus.join('\n')).toContain('haus agent create');
-    expect(corpus.join('\n')).toContain('Do not announce the Agent before the command returns');
+    expect(corpus.join('\n')).toContain('haus message send');
+    expect(corpus.join('\n')).not.toContain('--say');
+    expect(corpus.join('\n')).toContain(
+        'Wait for the confirmed handle before introducing the Agent'
+    );
     expect(corpus.join('\n')).toContain('name them by `@handle`');
     // The three creation rules Cove has to carry: where the announcement goes,
     // where the new Agent lives, and the standing brief that replaces a DM.
-    expect(corpus.join('\n')).toContain('**Announce it in #all.**');
+    expect(corpus.join('\n')).toContain('**Introduce it in #all after creation.**');
     expect(corpus.join('\n')).toContain('**Put it where the work is.**');
     expect(corpus.join('\n')).toContain('**Give it a brief.**');
     expect(corpus.join('\n')).toContain('at most 280 characters');

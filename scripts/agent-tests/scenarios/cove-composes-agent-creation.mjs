@@ -7,13 +7,8 @@
 // create and resets Cove to factory — session, workspace, MEMORY.md — through
 // the product's own Full Reset.
 //
-// The Owner asks in a channel this run creates, not in Cove's standing Owner
-// DM. That DM accumulates: run against one stack twice and Cove reads its own
-// previous creation announcement sitting in the chat and posts the next one
-// there too (observed), and the DM cannot be cleared — a chat holding an
-// Agent's creation Message cannot be deleted. A per-run channel is the same
-// ask from the same human, and it is the same claim under test: a creation is
-// announced to the team in #all, not in the chat the Owner asked from.
+// The Owner asks in a fresh channel. Cove creates there, then introduces the
+// returned identity in #all through ordinary message send.
 
 import { isAbsolute } from 'node:path';
 import { defineScenario } from '../scenario.mjs';
@@ -25,7 +20,7 @@ import {
 
 export default defineScenario({
     contract:
-        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, announced in #all, joined to #all and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
+        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, introduced through ordinary message send in #all with the same session generation, joined to #all and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
     name: 'cove-composes-agent-creation',
     optIn: true,
     async run({ expect, kit, log, marker, settleTurn }) {
@@ -148,16 +143,19 @@ export default defineScenario({
                         message.sequence > allHeadSequence &&
                         message.author.kind === 'agent' &&
                         message.author.agentId === cove.id &&
-                        message.body?.kind === 'agent-created'
+                        message.body?.kind === 'text' &&
+                        message.content.includes(`agent://${createdAgent.id}`)
                 );
-                expect(announcements, 'one agent-created Message in #all').toHaveLength(1);
+                expect(announcements, 'one ordinary introduction in #all').toHaveLength(1);
                 const announcement = announcements[0];
-                expect(announcement.body.agent.agentId, 'announced Agent identity').toBe(
-                    createdAgent.id
+                expect(announcement.body.kind, 'ordinary Message body').toBe('text');
+                expect(announcement.sessionGeneration, 'introduction keeps Cove’s session').toBe(
+                    proposalMessages.at(-1).sessionGeneration
                 );
-                expect(announcement.body.agent.handle, 'announced handle').toBe(
-                    createdAgent.handle
-                );
+                expect(
+                    announcement.sessionGeneration,
+                    'introduction has a session stamp'
+                ).toBeGreaterThan(0);
                 expect(
                     announcement.content.trim().length,
                     'the announcement carries Cove’s own words'
