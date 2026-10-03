@@ -43,7 +43,7 @@ export function ShellTopbar() {
     const slot = React.use(TopbarContext);
     const workspace = useBrowserWorkspace();
     const covering = useCoveringTabSelected();
-    if (workspace && getDesktopBridge()?.browserCommand) {
+    if (workspace && isWindowBand(workspace)) {
         return (
             <header className="workspace-titlebar app-shell-band" data-window-drag-region="">
                 {workspace.mode === 'expanded' ? (
@@ -106,6 +106,16 @@ function WorkspaceBandTrail({
 }
 
 /**
+ * Whether the topbar is the desktop window band — the tab area — rather than
+ * the web's content-column band. Content that names where you are inside a
+ * page (a breadcrumb) belongs to the page, not to the tabs, so it renders in
+ * the content column when this is true.
+ */
+export function useTopbarIsWindowBand(): boolean {
+    return isWindowBand(useBrowserWorkspace());
+}
+
+/**
  * Portals its children into the shell topbar band. Render one per routed
  * page; children compose SectionHeader (or any band content) as usual.
  */
@@ -117,8 +127,7 @@ export function PageTopbar({ children }: { children: React.ReactNode }) {
         return null;
     }
 
-    const tabLabel =
-        workspace && getDesktopBridge()?.browserCommand ? workspace.primaryTab.label : null;
+    const tabLabel = workspace && isWindowBand(workspace) ? workspace.primaryTab.label : null;
     return createPortal(
         <WorkspaceBandTabLabel value={tabLabel}>{children}</WorkspaceBandTabLabel>,
         slot.container
@@ -139,4 +148,8 @@ export function WorkspaceBandActions({ children }: { children: React.ReactNode }
     }
 
     return createPortal(children, slot.actionsContainer);
+}
+
+function isWindowBand(workspace: ReturnType<typeof useBrowserWorkspace>): boolean {
+    return Boolean(workspace && getDesktopBridge()?.browserCommand);
 }

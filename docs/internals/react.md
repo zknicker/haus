@@ -157,7 +157,9 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   "Haus" crumb linking back to the Inbox: the Inbox band reads Haus › Inbox,
   and Settings reads Haus › Settings › page (› record). Its column is stock,
   so the greeting opens under the band at the page's ordinary top inset on
-  every surface. Switching,
+  every surface. On desktop that band is the window band — the tab area — so `SettingsBreadcrumb`, which owns where the
+  Settings trail goes, renders it as the content column's first row (same height
+  and gutter) instead of portaling it beside the tabs. Switching,
   creating, and joining Servers live under Settings → Servers, not in the
   sidebar. Sections compose `ShellSidebarPage` slots; route state
   selects one slot without replacing the sidebar root, and non-chat pages

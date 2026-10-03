@@ -20,6 +20,10 @@ routed page's column starts (the sidebar divider in Band, the content card's edg
 while the side pane shows, one at the pane's edge before its strip. Each is the tab strip's own
 divider (same color, thickness, and height), not a full-height border.
 
+The band is for the page's title or tabs, its actions, and the layout controls — not for where you
+are inside a page. Settings' breadcrumb (Haus › Settings › Connections › GitHub) opens the content
+column instead, left-aligned at band height, where the web shows it too.
+
 Settings is not in the band: a gear leads the sidebar footer, before the update and offline Computer
 marks, its tooltip naming ⌘,. The macOS App menu's Haus › Settings… (⌘,) opens it too, including
 while a browser page has focus.

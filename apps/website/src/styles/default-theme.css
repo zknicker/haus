@@ -31,6 +31,8 @@
    */
   --chat-card-width: 36rem;
   --spacing: var(--spacing-base);
+  /* Split mode's page title inset in the topbar (`.workspace-page-title`). */
+  --workspace-page-title-inset: calc(var(--spacing-base) * 3);
   /* Sidebar navigation rows. */
   --spacing-compact: calc(var(--spacing-base) * 0.85);
   /* Menu, listbox and popover surfaces — lists to scan, so the tightest step. */
@@ -754,7 +756,7 @@
         flex: 1 1 0;
         align-items: center;
         gap: calc(var(--spacing) * 2);
-        padding-inline-start: calc(var(--spacing) * 3);
+        padding-inline-start: var(--workspace-page-title-inset);
     }
 
     .workspace-page-title__label {
@@ -2138,6 +2140,16 @@
     --shell-tab-close-size: 20px;
     --shell-tab-close-inset: 7px;
     --shell-tab-close-glyph: 14px;
+    /* The band's start padding before its first tab or page title. */
+    --shell-band-inset-start: calc(var(--spacing) * 2);
+    /*
+     * Where the band's leading mark slot starts, measured from the routed
+     * column's edge: split mode's page title, or expanded mode's first tab.
+     * A content row under the band (the desktop settings breadcrumb) centers
+     * its own leading glyph on this slot so the two stack on one axis.
+     */
+    --shell-band-mark-start-split: calc(var(--shell-band-inset-start) + var(--workspace-page-title-inset));
+    --shell-band-mark-start-expanded: calc(var(--shell-band-inset-start) + var(--shell-tab-inset-start));
     /* Tab dividers, column hairlines, and the band-end divider share one height. */
     --shell-tab-separator-height: 20px;
     /* Codex's text roles, from the foreground: primary, tertiary (50%), and its 12% strong border and 8% border. */
@@ -2246,7 +2258,7 @@
      */
     .shell-window-band > .workspace-titlebar,
     .shell-window-band .workspace-band-trail[data-side-pane] {
-        padding-inline-start: calc(var(--spacing) * 2);
+        padding-inline-start: var(--shell-band-inset-start);
     }
 
     .shell-window-band > .workspace-titlebar {

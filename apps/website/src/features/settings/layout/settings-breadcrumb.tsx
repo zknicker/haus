@@ -10,14 +10,20 @@ import {
     serverSettingsRoute,
     serverSettingsSectionRoute,
 } from '../../servers/server-routes.ts';
+import { useBrowserWorkspace } from '../../shell/browser-workspace-context.tsx';
+import { PageTopbar, useTopbarIsWindowBand } from '../../shell/shell-topbar.tsx';
 import { type SettingsRouteTab, settingsNavItems } from './navigation.ts';
 
 /**
- * Where you are, in the band the rest of the app uses for content identity.
+ * Where you are, on one line at the top-left of the settings content column.
  *
- * Settings registered nothing there, so every settings route drew an empty
- * band with a hairline under it — chrome that looks unfinished rather than
- * deliberately blank. The trail is the product, then Settings, then the page:
+ * This component owns that placement. On the web the content column's top
+ * band is that line, so the trail fills it through `PageTopbar`. On desktop
+ * the band is the window band — the tab area, which already names the page
+ * in its title or tab — so the trail renders as the column's own first row,
+ * at the same height and gutter, instead of landing beside the tabs.
+ *
+ * The trail is the product, then Settings, then the page:
  * "Haus › Settings › Profile". The rail's group headings (Preferences,
  * Server) are not crumbs — they are headings in the rail, not places — and
  * naming them here made the trail read as a path through pages that do not
@@ -40,6 +46,8 @@ export function SettingsBreadcrumb({
     slug: string;
 }) {
     const leaf = useLeafCrumb(pathname, serverId);
+    const inWindowBand = useTopbarIsWindowBand();
+    const workspaceMode = useBrowserWorkspace()?.mode;
     const crumb = section ? resolveCrumb(section) : undefined;
 
     if (!crumb) {
@@ -47,8 +55,7 @@ export function SettingsBreadcrumb({
     }
 
     const sectionHref = serverSettingsSectionRoute(slug, crumb.id);
-
-    return (
+    const trail = (
         <div className="flex min-w-0 shrink items-center gap-2">
             {crumb.icon ? (
                 <Icon
@@ -83,6 +90,23 @@ export function SettingsBreadcrumb({
             </Breadcrumbs>
         </div>
     );
+
+    if (inWindowBand) {
+        // The 16px section icon centers under the band's 20px leading mark —
+        // the page title in split mode, the first tab in expanded mode.
+        const inset =
+            workspaceMode === 'expanded'
+                ? 'ps-[calc(var(--shell-band-mark-start-expanded)_+_(var(--shell-tab-mark-size)_-_1rem)_/_2)]'
+                : 'ps-[calc(var(--shell-band-mark-start-split)_+_(var(--shell-tab-mark-size)_-_1rem)_/_2)]';
+        return (
+            <div
+                className={`flex h-[var(--app-shell-band-height)] shrink-0 items-center pe-3 ${inset}`}
+            >
+                {trail}
+            </div>
+        );
+    }
+    return <PageTopbar>{trail}</PageTopbar>;
 }
 
 type LeafCrumb =
