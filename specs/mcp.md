@@ -98,8 +98,11 @@ outside any file the Agent can edit:
   passes load, never user, project, plugin, or agent-frontmatter MCP config. The Agent home keeps its
   own Claude Code state file instead of the operator's `~/.claude.json`.
 - Codex: Haus's codex-acp patch disables, per thread and title thread, every server Codex's config
-  layers declare (`$CODEX_HOME/config.toml`, project `.codex/config.toml`), and a Haus-requested
-  server always keeps its name.
+  layers declare (`$CODEX_HOME/config.toml`, project `.codex/config.toml`). Launch config also sets
+  `features.apps = false` and `features.plugins = false`, so ChatGPT apps (the operator's
+  connectors, served as `codex_apps`) and plugin MCP servers never load. Codex merges same-named
+  server entries field by field, so an Agent that declares Haus's reserved server name
+  (`ai-sdk-harness-tools`) in its Codex config can break its own Codex session.
 - Pi loads no filesystem extensions, so it has no MCP source besides Haus.
 - Grok Build launches with its Claude Code, Cursor, Codex, and xAI-managed MCP sources off. Known
   gap: the Grok CLI has no per-process switch for its own `$GROK_HOME/config.toml`, trusted
