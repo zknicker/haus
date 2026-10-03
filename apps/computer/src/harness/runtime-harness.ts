@@ -9,6 +9,13 @@ import { createCodexAcp } from './codex-acp.ts';
 import { withCodexAcpBootstrap } from './codex-acp-bootstrap.ts';
 
 /**
+ * Claude Code loads settings, skills, and memory only from the Agent's isolated HOME (its skill
+ * links and login). The SDK default also loads 'project', which walks every workspace ancestor
+ * for CLAUDE.md and `.claude/` and reached the operator's own home.
+ */
+export const CLAUDE_SETTING_SOURCES = ['user'] as const;
+
+/**
  * Applies the Agent's reasoning policy at the native runtime boundary. Every runtime here
  * steers a live turn (`submitUserMessage`), which the composed prompt promises: Claude Code
  * and Pi natively, Grok Build and Codex through Haus's @ai-sdk/harness-acp patch
@@ -29,6 +36,7 @@ export function createHarnessForRuntime(
                     // CLI-only output makes every send/check a tool call, so turns
                     // legitimately run long tool loops.
                     maxTurns: 50,
+                    settingSources: [...CLAUDE_SETTING_SOURCES],
                     effort: reasoningEffort === 'default' ? undefined : reasoningEffort,
                     ...(modelId === 'claude-haiku-4-5'
                         ? { thinking: { type: 'enabled' as const } }

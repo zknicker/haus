@@ -12,6 +12,20 @@ import { createLocalTrustedSandboxProvider } from './sandbox.ts';
  */
 const GROK_MCP_OUTPUT_BYTES = 102_400;
 
+/**
+ * Grok reads Claude Code and Cursor instruction files (`.claude/CLAUDE.md`, `.claude/rules/`,
+ * `~/.claude/`, and the Cursor equivalents) from HOME and every directory up to the git root.
+ * Haus instructions arrive through `$GROK_HOME/AGENTS.md`, so those vendor sources stay off.
+ * Grok 1.0.13 has no switch for generic `AGENTS.md`/`CLAUDE.md` in the workspace or its
+ * git-root ancestors (docs/features/context-management.md records the gap).
+ */
+export const GROK_INSTRUCTION_COMPAT_ENV = {
+    GROK_CLAUDE_AGENTS_ENABLED: 'false',
+    GROK_CLAUDE_RULES_ENABLED: 'false',
+    GROK_CURSOR_AGENTS_ENABLED: 'false',
+    GROK_CURSOR_RULES_ENABLED: 'false',
+} as const;
+
 type AgentConstructionInput = Pick<
     HarnessTurnInput,
     | 'agentId'
@@ -60,6 +74,7 @@ export function sandboxOptions(
             authProfiles: ['grok-build'] as const,
             env: {
                 ...input.env,
+                ...GROK_INSTRUCTION_COMPAT_ENV,
                 GROK_HOME: join(input.homeDir, '.grok'),
                 GROK_MAX_MCP_OUTPUT_BYTES: String(GROK_MCP_OUTPUT_BYTES),
                 HOME: input.homeDir,
@@ -93,12 +108,7 @@ export function sandboxOptions(
 }
 
 function authProfileFor(runtimeId: string) {
-    if (
-        runtimeId === 'claude-code' ||
-        runtimeId === 'codex' ||
-        runtimeId === 'grok-build' ||
-        runtimeId === 'pi'
-    ) {
+    if (runtimeId === 'claude-code' || runtimeId === 'codex' || runtimeId === 'grok-build') {
         return runtimeId;
     }
     return null;
