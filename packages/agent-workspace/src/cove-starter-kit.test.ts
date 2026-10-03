@@ -62,9 +62,7 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     expect(corpus.join('\n')).toContain('haus agent create');
     expect(corpus.join('\n')).toContain('haus message send');
     expect(corpus.join('\n')).not.toContain('--say');
-    expect(corpus.join('\n')).toContain(
-        'Wait for the confirmed handle before introducing the Agent'
-    );
+    expect(corpus.join('\n')).toContain('The receipt returns the confirmed `@handle`');
     expect(corpus.join('\n')).toContain('name them by `@handle`');
     // The three creation rules Cove has to carry: where the announcement goes,
     // where the new Agent lives, and the standing brief that replaces a DM.
