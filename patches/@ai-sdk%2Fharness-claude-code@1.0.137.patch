@@ -1,5 +1,5 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index b12b9f9205c92157e4b078ae8e7a6b9fdcc4a07d..f5c6ea9daa2d944674f6159805d8787053e6629a 100644
+index b12b9f9205c92157e4b078ae8e7a6b9fdcc4a07d..b8f1a8e355feb608a07133d98987bf13d90bec06 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
 @@ -232,7 +232,13 @@ async function runBridge(options) {
@@ -25,7 +25,16 @@ index b12b9f9205c92157e4b078ae8e7a6b9fdcc4a07d..f5c6ea9daa2d944674f6159805d87870
        ...start.env !== void 0 ? { env: { ...procEnv2, ...start.env } } : {},
        ...skillsOption ? { skills: skillsOption } : {},
        ...nativeTools !== void 0 ? { tools: nativeTools } : {},
-@@ -1645,6 +1652,7 @@ async function runTurn(start, turn) {
+@@ -1634,6 +1641,8 @@ async function runTurn(start, turn) {
+       ...start.resumeSessionId ?? lastClaudeSessionId ? { resume: start.resumeSessionId ?? lastClaudeSessionId } : start.continue === true || !turn.firstTurn ? { continue: true } : {},
+       ...permissionOptions,
+       mcpServers,
++      // Haus owns the Agent's MCP servers: never load user, project, or plugin MCP config.
++      strictMcpConfig: true,
+       cwd: workdir,
+       abortSignal: abortCtl.signal
+     }
+@@ -1645,6 +1654,7 @@ async function runTurn(start, turn) {
    };
    let turnUsage;
    let totalCostUsd;
@@ -33,7 +42,7 @@ index b12b9f9205c92157e4b078ae8e7a6b9fdcc4a07d..f5c6ea9daa2d944674f6159805d87870
    let emittedTerminalError = false;
    let emittedTerminalFinish = false;
    const emitTerminalError = (message) => {
-@@ -1720,6 +1728,12 @@ async function runTurn(start, turn) {
+@@ -1720,6 +1730,12 @@ async function runTurn(start, turn) {
            }
            queryInput.observeResult();
            if (!queryInput.hasActiveUserMessages()) {
@@ -46,7 +55,7 @@ index b12b9f9205c92157e4b078ae8e7a6b9fdcc4a07d..f5c6ea9daa2d944674f6159805d87870
              queryInput.close();
              break;
            }
-@@ -1759,10 +1773,11 @@ async function runTurn(start, turn) {
+@@ -1759,10 +1775,11 @@ async function runTurn(start, turn) {
      type: "finish",
      finishReason: { unified: "stop", raw: "stop" },
      totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
@@ -179,7 +188,7 @@ index fcdfc031818cf25b8ab2e01822f2256ae20d3899..53d046e345f711b30f4b0dbf0c39b036
            thinking,
            ...effort !== void 0 ? { effort } : {},
 diff --git a/src/bridge/index.ts b/src/bridge/index.ts
-index c24c8f46ea43fa9e63bfb6fde20eab605326c303..5949a86739e1a2055bcec228fbbd37b4e8cba102 100644
+index c24c8f46ea43fa9e63bfb6fde20eab605326c303..fe6e669c4df7771c27d39f39fb2022a9a8931686 100644
 --- a/src/bridge/index.ts
 +++ b/src/bridge/index.ts
 @@ -484,6 +484,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
@@ -192,7 +201,16 @@ index c24c8f46ea43fa9e63bfb6fde20eab605326c303..5949a86739e1a2055bcec228fbbd37b4
        ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
        ...(skillsOption ? { skills: skillsOption } : {}),
        ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
-@@ -565,6 +568,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -546,6 +549,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+           : {}),
+       ...permissionOptions,
+       mcpServers,
++      // Haus owns the Agent's MCP servers: never load user, project, or plugin MCP config.
++      strictMcpConfig: true,
+       cwd: workdir,
+       abortSignal: abortCtl.signal,
+     },
+@@ -565,6 +570,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    };
    let turnUsage: Record<string, unknown> | undefined;
    let totalCostUsd: number | undefined;
@@ -200,7 +218,7 @@ index c24c8f46ea43fa9e63bfb6fde20eab605326c303..5949a86739e1a2055bcec228fbbd37b4
    let emittedTerminalError = false;
    let emittedTerminalFinish = false;
  
-@@ -666,6 +670,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -666,6 +672,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            }
            queryInput.observeResult();
            if (!queryInput.hasActiveUserMessages()) {
@@ -215,7 +233,7 @@ index c24c8f46ea43fa9e63bfb6fde20eab605326c303..5949a86739e1a2055bcec228fbbd37b4
              queryInput.close();
              break;
            }
-@@ -727,11 +739,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -727,11 +741,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
      type: 'finish',
      finishReason: { unified: 'stop', raw: 'stop' },
      totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),

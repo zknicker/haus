@@ -18,6 +18,7 @@ export async function referenceAuthProfiles(input: {
     hostGrokHomeDir: string;
     hostHomeDir: string;
 }) {
+    await unlinkHostClaudeState(input.homeDir);
     if (input.authProfiles.includes('codex')) {
         const codexHome = path.join(input.homeDir, '.codex');
         await linkIfExists({
@@ -27,12 +28,6 @@ export async function referenceAuthProfiles(input: {
         await restoreCodexNativeImageGeneration(codexHome);
     }
     if (input.authProfiles.includes('claude-code')) {
-        // The host's `.claude.json` carries its user MCP servers and per-project state; the
-        // login resolves from host credentials. Claude Code keeps its own file in Agent HOME.
-        await unlinkHostReference({
-            source: path.join(input.hostHomeDir, '.claude.json'),
-            target: path.join(input.homeDir, '.claude.json'),
-        });
         await linkIfExists({
             source: path.join(input.hostHomeDir, '.claude', '.credentials.json'),
             target: path.join(input.homeDir, '.claude', '.credentials.json'),
@@ -43,6 +38,26 @@ export async function referenceAuthProfiles(input: {
             source: path.join(input.hostGrokHomeDir, 'auth.json'),
             target: path.join(input.homeDir, '.grok', 'auth.json'),
         });
+    }
+}
+
+/**
+ * Earlier releases linked the operator's `~/.claude.json` into every Agent home. That file
+ * carries the operator's user-scope MCP servers and per-project state, and Claude Code wrote
+ * Agent state (including `claude mcp add`) straight through to it. Login resolves from host
+ * credentials, so the Agent home keeps its own state file: any link there is dropped, never
+ * followed, whatever the runtime.
+ */
+async function unlinkHostClaudeState(homeDir: string) {
+    const statePath = path.join(homeDir, '.claude.json');
+    try {
+        if ((await fs.lstat(statePath)).isSymbolicLink()) {
+            await fs.unlink(statePath);
+        }
+    } catch (error) {
+        if (!isNodeCode(error, 'ENOENT')) {
+            throw error;
+        }
     }
 }
 
@@ -62,6 +77,7 @@ const legacyCodexImageGenerationBlock = new RegExp(
  * Earlier releases disabled Codex's native image generation in every managed
  * Agent home. Remove only that release-owned block; explicit operator or Agent
  * config remains untouched, and Codex's stable native default takes effect.
+ * MCP servers declared here never load: Haus's codex-acp patch disables them.
  */
 async function restoreCodexNativeImageGeneration(codexHome: string) {
     const configPath = path.join(codexHome, 'config.toml');
@@ -109,19 +125,6 @@ async function linkIfExists(input: { source: string; target: string }) {
             return;
         }
         throw error;
-    }
-}
-
-/** Removes a link an earlier release made from Agent HOME to host state; leaves anything else. */
-async function unlinkHostReference(input: { source: string; target: string }) {
-    try {
-        if ((await fs.readlink(input.target)) === input.source) {
-            await fs.rm(input.target);
-        }
-    } catch (error) {
-        if (!(isNodeCode(error, 'ENOENT') || isNodeCode(error, 'EINVAL'))) {
-            throw error;
-        }
     }
 }
 

@@ -26,6 +26,18 @@ export const GROK_INSTRUCTION_COMPAT_ENV = {
     GROK_CURSOR_RULES_ENABLED: 'false',
 } as const;
 
+/**
+ * Grok Build also scans Claude Code, Cursor, and Codex MCP config and fetches
+ * xAI-managed MCP servers. Haus owns an Agent's MCP access, so launch closes
+ * those sources; the environment outranks every config file the Agent can edit.
+ */
+const GROK_FOREIGN_MCP_SOURCES_OFF = {
+    GROK_CLAUDE_MCPS_ENABLED: 'false',
+    GROK_CODEX_MCPS_ENABLED: 'false',
+    GROK_CURSOR_MCPS_ENABLED: 'false',
+    GROK_MANAGED_MCPS_ENABLED: 'false',
+} as const;
+
 type AgentConstructionInput = Pick<
     HarnessTurnInput,
     | 'agentId'
@@ -75,6 +87,7 @@ export function sandboxOptions(
             env: {
                 ...input.env,
                 ...GROK_INSTRUCTION_COMPAT_ENV,
+                ...GROK_FOREIGN_MCP_SOURCES_OFF,
                 GROK_HOME: join(input.homeDir, '.grok'),
                 GROK_MAX_MCP_OUTPUT_BYTES: String(GROK_MCP_OUTPUT_BYTES),
                 HOME: input.homeDir,

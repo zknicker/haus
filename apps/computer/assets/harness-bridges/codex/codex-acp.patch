@@ -1,5 +1,5 @@
 diff --git a/dist/index.js b/dist/index.js
-index c134fd36ed44f4dccb510f8ac7971f0f7e26aba4..186318ce3d4cc27547389b8091e4b15f6629c339 100755
+index c134fd36ed44f4dccb510f8ac7971f0f7e26aba4..abed32e48656dc336852aabcea80074b213d46cd 100755
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -25568,13 +25568,19 @@ ${event.stdin}
@@ -24,3 +24,72 @@ index c134fd36ed44f4dccb510f8ac7971f0f7e26aba4..186318ce3d4cc27547389b8091e4b15f
      };
    }
    handleRateLimitsUpdated(params) {
+@@ -28707,24 +28713,22 @@ var CodexAcpClient = class {
+       }]))
+     };
+     const configWithWorkspaceRoots = mergeSandboxWorkspaceWriteRoots(mergedConfig, additionalDirectories);
+-    if (mcpServers.length === 0) {
+-      return configWithWorkspaceRoots;
+-    }
++    // Haus: the ACP client owns the thread's MCP servers. Every server Codex's
++    // config layers declare is disabled, and a requested server always wins its name.
+     const requestedServers = mcpServers.map((mcp) => ({
+       name: sanitizeMcpServerName(mcp.name),
+       server: mcp
+     }));
+-    let serversToConfigure = requestedServers;
+-    if (shouldDeduplicateMcpConflicts()) {
+-      const existingNames = await this.getConfigMcpServerNames(projectPath);
+-      serversToConfigure = requestedServers.filter((mcp) => !existingNames.has(mcp.name));
+-    }
+-    if (serversToConfigure.length === 0) {
++    const servers = {
++      ...await readDisabledMcpServers(this.codexClient, projectPath),
++      ...Object.fromEntries(requestedServers.map((mcp) => [mcp.name, { ...this.createMcpSeverConfig(mcp.server), "enabled": true }]))
++    };
++    if (Object.keys(servers).length === 0) {
+       return configWithWorkspaceRoots;
+     }
+     return {
+       ...configWithWorkspaceRoots,
+-      "mcp_servers": Object.fromEntries(serversToConfigure.map((mcp) => [mcp.name, this.createMcpSeverConfig(mcp.server)]))
++      "mcp_servers": servers
+     };
+   }
+   async getConfigMcpServerNames(projectPath) {
+@@ -29159,6 +29163,21 @@ function arraysEqual(left, right) {
+   }
+   return left.every((value, index) => value === right[index]);
+ }
++// Haus: a disabled, inert override for every MCP server Codex's config layers
++// declare. Thread config merges into those layers, so each entry keeps its
++// transport valid on its own: a turn can reload config without a project layer.
++async function readDisabledMcpServers(codexClient, cwd) {
++  const response = await codexClient.configRead({ includeLayers: true, cwd });
++  const declared = [
++    response?.config?.["mcp_servers"],
++    ...(response?.layers ?? []).map((layer) => isJsonObject(layer.config) ? layer.config["mcp_servers"] : void 0)
++  ].filter(isJsonObject);
++  const disabled = {};
++  for (const [name, server] of declared.flatMap((servers) => Object.entries(servers))) {
++    disabled[name] ??= isJsonObject(server) && "url" in server ? { "url": "http://127.0.0.1:9/", "enabled": false } : { "command": "false", "enabled": false };
++  }
++  return disabled;
++}
+ function isJsonObject(value) {
+   return value !== null && typeof value === "object" && !Array.isArray(value);
+ }
+@@ -31868,9 +31887,12 @@ var TitleGenerator = class {
+   }
+   async generateAndPersist(userPromptText) {
+     if (!userPromptText.trim()) return;
++    // Haus: the title thread never starts the runtime's own MCP servers either.
++    const disabledMcpServers = await readDisabledMcpServers(this.client, this.cwd);
+     const { thread: epThread } = await this.client.threadStart({
+       cwd: this.cwd,
+-      ephemeral: true
++      ephemeral: true,
++      ...Object.keys(disabledMcpServers).length > 0 ? { config: { "mcp_servers": disabledMcpServers } } : {}
+     });
+     const turnResult = await this.client.runTurn({
+       threadId: epThread.id,
