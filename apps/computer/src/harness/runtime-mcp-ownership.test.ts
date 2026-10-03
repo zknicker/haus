@@ -27,10 +27,12 @@ test('the shipped codex-acp disables every MCP server from Codex config layers',
         '+      ...await readDisabledMcpServers(this.codexClient, projectPath),'
     );
     expect(patch).toContain('-    if (shouldDeduplicateMcpConflicts()) {');
-    // The ephemeral title thread gets the same treatment.
+    // The ephemeral title thread gets the same treatment, and it never receives the
+    // launch CODEX_CONFIG, so it switches off ChatGPT apps and plugins itself.
     expect(patch).toContain(
         '+    const disabledMcpServers = await readDisabledMcpServers(this.client, this.cwd);'
     );
+    expect(patch).toContain('+      config: { "features": { "apps": false, "plugins": false },');
 });
 
 async function bootstrapFile(runtimeId: 'claude-code' | 'codex', suffix: string) {

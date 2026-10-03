@@ -56,6 +56,9 @@ export function codexAcpEnvironment(settings: CodexAcpSettings): Record<string, 
             // Zero turns off project docs: AGENTS.md from the workspace and every directory
             // up to its git root. Haus instructions ride `developer_instructions` instead.
             project_doc_max_bytes: 0,
+            // Haus owns an Agent's MCP access (specs/mcp.md): no ChatGPT apps
+            // (the `codex_apps` connector server) and no plugin MCP servers.
+            features: { apps: false, plugins: false },
         }),
         // Haus Agents run unattended: never ask for approval, never sandbox.
         INITIAL_AGENT_MODE: 'agent-full-access',

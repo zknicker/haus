@@ -111,14 +111,30 @@ test('the Codex bridge steers a live turn through codex-acp session steering', a
 });
 
 test('Codex launch configuration follows the Agent reasoning and web access', () => {
-    expect(codexAcpEnvironment({ reasoningEffort: 'high', webSearch: true })).toEqual({
-        CODEX_CONFIG:
-            '{"model_reasoning_effort":"high","web_search":"live","project_doc_max_bytes":0}',
+    const environment = codexAcpEnvironment({ reasoningEffort: 'high', webSearch: true });
+    expect(environment).toEqual({
+        CODEX_CONFIG: expect.any(String),
         INITIAL_AGENT_MODE: 'agent-full-access',
         NO_BROWSER: '1',
     });
+    expect(JSON.parse(environment.CODEX_CONFIG ?? '')).toEqual({
+        features: { apps: false, plugins: false },
+        model_reasoning_effort: 'high',
+        project_doc_max_bytes: 0,
+        web_search: 'live',
+    });
     expect(JSON.parse(codexAcpEnvironment({ webSearch: false }).CODEX_CONFIG ?? '')).toEqual({
+        features: { apps: false, plugins: false },
         project_doc_max_bytes: 0,
         web_search: 'disabled',
     });
+});
+
+test('Codex Agents launch with ChatGPT apps and plugin MCP switched off', () => {
+    // Only Server grants give an Agent MCP access (specs/mcp.md). A ChatGPT login
+    // otherwise adds the operator's connectors as the built-in `codex_apps` server.
+    for (const webSearch of [true, false]) {
+        const config = JSON.parse(codexAcpEnvironment({ webSearch }).CODEX_CONFIG ?? '');
+        expect(config.features).toEqual({ apps: false, plugins: false });
+    }
 });

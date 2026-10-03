@@ -31,8 +31,8 @@ index c134fd36ed44f4dccb510f8ac7971f0f7e26aba4..abed32e48656dc336852aabcea80074b
 -    if (mcpServers.length === 0) {
 -      return configWithWorkspaceRoots;
 -    }
-+    // Haus: the ACP client owns the thread's MCP servers. Every server Codex's
-+    // config layers declare is disabled, and a requested server always wins its name.
++    // Haus: the ACP client owns the thread's MCP servers; every config-layer server is disabled.
++    // Fields merge per name: a layer declaring a requested name can break the thread's config.
      const requestedServers = mcpServers.map((mcp) => ({
        name: sanitizeMcpServerName(mcp.name),
        server: mcp
@@ -83,13 +83,13 @@ index c134fd36ed44f4dccb510f8ac7971f0f7e26aba4..abed32e48656dc336852aabcea80074b
    }
    async generateAndPersist(userPromptText) {
      if (!userPromptText.trim()) return;
-+    // Haus: the title thread never starts the runtime's own MCP servers either.
++    // Haus: the title thread starts no config, app, or plugin MCP servers either.
 +    const disabledMcpServers = await readDisabledMcpServers(this.client, this.cwd);
      const { thread: epThread } = await this.client.threadStart({
        cwd: this.cwd,
 -      ephemeral: true
 +      ephemeral: true,
-+      ...Object.keys(disabledMcpServers).length > 0 ? { config: { "mcp_servers": disabledMcpServers } } : {}
++      config: { "features": { "apps": false, "plugins": false }, ...Object.keys(disabledMcpServers).length > 0 ? { "mcp_servers": disabledMcpServers } : {} }
      });
      const turnResult = await this.client.runTurn({
        threadId: epThread.id,
