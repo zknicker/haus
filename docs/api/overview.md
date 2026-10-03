@@ -70,7 +70,11 @@ the stored runtimes and models, then emits a Computer update event before the mu
 Failed, disconnected, or unanswered requests preserve the last inventory. Computer separately
 reports refreshed usage. These optional frames leave older peers' ordinary reports intact.
 
-Haus 7.0 requires Computer protocol 25. Older Computers retain bootstrap update control but
-cannot execute ordinary work. App protocol 8 gates the unread Inbox, the removal of Needs you
+Computer protocol 26 adds the Cursor model catalog to inventory and the resolved model to each
+Cloud Agent Run. The release that ships protocol 26 requires an exact match: Server accepts
+ordinary work only from a Computer that reports protocol 26. A protocol-25 or older Computer
+connects in bootstrap mode, which keeps update control but cannot execute ordinary work, so the
+Computer artifact must publish before the Server is promoted
+([release prerequisites](../operations/releases.md#prerequisites)). App protocol 8 gates the unread Inbox, the removal of Needs you
 and Done, and the shared notification facts. Haus App 5.0.0 and iPhone 5.0.0 send that version.
 Older installed clients require an update, and an already-open hosted App requires a reload.

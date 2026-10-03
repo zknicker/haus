@@ -51,6 +51,14 @@ while you read it.
   reaches Server. Cloud Agent access is separate from the Cursor runtime because the
   Cursor CLI and the Cursor SDK use different credential stores even for one account.
 
+* **Cloud Agent model.** Settings → Models carries one Server-wide **Model** row under **Cloud
+  Agents**. Owners and Admins pick **Cursor default** (the default, which uses the Cursor account's
+  default model: Auto unless the account changed it) or a model from Cursor's catalog, as the
+  freshest Computer report lists it, with "Updated … ago" dating that read. Other members see the
+  choice as a read-only fact. Until a Computer with Cursor connected reports a catalog, the picker
+  offers only Cursor default and is disabled. A saved model Cursor no longer lists shows by its raw id with a
+  warning that runs use Cursor default until someone picks an available model.
+
 The atomic Haus token reporting unit is Agent × runtime × model, with input, output, cache-read,
 and cache-write counts. Computer-local Claude Code and Grok Build ledgers are runtime × model
 because those runtime transcripts do not carry a Haus Agent id.

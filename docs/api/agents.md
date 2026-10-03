@@ -321,8 +321,20 @@ human read behind the Inbox.
 
 Cloud Agent provider access is a Computer capability with its own credential store, separate from
 the Cursor runtime harness even when both belong to one Cursor account. Each Computer reports it in
-its inventory as `cloudAgentProviders: [{ provider, ready, reason }]`, where an unready reason is
-`not-connected`, `expired`, or `provider-unavailable`.
+its inventory as `cloudAgentProviders: [{ provider, ready, reason, models }]`, where an unready reason is
+`not-connected`, `expired`, or `provider-unavailable`. `models` is the provider's model catalog for
+the connected account, `{ models: [{ id, displayName, description }], refreshedAt }`, or `null`
+(see [Cloud Agents → Model](../../specs/cloud-agents.md#model)).
+
+`cloudAgentSettings.get({ serverId })` answers any member with
+`{ model, catalog, savedModelUnavailable }`. `model` is `{ kind: "auto" }`, shown as Cursor default
+(Haus sends no model, so Cursor uses the account's default), or `{ kind: "model", id }`. `catalog`
+is the freshest catalog any of the Server's Computers reported (or `null`).
+`cloudAgentSettings.setModel({ serverId, model })` is Owner/Admin only (`FORBIDDEN` otherwise),
+refuses an unlisted id with `BAD_REQUEST`, returns the same shape, and emits a `server` scope
+update. Each Run in `cloudAgentWork` carries `model: { id, fallbackFrom }`: the model id sent to the
+provider (or `null` when Haus sent none), and the saved model that fell back to Cursor default when
+the launching Computer's catalog did not list it.
 
 `cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect` take
 `{ computerId, provider, serverId }` and answer with the Computer's own

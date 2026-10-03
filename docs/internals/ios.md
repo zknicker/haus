@@ -82,6 +82,7 @@ Computer owns the Cursor sign-in attempt and credentials. The phone presents the
 sign-in link, checks progress while the screen is active, and supports cancellation and retry after
 failure or expiry. Returning from the browser refreshes the attempt; leaving the screen does not
 cancel it. A later visit can resume the pending attempt on the same Computer.
+The screen's Model row reads `cloudAgentSettings.get` and offers Cursor default (no model sent, so the account's default) plus the reported Cursor catalog; Owners and Admins change it through `cloudAgentSettings.setModel`, everyone else sees the value, and an unavailable saved model or a missing catalog is explained in the section footer. It is a custom navigation row, not a stock `Picker`, so a long value stacks and wraps instead of truncating.
 
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.

@@ -3,6 +3,7 @@ summary: Provider-hosted Cloud Agents as Agent-delegated work carried by durable
 read_when:
   - adding or changing Cloud Agent tools, providers, lifecycle, cards, results, or completion delivery
   - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
+  - changing the Cloud Agent model setting, the Cursor model catalog, or the model a Run requests
   - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
   - deciding whether delegated work belongs to a Haus Agent, Harness subagent, Task, or provider-hosted Cloud Agent
 ---
@@ -460,6 +461,40 @@ reconciliation provide the product guarantee; provider idempotency is defense in
 Cursor's Cloud Agents API is public beta. The adapter isolates provider requests, responses, and
 status mapping from Haus's durable contracts. Repository validation happens at that adapter: a
 repository is usable only when the Cursor account has the required source-control access.
+
+## Model
+
+A human picks the Cloud Agent model once per Server; the default is **Cursor default**: Haus
+sends no model, and Cursor resolves the account's configured default (Auto unless the account
+changed it). Agents cannot choose
+or override it: no Agent route, CLI flag, or start input carries a model.
+
+**Catalog.** Cursor is the source of truth for which models exist. The Computer that holds the
+Cursor connection reads `Cursor.models.list()` and reports the result inside its ordinary inventory,
+on the Cloud Agent provider line: `cloudAgentProviders[].models = { models: [{ id, displayName,
+description }], refreshedAt }`, or `null` when it has none. Cursor publishes no price or tier, so
+Haus carries none. Computer caches the catalog per connected account and reads it again on start,
+whenever the account changes (a reconnect mints a key with a new expiry), and on a daily loop per
+attachment connection. A failed read keeps the previous catalog for the same account with its own
+`refreshedAt`; disconnecting reports `null`. Server stores it with the rest of the reported
+inventory on `computers.reported_inventory`.
+
+**Setting.** `servers.cloud_agent_model_id` holds the choice: `null` is Cursor default, otherwise one Cursor
+model id. The contract is the union `{ kind: 'auto' } | { kind: 'model', id }`. Any member reads it
+through `cloudAgentSettings.get({ serverId })`; only an Owner or Admin writes it through
+`cloudAgentSettings.setModel({ serverId, model })`, which also refuses an id that the freshest
+catalog on any of the Server's Computers does not list (`BAD_REQUEST`). The read returns
+`{ model, catalog, savedModelUnavailable }`. `catalog` is that freshest catalog, or `null` when no
+Computer has reported one. `savedModelUnavailable` is true when a saved model is missing from it.
+
+**Launch.** Server resolves the model whenever it creates a Run, for a first launch and for each
+follow-up. It sends the saved model only when the **launching Computer's** newest catalog lists it.
+Otherwise it falls back to Cursor default and sends no model. Every Run records the outcome as
+`model: { id, fallbackFrom }` (`cloud_agent_runs.model_id`, `.model_fallback_from`). `id` is the
+model Haus sent, or `null` for Cursor default. `fallbackFrom` names the saved model that fell back. Runs that
+predate the setting read `{ id: null, fallbackFrom: null }`, which is accurate because Haus sent no
+model then either. Computer passes `id` to `agent.send(..., { model: { id } })` and omits the option
+for Cursor default. Computer protocol 26 carries the catalog and the Run model.
 
 ## Settings and usage
 
