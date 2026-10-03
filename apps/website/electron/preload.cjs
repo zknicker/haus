@@ -13,10 +13,10 @@ const bridge = {
         ipcRenderer.on('desktop:browser:shortcut', handler);
         return () => ipcRenderer.off('desktop:browser:shortcut', handler);
     },
-    onBrowserFocus: (listener) => {
+    onBrowserReveal: (listener) => {
         const handler = () => listener();
-        ipcRenderer.on('desktop:browser:focus', handler);
-        return () => ipcRenderer.off('desktop:browser:focus', handler);
+        ipcRenderer.on('desktop:browser:reveal', handler);
+        return () => ipcRenderer.off('desktop:browser:reveal', handler);
     },
     onBrowserState: (listener) => {
         const handler = (_event, state) => listener(state);

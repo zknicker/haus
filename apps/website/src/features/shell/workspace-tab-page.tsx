@@ -9,6 +9,7 @@ import { AgentWorkspacePage } from './agent-workspace-page.tsx';
 import { ArtifactWorkspacePage } from './artifact-workspace-page.tsx';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 import { BrowserWorkspacePage } from './browser-workspace-page.tsx';
+import { FilesWorkspacePage } from './files-workspace-page.tsx';
 import { ThreadWorkspacePage } from './thread-workspace-page.tsx';
 
 /**
@@ -51,6 +52,13 @@ function AppTabPage({ className, tabRef }: { className?: string; tabRef: AppTabR
         return (
             <section aria-label="Thread" className={sectionClass} key={workspaceTabId(tabRef)}>
                 <ThreadWorkspacePage tabRef={tabRef} />
+            </section>
+        );
+    }
+    if (tabRef.kind === 'files') {
+        return (
+            <section aria-label="Files" className={sectionClass} key={workspaceTabId(tabRef)}>
+                <FilesWorkspacePage tabRef={tabRef} />
             </section>
         );
     }

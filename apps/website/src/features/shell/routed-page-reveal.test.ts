@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { NavigationType } from 'react-router-dom';
-import { revealsRoutedPage } from './routed-page-reveal.ts';
+import { agentAddressHandBack, revealsRoutedPage } from './routed-page-reveal.ts';
 
 const chat = { hash: '', key: 'a', pathname: '/s/haus/chats/1', search: '' };
 
@@ -27,5 +27,28 @@ describe('revealsRoutedPage', () => {
             false
         );
         expect(revealsRoutedPage(chat, chat, NavigationType.Replace)).toBe(false);
+    });
+});
+
+describe('agentAddressHandBack', () => {
+    const options = { fallback: '/s/haus', page: '/s/haus/chats/1' };
+
+    test('a push from an in-app page steps back, so history holds no duplicate entry', () => {
+        expect(agentAddressHandBack(chat, NavigationType.Push, options)).toEqual({ kind: 'back' });
+    });
+
+    test('a deep link or a replace rewrites to the last page, or the fallback', () => {
+        expect(agentAddressHandBack(null, NavigationType.Push, options)).toEqual({
+            kind: 'replace',
+            to: '/s/haus/chats/1',
+        });
+        expect(agentAddressHandBack(chat, NavigationType.Replace, options)).toEqual({
+            kind: 'replace',
+            to: '/s/haus/chats/1',
+        });
+        expect(agentAddressHandBack(null, NavigationType.Pop, { ...options, page: null })).toEqual({
+            kind: 'replace',
+            to: '/s/haus',
+        });
     });
 });

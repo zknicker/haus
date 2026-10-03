@@ -6,6 +6,8 @@ import type { AppTabInput, WorkspaceTabsAction } from './workspace-tabs-reducer.
 export interface WorkspaceTabOpeners {
     openAgent: (agentId: string, options?: { section?: AgentSection }) => void;
     openArtifact: (target: WorkspaceArtifactTarget, title?: string) => void;
+    /** Opens a chat's Files tab. */
+    openFiles: (chatId: string) => void;
     /** Opens a Thread as the preview tab, which the next opened Thread replaces. */
     openThread: (chatId: string, anchorMessageId: string) => void;
 }
@@ -44,5 +46,9 @@ export function useWorkspaceTabOpeners({
         (chatId, anchorMessageId) => open({ kind: 'thread', anchorMessageId, chatId }),
         [open]
     );
-    return { open, openAgent, openArtifact, openThread };
+    const openFiles = React.useCallback<WorkspaceTabOpeners['openFiles']>(
+        (chatId) => open({ kind: 'files', chatId }),
+        [open]
+    );
+    return { open, openAgent, openArtifact, openFiles, openThread };
 }

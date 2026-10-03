@@ -50,6 +50,15 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
             }
         }
     };
+    /**
+     * Asks the App to show the selected page a link re-opened, a change no App
+     * selection shows. Mere page focus reveals nothing: the App may show another tab.
+     */
+    const reveal = () => {
+        if (!window.webContents.isDestroyed()) {
+            window.webContents.send('desktop:browser:reveal');
+        }
+    };
     const select = (id) => {
         if (id !== null && !tabs.has(id)) {
             throw new Error('Browser tab no longer exists.');
@@ -65,6 +74,7 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
         if (existing) {
             if (!background) {
                 select(existing[0]);
+                reveal();
             }
             return;
         }
@@ -100,12 +110,6 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
         window.contentView.addChildView(view);
         const contents = view.webContents;
         installBrowserShortcuts(contents, (action) => runBrowserWindowAction(window, api, action));
-        // A native page takes keyboard focus without any App DOM event; tell the App (⌘W targets main).
-        contents.on('focus', () => {
-            if (!window.webContents.isDestroyed()) {
-                window.webContents.send('desktop:browser:focus');
-            }
-        });
         trackBrowserTabState(contents, tab.state, {
             fallbackUrl: url,
             isLive: () => tabs.has(id),
@@ -146,9 +150,14 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
         if (!tab) {
             return;
         }
+        // Closing the focused page would leave App shortcuts dead until a click.
+        const hadFocus = tab.view.webContents.isFocused();
         window.contentView.removeChildView(tab.view);
         tabs.delete(id);
         tab.view.webContents.close();
+        if (hadFocus && !window.webContents.isDestroyed()) {
+            window.webContents.focus();
+        }
         if (activeId === id) {
             activeId = [...tabs.keys()].at(-1) ?? null;
         }

@@ -12,13 +12,15 @@ import {
     type ArtifactTab,
     appTabRefs,
     type ClosableTabRef,
+    closeActiveTarget,
+    explicitSelection,
     resolveClosableTabs,
     sameTab,
     selectionAfterClose,
+    syncBrowserOrder,
     type ThreadTab,
     type ThreadTabRef,
     visibleStrip,
-    type WorkspaceFocus,
     type WorkspaceMode,
     type WorkspaceSelection,
     type WorkspaceTabRef,
@@ -26,11 +28,11 @@ import {
 } from './workspace-tabs-model.ts';
 import { workspaceTabsReducer } from './workspace-tabs-reducer.ts';
 import {
-    parseWorkspaceMode,
-    parseWorkspaceTabs,
     serializeWorkspaceTabs,
     workspaceModeStorageKey,
+    writeWorkspaceTabs,
 } from './workspace-tabs-storage.ts';
+import { readWindowTabs, writeWindowStores } from './workspace-tabs-window-storage.ts';
 
 export interface WorkspaceTabs
     extends WorkspaceLayoutCommands,
@@ -38,13 +40,17 @@ export interface WorkspaceTabs
         WorkspaceSelection {
     agents: AgentTab[];
     artifacts: ArtifactTab[];
-    /** Closes the shown closable tab Command-W points at; false when there is none. */
-    closeFocusedTab: () => boolean;
+    /**
+     * Command-W: closes the closable tab on screen (the side pane's, or the
+     * covering expanded tab), wherever focus is. With closable tabs open but
+     * none on screen it does nothing and still answers true, so the window
+     * stays; false only when no closable tab is open.
+     */
+    closeActiveTab: () => boolean;
     /** `remember: false` skips Reopen Closed Tab, for automatic closes (a deleted Agent). */
     closeTab: (ref: ClosableTabRef, options?: { remember?: boolean }) => void;
     /** Browser commands; opening a page reveals it even when it was already selected. */
     command: (input: BrowserCommand) => void;
-    focusPane: (focus: WorkspaceFocus) => void;
     mode: WorkspaceMode;
     /** Pins the preview tab; anything else is already pinned. */
     pinTab: (ref: AppTabRef) => void;
@@ -65,8 +71,8 @@ export interface WorkspaceTabs
 /**
  * The desktop workspace tabs (ADR 0038). Electron owns browser tabs and which
  * one is selected; this hook owns App-local tabs, the closable strip order
- * (persisted per Server), the window mode (persisted per device), and the side
- * pane. An App-local tab is the selected closable tab only while Electron has
+ * (persisted per Server and window), the window mode (persisted per device),
+ * and the side pane. An App-local tab is the selected closable tab only while Electron has
  * no browser tab selected. A selected browser page that is not shown stays
  * selected in Electron with no bounds, so its native view hides.
  */
@@ -81,8 +87,13 @@ export function useWorkspaceTabs({
     serverId: string;
     source: string | null;
 }): WorkspaceTabs {
-    const storageKey = `haus.workspaceTabs.${serverId}`;
-    const [state, dispatch] = React.useReducer(workspaceTabsReducer, storageKey, readStoredTabs);
+    const [state, dispatch] = React.useReducer(workspaceTabsReducer, serverId, readWindowTabs);
+    // Adjusting state during render: a browser tab takes its slot before any
+    // frame shows it, so a tab opened after it lands after it.
+    const browserIds = browser.tabs.map((tab) => tab.id);
+    if (syncBrowserOrder(state.order, browserIds) !== state.order) {
+        dispatch({ kind: 'syncBrowser', ids: browserIds });
+    }
     const tabs = React.useMemo(
         () =>
             resolveClosableTabs(
@@ -100,10 +111,10 @@ export function useWorkspaceTabs({
 
     const serialized = serializeWorkspaceTabs(state);
     React.useEffect(() => {
-        writeStorage(storageKey, serialized);
-    }, [serialized, storageKey]);
+        writeWindowStores((stores) => writeWorkspaceTabs(stores, serverId, serialized));
+    }, [serialized, serverId]);
     React.useEffect(() => {
-        writeStorage(workspaceModeStorageKey, state.mode);
+        writeWindowStores((stores) => stores.local.setItem(workspaceModeStorageKey, state.mode));
     }, [state.mode]);
 
     // Callbacks read the latest state through a ref so consumers get stable identities.
@@ -112,7 +123,7 @@ export function useWorkspaceTabs({
     // Session-lifetime and in memory: closed tabs are not worth persisting.
     const closed = React.useRef<ClosedTab[]>([]);
 
-    const { command, releaseBrowser, selectBrowser } = useBrowserSelection({
+    const { releaseBrowser, selectBrowser } = useBrowserSelection({
         activeId: browser.activeId,
         dispatch,
         latest,
@@ -164,28 +175,27 @@ export function useWorkspaceTabs({
         },
         [releaseBrowser, run, selectTab]
     );
-    const closeFocusedTab = React.useCallback(() => {
-        const { selection: current, state: now } = latest.current;
-        const target = now.mode === 'split' && now.focus !== 'side' ? null : current.shownClosable;
-        if (!target) {
-            return false;
+    const closeActiveTab = React.useCallback(() => {
+        const { selection: current, tabs: closable } = latest.current;
+        const { close, handled } = closeActiveTarget(current, closable);
+        if (close) {
+            closeTab(close);
         }
-        closeTab(target);
-        return true;
+        return handled;
     }, [closeTab]);
+    const command = React.useCallback((input: BrowserCommand) => void run(input), [run]);
 
-    // A shown pane never sits empty: when its selection is gone (a page closed
-    // by Electron, a tab closed while hidden), it shows its last tab.
-    const { selectedClosable, sidePaneShown } = selection;
-    const showsClosable = state.mode === 'split' ? sidePaneShown : !state.primarySelected;
+    // A shown pane renders its last tab when its selection is gone (a page
+    // closed by Electron, a tab closed while hidden); this commits that pick.
+    const showsClosable = state.mode === 'split' ? selection.sidePaneShown : !state.primarySelected;
+    const unselected = showsClosable && !explicitSelection(state, browser.activeId, tabs);
     React.useEffect(() => {
-        if (!showsClosable || selectedClosable) {
-            return;
+        if (unselected) {
+            selectTab(latest.current.tabs.at(-1) ?? { kind: 'primary' });
         }
-        selectTab(latest.current.tabs.at(-1) ?? { kind: 'primary' });
-    }, [selectTab, selectedClosable, showsClosable]);
+    }, [selectTab, unselected]);
 
-    const { open, openAgent, openArtifact, openThread } = useWorkspaceTabOpeners({
+    const { open, openAgent, openArtifact, openFiles, openThread } = useWorkspaceTabOpeners({
         dispatch,
         latest,
         releaseBrowser,
@@ -194,9 +204,6 @@ export function useWorkspaceTabs({
     const pinTab = React.useCallback((ref: AppTabRef) => dispatch({ kind: 'pin', ref }), []);
     const setAgentSection = React.useCallback((agentId: string, section: AgentSection) => {
         dispatch({ kind: 'section', agentId, section });
-    }, []);
-    const focusPane = React.useCallback((focus: WorkspaceFocus) => {
-        dispatch({ kind: 'focus', focus });
     }, []);
     const reorderTabs = React.useCallback(
         (next: ClosableTabRef[]) => {
@@ -216,13 +223,13 @@ export function useWorkspaceTabs({
             ...selection,
             agents: state.agents,
             artifacts: state.artifacts,
-            closeFocusedTab,
+            closeActiveTab,
             closeTab,
             command,
-            focusPane,
             mode: state.mode,
             openAgent,
             openArtifact,
+            openFiles,
             openThread,
             pinTab,
             preview: state.preview,
@@ -242,12 +249,12 @@ export function useWorkspaceTabs({
             state.mode,
             state.preview,
             state.threads,
-            closeFocusedTab,
+            closeActiveTab,
             closeTab,
             command,
-            focusPane,
             openAgent,
             openArtifact,
+            openFiles,
             openThread,
             pinTab,
             reopenClosedTab,
@@ -258,23 +265,4 @@ export function useWorkspaceTabs({
             tabs,
         ]
     );
-}
-
-function readStoredTabs(storageKey: string) {
-    try {
-        return parseWorkspaceTabs(
-            localStorage.getItem(storageKey),
-            parseWorkspaceMode(localStorage.getItem(workspaceModeStorageKey))
-        );
-    } catch {
-        return parseWorkspaceTabs(null);
-    }
-}
-
-function writeStorage(key: string, value: string) {
-    try {
-        localStorage.setItem(key, value);
-    } catch {
-        // Storage can be unavailable; tabs and the mode then last for this window only.
-    }
 }

@@ -1,9 +1,11 @@
 import * as React from 'react';
+import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import {
     type BrowserCommand,
     type BrowserWorkspaceState,
     parseBrowserWorkspace,
 } from '../../lib/desktop-browser.ts';
+import { createBrowserRelease } from './browser-release.ts';
 import type { WorkspaceTabsAction } from './workspace-tabs-reducer.ts';
 
 /**
@@ -25,45 +27,44 @@ export function useBrowserSelection({
     latest: React.RefObject<{ browser: BrowserWorkspaceState }>;
     run: (input: BrowserCommand) => Promise<unknown>;
 }) {
-    const releasing = React.useRef(false);
+    const [release] = React.useState(createBrowserRelease);
     React.useEffect(() => {
-        if (!activeId) {
-            releasing.current = false;
-        } else if (!releasing.current) {
+        if (release.accept(activeId)) {
             dispatch({ kind: 'selectBrowser' });
         }
-    }, [activeId, dispatch]);
+    }, [activeId, dispatch, release]);
+    // Electron asks to reveal its selected page: a link re-opened the page
+    // already selected (no selection change to notice).
+    React.useEffect(
+        () =>
+            getDesktopBridge()?.onBrowserReveal?.(() => {
+                release.cancel();
+                if (latest.current.browser.activeId) {
+                    dispatch({ kind: 'selectBrowser' });
+                }
+            }),
+        [dispatch, latest, release]
+    );
     /** Deselects Electron's page so an App-local tab can be the selected closable tab. */
     const releaseBrowser = React.useCallback(() => {
         if (latest.current.browser.activeId) {
-            releasing.current = true;
-            void run({ kind: 'select', id: null });
+            release.begin();
+            void run({ kind: 'select', id: null }).then((value) =>
+                release.settle(parseBrowserWorkspace(value)?.activeId)
+            );
         }
-    }, [latest, run]);
+    }, [latest, release, run]);
     /** Selects and shows a browser tab, even one Electron already has selected behind a hidden pane. */
     const selectBrowser = React.useCallback(
         (id: string) => {
-            releasing.current = false;
+            release.cancel();
             if (latest.current.browser.activeId === id) {
                 dispatch({ kind: 'selectBrowser' });
             } else {
                 void run({ kind: 'select', id });
             }
         },
-        [dispatch, latest, run]
+        [dispatch, latest, release, run]
     );
-    // Opening a page Electron already has selected changes no selection, so it reveals here.
-    const command = React.useCallback(
-        (input: BrowserCommand) => {
-            const before = latest.current.browser.activeId;
-            void run(input).then((value) => {
-                const opened = input.kind === 'open' || input.kind === 'new';
-                if (opened && before && parseBrowserWorkspace(value)?.activeId === before) {
-                    dispatch({ kind: 'selectBrowser' });
-                }
-            });
-        },
-        [dispatch, latest, run]
-    );
-    return { command, releaseBrowser, selectBrowser };
+    return { releaseBrowser, selectBrowser };
 }

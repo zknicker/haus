@@ -11,16 +11,16 @@ import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
+import { useDesktopWorkspaceTabs } from '../../../hooks/workspace-tabs/use-desktop-workspace-tabs.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
-import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
 import { mergeTaskAnchor } from './chat-message-model.ts';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
 import { ChatViewFooter } from './chat-view-footer.tsx';
-import { ChatViewSidePanel, shouldTakeOverChatSidePanel } from './chat-view-side-panel.tsx';
+import { ChatViewSidePanel } from './chat-view-side-panel.tsx';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
 import { useChatInlineReply } from './use-chat-inline-reply.ts';
@@ -41,6 +41,9 @@ export function ChatView({
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
 }) {
+    // Desktop has one right-hand pane, the workspace side pane: Files,
+    // artifacts, and Threads open there as tabs, so the chat renders none.
+    const workspaceTabs = useDesktopWorkspaceTabs() !== null;
     const filesPane = useChatFilesPane(chat.id);
     const artifactState = useChatArtifactPanel(chat.id);
     const activeSidePane = useChatSidePane(chat.id);
@@ -98,8 +101,8 @@ export function ChatView({
         ) ??
         threadSelection?.initialSummary ??
         null;
-    // The chat-scoped pane and Thread share the side panel. The latest
-    // artifact opener wins and reveals the pane.
+    // Website: the chat-scoped pane and Thread share the side panel. The
+    // latest artifact opener wins and reveals the pane.
     const openArtifact = artifactState.open;
     const startDm = React.useCallback(
         (peerUserId: string) => ensureDm.mutate({ peerUserId, serverId: chat.serverId }),
@@ -123,13 +126,6 @@ export function ChatView({
             turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
         />
     ) : null;
-    const sidePanelTakeover = shouldTakeOverChatSidePanel({
-        activePane: activeSidePane,
-        artifactVisible: artifactState.visible,
-        filesVisible: filesPane.visible,
-        hasThread: Boolean(threadPanel),
-        takeover: threadTakeover,
-    });
     return (
         <section
             aria-label={chatName}
@@ -146,7 +142,7 @@ export function ChatView({
                     server={server}
                 />
             </PageTopbar>
-            <ShellSidePane takeover={sidePanelTakeover}>
+            {workspaceTabs ? null : (
                 <ChatViewSidePanel
                     artifactState={artifactState}
                     chat={chat}
@@ -155,7 +151,7 @@ export function ChatView({
                     takeover={threadTakeover}
                     threadPanel={threadPanel}
                 />
-            </ShellSidePane>
+            )}
             <ChatDetailFrame
                 activeReplies={[]}
                 chatId={chat.id}

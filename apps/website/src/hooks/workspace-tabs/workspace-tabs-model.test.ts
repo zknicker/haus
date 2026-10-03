@@ -2,10 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import {
     type AppTabRef,
     type ClosableTabRef,
+    closeActiveTarget,
     emptyWorkspaceTabs,
     primaryTabRef,
     resolveClosableTabs,
     selectionAfterClose,
+    syncBrowserOrder,
     visibleStrip,
     type WorkspaceTabsState,
     workspaceSelection,
@@ -86,9 +88,62 @@ describe('what the window shows', () => {
         expect(primary.selectedClosable).toEqual(doc);
     });
 
-    test('a selection whose tab is gone is no selection', () => {
-        expect(workspaceSelection(state({ active: blippy }), null, [doc]).selectedClosable).toBe(
-            null
-        );
+    test('a selection whose tab is gone is no selection; a shown pane falls back to its last tab', () => {
+        const hidden = state({ active: blippy, sidePaneVisible: false });
+        expect(workspaceSelection(hidden, null, [doc]).selectedClosable).toBeNull();
+        // Derived during render, so the pane never paints blank before the pick commits.
+        const shown = workspaceSelection(state({ active: blippy }), null, [page, doc]);
+        expect(shown.shownClosable).toEqual(doc);
+        expect(shown.selectedTab).toEqual(doc);
+        const covering = state({ mode: 'expanded', primarySelected: false });
+        expect(workspaceSelection(covering, null, [page, doc]).shownClosable).toEqual(doc);
+    });
+});
+
+describe('Command-W', () => {
+    test('closes the tab on screen in either mode, wherever focus is', () => {
+        const split = workspaceSelection(state({ active: doc }), null, [page, doc]);
+        expect(closeActiveTarget(split, [page, doc])).toEqual({ close: doc, handled: true });
+        const covering = state({ active: doc, mode: 'expanded', primarySelected: false });
+        const expanded = workspaceSelection(covering, null, [doc]);
+        expect(closeActiveTarget(expanded, [doc])).toEqual({ close: doc, handled: true });
+    });
+
+    test('with tabs open but none on screen it closes nothing and keeps the window', () => {
+        const hidden = state({ active: doc, sidePaneVisible: false });
+        expect(closeActiveTarget(workspaceSelection(hidden, null, [doc]), [doc])).toEqual({
+            close: null,
+            handled: true,
+        });
+        const primary = state({ active: doc, mode: 'expanded', primarySelected: true });
+        expect(closeActiveTarget(workspaceSelection(primary, null, [doc]), [doc])).toEqual({
+            close: null,
+            handled: true,
+        });
+    });
+
+    test('with no closable tab open the window closes', () => {
+        expect(closeActiveTarget(workspaceSelection(state({}), null, []), [])).toEqual({
+            close: null,
+            handled: false,
+        });
+    });
+});
+
+describe('browser slots in the strip order', () => {
+    test('new browser tabs append after everything placed; gone ones drop', () => {
+        const order: ClosableTabRef[] = [page, doc];
+        expect(syncBrowserOrder(order, ['b1', 'b2'])).toEqual([
+            page,
+            doc,
+            { kind: 'browser', id: 'b2' },
+        ]);
+        expect(syncBrowserOrder(order, [])).toEqual([doc]);
+        expect(syncBrowserOrder(order, ['b1'])).toBe(order);
+    });
+
+    test('an artifact opened after a browser tab lands after it', () => {
+        const order = [...syncBrowserOrder([blippy], ['b1']), doc];
+        expect(resolveClosableTabs(order, ['b1'], [blippy, doc])).toEqual([blippy, page, doc]);
     });
 });

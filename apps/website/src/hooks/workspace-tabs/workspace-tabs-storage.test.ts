@@ -8,7 +8,9 @@ import { workspaceTabsReducer } from './workspace-tabs-reducer.ts';
 import {
     parseWorkspaceMode,
     parseWorkspaceTabs,
+    readWorkspaceTabs,
     serializeWorkspaceTabs,
+    writeWorkspaceTabs,
 } from './workspace-tabs-storage.ts';
 
 const report: WorkspaceArtifactTarget = {
@@ -136,5 +138,54 @@ describe('workspace tab persistence', () => {
     test('unreadable storage restores nothing', () => {
         expect(parseWorkspaceTabs('{not json')).toEqual(restoredEmpty);
         expect(parseWorkspaceTabs(null)).toEqual(restoredEmpty);
+    });
+});
+
+describe('per-window persistence', () => {
+    const store = () => {
+        const values = new Map<string, string>();
+        return {
+            getItem: (key: string) => values.get(key) ?? null,
+            setItem: (key: string, value: string) => void values.set(key, value),
+        };
+    };
+    const openAgent = (state: WorkspaceTabsState, agentId: string) =>
+        workspaceTabsReducer(state, { kind: 'open', tab: { kind: 'agent', agentId } });
+    const agentIds = (state: WorkspaceTabsState) => state.agents.map((tab) => tab.agentId);
+
+    test('a tab one window closes never comes back in another window', () => {
+        const local = store();
+        const windowA = { local, session: store() };
+        const windowB = { local, session: store() };
+        // Both windows hold Blippy; A also holds Tiny.
+        const a = openAgent(openAgent(readWorkspaceTabs(windowA, 's1', 'split'), 'blippy'), 'tiny');
+        writeWorkspaceTabs(windowA, 's1', serializeWorkspaceTabs(a));
+        let b = openAgent(readWorkspaceTabs(windowB, 's1', 'split'), 'blippy');
+        writeWorkspaceTabs(windowB, 's1', serializeWorkspaceTabs(b));
+        // B closes Blippy, then A changes something (and reloads).
+        b = workspaceTabsReducer(b, { kind: 'close', ref: { kind: 'agent', agentId: 'blippy' } });
+        writeWorkspaceTabs(windowB, 's1', serializeWorkspaceTabs(b));
+        writeWorkspaceTabs(windowA, 's1', serializeWorkspaceTabs(a));
+        expect(agentIds(readWorkspaceTabs(windowB, 's1', 'split'))).toEqual(['tiny']);
+        expect(agentIds(readWorkspaceTabs(windowA, 's1', 'split'))).toEqual(['blippy', 'tiny']);
+    });
+
+    test('a window with no tabs of its own seeds from the last change; its own empty strip stays empty', () => {
+        const local = store();
+        const first = { local, session: store() };
+        const tabs = openAgent(readWorkspaceTabs(first, 's1', 'split'), 'blippy');
+        writeWorkspaceTabs(first, 's1', serializeWorkspaceTabs(tabs));
+        // After a relaunch, the first window starts from the saved tabs.
+        const relaunched = { local, session: store() };
+        expect(agentIds(readWorkspaceTabs(relaunched, 's1', 'split'))).toEqual(['blippy']);
+        // A window that closed every tab reloads empty rather than reseeding.
+        const cleared = workspaceTabsReducer(tabs, {
+            kind: 'close',
+            ref: { kind: 'agent', agentId: 'blippy' },
+        });
+        writeWorkspaceTabs(first, 's1', serializeWorkspaceTabs(cleared));
+        writeWorkspaceTabs(relaunched, 's1', serializeWorkspaceTabs(tabs));
+        expect(agentIds(readWorkspaceTabs(first, 's1', 'split'))).toEqual([]);
+        expect(readWorkspaceTabs(first, 's2', 'split').agents).toEqual([]);
     });
 });

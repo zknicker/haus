@@ -1,6 +1,6 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
-import { type Location, useLocation, useNavigationType } from 'react-router-dom';
+import { browserWorkspaceLifecycle } from '../../hooks/browser/browser-workspace-lifecycle.ts';
 import { type BrowserFind, useBrowserFind } from '../../hooks/browser/use-browser-find.ts';
 import {
     type BrowserHistoryEntry,
@@ -13,7 +13,6 @@ import {
     useWorkspaceTabs,
     type WorkspaceTabs,
 } from '../../hooks/workspace-tabs/use-workspace-tabs.ts';
-import { primaryTabRef } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import {
     type BrowserCommand,
@@ -22,7 +21,7 @@ import {
 } from '../../lib/desktop-browser.ts';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 import type { PrimaryTabIdentity } from './primary-tab-identity.ts';
-import { revealsRoutedPage } from './routed-page-reveal.ts';
+import { useRoutedPageTabs } from './use-routed-page-tabs.ts';
 
 const emptyState: BrowserWorkspaceState = { activeId: null, tabs: [] };
 interface BrowserWorkspace extends WorkspaceTabs {
@@ -50,8 +49,6 @@ export function BrowserWorkspaceProvider({
     const serverId = server.id;
     const [state, setState] = React.useState(emptyState);
     const history = useBrowserHistory(state.tabs);
-    const location = useLocation();
-    const navigationType = useNavigationType();
     const bridge = getDesktopBridge();
     const runCommand = React.useCallback(
         async (input: BrowserCommand): Promise<unknown> =>
@@ -94,7 +91,7 @@ export function BrowserWorkspaceProvider({
             receivedEvent = true;
             accept(value);
         });
-        void runCommand({ kind: 'mount' });
+        browserWorkspaceLifecycle.mount(serverId, () => void runCommand({ kind: 'mount' }));
         void bridge
             .browserSnapshot()
             .then((value) => {
@@ -108,24 +105,15 @@ export function BrowserWorkspaceProvider({
         return () => {
             mounted = false;
             unsubscribe();
-            void runCommand({ kind: 'reset' });
+            browserWorkspaceLifecycle.unmount(serverId, () => void runCommand({ kind: 'reset' }));
         };
-    }, [bridge, runCommand]);
-    const { closeFocusedTab, focusPane, selectTab, shownClosable } = tabs;
-    const routed = React.useRef<Location | null>(null);
-    // A layout effect, so a page's own open on arrival (a `?thread=` link) lands after the reveal.
-    React.useLayoutEffect(() => {
-        const previous = routed.current;
-        routed.current = location;
-        if (revealsRoutedPage(previous, location, navigationType)) {
-            selectTab(primaryTabRef);
-        }
-    }, [selectTab, location, navigationType]);
-    // A native page takes focus without a DOM event; in split mode pages live in the side pane.
-    React.useEffect(() => bridge?.onBrowserFocus?.(() => focusPane('side')), [bridge, focusPane]);
+    }, [bridge, runCommand, serverId]);
+    useRoutedPageTabs({ openAgent: tabs.openAgent, selectTab: tabs.selectTab, server });
+    // Registered while any closable tab is open, so Command-W never closes the
+    // window over open tabs (see `closeActiveTab`).
     useDesktopTabPane({
-        active: shownClosable !== null,
-        closeActiveTab: closeFocusedTab,
+        active: tabs.tabs.length > 0,
+        closeActiveTab: tabs.closeActiveTab,
         openNewTab: () => {
             command({ kind: 'new' });
             return true;

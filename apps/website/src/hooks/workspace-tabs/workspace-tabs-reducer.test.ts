@@ -42,11 +42,10 @@ const split = { mode: 'split' as const };
 const expanded = { mode: 'expanded' as const };
 
 describe('split mode', () => {
-    test('opening a tab lands it in the side pane, selected, and focuses the pane', () => {
+    test('opening a tab lands it in the side pane, selected', () => {
         const state = run(split, openAgent('blippy'), openReport);
         expect(state.order).toEqual([blippy, reportRef]);
         expect(state.active).toEqual(reportRef);
-        expect(state.focus).toBe('side');
         expect(workspaceSelection(state, null, state.order).shownClosable).toEqual(reportRef);
     });
 
@@ -66,7 +65,6 @@ describe('split mode', () => {
         expect(shown.sidePaneShown).toBe(false);
         expect(state.order).toHaveLength(2);
         expect(state.active).toEqual(reportRef);
-        expect(state.focus).toBe('primary');
     });
 
     test('opening a tab while the pane is hidden reveals it', () => {
@@ -79,9 +77,8 @@ describe('split mode', () => {
         expect(browser.active).toBeNull();
     });
 
-    test('selecting the routed page points Command-W at it and leaves the pane showing', () => {
+    test('selecting the routed page leaves the pane showing', () => {
         const state = run(split, openAgent('blippy'), { kind: 'selectPrimary' });
-        expect(state.focus).toBe('primary');
         expect(workspaceSelection(state, null, state.order).shownClosable).toEqual(blippy);
     });
 });
@@ -197,4 +194,29 @@ test('opening an Agent with a section moves its open tab to that section', () =>
         tab: { kind: 'agent', agentId: 'blippy', section: 'skills' },
     });
     expect(state.agents).toEqual([{ agentId: 'blippy', section: 'skills' }]);
+});
+
+describe('browser tabs in the strip order', () => {
+    test('a browser tab takes the next slot when it appears, so later tabs land after it', () => {
+        const state = run(
+            split,
+            openAgent('blippy'),
+            { kind: 'syncBrowser', ids: ['b1'] },
+            openReport,
+            { kind: 'syncBrowser', ids: ['b1', 'b2'] }
+        );
+        expect(state.order).toEqual([
+            blippy,
+            { kind: 'browser', id: 'b1' },
+            reportRef,
+            { kind: 'browser', id: 'b2' },
+        ]);
+    });
+
+    test('a closed browser tab drops its slot; an unchanged list keeps the state', () => {
+        const state = run(split, { kind: 'syncBrowser', ids: ['b1', 'b2'] }, openReport);
+        const closed = workspaceTabsReducer(state, { kind: 'syncBrowser', ids: ['b2'] });
+        expect(closed.order).toEqual([{ kind: 'browser', id: 'b2' }, reportRef]);
+        expect(workspaceTabsReducer(closed, { kind: 'syncBrowser', ids: ['b2'] })).toBe(closed);
+    });
 });

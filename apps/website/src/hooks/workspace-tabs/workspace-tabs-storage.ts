@@ -6,6 +6,7 @@ import {
     type AppTabRef,
     type ArtifactTab,
     emptyWorkspaceTabs,
+    type FilesTab,
     sameTab,
     type ThreadTab,
     type WorkspaceArtifactTarget,
@@ -21,9 +22,44 @@ export function parseWorkspaceMode(raw: string | null): WorkspaceMode {
     return raw === 'expanded' ? 'expanded' : 'split';
 }
 
+/** The two stores tab persistence touches; injectable for tests. */
+export interface WorkspaceTabStores {
+    /** Shared by every window: the seed a window with no tabs of its own starts from. */
+    local: Pick<Storage, 'getItem' | 'setItem'>;
+    /** This window's own live tabs; it survives a reload and dies with the window. */
+    session: Pick<Storage, 'getItem' | 'setItem'>;
+}
+
+function workspaceTabsStorageKey(serverId: string) {
+    return `haus.workspaceTabs.${serverId}`;
+}
+
+/**
+ * A window's tabs are its own: it reads them back from its session store, so a
+ * tab another window closed (or never had) can never land here. Only a window
+ * with no tabs of its own yet — the first window after launch, a new window —
+ * seeds from the shared entry, which holds the most recently changed window's
+ * tabs.
+ */
+export function readWorkspaceTabs(
+    stores: WorkspaceTabStores,
+    serverId: string,
+    mode: WorkspaceMode
+): WorkspaceTabsState {
+    const key = workspaceTabsStorageKey(serverId);
+    return parseWorkspaceTabs(stores.session.getItem(key) ?? stores.local.getItem(key), mode);
+}
+
+/** Writes the window's own tabs, and the shared seed for the next new window. */
+export function writeWorkspaceTabs(stores: WorkspaceTabStores, serverId: string, raw: string) {
+    const key = workspaceTabsStorageKey(serverId);
+    stores.session.setItem(key, raw);
+    stores.local.setItem(key, raw);
+}
+
 /**
  * Persists App-local tabs per Server: artifacts, Agent profiles, pinned
- * Threads, and their strip order. Browser tabs, the preview tab, and
+ * Threads, chat Files, and their strip order. Browser tabs, the preview tab, and
  * selection are not restored.
  */
 export function serializeWorkspaceTabs(state: WorkspaceTabsState): string {
@@ -31,6 +67,7 @@ export function serializeWorkspaceTabs(state: WorkspaceTabsState): string {
     return JSON.stringify({
         agents: state.agents,
         artifacts: state.artifacts,
+        files: state.files,
         order: state.order.filter((ref) => ref.kind !== 'browser' && !sameTab(ref, preview)),
         threads: state.threads.filter((tab) => !sameTab({ kind: 'thread', ...tab }, preview)),
     });
@@ -75,13 +112,18 @@ export function parseWorkspaceTabs(
         ),
         (tab) => workspaceTabId({ kind: 'thread', ...tab })
     );
+    const files = unique(
+        ('files' in value && Array.isArray(value.files) ? value.files : []).map(parseFilesTab),
+        (tab) => tab.chatId
+    );
     const live = new Set([
         ...artifacts.map((tab) => workspaceTabId({ kind: 'artifact', key: tab.key })),
         ...agents.map((tab) => workspaceTabId({ kind: 'agent', agentId: tab.agentId })),
         ...threads.map((tab) => workspaceTabId({ kind: 'thread', ...tab })),
+        ...files.map((tab) => workspaceTabId({ kind: 'files', ...tab })),
     ]);
     const order = Array.isArray(value.order) ? parseOrder(value.order, live) : [];
-    return { ...empty, agents, artifacts, order, threads };
+    return { ...empty, agents, artifacts, files, order, threads };
 }
 
 /** Keeps known App-local refs; a legacy `primary` entry and unknown kinds drop. */
@@ -102,6 +144,9 @@ function parseOrder(entries: unknown[], live: ReadonlySet<string>): AppTabRef[] 
         } else if (entry.kind === 'thread') {
             const tab = parseThreadTab(entry);
             ref = tab && { kind: 'thread', ...tab };
+        } else if (entry.kind === 'files') {
+            const tab = parseFilesTab(entry);
+            ref = tab && { kind: 'files', ...tab };
         }
         return ref && live.has(workspaceTabId(ref)) ? [ref] : [];
     });
@@ -121,6 +166,16 @@ function parseThreadTab(entry: unknown): ThreadTab | null {
         return { anchorMessageId: entry.anchorMessageId, chatId: entry.chatId };
     }
     return null;
+}
+
+function parseFilesTab(entry: unknown): FilesTab | null {
+    return entry &&
+        typeof entry === 'object' &&
+        'chatId' in entry &&
+        typeof entry.chatId === 'string' &&
+        entry.chatId.length > 0
+        ? { chatId: entry.chatId }
+        : null;
 }
 
 function parseAgentTab(entry: unknown): AgentTab | null {

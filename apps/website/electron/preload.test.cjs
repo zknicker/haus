@@ -60,7 +60,7 @@ describe('desktop preload bridge', () => {
         expect(typeof bridge.browserBounds).toBe('function');
         expect(typeof bridge.browserCapture).toBe('function');
         expect(typeof bridge.onBrowserState).toBe('function');
-        expect(typeof bridge.onBrowserFocus).toBe('function');
+        expect(typeof bridge.onBrowserReveal).toBe('function');
         expect(typeof bridge.focusWindow).toBe('function');
         expect(typeof bridge.prepareSsoCallback).toBe('function');
     });

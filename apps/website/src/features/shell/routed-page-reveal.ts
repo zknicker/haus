@@ -25,3 +25,22 @@ export function revealsRoutedPage(
     }
     return previous.search === next.search && previous.hash === next.hash;
 }
+
+export type AgentAddressHandBack = { kind: 'back' } | { kind: 'replace'; to: string };
+
+/**
+ * How an Agent profile address hands the routed page back once its Agent tab
+ * opens. A push from an in-app page steps back, so history keeps one entry
+ * for that page; anything else (a deep link, a new window, a replace) rewrites
+ * the address to the last routed page, or `fallback` when there was none.
+ */
+export function agentAddressHandBack(
+    previous: RoutedLocation | null,
+    navigationType: NavigationType,
+    { fallback, page }: { fallback: string; page: string | null }
+): AgentAddressHandBack {
+    if (previous !== null && navigationType === NavigationType.Push) {
+        return { kind: 'back' };
+    }
+    return { kind: 'replace', to: page ?? fallback };
+}

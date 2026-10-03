@@ -1,4 +1,6 @@
 import type { Chat } from '@haus/api';
+import { resolveAgentSectionParam } from '../../features/members/agent-profile/agent-section-route.ts';
+import type { AgentSection } from '../../features/members/agent-profile/agent-sections.ts';
 import { resolveEntryChat } from '../../features/servers/server-choice.ts';
 import {
     serverChatRoute,
@@ -52,6 +54,26 @@ export function resolveActiveSection(pathname: string, slug: string): AppSection
     return 'chat';
 }
 
+/**
+ * The Agent an address opens — its profile route, the retired members
+ * address, or its old Settings address — or null. Desktop opens it as an Agent
+ * tab instead of routing to it; every one of these routes renders nothing there.
+ */
+export function resolveAgentProfileTarget(
+    pathname: string,
+    slug: string
+): { agentId: string; section: AgentSection } | null {
+    const suffix = pathname.slice(serverRoute(slug).length);
+    const match = /^\/(?:(?:settings\/)?members\/)?agents\/([^/]+)(?:\/([^/]+))?/.exec(suffix);
+    if (!(pathname.startsWith(serverRoute(slug)) && match?.[1])) {
+        return null;
+    }
+    const agentId = decodeSegment(match[1]);
+    return agentId === null
+        ? null
+        : { agentId, section: resolveAgentSectionParam(match[2]).section };
+}
+
 export function resolveSelectedChatId(pathname: string, slug: string) {
     const prefix = `${serverRoute(slug)}/chats/`;
     return pathname.startsWith(prefix)
@@ -76,4 +98,13 @@ export function resolveSettingsSection(
     }
     const section = decodeURIComponent(pathname.slice(prefix.length)).split('/')[0];
     return section ? (section as SettingsRouteTab) : undefined;
+}
+
+/** A malformed escape (`%E0`) names no Agent rather than throwing mid-render. */
+function decodeSegment(segment: string) {
+    try {
+        return decodeURIComponent(segment);
+    } catch {
+        return null;
+    }
 }

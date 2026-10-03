@@ -8,6 +8,7 @@ class FakeContents extends EventEmitter {
     url = '';
     title = '';
     closed = false;
+    focused = false;
     loading = false;
     zoomFactor = 1;
     zoomLevel = 0;
@@ -50,7 +51,11 @@ class FakeContents extends EventEmitter {
         this.closed = true;
     }
     focus() {
+        this.focused = true;
         this.calls.push('focus');
+    }
+    isFocused() {
+        return this.focused === true;
     }
     reload() {
         this.reloaded = true;

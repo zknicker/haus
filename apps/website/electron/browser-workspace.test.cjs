@@ -196,12 +196,36 @@ describe('desktop browser workspace', () => {
         window.emit('closed');
         expect(contents.closed).toBe(true);
     });
-    test('a page taking keyboard focus tells the App', () => {
+    test('a page taking keyboard focus changes nothing the App shows', () => {
         const { workspace, window } = fixture();
         workspace.open('https://example.com');
         window.webContents.sent = [];
         [...window.children][0].webContents.emit('focus');
-        expect(window.webContents.sent).toEqual([['desktop:browser:focus', undefined]]);
+        expect(window.webContents.sent).toEqual([]);
+    });
+    test('closing the focused page hands focus back to the App', () => {
+        const { workspace, window } = fixture();
+        workspace.open('https://example.com');
+        workspace.open('https://example.org');
+        const [first, second] = workspace.snapshot().tabs.map((tab) => tab.id);
+        const [firstView, secondView] = [...window.children];
+        workspace.command({ kind: 'close', id: first });
+        expect(window.webContents.calls).toEqual([]);
+        secondView.webContents.focus();
+        workspace.command({ kind: 'close', id: second });
+        expect(window.webContents.calls).toEqual(['focus']);
+        expect(firstView.webContents.closed).toBe(true);
+    });
+    test('re-opening the selected page asks the App to reveal it', () => {
+        const { workspace, window } = fixture();
+        workspace.open('https://example.com');
+        window.webContents.sent = [];
+        workspace.open('https://example.com');
+        expect(window.webContents.sent.map(([channel]) => channel)).toEqual([
+            'desktop:browser:state',
+            'desktop:browser:reveal',
+        ]);
+        expect(workspace.snapshot().tabs).toHaveLength(1);
     });
 });
 

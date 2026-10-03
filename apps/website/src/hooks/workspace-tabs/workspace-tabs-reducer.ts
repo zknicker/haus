@@ -5,9 +5,9 @@ import {
     type ClosableTabRef,
     hasAppTab,
     sameTab,
+    syncBrowserOrder,
     type ThreadTabRef,
     type WorkspaceArtifactTarget,
-    type WorkspaceFocus,
     type WorkspaceTabsState,
 } from './workspace-tabs-model.ts';
 
@@ -20,6 +20,7 @@ export type AppTabInput =
           target: WorkspaceArtifactTarget;
           title: string | null;
       }
+    | { kind: 'files'; chatId: string }
     | { kind: 'thread'; anchorMessageId: string; chatId: string; pinned?: boolean };
 
 export type WorkspaceTabsAction =
@@ -31,7 +32,6 @@ export type WorkspaceTabsAction =
      * side pane was showing it), else the primary tab.
      */
     | { kind: 'expand'; showClosable: boolean }
-    | { kind: 'focus'; focus: WorkspaceFocus }
     | { kind: 'open'; tab: AppTabInput }
     /** Keeps the preview tab: the next Thread opens beside it instead of replacing it. */
     | { kind: 'pin'; ref: AppTabRef }
@@ -41,9 +41,11 @@ export type WorkspaceTabsAction =
     | { kind: 'select'; ref: AppTabRef }
     /** Electron selected a browser tab: it is the selected closable tab now, and shows. */
     | { kind: 'selectBrowser' }
-    /** Selects the routed page: the primary tab in expanded mode, Command-W focus in split mode. */
+    /** Selects the routed page: the primary tab in expanded mode; split mode keeps the pane. */
     | { kind: 'selectPrimary' }
-    | { kind: 'sidePane'; visible: boolean };
+    | { kind: 'sidePane'; visible: boolean }
+    /** Electron's live browser tabs: new ones take the last slots, gone ones drop theirs. */
+    | { kind: 'syncBrowser'; ids: readonly string[] };
 
 export function workspaceTabsReducer(
     state: WorkspaceTabsState,
@@ -55,15 +57,13 @@ export function workspaceTabsReducer(
         case 'select':
             return hasAppTab(state, action.ref) ? show({ ...state, active: action.ref }) : state;
         case 'selectBrowser':
-            return show({ ...state, active: null });
+            return show(state.active === null ? state : { ...state, active: null });
         case 'selectPrimary':
-            return { ...state, focus: 'primary', primarySelected: true };
+            return state.primarySelected ? state : { ...state, primarySelected: true };
         case 'close':
             return close(state, action.ref);
         case 'pin':
             return sameTab(state.preview, action.ref) ? { ...state, preview: null } : state;
-        case 'focus':
-            return state.focus === action.focus ? state : { ...state, focus: action.focus };
         case 'section':
             return {
                 ...state,
@@ -74,11 +74,11 @@ export function workspaceTabsReducer(
         case 'reorder':
             return { ...state, order: action.order };
         case 'sidePane':
-            return {
-                ...state,
-                focus: action.visible ? 'side' : 'primary',
-                sidePaneVisible: action.visible,
-            };
+            return { ...state, sidePaneVisible: action.visible };
+        case 'syncBrowser': {
+            const order = syncBrowserOrder(state.order, action.ids);
+            return order === state.order ? state : { ...state, order: [...order] };
+        }
         case 'expand':
             return { ...state, mode: 'expanded', primarySelected: !action.showClosable };
         case 'collapse':
@@ -88,7 +88,9 @@ export function workspaceTabsReducer(
 
 /** Shows the selected closable tab: the side pane reveals, or the expanded strip selects it. */
 function show(state: WorkspaceTabsState): WorkspaceTabsState {
-    return { ...state, focus: 'side', primarySelected: false, sidePaneVisible: true };
+    return !state.primarySelected && state.sidePaneVisible
+        ? state
+        : { ...state, primarySelected: false, sidePaneVisible: true };
 }
 
 function open(state: WorkspaceTabsState, input: AppTabInput): WorkspaceTabsState {
@@ -163,6 +165,8 @@ function withTabRecord(state: WorkspaceTabsState, input: AppTabInput): Workspace
                     { anchorMessageId: input.anchorMessageId, chatId: input.chatId },
                 ],
             };
+        case 'files':
+            return { ...state, files: [...state.files, { chatId: input.chatId }] };
     }
 }
 
@@ -173,6 +177,7 @@ function close(state: WorkspaceTabsState, ref: AppTabRef): WorkspaceTabsState {
         active: sameTab(state.active, ref) ? null : state.active,
         agents: state.agents.filter((tab) => keep({ kind: 'agent', agentId: tab.agentId })),
         artifacts: state.artifacts.filter((tab) => keep({ kind: 'artifact', key: tab.key })),
+        files: state.files.filter((tab) => keep({ kind: 'files', ...tab })),
         order: state.order.filter((item) => !sameTab(item, ref)),
         preview: sameTab(state.preview, ref) ? null : state.preview,
         threads: state.threads.filter((tab) => keep({ kind: 'thread', ...tab })),
@@ -187,5 +192,7 @@ function inputRef(input: AppTabInput): AppTabRef {
             return { kind: 'artifact', key: getArtifactPanelTargetKey(input.target) };
         case 'thread':
             return { kind: 'thread', anchorMessageId: input.anchorMessageId, chatId: input.chatId };
+        case 'files':
+            return { kind: 'files', chatId: input.chatId };
     }
 }

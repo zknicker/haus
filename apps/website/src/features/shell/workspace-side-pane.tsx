@@ -16,14 +16,11 @@ export function WorkspaceSidePane() {
     if (!(workspace?.sidePaneShown && getDesktopBridge()?.browserCommand)) {
         return null;
     }
-    const { focusPane, shownClosable } = workspace;
+    const { shownClosable } = workspace;
     return (
-        // Pointer and focus inside the pane point Command-W at its selected tab.
         <aside
             aria-label="Side pane"
             className="workspace-side-pane"
-            onFocusCapture={() => focusPane('side')}
-            onPointerDownCapture={() => focusPane('side')}
             ref={width.ref}
             style={{ width: width.width }}
         >

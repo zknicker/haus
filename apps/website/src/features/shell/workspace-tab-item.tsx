@@ -3,6 +3,7 @@ import { AgentWorkspaceTab } from './agent-workspace-tab.tsx';
 import { ArtifactWorkspaceTab } from './artifact-workspace-tab.tsx';
 import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 import { BrowserWorkspaceTab } from './browser-workspace-tab.tsx';
+import { FilesWorkspaceTab } from './files-workspace-tab.tsx';
 import { PrimaryWorkspaceTab } from './primary-workspace-tab.tsx';
 import { ThreadWorkspaceTab } from './thread-workspace-tab.tsx';
 
@@ -27,5 +28,7 @@ export function WorkspaceTabItem({ tabRef }: { tabRef: WorkspaceTabRef }) {
             return <AgentWorkspaceTab agentId={tabRef.agentId} />;
         case 'thread':
             return <ThreadWorkspaceTab tabRef={tabRef} />;
+        case 'files':
+            return <FilesWorkspaceTab tabRef={tabRef} />;
     }
 }

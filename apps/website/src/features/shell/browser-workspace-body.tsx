@@ -8,12 +8,7 @@ export function BrowserWorkspaceBody({ children }: { children: React.ReactNode }
     const workspace = useBrowserWorkspace();
     const shown = covering ? workspace?.shownClosable : null;
     return (
-        // Pointer and focus inside the routed page point Command-W away from the side pane.
-        <div
-            className="relative flex min-h-0 min-w-0 flex-1"
-            onFocusCapture={() => workspace?.focusPane('primary')}
-            onPointerDownCapture={() => workspace?.focusPane('primary')}
-        >
+        <div className="relative flex min-h-0 min-w-0 flex-1">
             {/* `isolate` keeps the chat's own z-indexed layers (composer, side pane)
                 from stacking above the browser page, which is opaque while its
                 native view hides behind an overlay. */}

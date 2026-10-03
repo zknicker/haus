@@ -29,11 +29,6 @@ export function useChatArtifactPanel(chatId: string): ChatArtifactPanelState {
     const closeTarget = React.useCallback((key: string) => {
         setPane((current) => closeArtifactTarget(current, key));
     }, []);
-    const closeActiveTarget = React.useCallback(() => {
-        setPane((current) =>
-            current.activeKey ? closeArtifactTarget(current, current.activeKey) : current
-        );
-    }, []);
     const setActiveKey = React.useCallback((key: string) => {
         setPane((current) =>
             current.targets.some((target) => getArtifactPanelTargetKey(target) === key)
@@ -53,7 +48,6 @@ export function useChatArtifactPanel(chatId: string): ChatArtifactPanelState {
 
     return {
         ...pane,
-        closeActiveTarget,
         closeTarget,
         open,
         setActiveKey,

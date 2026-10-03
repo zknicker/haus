@@ -6,7 +6,11 @@ import { ComputerLoginRoutes } from './features/computers/computer-login-routes.
 import { HausServerRoutes } from './features/servers/haus-server-routes.tsx';
 import { serverRoute } from './features/servers/server-routes.ts';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
-import { LegacyComputersRedirect, LegacyMemberRedirect } from './routes/app/legacy-redirects.tsx';
+import {
+    AgentHomeRedirect,
+    LegacyComputersRedirect,
+    LegacyMemberRedirect,
+} from './routes/app/legacy-redirects.tsx';
 import { readServerRouteShells, serverRouteModules } from './routes/app/server-route-modules.ts';
 
 const ServerErrorPage = React.lazy(async () => {
@@ -119,7 +123,7 @@ export function createAppRouter() {
                                                     // in the Server layout rather
                                                     // than inside the settings rail.
                                                     path: 'agents/:agentId',
-                                                    element: <Navigate replace to="home" />,
+                                                    element: <AgentHomeRedirect />,
                                                 },
                                                 {
                                                     path: 'agents/:agentId/:section',

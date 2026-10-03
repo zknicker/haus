@@ -30,7 +30,7 @@ export function ThreadWorkspaceTab({ tabRef }: { tabRef: ThreadTabRef }) {
     }, [closeTab, missing, tabRef]);
     const chat = thread.chat;
     const label = thread.anchor ? threadTabLabel(thread.anchor.content) : '';
-    const place = chat ? threadTabPlace(chat) : null;
+    const place = chat ? chatTabPlace(chat) : null;
     const preview = sameTab(workspace?.preview ?? null, tabRef);
     return (
         <ClosableWorkspaceTab
@@ -65,6 +65,6 @@ function threadTabLabel(content: string): string {
 }
 
 /** The chat as context: a channel by name; a DM as "DM", its Agent already shown by the mark. */
-function threadTabPlace(chat: Chat): string {
+export function chatTabPlace(chat: Chat): string {
     return chat.kind === 'channel' ? `#${chatNavigationName(chat, null)}` : 'DM';
 }

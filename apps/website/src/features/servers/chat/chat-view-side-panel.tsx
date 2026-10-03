@@ -1,8 +1,9 @@
 import type { Chat, ChatMessage } from '@haus/api';
 import type * as React from 'react';
-import type { ChatSidePaneKind } from '../../../hooks/pane/use-chat-side-pane.ts';
+import { type ChatSidePaneKind, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import type { ChatArtifactPanelState } from '../../chats/chat-artifact-panel-state.ts';
+import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { ChatFilesPanel } from './chat-files.tsx';
 
 export function shouldTakeOverChatSidePanel({
@@ -26,6 +27,11 @@ export function shouldTakeOverChatSidePanel({
     );
 }
 
+/**
+ * The website chat's own side panel: Artifact Panel, Files, and Thread share
+ * it, portaled into the shell's side-pane column. Desktop has no chat side
+ * panel; those surfaces open as workspace tabs in its one side pane.
+ */
 export function ChatViewSidePanel({
     artifactState,
     chat,
@@ -41,8 +47,17 @@ export function ChatViewSidePanel({
     takeover: boolean;
     threadPanel: React.ReactNode;
 }) {
+    const activePane = useChatSidePane(chat.id);
     return (
-        <>
+        <ShellSidePane
+            takeover={shouldTakeOverChatSidePanel({
+                activePane,
+                artifactVisible: artifactState.visible,
+                filesVisible: filesPane.visible,
+                hasThread: Boolean(threadPanel),
+                takeover,
+            })}
+        >
             <ChatArtifactPanel
                 agentId={chat.peerAgentId ?? ''}
                 open={artifactState.visible}
@@ -57,6 +72,6 @@ export function ChatViewSidePanel({
                 takeover={takeover}
             />
             {threadPanel}
-        </>
+        </ShellSidePane>
     );
 }

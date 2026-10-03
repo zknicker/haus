@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { Chat } from '@haus/api';
 import {
     resolveActiveSection,
+    resolveAgentProfileTarget,
     resolveChatSectionRoute,
     resolveSelectedChatId,
     resolveSettingsSection,
@@ -50,4 +51,29 @@ describe('Server route state', () => {
             'settings'
         );
     });
+});
+
+test('an Agent address names the Agent and section a desktop tab opens', () => {
+    expect(resolveAgentProfileTarget('/s/acme/agents/blippy/skills', 'acme')).toEqual({
+        agentId: 'blippy',
+        section: 'skills',
+    });
+    expect(resolveAgentProfileTarget('/s/acme/agents/a%20b', 'acme')).toEqual({
+        agentId: 'a b',
+        section: 'home',
+    });
+    expect(resolveAgentProfileTarget('/s/acme/members/agents/tiny/overview', 'acme')).toEqual({
+        agentId: 'tiny',
+        section: 'home',
+    });
+    expect(
+        resolveAgentProfileTarget('/s/acme/settings/members/agents/tiny/skills', 'acme')
+    ).toEqual({ agentId: 'tiny', section: 'skills' });
+    expect(resolveAgentProfileTarget('/s/acme/settings/agents/tiny', 'acme')).toBeNull();
+    expect(resolveAgentProfileTarget('/s/acme/chats/c1', 'acme')).toBeNull();
+    expect(resolveAgentProfileTarget('/s/other/agents/blippy', 'acme')).toBeNull();
+});
+
+test('a malformed Agent address names no Agent instead of throwing', () => {
+    expect(resolveAgentProfileTarget('/s/acme/agents/%E0', 'acme')).toBeNull();
 });

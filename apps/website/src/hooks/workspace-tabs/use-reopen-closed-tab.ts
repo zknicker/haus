@@ -2,8 +2,8 @@ import { toast } from '@heroui/react';
 import * as React from 'react';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { type BrowserWorkspaceState, parseBrowserWorkspace } from '../../lib/desktop-browser.ts';
-import { type ClosedTab, insertTabAt } from './closed-tabs.ts';
-import type { AppTabRef, ClosableTabRef } from './workspace-tabs-model.ts';
+import { type ClosedTab, insertTabAt, reopenedTab } from './closed-tabs.ts';
+import type { ClosableTabRef } from './workspace-tabs-model.ts';
 import type { AppTabInput } from './workspace-tabs-reducer.ts';
 
 /**
@@ -49,24 +49,4 @@ export function useReopenClosedTab({
                 toast.danger('Could not reopen the tab', { description: error.message })
             );
     }, [closed, latest, open, reorderTabs]);
-}
-
-function reopenedTab(entry: Exclude<ClosedTab, { kind: 'browser' }>): [AppTabInput, AppTabRef] {
-    switch (entry.kind) {
-        case 'agent':
-            return [
-                { kind: 'agent', ...entry.tab },
-                { kind: 'agent', agentId: entry.tab.agentId },
-            ];
-        case 'artifact':
-            return [
-                { kind: 'artifact', ...entry.tab },
-                { kind: 'artifact', key: entry.tab.key },
-            ];
-        case 'thread':
-            return [
-                { kind: 'thread', ...entry.tab, pinned: true },
-                { kind: 'thread', ...entry.tab },
-            ];
-    }
 }
