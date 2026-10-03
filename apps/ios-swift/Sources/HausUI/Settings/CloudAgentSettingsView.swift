@@ -8,12 +8,26 @@ public enum CloudAgentConnectionOperation: String, Sendable {
 
 public struct CloudAgentSettingsActions: Sendable {
     public let perform: @Sendable (String, CloudAgentConnectionOperation) async throws -> CloudAgentCapability
+    /// `cloudAgentSettings.get` for the active Server.
+    public let loadModel: @Sendable () async throws -> CloudAgentSettings
+    /// `cloudAgentSettings.setModel`; Owner/Admin only.
+    public let setModel: @Sendable (CloudAgentModelSetting) async throws -> CloudAgentSettings
 
-    public init(perform: @escaping @Sendable (String, CloudAgentConnectionOperation) async throws -> CloudAgentCapability) {
+    public init(
+        perform: @escaping @Sendable (String, CloudAgentConnectionOperation) async throws -> CloudAgentCapability,
+        loadModel: @escaping @Sendable () async throws -> CloudAgentSettings,
+        setModel: @escaping @Sendable (CloudAgentModelSetting) async throws -> CloudAgentSettings
+    ) {
         self.perform = perform
+        self.loadModel = loadModel
+        self.setModel = setModel
     }
 
-    public static let unavailable = Self { _, _ in throw CancellationError() }
+    public static let unavailable = Self(
+        perform: { _, _ in throw CancellationError() },
+        loadModel: { throw CancellationError() },
+        setModel: { _ in throw CancellationError() }
+    )
 }
 
 struct CloudAgentSettingsView: View {
@@ -33,6 +47,7 @@ struct CloudAgentSettingsView: View {
                     }
                 }
             }
+            CloudAgentModelSection(canManage: canManage, actions: actions)
             Section {
                 if let computers {
                     if computers.isEmpty { Text("Attach a Computer to connect Cursor.") }

@@ -44,18 +44,33 @@ extension HausStore {
     }
 
     var cloudAgentSettings: CloudAgentSettingsActions {
-        CloudAgentSettingsActions { [weak self] computerID, operation in
-            guard let self, let serverID = await self.activeServer?.id else { throw CancellationError() }
-            let input = CloudAgentProviderInput(serverId: serverID, computerId: computerID)
-            if operation == .get {
-                return try await self.client.query("cloudAgentProvider.get", input: input)
+        CloudAgentSettingsActions(
+            perform: { [weak self] computerID, operation in
+                guard let self, let serverID = await self.activeServer?.id else { throw CancellationError() }
+                let input = CloudAgentProviderInput(serverId: serverID, computerId: computerID)
+                if operation == .get {
+                    return try await self.client.query("cloudAgentProvider.get", input: input)
+                }
+                let result: CloudAgentCapability = try await self.client.mutation(
+                    "cloudAgentProvider.\(operation.rawValue)", input: input, timeout: 360
+                )
+                await self.loadComputers(serverID: serverID)
+                return result
+            },
+            loadModel: { [weak self] in
+                guard let self, let serverID = await self.activeServer?.id else { throw CancellationError() }
+                return try await self.client.query(
+                    "cloudAgentSettings.get", input: ServerScopedInput(serverId: serverID)
+                )
+            },
+            setModel: { [weak self] model in
+                guard let self, let serverID = await self.activeServer?.id else { throw CancellationError() }
+                return try await self.client.mutation(
+                    "cloudAgentSettings.setModel",
+                    input: CloudAgentModelInput(serverId: serverID, model: model)
+                )
             }
-            let result: CloudAgentCapability = try await self.client.mutation(
-                "cloudAgentProvider.\(operation.rawValue)", input: input, timeout: 360
-            )
-            await self.loadComputers(serverID: serverID)
-            return result
-        }
+        )
     }
 }
 
@@ -71,6 +86,11 @@ private struct CloudAgentCancelInput: Encodable {
 
 private struct CloudAgentCancelReceipt: Decodable {
     let cancelRequested: Bool
+}
+
+private struct CloudAgentModelInput: Encodable {
+    let serverId: String
+    let model: CloudAgentModelSetting
 }
 
 private struct CloudAgentProviderInput: Encodable {

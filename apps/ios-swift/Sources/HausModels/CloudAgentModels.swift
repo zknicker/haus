@@ -39,6 +39,8 @@ public struct CloudAgentRun: Codable, Hashable, Sendable {
     public let terminalAt: Date?
     public let summary: String?
     public let errorCode: String?
+    /// Nil only for a Server older than the model contract.
+    public let model: CloudAgentRunModel?
 }
 
 public struct CloudAgentBranch: Codable, Hashable, Sendable {
