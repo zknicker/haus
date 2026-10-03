@@ -1,5 +1,14 @@
 import { afterAll, afterEach, expect, test } from 'bun:test';
-import { lstat, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import {
+    lstat,
+    mkdir,
+    mkdtemp,
+    readFile,
+    realpath,
+    rm,
+    symlink,
+    writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
@@ -22,16 +31,14 @@ test('provider credentials remain references to host-native auth, never copies',
     const homeDir = join(root, 'agent-home');
     await mkdir(join(hostHomeDir, '.codex'), { recursive: true });
     await mkdir(join(hostHomeDir, '.claude'), { recursive: true });
-    await mkdir(join(hostHomeDir, '.pi'), { recursive: true });
     await mkdir(hostGrokHomeDir, { recursive: true });
     await writeFile(join(hostHomeDir, '.codex', 'auth.json'), '{"token":"codex-one"}');
     await writeFile(join(hostHomeDir, '.claude.json'), '{"token":"claude-one"}');
     await writeFile(join(hostHomeDir, '.claude', '.credentials.json'), '{"oauth":"one"}');
-    await writeFile(join(hostHomeDir, '.pi', 'auth.json'), '{"token":"pi-one"}');
     await writeFile(join(hostGrokHomeDir, 'auth.json'), '{"token":"grok-one"}');
 
     const provider = createLocalTrustedSandboxProvider({
-        authProfiles: ['codex', 'claude-code', 'grok-build', 'pi'],
+        authProfiles: ['codex', 'claude-code', 'grok-build'],
         homeDir,
         hostGrokHomeDir,
         hostHomeDir,
@@ -46,9 +53,7 @@ test('provider credentials remain references to host-native auth, never copies',
 
     const references = [
         join(homeDir, '.codex', 'auth.json'),
-        join(homeDir, '.claude.json'),
         join(homeDir, '.claude', '.credentials.json'),
-        join(homeDir, '.pi', 'auth.json'),
         join(homeDir, '.grok', 'auth.json'),
     ];
     for (const reference of references) {
@@ -60,6 +65,36 @@ test('provider credentials remain references to host-native auth, never copies',
     expect(await realpath(join(homeDir, '.grok', 'auth.json'))).toBe(
         await realpath(join(hostGrokHomeDir, 'auth.json'))
     );
+});
+
+// The host `.claude.json` carries the operator's user MCP servers and per-project state.
+// Claude login resolves from host credentials, so the Agent keeps its own file instead.
+test('Claude Agent HOME drops the legacy host .claude.json link and keeps its own file', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-claude-json-'));
+    roots.push(root);
+    const hostHomeDir = join(root, 'host');
+    const linkedHome = join(root, 'linked-home');
+    const ownedHome = join(root, 'owned-home');
+    await mkdir(hostHomeDir, { recursive: true });
+    await mkdir(linkedHome, { recursive: true });
+    await mkdir(ownedHome, { recursive: true });
+    await writeFile(join(hostHomeDir, '.claude.json'), '{"mcpServers":{"operator":{}}}');
+    await symlink(join(hostHomeDir, '.claude.json'), join(linkedHome, '.claude.json'));
+    await writeFile(join(ownedHome, '.claude.json'), '{"numStartups":3}');
+
+    for (const homeDir of [linkedHome, ownedHome]) {
+        const session = await createLocalTrustedSandboxProvider({
+            authProfiles: ['claude-code'],
+            homeDir,
+            hostHomeDir,
+            rootDir: join(root, 'workspace'),
+            runtime,
+        }).createSession?.();
+        await session?.destroy?.();
+    }
+
+    expect(await exists(join(linkedHome, '.claude.json'))).toBe(false);
+    expect(await readFile(join(ownedHome, '.claude.json'), 'utf8')).toBe('{"numStartups":3}');
 });
 
 test('restores native Codex image generation without changing other Codex config', async () => {
@@ -202,3 +237,10 @@ test('sandbox permits only the shared derived harness bootstrap outside the Agen
     });
     await session.destroy?.();
 });
+
+async function exists(path: string): Promise<boolean> {
+    return lstat(path).then(
+        () => true,
+        () => false
+    );
+}

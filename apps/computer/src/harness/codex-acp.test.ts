@@ -112,11 +112,13 @@ test('the Codex bridge steers a live turn through codex-acp session steering', a
 
 test('Codex launch configuration follows the Agent reasoning and web access', () => {
     expect(codexAcpEnvironment({ reasoningEffort: 'high', webSearch: true })).toEqual({
-        CODEX_CONFIG: '{"model_reasoning_effort":"high","web_search":"live"}',
+        CODEX_CONFIG:
+            '{"model_reasoning_effort":"high","web_search":"live","project_doc_max_bytes":0}',
         INITIAL_AGENT_MODE: 'agent-full-access',
         NO_BROWSER: '1',
     });
     expect(JSON.parse(codexAcpEnvironment({ webSearch: false }).CODEX_CONFIG ?? '')).toEqual({
+        project_doc_max_bytes: 0,
         web_search: 'disabled',
     });
 });

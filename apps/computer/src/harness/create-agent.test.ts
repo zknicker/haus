@@ -42,6 +42,10 @@ const grokInput = {
 test('Grok Build inlines MCP output up to the Claude-sized cap', () => {
     expect(sandboxOptions(grokInput).env).toEqual({
         EXISTING: 'kept',
+        GROK_CLAUDE_AGENTS_ENABLED: 'false',
+        GROK_CLAUDE_RULES_ENABLED: 'false',
+        GROK_CURSOR_AGENTS_ENABLED: 'false',
+        GROK_CURSOR_RULES_ENABLED: 'false',
         GROK_HOME: '/tmp/haus-constructor/home/.grok',
         GROK_MAX_MCP_OUTPUT_BYTES: '102400',
         HOME: '/tmp/haus-constructor/home',
@@ -58,4 +62,10 @@ test('other runtimes carry no Grok MCP output cap', () => {
         EXISTING: 'kept',
         HOME: '/tmp/haus-constructor/home',
     });
+});
+
+// Pi runs in the Computer process and reads the Computer's own `~/.pi/agent/auth.json`,
+// so an Agent HOME link would point at a path Pi never reads.
+test('Pi references no host login from the Agent HOME', () => {
+    expect(sandboxOptions({ ...grokInput, runtimeId: 'pi' })).not.toHaveProperty('authProfiles');
 });
