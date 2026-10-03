@@ -254,11 +254,14 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await expect(
         page.getByText('This MCP is added to Haus. Sign in to your account', { exact: false })
     ).toBeVisible();
+    // One press opens the sign-in tab, adds the account, and lands on its page.
+    const signInTab = page.context().waitForEvent('page');
     await page.getByRole('button', { name: 'Add another account' }).click();
-    // Back in history is client-side, so the add mutation keeps running.
-    await page.goBack();
+    await (await signInTab).close();
+    await expect(title('MerchBase account')).toBeVisible();
+    await page.goto(`/s/${slug}/settings/connections`);
     const secondAccount = page.getByRole('button', { name: /MerchBase account Built in/u });
-    await expect(secondAccount).toBeVisible();
+    await expect(secondAccount).toHaveCount(1);
     await secondAccount.click();
     await expect(title('MerchBase account')).toBeVisible();
     await removeConnectionFromPage(page, 'MerchBase account');

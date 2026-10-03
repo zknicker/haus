@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { useConnectionHeadersUpdate } from '../../../hooks/servers/use-connection-headers-update.ts';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 import { useConnectionTokenUpdate } from '../../../hooks/servers/use-connection-token-update.ts';
+import { toConnectionView } from './connection-view.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
+import type { ConnectionSignIn } from './use-connection-sign-in.ts';
 
 /** Which credentials form is open over the connection page. */
 export type CredentialsEditor = 'account-token' | 'headers' | 'token';
@@ -17,17 +19,23 @@ type PendingCredentials =
  * Saving a connection's credentials and adding another account of its preset.
  * A bearer-token preset (X) takes a pasted token instead of generic headers or
  * an OAuth sign-in, so its replace and add-account paths open the token form.
+ * An OAuth preset's new account is created and signed in from the one press,
+ * and `onAccountCreated` moves the reader to it.
  * Replacing credentials that Agents rely on waits for `requestConfirmation`'s
  * dialog to call `confirmPending`.
  */
 export function useConnectionCredentials({
     connection,
+    onAccountCreated,
     requestConfirmation,
     serverId,
+    signIn,
 }: {
     connection: McpConnection | null;
+    onAccountCreated: (connection: McpConnection) => void;
     requestConfirmation: () => void;
     serverId: string;
+    signIn: Pick<ConnectionSignIn, 'beginCreated'>;
 }) {
     const addPreset = useConnectionPresetAdd(serverId);
     const replaceHeaders = useConnectionHeadersUpdate(serverId);
@@ -63,10 +71,17 @@ export function useConnectionCredentials({
             if (!(connection && preset)) {
                 return;
             }
+            const name = `${connection.name} account`;
             if (isMcpBearerTokenPreset(preset)) {
                 setEditor('account-token');
+            } else if (connection.auth === 'oauth') {
+                signIn.beginCreated(
+                    async () =>
+                        toConnectionView(await addPreset.mutateAsync({ name, preset, serverId })),
+                    onAccountCreated
+                );
             } else {
-                addPreset.mutate({ name: `${connection.name} account`, preset, serverId });
+                addPreset.mutate({ name, preset, serverId });
             }
         },
         closeEditor: () => setEditor(null),

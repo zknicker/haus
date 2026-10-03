@@ -1,10 +1,13 @@
 import { Alert } from '@heroui/react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { useConnectionDelete } from '../../../hooks/servers/use-connection-delete.ts';
 import { useConnectionDisconnect } from '../../../hooks/servers/use-connection-disconnect.ts';
 import { useConnectionRefresh } from '../../../hooks/servers/use-connection-refresh.ts';
+import { useServerContext } from '../../servers/server-context.ts';
+import { settingsConnectionRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { ConnectionDetailHeader } from './connection-detail-header.tsx';
 import { ConnectionTrustDialog, toConnectionView } from './connection-view.tsx';
@@ -19,7 +22,7 @@ import { McpConnectionFacts } from './mcp-connection-facts.tsx';
 import { McpToolsSection } from './mcp-connection-tools.tsx';
 import { McpHeaderCredentialsDialog } from './mcp-header-credentials-dialog.tsx';
 import { useConnectionCredentials } from './use-connection-credentials.ts';
-import { useConnectionSignIn } from './use-connection-sign-in.ts';
+import type { ConnectionSignIn } from './use-connection-sign-in.ts';
 
 /**
  * One connection's settings page, read like a product page: identity and setup
@@ -28,27 +31,33 @@ import { useConnectionSignIn } from './use-connection-sign-in.ts';
  * the credentials form stay dialogs over the page.
  *
  * Blank until the connection list has loaded; the route sends a removed or
- * unknown connection back to the list.
+ * unknown connection back to the list. Sign-in comes from the route, so one
+ * that starts here can finish on another connection's page.
  */
 export function ConnectionPage({
     connectionId,
     serverId,
+    signIn,
 }: {
     connectionId: string;
     serverId: string;
+    signIn: ConnectionSignIn;
 }) {
     const record = useConnection(serverId, connectionId).data;
     const agents = useAgents(serverId);
     const deleteConnection = useConnectionDelete(serverId);
     const disconnect = useConnectionDisconnect(serverId);
     const refresh = useConnectionRefresh(serverId);
-    const signIn = useConnectionSignIn({ connected: record?.connected ?? false, serverId });
+    const navigate = useNavigate();
+    const { slug } = useServerContext().server;
     const [destructiveAction, setDestructiveAction] = useState<McpDestructiveAction | null>(null);
     const view = record ? toConnectionView(record, agents.data ?? []) : null;
     const credentials = useConnectionCredentials({
         connection: view,
+        onAccountCreated: (created) => navigate(settingsConnectionRoute(slug, created.id)),
         requestConfirmation: () => setDestructiveAction('replace-credentials'),
         serverId,
+        signIn,
     });
 
     if (!(record && view)) {

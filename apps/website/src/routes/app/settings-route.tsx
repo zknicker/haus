@@ -12,6 +12,7 @@ import {
 import type { SettingsNavLinkId } from '../../features/settings/layout/navigation.ts';
 import { ConnectionPage } from '../../features/settings/mcp/connection-page.tsx';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
+import { useConnectionSignIn } from '../../features/settings/mcp/use-connection-sign-in.ts';
 import { ModelsSettings } from '../../features/settings/models/page.tsx';
 import { PreferencesSettings } from '../../features/settings/preferences/page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
@@ -141,6 +142,13 @@ export function SettingsConnectionRoute() {
     const { connectionId = '' } = useParams();
     const { server } = useServerContext();
     const connection = useConnection(server.id, connectionId);
+    // Above the per-connection key: adding an account signs in to the new
+    // connection after its page replaces this one.
+    const signIn = useConnectionSignIn({
+        connected: connection.data?.connected ?? false,
+        connectionId,
+        serverId: server.id,
+    });
 
     if (connection.data === null) {
         return <Navigate replace to={serverSettingsSectionRoute(server.slug, 'connections')} />;
@@ -151,7 +159,12 @@ export function SettingsConnectionRoute() {
             description="MCP connections are managed by Server operators."
             role={server.role}
         >
-            <ConnectionPage connectionId={connectionId} key={connectionId} serverId={server.id} />
+            <ConnectionPage
+                connectionId={connectionId}
+                key={connectionId}
+                serverId={server.id}
+                signIn={signIn}
+            />
         </RequireOperator>
     );
 }

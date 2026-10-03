@@ -31,7 +31,11 @@ organization owner approves the Haus app. X takes a token instead of a sign-in: 
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
 public posts on that app's credits. Its page offers **Add token** while disconnected and **Replace
 token** on the account menu instead of a header editor. Once added, a preset disappears from Recommended, even while disconnected. Another
-account can be added deliberately from the connection's page. Deleting the last account makes the
+account can be added deliberately from the connection's page with **Add another account**. For a
+sign-in preset (GitHub, MerchBase) one press opens the provider's sign-in tab, adds the account,
+and moves to its page, which shows it connecting until the sign-in finishes; the row shows a spinner
+and ignores further presses meanwhile, and a failed or untrusted sign-in leaves the new account on
+its page as **Sign in required**. X opens the token form instead. Deleting the last account makes the
 preset available in Recommended again; the section is hidden when every preset has been added.
 
 Separately from the GitHub MCP preset, the GitHub pull-request connection is the one first-party
