@@ -24,8 +24,7 @@ Claude's isolated Agent home cannot read the host's macOS Keychain login directl
 start, Computer resolves the current host-owned login and supplies its access token only in the
 Claude bridge process environment. It never writes the token into Agent files or persisted bridge
 turn settings, and it leaves explicit native environment authentication intact. Missing native
-credentials fail with a sign-in instruction. The Agent home keeps its own Claude Code state file;
-the operator's `~/.claude.json`, with its personal MCP servers, is never linked in. Other runtimes reference their native credential
+credentials fail with a sign-in instruction. Other runtimes reference their native credential
 files while preserving separate Agent homes and sessions.
 
 Do not place secrets in Messages, prompts, logs, execution reports, e2e fixtures, checked-in env

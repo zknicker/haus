@@ -96,7 +96,8 @@ outside any file the Agent can edit:
 
 - Claude Code runs with `strictMcpConfig` (Haus's harness bridge patch): only the servers Haus
   passes load, never user, project, plugin, or agent-frontmatter MCP config. The Agent home keeps its
-  own Claude Code state file instead of the operator's `~/.claude.json`.
+  own Claude Code state file, never a link to the operator's `~/.claude.json`
+  ([Context Management](../docs/features/context-management.md)).
 - Codex: Haus's codex-acp patch disables, per thread and title thread, every server Codex's config
   layers declare (`$CODEX_HOME/config.toml`, project `.codex/config.toml`). Launch config also sets
   `features.apps = false` and `features.plugins = false`, so ChatGPT apps (the operator's
