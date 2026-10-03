@@ -8,11 +8,42 @@ const credential = 'computer-cloud-agent-model-credential';
 const composer: CloudAgentModel = {
     description: 'Fast agentic coding',
     displayName: 'Composer 2',
+    effort: null,
+    family: 'composer',
+    fast: null,
     id: 'composer-2',
+    order: 0,
 };
-const gpt: CloudAgentModel = { description: null, displayName: 'GPT-5.6', id: 'gpt-5.6' };
+const gpt: CloudAgentModel = {
+    description: null,
+    displayName: 'GPT-5.6',
+    effort: null,
+    family: 'gpt',
+    fast: null,
+    id: 'gpt-5.6',
+    order: 1,
+};
+const opus: CloudAgentModel = {
+    description: null,
+    displayName: 'Claude Opus 5.5',
+    effort: {
+        defaultValue: 'medium',
+        options: [
+            { displayName: 'Low', value: 'low' },
+            { displayName: 'Medium', value: 'medium' },
+            { displayName: 'High', value: 'high' },
+        ],
+        providerParamId: 'effort',
+    },
+    family: 'claude',
+    fast: { defaultValue: false },
+    id: 'claude-opus-5-5',
+    order: 2,
+};
 
-test('an Owner picks the Cloud Agent model, and a member reads it', async ({ page }) => {
+test('an Owner picks the Cloud Agent model and its params, and a member reads them', async ({
+    page,
+}) => {
     const { client, server, session } = await createTestServer(page, {
         displayName: 'Cloud Agent Model',
         slug,
@@ -25,46 +56,88 @@ test('an Owner picks the Cloud Agent model, and a member reads it', async ({ pag
     const accepted = socketMessage(computer);
     sendBootstrap(computer, credential, 'complete');
     expect(await accepted).toMatchObject({ mode: 'ordinary' });
+    const savedModel = async () =>
+        (await client.cloudAgentSettings.get.query({ serverId: server.id })).model;
 
     await page.goto(`/s/${slug}/settings/models`);
     const group = page.getByRole('main', { name: 'Scrollable main content' });
-    // The trigger's name leads with its value; the info button's leads with "About".
-    const picker = group.getByRole('button', { name: /^(?!About ).*Cloud Agent model$/u });
+    // The Autocomplete's labelled button is visually hidden; its group is the trigger.
+    const pickerButton = group.getByRole('button', { name: /^(?!About ).*Cloud Agent model$/u });
+    const picker = pickerButton.locator('xpath=..');
+    const effort = group.getByRole('button', { name: /Cloud Agent effort$/u });
+    const fast = group.getByRole('switch', { name: 'Cloud Agent fast mode' });
 
     // No Computer has reported a catalog yet: Cursor default is all there is.
     await expect(picker).toContainText('Cursor default');
-    await expect(picker).toBeDisabled();
+    await expect(pickerButton).toBeDisabled();
+    await expect(effort).toHaveCount(0);
 
     // A Computer report carrying a catalog refreshes the row without a reload.
-    sendCatalog(computer, [composer, gpt]);
-    await expect(picker).toBeEnabled();
+    sendCatalog(computer, [composer, gpt, opus]);
+    await expect(pickerButton).toBeEnabled();
     await expect(group.getByText(/^Updated /u)).toBeVisible();
     await picker.click();
     const listbox = page.getByRole('listbox');
+    // Family sections in product order, whatever Cursor's order across families.
     await expect(listbox.getByRole('option')).toHaveText([
         'Cursor default',
-        /Composer 2\s*Fast agentic coding/u,
+        'Claude Opus 5.5',
         'GPT-5.6',
+        /Composer 2\s*Fast agentic coding/u,
     ]);
-    await listbox.getByRole('option', { name: /Composer 2/u }).click();
-    await expect(picker).toContainText('Composer 2');
+    // Search matches the Cursor id as well as the name.
+    await page.getByRole('searchbox', { name: 'Search Cloud Agent models' }).fill('claude-opus');
+    await expect(listbox.getByRole('option')).toHaveText(['Claude Opus 5.5']);
+    await listbox.getByRole('option', { name: 'Claude Opus 5.5' }).click();
+    await expect(picker).toContainText('Claude Opus 5.5');
+    await expect.poll(savedModel).toEqual({ id: 'claude-opus-5-5', kind: 'model', params: {} });
+
+    // The model's own defaults show until a param is chosen; each choice saves at once.
+    await expect(effort).toContainText('Medium');
+    await expect(fast).not.toBeChecked();
+    await effort.click();
+    await page.getByRole('option', { name: 'High' }).click();
     await expect
-        .poll(
-            async () => (await client.cloudAgentSettings.get.query({ serverId: server.id })).model
-        )
-        .toEqual({ id: 'composer-2', kind: 'model' });
+        .poll(savedModel)
+        .toEqual({ id: 'claude-opus-5-5', kind: 'model', params: { effort: 'high' } });
+    await fast.click({ force: true });
+    await expect.poll(savedModel).toEqual({
+        id: 'claude-opus-5-5',
+        kind: 'model',
+        params: { effort: 'high', fast: true },
+    });
     await page.reload();
-    await expect(picker).toContainText('Composer 2');
+    await expect(effort).toContainText('High');
+    await expect(fast).toBeChecked();
+
+    // A new model starts at its own defaults; one without params shows neither row.
+    await picker.click();
+    await page.getByRole('option', { name: /Composer 2/u }).click();
+    await expect.poll(savedModel).toEqual({ id: 'composer-2', kind: 'model', params: {} });
+    await expect(effort).toHaveCount(0);
+    await expect(fast).toHaveCount(0);
 
     // Cursor stops listing the saved model: it reads as unavailable, and runs use Cursor default.
-    sendCatalog(computer, [gpt]);
+    sendCatalog(computer, [gpt, opus]);
     const warning = group.getByText(
         'Unavailable. Runs use Cursor default until you pick an available model.'
     );
     await expect(warning).toBeVisible();
     await expect(picker).toContainText('composer-2');
 
-    // A member who is not an Owner or Admin sees the fact, not a picker.
+    // Picking the earlier model again does not bring its old params back.
+    await picker.click();
+    await page.getByRole('option', { name: 'Claude Opus 5.5' }).click();
+    await expect(warning).toHaveCount(0);
+    await expect(effort).toContainText('Medium');
+    await expect(fast).not.toBeChecked();
+    await expect.poll(savedModel).toEqual({ id: 'claude-opus-5-5', kind: 'model', params: {} });
+
+    // A member who is not an Owner or Admin sees facts, not controls.
+    await client.cloudAgentSettings.setModel.mutate({
+        model: { id: 'claude-opus-5-5', kind: 'model', params: { effort: 'low', fast: true } },
+        serverId: server.id,
+    });
     runPsql(
         session.databaseUrl,
         `update server_memberships set role = 'member'
@@ -72,9 +145,12 @@ test('an Owner picks the Cloud Agent model, and a member reads it', async ({ pag
            and user_id = (select id from users where clerk_user_id = 'user_e2e_human')`
     );
     await page.reload();
-    await expect(warning).toBeVisible();
-    await expect(group.getByText('composer-2', { exact: true })).toBeVisible();
-    await expect(picker).toHaveCount(0);
+    await expect(group.getByText('Claude Opus 5.5', { exact: true })).toBeVisible();
+    await expect(group.getByText('Low', { exact: true })).toBeVisible();
+    await expect(group.getByText('On', { exact: true })).toBeVisible();
+    await expect(pickerButton).toHaveCount(0);
+    await expect(effort).toHaveCount(0);
+    await expect(fast).toHaveCount(0);
     computer.close();
 });
 

@@ -43,7 +43,7 @@ test('compact completed rows show recorded diff counts, not the task title', () 
             {
                 runId: 'car_one',
                 status: 'completed',
-                model: { fallbackFrom: null, id: null },
+                model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
                 providerRunId: null,
                 rawStatus: null,
                 errorCode: null,

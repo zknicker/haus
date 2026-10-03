@@ -1,4 +1,4 @@
-import { Button, Description, Label, ListBox, Select, Tooltip } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -13,6 +13,8 @@ import {
     cloudAgentModelView,
     modelSettingForKey,
 } from './cloud-agent-model.ts';
+import { CloudAgentModelPicker } from './cloud-agent-model-picker.tsx';
+import { CloudAgentParamRows } from './cloud-agent-param-rows.tsx';
 
 /**
  * The Server-wide model every Cursor Cloud Agent launch uses. Owners and
@@ -34,7 +36,7 @@ export function CloudAgentModelGroup({
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 {settings.data ? (
-                    <CloudAgentModelRow
+                    <CloudAgentModelRows
                         canManage={canManage}
                         serverId={serverId}
                         view={cloudAgentModelView(settings.data)}
@@ -49,6 +51,25 @@ export function CloudAgentModelGroup({
                 )}
             </ItemCardGroup>
         </ItemCardGroup>
+    );
+}
+
+function CloudAgentModelRows({
+    canManage,
+    serverId,
+    view,
+}: {
+    canManage: boolean;
+    serverId: string;
+    view: CloudAgentModelView;
+}) {
+    return (
+        <>
+            <CloudAgentModelRow canManage={canManage} serverId={serverId} view={view} />
+            {view.params ? (
+                <CloudAgentParamRows canManage={canManage} serverId={serverId} view={view.params} />
+            ) : null}
+        </>
     );
 }
 
@@ -75,46 +96,15 @@ function CloudAgentModelRow({
             </ItemCard.Content>
             <ItemCard.Action>
                 {canManage ? (
-                    <Select
-                        aria-label="Cloud Agent model"
-                        className="w-56"
-                        disabledKeys={view.options
-                            .filter((option) => option.unavailable)
-                            .map((option) => option.id)}
-                        isDisabled={!view.pickable}
-                        onChange={(key) => {
+                    <CloudAgentModelPicker
+                        onPick={(key) => {
                             const model = modelSettingForKey(key, view);
-                            if (model && key !== view.selectedKey) {
+                            if (model) {
                                 setModel.mutate({ model, serverId });
                             }
                         }}
-                        value={view.selectedKey}
-                        variant="secondary"
-                    >
-                        <Select.Trigger>
-                            <Select.Value />
-                            <Select.Indicator />
-                        </Select.Trigger>
-                        <Select.Popover>
-                            <ListBox>
-                                {view.options.map((option) => (
-                                    <ListBox.Item
-                                        id={option.id}
-                                        key={option.id}
-                                        textValue={option.label}
-                                    >
-                                        <Label>{option.label}</Label>
-                                        {option.unavailable ? (
-                                            <Description>Unavailable</Description>
-                                        ) : option.description ? (
-                                            <Description>{option.description}</Description>
-                                        ) : null}
-                                        <ListBox.ItemIndicator />
-                                    </ListBox.Item>
-                                ))}
-                            </ListBox>
-                        </Select.Popover>
-                    </Select>
+                        view={view}
+                    />
                 ) : (
                     <SettingsFact
                         className={view.state === 'unavailable' ? 'text-warning' : undefined}

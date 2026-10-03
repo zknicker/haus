@@ -1,11 +1,27 @@
 import { expect, test } from 'bun:test';
-import type { CloudAgentModelCatalog } from '@haus/api';
+import type { CloudAgentModelCatalog, CloudAgentModelFamily } from '@haus/api';
 import { autoModelKey, cloudAgentModelView, modelSettingForKey } from './cloud-agent-model.ts';
 
 const catalog: CloudAgentModelCatalog = {
     models: [
-        { description: 'Fast and capable', displayName: 'Composer 2', id: 'composer-2' },
-        { description: null, displayName: 'GPT-5.6', id: 'gpt-5.6' },
+        {
+            description: 'Fast and capable',
+            displayName: 'Composer 2',
+            effort: null,
+            family: 'composer',
+            fast: null,
+            id: 'composer-2',
+            order: 0,
+        },
+        {
+            description: null,
+            displayName: 'GPT-5.6',
+            effort: null,
+            family: 'gpt',
+            fast: null,
+            id: 'gpt-5.6',
+            order: 1,
+        },
     ],
     refreshedAt: '2026-10-02T12:00:00.000Z',
 };
@@ -22,9 +38,10 @@ test('Cursor default is the first option and selected by default', () => {
     expect(view.selectedLabel).toBe('Cursor default');
     expect(view.options.map((option) => option.label)).toEqual([
         'Cursor default',
-        'Composer 2',
         'GPT-5.6',
+        'Composer 2',
     ]);
+    expect(view.params).toBeNull();
     expect(view.pickable).toBe(true);
     expect(view.catalogMissing).toBe(false);
     expect(view.refreshedAt).toBe(catalog.refreshedAt);
@@ -33,7 +50,7 @@ test('Cursor default is the first option and selected by default', () => {
 test('a listed saved model reads by its display name', () => {
     const view = cloudAgentModelView({
         catalog,
-        model: { id: 'gpt-5.6', kind: 'model' },
+        model: { id: 'gpt-5.6', kind: 'model', params: {} },
         savedModelUnavailable: false,
     });
 
@@ -46,7 +63,7 @@ test('a listed saved model reads by its display name', () => {
 test('an unlisted saved model shows by raw id and cannot be picked again', () => {
     const view = cloudAgentModelView({
         catalog,
-        model: { id: 'retired-model', kind: 'model' },
+        model: { id: 'retired-model', kind: 'model', params: {} },
         savedModelUnavailable: true,
     });
 
@@ -56,10 +73,16 @@ test('an unlisted saved model shows by raw id and cannot be picked again', () =>
         description: null,
         id: 'retired-model',
         label: 'retired-model',
+        searchText: 'retired-model retired-model',
         unavailable: true,
     });
+    expect(view.params).toBeNull();
     expect(modelSettingForKey('retired-model', view)).toBeNull();
-    expect(modelSettingForKey('composer-2', view)).toEqual({ id: 'composer-2', kind: 'model' });
+    expect(modelSettingForKey('composer-2', view)).toEqual({
+        id: 'composer-2',
+        kind: 'model',
+        params: {},
+    });
 });
 
 test('without a catalog only Cursor default exists, so the picker has nothing to offer', () => {
@@ -78,7 +101,7 @@ test('without a catalog only Cursor default exists, so the picker has nothing to
 test('a saved model with no catalog can still be switched back to Cursor default', () => {
     const view = cloudAgentModelView({
         catalog: null,
-        model: { id: 'composer-2', kind: 'model' },
+        model: { id: 'composer-2', kind: 'model', params: {} },
         savedModelUnavailable: true,
     });
 
@@ -96,4 +119,54 @@ test('an unknown key maps to no setting', () => {
 
     expect(modelSettingForKey('not-listed', view)).toBeNull();
     expect(modelSettingForKey(null, view)).toBeNull();
+});
+
+test('sections follow family order, Cursor order within a family, GLM and Kimi under Other', () => {
+    const model = (id: string, family: CloudAgentModelFamily, order: number) => ({
+        description: null,
+        displayName: id,
+        effort: null,
+        family,
+        fast: null,
+        id,
+        order,
+    });
+    const view = cloudAgentModelView({
+        catalog: {
+            models: [
+                model('grok-4', 'grok', 0),
+                model('opus-5', 'claude', 3),
+                model('kimi-k3', 'kimi', 1),
+                model('sonnet-5', 'claude', 2),
+                model('glm-5', 'glm', 4),
+                model('codex-5', 'gpt', 5),
+            ],
+            refreshedAt: '2026-10-02T12:00:00.000Z',
+        },
+        model: { kind: 'auto' },
+        savedModelUnavailable: false,
+    });
+
+    expect(
+        view.sections.map((section) => [section.title, section.options.map((o) => o.id)])
+    ).toEqual([
+        [null, [autoModelKey]],
+        ['Claude', ['sonnet-5', 'opus-5']],
+        ['GPT', ['codex-5']],
+        ['Grok', ['grok-4']],
+        ['Other', ['kimi-k3', 'glm-5']],
+    ]);
+    expect(view.options.find((o) => o.id === 'codex-5')?.searchText).toBe('codex-5 codex-5');
+});
+
+test('a listed saved model carries its params view', () => {
+    const view = cloudAgentModelView({
+        catalog,
+        model: { id: 'gpt-5.6', kind: 'model', params: {} },
+        savedModelUnavailable: false,
+    });
+
+    expect(view.params?.model.id).toBe('gpt-5.6');
+    expect(view.params?.effort).toBeNull();
+    expect(view.params?.fast).toBeNull();
 });
