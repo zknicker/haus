@@ -6,6 +6,7 @@ export interface BareReferenceToken {
     sigil: '#' | '@';
     start: number;
     text: string;
+    threadAnchor?: string;
 }
 
 interface ReferenceRange {
@@ -31,10 +32,16 @@ export function readBareReferenceTokens(content: string): BareReferenceToken[] {
     const tokenPattern = /(?:@[A-Za-z0-9][A-Za-z0-9_-]{0,31}|#[A-Za-z0-9_-]{1,32})/gu;
 
     for (const match of content.matchAll(tokenPattern)) {
-        const text = match[0];
+        let text = match[0];
         const start = match.index;
         if (!(text && start !== undefined)) {
             continue;
+        }
+        const threadAnchor = text.startsWith('#')
+            ? /^:([A-Za-z0-9_-]+)(?![A-Za-z0-9_:-])/u.exec(content.slice(start + text.length))?.[1]
+            : undefined;
+        if (threadAnchor) {
+            text += `:${threadAnchor}`;
         }
         const end = start + text.length;
         if (
@@ -47,10 +54,11 @@ export function readBareReferenceTokens(content: string): BareReferenceToken[] {
         }
         tokens.push({
             end,
-            key: text.slice(1).toLocaleLowerCase('en-US'),
+            key: match[0].slice(1).toLocaleLowerCase('en-US'),
             sigil: text.startsWith('@') ? '@' : '#',
             start,
             text,
+            ...(threadAnchor ? { threadAnchor } : {}),
         });
     }
 

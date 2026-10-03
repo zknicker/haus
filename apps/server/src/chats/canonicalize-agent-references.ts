@@ -1,26 +1,23 @@
 import {
     formatAgentReferenceTarget,
     formatChatReferenceTarget,
+    formatChatThreadReferenceTarget,
     formatUserReferenceTarget,
-    parseAgentReferenceTarget,
-    parseChatReferenceTarget,
-    parseHausRichReferences,
-    parseUserReferenceTarget,
 } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { readBareReferenceTokens } from './bare-reference-tokens.ts';
-
-interface ParticipantReferenceTarget {
-    handle: string;
-    id: string;
-}
-
-export interface ChatReferenceTarget {
-    id: string;
-    name: string;
-}
+import {
+    type ChatReferenceTarget,
+    type ParticipantReferenceTarget,
+    readExistingReferenceTargets,
+} from './existing-reference-targets.ts';
+import {
+    readReferencedThreads,
+    resolveThreadReference,
+    type ThreadReferenceTarget,
+} from './thread-reference-targets.ts';
 
 /**
  * Resolves the live Server directory once, then stores only immutable targets
@@ -47,6 +44,7 @@ export async function canonicalizeAgentMessageContentForPersistence(
             agents: preferred.agents,
             channels: preferred.channels,
             users: preferred.users,
+            threads: preferred.threads,
         });
     }
 
@@ -83,6 +81,7 @@ export async function canonicalizeAgentMessageContentForPersistence(
     return canonicalizeAgentMessageContent(input.content, {
         agents: [...agents, ...(input.additionalAgents ?? [])],
         channels,
+        threads: await readReferencedThreads(db, input.serverId, input.content, channels),
         users: users.flatMap((user) => (user.handle ? [{ handle: user.handle, id: user.id }] : [])),
     });
 }
@@ -94,6 +93,7 @@ export function canonicalizeAgentMessageContent(
         agents: ParticipantReferenceTarget[];
         channels: ChatReferenceTarget[];
         users: ParticipantReferenceTarget[];
+        threads?: ThreadReferenceTarget[];
     }
 ): string {
     const participantTargets = uniqueTargetMap(
@@ -119,11 +119,22 @@ export function canonicalizeAgentMessageContent(
             continue;
         }
 
-        const target = token.sigil === '@' ? id : formatChatReferenceTarget(id);
+        const anchor = token.threadAnchor
+            ? resolveThreadReference(input.threads ?? [], id, token.threadAnchor)
+            : null;
+        if (token.threadAnchor && !anchor) {
+            continue;
+        }
+        const target =
+            token.sigil === '@'
+                ? id
+                : anchor
+                  ? formatChatThreadReferenceTarget(id, anchor)
+                  : formatChatReferenceTarget(id);
         replacements.push({
             end: token.end,
             start: token.start,
-            text: `[${token.text}](${target})`,
+            text: `[${anchor ? `#${token.text.slice(1).split(':')[0]} thread` : token.text}](${target})`,
         });
     }
 
@@ -139,35 +150,6 @@ export function canonicalizeAgentMessageContent(
         cursor = replacement.end;
     }
     return result + content.slice(cursor);
-}
-
-function readExistingReferenceTargets(content: string | undefined) {
-    const agents: ParticipantReferenceTarget[] = [];
-    const channels: ChatReferenceTarget[] = [];
-    const users: ParticipantReferenceTarget[] = [];
-    if (!content) {
-        return { agents, channels, users };
-    }
-
-    for (const reference of parseHausRichReferences(content)) {
-        if (reference.kind === 'agent') {
-            const id = parseAgentReferenceTarget(reference.id);
-            if (id) {
-                agents.push({ handle: reference.label, id });
-            }
-        } else if (reference.kind === 'user') {
-            const id = parseUserReferenceTarget(reference.id);
-            if (id) {
-                users.push({ handle: reference.label, id });
-            }
-        } else if (reference.kind === 'chat') {
-            const id = parseChatReferenceTarget(reference.id);
-            if (id) {
-                channels.push({ id, name: reference.label });
-            }
-        }
-    }
-    return { agents, channels, users };
 }
 
 /**

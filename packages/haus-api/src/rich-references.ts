@@ -38,6 +38,10 @@ export function formatChatReferenceTarget(chatId: string) {
     return `chat://${encodeReferenceId(chatId)}`;
 }
 
+export function formatChatThreadReferenceTarget(chatId: string, anchorMessageId: string) {
+    return `${formatChatReferenceTarget(chatId)}?thread=${encodeReferenceId(anchorMessageId)}`;
+}
+
 export function formatSkillReferenceTarget(skillId: string) {
     return `skill://${encodeReferenceId(skillId)}`;
 }
@@ -59,7 +63,24 @@ export function parseAppReferenceTarget(target: string) {
 }
 
 export function parseChatReferenceTarget(target: string) {
+    const thread = parseChatThreadReferenceTarget(target);
+    if (thread) {
+        return thread.chatId;
+    }
+    if (target.includes('?')) {
+        return null;
+    }
     return parseSchemeReferenceTarget(target, 'chat');
+}
+
+export function parseChatThreadReferenceTarget(target: string) {
+    const match = /^chat:\/\/([^?]+)\?thread=([^&?#]+)$/u.exec(target);
+    if (!match) {
+        return null;
+    }
+    const chatId = decodeReferenceId(match[1]);
+    const anchorMessageId = decodeReferenceId(match[2]);
+    return chatId && anchorMessageId ? { anchorMessageId, chatId } : null;
 }
 
 export function parseSkillReferenceTarget(target: string) {
