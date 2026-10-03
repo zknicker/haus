@@ -39,6 +39,38 @@ import Testing
         #expect(agent.compactDescription == nil)
     }
 
+    @Test func cardStatesOneBranchWithItsPullRequestNumber() throws {
+        let agent = try presentation()
+        #expect(agent.branchLabel == "cursor/test")
+        #expect(agent.pullRequestNumber == 112)
+        #expect(agent.pullRequestURL?.absoluteString == "https://github.com/zknicker/haus/pull/112")
+        // Before a GitHub snapshot, the number comes from the provider's URL.
+        #expect(try presentation(snapshot: "null").pullRequestNumber == 112)
+    }
+
+    @Test func activityAndCancelBelongToLiveWorkOnly() throws {
+        let running = try presentation(status: "running", activity: "Running **tests**")
+        #expect(running.activityLine == "Running tests")
+        #expect(running.canBeCancelled)
+        #expect(try presentation(status: "completed", activity: "Running tests").activityLine == nil)
+        #expect(try !presentation(status: "completed").canBeCancelled)
+        #expect(try !presentation(status: "running", cancellation: true).canBeCancelled)
+    }
+
+    @Test func threadPreviewNeverRepeatsTheAnchorsOwnWork() throws {
+        let own = try presentation().work
+        let encoded = String(decoding: try HausJSON.encoder().encode(own), as: UTF8.self)
+        let inner = encoded.replacingOccurrences(of: #""id":"work-1""#, with: #""id":"work-2""#)
+        let rows = try HausJSON.decoder().decode([ThreadCloudAgentWork].self, from: Data("""
+        [{"anchorMessageId":"delegation-1","work":\(encoded)},
+         {"anchorMessageId":"delegation-1","work":\(inner)},
+         {"anchorMessageId":"other-anchor","work":\(inner)}]
+        """.utf8))
+        let listed = CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkID: own.id)
+        #expect(listed.map(\.id) == ["work-2"])
+        #expect(CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkID: nil).count == 2)
+    }
+
     @Test func onlyWebDestinationsCanBeOpened() {
         #expect(CloudAgentPresentation.externalURL("https://github.com/zknicker/haus/pull/112") != nil)
         #expect(CloudAgentPresentation.externalURL("javascript:alert(1)") == nil)
@@ -94,7 +126,7 @@ import Testing
     }
 
     private func presentation(
-        status: String = "completed", cancellation: Bool = false,
+        status: String = "completed", cancellation: Bool = false, activity: String? = nil,
         snapshot: String = """
         {"number":112,"state":"draft","changedFiles":1,"additions":10,"deletions":0,
          "observedAt":"2026-09-07T18:01:00Z"}
@@ -108,12 +140,13 @@ import Testing
          "updatedAt":"2026-09-07T18:01:00Z",
          "startedAt":"2026-09-07T18:00:00Z","terminalAt":"2026-09-07T18:01:00Z",
          "cancelRequestedAt":\(cancellation ? "\"2026-09-07T18:00:30Z\"" : "null"),
-         "activity":null,"runs":[{"runId":"run-1","status":"\(status)",
+         "activity":\(activity.map { #"{"at":"2026-09-07T18:00:30Z","summary":"\#($0)"}"# } ?? "null"),"runs":[{"runId":"run-1","status":"\(status)",
          "startedAt":"2026-09-07T18:00:00Z","terminalAt":"2026-09-07T18:01:00Z",
          "summary":null,"errorCode":null,"branches":[{"branch":"cursor/test","repository":"zknicker/haus",
          "pullRequestUrl":"https://github.com/zknicker/haus/pull/112","pullRequest":\(snapshot)}]}]}
         """
         let work = try HausJSON.decoder().decode(CloudAgentWork.self, from: Data(json.utf8))
-        return CloudAgentPresentation(work: work, delegatedBy: "Blippy")
+        return CloudAgentPresentation(work: work)
     }
 }
+

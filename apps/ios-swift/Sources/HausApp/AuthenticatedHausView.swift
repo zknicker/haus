@@ -63,6 +63,7 @@ struct AuthenticatedHausView: View {
                 loadedContent
                     .environment(\.opensWithEntrance, !openingEntranceFinished)
                     .environment(\.reactionStickers, store.reactionStickers)
+                    .environment(\.cloudAgentCancel, cloudAgentCancel)
                     .task {
                         guard !openingEntranceFinished else { return }
                         try? await Task.sleep(for: .seconds(1.2))
@@ -266,6 +267,12 @@ struct AuthenticatedHausView: View {
                 )
             }
         }
+    }
+
+    /// Owners and Admins may cancel a live Cloud Agent run from its card.
+    private var cloudAgentCancel: CloudAgentCancelAction? {
+        guard store.canManageServer else { return nil }
+        return CloudAgentCancelAction { [store] workID in try await store.cancelCloudAgent(workID: workID) }
     }
 
     private var appearanceBinding: Binding<AppearancePreference> {

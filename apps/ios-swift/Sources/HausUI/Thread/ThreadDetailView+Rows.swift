@@ -49,7 +49,6 @@ extension ThreadDetailView {
             tiles: attachmentTiles,
             visualHeights: visualHeights,
             onOpenAgent: onOpenAgent,
-            onCancelCloudAgent: onCancelCloudAgent,
             reactionBoard: reactionBoard,
             isPressed: isPressed(message)
         )

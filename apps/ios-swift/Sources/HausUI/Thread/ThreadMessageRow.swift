@@ -12,7 +12,6 @@ struct ThreadMessageRow: View {
     /// The screen's, not the row's — see `VisualHeightRegistry`.
     let visualHeights: VisualHeightRegistry
     var onOpenAgent: (String) -> Void = { _ in }
-    var onCancelCloudAgent: ((String) async throws -> Void)?
     var reactionBoard: ReactionStickerBoard?
     /// Held under a finger, or the target of the open action drawer.
     var isPressed = false
@@ -62,7 +61,7 @@ struct ThreadMessageRow: View {
                 }
 
                 ForEach(message.cloudAgents) { agent in
-                    CloudAgentCard(agent: agent, onCancel: onCancelCloudAgent).padding(.top, 6)
+                    CloudAgentCard(agent: agent).padding(.top, 6)
                 }
 
                 if !message.isPending {

@@ -3,12 +3,14 @@ import HausModels
 
 public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
     public let work: CloudAgentWork
-    public let delegatedBy: String
+    /// The App link to the conversation holding the work, for Copy link. Nil
+    /// when the Server or conversation is not known, which hides the action.
+    public let conversationLink: URL?
     public var id: String { work.id }
 
-    public init(work: CloudAgentWork, delegatedBy: String) {
+    public init(work: CloudAgentWork, conversationLink: URL? = nil) {
         self.work = work
-        self.delegatedBy = delegatedBy
+        self.conversationLink = conversationLink
     }
 
     public var providerName: String { work.provider == "cursor" ? "Cursor" : work.provider }
@@ -33,10 +35,45 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         work.runs.first?.branches ?? []
     }
 
+    /// The one branch the card states: the one that opened a pull request,
+    /// else the first the run wrote.
+    public var primaryBranch: CloudAgentBranch? {
+        branches.first { $0.pullRequestUrl != nil } ?? branches.first
+    }
+
+    public var pullRequestURL: URL? { Self.externalURL(primaryBranch?.pullRequestUrl) }
+
+    /// `PR #<n>` from the Computer's GitHub snapshot, else parsed from the
+    /// provider's URL; an unrecognised URL keeps its link and loses the number.
+    public var pullRequestNumber: Int? {
+        guard let branch = primaryBranch else { return nil }
+        if let pr = branch.pullRequest { return pr.number }
+        guard let url = branch.pullRequestUrl, let range = url.range(of: #"/pull/(\d+)"#, options: .regularExpression)
+        else { return nil }
+        return Int(url[range].dropFirst("/pull/".count))
+    }
+
+    /// The branch fact without repeating the card's repository, unless the
+    /// branch lives somewhere else. Before any branch, the starting ref.
+    public var branchLabel: String {
+        guard let branch = primaryBranch else {
+            return work.startingRef.map { "Base: \($0)" } ?? "No branch yet"
+        }
+        return branch.repository == work.repository ? branch.branch : "\(branch.repository) · \(branch.branch)"
+    }
+
+    /// What a live work is doing now; a settled work says nothing here.
+    public var activityLine: String? {
+        guard work.status.isActive, let summary = work.activity?.summary else { return nil }
+        let line = RichMessageParser.oneLinePreview(summary)
+        return line.isEmpty ? nil : line
+    }
+
+    public var canBeCancelled: Bool { work.status.isActive && work.cancelRequestedAt == nil }
+
     public var compactDescription: String? {
         guard work.status == .completed else { return work.title }
-        let branch = branches.first { $0.pullRequestUrl != nil } ?? branches.first
-        guard let diff = branch?.pullRequest else { return nil }
+        guard let diff = primaryBranch?.pullRequest else { return nil }
         return "\(diff.changedFiles) \(diff.changedFiles == 1 ? "file" : "files") changed · +\(diff.additions) −\(diff.deletions)"
     }
 
@@ -62,6 +99,15 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
 
     public func isStale(at now: Date) -> Bool {
         work.status == .running && now.timeIntervalSince(work.updatedAt) > 600
+    }
+
+    /// The work a Message's Thread preview lists: everything delegated inside
+    /// its Thread, never the Message's own work, whose card sits above the
+    /// preview. The conversation read keys parent-Chat work by its own Message.
+    public static func threadPreviewWork(
+        _ rows: [ThreadCloudAgentWork], anchorMessageID: String, ownWorkID: String?
+    ) -> [CloudAgentWork] {
+        rows.filter { $0.anchorMessageId == anchorMessageID && $0.work.id != ownWorkID }.map(\.work)
     }
 
     public static func externalURL(_ value: String?) -> URL? {

@@ -93,6 +93,7 @@ extension HausStore {
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
             let (body, fenced) = MessagePresentation.resolvedBody(content: message.content)
+            let ownWork: CloudAgentWork? = if case .cloudAgentWork(let work) = message.body { work } else { nil }
             return MessagePresentation(
                 id: message.id,
                 author: author,
@@ -105,8 +106,10 @@ extension HausStore {
                 },
                 thread: thread,
                 task: message.task.map(taskPresentation),
-                cloudAgents: cloudAgentPresentation(message.body).map { [$0] } ?? [],
-                threadCloudAgents: cloudAgentPresentations(cloudAgentWork.filter { $0.anchorMessageId == message.id }),
+                cloudAgents: ownWork.map { [cloudAgentPresentation($0)] } ?? [],
+                threadCloudAgents: CloudAgentPresentation.threadPreviewWork(
+                    cloudAgentWork, anchorMessageID: message.id, ownWorkID: ownWork?.id
+                ).map(cloudAgentPresentation),
                 reactions: reactionPresentations(message.reactions),
                 richBlocks: richMessageBlocks(fenced.prose),
                 visualBody: fenced

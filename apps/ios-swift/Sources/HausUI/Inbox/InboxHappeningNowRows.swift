@@ -68,7 +68,7 @@ public enum InboxHappeningNowRows {
             // Status trails the title rather than joining this line: it is the
             // fact that changes while the row sits there. The boxed glyph already
             // says this is Cloud work, so the detail is only where and who.
-            status: CloudAgentPresentation(work: item.work, delegatedBy: name).statusText(at: now),
+            status: CloudAgentPresentation(work: item.work).statusText(at: now),
             detail: "\(chatLabel) · \(name)",
             open: .cloudAgentWork(messageID: item.work.messageId)
         )

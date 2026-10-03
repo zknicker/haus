@@ -65,9 +65,6 @@ extension AuthenticatedHausView {
             history: resolvedThreadChatID(for: thread).map { store.messageHistory(chatID: $0) } ?? .init(),
             inlineReplies: inlineReplies(for: thread),
             onOpenAgent: openAgentFromThread,
-            onCancelCloudAgent: store.canManageServer ? { workID in
-                try await store.cancelCloudAgent(workID: workID)
-            } : nil,
             follow: threadFollow(for: thread),
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )

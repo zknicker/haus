@@ -1,19 +1,30 @@
 import SwiftUI
 import HausModels
+#if os(iOS)
+import UIKit
+#endif
 
+/// The Cloud Agent work under the Message that delegated it — the same card
+/// in the Chat transcript and inside its Thread. Facts, then one control band:
+/// what the work is and how it is going, the branch and pull request it wrote,
+/// the diff size, and what it is doing now. The Message's author line above
+/// already says who delegated it and when, and the Thread preview below (once
+/// replies exist) is the way into the Thread, so the card carries neither.
 struct CloudAgentCard: View {
     let agent: CloudAgentPresentation
-    var onCancel: ((String) async throws -> Void)?
+    @Environment(\.cloudAgentCancel) private var cancelAction
     @State private var confirmingCancel = false
     @State private var cancelling = false
     @State private var cancelError: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 CloudAgentMark()
                 VStack(alignment: .leading, spacing: 3) {
                     Text(agent.work.title).font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    // The mark names the provider; this line says only where.
                     Text(agent.work.repository).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
@@ -25,38 +36,34 @@ struct CloudAgentCard: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                if agent.branches.isEmpty, let ref = agent.work.startingRef {
-                    Label("from \(ref)", systemImage: "arrow.triangle.branch")
-                }
-                ForEach(Array(agent.branches.enumerated()), id: \.offset) { _, branch in
-                    branchDetails(branch)
-                }
-                if agent.work.status.isActive, let activity = agent.work.activity {
-                    Text(activity.summary)
+                Label {
+                    HStack(spacing: 0) {
+                        Text(agent.branchLabel).lineLimit(1).truncationMode(.middle)
+                        if let number = agent.pullRequestNumber {
+                            Text(" · PR #\(number)").fixedSize()
+                        }
+                    }
+                } icon: { Image(systemName: "arrow.triangle.branch") }
+                if let pr = agent.primaryBranch?.pullRequest {
+                    Label {
+                        HStack(spacing: 4) {
+                            Text("\(pr.changedFiles) \(pr.changedFiles == 1 ? "file" : "files") changed")
+                            Text("+\(pr.additions)").foregroundStyle(.green)
+                            Text("−\(pr.deletions)").foregroundStyle(.red)
+                        }
+                    } icon: { Image(systemName: "plusminus") }
                 }
                 TimelineView(.animation(minimumInterval: 60, paused: !agent.work.status.isActive)) { context in
-                    if agent.isStale(at: context.date) {
-                        Text("Last update \(agent.work.updatedAt.formatted(.relative(presentation: .named)))")
+                    if let activity = activityText(at: context.date) {
+                        Label { Text(activity).lineLimit(2) } icon: { Image(systemName: "waveform.path.ecg") }
                     }
-                }
-                if agent.work.status == .failed, let summary = agent.work.runs.first?.summary {
-                    Text(summary).foregroundStyle(.red)
                 }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            .labelStyle(CloudAgentMetaLabelStyle())
 
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .bottom) {
-                    actions
-                    Spacer(minLength: 10)
-                    receipt
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    actions
-                    receipt
-                }
-            }
+            actions
         }
         .padding(CloudAgentCardMetrics.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,7 +79,7 @@ struct CloudAgentCard: View {
                 Task {
                     cancelling = true
                     defer { cancelling = false }
-                    do { try await onCancel?(agent.id) }
+                    do { try await cancelAction?.run(agent.id) }
                     catch { cancelError = "Could not cancel this run. Try again." }
                 }
             }
@@ -85,69 +92,97 @@ struct CloudAgentCard: View {
     }
 
     private var statusColor: Color {
+        if agent.work.status.isActive, agent.work.cancelRequestedAt != nil { return .secondary }
         switch agent.work.status {
-        case .completed: .green
-        case .failed, .expired: .red
-        case .queued, .running: .blue
-        case .cancelled: .secondary
+        case .completed: return .green
+        case .failed, .expired: return .red
+        case .queued, .running: return .blue
+        case .cancelled: return .secondary
         }
     }
 
-    @ViewBuilder
-    private func branchDetails(_ branch: CloudAgentBranch) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
-            Image(systemName: "arrow.triangle.branch")
-            Text(branch.branch).lineLimit(1).truncationMode(.middle)
-            if let pr = branch.pullRequest, let url = CloudAgentPresentation.externalURL(branch.pullRequestUrl) {
-                Link("PR #\(pr.number)", destination: url).buttonStyle(.borderless)
-            }
-        }
-        if let pr = branch.pullRequest {
-            HStack(spacing: 4) {
-                Text("\(pr.changedFiles) \(pr.changedFiles == 1 ? "file" : "files") changed")
-                Text("+\(pr.additions)").foregroundStyle(.green)
-                Text("−\(pr.deletions)").foregroundStyle(.red)
-            }
-        }
+    private func activityText(at now: Date) -> String? {
+        let stale = agent.isStale(at: now)
+            ? "Last update \(agent.work.updatedAt.formatted(.relative(presentation: .named)))" : nil
+        let parts = [agent.activityLine, stale].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    @ViewBuilder private var actions: some View {
-        HStack(spacing: 6) {
-            if let pr = agent.branches.first(where: { CloudAgentPresentation.externalURL($0.pullRequestUrl) != nil }),
-               let url = CloudAgentPresentation.externalURL(pr.pullRequestUrl) {
-                Link("View PR", destination: url).buttonStyle(.bordered)
+    /// One primary action — the pull request once there is one, the
+    /// provider's page until then — and a chevron menu with the rest.
+    private var actions: some View {
+        let providerURL = CloudAgentPresentation.externalURL(agent.work.providerUrl)
+        let openInProvider = "Open in \(agent.providerName)"
+        return HStack(spacing: 6) {
+            if let url = agent.pullRequestURL {
+                Link(destination: url) { actionLabel("View PR", systemImage: "arrow.triangle.pull") }
+            } else if let providerURL {
+                Link(destination: providerURL) { actionLabel(openInProvider, systemImage: "arrow.up.right") }
+            } else {
+                Button {} label: { actionLabel(openInProvider, systemImage: "arrow.up.right") }.disabled(true)
             }
-            if agent.branches.allSatisfy({ CloudAgentPresentation.externalURL($0.pullRequestUrl) == nil }),
-               let url = CloudAgentPresentation.externalURL(agent.work.providerUrl) {
-                Link("Open in \(agent.providerName)", destination: url).buttonStyle(.bordered)
-            }
-            if CloudAgentPresentation.externalURL(agent.work.providerUrl) != nil || canCancel {
-                Menu {
-                    if let url = CloudAgentPresentation.externalURL(agent.work.providerUrl) {
-                        Link("Open in \(agent.providerName)", destination: url)
-                    }
-                    if canCancel {
-                        Button("Cancel run", role: .destructive) { confirmingCancel = true }
-                            .disabled(cancelling)
-                    }
-                } label: {
-                    Image(systemName: "chevron.down")
+            Menu {
+                if let providerURL {
+                    Link(destination: providerURL) { Label(openInProvider, systemImage: "arrow.up.right") }
                 }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Cloud agent actions")
+                if let link = agent.conversationLink {
+                    Button { copy(link) } label: { Label("Copy link", systemImage: "link") }
+                }
+                if canCancel {
+                    Button(role: .destructive) { confirmingCancel = true } label: {
+                        Label("Cancel run", systemImage: "xmark.circle")
+                    }
+                    .disabled(cancelling)
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .frame(maxHeight: .infinity)
+                    .accessibilityLabel("More cloud agent actions")
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
+        .buttonStyle(.bordered)
+        .controlSize(.small)
         .font(.caption.weight(.medium))
     }
 
-    private var receipt: some View {
-        Text("Delegated by \(agent.delegatedBy) · \(agent.work.createdAt.formatted(date: .omitted, time: .shortened))")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
+    /// Icon and title packed together; a stock `Label` inherits whatever
+    /// label style the surrounding list installs.
+    private func actionLabel(_ title: String, systemImage: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+            Text(title)
+        }
     }
 
-    private var canCancel: Bool {
-        onCancel != nil && agent.work.status.isActive && agent.work.cancelRequestedAt == nil
+    private func copy(_ link: URL) {
+        #if os(iOS)
+        UIPasteboard.general.url = link
+        #endif
+    }
+
+    private var canCancel: Bool { cancelAction != nil && agent.canBeCancelled }
+}
+
+/// Cancels a Cloud Agent run by work id. The app installs it for Owners and
+/// Admins; without it the card offers no Cancel run.
+public struct CloudAgentCancelAction: Sendable {
+    public let run: @Sendable (String) async throws -> Void
+    public init(_ run: @escaping @Sendable (String) async throws -> Void) { self.run = run }
+}
+
+extension EnvironmentValues {
+    @Entry public var cloudAgentCancel: CloudAgentCancelAction?
+}
+
+/// Icon and text on one baseline with a fixed icon column, so the card's
+/// fact rows start their text at one inset.
+private struct CloudAgentMetaLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            configuration.icon.frame(width: 14)
+            configuration.title
+        }
     }
 }
 

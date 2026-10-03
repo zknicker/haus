@@ -18,7 +18,6 @@ public struct ThreadDetailView: View {
     let history: MessageHistoryNavigation
     let inlineReplies: ThreadInlineReplies?
     let onOpenAgent: (String) -> Void
-    let onCancelCloudAgent: ((String) async throws -> Void)?
     /// Nil until Server has a Thread row to follow.
     private let follow: ThreadFollow?
     /// The reply ids the transcript is showing. Read acknowledgement is built
@@ -65,7 +64,6 @@ public struct ThreadDetailView: View {
         history: MessageHistoryNavigation = .init(),
         inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
-        onCancelCloudAgent: ((String) async throws -> Void)? = nil,
         follow: ThreadFollow? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
@@ -79,7 +77,6 @@ public struct ThreadDetailView: View {
         self.history = history
         self.inlineReplies = inlineReplies
         self.onOpenAgent = onOpenAgent
-        self.onCancelCloudAgent = onCancelCloudAgent
         self.follow = follow
         self.onVisibleMessagesChange = onVisibleMessagesChange
     }
@@ -101,7 +98,6 @@ public struct ThreadDetailView: View {
         history: MessageHistoryNavigation = .init(),
         inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
-        onCancelCloudAgent: ((String) async throws -> Void)? = nil,
         follow: ThreadFollow? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
@@ -115,7 +111,6 @@ public struct ThreadDetailView: View {
         self.history = history
         self.inlineReplies = inlineReplies
         self.onOpenAgent = onOpenAgent
-        self.onCancelCloudAgent = onCancelCloudAgent
         self.follow = follow
         self.onVisibleMessagesChange = onVisibleMessagesChange
     }

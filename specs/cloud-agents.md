@@ -167,8 +167,10 @@ observations update existing records rather than automatically posting channel c
 
 Only status discs and the card's status chip carry lifecycle color. A running work whose `updatedAt`
 is older than ten minutes shows a last-update note rather than gating on Computer connection state.
-iOS mirrors the Thread preview and the in-Thread card; bringing its parent-Chat presentation to
-the one-card contract (`CloudAgentCard.swift`) is a pending follow-up. Older clients and
+iOS renders the same one card (`CloudAgentCard.swift`) in the parent Chat and the Thread, with
+two platform deviations: the card fills the iPhone message column rather than a fixed measure,
+and the split button is a bordered primary action beside a chevron `Menu`. Copy link builds the
+App link from the configured Server origin, which is the App origin in production. Older clients and
 unknown body kinds render the Message `content` and the ordinary Thread preview.
 Compact Thread-preview rows on web and iOS show the work title until completion, then the newest
 Run's primary PR file/addition/deletion counts. Without a recorded PR snapshot, they show only
