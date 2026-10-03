@@ -9,6 +9,7 @@
  */
 const appMenuShortcuts = new Set([
     'close-tab',
+    'close-window',
     'find',
     'new-tab',
     'reopen-tab',
@@ -32,18 +33,24 @@ const shiftedKeys = {
     g: 'find-previous',
     r: 'hard-reload',
     t: 'reopen-tab',
+    w: 'close-window',
 };
 
-/** `input` is Electron's before-input-event shape: key, code, type, and modifier flags. */
-function browserShortcut(input) {
+/**
+ * `input` is Electron's before-input-event shape: key, code, type, and modifier
+ * flags. The command key is Command on macOS and Control elsewhere; macOS
+ * Control combos (Control-W, Control-T…) stay with the page's text bindings.
+ */
+function browserShortcut(input, platform = process.platform) {
     if (input.type !== 'keyDown' || input.alt) {
         return null;
     }
     const key = input.key.toLowerCase();
     const code = input.code ?? '';
-    const command = input.meta || input.control;
+    const command =
+        platform === 'darwin' ? input.meta && !input.control : input.control && !input.meta;
     if (key === 'escape') {
-        return command || input.shift ? null : 'stop';
+        return input.meta || input.control || input.shift ? null : 'stop';
     }
     if (input.control && key === 'tab') {
         return input.shift ? 'previous-tab' : 'next-tab';
@@ -80,9 +87,9 @@ function commandShortcut(key, code, shift) {
  * Keys pressed inside a page run `run(action)`. Esc stops a loading page and
  * otherwise stays with the page.
  */
-function installBrowserShortcuts(contents, run) {
+function installBrowserShortcuts(contents, run, platform = process.platform) {
     contents.on('before-input-event', (event, input) => {
-        const shortcut = browserShortcut(input);
+        const shortcut = browserShortcut(input, platform);
         if (!shortcut || (shortcut === 'stop' && !contents.isLoading())) {
             return;
         }

@@ -33,15 +33,19 @@ export interface ShortcutKey {
     shiftKey: boolean;
 }
 
-/** Shortcuts the renderer handles from its own keydown events. */
-export function appShortcut(event: ShortcutKey): BrowserShortcut | null {
+/**
+ * Shortcuts the renderer handles from its own keydown events. The command key
+ * is Command on macOS and Control elsewhere; macOS Control combos stay with
+ * text fields' native keybindings.
+ */
+export function appShortcut(event: ShortcutKey, isMac: boolean): BrowserShortcut | null {
     if (event.altKey) {
         return null;
     }
     const key = event.key.toLowerCase();
-    const command = event.metaKey || event.ctrlKey;
+    const command = isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
     if (key === 'escape') {
-        return command || event.shiftKey ? null : 'stop';
+        return event.metaKey || event.ctrlKey || event.shiftKey ? null : 'stop';
     }
     if (event.ctrlKey && key === 'tab') {
         return event.shiftKey ? 'previous-tab' : 'next-tab';
@@ -63,6 +67,11 @@ function commandShortcut(key: string, code: string, shift: boolean): BrowserShor
         return `tab-${key}` as BrowserShortcut;
     }
     return plainKeys[key] ?? null;
+}
+
+/** Electron's renderer reports the host OS in its user agent. */
+export function isMacPlatform() {
+    return typeof navigator !== 'undefined' && navigator.userAgent.includes('Macintosh');
 }
 
 /** Validates a shortcut name forwarded from the main process. */

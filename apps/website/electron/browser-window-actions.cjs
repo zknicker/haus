@@ -28,8 +28,13 @@ function runBrowserWindowAction(window, workspace, action) {
                 window.close();
                 return;
             }
-            app.focus();
+            // No app.focus() here: refocusing the App moves workspace focus off
+            // the page before the renderer decides what ⌘W closes. Closing a
+            // focused page hands focus back afterwards (browser-workspace close).
             app.send('desktop:window:close-request');
+            return;
+        case 'close-window':
+            window.close();
             return;
         case 'new-tab':
             app.focus();

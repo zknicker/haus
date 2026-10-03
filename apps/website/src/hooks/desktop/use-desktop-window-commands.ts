@@ -4,9 +4,9 @@ import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
  * Desktop ⌘W/⌘T routing. The menu's Close and New Tab items ask the renderer
- * before acting: a visible tabbed pane (today the chat artifact pane)
+ * before acting: the visible tabbed pane (the desktop workspace tabs)
  * registers commands here, and Close only falls back to closing the window
- * when no pane has a tab to close.
+ * when the pane has no tab to close.
  */
 export interface DesktopTabPaneCommands {
     /** Close the pane's active tab (or the pane itself); false = nothing to close. */
@@ -20,6 +20,7 @@ let activePaneCommands: DesktopTabPaneCommands | null = null;
 export function registerDesktopTabPane(commands: DesktopTabPaneCommands): () => void {
     activePaneCommands = commands;
     return () => {
+        // A stale unregister (StrictMode, a remount) must not clear a newer registration.
         if (activePaneCommands === commands) {
             activePaneCommands = null;
         }
@@ -27,11 +28,9 @@ export function registerDesktopTabPane(commands: DesktopTabPaneCommands): () => 
 }
 
 export function handleCloseWindowRequest(closeWindow: () => void) {
-    if (activePaneCommands?.closeActiveTab()) {
-        return;
+    if (!activePaneCommands?.closeActiveTab()) {
+        closeWindow();
     }
-
-    closeWindow();
 }
 
 export function handleNewTabRequest() {
@@ -68,7 +67,7 @@ export function useDesktopWindowCommands() {
     }, []);
 }
 
-/** Registered by a tabbed pane while it is visible; the latest handlers win. */
+/** Registered by the tabbed pane while it is visible. */
 export function useDesktopTabPane(commands: DesktopTabPaneCommands & { active: boolean }) {
     const latest = React.useRef(commands);
     React.useEffect(() => {

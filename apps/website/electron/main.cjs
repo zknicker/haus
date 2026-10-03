@@ -24,7 +24,7 @@ const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
 const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs');
 const { registerBrowserWorkspace } = require('./browser-workspace-ipc.cjs');
 const { runBrowserWindowAction } = require('./browser-window-actions.cjs');
-const { tabMenuItems, zoomMenuItems } = require('./browser-menu-items.cjs');
+const { tabMenuItems, windowMenu, zoomMenuItems } = require('./browser-menu-items.cjs');
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 const { buildWindowUrl, isSafeWindowRoute, nextWindowBounds } = require('./window-routing.cjs');
 const { readWindowState, resolveInitialBounds, writeWindowState } = require('./window-state.cjs');
@@ -270,7 +270,7 @@ function installAppMenu() {
                 },
             ],
         },
-        { role: 'windowMenu' },
+        windowMenu(),
         {
             label: 'Developer',
             submenu: [

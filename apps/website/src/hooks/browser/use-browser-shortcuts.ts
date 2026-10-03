@@ -7,6 +7,7 @@ import type { WorkspaceTabRef } from '../workspace-tabs/workspace-tabs-model.ts'
 import {
     appShortcut,
     type BrowserShortcut,
+    isMacPlatform,
     parseBrowserShortcut,
 } from './browser-shortcut-keys.ts';
 import type { BrowserFind } from './use-browser-find.ts';
@@ -48,9 +49,15 @@ export function useBrowserShortcuts(target: ShortcutTarget) {
         if (!bridge?.browserCommand) {
             return;
         }
+        const isMac = isMacPlatform();
         const onKeyDown = (event: KeyboardEvent) => {
-            const shortcut = appShortcut(event);
-            if (!shortcut || event.defaultPrevented || !applies(shortcut, latest.current)) {
+            const shortcut = appShortcut(event, isMac);
+            if (
+                !shortcut ||
+                event.defaultPrevented ||
+                isInDialog(event.target) ||
+                !applies(shortcut, latest.current)
+            ) {
                 return;
             }
             // Esc stays with fields and overlays; it stops a load only from the page chrome.
@@ -129,6 +136,14 @@ function selectIfAny({ selectTab }: ShortcutTabs, ref: WorkspaceTabRef | null) {
     if (ref) {
         selectTab(ref);
     }
+}
+
+/** Keys pressed inside a dialog (modal focus is trapped there) belong to the dialog. */
+function isInDialog(target: EventTarget | null) {
+    return (
+        target instanceof Element &&
+        target.closest('[role="dialog"], [role="alertdialog"], [aria-modal="true"]') !== null
+    );
 }
 
 function isEditable(target: EventTarget | null) {
