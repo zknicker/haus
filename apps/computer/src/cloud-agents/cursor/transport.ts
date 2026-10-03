@@ -1,3 +1,5 @@
+import type { CloudAgentModelListing, CloudAgentModelSelection } from '../provider.ts';
+
 /**
  * The seam between the Cursor adapter and `@cursor/sdk`. Every SDK type stops
  * here: the adapter above works in these provider-native but Haus-owned
@@ -66,8 +68,8 @@ export interface CursorStartInput {
     /** Haus's own Run id, handed to Cursor as its Agent and Send idempotency key. */
     idempotencyKey: string;
     instructions: string;
-    /** The Cursor model id to send, or `null` to send none and let Cursor's Auto pick. */
-    model: string | null;
+    /** The model to send, or `null` to send none and let Cursor's default pick. */
+    model: CloudAgentModelSelection | null;
     ref: string | null;
     /** `owner/name`, as Haus records it. The transport builds the clone URL. */
     repository: string;
@@ -78,16 +80,12 @@ export interface CursorSendInput {
     agentId: string;
     idempotencyKey: string;
     instructions: string;
-    /** The Cursor model id to send, or `null` to send none and let Cursor's Auto pick. */
-    model: string | null;
+    /** The model to send, or `null` to send none and let Cursor's default pick. */
+    model: CloudAgentModelSelection | null;
 }
 
-/** One entry of Cursor's model catalog for the connected account. */
-export interface CursorModelListing {
-    description: string | null;
-    displayName: string;
-    id: string;
-}
+/** One entry of Cursor's model catalog for the connected account, unmapped. */
+export type CursorModelListing = CloudAgentModelListing;
 
 /** What a Cursor credential resolves to, without ever carrying the key. */
 export type CursorAuth =

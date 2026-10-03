@@ -1,13 +1,17 @@
 import {
     type CloudAgentModelCatalog,
+    type CloudAgentModelParams,
     type CloudAgentModelSetting,
     type CloudAgentRunModel,
     type CloudAgentSettings,
     type ComputerInventory,
     cloudAgentModelCatalogSchema,
+    cloudAgentModelParamsSchema,
+    findCloudAgentModel,
     hasServerAdminAuthority,
     isCloudAgentModelListed,
     resolveCloudAgentRunModel,
+    unofferedCloudAgentModelParams,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -32,6 +36,15 @@ export class CloudAgentModelUnlistedError extends Error {
     }
 }
 
+export class CloudAgentModelParamUnofferedError extends Error {
+    constructor(modelId: string, params: string[]) {
+        super(
+            `The Cloud Agent model ${modelId} does not offer the chosen ${params.join(' and ')}.`
+        );
+        this.name = 'CloudAgentModelParamUnofferedError';
+    }
+}
+
 /** Any member may read the Server's Cloud Agent model and its catalog. */
 export async function readCloudAgentSettings(
     db: Reader,
@@ -44,8 +57,9 @@ export async function readCloudAgentSettings(
 
 /**
  * Saves the Server's Cloud Agent model. Only an Owner or Admin may, and only a
- * model the freshest reported catalog lists: Cursor is the source of truth, so
- * Haus never stores an id it has not seen. Agents have no path here.
+ * model the freshest reported catalog lists, with parameter values that model
+ * offers: Cursor is the source of truth, so Haus never stores an id or value it
+ * has not seen. Agents have no path here.
  */
 export async function setCloudAgentModel(
     db: HausDatabase,
@@ -58,18 +72,29 @@ export async function setCloudAgentModel(
         if (!hasServerAdminAuthority(server.role)) {
             throw new CloudAgentSettingsDeniedError();
         }
-        if (
-            input.model.kind === 'model' &&
-            !isCloudAgentModelListed(
+        if (input.model.kind === 'model') {
+            const model = findCloudAgentModel(
                 input.model.id,
                 await readServerModelCatalog(tx, input.serverId)
-            )
-        ) {
-            throw new CloudAgentModelUnlistedError(input.model.id);
+            );
+            if (!model) {
+                throw new CloudAgentModelUnlistedError(input.model.id);
+            }
+            const unoffered = unofferedCloudAgentModelParams(model, input.model.params);
+            if (unoffered.length > 0) {
+                throw new CloudAgentModelParamUnofferedError(model.id, unoffered);
+            }
         }
         await tx
             .update(serversTable)
-            .set({ cloudAgentModelId: input.model.kind === 'model' ? input.model.id : null })
+            .set(
+                input.model.kind === 'model'
+                    ? {
+                          cloudAgentModelId: input.model.id,
+                          cloudAgentModelParams: input.model.params,
+                      }
+                    : { cloudAgentModelId: null, cloudAgentModelParams: {} }
+            )
             .where(eq(serversTable.id, input.serverId));
         return await settingsOf(tx, input.serverId);
     });
@@ -77,8 +102,9 @@ export async function setCloudAgentModel(
 
 /**
  * The model a new Run asks the provider for: the Server's saved choice when the
- * launching Computer's newest catalog lists it, otherwise no model (Cursor default) with the saved
- * id recorded as the fallback.
+ * launching Computer's newest catalog lists it, otherwise no model (Cursor
+ * default) with the saved id recorded as the fallback. Saved params that model
+ * no longer offers are dropped and recorded.
  */
 export async function resolveRunModel(
     db: Reader,
@@ -87,6 +113,7 @@ export async function resolveRunModel(
     const [row] = await db
         .select({
             cloudAgentModelId: serversTable.cloudAgentModelId,
+            cloudAgentModelParams: serversTable.cloudAgentModelParams,
             inventory: computersTable.reportedInventory,
         })
         .from(serversTable)
@@ -99,19 +126,19 @@ export async function resolveRunModel(
         )
         .where(eq(serversTable.id, input.serverId))
         .limit(1);
-    return resolveCloudAgentRunModel(
-        settingOf(row?.cloudAgentModelId ?? null),
-        catalogOf(row?.inventory ?? null)
-    );
+    return resolveCloudAgentRunModel(settingOf(row ?? null), catalogOf(row?.inventory ?? null));
 }
 
 async function settingsOf(db: Reader, serverId: string): Promise<CloudAgentSettings> {
     const [server] = await db
-        .select({ cloudAgentModelId: serversTable.cloudAgentModelId })
+        .select({
+            cloudAgentModelId: serversTable.cloudAgentModelId,
+            cloudAgentModelParams: serversTable.cloudAgentModelParams,
+        })
         .from(serversTable)
         .where(eq(serversTable.id, serverId))
         .limit(1);
-    const model = settingOf(server?.cloudAgentModelId ?? null);
+    const model = settingOf(server ?? null);
     const catalog = await readServerModelCatalog(db, serverId);
     return {
         catalog,
@@ -152,6 +179,17 @@ function catalogOf(inventory: ComputerInventory | null): CloudAgentModelCatalog 
     return parsed.success ? parsed.data : null;
 }
 
-function settingOf(modelId: string | null): CloudAgentModelSetting {
-    return modelId ? { id: modelId, kind: 'model' } : { kind: 'auto' };
+function settingOf(
+    row: { cloudAgentModelId: string | null; cloudAgentModelParams: CloudAgentModelParams } | null
+): CloudAgentModelSetting {
+    if (!row?.cloudAgentModelId) {
+        return { kind: 'auto' };
+    }
+    // Stored jsonb is not re-validated on write, so a malformed value reads as model defaults.
+    const params = cloudAgentModelParamsSchema.safeParse(row.cloudAgentModelParams);
+    return {
+        id: row.cloudAgentModelId,
+        kind: 'model',
+        params: params.success ? params.data : {},
+    };
 }

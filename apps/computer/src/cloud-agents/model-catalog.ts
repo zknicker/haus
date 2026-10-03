@@ -1,10 +1,6 @@
-import {
-    type CloudAgentModel,
-    type CloudAgentModelCatalog,
-    cloudAgentModelSchema,
-    cloudAgentModelsListed,
-} from '@haus/api';
+import type { CloudAgentModelCatalog } from '@haus/api';
 import type { AttachmentConnectionWork } from '../attachment-connection-work.ts';
+import { mapCloudAgentModelCatalog } from './model-catalog-mapping.ts';
 import type { CloudAgentProvider, CloudAgentReadiness } from './provider.ts';
 
 /** Cursor's catalog changes rarely; a daily read keeps reports cheap. */
@@ -50,7 +46,7 @@ export async function readCloudAgentModelCatalog(
     }
     try {
         const catalog = {
-            models: boundedModels(await provider.listModels()),
+            models: mapCloudAgentModelCatalog(await provider.listModels()),
             refreshedAt: at.toISOString(),
         };
         cache.set(provider, { account, catalog, generation });
@@ -93,26 +89,4 @@ export function startCloudAgentModelCatalogRefresh(
         },
         (error) => console.error(`Cloud Agent model catalog refresh failed: ${error.message}`)
     );
-}
-
-/** Keeps the first valid listing of each id, inside the reported bound. */
-function boundedModels(models: CloudAgentModel[]): CloudAgentModel[] {
-    const seen = new Set<string>();
-    const bounded: CloudAgentModel[] = [];
-    for (const model of models) {
-        const parsed = cloudAgentModelSchema.safeParse({
-            description: model.description?.trim().slice(0, 500) || null,
-            displayName: model.displayName.trim().slice(0, 200),
-            id: model.id,
-        });
-        if (!parsed.success || seen.has(parsed.data.id)) {
-            continue;
-        }
-        seen.add(parsed.data.id);
-        bounded.push(parsed.data);
-        if (bounded.length === cloudAgentModelsListed) {
-            break;
-        }
-    }
-    return bounded;
 }

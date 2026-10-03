@@ -1,6 +1,8 @@
 import type {
     CloudAgentBranch,
+    CloudAgentModelParamName,
     CloudAgentProvider,
+    CloudAgentRunModelParam,
     CloudAgentStatus,
     CloudAgentUsage,
 } from '@haus/api';
@@ -131,10 +133,20 @@ export const cloudAgentRunsTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         errorCode: text('error_code'),
         id: text('id').primaryKey(),
-        /** The saved model this Run could not send, so it fell back to Auto. */
+        /** Saved params the sent model no longer offered, so they took its default. */
+        modelDroppedParams: bunJsonb('model_dropped_params')
+            .notNull()
+            .$type<CloudAgentModelParamName[]>()
+            .default([]),
+        /** The saved model this Run could not send, so it fell back to the Cursor default. */
         modelFallbackFrom: text('model_fallback_from'),
-        /** The model sent to the provider; `null` sent none, so the provider's Auto chose. */
+        /** The model sent to the provider; `null` sent none, so the provider's default chose. */
         modelId: text('model_id'),
+        /** The params sent with `modelId`; an unsent one took the model's default. */
+        modelParams: bunJsonb('model_params')
+            .notNull()
+            .$type<CloudAgentRunModelParam[]>()
+            .default([]),
         /** The Computer's newest applied observation, so a stale one is a no-op. */
         observedAt: timestamp('observed_at', { withTimezone: true }),
         providerRunId: text('provider_run_id'),
@@ -160,6 +172,10 @@ export const cloudAgentRunsTable = pgTable(
         check(
             'cloud_agent_runs_model_shape',
             sql`num_nonnulls(${table.modelId}, ${table.modelFallbackFrom}) <= 1`
+        ),
+        check(
+            'cloud_agent_runs_model_params_shape',
+            sql`jsonb_typeof(${table.modelParams}) = 'array' and jsonb_typeof(${table.modelDroppedParams}) = 'array' and (${table.modelId} is not null or (${table.modelParams} = '[]'::jsonb and ${table.modelDroppedParams} = '[]'::jsonb))`
         ),
         check(
             'cloud_agent_runs_terminal_shape',

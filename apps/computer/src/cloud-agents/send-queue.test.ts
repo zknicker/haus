@@ -21,6 +21,8 @@ const prior = {
 };
 const next = { ...prior, runId: 'next', providerRunId: null };
 
+const nanoLow = { id: 'gpt-5.4-nano', params: [{ id: 'reasoning', value: 'low' }] };
+
 async function fixture(interrupt = false) {
     const root = await mkdtemp(join(tmpdir(), 'haus-send-'));
     const journal = new CloudLaunchJournal(root);
@@ -39,9 +41,7 @@ async function fixture(interrupt = false) {
         sent.push(input.instructions);
         expect(input.providerAgentId).toBe('bc_same');
         // The fixture's own pending send carries the model Server resolved for its Run.
-        expect(input.model).toBe(
-            input.instructions === 'Revise the same code' ? 'gpt-5.4-nano' : null
-        );
+        expect(input.model).toEqual(input.instructions === 'Revise the same code' ? nanoLow : null);
         return {
             providerAgentId: 'bc_same',
             providerRunId: `r_${input.idempotencyKey}`,
@@ -53,7 +53,7 @@ async function fixture(interrupt = false) {
         phase: 'pending',
         workId: 'work',
         providerAgentId: 'bc_same',
-        model: 'gpt-5.4-nano',
+        model: nanoLow,
         instructions: 'Revise the same code',
         interrupt,
         predecessors: [prior],

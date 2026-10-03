@@ -1,6 +1,6 @@
 import type {
     CloudAgentBranch,
-    CloudAgentModel,
+    CloudAgentRunModel,
     CloudAgentStatus,
     CloudAgentUnreadyReason,
     CloudAgentUsage,
@@ -20,13 +20,41 @@ export interface CloudAgentRunRef {
     workId: string;
 }
 
+/** One provider parameter value, under the provider's own parameter id. */
+export interface CloudAgentModelParamValue {
+    id: string;
+    value: string;
+}
+
+/** The model a Run sends: a provider model id and the parameters chosen for it. */
+export interface CloudAgentModelSelection {
+    id: string;
+    params: CloudAgentModelParamValue[];
+}
+
+/**
+ * One raw entry of the provider's model catalog, before Haus maps it. Cursor
+ * lists parameters per model and precomputes variants, one marked default.
+ */
+export interface CloudAgentModelListing {
+    description?: string | null;
+    displayName: string;
+    id: string;
+    parameters?: Array<{
+        displayName?: string | null;
+        id: string;
+        values: Array<{ displayName?: string | null; value: string }>;
+    }>;
+    variants?: Array<{ isDefault?: boolean; params: CloudAgentModelParamValue[] }>;
+}
+
 export interface CloudAgentStartInput {
     /** Haus's own Run id, handed to the provider as its idempotency key. */
     idempotencyKey: string;
     /** The work the provider-hosted agent performs. It never reaches Server. */
     instructions: string;
-    /** The provider model id Server resolved for this Run; `null` sends none (Auto). */
-    model: string | null;
+    /** The model Server resolved for this Run; `null` sends none (Cursor default). */
+    model: CloudAgentModelSelection | null;
     ref: string | null;
     repository: string;
     title: string;
@@ -42,8 +70,8 @@ export interface CloudAgentLaunch {
 export interface CloudAgentSendInput {
     idempotencyKey: string;
     instructions: string;
-    /** The provider model id Server resolved for this Run; `null` sends none (Auto). */
-    model: string | null;
+    /** The model Server resolved for this Run; `null` sends none (Cursor default). */
+    model: CloudAgentModelSelection | null;
     providerAgentId: string;
 }
 
@@ -85,8 +113,8 @@ export interface CloudAgentProvider {
     }): Promise<CloudAgentReadiness>;
     /** Forgets the stored credential. The provider-side key stays revocable. */
     disconnect(): Promise<CloudAgentReadiness>;
-    /** The provider's model catalog for the connected account. */
-    listModels(): Promise<CloudAgentModel[]>;
+    /** The provider's raw model catalog for the connected account. */
+    listModels(): Promise<CloudAgentModelListing[]>;
     readonly provider: 'cursor';
     read(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<CloudAgentProviderObservation>;
     readiness(): Promise<CloudAgentReadiness>;
@@ -123,6 +151,19 @@ export function cloudAgentUnreadyMessage(reason: CloudAgentUnreadyReason): strin
         case 'provider-unavailable':
             return 'This Computer cannot reach the Cloud Agent provider.';
     }
+}
+
+/** The provider selection for a Run's recorded model: Haus names map back to provider ids. */
+export function cloudAgentModelSelectionOf(
+    model: CloudAgentRunModel | undefined
+): CloudAgentModelSelection | null {
+    if (!model?.id) {
+        return null;
+    }
+    return {
+        id: model.id,
+        params: model.params.map((param) => ({ id: param.providerParamId, value: param.value })),
+    };
 }
 
 /**

@@ -11,6 +11,7 @@ import {
     recordedAuth,
     recordedModels,
 } from './cursor/recorded-transport.ts';
+import { mapCloudAgentModelCatalog } from './model-catalog-mapping.ts';
 import { closeProviderSignIns } from './provider-sign-in.ts';
 import { setCloudAgentProvider } from './registry.ts';
 
@@ -100,7 +101,10 @@ test('the Computer inventory reports Cursor readiness truthfully', async () => {
     await runCloudAgentCapabilityRequest(request('connect'), runtime);
     expect((await detectFullInventory()).cloudAgentProviders).toEqual([
         {
-            models: { models: recordedModels, refreshedAt: expect.any(String) },
+            models: {
+                models: mapCloudAgentModelCatalog(recordedModels),
+                refreshedAt: expect.any(String),
+            },
             provider: 'cursor',
             ready: true,
             reason: null,

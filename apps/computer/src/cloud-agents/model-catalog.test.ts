@@ -7,20 +7,29 @@ import {
     readCloudAgentModelCatalog,
     startCloudAgentModelCatalogRefresh,
 } from './model-catalog.ts';
-import type { CloudAgentReadiness } from './provider.ts';
+import type { CloudAgentModelListing, CloudAgentReadiness } from './provider.ts';
 
-const nano: CloudAgentModel = {
+const nano: CloudAgentModelListing = { displayName: 'GPT-5.4 Nano', id: 'gpt-5.4-nano' };
+const opus: CloudAgentModelListing = {
+    description: ' Frontier ',
+    displayName: 'Claude Opus',
+    id: 'opus',
+};
+const mappedNano: CloudAgentModel = {
     description: null,
     displayName: 'GPT-5.4 Nano',
+    effort: null,
+    family: 'gpt',
+    fast: null,
     id: 'gpt-5.4-nano',
+    order: 0,
 };
-const opus: CloudAgentModel = { description: ' Frontier ', displayName: 'Claude Opus', id: 'opus' };
 
 function connected(expiresAt: string): CloudAgentReadiness {
     return { account: { email: 'delegate@example.com', expiresAt }, ready: true };
 }
 
-function countingProvider(models: () => Promise<CloudAgentModel[]>) {
+function countingProvider(models: () => Promise<CloudAgentModelListing[]>) {
     const provider = createFakeCloudAgentProvider();
     let reads = 0;
     provider.listModels = () => {
@@ -37,7 +46,17 @@ test('the catalog is read once per account per day, then re-read when stale or e
 
     const first = await readCloudAgentModelCatalog(provider, readiness, () => start);
     expect(first).toEqual({
-        models: [nano, { ...opus, description: 'Frontier' }],
+        models: [
+            mappedNano,
+            {
+                ...mappedNano,
+                description: 'Frontier',
+                displayName: 'Claude Opus',
+                family: 'claude',
+                id: 'opus',
+                order: 1,
+            },
+        ],
         refreshedAt: start.toISOString(),
     });
     await readCloudAgentModelCatalog(provider, readiness, () => new Date(start.getTime() + 1000));
@@ -71,7 +90,7 @@ test('a failed read keeps the last good catalog for the same account, and none f
     );
     const readiness = connected('2026-12-01T00:00:00.000Z');
     const good = await readCloudAgentModelCatalog(provider, readiness);
-    expect(good?.models).toEqual([nano]);
+    expect(good?.models).toEqual([mappedNano]);
 
     fail = true;
     expireCloudAgentModelCatalogs();

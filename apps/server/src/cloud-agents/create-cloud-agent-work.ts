@@ -89,8 +89,10 @@ export async function createCloudAgentWork(
         const model = await resolveRunModel(tx, { computerId, serverId: runner.serverId });
         await tx.insert(cloudAgentRunsTable).values({
             id: runId,
+            modelDroppedParams: model.droppedParams,
             modelFallbackFrom: model.fallbackFrom,
             modelId: model.id,
+            modelParams: model.params,
             serverId: runner.serverId,
             workId,
         });

@@ -30,14 +30,20 @@ test('SDK follow-up resumes the existing Agent, forwards idempotency, and dispos
                 agentId: 'existing-agent',
                 idempotencyKey: 'follow-up-1',
                 instructions: 'Fix the review.',
-                model: 'gpt-5.4-nano',
+                model: { id: 'gpt-5.4-nano', params: [{ id: 'reasoning_effort', value: 'low' }] },
             })
         ).rejects.toBe(busy);
         expect(resume).toHaveBeenCalledWith('existing-agent', { cloud: {} });
         expect(sends).toEqual([
             {
                 message: 'Fix the review.',
-                options: { idempotencyKey: 'follow-up-1', model: { id: 'gpt-5.4-nano' } },
+                options: {
+                    idempotencyKey: 'follow-up-1',
+                    model: {
+                        id: 'gpt-5.4-nano',
+                        params: [{ id: 'reasoning_effort', value: 'low' }],
+                    },
+                },
             },
         ]);
         expect(disposed).toBe(true);

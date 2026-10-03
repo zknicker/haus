@@ -1,6 +1,7 @@
 import { cloudAgentSettingsSchema, cloudAgentSettingsSetModelInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import {
+    CloudAgentModelParamUnofferedError,
     CloudAgentModelUnlistedError,
     CloudAgentSettingsDeniedError,
     setCloudAgentModel,
@@ -8,7 +9,10 @@ import {
 import { memberProcedure } from '../server/procedure.ts';
 import { emitServerUpdated } from '../server-events.ts';
 
-/** An Owner or Admin saves the Server's Cloud Agent model: Auto or one listed model. */
+/**
+ * An Owner or Admin saves the Server's Cloud Agent model: the Cursor default, or one
+ * listed model with offered effort and fast choices.
+ */
 export const setCloudAgentModelProcedure = memberProcedure
     .input(cloudAgentSettingsSetModelInputSchema)
     .output(cloudAgentSettingsSchema)
@@ -21,7 +25,10 @@ export const setCloudAgentModelProcedure = memberProcedure
             if (cause instanceof CloudAgentSettingsDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
             }
-            if (cause instanceof CloudAgentModelUnlistedError) {
+            if (
+                cause instanceof CloudAgentModelUnlistedError ||
+                cause instanceof CloudAgentModelParamUnofferedError
+            ) {
                 throw new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
             }
             throw cause;

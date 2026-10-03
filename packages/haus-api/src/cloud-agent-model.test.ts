@@ -1,53 +1,140 @@
 import { expect, test } from 'bun:test';
 import {
+    cloudAgentModelCatalogSchema,
     cloudAgentModelSettingSchema,
     cloudAgentRunModelSchema,
-    resolveCloudAgentRunModel,
 } from './cloud-agent-model.ts';
+import { resolveCloudAgentRunModel } from './cloud-agent-model-choice.ts';
 import { computerInventorySchema } from './computer-inventory.ts';
 
-const catalog = {
-    models: [
-        { description: null, displayName: 'GPT-5.4 Nano', id: 'gpt-5.4-nano' },
-        { description: 'Frontier', displayName: 'Claude Opus', id: 'claude-opus' },
-    ],
-    refreshedAt: '2026-10-02T12:00:00.000Z',
+const nano = {
+    description: null,
+    displayName: 'GPT-5.4 Nano',
+    effort: {
+        defaultValue: 'medium',
+        options: [
+            { displayName: 'Low', value: 'low' },
+            { displayName: 'Medium', value: 'medium' },
+        ],
+        providerParamId: 'reasoning',
+    },
+    family: 'gpt' as const,
+    fast: null,
+    id: 'gpt-5.4-nano',
+    order: 0,
 };
+const composer = {
+    description: null,
+    displayName: 'Composer 2.5',
+    effort: null,
+    family: 'composer' as const,
+    fast: { defaultValue: true },
+    id: 'composer-2.5',
+    order: 1,
+};
+const catalog = { models: [nano, composer], refreshedAt: '2026-10-02T12:00:00.000Z' };
+const none = { droppedParams: [], fallbackFrom: null, id: null, params: [] };
 
 test('Auto sends no model and never records a fallback', () => {
-    expect(resolveCloudAgentRunModel({ kind: 'auto' }, catalog)).toEqual({
-        fallbackFrom: null,
-        id: null,
-    });
-    expect(resolveCloudAgentRunModel({ kind: 'auto' }, null)).toEqual({
-        fallbackFrom: null,
-        id: null,
-    });
+    expect(resolveCloudAgentRunModel({ kind: 'auto' }, catalog)).toEqual(none);
+    expect(resolveCloudAgentRunModel({ kind: 'auto' }, null)).toEqual(none);
 });
 
-test('a listed saved model is sent as chosen', () => {
-    expect(resolveCloudAgentRunModel({ id: 'gpt-5.4-nano', kind: 'model' }, catalog)).toEqual({
+test('a listed saved model is sent with its chosen parameters under the provider id', () => {
+    expect(
+        resolveCloudAgentRunModel(
+            { id: 'gpt-5.4-nano', kind: 'model', params: { effort: 'low' } },
+            catalog
+        )
+    ).toEqual({
+        droppedParams: [],
         fallbackFrom: null,
         id: 'gpt-5.4-nano',
+        params: [{ name: 'effort', providerParamId: 'reasoning', value: 'low' }],
+    });
+    expect(
+        resolveCloudAgentRunModel(
+            { id: 'composer-2.5', kind: 'model', params: { fast: false } },
+            catalog
+        ).params
+    ).toEqual([{ name: 'fast', providerParamId: 'fast', value: 'false' }]);
+});
+
+test('an unset parameter sends nothing, so the model default applies', () => {
+    expect(
+        resolveCloudAgentRunModel({ id: 'gpt-5.4-nano', kind: 'model', params: {} }, catalog)
+    ).toEqual({ droppedParams: [], fallbackFrom: null, id: 'gpt-5.4-nano', params: [] });
+});
+
+test('a saved parameter the model no longer offers is dropped and recorded', () => {
+    expect(
+        resolveCloudAgentRunModel(
+            { id: 'gpt-5.4-nano', kind: 'model', params: { effort: 'max', fast: true } },
+            catalog
+        )
+    ).toEqual({
+        droppedParams: ['effort', 'fast'],
+        fallbackFrom: null,
+        id: 'gpt-5.4-nano',
+        params: [],
     });
 });
 
-test('an unlisted saved model or a missing catalog falls back to Auto and says so', () => {
-    expect(resolveCloudAgentRunModel({ id: 'retired-model', kind: 'model' }, catalog)).toEqual({
+test('an unlisted saved model or a missing catalog falls back to the Cursor default and says so', () => {
+    const retired = { id: 'retired-model', kind: 'model' as const, params: { effort: 'low' } };
+    expect(resolveCloudAgentRunModel(retired, catalog)).toEqual({
+        ...none,
         fallbackFrom: 'retired-model',
-        id: null,
     });
-    expect(resolveCloudAgentRunModel({ id: 'gpt-5.4-nano', kind: 'model' }, null)).toEqual({
-        fallbackFrom: 'gpt-5.4-nano',
-        id: null,
-    });
+    expect(
+        resolveCloudAgentRunModel({ id: 'gpt-5.4-nano', kind: 'model', params: {} }, null)
+    ).toEqual({ ...none, fallbackFrom: 'gpt-5.4-nano' });
 });
 
-test('the setting is a narrow union and a Run cannot both send and fall back', () => {
+test('the setting is a narrow union; an empty params object means the model defaults', () => {
     expect(cloudAgentModelSettingSchema.safeParse({ kind: 'model' }).success).toBe(false);
     expect(cloudAgentModelSettingSchema.safeParse({ id: 'x', kind: 'auto' }).success).toBe(false);
-    expect(cloudAgentModelSettingSchema.safeParse({ id: ' ', kind: 'model' }).success).toBe(false);
-    expect(cloudAgentRunModelSchema.safeParse({ fallbackFrom: 'a', id: 'b' }).success).toBe(false);
+    expect(
+        cloudAgentModelSettingSchema.safeParse({ id: ' ', kind: 'model', params: {} }).success
+    ).toBe(false);
+    expect(cloudAgentModelSettingSchema.safeParse({ id: 'x', kind: 'model' }).success).toBe(false);
+    expect(
+        cloudAgentModelSettingSchema.safeParse({ id: 'x', kind: 'model', params: {} }).success
+    ).toBe(true);
+    expect(
+        cloudAgentModelSettingSchema.safeParse({
+            id: 'x',
+            kind: 'model',
+            params: { context: '1m' },
+        }).success
+    ).toBe(false);
+    expect(
+        cloudAgentModelSettingSchema.safeParse({ id: 'x', kind: 'model', params: { fast: 'true' } })
+            .success
+    ).toBe(false);
+});
+
+test('a Run cannot both send and fall back, nor carry parameters without a model', () => {
+    expect(
+        cloudAgentRunModelSchema.safeParse({ ...none, fallbackFrom: 'a', id: 'b' }).success
+    ).toBe(false);
+    expect(
+        cloudAgentRunModelSchema.safeParse({
+            ...none,
+            params: [{ name: 'fast', providerParamId: 'fast', value: 'true' }],
+        }).success
+    ).toBe(false);
+    expect(cloudAgentRunModelSchema.safeParse({ ...none, droppedParams: ['effort'] }).success).toBe(
+        false
+    );
+});
+
+test('a catalog effort default must be one of its options', () => {
+    const wrong = { ...nano, effort: { ...nano.effort, defaultValue: 'xhigh' } };
+    expect(cloudAgentModelCatalogSchema.safeParse({ ...catalog, models: [wrong] }).success).toBe(
+        false
+    );
+    expect(cloudAgentModelCatalogSchema.safeParse(catalog).success).toBe(true);
 });
 
 test('an inventory stored before catalogs reads as no catalog', () => {

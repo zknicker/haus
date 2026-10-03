@@ -6,6 +6,7 @@ import {
     CloudAgentLaunchRejectedError,
     CloudAgentProviderUnavailableError,
     type CloudAgentRunRef,
+    cloudAgentModelSelectionOf,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
@@ -138,8 +139,8 @@ export async function startCloudAgentWork(input: {
         launch = await provider.start({
             idempotencyKey: receipt.runId,
             instructions,
-            // Server resolved the Server's chosen model, or its Auto fallback, onto the Run.
-            model: run?.model.id ?? null,
+            // Server resolved the Server's chosen model, or its default fallback, onto the Run.
+            model: cloudAgentModelSelectionOf(run?.model),
             ref: receipt.work.startingRef,
             repository: receipt.work.repository,
             title: receipt.work.title,

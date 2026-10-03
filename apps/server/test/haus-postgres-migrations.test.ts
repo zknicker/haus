@@ -97,6 +97,39 @@ test('upgrades the preceding production schema without replaying migrations', as
             await upgraded`SELECT column_name FROM information_schema.columns
             WHERE table_name = 'agent_inbox' AND column_name = 'expects_reply'`
         ).toEqual([]);
+        expect(
+            await upgraded`SELECT table_name, column_name, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE column_name IN ('cloud_agent_model_params', 'model_params', 'model_dropped_params')
+            ORDER BY table_name, column_name`
+        ).toEqual([
+            {
+                table_name: 'cloud_agent_runs',
+                column_name: 'model_dropped_params',
+                is_nullable: 'NO',
+                column_default: "'[]'::jsonb",
+            },
+            {
+                table_name: 'cloud_agent_runs',
+                column_name: 'model_params',
+                is_nullable: 'NO',
+                column_default: "'[]'::jsonb",
+            },
+            {
+                table_name: 'servers',
+                column_name: 'cloud_agent_model_params',
+                is_nullable: 'NO',
+                column_default: "'{}'::jsonb",
+            },
+        ]);
+        expect(
+            await upgraded`SELECT conname FROM pg_constraint
+            WHERE conname IN ('servers_cloud_agent_model_params_shape', 'cloud_agent_runs_model_params_shape')
+            ORDER BY conname`
+        ).toEqual([
+            { conname: 'cloud_agent_runs_model_params_shape' },
+            { conname: 'servers_cloud_agent_model_params_shape' },
+        ]);
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([]);
     } finally {
         await upgraded?.close();

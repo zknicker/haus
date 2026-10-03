@@ -65,7 +65,7 @@ test('a launch creates the provider Agent and returns its Run and page', async (
     const launch = await provider.start({
         idempotencyKey: 'car_1234567890abcdef',
         instructions: 'Reproduce the flake and open a pull request.',
-        model: 'gpt-5.4-nano',
+        model: { id: 'gpt-5.4-nano', params: [{ id: 'reasoning', value: 'low' }] },
         ref: 'main',
         repository: 'haus/haus',
         title: 'Fix the flaky delivery test',
@@ -78,7 +78,7 @@ test('a launch creates the provider Agent and returns its Run and page', async (
         status: 'running',
     });
     expect(transport.requests).toEqual([
-        'start haus/haus@main car_1234567890abcdef model=gpt-5.4-nano',
+        'start haus/haus@main car_1234567890abcdef model=gpt-5.4-nano,reasoning:low',
     ]);
 });
 

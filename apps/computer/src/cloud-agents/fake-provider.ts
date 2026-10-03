@@ -1,6 +1,7 @@
-import type { CloudAgentModel, CloudAgentStatus } from '@haus/api';
+import type { CloudAgentStatus } from '@haus/api';
 import type {
     CloudAgentLaunch,
+    CloudAgentModelListing,
     CloudAgentProvider,
     CloudAgentProviderObservation,
     CloudAgentReadiness,
@@ -20,7 +21,7 @@ export interface FakeCloudAgentProvider extends CloudAgentProvider {
 }
 
 export interface FakeCloudAgentProviderOptions {
-    models?: CloudAgentModel[];
+    models?: CloudAgentModelListing[];
     readiness?: CloudAgentReadiness;
     /** Scripted transitions, replayed in order by `advance`. */
     transitions?: CloudAgentProviderObservation[];

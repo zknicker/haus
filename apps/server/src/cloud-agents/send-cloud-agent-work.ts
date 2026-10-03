@@ -70,8 +70,10 @@ export async function sendCloudAgentWork(
             });
             await tx.insert(cloudAgentRunsTable).values({
                 id: runId,
+                modelDroppedParams: model.droppedParams,
                 modelFallbackFrom: model.fallbackFrom,
                 modelId: model.id,
+                modelParams: model.params,
                 serverId: runner.serverId,
                 workId: input.workId,
                 createdAt: sql`greatest(clock_timestamp(), (select max(created_at) + interval '1 millisecond' from cloud_agent_runs where server_id = ${runner.serverId} and work_id = ${input.workId}))`,

@@ -84,7 +84,7 @@ export function createRecordedCursorTransport(
         requests,
         send(input: CursorSendInput) {
             requests.push(
-                `send ${input.agentId} ${input.idempotencyKey} model=${input.model ?? 'auto'}`
+                `send ${input.agentId} ${input.idempotencyKey} model=${modelLabel(input.model)}`
             );
             if (options.sendFailure) {
                 return Promise.reject(options.sendFailure);
@@ -98,7 +98,7 @@ export function createRecordedCursorTransport(
         },
         start(input: CursorStartInput) {
             requests.push(
-                `start ${input.repository}@${input.ref ?? 'default'} ${input.idempotencyKey} model=${input.model ?? 'auto'}`
+                `start ${input.repository}@${input.ref ?? 'default'} ${input.idempotencyKey} model=${modelLabel(input.model)}`
             );
             if (options.startFailure) {
                 return Promise.reject(options.startFailure);
@@ -152,11 +152,33 @@ export const recordedAuth = {
     loggedOut: { connected: false, reason: 'not-connected' },
 } satisfies Record<string, CursorAuth>;
 
-/** Recorded from `Cursor.models.list()`; the cheapest tier is gpt-5.4-nano. */
+/** Trimmed from a real `Cursor.models.list()`; the cheapest tier is gpt-5.4-nano. */
 export const recordedModels: CursorModelListing[] = [
-    { description: null, displayName: 'GPT-5.4 Nano', id: 'gpt-5.4-nano' },
-    { description: 'Frontier reasoning', displayName: 'Claude Opus', id: 'claude-opus' },
+    { displayName: 'Auto', id: 'default', variants: [{ isDefault: true, params: [] }] },
+    {
+        displayName: 'GPT-5.4 Nano',
+        id: 'gpt-5.4-nano',
+        parameters: [
+            {
+                displayName: 'Reasoning',
+                id: 'reasoning',
+                values: [
+                    { displayName: 'Low', value: 'low' },
+                    { displayName: 'Medium', value: 'medium' },
+                ],
+            },
+        ],
+        variants: [{ isDefault: true, params: [{ id: 'reasoning', value: 'medium' }] }],
+    },
 ];
+
+/** A start or send's model as the recorded request log spells it. */
+function modelLabel(model: CursorStartInput['model']): string {
+    if (!model) {
+        return 'auto';
+    }
+    return [model.id, ...model.params.map((param) => `${param.id}:${param.value}`)].join(',');
+}
 
 export const recordedAgentId = 'bc-9f2c1d4e';
 export const recordedRunId = 'run-7a6b5c4d';

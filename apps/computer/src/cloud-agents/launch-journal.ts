@@ -15,8 +15,14 @@ const recordSchema = z.discriminatedUnion('phase', [
         phase: z.literal('pending'),
         workId: z.string(),
         instructions: z.string().min(1),
-        /** Absent in records written before Server resolved a model: Auto. */
-        model: z.string().min(1).nullable().default(null),
+        /** Absent in records written before Server resolved a model: Cursor default. */
+        model: z
+            .object({
+                id: z.string().min(1),
+                params: z.array(z.object({ id: z.string().min(1), value: z.string().min(1) })),
+            })
+            .nullable()
+            .default(null),
         providerAgentId: z.string().min(1),
         interrupt: z.boolean(),
         predecessors: z.array(

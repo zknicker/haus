@@ -8,14 +8,68 @@ export const cloudAgentModelsListed = 200;
 export const cloudAgentModelIdSchema = z.string().trim().min(1).max(200);
 
 /**
+ * The model families a settings surface groups by, derived from the model id
+ * and name. Codex models are GPT models.
+ */
+export const cloudAgentModelFamilySchema = z.enum([
+    'claude',
+    'gpt',
+    'gemini',
+    'grok',
+    'composer',
+    'glm',
+    'kimi',
+    'other',
+]);
+
+/** The two user-facing model parameters Haus offers; Cursor's defaults cover the rest. */
+export const cloudAgentModelParamNameSchema = z.enum(['effort', 'fast']);
+
+const paramValueSchema = z.string().trim().min(1).max(100);
+const providerParamIdSchema = z.string().trim().min(1).max(100);
+
+export const cloudAgentModelEffortOptionSchema = z
+    .object({ displayName: z.string().trim().min(1).max(100), value: paramValueSchema })
+    .strict();
+
+/**
+ * One effort control normalized over Cursor's `effort`, `reasoning`, and
+ * `reasoning_effort` spellings. `providerParamId` is the spelling this model
+ * takes on the wire. `defaultValue` is the value Cursor's default variant
+ * uses, or `null` when that variant names none.
+ */
+export const cloudAgentModelEffortSchema = z
+    .object({
+        defaultValue: paramValueSchema.nullable(),
+        options: z.array(cloudAgentModelEffortOptionSchema).min(1).max(20),
+        providerParamId: providerParamIdSchema,
+    })
+    .strict()
+    .refine(
+        (effort) =>
+            effort.defaultValue === null ||
+            effort.options.some((option) => option.value === effort.defaultValue),
+        { message: 'The default effort is one of the options.', path: ['defaultValue'] }
+    );
+
+/** Fast mode, offered as on or off. `defaultValue` is Cursor's default variant's choice. */
+export const cloudAgentModelFastSchema = z.object({ defaultValue: z.boolean() }).strict();
+
+/**
  * One model the Computer's Cursor account can run, as Cursor's own catalog
- * lists it. Cursor publishes no price or tier, so Haus carries none.
+ * lists it. Cursor publishes no price or tier, so Haus carries none. `order`
+ * is the model's position in Cursor's list; `effort` and `fast` are `null`
+ * when the model does not offer them.
  */
 export const cloudAgentModelSchema = z
     .object({
         description: z.string().trim().min(1).max(500).nullable(),
         displayName: z.string().trim().min(1).max(200),
+        effort: cloudAgentModelEffortSchema.nullable(),
+        family: cloudAgentModelFamilySchema,
+        fast: cloudAgentModelFastSchema.nullable(),
         id: cloudAgentModelIdSchema,
+        order: z.int().min(0),
     })
     .strict();
 
@@ -30,31 +84,64 @@ export const cloudAgentModelCatalogSchema = z
     })
     .strict();
 
+/** The parameters a human chose; an absent one means the model's own default. */
+export const cloudAgentModelParamsSchema = z
+    .object({ effort: paramValueSchema.optional(), fast: z.boolean().optional() })
+    .strict();
+
 /**
  * The human-chosen Cloud Agent model for one Server. `auto` sends no model and
- * lets Cursor pick; `model` names one catalog id. Agents cannot override it.
+ * lets Cursor pick; `model` names one catalog id and the parameters chosen for
+ * it. Agents cannot override it.
  */
 export const cloudAgentModelSettingSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('auto') }).strict(),
-    z.object({ id: cloudAgentModelIdSchema, kind: z.literal('model') }).strict(),
+    z
+        .object({
+            id: cloudAgentModelIdSchema,
+            kind: z.literal('model'),
+            params: cloudAgentModelParamsSchema,
+        })
+        .strict(),
 ]);
+
+/** One parameter a Run sent, under Haus's name and the provider's own id. */
+export const cloudAgentRunModelParamSchema = z
+    .object({
+        name: cloudAgentModelParamNameSchema,
+        providerParamId: providerParamIdSchema,
+        value: paramValueSchema,
+    })
+    .strict();
 
 /**
  * The model one Run asked the provider for. `id` is what Haus sent, and `null`
- * means it sent none, so Cursor used the account's default model. `fallbackFrom` names the saved
- * model Haus could not send because the launching Computer's newest catalog
- * did not list it (or it had no catalog), so that Run fell back to the Cursor default.
+ * means it sent none, so Cursor used the account's default model. `params` are
+ * the parameters sent with `id`; an unsent one took the model's default.
+ * `fallbackFrom` names the saved model Haus could not send because the
+ * launching Computer's newest catalog did not list it (or it had no catalog).
+ * `droppedParams` names saved parameters that model no longer offered with the
+ * saved value, so they took the model's default.
  */
 export const cloudAgentRunModelSchema = z
     .object({
+        droppedParams: z.array(cloudAgentModelParamNameSchema).max(2),
         fallbackFrom: cloudAgentModelIdSchema.nullable(),
         id: cloudAgentModelIdSchema.nullable(),
+        params: z.array(cloudAgentRunModelParamSchema).max(2),
     })
     .strict()
     .refine((model) => !(model.id && model.fallbackFrom), {
         message: 'A Run that sent a model did not fall back.',
         path: ['fallbackFrom'],
-    });
+    })
+    .refine(
+        (model) => model.id || (model.params.length === 0 && model.droppedParams.length === 0),
+        {
+            message: 'Only a Run that sent a model carries parameters.',
+            path: ['params'],
+        }
+    );
 
 export const cloudAgentSettingsGetInputSchema = z
     .object({ serverId: z.string().trim().min(1) })
@@ -80,29 +167,11 @@ export const cloudAgentSettingsSchema = z
 
 export type CloudAgentModel = z.infer<typeof cloudAgentModelSchema>;
 export type CloudAgentModelCatalog = z.infer<typeof cloudAgentModelCatalogSchema>;
+export type CloudAgentModelEffort = z.infer<typeof cloudAgentModelEffortSchema>;
+export type CloudAgentModelFamily = z.infer<typeof cloudAgentModelFamilySchema>;
+export type CloudAgentModelParamName = z.infer<typeof cloudAgentModelParamNameSchema>;
+export type CloudAgentModelParams = z.infer<typeof cloudAgentModelParamsSchema>;
 export type CloudAgentModelSetting = z.infer<typeof cloudAgentModelSettingSchema>;
 export type CloudAgentRunModel = z.infer<typeof cloudAgentRunModelSchema>;
+export type CloudAgentRunModelParam = z.infer<typeof cloudAgentRunModelParamSchema>;
 export type CloudAgentSettings = z.infer<typeof cloudAgentSettingsSchema>;
-
-/**
- * The one fallback rule: send the saved model only when the catalog lists it;
- * otherwise send none and record which saved model fell back.
- */
-export function resolveCloudAgentRunModel(
-    setting: CloudAgentModelSetting,
-    catalog: CloudAgentModelCatalog | null
-): CloudAgentRunModel {
-    if (setting.kind === 'auto') {
-        return { fallbackFrom: null, id: null };
-    }
-    return isCloudAgentModelListed(setting.id, catalog)
-        ? { fallbackFrom: null, id: setting.id }
-        : { fallbackFrom: setting.id, id: null };
-}
-
-export function isCloudAgentModelListed(
-    modelId: string,
-    catalog: CloudAgentModelCatalog | null
-): boolean {
-    return catalog?.models.some((model) => model.id === modelId) ?? false;
-}

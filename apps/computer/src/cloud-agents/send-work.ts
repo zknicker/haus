@@ -1,6 +1,7 @@
 import { agentCloudAgentSendReceiptSchema } from '@haus/api';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import { CloudAgentServerError } from './launch-work.ts';
+import { cloudAgentModelSelectionOf } from './provider.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
 export interface CloudAgentSendRequest {
@@ -50,7 +51,7 @@ export async function sendCloudAgentWork(input: {
         workId: ref.workId,
         instructions,
         interrupt,
-        model: run?.model.id ?? null,
+        model: cloudAgentModelSelectionOf(run?.model),
         providerAgentId,
         predecessors: receipt.predecessors,
     });

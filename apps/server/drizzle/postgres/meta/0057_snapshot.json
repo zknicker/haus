@@ -1,5 +1,5 @@
 {
-  "id": "a4eb54ab-e8e9-4a46-8eb3-611319fecf52",
+  "id": "fdc0b8e6-9548-4b65-9645-493d337a6a6c",
   "prevId": "b7835635-5d07-4c8e-8667-a89aead036ae",
   "version": "7",
   "dialect": "postgresql",
@@ -4557,6 +4557,13 @@
           "primaryKey": true,
           "notNull": true
         },
+        "model_dropped_params": {
+          "name": "model_dropped_params",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
         "model_fallback_from": {
           "name": "model_fallback_from",
           "type": "text",
@@ -4568,6 +4575,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "model_params": {
+          "name": "model_params",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
         },
         "observed_at": {
           "name": "observed_at",
@@ -4701,6 +4715,10 @@
         "cloud_agent_runs_model_shape": {
           "name": "cloud_agent_runs_model_shape",
           "value": "num_nonnulls(\"cloud_agent_runs\".\"model_id\", \"cloud_agent_runs\".\"model_fallback_from\") <= 1"
+        },
+        "cloud_agent_runs_model_params_shape": {
+          "name": "cloud_agent_runs_model_params_shape",
+          "value": "jsonb_typeof(\"cloud_agent_runs\".\"model_params\") = 'array' and jsonb_typeof(\"cloud_agent_runs\".\"model_dropped_params\") = 'array' and (\"cloud_agent_runs\".\"model_id\" is not null or (\"cloud_agent_runs\".\"model_params\" = '[]'::jsonb and \"cloud_agent_runs\".\"model_dropped_params\" = '[]'::jsonb))"
         },
         "cloud_agent_runs_terminal_shape": {
           "name": "cloud_agent_runs_terminal_shape",
@@ -8343,6 +8361,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "cloud_agent_model_params": {
+          "name": "cloud_agent_model_params",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -8411,6 +8436,10 @@
         "servers_cloud_agent_model_id_length": {
           "name": "servers_cloud_agent_model_id_length",
           "value": "\"servers\".\"cloud_agent_model_id\" is null or char_length(\"servers\".\"cloud_agent_model_id\") between 1 and 200"
+        },
+        "servers_cloud_agent_model_params_shape": {
+          "name": "servers_cloud_agent_model_params_shape",
+          "value": "jsonb_typeof(\"servers\".\"cloud_agent_model_params\") = 'object' and (\"servers\".\"cloud_agent_model_id\" is not null or \"servers\".\"cloud_agent_model_params\" = '{}'::jsonb)"
         }
       },
       "isRLSEnabled": false

@@ -1,4 +1,11 @@
-import type { Agent as CursorAgentApi, Cursor as CursorApi, Run, RunStatus } from '@cursor/sdk';
+import type {
+    Agent as CursorAgentApi,
+    Cursor as CursorApi,
+    ModelSelection,
+    Run,
+    RunStatus,
+} from '@cursor/sdk';
+import type { CloudAgentModelSelection } from '../provider.ts';
 import { streamCursorRun } from './sdk-stream.ts';
 import {
     type CursorAuth,
@@ -91,9 +98,11 @@ export function createCursorSdkTransport(
             const { Cursor } = await load();
             const models = await Cursor.models.list();
             return models.map((model) => ({
-                description: model.description?.trim() || null,
+                description: model.description ?? null,
                 displayName: model.displayName,
                 id: model.id,
+                parameters: model.parameters ?? [],
+                variants: model.variants ?? [],
             }));
         },
         async logout(): Promise<void> {
@@ -159,10 +168,11 @@ async function sendWithHandle(
     input: Pick<CursorSendInput, 'instructions' | 'idempotencyKey' | 'model'>
 ): Promise<CursorLaunchReading> {
     try {
-        // No model means Cursor's own Auto; Haus never sends a placeholder id.
+        // No model means Cursor's own default; Haus never sends a placeholder id.
+        // Unsent params take the model's default variant.
         const run = await agent.send(input.instructions, {
             idempotencyKey: input.idempotencyKey,
-            ...(input.model ? { model: { id: input.model } } : {}),
+            ...(input.model ? { model: modelSelectionOf(input.model) } : {}),
         });
         return {
             agentId: agent.agentId,
@@ -179,6 +189,10 @@ async function sendWithHandle(
     } finally {
         await agent[Symbol.asyncDispose]();
     }
+}
+
+function modelSelectionOf(model: CloudAgentModelSelection): ModelSelection {
+    return model.params.length > 0 ? { id: model.id, params: model.params } : { id: model.id };
 }
 
 async function readingOf(
