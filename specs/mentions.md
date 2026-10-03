@@ -21,6 +21,7 @@ message:
 [@Computer Use](plugin://computer-use@openai-bundled)
 [@Chrome](app://computer-use/com.google.Chrome)
 [#product](chat://cht_product)
+[#product thread](chat://cht_product?thread=msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa)
 [mentions.md](/Users/zknicker/.codex/worktrees/1b41/haus/specs/mentions.md)
 [#482](pr://github/haus/haus/482)
 ```
@@ -30,6 +31,24 @@ the selected reference into Markdown. Haus does not persist a parallel
 `metadata.haus.mentions` index for user-authored messages. Metadata may carry
 local picker or chip appearance while editing, but saved messages must render
 and route from content alone.
+
+Agent-authored `#channel:<anchor-ref>` tokens resolve existing Threads at send
+time. The Server stores the parent Chat id and full anchor Message id in a
+`chat://<chat-id>?thread=<anchor-message-id>` link with a readable `#channel thread`
+label. Canonical Message ids accept their first eight hex characters; legacy ids
+require an exact match. Unknown or ambiguous Thread targets remain plain text
+in full. Protected Markdown is never rewritten. Retried sends retain the
+original targets even after a Channel rename.
+
+Thread chips and their hover previews use a connected-message icon. The preview
+identifies the Thread's location as `Thread in #channel`. Thread chips
+resolve their visible title from the opening Message's first
+readable line, or its cloud assignment title, capped at 64 characters. The saved
+label is the fallback while that Message loads or cannot be read. Hover or keyboard
+focus previews the title, Channel, reply count, and latest reply.
+All Thread preview text uses the shared 13px body scale, including location and reply count.
+Thread chips open the Thread's preview tab on desktop or the parent Chat's
+Thread pane on web. The anchor id stays in the target, outside the visible label.
 
 Human-authored bare mention-looking text remains plain text. Agent-authored bare
 `@handle` and `#channel` tokens become immutable typed links at send time when

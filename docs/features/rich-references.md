@@ -94,6 +94,13 @@ rendering.
   persisted label remains the fallback when that Agent is unavailable.
 - Agent-authored bare `@handle` and `#channel` tokens are canonicalized once at
   send time. Human-authored composer references remain explicit typed links.
+- Existing `#channel:<anchor-ref>` Thread targets become a single readable
+  chip with a connected-message Thread icon, labelled from its opening message or
+  cloud assignment title. Hover or
+  keyboard focus previews the title, channel, reply count, and latest reply.
+  Activating it opens that Thread, using immutable parent
+  Chat and anchor Message ids carried inside the link. Unknown or ambiguous
+  targets remain plain text in full; the App does not link only their Channel.
 - Unknown or protected bare tokens remain unchanged. Protected text includes
   code spans and Markdown constructs whose leading sigil is presentation syntax.
 - Agent chips open the referenced Agent's profile (a tab on desktop, the profile
