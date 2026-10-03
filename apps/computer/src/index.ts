@@ -41,6 +41,7 @@ import {
     readAttachmentManagementEvents,
     recordAttachmentManagementEvent,
 } from './attachment-system-event-outbox.ts';
+import { runAttachmentUpdate } from './attachment-update.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
@@ -1140,13 +1141,11 @@ async function connect(
                 return;
             }
             if (update) {
-                void runSignedUpdate({
+                void runAttachmentUpdate({
                     dataRoot,
                     release: update.release,
                     restart: restartAfterUpdate,
-                }).catch((error) => {
-                    console.error(error instanceof Error ? error.message : error);
-                });
+                }).catch(console.error);
                 return;
             }
             if (
