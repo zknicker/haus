@@ -38,7 +38,7 @@ client registration, optional pre-registered clients, refresh tokens, and author
 trust. A cross-origin authorization server requires explicit operator confirmation.
 Credential-bearing endpoints require HTTPS.
 
-Google Calendar, MerchBase, RankWrangler, and X are connection presets. Server owns their immutable endpoints
+GitHub, Google Calendar, MerchBase, RankWrangler, and X are connection presets. Server owns their immutable endpoints
 and auth defaults; they use the same generic path as custom connections.
 
 ## Other capability kinds
@@ -54,5 +54,5 @@ and auth defaults; they use the same generic path as custom connections.
 - UI access is one Raft-style switch per Agent and connection; the discovered tool list is
   read-only.
 - An unavailable MCP connection does not prevent an Agent from starting.
-- OAuth interoperability depends on upstream standards support. Google needs configured Server
-  client credentials; DCR-capable servers need no packaged client.
+- OAuth interoperability depends on upstream standards support. Google and GitHub need configured
+  Server client credentials; DCR-capable servers need no packaged client.

@@ -15,8 +15,9 @@ read_when:
 - Connections support no auth, secret headers, or MCP OAuth. Remote endpoints require HTTPS;
   loopback HTTP exists only for development.
 - Haus does not support local or stdio MCP connections.
-- Google Calendar, MerchBase, RankWrangler, and X presets populate immutable URL and auth defaults, then use
-  the same storage, discovery, OAuth, grant, and invocation path as custom connections.
+- GitHub, Google Calendar, MerchBase, RankWrangler, and X presets populate immutable URL and auth
+  defaults, then use the same storage, discovery, OAuth, grant, and invocation path as custom
+  connections.
 - Each preset has one auth kind. OAuth presets sign in through MCP OAuth. Bearer-token presets (X)
   take the Server Owner's own static token at creation; Server stores it as an
   `Authorization: Bearer` secret header. Only `mcp.replacePresetToken` changes it; generic header
@@ -60,8 +61,10 @@ connection state before reading the account-scoped cache.
 - Server creates and retains PKCE state, handles the hosted callback, exchanges the code, refreshes
   tokens, and persists authorization-server trust.
 - A different authorization-server origin requires explicit operator confirmation.
-- Google Calendar uses configured Server environment credentials because Google does not offer
-  DCR. MerchBase uses Clerk DCR.
+- Google Calendar and GitHub use configured Server environment credentials because neither offers
+  DCR. GitHub's client is one Haus-owned OAuth App with the haus.chat callback, requests a fixed
+  scope set rather than every scope the resource advertises, and issues expiring access tokens
+  that Server refreshes with the client secret. MerchBase uses Clerk DCR.
 - X's hosted MCP (`https://api.x.com/mcp`) offers no OAuth discovery. Its preset uses an app-only
   Bearer token from the owner's X developer app: read-only, billed to that app's credits. Haus
   ships no X app or credentials of its own.

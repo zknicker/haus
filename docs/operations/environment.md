@@ -41,6 +41,7 @@ the access boundary.
 | `Clerk - Haus` | `Development`, `Production` | Haus's own Clerk tenancy — backend key, publishable key, issuer |
 | `Dev Sign-In User - Haus` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
+| `GitHub MCP OAuth - Haus` | `Development`, `Production` | GitHub OAuth App for the GitHub MCP connection: `username` is the client id, `credential` the secret; optional |
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
 | `Google AI Studio - Haus` | `Development`, `Production` | Server-owned Gemini key that summarizes Agent thought excerpts and action descriptions; one per lifecycle |
 | `Apple Push - Haus` | `Development`, `Production` | Server-owned APNs token-signing key for iPhone push: `key_id` and `private_key` (the `.p8` PEM); optional |
@@ -96,6 +97,13 @@ value, and without a key the Server condenses thought excerpts with a local heur
 no bubble for an action. Test and
 release lifecycles resolve no credential.
 
+The GitHub MCP preset uses `HAUS_GITHUB_OAUTH_CLIENT_ID` and `HAUS_GITHUB_OAUTH_CLIENT_SECRET`,
+resolved per lifecycle from `GitHub MCP OAuth - Haus` with `allowMissing=true`, so a lifecycle
+without the item still loads. Production's item is the one Haus-owned GitHub OAuth App whose
+callback is `https://haus.chat/mcp/oauth/callback`; it has expiring user tokens enabled, so the
+Server needs the secret to refresh. Without a client the GitHub connection reports its OAuth client
+unavailable, exactly as Google Calendar does. Test resolves fake literals; release resolves none.
+
 iPhone push uses `HAUS_APNS_KEY_ID` and `HAUS_APNS_PRIVATE_KEY`, resolved per lifecycle from
 `Apple Push - Haus` with `allowMissing=true`, so a lifecycle without the item still loads. The Server
 signs its APNs provider token with the public `APPLE_TEAM_ID`, which the renderer therefore
@@ -135,7 +143,7 @@ and a cloud agent that can reach none of them still passes `check`.
 
 Release commands run `varlock run --include-internal`, because `varlock run`
 strips `@internal` items by default and every release credential is one.
-The release switch also leaves Clerk, Google, Gemini, OpenAI, and OTLP runtime credentials
+The release switch also leaves Clerk, Google, GitHub OAuth, Gemini, OpenAI, and OTLP runtime credentials
 undefined and disables schema-provided OTLP endpoints. This keeps GitHub release jobs on their Tooling-only identity instead
 of making an unrelated Development-vault read part of signing or publication.
 
