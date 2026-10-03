@@ -32,6 +32,12 @@ const oauthPresets: Record<
     McpOAuthPreset,
     PresetDefinition<Extract<PresetAuth, { kind: 'oauth' }>>
 > = {
+    // GitHub's scopes come from its Server-configured client (oauth-clients.ts).
+    github: {
+        auth: { kind: 'oauth', scopes: [] },
+        name: 'GitHub',
+        url: 'https://api.githubcopilot.com/mcp/',
+    },
     rankwrangler: {
         auth: { kind: 'oauth', scopes: ['openid', 'email', 'profile'] },
         name: 'RankWrangler',

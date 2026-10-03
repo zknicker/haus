@@ -13,7 +13,12 @@ const toolNameSchema = z.string().trim().min(1).max(200);
  * through MCP OAuth discovery; bearer-token presets take a static token the
  * Server Owner pastes, which Server stores as an `Authorization` header secret.
  */
-export const mcpOAuthPresetSchema = z.enum(['google-calendar', 'merchbase', 'rankwrangler']);
+export const mcpOAuthPresetSchema = z.enum([
+    'github',
+    'google-calendar',
+    'merchbase',
+    'rankwrangler',
+]);
 export const mcpBearerTokenPresetSchema = z.enum(['x']);
 export const mcpPresetSchema = z.enum([
     ...mcpOAuthPresetSchema.options,

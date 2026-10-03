@@ -72,6 +72,9 @@ const envSchema = z
         HAUS_TYPESAFE_API_KEY: z.string().min(1).optional(),
         HAUS_OPENAI_API_KEY: z.string().min(1).optional(),
         HAUS_GEMINI_API_KEY: z.string().min(1).optional(),
+        // Read by the GitHub MCP preset; declared so the deploy delivers it.
+        HAUS_GITHUB_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+        HAUS_GITHUB_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
         HAUS_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),
         HAUS_SERVER_PORT: z.coerce.number().int().positive().default(getDefaultHausServerPort()),
         HAUS_STATIC_APP_ROOT: z.string().min(1).transform(resolveHomePath).optional(),

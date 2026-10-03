@@ -34,7 +34,23 @@ test('product previews require membership and a connected RankWrangler account',
     ).resolves.toBeNull();
 });
 
+test('GitHub lands as an OAuth preset awaiting sign-in', async () => {
+    const github = await owner.trpc.mcp.addPresetAccount.mutate({
+        name: 'GitHub',
+        preset: 'github',
+        serverId,
+    });
+    expect(github).toMatchObject({
+        auth: 'oauth',
+        connected: false,
+        preset: 'github',
+        url: 'https://api.githubcopilot.com/mcp/',
+    });
+    await owner.trpc.mcp.delete.mutate({ connectionId: github.id, serverId });
+});
+
 test.each([
+    'github',
     'merchbase',
     'google-calendar',
     'rankwrangler',

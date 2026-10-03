@@ -6,6 +6,7 @@ import type {
     OAuthTokens,
 } from '@ai-sdk/mcp';
 import { auth } from '@ai-sdk/mcp';
+import { configuredOAuthClient, configuredOAuthClientInformation } from './oauth-clients.ts';
 import type { McpRuntime, McpSecret } from './runtime.ts';
 import { assertSecureOrLoopbackUrl, secureMcpFetch } from './secure-fetch.ts';
 
@@ -47,8 +48,10 @@ export async function startMcpAuthorization(
         routingState: input.routingState,
     });
     try {
+        const configured = configuredOAuthClient(connection.preset);
         const result = await auth(provider, {
             fetchFn: secureMcpFetch,
+            ...(configured?.scopeOverridesResource ? { scope: configured.scope } : {}),
             serverUrl: connection.url,
         });
         if (result !== 'REDIRECT' || !authorizationUrl) {
@@ -102,11 +105,10 @@ export async function createMcpOAuthProvider(
     }
 ): Promise<OAuthClientProvider> {
     const connection = await requireOAuthConnection(runtime, connectionId);
+    const configured = configuredOAuthClient(connection.preset);
     let secret = await runtime.readSecret(connectionId);
     const trustedOrigins = new Set([
-        ...(connection.preset === 'google-calendar'
-            ? ['https://accounts.google.com', 'https://oauth2.googleapis.com']
-            : []),
+        ...(configured?.authorizationServerOrigins ?? []),
         ...secret.approvedAuthorizationServerOrigins,
     ]);
     let approvalAvailable = options.allowAuthorizationServerOrigin;
@@ -140,15 +142,12 @@ export async function createMcpOAuthProvider(
             if (secret.configuredClientInformation) {
                 return secret.configuredClientInformation as OAuthClientInformation;
             }
-            if (secret.clientInformation) {
-                return secret.clientInformation as OAuthClientInformation;
+            // A Server-owned preset client is read fresh, never copied onto the
+            // connection, so a rotated secret reaches existing connections.
+            if (configured) {
+                return configuredOAuthClientInformation(configured);
             }
-            if (connection.preset !== 'google-calendar') {
-                return undefined;
-            }
-            const client = googleOAuthClient();
-            await update({ clientInformation: client });
-            return client;
+            return secret.clientInformation as OAuthClientInformation | undefined;
         },
         get clientMetadata(): OAuthClientMetadata {
             const configuredSecret = secret.configuredClientInformation?.client_secret;
@@ -158,17 +157,16 @@ export async function createMcpOAuthProvider(
                 grant_types: ['authorization_code', 'refresh_token'],
                 redirect_uris: [redirectUrl],
                 response_types: ['code'],
-                ...(connection.preset === 'google-calendar'
-                    ? { scope: 'https://www.googleapis.com/auth/calendar' }
+                ...(configured
+                    ? { scope: configured.scope }
                     : connection.preset === 'merchbase'
                       ? { scope: 'openid profile email' }
                       : secret.oauthScopes.length > 0
                         ? { scope: secret.oauthScopes.join(' ') }
                         : {}),
                 token_endpoint_auth_method:
-                    connection.preset === 'google-calendar' || typeof configuredSecret === 'string'
-                        ? 'client_secret_basic'
-                        : 'none',
+                    configured?.tokenEndpointAuthMethod ??
+                    (typeof configuredSecret === 'string' ? 'client_secret_basic' : 'none'),
             };
         },
         async codeVerifier() {
@@ -249,15 +247,6 @@ async function requireOAuthConnection(runtime: McpRuntime, connectionId: string)
         throw new Error('This MCP connection does not use OAuth.');
     }
     return connection;
-}
-
-function googleOAuthClient(): OAuthClientInformation {
-    const clientId = process.env.HAUS_GOOGLE_OAUTH_CLIENT_ID?.trim();
-    const clientSecret = process.env.HAUS_GOOGLE_OAUTH_CLIENT_SECRET?.trim();
-    if (!(clientId && clientSecret)) {
-        throw new Error('The Haus Server Google Calendar OAuth client is unavailable.');
-    }
-    return { client_id: clientId, client_secret: clientSecret };
 }
 
 function validateAuthorizationServerInformation(value: OAuthAuthorizationServerInformation) {

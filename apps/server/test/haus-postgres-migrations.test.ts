@@ -54,6 +54,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0053_push_devices',
             '0054_drop_chat_reads_done_sequence',
             '0055_x_preset',
+            '0056_github_preset',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
