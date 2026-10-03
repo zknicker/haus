@@ -1,13 +1,15 @@
 ---
-summary: Desktop workspace tabs (primary, browser, artifact, Agent, and Thread tabs), split and expanded modes and the side pane, preview tabs, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
+summary: Desktop workspace tabs (primary, browser, artifact, Agent, Thread, and Files tabs), split and expanded modes and the side pane, preview tabs, per-window tab persistence, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
 read_when:
   - changing desktop browser tabs, external-link opening, or browser session storage
   - changing desktop artifact tabs or where artifacts open on desktop
   - changing desktop Agent profile tabs, the side pane, split or expanded mode, or where new tabs land
   - changing desktop Thread tabs, preview tabs, or where Threads open on desktop
+  - changing chat Files, or the chat side panel versus the desktop side pane
   - changing the shell topbar or browser access by Agents
   - changing workspace tab identity, favicons, or tab strip overflow
   - changing browser shortcuts, find in page, page zoom, reopening closed tabs, or the page context menu
+  - changing tab persistence per window or tab drag
 ---
 
 # Workspace tabs
@@ -20,7 +22,9 @@ navigation belongs to the browser toolbar inside the page. There is one primary 
 page, that follows sidebar navigation. Visiting another channel never creates another Chat tab. The
 mounted Chat stays intact while another tab is selected, including its composer draft. Artifacts open as their own
 tabs (see [Artifact tabs](#artifact-tabs)); the Artifact Panel and its toggle do not appear in desktop
-tabs.
+tabs. Desktop has one right-hand pane: the chat renders no side panel of its own, and the chat's
+Files, artifacts, and Threads open as workspace tabs instead. The sidebar decides the main pane;
+anything opened from content (a link, a profile, a Thread, Files) is a tab.
 
 Every tab shares one anatomy: a compact rounded tab holding a leading mark and a title that ends in
 an ellipsis when cut off. The whole tab selects it. The primary tab borrows
@@ -54,8 +58,8 @@ never moves or closes. A dragged tab moves only along the strip and stays inside
 slide aside to preview the new order, the order commits on drop, and Escape cancels. Closing the
 selected tab selects the last remaining tab in its strip: in expanded mode the primary tab when no
 other tab remains; in split mode the side pane closes with its last tab.
-Command-W closes the selected tab Command-W points at (see the shortcut table); Command-T opens a
-blank browser tab unless the visible Artifact Panel owns that command.
+Command-W closes the closable tab on screen, wherever keyboard focus is (see the shortcut table);
+Command-T opens a blank browser tab.
 Command-L focuses and selects the address; Command-R reloads the website. Control-Tab and
 Control-Shift-Tab cycle through the visible strip's tabs in order (the side pane's in split mode,
 revealing a hidden pane); Command-1 through Command-9 select tabs directly, with 9 selecting the
@@ -90,11 +94,14 @@ Shortcuts behave the same whether the App chrome or a website has focus. A focus
 keys first, so Electron maps them before the page sees them (`electron/browser-shortcuts.cjs`); with
 the App focused, the App menu owns New Tab, Close, Reopen Closed Tab, Find, and Zoom, and the App
 maps the rest from the same table (`hooks/browser/browser-shortcut-keys.ts`, parity-tested).
+Command means Command on macOS and Control elsewhere; Control is the command key only off macOS,
+so Control-Tab stays tab cycling there.
 
 | Keys | Action |
 | --- | --- |
 | Command-T | New blank browser tab |
-| Command-W | Expanded: close the selected closable tab. Split: close the side pane's selected tab while focus is in the side pane or its page (the window otherwise, or when none) |
+| Command-W | Close the closable tab on screen (the side pane's, or the covering expanded tab), wherever focus is. With tabs open but none on screen, nothing. Closes the window only when no closable tab is open |
+| Command-Shift-W | Close the window |
 | Command-Shift-T | Reopen the most recently closed tab |
 | Command-L | Focus and select the address |
 | Command-R / Command-Shift-R | Reload / reload bypassing the cache (browser tab only) |
@@ -138,7 +145,8 @@ bare page offers Back, Forward, and Reload. Development builds add Inspect Eleme
 On desktop, opening an artifact from a message (an artifact card or a `haus://` workspace link) opens
 it as a workspace tab and selects it. Opening an artifact that already has a tab selects that tab;
 identity is the Agent plus the workspace path. The tab title is the artifact's authored title, or its
-file name. The tooltip adds the chat it was opened from and its path. The website keeps opening
+file name. The tooltip adds the chat it was opened from and its path. A target no Agent workspace
+holds shows an "Artifact unavailable" notice on desktop, which has no chat Artifact Panel. The website keeps opening
 artifacts in the chat's Artifact Panel (ADR 0004).
 
 A selected artifact tab shows the Artifact Panel's own renderers (in the side pane, or covering the
@@ -158,7 +166,10 @@ tabs keep their order among themselves. A primary-tab position saved by earlier 
 On desktop, opening an Agent's profile (clicking an Agent avatar or chip, a profile link, the DM
 menu's View agent profile, or the command menu's Agent Profile) opens an Agent tab through
 `useOpenAgentProfile`; the website navigates to the profile route instead (ADR 0038). In split
-mode it opens in the side pane beside the routed page. Identity is the
+mode it opens in the side pane beside the routed page. An Agent address arriving on desktop (a deep
+link, an old bookmark, a new window, including the retired members and Settings addresses) opens
+the Agent's tab and hands the main pane back to the page it showed, or to the Server's default page
+when there was none. Identity is the
 Agent id: opening an Agent that already has a tab selects that tab where it is. The tab shows the
 Agent's avatar and display name, blank while the Agent loads. Its body is the profile hub; drilling
 into a section (Runs on, Skills, Workspace, and so on) stays inside the tab, which remembers its
@@ -186,6 +197,24 @@ preview tab: opening another Thread replaces it in the same strip position inste
 tab. A preview tab pins, keeping its place and dropping the italics, when you send a reply in it
 or double-click its tab. Reopened Threads open pinned. Pinned Thread tabs persist with artifact and
 Agent tabs; the preview tab does not.
+
+## Files tabs
+
+On desktop the chat actions menu's Files opens the chat's Files tab through `useChatFilesPane`; the
+website keeps Files in the chat side panel. Identity is the chat: reopening selects the open tab.
+The tab reads "Files" beside its chat's mark; the tooltip adds the chat (`#name`, or `DM`). Its body
+lists the attachments in the chat's loaded messages, in a centered reading column. A Files tab whose
+chat is gone closes without being remembered for Reopen Closed Tab. Files tabs persist with
+artifact, Agent, and pinned Thread tabs.
+
+## Tabs per window
+
+Each window keeps its own App-local tabs per Server: they survive its reloads and close with it. A
+new window (or the first after launch) starts from the most recently saved window's tabs. Browser
+tabs are never restored.
+
+Dragging a tab only reorders it: it moves along its own strip, locked horizontal and clamped to the
+strip. Tabs never move between windows.
 
 ## Split and expanded modes
 
