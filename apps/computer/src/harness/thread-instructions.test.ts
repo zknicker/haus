@@ -24,10 +24,14 @@ test('Threads keep the full answer with its request and describe target construc
     const sending = instructions.split('### Sending messages')[1]?.split('### ')[0] ?? '';
     expect(sending).toContain('haus message send --target <target> --reply-to <shortid>');
     expect(sending).toContain(
-        'Keep acknowledgments, progress updates, and answers where the request arrived'
+        'Post your acknowledgment, questions, and final answer as inline replies'
     );
     expect(sending).toContain(
-        'For a message that arrived inside a thread, send to that thread target'
+        'Put step-by-step progress of solo work in a thread on your acknowledgment, never in a thread on the request.'
+    );
+    expect(sending).not.toContain('progress updates, and answers where the request arrived');
+    expect(sending).toContain(
+        'for a message that arrived inside a thread, send to that thread target'
     );
     expect(sending).toContain('Manual topic `replies`');
     expect(sending.indexOf('--reply-to')).toBeLessThan(sending.indexOf('**Reply to a channel**'));

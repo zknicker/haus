@@ -22,7 +22,8 @@ test('cloud work teaches automatic inbox delivery without a backup reminder', ()
     // family entry requires reading first.
     expect(section).not.toContain('haus cloud-agent send');
     expect(section).not.toContain('implementation details and revisions');
-    expect(section).toContain('keep the requester informed where they asked for the work');
+    // Where updates go (work thread vs. requester) lives in the `cloud-agents` Manual topic too.
+    expect(section).not.toContain('keep the requester informed');
+    expect(section).not.toContain('Follow their lead when they join the work thread.');
     expect(section).toContain('bring back a concise outcome with a link to the work');
-    expect(section).toContain('Follow their lead when they join the work thread.');
 });

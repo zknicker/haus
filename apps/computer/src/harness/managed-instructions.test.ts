@@ -87,7 +87,7 @@ test('task updates follow the requesting conversation', () => {
         'To reply to any message, always reuse the exact `target` from the received message.'
     );
     expect(prompt).toContain(
-        '**Keep the conversation together.** Continue each request in the chat or thread where it was asked'
+        '**Keep the conversation together.** Acknowledge and answer each request in the chat or thread where it was asked'
     );
     expect(prompt).not.toContain('Deliver the final result there unless');
 });
@@ -202,8 +202,12 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // paid for by relocating the Cloud agents section's `cloud-agent send` and work-thread
     // sentences to the `cloud-agents` Manual topic. Raised by operator decision (32,220 → 32,444)
     // when the Formatting section gained a chat-register rule against bold-as-emphasis and
-    // structure-only lists, headings, and tables.
-    expect(prompt.length).toBeLessThanOrEqual(32_444);
+    // structure-only lists, headings, and tables. Lowered (32,444 → 32,416) when Sending messages
+    // moved solo step-by-step progress into a thread on the acknowledgment (ADR 0029 amendment,
+    // 2026-10-02), paid for by relocating the Cloud agents section's requester-update and
+    // work-thread sentences to the `cloud-agents` Manual topic and shortening the Tasks
+    // conversation rule.
+    expect(prompt.length).toBeLessThanOrEqual(32_416);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

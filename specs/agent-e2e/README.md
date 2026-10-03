@@ -80,6 +80,7 @@ Status values:
 | A6 | A Thread delivery is answered in that exact Thread rather than its parent Chat. | `test:agents thread-reply-stays-in-thread` | passing |
 | A7 | Agent-authored handoff targets the intended Chat or member and wakes the recipient. | `test:agents peer-handoff` + deterministic authorization | passing |
 | A8 | After an explicit Thread unfollow, a direct mention restores the follow and later ordinary Thread work is delivered again. | `test:agents thread-refollow-on-mention` + deterministic attention | passing |
+| A9 | Solo multi-step work keeps at most an acknowledgment and the answer in the Channel and narrates progress in a Thread on the Agent's own acknowledgment; one-step work opens no Thread. | `test:agents solo-progress-threads-on-ack`, `test:agents task-conversation-routing` | mapped |
 
 ### Tranche 3 — Task ownership and work lifecycle
 

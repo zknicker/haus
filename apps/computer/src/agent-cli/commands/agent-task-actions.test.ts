@@ -5,7 +5,7 @@ import { AgentCliError, renderAgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { runTaskClaim, runTaskCreate, runTaskList } from './agent-task-actions.ts';
 
-test('a claim reports each granted task with its thread address, without routing advice', async () => {
+test('a claim names the inline reply for each granted task, never its task thread', async () => {
     const outputs: string[] = [];
     await runTaskClaim(
         claimArgs(['7']),
@@ -13,9 +13,10 @@ test('a claim reports each granted task with its thread address, without routing
     );
 
     expect(outputs.join('')).toBe(
-        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · thread "#general:1a2b3c4d"\n'
+        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · inline reply --target "#general" --reply-to 1a2b3c4d\n' +
+            'Acknowledge and answer with that inline reply; put step-by-step progress in a thread on your acknowledgment.\n'
     );
-    expect(outputs.join('')).not.toContain('Work it in thread target');
+    expect(outputs.join('')).not.toContain('#general:1a2b3c4d');
 });
 
 test('a partial batch claim prints every row and still succeeds', async () => {
@@ -43,9 +44,10 @@ test('a partial batch claim prints every row and still succeeds', async () => {
     expect(exit).toBe(0);
     expect(outputs.join('')).toBe(
         'Claim results (1 claimed, 1 already yours, 1 refused):\n' +
-            '#7 (msg:1a2b3c4d): claimed · thread "#general:1a2b3c4d"\n' +
-            '#8 (msg:1a2b3c4d): already yours · thread "#general:1a2b3c4d"\n' +
-            '#9 (msg:1a2b3c4d): refused — held by @sage\n'
+            '#7 (msg:1a2b3c4d): claimed · inline reply --target "#general" --reply-to 1a2b3c4d\n' +
+            '#8 (msg:1a2b3c4d): already yours · inline reply --target "#general" --reply-to 1a2b3c4d\n' +
+            '#9 (msg:1a2b3c4d): refused — held by @sage\n' +
+            'Acknowledge and answer with that inline reply; put step-by-step progress in a thread on your acknowledgment.\n'
     );
 });
 

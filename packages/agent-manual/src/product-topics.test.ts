@@ -22,8 +22,16 @@ test('inline reply guidance is discoverable and separates attention from ownersh
         'Add `--done` to the message that completes your reply in that chat.'
     );
     expect(topic?.body).toContain(
-        'Interim posts (acknowledgments, progress notes, partial results) omit it.'
+        'Interim posts (your acknowledgment, a question, or a partial result the human needs now) omit it.'
     );
+    expect(topic?.body).toContain(
+        'Step-by-step progress on work you drive alone belongs in a thread on your own acknowledgment'
+    );
+    expect(topic?.body).toContain('`#channel:<ackShortId>`');
+    expect(topic?.body).toContain(
+        'Cloud agent review rounds and revisions go in the cloud work thread.'
+    );
+    expect(topic?.body).toContain('One-step work needs no thread');
     expect(topic?.body).toContain('Never react and also send a filler reply.');
     expect(topic?.body).toContain('if the message asks for anything, reply normally');
     expect(topic?.body).toContain('Vary your choices instead of repeating one.');
@@ -45,6 +53,11 @@ test('cloud work keeps implementation details and requester outcomes in their co
     expect(body).toContain('`haus cloud-agent send --work <workId>`');
     expect(body).toContain('back to the requester’s conversation');
     expect(body).toContain('following their lead when they join the work thread');
+    // Review loops stay out of the channel (ADR 0029 amendment, 2026-10-02).
+    expect(body).toContain(
+        'keep review rounds, revision requests, and step-by-step progress in the work thread'
+    );
+    expect(body).toContain('only real state changes, one line each');
 });
 
 test('publishes the Agent reference topic as the Agent-creation contract', () => {

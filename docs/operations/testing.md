@@ -301,7 +301,8 @@ Repeat `--only` to run a small named subset in one process.
 
 Conversation routing has a natural-language lane: `--only conversation-natural-followups`
 checks a basic question, a planning request, and a human Thread follow-up without routing
-instructions in the requests. `--include-opt-in --only cloud-conversation-handoff` spends
+instructions in the requests. `--only solo-progress-threads-on-ack` checks that solo multi-step
+work narrates progress in a Thread on the Agent's acknowledgment, not in the Channel. `--include-opt-in --only cloud-conversation-handoff` spends
 a real Cursor Cloud Agent run on a read-only Haus README review and checks the completion
 wake and outcome in the requesting Chat. It requires connected Cursor access to `zknicker/haus`.
 Both scenarios preserve every child conversation and all available execution journals,

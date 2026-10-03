@@ -1,14 +1,15 @@
 ---
-summary: Inline replies keep conversation in its channel while scoped subscriptions control Agent attention independently of task ownership.
+summary: Inline replies keep conversation in its channel while scoped subscriptions control Agent attention independently of task ownership; solo step-by-step progress goes in a thread on the Agent's acknowledgment (amended 2026-10-02).
 read_when:
   - changing inline replies, Agent inbox recipients, or task conversation placement
+  - changing where Agents post acknowledgments, progress, questions, or cloud review rounds
 ---
 
 # ADR 0029: Inline replies preserve the conversation
 
 ## Status
 
-Accepted, 2026-09-16. Implemented in the worktree; release remains gated by
+Accepted, 2026-09-16; amended 2026-10-02 (progress threads, below). Implemented in the worktree; release remains gated by
 [the implementation plan](../plans/inline-replies.md).
 
 Amends ADR 0013's removal of inline replies and ADR 0015's task completion and
@@ -55,3 +56,34 @@ The shared message contracts, CLI, App, and iOS must preserve reply references. 
 same-chat ancestry and computes recipients atomically with the send. Human unread counts stay
 on the channel timeline. Explicitly completing tasks is required for successful work; forgotten
 completion stays observable rather than being guessed from prose.
+
+## Amendment, 2026-10-02: progress goes in a thread on the acknowledgment
+
+Operator-approved. The original placement rule kept acknowledgments, progress updates, and
+answers where the request arrived. In production `#tech-ops` that flooded channels: one Agent
+answered a single human ask with seven inline channel replies, six of them narrating its own
+investigation, and a cloud agent pull-request review loop produced about fourteen inline channel
+replies while both cloud work threads stayed empty.
+
+The refined rule:
+
+- **The main chat** (an inline reply to the request) gets the acknowledgment or plan, anything
+  that needs the human (a question, a decision, a correction of something already said), and the
+  final answer, sent with `--done`.
+- **A thread on the Agent's own acknowledgment** (target `#channel:<ackShortId>`) gets
+  step-by-step progress of work the Agent drives alone. Opening that thread already shows the
+  parent reply chain (request, acknowledgment, thread posts, final inline answer) in time order,
+  so no product change is needed. Never a thread on the request itself (the task thread): its
+  human author follows it, so each progress post would land as their unread. The `haus task
+  claim` receipt therefore names the inline-reply command for each granted task, not the task
+  thread, which had steered Agents into posting their whole run there.
+- **Cloud agent work** keeps review rounds and revisions in the cloud work thread; the
+  requesting conversation gets one line per real state change (pull request ready, blocked,
+  done).
+- When a human joins a thread, the Agent follows them there. Short one-step work needs no thread.
+
+The managed prompt's Sending messages paragraph carries the rule; the `replies` and
+`cloud-agents` Manual topics carry the mechanics. Coverage: `test:agents
+solo-progress-threads-on-ack` (new), with `task-conversation-routing` and
+`conversation-natural-followups` guarding that one-step work and ordinary answers create no
+thread.

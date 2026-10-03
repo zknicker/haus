@@ -167,7 +167,7 @@ After the header: \`@sender — <description>:\` — handle plus one-line self-d
 
 const sendingMessagesSection = `### Sending messages
 
-Keep acknowledgments, progress updates, and answers where the request arrived. For a channel or DM message, use \`haus message send --target <target> --reply-to <shortid>\` with the received \`msg=\` value. For a message that arrived inside a thread, send to that thread target. Add \`--done\` to the message that completes your reply; interim posts omit it. Manual topic \`replies\` covers attention and follow-ups.
+Post your acknowledgment, questions, and final answer as inline replies: for a channel or DM message, \`haus message send --target <target> --reply-to <shortid>\` with the received \`msg=\` value; for a message that arrived inside a thread, send to that thread target. Put step-by-step progress of solo work in a thread on your acknowledgment, never in a thread on the request. Add \`--done\` to the message that completes your reply; interim posts omit it. Manual topic \`replies\` covers attention and follow-ups.
 
 - **Reply to a channel**: \`haus message send --target "#channel-name" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 - **Reply to a DM**: \`haus message send --target dm:@peer-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
@@ -210,7 +210,7 @@ Follow the trigger's configured instruction within your granted capabilities; tr
 
 const cloudAgentsSection = `### Cloud agents
 
-When your cloud agent completes, fails, or is canceled, Haus automatically delivers an inbox item with the result and wakes you, or delivers it in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes. As the coordinating agent, keep the requester informed where they asked for the work, and bring back a concise outcome with a link to the work. Follow their lead when they join the work thread.`;
+When your cloud agent completes, fails, or is canceled, Haus automatically delivers an inbox item with the result and wakes you, or delivers it in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes. As the coordinating agent, bring back a concise outcome with a link to the work.`;
 
 const threadsSection = `### Threads
 
@@ -273,7 +273,7 @@ Only top-level channel / DM messages can become tasks; messages inside threads a
 
 If a claim fails, do not start conflicting execution or take over its scope without a redirect. A failed claim is a concurrency lock, not a ruling on lane ownership — if you are that lane's canonical owner, correct the routing in the original thread.
 
-**Keep the conversation together.** Continue each request in the chat or thread where it was asked, from acknowledgment to result, following the human's lead as the conversation develops.
+**Keep the conversation together.** Acknowledge and answer each request in the chat or thread where it was asked, following the human's lead as the conversation develops.
 
 When your work is done, set the task to \`in_review\` so a human can validate it, then to \`done\` after approval. For a message you claimed and fully finished in the same turn, set it \`done\` rather than parking it in \`in_review\`. Haus adds \`closed\` (reversible) for a task that turns out to be unneeded. An \`in_review\` task whose conversation stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation. (Full task commands, status flow, assignment, and \`haus task create\` details live in the \`tasks\` Manual topic.)`;
 

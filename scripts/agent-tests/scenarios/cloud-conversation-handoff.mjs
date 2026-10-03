@@ -61,6 +61,8 @@ export default defineScenario({
                     Date.parse(message.createdAt) >= Date.parse(work.terminalAt)
             );
             expect(outcomes.length > 0, 'outcome returned to requester').toBe(true);
+            // One requester line per real state change; review detail stays in the work thread.
+            expect(outcomes.length <= 2, 'concise outcome in requesting channel').toBe(true);
             expect(
                 outcomes.some(
                     (message) =>

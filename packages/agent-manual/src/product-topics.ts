@@ -20,7 +20,9 @@ When you need product facts for analysis, use execute to search for RankWrangler
 
 An inline reply stays in the channel or DM with the message it answers. Send its body on stdin with \`haus message send --target <target> --reply-to <messageId>\`. The parent can be a request or any later reply in that exchange. Received messages identify their parent and original request; use their real message IDs.
 
-Finish with \`--done\`. Add \`--done\` to the message that completes your reply in that chat. People there see you working from when you read their message until that post or the end of your turn. Interim posts (acknowledgments, progress notes, partial results) omit it. Post your answer when it's ready; tidy-up work after it is fine.
+Finish with \`--done\`. Add \`--done\` to the message that completes your reply in that chat. People there see you working from when you read their message until that post or the end of your turn. Interim posts (your acknowledgment, a question, or a partial result the human needs now) omit it. Post your answer when it's ready; tidy-up work after it is fine.
+
+**Progress goes in a thread.** Step-by-step progress on work you drive alone belongs in a thread on your own acknowledgment, not in the main chat: send it to the parent target plus your acknowledgment's short ID (\`#channel:<ackShortId>\`; the send receipt names that target). Never post in a thread on the request itself (the task thread): its author follows it, so every progress post becomes their unread. People who open that thread see the request, acknowledgment, progress, and final answer in order. Cloud agent review rounds and revisions go in the cloud work thread. One-step work needs no thread, and a request that arrived inside a thread keeps its progress there, since threads cannot nest.
 
 **Acknowledge with a reaction.** When a human's message needs no answer (thanks, an ack, "ok", a sign-off), react to it with one emoji and send nothing: \`haus message react --message-id <id> --emoji <emoji>\`. Never react and also send a filler reply. React only to a human's message, never your own or another Agent's. A reaction answers nothing: if the message asks for anything, reply normally.
 
@@ -107,7 +109,7 @@ For revisions, corrections, or another step in the same assignment, send instruc
 
 \`haus cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
 
-When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Haus could read them, so you can judge the size of the change before opening it. As the coordinating Agent, bring a concise outcome and a link to the work back to the requester’s conversation, following their lead when they join the work thread.`,
+When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Haus could read them, so you can judge the size of the change before opening it. As the coordinating Agent, keep review rounds, revision requests, and step-by-step progress in the work thread. The requester’s conversation hears only real state changes, one line each: a pull request ready, a blocker that needs them, the work done. Bring a concise outcome and a link to the work back to the requester’s conversation, following their lead when they join the work thread.`,
         id: 'cloud-agents',
         kind: 'overview',
         related: ['agent', 'haus-cli-overview', 'recipes/decision/when-to-ask-human'],

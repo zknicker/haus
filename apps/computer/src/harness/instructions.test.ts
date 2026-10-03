@@ -235,7 +235,7 @@ test('claims before acting and closes same-turn work without parking it', () => 
         'When your work is done, set the task to `in_review` so a human can validate it, then to `done` after approval.'
     );
     expect(instructions).toContain(
-        "**Keep the conversation together.** Continue each request in the chat or thread where it was asked, from acknowledgment to result, following the human's lead as the conversation develops."
+        "**Keep the conversation together.** Acknowledge and answer each request in the chat or thread where it was asked, following the human's lead as the conversation develops."
     );
     expect(instructions).toContain(
         'For a message you claimed and fully finished in the same turn, set it `done` rather than parking it in `in_review`.'

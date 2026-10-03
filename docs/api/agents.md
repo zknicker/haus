@@ -157,21 +157,24 @@ rendering copy: `taskClaimConflictBlockedActionCopy` maps each blocked action id
 `TASK_CLAIM_CONFLICT_ROUTING_NOTE` is the closing sentence the CLI prints — a claim conflict is a
 concurrency lock, not a ruling on who owns or leads the lane, and a misroute is corrected in the
 original Thread. Haus has no reassignment-request command, so no clause names one.
-`haus task claim` prints every row, with each granted task's thread address as a reference and
-each refusal's holder or reason:
+`haus task claim` prints every row, with each granted task's inline-reply command and each
+refusal's holder or reason:
 
 ```
 Claim results (1 claimed, 1 refused):
-#3 (msg:b0Q8lLWk): claimed · thread "#all:b0Q8lLWk"
+#3 (msg:b0Q8lLWk): claimed · inline reply --target "#all" --reply-to b0Q8lLWk
 #4 (msg:c1R9mMXl): refused — held by @sage
+Acknowledge and answer with that inline reply; put step-by-step progress in a thread on your acknowledgment.
 ```
 
 It exits non-zero only when no row was granted. A lone refused claim with a `claimConflict`
 renders the structured block in place of the generic error line —
 `apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
-and a batch refusal repeats one line per refused task. The receipts carry no routing advice:
-conversation placement follows the human request. `haus task create` names each created task's
-thread address the same way.
+and a batch refusal repeats one line per refused task. A granted row names the inline reply to
+the task's message, never its task thread, and one closing line places progress in a thread on
+the acknowledgment: the request's author follows that thread, so posting
+there turns every update into their unread (ADR 0029). `haus task create` names each created
+task's thread address as a reference.
 
 `/update` is member-level: any Agent in the task's Chat may move status along the transition
 table in [specs/tasks.md](../../specs/tasks.md#authority-and-concurrency), holder or not; an

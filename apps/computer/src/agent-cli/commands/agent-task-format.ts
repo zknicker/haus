@@ -44,7 +44,14 @@ export function formatTasksCreated(tasks: TaskRow[], fallbackTarget: string): st
         .join('\n')}\n`;
 }
 
-/** One row per requested task; granted rows carry their thread address. */
+const CLAIM_PLACEMENT =
+    'Acknowledge and answer with that inline reply; put step-by-step progress in a thread on your acknowledgment.';
+
+/**
+ * One row per requested task. Granted rows name the inline reply to the task's
+ * message, never its task thread: the requester follows that thread, so every
+ * post there becomes their unread (ADR 0029).
+ */
 export function formatTaskClaims(results: TaskClaimResult[], fallbackTarget: string): string {
     const counts = [
         `${results.filter((row) => row.outcome === 'claimed').length} claimed`,
@@ -52,7 +59,9 @@ export function formatTaskClaims(results: TaskClaimResult[], fallbackTarget: str
         countLabel(results, 'refused', 'refused'),
     ].filter(Boolean);
     const lines = results.map((row) => claimLine(row, fallbackTarget));
-    return `Claim results (${counts.join(', ')}):\n${lines.join('\n')}\n`;
+    const granted = results.some((row) => row.outcome !== 'refused' && row.task);
+    const placement = granted ? `${CLAIM_PLACEMENT}\n` : '';
+    return `Claim results (${counts.join(', ')}):\n${lines.join('\n')}\n${placement}`;
 }
 
 /**
@@ -90,8 +99,10 @@ function claimLine(row: TaskClaimResult, fallbackTarget: string) {
         return `#${row.number}${id}: refused — ${refusalReason(row)}`;
     }
     const outcome = row.outcome === 'claimed' ? 'claimed' : 'already yours';
-    const thread = row.task ? ` · thread ${threadRef(row.task, fallbackTarget)}` : '';
-    return `#${row.number}${id}: ${outcome}${thread}`;
+    const reply = row.task
+        ? ` · inline reply --target "${row.task.target ?? fallbackTarget}" --reply-to ${shortMessageId(row.task.message.id)}`
+        : '';
+    return `#${row.number}${id}: ${outcome}${reply}`;
 }
 
 function refusalReason(row: TaskClaimResult) {

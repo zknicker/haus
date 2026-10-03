@@ -3,7 +3,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A channel request is claimed and answered in that channel, including acknowledgments, while its task Thread stays empty.',
+        'A channel request is claimed and answered in that channel, including acknowledgments, while its task Thread stays empty and one-step work opens no progress thread.',
     name: 'task-conversation-routing',
     async run({ agents, expect, kit, marker, settleTurn }) {
         const [worker] = agents;
@@ -37,6 +37,15 @@ export default defineScenario({
             await turn.authoredMessagesIn(promoted.task.threadChatId),
             'task Thread replies'
         ).toHaveLength(0);
+        const { threads } = await kit.trpc('chat.messages', {
+            chatId: channel.id,
+            limit: 100,
+            serverId: kit.serverId,
+        });
+        expect(
+            threads.reduce((total, thread) => total + thread.replyCount, 0),
+            'one-step work opens no progress thread'
+        ).toBe(0);
         const task = promoted.task;
         expect(task.assigneeAgentId, 'task claimant').toBe(worker.id);
         expect(task.claimedAt, 'task was claimed').toBeTruthy();
