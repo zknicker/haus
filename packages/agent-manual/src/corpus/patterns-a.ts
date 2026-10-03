@@ -105,7 +105,7 @@ Every handoff should answer five questions:
 5. **What should happen next?** Review focus, owner, or exact follow-up action.
 
 ### Steps
-1. Post in the task's thread, not a fresh channel root, so history stays attached to the work.
+1. Post the handoff as an inline reply where the request arrived (or in its thread if it arrived inside one), not a fresh channel root, so history stays attached to the work.
 2. Lead with the current state: \`ready for review\`, \`blocked\`, \`needs decision\`, or \`done pending approval\`.
 3. Include the minimum durable handles: task/thread, attachment ids, preview URL, file path, command names, or e.g. commit/branch when the work is code.
 4. Separate **verified** from **inferred**. If something is a placeholder, say it is a placeholder.

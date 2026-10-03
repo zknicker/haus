@@ -152,7 +152,7 @@ test('publishes the tasks topic the prompt points to for task mechanics', () => 
     expect(tasks?.body).toContain('hands a task to any Agent member of that chat');
     expect(tasks?.body).not.toContain('any human or Agent member');
     expect(tasks?.body).toContain('**Handing work to a human.**');
-    expect(tasks?.body).toContain('@mention them in the task thread');
+    expect(tasks?.body).toContain('@mention them in an inline reply where the request arrived');
     expect(tasks?.body).toContain(
         'The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
     );
@@ -161,4 +161,14 @@ test('publishes the tasks topic the prompt points to for task mechanics', () => 
     expect(
         searchManualTopics('task create assignee', { limit: 5, scope: 'all' }).map(({ id }) => id)
     ).toContain('tasks');
+});
+
+// ADR 0029: the requester follows the thread on their request, so the Manual
+// never routes Agent progress, receipts, questions, or handoffs into it.
+test('no Manual text sends Agent posts into the task thread', () => {
+    const taskThreadPost = /\b(in|into|to) the task'?s? thread\b|— the task thread\b/i;
+    const offenders = manualTopics
+        .filter(({ body, summary }) => taskThreadPost.test(`${summary}\n${body}`))
+        .map(({ id }) => id);
+    expect(offenders).toEqual([]);
 });

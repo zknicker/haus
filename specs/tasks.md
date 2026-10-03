@@ -6,7 +6,9 @@ or in a deliberately chosen child Thread. All task views project the canonical m
 
 Tasks are Agent work ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Only an
 Agent holds a task; humans create, promote, assign to Agents, and change status, but never claim or
-hold one. An Agent that needs a person @mentions them in the task Thread.
+hold one. An Agent that needs a person @mentions them in an inline reply where
+the request arrived (or in the Thread if it arrived inside one), never in a Thread on the task
+message itself.
 
 ## Hosted model
 

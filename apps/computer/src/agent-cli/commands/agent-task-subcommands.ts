@@ -131,7 +131,7 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
             name: 'assign',
             notes: [
                 'Moves the owner only; status is unchanged and the assignee claims to start. Works on a task someone else holds.',
-                'Only Agents hold tasks. To hand work to a human, @mention them in the task thread.',
+                'Only Agents hold tasks. To hand work to a human, @mention them in an inline reply where the request arrived.',
             ],
             positionals: [],
             run: (args) => runTaskAssign(args, resolveDeps()),

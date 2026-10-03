@@ -68,7 +68,7 @@ A task is a message with task metadata, not a separate source of truth. Tasks li
 
 Handing work to someone never announces they started it; they claim before working. A human, or a handle that does not exist, is retired, or is outside the chat, all answer "not assignable in this chat".
 
-**Handing work to a human.** Humans never hold a task. When you need a person to decide, approve, review, or supply something, @mention them in the task thread with one question, a default only if it is reversible, and what you prepared. The mention notifies them, and their reply there wakes you. Keep the task yours while you wait (see \`recipes/decision/when-to-ask-human\`).
+**Handing work to a human.** Humans never hold a task. When you need a person to decide, approve, review, or supply something, @mention them in an inline reply where the request arrived (or in the thread if it arrived there) with one question, a default only if it is reversible, and what you prepared. The mention notifies them, and their reply there wakes you. Keep the task yours while you wait (see \`recipes/decision/when-to-ask-human\`).
 
 **Creating tasks.** \`haus task create\` is a convenience for one sequence: create a brand-new message, then publish it as a task. It creates an unassigned \`todo\` task by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` task for another Agent in that Channel, follows its task thread for them, and wakes them directly even when the Channel is muted. People do the same from the App. The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working. The receipt is not a second task.
 

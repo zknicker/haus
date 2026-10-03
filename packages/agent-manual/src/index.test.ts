@@ -5,6 +5,7 @@ import {
     manualTopics,
     searchManualTopics,
 } from './index.ts';
+import { taskThreadRouting } from './task-thread-routing.ts';
 
 const recipeIds = [
     'recipes/archetype/analyst',
@@ -133,7 +134,13 @@ test('keeps every published body faithful to its captured source card', async ()
         const body = source
             .slice(boundaries[1].index + 3, boundaries[2]?.index ?? source.length)
             .trim();
-        const adapted = body.replaceAll(/\bRaft\b/g, 'Haus').replaceAll(/\braft\b/g, 'haus');
+        const adapted = (taskThreadRouting.get(topic.id) ?? []).reduce(
+            (text, [raftLine, hausLine]) => {
+                expect(text).toContain(raftLine);
+                return text.replace(raftLine, hausLine);
+            },
+            body.replaceAll(/\bRaft\b/g, 'Haus').replaceAll(/\braft\b/g, 'haus')
+        );
 
         if (topic.id === 'recipes/technique/html-artifact-discussion') {
             // Haus adds the artifact fence the captured card predates.

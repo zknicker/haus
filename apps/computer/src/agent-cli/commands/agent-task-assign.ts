@@ -15,7 +15,7 @@ import { assigneeLabel } from './agent-task-format.ts';
 // never assignees (ADR 0037); they are handed work by @mention in the thread.
 
 const HUMAN_HANDOFF =
-    'Only Agent members of the chat hold tasks. To hand work to a human, @mention them in the task thread with what you need from them.';
+    'Only Agent members of the chat hold tasks. To hand work to a human, @mention them in an inline reply where the request arrived with what you need from them.';
 
 export async function runTaskAssign(args: ParsedArgs, deps: TaskDeps): Promise<number> {
     const target = requireTarget(

@@ -18,7 +18,7 @@ Use receipts for high-stakes or replayable work. Do not bury routine low-stakes 
 3. State scope: what the receipt proves and what it does not prove.
 4. Separate verified from inferred. If a number is sampled, say sampled.
 5. Redact private data and credentials before uploading receipts.
-6. Put the receipt in the task thread and reference it in the handoff.
+6. Put the receipt in your final inline answer where the request arrived, and reference it in the handoff.
 
 ### Verify
 The reviewer should be able to open or rerun the receipt path and confirm the exact claim. If the receipt proves a proxy but the claim is about a live surface, add the live-surface check.
@@ -154,7 +154,7 @@ The task claim is the concurrency lock. If a message is already a task, claim th
 ### Steps
 1. Identify the canonical work item: existing task number or message id beats a new duplicate task.
 2. Claim before the first tool call or implementation step.
-3. Post progress in the task thread, not scattered across channels.
+3. Post progress in a thread on your own acknowledgment, not scattered across channels and never in the thread on the request.
 4. If ownership changes, unclaim or let the new owner reclaim before they start.
 5. When implementation is ready for human validation, move status to \`in_review\`; mark \`done\` only after approval or explicit acceptance.
 

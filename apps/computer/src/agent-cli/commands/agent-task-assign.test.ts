@@ -49,7 +49,7 @@ test('task assign names the @mention path when the Server refuses a human handle
     expect((failure as AgentCliError).code).toBe('TASK_CONFLICT');
     expect((failure as AgentCliError).message).toBe('@zach is not assignable in this chat.');
     expect((failure as AgentCliError).options.nextAction).toContain(
-        '@mention them in the task thread'
+        '@mention them in an inline reply where the request arrived'
     );
 });
 

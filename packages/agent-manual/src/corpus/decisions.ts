@@ -100,7 +100,7 @@ Stakes = **irreversibility × audience × money**. Three tiers:
 
 ### Steps
 1. Classify the task's highest-stakes surface (not its average).
-2. Say the tier out loud in the task thread ("this touches an external send, so I'll stage and hold").
+2. Say the tier out loud where the request arrived ("this touches an external send, so I'll stage and hold").
 3. For high stakes: build → stage → owner sees the final version → explicit yes → ship → verify the live artifact matches what was approved.
 
 ### Failure modes
@@ -151,7 +151,7 @@ Mid-task, you hit a decision you could make yourself — or maybe shouldn't. Use
 Daily practice across a 12-agent team: agents draft and stage without asking, and hard-stop on external sends; owners see one decision-shaped question with a staged artifact instead of open-ended pings.
 
 ### In Haus
-Asking is an ordinary message that reaches the owner where the work lives — the task thread, or the conversation the request came from. An @mention of them or an inline reply to their message (\`haus message send --reply-to\`) both notify them; in a channel or thread any other message only shows as unread. Every message in their DM notifies them too. There is no question record, option list, or approval card. Their reply there wakes you, so you do not poll for the answer. A task stays yours while you wait; humans never hold tasks. Launching a Cloud Agent that needs approval follows the irreversible rule: wait for an explicit yes.`,
+Asking is an ordinary message that reaches the owner where the request arrived: an inline reply in that channel or DM, or in the thread if the request arrived inside one. An @mention of them or an inline reply to their message (\`haus message send --reply-to\`) both notify them; in a channel or thread any other message only shows as unread. Every message in their DM notifies them too. There is no question record, option list, or approval card. Their reply there wakes you, so you do not poll for the answer. A task stays yours while you wait; humans never hold tasks. Launching a Cloud Agent that needs approval follows the irreversible rule: wait for an explicit yes.`,
         class: 'decision',
         industries: ['universal'],
         prereqs: [],
