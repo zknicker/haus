@@ -791,6 +791,21 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   (`.workspace-band-end`), outside the window drag region. Settings is not in the band: on the
   desktop its ghost `sm` gear leads the sidebar footer. Browser and artifact tabs share the
   closable-tab rules (`.workspace-tab:not([data-kind="primary"])`).
+- **Settings rows:** Settings pages are stock `ItemCardGroup` lists of `ItemCard` rows, following
+  HeroUI Pro's anatomy: a group's `Header` carries its `Title` (and any group-wide
+  `Description`); a row carries `Title`, an optional `Description`, and its control or
+  `SettingsFact` in `Action`. Rows are title-only by default. A row that needs explaining puts
+  it in an info tooltip on the title (`SettingsRowTitle`), not a paragraph. A group uses
+  `ItemCard.Description` only when every row in it has a real one — the row's identifying
+  fact in a list (a Server's address, an invitation's status), never filler — because a
+  mixed group stacks rows of two heights. Status and metadata about a control (a catalog's
+  freshness, a connected state the section title already states) never take a row
+  description; they go in that row's info tooltip. The only lines that may break a row's
+  shape are `SettingsRowWarning` and `SettingsRowError`, since the taller row is the alarm.
+  Every settings list row has a 60px floor (`.settings-frame` in `default-theme.css`): the
+  height a field, an icon, or a title + description already gives a row, so a Switch or
+  fact row matches a Select row beside it. Controls in one group share one width, and rows in
+  one list box are divided by a stock `Separator`.
 - **Desktop window layout:** The desktop app has two layouts (Settings > Preferences > Window
   layout), both with a 44px full-width grey window band holding the traffic lights over a
   sidebar-width segment, then the tab strip from the content column's edge. **Band** (default) puts
