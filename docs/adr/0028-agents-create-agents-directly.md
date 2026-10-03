@@ -104,7 +104,7 @@ identity is protected: both refuse on Cove.
 - Creation spends no model turn on an empty greeting: the new Agent's brief is already in the memory
   it reads on its first startup, and its first message is the hello that brief asks for.
 - The standing brief remains Server state and rides `agent-configure`; full reset re-renders it.
-  Migration `0057_agent_creation_request` adds independent retry identity without changing old history.
+  Migration `0059_agent_creation_request` adds independent retry identity without changing old history.
 - The managed prompt's reviewed size budget rose from 37,500 to 38,000 characters to hold the
   welcome-a-new-teammate etiquette bullet, which fires on a message rather than on a verb and so has
   no Manual topic to live in.
