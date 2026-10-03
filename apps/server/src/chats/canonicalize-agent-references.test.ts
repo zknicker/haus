@@ -9,6 +9,46 @@ const agents = [
 const channels = [{ id: 'cht_product', name: 'product' }];
 
 describe('canonicalizeAgentMessageContent', () => {
+    it('turns a whole thread target into a readable link, including legacy anchors', () => {
+        const anchorMessageId = 'msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa';
+        const input = {
+            agents,
+            channels,
+            users: [],
+            threads: [
+                { parentChatId: 'cht_product', anchorMessageId },
+                { parentChatId: 'cht_product', anchorMessageId: 'OB4fLQYW' },
+            ],
+        };
+        expect(
+            canonicalizeAgentMessageContent('See #product:12345678, then #product:OB4fLQYW.', input)
+        ).toBe(
+            `See [#product thread](chat://cht_product?thread=${anchorMessageId}), then [#product thread](chat://cht_product?thread=OB4fLQYW).`
+        );
+        const protectedContent = '`#product:12345678` and [#product:12345678](https://example.com)';
+        expect(canonicalizeAgentMessageContent(protectedContent, input)).toBe(protectedContent);
+    });
+
+    it('leaves missing and ambiguous thread targets whole rather than linking just the channel', () => {
+        const input = {
+            agents,
+            channels,
+            users: [],
+            threads: [
+                {
+                    parentChatId: 'cht_product',
+                    anchorMessageId: 'msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa',
+                },
+                {
+                    parentChatId: 'cht_product',
+                    anchorMessageId: 'msg_12345678bbbbbbbbbbbbbbbbbbbbbbbb',
+                },
+                { parentChatId: 'cht_other', anchorMessageId: 'missing' },
+            ],
+        };
+        const content = 'See #product:12345678 or #product:missing.';
+        expect(canonicalizeAgentMessageContent(content, input)).toBe(content);
+    });
     it('resolves human handles, preserves explicit links and protects code and URLs', () => {
         const content =
             'Ask @ZACH-KNICKERBOCKER. `@zach-knickerbocker` https://example.com/@zach-knickerbocker [@Zach](user://usr_old)';

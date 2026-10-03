@@ -55,3 +55,35 @@ test('resolves only active humans in this Server and keeps retry identities afte
         })
     ).toBe('Ask [@zach-knickerbocker](user://usr_nohandle).');
 });
+
+test('resolves a whole Thread reference and retains it on retry after a Channel rename', async () => {
+    const anchor = 'msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values ('cht_refs', 'srv_mentions', 'channel', 'tech-ops')
+    `;
+    await harness.sql`
+        insert into chat_messages (id, server_id, chat_id, author_user_id, content, nonce, sequence)
+        values (${anchor}, 'srv_mentions', 'cht_refs', 'usr_zach', 'Assignment', 'thread-ref-anchor', 1)
+    `;
+    await harness.sql`
+        insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind, anchor_message_id)
+        values ('cht_thread_ref', 'srv_mentions', 'thread', 'cht_refs', 'channel', ${anchor})
+    `;
+    const input = { content: 'Work in #tech-ops:12345678.', serverId: 'srv_mentions' };
+    const stored = await canonicalizeAgentMessageContentForPersistence(connection.db, input);
+    expect(stored).toBe(`Work in [#tech-ops thread](chat://cht_refs?thread=${anchor}).`);
+    await harness.sql`update chats set name = 'renamed' where id = 'cht_refs'`;
+    expect(
+        await canonicalizeAgentMessageContentForPersistence(connection.db, {
+            ...input,
+            existingContent: stored,
+        })
+    ).toBe(stored);
+    expect(
+        await canonicalizeAgentMessageContentForPersistence(connection.db, {
+            content: 'Other Server #renamed:12345678.',
+            serverId: 'srv_elsewhere',
+        })
+    ).toBe('Other Server #renamed:12345678.');
+});

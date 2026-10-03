@@ -3,16 +3,40 @@ import {
     formatAgentReferenceTarget,
     formatAppReferenceTarget,
     formatChatReferenceTarget,
+    formatChatThreadReferenceTarget,
     formatSkillReferenceTarget,
     parseAgentReferenceTarget,
     parseAppReferenceTarget,
     parseChatReferenceTarget,
+    parseChatThreadReferenceTarget,
     parseHausRichReferences,
     parseSkillReferenceTarget,
     parseUserReferenceTarget,
 } from './rich-references.ts';
 
 describe('Haus rich references', () => {
+    it('keeps thread navigation ids separate from readable labels', () => {
+        const target = formatChatThreadReferenceTarget('cht:product', 'msg:anchor');
+        expect(target).toBe('chat://cht%3Aproduct?thread=msg%3Aanchor');
+        expect(parseChatReferenceTarget(target)).toBe('cht:product');
+        expect(parseChatThreadReferenceTarget(target)).toEqual({
+            chatId: 'cht:product',
+            anchorMessageId: 'msg:anchor',
+        });
+        expect(parseHausRichReferences(`[#product thread](${target})`)[0]).toMatchObject({
+            kind: 'chat',
+            label: 'product thread',
+        });
+        for (const invalid of [
+            'chat://cht?thread=',
+            'chat://cht?thread=%XX',
+            'chat://cht?thread=msg&other=1',
+            'chat://cht?other=msg',
+        ]) {
+            expect(parseChatReferenceTarget(invalid)).toBeNull();
+            expect(parseChatThreadReferenceTarget(invalid)).toBeNull();
+        }
+    });
     it('formats and parses stable agent, app, and skill targets', () => {
         expect(formatAgentReferenceTarget('agent:planner')).toBe('agent://agent%3Aplanner');
         expect(parseAgentReferenceTarget('agent://agent%3Aplanner')).toBe('agent:planner');

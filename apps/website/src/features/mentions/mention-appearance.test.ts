@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { getMentionAppearance, getMentionDisplayLabel } from './mention-appearance.tsx';
+import { getMentionAppearance } from './mention-appearance.tsx';
+import { getMentionDisplayLabel } from './mention-display-label.ts';
 
 describe('mention appearance', () => {
     it('keeps generic skills on the default skill appearance', () => {

@@ -50,6 +50,20 @@ test('wraps transcript reference previews in HeroUI tooltip triggers', () => {
     expect(markup).toContain('aria-label="Preview Blippy"');
 });
 
+test('renders a readable thread chip without exposing its anchor id', () => {
+    const markup = renderToStaticMarkup(
+        <ReferenceChip
+            id="chat://cht_product?thread=OB4fLQYW"
+            kind="chat"
+            label="product:OB4fLQYW"
+            onActivate={() => undefined}
+        />
+    );
+    expect(markup).toContain('aria-label="Open product thread"');
+    expect(markup).toContain('data-slot="chip"');
+    expect(markup).not.toContain('OB4fLQYW');
+});
+
 test('renders activated references with native button semantics', () => {
     const markup = renderToStaticMarkup(
         <ReferenceChip
@@ -181,7 +195,7 @@ test('previews a Skill with a compact identity row and smaller mark', () => {
     expect(markup).toContain('items-baseline gap-1.5');
     expect(markup).toContain('· Skill');
     expect(markup).toContain('Build polished interfaces with clear visual hierarchy.');
-    expect(markup).toContain('text-xs leading-normal text-muted');
+    expect(markup).toContain('text-sm leading-normal text-muted');
     expect(markup).not.toContain('line-clamp');
     expect(markup).not.toContain('data-slot="separator"');
 });
