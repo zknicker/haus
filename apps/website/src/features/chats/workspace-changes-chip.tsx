@@ -17,7 +17,7 @@ export function WorkspaceChangesChip({ row }: { chatId?: string; row: ToolStepRo
     const label = row.toolCall.label || 'Changed files';
 
     return (
-        <div className="w-full max-w-[34rem] py-0.5">
+        <div className="w-full max-w-(--chat-card-width) py-0.5">
             <button
                 aria-label={`${label} — view diffs`}
                 className={cn(

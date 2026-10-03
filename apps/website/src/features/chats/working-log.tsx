@@ -91,7 +91,7 @@ export function WorkingLog({
                 // Group mode keeps the horizontal hover affordance without
                 // compressing the surrounding turn rhythm.
                 className={cn(
-                    'w-full max-w-[34rem]',
+                    'w-full max-w-(--chat-card-width)',
                     // The hover rail positions against this container.
                     groupMode && 'relative -ml-2 w-[calc(100%+0.5rem)]',
                     groupMode && animateEnter && 'chat-step-enter'

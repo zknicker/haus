@@ -23,6 +23,13 @@
    */
   --spacing-base: 0.234375rem;
   --reply-highlight: color-mix(in oklab, var(--accent-soft) 70%, transparent);
+  /*
+   * The one column every in-chat attachment under a message fills: Cloud Agent
+   * cards, thread previews, the working log, workspace changes. Each is
+   * `w-full` up to this cap, so a card stacked over a thread preview shares
+   * both edges whatever the transcript width.
+   */
+  --chat-card-width: 36rem;
   --spacing: var(--spacing-base);
   /* Sidebar navigation rows. */
   --spacing-compact: calc(var(--spacing-base) * 0.85);

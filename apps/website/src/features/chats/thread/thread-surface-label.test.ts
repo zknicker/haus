@@ -7,9 +7,7 @@ test('a plain Thread surface adds nothing to the bare Open thread label', () => 
 
 test('each surface names what it opens', () => {
     expect(threadSurfaceLabel({ hoisted: false, taskNumber: 1 })).toBe('Task #1');
-    expect(threadSurfaceLabel({ hoisted: false, workTitle: 'Fix the migration' })).toBe(
-        'Cloud Agent work: Fix the migration'
-    );
+    expect(threadSurfaceLabel({ hoisted: true })).toBe('Cloud Agent work');
 });
 
 test('a task with work running under it names both', () => {

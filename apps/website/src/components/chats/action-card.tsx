@@ -5,7 +5,8 @@ import { cn } from '../../lib/utils.ts';
  * The transcript card for a piece of work that arrived in the chat — Cloud
  * Agent work today, a pull request next. It is an object that arrived in the
  * chat, so it reads like the other objects that do: the attachment row and
- * the artifact card. Bordered surface, capped measure, a header of mark plus
+ * the artifact card. Bordered `nested-surface` (the chat card background),
+ * full width up to the shared in-chat column (`--chat-card-width`), a header of mark plus
  * title/description content — the title carries a status chip at the right
  * end of the title line, when the kind has one — one or more muted meta rows,
  * and a bottom row of controls.
@@ -45,7 +46,6 @@ import { cn } from '../../lib/utils.ts';
  *   <ActionCard.Actions>
  *     <Button size="sm" variant="primary">View PR</Button>
  *     <Button size="sm" variant="secondary">Open</Button>
- *     <ActionCard.Receipt>Opened by Blippy · 3:10 pm</ActionCard.Receipt>
  *   </ActionCard.Actions>
  * </ActionCard>
  * ```
@@ -64,7 +64,9 @@ function ActionCardRoot({
     return (
         <article
             className={cn(
-                'card-shell mt-1.5 flex w-full max-w-[36rem] flex-col gap-2 border border-separator bg-surface p-3',
+                // Fills the shared in-chat column (`--chat-card-width`), so it
+                // lines up with the thread preview stacked beneath it.
+                'card-shell mt-1.5 flex w-full max-w-(--chat-card-width) flex-col gap-2 border border-separator bg-nested-surface p-3',
                 className
             )}
             data-action-kind={actionKind}
@@ -193,23 +195,6 @@ function ActionCardActions({ className, ...props }: React.ComponentProps<'div'>)
     );
 }
 
-/**
- * The who-and-when for a finished action — created by, opened by, merged by.
- * Lives inside `ActionCard.Actions` after the buttons, so `ml-auto` pushes it
- * to the row's right end: the bottom band reads `[Open] … Created by Zach ·
- * 4:21 pm`. Use `ActionCard.Meta` instead for a fact that needs its own row,
- * such as PR stats.
- */
-function ActionCardReceipt({ className, ...props }: React.ComponentProps<'span'>) {
-    return (
-        <span
-            className={cn('ml-auto min-w-0 truncate text-muted text-xs leading-5', className)}
-            data-slot="receipt"
-            {...props}
-        />
-    );
-}
-
 export const ActionCard = Object.assign(ActionCardRoot, {
     Actions: ActionCardActions,
     Content: ActionCardContent,
@@ -217,7 +202,6 @@ export const ActionCard = Object.assign(ActionCardRoot, {
     Header: ActionCardHeader,
     Mark: ActionCardMark,
     Meta: ActionCardMeta,
-    Receipt: ActionCardReceipt,
     Status: ActionCardStatus,
     Title: ActionCardTitle,
 });

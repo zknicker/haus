@@ -19,7 +19,6 @@ export function ThreadPreviewBlock({
     detail,
     headerLabel,
     headerLeading,
-    headerTrailing,
     row,
 }: {
     /**
@@ -35,8 +34,6 @@ export function ThreadPreviewBlock({
      */
     headerLabel?: string;
     headerLeading?: React.ReactNode;
-    /** Interactive chrome after the reply count, such as an overflow menu. */
-    headerTrailing?: React.ReactNode;
     row: TranscriptMessageRow;
 }) {
     const context = useTranscriptRenderContextOptional();
@@ -52,7 +49,7 @@ export function ThreadPreviewBlock({
     const label = replyLabel(replyCount);
 
     return (
-        <div className="group/thread card-shell relative mt-1.5 flex w-full min-w-0 flex-col gap-1 bg-nested-surface px-2.5 py-2 shadow-(--nested-surface-ring) hover:bg-nested-surface-hover">
+        <div className="group/thread card-shell relative mt-1.5 flex w-full min-w-0 max-w-(--chat-card-width) flex-col gap-1 bg-nested-surface px-2.5 py-2 shadow-(--nested-surface-ring) hover:bg-nested-surface-hover">
             <button
                 aria-label={openThreadLabel(headerLabel, replyCount, label)}
                 className="card-shell absolute inset-0 cursor-[var(--cursor-interactive)] outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -73,11 +70,6 @@ export function ThreadPreviewBlock({
                     ) : null}
                     <Icon aria-hidden className="size-3" icon={ArrowRight01Icon} />
                 </span>
-                {headerTrailing ? (
-                    <div className="pointer-events-auto relative z-10 shrink-0">
-                        {headerTrailing}
-                    </div>
-                ) : null}
             </div>
             {detail}
             {replies.length > 0 ? (

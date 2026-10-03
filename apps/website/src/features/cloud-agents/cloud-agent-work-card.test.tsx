@@ -1,18 +1,8 @@
 import { expect, test } from 'bun:test';
 import type { CloudAgentWork } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CloudAgentWorkDetail, CloudAgentWorkHeader } from './cloud-agent-work-header.tsx';
+import { CloudAgentActivityRow } from './cloud-agent-work-card.tsx';
 import { ThreadCloudAgentRows } from './thread-cloud-agent-rows.tsx';
-
-test('the header names the provider and the work, and states its status', () => {
-    const html = renderToStaticMarkup(<CloudAgentWorkHeader work={work({})} />);
-
-    expect(html).toContain('Cursor');
-    expect(html).toContain('Fix the failing migration');
-    expect(html).toContain('Queued');
-    // The title is the only part that gives way when the row runs out of room.
-    expect(html).toContain('truncate');
-});
 
 test('each hoisted row names its work and status without another click target', () => {
     const html = renderToStaticMarkup(
@@ -44,19 +34,6 @@ test('thread rows show the current outcome, including a pending cancellation', (
         const html = renderToStaticMarkup(<ThreadCloudAgentRows works={[work(overrides)]} />);
         expect(html).toContain(`>${label}</span>`);
     }
-});
-
-test('the detail line carries activity while the work runs', () => {
-    const html = renderToStaticMarkup(
-        <CloudAgentWorkDetail
-            work={work({
-                activity: { at: new Date().toISOString(), summary: 'Running the test suite.' },
-                status: 'running',
-            })}
-        />
-    );
-
-    expect(html).toContain('Running the test suite.');
 });
 
 test('compact completed rows show recorded diff counts, not the task title', () => {
@@ -106,13 +83,44 @@ test('compact completed rows show recorded diff counts, not the task title', () 
     expect(missing).not.toContain('changed');
 });
 
-test('a work with nothing to report renders no line at all', () => {
-    expect(renderToStaticMarkup(<CloudAgentWorkDetail work={work({})} />)).toBe('');
+test('the activity row carries what a live work is doing', () => {
+    const html = renderToStaticMarkup(
+        <CloudAgentActivityRow
+            now={Date.now()}
+            work={work({
+                activity: { at: new Date().toISOString(), summary: 'Running the test suite.' },
+                status: 'running',
+            })}
+        />
+    );
+
+    expect(html).toContain('Running the test suite.');
+});
+
+test('a work with nothing to report renders no activity row at all', () => {
+    expect(renderToStaticMarkup(<CloudAgentActivityRow now={Date.now()} work={work({})} />)).toBe(
+        ''
+    );
+});
+
+test('settled work drops its last activity; the outcome rows say the rest', () => {
+    const html = renderToStaticMarkup(
+        <CloudAgentActivityRow
+            now={Date.now()}
+            work={work({
+                activity: { at: new Date().toISOString(), summary: 'Running the test suite.' },
+                status: 'completed',
+            })}
+        />
+    );
+
+    expect(html).toBe('');
 });
 
 test('a running work that has gone quiet says when it last reported', () => {
     const html = renderToStaticMarkup(
-        <CloudAgentWorkDetail
+        <CloudAgentActivityRow
+            now={Date.now()}
             work={work({
                 status: 'running',
                 updatedAt: new Date(Date.now() - 42 * 60_000).toISOString(),

@@ -10,7 +10,7 @@ import { expect, test } from '../support/test.ts';
 const workTitle = 'Fix the failing migration';
 const credential = 'computer-cloud-agent-work-credential-12';
 
-test('Cloud Agent work reads as a Chat surface header and an in-Thread card', async ({
+test('Cloud Agent work reads as one card in the Chat and in its Thread', async ({
     page,
 }, testInfo) => {
     test.setTimeout(90_000);
@@ -41,19 +41,31 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     await expect(inboxRow).toContainText('#all');
     await expect(inboxRow).toContainText('Orbit');
 
-    // The Chat carries the same work as the header of its Thread surface.
+    // The Chat carries the same work card the Thread does, column-wide and
+    // with its actions inline: no detached overflow menu beside it.
     await page.goto('/s/cloud-agent-work');
     await openChannel(page, 'all');
-    const header = page.getByTestId('cloud-agent-work-header');
-    await expect(header).toContainText('Cursor');
-    await expect(header).toContainText(workTitle);
-    await expect(header).toContainText('Queued');
+    const transcriptCard = page
+        .locator(`[data-message-id="${seeded.messageId}"]`)
+        .getByTestId('cloud-agent-work-card');
+    await expect(transcriptCard).toContainText(workTitle);
+    await expect(transcriptCard).toContainText('Queued');
+    await expect(transcriptCard).toContainText('haus/haus');
+    await expect(page.getByRole('button', { name: /— Cloud Agent actions$/u })).toHaveCount(0);
     await expect(page.getByText('0 replies', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /^Open thread, Cloud Agent work/u })).toHaveClass(
-        /button--secondary/u
+    // The card carries no way into the Thread and no delegation receipt: the
+    // Message's author line above it already says who and when, and its hover
+    // action opens the Thread.
+    await expect(transcriptCard.getByRole('button', { name: /^Open thread/u })).toHaveCount(0);
+    await expect(transcriptCard).not.toContainText('Delegated by');
+    const cardWidth = await transcriptCard.evaluate(
+        (element) => element.getBoundingClientRect().width
     );
+    // It fills the shared in-chat column (`--chat-card-width`, 36rem), the
+    // same edge a thread preview under the Message lands on.
+    expect(cardWidth).toBeCloseTo(36 * 16, 0);
 
-    // A Computer reporting progress updates the same header in place, with no
+    // A Computer reporting progress updates the same card in place, with no
     // second Message: this is one record, not a transcript.
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
@@ -72,14 +84,18 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
             workId: seeded.workId,
         })
     );
-    await expect(header).toContainText('Running');
-    await expect(page.getByTestId('cloud-agent-work-detail')).toContainText(
+    await expect(transcriptCard).toContainText('Running');
+    await expect(transcriptCard.getByTestId('cloud-agent-work-activity')).toContainText(
         'Reading the failing migration.'
     );
 
-    // Inside the Thread the same record reads as the detailed card, in sequence
-    // beneath the Agent's own words — which the card never replaced.
-    await page.getByRole('button', { name: /^Open thread, Cloud Agent work/u }).click();
+    // Inside the Thread the same card reads in sequence beneath the Agent's own
+    // words — which the card never replaced — without a way into itself.
+    const anchorRow = transcriptCard.locator(
+        'xpath=ancestor::*[@data-slot="chat-message-assistant"][1]'
+    );
+    await anchorRow.hover();
+    await anchorRow.locator('button[aria-label="Reply in thread"]').click();
     const thread = page.getByRole('complementary', { name: 'Thread' });
     const conversation = thread.getByTestId('thread-conversation');
     const card = conversation
@@ -92,9 +108,8 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     await expect(
         thread.getByText('Delegating the migration fix to a Cloud Agent.', { exact: true })
     ).toBeVisible();
-    // The Thread pane states the work in the card alone; the old metadata panel
-    // said the same facts a second time, above the anchor.
-    await expect(thread.getByTestId('cloud-agent-work-header')).toHaveCount(0);
+    await expect(card.getByRole('button', { name: /^Open thread/u })).toHaveCount(0);
+    await expect(card).not.toContainText('Delegated by');
 
     computer.send(
         cloudAgentObservationFrame({
@@ -164,6 +179,7 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     await expect(rows).toContainText('Backfill the migration test');
     await expect(rows).toContainText('Running');
     await expect(rows.getByRole('button')).toHaveCount(0);
+    // Once replies exist the Thread preview below the card is the way in.
     await page.getByRole('button', { name: /^Open thread, Cloud Agent work/u }).click();
     const cards = conversation.getByTestId('cloud-agent-work-card');
     const nestedCard = conversation

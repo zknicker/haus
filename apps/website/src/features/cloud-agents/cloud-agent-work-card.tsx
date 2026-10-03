@@ -1,26 +1,28 @@
 import type { CloudAgentBranch, CloudAgentPullRequest, CloudAgentWork } from '@haus/api';
 import { Chip } from '@heroui/react';
-import { GitBranchIcon, PlusMinus01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Activity01Icon, GitBranchIcon, PlusMinus01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { ActionCard } from '../../components/chats/action-card.tsx';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { formatShortTime } from '../../lib/format.ts';
-import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
+import { formatRelativeTime } from '../../lib/format.ts';
 import {
     cloudAgentBranchPullRequestNumber,
     cloudAgentPresentationStatus,
     cloudAgentStatusChipColor,
     cloudAgentStatusText,
+    cloudAgentWorkActivityLine,
     cloudAgentWorkBranch,
+    isCloudAgentWorkStale,
 } from './cloud-agent-presentation.ts';
 import { CloudAgentProviderMark } from './cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from './cloud-agent-status-disc.tsx';
 import { CloudAgentWorkActions } from './cloud-agent-work-actions.tsx';
 
 /**
- * The Cloud Agent work as it reads inside its Thread: the Agent says what it
- * delegated in its own Message, followed by this card in the conversation.
- * It presents the Server-owned work record, not a separate Chat row.
+ * The Cloud Agent work under the Message that delegated it — the same card in
+ * the Chat transcript and inside its Thread. The Agent says what it delegated
+ * in its own Message, followed by this card. It presents the Server-owned work
+ * record, not a separate Chat row.
  *
  * The card states facts, not prose. Top to bottom: what the work is and how it
  * is going, the branch it wrote and the pull request that branch opened, the
@@ -28,11 +30,13 @@ import { CloudAgentWorkActions } from './cloud-agent-work-actions.tsx';
  * deliberately absent — the branch, the pull request, and the diff are the
  * evidence, and a paragraph of provider Markdown only pushed them down the
  * card. The provider itself is the mark, so nothing in the layout is named
- * after any one of them.
+ * after any one of them. Who delegated it and when is the Message's own author
+ * line directly above, so the card does not repeat it. The way into the Thread
+ * is the Message's own hover action or, once replies exist, the Thread preview
+ * below the card.
  */
 export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
     const now = useRelativeNow(work.terminalAt ? 60_000 : 5000);
-    const resolve = useTranscriptRenderContextOptional()?.resolveActorProfile;
     const status = cloudAgentPresentationStatus(work);
     const statusText = cloudAgentStatusText(work, now);
     const branch = cloudAgentWorkBranch(work);
@@ -41,14 +45,12 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
     // Progress is worth a glyph; a settled run already says so in one word and
     // in the chip's own color.
     const inProgress = status === 'queued' || status === 'running' || status === 'cancelling';
-    const delegatedBy = resolve?.({ id: work.agentId, kind: 'agent' })?.name ?? null;
 
     return (
         <ActionCard
             actionKind="cloud-agent-work"
             actionStatus={work.status}
             aria-label={`Cloud Agent work: ${work.title}`}
-            className="bg-nested-surface"
             data-testid="cloud-agent-work-card"
         >
             <ActionCard.Header>
@@ -95,17 +97,13 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
                     )}
                 </ActionCard.Meta>
                 {pullRequest ? <CloudAgentDiffRow pullRequest={pullRequest} /> : null}
+                <CloudAgentActivityRow now={now} work={work} />
             </div>
             <ActionCard.Actions>
                 <CloudAgentWorkActions
                     pullRequestUrl={branch?.pullRequestUrl ?? null}
                     work={work}
                 />
-                {delegatedBy ? (
-                    <ActionCard.Receipt className="self-end">
-                        Delegated by {delegatedBy} · {formatShortTime(work.createdAt)}
-                    </ActionCard.Receipt>
-                ) : null}
             </ActionCard.Actions>
         </ActionCard>
     );
@@ -124,6 +122,30 @@ function CloudAgentDiffRow({ pullRequest }: { pullRequest: CloudAgentPullRequest
             {`${pullRequest.changedFiles} ${pullRequest.changedFiles === 1 ? 'file' : 'files'} changed`}
             <span className="text-success"> +{pullRequest.additions}</span>
             <span className="text-danger"> −{pullRequest.deletions}</span>
+        </ActionCard.Meta>
+    );
+}
+
+/**
+ * What a live work is doing right now, from the provider's latest report. A
+ * settled work says nothing here — the branch, the pull request, and the diff
+ * above are its outcome. A running work that has gone quiet says when it last
+ * said anything, rather than gating on Computer connection state.
+ */
+export function CloudAgentActivityRow({ now, work }: { now: number; work: CloudAgentWork }) {
+    const line = cloudAgentWorkActivityLine(work);
+    const stale = isCloudAgentWorkStale(work, now);
+
+    if (!(line || stale)) {
+        return null;
+    }
+
+    return (
+        <ActionCard.Meta data-testid="cloud-agent-work-activity">
+            <Icon aria-hidden="true" icon={Activity01Icon} />
+            {line}
+            {line && stale ? ' · ' : null}
+            {stale ? `Last update ${formatRelativeTime(work.updatedAt, now)}` : null}
         </ActionCard.Meta>
     );
 }

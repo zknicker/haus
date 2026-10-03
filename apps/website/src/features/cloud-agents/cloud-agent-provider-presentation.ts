@@ -15,7 +15,7 @@ export interface CloudAgentProviderPresentation {
 
 /**
  * The one place a Cloud Agent provider is named or drawn. Every surface — the
- * work card's mark, the Thread-surface header, the Inbox row, and every
+ * work card's mark, the Inbox row, and every
  * `Open in <name>` control — reads from here, so adding a second provider is a
  * row in this table rather than a sweep through the feature.
  *

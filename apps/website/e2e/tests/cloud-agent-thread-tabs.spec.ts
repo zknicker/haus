@@ -26,7 +26,12 @@ test('desktop Cloud Agent work opens in a Thread tab with working actions', asyn
 
     await page.goto('/s/cloud-agent-tabs');
     await openChannel(page, 'all');
-    await page.getByRole('button', { name: /^Open thread, Cloud Agent work/u }).click();
+    // Before any reply the Message's own hover action is the way into its Thread.
+    const anchorRow = page
+        .getByTestId('cloud-agent-work-card')
+        .locator('xpath=ancestor::*[@data-slot="chat-message-assistant"][1]');
+    await anchorRow.hover();
+    await anchorRow.locator('button[aria-label="Reply in thread"]').click();
     const pane = page.getByRole('complementary', { name: 'Side pane' });
     const card = pane.getByTestId('cloud-agent-work-card');
     await expect(card).toContainText(title);
@@ -36,6 +41,9 @@ test('desktop Cloud Agent work opens in a Thread tab with working actions', asyn
     await page.getByRole('menuitem', { name: 'Cancel run' }).click();
     await expect(card).toContainText('Cancelling');
     await page.getByRole('button', { name: 'Open as tabs', exact: true }).click();
-    await expect(page.getByTestId('cloud-agent-work-card')).toContainText('Cancelling');
+    // The Chat transcript renders the same card, so scope to the Thread tab's.
+    await expect(
+        page.getByTestId('thread-conversation').getByTestId('cloud-agent-work-card')
+    ).toContainText('Cancelling');
     await expect(page.getByText('Unexpected Application Error!')).toHaveCount(0);
 });

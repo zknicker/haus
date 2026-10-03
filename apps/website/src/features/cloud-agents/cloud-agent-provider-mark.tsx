@@ -24,8 +24,8 @@ export function CloudAgentProviderMark({ provider }: { provider: CloudAgentProvi
 }
 
 /**
- * The same mark inline, at annotation scale: the Thread-surface header, the
- * hoisted status, and the Inbox row all lead with it instead of a generic
+ * The same mark inline, at annotation scale: the hoisted status and the
+ * Inbox row both lead with it instead of a generic
  * cloud. No box here — inline it is a glyph among words.
  */
 export function CloudAgentProviderGlyph({
