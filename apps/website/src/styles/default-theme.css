@@ -1290,6 +1290,33 @@
     }
 
     /*
+     * Rows inside a surface group are square (Pro: radius 0), so a pressable
+     * first or last row's hover fill poked square corners past the group's
+     * rounded ones. Those rows take the group's corners on their outer edge.
+     */
+    :is(
+            .item-card-group--default,
+            .item-card-group--secondary,
+            .item-card-group--tertiary,
+            .item-card-group--outline
+        )
+        > [data-slot='item-card']:first-child {
+        border-start-start-radius: inherit;
+        border-start-end-radius: inherit;
+    }
+
+    :is(
+            .item-card-group--default,
+            .item-card-group--secondary,
+            .item-card-group--tertiary,
+            .item-card-group--outline
+        )
+        > [data-slot='item-card']:last-child {
+        border-end-start-radius: inherit;
+        border-end-end-radius: inherit;
+    }
+
+    /*
      * The same drift one level down: ItemCard's icon slot is a 36px box that
      * Pro pins at ×1, visibly squarer than the 32px avatars at ×2 it sits
      * beside in the same lists. ×2.25 is the identity-mark curve
@@ -1529,23 +1556,22 @@
     }
 
     /* The section title sits on a hairline that spans the catalog. */
-    .item-card-group--catalog > .item-card-group__header,
-    .item-card-group--section > .item-card-group__header {
+    .item-card-group--catalog > .item-card-group__header {
         padding-block-end: calc(var(--spacing) * 2.5);
         margin-block-end: calc(var(--spacing) * 2);
         border-block-end: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
     }
 
     /*
-     * A section of a record page (an MCP connection's page): the same ruled
+     * A section of a record page (an MCP connection's page): an unruled
      * title, set flush with the page's column so the mark, the name, each
      * section title and the bordered cards all start on one edge. Bare rows
      * (transparent cards) sit on that edge too; rows inside a bordered card
      * keep their inset.
      */
     .item-card-group--section > .item-card-group__header {
-        padding-inline: 0;
-        padding-block-start: 0;
+        padding: 0;
+        margin-block-end: calc(var(--spacing) * 3);
     }
 
     .item-card-group--section .item-card--transparent:not(.item-card-group--outline *) {

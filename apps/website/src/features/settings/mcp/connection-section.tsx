@@ -2,7 +2,7 @@ import { ItemCardGroup } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 
 /**
- * One section of a connection's page: a title on a hairline, an
+ * One section of a connection's page: an unruled title, an
  * optional muted count beside it, then the section's own content. The
  * `item-card-group--section` modifier in the theme layer sets the title flush
  * with the page column so every section starts on the header's edge.

@@ -1,4 +1,4 @@
-import { Button, Dropdown, Label, Separator } from '@heroui/react';
+import { Avatar, Button, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Add01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
@@ -56,7 +56,7 @@ export function McpAccountSection({
                 {connection.preset ? (
                     <>
                         <Separator />
-                        <AddAccountRow isDisabled={saving} onPress={onAddAccount} />
+                        <AddAccountRow isPending={saving} onPress={onAddAccount} />
                     </>
                 ) : null}
             </ItemCardGroup>
@@ -119,13 +119,24 @@ function AccountRow({
     );
 }
 
-/** The whole row is the control, on the Settings pressable-row anatomy. */
-function AddAccountRow({ isDisabled, onPress }: { isDisabled: boolean; onPress: () => void }) {
+/**
+ * The whole row is the control, on the Settings pressable-row anatomy. Its
+ * mark is the account row's avatar box (stock `Avatar` at `sm`, so box and
+ * radius stay paired) holding a plus, so both titles start on one line. While
+ * an add is in flight the plus turns to a spinner and presses are ignored.
+ */
+function AddAccountRow({ isPending, onPress }: { isPending: boolean; onPress: () => void }) {
     return (
-        <SettingsGridCard onPress={isDisabled ? () => undefined : onPress}>
-            <ItemCard.Icon>
-                <Icon aria-hidden="true" icon={Add01Icon} size={16} />
-            </ItemCard.Icon>
+        <SettingsGridCard onPress={isPending ? () => undefined : onPress}>
+            <Avatar aria-hidden="true" size="sm">
+                <Avatar.Fallback>
+                    {isPending ? (
+                        <Spinner color="current" size="sm" />
+                    ) : (
+                        <Icon aria-hidden="true" icon={Add01Icon} size={16} />
+                    )}
+                </Avatar.Fallback>
+            </Avatar>
             <ItemCard.Content>
                 <ItemCard.Title>Add another account</ItemCard.Title>
             </ItemCard.Content>
