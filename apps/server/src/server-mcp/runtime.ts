@@ -1,4 +1,5 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+import type { McpPreset } from '@haus/api';
 import type { EffectRuntime, TraceCarrier } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
 import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
@@ -8,6 +9,7 @@ import {
     mcpConnectionsTable,
     mcpSecretsTable,
 } from '../postgres/schema.ts';
+import { resolveAccountLabel } from './account-label.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { asMcpArguments, McpDeniedError } from './errors.ts';
 import { createMcpOAuthProvider } from './oauth.ts';
@@ -63,17 +65,16 @@ export class McpRuntime {
                 ((connectionId, signal) => this.createClient(connectionId, signal))
         );
     }
-    async discover(connectionId: string) {
+    async discover(connectionId: string, preset: McpPreset | null = null) {
         return await this.runUpstream(connectionId, 'discovery', async (client, signal) => {
-            const definitions = await listAllTools(client, {
-                signal,
-                timeout: this.discoveryTimeoutMs,
-            });
+            const timeout = this.discoveryTimeoutMs;
+            const definitions = await listAllTools(client, { signal, timeout });
+            const tools = definitions.map((tool) => tool.name);
             return {
-                accountLabel: client.serverInfo.name,
+                accountLabel: await resolveAccountLabel(client, { preset, signal, timeout, tools }),
                 instructions: client.instructions,
                 serverInfoIcons: (client.serverInfo as { icons?: unknown }).icons,
-                tools: definitions.map((tool) => tool.name),
+                tools,
             };
         });
     }

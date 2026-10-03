@@ -71,7 +71,8 @@ export class McpOAuthRelay {
                 state,
             });
             await this.runtime.closeConnection(attempt.connectionId);
-            const discovery = await this.runtime.discover(attempt.connectionId);
+            const { preset } = await this.runtime.readConnection(attempt.connectionId);
+            const discovery = await this.runtime.discover(attempt.connectionId, preset);
             const [updated] = await this.db
                 .update(mcpConnectionsTable)
                 .set({

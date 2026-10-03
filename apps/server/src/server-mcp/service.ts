@@ -260,7 +260,7 @@ async function refreshInventory(
     connection: typeof mcpConnectionsTable.$inferSelect
 ) {
     await runtime.closeConnection(connection.id);
-    const discovery = await runtime.discover(connection.id);
+    const discovery = await runtime.discover(connection.id, connection.preset);
     const icon = await resolveIcon({
         connectionUrl: connection.url,
         serverInfoIcons: discovery.serverInfoIcons,
