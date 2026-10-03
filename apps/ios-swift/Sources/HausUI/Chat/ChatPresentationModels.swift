@@ -111,9 +111,10 @@ public struct MessageReplyReferencePresentation: Identifiable, Hashable, Sendabl
         self.sequence = sequence
     }
 
+    /// One line of the parent, read the way the App's `messagePreviewLine` reads it.
     public var excerpt: String {
-        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Attachment" : trimmed
+        let line = RichMessageParser.oneLinePreview(content)
+        return line.isEmpty ? "Attachment" : line
     }
 }
 

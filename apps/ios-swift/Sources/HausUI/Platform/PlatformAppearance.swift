@@ -55,6 +55,14 @@ enum HausPlatformColor {
         #endif
     }
 
+    static var separator: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .separator)
+        #else
+        Color(nsColor: .separatorColor)
+        #endif
+    }
+
     /// Opaque grey for a disabled round control, so glass vibrancy cannot dissolve it.
     static var disabledControlFill: Color {
         #if canImport(UIKit)

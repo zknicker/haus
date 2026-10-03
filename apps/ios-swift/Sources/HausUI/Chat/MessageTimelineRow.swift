@@ -8,6 +8,8 @@ import SwiftUI
 struct MessageTimelineRow: View {
     let message: MessagePresentation
     let isContinuation: Bool
+    /// Whether the inline-reply reference leads this row (`TranscriptRowGrouping`).
+    var showsReplyReference = true
     let isHighlighted: Bool
     /// Held under a finger, or the target of the open action drawer.
     var isPressed = false
@@ -21,6 +23,21 @@ struct MessageTimelineRow: View {
     @AppStorage(ShowTasksInChat.storageKey) private var showTasksInChat = false
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if showsReplyReference, let inlineReply = message.inlineReply {
+                InlineReplyPreview(
+                    reference: inlineReply,
+                    onOpen: { onOpenInlineReply(inlineReply) }
+                )
+            }
+            content
+        }
+        .modifier(ReactionThud(stamps: reactionBoard?.stamps(messageID: message.id) ?? [:]))
+        .modifier(ReactionObservation(messageID: message.id, reactions: message.reactions, board: reactionBoard))
+        .messageRowTint(isHighlighted: isHighlighted, isPressed: isPressed)
+    }
+
+    private var content: some View {
         HStack(alignment: .top, spacing: 11) {
             if isContinuation {
                 Color.clear.frame(width: 38, height: 1)
@@ -46,20 +63,8 @@ struct MessageTimelineRow: View {
                 }
 
                 if !message.prose.isEmpty {
-                    if let inlineReply = message.inlineReply {
-                        InlineReplyPreview(
-                            reference: inlineReply,
-                            onOpen: { onOpenInlineReply(inlineReply) }
-                        )
-                    }
-
                     RichMessageContentView(blocks: message.richBlocks)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                } else if let inlineReply = message.inlineReply {
-                    InlineReplyPreview(
-                        reference: inlineReply,
-                        onOpen: { onOpenInlineReply(inlineReply) }
-                    )
                 }
 
                 MessageVisualStack(
@@ -113,12 +118,10 @@ struct MessageTimelineRow: View {
                 }
             }
         }
-        .modifier(ReactionThud(stamps: reactionBoard?.stamps(messageID: message.id) ?? [:]))
-        .modifier(ReactionObservation(messageID: message.id, reactions: message.reactions, board: reactionBoard))
+        // The connector draws in this block's coordinates, below any reference.
         .overlayPreferenceValue(ThreadIngressAnchor.self) { anchor in
             ThreadIngressConnector(anchor: anchor, isContinuation: isContinuation)
         }
-        .messageRowTint(isHighlighted: isHighlighted, isPressed: isPressed)
     }
 
     /// The task this row states, or nil for a claim the reader has not asked

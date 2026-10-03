@@ -234,10 +234,11 @@ public struct MessageTimelineView: View {
     @ViewBuilder
     private func timelineRow(_ message: MessagePresentation, indexByID: [String: Int]) -> some View {
         let index = indexByID[message.id] ?? 0
-        let continuation = isContinuation(at: index)
+        let grouping = TranscriptRowGrouping(message, after: index > 0 ? messages[index - 1] : nil)
         MessageTimelineRow(
             message: message,
-            isContinuation: continuation,
+            isContinuation: grouping.isContinuation,
+            showsReplyReference: grouping.showsReplyReference,
             isHighlighted: highlightedMessageID == message.id,
             isPressed: message.id == heldMessageID || message.id == actionMessage?.id,
             attachmentPreview: $attachmentPreview,
@@ -248,15 +249,6 @@ public struct MessageTimelineView: View {
             onOpenInlineReply: requestInlineReply,
             onOpenAttachment: onOpenAttachment
         )
-        .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)
+        .padding(.top, index == 0 ? 0 : grouping.isContinuation ? 4 : 16)
     }
-
-    private func isContinuation(at index: Int) -> Bool {
-        guard index > 0 else { return false }
-        let message = messages[index]
-        let previous = messages[index - 1]
-        return message.author.id == previous.author.id
-            && message.createdAt.timeIntervalSince(previous.createdAt) < 5 * 60
-    }
-
 }
