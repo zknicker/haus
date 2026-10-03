@@ -1,3 +1,4 @@
+import { isMcpBearerTokenPreset } from '@haus/api';
 import { Alert, toast } from '@heroui/react';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
@@ -7,6 +8,7 @@ import { useConnectionHeadersUpdate } from '../../../hooks/servers/use-connectio
 import { useConnectionOauthStart } from '../../../hooks/servers/use-connection-oauth-start.ts';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 import { useConnectionRefresh } from '../../../hooks/servers/use-connection-refresh.ts';
+import { useConnectionTokenUpdate } from '../../../hooks/servers/use-connection-token-update.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import { getHausServerOrigin } from '../../../lib/haus-server.tsx';
 import { ConnectionTrustDialog, toConnectionView } from './connection-view.tsx';
@@ -29,6 +31,7 @@ export function ConnectionDetail({
     const disconnect = useConnectionDisconnect(serverId);
     const refresh = useConnectionRefresh(serverId);
     const replaceHeaders = useConnectionHeadersUpdate(serverId);
+    const replaceToken = useConnectionTokenUpdate(serverId);
     const startOAuth = useConnectionOauthStart();
     const [connectingId, setConnectingId] = React.useState<string | null>(null);
     const [retryMessage, setRetryMessage] = React.useState<string | null>(null);
@@ -102,8 +105,18 @@ export function ConnectionDetail({
             <McpConnectionDetailDialog
                 connection={connection}
                 onAddAccount={(target) => {
-                    if (target.preset) {
+                    if (target.preset && !isMcpBearerTokenPreset(target.preset)) {
                         addPreset.mutate({
+                            name: `${target.name} account`,
+                            preset: target.preset,
+                            serverId,
+                        });
+                    }
+                }}
+                onAddTokenAccount={async (target, bearerToken) => {
+                    if (isMcpBearerTokenPreset(target.preset)) {
+                        await addPreset.mutateAsync({
+                            bearerToken,
                             name: `${target.name} account`,
                             preset: target.preset,
                             serverId,
@@ -117,6 +130,11 @@ export function ConnectionDetail({
                 onOpenChange={(open) => !open && onClose()}
                 onRefresh={(target) =>
                     refresh.mutateAsync({ connectionId: target.id, serverId }).then(() => undefined)
+                }
+                onReplaceToken={(target, bearerToken) =>
+                    replaceToken
+                        .mutateAsync({ bearerToken, connectionId: target.id, serverId })
+                        .then(() => undefined)
                 }
                 onStartOAuth={(target) => void beginOAuth(target)}
                 onUpdateHeaders={(target, headers) =>

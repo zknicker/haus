@@ -1,4 +1,4 @@
-import type { McpIcon } from '@haus/api';
+import type { McpIcon, McpPreset } from '@haus/api';
 export interface McpConnection {
     accountLabel: string | null;
     affectedAgents: Array<{ id: string; name: string }>;
@@ -9,7 +9,7 @@ export interface McpConnection {
     icon: McpIcon | null;
     id: string;
     name: string;
-    preset: 'google-calendar' | 'merchbase' | 'rankwrangler' | null;
+    preset: McpPreset | null;
     summary: string | null;
     url: string;
 }
