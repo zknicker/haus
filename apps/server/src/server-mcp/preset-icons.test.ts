@@ -42,10 +42,16 @@ describe('preset icon fallback', () => {
         expect(shaped.icon).toEqual(mcpPresetIcons.merchbase);
     });
 
-    test('a resolved icon wins over the bundled mark', () => {
+    test('the bundled mark wins over a resolved icon', () => {
         const shaped = shapeMcpConnection(row({ icon: resolvedIcon, preset: 'rankwrangler' }));
 
-        expect(shaped.icon).toEqual(resolvedIcon);
+        expect(shaped.icon).toEqual(mcpPresetIcons.rankwrangler);
+    });
+
+    test('a custom connection keeps its resolved icon', () => {
+        expect(shapeMcpConnection(row({ icon: resolvedIcon, preset: null })).icon).toEqual(
+            resolvedIcon
+        );
     });
 
     test('a malformed stored icon still falls back to the bundled mark', () => {

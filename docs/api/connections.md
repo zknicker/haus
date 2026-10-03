@@ -119,9 +119,10 @@ a server advertising only SVG falls through to its favicon.
 One icon serving both themes is stored in `light` alone and the App falls back to it, so a
 connection never carries the same bytes twice on a query that returns every row inline.
 
-A preset connection whose stored icon is `null` (or malformed) reads its bundled mark
-(`mcpPresetIcons` in `@haus/api`) instead. Server applies that at the read boundary, so the stored
-row stays the discovery result and every client gets the same fallback; the App draws the same
+A preset connection always reads its bundled mark (`mcpPresetIcons` in `@haus/api`), because
+Haus curates it at full resolution while discovery often finds only a small favicon. Server applies
+that at the read boundary, so the stored row stays the discovery result and every client gets the
+same mark; the App draws the same
 bundled marks on Recommended presets before they exist. A custom connection has no fallback.
 
 Icons refresh on connect and refresh, exactly like `accountLabel`. A connection created before this

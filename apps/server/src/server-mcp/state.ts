@@ -102,7 +102,7 @@ export function shapeMcpConnection(
         connected: row.connected,
         grants,
         headerNames: row.headerNames,
-        icon: storedIcon(row.icon) ?? presetIcon(row.preset),
+        icon: presetIcon(row.preset) ?? storedIcon(row.icon),
         id: row.id,
         name: row.name,
         preset: row.preset,
@@ -127,10 +127,10 @@ function storedIcon(value: unknown): McpIcon | null {
 }
 
 /**
- * A first-party preset falls back to its bundled mark when discovery resolved
- * none — before it connects, after its identity is cleared, and when its site
- * publishes no usable favicon. Applied here, at the read boundary, so every
- * client gets it and stored rows never need rewriting.
+ * A first-party preset always shows its bundled mark: Haus curates it at full
+ * resolution, while discovery often resolves only a small favicon. Applied
+ * here, at the read boundary, so every client gets it and stored rows stay the
+ * discovery result.
  */
 function presetIcon(preset: McpPreset | null): McpIcon | null {
     return preset ? mcpPresetIcons[preset] : null;

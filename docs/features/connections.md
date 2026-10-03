@@ -51,11 +51,10 @@ tools exposed by the connection. The tool names are read-only context, not indiv
 controls. Access changes take effect on the Agent's next MCP discovery or call without resetting
 its conversation.
 
-Each connection shows the MCP server's own icon when one can be resolved, and a tinted monogram
-otherwise. Haus Server resolves and stores the image during discovery, so the settings page makes
-no third-party image requests. Presets ship bundled marks: Recommended shows them before a preset
-is added, and an added preset whose server and site publish no usable icon keeps showing its
-bundled mark instead of a monogram. See [Connections API](../api/connections.md#connection-icons).
+A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
+monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
+page makes no third-party image requests. Presets always show their bundled marks, in Recommended
+and once added, because a server's own icon is often only a small favicon. See [Connections API](../api/connections.md#connection-icons).
 
 A connection has its own settings page at `settings/connections/<connectionId>`; the Settings rail
 keeps Connections active, and the top bar reads `Haus › Settings › Connections › <name>` with
