@@ -82,35 +82,31 @@ and [Agent Inbox](../../specs/inbox.md).
   control, and no second Chat receipt. The App never treats it as a Widget,
   visual fence, artifact, or model-authored form. Dropped realtime events
   recover through the ordinary message snapshot on reconnect.
-* **Message attachments and Threads.** Visible tasks and Cloud Agent work use compact,
-  content-width attachments beneath their message before anyone replies. They open the existing
-  Thread destination without a zero-reply count. Once replies exist, one recessed Thread card holds
-  the metadata, Cloud Agent summaries, reply count, and recent replies. Agent-claimed task metadata
-  stays hidden when Show tasks in chat is off, including on cards with replies. Inside a Thread, Cloud Agent
-  work keeps its full detail card. These attachment rules apply to the web App.
+* **Message attachments and Threads.** Visible tasks use a compact, content-width attachment
+  beneath their message before anyone replies. It opens the existing Thread destination without a
+  zero-reply count. Once replies exist, one recessed Thread card holds the task metadata, hoisted
+  Cloud Agent rows, reply count, and recent replies. Agent-claimed task metadata stays hidden when
+  Show tasks in chat is off, including on cards with replies. Cloud Agent work is not an attachment:
+  it renders as its full work card (below). These attachment rules apply to the web App.
 
 * **Questions to a person.** An Agent asks a human by @mentioning them in an ordinary Message
   ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); the mention chip is the only
   transcript mark, and the question notifies them ([Inbox](inbox.md#notifications)).
   There is no question card, option buttons, or answered state.
 * **Cloud Agent work.** A Message carrying
-  [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message
-  whose attachment or populated Thread card is headed by that work: the provider's own mark and
-  name, the work title, and a trailing status disc and label — `Queued`,
-  `Running · <elapsed>`, `Done · <duration>`, `Failed`, `Expired`, `Cancelled`,
-  or `Cancelling` while a cancel is recorded against a live Run. One muted line
-  under it states the work's current `activity` while it runs and nothing once
-  it settles, plus a `Last update <relative>` note when a running work has not
-  reported for ten minutes. The surface's overflow menu carries Open thread,
-  Open in `<provider>`, Copy link, and — for Owners and Admins, while the work
-  is live — Cancel run.
+  [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message followed by one
+  work card — the same card in the Chat transcript and inside the Thread (below). The card is
+  content-sized up to the in-chat card measure, never full transcript width, and carries every
+  action inline; there is no detached overflow menu. The card has no Thread button: before any
+  reply the Message's ordinary hover thread action opens the Thread, and once replies exist the
+  ordinary Thread preview beneath the card is the way in and does not repeat the work's header.
 * **Hoisted work status.** Each Cloud Agent inside a Thread gets a compact row
   beneath its anchor's Task header, showing provider, title, and status.
   Completed work remains visible. The Server's conversation-scoped work list
   supplies these rows, grouped by Thread anchor. The whole preview opens the
   Thread; individual work rows are not click targets.
-* **The in-Thread work card.** Inside the Thread, the work Message renders as
-  the Agent's own words followed immediately by a detailed card, in sequence
+* **The work card.** In the Chat and inside the Thread, the work Message renders as
+  the Agent's own words followed immediately by the work card, in sequence
   right where the Agent handed the work off. The card is presentation of the
   same work through later prompts and status updates; it never moves to the end
   of the conversation. There is no pinned cloud section or carousel. It shows the
@@ -121,9 +117,13 @@ and [Agent Inbox](../../specs/inbox.md).
   deletions in danger once the branch carries a pull-request snapshot, and one
   split button — **View PR** when there is a pull request and **Open in
   `<provider>`** until then, with Open in `<provider>`, Copy link, and Cancel
-  run for Owners and Admins while the run is live behind the chevron — with a
-  `Delegated by <Agent> · <time>` receipt. The Run report is not on the card:
-  the branch, the pull request, and the diff are the evidence. Everything
+  run for Owners and Admins while the run is live behind the chevron. The
+  Message's author line above the card says who delegated it and when, so the
+  card carries no receipt. While the work runs, an activity row
+  states its current `activity`, plus a `Last update <relative>` note when it
+  has not reported for ten minutes; settled work drops the row. The Run report
+  is not on the card: the branch, the pull request, and the diff are the
+  evidence. Everything
   updates in place from `cloud-agent-work.updated`; the work never writes a
   second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server

@@ -155,15 +155,16 @@ and affected-message invalidation; cursor catch-up applies the same invalidation
 
 In Chat, a task's identity is a **task chip** in the header of the recessed Thread surface beneath
 the message: the task number owns the left edge, only the status disc carries lifecycle color, and
-the assignee appears by avatar and display name. It shares that header with the
-Cloud Agent work header — one chip grammar for everything with a lifecycle a reader follows — and
-the reply count trails it. The message's author line carries provenance only: the automation and
+the assignee appears by avatar and display name, and the reply count trails it. Cloud Agent work
+on the same message renders as its own full work card above that surface, not as a second chip in
+its header ([Cloud Agents](../../specs/cloud-agents.md#messages-and-cards)). The message's author line carries provenance only: the automation and
 session marks explain how the message came to be said
 ([ADR 0026](../adr/0026-automation-provenance-rides-the-agents-message.md)).
 
 The chip is a label in one button into the Thread. Before replies exist, visible tasks use a
 content-width attachment with no reply count. Once replies exist, the Thread card carries the task
-metadata and reply previews together. Cloud Agent work in the Thread appears in that same card.
+metadata and reply previews together. Cloud Agent work delegated inside the Thread appears in that
+same card as compact informational rows.
 
 **Chat hides Agent claim metadata by default.** A task with `origin` `claimed` shows no task
 label unless the reader enables Show tasks in chat, even when its Thread has replies. The Thread

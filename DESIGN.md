@@ -754,7 +754,14 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 - **Chat card backgrounds:** Thread/task previews and Cloud Agent cards share
   `nested-surface`: `rgb(189 189 219 / 10%)` in dark mode and solid `surface` in light mode.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
-  Recalibrate it when those colors change. Message hover lightens the fill without dimming content;
+  Recalibrate it when those colors change.
+  **In-chat column:** every attachment under a message — Action cards (Cloud Agent work), thread
+  previews, the working log, workspace changes — is `w-full` up to one shared cap,
+  `--chat-card-width` (36rem) in `default-theme.css`, on every message whether or not other
+  attachments are present, so stacked attachments share both edges. Use `max-w-(--chat-card-width)`;
+  never a per-component literal. Compact object tiles (ArtifactCard, 28rem) and inline chips
+  (task chips) stay content-sized. The Cloud Agent card is the same card in the transcript and the
+  Thread. Message hover lightens the fill without dimming content;
   clickable thread previews strengthen to 12% opacity on hover. Light-mode canvas rows use
   `--background-hover`: a 50% `background-secondary` wash, including messages in task and thread views.
 - **Thread transcript fade:** Task and thread views fade messages over the final 4rem,

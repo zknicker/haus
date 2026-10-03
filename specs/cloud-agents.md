@@ -45,7 +45,7 @@ facts and compatibility risks, not unresolved product decisions.
   launched inside an existing Thread stays in that Thread because Threads do not nest. Replying to
   the Message is the human steering and discussion surface; the card has no separate reply model.
 - **One updating presentation.** Haus App renders the Message's Cloud Agent work body as one
-  Thread surface header in the parent Chat and one detailed card inside the Thread. Both update from
+  work card, the same in the parent Chat and inside the Thread. It updates from
   queued or running into a terminal report without creating automatic progress or completion
   Messages.
 - **Inbox completion.** Every terminal provider run creates at most one durable inbox attention for
@@ -126,18 +126,16 @@ A card is presentation, not a durable noun. It owns no id, placement, lifecycle,
 data. Haus App renders a card from the Message and the Server-owned record projected through its
 typed body.
 
-In the parent Chat — a Channel or a DM — Haus App renders Cloud Agent work as the header of the
-Message's recessed Thread surface, the same surface and the same chip grammar a Task uses:
-provider glyph and name, title, a status disc with elapsed or total duration, and the reply count.
-One optional line shows `activity` while the work runs, and the latest Run summary or error once the
-work is terminal. The surface opens the Thread. Open in Cursor and Cancel live in the surface's
-overflow menu.
+**One card everywhere.** Haus App renders Cloud Agent work as one full work card under the
+delegating Message, the same card in the parent Chat — a Channel or a DM — and inside the Thread.
+There is no compact header, pill, or detached overflow menu: every work action sits inline in the
+card's control band. The card is content-sized up to the in-chat card measure (34rem) on the
+`nested-surface` chat card background, never full transcript width.
 
-**Web attachments before replies.** A top-level work Message with no replies uses a content-width
-button containing provider, work title, and status, followed by the activity line when present.
-The adjacent menu retains the work actions. Once replies exist, the same facts move into the
-Thread card; zero replies never reserves an empty Thread card. Full work details inside the Thread
-remain unchanged. iOS retains its existing presentation until a separate native update.
+**In the parent Chat**, the card carries no way into the Thread of its own. Before any reply the
+Thread would hold nothing but the same card, so the Message's ordinary hover thread action is the
+way in; once replies exist, the ordinary Thread preview below the card is. The preview never
+repeats the work's header or actions. Zero replies never reserves an empty Thread preview.
 
 **Thread preview.** Each Cloud Agent work inside a Thread gets an informational row below the
 anchor's Task header: provider, title, and status with elapsed or total duration. Completed work
@@ -145,7 +143,7 @@ stays visible. The entire preview opens the Thread; individual work rows are not
 Server's conversation-scoped `cloudAgentWork.listForChat` read includes all statuses, grouped by
 Thread anchor. The Inbox's separate active-work read remains active-only.
 
-**Inside the Thread**, each delegation Message renders its prose followed by one full work card
+**Inside the Thread**, each delegation Message renders its prose followed by the same work card
 in the scrolling conversation. The Message's sequence fixes its position; status, PR, and follow-up
 updates change the same card in place. New delegations get their own Messages and cards. There is
 no pinned Cloud Agents section or carousel. Task metadata remains above the conversation.
@@ -156,8 +154,11 @@ muted, `Cancelling`), the repository, a branch row carrying the branch the run w
 when it opened one, a diff row of `<n> files changed` with additions in success and deletions in
 danger whenever the branch carries a pull-request snapshot, and one split-button control band — View
 PR when there is a pull request and Open in `<provider>` until then, with Open in `<provider>`, Copy
-link, and Cancel run for Owners and Admins while the run is live behind the chevron — plus a
-`Delegated by <Agent> · <time>` receipt. The Run report is not on the card: the branch, the pull
+link, and Cancel run for Owners and Admins while the run is live behind the chevron. There is no
+delegation receipt: the Message's author line and timestamp directly above the card already say who
+delegated it and when. While the work is live, an activity row shows the
+provider's latest `activity`; a settled work drops it, since the branch, PR, and diff rows state the
+outcome. The Run report is not on the card: the branch, the pull
 request, and the diff are the evidence, and provider prose only crowded them out. It updates in place
 from the same event.
 Multiple Cloud Agents may run inside one Task or Thread. The presentation imposes no one-to-one
@@ -166,7 +167,8 @@ observations update existing records rather than automatically posting channel c
 
 Only status discs and the card's status chip carry lifecycle color. A running work whose `updatedAt`
 is older than ten minutes shows a last-update note rather than gating on Computer connection state.
-iOS mirrors this presentation in its Thread preview and inline work cards. Older clients and
+iOS mirrors the Thread preview and the in-Thread card; bringing its parent-Chat presentation to
+the one-card contract (`CloudAgentCard.swift`) is a pending follow-up. Older clients and
 unknown body kinds render the Message `content` and the ordinary Thread preview.
 Compact Thread-preview rows on web and iOS show the work title until completion, then the newest
 Run's primary PR file/addition/deletion counts. Without a recorded PR snapshot, they show only
@@ -330,8 +332,7 @@ execution evidence, not collaboration state.
 Lifecycle changes emit a durable `cloud-agent-work.updated` event carrying the Message and work
 identities. Events notify; refetching the Message recovers. The delegating Agent may cancel through
 `haus cloud-agent stop`; human Owners and Admins may cancel through
-`cloudAgentWork.cancel`, reached from the Thread surface's overflow menu or the in-Thread work
-card. Other Chat participants request cancellation in the Thread. Reply and follow-up
+`cloudAgentWork.cancel`, reached from the work card's control band. Other Chat participants request cancellation in the Thread. Reply and follow-up
 work use the work Thread rather than surface-local conversation controls.
 
 ## Results are ordinary Messages
