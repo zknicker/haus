@@ -55,6 +55,10 @@ tools exposed by the connection. The tool names are read-only context, not indiv
 controls. Access changes take effect on the Agent's next MCP discovery or call without resetting
 its conversation.
 
+These grants are an Agent's only MCP access. Agents cannot add MCP servers themselves: MCP servers
+an Agent writes into its execution runtime's own config are ignored (see
+[MCP connections](../../specs/mcp.md#agent-execution) for the per-runtime contract).
+
 A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
 monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
 page makes no third-party image requests. Presets always show their bundled marks, in Recommended

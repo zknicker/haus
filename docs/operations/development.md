@@ -98,7 +98,8 @@ user. That is a real model turn and costs money — see [Testing](testing.md),
 
 For a focused Claude model and conversation-continuity smoke without a visual,
 run `HAUS_RUN_LIVE_CLAUDE_MODELS_TEST=1 bun test apps/computer/src/harness/claude-models-live.test.ts`.
-It uses the host's Claude sign-in and runs real turns on Opus 5.5 and Sonnet 5.5.
+It uses the host's Claude sign-in and runs real turns on Opus 5.5 and Sonnet 5.5. It also proves
+MCP servers in the Agent's own Claude Code config never start.
 
 Codex model smoke uses the existing opt-in bridge suite:
 `HAUS_RUN_LIVE_CODEX_TEST=1 HAUS_LIVE_CODEX_MODEL=gpt-6.1-sol bun test apps/computer/src/harness/codex-live.test.ts`.

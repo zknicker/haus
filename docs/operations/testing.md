@@ -266,8 +266,8 @@ HAUS_RUN_LIVE_GROK_TEST=1 bun test apps/computer/src/harness/grok-build-live.tes
 
 The Codex live smoke runs only with its variable set and then checks `codex login status`. It
 drives the production runtime table through codex-acp: a steered message lands
-mid-turn, a Computer host tool answers over the harness MCP relay, and a stopped
-session resumes with its conversation.
+mid-turn, a Computer host tool answers over the harness MCP relay, a stopped
+session resumes with its conversation, and MCP servers in the Agent's own Codex config never start.
 
 ```sh
 HAUS_RUN_LIVE_CODEX_TEST=1 bun test apps/computer/src/harness/codex-live.test.ts

@@ -88,6 +88,23 @@ QuickJS child process. Haus supplies `tools.search({query})`, `tools.describe({n
 and invocation uses the same authenticated Server authority as ordinary MCP calls. The harness
 schema and description never contain the changing connection inventory.
 
+Only humans add MCP servers. An Agent's MCP access is exactly the Server connections an Owner or
+Admin granted it, reached through `execute`; runtime-local MCP configuration is ignored, so an Agent
+cannot give itself servers by editing its execution runtime's config (`claude mcp add`,
+`codex mcp add`, `grok mcp add`, `.mcp.json`, and the like). Each runtime enforces this at launch,
+outside any file the Agent can edit:
+
+- Claude Code runs with `strictMcpConfig` (Haus's harness bridge patch): only the servers Haus
+  passes load, never user, project, plugin, or agent-frontmatter MCP config. The Agent home keeps its
+  own Claude Code state file instead of the operator's `~/.claude.json`.
+- Codex: Haus's codex-acp patch disables, per thread and title thread, every server Codex's config
+  layers declare (`$CODEX_HOME/config.toml`, project `.codex/config.toml`), and a Haus-requested
+  server always keeps its name.
+- Pi loads no filesystem extensions, so it has no MCP source besides Haus.
+- Grok Build launches with its Claude Code, Cursor, Codex, and xAI-managed MCP sources off. Known
+  gap: the Grok CLI has no per-process switch for its own `$GROK_HOME/config.toml`, trusted
+  project, or plugin MCP servers, so a server an Agent adds there loads in its next Grok session.
+
 Server is the MCP client, so it picks one form of every tool result instead of forwarding both. A
 result carrying `structuredContent` reaches the Agent without the text block that duplicates it as
 serialized JSON; non-text content blocks and `isError` results arrive exactly as the upstream sent
