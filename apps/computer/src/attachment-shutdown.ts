@@ -19,13 +19,15 @@ export async function withAttachmentShutdown<T>(
             () => work.close(),
             async () => {
                 disposeServerLaunchHosts(serverId);
-                await withShutdownDeadline(
+                await closeDaemonRuntimeResources(
                     () =>
-                        closeDaemonRuntimeResources(
+                        withShutdownDeadline(
                             () => closeDaemonCoordination(runtime),
-                            () => runtime.dispose()
+                            3000,
+                            'Computer coordination shutdown timed out.'
                         ),
-                    3000
+                    // Telemetry finalizers own their bounded flush deadlines.
+                    () => runtime.dispose()
                 );
             }
         )
@@ -39,22 +41,15 @@ export async function withAttachmentShutdown<T>(
 
 export async function withShutdownDeadline(
     close: () => Promise<void>,
-    timeoutMs = 20_000
+    timeoutMs = 20_000,
+    detail = 'Computer shutdown timed out before all session state was saved.'
 ): Promise<void> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
         await Promise.race([
             close(),
             new Promise<never>((_resolve, reject) => {
-                timer = setTimeout(
-                    () =>
-                        reject(
-                            new Error(
-                                'Computer shutdown timed out before all session state was saved.'
-                            )
-                        ),
-                    timeoutMs
-                );
+                timer = setTimeout(() => reject(new Error(detail)), timeoutMs);
             }),
         ]);
     } finally {
@@ -94,7 +89,8 @@ export async function drainAttachmentDaemon(): Promise<void> {
     await drain?.();
 }
 
-export async function stopAttachmentProcess(pid: number, timeoutMs = 30_000): Promise<void> {
+// Covers both work stages plus sandbox, coordination, and telemetry finalizers.
+export async function stopAttachmentProcess(pid: number, timeoutMs = 60_000): Promise<void> {
     try {
         process.kill(pid, 'SIGTERM');
     } catch (error) {

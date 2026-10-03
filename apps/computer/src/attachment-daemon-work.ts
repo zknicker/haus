@@ -78,41 +78,36 @@ export class AttachmentDaemonWork {
         this.agentWork.abortAll();
         this.closePromise = (async () => {
             try {
-                await settle(
+                const results = await settle(
                     this.runtime,
-                    Effect.tryPromise({
-                        catch: (cause) => new AttachmentShutdownForeignError({ cause }),
-                        try: async (signal) => {
-                            const results = await Promise.allSettled([
+                    shutdownStage(
+                        () =>
+                            Promise.allSettled([
                                 ...this.writerSnapshot(),
                                 this.cloudAgents?.close(),
-                            ]);
-                            const failures = results.flatMap((result) =>
-                                result.status === 'rejected' ? [result.reason] : []
-                            );
-                            try {
-                                await sessions.close(signal);
-                            } catch (error) {
-                                failures.push(error);
-                            }
-                            if (failures.length) {
-                                throw new AggregateError(
-                                    failures,
-                                    'Computer work did not drain cleanly.'
-                                );
-                            }
-                        },
-                    }).pipe(
-                        Effect.timeoutFail({
-                            duration: '20 seconds',
-                            onTimeout: () =>
-                                new AttachmentShutdownForeignError({
-                                    cause: new Error(
-                                        'Computer shutdown timed out before all session state was saved.'
-                                    ),
-                                }),
-                        })
+                            ]),
+                        'Computer shutdown timed out while draining accepted work.'
                     ),
+                    { mapFailure: (failure) => failure.cause }
+                );
+                const failures = results.flatMap((result) =>
+                    result.status === 'rejected' ? [result.reason] : []
+                );
+                await settle(
+                    this.runtime,
+                    shutdownStage(async (signal) => {
+                        try {
+                            await sessions.close(signal);
+                        } catch (error) {
+                            failures.push(error);
+                        }
+                        if (failures.length) {
+                            throw new AggregateError(
+                                failures,
+                                'Computer work did not drain cleanly.'
+                            );
+                        }
+                    }, 'Computer shutdown timed out before all session state was saved.'),
                     { mapFailure: (failure) => failure.cause }
                 );
             } finally {
@@ -125,6 +120,21 @@ export class AttachmentDaemonWork {
         })();
         return this.closePromise;
     }
+}
+
+function shutdownStage<Value>(
+    operation: (signal: AbortSignal) => Promise<Value>,
+    detail: string
+): Effect.Effect<Value, AttachmentShutdownForeignError> {
+    return Effect.tryPromise({
+        catch: (cause) => new AttachmentShutdownForeignError({ cause }),
+        try: operation,
+    }).pipe(
+        Effect.timeoutFail({
+            duration: '20 seconds',
+            onTimeout: () => new AttachmentShutdownForeignError({ cause: new Error(detail) }),
+        })
+    );
 }
 
 class AttachmentShutdownForeignError extends Data.TaggedError('AttachmentShutdownForeignError')<{
