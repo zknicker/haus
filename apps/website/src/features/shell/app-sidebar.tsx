@@ -1,8 +1,6 @@
-import { toast } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAgents } from '../../hooks/members/use-agents.ts';
-import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useInboxUnreadCount } from '../../hooks/servers/use-inbox-unread-count.ts';
@@ -32,7 +30,6 @@ export function AppSidebar({
     // The sidebar owns the Inbox badge's read, the same way it owns the chat
     // list the unread chips ride on; the rows below stay presentation.
     const inboxUnread = useInboxUnreadCount(currentServer.id);
-    const updateChannel = useChannelUpdate();
     const [creatingChannel, setCreatingChannel] = React.useState(false);
     const [creatingAgent, setCreatingAgent] = React.useState(false);
     const slug = currentServer.slug;
@@ -55,21 +52,6 @@ export function AppSidebar({
                 agents={agentItems}
                 chats={chatItems}
                 inboxUnreadCount={inboxUnread.count}
-                onChangeChannelColor={(chat, color) => {
-                    updateChannel
-                        .mutateAsync({
-                            agentIds: chat.participantAgentIds,
-                            chatId: chat.id,
-                            color,
-                            icon: chat.icon,
-                            name: chat.name ?? '',
-                            serverId: chat.serverId,
-                        })
-                        .then(() => toast.success('Channel color updated'))
-                        .catch((error: Error) =>
-                            toast.danger('Channel update failed', { description: error.message })
-                        );
-                }}
                 onCreateAgent={canManage ? () => setCreatingAgent(true) : undefined}
                 onCreateChannel={openCreateChannel}
                 onPreloadSection={onPreloadSection}

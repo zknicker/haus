@@ -1,12 +1,12 @@
 import { Spinner } from '@heroui/react';
-import { File01Icon, Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { File01Icon, Folder01Icon, Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
-import type { PrimaryTabIdentity } from './primary-tab-identity.ts';
 import { getSectionTabIcon } from './route-tab-presentation.tsx';
+import type { TabMark } from './tab-identity.ts';
 import { WorkspaceTabMark } from './workspace-tab.tsx';
 
 /** Glyphs and favicons are 16px, centered in the tab's 20px mark slot. */
@@ -14,21 +14,43 @@ const markSize = 16;
 /** Identity marks — a channel box or an avatar — fill the 20px slot: a boxed mark needs the extra size to read level with a bare favicon. */
 const identityMarkSize = 20;
 
-/** The primary tab's mark, and a Thread tab's chat mark: the same identity the sidebar row shows. */
-export function PrimaryTabMark({ identity }: { identity: PrimaryTabIdentity }) {
-    return <WorkspaceTabMark>{renderIdentity(identity)}</WorkspaceTabMark>;
-}
-
-/** An empty mark slot, so a loading tab's title keeps its inset. */
-export function WorkspaceTabMarkSlot() {
-    return <WorkspaceTabMark>{null}</WorkspaceTabMark>;
+/**
+ * A desktop tab's mark from its identity (ADR 0039): a channel box or an
+ * avatar at identity size, a section, artifact, Files, or new tab glyph, or
+ * a web page's favicon.
+ */
+export function TabIdentityMark({ mark }: { mark: TabMark }) {
+    switch (mark.kind) {
+        case 'channel':
+            return (
+                <WorkspaceTabMark>
+                    <ChannelIconBox color={mark.color} icon={mark.icon} size="tab" />
+                </WorkspaceTabMark>
+            );
+        case 'avatar':
+            return (
+                <WorkspaceTabMark>
+                    <EntityAvatar name={mark.name} size={identityMarkSize} src={mark.src} />
+                </WorkspaceTabMark>
+            );
+        case 'favicon':
+            return <BrowserTabMark tab={{ faviconUrl: mark.url, loading: mark.loading }} />;
+        case 'glyph':
+            return (
+                <WorkspaceTabMark>
+                    <Icon aria-hidden="true" icon={glyphIcon(mark.glyph)} size={markSize} />
+                </WorkspaceTabMark>
+            );
+        case 'none':
+            return <WorkspaceTabMark>{null}</WorkspaceTabMark>;
+    }
 }
 
 /**
  * A browser tab's mark: a spinner while the page loads, then the page's own
  * favicon, falling back to a globe when the page has none or it fails to load.
  */
-export function BrowserTabMark({ tab }: { tab: Pick<BrowserTab, 'faviconUrl' | 'loading'> }) {
+function BrowserTabMark({ tab }: { tab: Pick<BrowserTab, 'faviconUrl' | 'loading'> }) {
     const [failedUrl, setFailedUrl] = React.useState<string | null>(null);
     let mark: React.ReactNode;
     if (tab.loading) {
@@ -53,52 +75,15 @@ export function BrowserTabMark({ tab }: { tab: Pick<BrowserTab, 'faviconUrl' | '
     return <WorkspaceTabMark>{mark}</WorkspaceTabMark>;
 }
 
-/** An artifact tab's mark: the same file glyph the Artifact Panel's tabs use. */
-export function ArtifactTabMark() {
-    return (
-        <WorkspaceTabMark>
-            <Icon aria-hidden="true" icon={File01Icon} size={markSize} />
-        </WorkspaceTabMark>
-    );
-}
-
-/**
- * An Agent tab's mark: the Agent's avatar, the same identity mark a DM tab
- * shows; an empty slot while the Agent loads.
- */
-export function AgentTabMark({
-    agent,
-}: {
-    agent: { avatarUrl: string | null; name: string } | null;
-}) {
-    return (
-        <WorkspaceTabMark>
-            {agent ? (
-                <EntityAvatar name={agent.name} size={identityMarkSize} src={agent.avatarUrl} />
-            ) : null}
-        </WorkspaceTabMark>
-    );
-}
-
-function renderIdentity(identity: PrimaryTabIdentity) {
-    switch (identity.kind) {
-        case 'channel':
-            return <ChannelIconBox color={identity.color} icon={identity.icon} size="tab" />;
-        case 'dm':
-            return (
-                <EntityAvatar
-                    name={identity.label}
-                    size={identityMarkSize}
-                    src={identity.avatarUrl}
-                />
-            );
-        case 'section':
-            return (
-                <Icon
-                    aria-hidden="true"
-                    icon={getSectionTabIcon(identity.section)}
-                    size={markSize}
-                />
-            );
+function glyphIcon(glyph: Extract<TabMark, { kind: 'glyph' }>['glyph']) {
+    switch (glyph) {
+        case 'artifact':
+            return File01Icon;
+        case 'files':
+            return Folder01Icon;
+        case 'newTab':
+            return Globe02Icon;
+        default:
+            return getSectionTabIcon(glyph);
     }
 }

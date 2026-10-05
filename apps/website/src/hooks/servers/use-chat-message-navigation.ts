@@ -11,7 +11,15 @@ interface NavigationSnapshot {
     fetchOlderHistory: () => Promise<unknown>;
     hasOlderHistory: boolean;
     messages: readonly ChatMessageJumpTarget[] | undefined;
+    transcript: Transcript;
 }
+
+/**
+ * The Chat's own transcript. A window holds many copies of a message (a Thread
+ * page shows its root, hidden tabs keep their transcripts), so a reveal looks
+ * only inside this one.
+ */
+type Transcript = React.RefObject<ParentNode | null>;
 
 /**
  * Reveals a message in a cursor-paginated transcript, loading older pages only
@@ -24,11 +32,13 @@ export function useChatMessageNavigation({
     fetchOlderHistory,
     hasOlderHistory,
     messages,
+    transcript,
 }: {
     chatId: string;
     fetchOlderHistory: () => Promise<unknown>;
     hasOlderHistory: boolean;
     messages: readonly ChatMessageJumpTarget[] | undefined;
+    transcript: Transcript;
 }) {
     const requestGeneration = React.useRef(0);
     const lastChatId = React.useRef(chatId);
@@ -41,8 +51,14 @@ export function useChatMessageNavigation({
             requestGeneration.current += 1;
         };
     }, []);
-    const snapshot = React.useRef({ chatId, fetchOlderHistory, hasOlderHistory, messages });
-    snapshot.current = { chatId, fetchOlderHistory, hasOlderHistory, messages };
+    const snapshot = React.useRef({
+        chatId,
+        fetchOlderHistory,
+        hasOlderHistory,
+        messages,
+        transcript,
+    });
+    snapshot.current = { chatId, fetchOlderHistory, hasOlderHistory, messages, transcript };
 
     const revealMessage = React.useCallback(
         (target: ChatMessageJumpTarget, scrollToMessage?: (id: string) => boolean) => {
@@ -63,12 +79,15 @@ export function useChatMessageNavigation({
     return { revealMessage };
 }
 
-function revealLoadedMessage(
+export function revealLoadedMessage(
+    transcript: Transcript,
     target: ChatMessageJumpTarget,
     scrollToMessage?: (id: string) => boolean
 ) {
     const escapedId = CSS.escape(target.id);
-    const element = document.querySelector<HTMLElement>(`[data-message-id="${escapedId}"]`);
+    const element = transcript.current?.querySelector<HTMLElement>(
+        `[data-message-id="${escapedId}"]`
+    );
 
     if (!element) {
         return false;
@@ -114,7 +133,7 @@ async function revealMessageInHistory({
     target: ChatMessageJumpTarget;
     scrollToMessage?: (id: string) => boolean;
 }) {
-    if (revealLoadedMessage(target, scrollToMessage)) {
+    if (revealLoadedMessage(snapshot.current.transcript, target, scrollToMessage)) {
         return;
     }
 
@@ -132,7 +151,7 @@ async function revealMessageInHistory({
         await nextPaint();
         if (
             requestGeneration.current !== generation ||
-            revealLoadedMessage(target, scrollToMessage)
+            revealLoadedMessage(snapshot.current.transcript, target, scrollToMessage)
         ) {
             return;
         }

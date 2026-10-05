@@ -15,6 +15,7 @@ import type { HausRouter } from '../../../server/src/haus-api/router.ts';
 import { UpdateRequiredGate } from '../features/servers/update-required-gate.tsx';
 import { getClerkSessionToken } from './clerk.tsx';
 import { watchHausSession } from './haus-session-refresh.ts';
+import { hydrateClaimedQueryCache, useQueryCacheOffer } from './query-cache-handoff.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
 import { type ConnectionState, createQueryReconnectHandler } from './query-reconnect-recovery.ts';
 
@@ -71,9 +72,12 @@ function parseHttpOrigin(value: string | undefined) {
 }
 
 export function HausServerProvider({ children }: React.PropsWithChildren) {
-    const [queryClient] = React.useState(
-        () => new QueryClient({ defaultOptions: queryClientDefaultOptions })
-    );
+    const [queryClient] = React.useState(() => {
+        const client = new QueryClient({ defaultOptions: queryClientDefaultOptions });
+        hydrateClaimedQueryCache(client);
+        return client;
+    });
+    useQueryCacheOffer(queryClient);
     const [connectionState, setConnectionState] =
         React.useState<HausServerConnectionState>('connecting');
     const [handleConnectionState] = React.useState(() =>

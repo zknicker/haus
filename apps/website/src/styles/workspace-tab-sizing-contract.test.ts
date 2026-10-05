@@ -36,11 +36,7 @@ describe('workspace tab sizing contract', () => {
         expect(ruleBody('.workspace-titlebar')).toContain('--workspace-tab-width: 12.5rem;');
     });
 
-    test('the side pane strip holds the same basis as every other strip', () => {
-        // A narrower side basis truncated short titles while most of the strip sat empty.
-        expect(ruleBody('.workspace-band-trail[data-side-pane]')).not.toContain(
-            '--workspace-tab-width'
-        );
+    test('the window band strip holds the same basis as every other strip', () => {
         expect(ruleBody('.shell-window-band > .workspace-titlebar')).toContain(
             '--workspace-tab-width: var(--shell-tab-width);'
         );
@@ -102,26 +98,28 @@ describe('workspace tab sizing contract', () => {
         expect(ruleBody('.workspace-tab')).not.toContain('overflow');
     });
 
-    test('dividers hide beside a selected, hovered, or dragged tab', () => {
-        const filled = '.workspace-tab:is([data-active="true"], [data-dragging="true"])';
+    test('dividers hide beside a shown, multi-selected, hovered, or dragged tab', () => {
+        const filled =
+            '.workspace-tab:is([data-active="true"], [data-selected="true"], [data-dragging="true"])';
         const hidden = ruleStartingWith(`.workspace-tab:first-child::before, ${filled}::before,`);
         expect(hidden).toContain('opacity: 0;');
         expect(themeCss).toContain(`${filled} + .workspace-tab::before,`);
         expect(themeCss).toContain(
-            '.workspace-tabs:has(.workspace-tab:last-child:is([data-active="true"], [data-dragging="true"])) .workspace-new-tab::before {'
+            '.workspace-tabs:has(.workspace-tab:last-child:is([data-active="true"], [data-selected="true"], [data-dragging="true"])) .workspace-new-tab::before, .workspace-tab-drag-layer > .workspace-tab::before {'
         );
         const hover = ruleStartingWith('.workspace-tab:hover::before,');
         expect(hover).toContain('.workspace-new-tab:hover::before');
         expect(hover).toContain('opacity: 0;');
     });
 
-    test('a cut-off title ends in an ellipsis', () => {
-        expect(ruleBody('.workspace-tab__label')).toContain('text-overflow: ellipsis;');
+    test('a dragged tab paints opaque over the band ground, so crossed tabs never show through', () => {
+        const dragged = ruleStartingWith(
+            '.shell-window-band :is(.workspace-tab[data-dragging="true"], .workspace-tab-drag-layer > .workspace-tab):not('
+        );
+        expect(dragged).toContain('var(--app-shell-ground)');
     });
 
-    test('a preview tab is marked by an italic title alone, keeping the shared geometry', () => {
-        const preview = ruleBody('.workspace-tab--preview .workspace-tab__label');
-        expect(preview).toContain('font-style: italic;');
-        expect(themeCss).not.toContain('.workspace-tab--preview {');
+    test('a cut-off title ends in an ellipsis', () => {
+        expect(ruleBody('.workspace-tab__label')).toContain('text-overflow: ellipsis;');
     });
 });

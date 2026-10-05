@@ -16,7 +16,6 @@ export function ChatNavigationRow({
     chat,
     className,
     name,
-    onChangeChannelColor,
     ref,
     selectedChatId,
     slug,
@@ -27,7 +26,6 @@ export function ChatNavigationRow({
     chat: Chat;
     className?: string;
     name: string;
-    onChangeChannelColor?: (chat: Chat, color: string) => void;
     ref?: React.Ref<HTMLDivElement>;
     selectedChatId: string | undefined;
     slug: string;
@@ -50,7 +48,7 @@ export function ChatNavigationRow({
             <ChatNavigationContextMenu
                 agent={agent}
                 chat={chat}
-                onChangeChannelColor={onChangeChannelColor}
+                isCurrent={chat.id === selectedChatId}
                 slug={slug}
             >
                 <ChatNavigationRowContent agent={agent} chat={chat} name={name} />

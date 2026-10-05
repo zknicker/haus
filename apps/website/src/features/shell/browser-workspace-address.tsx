@@ -22,7 +22,7 @@ export function BrowserWorkspaceAddress({
     onEdit,
     onRest,
     onNavigate,
-    autoFocus,
+    id,
 }: {
     address: string;
     editing: boolean;
@@ -32,7 +32,8 @@ export function BrowserWorkspaceAddress({
     onEdit: () => void;
     onRest: () => void;
     onNavigate: (value: string) => void;
-    autoFocus: boolean;
+    /** The field's element id, unique per view so ⌘L finds the focused pane's field. */
+    id: string;
 }) {
     const input = React.useRef<HTMLInputElement>(null);
     const focusedByPointer = React.useRef(false);
@@ -48,7 +49,7 @@ export function BrowserWorkspaceAddress({
         }
     }, [editing]);
     const suggestions = React.useMemo(() => {
-        // A blank tab's new-tab page already lists recent sites.
+        // An empty field sits on the new tab page, which already lists recent sites.
         if (!editing || dismissed || (!typed && address === '')) {
             return [];
         }
@@ -105,8 +106,7 @@ export function BrowserWorkspaceAddress({
                 open={suggestions.length > 0}
             />
             <Input
-                autoFocus={autoFocus}
-                id="browser-address"
+                id={id}
                 onBlur={(event) => {
                     if (!movesIntoList(event)) {
                         focused.current = false;

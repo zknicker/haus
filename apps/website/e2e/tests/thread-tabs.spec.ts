@@ -1,8 +1,12 @@
-import { installDesktopBrowserStub } from '../support/desktop-browser-stub.ts';
+import {
+    installDesktopBrowserStub,
+    moveTabToRightPane,
+    openDesktopWindow,
+} from '../support/desktop-browser-stub.ts';
 import { assertOpaqueId, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('Threads open in the side pane, one preview at a time', async ({ page }, testInfo) => {
+test('Threads open as pages in the other pane beside the chat', async ({ page }, testInfo) => {
     await installDesktopBrowserStub(page);
     const { client, server } = await createTestServer(page, {
         displayName: 'Thread tabs',
@@ -11,7 +15,7 @@ test('Threads open in the side pane, one preview at a time', async ({ page }, te
     const chatId = server.channels.find((chat) => chat.name === 'all')?.id;
     assertOpaqueId(chatId);
     const roots: string[] = [];
-    for (const name of ['First', 'Second', 'Third']) {
+    for (const name of ['First', 'Second']) {
         const sent = await client.chat.send.mutate({
             serverId: server.id,
             chatId,
@@ -19,90 +23,58 @@ test('Threads open in the side pane, one preview at a time', async ({ page }, te
             content: `${name} thread root`,
         });
         roots.push(sent.message.id);
-    }
-    for (const [index, name] of ['First', 'Second'].entries()) {
         await client.chat.send.mutate({
             serverId: server.id,
             chatId,
             nonce: `thread-reply-${name}`,
             content: `${name} thread reply`,
-            thread: { anchorMessageId: roots[index] ?? '' },
+            thread: { anchorMessageId: sent.message.id },
         });
     }
-    // The desktop shell routes by hash, so the Server's path alone does not select it.
-    await page.goto(`/#/s/thread-tabs/chats/${chatId}`);
-    const sidePane = page.getByRole('complementary', { name: 'Side pane' });
-    const sideTabs = page
-        .getByRole('navigation', { name: 'Side pane tabs' })
+    await openDesktopWindow(page, `/s/thread-tabs/chats/${chatId}`);
+    // Links open in the other pane only once a second pane exists: split off an Inbox tab.
+    await page.getByRole('row', { exact: true, name: 'Inbox' }).click({ modifiers: ['Meta'] });
+    await moveTabToRightPane(page, 'Inbox');
+    const threadPane = page.locator('.desktop-tab-frame[data-frame-pane="secondary"]:visible');
+    const right = page
+        .getByRole('navigation', { name: 'Right pane tabs', exact: true })
         .locator('.workspace-tab');
-    const preview = page.locator('.workspace-band-trail .workspace-tab--preview');
     const openThread = page.getByRole('button', { name: 'Open thread, 1 reply' });
 
-    // A Thread opens in the side pane as its preview tab, beside the chat.
+    // A Thread opens as a page in the other pane, beside the chat, and leaves the URL alone.
     await openThread.first().click();
-    await expect(sideTabs).toHaveCount(1);
-    await expect(preview).toContainText('First thread root');
-    await expect(sidePane.getByText('First thread reply', { exact: true })).toBeVisible();
+    await expect(right).toHaveCount(1);
+    await expect(right.first()).toContainText('First thread root');
+    await expect(threadPane.getByText('First thread reply', { exact: true })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     expect(page.url()).not.toContain('thread=');
 
-    // The next Thread replaces the preview in place instead of stacking.
+    // Another Thread navigates that pane's tab (its history keeps the first); opening a
+    // Thread already shown there keeps the one tab.
     await openThread.nth(1).click();
-    await expect(sideTabs).toHaveCount(1);
-    await expect(preview).toContainText('Second thread root');
-
-    // Double-clicking pins it; the next Thread then opens beside it.
-    await sideTabs
-        .first()
-        .getByRole('button', { name: 'Second thread root', exact: true })
-        .dblclick();
-    await expect(preview).toHaveCount(0);
+    await expect(right).toHaveCount(1);
+    await expect(right.first()).toContainText('Second thread root');
+    await expect(threadPane.getByText('Second thread reply', { exact: true })).toBeVisible();
     await openThread.first().click();
-    await expect(sideTabs).toHaveCount(2);
-    await expect(preview).toContainText('First thread root');
+    await expect(right).toHaveCount(1);
+    await expect(right.first()).toContainText('First thread root');
 
-    // Replying pins the preview tab.
-    const reply = sidePane.getByRole('textbox', { name: /Message Thread/u });
-    await reply.fill('Pinned by this reply');
+    // Replying from the Thread page posts into the Thread.
+    const reply = threadPane.getByRole('textbox', { name: /Message Thread/u });
+    await reply.fill('Sent from the Thread page');
     await reply.press('Enter');
-    await expect(sidePane.getByText('Pinned by this reply', { exact: true })).toBeVisible();
-    await expect(preview).toHaveCount(0);
+    await expect(threadPane.getByText('Sent from the Thread page', { exact: true })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('thread-tabs.png') });
 
-    // The tab closes the Thread, so its header has no second close button. View in chat
-    // reveals the anchor in the chat's own transcript, flashing it.
-    await expect(sidePane.getByRole('button', { name: 'Close thread' })).toHaveCount(0);
-    await sidePane.getByRole('button', { name: /thread actions$/u }).click();
+    // View in chat reveals the anchor in the chat's own transcript, flashing it.
+    await threadPane.getByRole('button', { name: /thread actions$/u }).click();
     await page.getByRole('menuitem', { name: 'View in chat' }).click();
     await expect(
         page.getByLabel('Messages', { exact: true }).locator(`[data-message-id="${roots[0]}"]`)
     ).toHaveClass(/chat-thread-flash/u);
 
-    // A `?thread=` link (a same-document hash navigation here) opens the Thread's tab
-    // and leaves the URL; the routed navigation leaves the side pane showing.
-    await page.goto(`/#/s/thread-tabs/chats/${chatId}?thread=${roots[2]}`);
-    await expect(preview).toContainText('Third thread root');
-    await expect(sideTabs).toHaveCount(3);
-    await expect.poll(() => page.url()).not.toContain('thread=');
-
-    // Pinned Threads persist; the preview does not, and the pane comes back hidden.
+    // The Thread tab survives a reload with its page.
     await page.reload();
-    await expect(sidePane).toHaveCount(0);
-    await expect(page.locator('.workspace-band-trail .badge')).toHaveText('2');
-    const paneToggle = page.getByRole('button', { name: 'Side pane tabs', exact: true });
-    await expect(paneToggle).toHaveAttribute('aria-pressed', 'false');
-    await paneToggle.click();
-    await expect(sideTabs).toHaveCount(2);
-    await expect(
-        page.getByRole('navigation', { name: 'Side pane tabs' }).getByRole('button', {
-            name: 'First thread root',
-            exact: true,
-        })
-    ).toBeVisible();
-    await expect(
-        page.getByRole('navigation', { name: 'Side pane tabs' }).getByRole('button', {
-            name: 'Third thread root',
-            exact: true,
-        })
-    ).toHaveCount(0);
+    await expect(right).toHaveCount(1);
+    await expect(right.first()).toContainText('First thread root');
 });

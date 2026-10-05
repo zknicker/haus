@@ -2,11 +2,16 @@ import { Chip } from '@heroui/react';
 import type * as React from 'react';
 import { getChannelColorStyle } from '../../components/chats/channel-color-options.ts';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
+import { opensPlaceAttribute } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../lib/utils.ts';
 import { getMentionAppearance, MentionAppearanceIcon } from './mention-appearance.tsx';
 import { getMentionChipColor } from './mention-chip-color.ts';
 import { getMentionDisplayLabel } from './mention-display-label.ts';
-import type { ReferenceActivation, ReferenceKind } from './mention-types.ts';
+import type {
+    ReferenceActivation,
+    ReferenceActivationTarget,
+    ReferenceKind,
+} from './mention-types.ts';
 import { ProductReferenceThumbnail } from './product-reference-thumbnail.tsx';
 import { isPreviewReference, ReferenceHoverCard } from './reference-hover-card.tsx';
 
@@ -92,14 +97,8 @@ export function ReferenceChipView({
     const trigger = (
         <button
             aria-label={`${activatable ? 'Open' : 'Preview'} ${displayLabel}`}
+            {...openProps(activatable ? onActivate : undefined, activationTarget)}
             className="reference-chip-trigger inline-flex max-w-full cursor-(--cursor-interactive) rounded-lg align-middle outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={
-                activatable
-                    ? () => {
-                          onActivate?.(activationTarget);
-                      }
-                    : undefined
-            }
             type="button"
         >
             {chip}
@@ -154,4 +153,9 @@ function chipHasPreview(
     id: string
 ) {
     return Boolean(content) || (preview && isPreviewReference(kind, id));
+}
+
+/** An openable chip: a click opens it, and on desktop a middle-click opens it in a new tab. */
+function openProps(onActivate: ReferenceActivation | undefined, target: ReferenceActivationTarget) {
+    return onActivate ? { [opensPlaceAttribute]: '', onClick: () => onActivate(target) } : {};
 }

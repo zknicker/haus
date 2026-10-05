@@ -1,5 +1,12 @@
 import { expect, test } from 'bun:test';
-import { parseBrowserCapture, parseBrowserWorkspace } from './desktop-browser.ts';
+import {
+    browserViewsCovered,
+    coverBrowserViews,
+    parseBrowserCapture,
+    parseBrowserOpenRequest,
+    parseBrowserWorkspace,
+    subscribeBrowserViewCovers,
+} from './desktop-browser.ts';
 
 const tab = {
     id: 'page',
@@ -14,15 +21,12 @@ const tab = {
     find: { activeMatch: 1, matches: 3 },
 };
 
-test('browser snapshots validate the entire tab and active identity', () => {
-    expect(parseBrowserWorkspace({ activeId: 'page', tabs: [tab] })).toEqual({
-        activeId: 'page',
-        tabs: [tab],
-    });
+test('browser snapshots validate every view and carry no selection', () => {
+    expect(parseBrowserWorkspace({ tabs: [tab] })).toEqual({ tabs: [tab] });
     for (const value of [
         null,
         {},
-        { activeId: 'missing', tabs: [tab] },
+        { tabs: 'page' },
         { activeId: null, tabs: [{ ...tab, loading: 'true' }] },
         { activeId: null, tabs: [{}] },
         { activeId: null, tabs: [{ ...tab, faviconUrl: undefined }] },
@@ -55,4 +59,39 @@ test('page captures render only as inline PNG or JPEG images', () => {
     ]) {
         expect(parseBrowserCapture(value)).toBeNull();
     }
+});
+
+test('open requests carry a web URL, the opener view, and the background flag', () => {
+    const request = { url: 'https://example.com/', openerId: 'view-1', background: true };
+    expect(parseBrowserOpenRequest(request)).toEqual(request);
+    expect(parseBrowserOpenRequest({ ...request, openerId: null })).toEqual({
+        ...request,
+        openerId: null,
+    });
+    for (const value of [
+        null,
+        { ...request, url: 'file:///etc/passwd' },
+        { ...request, openerId: 4 },
+        { ...request, background: 'yes' },
+        { url: request.url },
+    ]) {
+        expect(parseBrowserOpenRequest(value)).toBeNull();
+    }
+});
+
+test('web view covers nest and each release counts once', () => {
+    let changes = 0;
+    const unsubscribe = subscribeBrowserViewCovers(() => {
+        changes += 1;
+    });
+    const drag = coverBrowserViews();
+    const other = coverBrowserViews();
+    expect(browserViewsCovered()).toBe(true);
+    drag();
+    drag();
+    expect(browserViewsCovered()).toBe(true);
+    other();
+    expect(browserViewsCovered()).toBe(false);
+    expect(changes).toBe(4);
+    unsubscribe();
 });

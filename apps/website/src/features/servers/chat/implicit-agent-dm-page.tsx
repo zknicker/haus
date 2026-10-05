@@ -3,13 +3,13 @@ import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { useOptionalDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
-import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
-import { PageTopbar, WorkspaceBandActions } from '../../shell/shell-topbar.tsx';
+import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
 import { ImplicitAgentDmComposer } from './chat-composer-variants.tsx';
 import { ChatTopbarIdentity } from './chat-topbar.tsx';
@@ -24,6 +24,7 @@ export function ImplicitAgentDmPage({
 }) {
     const agents = useAgents(server.id);
     const navigate = useNavigate();
+    const compact = Boolean(useOptionalDesktopTabs());
     const agent = agents.data?.find((candidate) => candidate.id === agentId);
     useWindowTitle(agent?.displayName ?? 'Direct message');
 
@@ -35,31 +36,18 @@ export function ImplicitAgentDmPage({
     }
 
     const selectionKey = `implicit-agent-dm:${agent.id}`;
-    const compact = Boolean(getDesktopBridge()?.browserCommand);
-    const actions = (
-        <DmActions
-            chatName={agent.displayName}
-            content={null}
-            peerAgent={agent}
-            slug={server.slug}
-        />
-    );
-
     return (
         <section
             aria-label={agent.displayName}
             className="relative flex min-h-0 flex-1"
             data-slot="chat-surface"
         >
-            <PageTopbar>
-                {compact ? (
-                    // Desktop: the primary workspace tab already names the Agent,
-                    // so only the actions menu rides along, at the band's end.
-                    <>
-                        <WorkspaceBandActions>{actions}</WorkspaceBandActions>
-                        <h1 className="sr-only">{agent.displayName}</h1>
-                    </>
-                ) : (
+            {compact ? (
+                // Desktop: the tab names the Agent and its context menu (and the
+                // sidebar row's) carries the DM's actions, so the band stays empty.
+                <h1 className="sr-only">{agent.displayName}</h1>
+            ) : (
+                <PageTopbar>
                     <SectionHeader
                         leading={
                             <ChatTopbarIdentity
@@ -74,10 +62,15 @@ export function ImplicitAgentDmPage({
                             />
                         }
                     >
-                        {actions}
+                        <DmActions
+                            chatName={agent.displayName}
+                            content={null}
+                            peerAgent={agent}
+                            slug={server.slug}
+                        />
                     </SectionHeader>
-                )}
-            </PageTopbar>
+                </PageTopbar>
+            )}
             <ChatDetailFrame
                 activeReplies={[]}
                 chatId={selectionKey}

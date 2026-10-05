@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useCoveringTabSelected } from '../../features/shell/browser-workspace-context.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { useTabPresence } from '../desktop-tabs/tab-presence.ts';
 import { useAppForegrounded } from '../shell/use-app-foregrounded.ts';
 
 export interface ChatReadAttemptTarget {
@@ -79,7 +79,9 @@ export function useChatRead(input: {
     serverId: string | undefined;
 }) {
     const foregrounded = useAppForegrounded();
-    const workspaceTabActive = useCoveringTabSelected();
+    // Viewing in focus (ADR 0038 read with ADR 0039): a desktop tab counts only
+    // while shown, in either pane; the web is always shown.
+    const shown = useTabPresence().shown;
     const attemptTrackerRef = React.useRef(createChatReadAttemptTracker());
     const attemptTracker = attemptTrackerRef.current;
     // The durable `chat.read` event owns unread-count invalidation; see useChatEvents.
@@ -96,7 +98,7 @@ export function useChatRead(input: {
     const [retryGeneration, setRetryGeneration] = React.useState(0);
     const eligible = canMarkChatRead({
         ...input,
-        enabled: input.enabled !== false && !workspaceTabActive,
+        enabled: input.enabled !== false && shown,
         foregrounded,
     });
     const request = React.useMemo(

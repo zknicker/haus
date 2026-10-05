@@ -3,6 +3,7 @@ import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { useOptionalDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { useChatMessageNavigation } from '../../../hooks/servers/use-chat-message-navigation.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
@@ -11,7 +12,6 @@ import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
-import { useDesktopWorkspaceTabs } from '../../../hooks/workspace-tabs/use-desktop-workspace-tabs.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
@@ -41,9 +41,9 @@ export function ChatView({
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
 }) {
-    // Desktop has one right-hand pane, the workspace side pane: Files,
-    // artifacts, and Threads open there as tabs, so the chat renders none.
-    const workspaceTabs = useDesktopWorkspaceTabs() !== null;
+    // Desktop opens Files, artifacts, and Threads as pages (ADR 0039), so the
+    // chat renders no side panel there.
+    const desktopTabs = useOptionalDesktopTabs() !== null;
     const filesPane = useChatFilesPane(chat.id);
     const artifactState = useChatArtifactPanel(chat.id);
     const activeSidePane = useChatSidePane(chat.id);
@@ -53,8 +53,10 @@ export function ChatView({
     const messages = useChatMessages(chat.serverId, chat.id);
     const { clearInlineReply, clearSentInlineReply, inlineReply, selectInlineReply } =
         useChatInlineReply(chat.id);
+    const transcriptRef = React.useRef<HTMLDivElement | null>(null);
     const { revealMessage } = useChatMessageNavigation({
         chatId: chat.id,
+        transcript: transcriptRef,
         fetchOlderHistory: messages.fetchOlderHistory,
         hasOlderHistory: messages.hasOlderHistory,
         messages: messages.data?.messages,
@@ -132,17 +134,24 @@ export function ChatView({
             className="relative flex min-h-0 flex-1"
             data-slot="chat-surface"
         >
-            <PageTopbar>
-                <ChatTopbar
-                    artifactVisible={artifactState.visible}
-                    chat={chat}
-                    chatName={chatName}
-                    onOpenFiles={filesPane.open}
-                    onToggleArtifacts={artifactState.toggleVisible}
-                    server={server}
-                />
-            </PageTopbar>
-            {workspaceTabs ? null : (
+            {desktopTabs ? (
+                // Desktop: the tab names the chat and its context menu (and the
+                // sidebar row's) carries the chat's actions, so the page leaves
+                // its band empty and the band collapses.
+                <h1 className="sr-only">{chatName}</h1>
+            ) : (
+                <PageTopbar>
+                    <ChatTopbar
+                        artifactVisible={artifactState.visible}
+                        chat={chat}
+                        chatName={chatName}
+                        onOpenFiles={filesPane.open}
+                        onToggleArtifacts={artifactState.toggleVisible}
+                        server={server}
+                    />
+                </PageTopbar>
+            )}
+            {desktopTabs ? null : (
                 <ChatViewSidePanel
                     artifactState={artifactState}
                     chat={chat}
@@ -213,6 +222,7 @@ export function ChatView({
                         viewerUserId={server.viewerUserId}
                     />
                 )}
+                transcriptRef={transcriptRef}
             />
         </section>
     );

@@ -1,9 +1,11 @@
+import { usePrefetchInfiniteQuery } from '@tanstack/react-query';
 import * as React from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useChat } from '../../../hooks/servers/use-chat.ts';
+import { chatMessagesQueryOptions } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
-import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { serverRouteModules } from '../../../routes/app/server-route-modules.ts';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
 import { ChatPagePending } from './chat-page-pending.tsx';
@@ -17,6 +19,10 @@ export function ChatPage({ chatId, server }: { chatId: string; server: ServerDet
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const chatQuery = useChat(server.id, chatId);
+    // The transcript needs only the route's ids, so its first page loads beside the chat
+    // record instead of after it, the lazy ChatView, and Suspense's reveal throttle.
+    const utils = hausTrpc.useUtils();
+    usePrefetchInfiniteQuery(chatMessagesQueryOptions(utils.client, server.id, chatId));
     const chats = useChats(server.id);
     const chat = resolveChatPageChat({
         detail: chatQuery.data,

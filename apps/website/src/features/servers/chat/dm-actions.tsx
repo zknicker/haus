@@ -3,12 +3,12 @@ import { Button, Dropdown, Header, Label, Separator, Tooltip } from '@heroui/rea
 import { ContextMenu } from '@heroui-pro/react';
 import { MoreHorizontalIcon, UserCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
-import { tasksRoute } from '../server-routes.ts';
-import { ChatContextSurfaceItems, ChatSurfaceItems } from './chat-surface-items.tsx';
+import { DmContextMenuItems } from './chat-context-menu-items.tsx';
+import { ChatSurfaceItems } from './chat-surface-items.tsx';
+import { useDmActions } from './use-dm-actions.ts';
 
+/** The web topbar's DM ••• menu (desktop moves it onto the sidebar row and the tab). */
 export function DmActions({
     content,
     chatName,
@@ -20,21 +20,9 @@ export function DmActions({
     peerAgent: Agent | null;
     slug: string;
 }) {
-    const navigate = useNavigate();
-    const openAgentProfile = useOpenAgentProfile();
-    const runAction = (key: React.Key) => {
-        if (key === 'profile' && peerAgent) {
-            openAgentProfile(peerAgent.id);
-            return;
-        }
-        if (key === 'tasks' && content) {
-            navigate(`${tasksRoute(slug)}?chat=${encodeURIComponent(content.chatId)}`);
-            return;
-        }
-        if (key === 'files' && content) {
-            content.onOpenFiles();
-        }
-    };
+    const actions = useDmActions({ openFiles: content?.onOpenFiles, slug });
+    const runAction = (key: React.Key) =>
+        actions.run({ agent: peerAgent, chatId: content?.chatId ?? null }, key);
 
     return (
         <ContextMenu>
@@ -80,16 +68,11 @@ export function DmActions({
             </ContextMenu.Trigger>
             <ContextMenu.Popover>
                 <ContextMenu.Menu onAction={runAction}>
-                    <ContextMenu.Item
-                        id="profile"
-                        isDisabled={!peerAgent}
-                        textValue="View agent profile"
-                    >
-                        <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
-                        <Label>View agent profile</Label>
-                    </ContextMenu.Item>
-                    <ContextMenu.Separator />
-                    <ChatContextSurfaceItems isDisabled={!content} />
+                    <DmContextMenuItems
+                        files
+                        hasAgent={Boolean(peerAgent)}
+                        hasChat={Boolean(content)}
+                    />
                 </ContextMenu.Menu>
             </ContextMenu.Popover>
         </ContextMenu>

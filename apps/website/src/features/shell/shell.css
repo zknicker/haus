@@ -271,4 +271,69 @@
         transition: none;
     }
 
+    /*
+     * Desktop panes (features/shell/desktop-panes.tsx, ADR 0039). Layout only:
+     * the body is a stage holding the pane group (empty pane rects and the
+     * divider) and, above it, one layer of every mounted tab frame. Each frame
+     * sits over its pane's rect, published as custom properties by
+     * use-pane-rects.ts, so a tab changing pane never moves in the tree. The
+     * layer passes pointers through to the divider, which stacks above it so
+     * its whole hit area stays grabbable. In split mode the band's left row
+     * is sized from the measured divider position (use-split-row-geometry.ts),
+     * so the right row and its hairline start exactly on the divider's line.
+     */
+    .desktop-panes {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        min-height: 0;
+        flex: 1 1 0;
+    }
+
+    .desktop-pane-group {
+        min-width: 0;
+        min-height: 0;
+        flex: 1 1 0;
+    }
+
+    .desktop-pane {
+        height: 100%;
+    }
+
+    .desktop-pane-divider {
+        z-index: 1;
+    }
+
+    .desktop-tab-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .desktop-tab-frame {
+        position: absolute;
+        display: flex;
+        min-width: 0;
+        min-height: 0;
+        flex-direction: column;
+        pointer-events: auto;
+    }
+
+    .desktop-tab-frame[data-frame-pane='primary'] {
+        top: var(--desktop-pane-primary-y, 0);
+        left: var(--desktop-pane-primary-x, 0);
+        width: var(--desktop-pane-primary-w, 100%);
+        height: var(--desktop-pane-primary-h, 100%);
+    }
+
+    .desktop-tab-frame[data-frame-pane='secondary'] {
+        top: var(--desktop-pane-secondary-y, 0);
+        left: var(--desktop-pane-secondary-x, 50%);
+        width: var(--desktop-pane-secondary-w, 50%);
+        height: var(--desktop-pane-secondary-h, 100%);
+    }
+
+    .workspace-titlebar[data-split] > .workspace-tabs[data-pane='primary'] {
+        flex: 0 0 var(--desktop-pane-primary-row, 50%);
+    }
 }

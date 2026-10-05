@@ -1,17 +1,19 @@
 import type { Agent } from '@haus/api';
 import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
-import {
-    ArrowUpRight01Icon,
-    CheckListIcon,
-    UserCircleIcon,
-} from '@hugeicons-pro/core-stroke-rounded';
+import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
-import { tasksRoute } from '../servers/server-routes.ts';
+import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
+import { DmContextMenuItems } from '../servers/chat/chat-context-menu-items.tsx';
+import { useDmActions } from '../servers/chat/use-dm-actions.ts';
+import { OpenInNewTabItem, openInNewTabKey, useOpenInNewTab } from './open-in-new-tab-item.tsx';
 
+/**
+ * A DM row's right-click menu: open it, then every DM action the chat's own
+ * menu has (Files only on desktop, which opens them as a page).
+ */
 export function DmNavigationContextMenu({
     agent,
     chatId,
@@ -28,15 +30,18 @@ export function DmNavigationContextMenu({
     slug: string;
 }) {
     const navigate = useNavigate();
-    const openAgentProfile = useOpenAgentProfile();
+    const actions = useDmActions({ openFiles: useDesktopPageOpeners()?.openFiles, slug });
+    const openInNewTab = useOpenInNewTab();
     const onAction = (key: React.Key) => {
         if (key === 'open') {
             navigate(href);
-        } else if (key === 'profile' && agent) {
-            openAgentProfile(agent.id);
-        } else if (key === 'tasks' && chatId) {
-            navigate(`${tasksRoute(slug)}?chat=${encodeURIComponent(chatId)}`);
+            return;
         }
+        if (key === openInNewTabKey) {
+            openInNewTab?.(href);
+            return;
+        }
+        actions.run({ agent, chatId }, key);
     };
 
     return (
@@ -50,19 +55,13 @@ export function DmNavigationContextMenu({
                         <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                         <Label>Open chat</Label>
                     </ContextMenu.Item>
+                    {openInNewTab ? <OpenInNewTabItem /> : null}
                     <ContextMenu.Separator />
-                    <ContextMenu.Item
-                        id="profile"
-                        isDisabled={!agent}
-                        textValue="View agent profile"
-                    >
-                        <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
-                        <Label>View agent profile</Label>
-                    </ContextMenu.Item>
-                    <ContextMenu.Item id="tasks" isDisabled={!chatId} textValue="View tasks">
-                        <Icon aria-hidden="true" icon={CheckListIcon} size={16} />
-                        <Label>View tasks</Label>
-                    </ContextMenu.Item>
+                    <DmContextMenuItems
+                        files={actions.filesAvailable}
+                        hasAgent={Boolean(agent)}
+                        hasChat={Boolean(chatId)}
+                    />
                 </ContextMenu.Menu>
             </ContextMenu.Popover>
         </ContextMenu>

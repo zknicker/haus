@@ -1,15 +1,15 @@
 import * as React from 'react';
+import { useDesktopPageOpeners } from '../../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
-import { useDesktopWorkspaceTabs } from '../../../hooks/workspace-tabs/use-desktop-workspace-tabs.ts';
 
 /**
- * Where a chat's Files open. Desktop opens (or selects) the chat's Files
- * workspace tab. The website shares the chat side panel with the artifact and
+ * Where a chat's Files open. Desktop opens the chat's Files page as a link
+ * (ADR 0039). The website shares the chat side panel with the artifact and
  * thread panes; the latest opener wins the slot, and closing hands the slot
  * back to the artifact pane.
  */
 export function useChatFilesPane(chatId: string) {
-    const openFilesTab = useDesktopWorkspaceTabs()?.openFiles;
+    const openFilesTab = useDesktopPageOpeners()?.openFiles;
     const activeSidePane = useChatSidePane(chatId);
     const [visible, setVisible] = React.useState(false);
 

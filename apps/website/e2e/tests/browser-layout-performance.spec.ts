@@ -24,8 +24,12 @@ test('desktop browser ignores unrelated DOM updates and still covers overlapping
         page.getByRole('region', { name: 'Browser: example.com', exact: true })
     ).toBeVisible();
     await expect
-        .poll(() => page.evaluate(() => Reflect.get(window, '__browserBounds')))
-        .not.toBeNull();
+        .poll(() =>
+            page.evaluate(
+                () => (Reflect.get(window, '__browserLayout') as unknown[] | undefined)?.length ?? 0
+            )
+        )
+        .toBe(1);
 
     const measurements = await page.evaluate(async () => {
         const host = document.querySelector(
@@ -71,9 +75,19 @@ test('desktop browser ignores unrelated DOM updates and still covers overlapping
         dialog.style.cssText = 'position:fixed;inset:0;z-index:9999';
         document.body.append(dialog);
     });
-    await expect.poll(() => page.evaluate(() => Reflect.get(window, '__browserBounds'))).toBeNull();
+    await expect
+        .poll(() =>
+            page.evaluate(
+                () => (Reflect.get(window, '__browserLayout') as unknown[] | undefined)?.length ?? 0
+            )
+        )
+        .toBe(0);
     await page.evaluate(() => document.getElementById('performance-overlay')?.remove());
     await expect
-        .poll(() => page.evaluate(() => Reflect.get(window, '__browserBounds')))
-        .not.toBeNull();
+        .poll(() =>
+            page.evaluate(
+                () => (Reflect.get(window, '__browserLayout') as unknown[] | undefined)?.length ?? 0
+            )
+        )
+        .toBe(1);
 });

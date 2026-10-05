@@ -1,28 +1,20 @@
 import * as React from 'react';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import type { BrowserCommand, BrowserTab } from '../../lib/desktop-browser.ts';
-import { numberedTab, relativeTab } from '../workspace-tabs/strip-navigation.ts';
-import type { WorkspaceTabs } from '../workspace-tabs/use-workspace-tabs.ts';
-import type { WorkspaceTabRef } from '../workspace-tabs/workspace-tabs-model.ts';
 import {
     appShortcut,
     type BrowserShortcut,
     isMacPlatform,
     parseBrowserShortcut,
 } from './browser-shortcut-keys.ts';
+import { browserAddressId } from './browser-views-context.ts';
 import type { BrowserFind } from './use-browser-find.ts';
-
-type ShortcutTabs = Pick<
-    WorkspaceTabs,
-    'reopenClosedTab' | 'selectTab' | 'selectedTab' | 'stripTabs' | 'tabs' | 'toggleSidePane'
->;
 
 interface ShortcutTarget {
     /** The shown browser tab, if a browser page is on screen. */
     browserTab: BrowserTab | null;
     command: (input: BrowserCommand) => void;
     find: BrowserFind;
-    tabs: ShortcutTabs;
 }
 
 /** Shortcuts that only mean something while a browser tab is selected. */
@@ -37,9 +29,10 @@ const pageShortcuts = new Set<BrowserShortcut>([
 ]);
 
 /**
- * Runs workspace tab and page shortcuts from both focus paths: the App's own
- * keydown events, and shortcuts the main process forwards from the App menu or
- * a focused native page (electron/browser-shortcuts.cjs).
+ * Runs page shortcuts (address, reload, stop, find) from both focus paths: the
+ * App's own keydown events, and shortcuts the main process forwards from the
+ * App menu or a focused native page (electron/browser-shortcuts.cjs). Tab
+ * shortcuts belong to `useDesktopTabShortcuts`.
  */
 export function useBrowserShortcuts(target: ShortcutTarget) {
     const latest = React.useRef(target);
@@ -81,21 +74,24 @@ export function useBrowserShortcuts(target: ShortcutTarget) {
     }, []);
 }
 
-function applies(shortcut: BrowserShortcut, { browserTab, tabs }: ShortcutTarget) {
+function applies(shortcut: BrowserShortcut, { browserTab }: ShortcutTarget) {
     if (shortcut === 'stop') {
         return browserTab?.loading === true;
     }
-    // The toggle exists only while a closable tab is open (WorkspaceLayoutControls).
-    if (shortcut === 'toggle-side-pane') {
-        return tabs.tabs.length > 0;
-    }
-    return browserTab !== null || !pageShortcuts.has(shortcut);
+    return browserTab !== null && pageShortcuts.has(shortcut);
 }
 
-function runBrowserShortcut(shortcut: BrowserShortcut, { command, find, tabs }: ShortcutTarget) {
+function runBrowserShortcut(
+    shortcut: BrowserShortcut,
+    { browserTab, command, find }: ShortcutTarget
+) {
     switch (shortcut) {
         case 'address': {
-            const address = document.getElementById('browser-address') as HTMLInputElement | null;
+            const address = browserTab
+                ? (document.getElementById(
+                      browserAddressId(browserTab.id)
+                  ) as HTMLInputElement | null)
+                : null;
             address?.focus();
             address?.select();
             return;
@@ -103,7 +99,7 @@ function runBrowserShortcut(shortcut: BrowserShortcut, { command, find, tabs }: 
         case 'reload':
         case 'hard-reload':
         case 'stop':
-            command({ kind: 'navigate', action: shortcut });
+            command({ kind: 'navigate', action: shortcut, id: browserTab?.id });
             return;
         case 'find':
             find.open();
@@ -112,29 +108,8 @@ function runBrowserShortcut(shortcut: BrowserShortcut, { command, find, tabs }: 
         case 'find-previous':
             find.step(shortcut === 'find-next');
             return;
-        case 'reopen-tab':
-            tabs.reopenClosedTab();
-            return;
-        case 'toggle-side-pane':
-            tabs.toggleSidePane();
-            return;
-        case 'next-tab':
-        case 'previous-tab':
-            selectIfAny(
-                tabs,
-                relativeTab(tabs.stripTabs, tabs.selectedTab, shortcut === 'next-tab' ? 1 : -1)
-            );
-            return;
         default:
-            if (shortcut.startsWith('tab-')) {
-                selectIfAny(tabs, numberedTab(tabs.stripTabs, Number(shortcut.slice(4))));
-            }
-    }
-}
-
-function selectIfAny({ selectTab }: ShortcutTabs, ref: WorkspaceTabRef | null) {
-    if (ref) {
-        selectTab(ref);
+            return;
     }
 }
 

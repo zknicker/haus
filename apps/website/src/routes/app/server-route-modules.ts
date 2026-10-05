@@ -1,8 +1,18 @@
 import { loadAgentProfileContent } from '../../features/members/agent-profile/agent-profile-module.ts';
 import type { AppSection } from './server-route-state.ts';
 
-type ServerRouteShells = typeof import('./server-route-shells.tsx');
+/** The Server shell chunk: `ServerLayout` and every destination's route frame. */
+export type ServerRouteShells = typeof import('./server-route-shells.tsx');
 let loadedShells: ServerRouteShells | undefined;
+
+/**
+ * The window router's loader hands the shell chunk over here. Registration,
+ * not an import from this module, keeps the chunk (which reaches back into
+ * this module through its route frames) out of an import cycle.
+ */
+export function registerServerRouteShells(shells: ServerRouteShells) {
+    loadedShells = shells;
+}
 
 /** The parent Server layout loads these before any destination can render. */
 export function readServerRouteShells(): ServerRouteShells {
@@ -25,10 +35,6 @@ export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
 }
 
 export const serverRouteModules = {
-    shell: cachedRouteModule(async () => {
-        loadedShells = await import('./server-route-shells.tsx');
-        return loadedShells;
-    }),
     agent: cachedRouteModule(loadAgentProfileContent),
     chat: cachedRouteModule(() => import('./chat-page-content.tsx')),
     inbox: cachedRouteModule(() => import('./inbox-page-content.tsx')),

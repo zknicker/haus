@@ -22,7 +22,6 @@ export function ChatNavigation({
     agents,
     chats,
     inboxUnreadCount = 0,
-    onChangeChannelColor,
     onCreateAgent,
     onCreateChannel,
     onPreloadSection,
@@ -35,7 +34,6 @@ export function ChatNavigation({
     chats: Chat[];
     /** How many Chats the Inbox lists as Unread; 0 while unknown, which shows no badge. */
     inboxUnreadCount?: number;
-    onChangeChannelColor?: (chat: Chat, color: string) => void;
     onCreateAgent?: () => void;
     onCreateChannel: () => void;
     onPreloadSection: (section: 'inbox' | 'search' | 'tasks') => void;
@@ -132,7 +130,6 @@ export function ChatNavigation({
                     agents={agentById}
                     channels={channels}
                     key={serverId}
-                    onChangeChannelColor={onChangeChannelColor}
                     selectedChatId={selectedChatId}
                     serverId={serverId}
                     slug={slug}
@@ -171,7 +168,6 @@ export function ChatNavigation({
                             chat={chat}
                             key={chat.id}
                             name={chatNavigationName(chat, null)}
-                            onChangeChannelColor={onChangeChannelColor}
                             selectedChatId={selectedChatId}
                             slug={slug}
                         />

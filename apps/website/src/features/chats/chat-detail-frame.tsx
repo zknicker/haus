@@ -27,6 +27,7 @@ export function ChatDetailFrame({
     isPending,
     rowCount,
     timelineContent,
+    transcriptRef,
 }: {
     activeReplies: readonly TranscriptActiveReply[];
     chatId: string;
@@ -43,9 +44,12 @@ export function ChatDetailFrame({
     isPending: boolean;
     rowCount: number;
     timelineContent: (scrollContentRef: React.RefObject<HTMLDivElement | null>) => React.ReactNode;
+    /** The transcript's content element, for a caller that finds its own rows (message reveal). */
+    transcriptRef?: React.RefObject<HTMLDivElement | null>;
 }) {
     const viewportRef = React.useRef<HTMLDivElement | null>(null);
-    const contentRef = React.useRef<HTMLDivElement | null>(null);
+    const ownContentRef = React.useRef<HTMLDivElement | null>(null);
+    const contentRef = transcriptRef ?? ownContentRef;
     const hasActiveReply = activeReplies.length > 0;
     const hasTimelineContent = chatTimelineHasContent({
         activeReplyCount: activeReplies.length,

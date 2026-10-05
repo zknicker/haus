@@ -1,17 +1,16 @@
-import { toast } from '@heroui/react';
 import * as React from 'react';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
  * Desktop ⌘W/⌘T routing. The menu's Close and New Tab items ask the renderer
- * before acting: the visible tabbed pane (the desktop workspace tabs)
- * registers commands here, and Close only falls back to closing the window
- * when the pane has no tab to close.
+ * before acting: the window's desktop tabs (`useDesktopTabShortcuts`) register
+ * here while a Server is open. Without them (the Server picker) Close closes
+ * the window and New Tab does nothing.
  */
 export interface DesktopTabPaneCommands {
-    /** Close the pane's active tab (or the pane itself); false = nothing to close. */
+    /** Close the focused pane's current tab; false = nothing to close. */
     closeActiveTab: () => boolean;
-    /** Open a fresh tab in the pane; false = the pane cannot add one right now. */
+    /** Open a fresh tab in the focused pane; false = it cannot add one right now. */
     openNewTab: () => boolean;
 }
 
@@ -34,13 +33,7 @@ export function handleCloseWindowRequest(closeWindow: () => void) {
 }
 
 export function handleNewTabRequest() {
-    if (!activePaneCommands?.openNewTab()) {
-        void getDesktopBridge()
-            ?.browserCommand?.({ kind: 'new' })
-            .catch((error: Error) =>
-                toast.danger('Could not open a tab', { description: error.message })
-            );
-    }
+    activePaneCommands?.openNewTab();
 }
 
 /** Mounted once in AppFrame: subscribes the window to the File menu's requests. */
@@ -67,7 +60,7 @@ export function useDesktopWindowCommands() {
     }, []);
 }
 
-/** Registered by the tabbed pane while it is visible. */
+/** Registered by the window's desktop tabs while `active`. */
 export function useDesktopTabPane(commands: DesktopTabPaneCommands & { active: boolean }) {
     const latest = React.useRef(commands);
     React.useEffect(() => {

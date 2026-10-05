@@ -10,18 +10,14 @@ import {
     serverSettingsRoute,
     serverSettingsSectionRoute,
 } from '../../servers/server-routes.ts';
-import { useBrowserWorkspace } from '../../shell/browser-workspace-context.tsx';
-import { PageTopbar, useTopbarIsWindowBand } from '../../shell/shell-topbar.tsx';
+import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { type SettingsRouteTab, settingsNavItems } from './navigation.ts';
 
 /**
  * Where you are, on one line at the top-left of the settings content column.
  *
- * This component owns that placement. On the web the content column's top
- * band is that line, so the trail fills it through `PageTopbar`. On desktop
- * the band is the window band — the tab area, which already names the page
- * in its title or tab — so the trail renders as the column's own first row,
- * at the same height and gutter, instead of landing beside the tabs.
+ * The content column's top band is that line, so the trail fills it through
+ * `PageTopbar` (on desktop, the band inside the Settings tab).
  *
  * The trail is the product, then Settings, then the page:
  * "Haus › Settings › Profile". The rail's group headings (Preferences,
@@ -46,8 +42,6 @@ export function SettingsBreadcrumb({
     slug: string;
 }) {
     const leaf = useLeafCrumb(pathname, serverId);
-    const inWindowBand = useTopbarIsWindowBand();
-    const workspaceMode = useBrowserWorkspace()?.mode;
     const crumb = section ? resolveCrumb(section) : undefined;
 
     if (!crumb) {
@@ -91,21 +85,6 @@ export function SettingsBreadcrumb({
         </div>
     );
 
-    if (inWindowBand) {
-        // The 16px section icon centers under the band's 20px leading mark —
-        // the page title in split mode, the first tab in expanded mode.
-        const inset =
-            workspaceMode === 'expanded'
-                ? 'ps-[calc(var(--shell-band-mark-start-expanded)_+_(var(--shell-tab-mark-size)_-_1rem)_/_2)]'
-                : 'ps-[calc(var(--shell-band-mark-start-split)_+_(var(--shell-tab-mark-size)_-_1rem)_/_2)]';
-        return (
-            <div
-                className={`flex h-[var(--app-shell-band-height)] shrink-0 items-center pe-3 ${inset}`}
-            >
-                {trail}
-            </div>
-        );
-    }
     return <PageTopbar>{trail}</PageTopbar>;
 }
 

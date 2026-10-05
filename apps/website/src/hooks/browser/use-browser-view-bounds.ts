@@ -1,8 +1,14 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
-import type { BrowserBounds, BrowserCapture } from '../../lib/desktop-browser.ts';
+import {
+    type BrowserBounds,
+    type BrowserCapture,
+    browserViewsCovered,
+    subscribeBrowserViewCovers,
+} from '../../lib/desktop-browser.ts';
 import { createBrowserCover } from './browser-cover.ts';
+import { browserViewLayout } from './browser-view-layout.ts';
 
 /** A still of the page, sized in CSS pixels to the page region it was captured from. */
 export interface BrowserPageSnapshot {
@@ -15,29 +21,31 @@ const overlaySelector =
     '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [role="tooltip"]';
 
 /**
- * Places a tab's native page view over `host`. Native views paint above DOM, so while a product
- * overlay overlaps the page the view hides and the returned snapshot stands in for it.
+ * Places one web view over `host` (ADR 0039: each shown browser page places its own view in the
+ * window's layout). Native views paint above DOM, so while a product overlay overlaps the page,
+ * or a tab drag covers every view (`coverBrowserViews`), the view hides and the returned snapshot
+ * stands in for it.
  */
 export function useBrowserViewBounds(
     host: React.RefObject<HTMLDivElement | null>,
-    tabId: string,
+    viewId: string,
     hidden: boolean
 ): BrowserPageSnapshot | null {
     const [snapshot, setSnapshot] = React.useState<BrowserPageSnapshot | null>(null);
     React.useLayoutEffect(() => {
         const element = host.current;
         const bridge = getDesktopBridge();
-        const setBounds = bridge?.browserBounds;
-        if (!(element && setBounds)) {
+        if (!(element && bridge?.browserLayout)) {
             return;
         }
         const capture = bridge.browserCapture;
+        const setBounds = (bounds: BrowserBounds | null) => browserViewLayout.place(viewId, bounds);
         // A release that lands while a snapshot is still decoding must win, or the stale
         // snapshot sticks behind the revealed page.
         let paintRequest = 0;
         const cover = createBrowserCover({
             afterFrame: nextFrame,
-            capture: () => (capture ? capture(tabId) : Promise.resolve(null)),
+            capture: () => (capture ? capture(viewId) : Promise.resolve(null)),
             paint: async (src) => {
                 paintRequest += 1;
                 const request = paintRequest;
@@ -68,9 +76,11 @@ export function useBrowserViewBounds(
             cancelAnimationFrame(frame);
             frame = requestAnimationFrame(() => {
                 const rect = element.getBoundingClientRect();
-                const overlay = [...document.querySelectorAll(overlaySelector)].some((node) =>
-                    overlaps(node, rect)
-                );
+                const overlay =
+                    browserViewsCovered() ||
+                    [...document.querySelectorAll(overlaySelector)].some((node) =>
+                        overlaps(node, rect)
+                    );
                 const request = cover.update({
                     bounds: pageBounds(element, rect),
                     hidden,
@@ -86,6 +96,7 @@ export function useBrowserViewBounds(
             }
         });
         const shellVariant = new MutationObserver(resize);
+        const unsubscribeCovers = subscribeBrowserViewCovers(resize);
         observer.observe(element);
         overlays.observe(document.body, { childList: true, subtree: true });
         shellVariant.observe(document.documentElement, {
@@ -99,14 +110,19 @@ export function useBrowserViewBounds(
             observer.disconnect();
             overlays.disconnect();
             shellVariant.disconnect();
+            unsubscribeCovers();
             window.removeEventListener('resize', resize);
             void setBounds(null).catch(report);
         };
-    }, [host, tabId, hidden]);
+    }, [host, viewId, hidden]);
     return snapshot;
 }
 
-function pageBounds(element: HTMLElement, rect: DOMRect): BrowserBounds {
+/** A page host's bounds for its native view: `rect` plus the shell card's corner around `element`. */
+export function pageBounds(
+    element: HTMLElement,
+    rect: Pick<DOMRect, 'height' | 'width' | 'x' | 'y'>
+): BrowserBounds {
     const radius = shellCardRadius(element);
     const bounds = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
     return radius > 0 ? { ...bounds, radius } : bounds;

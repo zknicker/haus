@@ -31,8 +31,6 @@
    */
   --chat-card-width: 36rem;
   --spacing: var(--spacing-base);
-  /* Split mode's page title inset in the topbar (`.workspace-page-title`). */
-  --workspace-page-title-inset: calc(var(--spacing-base) * 3);
   /* Sidebar navigation rows. */
   --spacing-compact: calc(var(--spacing-base) * 0.85);
   /* Menu, listbox and popover surfaces — lists to scan, so the tightest step. */
@@ -409,22 +407,6 @@
         padding-inline: calc(var(--spacing) * 2);
     }
 
-    .workspace-page-slot {
-        display: flex;
-        min-width: 0;
-        flex-shrink: 0;
-        align-items: center;
-    }
-
-    /*
-     * With nothing visible to hold (empty, or only a chat's sr-only heading)
-     * the slot cancels one strip gap rather than hiding, which would drop
-     * that heading from the accessibility tree.
-     */
-    .workspace-page-slot:not(:has(> :not(.sr-only))) {
-        margin-inline-start: calc(var(--spacing) * -2);
-    }
-
     .workspace-tab {
         position: relative;
         display: flex;
@@ -445,6 +427,16 @@
     }
 
     .workspace-tab[data-active="true"] {
+        background: var(--segment);
+        box-shadow: var(--surface-shadow);
+        color: var(--segment-foreground);
+    }
+
+    /*
+     * A tab selected with others (Chrome's multi-select) but not shown wears
+     * the shown tab's material, as in Chrome.
+     */
+    .workspace-tab[data-selected="true"] {
         background: var(--segment);
         box-shadow: var(--surface-shadow);
         color: var(--segment-foreground);
@@ -500,14 +492,6 @@
         white-space: nowrap;
     }
 
-    /*
-     * The preview tab (an unpinned Thread the next one replaces) sets
-     * its title in italics, the editor convention for a tab that will not stay.
-     */
-    .workspace-tab--preview .workspace-tab__label {
-        font-style: italic;
-    }
-
     .workspace-tab__action {
         position: absolute;
         top: 50%;
@@ -547,7 +531,7 @@
     }
 
     /*
-     * New-tab recent sites (features/shell/browser-start-page.tsx). Each tile
+     * New tab page recent sites (features/shell/new-tab-page.tsx). Each tile
      * is a stock ghost Button stacked as a 92px column: a 40px neutral chip
      * holding the site's 20px favicon, then one muted `text-sm` label line. The
      * chip wears the resting surface material so it still reads on the
@@ -628,10 +612,12 @@
     }
 
     .workspace-tab:first-child::before,
-    .workspace-tab:is([data-active="true"], [data-dragging="true"])::before,
-    .workspace-tab:is([data-active="true"], [data-dragging="true"]) + .workspace-tab::before,
-    .workspace-tabs:has(.workspace-tab:last-child:is([data-active="true"], [data-dragging="true"]))
-        .workspace-new-tab::before {
+    .workspace-tab:is([data-active="true"], [data-selected="true"], [data-dragging="true"])::before,
+    .workspace-tab:is([data-active="true"], [data-selected="true"], [data-dragging="true"])
+        + .workspace-tab::before,
+    .workspace-tabs:has(.workspace-tab:last-child:is([data-active="true"], [data-selected="true"], [data-dragging="true"]))
+        .workspace-new-tab::before,
+    .workspace-tab-drag-layer > .workspace-tab::before {
         opacity: 0;
     }
 
@@ -661,6 +647,8 @@
     }
 
     .workspace-tab-list {
+        /* The offset parent of its tabs, so a drag reads their resting positions (tab-drag/). */
+        position: relative;
         display: flex;
         min-width: 0;
         flex: 0 1 auto;
@@ -669,6 +657,33 @@
         margin: -0.25rem;
         padding: 0.25rem;
         overflow: hidden;
+    }
+
+    /*
+     * A dragged tab rides the pointer across the whole band, past its own
+     * row's edges, without unclipping (and so unscrolling) a crowded row: the
+     * real tab holds its slot unpainted while a look-only copy draws it on the
+     * band's drag layer, above both rows (tab-drag/tab-drag-layer.ts).
+     */
+    .workspace-tab[data-drag-mirrored] {
+        opacity: 0;
+    }
+
+    /* Spans the band, which bounds a dragged tab as each row bounds its resting tabs. */
+    .workspace-tab-drag-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .workspace-tab-drag-layer > .workspace-tab {
+        position: absolute;
+        top: 0;
+        left: 0;
+        min-width: 0;
+        margin: 0;
     }
 
     /*
@@ -717,102 +732,6 @@
     .workspace-new-tab .button {
         width: var(--workspace-tab-height);
         height: var(--workspace-tab-height);
-    }
-
-    /* The page's actions at the band's end; collapses (and drops its gap) when empty. */
-    .workspace-band-actions {
-        display: flex;
-        flex-shrink: 0;
-        align-items: center;
-    }
-
-    .workspace-band-actions:empty {
-        display: none;
-    }
-
-    /*
-     * Split mode's side pane (features/shell/workspace-side-pane.tsx): docked
-     * right of the routed page, a hairline from it. Its strip sits in the
-     * window band above it (`.workspace-band-trail`).
-     */
-    .workspace-side-pane {
-        position: relative;
-        display: flex;
-        height: 100%;
-        min-height: 0;
-        flex-shrink: 0;
-        flex-direction: column;
-        border-inline-start: 1px solid var(--separator);
-        background: var(--background);
-    }
-
-    /*
-     * Split mode's title over the routed page: the primary tab's mark and name
-     * as plain band text, taking the room the expanded strip would.
-     */
-    .workspace-page-title {
-        display: flex;
-        min-width: 0;
-        flex: 1 1 0;
-        align-items: center;
-        gap: calc(var(--spacing) * 2);
-        padding-inline-start: var(--workspace-page-title-inset);
-    }
-
-    .workspace-page-title__label {
-        overflow: hidden;
-        font-size: var(--text-sm);
-        font-weight: 600;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /*
-     * The band's end: the layout controls and Settings. While the side pane
-     * shows, it also holds the pane's strip and is as wide as the pane plus the
-     * card's own inset past the band's end padding, so the strip starts over
-     * the pane's leading edge. The pane's tabs share the band's one basis
-     * (Codex's at-most-240px tabs) and shrink evenly from it, so a few tabs
-     * read whole instead of truncating beside free strip.
-     */
-    .workspace-band-trail {
-        display: flex;
-        min-width: 0;
-        height: 100%;
-        flex-shrink: 0;
-        align-items: center;
-        gap: calc(var(--spacing) * 2);
-    }
-
-    /*
-     * With no side strip between them, the page's actions and the layout
-     * controls read as one cluster: close the titlebar's 2-step gap to the
-     * cluster's own 1-step gap so ⋯, expand, and the toggle space evenly.
-     */
-    .workspace-band-actions:not([hidden]) + .workspace-band-trail:not([data-side-pane]) {
-        margin-inline-start: calc(var(--spacing) * -1);
-    }
-
-    .workspace-band-trail[data-side-pane] {
-        width: calc(
-            var(--workspace-side-pane-width) + var(--shell-card-gutter, 0px) +
-                var(--shell-card-border-width, 0px) - var(--spacing) * 2
-        );
-    }
-
-    /* The hidden side pane's open-tabs list (features/shell/workspace-layout-controls.tsx). */
-    .workspace-open-tabs {
-        display: flex;
-        max-width: 18rem;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: calc(var(--spacing) * 0.5);
-    }
-
-    .workspace-open-tabs__title {
-        padding-inline: calc(var(--spacing) * 2);
-        color: var(--muted);
-        font-size: var(--text-xs);
     }
 
     /*
@@ -2147,6 +2066,11 @@
      * traffic lights on this height (y = (44 - 12) / 2); keep the two in step.
      */
     --app-shell-top-band-height: 2.75rem;
+    /*
+     * The band's lead with the sidebar hidden (View > Hide Sidebar): just the
+     * traffic lights (x 16, three 12px lights 8px apart) and a gutter.
+     */
+    --app-shell-traffic-lights-width: 5rem;
     /* A card-ground row fill: HeroUI's stock pairing, before the sidebar tint re-seats it. */
     --shell-card-row-fill: var(--default);
     --shell-card-row-fill-hover: var(--default-hover);
@@ -2184,14 +2108,6 @@
     --shell-tab-close-glyph: 14px;
     /* The band's start padding before its first tab or page title. */
     --shell-band-inset-start: calc(var(--spacing) * 2);
-    /*
-     * Where the band's leading mark slot starts, measured from the routed
-     * column's edge: split mode's page title, or expanded mode's first tab.
-     * A content row under the band (the desktop settings breadcrumb) centers
-     * its own leading glyph on this slot so the two stack on one axis.
-     */
-    --shell-band-mark-start-split: calc(var(--shell-band-inset-start) + var(--workspace-page-title-inset));
-    --shell-band-mark-start-expanded: calc(var(--shell-band-inset-start) + var(--shell-tab-inset-start));
     /* Tab dividers, column hairlines, and the band-end divider share one height. */
     --shell-tab-separator-height: 20px;
     /* Codex's text roles, from the foreground: primary, tertiary (50%), and its 12% strong border and 8% border. */
@@ -2200,6 +2116,9 @@
     --shell-tab-active-border: color-mix(in oklab, var(--foreground) 12%, transparent);
     --shell-tab-separator: color-mix(in oklab, var(--foreground) 8%, transparent);
     --shell-tab-active-background: var(--shell-card);
+    /* A tab selected with others but not shown wears the shown tab's material, as in Chrome. */
+    --shell-tab-selected-background: var(--shell-tab-active-background);
+    --shell-tab-selected-border: var(--shell-tab-active-border);
 }
 
 [data-theme="light"],
@@ -2280,17 +2199,8 @@
         flex-shrink: 0;
     }
 
-    /*
-     * The band's right end: the page's contextual actions, then Settings at
-     * the far end — contextual buttons accumulate leftward from the one
-     * global action, which never moves. Icon buttons in a group sit one step
-     * apart, like HeroUI's toolbar spacing.
-     */
-    .workspace-band-end {
-        display: flex;
-        flex-shrink: 0;
-        align-items: center;
-        gap: var(--spacing);
+    .shell-window-band__lead[data-sidebar-hidden] {
+        width: var(--app-shell-traffic-lights-width);
     }
 
     /*
@@ -2298,17 +2208,13 @@
      * lined up with the controls below it (the browser toolbar's px-2), so the
      * hairline reads as the column edge rather than the tab's border.
      */
-    .shell-window-band > .workspace-titlebar,
-    .shell-window-band .workspace-band-trail[data-side-pane] {
-        padding-inline-start: var(--shell-band-inset-start);
-    }
-
     .shell-window-band > .workspace-titlebar {
         --workspace-tab-height: var(--shell-tab-height);
         --workspace-tab-width: var(--shell-tab-width);
         min-width: 0;
         height: 100%;
         flex: 1;
+        padding-inline-start: var(--shell-band-inset-start);
     }
 
     /* Codex's window tabs: one step of air between tabs. */
@@ -2323,15 +2229,48 @@
     }
 
     @media (hover: hover) {
-        .shell-window-band .workspace-tab:not([data-active="true"]):hover {
+        .shell-window-band .workspace-tab:not([data-active="true"], [data-selected="true"]):hover {
             background: var(--shell-tab-hover);
             color: var(--shell-tab-foreground-muted);
         }
     }
 
-    .shell-window-band .workspace-tab[data-dragging="true"]:not([data-active="true"]) {
+    .shell-window-band
+        .workspace-tab[data-dragging="true"]:not([data-active="true"], [data-selected="true"]) {
         background: var(--shell-tab-hover);
         color: var(--shell-tab-foreground-muted);
+    }
+
+    /* Multi-selected, not shown: the shown tab's card, hairline, shadow and title. */
+    .shell-window-band .workspace-tab[data-selected="true"] {
+        background: var(--shell-tab-selected-background);
+        box-shadow:
+            0 0 0 0.5px var(--shell-tab-selected-border),
+            var(--shell-tab-active-shadow);
+        color: var(--shell-tab-foreground);
+    }
+
+    /*
+     * A dragged tab is opaque, as in Chrome: its translucent wash is laid over
+     * the band's own ground, so tabs it crosses never show through it. The
+     * shown tab is already the opaque card.
+     */
+    .shell-window-band
+        :is(.workspace-tab[data-dragging="true"], .workspace-tab-drag-layer > .workspace-tab):not(
+            [data-active="true"]
+        ) {
+        background:
+            linear-gradient(var(--shell-tab-hover), var(--shell-tab-hover)),
+            var(--app-shell-ground);
+    }
+
+    .shell-window-band
+        :is(.workspace-tab[data-dragging="true"], .workspace-tab-drag-layer > .workspace-tab)[data-selected="true"]:not(
+            [data-active="true"]
+        ) {
+        background:
+            linear-gradient(var(--shell-tab-selected-background), var(--shell-tab-selected-background)),
+            var(--app-shell-ground);
     }
 
     /* The selected tab is the card's own white, a half-pixel strong border, and shadow-sm. */
@@ -2397,15 +2336,19 @@
      * Codex's column hairlines: the tab divider above, continued at each content
      * column's leading edge so every tab group sits on its column — the routed
      * page's (the sidebar's 1px edge in band, the card's border in canvas) and,
-     * while it shows, the side pane's (the trail starts on the pane's border).
+     * in split mode, the right pane's row (it starts on the pane divider).
      */
     .shell-window-band > .workspace-titlebar,
-    .shell-window-band .workspace-band-trail[data-side-pane] {
+    .shell-window-band .workspace-tabs[data-pane="secondary"] {
         position: relative;
     }
 
+    .shell-window-band .workspace-tabs[data-pane="secondary"] {
+        padding-inline-start: var(--shell-band-inset-start);
+    }
+
     .shell-window-band > .workspace-titlebar::before,
-    .shell-window-band .workspace-band-trail[data-side-pane]::before {
+    .shell-window-band .workspace-tabs[data-pane="secondary"]::before {
         position: absolute;
         top: 50%;
         inset-inline-start: 0;

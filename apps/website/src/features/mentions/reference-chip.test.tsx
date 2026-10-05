@@ -245,3 +245,12 @@ test('gives non-navigable references a native preview control without activating
     expect(markup).not.toContain('--chip-bg');
     expect(markup).toContain('Design');
 });
+
+test('an openable chip opts into middle-click as a place; an inert one does not', () => {
+    const chip = (onActivate?: () => void) =>
+        renderToStaticMarkup(
+            <ReferenceChip id="chat://chat_1" kind="chat" label="product" onActivate={onActivate} />
+        );
+    expect(chip(() => undefined)).toContain('data-opens-place=""');
+    expect(chip()).not.toContain('data-opens-place');
+});

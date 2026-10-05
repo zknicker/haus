@@ -6,13 +6,12 @@ import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
-import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { SectionHeader, shellBandIconSize } from '../../shell/section-header.tsx';
-import { WorkspaceBandActions } from '../../shell/shell-topbar.tsx';
 import { ChannelActions } from './channel-actions.tsx';
 import { DmActions } from './dm-actions.tsx';
 
+/** The web chat's topbar band. Desktop tabs render none (see ChatView). */
 export function ChatTopbar({
     artifactVisible,
     chat,
@@ -50,16 +49,6 @@ export function ChatTopbar({
                 slug={server.slug}
             />
         );
-    if (getDesktopBridge()?.browserCommand) {
-        // Desktop: the primary workspace tab already names the chat, so only
-        // its actions menu rides along, at the band's end.
-        return (
-            <>
-                <WorkspaceBandActions>{actions}</WorkspaceBandActions>
-                <h1 className="sr-only">{chatName}</h1>
-            </>
-        );
-    }
     return (
         <SectionHeader
             leading={

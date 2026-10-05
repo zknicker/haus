@@ -9,10 +9,11 @@ import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-
 
 /**
  * Where a Chat's Threads open. Desktop routes every opener, `?thread=` and
- * `?task=` deep links included, to a Thread tab (`useOpenThread`) and strips
- * the param, so the chat side pane never hosts a Thread there. The website
- * keeps the Thread in the chat side pane, its anchor carried in `?thread=`.
- * A Thread tab's "View in chat" reveals its anchor here once the transcript loads.
+ * `?task=` deep links included, to the Thread's page (`useOpenThread`, a link
+ * from this tab, ADR 0039) and strips the param, so the chat side pane never
+ * hosts a Thread there. The website keeps the Thread in the chat side pane,
+ * its anchor carried in `?thread=`. A Thread page's "View in chat" reveals its
+ * anchor here once the transcript loads.
  */
 export function useChatThreadPane({
     chatId,
@@ -141,7 +142,7 @@ export function useChatThreadPane({
     return { anchor, close, onExitComplete, open, selection, viewInChannel };
 }
 
-/** Desktop: a `?thread=` or `?task=` link opens that Thread's tab, then leaves the URL. */
+/** Desktop: a `?thread=` or `?task=` link opens that Thread's page, then leaves the URL. */
 function useThreadTabDeepLink(chatId: string, openThreadTab: OpenThread | null) {
     const [searchParams, setSearchParams] = useSearchParams();
     const anchorMessageId = searchParams.get('thread') ?? searchParams.get('task');
@@ -149,8 +150,8 @@ function useThreadTabDeepLink(chatId: string, openThreadTab: OpenThread | null) 
         if (!(openThreadTab && anchorMessageId)) {
             return;
         }
-        openThreadTab(chatId, anchorMessageId);
-        // A search-only replace: the routed page stays put under any covering tab.
+        // Strip first: with one pane the Thread link navigates this same tab,
+        // and a later replace would overwrite the Thread with the chat.
         setSearchParams(
             (current) => {
                 const next = new URLSearchParams(current);
@@ -160,5 +161,6 @@ function useThreadTabDeepLink(chatId: string, openThreadTab: OpenThread | null) 
             },
             { replace: true }
         );
+        openThreadTab(chatId, anchorMessageId);
     }, [anchorMessageId, chatId, openThreadTab, setSearchParams]);
 }

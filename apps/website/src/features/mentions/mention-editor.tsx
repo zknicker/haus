@@ -50,8 +50,9 @@ export function MentionEditor({
     value: string;
 }) {
     const editorRef = React.useRef<HTMLDivElement | null>(null);
-    const initialValueRef = React.useRef(value);
-    const initialMentionsRef = React.useRef(mentions);
+    // Latest content: a view rebuilt by a re-run effect (an <Activity> reveal) keeps the draft.
+    const contentRef = React.useRef({ mentions, value });
+    contentRef.current = { mentions, value };
     const onActiveQueryChangeRef = React.useRef(onActiveQueryChange);
     const onChangeRef = React.useRef(onChange);
     const onFocusRef = React.useRef(onFocus);
@@ -90,7 +91,6 @@ export function MentionEditor({
 
     React.useEffect(() => {
         const element = editorRef.current;
-
         if (!element) {
             return;
         }
@@ -148,7 +148,7 @@ export function MentionEditor({
                 mention: (node) => new MentionNodeView(node),
             },
             state: EditorState.create({
-                doc: contentToDoc(initialValueRef.current, initialMentionsRef.current),
+                doc: contentToDoc(contentRef.current.value, contentRef.current.mentions),
                 plugins: [
                     history(),
                     keymap({ Backspace: deleteMentionBeforeCaret }),

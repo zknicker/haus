@@ -1,7 +1,7 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
-import { useDesktopWorkspaceTabs } from '../../hooks/workspace-tabs/use-desktop-workspace-tabs.ts';
-import { opensInWorkspaceTab } from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
+import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
+import type { ArtifactPageTarget } from '../../routes/app/desktop-page-paths.ts';
 import { bindWorkspaceTargetToAgent, type HausResourceTarget } from './haus-resource-link.ts';
 
 /** Opens a linked artifact; `title` is the artifact's authored title when the opener has one. */
@@ -11,7 +11,7 @@ const ArtifactPanelContext = React.createContext<ArtifactOpen | null>(null);
 
 /**
  * Routes artifact opens from message content. Desktop opens the artifact as
- * its own workspace tab; desktop has no chat Artifact Panel, so a target no
+ * its own page (ADR 0039); desktop has no chat Artifact Panel, so a target no
  * Agent workspace holds says it is unavailable there. The website opens it in
  * the chat's Artifact Panel.
  */
@@ -24,7 +24,7 @@ export function ArtifactPanelOpenProvider({
     children: React.ReactNode;
     onOpen: (target: HausResourceTarget) => void;
 }) {
-    const openArtifactTab = useDesktopWorkspaceTabs()?.openArtifact;
+    const openArtifactTab = useDesktopPageOpeners()?.openArtifact;
     const open = React.useCallback<ArtifactOpen>(
         (target, title) => {
             const bound = bindWorkspaceTargetToAgent(target, agentId);
@@ -69,17 +69,15 @@ export function openDesktopArtifact(
         openArtifactTab,
     }: { onUnavailable?: () => void; openArtifactTab: DesktopArtifactOpen }
 ) {
-    if (opensInWorkspaceTab(target, true)) {
-        openArtifactTab(target, title);
+    const agentId = 'agentId' in target ? target.agentId : undefined;
+    if (agentId) {
+        openArtifactTab({ ...target, agentId }, title);
     } else {
         onUnavailable();
     }
 }
 
-type DesktopArtifactOpen = (
-    target: HausResourceTarget & { agentId: string },
-    title?: string
-) => void;
+type DesktopArtifactOpen = (target: ArtifactPageTarget, title?: string) => void;
 
 function showArtifactUnavailable() {
     toast.danger('Artifact unavailable', {

@@ -12,7 +12,6 @@ export function SortableChannelRow({
     agent,
     chat,
     keyboardActive,
-    onChangeChannelColor,
     onKeyboardCommand,
     selectedChatId,
     slug,
@@ -20,7 +19,6 @@ export function SortableChannelRow({
     agent: Agent | null;
     chat: Chat;
     keyboardActive: boolean;
-    onChangeChannelColor?: (chat: Chat, color: string) => void;
     onKeyboardCommand: (chat: Chat, command: KeyboardCommand) => void;
     selectedChatId: string | undefined;
     slug: string;
@@ -85,7 +83,6 @@ export function SortableChannelRow({
             chat={chat}
             className="no-drag sortable-channel-row"
             name={name}
-            onChangeChannelColor={onChangeChannelColor}
             ref={setRowRef}
             selectedChatId={selectedChatId}
             slug={slug}

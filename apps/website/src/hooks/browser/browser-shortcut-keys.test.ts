@@ -4,8 +4,8 @@ import { appShortcut, parseBrowserShortcut } from './browser-shortcut-keys.ts';
 
 const require = createRequire(import.meta.url);
 const main = require('../../../electron/browser-shortcuts.cjs') as {
-    appMenuShortcuts: Set<string>;
     browserShortcut: (input: Record<string, unknown>, platform: string) => string | null;
+    isAppMenuShortcut: (shortcut: string, input: Record<string, unknown>) => boolean;
 };
 
 const keys: [key: string, code: string][] = [
@@ -25,6 +25,8 @@ const keys: [key: string, code: string][] = [
     ['Tab', 'Tab'],
     ['Escape', 'Escape'],
     ['Enter', 'Enter'],
+    ['ArrowLeft', 'ArrowLeft'],
+    ['ArrowRight', 'ArrowRight'],
 ];
 
 test.each([
@@ -46,7 +48,7 @@ test.each([
                 alt: altKey,
             };
             const fromPage = main.browserShortcut(input, platform);
-            const expected = fromPage && main.appMenuShortcuts.has(fromPage) ? null : fromPage;
+            const expected = fromPage && main.isAppMenuShortcut(fromPage, input) ? null : fromPage;
             const fromApp: string | null = appShortcut(
                 { altKey, code, ctrlKey, key: input.key, metaKey, shiftKey },
                 isMac
@@ -57,7 +59,10 @@ test.each([
 });
 
 test('Control is the command key off macOS only', () => {
-    const press = (key: string, modifiers: { ctrlKey?: boolean; metaKey?: boolean }) => ({
+    const press = (
+        key: string,
+        modifiers: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }
+    ) => ({
         altKey: false,
         code: '',
         ctrlKey: false,
@@ -72,6 +77,8 @@ test('Control is the command key off macOS only', () => {
     expect(appShortcut(press('l', { ctrlKey: true }), false)).toBe('address');
     expect(appShortcut(press('1', { metaKey: true }), false)).toBeNull();
     expect(appShortcut(press('Tab', { ctrlKey: true }), true)).toBe('next-tab');
+    // The side-pane toggle is gone with the side pane (ADR 0039).
+    expect(appShortcut(press('b', { metaKey: true, shiftKey: true }), true)).toBeNull();
 });
 
 test('forwarded shortcut names are validated', () => {
@@ -79,4 +86,5 @@ test('forwarded shortcut names are validated', () => {
     expect(parseBrowserShortcut('tab-3')).toBe('tab-3');
     expect(parseBrowserShortcut('tab-0')).toBeNull();
     expect(parseBrowserShortcut('rm -rf')).toBeNull();
+    expect(parseBrowserShortcut('toggle-side-pane')).toBeNull();
 });

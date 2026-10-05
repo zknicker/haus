@@ -9,7 +9,15 @@ export function ServerErrorPage() {
     const error = useRouteError();
     const navigate = useNavigate();
     const { slug = '' } = useParams();
+    return <ServerErrorView error={error} onBack={() => navigate(serverRoute(slug))} />;
+}
 
+/**
+ * The page-level error surface. The web's route boundary reads the route
+ * error; a desktop tab's own boundary passes the caught error (tab routers
+ * are not data routers, so `useRouteError` is unavailable there).
+ */
+export function ServerErrorView({ error, onBack }: { error: unknown; onBack: () => void }) {
     return (
         <main className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-10">
             <div className="w-full max-w-lg">
@@ -26,7 +34,7 @@ export function ServerErrorPage() {
                     </EmptyState.Header>
                     <EmptyState.Content className="flex-row gap-2">
                         <Button onPress={() => window.location.reload()}>Try Again</Button>
-                        <Button onPress={() => navigate(serverRoute(slug))} variant="outline">
+                        <Button onPress={onBack} variant="outline">
                             Back to Chats
                         </Button>
                     </EmptyState.Content>

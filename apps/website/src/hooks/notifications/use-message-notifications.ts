@@ -17,6 +17,7 @@ import {
 } from '../../features/notifications/notification-leader.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { useOptionalDesktopTabs } from '../desktop-tabs/desktop-tabs-context.ts';
 import { useAgents } from '../members/use-agents.ts';
 import { useChatEvent } from '../servers/chat-events/use-chat-event-stream.tsx';
 import { useChats } from '../servers/use-chats.ts';
@@ -30,7 +31,8 @@ type Utils = ReturnType<typeof hausTrpc.useUtils>;
  * Raises a platform notification for a new message that notifies this human
  * (ADR 0038) while Haus is hidden or unfocused, in the browser and the
  * Electron renderer alike. Clicking one brings the window forward and opens
- * the conversation.
+ * the conversation: on desktop it reveals a tab already on it, else the
+ * focused pane's current tab navigates there (ADR 0039).
  *
  * It listens to the Chat event stream's `message.created` and `chat.read`, so
  * it must render inside `ChatEventListeners`. Only live passes notify; a
@@ -41,6 +43,17 @@ type Utils = ReturnType<typeof hausTrpc.useUtils>;
  */
 export function useMessageNotifications(server: { id: string; slug: string }) {
     const navigate = useNavigate();
+    const reveal = useOptionalDesktopTabs()?.reveal;
+    const open = React.useCallback(
+        (path: string) => {
+            if (reveal) {
+                reveal({ kind: 'app', path });
+            } else {
+                navigate(path);
+            }
+        },
+        [navigate, reveal]
+    );
     const utils = hausTrpc.useUtils();
     const agents = useAgents(server.id);
     const chats = useChats(server.id);
@@ -50,14 +63,14 @@ export function useMessageNotifications(server: { id: string; slug: string }) {
     // through this ref rather than being rebuilt and forgetting what it saw.
     const latest = React.useRef({
         names: { agents: [], chats: [], humans } as MessageNotificationNames,
-        navigate,
+        open,
         slug: server.slug,
         utils,
         viewerUserId: members.data?.viewerUserId,
     });
     latest.current = {
         names: { agents: agents.data ?? [], chats: chats.data ?? [], humans },
-        navigate,
+        open,
         slug: server.slug,
         utils,
         viewerUserId: members.data?.viewerUserId,
@@ -86,7 +99,7 @@ export function useMessageNotifications(server: { id: string; slug: string }) {
             isEnabled: () =>
                 readMessageNotificationsPreference() && leadership.current?.isLeader() === true,
             notificationApi: platformNotificationApi(),
-            onOpen: (path) => openPath(path, latest.current.navigate),
+            onOpen: (path) => openPath(path, latest.current.open),
             viewerUserId: () => latest.current.viewerUserId,
         })
     );
@@ -134,14 +147,14 @@ async function describeMessage(
     });
 }
 
-function openPath(path: string, navigate: ReturnType<typeof useNavigate>) {
+function openPath(path: string, open: (path: string) => void) {
     const bridge = getDesktopBridge();
     if (bridge?.focusWindow) {
         void bridge.focusWindow();
     } else {
         window.focus();
     }
-    navigate(path);
+    open(path);
 }
 
 function platformNotificationApi(): NotificationApi | undefined {

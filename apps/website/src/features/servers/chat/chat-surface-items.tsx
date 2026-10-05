@@ -19,17 +19,26 @@ export function ChatSurfaceItems({ isDisabled = false }: { isDisabled?: boolean 
     );
 }
 
-export function ChatContextSurfaceItems({ isDisabled = false }: { isDisabled?: boolean }) {
+/** The context-menu twin; `files` is false where the surface cannot open them. */
+export function ChatContextSurfaceItems({
+    files = true,
+    isDisabled = false,
+}: {
+    files?: boolean;
+    isDisabled?: boolean;
+}) {
     return (
         <>
             <ContextMenu.Item id="tasks" isDisabled={isDisabled} textValue="View tasks">
                 <Icon icon={CheckListIcon} size={16} />
                 <Label>View tasks</Label>
             </ContextMenu.Item>
-            <ContextMenu.Item id="files" isDisabled={isDisabled} textValue="Files">
-                <Icon icon={Attachment01Icon} size={16} />
-                <Label>Files</Label>
-            </ContextMenu.Item>
+            {files ? (
+                <ContextMenu.Item id="files" isDisabled={isDisabled} textValue="Files">
+                    <Icon icon={Attachment01Icon} size={16} />
+                    <Label>Files</Label>
+                </ContextMenu.Item>
+            ) : null}
         </>
     );
 }

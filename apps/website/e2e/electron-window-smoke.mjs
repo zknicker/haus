@@ -1,8 +1,8 @@
-// Headless smoke for the multi-window plumbing (Stage 2): launches the real Electron
-// app against a plain Vite dev server and verifies that the openWindow IPC spawns a
-// second BrowserWindow seeded at the requested route. No backend/runtime required —
-// the shell renders sync-first. Run with node (bun stalls on the Electron inspector
-// handshake): node e2e/electron-window-smoke.mjs
+// Headless smoke for File > New Window plumbing: launches the real Electron app against a
+// plain Vite dev server, verifies that openWindow spawns a second BrowserWindow seeded at
+// the requested route and that closeWindow (the last-tab-close path) closes it. Tear-off
+// and cross-window drag are out (ADR 0039). No backend required. Run with node (bun
+// stalls on the Electron inspector handshake): node e2e/electron-window-smoke.mjs
 import { spawn } from 'node:child_process';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,7 @@ import { _electron } from '@playwright/test';
 import electronPath from 'electron';
 
 const websiteRoot = fileURLToPath(new URL('../', import.meta.url));
-const seededRoute = '/new/electron-smoke-key';
+const seededRoute = '/s/electron-smoke';
 
 function getFreePort() {
     return new Promise((resolve, reject) => {
@@ -45,7 +45,13 @@ const vite = spawn('bun', ['run', 'dev'], {
 });
 
 // Electron must not inherit the dev-port vars or its quit-cleanup would kill our Vite.
-const electronEnv = { ...process.env, HAUS_ELECTRON_DEV_URL: viteUrl };
+// A smoke-scoped stack id keeps this instance off a running dev app's single-instance lock.
+const electronEnv = {
+    ...process.env,
+    HAUS_CLERK_ISSUER_URL: 'https://clerk.window-smoke.test',
+    HAUS_DEV_STACK_ID: `window-smoke-${Date.now()}`,
+    HAUS_ELECTRON_DEV_URL: viteUrl,
+};
 for (const key of ['HAUS_WEBSITE_PORT']) {
     delete electronEnv[key];
 }
@@ -93,25 +99,6 @@ try {
         `expected 1 window after close, saw ${app.windows().length}`
     );
     console.log('PASS: closeWindow closed the second window');
-
-    // Tear-off: start spawns a cursor-following window; cancel closes it. (finish is
-    // cursor-position-dependent — it re-attaches over a strip — so it's exercised by
-    // manual testing rather than asserted here.)
-    await first.evaluate((route) => window.hausDesktop.tearOffStart(route), seededRoute);
-    await waitForWindowCount(app, 2);
-    await first.evaluate(() => window.hausDesktop.tearOffCancel());
-    await waitForWindowCount(app, 1);
-    assert(app.windows().length === 1, 'tear-off cancel should leave 1 window');
-    console.log('PASS: tearOffStart + tearOffCancel spawned then closed the window');
-
-    // Self-move: moving a lone-tab window follows the cursor; with no other window under
-    // it, releasing just leaves the window in place (no spawn, no merge, no close).
-    await first.evaluate((route) => window.hausDesktop.selfMoveStart(route), seededRoute);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await first.evaluate(() => window.hausDesktop.selfMoveFinish());
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    assert(app.windows().length === 1, 'self-move with no target should keep the single window');
-    console.log('PASS: selfMoveStart + selfMoveFinish kept the lone window');
 } catch (error) {
     failed = true;
     console.error('FAIL:', error instanceof Error ? error.message : error);

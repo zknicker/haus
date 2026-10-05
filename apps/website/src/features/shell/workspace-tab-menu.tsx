@@ -1,63 +1,59 @@
-import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
-import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { Icon } from '../../components/ui/icon.tsx';
-import {
-    type AppTabRef,
-    isAppTab,
-    workspaceTabId,
-} from '../../hooks/workspace-tabs/workspace-tabs-model.ts';
-import { useBrowserWorkspace } from './browser-workspace-context.tsx';
+import { useTabChatActions } from './use-tab-chat-actions.tsx';
+import { useWorkspaceTabMenu } from './use-workspace-tab-menu.ts';
+import { WorkspaceTabPageItems, WorkspaceTabPlaceItems } from './workspace-tab-menu-items.tsx';
 
 /**
- * One right-click menu for a whole strip: it opens for the artifact, Agent, or
- * Thread tab under the pointer and closes it. Browser and primary tabs have
- * no menu.
+ * One right-click menu for a pane's row, modelled on Chrome's and Codex's tab
+ * menus: it opens for the tab under the pointer and acts on that row's
+ * multi-selection when the tab is in it, else on that tab alone (a
+ * right-click never changes the selection; `useWorkspaceTabMenu`). A single
+ * chat tab adds a Channel or DM submenu between the page and placement groups.
  */
 export function WorkspaceTabMenu({ children }: { children: React.ReactNode }) {
-    const workspace = useBrowserWorkspace();
-    const [target, setTarget] = React.useState<AppTabRef | null>(null);
-    const pending = React.useRef<AppTabRef | null>(null);
-    if (!workspace) {
-        return children;
-    }
-    const appTabs = workspace.tabs.filter(isAppTab);
+    const [target, setTarget] = React.useState<string | null>(null);
+    const pending = React.useRef<string | null>(null);
+    const model = useWorkspaceTabMenu(target);
+    const chatActions = useTabChatActions(model.single);
     return (
-        <ContextMenu
-            onOpenChange={(open) => {
-                setTarget(open ? pending.current : null);
-            }}
-            open={target !== null}
-        >
-            <ContextMenu.Trigger className="flex min-w-0 flex-[0_1_auto]">
-                {/* Notes the tab under the pointer before the trigger opens the menu. */}
-                <div
-                    className="contents"
-                    onContextMenuCapture={(event) => {
-                        const id = (event.target as Element)
-                            .closest('[data-tab-id]')
-                            ?.getAttribute('data-tab-id');
-                        pending.current = appTabs.find((ref) => workspaceTabId(ref) === id) ?? null;
-                    }}
-                >
-                    {children}
-                </div>
-            </ContextMenu.Trigger>
-            <ContextMenu.Popover>
-                <ContextMenu.Menu
-                    onAction={() => {
-                        if (target) {
-                            workspace.closeTab(target);
-                        }
-                    }}
-                >
-                    <ContextMenu.Item id="close" textValue="Close tab">
-                        <Icon aria-hidden="true" icon={Cancel01Icon} size={16} />
-                        <Label>Close tab</Label>
-                    </ContextMenu.Item>
-                </ContextMenu.Menu>
-            </ContextMenu.Popover>
-        </ContextMenu>
+        <>
+            <ContextMenu
+                onOpenChange={(open) => {
+                    setTarget(open ? pending.current : null);
+                }}
+                open={target !== null}
+            >
+                <ContextMenu.Trigger className="flex min-w-0 flex-[0_1_auto]">
+                    {/* Notes the tab under the pointer before the trigger opens the menu. */}
+                    <div
+                        className="contents"
+                        onContextMenuCapture={(event) => {
+                            pending.current =
+                                (event.target as Element)
+                                    .closest('[data-tab-id]')
+                                    ?.getAttribute('data-tab-id') ?? null;
+                        }}
+                    >
+                        {children}
+                    </div>
+                </ContextMenu.Trigger>
+                <ContextMenu.Popover>
+                    <ContextMenu.Menu
+                        onAction={(key) => {
+                            if (target && !model.run(key)) {
+                                chatActions.onAction(key);
+                            }
+                        }}
+                    >
+                        <WorkspaceTabPageItems model={model} />
+                        {chatActions.items}
+                        <ContextMenu.Separator />
+                        <WorkspaceTabPlaceItems model={model} />
+                    </ContextMenu.Menu>
+                </ContextMenu.Popover>
+            </ContextMenu>
+            {chatActions.dialogs}
+        </>
     );
 }

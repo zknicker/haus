@@ -1,8 +1,8 @@
-import { installDesktopBrowserStub } from '../support/desktop-browser-stub.ts';
+import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop-browser-stub.ts';
 import { assertOpaqueId, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('Task Threads render and update metadata in desktop workspace tabs', async ({ page }) => {
+test('Task Threads render and update metadata as desktop Thread pages', async ({ page }) => {
     await installDesktopBrowserStub(page);
     const { client, server } = await createTestServer(page, {
         displayName: 'Task Thread tabs',
@@ -16,8 +16,12 @@ test('Task Threads render and update metadata in desktop workspace tabs', async 
         content: 'Inspect Task Thread metadata',
         nonce: 'task-thread-tab-root',
     });
-    await page.goto(`/#/s/${server.slug}/chats/${chatId}?thread=${created.task.messageId}`);
-    const pane = page.getByRole('complementary', { name: 'Side pane' });
+    await openDesktopWindow(
+        page,
+        `/s/${server.slug}/chats/${chatId}?thread=${created.task.messageId}`
+    );
+    // With one pane, a `?thread=` link opens the Task's Thread page in the same tab.
+    const pane = page.locator('.desktop-tab-frame[data-frame-pane="primary"]:visible');
     const details = page.getByRole('region', { name: 'Task #1 details' });
     await expect(pane.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
     await expect(details.getByText('Created by', { exact: true })).toBeVisible();
@@ -33,7 +37,6 @@ test('Task Threads render and update metadata in desktop workspace tabs', async 
     await details.getByRole('button', { name: 'Assignee for task #1', exact: true }).click();
     await expect(page.getByRole('option', { name: 'Unassigned', exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'Open as tabs', exact: true }).click();
     await expect(details).toBeVisible();
     await expect(
         details.getByRole('button', { name: 'Status for task #1', exact: true })

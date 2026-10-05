@@ -10,23 +10,17 @@ import {
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
-import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
- * An Agent's own page on web, in the Server layout beside Usage: the profile
- * hub, or one of its drill-down sections named by the last path segment
- * (ADR 0038). The body is the same view a desktop agent tab renders; this
- * route only resolves the Agent and maps section changes onto the address.
+ * An Agent's own page, in the Server layout beside Usage (a tab's page on
+ * desktop): the profile hub, or one of its drill-down sections named by the
+ * last path segment (ADR 0038). This route only resolves the Agent and maps
+ * section changes onto the address, which stays in the tab (same page key).
  *
  * Humans stay records under Settings > Members, and the old settings links
- * redirect here. On desktop the address opens the Agent's tab instead
- * (`useRoutedPageTabs`), so this route renders nothing there.
+ * redirect here.
  */
 export function AgentProfileRoute() {
-    return getDesktopBridge()?.browserCommand ? null : <AgentProfilePage />;
-}
-
-function AgentProfilePage() {
     const { agentId = '', section: sectionParam } = useParams();
     const navigate = useNavigate();
     const { server } = useServerContext();

@@ -1,8 +1,13 @@
-import { installDesktopBrowserStub } from '../support/desktop-browser-stub.ts';
-import { assertOpaqueId, createTestServer, openChannel } from '../support/server.ts';
+import type { Page } from '@playwright/test';
+import {
+    installDesktopBrowserStub,
+    moveTabToRightPane,
+    openDesktopWindow,
+} from '../support/desktop-browser-stub.ts';
+import { assertOpaqueId, createTestServer, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('expanded browser tabs preserve the chat draft, channel menu, and sidebar navigation', async ({
+test('web links open browser tabs beside the chat, and the sidebar opens beside a web page', async ({
     page,
 }, testInfo) => {
     await installDesktopBrowserStub(page);
@@ -18,144 +23,75 @@ test('expanded browser tabs preserve the chat draft, channel menu, and sidebar n
         nonce: 'browser-link',
         content: '[Amazon listing](https://www.amazon.com/dp/B012345678)',
     });
-    await openChannel(page, 'all');
+    await openDesktopWindow(page, `/s/${server.slug}/chats/${chatId}`);
     const composer = page.getByRole('textbox', { name: 'Message all' });
+    const row = tabRow(page, 'Tabs').locator('.workspace-tab');
+    const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
+    const address = page.getByRole('combobox', { name: 'Page address', exact: true });
     await composer.fill('Keep this draft');
+
+    // One pane: a web link opens a new selected browser tab beside the chat.
     await page.getByRole('link', { name: 'Open B012345678 on Amazon' }).click();
-    // Expanded mode (offered once a tab is open): one strip, the primary tab
-    // first, the selected tab full width.
-    await page.getByRole('button', { name: 'Open as tabs' }).click();
+    await expect(row).toHaveCount(2);
+    await expect(row.nth(1)).toContainText('www.amazon.com');
+    await expect(row.nth(1)).toHaveAttribute('data-active', 'true');
     // At rest the address shows the condensed label: no scheme, `www.`, or query.
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
-        'amazon.com/dp/B012345678'
-    );
-    const primaryTab = page.locator('.workspace-primary-tab');
-    const inactiveBounds = await primaryTab.boundingBox();
-    await page.keyboard.press('Meta+l');
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toBeFocused();
-    await page.keyboard.press('Control+Shift+Tab');
+    await expect(address).toHaveValue('amazon.com/dp/B012345678');
+
+    // Move to right pane splits the window: the chat on the left, the web page on the right.
+    await moveTabToRightPane(page, 'www.amazon.com');
+    await expect(right).toHaveCount(1);
+    await expect(right).toContainText('www.amazon.com');
     await expect(composer).toHaveText('Keep this draft');
-    const activeBounds = await primaryTab.boundingBox();
-    expect(activeBounds?.width).toBe(inactiveBounds?.width);
-    // The Band layout's 240px basis: a short name like "all" does not shrink the primary tab.
-    expect(activeBounds?.width).toBe(240);
-    expect(activeBounds?.height).toBe(inactiveBounds?.height);
-    expect(await primaryTab.evaluate((node) => getComputedStyle(node).borderRadius)).not.toBe(
-        '0px'
-    );
-    await expect(page.getByRole('button', { name: 'Show artifacts' })).toHaveCount(0);
-    await page.keyboard.press('Control+Tab');
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toBeVisible();
-    // The routed page's actions belong to it: hidden while another tab covers it.
-    await expect(page.locator('.workspace-band-actions')).toBeHidden();
-    const titlebar = await page.locator('.workspace-titlebar').boundingBox();
-    const sidebar = await page
-        .getByRole('complementary', { name: 'Server' })
-        .boundingBox()
-        .catch(() => null);
-    expect(titlebar?.y).toBe(0);
-    expect(titlebar?.x).toBeGreaterThan(0);
-    expect(titlebar?.width).toBeLessThan(page.viewportSize()?.width ?? 1280);
-    // The window band spans the window; the sidebar starts below it.
-    if (sidebar && titlebar) {
-        expect(sidebar.y).toBeGreaterThanOrEqual(titlebar.y + titlebar.height);
-    }
-    const chatUrl = page.url();
-    await page.evaluate(() => window.dispatchEvent(new Event('test:desktop-history')));
-    await expect(page.locator('html')).toHaveAttribute('data-browser-history', 'back');
-    expect(page.url()).toBe(chatUrl);
-    await expect(composer).toHaveCount(0);
-    await page.getByRole('button', { name: 'all', exact: true }).click();
-    await expect(composer).toHaveText('Keep this draft');
-    const composerBounds = await composer.boundingBox();
-    expect(composerBounds?.y).toBeGreaterThan((page.viewportSize()?.height ?? 720) - 90);
-    await page.screenshot({ path: testInfo.outputPath('workspace-tabs.png') });
-    // The chat's actions menu sits at the band's end, not inside the primary tab.
-    await expect(page.locator('.workspace-band-actions')).toBeVisible();
-    await expect(primaryTab.getByRole('button', { name: /channel actions/ })).toHaveCount(0);
-    await page
-        .locator('.workspace-band-actions')
-        .getByRole('button', { name: /all.*channel actions/ })
-        .click();
-    await expect(page.getByRole('menuitem', { name: 'Rename channel' })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'www.amazon.com', exact: true }).click();
-    await openChannel(page, 'all');
-    await expect(composer).toHaveText('Keep this draft');
-    await page.getByRole('button', { name: 'New browser tab' }).click();
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toBeFocused();
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue('');
-    await page
-        .getByRole('combobox', { name: 'Page address', exact: true })
-        .fill('https://www.amazon.com/dp/B012345');
-    // Typing puts "Go to" first, highlighted, with matching history below it.
-    await expect(
-        page.getByRole('option', { name: 'Go to https://www.amazon.com/dp/B012345', exact: true })
-    ).toBeVisible();
-    await page.keyboard.press('Enter');
-    await expect(page.getByRole('button', { name: 'www.amazon.com', exact: true })).toHaveCount(2);
-    await page.getByRole('combobox', { name: 'Page address' }).fill('Amazon');
-    await expect(page.getByRole('option', { name: /B012345678/ })).toBeVisible();
-    await page.getByRole('option', { name: /B012345678/ }).click();
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
-        'amazon.com/dp/B012345678'
-    );
-    await page.getByRole('button', { name: 'New browser tab' }).click();
-    await page
-        .getByRole('combobox', { name: 'Page address', exact: true })
-        .fill('Haus browser tabs');
-    await page.getByRole('combobox', { name: 'Page address', exact: true }).press('Enter');
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
-        'google.com/search'
-    );
-    // The strip holds every tab: the primary tab leads, then two Amazon tabs and Google.
-    const browserTabs = page.getByRole('navigation', { name: 'Workspace tabs' });
-    const google = browserTabs.getByRole('button', { name: 'www.google.com', exact: true });
-    const initialGoogleX = (await google.boundingBox())?.x ?? 0;
-    await google.focus();
-    await google.press('Space');
-    await expect(browserTabs.locator('.workspace-tab[data-dragging="true"]')).toHaveCount(1);
-    await page.evaluate(
-        () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-    );
-    await google.press('ArrowLeft');
+    // The App reports the web page's placement so Electron can show its native view.
     await expect
-        .poll(async () => (await google.boundingBox())?.x ?? 0)
-        .toBeLessThan(initialGoogleX);
-    await google.press('Space');
-    await expect(browserTabs.locator('.workspace-tab').nth(2)).toContainText('www.google.com');
-    const googleBounds = await google.boundingBox();
-    const firstBounds = await browserTabs.locator('.workspace-tab').nth(1).boundingBox();
-    expect(googleBounds).not.toBeNull();
-    expect(firstBounds).not.toBeNull();
-    if (googleBounds && firstBounds) {
-        await page.mouse.move(
-            googleBounds.x + googleBounds.width / 2,
-            googleBounds.y + googleBounds.height / 2
-        );
-        await page.mouse.down();
-        await page.mouse.move(
-            firstBounds.x + firstBounds.width / 2,
-            firstBounds.y + firstBounds.height / 2,
-            { steps: 20 }
-        );
-        await page.mouse.up();
-    }
-    // Dropped on the first Amazon tab, Google moves before it; the primary tab stays first.
-    await expect(browserTabs.locator('.workspace-tab').first()).toHaveClass(
-        /workspace-primary-tab/
-    );
-    await expect(browserTabs.locator('.workspace-tab').nth(1)).toContainText('www.google.com');
-    await page.getByRole('button', { name: 'Close www.google.com' }).press('Enter');
-    await expect(page.getByRole('button', { name: 'Close www.google.com' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'New browser tab' }).click();
-    await page.getByRole('button', { name: 'Close New tab' }).click();
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveValue(
-        'amazon.com/dp/B012345678'
-    );
-    while (await page.getByRole('button', { name: 'Close www.amazon.com' }).count()) {
-        await page.getByRole('button', { name: 'Close www.amazon.com' }).first().click();
-    }
+        .poll(() =>
+            page.evaluate(() => (window as { __browserLayout?: unknown[] }).__browserLayout)
+        )
+        .toHaveLength(1);
+    await page.screenshot({ path: testInfo.outputPath('browser-split.png') });
+
+    // ⌘L focuses the address once the web page's pane is the focused one.
+    await page
+        .locator('.desktop-tab-frame[data-frame-pane="secondary"]:visible')
+        .click({ position: { x: 8, y: 80 } });
+    await page.keyboard.press('Meta+l');
+    await expect(address).toBeFocused();
+    await address.fill('https://example.com/docs');
+    await address.press('Enter');
+    await expect(address).toHaveValue('example.com/docs');
+
+    // The sidebar never replaces a web page: Tasks opens as a selected tab right after it.
+    await openSection(page, 'Tasks');
+    await expect(right).toHaveCount(2);
+    await expect(right.nth(1)).toContainText('Tasks');
+    await expect(right.nth(1)).toHaveAttribute('data-active', 'true');
+    await expect(address).toHaveCount(0);
     await expect(composer).toHaveText('Keep this draft');
-    await expect(page.getByRole('combobox', { name: 'Page address', exact: true })).toHaveCount(0);
+    await right.nth(0).click();
+    await expect(address).toHaveValue('example.com/docs');
+
+    // Two panes: a web link opens a new browser tab in the other pane; the chat stays.
+    await page.getByRole('link', { name: 'Open B012345678 on Amazon' }).click();
+    await expect(right).toHaveCount(3);
+    await expect(address).toHaveValue('amazon.com/dp/B012345678');
+    await expect(composer).toHaveText('Keep this draft');
+
+    // Closing the right pane's tabs never closes the chat.
+    while (
+        await page
+            .getByRole('button', { name: /^Close (www\.amazon\.com|example\.com|Tasks)$/u })
+            .count()
+    ) {
+        await page
+            .getByRole('button', { name: /^Close (www\.amazon\.com|example\.com|Tasks)$/u })
+            .first()
+            .click();
+    }
+    await expect(row).toHaveCount(1);
+    await expect(composer).toHaveText('Keep this draft');
 });
+
+function tabRow(page: Page, name: string) {
+    return page.getByRole('navigation', { exact: true, name });
+}

@@ -5,8 +5,9 @@ import type { AgentSection } from './agent-profile/agent-sections.ts';
 
 /**
  * A real link to an Agent's profile — middle-click and copy-link keep the
- * route — whose primary click opens the profile through `useOpenAgentProfile`
- * (a tab on desktop, the profile route on web; ADR 0038).
+ * route — whose primary click opens the profile through `useOpenAgentProfile`.
+ * On desktop, Command-click and middle-click open a new tab (the desktop
+ * shell's link handler, ADR 0039).
  */
 export function AgentProfileLink({
     agentId,

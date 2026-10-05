@@ -48,14 +48,12 @@ interface KeyboardDrag {
 export function SortableChannelList({
     agents,
     channels,
-    onChangeChannelColor,
     selectedChatId,
     serverId,
     slug,
 }: {
     agents: Map<string, Agent>;
     channels: Chat[];
-    onChangeChannelColor?: (chat: Chat, color: string) => void;
     selectedChatId: string | undefined;
     serverId: string;
     slug: string;
@@ -207,7 +205,6 @@ export function SortableChannelList({
                             chat={chat}
                             key={chat.id}
                             keyboardActive={keyboardDrag?.id === chat.id}
-                            onChangeChannelColor={onChangeChannelColor}
                             onKeyboardCommand={handleKeyboardCommand}
                             selectedChatId={selectedChatId}
                             slug={slug}

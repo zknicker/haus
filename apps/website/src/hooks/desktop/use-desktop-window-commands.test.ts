@@ -53,6 +53,23 @@ describe('desktop window commands', () => {
         }
     });
 
+    test('new tab routes to the registered tabs', () => {
+        let tabOpened = 0;
+        const unregister = registerDesktopTabPane({
+            closeActiveTab: () => true,
+            openNewTab: () => {
+                tabOpened += 1;
+                return true;
+            },
+        });
+        try {
+            handleNewTabRequest();
+            expect(tabOpened).toBe(1);
+        } finally {
+            unregister();
+        }
+    });
+
     test('unregister restores the window fallback and new-tab becomes a no-op', () => {
         let tabOpened = 0;
         let windowClosed = 0;

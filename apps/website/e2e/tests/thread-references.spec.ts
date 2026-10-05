@@ -1,4 +1,4 @@
-import { installDesktopBrowserStub } from '../support/desktop-browser-stub.ts';
+import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop-browser-stub.ts';
 import { assertOpaqueId, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -44,7 +44,11 @@ for (const desktop of [false, true]) {
             nonce: 'reference',
             content: `Open [#all thread](chat://${chatId}?thread=${root.message.id}).`,
         });
-        await page.goto(`${desktop ? '/#' : ''}/s/${slug}/chats/${chatId}`);
+        if (desktop) {
+            await openDesktopWindow(page, `/s/${slug}/chats/${chatId}`);
+        } else {
+            await page.goto(`/s/${slug}/chats/${chatId}`);
+        }
         const chip = page.getByRole('button', { name: 'Open Referenced assignment', exact: true });
         await expect(chip).toBeVisible();
         await expect(chip).not.toContainText(root.message.id);
@@ -56,14 +60,15 @@ for (const desktop of [false, true]) {
             });
         }).toPass({ timeout: 10_000 });
         await chip.click();
+        // Desktop with one pane opens the Thread as a page in the same tab (ADR 0039).
         const pane = desktop
-            ? page.getByRole('complementary', { name: 'Side pane' })
+            ? page.locator('.desktop-tab-frame[data-frame-pane="primary"]:visible')
             : page.getByRole('complementary', { name: 'Thread' });
         await expect(pane.getByText('Thread destination', { exact: true })).toBeVisible();
         if (desktop) {
-            await expect(
-                page.locator('.workspace-band-trail .workspace-tab--preview')
-            ).toContainText('Referenced assignment');
+            await expect(page.getByRole('navigation', { name: 'Tabs', exact: true })).toContainText(
+                'Referenced assignment'
+            );
         } else {
             await expect(page).toHaveURL(new RegExp(`thread=${root.message.id}`, 'u'));
         }

@@ -1,24 +1,27 @@
 /**
- * Workspace tab and page shortcuts while the App has focus. This mirrors
+ * Desktop tab and page shortcuts while the App has focus. This mirrors
  * `electron/browser-shortcuts.cjs`, which maps the same keys while a native
  * page has focus (parity-tested), minus the keys the App menu owns: New Tab,
- * Close, Reopen Closed Tab, Find, and Zoom reach the renderer through the menu
- * so they never fire twice.
+ * Close, Reopen Closed Tab, Find, Reload, Zoom, and the Tab menu's
+ * Command-Option-arrows reach the renderer through the menu so they never
+ * fire twice.
  */
 export type BrowserShortcut =
     | 'address'
     | 'close-tab'
+    | 'duplicate-tab'
     | 'find'
     | 'find-next'
     | 'find-previous'
     | 'hard-reload'
+    | 'move-tab-to-new-window'
+    | 'move-tab-to-other-pane'
     | 'new-tab'
     | 'next-tab'
     | 'previous-tab'
     | 'reload'
     | 'reopen-tab'
     | 'stop'
-    | 'toggle-side-pane'
     | 'zoom-in'
     | 'zoom-out'
     | 'zoom-reset'
@@ -84,27 +87,27 @@ export function parseBrowserShortcut(value: string): BrowserShortcut | null {
 const plainKeys: Record<string, BrowserShortcut> = {
     g: 'find-next',
     l: 'address',
-    r: 'reload',
 };
 const shiftedKeys: Record<string, BrowserShortcut> = {
-    b: 'toggle-side-pane',
     g: 'find-previous',
     r: 'hard-reload',
 };
 const shortcutNames = [
     'address',
     'close-tab',
+    'duplicate-tab',
     'find',
     'find-next',
     'find-previous',
     'hard-reload',
+    'move-tab-to-new-window',
+    'move-tab-to-other-pane',
     'new-tab',
     'next-tab',
     'previous-tab',
     'reload',
     'reopen-tab',
     'stop',
-    'toggle-side-pane',
     'zoom-in',
     'zoom-out',
     'zoom-reset',

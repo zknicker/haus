@@ -2,25 +2,29 @@ import { Button, Kbd, ProgressBar, Toolbar, Tooltip, toast } from '@heroui/react
 import { LinkSquare02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { browserAddressId, useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { formatBrowserDisplayUrl, resolveBrowserAddress } from './browser-address.ts';
 import { BrowserWorkspaceAddress } from './browser-workspace-address.tsx';
-import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 import {
     BrowserToolbarButton,
     BrowserWorkspaceNavigation,
 } from './browser-workspace-navigation.tsx';
 
 export function BrowserWorkspaceToolbar({ tab }: { tab: BrowserTab }) {
-    const workspace = useBrowserWorkspace();
-    const blank = tab.url === 'about:blank';
+    const workspace = useBrowserViews();
     // null while the field is at rest; the resting label always follows the live tab URL.
     const [draft, setDraft] = React.useState<string | null>(null);
     const address = draft ?? formatBrowserDisplayUrl(tab.url);
     const navigate = (value: string) => {
         setDraft(null);
-        workspace?.command({ kind: 'navigate', action: 'url', url: resolveBrowserAddress(value) });
+        workspace?.command({
+            kind: 'navigate',
+            action: 'url',
+            id: tab.id,
+            url: resolveBrowserAddress(value),
+        });
     };
     return (
         <form
@@ -36,11 +40,11 @@ export function BrowserWorkspaceToolbar({ tab }: { tab: BrowserTab }) {
             <BrowserWorkspaceNavigation tab={tab} />
             <BrowserWorkspaceAddress
                 address={address}
-                autoFocus={blank}
                 editing={draft !== null}
                 history={workspace?.history ?? []}
+                id={browserAddressId(tab.id)}
                 onChange={setDraft}
-                onEdit={() => setDraft(blank ? '' : tab.url)}
+                onEdit={() => setDraft(tab.url)}
                 onNavigate={navigate}
                 onRest={() => setDraft(null)}
             />
@@ -50,7 +54,11 @@ export function BrowserWorkspaceToolbar({ tab }: { tab: BrowserTab }) {
                         <Button
                             aria-label={`Zoom ${Math.round(tab.zoomFactor * 100)}%, reset zoom`}
                             onPress={() =>
-                                workspace?.command({ kind: 'navigate', action: 'zoom-reset' })
+                                workspace?.command({
+                                    kind: 'navigate',
+                                    action: 'zoom-reset',
+                                    id: tab.id,
+                                })
                             }
                             size="sm"
                             variant="ghost"
@@ -67,7 +75,6 @@ export function BrowserWorkspaceToolbar({ tab }: { tab: BrowserTab }) {
                 )}
                 <BrowserToolbarButton
                     icon={<Icon icon={LinkSquare02Icon} size={16} />}
-                    isDisabled={blank}
                     label="Open in default browser"
                     onPress={() => {
                         void getDesktopBridge()

@@ -2,8 +2,8 @@ import { InputGroup, TextField, Toolbar } from '@heroui/react';
 import { ArrowDown01Icon, ArrowUp01Icon, Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import type { BrowserFindResult, BrowserTab } from '../../lib/desktop-browser.ts';
-import { useBrowserWorkspace } from './browser-workspace-context.tsx';
 import { BrowserToolbarButton } from './browser-workspace-navigation.tsx';
 
 /**
@@ -12,7 +12,7 @@ import { BrowserToolbarButton } from './browser-workspace-navigation.tsx';
  * visible instead of swapping to a snapshot (see useBrowserViewBounds).
  */
 export function BrowserFindBar({ tab }: { tab: BrowserTab }) {
-    const find = useBrowserWorkspace()?.find;
+    const find = useBrowserViews()?.find;
     const input = React.useRef<HTMLInputElement>(null);
     const open = find?.tabId === tab.id;
     const focusRequest = find?.focusRequest;
