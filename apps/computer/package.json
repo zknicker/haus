@@ -1,7 +1,7 @@
 {
   "name": "@haus/computer",
   "private": true,
-  "version": "5.2.0",
+  "version": "6.0.0",
   "type": "module",
   "bin": {
     "haus-computer": "src/index.ts"

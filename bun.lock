@@ -15,7 +15,7 @@
     },
     "apps/computer": {
       "name": "@haus/computer",
-      "version": "5.2.0",
+      "version": "6.0.0",
       "bin": {
         "haus-computer": "src/index.ts",
       },
@@ -80,7 +80,7 @@
     },
     "apps/website": {
       "name": "@haus/website",
-      "version": "5.0.0",
+      "version": "5.1.0",
       "dependencies": {
         "@clerk/clerk-js": "^5.125.5",
         "@clerk/clerk-react": "^5.61.3",
