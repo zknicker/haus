@@ -157,8 +157,8 @@ In Chat, a task's identity is a **task chip** in the header of the recessed Thre
 the message: the task number owns the left edge, only the status disc carries lifecycle color, and
 the assignee appears by avatar and display name, and the reply count trails it. Cloud Agent work
 on the same message renders as its own full work card above that surface, not as a second chip in
-its header ([Cloud Agents](../../specs/cloud-agents.md#messages-and-cards)). The message's author line carries provenance only: the automation and
-session marks explain how the message came to be said
+its header ([Cloud Agents](../../specs/cloud-agents.md#messages-and-cards)). The message's author line carries only its author and time; an automation's cause line above it
+explains how the message came to be said
 ([ADR 0026](../adr/0026-automation-provenance-rides-the-agents-message.md)).
 
 The chip is a label in one button into the Thread. Before replies exist, visible tasks use a

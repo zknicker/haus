@@ -60,9 +60,8 @@ model session. Per-turn message delivery is an inbox concern; see
   Computer-local implementation evidence.
 - A fresh session starts only for initial creation, a runtime, model, or reasoning-effort switch,
   manual session reset, or one automatic recovery after the harness rejects a stored resume state.
-- A rotation posts no message in any chat. It is recorded durably and stamped on the Agent's
-  messages, and a person sees it as the session mark on the next thing the Agent says in that
-  chat — see [Chat](chat.md#in-the-box).
+- A rotation posts no message in any chat and draws nothing in the transcript. It is recorded
+  durably and stamped on the Agent's messages (`sessionGeneration`).
 - An execution-configuration change never interrupts an active turn. The active turn finishes
   with its frozen runtime, model, and reasoning effort; Server then rotates the session, applies
   the new configuration, and uses it for the next turn.

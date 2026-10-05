@@ -114,13 +114,16 @@ kind-specific field above is null, because the fire row that held it is gone.
 
 ## Surfaces
 
-**Header mark.** A message with a cause shows a small mark in its header,
-between the author name and the timestamp: a lightning glyph and the Trigger's
-title in the Trigger color, or a clock glyph and the reminder's title in the
-reminder color. Those colors are theme tokens, and the mark is the only thing a
-fire adds to the transcript. A message can also carry the session mark
-([sessions.md](sessions.md#generation-in-the-transcript)); when it carries both,
-the fire mark comes first.
+**Cause line.** A message with a cause shows a context line above its author
+line, in the same geometry as an inline reply's parent line: a 16px automation
+avatar — a lightning glyph for a Trigger or a clock glyph for a reminder on a
+soft tint of its color — then the title in that color, truncated to one line,
+with an elbow tinted toward the color. Those colors are theme tokens, and the
+line is the only thing a fire adds to the transcript. Pressing it opens the
+owning Agent's Automations tab; an archived cause keeps the line but not the
+link. A message that is also an inline reply stacks the cause line above the
+reply line, and only the reply line draws the elbow. The author line itself
+carries only the name and the time.
 
 **Hover card.** Hovering the mark opens a mouse-following card previewing that
 automation, in the shared hover-card anatomy: the glyph, the title, and the

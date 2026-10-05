@@ -1,10 +1,10 @@
 ---
-summary: Decision that the Chat transcript is human conversation only, that the agent inbox is the single agent-only lane, and that every agent-only fact a human needs reaches them as a mark on the content it explains.
+summary: Decision that the Chat transcript is human conversation only, that the agent inbox is the single agent-only lane, and that every agent-only fact a human needs reaches them on the content it explains (amended 2026-10-05: the fire mark became a cause line above the message; the session mark is gone).
 read_when:
   - adding any delivery only an Agent should see, or proposing a Server-authored Chat message
   - changing what a Reminder, Trigger, task assignment, or session reset writes to a Chat
   - changing agent inbox item kinds, their identities, or their delivery lifecycle
-  - changing message provenance, the header marks, their hover cards, or the Thread context card
+  - changing message provenance, the cause line, its hover card, or the Thread context card
 ---
 
 # ADR 0026: The Transcript Is Conversation; the Agent Inbox Is the Agent's Lane
@@ -12,8 +12,8 @@ read_when:
 ## Status
 
 Accepted 2026-09-03 as the automation-receipt decision, widened 2026-09-04 to
-the transcript and inbox contract below. The file name records the narrower
-decision this one grew out of.
+the transcript and inbox contract below, amended 2026-10-05 (cause line, below).
+The file name records the narrower decision this one grew out of.
 
 Supersedes the visible-receipt clauses of ADR 0016: the reminder remains the
 scheduling primitive and everything else in that decision stands, but a fire no
@@ -49,18 +49,19 @@ explains**, not through a log line in the conversation:
 
 - A **task assignment** shows as the task chip on the canonical task message and
   in the task's Thread. The inbox item is the Agent's copy of the same fact.
-- An **automation fire** shows as a fire mark in the header of the Agent's
-  answer — a lightning glyph and the Trigger's title in yellow, a clock glyph
-  and the reminder's title in rosy red — with a hover card previewing the
-  automation and a context card above the anchored message in its Thread. The
+- An **automation fire** shows as a cause line above the Agent's answer, in
+  the geometry of an inline reply's parent line — a lightning glyph and the
+  Trigger's title in yellow, a clock glyph and the reminder's title in rosy
+  red — with a hover card previewing the automation, a press into the owning
+  Agent's Automations tab, and a context card above the anchored message in its
+  Thread. The
   Agent attributes its answer explicitly with `haus message send --cause
   <fireId>`; when it does not, the Server infers the cause only when that fire
   was the sole thing offered to the run that sent the message and the message
   landed in the fire's anchor Chat. The stored attribution says which happened.
-- A **session reset** shows as a session mark in blue on the Agent's first
-  message in a Chat after the reset, derived from the `session_generation`
-  stamped on every Agent message, with a hover card naming when and why the
-  session rotated; the Activity tab holds the full record.
+- A **session reset** shows nowhere in the transcript. The rotation record and
+  the `session_generation` stamped on every Agent message are execution
+  lineage, not conversation.
 
 A fire, an assignment, or a reset that never produces a message is invisible in
 Chat by design; the Automations tab, the task, and the Activity tab are where
@@ -95,14 +96,13 @@ the assignment row, which Raft stores as a message its UI skips; Haus stores
 that item as an inbox item instead, so no reader has to filter and the
 invariant holds without exceptions. Haus's real addition over Raft is
 `--cause`. Raft's fire answers carry no machine-readable provenance; a Haus
-Agent's answer names the exact fire it answers, which is what the header mark,
+Agent's answer names the exact fire it answers, which is what the cause line,
 the hover card, and the Thread context card all read from.
 
 ## Consequences
 
-- Marks are the transcript's only agent-only vocabulary, and they are per
-  message, not per row: the fire mark and the session mark can both sit in one
-  header, and a message with neither is an ordinary message.
+- The cause line is the transcript's only agent-only vocabulary, and it is per
+  message, not per row: a message without one is an ordinary message.
 - A fire the Agent does not answer, an assignment the Agent never speaks about,
   and a reset before an Agent's next message leave the transcript untouched.
   Silence means nothing was said, not that nothing happened.
@@ -112,13 +112,13 @@ the hover card, and the Thread context card all read from.
   conversation, which the schema now refuses.
 - `message_causes` is the provenance table: one row per caused message, naming
   the kind, the automation, the fire, whether the attribution was `explicit` or
-  `inferred`, and the snapshot the mark keeps — title, summary, fire time,
+  `inferred`, and the snapshot the cause line keeps — title, summary, fire time,
   owning Agent, and anchor Chat. A message keeps at most one cause.
-- **A provenance mark outlives its automation.** The snapshot is taken from the
+- **A cause line outlives its automation.** The snapshot is taken from the
   live records when the cause is recorded, and the automation and fire ids carry
   no foreign key, so deleting a Trigger or Reminder, or sweeping a fire, archives
-  the mark instead of removing it: the message still says what woke the Agent,
-  and only the live half of the mark — status, counters, standing instruction,
+  the line instead of removing it: the message still says what woke the Agent,
+  and only the live half of the line — status, counters, standing instruction,
   payload, anchoring note, and the way into Automations — goes. Clients read that
   as `cause.live = null`, and `automation.fireContext` answers from the snapshot
   with null counters rather than `NOT_FOUND`. Only deleting the message deletes
@@ -127,10 +127,9 @@ the hover card, and the Thread context card all read from.
   belong to an automation the sending Agent owns, or the send is refused.
   Inference is deliberately narrow, so an unattributed answer is normal and a
   wrong attribution is not.
-- `session_generation` on an Agent message is durable execution lineage in the
-  transcript. It changes only when the Agent's session rotates, so the App
-  derives the mark from the messages it already has and reads the rotation
-  record only to fill the hover card.
+- `session_generation` on an Agent message is durable execution lineage. It
+  changes only when the Agent's session rotates, and the App draws nothing
+  from it.
 - Inbox items with no backing Chat message — automation fires, task
   assignments — share the message-backed lifecycle. They ride the
   concrete lane: the item's envelope is the prompt the wake carries rather than a
@@ -148,3 +147,16 @@ the hover card, and the Thread context card all read from.
 - Deleting the legacy `reminder`, `trigger`, `task`, and `session` rows removes
   Chat history a database already held. They were fire, creation, and lifecycle
   log lines; the task rows were never visible to a human in the first place.
+
+## Amendment 2026-10-05: the cause line
+
+The fire mark moved out of the author line onto a context line above the
+message, sharing the inline reply line's geometry, so a fire reads as what the
+message answers rather than as a label on who wrote it. The line is a link into
+the owning Agent's Automations tab while the automation is live. When a message
+has both a cause and a reply parent, the cause line sits above the reply line and
+only the lower line draws the elbow. The author line is the name and the time.
+
+The session mark is removed; the product no longer surfaces a session reset in
+Chat. The rotation record and the `session_generation` stamp stay as execution
+lineage.
