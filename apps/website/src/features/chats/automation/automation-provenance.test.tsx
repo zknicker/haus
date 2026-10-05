@@ -7,8 +7,8 @@ import { AutomationFireContextCardView } from './automation-fire-context-card.ts
 import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
 
 test('the cause line names its automation in that automation’s own ink', () => {
-    const trigger = render(<MessageCauseLine cause={triggerCause()} elbow />);
-    const reminder = render(<MessageCauseLine cause={reminderCause()} elbow />);
+    const trigger = render(<MessageCauseLine cause={triggerCause()} />);
+    const reminder = render(<MessageCauseLine cause={reminderCause()} />);
 
     expect(trigger).toContain('Deploy finished');
     expect(trigger).toContain('text-trigger-mark');
@@ -21,19 +21,16 @@ test('the cause line names its automation in that automation’s own ink', () =>
 });
 
 test('the cause line leads with a tinted automation avatar and a tinted elbow', () => {
-    const reminder = render(<MessageCauseLine cause={reminderCause()} elbow />);
+    const reminder = render(<MessageCauseLine cause={reminderCause()} />);
 
     expect(reminder).toContain('bg-reminder-mark-soft');
     expect(reminder).toContain('border-reminder-mark-line');
     // The same bounds as the 16px EntityAvatar on a reply line.
     expect(reminder).toContain('border-radius:calc(var(--radius) * 1);height:16px;width:16px');
-    expect(render(<MessageCauseLine cause={reminderCause()} elbow={false} />)).not.toContain(
-        'data-turn-context-elbow'
-    );
 });
 
 test('the cause line opens the owning Agent’s Automations tab', () => {
-    const markup = render(<MessageCauseLine cause={reminderCause()} elbow />);
+    const markup = render(<MessageCauseLine cause={reminderCause()} />);
 
     expect(markup).toContain('aria-label="Open reminder: Weekly self-review"');
     expect(markup).toContain('href="/s/dev/agents/agt_blippy/automations"');
@@ -93,7 +90,7 @@ test('a Reminder context card carries its anchoring note and no payload', () => 
 });
 
 test('an archived automation keeps its line but loses the way into Automations', () => {
-    const archived = render(<MessageCauseLine cause={archivedReminderCause()} elbow />);
+    const archived = render(<MessageCauseLine cause={archivedReminderCause()} />);
 
     expect(archived).toContain('Weekly self-review');
     expect(archived).toContain('text-reminder-mark');

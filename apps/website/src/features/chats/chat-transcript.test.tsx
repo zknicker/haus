@@ -1583,7 +1583,7 @@ test('ChatTranscript keeps an ordinary Agent header to a name and a time', () =>
     const context = { ...causedOverrides(), chatId: 'chat-1', opensAgentProfiles: true };
     const markup = renderTranscript([plain], context);
 
-    assert.doesNotMatch(markup, /Deploy finished|text-trigger-mark|data-turn-context-lines=""/);
+    assert.doesNotMatch(markup, /Deploy finished|text-trigger-mark|data-turn-context-line=""/);
     // No description tagline: what an Agent is generally for belongs to its
     // hover card and profile, not to every message it writes.
     const header = /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
@@ -1591,7 +1591,7 @@ test('ChatTranscript keeps an ordinary Agent header to a name and a time', () =>
     assert.match(markup, /aria-label="Open Blippy&#x27;s profile"/);
 });
 
-test('ChatTranscript stacks the cause above the reply, and only the reply draws the elbow', () => {
+test('ChatTranscript shows only the cause line when a caused turn is also a reply', () => {
     const row = causedRow();
     const reply = { ...row, message: { ...row.message, reply: replyToZach() } };
     const markup = renderTranscript([reply], {
@@ -1599,13 +1599,12 @@ test('ChatTranscript stacks the cause above the reply, and only the reply draws 
         onOpenInlineReply: () => undefined,
     });
 
-    // The cause line sits above the reply line.
-    assert.match(markup, /message-cause-line[\s\S]*data-inline-reply-preview/);
-    // One stack, one elbow: the line nearest the message owns it.
-    assert.equal(markup.match(/data-turn-context-lines=""/g)?.length, 1);
+    // The fire is why the Agent spoke, so it replaces the reply line.
+    assert.match(markup, /message-cause-line/);
+    assert.doesNotMatch(markup, /data-inline-reply-preview|Did it land\?/);
+    assert.equal(markup.match(/data-turn-context-line=""/g)?.length, 1);
     assert.equal(markup.match(/data-turn-context-elbow=""/g)?.length, 1);
-    assert.match(markup, /message-cause-line[\s\S]*data-turn-context-elbow/);
-    assert.doesNotMatch(markup, /border-trigger-mark-line/);
+    assert.match(markup, /border-trigger-mark-line/);
 });
 
 test('ChatTranscript drops the cause line where a context card already states it', () => {
