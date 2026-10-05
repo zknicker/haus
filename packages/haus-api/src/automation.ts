@@ -52,7 +52,7 @@ export const messageCauseLiveSchema = z
 export type MessageCauseLive = z.infer<typeof messageCauseLiveSchema>;
 
 /**
- * A message's provenance. `title`, `summary`, `firedAt`, and `ownerAgentId`
+ * A message's provenance. `title`, `description`, `summary`, `firedAt`, and `ownerAgentId`
  * are snapshotted onto the message when the cause is recorded, so the mark
  * outlives the automation. `live` is the automation as it stands today, or
  * null when it has been archived.
@@ -67,6 +67,12 @@ export const messageCauseSchema = z
         attribution: messageCauseAttributionSchema,
         /** The Trigger or Reminder id. */
         automationId: idSchema,
+        /**
+         * A Reminder's description as it read when it fired — what the short
+         * title stands for. Null for a Trigger, a Reminder without one, and a
+         * cause recorded before Reminders had descriptions.
+         */
+        description: z.string().min(1).nullable(),
         /** When the answered fire happened. */
         firedAt: timestampSchema,
         /** The exact fire the Agent answered. */

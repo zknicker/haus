@@ -9,7 +9,7 @@ import { serversTable } from './servers.ts';
  * trace of the fire and this row is its provenance: one message answers at most
  * one fire, and every fire the Agent acts on gets its own message.
  *
- * The mark outlives the automation. `title`, `summary`, `fired_at`,
+ * The mark outlives the automation. `title`, `description`, `summary`, `fired_at`,
  * `owner_agent_id`, and `anchor_chat_id` are snapshotted from the live records
  * when the cause is recorded, so a swept fire or a deleted Trigger leaves the
  * message still saying what provoked it. The automation and fire ids are kept
@@ -29,6 +29,8 @@ export const messageCausesTable = pgTable(
          */
         attribution: text('attribution').notNull().$type<'explicit' | 'inferred'>(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        /** A Reminder's description as it read when it fired; null for a Trigger or none. */
+        description: text('description'),
         /** When the answered fire happened, snapshotted from the fire row. */
         firedAt: timestamp('fired_at', { withTimezone: true }).notNull(),
         kind: text('kind').notNull().$type<'reminder_fire' | 'trigger_fire'>(),

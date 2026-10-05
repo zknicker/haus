@@ -4,11 +4,21 @@ import { idSchema, reminderChangedEventSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
+/**
+ * A Reminder's title is a short label, like a calendar invite subject; its
+ * description says what to do when it fires. Writes enforce the title limit;
+ * reads allow the older 300-character titles written before the split.
+ */
+export const REMINDER_TITLE_MAX_CHARS = 60;
+export const REMINDER_DESCRIPTION_MAX_CHARS = 300;
+
 export const reminderSchema = z
     .object({
         anchorChatId: idSchema,
         anchorMessageId: idSchema,
         createdAt: timestampSchema,
+        /** Null when the author gave none. Command snapshots before the split omit it. */
+        description: z.string().min(1).max(REMINDER_DESCRIPTION_MAX_CHARS).nullable().default(null),
         fireAt: timestampSchema,
         hasScript: z.boolean(),
         id: idSchema,

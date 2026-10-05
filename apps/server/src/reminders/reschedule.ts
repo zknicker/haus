@@ -18,9 +18,12 @@ import {
     requireActiveAgent,
     requireAgentAnchor,
     toReminder,
+    validReminderDescription,
+    validReminderTitle,
 } from './reminder-model.ts';
 
 interface UpdateReminderInput extends ReminderCommandInput {
+    description?: string | null;
     fireAt?: Date;
     repeat?: string | null;
     script?: string | null;
@@ -32,6 +35,7 @@ interface SnoozeReminderInput extends ReminderCommandInput {
 }
 
 interface ReminderRescheduleValues {
+    description?: string | null;
     fireAt?: Date;
     repeat?: string | null;
     script?: string | null;
@@ -50,6 +54,7 @@ export async function updateReminder(
         action: 'update',
         fingerprint: JSON.stringify({
             action: 'update',
+            description: input.description,
             expectedVersion: input.expectedVersion,
             fireAt: input.fireAt?.toISOString(),
             reminderId: input.reminderId,
@@ -218,11 +223,11 @@ async function applyReschedule(
 function validatedUpdate(input: UpdateReminderInput) {
     const values: ReminderRescheduleValues = {};
     if (input.title !== undefined) {
-        const title = input.title.trim();
-        if (title.length === 0 || title.length > 300) {
-            throw new Error('Reminder title must be between 1 and 300 characters.');
-        }
-        values.title = title;
+        values.title = validReminderTitle(input.title);
+    }
+    if (input.description !== undefined) {
+        values.description =
+            input.description === null ? null : validReminderDescription(input.description);
     }
     if (input.fireAt !== undefined) {
         values.fireAt = input.fireAt;

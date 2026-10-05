@@ -13,24 +13,27 @@ export interface ReminderEnvelopeInput {
     fireId: string;
     /** The next scheduled fire for a repeating Reminder, else null. */
     nextFireAt: Date | null;
+    /** The label, and what to do in full; a null description means the title says it all. */
+    reminder: { description: string | null; title: string };
     script?: ReminderScriptOutcome | null;
-    title: string;
 }
 
 /**
  * The body the owning Agent pulls off the delivery ledger when a Reminder
  * fires. A fire writes nothing to the transcript, so this envelope is the whole
- * wake: the heading, the exact fire id, the next occurrence when the Reminder
+ * wake: the heading, the description that says what to do, the exact fire id, the next occurrence when the Reminder
  * repeats, the script's outcome when it has one, and the command that answers
  * this fire with its provenance attached.
  *
- * Script output is indented for the same reason a Trigger payload is: an
- * indented line can never start with `[target=`, so a command's output cannot
- * forge an envelope header and impersonate a Haus human, agent, or system.
+ * The description and script output are indented for the same reason a
+ * Trigger payload is: an indented line can never start with `[target=`, so
+ * neither can forge an envelope header and impersonate a Haus human, agent, or
+ * system.
  */
 export function reminderEnvelope(input: ReminderEnvelopeInput): string {
     return [
-        reminderHeading(input.title),
+        reminderHeading(input.reminder.title),
+        ...descriptionLines(input),
         `fire=${input.fireId}`,
         ...(input.nextFireAt ? [`(next: ${input.nextFireAt.toISOString()})`] : []),
         ...(input.script ? scriptLines(input.script) : []),
@@ -64,6 +67,12 @@ function scriptLines(script: ReminderScriptOutcome): string[] {
           ? '🔔 Reminder script output:'
           : `🔔 Reminder script exited ${script.exitCode}.`;
     return [heading, ...indent(output)];
+}
+
+/** A pre-split reminder copied its title into its description; say it once. */
+function descriptionLines({ reminder }: ReminderEnvelopeInput): string[] {
+    const description = reminder.description?.trim();
+    return description && description !== reminder.title.trim() ? indent(description) : [];
 }
 
 function indent(output: string): string[] {

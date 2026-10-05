@@ -181,7 +181,7 @@ async function fireNextDueReminder(
                 await delivery.enqueue(tx, {
                     agentId: reminder.ownerAgentId,
                     chatId: reminder.anchorChatId,
-                    content: reminderEnvelope({ fireId, nextFireAt, title: reminder.title }),
+                    content: reminderEnvelope({ fireId, nextFireAt, reminder }),
                     createdAt: now,
                     dedupeKey: fireId,
                     serverId: reminder.serverId,

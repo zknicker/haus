@@ -16,6 +16,7 @@ import { reminderCadenceSummary, triggerKindSummary } from './automation-summary
  */
 interface MessageCauseSnapshot {
     anchorChatId: string;
+    description: string | null;
     firedAt: Date;
     ownerAgentId: string;
     summary: string;
@@ -53,8 +54,8 @@ export class MessageCauseError extends Error {
  * Agent must own the automation: provenance is a claim about who was woken, and
  * one Agent may not attribute its message to another's Trigger or Reminder.
  *
- * The same read collects the snapshot the mark keeps for good, so the title and
- * cadence a reader sees are the ones that were true when the fire happened.
+ * The same read collects the snapshot the mark keeps for good, so the title,
+ * description, and cadence a reader sees are the ones that were true when the fire happened.
  */
 export async function resolveMessageCause(
     db: HausDatabase,
@@ -95,6 +96,8 @@ export async function resolveMessageCause(
         }
         return {
             anchorChatId: row.anchorChatId,
+            // A Trigger's standing instruction rides `live`; it has no description.
+            description: null,
             firedAt: row.firedAt,
             fireId: input.cause,
             kind: 'trigger_fire',
@@ -108,6 +111,7 @@ export async function resolveMessageCause(
         const [row] = await db
             .select({
                 anchorChatId: remindersTable.anchorChatId,
+                description: remindersTable.description,
                 firedAt: reminderFiresTable.firedAt,
                 ownerAgentId: remindersTable.ownerAgentId,
                 reminderId: remindersTable.id,
@@ -139,6 +143,7 @@ export async function resolveMessageCause(
         }
         return {
             anchorChatId: row.anchorChatId,
+            description: row.description,
             firedAt: row.firedAt,
             fireId: input.cause,
             kind: 'reminder_fire',
@@ -165,6 +170,7 @@ export async function insertMessageCause(
     const snapshot = {
         anchorChatId: input.cause.anchorChatId,
         attribution: input.attribution,
+        description: input.cause.description,
         firedAt: input.cause.firedAt,
         messageId: input.messageId,
         ownerAgentId: input.cause.ownerAgentId,

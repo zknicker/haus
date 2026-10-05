@@ -12,7 +12,7 @@ import {
 /**
  * The provenance mark for each message that has one. The App renders the header
  * mark and its hover card from the message alone, so everything the mark needs
- * rides the message: title, cadence or kind label, fire time, and owning Agent
+ * rides the message: title, description, cadence or kind label, fire time, and owning Agent
  * come from the snapshot the cause carries, which is why a mark survives its
  * automation. `live` is the automation as it stands today — status, counters,
  * instruction — and is null once the automation or the answered fire is gone.
@@ -27,6 +27,7 @@ export async function readMessageCauses(
     }
     const snapshot = {
         attribution: messageCausesTable.attribution,
+        description: messageCausesTable.description,
         firedAt: messageCausesTable.firedAt,
         messageId: messageCausesTable.messageId,
         ownerAgentId: messageCausesTable.ownerAgentId,
@@ -115,6 +116,7 @@ export async function readMessageCauses(
         causes.set(row.messageId, {
             attribution: row.attribution,
             automationId: row.automationId,
+            description: row.description,
             firedAt: row.firedAt.toISOString(),
             fireId: row.fireId,
             kind: 'trigger',
@@ -141,6 +143,7 @@ export async function readMessageCauses(
         causes.set(row.messageId, {
             attribution: row.attribution,
             automationId: row.automationId,
+            description: row.description,
             firedAt: row.firedAt.toISOString(),
             fireId: row.fireId,
             kind: 'reminder',

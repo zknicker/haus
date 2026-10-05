@@ -141,6 +141,7 @@ export async function settleReminderScript(
         }
         const [reminder] = await tx
             .select({
+                description: remindersTable.description,
                 fireAt: remindersTable.fireAt,
                 status: remindersTable.status,
                 title: remindersTable.title,
@@ -181,8 +182,8 @@ export async function settleReminderScript(
             content: reminderEnvelope({
                 fireId: attention.fireId,
                 nextFireAt: reminder.status === 'scheduled' ? reminder.fireAt : null,
+                reminder,
                 script,
-                title: reminder.title,
             }),
             createdAt: new Date(),
             dedupeKey: attention.fireId,

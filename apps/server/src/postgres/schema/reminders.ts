@@ -23,6 +23,8 @@ export const remindersTable = pgTable(
         anchorChatId: text('anchor_chat_id').notNull(),
         anchorMessageId: text('anchor_message_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+        /** What to do when it fires, in full; the title is only its short label. */
+        description: text('description'),
         fireAt: timestamp('fire_at', { withTimezone: true }).notNull(),
         id: text('id').primaryKey(),
         ownerAgentId: text('owner_agent_id').notNull(),
@@ -64,6 +66,10 @@ export const remindersTable = pgTable(
         check('reminders_status', sql`${table.status} in ('scheduled', 'fired', 'canceled')`),
         check('reminders_positive_version', sql`${table.version} > 0`),
         check('reminders_title_length', sql`char_length(${table.title}) between 1 and 300`),
+        check(
+            'reminders_description_length',
+            sql`${table.description} is null or char_length(${table.description}) between 1 and 300`
+        ),
         check(
             'reminders_script_size',
             sql`${table.script} is null or (
