@@ -1,10 +1,19 @@
 import { randomUUID } from 'node:crypto';
-import * as z from 'zod';
+import type * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { formatLocalTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
+import {
+    clip,
+    describeReminder,
+    normalizeClearable,
+    reminderListSchema,
+    reminderLogSchema,
+    reminderSingleSchema,
+    requireFlag,
+} from './agent-reminder-view.ts';
 
 // Family 8 — Reminders (D4). Author-owned wake signals anchored to a
 // message; the only scheduling primitive. `--script` payloads run locally at
@@ -15,31 +24,9 @@ interface ReminderDeps {
     write(text: string): void;
 }
 
-const reminderViewSchema = z.object({
-    anchorTarget: z.string(),
-    fireAt: z.string(),
-    id: z.string(),
-    repeat: z.string().nullable(),
-    script: z.boolean(),
-    status: z.string(),
-    title: z.string(),
-    version: z.number().int().positive(),
-});
-
-const reminderSingleSchema = z.object({ reminder: reminderViewSchema });
-const reminderListSchema = z.object({ reminders: z.array(reminderViewSchema) });
-const reminderLogSchema = z.object({
-    runs: z.array(
-        z.object({
-            firedAt: z.string(),
-            id: z.string(),
-            outcome: z.string(),
-            output: z.string().nullable(),
-            reminderId: z.string(),
-            scriptExitCode: z.number().nullable(),
-        })
-    ),
-});
+const titleHelp =
+    'Short label shown in chat, like a calendar invite subject (e.g. "Monday Advertising Review"); max 60 chars';
+const descriptionHelp = 'What to do when it fires, in full; max 300 chars';
 
 const idFlag = {
     description: 'Reminder id from haus reminder list',
@@ -50,12 +37,13 @@ const idFlag = {
 export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'haus reminder schedule --title "check if CI finished" --delay-seconds 1800 --message-id 1a2b3c4d',
-            'haus reminder schedule --title "daily standup notes" --fire-at 2026-07-23T09:00:00 --repeat daily@09:00 --message-id 1a2b3c4d',
-            "haus reminder schedule --title 'watch nightly export' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
+            'haus reminder schedule --title "CI Check" --description "check if CI finished and update the task" --delay-seconds 1800 --message-id 1a2b3c4d',
+            'haus reminder schedule --title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments" --fire-at 2026-07-27T09:00:00 --repeat weekly:mon@09:00 --message-id 1a2b3c4d',
+            "haus reminder schedule --title 'Nightly Export Watch' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
         ],
         flags: [
-            { description: 'Action-language reminder text', name: '--title', valueName: '<text>' },
+            { description: titleHelp, name: '--title', valueName: '<label>' },
+            { description: descriptionHelp, name: '--description', valueName: '<text>' },
             {
                 description: 'Fire after N seconds from now',
                 name: '--delay-seconds',
@@ -84,7 +72,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runReminderSchedule(args, defaultDeps()),
         summary: 'Schedule an author-owned wake signal anchored to a message',
-        usage: 'haus reminder schedule --title <text> (--delay-seconds <n> | --fire-at <iso>) [--repeat <cadence>] --message-id <id> [--script <command>]',
+        usage: 'haus reminder schedule --title <label> [--description <text>] (--delay-seconds <n> | --fire-at <iso>) [--repeat <cadence>] --message-id <id> [--script <command>]',
     },
     {
         examples: ['haus reminder list', 'haus reminder list --status scheduled'],
@@ -115,11 +103,16 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     },
     {
         examples: [
-            'haus reminder update --id rem_1a2b3c4d5e6f --title "check CI and update task #3"',
+            'haus reminder update --id rem_1a2b3c4d5e6f --title "CI Check" --description "check CI and update task #3"',
         ],
         flags: [
             idFlag,
-            { description: 'New reminder text', name: '--title', valueName: '<text>' },
+            { description: titleHelp, name: '--title', valueName: '<label>' },
+            {
+                description: `${descriptionHelp}, or "none" to remove it`,
+                name: '--description',
+                valueName: '<text>',
+            },
             { description: 'New fire time (ISO)', name: '--fire-at', valueName: '<iso>' },
             {
                 description: 'New cadence, or "none" to stop repeating',
@@ -135,8 +128,8 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         name: 'update',
         positionals: [],
         run: (args) => runReminderUpdate(args, defaultDeps()),
-        summary: 'Change one field of a reminder',
-        usage: 'haus reminder update --id <id> (--title <text> | --fire-at <iso> | --repeat <cadence> | --script <command>)',
+        summary: 'Change one thing about a reminder: its label, time, cadence, or script',
+        usage: 'haus reminder update --id <id> (--title <label> [--description <text>] | --description <text> | --fire-at <iso> | --repeat <cadence> | --script <command>)',
     },
     {
         examples: ['haus reminder cancel --id rem_1a2b3c4d5e6f'],
@@ -165,7 +158,11 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
     const title = args.values['--title'];
     const messageId = args.values['--message-id'];
     if (!title) {
-        throw new AgentCliError('INVALID_ARG', 'Provide --title with the reminder text.');
+        throw new AgentCliError(
+            'INVALID_ARG',
+            'Provide --title with a short label, like "Monday Advertising Review".',
+            { nextAction: 'Put the full instruction in --description.' }
+        );
     }
     if (!messageId) {
         throw new AgentCliError('INVALID_ARG', 'Provide --message-id with the anchor message.', {
@@ -189,6 +186,7 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
         {
             body: {
                 commandId: `cli-${randomUUID()}`,
+                description: args.values['--description'],
                 fireAt,
                 messageId,
                 repeat: args.values['--repeat'],
@@ -244,16 +242,23 @@ export async function runReminderSnooze(args: ParsedArgs, deps: ReminderDeps): P
 export async function runReminderUpdate(args: ParsedArgs, deps: ReminderDeps): Promise<number> {
     const id = requireFlag(args, '--id');
     const fields = {
+        description: normalizeClearable(args.values['--description']),
         fireAt: args.values['--fire-at'],
         repeat: normalizeClearable(args.values['--repeat']),
         script: normalizeClearable(args.values['--script']),
         title: args.values['--title'],
     };
-    const provided = Object.values(fields).filter((value) => value !== undefined);
-    if (provided.length !== 1) {
+    // The title and description are one label, so they may change together.
+    const provided = [
+        fields.title ?? fields.description,
+        fields.fireAt,
+        fields.repeat,
+        fields.script,
+    ];
+    if (provided.filter((value) => value !== undefined).length !== 1) {
         throw new AgentCliError(
             'INVALID_ARG',
-            'Update exactly one field: --title, --fire-at, --repeat, or --script.'
+            'Update one thing: --title and/or --description, --fire-at, --repeat, or --script.'
         );
     }
     const current = await readReminderForMutation(deps, id);
@@ -323,12 +328,6 @@ export async function runReminderLog(args: ParsedArgs, deps: ReminderDeps): Prom
     return 0;
 }
 
-function describeReminder(reminder: z.infer<typeof reminderViewSchema>): string {
-    const repeat = reminder.repeat ? ` repeats ${reminder.repeat}` : '';
-    const script = reminder.script ? ' (script)' : '';
-    return `${reminder.id} [${reminder.status}] "${reminder.title}" — fires ${formatLocalTime(reminder.fireAt)}${repeat}${script}, anchored in ${reminder.anchorTarget}`;
-}
-
 async function readReminderForMutation(deps: ReminderDeps, id: string) {
     const response = await deps.client.request('/api/agent/reminders', reminderListSchema, {
         method: 'GET',
@@ -354,26 +353,6 @@ async function requestReminderMutation<T>(
         }
         return await deps.client.request(route, schema, input);
     }
-}
-
-function normalizeClearable(value: string | undefined): string | null | undefined {
-    if (value === undefined) {
-        return undefined;
-    }
-    return value === 'none' ? null : value;
-}
-
-function requireFlag(args: ParsedArgs, name: string): string {
-    const value = args.values[name];
-    if (!value) {
-        throw new AgentCliError('INVALID_ARG', `Provide ${name}.`);
-    }
-    return value;
-}
-
-function clip(value: string): string {
-    const flat = value.replaceAll(/\s+/gu, ' ').trim();
-    return flat.length > 120 ? `${flat.slice(0, 119)}…` : flat;
 }
 
 function defaultDeps(): ReminderDeps {
