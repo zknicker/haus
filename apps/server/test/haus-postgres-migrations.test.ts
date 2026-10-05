@@ -58,6 +58,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0057_cloud_agent_model',
             '0058_agent_personality',
             '0059_agent_creation_request',
+            '0060_reminder_descriptions',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
@@ -136,6 +137,44 @@ test('upgrades the preceding production schema without replaying migrations', as
     } finally {
         await upgraded?.close();
         await database.unsafe('DROP DATABASE IF EXISTS haus_effect_upgrade_test');
+        await database.close();
+        await rm(folder, { recursive: true, force: true });
+    }
+});
+
+test('copies each existing reminder title into its new description', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'haus-reminder-description-'));
+    const database = new SQL(cluster.databaseUrl);
+    const url = new URL(cluster.databaseUrl);
+    url.pathname = '/haus_reminder_description_test';
+    let upgraded: SQL | undefined;
+    try {
+        await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
+        const journalPath = join(folder, 'meta/_journal.json');
+        const journal = JSON.parse(await readFile(journalPath, 'utf8'));
+        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 59);
+        await writeFile(journalPath, JSON.stringify(journal));
+        await database.unsafe('CREATE DATABASE haus_reminder_description_test');
+        await migrateHausDatabase(url.toString(), 'haus', 'haus', folder);
+        upgraded = new SQL(url.toString());
+        const title = 'Check advertising every Monday and look for campaigns that need bid changes';
+        // Only the reminder row matters here, so its Server, Agent, and anchor are skipped.
+        await upgraded.begin(async (tx) => {
+            await tx`SET LOCAL session_replication_role = replica`;
+            await tx`INSERT INTO reminders (id, server_id, owner_agent_id, anchor_chat_id,
+                    anchor_message_id, created_at, fire_at, status, timezone, title, updated_at)
+                VALUES ('rem_upgrade', 'srv_upgrade', 'agt_upgrade', 'cht_upgrade', 'msg_upgrade',
+                    now(), now(), 'scheduled', 'UTC', ${title}, now())`;
+        });
+        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([
+            '0060_reminder_descriptions',
+        ]);
+        expect(await upgraded`SELECT title, description FROM reminders`).toEqual([
+            { description: title, title },
+        ]);
+    } finally {
+        await upgraded?.close();
+        await database.unsafe('DROP DATABASE IF EXISTS haus_reminder_description_test');
         await database.close();
         await rm(folder, { recursive: true, force: true });
     }

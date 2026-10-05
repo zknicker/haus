@@ -148,6 +148,7 @@ function triggerCause(): MessageCause {
     return {
         attribution: 'explicit',
         automationId: 'trg_deploy',
+        description: null,
         firedAt: relativeMinutesAgo(4),
         fireId: 'trf_12',
         kind: 'trigger',
@@ -167,6 +168,7 @@ function reminderCause(): MessageCause {
     return {
         attribution: 'explicit',
         automationId: 'rem_review',
+        description: null,
         firedAt: '2026-08-27T13:00:00.000Z',
         fireId: 'rmf_6',
         kind: 'reminder',

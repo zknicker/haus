@@ -242,6 +242,14 @@ test('seeds #automations with live, archived, and replying automation causes', a
         ['trigger', true],
         ['reminder', false],
     ]);
+    // Reminder lines read as short labels; the full instruction rides the description.
+    const reminderCauses = [...causes.values()].filter((cause) => cause.kind === 'reminder');
+    expect(reminderCauses.map((cause) => cause.title).sort()).toEqual([
+        'Monday Release Checklist',
+        'Review Queue Check',
+        'Stale Thread Cleanup',
+    ]);
+    expect(reminderCauses.every((cause) => (cause.description?.length ?? 0) > 30)).toBe(true);
     // One reminder answer is also an inline reply; its cause line replaces the reply line.
     expect(caused.filter((cause) => cause.reply !== null)).toHaveLength(1);
     // And one plain reply to compare against.

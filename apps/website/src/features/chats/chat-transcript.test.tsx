@@ -1650,6 +1650,7 @@ function causedRow(): TranscriptMessageRow {
             cause: {
                 attribution: 'explicit',
                 automationId: 'trg_deploy',
+                description: null,
                 firedAt: '2026-09-03T11:56:00.000Z',
                 fireId: 'trf_12',
                 kind: 'trigger',

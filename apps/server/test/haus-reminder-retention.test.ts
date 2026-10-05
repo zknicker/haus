@@ -203,6 +203,7 @@ test("leaves a swept fire's answer marked with the automation that provoked it",
     expect(rendered?.cause).toEqual({
         attribution: 'explicit',
         automationId: reminder.id,
+        description: null,
         firedAt: fire.fired_at.toISOString(),
         fireId: fire.id,
         kind: 'reminder',

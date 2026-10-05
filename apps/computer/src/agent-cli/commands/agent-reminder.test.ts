@@ -5,6 +5,7 @@ import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import {
     runReminderCancel,
+    runReminderList,
     runReminderSchedule,
     runReminderSnooze,
     runReminderUpdate,
@@ -12,6 +13,7 @@ import {
 
 const reminder = {
     anchorTarget: '#general:deadbeef',
+    description: null,
     fireAt: '2026-07-30T16:00:00.000Z',
     id: 'rem_test',
     repeat: null,
@@ -53,6 +55,76 @@ describe('Agent reminder CLI', () => {
             title: 'Check the draft',
         });
         expect(requests[0]?.body).not.toHaveProperty('delaySeconds');
+    });
+
+    test('sends the description beside the short title and prints both', async () => {
+        const requests: AgentApiRequest[] = [];
+        const lines: string[] = [];
+        const labeled = {
+            ...reminder,
+            description: 'Check advertising and flag campaigns that need bid adjustments',
+            title: 'Monday Advertising Review',
+        };
+        const client = requester((_route, input) => {
+            requests.push(input);
+            return { reminder: labeled };
+        });
+
+        await runReminderSchedule(
+            args({
+                '--delay-seconds': '120',
+                '--description': labeled.description,
+                '--message-id': 'deadbeef',
+                '--title': labeled.title,
+            }),
+            { client, write: (text) => lines.push(text) }
+        );
+
+        expect(requests[0]?.body).toMatchObject({
+            description: labeled.description,
+            title: 'Monday Advertising Review',
+        });
+        expect(lines.join('')).toContain(
+            '"Monday Advertising Review" — Check advertising and flag campaigns that need bid adjustments — fires'
+        );
+    });
+
+    test('still reads reminders from a Server that predates descriptions', async () => {
+        const { description: _omitted, ...legacy } = reminder;
+        const lines: string[] = [];
+        const client = requester(() => ({ reminders: [legacy] }));
+
+        await runReminderList(args({}), { client, write: (text) => lines.push(text) });
+
+        expect(lines.join('')).toContain('rem_test [scheduled] "Check the draft" — fires');
+    });
+
+    test('updates the title and description together, but nothing else alongside', async () => {
+        const mutations: AgentApiRequest[] = [];
+        const client = requester((route, input) => {
+            if (route === '/api/agent/reminders') {
+                return { reminders: [reminder] };
+            }
+            mutations.push(input);
+            return { reminder };
+        });
+        const deps = { client, write: () => undefined };
+
+        await runReminderUpdate(
+            args({ '--description': 'none', '--id': reminder.id, '--title': 'Draft Check' }),
+            deps
+        );
+        expect(mutations[0]?.body).toMatchObject({ description: null, title: 'Draft Check' });
+        await expect(
+            runReminderUpdate(
+                args({
+                    '--fire-at': reminder.fireAt,
+                    '--id': reminder.id,
+                    '--title': 'Draft Check',
+                }),
+                deps
+            )
+        ).rejects.toThrow('Update one thing: --title and/or --description');
     });
 
     test('uses the listed reminder version for every mutation', async () => {

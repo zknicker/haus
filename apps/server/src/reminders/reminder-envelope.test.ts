@@ -4,7 +4,7 @@ import { reminderEnvelope, reminderScriptLines } from './reminder-envelope.ts';
 const base = {
     fireId: 'rmf_fire',
     nextFireAt: null,
-    title: 'Check the deploy',
+    reminder: { description: null, title: 'Check the deploy' },
 };
 
 /** Every fire envelope ends with the command that answers it with provenance. */
@@ -17,6 +17,32 @@ describe('reminder envelope', () => {
             'fire=rmf_fire',
             replyLine,
         ]);
+    });
+
+    test('carries the description as the instruction under the short title', () => {
+        expect(
+            reminderEnvelope({
+                ...base,
+                reminder: {
+                    description: 'Check advertising and flag campaigns that need bid changes',
+                    title: 'Monday Advertising Review',
+                },
+            }).split('\n')
+        ).toEqual([
+            '🔔 Reminder: Monday Advertising Review',
+            '  Check advertising and flag campaigns that need bid changes',
+            'fire=rmf_fire',
+            replyLine,
+        ]);
+    });
+
+    test('says a backfilled description once when it repeats the title', () => {
+        expect(
+            reminderEnvelope({
+                ...base,
+                reminder: { description: 'Check the deploy', title: 'Check the deploy' },
+            }).split('\n')
+        ).toEqual(['🔔 Reminder: Check the deploy', 'fire=rmf_fire', replyLine]);
     });
 
     test('adds the next occurrence for a repeating reminder', () => {

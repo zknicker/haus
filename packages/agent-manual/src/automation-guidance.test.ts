@@ -10,6 +10,12 @@ test('reminder manual retains script and reply guidance disclosed by the prompt'
     expect(body).toContain('haus reminder log');
 });
 
+test('reminder manual teaches a short title with the instruction in the description', () => {
+    const body = getManualTopic('recipes/technique/reminder-cron')?.body;
+    expect(body).toContain('short calendar-invite subject');
+    expect(body).toContain('--title "Monday Advertising Review" --description');
+});
+
 test('trigger manual retains setup, recovery, and payload boundaries', () => {
     const body = getManualTopic('recipes/technique/trigger-webhook')?.body;
     for (const detail of [
