@@ -48,6 +48,10 @@ const recipeIds = [
 // cannot quietly become an escape hatch for a drifted adapted card.
 const hausNativeIds = new Set<string>(['recipes/technique/trigger-webhook']);
 
+// Cards Haus rewrote on purpose. The captured source card stays the record of
+// what was adapted; each rewrite owns a row in specs/raft-alignment/prompt-divergences.md.
+const hausRewrittenIds = new Set<string>(['recipes/technique/memory-hygiene']);
+
 const seededIds = [
     'recipes/decision/one-or-many',
     'recipes/decision/stake-strictness',
@@ -130,6 +134,10 @@ test('keeps every published body faithful to its captured source card', async ()
             continue;
         }
         const source = await sourceFile.text();
+        if (hausRewrittenIds.has(topic.id)) {
+            expect(source).not.toContain(topic.body);
+            continue;
+        }
         const boundaries = [...source.matchAll(/^---$/gm)];
         const body = source
             .slice(boundaries[1].index + 3, boundaries[2]?.index ?? source.length)

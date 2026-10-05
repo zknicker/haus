@@ -210,8 +210,11 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // conversation rule. Lowered (32,416 → 32,399) when the Haus-only `## Personality` section
     // arrived (measured here with a one-word personality), paid for by shortening the Cloud
     // agents section's delivery sentences. Raised (32,399 → 32,529) for reminder title guidance:
-    // Reminders gained the Haus-only `--title` label / `--description` sentence.
-    expect(prompt.length).toBeLessThanOrEqual(32_529);
+    // Reminders gained the Haus-only `--title` label / `--description` sentence. Lowered
+    // (32,529 → 32,496) when Workspace & Memory learned hot-memory-plus-index, topic-note,
+    // chat-is-history, and rewrite-Active-Context rules, with a tighter template and no notes/
+    // example list.
+    expect(prompt.length).toBeLessThanOrEqual(32_496);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

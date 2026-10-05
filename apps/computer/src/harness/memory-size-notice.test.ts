@@ -27,25 +27,29 @@ async function writeMemory(bytes: number): Promise<void> {
 
 const start = Date.parse('2026-09-28T12:00:00.000Z');
 
-test('a MEMORY.md at or under 64 KiB produces nothing, and a missing one is not an error', async () => {
+test('a MEMORY.md at or under 16 KiB produces nothing, and a missing one is not an error', async () => {
     expect(await takeMemorySizeNotice({ agentRoot, now: start, workspaceDir })).toBeNull();
     await writeMemory(memorySizeLimitBytes);
     expect(await takeMemorySizeNotice({ agentRoot, now: start, workspaceDir })).toBeNull();
 });
 
-test('one byte over the limit produces the notice with Raft size wording', async () => {
+test('one byte over the limit produces the notice with the Manual command', async () => {
     await writeMemory(memorySizeLimitBytes + 1);
 
     const notice = await takeMemorySizeNotice({ agentRoot, now: start, workspaceDir });
 
-    expect(notice).toContain('MEMORY.md is 64.0 KiB, over 64.0 KiB.');
-    expect(notice).toContain('keep it an index and move details into notes/');
+    expect(notice).toContain('MEMORY.md is 16.0 KiB, over 16.0 KiB.');
+    expect(notice).toContain('keep hot memory short and move deeper knowledge into notes/');
+    expect(notice).toContain(
+        'haus manual get recipes/technique/memory-hygiene --intent "MEMORY.md is over its size limit" --reason "I am tidying my memory"'
+    );
+    expect(notice).toContain('Not a request from anyone');
 });
 
 test('the notice repeats at most once per window, and only while still over', async () => {
     await writeMemory(memorySizeLimitBytes * 2);
     expect(await takeMemorySizeNotice({ agentRoot, now: start, workspaceDir })).toContain(
-        'MEMORY.md is 128.0 KiB'
+        'MEMORY.md is 32.0 KiB'
     );
     // Every other turn in the window stays quiet.
     expect(

@@ -26,8 +26,10 @@ describe('ordinary Agent workspace seed', () => {
         const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
         expect(memory).toMatch(/^# scout\n/u);
         expect(memory).toContain('Operator — ships scoped, verified changes end to end');
-        expect(memory).toContain('## Key Knowledge\n\n- No notes yet.');
-        expect(memory).toContain('## Active Context\n\n- First startup.');
+        // Same section order as the prompt's MEMORY.md template: hot memory, then the index.
+        expect(memory).toContain(
+            '## Standing Preferences\n\n- None recorded yet.\n\n## Active Context\n\n- First startup.\n\n## Key Knowledge\n\n- No notes yet.\n'
+        );
         expect(memory).not.toContain('notes/');
         expect((await fs.readdir(workspaceDir)).sort()).toEqual(['MEMORY.md', 'notes']);
         expect(await fs.readdir(path.join(workspaceDir, 'notes'))).toEqual([]);
@@ -60,7 +62,7 @@ describe('ordinary Agent workspace seed', () => {
             'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.'
         );
         expect(memory.indexOf('## Standing brief from @cove')).toBeLessThan(
-            memory.indexOf('## Key Knowledge')
+            memory.indexOf('## Standing Preferences')
         );
     });
 
@@ -73,7 +75,7 @@ describe('ordinary Agent workspace seed', () => {
 
         const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
         expect(memory).not.toContain('Standing brief');
-        expect(memory).toContain('## Role\n\nNo role defined yet.\n\n## Key Knowledge');
+        expect(memory).toContain('## Role\n\nNo role defined yet.\n\n## Standing Preferences');
     });
 
     it('never touches a workspace that already has a MEMORY.md', async () => {

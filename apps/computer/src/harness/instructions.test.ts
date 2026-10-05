@@ -258,3 +258,27 @@ test('a personality change changes the instruction fingerprint, so it reaches th
     expect(voiced.instructions).toContain('## Personality\n\nTerse. Dry humor.');
     expect(voiced.fingerprint).not.toBe(plain.fingerprint);
 });
+
+test('teaches MEMORY.md as hot memory plus a notes index, with history left in chat', () => {
+    const { instructions: prompt } = composeAgentInstructions(facts);
+
+    expect(prompt).toContain(
+        'all your knowledge: hot memory you need on every wake, then an index of `notes/`.'
+    );
+    expect(prompt).toContain(
+        '## Standing Preferences\n<communication style and standing directives people gave you>'
+    );
+    expect(prompt).toContain(
+        "## Active Context\n<current work only: rewrite, don't append; drop finished items>\n\n## Key Knowledge\n- notes/channels.md — what each channel is about"
+    );
+    expect(prompt).toContain(
+        "`notes/` holds deeper knowledge not needed every wake: topic files, each the current truth on one subject. Update or delete a topic's note before adding one; no dated logs. Manual topic `recipes/technique/memory-hygiene` has the rest."
+    );
+    expect(prompt).toContain(
+        "The history itself lives in Haus chats and tasks: don't copy it; record handles (chat/message, task, file, commit) and find it with `haus message search`."
+    );
+    // Standing preferences are hot memory, not a note; history is chat, not a work log.
+    expect(prompt).not.toContain('notes/user-preferences.md');
+    expect(prompt).not.toContain('work-log');
+    expect(prompt).not.toContain('Last interaction:');
+});

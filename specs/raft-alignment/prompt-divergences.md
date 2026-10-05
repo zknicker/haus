@@ -31,7 +31,7 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **32,529** characters. The cap is a
+`managed-instructions.test.ts` caps the composed prompt at **32,496** characters. The cap is a
 ratchet that forces a deliberate decision, not a hard limit: a justified addition raises it to
 the measured render in the same change, with a one-line reason in the history below. Never
 delete, trim, merge, or deduplicate other prompt text just to make room; shrinking the prompt is
@@ -45,7 +45,8 @@ into a thread on the acknowledgment (ADR 0029 amendment, 2026-10-02), then lower
 when the Haus-only `## Personality` section arrived (2026-10-03), paid for by shortening the Cloud
 agents section's delivery sentences and measured with a one-word personality, then raised to
 32,529 for reminder title guidance: Reminders gained the Haus-only `--title` label /
-`--description` sentence (2026-10-05). Measured line-by-line against the pinned
+`--description` sentence (2026-10-05), then lowered to 32,496 when Workspace & Memory gained the
+hot-memory-plus-index rules (operator decision, 2026-10-05). Measured line-by-line against the pinned
 render, about 18,500 characters of the Haus prompt are Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
@@ -95,7 +96,8 @@ Sections are in Haus's render order.
 | Live constraints | Parity | — |
 | Formatting — Mentions & Channel Refs | Haus drops Raft's `#1` numeric channel form and adds "Haus renders your message as Markdown, GFM tables included," extended with a chat-register rule: plain sentences, no bold for emphasis or as labels, lists/headings/tables only for genuinely structured content | Deliberate — specs/mentions.md (no numeric refs); Haus App renders GFM (docs/internals/widgets.md); chat register is an operator decision 2026-10-01 (agents overused bold in chat), covered by managed-instructions.test.ts |
 | Workspace & Memory | Parity **plus** the MEMORY.md re-read sentence ("at natural boundaries … including after context compression"; "Your session resets rarely…") and the "Apply remembered preferences" bullet | Deliberate — ADR 0009, ADR 0011 (one long-lived session, so startup-only reads are insufficient); asserted in `managed-instructions.test.ts` and `instructions.test.ts` |
-| What to memorize, compaction safety | Parity | — |
+| Workspace & Memory — memory shape | Haus rewrites Raft's memory-shape text: MEMORY.md is "hot memory you need on every wake, then an index of `notes/`" (replaces "Structure it as an index that points to everything you know"); the template adds `## Standing Preferences` ("communication style and standing directives people gave you"), puts Active Context before Key Knowledge as one placeholder, "current work only: rewrite, don't append; drop finished items" (replaces "Currently working on" / "Last interaction"), and writes Key Knowledge lines as `path — hook` without `notes/user-preferences.md`; the `notes/` bullet says notes hold deeper knowledge not needed every wake as topic files of current truth, update or delete before adding, no dated logs, and points to Manual topic `recipes/technique/memory-hygiene` (replaces the four-file example list, dropping `notes/work-log.md`) | Deliberate — operator decision 2026-10-05: standing preferences and directives are needed on every wake, so they are hot memory rather than a note; Haus chat and task history is canonical Server state searchable with `haus message search`, so a work log duplicates it; live Agents' MEMORY.md files grew as append-only diaries (stale "currently working on" lines, prepended entries never removed). Net −20 characters. `managed-instructions.test.ts`, `instructions.test.ts`; the ordinary seed (`packages/agent-workspace/src/starter-kit.ts`) follows the same section order |
+| What to memorize, compaction safety | Parity except item 4: Haus keeps "Work history" to decisions and approaches and adds that the history itself lives in Haus chats and tasks — record handles (chat/message, task, file, commit), find it with `haus message search` | Deliberate — same operator decision as the memory-shape row; `managed-instructions.test.ts` |
 | Outputs | Haus-only | Deliberate — ADR 0003, ADR 0004, ADR 0010 |
 | Visuals | Haus-only | Deliberate — ADR 0012, ADR 0031 |
 | Web access | Haus-only, rendered only when web access is granted | Deliberate — specs/tools.md |
@@ -117,6 +119,8 @@ These are not system-prompt text, but they carry guidance Raft keeps in event in
 | Thread context block | Raft's thread-join block with `Haus` naming, home-timezone `time=`, and Server bounds | Deliberate — specs/inbox.md; `thread-context-format.test.ts` |
 | Inbox delivery trailer | Identifies `target` as the requesting conversation; no invitation to choose a new thread | Deliberate — natural conversation evals; `inbox-format.test.ts` |
 | Unread-elsewhere digest | Raft's wording, appended to every wake | Deliberate — ADR 0034; `turn-prompt.test.ts` |
+| MEMORY.md size notice (`memory-size-notice.ts`) | Raft's Cleaner item, carried as a private one-line turn-input notice at most once per 24 hours. Haus fires above 16 KiB (Raft v1.21's 4,000-token × 4-byte MEMORY.md target, ahead of the 1.0.25 pin's 64 KiB Cleaner default), says "keep hot memory short and move deeper knowledge into notes/", and names the runnable `haus manual get recipes/technique/memory-hygiene --intent … --reason …` command | Deliberate — operator decision 2026-10-05; specs/workspace.md §Durable knowledge; `memory-size-notice.test.ts` |
+| Manual card `recipes/technique/memory-hygiene` | Rewritten for Haus as "Keep MEMORY.md hot and notes/ current": what belongs in hot memory versus notes/ (with examples), Active Context rewritten not appended, path-plus-hook index lines, topic files over logs, update or delete before adding, when to split, notes grown into a tree of sub-indexes, closed work pruned, history stays in chat, a cold-start self-check. The captured source card stays in `raft-recipes/` as the record | Deliberate — same operator decision; `packages/agent-manual/src/index.test.ts` (`hausRewrittenIds`) |
 | `haus task claim` / `task create` receipts; Cloud Agent receipt | Report ownership and thread addresses as references, without routing advice | Deliberate — conversation placement follows the human request; agent-task-actions and manual/CLI tests |
 
 ## Open TODOs
