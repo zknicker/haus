@@ -181,13 +181,13 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         webAccess: 'search',
     });
 
-    // A reviewed ratchet, not a runtime limit: no adapter enforces a prompt length. Haus tracks
-    // the current Raft release from source. Raft-verbatim text is text present in the current Raft
-    // prompt at the source commit pinned in specs/raft-alignment/prompt-divergences.md; it is
-    // never trimmed to make room. When Raft deletes a clause, the Haus copy becomes Haus-only and
-    // must justify itself. Haus-only additions fit by simplifying or relocating other Haus-only
-    // text (Manual topics, skills, event input); raising the budget for them needs an operator
-    // decision. See AGENTS.md "Agent System Prompt Changes".
+    // A ratchet that forces a deliberate decision, not a hard or runtime limit: no adapter
+    // enforces a prompt length. A justified addition raises this cap to the measured render in the
+    // same change, with a one-line reason in specs/raft-alignment/prompt-divergences.md. Never
+    // delete, trim, merge, or deduplicate other prompt text to make room; shrinking the prompt is
+    // its own change with its own reason, and lowers the cap. Raft-verbatim text (present in the
+    // Raft prompt at the pinned source commit) is never trimmed. See AGENTS.md "Agent System
+    // Prompt Changes".
     //
     // Lowered from 40,270 on the Raft 1.0.25 re-baseline (render 40,270 → 32,359): notice
     // mechanics moved into the inbox notice, task mechanics into the `tasks` Manual topic, and
@@ -209,11 +209,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // work-thread sentences to the `cloud-agents` Manual topic and shortening the Tasks
     // conversation rule. Lowered (32,416 → 32,399) when the Haus-only `## Personality` section
     // arrived (measured here with a one-word personality), paid for by shortening the Cloud
-    // agents section's delivery sentences. Lowered (32,399 → 32,306) when Reminders gained the
-    // Haus-only `--title` label / `--description` sentence, paid for by replacing the Triggers
-    // section's repeated fire-arrival and `--cause` sentences with a pointer to the reminder fire
-    // rules.
-    expect(prompt.length).toBeLessThanOrEqual(32_306);
+    // agents section's delivery sentences. Raised (32,399 → 32,529) for reminder title guidance:
+    // Reminders gained the Haus-only `--title` label / `--description` sentence.
+    expect(prompt.length).toBeLessThanOrEqual(32_529);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
@@ -225,19 +223,15 @@ test('teaches automation provenance without an envelope tutorial', () => {
         'A fire arrives through your inbox and writes nothing to chat by itself.'
     );
     expect(prompt).not.toContain('the payload excerpt indented two spaces');
-    // One `--cause` sentence in the whole prompt: the placement rule and the provenance reason
-    // are the same rule, and Triggers points at the reminder fire rules instead of repeating them.
+    // One `--cause` sentence per section, not two: the placement rule and the
+    // provenance reason are the same rule and read as one.
     expect(prompt).not.toContain('When you speak because a reminder fired');
     expect(prompt).not.toContain('When you speak because a trigger fired');
     expect(
         prompt.match(
             /Answer a fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in\./gu
         )
-    ).toHaveLength(1);
-    expect(
-        prompt.match(/A fire arrives through your inbox and writes nothing to chat by itself\./gu)
-    ).toHaveLength(1);
-    expect(prompt).toContain('Its fires arrive and are answered like reminder fires.');
+    ).toHaveLength(2);
     expect(prompt).not.toContain('the Server records the cause even if you omit the flag');
     expect(prompt).not.toContain(
         "Each fire is its own message; never reply into an earlier fire's thread."
