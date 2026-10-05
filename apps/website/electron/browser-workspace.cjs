@@ -1,223 +1,160 @@
 'use strict';
 
 const { captureBrowserPage } = require('./browser-capture.cjs');
-const { reorderBrowserTabs } = require('./browser-tab-order.cjs');
-const { installBrowserShortcuts } = require('./browser-shortcuts.cjs');
 const { browserUrl } = require('./browser-url.cjs');
 const { findInPage, runPageAction, stopFindInPage } = require('./browser-page-actions.cjs');
-const { installBrowserPageLinks } = require('./browser-page-links.cjs');
-const { installBrowserPageMenu } = require('./browser-page-menu.cjs');
-const { trackBrowserTabState } = require('./browser-tab-state.cjs');
 const { runBrowserWindowAction } = require('./browser-window-actions.cjs');
-const { randomUUID } = require('node:crypto');
+const {
+    applyBrowserPlacements,
+    assertViewId,
+    parseBrowserPlacements,
+} = require('./browser-workspace-layout.cjs');
+const { createBrowserView } = require('./browser-workspace-view.cjs');
+
+const maxViews = 20;
 
 /**
+ * One window's web views (ADR 0039). The App names every view (`open` with a
+ * `viewId`), places the visible ones with `setLayout`, and owns all tab
+ * selection; views keep only their live pages. A page's own links and popups
+ * do not open views here: they ask the App (`desktop:browser:open-request`),
+ * which places the new tab and then opens its view.
+ *
  * `page` carries the page-facing Electron services: `Menu` and `clipboard` for
  * the context menu, `openExternal` for mail links, and `inspect` (development
  * builds only) for Inspect Element.
  */
 function createBrowserWorkspace(window, { WebContentsView, browserSession, page }) {
-    const tabs = new Map();
-    let activeId = null;
-    let bounds = null;
+    const views = new Map();
+    let placements = [];
+    /**
+     * Torn-off pages shown where the drag said the page sits, before this window's
+     * App has booted; its first layout takes over (`adopt`).
+     */
+    const provisional = new Map();
     let mounted = false;
     const snapshot = () => ({
-        activeId,
-        tabs: [...tabs].map(([id, tab]) => ({ id, ...tab.state })),
+        tabs: [...views].map(([id, entry]) => ({ id, ...entry.state })),
     });
-    const publish = () => {
+    const send = (channel, value) => {
         if (!window.webContents.isDestroyed()) {
-            window.webContents.send('desktop:browser:state', snapshot());
+            window.webContents.send(channel, value);
         }
     };
-    const layout = () => {
-        const [width, height] = window.getContentSize();
-        const zoom = window.webContents.getZoomFactor?.() ?? 1;
-        for (const [id, tab] of tabs) {
-            const visible = id === activeId && bounds !== null;
-            tab.view.setVisible(visible);
-            if (visible) {
-                const x = Math.min(width, Math.max(0, Math.round(bounds.x * zoom)));
-                const y = Math.min(height, Math.max(0, Math.round(bounds.y * zoom)));
-                tab.view.setBounds({
-                    x,
-                    y,
-                    width: Math.max(0, Math.min(width - x, Math.round(bounds.width * zoom))),
-                    height: Math.max(0, Math.min(height - y, Math.round(bounds.height * zoom))),
-                });
-                // Follows the shell card's corner (Canvas and Band window layouts); 0 is square.
-                tab.view.setBorderRadius(Math.round((bounds.radius ?? 0) * zoom));
-            }
-        }
-    };
-    /**
-     * Asks the App to show the selected page a link re-opened, a change no App
-     * selection shows. Mere page focus reveals nothing: the App may show another tab.
-     */
-    const reveal = () => {
-        if (!window.webContents.isDestroyed()) {
-            window.webContents.send('desktop:browser:reveal');
-        }
-    };
-    const select = (id) => {
-        if (id !== null && !tabs.has(id)) {
-            throw new Error('Browser tab no longer exists.');
-        }
-        activeId = id;
-        layout();
-        publish();
-    };
-    /** A background tab (⌘-click, Open Link in New Tab) opens without taking the selection. */
-    const open = (value, { blank = false, background = false } = {}) => {
-        const url = blank ? 'about:blank' : browserUrl(value);
-        const existing = !blank && [...tabs].find(([, tab]) => tab.state.url === url);
-        if (existing) {
-            if (!background) {
-                select(existing[0]);
-                reveal();
-            }
+    const publish = () => send('desktop:browser:state', snapshot());
+    const layout = () =>
+        applyBrowserPlacements(window, views, [
+            ...placements,
+            ...[...provisional].map(([viewId, bounds]) => ({ bounds, focused: false, viewId })),
+        ]);
+    const isPlaced = (id) => placements.some((placement) => placement.viewId === id);
+    const focusedId = () => placements.find((placement) => placement.focused)?.viewId ?? null;
+    /** Asks the App to open `url` in a new tab beside `openerId` (null: the App window itself). */
+    const requestOpen = (url, openerId, { background = false } = {}) =>
+        send('desktop:browser:open-request', { url: browserUrl(url), openerId, background });
+    /** The window-facing side of one view: everything its page listeners reach (`createBrowserView`). */
+    const hostFor = (viewId) => ({
+        window,
+        isLive: (entry) => views.get(viewId) === entry,
+        publish,
+        requestOpen: (target, options) => requestOpen(target, viewId, options),
+        // Keys pressed inside a page act on that page, whichever pane the App has focused.
+        runShortcut: (action) => runBrowserWindowAction(window, scopedTo(viewId), action),
+        onFocus: () => send('desktop:browser:focus', viewId),
+    });
+    const open = (url, viewId) => {
+        if (views.has(viewId)) {
             return;
         }
-        if (tabs.size >= 20) {
+        if (views.size >= maxViews) {
             throw new Error('Close a browser tab before opening another.');
         }
-        const id = randomUUID();
-        const view = new WebContentsView({
-            webPreferences: {
-                session: browserSession,
-                nodeIntegration: false,
-                contextIsolation: true,
-                sandbox: true,
-                webSecurity: true,
-            },
+        const entry = createBrowserView(hostFor(viewId), url, {
+            WebContentsView,
+            browserSession,
+            page,
         });
-        view.setVisible(false);
-        const tab = {
-            view,
-            state: {
-                url,
-                title: blank ? 'New tab' : new URL(url).hostname,
-                faviconUrl: null,
-                loading: true,
-                error: null,
-                canGoBack: false,
-                canGoForward: false,
-                zoomFactor: 1,
-                find: null,
-            },
-        };
-        tabs.set(id, tab);
-        window.contentView.addChildView(view);
-        const contents = view.webContents;
-        installBrowserShortcuts(contents, (action) => runBrowserWindowAction(window, api, action));
-        trackBrowserTabState(contents, tab.state, {
-            fallbackUrl: url,
-            isLive: () => tabs.has(id),
-            publish,
-        });
-        const openTab = (target, options) => {
-            try {
-                open(target, options);
-            } catch (error) {
-                tab.state.error = error.message;
-                publish();
-            }
-        };
-        installBrowserPageLinks(contents, {
-            openExternal: page.openExternal,
-            openTab,
-            onNavigate: () => {
-                tab.state.error = null;
-            },
-        });
-        installBrowserPageMenu(contents, window, { ...page, openTab });
-        if (background) {
-            layout();
-            publish();
-        } else {
-            select(id);
-        }
-        void contents.loadURL(url).catch((error) => {
-            if (tabs.has(id) && error.code !== 'ERR_ABORTED') {
-                tab.state.error = error.message;
-                tab.state.loading = false;
-                publish();
-            }
-        });
+        views.set(viewId, entry);
+        window.contentView.addChildView(entry.view);
+        layout();
+        publish();
+        void entry.load();
     };
-    const close = (id) => {
-        const tab = tabs.get(id);
-        if (!tab) {
-            return;
+    /** Takes a view out of this window, page alive; null when it is not here. */
+    const detach = (id) => {
+        const entry = views.get(id);
+        if (!entry) {
+            return null;
         }
-        // Closing the focused page would leave App shortcuts dead until a click.
-        const hadFocus = tab.view.webContents.isFocused();
-        window.contentView.removeChildView(tab.view);
-        tabs.delete(id);
-        tab.view.webContents.close();
+        // Losing the focused page would leave App shortcuts dead until a click.
+        const hadFocus = entry.view.webContents.isFocused();
+        window.contentView.removeChildView(entry.view);
+        views.delete(id);
         if (hadFocus && !window.webContents.isDestroyed()) {
             window.webContents.focus();
         }
-        if (activeId === id) {
-            activeId = [...tabs.keys()].at(-1) ?? null;
-        }
-        layout();
+        placements = placements.filter((placement) => placement.viewId !== id);
+        provisional.delete(id);
         publish();
+        return entry;
+    };
+    const close = (id) => {
+        detach(id)?.view.webContents.close();
     };
     const reset = () => {
         mounted = false;
-        for (const id of [...tabs.keys()]) {
+        for (const id of [...views.keys()]) {
             close(id);
         }
-        bounds = null;
+        placements = [];
     };
-    const activeTab = () => {
-        const tab = tabs.get(activeId);
-        if (!tab) {
-            throw new Error('Select a browser tab first.');
-        }
-        return tab;
-    };
-    const pageTab = (id) => {
-        const tab = tabs.get(id);
-        if (!tab) {
+    const viewEntry = (id) => {
+        const entry = views.get(id);
+        if (!entry) {
             throw new Error('Browser tab no longer exists.');
         }
-        return tab;
+        return entry;
     };
+    const pageAction = (action, id = focusedId()) => {
+        const entry = id !== null && isPlaced(id) ? views.get(id) : undefined;
+        if (!entry) {
+            return false;
+        }
+        runPageAction(entry.view.webContents, entry.state, { action }, publish);
+        return true;
+    };
+    const scopedTo = (id) => ({
+        hasActiveTab: () => isPlaced(id),
+        pageAction: (action) => pageAction(action, id),
+    });
     const command = (input) => {
-        if (!mounted && ['open', 'new'].includes(input?.kind)) {
+        if (!mounted && input?.kind === 'open') {
             throw new Error('Open a Server before opening browser tabs.');
         }
         switch (input?.kind) {
             case 'mount':
                 mounted = true;
                 break;
-            case 'new':
-                open(null, { blank: true });
-                break;
             case 'open':
-                open(input.url);
+                // Without a view name the App asks for a tab first (older callers, plain links).
+                if (input.viewId === undefined) {
+                    requestOpen(input.url, null);
+                } else {
+                    open(browserUrl(input.url), assertViewId(input.viewId));
+                }
                 break;
             case 'find': {
-                const tab = pageTab(input.id);
-                findInPage(tab.view.webContents, tab.state, input);
+                const entry = viewEntry(input.id);
+                findInPage(entry.view.webContents, entry.state, input);
                 break;
             }
             case 'stop-find': {
-                const tab = tabs.get(input.id);
-                if (tab && !tab.view.webContents.isDestroyed()) {
-                    stopFindInPage(tab.view.webContents, tab.state, publish);
+                const entry = views.get(input.id);
+                if (entry && !entry.view.webContents.isDestroyed()) {
+                    stopFindInPage(entry.view.webContents, entry.state, publish);
                 }
                 break;
             }
-            case 'reorder':
-                reorderBrowserTabs(tabs, input.ids);
-                publish();
-                break;
-            case 'select':
-                select(input.id);
-                break;
             case 'close':
                 close(input.id);
                 break;
@@ -225,8 +162,12 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
                 reset();
                 break;
             case 'navigate': {
-                const tab = activeTab();
-                runPageAction(tab.view.webContents, tab.state, input, publish);
+                const id = input.id ?? focusedId();
+                if (id === null) {
+                    throw new Error('Select a browser tab first.');
+                }
+                const entry = viewEntry(id);
+                runPageAction(entry.view.webContents, entry.state, input, publish);
                 break;
             }
             default:
@@ -234,67 +175,76 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
         }
         return snapshot();
     };
-    const setBounds = (value) => {
-        if (
-            value !== null &&
-            !(
-                value &&
-                ['x', 'y', 'width', 'height'].every(
-                    (key) => Number.isFinite(value[key]) && value[key] >= 0
-                ) &&
-                (value.radius === undefined || (Number.isFinite(value.radius) && value.radius >= 0))
-            )
-        ) {
-            throw new Error('Invalid browser bounds.');
-        }
-        bounds = value;
+    const setLayout = (value) => {
+        placements = parseBrowserPlacements(value);
+        // The App places every view it shows, so its first layout supersedes any handoff.
+        provisional.clear();
         layout();
     };
     window.on('resize', layout);
     window.on('closed', () => {
-        for (const tab of tabs.values()) {
-            if (!tab.view.webContents.isDestroyed()) {
-                tab.view.webContents.close();
+        for (const entry of views.values()) {
+            if (!entry.view.webContents.isDestroyed()) {
+                entry.view.webContents.close();
             }
         }
-        tabs.clear();
+        views.clear();
     });
     window.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
         if (isMainFrame && !isInPlace) {
             mounted = false;
-            activeId = null;
-            bounds = null;
+            placements = [];
             layout();
         }
     });
-    const api = {
-        capture: (id) => captureBrowserPage(tabs.get(id), () => activeId === id && bounds !== null),
+    return {
+        /** Only a placed page is captured: a hidden one may show stale or no pixels. */
+        capture: (id) => captureBrowserPage(views.get(id), () => isPlaced(id)),
         command,
+        /** A web link from the App window itself: the App opens it as a tab. */
         open: (value) => {
             if (!mounted) {
                 throw new Error('Browser workspace is not mounted.');
             }
-            open(value);
+            requestOpen(value, null);
         },
-        /**
-         * True while the selected tab's page is on screen. The App keeps a
-         * selected tab while hiding its page (a hidden side pane, the primary
-         * tab over it) by reporting no bounds; page shortcuts then do nothing.
-         */
-        hasActiveTab: () => activeId !== null && bounds !== null,
-        /** Runs a page action on the shown tab; false when no browser page is shown. */
-        pageAction: (action) => {
-            const tab = bounds === null ? undefined : tabs.get(activeId);
-            if (!tab) {
-                return false;
-            }
-            runPageAction(tab.view.webContents, tab.state, { action }, publish);
-            return true;
-        },
-        setBounds,
+        /** True while the App's focused web page is on screen; page shortcuts need one. */
+        hasActiveTab: () => focusedId() !== null,
+        /** Runs a page action on the focused placed page; false when none. */
+        pageAction: (action) => pageAction(action),
+        setLayout,
         snapshot,
+        /** Tab drag: hands a live view to another window's workspace (`adopt`). */
+        release: detach,
+        has: (id) => views.has(id),
+        /** Tab drag: whether `ids` fit under the view limit here (views already here count once). */
+        hasRoomFor: (ids) => views.size + ids.filter((id) => !views.has(id)).length <= maxViews,
+        /**
+         * Tab drag: takes in a live view from another window. Its page now
+         * answers to this window. It stays hidden until the App here places it,
+         * unless `bounds` (CSS px, validated by the caller) shows it at once: a
+         * torn-off window's page appears before its App boots, and the App's
+         * first layout takes over from the same spot.
+         */
+        adopt: (id, entry, bounds) => {
+            if (views.has(id)) {
+                entry.view.webContents.close();
+                return;
+            }
+            if (views.size >= maxViews) {
+                throw new Error('This window has no room for another browser tab.');
+            }
+            entry.host = hostFor(id);
+            entry.view.setVisible(false);
+            if (bounds) {
+                provisional.set(id, bounds);
+            }
+            views.set(id, entry);
+            window.contentView.addChildView(entry.view);
+            layout();
+            publish();
+        },
     };
-    return api;
 }
 
 module.exports = { createBrowserWorkspace };

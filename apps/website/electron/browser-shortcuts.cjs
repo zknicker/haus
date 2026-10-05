@@ -5,13 +5,14 @@
  * keys before the App menu or renderer sees them, so its `before-input-event`
  * maps every key here. While the App has focus, the renderer maps the same
  * keys (hooks/browser/browser-shortcut-keys.ts, parity-tested) except the ones
- * whose accelerators live in the App menu (`appMenuShortcuts`).
+ * whose accelerators live in the App menu (`isAppMenuShortcut`).
  */
 const appMenuShortcuts = new Set([
     'close-tab',
     'close-window',
     'find',
     'new-tab',
+    'reload',
     'reopen-tab',
     'settings',
     'zoom-in',
@@ -28,8 +29,8 @@ const plainKeys = {
     t: 'new-tab',
     w: 'close-tab',
 };
+const optionArrows = { arrowleft: 'previous-tab', arrowright: 'next-tab' };
 const shiftedKeys = {
-    b: 'toggle-side-pane',
     g: 'find-previous',
     r: 'hard-reload',
     t: 'reopen-tab',
@@ -42,13 +43,17 @@ const shiftedKeys = {
  * Control combos (Control-W, Control-T…) stay with the page's text bindings.
  */
 function browserShortcut(input, platform = process.platform) {
-    if (input.type !== 'keyDown' || input.alt) {
+    if (input.type !== 'keyDown') {
         return null;
     }
     const key = input.key.toLowerCase();
     const code = input.code ?? '';
     const command =
         platform === 'darwin' ? input.meta && !input.control : input.control && !input.meta;
+    if (input.alt) {
+        // Tab > Select Next/Previous Tab (Command-Option-Right/Left), as in Chrome.
+        return command && !input.shift ? (optionArrows[key] ?? null) : null;
+    }
     if (key === 'escape') {
         return input.meta || input.control || input.shift ? null : 'stop';
     }
@@ -56,6 +61,15 @@ function browserShortcut(input, platform = process.platform) {
         return input.shift ? 'previous-tab' : 'next-tab';
     }
     return command ? commandShortcut(key, code, input.shift) : null;
+}
+
+/**
+ * True when the App menu owns `shortcut` as pressed by `input`, so the
+ * renderer leaves it to the menu: the menu's own actions, and Option combos
+ * (the Tab menu's Command-Option-arrows; Control-Tab stays with the renderer).
+ */
+function isAppMenuShortcut(shortcut, input) {
+    return appMenuShortcuts.has(shortcut) || input.alt === true;
 }
 
 function commandShortcut(key, code, shift) {
@@ -98,4 +112,4 @@ function installBrowserShortcuts(contents, run, platform = process.platform) {
     });
 }
 
-module.exports = { appMenuShortcuts, browserShortcut, installBrowserShortcuts };
+module.exports = { appMenuShortcuts, browserShortcut, installBrowserShortcuts, isAppMenuShortcut };

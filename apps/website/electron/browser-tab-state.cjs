@@ -22,10 +22,7 @@ function trackBrowserTabState(contents, state, { fallbackUrl, isLive, publish })
             return;
         }
         state.url = contents.getURL() || fallbackUrl;
-        state.title =
-            state.url === 'about:blank'
-                ? 'New tab'
-                : contents.getTitle() || new URL(state.url).hostname;
+        state.title = contents.getTitle() || new URL(state.url).hostname;
         state.loading = contents.isLoading();
         state.canGoBack = contents.navigationHistory.canGoBack();
         state.canGoForward = contents.navigationHistory.canGoForward();

@@ -1,6 +1,6 @@
 'use strict';
 
-const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
+const { appWindowOf } = require('./trusted-renderer.cjs');
 const { createBrowserWorkspace } = require('./browser-workspace.cjs');
 
 /** `page` is the page-facing service set `createBrowserWorkspace` documents. */
@@ -25,16 +25,11 @@ function registerBrowserWorkspace({
         return workspace;
     };
     const forSender = (event) => {
-        assertTrustedRenderer(event, appUrl);
-        const window = BrowserWindow.fromWebContents(event.sender);
-        // Origin alone is insufficient: a browser page may visit the App origin.
-        if (
-            !window ||
-            window.webContents !== event.sender ||
-            event.senderFrame !== event.sender.mainFrame
-        ) {
-            throw new Error('Only the Haus App can control browser tabs.');
-        }
+        const window = appWindowOf(event, {
+            appUrl,
+            BrowserWindow,
+            message: 'Only the Haus App can control browser tabs.',
+        });
         const workspace = workspaces.get(window);
         if (!workspace) {
             throw new Error('Browser workspace is unavailable.');
@@ -46,8 +41,43 @@ function registerBrowserWorkspace({
     );
     ipcMain.handle('desktop:browser:snapshot', (event) => forSender(event).snapshot());
     ipcMain.handle('desktop:browser:capture', (event, id) => forSender(event).capture(id));
-    ipcMain.handle('desktop:browser:bounds', (event, bounds) => forSender(event).setBounds(bounds));
-    return { attach, forWindow: (window) => workspaces.get(window) ?? null };
+    ipcMain.handle('desktop:browser:layout', (event, placements) =>
+        forSender(event).setLayout(placements)
+    );
+    /**
+     * Moves the named live views from one window to another; ids not in `from`
+     * are skipped. `shown` ({ viewId, bounds }) shows that one view in `to` at
+     * once, before `to`'s App places it (a tear-off).
+     */
+    const transfer = (from, to, viewIds, shown) => {
+        const source = workspaces.get(from);
+        const target = workspaces.get(to);
+        if (!(source && target) || source === target || !canTransfer(from, to, viewIds)) {
+            return;
+        }
+        for (const id of viewIds) {
+            const entry = source.release(id);
+            if (entry) {
+                target.adopt(id, entry, shown?.viewId === id ? shown.bounds : undefined);
+            }
+        }
+    };
+    /** Whether `to` has room under its view limit for the views of `viewIds` that `from` holds. */
+    const canTransfer = (from, to, viewIds) => {
+        const source = workspaces.get(from);
+        const target = workspaces.get(to);
+        if (!(source && target)) {
+            return true;
+        }
+        const moving = viewIds.filter((id) => source.has(id));
+        return source === target || target.hasRoomFor(moving);
+    };
+    return {
+        attach,
+        canTransfer,
+        forWindow: (window) => workspaces.get(window) ?? null,
+        transfer,
+    };
 }
 
 module.exports = { registerBrowserWorkspace };

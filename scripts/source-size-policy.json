@@ -78,7 +78,7 @@
     "apps/server/test/haus-triggers.test.ts": 471,
     "apps/website/e2e/tests/messaging.spec.ts": 535,
     "apps/website/e2e/tests/servers.spec.ts": 590,
-    "apps/website/electron/main.cjs": 610,
+    "apps/website/electron/main.cjs": 492,
     "apps/website/scripts/generate-channel-icon-catalog.ts": 1703,
     "apps/website/src/features/chats/chat-rendering-geometry.browser.test.tsx": 749,
     "apps/website/src/features/chats/chat-transcript-model.test.ts": 835,

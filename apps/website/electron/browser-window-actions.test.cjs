@@ -49,3 +49,21 @@ test('the Window menu never carries a Close that would bypass tab closing', () =
         expect(menu.submenu.some((item) => item.role === 'close')).toBe(false);
     }
 });
+
+test('Reload Page reloads the focused web page, else asks the renderer to refetch its App page', () => {
+    const withPage = fakeWindow();
+    const reloaded = [];
+    runBrowserWindowAction(
+        withPage,
+        { pageAction: (action) => reloaded.push(action) > 0 },
+        'reload'
+    );
+    expect(reloaded).toEqual(['reload']);
+    expect(withPage.webContents.sent).toBeUndefined();
+
+    const appPage = fakeWindow();
+    runBrowserWindowAction(appPage, { pageAction: () => false }, 'reload');
+    expect(appPage.webContents.sent).toEqual([['desktop:browser:shortcut', 'reload']]);
+    // Never the Haus renderer itself.
+    expect(appPage.webContents.loads).toEqual([]);
+});

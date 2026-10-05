@@ -35,9 +35,9 @@ describe('desktop browser workspace', () => {
             expect(() => browserUrl(value)).toThrow();
         }
     });
-    test('pages share a separate session and carry no App preload or Node access', () => {
+    test('the App names each view; pages share a separate session with no App preload', () => {
         const { window, browserSession, workspace } = fixture();
-        workspace.open('https://example.com');
+        workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'one' });
         const view = [...window.children][0];
         expect(view.options.webPreferences).toEqual({
             session: browserSession,
@@ -47,81 +47,161 @@ describe('desktop browser workspace', () => {
             webSecurity: true,
         });
         expect(view.visible).toBe(false);
-        workspace.setBounds({ x: 200, y: 100, width: 900, height: 800 });
-        expect(view.bounds).toEqual({ x: 200, y: 100, width: 800, height: 600 });
-        expect(view.visible).toBe(true);
-        workspace.command({ kind: 'select', id: null });
-        expect(view.visible).toBe(false);
-        expect(view.webContents.closed).toBe(false);
+        // Re-opening a named view (a remounted tab page) keeps its live page.
+        workspace.command({ kind: 'open', url: 'https://example.com/other', viewId: 'one' });
+        expect(view.webContents.loads).toEqual(['https://example.com/']);
+        // Views carry no selection of their own: the App owns every tab.
+        expect(workspace.snapshot()).toEqual({
+            tabs: [expect.objectContaining({ id: 'one', url: 'https://example.com/' })],
+        });
+        expect(() =>
+            workspace.command({ kind: 'open', url: 'https://example.com', viewId: '../x' })
+        ).toThrow('view id');
+        expect(() => workspace.command({ kind: 'select', id: 'one' })).toThrow('Unknown');
     });
-    test('hiding, moving, and reselecting a page keeps its live page', () => {
-        // The App hides a selected page (hidden side pane, the primary tab over it) with no
-        // bounds and moves it (split ↔ expanded, a resize) with new bounds; neither reloads.
+    test('the layout shows every placed view at once and hides the rest without reloading', () => {
         const { window, workspace } = fixture();
-        workspace.open('https://example.com');
-        workspace.open('https://example.org');
-        const [first, second] = workspace.snapshot().tabs.map((tab) => tab.id);
-        const view = [...window.children][0];
-        const contents = view.webContents;
-        workspace.command({ kind: 'select', id: first });
-        for (const bounds of [
-            { x: 600, y: 40, width: 400, height: 600 },
-            null,
-            { x: 240, y: 40, width: 760, height: 600 },
-            null,
-            { x: 600, y: 40, width: 400, height: 600 },
-        ]) {
-            workspace.setBounds(bounds);
-            expect(view.visible).toBe(bounds !== null);
+        open(workspace, 'https://example.com', 'left');
+        open(workspace, 'https://example.org', 'right');
+        open(workspace, 'https://example.net', 'hidden');
+        const [left, right, hidden] = [...window.children];
+        workspace.setLayout([
+            place('left', { x: 200, y: 100, width: 300, height: 800 }),
+            place('right', { x: 500, y: 100, width: 900, height: 600 }, true),
+        ]);
+        expect([left.visible, right.visible, hidden.visible]).toEqual([true, true, false]);
+        expect(left.bounds).toEqual({ x: 200, y: 100, width: 300, height: 600 });
+        expect(right.bounds).toEqual({ x: 500, y: 100, width: 500, height: 600 });
+        workspace.setLayout([place('right', { x: 0, y: 40, width: 800, height: 600 })]);
+        expect([left.visible, right.visible]).toEqual([false, true]);
+        workspace.setLayout([]);
+        expect(right.visible).toBe(false);
+        for (const view of [left, right, hidden]) {
+            expect(view.webContents.loads).toHaveLength(1);
+            expect(view.webContents.closed).toBe(false);
         }
-        workspace.command({ kind: 'select', id: null });
-        workspace.command({ kind: 'select', id: second });
-        workspace.command({ kind: 'select', id: first });
-        expect(contents.loads).toEqual(['https://example.com/']);
-        expect(contents.calls).toEqual([]);
-        expect(contents.closed).toBe(false);
-        expect(window.children.has(view)).toBe(true);
+        // A view closed in the same tick it is placed is skipped, not an error.
+        workspace.setLayout([place('gone', { x: 0, y: 0, width: 1, height: 1 })]);
     });
-    test('reopening a link reuses its tab and closing returns to another page or chat', () => {
-        const { workspace, window } = fixture();
-        workspace.open('https://example.com/one');
-        workspace.open('https://example.com/two');
-        workspace.open('https://example.com/one');
-        expect(workspace.snapshot().tabs).toHaveLength(2);
-        const first = workspace.snapshot().activeId;
-        const firstView = [...window.children][0];
-        workspace.command({ kind: 'close', id: first });
-        expect(firstView.webContents.closed).toBe(true);
-        expect(workspace.snapshot().activeId).toBe(workspace.snapshot().tabs[0].id);
-        workspace.command({ kind: 'close', id: workspace.snapshot().activeId });
-        expect(workspace.snapshot()).toEqual({ activeId: null, tabs: [] });
+    test('malformed layouts fail at the bridge boundary', () => {
+        const { workspace } = fixture();
+        const bounds = { x: 0, y: 0, width: 1, height: 1 };
+        for (const layout of [
+            null,
+            [place('a', { ...bounds, x: Number.NaN })],
+            [place('a', { ...bounds, radius: -1 })],
+            [place('a', bounds), place('a', bounds)],
+            [place('a', bounds, true), place('b', bounds, true)],
+            [{ viewId: 'a b', bounds, focused: false }],
+        ]) {
+            expect(() => workspace.setLayout(layout)).toThrow();
+        }
+        expect(() => workspace.command({ kind: 'unknown' })).toThrow();
     });
-    test('popups become tabs, while forbidden redirects cannot escape into privileged schemes', () => {
+    test('placed pages follow the shell card corner, scaled with App zoom', () => {
+        const { window, workspace } = fixture();
+        open(workspace, 'https://example.com', 'one');
+        const view = [...window.children][0];
+        workspace.setLayout([place('one', { x: 0, y: 40, width: 800, height: 600 })]);
+        expect(view.borderRadius).toBe(0);
+        workspace.setLayout([place('one', { x: 8, y: 40, width: 800, height: 600, radius: 16.2 })]);
+        expect(view.borderRadius).toBe(16);
+        window.webContents.getZoomFactor = () => 1.5;
+        workspace.setLayout([place('one', { x: 8, y: 40, width: 400, height: 300, radius: 16 })]);
+        expect(view.borderRadius).toBe(24);
+    });
+    test('only a placed page can be captured', async () => {
+        const { workspace } = fixture();
+        open(workspace, 'https://example.com', 'one');
+        open(workspace, 'https://example.org', 'two');
+        expect(await workspace.capture('two')).toBeNull();
+        workspace.setLayout([place('two', { x: 0, y: 40, width: 800, height: 600 })]);
+        expect(await workspace.capture('one')).toBeNull();
+        expect(await workspace.capture('two')).toStartWith('data:image/jpeg;base64,');
+    });
+    test('closing destroys a view; reset disposes every page and unmounts', () => {
         const { workspace, window } = fixture();
-        workspace.open('https://example.com');
+        open(workspace, 'https://example.com', 'one');
+        open(workspace, 'https://example.org', 'two');
+        expect(workspace.snapshot().tabs[1]).toMatchObject({
+            title: 'example.org',
+            url: 'https://example.org/',
+        });
+        const [first, second] = [...window.children];
+        workspace.command({ kind: 'close', id: 'one' });
+        expect(first.webContents.closed).toBe(true);
+        expect(workspace.snapshot().tabs.map((tab) => tab.id)).toEqual(['two']);
+        workspace.command({ kind: 'reset' });
+        expect(second.webContents.closed).toBe(true);
+        expect(window.children.size).toBe(0);
+        expect(workspace.snapshot()).toEqual({ tabs: [] });
+        expect(() => workspace.open('https://example.com')).toThrow('not mounted');
+        expect(() =>
+            workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'x' })
+        ).toThrow('Open a Server');
+    });
+    test('window destruction closes native pages without using the destroyed content view', () => {
+        const { workspace, window } = fixture();
+        open(workspace, 'https://example.com', 'one');
         const contents = [...window.children][0].webContents;
+        window.contentView.removeChildView = () => {
+            throw new Error('Window destroyed');
+        };
+        window.emit('closed');
+        expect(contents.closed).toBe(true);
+    });
+    test('a page taking key focus reports its view so the App focuses its pane', () => {
+        const { workspace, window } = fixture();
+        open(workspace, 'https://example.com', 'one');
+        window.webContents.sent = [];
+        [...window.children][0].webContents.emit('focus');
+        expect(window.webContents.sent).toEqual([['desktop:browser:focus', 'one']]);
+    });
+    test('closing the focused page hands focus back to the App', () => {
+        const { workspace, window } = fixture();
+        open(workspace, 'https://example.com', 'one');
+        open(workspace, 'https://example.org', 'two');
+        const [, secondView] = [...window.children];
+        workspace.command({ kind: 'close', id: 'one' });
+        expect(window.webContents.calls).toEqual([]);
+        secondView.webContents.focus();
+        workspace.command({ kind: 'close', id: 'two' });
+        expect(window.webContents.calls).toEqual(['focus']);
+    });
+    test('popups and App-window links ask the App for a tab instead of opening a view', () => {
+        const { workspace, window } = fixture();
+        open(workspace, 'https://example.com', 'one');
+        const contents = [...window.children][0].webContents;
+        window.webContents.sent = [];
         expect(contents.popup({ url: 'https://example.com/login' })).toEqual({ action: 'deny' });
-        expect(workspace.snapshot().tabs).toHaveLength(2);
+        workspace.open('https://example.org/app-link');
+        workspace.command({ kind: 'open', url: 'https://example.net' });
+        expect(window.webContents.sent).toEqual([
+            [
+                'desktop:browser:open-request',
+                { url: 'https://example.com/login', openerId: 'one', background: false },
+            ],
+            [
+                'desktop:browser:open-request',
+                { url: 'https://example.org/app-link', openerId: null, background: false },
+            ],
+            [
+                'desktop:browser:open-request',
+                { url: 'https://example.net/', openerId: null, background: false },
+            ],
+        ]);
+        expect(workspace.snapshot().tabs).toHaveLength(1);
         let blocked = false;
-        contents.emit(
-            'will-redirect',
-            {
-                preventDefault: () => {
-                    blocked = true;
-                },
-            },
-            'file:///etc/passwd'
-        );
+        contents.emit('will-redirect', { preventDefault: () => (blocked = true) }, 'file:///x');
         expect(blocked).toBe(true);
         contents.emit('did-fail-load', {}, -105, 'Name not resolved', 'https://example.com', true);
         expect(workspace.snapshot().tabs[0].error).toBe('Name not resolved');
     });
-    test('tabs carry the page favicon, only as a web or inline image, until the next document', () => {
+    test('views carry the page favicon, only as a web or inline image, until the next document', () => {
         const { workspace, window } = fixture();
-        workspace.open('https://example.com');
+        open(workspace, 'https://example.com', 'one');
         const contents = [...window.children][0].webContents;
         const favicon = () => workspace.snapshot().tabs[0].faviconUrl;
-        expect(favicon()).toBeNull();
         contents.emit('page-favicon-updated', {}, [
             'file:///etc/icon.png',
             'https://example.com/favicon.ico',
@@ -132,102 +212,16 @@ describe('desktop browser workspace', () => {
         expect(favicon()).toBeNull();
         contents.emit('page-favicon-updated', {}, ['javascript:alert(1)']);
         expect(favicon()).toBeNull();
-        contents.emit('page-favicon-updated', {}, ['data:image/png;base64,AAAA']);
-        expect(favicon()).toBe('data:image/png;base64,AAAA');
-    });
-    test('a new tab starts blank and reset disposes every page', () => {
-        const { workspace, window } = fixture();
-        workspace.command({ kind: 'new' });
-        expect(workspace.snapshot().tabs[0]).toMatchObject({
-            title: 'New tab',
-            url: 'about:blank',
-        });
-        const contents = [...window.children][0].webContents;
-        workspace.command({ kind: 'new' });
-        expect(workspace.snapshot().tabs).toHaveLength(2);
-        expect(workspace.snapshot().tabs.every((tab) => tab.title === 'New tab')).toBe(true);
-        workspace.command({ kind: 'reset' });
-        expect(contents.closed).toBe(true);
-        expect(window.children.size).toBe(0);
-        expect(workspace.snapshot()).toEqual({ activeId: null, tabs: [] });
-        expect(() => workspace.open('https://example.com')).toThrow('not mounted');
-        expect(() => workspace.command({ kind: 'new' })).toThrow('Open a Server');
-    });
-    test('the shown page follows the shell card corner, scaled with App zoom', () => {
-        const { window, workspace } = fixture();
-        workspace.open('https://example.com');
-        const view = [...window.children][0];
-        workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
-        expect(view.borderRadius).toBe(0);
-        workspace.setBounds({ x: 8, y: 40, width: 800, height: 600, radius: 16.2 });
-        expect(view.borderRadius).toBe(16);
-        window.webContents.getZoomFactor = () => 1.5;
-        workspace.setBounds({ x: 8, y: 40, width: 400, height: 300, radius: 16 });
-        expect(view.borderRadius).toBe(24);
-        workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
-        expect(view.borderRadius).toBe(0);
-    });
-    test('invalid bounds and stale selections fail at the bridge boundary', () => {
-        const { workspace } = fixture();
-        expect(() => workspace.setBounds({ x: Number.NaN, y: 0, width: 1, height: 1 })).toThrow();
-        expect(() =>
-            workspace.setBounds({ x: 0, y: 0, width: 1, height: 1, radius: -1 })
-        ).toThrow();
-        expect(() => workspace.command({ kind: 'select', id: 'missing' })).toThrow();
-        expect(() => workspace.command({ kind: 'unknown' })).toThrow();
-    });
-    test('only the shown active page can be captured', async () => {
-        const { workspace } = fixture();
-        workspace.open('https://example.com');
-        workspace.open('https://example.org');
-        const [first, second] = workspace.snapshot().tabs.map((tab) => tab.id);
-        expect(await workspace.capture(second)).toBeNull();
-        workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
-        expect(await workspace.capture(first)).toBeNull();
-        expect(await workspace.capture(second)).toStartWith('data:image/jpeg;base64,');
-    });
-    test('window destruction closes native pages without using the destroyed content view', () => {
-        const { workspace, window } = fixture();
-        workspace.open('https://example.com');
-        const contents = [...window.children][0].webContents;
-        window.contentView.removeChildView = () => {
-            throw new Error('Window destroyed');
-        };
-        window.emit('closed');
-        expect(contents.closed).toBe(true);
-    });
-    test('a page taking keyboard focus changes nothing the App shows', () => {
-        const { workspace, window } = fixture();
-        workspace.open('https://example.com');
-        window.webContents.sent = [];
-        [...window.children][0].webContents.emit('focus');
-        expect(window.webContents.sent).toEqual([]);
-    });
-    test('closing the focused page hands focus back to the App', () => {
-        const { workspace, window } = fixture();
-        workspace.open('https://example.com');
-        workspace.open('https://example.org');
-        const [first, second] = workspace.snapshot().tabs.map((tab) => tab.id);
-        const [firstView, secondView] = [...window.children];
-        workspace.command({ kind: 'close', id: first });
-        expect(window.webContents.calls).toEqual([]);
-        secondView.webContents.focus();
-        workspace.command({ kind: 'close', id: second });
-        expect(window.webContents.calls).toEqual(['focus']);
-        expect(firstView.webContents.closed).toBe(true);
-    });
-    test('re-opening the selected page asks the App to reveal it', () => {
-        const { workspace, window } = fixture();
-        workspace.open('https://example.com');
-        window.webContents.sent = [];
-        workspace.open('https://example.com');
-        expect(window.webContents.sent.map(([channel]) => channel)).toEqual([
-            'desktop:browser:state',
-            'desktop:browser:reveal',
-        ]);
-        expect(workspace.snapshot().tabs).toHaveLength(1);
     });
 });
+
+function open(workspace, url, viewId) {
+    workspace.command({ kind: 'open', url, viewId });
+}
+
+function place(viewId, bounds, focused = false) {
+    return { viewId, bounds, focused };
+}
 
 test('browser IPC authenticates the App main frame even when a page visits the App origin', () => {
     const handlers = new Map();
@@ -239,7 +233,9 @@ test('browser IPC authenticates the App main frame even when a page visits the A
         browserSession.check = handler;
     };
     const { window } = fixture();
-    window.webContents.mainFrame = { url: 'https://haus.chat/s/test' };
+    window.webContents.mainFrame = { frameTreeNodeId: 1, url: 'https://haus.chat/s/test' };
+    // Electron hands each IPC a fresh frame object: match by frame id, never identity.
+    const appFrame = () => ({ ...window.webContents.mainFrame });
     const registration = registerBrowserWorkspace({
         appUrl: 'https://haus.chat',
         BrowserWindow: { fromWebContents: () => window },
@@ -250,14 +246,11 @@ test('browser IPC authenticates the App main frame even when a page visits the A
     });
     registration.attach(window);
     const command = handlers.get('desktop:browser:command');
-    command(
-        { sender: window.webContents, senderFrame: window.webContents.mainFrame },
-        { kind: 'mount' }
-    );
+    command({ sender: window.webContents, senderFrame: appFrame() }, { kind: 'mount' });
     expect(
         command(
-            { sender: window.webContents, senderFrame: window.webContents.mainFrame },
-            { kind: 'new' }
+            { sender: window.webContents, senderFrame: appFrame() },
+            { kind: 'open', url: 'https://example.com', viewId: 'one' }
         ).tabs
     ).toHaveLength(1);
     expect(() =>
@@ -269,6 +262,15 @@ test('browser IPC authenticates the App main frame even when a page visits the A
     expect(() =>
         command(
             { sender: window.webContents, senderFrame: { url: 'https://haus.chat' } },
+            { kind: 'reset' }
+        )
+    ).toThrow();
+    expect(() =>
+        command(
+            {
+                sender: window.webContents,
+                senderFrame: { frameTreeNodeId: 2, url: 'https://haus.chat' },
+            },
             { kind: 'reset' }
         )
     ).toThrow();

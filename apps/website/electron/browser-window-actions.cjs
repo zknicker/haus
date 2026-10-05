@@ -5,10 +5,10 @@ const appZoomStep = 0.5;
 
 /**
  * Runs one shortcut or menu action for a window, whichever surface had focus.
- * Page actions (reload, stop, zoom) act on the selected browser tab's page;
- * without one, zoom falls back to the App's own zoom and reload does nothing,
- * so ⌘R never reloads the Haus renderer. Tab actions go to the renderer, which
- * owns the unified tab strip.
+ * Page actions (reload, stop, zoom) act on the focused pane's web page;
+ * without one, zoom falls back to the App's own zoom and reload goes to the
+ * renderer, which refetches the focused App page's data, so ⌘R never reloads
+ * the Haus renderer. Tab actions go to the renderer, which owns the tab rows.
  */
 function runBrowserWindowAction(window, workspace, action) {
     const app = window.webContents;
@@ -16,8 +16,13 @@ function runBrowserWindowAction(window, workspace, action) {
         return;
     }
     if (pageActions.has(action)) {
-        if (!workspace?.pageAction(action) && action.startsWith('zoom-')) {
+        if (workspace?.pageAction(action)) {
+            return;
+        }
+        if (action.startsWith('zoom-')) {
             zoomApp(app, action);
+        } else if (action === 'reload') {
+            app.send('desktop:browser:shortcut', action);
         }
         return;
     }

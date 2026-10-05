@@ -71,10 +71,17 @@ test('browser shortcuts map Chrome keys and leave ordinary website input alone',
         'reopen-tab',
         'settings',
         'zoom-in',
+        // View > Reload Page: a web page reloads, an App page refetches.
+        'reload',
     ]) {
         expect(appMenuShortcuts.has(action)).toBe(true);
     }
-    expect(appMenuShortcuts.has('reload')).toBe(false);
+    expect(appMenuShortcuts.has('hard-reload')).toBe(false);
+    // Tab > Select Next/Previous Tab, as in Chrome.
+    expect(browserShortcut(key('ArrowRight', { alt: true, meta: true }))).toBe('next-tab');
+    expect(browserShortcut(key('ArrowLeft', { alt: true, meta: true }))).toBe('previous-tab');
+    expect(browserShortcut(key('ArrowLeft', { alt: true, meta: true, shift: true }))).toBeNull();
+    expect(browserShortcut(key('t', { alt: true, meta: true }))).toBeNull();
 });
 
 test('Control is the command key off macOS only', () => {

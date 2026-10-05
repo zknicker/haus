@@ -15,7 +15,6 @@ const {
     webContents,
 } = require('electron');
 const path = require('node:path');
-const { execFile } = require('node:child_process');
 const electronUpdater = require('electron-updater');
 const { registerClerkAuth } = require('./clerk-auth.cjs');
 const { resolveClerkAuthOrigins } = require('./clerk-auth-origins.cjs');
@@ -24,13 +23,16 @@ const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
 const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs');
 const { registerBrowserWorkspace } = require('./browser-workspace-ipc.cjs');
 const { runBrowserWindowAction } = require('./browser-window-actions.cjs');
-const { tabMenuItems, windowMenu, zoomMenuItems } = require('./browser-menu-items.cjs');
+const { installAppMenu } = require('./app-menu.cjs');
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
-const { buildWindowUrl, isSafeWindowRoute, nextWindowBounds } = require('./window-routing.cjs');
+const { buildWindowUrl, nextWindowBounds, openerArguments } = require('./window-routing.cjs');
+const { registerWindowIpc } = require('./window-ipc.cjs');
+const { registerTabDrag } = require('./tab-drag-ipc.cjs');
 const { readWindowState, resolveInitialBounds, writeWindowState } = require('./window-state.cjs');
 const { hideLastWindowOnClose, markQuitting, showWindow } = require('./window-lifecycle.cjs');
 const { forwardWindowSignals } = require('./window-signals.cjs');
 const { installDevelopmentDockIcon } = require('./development-dock-icon.cjs');
+const { cleanupDevPorts } = require('./dev-ports.cjs');
 
 // A broken stdout/stderr pipe (e.g. the dev launcher's reader went away, or a logging
 // library writes after the pipe closed) must never crash the app with an uncaught EPIPE.
@@ -43,16 +45,13 @@ for (const stream of [process.stdout, process.stderr]) {
 }
 
 const updateCheckIntervalMs = 10 * 60 * 1000;
-const openDevtoolsMenuId = 'open-devtools';
 const productionAppUrl = 'https://haus.chat';
 // Centered exactly on the 44px window band (--app-shell-top-band-height in
 // src/styles/default-theme.css), the midline the tabs and band actions share.
 const macosTrafficLightPosition = { x: 16, y: 16 };
 const { autoUpdater } = electronUpdater;
 const useMockUpdater = !app.isPackaged && process.env.HAUS_ELECTRON_UPDATER_MOCK === '1';
-const appUrl = app.isPackaged
-    ? productionAppUrl
-    : (process.env.HAUS_ELECTRON_DEV_URL ?? productionAppUrl);
+const appUrl = (app.isPackaged ? null : process.env.HAUS_ELECTRON_DEV_URL) ?? productionAppUrl;
 const clerkAuthOrigins = resolveClerkAuthOrigins({
     appUrl,
     clerkIssuerUrl: process.env.HAUS_CLERK_ISSUER_URL,
@@ -65,6 +64,8 @@ let updateCheckInterval = null;
 let availableDesktopUpdateVersion = null;
 let currentDesktopUpdateStatus = null;
 let browserWorkspaces = null;
+let appMenu = null;
+let queryCacheHandoff = null;
 const newWindowOffsetPx = 36;
 const minWindowWidth = 1100;
 const minWindowHeight = 760;
@@ -93,8 +94,12 @@ if (useMockUpdater) {
     autoUpdater.forceDevUpdateConfig = true;
 }
 
-function createWindow({ route, openerBounds } = {}) {
-    const bounds = initialWindowBounds(openerBounds);
+/**
+ * `opener` offsets the new window and hands it a copy of its query cache; `bounds` places a
+ * torn-off tab's window exactly; `deferShow` leaves showing it to the caller.
+ */
+function createWindow({ route, opener, bounds: placed, deferShow = false } = {}) {
+    const bounds = placed ?? initialWindowBounds(opener?.getBounds());
     const window = new BrowserWindow({
         title: 'Haus',
         width: bounds.width,
@@ -114,6 +119,8 @@ function createWindow({ route, openerBounds } = {}) {
         // loses focus, matching native windows.
         visualEffectState: process.platform === 'darwin' ? 'followWindow' : undefined,
         webPreferences: {
+            // Opened windows skip the launch ghost (ActivationFrame).
+            additionalArguments: openerArguments({ opener }),
             contextIsolation: true,
             nodeIntegration: false,
             preload: path.join(__dirname, 'preload.cjs'),
@@ -124,9 +131,9 @@ function createWindow({ route, openerBounds } = {}) {
     windows.add(window);
     mainWindow ??= window;
 
-    window.once('ready-to-show', () => {
-        window.show();
-    });
+    if (!deferShow) {
+        window.once('ready-to-show', () => window.show());
+    }
 
     forwardWindowSignals(window);
 
@@ -161,6 +168,9 @@ function createWindow({ route, openerBounds } = {}) {
         openExternal: (url) => shell.openExternal(url),
     });
 
+    if (opener) {
+        queryCacheHandoff.request(opener, window);
+    }
     void loadWindow(window, route);
 
     return window;
@@ -188,127 +198,30 @@ async function loadWindow(window, route) {
     await window.loadURL(buildWindowUrl(appUrl, route));
 }
 
-function installAppMenu() {
-    const template = [
-        ...(process.platform === 'darwin'
-            ? [
-                  {
-                      label: app.name,
-                      submenu: [
-                          { role: 'about' },
-                          { type: 'separator' },
-                          {
-                              accelerator: 'CmdOrCtrl+,',
-                              click: () => openSettingsWindow(),
-                              label: 'Settings…',
-                          },
-                          { type: 'separator' },
-                          { role: 'services' },
-                          { type: 'separator' },
-                          { role: 'hide' },
-                          { role: 'hideOthers' },
-                          { role: 'unhide' },
-                          { type: 'separator' },
-                          { role: 'quit' },
-                      ],
-                  },
-              ]
-            : []),
-        {
-            label: 'File',
-            submenu: [
-                {
-                    accelerator: 'CmdOrCtrl+N',
-                    click: () => {
-                        const opener = BrowserWindow.getFocusedWindow();
-                        createWindow({ openerBounds: opener?.getBounds() });
-                    },
-                    label: 'New Window',
-                },
-                ...tabMenuItems(runFocusedWindowAction),
-            ],
+function installMenu() {
+    appMenu = installAppMenu({
+        actions: {
+            history: (direction) => sendToFocusedWindow('desktop:window:history', direction),
+            newWindow: () => createWindow({ opener: BrowserWindow.getFocusedWindow() }),
+            openDevtools: () =>
+                (BrowserWindow.getFocusedWindow() ?? mainWindow)?.webContents.openDevTools({
+                    mode: 'detach',
+                }),
+            openSettings: () => openSettingsWindow(),
+            openWebsite: () => shell.openExternal(productionAppUrl),
+            run: runFocusedWindowAction,
+            toggleDevMode: () => {
+                // Broadcast to every window and content view so all surfaces flip together.
+                for (const contents of webContents.getAllWebContents()) {
+                    contents.send('desktop:dev-mode:toggle');
+                }
+            },
+            toggleSidebar: () => sendToFocusedWindow('desktop:sidebar:toggle'),
         },
-        {
-            label: 'Edit',
-            submenu: [
-                { role: 'undo' },
-                { role: 'redo' },
-                { type: 'separator' },
-                { role: 'cut' },
-                { role: 'copy' },
-                { role: 'paste' },
-                { role: 'selectAll' },
-                { type: 'separator' },
-                {
-                    // Finds in the selected browser page; otherwise opens Search.
-                    accelerator: 'CmdOrCtrl+F',
-                    click: () => runFocusedWindowAction('find'),
-                    label: 'Find…',
-                },
-            ],
-        },
-        {
-            label: 'View',
-            submenu: [
-                ...zoomMenuItems(runFocusedWindowAction),
-                { type: 'separator' },
-                { role: 'togglefullscreen' },
-            ],
-        },
-        {
-            label: 'Go',
-            submenu: [
-                {
-                    accelerator: 'CmdOrCtrl+[',
-                    click: () => sendToFocusedWindow('desktop:window:history', 'back'),
-                    label: 'Back',
-                },
-                {
-                    accelerator: 'CmdOrCtrl+]',
-                    click: () => sendToFocusedWindow('desktop:window:history', 'forward'),
-                    label: 'Forward',
-                },
-            ],
-        },
-        windowMenu(),
-        {
-            label: 'Developer',
-            submenu: [
-                {
-                    accelerator: 'CmdOrCtrl+Alt+I',
-                    click: () =>
-                        (BrowserWindow.getFocusedWindow() ?? mainWindow)?.webContents.openDevTools({
-                            mode: 'detach',
-                        }),
-                    id: openDevtoolsMenuId,
-                    label: 'Open Web Inspector',
-                },
-                {
-                    accelerator: 'CmdOrCtrl+Alt+D',
-                    click: () => {
-                        // Broadcast to every window and content view so all
-                        // surfaces flip together; the renderer owns the state.
-                        for (const contents of webContents.getAllWebContents()) {
-                            contents.send('desktop:dev-mode:toggle');
-                        }
-                    },
-                    id: 'toggle-dev-mode',
-                    label: 'Toggle Dev Mode',
-                },
-            ],
-        },
-        {
-            role: 'help',
-            submenu: [
-                {
-                    click: () => shell.openExternal(productionAppUrl),
-                    label: 'Haus Website',
-                },
-            ],
-        },
-    ];
-
-    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+        app,
+        BrowserWindow,
+        Menu,
+    });
 }
 
 /** Reveals the frontmost window (even one hidden by closing it) or a fresh one on Settings for ⌘,. */
@@ -359,28 +272,29 @@ function registerIpcHandlers() {
         };
     });
 
-    ipcMain.handle('desktop:window:start-drag', (event) => {
-        assertTrustedRenderer(event, appUrl);
+    ({ queryCache: queryCacheHandoff } = registerWindowIpc({
+        app,
+        appUrl,
+        BrowserWindow,
+        createWindow,
+        ipcMain,
+    }));
+    registerTabDrag({
+        app,
+        appUrl,
+        BrowserWindow,
+        browserWorkspaces,
+        ipcMain,
+        openWindow: createWindow,
+        screen,
     });
 
-    ipcMain.handle('desktop:window:open', (event, route) => {
+    ipcMain.handle('desktop:menu:state', (event, state) => {
         assertTrustedRenderer(event, appUrl);
-        if (!isSafeWindowRoute(route)) {
-            return;
+        const window = BrowserWindow.fromWebContents(event.sender);
+        if (window) {
+            appMenu?.report(window, state);
         }
-
-        const opener = BrowserWindow.fromWebContents(event.sender);
-        createWindow({ route, openerBounds: opener?.getBounds() });
-    });
-
-    ipcMain.handle('desktop:window:close', (event) => {
-        assertTrustedRenderer(event, appUrl);
-        BrowserWindow.fromWebContents(event.sender)?.close();
-    });
-
-    ipcMain.handle('desktop:window:focus', (event) => {
-        assertTrustedRenderer(event, appUrl);
-        showWindow(app, BrowserWindow.fromWebContents(event.sender));
     });
 
     ipcMain.handle('desktop:dock:set-badge', (event, count) => {
@@ -518,38 +432,6 @@ function isDesktopUpdateInFlight(status) {
     );
 }
 
-function cleanupDevPortsOnce() {
-    if (app.isPackaged) {
-        return;
-    }
-
-    for (const key of ['HAUS_WEBSITE_PORT']) {
-        const port = readPort(key);
-        if (port) {
-            killProcessesListeningOnPort(port);
-        }
-    }
-}
-
-function readPort(key) {
-    const value = Number.parseInt(process.env[key] ?? '', 10);
-    return Number.isInteger(value) && value > 0 ? value : null;
-}
-
-function killProcessesListeningOnPort(port) {
-    execFile('lsof', ['-nP', '-t', `-iTCP:${port}`, '-sTCP:LISTEN'], (_error, stdout) => {
-        for (const pid of stdout
-            .toString()
-            .split(/\s+/u)
-            .map((value) => value.trim())
-            .filter(Boolean)) {
-            if (pid !== String(process.pid)) {
-                process.kill(Number(pid), 'SIGTERM');
-            }
-        }
-    });
-}
-
 function getErrorMessage(error) {
     if (error instanceof Error && error.message) {
         return error.message;
@@ -570,7 +452,7 @@ app.whenReady().then(() => {
         clerkAuthOrigins.appOrigin
     );
     registerIpcHandlers();
-    installAppMenu();
+    installMenu();
     createWindow();
     startUpdateMonitor();
 });
@@ -582,7 +464,7 @@ app.on('window-all-closed', () => {
         return;
     }
 
-    cleanupDevPortsOnce();
+    cleanupDevPorts(app);
     app.quit();
 });
 
@@ -606,5 +488,5 @@ app.on('before-quit', () => {
         writeWindowState(windowStatePath(), window.getNormalBounds());
     }
 
-    cleanupDevPortsOnce();
+    cleanupDevPorts(app);
 });

@@ -3,6 +3,7 @@
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const { describe, expect, test } = require('bun:test');
+const { openerArguments } = require('./window-routing.cjs');
 
 const preloadPath = path.join(__dirname, 'preload.cjs');
 
@@ -54,15 +55,36 @@ describe('desktop preload bridge', () => {
 
         expect(bridge.loadsApp).toBe(true);
         expect(typeof bridge.authTokenGet).toBe('function');
+        expect(typeof bridge.authSessionPeek).toBe('function');
+        expect(typeof bridge.authSessionShare).toBe('function');
         expect(typeof bridge.openExternal).toBe('function');
         expect(typeof bridge.browserCommand).toBe('function');
         expect(typeof bridge.browserSnapshot).toBe('function');
-        expect(typeof bridge.browserBounds).toBe('function');
+        expect(typeof bridge.browserLayout).toBe('function');
+        expect(bridge.browserBounds).toBeUndefined();
         expect(typeof bridge.browserCapture).toBe('function');
         expect(typeof bridge.onBrowserState).toBe('function');
-        expect(typeof bridge.onBrowserReveal).toBe('function');
+        expect(typeof bridge.onBrowserFocus).toBe('function');
+        expect(typeof bridge.onBrowserOpenRequest).toBe('function');
+        expect(bridge.onBrowserReveal).toBeUndefined();
         expect(typeof bridge.focusWindow).toBe('function');
         expect(typeof bridge.prepareSsoCallback).toBe('function');
+        for (const name of ['tabDragClaim', 'tabDragDetach', 'tabDragEnd', 'tabDragStart']) {
+            expect(typeof bridge[name]).toBe('function');
+        }
+        expect(typeof bridge.tabStripReport).toBe('function');
+        expect(typeof bridge.onTabDrag).toBe('function');
+    });
+
+    test('openedFromWindow reflects the renderer argv main set for opened windows', () => {
+        expect(exposeDesktopBridge().get('hausDesktop').openedFromWindow).toBe(false);
+        const originalArgv = process.argv;
+        process.argv = [...originalArgv, ...openerArguments({ opener: {} })];
+        try {
+            expect(exposeDesktopBridge().get('hausDesktop').openedFromWindow).toBe(true);
+        } finally {
+            process.argv = originalArgv;
+        }
     });
 
     test('the window layout stays renderer-only: no bridge channel carries it', () => {

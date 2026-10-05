@@ -3,23 +3,34 @@ const { expect, test } = require('bun:test');
 const { fixture } = require('./browser-test-fakes.cjs');
 
 const noop = () => undefined;
+const bounds = { x: 0, y: 40, width: 400, height: 600 };
 
-test('⌘-click opens a background tab; ⌘⇧-click and target=_blank open it selected', () => {
-    const { workspace, pageAt } = fixture();
-    workspace.open('https://example.com');
-    const opener = workspace.snapshot().activeId;
+function openRequests(window) {
+    return (window.webContents.sent ?? [])
+        .filter(([channel]) => channel === 'desktop:browser:open-request')
+        .map(([, request]) => request);
+}
+
+// Chromium's dispositions: ⌘- or middle-click is background-tab, ⌘⇧-click and target=_blank
+// foreground-tab, ⇧-click new-window (a selected tab in Haus).
+test('⌘- and middle-click ask for a background tab; ⌘⇧-, ⇧-click, and target=_blank for a selected one', () => {
+    const { workspace, pageAt, window } = fixture();
+    workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'opener' });
     const contents = pageAt(0);
     contents.popup({ url: 'https://example.com/a', disposition: 'background-tab' });
-    expect(workspace.snapshot().tabs).toHaveLength(2);
-    expect(workspace.snapshot().activeId).toBe(opener);
     contents.popup({ url: 'https://example.com/b', disposition: 'foreground-tab' });
-    expect(workspace.snapshot().tabs).toHaveLength(3);
-    expect(workspace.snapshot().activeId).not.toBe(opener);
+    contents.popup({ url: 'https://example.com/c', disposition: 'new-window' });
+    expect(openRequests(window)).toEqual([
+        { url: 'https://example.com/a', openerId: 'opener', background: true },
+        { url: 'https://example.com/b', openerId: 'opener', background: false },
+        { url: 'https://example.com/c', openerId: 'opener', background: false },
+    ]);
+    expect(workspace.snapshot().tabs).toHaveLength(1);
 });
 
 test('mail links leave for the OS while other schemes stay blocked', () => {
-    const { workspace, pageAt, page } = fixture();
-    workspace.open('https://example.com');
+    const { workspace, pageAt, page, window } = fixture();
+    workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'one' });
     const contents = pageAt(0);
     expect(contents.popup({ url: 'mailto:hi@example.com', disposition: 'foreground-tab' })).toEqual(
         { action: 'deny' }
@@ -28,65 +39,56 @@ test('mail links leave for the OS while other schemes stay blocked', () => {
     let blocked = false;
     contents.emit('will-navigate', { preventDefault: () => (blocked = true) }, 'mailto:a@b.c');
     expect(blocked).toBe(true);
-    let redirected = false;
-    contents.emit('will-redirect', { preventDefault: () => (redirected = true) }, 'mailto:x@y.z');
-    expect(redirected).toBe(true);
     expect(page.opened).toEqual([
         ['external', 'mailto:hi@example.com'],
         ['external', 'mailto:a@b.c'],
     ]);
-    expect(workspace.snapshot().tabs).toHaveLength(1);
+    expect(openRequests(window)).toEqual([]);
 });
 
-test('reload, hard reload, and zoom act on the selected page and publish its zoom', () => {
+test('menu page actions act on the focused placed view only', () => {
     const { workspace, pageAt } = fixture();
-    workspace.open('https://example.com');
-    workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
-    const contents = pageAt(0);
-    workspace.command({ kind: 'navigate', action: 'reload' });
-    workspace.command({ kind: 'navigate', action: 'hard-reload' });
+    workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'left' });
+    workspace.command({ kind: 'open', url: 'https://example.org', viewId: 'right' });
+    const [left, right] = [pageAt(0), pageAt(1)];
+    workspace.setLayout([
+        { viewId: 'left', bounds, focused: false },
+        { viewId: 'right', bounds: { ...bounds, x: 400 }, focused: true },
+    ]);
+    expect(workspace.hasActiveTab()).toBe(true);
+    expect(workspace.pageAction('reload')).toBe(true);
     expect(workspace.pageAction('zoom-in')).toBe(true);
-    expect(contents.calls).toEqual(['reload', 'reloadIgnoringCache']);
-    expect(workspace.snapshot().tabs[0].zoomFactor).toBe(1.1);
-    workspace.command({ kind: 'navigate', action: 'zoom-reset' });
-    expect(workspace.snapshot().tabs[0].zoomFactor).toBe(1);
-    // A selected page the App hides (no bounds) takes no page shortcuts.
-    workspace.setBounds(null);
-    expect(workspace.pageAction('reload')).toBe(false);
+    workspace.command({ kind: 'navigate', action: 'hard-reload' });
+    workspace.command({ kind: 'navigate', action: 'reload', id: 'left' });
+    expect(right.calls).toEqual(['reload', 'reloadIgnoringCache']);
+    expect(left.calls).toEqual(['reload']);
+    expect(workspace.snapshot().tabs[1].zoomFactor).toBe(1.1);
+    // With no focused web page (a chat in the focused pane), page actions do nothing.
+    workspace.setLayout([{ viewId: 'left', bounds, focused: false }]);
     expect(workspace.hasActiveTab()).toBe(false);
-    workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
-    workspace.command({ kind: 'select', id: null });
     expect(workspace.pageAction('reload')).toBe(false);
-    expect(workspace.hasActiveTab()).toBe(false);
-    expect(contents.calls).toEqual(['reload', 'reloadIgnoringCache']);
+    expect(() => workspace.command({ kind: 'navigate', action: 'reload' })).toThrow();
 });
 
-test('find reports match counts per tab until the session stops', () => {
+test('find reports match counts per view until the session stops', () => {
     const { workspace, pageAt } = fixture();
-    workspace.open('https://example.com');
-    const id = workspace.snapshot().activeId;
+    workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'one' });
     const contents = pageAt(0);
+    const id = 'one';
     workspace.command({ kind: 'find', id, text: 'haus', forward: true, newSession: true });
     expect(workspace.snapshot().tabs[0].find).toEqual({ activeMatch: 0, matches: 0 });
     contents.emit('found-in-page', {}, { activeMatchOrdinal: 1, matches: 4 });
     expect(workspace.snapshot().tabs[0].find).toEqual({ activeMatch: 1, matches: 4 });
-    workspace.command({ kind: 'find', id, text: 'haus', forward: false, newSession: false });
     workspace.command({ kind: 'stop-find', id });
     contents.emit('found-in-page', {}, { activeMatchOrdinal: 2, matches: 4 });
     expect(workspace.snapshot().tabs[0].find).toBeNull();
-    expect(contents.calls).toEqual([
-        ['findInPage', 'haus', { forward: true, findNext: true }],
-        ['findInPage', 'haus', { forward: false, findNext: false }],
-        ['stopFindInPage', 'clearSelection'],
-    ]);
-    expect(() => workspace.command({ kind: 'find', id, text: '' })).toThrow();
     expect(() => workspace.command({ kind: 'find', id: 'gone', text: 'x' })).toThrow();
     workspace.command({ kind: 'stop-find', id: 'gone' });
 });
 
-test('right-clicking a page pops its native menu', () => {
-    const { workspace, pageAt, page } = fixture();
-    workspace.open('https://example.com');
+test('Open Link in New Tab from the page menu asks for a background tab', () => {
+    const { workspace, pageAt, page, window } = fixture();
+    workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'one' });
     pageAt(0).emit('context-menu', {}, { linkURL: 'https://example.org' });
     expect(page.menus[0].map((item) => item.label)).toEqual([
         'Open Link in New Tab',
@@ -94,22 +96,30 @@ test('right-clicking a page pops its native menu', () => {
         'Copy Link Address',
     ]);
     page.menus[0][0].click();
-    expect(workspace.snapshot().tabs).toHaveLength(2);
-    expect(workspace.snapshot().tabs[0].id).toBe(workspace.snapshot().activeId);
+    expect(openRequests(window)).toEqual([
+        { url: 'https://example.org/', openerId: 'one', background: true },
+    ]);
 });
 
-test('page-focused shortcuts reload the page in main and forward tab actions to the App', () => {
+test('keys pressed in a page act on that page and forward tab actions to the App', () => {
     const { workspace, pageAt, window } = fixture();
-    workspace.open('https://example.com');
-    workspace.setBounds({ x: 0, y: 40, width: 800, height: 600 });
-    const contents = pageAt(0);
-    const press = (input) => contents.emit('before-input-event', { preventDefault: noop }, input);
+    workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'left' });
+    workspace.command({ kind: 'open', url: 'https://example.org', viewId: 'right' });
+    // The App still has the right pane focused; the left page has key focus.
+    workspace.setLayout([
+        { viewId: 'left', bounds, focused: false },
+        { viewId: 'right', bounds: { ...bounds, x: 400 }, focused: true },
+    ]);
+    const [left, right] = [pageAt(0), pageAt(1)];
+    const press = (input) => left.emit('before-input-event', { preventDefault: noop }, input);
     press({ type: 'keyDown', key: 'r', meta: true });
     press({ type: 'keyDown', key: '=', meta: true });
     press({ type: 'keyDown', key: 'f', meta: true });
     press({ type: 'keyDown', key: 'T', meta: true, shift: true });
-    expect(contents.calls).toContain('reload');
-    expect(contents.zoomFactor).toBe(1.1);
+    press({ type: 'keyDown', key: 'B', meta: true, shift: true });
+    expect(left.calls).toContain('reload');
+    expect(left.zoomFactor).toBe(1.1);
+    expect(right.calls).toEqual([]);
     expect(window.webContents.zoomLevel).toBe(0);
     const shortcuts = window.webContents.sent
         .filter(([channel]) => channel === 'desktop:browser:shortcut')

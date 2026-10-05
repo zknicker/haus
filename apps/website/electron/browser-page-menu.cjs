@@ -94,10 +94,11 @@ function browserPageMenuTemplate(params, { clipboard, contents, inspect, openExt
     );
 }
 
-function installBrowserPageMenu(contents, window, { Menu, ...actions }) {
+/** `ownerWindow()` is read per menu: a page dragged to another window pops its menu there. */
+function installBrowserPageMenu(contents, ownerWindow, { Menu, ...actions }) {
     contents.on('context-menu', (_event, params) => {
         const template = browserPageMenuTemplate(params, { contents, ...actions });
-        Menu.buildFromTemplate(template).popup({ window });
+        Menu.buildFromTemplate(template).popup({ window: ownerWindow() });
     });
 }
 

@@ -19,10 +19,11 @@ function isMailUrl(value) {
 
 /**
  * Links inside a page. Web targets stay in Haus: navigation continues in the
- * tab, and popups, target=_blank, and ⌘/middle-clicks open browser tabs —
- * in the background for a background-tab disposition (⌘-click), selected
- * otherwise (⌘⇧-click, target=_blank, window.open). Mail links go to the
- * operating system; every other scheme is blocked.
+ * tab, and popups, target=_blank, and modified clicks open browser tabs with
+ * Chrome's dispositions — in the background for background-tab (⌘- or
+ * middle-click), selected otherwise (foreground-tab: ⌘⇧-click, target=_blank;
+ * new-window: ⇧-click, window.open). Mail links go to the operating system;
+ * every other scheme is blocked.
  */
 function installBrowserPageLinks(contents, { openExternal, openTab, onNavigate }) {
     const guard = (event, target, userNavigation) => {

@@ -1,30 +1,68 @@
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
+const { isOpenedFromWindow } = require('./window-routing.cjs');
 
 const bridge = {
     loadsApp: true,
+    openedFromWindow: isOpenedFromWindow(process.argv),
     browserCommand: (command) => ipcRenderer.invoke('desktop:browser:command', command),
     browserSnapshot: () => ipcRenderer.invoke('desktop:browser:snapshot'),
     browserCapture: (id) => ipcRenderer.invoke('desktop:browser:capture', id),
-    browserBounds: (bounds) => ipcRenderer.invoke('desktop:browser:bounds', bounds),
+    browserLayout: (placements) => ipcRenderer.invoke('desktop:browser:layout', placements),
     onBrowserShortcut: (listener) => {
         const handler = (_event, shortcut) => listener(shortcut);
         ipcRenderer.on('desktop:browser:shortcut', handler);
         return () => ipcRenderer.off('desktop:browser:shortcut', handler);
     },
-    onBrowserReveal: (listener) => {
-        const handler = () => listener();
-        ipcRenderer.on('desktop:browser:reveal', handler);
-        return () => ipcRenderer.off('desktop:browser:reveal', handler);
+    onBrowserFocus: (listener) => {
+        const handler = (_event, viewId) => listener(viewId);
+        ipcRenderer.on('desktop:browser:focus', handler);
+        return () => ipcRenderer.off('desktop:browser:focus', handler);
+    },
+    onBrowserOpenRequest: (listener) => {
+        const handler = (_event, request) => listener(request);
+        ipcRenderer.on('desktop:browser:open-request', handler);
+        return () => ipcRenderer.off('desktop:browser:open-request', handler);
     },
     onBrowserState: (listener) => {
         const handler = (_event, state) => listener(state);
         ipcRenderer.on('desktop:browser:state', handler);
         return () => ipcRenderer.off('desktop:browser:state', handler);
     },
+    tabDragClaim: (serverId) => ipcRenderer.sendSync('desktop:tab-drag:claim', serverId),
+    tabDragDetach: (request) => ipcRenderer.invoke('desktop:tab-drag:detach', request),
+    tabDragEnd: (outcome) => ipcRenderer.invoke('desktop:tab-drag:end', outcome),
+    tabDragStart: (start) => ipcRenderer.invoke('desktop:tab-drag:start', start),
+    tabMoveToNewWindow: (move) => ipcRenderer.invoke('desktop:tab:move-to-new-window', move),
+    reportMenuState: (state) => ipcRenderer.invoke('desktop:menu:state', state),
+    onSidebarToggle: (listener) => {
+        const handler = () => listener();
+        ipcRenderer.on('desktop:sidebar:toggle', handler);
+        return () => ipcRenderer.off('desktop:sidebar:toggle', handler);
+    },
+    tabStripReport: (report) => ipcRenderer.invoke('desktop:tab-strip:report', report),
+    onTabDrag: (listener) => {
+        const handler = (_event, message) => listener(message);
+        ipcRenderer.on('desktop:tab-drag:event', handler);
+        return () => ipcRenderer.off('desktop:tab-drag:event', handler);
+    },
+    queryCacheClaim: () => ipcRenderer.sendSync('desktop:query-cache:claim'),
+    onQueryCacheRequest: (listener) => {
+        const handler = (_event, token) => {
+            ipcRenderer
+                .invoke('desktop:query-cache:offer', token, listener())
+                .catch((error) =>
+                    console.warn('[Haus] Could not hand off the query cache.', error)
+                );
+        };
+        ipcRenderer.on('desktop:query-cache:request', handler);
+        return () => ipcRenderer.off('desktop:query-cache:request', handler);
+    },
     authTokenGet: () => ipcRenderer.invoke('desktop:auth:token-get'),
     authTokenSet: (token) => ipcRenderer.invoke('desktop:auth:token-set', token),
+    authSessionPeek: () => ipcRenderer.sendSync('desktop:auth:session-peek'),
+    authSessionShare: (token) => ipcRenderer.invoke('desktop:auth:session-share', token),
     cancelSsoCallback: () => ipcRenderer.invoke('desktop:auth:sso-callback-cancel'),
     onSsoCallback: (listener) => {
         const handler = (_event, url) => listener(url);
