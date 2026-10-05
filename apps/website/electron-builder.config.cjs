@@ -21,6 +21,7 @@ module.exports = {
         output: 'electron-dist',
     },
     files: [
+        'electron/app-menu.cjs',
         'electron/browser-workspace.cjs',
         'electron/browser-capture.cjs',
         'electron/browser-favicon.cjs',
