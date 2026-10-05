@@ -12,10 +12,9 @@ import { agentsTable } from './agents.ts';
 
 /**
  * One durable record per Agent session rotation. A reset writes no Chat
- * message: Agent messages carry the generation that wrote them, and this row is
- * what the session mark's hover card reads for when the session started and
- * why. `previousStartedAt` is the moment the retired generation began, so the
- * card can name how long it lasted.
+ * message: Agent messages carry the generation that wrote them, and this row
+ * records when the session started and why. `previousStartedAt` is the moment
+ * the retired generation began, so a reader can name how long it lasted.
  */
 export const agentSessionRotationsTable = pgTable(
     'agent_session_rotations',

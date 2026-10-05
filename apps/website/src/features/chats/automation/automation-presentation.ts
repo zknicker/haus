@@ -3,7 +3,7 @@ import { formatRelativeTime, formatTimestamp } from '../../../lib/format.ts';
 import { formatTriggerPayloadSize } from '../../members/agent-profile/agent-trigger-model.ts';
 
 /**
- * How a caused message presents its provenance: the header mark, its hover
+ * How a caused message presents its provenance: the context line, its hover
  * card, and the Thread context card all read from here, so a Trigger and a
  * Reminder are told apart in one place rather than at three call sites.
  */
@@ -14,6 +14,18 @@ export type AutomationKind = MessageCause['kind'];
 export const automationMarkColor = {
     reminder: 'text-reminder-mark',
     trigger: 'text-trigger-mark',
+} as const satisfies Record<AutomationKind, string>;
+
+/** The soft tint behind the glyph where it stands in for an author. */
+export const automationMarkSoftFill = {
+    reminder: 'bg-reminder-mark-soft',
+    trigger: 'bg-trigger-mark-soft',
+} as const satisfies Record<AutomationKind, string>;
+
+/** The context line's elbow, tinted toward the ink so it is not a reply's. */
+export const automationMarkElbow = {
+    reminder: 'border-reminder-mark-line',
+    trigger: 'border-trigger-mark-line',
 } as const satisfies Record<AutomationKind, string>;
 
 /**

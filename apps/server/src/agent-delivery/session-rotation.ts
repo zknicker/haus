@@ -5,9 +5,8 @@ import { agentSessionRotationsTable, agentsTable } from '../postgres/schema.ts';
 
 /**
  * Records one session rotation. A reset is a fact about the Agent, not a Chat
- * message: every Agent message carries the generation that wrote it, and the
- * App draws the session mark where that generation changes. This row is what
- * the mark's hover card reads.
+ * message: every Agent message carries the generation that wrote it, and this
+ * row records when and why that generation began.
  */
 export async function recordSessionRotation(
     db: HausDatabase,
@@ -32,7 +31,7 @@ export async function recordSessionRotation(
         .onConflictDoNothing();
 }
 
-/** The rotation that began one generation, for the session mark's hover card. */
+/** The rotation that began one generation. */
 export async function readSessionRotation(
     db: HausDatabase,
     input: { agentId: string; generation: number; serverId: string }

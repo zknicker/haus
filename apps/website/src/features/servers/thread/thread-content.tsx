@@ -105,7 +105,7 @@ export function ThreadContent({
     );
     const { renderContext, rows } = useChatTranscript({
         // The context card above the anchor already names the automation.
-        causeMarkHidden: Boolean(anchor.cause),
+        causeLineHidden: Boolean(anchor.cause),
         chatId: threadChatId ?? chat.id,
         conversationChatId: chat.id,
         messages: threadMessages,

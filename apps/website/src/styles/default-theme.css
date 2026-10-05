@@ -1712,7 +1712,6 @@
         --reasoning-high: var(--color-rose-400);
         --trigger-mark: oklch(0.86 0.16 92);
         --reminder-mark: oklch(0.76 0.15 14);
-        --session-mark: oklch(0.79 0.11 276);
         padding: calc(var(--spacing) * 3);
         outline: 1px solid color-mix(in oklab, var(--snow) 9%, transparent);
         outline-offset: -1px;

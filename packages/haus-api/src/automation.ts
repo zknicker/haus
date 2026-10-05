@@ -30,7 +30,7 @@ export const messageCauseStatusSchema = z.enum([
 /**
  * Why an Agent wrote this message. A fire writes nothing to the transcript, so
  * the Agent's own message is the only chat-visible trace of a Trigger or
- * Reminder firing, and this mark is its provenance. Every field the header mark
+ * Reminder firing, and this is its provenance. Every field the cause line
  * and its hover card need rides the message itself.
  */
 /**

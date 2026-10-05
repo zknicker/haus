@@ -26,7 +26,7 @@ export class AutomationFireContextNotFoundError extends Error {
 
 /**
  * The Thread pane's context card for one caused message: the same provenance
- * the header mark shows, plus the fire's own detail. Authorization is ordinary
+ * the cause line shows, plus the fire's own detail. Authorization is ordinary
  * Chat access — anyone who can read the message can see why it was written.
  *
  * A message with a cause always has a context. Once the automation or its fire

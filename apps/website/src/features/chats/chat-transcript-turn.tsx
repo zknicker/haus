@@ -41,13 +41,9 @@ import {
 } from './chat-transcript-render-context.tsx';
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
+import { getTurnCause, TurnContext } from './chat-transcript-turn-context.tsx';
 import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
-import {
-    getTurnCause,
-    getTurnSessionMark,
-    resolveMentionAgentId,
-    TurnHeader,
-} from './chat-transcript-turn-header.tsx';
+import { resolveMentionAgentId, TurnHeader } from './chat-transcript-turn-header.tsx';
 import { UserTurnItem } from './chat-transcript-user-turn-item.tsx';
 import {
     InlineReplyAction,
@@ -55,7 +51,6 @@ import {
     InlineReplyMessageSurface,
     useInlineReplyHoverState,
 } from './inline-reply-action.tsx';
-import { InlineReplyTurnHeader } from './inline-reply-preview.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
@@ -205,7 +200,7 @@ function UserTurnPresentation({
     return (
         <InlineReplyHoverProvider state={inlineReplyHover}>
             <div className={cn('relative -mx-5 px-5', lastMessageRow && turnInteractionClassName)}>
-                <InlineReplyTurnHeader entry={entry} />
+                <TurnContext cause={null} entry={entry} />
                 <ChatMessage.Assistant
                     className={cn(transcriptTurnGeometry.row, 'static')}
                     onMouseLeave={inlineReplyHover.clear}
@@ -337,13 +332,12 @@ function AgentTurnPresentation({
     const context = useTranscriptRenderContext();
     const {
         canRequestMention,
-        causeMarkHidden,
+        causeLineHidden,
         composerId,
         turnDetails,
         onToggleReaction,
         opensAgentProfiles,
         repliedRunIds,
-        sessionMarks,
     } = context;
     const segments = groupAgentItems(items);
     const visibleSegments = filterPaneSegments(segments, repliedRunIds);
@@ -405,7 +399,10 @@ function AgentTurnPresentation({
         <MessageContextActionsProvider onViewTurnDetails={openTurnDetails}>
             <InlineReplyHoverProvider state={inlineReplyHover}>
                 <div className={cn('relative -mx-5 px-5', turnInteractionClassName)}>
-                    <InlineReplyTurnHeader entry={entry} />
+                    <TurnContext
+                        cause={causeLineHidden ? null : getTurnCause(items)}
+                        entry={entry}
+                    />
                     <ChatMessage.Assistant
                         className={cn(
                             transcriptTurnGeometry.row,
@@ -425,7 +422,6 @@ function AgentTurnPresentation({
                         <ChatMessage.Body className={transcriptTurnGeometry.body}>
                             {showIdentity ? (
                                 <TurnHeader
-                                    cause={causeMarkHidden ? null : getTurnCause(items)}
                                     composerId={composerId}
                                     deleted={actorProfile?.deleted}
                                     displayName={displayName}
@@ -435,11 +431,6 @@ function AgentTurnPresentation({
                                         canRequestMention &&
                                             Boolean(composerId) &&
                                             !actorProfile?.deleted
-                                    )}
-                                    sessionMark={getTurnSessionMark(
-                                        items,
-                                        sessionMarks,
-                                        turnDetails?.serverId
                                     )}
                                     timestamp={entry.timestamp}
                                 />

@@ -306,7 +306,7 @@ test('saves desired config from last inventory while the Computer is offline, im
     `;
     expect(dmMessages).toEqual([]);
 
-    // The session mark's hover card reads that fact back.
+    // The rotation record reads that fact back.
     await expect(
         owner.trpc.agent.sessionRotation.query({ agentId: agent.id, generation: 2, serverId })
     ).resolves.toMatchObject({

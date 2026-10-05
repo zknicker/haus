@@ -6,7 +6,7 @@ import { requireAgent } from '../../server-agents/agent-delivery-control.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-/** The session mark's hover card: when this generation began, and why. */
+/** When one session generation began, and why. */
 export const agentSessionRotationProcedure = memberProcedure
     .input(agentSessionRotationInputSchema)
     .output(agentSessionRotationSchema)
