@@ -154,8 +154,8 @@ The fire mark moved out of the author line onto a context line above the
 message, sharing the inline reply line's geometry, so a fire reads as what the
 message answers rather than as a label on who wrote it. The line is a link into
 the owning Agent's Automations tab while the automation is live. When a message
-has both a cause and a reply parent, the cause line sits above the reply line and
-only the lower line draws the elbow. The author line is the name and the time.
+has both a cause and a reply parent, only the cause line shows: the fire is the
+context that explains the answer, so it replaces the reply line. The author line is the name and the time.
 
 The session mark is removed; the product no longer surfaces a session reset in
 Chat. The rotation record and the `session_generation` stamp stay as execution

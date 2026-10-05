@@ -731,22 +731,23 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   Human and Agent message bodies use the full available width, without an Agent-only width cap.
 - **Chat transcript rhythm:** Three steps, each clearly larger than the last: list items
   (`--spacing` ×1), paragraphs and reply segments (×2, about half a line), and messages (×4,
-  the row's `py-2` on both sides). A turn's context lines (cause, reply) take the full message
-  gap above them, sit ×1 apart, and hug the header they introduce (×1). Header to body stays flush.
+  the row's `py-2` on both sides). A turn's context line (cause or reply) takes the full message
+  gap above it and hugs the header it introduces (×1). Header to body stays flush.
 - **Chat Markdown tables:** Columns size to content over a floor of
   `--chat-markdown-table-min-width` (`min(100%, 40rem)`), wrap up to the message column, then
   scroll. Row rules and the row hover tint end at the table edge.
 - **Inline replies:** A single muted line with a miniature author avatar and truncated excerpt sits
   above the replying author. An elbow in the avatar rail connects the excerpt to the reply.
   Each inline reply starts its own visual row; clicking the excerpt reveals its parent.
+  While composing, a compact “Replying to” header joins the editor into one rounded surface.
 - **Turn context lines:** A reply line and an automation's cause line share one geometry
   (`TurnContextLine`): the avatar-rail indent, a 16px leading mark, `text-xs` single-line text,
-  and an elbow from the row's midline into the avatar. A cause line leads with a 16px
+  and an elbow from the row's midline toward the author's avatar that stops ~3px short of both the
+  16px mark and the avatar, like a reply connector. A cause line leads with a 16px
   rounded-square automation avatar (the reply avatar's bounds, `identityMarkRadius`) filled with
   `--reminder-mark-soft` or `--trigger-mark-soft`, then the title in the mark ink, `font-medium`,
-  truncating; its elbow takes `--*-mark-line`. With both, the cause line sits above the reply line
-  and only the lower line draws the elbow.
-  While composing, a compact “Replying to” header joins the editor into one rounded surface.
+  truncating; its elbow takes `--*-mark-line`. A turn shows one context line: when it has a cause,
+  the cause line replaces its reply line.
   The recipient and cancel action remain visible; the original excerpt is available on hover.
   The header uses the lighter background token, with cancel aligned above Send. The selected
   message row, including its avatar and header, uses `--reply-highlight` (70% of accent-soft)

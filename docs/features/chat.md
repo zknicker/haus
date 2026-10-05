@@ -58,8 +58,8 @@ and [Agent Inbox](../../specs/inbox.md).
   carries a **cause line** above the author line, shaped like an inline reply's
   parent line: a small lightning or clock avatar in the automation's color, then
   its title. Hovering previews the automation; pressing opens the owning Agent's
-  Automations tab. When the answer is also an inline reply, the cause line sits
-  above the reply line. A fire's Thread carries a context card with the payload
+  Automations tab. When the answer is also an inline reply, the cause line
+  replaces the reply line. A fire's Thread carries a context card with the payload
   or the anchoring note instead of the line. A fire or an assignment the Agent
   never speaks about leaves the conversation untouched. **A cause line outlives
   its automation.** Title, glyph, and summary are snapshotted onto the message,

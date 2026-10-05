@@ -121,8 +121,8 @@ soft tint of its color — then the title in that color, truncated to one line,
 with an elbow tinted toward the color. Those colors are theme tokens, and the
 line is the only thing a fire adds to the transcript. Pressing it opens the
 owning Agent's Automations tab; an archived cause keeps the line but not the
-link. A message that is also an inline reply stacks the cause line above the
-reply line, and only the reply line draws the elbow. The author line itself
+link. A message that is also an inline reply shows only the cause line: the fire
+is why the Agent spoke, so it replaces the reply line. The author line itself
 carries only the name and the time.
 
 **Hover card.** Hovering the mark opens a mouse-following card previewing that
