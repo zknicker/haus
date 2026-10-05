@@ -32,7 +32,7 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **32,399** characters — a reviewed
+`managed-instructions.test.ts` caps the composed prompt at **32,306** characters — a reviewed
 ratchet, not a runtime limit. History: introduced at 32,500 (2026-08-18), raised to 40,270 by
 2026-09-23, lowered to 32,359 by the 1.0.25 re-baseline, raised by exactly 42 to 32,401 when
 Raft's `task assign` / `task unassign` family entries were restored, lowered to 32,395 when
@@ -41,7 +41,10 @@ raised by exactly 224 to 32,444 when the Formatting section gained the chat-regi
 (operator decision, 2026-10-01), then lowered to 32,416 when solo step-by-step progress moved
 into a thread on the acknowledgment (ADR 0029 amendment, 2026-10-02), then lowered to 32,399
 when the Haus-only `## Personality` section arrived (2026-10-03), paid for by shortening the Cloud
-agents section's delivery sentences and measured with a one-word personality. Measured line-by-line against the pinned
+agents section's delivery sentences and measured with a one-word personality, then lowered to
+32,306 when Reminders gained the Haus-only `--title` label / `--description` sentence (2026-10-05),
+paid for by replacing the Triggers section's repeated fire sentences with a pointer to the reminder
+fire rules. Measured line-by-line against the pinned
 render, about 18,500 characters of the Haus prompt are Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
@@ -75,8 +78,8 @@ Sections are in Haus's render order.
 | Messaging — async paragraph | Parity | — |
 | Messaging — header spec and examples | Haus adds `type=trigger` (Raft has `third_party_app`), the `@sender — <description>:` suffix, home-timezone wall-clock `time=` with a staleness sentence, and `msg=` "(first 8 chars)" without "of UUID". Haus's `type=system` paragraph drops Raft's task-event examples and adds the assignee-receipt sentences | Deliberate — ADR 0027 (triggers), specs/agent-profile.md (description rides the envelope), specs/messages.md (local wall clock), ADR 0015 + ADR 0026 (no task-event receipts; assignment receipt) |
 | Sending messages | Parity, including the draft paths and no-op bullet, **plus** the Haus placement paragraph: acknowledgment, questions for the human, and the final answer go as inline replies where the request arrived; step-by-step progress of solo work goes in a thread on the acknowledgment (its send receipt names the target), never in a thread on the request; `--reply-to`, thread targets, `--done`, `replies` Manual pointer | Deliberate — ADR 0029 and its 2026-10-02 amendment (inline replies, progress threads), ADR 0035 (`--done`); covered by `thread-instructions.test.ts`, `managed-instructions.test.ts`, and `test:agents solo-progress-threads-on-ack` |
-| Reminders | Haus replaces Raft's "the receipt/fire system message is visible in that surface" with "Anchoring … does not transfer wake ownership"; adds script reminders, the `recipes/technique/reminder-cron` pointer, and fire placement with `--cause` | Deliberate — ADR 0026 (a fire writes nothing to chat), ADR 0016, specs/automation-provenance.md |
-| Triggers | Haus-only section | Deliberate — ADR 0027, specs/triggers.md |
+| Reminders | Haus replaces Raft's "the receipt/fire system message is visible in that surface" with "Anchoring … does not transfer wake ownership"; adds the `--title` short-label / `--description` sentence after the Raft lines, script reminders, the `recipes/technique/reminder-cron` pointer, and fire placement with `--cause` (stated once; Triggers points here) | Deliberate — ADR 0026 (a fire writes nothing to chat), ADR 0016, specs/automation-provenance.md; the Server's reminder title limit (`instructions.test.ts`) |
+| Triggers | Haus-only section; its fires follow the Reminders fire sentences by pointer ("Its fires arrive and are answered like reminder fires.") rather than repeating them | Deliberate — ADR 0027, specs/triggers.md; `managed-instructions.test.ts` pins one copy of the fire rules |
 | Cloud agents | Haus-only section, ending at bringing back a concise outcome with a link. Revision mechanics (`cloud-agent send --work`), the work thread's role (review rounds and progress there; one requester line per real state change), and following the requester into the work thread live in the `cloud-agents` Manual topic the family entry requires reading first | Deliberate — specs/cloud-agents.md; cloud-agent instruction tests, `product-topics.test.ts` |
 | Threads | Haus intro keeps a request and its answer where it arrived and follows the human into threads; target construction replaces Raft's "Start a new thread" example and its "Reply where the conversation is" preference bullet. Read-before-reply, own-message threads (the progress-thread mechanism), history, unfollow, and no-nesting are parity | Deliberate — operator-approved conversation policy (ADR 0029, amended 2026-10-02); covered by routing evals `conversation-natural-followups`, `task-conversation-routing` (no thread for one-step work), and `solo-progress-threads-on-ack` |
 | Discovering people and channels | Parity | — |

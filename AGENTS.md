@@ -213,7 +213,7 @@ The composed agent system prompt is a guarded contract. Its sources live under
 
 Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
 reviewed, and bounded. `managed-instructions.test.ts` asserts a reviewed size budget (currently
-32,399 characters) that ratchets down and never drifts up. It is a review gate, not a runtime
+32,306 characters) that ratchets down and never drifts up. It is a review gate, not a runtime
 limit: no adapter enforces a prompt length. Prefer moving guidance out of the prompt over adding
 to it — the prompt is a pointer to the
 [Haus Manual](docs/adr/0021-cove-onboards-and-agents-share-a-manual.md) for mechanics, and a
