@@ -161,6 +161,13 @@ always resolves the real Computer through onboarding, so adding the gallery cann
 attachment. Restarting and opening the dev workspace adds missing gallery data without resetting
 existing messages; subsequent bootstraps leave it alone.
 
+An idempotent seed (`seed-automation-causes.ts`) adds **#automations**: Blippy and Tiny answers
+to Reminder and Trigger fires, recorded through the Server's own cause path, so every cause-line
+state has real records — a live Reminder with a short title and a description, a Reminder answer that is also an
+inline reply (only its cause line shows), a Trigger answer, an archived Reminder (no Automations link), and a plain reply.
+The weekly Reminder's next fire is a week out and the Trigger's secret is discarded, so nothing
+there wakes an Agent on its own.
+
 Computer
 then runs their real Agent turns using the host's Codex, Claude Code, Grok Build, or Pi
 sign-in.

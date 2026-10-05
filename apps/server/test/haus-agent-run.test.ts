@@ -184,8 +184,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         author_user_id: null,
         content: 'Hello from the Agent.',
         run_id: 'run_send_1',
-        // The sending session is stamped on the message; the App draws the
-        // session mark where this value changes.
+        // The sending session is stamped on the message as execution lineage.
         session_generation: 1,
     });
 

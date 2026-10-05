@@ -181,13 +181,13 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         webAccess: 'search',
     });
 
-    // A reviewed ratchet, not a runtime limit: no adapter enforces a prompt length. Haus tracks
-    // the current Raft release from source. Raft-verbatim text is text present in the current Raft
-    // prompt at the source commit pinned in specs/raft-alignment/prompt-divergences.md; it is
-    // never trimmed to make room. When Raft deletes a clause, the Haus copy becomes Haus-only and
-    // must justify itself. Haus-only additions fit by simplifying or relocating other Haus-only
-    // text (Manual topics, skills, event input); raising the budget for them needs an operator
-    // decision. See AGENTS.md "Agent System Prompt Changes".
+    // A ratchet that forces a deliberate decision, not a hard or runtime limit: no adapter
+    // enforces a prompt length. A justified addition raises this cap to the measured render in the
+    // same change, with a one-line reason in specs/raft-alignment/prompt-divergences.md. Never
+    // delete, trim, merge, or deduplicate other prompt text to make room; shrinking the prompt is
+    // its own change with its own reason, and lowers the cap. Raft-verbatim text (present in the
+    // Raft prompt at the pinned source commit) is never trimmed. See AGENTS.md "Agent System
+    // Prompt Changes".
     //
     // Lowered from 40,270 on the Raft 1.0.25 re-baseline (render 40,270 → 32,359): notice
     // mechanics moved into the inbox notice, task mechanics into the `tasks` Manual topic, and
@@ -209,8 +209,12 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // work-thread sentences to the `cloud-agents` Manual topic and shortening the Tasks
     // conversation rule. Lowered (32,416 → 32,399) when the Haus-only `## Personality` section
     // arrived (measured here with a one-word personality), paid for by shortening the Cloud
-    // agents section's delivery sentences.
-    expect(prompt.length).toBeLessThanOrEqual(32_399);
+    // agents section's delivery sentences. Raised (32,399 → 32,529) for reminder title guidance:
+    // Reminders gained the Haus-only `--title` label / `--description` sentence. Lowered
+    // (32,529 → 32,496) when Workspace & Memory learned hot-memory-plus-index, topic-note,
+    // chat-is-history, and rewrite-Active-Context rules, with a tighter template and no notes/
+    // example list.
+    expect(prompt.length).toBeLessThanOrEqual(32_496);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

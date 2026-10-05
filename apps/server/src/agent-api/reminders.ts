@@ -19,6 +19,7 @@ export async function scheduleAgentReminder(
     runner: ResolvedRunner,
     input: {
         commandId: string;
+        description?: string;
         fireAt: string;
         messageId: string;
         repeat?: string;
@@ -35,6 +36,7 @@ export async function scheduleAgentReminder(
             anchorChatId: anchor.chat_id,
             anchorMessageId: anchor.id,
             commandId: input.commandId,
+            description: input.description,
             fireAt,
             repeat: input.repeat,
             script: input.script,
@@ -84,6 +86,7 @@ export async function updateAgentReminder(
     db: HausDatabase,
     runner: ResolvedRunner,
     input: {
+        description?: string | null;
         fireAt?: string;
         commandId: string;
         expectedVersion: number;
@@ -99,6 +102,7 @@ export async function updateAgentReminder(
         runner.agentId,
         commandInput(runner, input, {
             ...(input.fireAt ? { fireAt: new Date(input.fireAt) } : {}),
+            ...('description' in input ? { description: input.description } : {}),
             ...('repeat' in input ? { repeat: input.repeat } : {}),
             ...('script' in input ? { script: input.script } : {}),
             ...(input.title ? { title: input.title } : {}),
@@ -188,6 +192,7 @@ function commandInput<Extra extends object>(
 async function toCliReminder(db: HausDatabase, serverId: string, reminder: Reminder) {
     return {
         anchorTarget: await targetForChat(db, serverId, reminder.anchorChatId),
+        description: reminder.description,
         fireAt: reminder.fireAt,
         id: reminder.id,
         repeat: reminder.repeat,

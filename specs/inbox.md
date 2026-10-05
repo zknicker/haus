@@ -39,9 +39,8 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read
 (ADR 0026). A human learns each of those facts from a representation on the content it
-explains — the task chip, the fire mark, the session mark — described in
-[automation-provenance.md](automation-provenance.md) and
-[sessions.md](sessions.md).
+explains — the task chip, or the cause line on an automation's answer — described in
+[automation-provenance.md](automation-provenance.md).
 
 One lifecycle covers every kind: `queued` when planned, `accepted` when the Computer
 acknowledges the run carrying it, `served` when its body reaches the model — a pull for

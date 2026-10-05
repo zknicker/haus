@@ -20,9 +20,9 @@ security boundary.
 
 The Agent controls the structure of its workspace. The ordinary factory seed provides:
 
-- `MEMORY.md`, a concise recovery index containing identity, role, empty
-  knowledge, and initial active context.
-- An empty `notes/` directory for the detailed knowledge `MEMORY.md` indexes
+- `MEMORY.md` in the prompt template's shape: identity, role, empty standing
+  preferences, initial Active Context, and an empty Key Knowledge index.
+- An empty `notes/` directory for the deeper knowledge `MEMORY.md` indexes
   (Raft's workspace initialization).
 
 The seed establishes only that minimal starting point and never overwrites an
@@ -58,9 +58,16 @@ Factory guidance participates in the public Haus Agent version. A successful com
 may advance that version; a missing or edited Cove file blocks the receipt from advancing and leaves
 the conflict visible as a failed update.
 
-`MEMORY.md` should stay an index. When it exceeds a fixed 64 KiB (65,536 bytes, Raft's Cleaner
-default), Computer appends a one-line private notice to that Agent's next turn input: the size, the
-limit, and "keep it an index and move details into notes/". The notice is Computer-composed turn
+`MEMORY.md` is hot memory plus an index: in plain text, what the Agent needs on every wake (role,
+communication style, standing preferences and directives, and Active Context, which is rewritten
+rather than appended), then a Key Knowledge index whose lines are a `notes/` path plus a one-line
+hook. `notes/` holds deeper knowledge not in use right now, as topic files that each hold the
+current truth on one subject. History stays in Haus chats and tasks, referenced by handle. The
+Manual topic `recipes/technique/memory-hygiene` carries the full guidance. When `MEMORY.md` exceeds
+a fixed 16 KiB (16,384 bytes, Raft v1.21's 4,000-token target), Computer appends a one-line private
+notice to that Agent's next turn input: the size, the limit, "keep hot memory short and move deeper
+knowledge into notes/", and the runnable
+`haus manual get recipes/technique/memory-hygiene` command. The notice is Computer-composed turn
 input, not an inbox item: it wakes no turn, reaches no Chat or human surface, and never enters
 delivery or cause inference. Computer stamps it locally under `runtime/` and repeats it at most once
 per 24 hours, and only while the file is still over. There is no setting and no adjustable threshold.

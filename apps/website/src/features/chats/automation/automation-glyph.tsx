@@ -2,7 +2,11 @@ import { Clock01Icon, FlashIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { identityMarkRadius } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
-import { type AutomationKind, automationMarkColor } from './automation-presentation.ts';
+import {
+    type AutomationKind,
+    automationMarkColor,
+    automationMarkSoftFill,
+} from './automation-presentation.ts';
 
 const automationGlyph = {
     reminder: Clock01Icon,
@@ -39,18 +43,36 @@ export function AutomationGlyph({
  * The glyph in its own box, for the surfaces that give the automation a title
  * line of its own. Exact box, so it derives its radius the way every other
  * fixed identity mark in the app does.
+ *
+ * `avatar` is the 16px mark that stands in for an author on a turn's context
+ * line: the same bounds as the 16px `EntityAvatar` on a reply line, filled
+ * with a soft tint of the automation's ink, with the glyph larger relative to
+ * the box so it still reads at that size.
  */
-export function AutomationGlyphBox({ kind }: { kind: AutomationKind }) {
+export function AutomationGlyphBox({
+    kind,
+    variant = 'title',
+}: {
+    kind: AutomationKind;
+    variant?: 'avatar' | 'title';
+}) {
+    const { box, glyph } = glyphBoxSize[variant];
     return (
         <span
             aria-hidden="true"
             className={cn(
-                'flex shrink-0 items-center justify-center bg-surface-tertiary',
+                'flex shrink-0 items-center justify-center',
+                variant === 'avatar' ? automationMarkSoftFill[kind] : 'bg-surface-tertiary',
                 automationMarkColor[kind]
             )}
-            style={{ borderRadius: identityMarkRadius(24), height: 24, width: 24 }}
+            style={{ borderRadius: identityMarkRadius(box), height: box, width: box }}
         >
-            <AutomationGlyph kind={kind} />
+            <AutomationGlyph kind={kind} size={glyph} />
         </span>
     );
 }
+
+const glyphBoxSize = {
+    avatar: { box: 16, glyph: 12 },
+    title: { box: 24, glyph: 14 },
+} as const;

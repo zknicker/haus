@@ -13,12 +13,14 @@ import {
     fireContextPayloadLabel,
     fireContextPayloadLanguage,
     messageCauseArchivedNote,
+    messageCauseDescription,
 } from './automation-presentation.ts';
 
 /**
  * The head of a caused message's Thread: what fired, when, and with what.
  *
- * The transcript mark says only which automation spoke. Everything the fire
+ * The transcript mark says only which automation spoke; this card adds a
+ * Reminder's description under its title. Everything the fire
  * actually carried — its position in that automation's history, the body an
  * outside system POSTed, the note a Reminder was set from — lives here,
  * because a Thread is where someone goes to ask why.
@@ -55,6 +57,7 @@ export function AutomationFireContextCardView({ context }: { context: Automation
     const payloadLabel = fireContextPayloadLabel(context);
     const anchorNote = fireContextAnchorNote(context);
     const archivedNote = messageCauseArchivedNote(cause);
+    const description = messageCauseDescription(cause);
 
     return (
         <section
@@ -73,6 +76,11 @@ export function AutomationFireContextCardView({ context }: { context: Automation
                         </Chip>
                     ) : null}
                 </div>
+                {description ? (
+                    <p className={`m-0 text-foreground text-sm leading-snug ${factIndent}`}>
+                        {description}
+                    </p>
+                ) : null}
                 <p
                     className={`m-0 flex flex-wrap gap-1.5 text-muted text-xs leading-4 ${factIndent}`}
                 >

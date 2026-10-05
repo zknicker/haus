@@ -248,20 +248,18 @@ async function createOtherServer() {
     return { agentId: created.agent.id, chatId: chat.id, serverId: server.id };
 }
 
-async function manualGet(token: string, query: Record<string, string>) {
-    const url = new URL('/api/agent/manual/get', harness.url);
-    for (const [key, value] of Object.entries(query)) {
-        url.searchParams.set(key, value);
-    }
-    const response = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
-    return { body: (await response.json()) as Record<string, any>, status: response.status };
-}
+const manualGet = (token: string, query: Record<string, string>) =>
+    manualRequest('get', token, query);
+const manualSearch = (token: string, query: Record<string, string>) =>
+    manualRequest('search', token, query);
 
-async function manualSearch(token: string, query: Record<string, string>) {
-    const url = new URL('/api/agent/manual/search', harness.url);
-    for (const [key, value] of Object.entries(query)) {
-        url.searchParams.set(key, value);
-    }
+async function manualRequest(
+    operation: 'get' | 'search',
+    token: string,
+    query: Record<string, string>
+) {
+    const url = new URL(`/api/agent/manual/${operation}`, harness.url);
+    url.search = new URLSearchParams(query).toString();
     const response = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
     return { body: (await response.json()) as Record<string, any>, status: response.status };
 }

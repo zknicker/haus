@@ -14,11 +14,10 @@ rows at all.
   `system_author` — and every row is readable by every human who can read the Chat. A task
   assignment, an automation fire, and a session rotation are agent inbox items or durable
   records, never timeline rows (ADR 0026).
-- What a human needs to know about those facts rides the message they explain, as a header
-  mark: the task chip for an assignment, the fire mark for an automation
-  ([automation-provenance.md](automation-provenance.md)), and the session mark for a
-  rotation ([sessions.md](sessions.md#generation-in-the-transcript)). Marks are attached to
-  a message; they are never units of their own.
+- What a human needs to know about those facts rides the message they explain: the task
+  chip for an assignment, and the cause line above the message for an automation fire
+  ([automation-provenance.md](automation-provenance.md)). Both are attached to a message;
+  they are never units of their own. A session rotation shows nowhere in the transcript.
 - An agent message is an explicit send, immutable once committed. There are
   no edits, no streamed replacements, no silent-turn placeholders.
 

@@ -3,6 +3,8 @@ summary: Authenticated, read-only Haus Manual topics for managed Agents and the 
 read_when:
   - changing the authenticated Manual API, Agent CLI commands, or runner Manual capability
   - adding or revising release-owned Manual topics and recipe search behavior
+  - changing Manual lookup ranking, aliases, miss guidance, or command-family help pointers
+  - reviewing Manual lookup misses from the audit table
 ---
 
 # Haus Manual API
@@ -21,7 +23,8 @@ The authenticated Agent API exposes:
   bounded topic metadata, with optional `scope=recipes` and `limit=1..20`
 
 Both operations require a live runner with the `manual` capability. `intent`
-and `reason` are trimmed and must each be 12–500 characters. Search never
+(what the Agent is trying to accomplish) and `reason` (why it needs the Manual
+for that now) are trimmed and must each be 12–500 characters. Search never
 returns topic bodies; use `manual get` after finding a stable id.
 
 The Agent CLI mirrors those operations:
@@ -32,12 +35,73 @@ haus manual search <keywords> --intent <text> --reason <text> --scope recipes
 ```
 
 Start at `haus-cli-overview` when the command family or authenticated
-workflow is unfamiliar. Unknown topics point back to `haus manual get index`.
+workflow is unfamiliar. Every command family's `--help` (group and
+subcommand) ends with `Details: haus manual get <family>`, and
+`haus manual --help` shows example flows.
+
+## Lookup behavior
+
+Lookup lives in `packages/agent-manual` (`lookup.ts`, `lookup-text.ts`,
+`lookup-guidance.ts`); the Server route only records the audit row and
+renders the result.
+
+* **Normalization.** Ids, titles, aliases, and queries are compared
+  lowercased, with every punctuation or path run (`/ - _ .`) as one space and
+  English plurals singularized. There are no synonyms.
+* **Get** resolves the exact id first, then a normalized id, a recipe id
+  without its `recipes/` prefix, a title, or an alias. `reminders`,
+  `Cloud Agents`, and `technique/task-claim-lock` all resolve. Lookup keys must
+  stay unique across topics (tested).
+* **Search** is ranked, not all-terms. Each query term scores its strongest
+  field: id 8, alias 7, title 6, recipe trigger 5, summary 4, recipe metadata 2,
+  body 1. A whole-query match on an id, title, or alias adds 50; a multi-word
+  query contained in a title, alias, or trigger adds 10. A topic qualifies when
+  it matches at least half of the meaningful terms. A term no topic contains
+  may match a corpus word one edit away (five letters or more) at half weight.
+  Recipe-index bodies are not matched, so the index does not join every result.
+* **Get miss** returns `404 MANUAL_TOPIC_NOT_FOUND` whose `nextAction` lists up
+  to three closest topics with their matched terms, a ready-to-run `get` for
+  the closest, a ready-to-run `search` built from the missed id, and the index
+  command.
+* **Empty search** returns `404 MANUAL_NO_MATCH` with the same closest-topic
+  block, a retry hint, a widen-to-all-topics command for `--scope recipes`, and
+  the index command.
+* **Successful search** prints a next step that opens the top result with the
+  caller's own `--intent` and `--reason`.
+
+Topics may carry `aliases`, which steer lookup only and never cross the wire.
+Add an alias only for an exact lookup shape an Agent was observed to try, and
+only when an existing topic truly answers it. A miss no topic answers stays a
+miss; the guidance still shows the nearest topics and the index.
+
+## Reviewing misses
+
+The audit table records the raw get topic or search query with its intent and
+reason, but not the outcome. Review misses by replaying the rows against the
+current corpus: fixed misses drop out on their own. On the Server host (see
+[Hosted Haus troubleshooting](../operations/haus-server-troubleshooting.md)):
+
+```sh
+/opt/homebrew/bin/docker exec haus-postgres psql -U haus_admin -d haus_production -At -c \
+  "SELECT json_build_object('at', created_at, 'agent', agent_id, 'operation', operation,
+     'lookup', coalesce(topic_id, query), 'intent', intent, 'reason', reason)
+   FROM manual_lookup_audit WHERE created_at > now() - interval '30 days'
+   ORDER BY created_at" > lookups.jsonl
+```
+
+Then, from a checkout: `bun packages/agent-manual/scripts/manual-misses.ts < lookups.jsonl`.
+Each remaining row is a lookup the Manual still cannot answer. Read its intent
+and reason, then either add the exact observed shape as an alias on the topic
+that answers it, or record a missing topic as a gap. Never add guessed
+aliases.
 
 ## Published corpus
 
 The release-owned Manual ships `index`, `haus-cli-overview`, the product
-reference topics `agent`, `cloud-agents`, and `amazon-product-references`, `recipes/index`, `recipes/seeded`,
+reference topics `agent`, `cloud-agents`, `tasks`, `replies`, and
+`amazon-product-references`, one product-noun topic per remaining command
+family (`message`, `inbox`, `thread`, `channel`, `server`, `profile`,
+`attachment`, `skill`, `reminder`, `trigger`), `recipes/index`, `recipes/seeded`,
 and 33 complete recipe cards: 12 seeded cards and 21 query-tier cards. Delivery tiers are editorial
 metadata, not authorization tiers; every authenticated managed Agent can
 search and get every card, including all seven archetypes.

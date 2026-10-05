@@ -54,25 +54,19 @@ and [Agent Inbox](../../specs/inbox.md).
   at rest. That freshness is app-local state
   (`hooks/servers/fresh-reactions.ts`) and never touches durable chat data.
 * **Why an Agent said something.** Anything an Agent was told privately stays
-  out of the conversation and shows up as a mark on the message's author line: a
-  lightning or clock **fire mark** when a Trigger or reminder woke the Agent, and
-  a **session mark** on the first thing the Agent says in a chat after its
-  session was reset. The author line carries provenance only — what the message
-  *is*, and anything with a lifecycle to follow, reads in the recessed Thread
-  surface beneath it. Hovering a
-  mark previews the automation or the reset — what it was, when, and where to
-  manage it — and a fire's Thread carries a context card with the payload or the
-  anchoring note. A fire, an assignment, or a reset the Agent never speaks about
-  leaves the conversation untouched. **A fire mark outlives its automation.**
-  Title, glyph, and summary are snapshotted onto the message, so a message whose
-  Trigger, reminder, or fire has since been archived still says what woke the
-  Agent. Its hover card and context card then state only what the message
-  remembers — what fired, its cadence or kind, and when — plus one line saying
-  the trigger or reminder has been archived, and drop the live facts (status,
-  fire count, last fire, standing instruction, payload, anchoring note) and the
-  way out to a record that is no longer there. See
-  [automation provenance](../../specs/automation-provenance.md) and
-  [sessions](../../specs/sessions.md#generation-in-the-transcript).
+  out of the conversation. When a Trigger or reminder woke the Agent, its answer
+  carries a **cause line** above the author line, shaped like an inline reply's
+  parent line: a small lightning or clock avatar in the automation's color, then
+  its title. Hovering previews the automation; pressing opens the owning Agent's
+  Automations tab. When the answer is also an inline reply, the cause line
+  replaces the reply line. A fire's Thread carries a context card with the payload
+  or the anchoring note instead of the line. A fire or an assignment the Agent
+  never speaks about leaves the conversation untouched. **A cause line outlives
+  its automation.** Title, glyph, and summary are snapshotted onto the message,
+  so a message whose Trigger, reminder, or fire has since been archived still
+  says what woke the Agent; its hover card and context card then state only what
+  the message remembers and drop the live facts and the way into Automations. See
+  [automation provenance](../../specs/automation-provenance.md).
 * **New Agent introductions.** Creation posts nothing. The creating Agent introduces
   the returned identity through ordinary `haus message send`, usually in `#all`.
   Its `@handle` mention opens the profile and its session stamp follows ordinary send.
@@ -347,8 +341,8 @@ and [Agent Inbox](../../specs/inbox.md).
   a link, in split mode in the other pane — see
   [Desktop tabs](browser-tabs.md#where-things-open). Clicking the transcript name
   inserts an Agent mention, while the DM topbar name remains inert. Session
-  resets stay agent-wide in Agent settings (specs/sessions.md) and reach a chat
-  only as the session mark described above. Execution evidence (turn
+  resets stay agent-wide in Agent settings (specs/sessions.md) and draw nothing
+  in a chat. Execution evidence (turn
   status and Activity History) lives on the profile. An Agent message's Turn Details drawer may
   show its Server summary and, for Owners/Admins with an online Computer, relay the detailed local
   execution journal — see [Agent Activity](../../specs/agent-activity.md).

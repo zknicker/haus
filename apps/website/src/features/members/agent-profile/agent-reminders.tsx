@@ -7,7 +7,11 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentLoading } from './agent-loading.tsx';
-import { formatReminderSchedule, scheduledReminders } from './agent-reminder-model.ts';
+import {
+    formatReminderSchedule,
+    reminderDescription,
+    scheduledReminders,
+} from './agent-reminder-model.ts';
 import { ProfileListSection } from './profile-list-section.tsx';
 import { ReminderHistoryDrawer } from './reminder-history-drawer.tsx';
 
@@ -65,6 +69,11 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
                             <ItemCard>
                                 <ItemCard.Content>
                                     <ItemCard.Title>{reminder.title}</ItemCard.Title>
+                                    {reminderDescription(reminder) ? (
+                                        <ItemCard.Description title={reminder.description ?? ''}>
+                                            {reminderDescription(reminder)}
+                                        </ItemCard.Description>
+                                    ) : null}
                                     <ItemCard.Description className="tabular-nums">
                                         {formatReminderSchedule(reminder)}
                                     </ItemCard.Description>

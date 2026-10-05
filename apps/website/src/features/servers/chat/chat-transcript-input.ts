@@ -5,8 +5,8 @@ import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 export interface ChatTranscriptInput {
-    /** Hides the header automation mark when a context card already states it. */
-    causeMarkHidden?: boolean;
+    /** Hides the automation context line when a context card already states it. */
+    causeLineHidden?: boolean;
     chatId: string;
     /** The Channel or DM this transcript belongs to; a Thread names its parent. */
     conversationChatId?: string;

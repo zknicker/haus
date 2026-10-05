@@ -38,9 +38,8 @@ export const chatMessageSchema = z
         runId: idSchema.nullable(),
         sequence: z.number().int().positive(),
         /**
-         * The Agent session that wrote this message. A change from the same
-         * Agent's previous message in the Chat is what draws the session mark;
-         * human messages carry null.
+         * The Agent session generation that wrote this message, as execution
+         * lineage; human messages carry null.
          */
         sessionGeneration: z.number().int().positive().nullable().default(null),
         serverId: idSchema,

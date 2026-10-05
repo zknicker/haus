@@ -76,7 +76,10 @@ Schedule a Haus reminder anchored to the relevant message or thread. A reminder 
 
 ### Scripts and fires
 Use \`--script\` for a local workspace check: empty output records a quiet tick; non-empty output wakes you with the output. See \`haus reminder schedule --help\` for syntax.
-A fire arrives through your inbox, including on a later turn if you are busy, and writes nothing to chat itself. Send an answer top-level in the anchor chat with \`--cause <fireId>\`, not in a thread. Inspect runs with \`haus reminder log\`.`,
+A fire arrives through your inbox, including on a later turn if you are busy, and writes nothing to chat itself. Send an answer top-level in the anchor chat with \`--cause <fireId>\`, not in a thread. Inspect runs with \`haus reminder log\`.
+
+### Title and description
+The title labels your answer in chat, so keep it a short calendar-invite subject (60 characters at most); the action-language instruction from step 2 goes in \`--description\` and comes back in the fire. For example: \`--title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments"\`.`,
         class: 'technique',
         industries: ['universal'],
         prereqs: ['message or thread anchor'],

@@ -84,9 +84,9 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   activity; Agent reference chips use the same preview.
   The preview shows the Computer-confirmed configuration. When a saved model or runtime differs,
   it also names the pending choice and when it applies, or notes that it needs attention.
-- Activity and Automations are what the marks on an Agent's messages link to: a
-  fire mark opens the automation, a session mark opens Activity. See
-  [Chat](chat.md#in-the-box) for the marks themselves.
+- Automations is where the cause line on an Agent's message leads: pressing it
+  opens the owning Agent's Automations tab. See [Chat](chat.md#in-the-box) for the
+  line itself.
 - The header edits identity; **Runs on** edits desired model, runtime, and reasoning effort.
   The editor explains that model and runtime changes apply on the next turn with a fresh session,
   preserving workspace, memory, and Chat history. A running turn finishes with its original model.

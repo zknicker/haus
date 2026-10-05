@@ -3,7 +3,7 @@ import { formatRelativeTime, formatTimestamp } from '../../../lib/format.ts';
 import { formatTriggerPayloadSize } from '../../members/agent-profile/agent-trigger-model.ts';
 
 /**
- * How a caused message presents its provenance: the header mark, its hover
+ * How a caused message presents its provenance: the context line, its hover
  * card, and the Thread context card all read from here, so a Trigger and a
  * Reminder are told apart in one place rather than at three call sites.
  */
@@ -14,6 +14,18 @@ export type AutomationKind = MessageCause['kind'];
 export const automationMarkColor = {
     reminder: 'text-reminder-mark',
     trigger: 'text-trigger-mark',
+} as const satisfies Record<AutomationKind, string>;
+
+/** The soft tint behind the glyph where it stands in for an author. */
+export const automationMarkSoftFill = {
+    reminder: 'bg-reminder-mark-soft',
+    trigger: 'bg-trigger-mark-soft',
+} as const satisfies Record<AutomationKind, string>;
+
+/** The context line's elbow, tinted toward the ink so it is not a reply's. */
+export const automationMarkElbow = {
+    reminder: 'border-reminder-mark-line',
+    trigger: 'border-trigger-mark-line',
 } as const satisfies Record<AutomationKind, string>;
 
 /**
@@ -37,6 +49,25 @@ export function automationStatusChip(status: MessageCauseLive['status']): {
         default:
             return { color: 'default', label: 'Disabled' };
     }
+}
+
+/**
+ * What a Reminder's short title stands for, or null when there is nothing more
+ * to say. A Reminder written before titles became labels copied its sentence
+ * title into its description, and the card says a thing once, not twice.
+ */
+export function messageCauseDescription(cause: Pick<MessageCause, 'description' | 'title'>) {
+    const description = cause.description?.trim();
+    return description && description !== cause.title.trim() ? description : null;
+}
+
+/**
+ * The live instruction a hover card clips — a Trigger's standing instruction or
+ * a Reminder's script — unless the description already said exactly that.
+ */
+export function messageCauseInstruction(cause: MessageCause) {
+    const instruction = cause.live?.instruction?.trim();
+    return instruction && instruction !== messageCauseDescription(cause) ? instruction : null;
 }
 
 /**

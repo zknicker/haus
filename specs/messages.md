@@ -31,12 +31,10 @@ Messages are Haus's normal conversational interactions.
 ## Presentation
 
 - Messages render from server-owned normalized rows.
-- An Agent message can carry marks in its header explaining why it was sent: the fire
-  mark for an automation ([automation-provenance.md](automation-provenance.md)) and the
-  session mark for a session rotation
-  ([sessions.md](sessions.md#generation-in-the-transcript)). A task assignment shows as
-  the task chip on the canonical task message. Marks are rendered from fields the message
-  already carries and never add rows to the transcript.
+- An Agent message an automation provoked carries a cause line above it naming the
+  Trigger or Reminder ([automation-provenance.md](automation-provenance.md)). A task
+  assignment shows as the task chip on the canonical task message. Both render from
+  fields the message already carries and never add rows to the transcript.
 - The product does not require React to infer authorship or model identity from raw runtime
   payloads.
 - Rich references render as message fragments when durable message content includes explicit

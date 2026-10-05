@@ -13,6 +13,15 @@ export function scheduledReminders(reminders: readonly Reminder[]): Reminder[] {
     return reminders.filter((reminder) => reminder.status === 'scheduled');
 }
 
+/**
+ * The row's second line: what the short title stands for. A Reminder written
+ * before the split copied its title here, so an identical one is said once.
+ */
+export function reminderDescription(reminder: Pick<Reminder, 'description' | 'title'>) {
+    const description = reminder.description?.trim();
+    return description && description !== reminder.title.trim() ? description : null;
+}
+
 export function formatReminderTime(value: string) {
     return new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',

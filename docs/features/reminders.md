@@ -17,10 +17,17 @@ schedule, so it fires even while the Agent's Computer is offline.
 
 - **The answer is the row.** Scheduling and firing post nothing. A fire queues
   attention for the owning Agent only and wakes it; if the Agent has something to
-  say it says it as an ordinary message, and that message shows a small clock
-  mark with the reminder's title beside the author. A fire the Agent has nothing
+  say it says it as an ordinary message, and that message shows a cause line
+  with the reminder's title above it. A fire the Agent has nothing
   to add to leaves the conversation untouched and appears only in the reminder's
   run history.
+- **Title and description.** A reminder's title is a short label, like a
+  calendar invite subject — "Monday Advertising Review" — and is all the cause
+  line shows. Its description is the full instruction ("Check advertising and
+  flag campaigns that need bid adjustments"); the fire hands it back to the
+  Agent, and the hover card, Thread context card, and Agent profile show it
+  under the title. Agents set titles of at most 60 characters; older reminders
+  kept their sentence titles and copied them into the description.
 - **Why a message arrived.** The mark, its hover preview, and the Thread context
   card behind it work the same for every automation — see
   [Chat](chat.md#in-the-box). Each fire the Agent acts on is its own message;
@@ -55,7 +62,7 @@ schedule, so it fires even while the Agent's Computer is offline.
   fire whose wake is still queued for its Agent is never swept, however old it
   is: an unhandled wake is unfinished business, not history, and the Agent
   seeing it is what starts its clock. The Agent's answers stay in the transcript
-  as ordinary messages and keep their clock mark: title, cadence, and fire time are
+  as ordinary messages and keep their cause line: title, description, cadence, and fire time are
   snapshotted onto the message, so the mark reads the same after the record
   goes. Its hover card and Thread context card then state that snapshot and that
   it is archived, and drop the live facts — status, fire count, last fire, the
@@ -67,7 +74,8 @@ schedule, so it fires even while the Agent's Computer is offline.
   reaches the Agent on the wake itself, not as a message in the conversation, and
   the Agent decides whether it is worth saying.
 - **Agent profiles.** Server Owners and Admins can see an Agent's reminders on
-  that Agent's profile. There is no Server-wide Reminders page. Script contents
+  that Agent's profile, each row showing the title, its description, and the
+  next wake. There is no Server-wide Reminders page. Script contents
   remain redacted.
 - **Schedule, then history.** The profile's Reminders section is the schedule:
   it lists only scheduled reminders and its count is the number of wakes still

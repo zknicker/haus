@@ -4,11 +4,11 @@ import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AutomationFireContextCardView } from './automation-fire-context-card.tsx';
-import { MessageCauseHoverContent, MessageCauseMark } from './message-cause-mark.tsx';
+import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
 
-test('the header mark names its automation in that automation’s own ink', () => {
-    const trigger = render(<MessageCauseMark cause={triggerCause()} />);
-    const reminder = render(<MessageCauseMark cause={reminderCause()} />);
+test('the cause line names its automation in that automation’s own ink', () => {
+    const trigger = render(<MessageCauseLine cause={triggerCause()} />);
+    const reminder = render(<MessageCauseLine cause={reminderCause()} />);
 
     expect(trigger).toContain('Deploy finished');
     expect(trigger).toContain('text-trigger-mark');
@@ -18,6 +18,22 @@ test('the header mark names its automation in that automation’s own ink', () =
     // Neither borrows a status colour: a fired automation is not a warning.
     expect(trigger + reminder).not.toContain('text-warning');
     expect(trigger + reminder).not.toContain('text-danger');
+});
+
+test('the cause line leads with a tinted automation avatar and a tinted elbow', () => {
+    const reminder = render(<MessageCauseLine cause={reminderCause()} />);
+
+    expect(reminder).toContain('bg-reminder-mark-soft');
+    expect(reminder).toContain('border-reminder-mark-line');
+    // The same bounds as the 16px EntityAvatar on a reply line.
+    expect(reminder).toContain('border-radius:calc(var(--radius) * 1);height:16px;width:16px');
+});
+
+test('the cause line opens the owning Agent’s Automations tab', () => {
+    const markup = render(<MessageCauseLine cause={reminderCause()} />);
+
+    expect(markup).toContain('aria-label="Open reminder: Weekly self-review"');
+    expect(markup).toContain('href="/s/dev/agents/agt_blippy/automations"');
 });
 
 test('the hover card previews the automation without management links', () => {
@@ -73,12 +89,14 @@ test('a Reminder context card carries its anchoring note and no payload', () => 
     expect(markup).toContain('/s/dev/agents/agt_blippy/automations');
 });
 
-test('an archived automation keeps its mark exactly as a live one has it', () => {
-    const archived = render(<MessageCauseMark cause={archivedReminderCause()} />);
+test('an archived automation keeps its line but loses the way into Automations', () => {
+    const archived = render(<MessageCauseLine cause={archivedReminderCause()} />);
 
-    expect(archived).toBe(render(<MessageCauseMark cause={reminderCause()} />));
     expect(archived).toContain('Weekly self-review');
     expect(archived).toContain('text-reminder-mark');
+    expect(archived).toContain('bg-reminder-mark-soft');
+    expect(archived).not.toContain('<a');
+    expect(archived).not.toContain('/automations');
 });
 
 test('an archived hover card states the snapshot and says the record is gone', () => {
@@ -130,6 +148,7 @@ function triggerCause(): MessageCause {
     return {
         attribution: 'explicit',
         automationId: 'trg_deploy',
+        description: null,
         firedAt: relativeMinutesAgo(4),
         fireId: 'trf_12',
         kind: 'trigger',
@@ -149,6 +168,7 @@ function reminderCause(): MessageCause {
     return {
         attribution: 'explicit',
         automationId: 'rem_review',
+        description: null,
         firedAt: '2026-08-27T13:00:00.000Z',
         fireId: 'rmf_6',
         kind: 'reminder',

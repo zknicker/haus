@@ -1,6 +1,7 @@
 /**
- * Ordinary Agent workspace seed. The workspace starts with identity, an
- * empty knowledge section, and an empty `notes/` for the details MEMORY.md
+ * Ordinary Agent workspace seed. MEMORY.md starts in the prompt's shape: hot
+ * memory (role, standing preferences, Active Context) then an empty Key
+ * Knowledge index, beside an empty `notes/` for the deeper knowledge it
  * indexes (Raft's `initializeAgentWorkspace`); durable guidance remains
  * available through the shared Manual rather than being copied into every
  * Agent workspace.
@@ -43,13 +44,17 @@ function renderStarterMemory(input: SeedAgentWorkspaceInput): string {
 
 ${role}
 ${renderBriefSection(input)}
-## Key Knowledge
+## Standing Preferences
 
-- No notes yet.
+- None recorded yet.
 
 ## Active Context
 
 - First startup.
+
+## Key Knowledge
+
+- No notes yet.
 `;
 }
 

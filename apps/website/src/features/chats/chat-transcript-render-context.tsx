@@ -2,7 +2,6 @@ import type { CloudAgentWork } from '@haus/api';
 import * as React from 'react';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
-import type { SessionMark } from './session/session-mark-model.ts';
 import type {
     TranscriptActorProfile,
     TranscriptMessageRow,
@@ -34,12 +33,12 @@ export function getMessageCopyText(
 export interface TranscriptRenderContextValue {
     canRequestMention: boolean;
     /**
-     * Suppresses the header's automation mark. A Thread opened on a caused
+     * Suppresses the automation context line. A Thread opened on a caused
      * message states the automation, its status, and the fire in the context
-     * card above the anchor, so repeating the mark on the anchor's own header
-     * says the same thing twice.
+     * card above the anchor, so repeating the line above the anchor says the
+     * same thing twice.
      */
-    causeMarkHidden?: boolean;
+    causeLineHidden?: boolean;
     chatId?: string;
     composerId?: string;
     /**
@@ -92,12 +91,6 @@ export interface TranscriptRenderContextValue {
     repliedRunIds: ReadonlySet<string>;
     replyTargetMessageId?: string;
     resolveActorProfile?: (actor: TranscriptActor) => TranscriptActorProfile | null;
-    /**
-     * Messages that opened a new Agent session, by message id. Derived across
-     * the whole loaded transcript rather than per row, because the rule is a
-     * difference between one Agent message and that Agent's previous one.
-     */
-    sessionMarks?: ReadonlyMap<string, SessionMark>;
     /**
      * The one Message whose task chip a surrounding panel already states. A
      * Thread opened on a Task names it in the header and states its status,

@@ -3,6 +3,7 @@ import type { Reminder, ReminderHistoryEntry } from '@haus/api';
 import {
     formatReminderCadence,
     formatReminderSchedule,
+    reminderDescription,
     reminderExecutionOutcome,
     scheduledReminders,
 } from './agent-reminder-model.ts';
@@ -12,6 +13,7 @@ function reminder(overrides: Partial<Reminder> & Pick<Reminder, 'id'>): Reminder
         anchorChatId: 'chat_1',
         anchorMessageId: 'msg_1',
         createdAt: '2026-09-01T00:00:00.000Z',
+        description: null,
         fireAt: '2026-09-02T09:00:00.000Z',
         hasScript: false,
         ownerAgentId: 'agent_1',
@@ -122,4 +124,14 @@ test('an answered scriptless execution says nothing the Answer link already says
 
 test('an unanswered execution names the silence, because no answer is an ending', () => {
     expect(reminderExecutionOutcome(execution())).toEqual({ kind: 'note', label: 'No answer' });
+});
+
+test('a scheduled row adds the description unless it only repeats the title', () => {
+    expect(
+        reminderDescription(
+            reminder({ description: 'Check advertising and adjust bids', id: 'r1', title: 'Ads' })
+        )
+    ).toBe('Check advertising and adjust bids');
+    expect(reminderDescription(reminder({ description: 'Reminder', id: 'r2' }))).toBeNull();
+    expect(reminderDescription(reminder({ id: 'r3' }))).toBeNull();
 });

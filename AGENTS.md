@@ -212,10 +212,13 @@ The composed agent system prompt is a guarded contract. Its sources live under
 `managed-instructions.test.ts`.
 
 Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
-reviewed, and bounded. `managed-instructions.test.ts` asserts a reviewed size budget (currently
-32,399 characters) that ratchets down and never drifts up. It is a review gate, not a runtime
-limit: no adapter enforces a prompt length. Prefer moving guidance out of the prompt over adding
-to it — the prompt is a pointer to the
+reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 32,496
+characters). The cap is a ratchet that forces a deliberate decision, not a hard limit, and no
+adapter enforces a prompt length. A justified addition raises the cap to the measured render in
+the same change, with a one-line reason in the register. Never delete, trim, merge, or
+deduplicate other prompt text just to make room: that silently changes other behavior. Shrinking
+the prompt is its own intentional change with its own justification, and lowers the cap. Prefer
+moving guidance out of the prompt over adding to it — the prompt is a pointer to the
 [Haus Manual](docs/adr/0021-cove-onboards-and-agents-share-a-manual.md) for mechanics, and a
 change should move things around and simplify rather than expand. Following Raft's own rule,
 standing principles stay in the prompt; event formats, delivery mechanics, and event-specific
@@ -223,17 +226,16 @@ actions ride the event input (for example the inbox notice in `apps/computer/src
 
 Haus tracks the **current** Raft release from source. The
 [divergence register](specs/raft-alignment/prompt-divergences.md) pins the Raft source commit;
-re-pin by updating that commit and re-diffing every row. Two kinds of text share the budget:
+re-pin by updating that commit and re-diffing every row. Two kinds of text share the cap:
 
 - **Raft-verbatim text is the fixed part.** It is text present in the current Raft prompt at the
   pinned source commit, and it is never trimmed, paraphrased, or reordered to make room. Adopting
-  or restoring a current Raft clause may raise the budget by exactly that amount, with the
-  register row and a one-line commit rationale. When Raft deletes a clause, the Haus copy becomes
-  Haus-only and must justify itself like any other Haus-only text.
-- **Haus-only text is the variable part.** A Haus-only addition must fit inside the current
-  budget by simplifying or relocating other Haus-only text — Manual topics, skills, or event
-  input, per [ADR 0012](docs/adr/0012-design-guidance-is-skill-carried.md) — never by cutting Raft
-  text. Raising the budget for Haus-only growth needs an explicit operator decision.
+  or restoring a current Raft clause raises the cap by exactly that amount, with the register row
+  and a one-line commit rationale. When Raft deletes a clause, the Haus copy becomes Haus-only and
+  must justify itself like any other Haus-only text.
+- **Haus-only text is the variable part.** Each Haus-only addition justifies itself with a
+  register row and raises the cap; mechanics belong in Manual topics, skills, or event input, per
+  [ADR 0012](docs/adr/0012-design-guidance-is-skill-carried.md), rather than the prompt.
 
 When changing prompt text or that contract test:
 

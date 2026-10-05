@@ -9,23 +9,38 @@ interface ManualDeps {
     write(text: string): void;
 }
 
+// Intent is the work; reason is why the Manual is needed for it right now.
+const INTENT_FLAG = {
+    description: 'What you are trying to accomplish (12–500 characters)',
+    name: '--intent',
+    valueName: '<text>',
+};
+const REASON_FLAG = {
+    description: 'Why you need the Manual for it now (12–500 characters)',
+    name: '--reason',
+    valueName: '<text>',
+};
+
+/** Example flows shown in `haus manual --help`. */
+export const MANUAL_EXAMPLE_FLOWS = [
+    'Learn a command family (the noun resolves singular or plural):',
+    '  haus manual get reminder --intent "Follow up on the deploy tomorrow morning" --reason "I have not scheduled a reminder before"',
+    'Find a procedure, then open the top result:',
+    '  haus manual search "claim task" --intent "Pick up the bug report in #product" --reason "Another Agent may already be on it"',
+    '  haus manual get recipes/technique/task-claim-lock --intent "Pick up the bug report in #product" --reason "Need the claim procedure before starting"',
+    'Lost? Browse every topic:',
+    '  haus manual get index --intent "Find the Haus workflow I need" --reason "No topic name comes to mind"',
+];
+
 export const MANUAL_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'haus manual get haus-cli-overview --intent "I need the operating guide" --reason "I am orienting this Agent"',
+            'haus manual get message --intent "Reply to a question in #product" --reason "I need the send flags and targets"',
         ],
-        flags: [
-            {
-                description: 'Why you need this topic (12–500 characters)',
-                name: '--intent',
-                valueName: '<text>',
-            },
-            {
-                description: 'Why this lookup is justified (12–500 characters)',
-                name: '--reason',
-                valueName: '<text>',
-            },
+        notes: [
+            'Accepts a stable id, a command family noun, or a known alias. A miss lists the closest topics.',
         ],
+        flags: [INTENT_FLAG, REASON_FLAG],
         name: 'get',
         positionals: ['<topic>'],
         run: (args) => runManualGet(args, defaultDeps()),
@@ -34,19 +49,14 @@ export const MANUAL_SUBCOMMANDS: SubCommand[] = [
     },
     {
         examples: [
-            'haus manual search "claim task" --intent "I need matching guidance" --reason "I am choosing a safe procedure"',
+            'haus manual search "claim task" --intent "Pick up the bug report in #product" --reason "Another Agent may already be on it"',
+        ],
+        notes: [
+            'Results are ranked; not every keyword must match. No match lists the nearest topics.',
         ],
         flags: [
-            {
-                description: 'Why you need this search (12–500 characters)',
-                name: '--intent',
-                valueName: '<text>',
-            },
-            {
-                description: 'Why this lookup is justified (12–500 characters)',
-                name: '--reason',
-                valueName: '<text>',
-            },
+            INTENT_FLAG,
+            REASON_FLAG,
             {
                 description: 'Restrict results to recipe topics',
                 name: '--scope',
@@ -105,16 +115,28 @@ export async function runManualSearch(args: ParsedArgs, deps: ManualDeps): Promi
             },
         }
     );
-    if (response.results.length === 0) {
+    const top = response.results[0];
+    if (!top) {
         deps.write(`No Manual topics matched "${response.query}".\n`);
         return 0;
     }
-    deps.write(
-        `${response.results
-            .map((result) => `${result.id} — ${result.title}\n  ${result.summary}`)
-            .join('\n')}\n`
+    const lines = response.results.map(
+        (result) => `${result.id} — ${result.title}\n  ${result.summary}`
     );
+    lines.push('', `Next: open the top result with ${manualGetCommand(top.id, args)}`);
+    deps.write(`${lines.join('\n')}\n`);
     return 0;
+}
+
+/** The get command for a topic, reusing this lookup's own intent and reason. */
+function manualGetCommand(topicId: string, args: ParsedArgs): string {
+    const intent = shellQuote(requiredManualText(args, '--intent'));
+    const reason = shellQuote(requiredManualText(args, '--reason'));
+    return `haus manual get ${topicId} --intent ${intent} --reason ${reason}`;
+}
+
+function shellQuote(value: string): string {
+    return /^[^"$`\\!]*$/u.test(value) ? `"${value}"` : `'${value.replaceAll("'", "'\\''")}'`;
 }
 
 function requiredManualText(args: ParsedArgs, flag: string): string {

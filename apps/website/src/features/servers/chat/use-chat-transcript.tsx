@@ -10,7 +10,6 @@ import type {
     TranscriptMessageRow,
     TranscriptRenderContextValue,
 } from '../../chats/chat-transcript-render-context.tsx';
-import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import {
@@ -33,7 +32,7 @@ const emptyPendingMessages: readonly PendingChatMessage[] = [];
 
 /** Rows and render context retain identity across unchanged refetches to avoid rerendering every turn. */
 export function useChatTranscript({
-    causeMarkHidden,
+    causeLineHidden,
     chatId,
     conversationChatId,
     messages,
@@ -83,20 +82,6 @@ export function useChatTranscript({
     const agentsById = React.useMemo(
         () => new Map(agentList.map((agent) => [agent.id, agent])),
         [agentList]
-    );
-    // Derived across the whole loaded page, not per row: whether a message
-    // opened a new session is a difference from that Agent's previous message,
-    // which no single row can see.
-    const sessionMarks = React.useMemo(
-        () =>
-            deriveSessionMarks(
-                messageList.map((message) => ({
-                    agentId: message.author.kind === 'agent' ? message.author.agentId : null,
-                    id: message.id,
-                    sessionGeneration: message.sessionGeneration,
-                }))
-            ),
-        [messageList]
     );
     // All work delegated inside a Thread, indexed by that Thread's anchor: the
     // transcript surface owns this read, and each row only looks its own
@@ -228,17 +213,16 @@ export function useChatTranscript({
                         serverId={serverId}
                     />
                 ),
-                causeMarkHidden,
+                causeLineHidden,
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
-                sessionMarks,
                 taskChipHiddenMessageId,
                 threadActionsEnabled: Boolean(onOpenThread),
                 viewerUserId,
             }) satisfies TranscriptRenderContextValue,
         [
             agentsById,
-            causeMarkHidden,
+            causeLineHidden,
             chatId,
             chatsById,
             conversationChatId,
@@ -257,7 +241,6 @@ export function useChatTranscript({
             replyTargetMessageId,
             resolveActorProfile,
             serverId,
-            sessionMarks,
             taskChipHiddenMessageId,
             turnDetailsAccess,
             viewerUserId,

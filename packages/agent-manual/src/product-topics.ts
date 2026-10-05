@@ -109,7 +109,11 @@ For revisions, corrections, or another step in the same assignment, send instruc
 
 \`haus cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
 
+**Provider and model.** Cursor is the Cloud Agent provider. A human picks the Cloud Agent model once per Server in Haus App; the default is Auto, Cursor's per-run router. You cannot choose or override it: no command flag or start input carries a model.
+
 When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Haus could read them, so you can judge the size of the change before opening it. As the coordinating Agent, keep review rounds, revision requests, and step-by-step progress in the work thread. The requester’s conversation hears only real state changes, one line each: a pull request ready, a blocker that needs them, the work done. Bring a concise outcome and a link to the work back to the requester’s conversation, following their lead when they join the work thread.`,
+        // Observed misses: Forge searched both before this topic answered them.
+        aliases: ['cloud agent model', 'cursor'],
         id: 'cloud-agents',
         kind: 'overview',
         related: ['agent', 'haus-cli-overview', 'recipes/decision/when-to-ask-human'],

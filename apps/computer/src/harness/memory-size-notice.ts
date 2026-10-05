@@ -1,8 +1,8 @@
 import { lstat, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-/** Raft's Cleaner default (65,536 bytes), fixed: Haus exposes no setting for it. */
-export const memorySizeLimitBytes = 64 * 1024;
+/** Raft v1.21's MEMORY.md target (4,000 tokens × 4 bytes), fixed: Haus exposes no setting for it. */
+export const memorySizeLimitBytes = 16 * 1024;
 /** One notice per window per Agent, and only while MEMORY.md is still over. */
 export const memoryNoticeWindowMs = 24 * 60 * 60 * 1000;
 
@@ -29,7 +29,7 @@ export async function takeMemorySizeNotice(input: {
         return null;
     }
     await writeNoticedAt(stampPath, now);
-    return `[Haus workspace notice: MEMORY.md is ${formatKib(bytes)}, over ${formatKib(memorySizeLimitBytes)}.] You read it on every recovery; keep it an index and move details into notes/. Not a request from anyone; tidy it when convenient and do not mention it in chat.`;
+    return `[Haus workspace notice: MEMORY.md is ${formatKib(bytes)}, over ${formatKib(memorySizeLimitBytes)}.] You read it on every wake; keep hot memory short and move deeper knowledge into notes/. How: haus manual get recipes/technique/memory-hygiene --intent "MEMORY.md is over its size limit" --reason "I am tidying my memory". Not a request from anyone; tidy it when convenient and do not mention it in chat.`;
 }
 
 async function memoryFileBytes(path: string): Promise<number | null> {

@@ -23,12 +23,13 @@ model session. Per-turn message delivery is an inbox concern; see
   context and prior data reads must be rechecked.
 - The model session spans every Chat the Agent participates in and resumes
   between deliveries and Computer restarts.
-- Each turn reads the current MEMORY.md index and only the additional notes needed for the task.
+- Each turn reads the current MEMORY.md (hot memory plus a notes index) and only the additional
+  notes needed for the task.
   Context compression also requires a recovery read. These are Agent instructions, not automatic
   file injection or a Computer-enforced freshness guarantee; the same global session still resumes.
-- A MEMORY.md over 64 KiB earns a one-line private notice appended to the next turn input, at most
-  once per 24 hours per Agent and only while still over. It is Computer-composed turn input, never
-  an inbox item or standing-prompt text ([Agent Workspace](../../specs/workspace.md#durable-knowledge)).
+- A MEMORY.md over 16 KiB earns a one-line private notice appended to the next turn input, at most
+  once per 24 hours per Agent and only while still over. It names the `memory-hygiene` Manual
+  topic. It is Computer-composed turn input, never an inbox item or standing-prompt text ([Agent Workspace](../../specs/workspace.md#durable-knowledge)).
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
   Server tools. MCP grants and discovery results never change the harness tool catalog.
   Missing tools call for the specific connection or grant to be repaired; local configuration
@@ -60,9 +61,8 @@ model session. Per-turn message delivery is an inbox concern; see
   Computer-local implementation evidence.
 - A fresh session starts only for initial creation, a runtime, model, or reasoning-effort switch,
   manual session reset, or one automatic recovery after the harness rejects a stored resume state.
-- A rotation posts no message in any chat. It is recorded durably and stamped on the Agent's
-  messages, and a person sees it as the session mark on the next thing the Agent says in that
-  chat — see [Chat](chat.md#in-the-box).
+- A rotation posts no message in any chat and draws nothing in the transcript. It is recorded
+  durably and stamped on the Agent's messages (`sessionGeneration`).
 - An execution-configuration change never interrupts an active turn. The active turn finishes
   with its frozen runtime, model, and reasoning effort; Server then rotates the session, applies
   the new configuration, and uses it for the next turn.
@@ -80,12 +80,11 @@ model session. Per-turn message delivery is an inbox concern; see
   history. Full reset restores an ordinary Agent's minimal `MEMORY.md`, empty `notes/`, and
   factory-managed skills.
 
-The composed instructions are bounded by a reviewed size budget asserted in
-`apps/computer/src/harness/managed-instructions.test.ts`. It is a review gate, not a runtime limit:
-no adapter enforces a prompt length. Raft-verbatim text is the fixed part and is never trimmed to
-make room; Haus-only additions must fit inside the current budget by simplifying or relocating
-other Haus-only text into Manual topics or skills. See AGENTS.md and
-[the divergence register](../../specs/raft-alignment/prompt-divergences.md).
+The composed instructions are bounded by a size cap asserted in
+`apps/computer/src/harness/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
+decision, not a hard or runtime limit: a justified addition raises the cap with a recorded reason,
+and other prompt text is never cut just to make room. Raft-verbatim text is never trimmed. See
+AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
 
 Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and
 notes), not an injected memory system. Agents read older canonical Chat history

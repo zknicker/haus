@@ -1,15 +1,24 @@
 import { useMessageScroller } from '../../components/chats/message-scroller.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { cn } from '../../lib/utils.ts';
 import type { TranscriptTurnEntry } from './chat-transcript-model.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
 import { messagePreviewLine } from './message-preview-line.ts';
 import type { TranscriptReplyReference } from './transcript-reply-contract.ts';
+import { TurnContextLine, turnContextLineContentClassName } from './turn-context-line.tsx';
+
+type OpenInlineReply = (
+    reference: TranscriptReplyReference,
+    scrollToMessage: (id: string) => boolean
+) => void;
 
 /**
- * The reference precedes the turn's identity, with the elbow in its avatar rail.
- * A same-author follow-up to the same parent skips it (markRepeatedReplyReferences).
+ * The parent this turn replies to, when its reference line should show. A
+ * same-author follow-up to the same parent skips it (markRepeatedReplyReferences).
  */
-export function InlineReplyTurnHeader({ entry }: { entry: TranscriptTurnEntry }) {
+export function useTurnReplyReference(
+    entry: TranscriptTurnEntry
+): { onOpen: OpenInlineReply; reference: TranscriptReplyReference } | null {
     const context = useTranscriptRenderContextOptional();
     const message = entry.items.find((item) => item.kind === 'row' && item.row.kind === 'message');
     const reply =
@@ -19,15 +28,15 @@ export function InlineReplyTurnHeader({ entry }: { entry: TranscriptTurnEntry })
     if (!(reply && entry.showReplyReference && context?.onOpenInlineReply)) {
         return null;
     }
-    return <NavigableInlineReply onOpen={context.onOpenInlineReply} reference={reply.parent} />;
+    return { onOpen: context.onOpenInlineReply, reference: reply.parent };
 }
 
-function NavigableInlineReply({
+export function NavigableInlineReply({
     reference,
     onOpen,
 }: {
     reference: TranscriptReplyReference;
-    onOpen: (reference: TranscriptReplyReference, scrollToMessage: (id: string) => boolean) => void;
+    onOpen: OpenInlineReply;
 }) {
     const { scrollToMessage } = useMessageScroller();
     return (
@@ -52,14 +61,13 @@ export function InlineReplyPreview({
     const author = replyAuthorName(reference.author);
     const excerpt = messagePreviewLine(reference.content) || 'Attachment';
     return (
-        <div className="relative min-w-0 pt-2 pl-11" data-turn-reply-preview="">
-            <span
-                aria-hidden="true"
-                className="absolute top-4 left-4 size-4 rounded-tl-lg border-separator border-t-2 border-l-2"
-            />
+        <TurnContextLine>
             <button
                 aria-label={`Jump to ${author}'s message: ${excerpt}`}
-                className="flex w-full min-w-0 cursor-(--cursor-interactive) items-center gap-1.5 text-left text-muted text-xs hover:text-foreground"
+                className={cn(
+                    turnContextLineContentClassName,
+                    'w-full cursor-(--cursor-interactive) text-muted hover:text-foreground'
+                )}
                 data-inline-reply-preview=""
                 onClick={onPress}
                 type="button"
@@ -70,7 +78,7 @@ export function InlineReplyPreview({
                     {excerpt}
                 </span>
             </button>
-        </div>
+        </TurnContextLine>
     );
 }
 

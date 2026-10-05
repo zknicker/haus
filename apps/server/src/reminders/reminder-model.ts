@@ -1,3 +1,4 @@
+import { REMINDER_DESCRIPTION_MAX_CHARS, REMINDER_TITLE_MAX_CHARS } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -27,6 +28,7 @@ export interface Reminder {
     anchorChatId: string;
     anchorMessageId: string;
     createdAt: string;
+    description: string | null;
     fireAt: string;
     hasScript: boolean;
     id: string;
@@ -45,6 +47,7 @@ export interface ScheduleReminderInput {
     anchorChatId: string;
     anchorMessageId: string;
     commandId: string;
+    description?: string | null;
     fireAt: Date;
     repeat?: string | null;
     script?: string | null;
@@ -209,11 +212,8 @@ export async function readReminder(
 
 export function validateScheduleInput(
     input: ScheduleReminderInput,
-    parsed: { repeat: ReturnType<typeof parseReminderRepeat>; title: string }
+    parsed: { repeat: ReturnType<typeof parseReminderRepeat> }
 ) {
-    if (parsed.title.length === 0 || parsed.title.length > 300) {
-        throw new Error('Reminder title must be between 1 and 300 characters.');
-    }
     if (input.repeat && !parsed.repeat) {
         throw new Error('Reminder repeat does not use the supported grammar.');
     }
@@ -221,6 +221,34 @@ export function validateScheduleInput(
     if (input.script != null && (bytes < 1 || bytes > 16_384)) {
         throw new Error('Reminder script must be between 1 and 16384 UTF-8 bytes.');
     }
+}
+
+/**
+ * The title is the label a human reads on the cause line, so a write must keep
+ * it short and on one line. The error teaches the format, because the Agent
+ * reading it is the one who has to rewrite the title.
+ */
+export function validReminderTitle(raw: string): string {
+    const title = raw.trim();
+    if (title.length === 0) {
+        throw new Error('Reminder title is required.');
+    }
+    if (title.length > REMINDER_TITLE_MAX_CHARS || /[\r\n]/u.test(title)) {
+        throw new Error(
+            `Reminder title must be one line of at most ${REMINDER_TITLE_MAX_CHARS} characters: a short label like a calendar invite subject, such as "Monday Advertising Review". Put the full instruction in --description.`
+        );
+    }
+    return title;
+}
+
+export function validReminderDescription(raw: string): string {
+    const description = raw.trim();
+    if (description.length === 0 || description.length > REMINDER_DESCRIPTION_MAX_CHARS) {
+        throw new Error(
+            `Reminder description must be between 1 and ${REMINDER_DESCRIPTION_MAX_CHARS} characters.`
+        );
+    }
+    return description;
 }
 
 export function toReminder(
@@ -231,6 +259,7 @@ export function toReminder(
         anchorChatId: reminder.anchorChatId,
         anchorMessageId: reminder.anchorMessageId,
         createdAt: reminder.createdAt.toISOString(),
+        description: reminder.description,
         fireAt: reminder.fireAt.toISOString(),
         hasScript: reminder.script !== null,
         id: reminder.id,

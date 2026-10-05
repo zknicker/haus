@@ -349,7 +349,7 @@ export const agentSessionRotationInputSchema = agentDetailInputSchema.extend({
 export type AgentSessionRotationInput = z.infer<typeof agentSessionRotationInputSchema>;
 
 /**
- * One session rotation, read by the session mark's hover card. Messages carry
+ * One session rotation. Messages carry
  * the generation that wrote them; this is the durable record of the moment that
  * generation began. `previousDurationMs` is null for the first known rotation.
  */

@@ -4,7 +4,7 @@ import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
 import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
-import { MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
+import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
 import { MESSAGE_SUBCOMMANDS } from './agent-cli/commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './agent-cli/commands/agent-profile.ts';
 import { REMINDER_SUBCOMMANDS } from './agent-cli/commands/agent-reminder.ts';
@@ -63,7 +63,7 @@ export async function runAgentCli(argv: string[]): Promise<number> {
             printGroupHelp(group, subcommands);
             return rest.length === 0 ? 1 : 0;
         }
-        return await dispatchSubcommand(group, subcommands, rest);
+        return await dispatchSubcommand(group, subcommands, rest, manualDetails(group));
     } catch (error) {
         return reportAgentCliFailure(error);
     }
@@ -100,6 +100,7 @@ function printHelp() {
 }
 
 function printGroupHelp(group: string, subcommands: SubCommand[]) {
+    const flows = group === 'manual' ? ['Examples:', ...MANUAL_EXAMPLE_FLOWS, ''] : [];
     process.stdout.write(
         [
             `haus ${group}`,
@@ -108,6 +109,18 @@ function printGroupHelp(group: string, subcommands: SubCommand[]) {
                 (subcommand) => `  ${subcommand.name.padEnd(12)} ${subcommand.summary}`
             ),
             '',
+            ...flows,
+            manualDetails(group),
+            '',
         ].join('\n')
     );
+}
+
+/**
+ * Every family has a Manual topic named after its noun (the Manual resolves
+ * `cloud-agent` and `task` to their plural ids); the Manual itself starts at
+ * its index.
+ */
+function manualDetails(group: string): string {
+    return `Details: haus manual get ${group === 'manual' ? 'index' : group} --intent <what you are doing> --reason <why you need it>`;
 }

@@ -22,6 +22,8 @@ import {
     type ScheduleReminderInput,
     toReminder,
     validateScheduleInput,
+    validReminderDescription,
+    validReminderTitle,
 } from './reminder-model.ts';
 
 export {
@@ -51,12 +53,15 @@ export async function scheduleReminder(
     clock: ReminderClock
 ): Promise<{ idempotent: boolean; reminder: Reminder }> {
     const now = clock.now();
-    const title = input.title.trim();
+    const title = validReminderTitle(input.title);
+    const description =
+        input.description == null ? null : validReminderDescription(input.description);
     const repeat = input.repeat ? parseReminderRepeat(input.repeat) : null;
-    validateScheduleInput(input, { repeat, title });
+    validateScheduleInput(input, { repeat });
     const fingerprint = JSON.stringify({
         anchorChatId: input.anchorChatId,
         anchorMessageId: input.anchorMessageId,
+        description,
         fireAt: input.fireAt.toISOString(),
         repeat: repeat?.spec ?? null,
         script: input.script ?? null,
@@ -124,6 +129,7 @@ export async function scheduleReminder(
                 anchorChatId: input.anchorChatId,
                 anchorMessageId: input.anchorMessageId,
                 createdAt: now,
+                description,
                 fireAt: input.fireAt,
                 id: reminderId,
                 ownerAgentId: agentId,

@@ -63,7 +63,8 @@ the message itself so a client renders provenance without a second read:
 | `ownerAgentId` | The Agent that owned the automation when it fired; the App's "Manage in Automations" link |
 | `fireId` | The fire this message answers |
 | `firedAt` | When that fire happened |
-| `title` | The automation's title as it read then |
+| `title` | The automation's title as it read then — for a reminder, a short label |
+| `description` | A reminder's description as it read then; null for a Trigger, a reminder without one, and a cause recorded before reminders had descriptions |
 | `summary` | The reminder's cadence string, or the Trigger's kind label, as it read then |
 | `attribution` | `explicit` when the Agent sent `--cause`, `inferred` when the Server derived it |
 | `live` | The automation as it stands now, or null once it or the fire is archived |
@@ -81,7 +82,7 @@ says the automation has been archived instead of offering the live rows and the
 way into Automations. Only deleting the message deletes the cause.
 
 `message_causes` holds one row per caused message: the `kind`, the automation and
-fire ids for that kind, the `attribution`, and the snapshot — `title`, `summary`,
+fire ids for that kind, the `attribution`, and the snapshot — `title`, `description`, `summary`,
 `fired_at`, `owner_agent_id`, and `anchor_chat_id`. A message has at most one
 cause.
 
@@ -114,28 +115,35 @@ kind-specific field above is null, because the fire row that held it is gone.
 
 ## Surfaces
 
-**Header mark.** A message with a cause shows a small mark in its header,
-between the author name and the timestamp: a lightning glyph and the Trigger's
-title in the Trigger color, or a clock glyph and the reminder's title in the
-reminder color. Those colors are theme tokens, and the mark is the only thing a
-fire adds to the transcript. A message can also carry the session mark
-([sessions.md](sessions.md#generation-in-the-transcript)); when it carries both,
-the fire mark comes first.
+**Cause line.** A message with a cause shows a context line above its author
+line, in the same geometry as an inline reply's parent line: a 16px automation
+avatar — a lightning glyph for a Trigger or a clock glyph for a reminder on a
+soft tint of its color — then the title in that color, truncated to one line,
+with an elbow tinted toward the color. Those colors are theme tokens, and the
+line is the only thing a fire adds to the transcript. Pressing it opens the
+owning Agent's Automations tab; an archived cause keeps the line but not the
+link. A message that is also an inline reply shows only the cause line: the fire
+is why the Agent spoke, so it replaces the reply line. The author line itself
+carries only the name and the time.
 
 **Hover card.** Hovering the mark opens a mouse-following card previewing that
 automation, in the shared hover-card anatomy: the glyph, the title, and the
-Trigger's kind as its `·` clause (reminder cadence sits below the title); then one fact line —
+Trigger's kind as its `·` clause; for a reminder, its `description` directly
+under the title (clipped to four lines), then its cadence; then one fact line —
 `Armed · Last fired 4m ago · 12 fires` for a Trigger, status and last fire for a
 reminder, `Archived · Fired 4m ago` once the record is gone — then the
 `instruction` snippet, clipped to two lines, which is the Trigger's instruction
-or the reminder's script. It is a preview, not a control: it carries no link.
+or the reminder's script. A description that only repeats the title, or an
+instruction that only repeats the description, is shown once. The cause line
+itself shows only the title. It is a preview, not a control: it carries no link.
 Managing the automation starts from the Thread context card or the owning
 Agent's Automations tab. The reminder's anchor note is not here; it belongs to
 the Thread context card, where there is room to quote it.
 
 **Thread context card.** Opening a caused message as a Thread renders a context
 card above the anchored message, from `automation.fireContext`: the glyph, the
-title, and a status chip on the first line; then the automation's line —
+title, and a status chip on the first line; a reminder's description under it;
+then the automation's line —
 `Webhook · Fired 4m ago · fire 12 of 12` for a Trigger, `Every Monday at 09:00 ·
 Next Mon 9:00 AM` for a reminder. Its foot carries an expandable, code-styled,
 bounded payload block labelled with the byte count and content type for a

@@ -93,7 +93,7 @@ export interface TranscriptMessage {
     attachments?: TranscriptAttachment[];
     /**
      * The automation fire this message answers. A fire writes no transcript
-     * row of its own, so this is what the header mark renders from.
+     * row of its own, so this is what the cause line renders from.
      */
     cause?: MessageCause | null;
     /** The Cloud Agent work this Message anchors, projected from its typed body. */

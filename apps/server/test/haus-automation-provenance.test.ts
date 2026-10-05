@@ -189,15 +189,11 @@ test('records the cause of the Agent answer and reads it back on the message', a
     expect(transcript.messages.find((message) => message.id === messageId)?.cause).toEqual({
         attribution: 'explicit',
         automationId: triggerId,
+        description: null,
         firedAt: expect.any(String),
         fireId,
         kind: 'trigger',
-        live: {
-            fireCount: 1,
-            instruction: null,
-            lastFiredAt: expect.any(String),
-            status: 'armed',
-        },
+        live: { fireCount: 1, instruction: null, lastFiredAt: expect.any(String), status: 'armed' },
         ownerAgentId: agentId,
         summary: 'Webhook',
         title: 'Deploy finished',
@@ -248,6 +244,7 @@ test('keeps the mark after the Trigger is deleted, reading archived', async () =
     expect(transcript.messages.find((message) => message.id === messageId)?.cause).toEqual({
         attribution: 'explicit',
         automationId: triggerId,
+        description: null,
         firedAt: expect.any(String),
         fireId,
         kind: 'trigger',

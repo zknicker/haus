@@ -24,6 +24,7 @@ import type { ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/haus-user.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
 import { ensureDevelopmentArtifactMessage } from './seed-artifact-message.ts';
+import { seedDevelopmentAutomationCauses } from './seed-automation-causes.ts';
 import { ensureDevelopmentChatAttachment } from './seed-chat-attachment.ts';
 import {
     developmentComputerCredentialHash,
@@ -103,9 +104,8 @@ export async function seedDevelopmentServer(
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
             .where(eq(usersTable.id, user.id));
-        // Two Agent tasks in different states. The channel's
-        // task counter starts past them, or the first real `task.promote` in a
-        // seeded workspace collides with a seeded number.
+        // Two Agent tasks in different states. The channel's task counter starts
+        // past them, or the first real `task.promote` collides with a seeded number.
         const demoTasks = [
             {
                 assigneeAgentId: blippyId,
@@ -312,8 +312,7 @@ export async function seedDevelopmentServer(
         // Two Agent tasks in different states.
         await tx.insert(messageTasksTable).values(demoTasks);
 
-        // One Server-managed MCP connection so the Agent Connections surface
-        // has something to grant.
+        // One Server-managed MCP connection for the Agent Connections surface to grant.
         await tx.insert(mcpConnectionsTable).values({
             auth: 'none',
             connected: true,
@@ -357,6 +356,7 @@ async function ensureDevelopmentSeedSteps(
     });
     await seedDevelopmentInboxActivity(db, { serverId: server.id, userId });
     await seedDevelopmentUiGallery(db, { serverId: server.id, userId });
+    await seedDevelopmentAutomationCauses(db, { serverId: server.id, userId });
 }
 
 /** Mirrors the deterministic anchor id used by `ensureThread`. */

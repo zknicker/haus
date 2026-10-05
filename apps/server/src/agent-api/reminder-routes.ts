@@ -11,29 +11,34 @@ import {
     updateAgentReminder,
 } from './reminders.ts';
 
+// Title and description lengths are checked by the reminder model, whose error
+// teaches the Agent the format; a bare schema refusal would not.
 const scheduleSchema = z.object({
     commandId: z.string().min(1),
+    description: z.string().min(1).optional(),
     fireAt: z.string().datetime(),
     messageId: z.string().min(1),
     repeat: z.string().min(1).optional(),
     script: z.string().min(1).optional(),
-    title: z.string().trim().min(1).max(300),
+    title: z.string().min(1),
 });
 const mutationSchema = z.object({
     commandId: z.string().min(1),
     expectedVersion: z.number().int().positive(),
     id: z.string().min(1),
 });
+/** One change per update; the title and description are one label and may change together. */
 const updateSchema = mutationSchema
     .extend({
+        description: z.string().min(1).nullable().optional(),
         fireAt: z.string().datetime().optional(),
         repeat: z.string().min(1).nullable().optional(),
         script: z.string().min(1).nullable().optional(),
-        title: z.string().trim().min(1).max(300).optional(),
+        title: z.string().min(1).optional(),
     })
     .refine(
         (input) =>
-            [input.fireAt, input.repeat, input.script, input.title].filter(
+            [input.fireAt, input.repeat, input.script, input.title ?? input.description].filter(
                 (value) => value !== undefined
             ).length === 1
     );
