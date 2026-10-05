@@ -1,13 +1,15 @@
-import { Button, ButtonGroup, Dropdown, Label } from '@heroui/react';
+import { Button, ButtonGroup, Dropdown, Label, ScrollShadow } from '@heroui/react';
 import { Cancel01Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { TaskFilterMenu } from './task-filter-menu.tsx';
 import { hasAddableFilter, type TaskFilterField } from './task-filters.tsx';
 
 /**
- * The applied filters, as one editable pill each. The row renders nothing
- * until something is applied, so a page with no query carries no chrome —
- * the filter and display controls live in the topbar instead.
+ * The applied filters, as one editable pill each, sharing the topbar band
+ * with the page's controls. Renders nothing until something is applied, so a
+ * page with no query carries no extra chrome. The band is one fixed-height
+ * row, so overflowing pills scroll horizontally under a fade rather than
+ * wrapping or pushing the trailing controls off the band.
  */
 export function TaskFilterRow({ fields }: { fields: TaskFilterField[] }) {
     const applied = fields.filter((field) => field.applied !== null);
@@ -16,7 +18,12 @@ export function TaskFilterRow({ fields }: { fields: TaskFilterField[] }) {
     }
 
     return (
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <ScrollShadow
+            className="flex min-w-0 flex-1 items-center gap-2"
+            hideScrollBar
+            orientation="horizontal"
+            size={24}
+        >
             {applied.map((field) => (
                 <TaskFilterPill field={field} key={field.id} />
             ))}
@@ -27,7 +34,7 @@ export function TaskFilterRow({ fields }: { fields: TaskFilterField[] }) {
             ) : null}
             {applied.length > 1 ? (
                 <Button
-                    className="ms-auto text-muted"
+                    className="shrink-0 text-muted"
                     onPress={() => {
                         for (const field of applied) {
                             field.clear();
@@ -39,7 +46,7 @@ export function TaskFilterRow({ fields }: { fields: TaskFilterField[] }) {
                     Clear
                 </Button>
             ) : null}
-        </div>
+        </ScrollShadow>
     );
 }
 
@@ -51,7 +58,7 @@ function TaskFilterPill({ field }: { field: TaskFilterField }) {
     }
 
     return (
-        <ButtonGroup size="sm" variant="outline">
+        <ButtonGroup className="shrink-0" size="sm" variant="outline">
             {/* The field and operator name the filter; only the value is a
                 control, because changing the field is just a different filter. */}
             <Button className="pointer-events-none gap-1.5 text-muted" excludeFromTabOrder>

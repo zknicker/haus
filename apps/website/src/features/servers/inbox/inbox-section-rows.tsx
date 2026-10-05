@@ -16,6 +16,17 @@ export const inboxRowHeight = 56;
 const inboxRowTransition = { ...springs.slow, bounce: 0 };
 
 /**
+ * What a list's layout animation follows: its members, in order. Motion
+ * otherwise measures a `layout` node on every render and animates any shift
+ * it finds, so a render that lands with a resize — a pane divider drag
+ * re-renders the whole tab page each frame — slid rows after the new width.
+ * Keyed on membership, only an arrival, a departure, or a reorder moves a row.
+ */
+export function inboxLayoutKey(ids: readonly string[]): string {
+    return ids.length === 0 ? 'empty' : ids.join('\n');
+}
+
+/**
  * A section's rows, and the slot they land in when there are none.
  *
  * The slot is the point. An empty section used to be a line of text, which
@@ -43,15 +54,20 @@ export function InboxRowList<Row extends { id: string }>({
     renderRow: (row: Row) => ReactNode;
     rows: readonly Row[];
 }) {
+    const layoutKey = inboxLayoutKey(rows.map((row) => row.id));
     return (
         <InboxSectionRows>
             <LayoutGroup id={listId}>
                 <AnimatePresence initial={false} mode="popLayout">
                     {rows.length === 0 ? (
-                        <InboxEmptySlot key={`${listId}-empty`} label={emptyLabel} />
+                        <InboxEmptySlot
+                            key={`${listId}-empty`}
+                            label={emptyLabel}
+                            layoutKey={layoutKey}
+                        />
                     ) : (
                         rows.map((row, index) => (
-                            <InboxMotionItem key={row.id}>
+                            <InboxMotionItem key={row.id} layoutKey={layoutKey}>
                                 {index === 0 ? null : <Separator />}
                                 {renderRow(row)}
                             </InboxMotionItem>
@@ -72,11 +88,14 @@ export function InboxRowList<Row extends { id: string }>({
 export function InboxMotionItem({
     children,
     className = 'min-w-0',
+    layoutKey,
     ref,
 }: {
     children: ReactNode;
     /** The track's own sizing: rows fill the column, strip cards keep width. */
     className?: string;
+    /** The list's `inboxLayoutKey`: the only change that may move this item. */
+    layoutKey: string;
     /**
      * `popLayout`'s own ref. `AnimatePresence` clones a leaving child with a
      * ref and measures the node to pin it out of flow; a component that eats
@@ -94,6 +113,7 @@ export function InboxMotionItem({
             exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
             layout={shouldReduceMotion ? false : 'position'}
+            layoutDependency={layoutKey}
             ref={ref}
             transition={
                 shouldReduceMotion
@@ -121,11 +141,14 @@ export function InboxMotionItem({
 export function InboxEmptySlot({
     className = 'p-1.5',
     label,
+    layoutKey,
     ref,
 }: {
     /** The track's own sizing: the strip's slot fills the track's width. */
     className?: string;
     label: string;
+    /** The list's `inboxLayoutKey`, as `InboxMotionItem` takes it. */
+    layoutKey: string;
     /** `popLayout`'s own ref, for the same reason `InboxMotionItem` takes one. */
     ref?: Ref<HTMLDivElement>;
 }) {
@@ -138,6 +161,7 @@ export function InboxEmptySlot({
             exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
             layout={shouldReduceMotion ? false : 'position'}
+            layoutDependency={layoutKey}
             ref={ref}
             style={{ height: inboxRowHeight }}
             transition={

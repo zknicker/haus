@@ -1,6 +1,11 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { InboxEmptySlot, InboxRowList, inboxRowHeight } from './inbox-section-rows.tsx';
+import {
+    InboxEmptySlot,
+    InboxRowList,
+    inboxLayoutKey,
+    inboxRowHeight,
+} from './inbox-section-rows.tsx';
 
 /**
  * Only one section is empty on any given Server, so the live page can never
@@ -10,7 +15,7 @@ const labels = ['No activity this week.', 'All caught up.', 'Nothing running.'];
 
 test('a settled, empty section draws a slot the size of the row that is missing', () => {
     for (const label of labels) {
-        const markup = renderToStaticMarkup(<InboxEmptySlot label={label} />);
+        const markup = renderToStaticMarkup(<InboxEmptySlot label={label} layoutKey="empty" />);
 
         expect(markup).toContain(label);
         expect(markup).toContain(`height:${inboxRowHeight}px`);
@@ -22,7 +27,7 @@ test('a settled, empty section draws a slot the size of the row that is missing'
 });
 
 test('the slot is a slot and not a row: no card anatomy inside it', () => {
-    const markup = renderToStaticMarkup(<InboxEmptySlot label={labels[1]} />);
+    const markup = renderToStaticMarkup(<InboxEmptySlot label={labels[1]} layoutKey="empty" />);
 
     expect(markup).not.toContain('item-card__');
     expect(markup).not.toContain('data-slot="item-card"');
@@ -59,4 +64,16 @@ test('an empty list shows the slot; a filled one shows its rows instead', () => 
     expect(filled).toContain('Tiny is reading');
     expect(filled).not.toContain('Nothing running.');
     expect(filled).not.toContain('border-dashed');
+});
+
+test('rows animate layout only when the list itself changes, never on a resize render', () => {
+    const rows = ['a', 'b', 'c'];
+    // A resize re-render hands over a fresh array with the same members.
+    expect(inboxLayoutKey([...rows])).toBe(inboxLayoutKey(rows));
+    // Arrival, departure, and reorder each move the key.
+    expect(inboxLayoutKey([...rows, 'd'])).not.toBe(inboxLayoutKey(rows));
+    expect(inboxLayoutKey(['a', 'c'])).not.toBe(inboxLayoutKey(rows));
+    expect(inboxLayoutKey(['b', 'a', 'c'])).not.toBe(inboxLayoutKey(rows));
+    // The last row leaving hands over to the slot.
+    expect(inboxLayoutKey([])).not.toBe(inboxLayoutKey(['a']));
 });

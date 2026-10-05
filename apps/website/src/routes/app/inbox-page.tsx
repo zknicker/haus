@@ -50,28 +50,34 @@ export function InboxPage() {
             <PageTopbar>
                 <InboxTopbar />
             </PageTopbar>
-            <PageColumn>
-                <InboxHeader />
-                <InboxSection title="Active this week">
-                    <React.Suspense
-                        fallback={<InboxSectionPending label="Loading Agent activity" />}
-                    >
-                        <InboxActiveAgents />
-                    </React.Suspense>
-                </InboxSection>
-                <InboxSection title="Unread">
-                    <React.Suspense fallback={<InboxSectionPending label="Loading unread chats" />}>
-                        <InboxUnread />
-                    </React.Suspense>
-                </InboxSection>
-                <InboxSection title="Happening now">
-                    <React.Suspense
-                        fallback={<InboxSectionPending label="Loading current Agent work" />}
-                    >
-                        <InboxHappeningNow />
-                    </React.Suspense>
-                </InboxSection>
-            </PageColumn>
+            {/* The page's own scroller: the shell frame clips, and every routed
+                page that outgrows it scrolls itself (Tasks, Settings, Agent profile). */}
+            <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+                <PageColumn>
+                    <InboxHeader />
+                    <InboxSection title="Active this week">
+                        <React.Suspense
+                            fallback={<InboxSectionPending label="Loading Agent activity" />}
+                        >
+                            <InboxActiveAgents />
+                        </React.Suspense>
+                    </InboxSection>
+                    <InboxSection title="Unread">
+                        <React.Suspense
+                            fallback={<InboxSectionPending label="Loading unread chats" />}
+                        >
+                            <InboxUnread />
+                        </React.Suspense>
+                    </InboxSection>
+                    <InboxSection title="Happening now">
+                        <React.Suspense
+                            fallback={<InboxSectionPending label="Loading current Agent work" />}
+                        >
+                            <InboxHappeningNow />
+                        </React.Suspense>
+                    </InboxSection>
+                </PageColumn>
+            </div>
             <React.Suspense fallback={null}>
                 <CloudAgentWorkDialog />
             </React.Suspense>

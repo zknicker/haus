@@ -14,7 +14,7 @@ import { activeAgentWindowDays, rankActiveAgents, toActiveAgent } from './active
 import { AgentWeekCard } from './agent-week-card.tsx';
 import { AgentWeekStrip } from './agent-week-strip.tsx';
 import { currentAgentActivityLabels } from './inbox-agent-activity.ts';
-import { InboxEmptySlot, InboxMotionItem } from './inbox-section-rows.tsx';
+import { InboxEmptySlot, InboxMotionItem, inboxLayoutKey } from './inbox-section-rows.tsx';
 
 /**
  * The Agents worth looking at right now, as a scrolling row of week cards.
@@ -84,6 +84,8 @@ export function InboxActiveAgents() {
         [labels, weeks]
     );
 
+    const layoutKey = inboxLayoutKey(rows?.map((row) => row.agent.id) ?? []);
+
     return rows === null ? null : (
         <AgentWeekStrip>
             <LayoutGroup id="inbox-active-agents">
@@ -93,10 +95,15 @@ export function InboxActiveAgents() {
                             className="w-full p-1.5"
                             key="inbox-active-agents-empty"
                             label="No activity this week."
+                            layoutKey={layoutKey}
                         />
                     ) : (
                         rows.map((row) => (
-                            <InboxMotionItem className="shrink-0" key={row.agent.id}>
+                            <InboxMotionItem
+                                className="shrink-0"
+                                key={row.agent.id}
+                                layoutKey={layoutKey}
+                            >
                                 <AgentWeekCard
                                     activity={row}
                                     onPress={() => {
