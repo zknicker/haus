@@ -209,8 +209,11 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // work-thread sentences to the `cloud-agents` Manual topic and shortening the Tasks
     // conversation rule. Lowered (32,416 → 32,399) when the Haus-only `## Personality` section
     // arrived (measured here with a one-word personality), paid for by shortening the Cloud
-    // agents section's delivery sentences.
-    expect(prompt.length).toBeLessThanOrEqual(32_399);
+    // agents section's delivery sentences. Lowered (32,399 → 32,306) when Reminders gained the
+    // Haus-only `--title` label / `--description` sentence, paid for by replacing the Triggers
+    // section's repeated fire-arrival and `--cause` sentences with a pointer to the reminder fire
+    // rules.
+    expect(prompt.length).toBeLessThanOrEqual(32_306);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
@@ -222,15 +225,19 @@ test('teaches automation provenance without an envelope tutorial', () => {
         'A fire arrives through your inbox and writes nothing to chat by itself.'
     );
     expect(prompt).not.toContain('the payload excerpt indented two spaces');
-    // One `--cause` sentence per section, not two: the placement rule and the
-    // provenance reason are the same rule and read as one.
+    // One `--cause` sentence in the whole prompt: the placement rule and the provenance reason
+    // are the same rule, and Triggers points at the reminder fire rules instead of repeating them.
     expect(prompt).not.toContain('When you speak because a reminder fired');
     expect(prompt).not.toContain('When you speak because a trigger fired');
     expect(
         prompt.match(
             /Answer a fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in\./gu
         )
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+    expect(
+        prompt.match(/A fire arrives through your inbox and writes nothing to chat by itself\./gu)
+    ).toHaveLength(1);
+    expect(prompt).toContain('Its fires arrive and are answered like reminder fires.');
     expect(prompt).not.toContain('the Server records the cause even if you omit the flag');
     expect(prompt).not.toContain(
         "Each fire is its own message; never reply into an earlier fire's thread."
