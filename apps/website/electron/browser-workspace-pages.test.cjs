@@ -112,11 +112,12 @@ test('keys pressed in a page act on that page and forward tab actions to the App
     ]);
     const [left, right] = [pageAt(0), pageAt(1)];
     const press = (input) => left.emit('before-input-event', { preventDefault: noop }, input);
-    press({ type: 'keyDown', key: 'r', meta: true });
-    press({ type: 'keyDown', key: '=', meta: true });
-    press({ type: 'keyDown', key: 'f', meta: true });
-    press({ type: 'keyDown', key: 'T', meta: true, shift: true });
-    press({ type: 'keyDown', key: 'B', meta: true, shift: true });
+    const command = process.platform === 'darwin' ? { meta: true } : { control: true };
+    press({ type: 'keyDown', key: 'r', ...command });
+    press({ type: 'keyDown', key: '=', ...command });
+    press({ type: 'keyDown', key: 'f', ...command });
+    press({ type: 'keyDown', key: 'T', ...command, shift: true });
+    press({ type: 'keyDown', key: 'B', ...command, shift: true });
     expect(left.calls).toContain('reload');
     expect(left.zoomFactor).toBe(1.1);
     expect(right.calls).toEqual([]);
