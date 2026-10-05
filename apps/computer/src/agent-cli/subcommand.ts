@@ -38,7 +38,9 @@ export interface SubCommand {
 export async function dispatchSubcommand(
     groupName: string,
     subs: SubCommand[],
-    raw: string[]
+    raw: string[],
+    /** Closing help line shared by the group, e.g. its Manual pointer. */
+    helpFooter?: string
 ): Promise<number> {
     const [name, ...rest] = raw;
     const sub = subs.find((entry) => entry.name === name);
@@ -50,14 +52,14 @@ export async function dispatchSubcommand(
         const spec = toCliCommand(groupName, sub);
         const parsed = parseArgs(spec, rest);
         if (parsed.help) {
-            printSubHelp(sub, process.stdout);
+            printSubHelp(sub, process.stdout, helpFooter);
             return 0;
         }
         validateArity(spec, sub, parsed);
         return await sub.run(parsed);
     } catch (error) {
         if (error instanceof UsageError) {
-            printSubHelp(sub, process.stderr);
+            printSubHelp(sub, process.stderr, helpFooter);
             process.stderr.write(`\n${errorBlock(error.message)}\n`);
             return 2;
         }
@@ -110,7 +112,7 @@ function reportUnknownSub(groupName: string, name: string | undefined, subs: Sub
 }
 
 /** Per-subcommand help: summary, usage, flags, examples. */
-export function printSubHelp(sub: SubCommand, stream: NodeJS.WriteStream): void {
+export function printSubHelp(sub: SubCommand, stream: NodeJS.WriteStream, footer?: string): void {
     const blocks: string[] = [sub.summary, `${heading('Usage', stream)}\n  ${sub.usage}`];
     const flags = sub.flags.filter((flag) => !flag.removed);
     if (flags.length > 0) {
@@ -131,6 +133,9 @@ export function printSubHelp(sub: SubCommand, stream: NodeJS.WriteStream): void 
     if (sub.examples.length > 0) {
         const body = sub.examples.map((example) => `  ${example}`).join('\n');
         blocks.push(`${heading('Examples', stream)}\n${body}`);
+    }
+    if (footer) {
+        blocks.push(footer);
     }
     stream.write(`${blocks.join('\n\n')}\n`);
 }

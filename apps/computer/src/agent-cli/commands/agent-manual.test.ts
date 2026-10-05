@@ -98,7 +98,41 @@ test('manual search joins keyword positionals and scopes recipe results for a la
         },
     ]);
     expect(output).toBe(
-        'recipes/technique/task-claim-lock — Before doing work, claim the task\n  Use the task claim as the concurrency lock.\n'
+        [
+            'recipes/technique/task-claim-lock — Before doing work, claim the task',
+            '  Use the task claim as the concurrency lock.',
+            '',
+            'Next: open the top result with haus manual get recipes/technique/task-claim-lock --intent "I need matching guidance before I start work." --reason "The task asks for a safe procedure selection."',
+            '',
+        ].join('\n')
+    );
+});
+
+test('manual search next step single-quotes intent text the shell would expand', async () => {
+    const client = requester(() => ({
+        query: 'reminder',
+        results: [
+            {
+                id: 'reminder',
+                kind: 'overview',
+                summary: 'Schedule anchored wake-ups.',
+                title: 'Reminders',
+            },
+        ],
+        scope: 'all',
+    }));
+    let output = '';
+
+    await runManualSearch(
+        args(['reminder'], {
+            '--intent': "Check $BUILD after it's done tonight",
+            '--reason': 'I have not scheduled a reminder before.',
+        }),
+        { client, write: (text) => (output += text) }
+    );
+
+    expect(output).toContain(
+        `haus manual get reminder --intent 'Check $BUILD after it'\\''s done tonight' --reason "I have not scheduled a reminder before."`
     );
 });
 
