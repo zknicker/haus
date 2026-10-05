@@ -146,7 +146,9 @@ export async function seedDevelopmentAutomationCauses(
             script: 'Summarize open PRs waiting on review for more than two days.',
             serverId,
             status: 'fired',
-            title: 'Check the open pull requests in grotto and summarize anything blocked on review for more than two days',
+            title: 'Review Queue Check',
+            description:
+                'Check the open pull requests in grotto and summarize anything blocked on review for more than two days',
         });
         const checklist = await seedReminderFire(tx, {
             ...reminder(ids.askChecklist),
@@ -156,7 +158,9 @@ export async function seedDevelopmentAutomationCauses(
             script: null,
             serverId,
             status: 'scheduled',
-            title: 'Run the Monday release checklist and name an owner for every unchecked item',
+            title: 'Monday Release Checklist',
+            description:
+                'Run the Monday release checklist and name an owner for every unchecked item',
         });
         const stale = await seedReminderFire(tx, {
             ...reminder(ids.askReviews),
@@ -166,7 +170,8 @@ export async function seedDevelopmentAutomationCauses(
             script: null,
             serverId,
             status: 'fired',
-            title: "Archive last week's stale design threads",
+            title: 'Stale Thread Cleanup',
+            description: "Archive last week's design threads that nobody touched",
         });
         const deploy = await seedTriggerFire(tx, {
             anchorChatId: chatId,
@@ -214,6 +219,7 @@ async function seedReminderFire(
     input: {
         anchorChatId: string;
         anchorMessageId: string;
+        description: string;
         firedAt: Date;
         ownerAgentId: string;
         repeat: string | null;
