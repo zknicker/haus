@@ -27,3 +27,14 @@ test('opening remains neutral before the portal hosts are attached', () => {
     expect(markup).not.toContain('Sign in');
     expect(markup).not.toContain('<h1');
 });
+
+test('a window opened from another window paints the frame without the ghost', () => {
+    const markup = renderToStaticMarkup(
+        <ActivationFrame showsMark={false}>
+            <ActivationLoading />
+        </ActivationFrame>
+    );
+    expect(markup).toContain('activation-frame');
+    expect(markup).not.toContain('activation-mark');
+    expect(markup).not.toContain('activation-brand');
+});

@@ -1,7 +1,13 @@
 import { ClerkProvider, useAuth } from '@clerk/clerk-react';
 import { type ReactNode, useLayoutEffect, useState } from 'react';
-import { getNativeClerk, getNativeClerkSessionToken } from './clerk-native.ts';
+import {
+    getNativeClerk,
+    getNativeClerkSessionSeed,
+    getNativeClerkSessionToken,
+    getNativeClerkUserId,
+} from './clerk-native.ts';
 import { clerkNativeOptions } from './clerk-native-options.ts';
+import { clerkSeedInitialState } from './clerk-session-seed.ts';
 import { resolveClerkTransport } from './clerk-transport.ts';
 import { isElectronDesktopApp } from './desktop-bridge.ts';
 
@@ -50,9 +56,11 @@ export function HausClerkProvider({ children }: { children: ReactNode }) {
     }
 
     if (usesNativeClerk()) {
+        const seed = getNativeClerkSessionSeed();
         return (
             <ClerkProvider
                 Clerk={getNativeClerk(clerkPublishableKey)}
+                initialState={seed ? clerkSeedInitialState(seed) : undefined}
                 publishableKey={clerkPublishableKey}
                 {...clerkNativeOptions}
             >
@@ -81,6 +89,19 @@ function ClerkSessionTokenBridge({ children }: { children: ReactNode }) {
     }, [getToken]);
 
     return ready ? children : null;
+}
+
+/**
+ * True when this desktop window booted with a session another window handed
+ * off, so it may render signed in before its own Clerk loads.
+ */
+export function hasClerkSessionSeed(): boolean {
+    return isClerkEnabled && usesNativeClerk() && getNativeClerkSessionSeed() !== null;
+}
+
+/** The desktop window's signed-in user id; null on the web or signed out. */
+export function getDesktopClerkUserId(): string | null {
+    return isClerkEnabled && usesNativeClerk() ? getNativeClerkUserId() : null;
 }
 
 function usesNativeClerk() {

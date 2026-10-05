@@ -1,4 +1,5 @@
 import { createContext, type PropsWithChildren, useContext, useMemo, useState } from 'react';
+import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { HausGhost } from '../haus-ghost.tsx';
 import { AppShell, AppShellDragRegion } from '../ui/app-shell.tsx';
 import './activation.css';
@@ -11,8 +12,14 @@ interface ActivationSlots {
 
 const ActivationSlotsContext = createContext<ActivationSlots | null>(null);
 
-/** Owns the frame and animated mark for the entire renderer lifetime. */
-export function ActivationFrame({ children }: PropsWithChildren) {
+/**
+ * Owns the frame and animated mark for the entire renderer lifetime. A desktop window opened
+ * from another window paints the bare frame instead: blank ground until its content arrives.
+ */
+export function ActivationFrame({
+    children,
+    showsMark = !getDesktopBridge()?.openedFromWindow,
+}: PropsWithChildren<{ showsMark?: boolean }>) {
     const [content, setContent] = useState<HTMLDivElement | null>(null);
     const [end, setEnd] = useState<HTMLDivElement | null>(null);
     const [progress, setProgress] = useState<HTMLDivElement | null>(null);
@@ -28,15 +35,17 @@ export function ActivationFrame({ children }: PropsWithChildren) {
                 </header>
                 <main className="activation-main">
                     <div className="activation-column">
-                        <div className="activation-brand">
-                            <HausGhost
-                                animated
-                                aria-hidden="true"
-                                className="activation-mark"
-                                fill="iridescent"
-                                size={56}
-                            />
-                        </div>
+                        {showsMark ? (
+                            <div className="activation-brand">
+                                <HausGhost
+                                    animated
+                                    aria-hidden="true"
+                                    className="activation-mark"
+                                    fill="iridescent"
+                                    size={56}
+                                />
+                            </div>
+                        ) : null}
                         <div className="activation-content" ref={setContent} />
                     </div>
                 </main>

@@ -4,6 +4,7 @@ import {
     readClerkSessionToken,
     resolveClerkSessionGate,
     resolveClerkSessionTokenState,
+    resolveClerkStatusGate,
 } from './sign-in-gate.tsx';
 
 describe('readClerkSessionToken', () => {
@@ -85,4 +86,27 @@ test('a resolved signed-out session shows sign-in', () => {
             userId: undefined,
         })
     ).toEqual({ kind: 'signed-out' });
+});
+
+describe('resolveClerkStatusGate', () => {
+    test('waits for Clerk unless a handed-off session seeds the window', () => {
+        expect(resolveClerkStatusGate({ loaded: false, seeded: false, status: 'loading' })).toBe(
+            'loading'
+        );
+        expect(resolveClerkStatusGate({ loaded: false, seeded: true, status: 'loading' })).toBe(
+            'session'
+        );
+        expect(resolveClerkStatusGate({ loaded: true, seeded: false, status: 'ready' })).toBe(
+            'session'
+        );
+        expect(resolveClerkStatusGate({ loaded: true, seeded: false, status: 'degraded' })).toBe(
+            'session'
+        );
+    });
+
+    test('a failed Clerk load signs out even a seeded window', () => {
+        expect(resolveClerkStatusGate({ loaded: false, seeded: true, status: 'error' })).toBe(
+            'failed'
+        );
+    });
 });

@@ -22,6 +22,9 @@ const routeProbeOrigin = 'https://haus.invalid';
 const defaultWindowWidth = 1440;
 const defaultWindowHeight = 960;
 const defaultWindowOffsetPx = 36;
+// Marks a window opened from another one (⌘N, openWindow, tab tear-off). It rides the renderer's
+// argv so preload can expose it synchronously, before the first paint decides on the ghost.
+const openedFromWindowArgument = '--haus-opened-from-window';
 
 /**
  * Only same-origin App routes may seed a new window: a Server route or a known
@@ -58,13 +61,34 @@ function nextWindowBounds(openerBounds, options = {}) {
     };
 }
 
-/** Builds the hosted or dev Haus App URL for a seeded route, or the bare App origin. */
+/**
+ * Builds the hosted or dev Haus App URL for a seeded route, or the bare App origin.
+ * The desktop App runs a hash router (src/app-router.tsx), so the route rides the
+ * fragment of the App root; a path route would boot at `/` and redirect from there.
+ */
 function buildWindowUrl(appUrl, route) {
-    return route ? new URL(route, appUrl).toString() : appUrl;
+    if (!route) {
+        return appUrl;
+    }
+    const url = new URL('/', appUrl);
+    url.hash = route;
+    return url.toString();
+}
+
+/** Renderer argv for a new window: only a window with an opener carries the flag. */
+function openerArguments({ opener } = {}) {
+    return opener ? [openedFromWindowArgument] : [];
+}
+
+/** Preload side of `openerArguments`. */
+function isOpenedFromWindow(argv) {
+    return Array.isArray(argv) && argv.includes(openedFromWindowArgument);
 }
 
 module.exports = {
     buildWindowUrl,
+    isOpenedFromWindow,
     isSafeWindowRoute,
     nextWindowBounds,
+    openerArguments,
 };

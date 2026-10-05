@@ -1,9 +1,9 @@
-import { ClerkFailed, ClerkLoaded, ClerkLoading, useAuth, useClerk } from '@clerk/clerk-react';
+import { useAuth, useClerk } from '@clerk/clerk-react';
 import { Button, Spinner } from '@heroui/react';
 import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
-import { getClerkSessionToken, isClerkEnabled } from '../../lib/clerk.tsx';
+import { getClerkSessionToken, hasClerkSessionSeed, isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { useDesktopOAuth } from './use-desktop-oauth.ts';
 import { useSignOut } from './use-sign-out.ts';
@@ -23,23 +23,47 @@ export function SignInGate({ children }: { children: ReactNode }) {
         return children;
     }
 
-    return (
-        <>
-            <ClerkLoading>
-                <ActivationLoading />
-            </ClerkLoading>
-            <ClerkFailed>
-                <SignInGateFrame signIn />
-            </ClerkFailed>
-            {/* ClerkLoaded also covers the degraded status (degraded implies
-                loaded). The session gate also requires the token used by the
-                Server client, so stale Clerk UI state cannot open signed API
-                routes without usable authentication. */}
-            <ClerkLoaded>
-                <ClerkSessionGate>{children}</ClerkSessionGate>
-            </ClerkLoaded>
-        </>
-    );
+    return <ClerkStatusGate>{children}</ClerkStatusGate>;
+}
+
+/**
+ * Clerk's load status. Loaded (ready or degraded) opens the session gate. A
+ * desktop window that booted with a session another window handed off
+ * (docs/api/auth.md, "Desktop session handoff") opens it while Clerk still
+ * loads; the session gate stays at one tree position either way, so the App
+ * does not remount when Clerk finishes. The session gate also requires the
+ * token used by the Server client, so stale Clerk UI state cannot open signed
+ * API routes without usable authentication.
+ */
+function ClerkStatusGate({ children }: { children: ReactNode }) {
+    const clerk = useClerk();
+    const gate = resolveClerkStatusGate({
+        loaded: clerk.loaded,
+        seeded: hasClerkSessionSeed(),
+        status: clerk.status,
+    });
+    if (gate === 'failed') {
+        return <SignInGateFrame signIn />;
+    }
+    if (gate === 'loading') {
+        return <ActivationLoading />;
+    }
+    return <ClerkSessionGate>{children}</ClerkSessionGate>;
+}
+
+export function resolveClerkStatusGate({
+    loaded,
+    seeded,
+    status,
+}: {
+    loaded: boolean;
+    seeded: boolean;
+    status: string | undefined;
+}): 'failed' | 'loading' | 'session' {
+    if (status === 'error') {
+        return 'failed';
+    }
+    return loaded || seeded ? 'session' : 'loading';
 }
 
 function ClerkSessionGate({ children }: { children: ReactNode }) {
