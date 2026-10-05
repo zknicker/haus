@@ -29,7 +29,7 @@ import {
  * outlives the automation and reads the same after it is archived; only the
  * hover card's live facts and the way into Automations go.
  */
-export function MessageCauseLine({ cause, elbow }: { cause: MessageCause; elbow: boolean }) {
+export function MessageCauseLine({ cause }: { cause: MessageCause }) {
     const className = cn(
         turnContextLineContentClassName,
         'max-w-full font-medium',
@@ -43,7 +43,7 @@ export function MessageCauseLine({ cause, elbow }: { cause: MessageCause; elbow:
     );
 
     return (
-        <TurnContextLine elbow={elbow} elbowClassName={automationMarkElbow[cause.kind]}>
+        <TurnContextLine elbowClassName={automationMarkElbow[cause.kind]}>
             <CursorHoverCard
                 className="w-fit max-w-72"
                 content={<MessageCauseHoverContent cause={cause} />}

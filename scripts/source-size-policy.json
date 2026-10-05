@@ -87,7 +87,7 @@
     "apps/website/src/features/chats/chat-transcript-system-step.tsx": 371,
     "apps/website/src/features/chats/chat-transcript-tool-intents.ts": 305,
     "apps/website/src/features/chats/chat-transcript-turn.tsx": 887,
-    "apps/website/src/features/chats/chat-transcript.test.tsx": 1750,
+    "apps/website/src/features/chats/chat-transcript.test.tsx": 1749,
     "apps/website/src/features/mentions/mention-editor.tsx": 419,
     "apps/website/src/features/mentions/mention-text.test.ts": 474,
     "apps/website/src/features/mentions/use-mention-composer.tsx": 366,

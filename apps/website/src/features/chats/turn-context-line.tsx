@@ -2,46 +2,35 @@ import type * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 
 /**
- * The lines above a turn's identity that say what it answers: an automation
- * fire, a reply parent, or both — fire first, then the reply, so the line
- * nearest the message is the one it most directly continues. The stack owns
- * the top padding; `transcriptTurnGeometry.row` takes half its own after it.
- */
-export function TurnContextLines({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="flex min-w-0 flex-col gap-1 pt-2" data-turn-context-lines="">
-            {children}
-        </div>
-    );
-}
-
-/**
- * One context line, at the avatar rail's indent. Only the line nearest the
- * message body draws the elbow down into the avatar; a line stacked above it
- * keeps the indent without one, so two elbows never nest.
+ * The one line above a turn's identity that says what it answers — an
+ * automation fire or a reply parent — at the avatar rail's indent, with an
+ * elbow from the line's mark down to the author's avatar. The line owns the top
+ * padding; `transcriptTurnGeometry.row` takes half its own after it.
+ *
+ * The elbow stops short of both avatars, like a reply connector: its arm ends a
+ * few pixels before the 16px mark and its stem a few pixels above the author's
+ * avatar. The avatar rail is in `--spacing` units while the 16px row and the
+ * 2px stroke are not, so each edge mixes the two.
  */
 export function TurnContextLine({
     children,
-    elbow = true,
     elbowClassName = 'border-separator',
 }: {
     children: React.ReactNode;
-    elbow?: boolean;
     elbowClassName?: string;
 }) {
     return (
-        <div className="relative min-w-0 pl-11" data-turn-context-line="">
-            {elbow ? (
-                <span
-                    aria-hidden="true"
-                    className={cn(
-                        // Starts at the 16px row's midline and turns down into the avatar.
-                        'absolute top-2 left-4 size-4 rounded-tl-lg border-t-2 border-l-2',
-                        elbowClassName
-                    )}
-                    data-turn-context-elbow=""
-                />
-            ) : null}
+        <div className="relative min-w-0 pt-2 pl-11" data-turn-context-line="">
+            <span
+                aria-hidden="true"
+                className={cn(
+                    // Stroke centered on the 16px row's midline; the arm stops 3px before
+                    // the mark (pl-11) and the stem ~3px above the author avatar's top.
+                    'absolute top-[calc(var(--spacing)*2+7px)] left-4 h-[calc(var(--spacing)*2+6px)] w-[calc(var(--spacing)*7-3px)] rounded-tl-lg border-t-2 border-l-2',
+                    elbowClassName
+                )}
+                data-turn-context-elbow=""
+            />
             {children}
         </div>
     );
