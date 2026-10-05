@@ -111,12 +111,15 @@ test('keys pressed in a page act on that page and forward tab actions to the App
         { viewId: 'right', bounds: { ...bounds, x: 400 }, focused: true },
     ]);
     const [left, right] = [pageAt(0), pageAt(1)];
-    const press = (input) => left.emit('before-input-event', { preventDefault: noop }, input);
-    press({ type: 'keyDown', key: 'r', meta: true });
-    press({ type: 'keyDown', key: '=', meta: true });
-    press({ type: 'keyDown', key: 'f', meta: true });
-    press({ type: 'keyDown', key: 'T', meta: true, shift: true });
-    press({ type: 'keyDown', key: 'B', meta: true, shift: true });
+    // The command key is Command on macOS and Control elsewhere (browser-shortcuts.cjs).
+    const command = process.platform === 'darwin' ? { meta: true } : { control: true };
+    const press = (input) =>
+        left.emit('before-input-event', { preventDefault: noop }, { ...command, ...input });
+    press({ type: 'keyDown', key: 'r' });
+    press({ type: 'keyDown', key: '=' });
+    press({ type: 'keyDown', key: 'f' });
+    press({ type: 'keyDown', key: 'T', shift: true });
+    press({ type: 'keyDown', key: 'B', shift: true });
     expect(left.calls).toContain('reload');
     expect(left.zoomFactor).toBe(1.1);
     expect(right.calls).toEqual([]);
