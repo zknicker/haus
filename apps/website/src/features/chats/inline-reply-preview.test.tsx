@@ -30,4 +30,8 @@ test('inline reply preview exposes the quoted parent and jump label', () => {
     expect(markup).not.toContain('Replying to');
     expect(markup).toContain('Please ship this today');
     expect(markup).toContain('Jump to Zach&#x27;s message');
+    // The shared context-line geometry, with the neutral elbow a reply draws.
+    expect(markup).toContain('data-turn-context-line');
+    expect(markup).toContain('data-turn-context-elbow');
+    expect(markup).toContain('border-separator');
 });

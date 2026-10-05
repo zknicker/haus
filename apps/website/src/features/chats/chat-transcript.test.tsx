@@ -1562,11 +1562,19 @@ function narrationMessageRow(id: string, content: string, timestampMs: number): 
     };
 }
 
-test('ChatTranscript marks a message an automation provoked, in the header beside the name', () => {
+test('ChatTranscript states what woke the Agent on a context line above its message', () => {
     const markup = renderTranscript([causedRow()], causedOverrides());
 
     assert.match(markup, /Deploy finished/);
     assert.match(markup, /text-trigger-mark/);
+    assert.match(markup, /aria-label="Open trigger: Deploy finished"/);
+    assert.match(markup, /href="[^"]*\/agents\/blippy\/automations"/);
+    // The line sits above the identity, not in the header beside the name.
+    assert.ok(markup.indexOf('message-cause-line') < markup.indexOf('Blippy</'));
+    const header = /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
+    assert.doesNotMatch(header, /Deploy finished/);
+    // Standing alone, the cause line draws the elbow, tinted toward its ink.
+    assert.match(markup, /border-trigger-mark-line/);
 });
 
 test('ChatTranscript keeps an ordinary Agent header to a name and a time', () => {
@@ -1575,7 +1583,7 @@ test('ChatTranscript keeps an ordinary Agent header to a name and a time', () =>
     const context = { ...causedOverrides(), chatId: 'chat-1', opensAgentProfiles: true };
     const markup = renderTranscript([plain], context);
 
-    assert.doesNotMatch(markup, /Deploy finished|text-trigger-mark/);
+    assert.doesNotMatch(markup, /Deploy finished|text-trigger-mark|data-turn-context-lines=""/);
     // No description tagline: what an Agent is generally for belongs to its
     // hover card and profile, not to every message it writes.
     const header = /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
@@ -1583,49 +1591,39 @@ test('ChatTranscript keeps an ordinary Agent header to a name and a time', () =>
     assert.match(markup, /aria-label="Open Blippy&#x27;s profile"/);
 });
 
-test('ChatTranscript marks a message an Agent wrote after starting a new session', () => {
-    const markup = renderTranscript([causedRow()], {
+test('ChatTranscript stacks the cause above the reply, and only the reply draws the elbow', () => {
+    const row = causedRow();
+    const reply = { ...row, message: { ...row.message, reply: replyToZach() } };
+    const markup = renderTranscript([reply], {
         ...causedOverrides(),
-        sessionMarks: new Map([['message-caused', { agentId: 'blippy', generation: 5 }]]),
-        turnDetails: { access: 'summary', serverId: 'srv_1' },
+        onOpenInlineReply: () => undefined,
     });
 
-    assert.match(markup, /New session/);
-    assert.match(markup, /text-session-mark/);
+    // The cause line sits above the reply line.
+    assert.match(markup, /message-cause-line[\s\S]*data-inline-reply-preview/);
+    // One stack, one elbow: the line nearest the message owns it.
+    assert.equal(markup.match(/data-turn-context-lines=""/g)?.length, 1);
+    assert.equal(markup.match(/data-turn-context-elbow=""/g)?.length, 1);
+    assert.match(markup, /message-cause-line[\s\S]*data-turn-context-elbow/);
+    assert.doesNotMatch(markup, /border-trigger-mark-line/);
 });
 
-test('ChatTranscript orders the session mark after the cause mark when both apply', () => {
+test('ChatTranscript drops the cause line where a context card already states it', () => {
     const markup = renderTranscript([causedRow()], {
         ...causedOverrides(),
-        sessionMarks: new Map([['message-caused', { agentId: 'blippy', generation: 5 }]]),
-        turnDetails: { access: 'summary', serverId: 'srv_1' },
+        causeLineHidden: true,
     });
 
-    // Why the Agent spoke comes before what it had already forgotten.
-    assert.ok(
-        markup.indexOf('message-cause-mark') < markup.indexOf('message-session-mark'),
-        'the cause mark should render before the session mark'
-    );
+    assert.doesNotMatch(markup, /text-trigger-mark|message-cause-line/);
 });
 
-test('ChatTranscript leaves a turn no rule marked without a session mark', () => {
-    const markup = renderTranscript([causedRow()], {
-        ...causedOverrides(),
-        sessionMarks: new Map(),
-        turnDetails: { access: 'summary', serverId: 'srv_1' },
-    });
-
-    assert.doesNotMatch(markup, /text-session-mark/);
-});
-
-test('ChatTranscript drops the mark where a context card already states it', () => {
-    const markup = renderTranscript([causedRow()], {
-        ...causedOverrides(),
-        causeMarkHidden: true,
-    });
-
-    assert.doesNotMatch(markup, /text-trigger-mark/);
-});
+function replyToZach(): NonNullable<TranscriptMessageRow['message']['reply']> {
+    const profile = { avatarUrl: null, deleted: false, description: null, displayName: 'Zach' };
+    const author = { kind: 'human' as const, profile, userId: 'usr_zach' };
+    const createdAt = '2026-09-03T11:50:00.000Z';
+    const parent = { author, content: 'Did it land?', createdAt, id: 'msg_parent', sequence: 4 };
+    return { parent, parentMessageId: 'msg_parent', root: parent, rootMessageId: 'msg_parent' };
+}
 
 function causedOverrides(): Partial<TranscriptRenderContextValue> {
     return {
