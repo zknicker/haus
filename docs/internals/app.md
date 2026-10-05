@@ -58,6 +58,81 @@ the website actually deployed, including rollbacks. Haus Server serves the marke
 `index.html` response with `Cache-Control: no-store`. Reload keeps the current URL and loads the
 deployed renderer; an existing window continues running its loaded code until the user reloads.
 
+## Desktop Web Views
+
+Web pages in desktop tabs ([ADR 0039](../adr/0039-desktop-tabs-are-equal-pages.md)) are Electron
+`WebContentsView`s that the App names and places; Electron keeps only their live pages
+(`electron/browser-workspace*.cjs`). The bridge contract:
+
+- **Naming.** A browser `TabLocation` carries a `viewId` the App chose. `browserCommand({ kind:
+  'open', url, viewId })` creates that view if it does not exist and otherwise does nothing, so a
+  remounted, reopened, or relaunched tab restores by URL. `open` without a `viewId` (App-window
+  links) becomes an open request instead. Views carry no selection or order.
+- **Layout.** `browserLayout(placements)` lists every view on screen (one per shown pane) with its
+  CSS-pixel bounds; unlisted views hide. Each shown `BrowserTabPage` places its own view through
+  `hooks/browser/browser-view-layout.ts`, which sends the whole list. `focused` marks the focused
+  pane's web page: App-menu page actions (Reload, zoom, Find) act on it.
+- **Covers.** Native views paint above DOM, so a product overlay over a page, a pane divider drag
+  (`beginDesktopPointerDrag`), or a tab drag for its whole length, tear-off included
+  (`features/shell/tab-drag/`), calls `coverBrowserViews()` and hides the view behind a captured
+  still (`browserCapture(viewId)`, placed views only).
+- **Links and focus.** A page's popup, `target=_blank`, ⌘-click, or Open Link in New Tab sends
+  `onBrowserOpenRequest` (`openerId`, `background`); the App opens a new tab from the opener's tab
+  by the ADR placement rule (`background` asks for a same-pane new tab). A view taking key focus
+  sends `onBrowserFocus(viewId)` and the App focuses that tab's pane. Keys pressed inside a page act
+  on that page.
+- **Disposal.** `BrowserViewsProvider` closes every view no open tab's history names, so views of
+  closed tabs and trimmed entries are destroyed; Server switch resets the workspace.
+- **Window commands.** File > New Tab (⌘T, the new tab page) and File > Close (⌘W) arrive as
+  `onNewTabRequest` / `onCloseWindowRequest` and act on the focused pane; closing the window's last
+  tab calls `closeWindow()`. ⌘⇧T, ⌘1–9, and Control-Tab arrive as `onBrowserShortcut` or the
+  renderer's own keydown. `openWindow(route)` seeds a new window's first tab from `route`
+  (`electron/window-routing.cjs` allows only Server and known App routes).
+- **Tab drag between windows.** `electron/tab-drag-ipc.cjs` and `tab-drag-session.cjs` own the
+  cross-window half of a tab drag (`lib/desktop-tab-drag.ts` is the contract). Every window
+  reports its band (`tabStripReport`). The pressing window opens the session (`tabDragStart`),
+  keeps the pointer for the whole gesture, and alone ends it (`tabDragEnd`). The window a tab
+  rides detaches it (`tabDragDetach`) once it is pulled off the band. Electron then follows the
+  cursor at ~60Hz with a floating window: a new hidden window that claims the tab synchronously
+  (`tabDragClaim`), or the source window itself when the tab was its only one. Over another
+  same-Server window's band, Electron sends `attach` and relays the cursor (`onTabDrag`). A moved
+  tab's web views go with it (`browser-workspace-ipc.cjs` `transfer`), so pages keep their live
+  session and history; the App's later `open` for that view finds it and never reloads. A window
+  always hears of the tabs (`attach`, or `restore` to the pressing window on Escape) before their
+  views arrive, and the App closes a view only after no tab has named it for a short grace
+  (`browser-view-sweep.ts`), so a view in flight is never destroyed. A window at its web view
+  limit refuses the tabs; they keep floating. Tabs riding in from another window are a preview
+  there, not viewed, until the drop. A
+  pressing page that crashes, navigates, or closes, or a closed window the drag involves, ends
+  the session without undoing it. If the pointer up never reaches the pressing window, losing
+  pointer capture drops the tab where it is.
+
+## Window Cache Handoff
+
+Each desktop window is its own App instance with its own React Query cache. A window opened from
+another one (File > New Window from a focused window, `openWindow(route)`, or a tab tear-off)
+starts with a copy of its opener's cache, then refreshes normally. There are no spare or prewarmed
+windows.
+
+- **Ask.** `createWindow({ opener })` in `electron/main.cjs` calls
+  `electron/query-cache-handoff.cjs`, which sends the opener `desktop:query-cache:request`. The
+  opener's `HausServerProvider` answers with `packQueryCacheHandoff` (`lib/query-cache-handoff.ts`):
+  TanStack `dehydrate` of settled tRPC reads plus the Clerk user id.
+- **What is copied.** `isShareableQuery` is the one rule. It copies successful tRPC queries only.
+  It skips App-local caches such as update checks and presence probes, and it skips reads that opt
+  out of mount refetch (`queryPolicy.volatileState`), because a live subscription keeps those
+  current. It also skips one-time-code and invitation reads. A cache over 4 MB (JSON estimate) is
+  not handed off at all.
+- **Carry.** IPC structured clone carries the copy as is, so no transformer is involved (the tRPC
+  link has none). Main holds it in memory for the one new window and never writes it to disk. Main
+  drops it once claimed, after 10 seconds, when the new window closes, or when the shared Clerk
+  session changes or clears (`clerk-session-handoff.cjs` `onSessionChange`).
+- **Use.** The new window claims the copy synchronously (`queryCacheClaim`) when its
+  `QueryClient` is created, before first render. It hydrates only when the copy's user matches
+  this window's Clerk user: the loaded user, or the handed-off session's user before Clerk loads.
+  It then invalidates everything without refetching, so the data renders at once and every read
+  refetches when it mounts. Realtime subscriptions take over from there.
+
 ## Window Layouts
 
 The desktop window layout ([feature](../features/desktop-window-layout.md)) is App-local

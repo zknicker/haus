@@ -229,7 +229,8 @@ Props are `{ path, title? }`; the path must be workspace-relative with
 confined segments and an `.html`/`.htm` extension
 (`packages/haus-api/src/widgets/workspace-path.ts`). The transcript
 renders a compact card (title, kind, open affordance) and never the page
-itself; opening the card focuses the pane's workspace tab, where the pane's
+itself; opening the card opens the artifact (the chat's Artifact Panel on the web, an artifact
+page on desktop), where the
 sandboxed HTML preview renders the file with the app's theme tokens injected
 as CSS variables. Rendering is live file state — later edits or deletion
 change what historical chats display. See [artifacts.md](artifacts.md) for

@@ -266,17 +266,23 @@ and [Agent Inbox](../../specs/inbox.md).
   the Chat exists. Opening these menus or the profile does not create a Chat. The
   first human send, Agent `dm:@<human-handle>` send, or Server activity that needs a
   durable message atomically materializes the canonical human-stint↔Agent Chat
-  and message. Every materialized chat's name is a dropdown menu offering its chat-scoped
+  and message. Every materialized chat's actions menu offers its chat-scoped
   surfaces: View tasks opens the Tasks page filtered to the chat, and Files
-  opens a side pane listing attachments from its messages. Channels render with
+  opens a side pane (a Files page on desktop) listing attachments from its messages. Channels render with
   a hash or chosen catalog icon and optional channel color. Opening a Server
   restores that Server's last visited Chat when it still exists, then falls back
   to `#all` or the first available Chat. A user can drag any part of a Channel
   row to reorder it, or use Space and the arrow keys while the row is focused. The App keeps that
   personal presentation order per Server on the current device; direct messages
   retain the Server list order.
-  Opening a chat shows a room topbar with the chat name. On channels the name's
-  dropdown also carries channel actions. Editing a channel is three separate
+  On the web, opening a chat shows a room topbar with the chat name and a "…"
+  actions menu at its end. On desktop the chat's tab names it, so the page has
+  no topbar band; the chat's actions live in the context menu of its sidebar row
+  and of its tab (in one Channel or DM submenu). Every chat menu — the web
+  "…", a sidebar row, a desktop tab's submenu — lists the same actions in the
+  same order; a sidebar row adds Open first (and, on desktop, Open in new tab, the same
+  open as Command-clicking the row), and Files appears there only on desktop, where
+  Files opens as a page. Editing a channel is three separate
   decisions, each with its own dialog: Rename channel, Icon & color, and Agents,
   which carries the participant count. Archive and delete follow them for a
   regular channel. Users create channels in one New channel dialog that names
@@ -311,9 +317,9 @@ and [Agent Inbox](../../specs/inbox.md).
   on authored transcript messages with muted identity and a `DELETED` badge.
   There is no separate pinned-chat state.
   Right-clicking a sidebar chat or its topbar name exposes the same contextual
-  actions without replacing the ordinary click target. Channel menus also offer
-  direct color presets and the existing rename, appearance, and participant
-  dialogs; DM menus link to their scoped tasks and Agent profile.
+  actions without replacing the ordinary click target. Channel menus offer the
+  rename, Icon & color, and participant dialogs (color is chosen only in Icon &
+  color); DM menus link to their scoped tasks and Agent profile.
 * **Message and Thread context.** Right-clicking a durable message offers copy,
   reply-in-Thread, and quick reactions. Agent messages additionally open Turn
   Details. A Thread header offers View in chat, Copy reference, and Follow/Stop
@@ -335,12 +341,11 @@ and [Agent Inbox](../../specs/inbox.md).
   page on web) — see [ADR 0038](../adr/0038-destinations-open-as-tabs.md).
   The chat's right pane holds only artifact, files, and thread panes, which
   share one visible slot and width per chat; the latest opener wins without
-  clearing another pane's state. On desktop the pane holds no Threads: every
+  clearing another pane's state. Desktop renders no chat side pane: every
   Thread opener (reply counts, Thread cards, Reply in thread, Inbox and
-  notification links, `?thread=` and `?task=` links) opens a Thread tab
-  through `useOpenThread` as the preview tab, in split mode in the side pane
-  beside the chat — see [Workspace tabs](browser-tabs.md#thread-tabs) and
-  ADR 0038's threads amendment. Clicking the transcript name
+  notification links, `?thread=` and `?task=` links) opens the Thread page as
+  a link, in split mode in the other pane — see
+  [Desktop tabs](browser-tabs.md#where-things-open). Clicking the transcript name
   inserts an Agent mention, while the DM topbar name remains inert. Session
   resets stay agent-wide in Agent settings (specs/sessions.md) and reach a chat
   only as the session mark described above. Execution evidence (turn

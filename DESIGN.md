@@ -777,17 +777,20 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   glyphs, favicons, and artifact icons center in it, so titles start at one inset across kinds. Resting tabs are bare 50%-foreground
   titles; hover (and a dragged tab) lays a 5% foreground wash (8% in dark) without lifting the title;
   the selected tab is the card color with a half-pixel 12% foreground border and a faint shadow-sm.
+  A tab multi-selected with others but not shown (Chrome-style multi-select) wears the selected
+  tab's full look: card color, half-pixel border, shadow, full-strength title
+  (`--shell-tab-selected-*`).
   Every tab, the primary one included, holds a 240px basis (`--workspace-tab-width` in the band)
   while there is room, so switching chats never moves the strip, and all tabs shrink evenly together
   down to mark-only when the strip is crowded. The primary tab carries no trailing action and sorts
   with the other tabs in one draggable list. Browser and artifact tabs
   show a 20px ghost close button (14px glyph, 7px from the end) on select, hover, or focus. Tabs
   sit 4px apart; a 1 × 12px divider at 8% foreground centered in each gap (and before the new-tab
-  button) keeps adjacent resting tabs apart, and hides beside the selected, hovered, or dragged tab.
+  button) keeps adjacent resting tabs apart, and hides beside the selected, multi-selected, hovered, or dragged tab.
   The stock Button fills the tab, so the whole tab is the hit target and the focus ring follows its
   corner. Marks are identity, not decoration: a channel's own icon box, the DM Agent's avatar, the
-  section glyph, the page favicon, or the artifact file glyph. The page's actions (the chat's "…"
-  menu) and then the layout controls sit as icon-only ghost `sm` Buttons at the band's end
+  section glyph, the page favicon, or the artifact file glyph. The layout controls sit as
+  icon-only ghost `sm` Buttons at the band's end
   (`.workspace-band-end`), outside the window drag region. Settings is not in the band: on the
   desktop its ghost `sm` gear leads the sidebar footer. Browser and artifact tabs share the
   closable-tab rules (`.workspace-tab:not([data-kind="primary"])`).
@@ -879,7 +882,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   agent-authored visuals share the same tokens.
 
 The desktop window band keeps one primary Chat tab and additional browser and artifact tabs in one
-sortable strip; the page's band content, actions, and layout controls follow it at the band's end. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the page
+sortable strip; the layout controls follow it at the band's end. A chat's actions live in its sidebar row's context menu (a flat list) and in its tab's context menu (one Channel or DM submenu, so the tab's own commands stay short), not in a band. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the page
 ground without a background tray; their fill, corner, and selected material follow **Workspace tabs**
 above. Each tab's stock HeroUI Button and its trailing Close action are siblings inside the tab, so
 interactive controls are never nested. The primary

@@ -17,11 +17,10 @@ drills into its section with a breadcrumb back to the hub
 
 ## Hosting
 
-- **Desktop**: an Agent profile is a workspace tab (`agent` tab, identity =
-  Agent id). It opens in the side pane in split mode, or as the selected tab
-  in expanded mode (ADR 0038). Drill-down stays
-  inside the tab as its section. Opening an open profile selects its tab. A
-  deleted Agent's tab closes itself.
+- **Desktop**: an Agent profile is the same route in a tab (ADR 0039): a
+  link opens it in the other pane in split mode, selecting a tab already on
+  that Agent, or in the current tab in expanded mode. Drill-down stays inside
+  the tab as its section.
 - **Web**: the profile is a routed page at
   `/s/:serverSlug/agents/:agentId/:section` (`agents/:agentId` redirects to
   `home`). Old `members/agents/:agentId` links redirect here.

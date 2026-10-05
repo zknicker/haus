@@ -134,7 +134,7 @@ the ordinary Chat composer sends messages only, while existing top-level message
 the contextual sidebar owns saved views and label filters. Opening a task from either lens shows
 its request, inline replies, and optional Thread as one chronological conversation in a dialog over the tasks page — `?task=<messageId>` owns the open task,
 so deep links and Back work — while "View in channel" and artifact opens navigate to the parent
-Chat. Inside a Chat, opening a task still uses the chat-owned Thread side pane. A Task Thread is
+Chat. Inside a Chat, opening a task opens its Thread: the chat-owned side pane on the web, a Thread page on desktop. A Task Thread is
 titled by its task (`Task #4`) in both hosts and shows the current status, assignee, creator, and
 parent Chat beneath its anchor message; the anchor's own task mark is suppressed there, so no fact
 appears twice on one screen. Status and assignee are editable there by any member who can write in the

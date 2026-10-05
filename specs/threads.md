@@ -66,8 +66,9 @@ parent chat's `unread_count` includes followed-thread unreads for the reader.
 
 ## Surfaces (T3/U5)
 
-- Threads open in the chat's **right side pane** (same slot as the artifact panel; one pane
-  visible at a time, most recent wins, both reopenable; resizable, shared width).
+- On the web, Threads open in the chat's **right side pane** (same slot as the artifact panel;
+  one pane visible at a time, most recent wins, both reopenable; resizable, shared width). On
+  desktop a Thread is a page in its own tab (ADR 0039).
 - Pane anatomy: header (`Thread — #channel` / `Thread — @name`, full target with shortid as the
   copyable handle, follow toggle, "View in channel", close), the anchor message rendered at top,
   a "Beginning of replies / N replies" divider ("No replies yet" when empty), replies as normal

@@ -2,7 +2,6 @@
 summary: Decision that desktop destinations open as workspace tabs, the window follows Codex's split and expanded modes (a side pane beside the routed page, or one strip), and the Agent profile is one hub page with drill-down sections instead of titlebar tabs.
 read_when:
   - changing where an Agent profile opens, or adding a new tab-able destination
-  - changing the desktop side pane, the expand or side pane controls, or where new tabs land
   - changing the Agent profile hub, its cards, or its drill-down sections
 ---
 
@@ -12,6 +11,10 @@ read_when:
 
 Accepted, 2026-10-01. Revised the same day: the two-group split and its routing rule were replaced
 by Codex's split and expanded modes after the split toggle proved confusing in use.
+
+Partly superseded, 2026-10-03, by [ADR 0039 Desktop tabs are equal pages](0039-desktop-tabs-are-equal-pages.md):
+its layout sections (the primary tab, the side pane and its controls, kind-based placement, and
+the Thread preview tab) no longer apply. The Agent profile hub and the glance-by-hover rule stand.
 
 ## Context
 

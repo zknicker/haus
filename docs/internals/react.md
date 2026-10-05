@@ -70,6 +70,13 @@ calling screen's auth/query context. Do not put another ghost in a loading or se
 frame by identity/route, or hide it with `display: none`, which resets its animation clock. The frame
 uses scene presence to control visibility and interaction, without copying query data into context.
 
+Only a desktop window with no opener shows the ghost: the launch window, or one reopened from the
+Dock or ⌘, after every window closed. A window opened from another one (File > New Window,
+`openWindow(route)`, tab tear-off) gets `--haus-opened-from-window` in its renderer argv
+(`openerArguments` in `electron/window-routing.cjs`); preload exposes it as
+`openedFromWindow`, and the frame paints its bare ground until content arrives. Electron restores no
+extra windows at launch, so there is no multi-window restore case.
+
 
 Keep the destination shell mounted while its first snapshot resolves. An unresolved query is not
 an empty collection: reserve a neutral data region until the query settles, and show an empty state
@@ -83,7 +90,7 @@ Profile loading follows the same rule. Human profiles reserve identity facts and
 Agents independently. Profile settings keeps Identity rows and Account actions visible while
 the member directory resolves, with identity inputs disabled until the real member arrives.
 Computer profiles reserve their named sections during the first roster read. An Agent profile
-tab stays blank while its Agent loads, and its strip tab closes it once the Agent is gone.
+page stays blank while its Agent loads.
 
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
@@ -94,8 +101,9 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   ownership or replace the authenticated surface; key that identity-owned provider
   by the known Clerk user id rather than clearing a shared cache after render.
 * Load primary destination frames with the authenticated Server shell through
-  `server-route-shells.tsx`. The parent layout loads it; child routes render its cached
-  frames synchronously instead of using router `lazy` callbacks, so destination chrome
+  `server-route-shells.tsx`. The window router's loader imports that chunk and registers it
+  with `server-route-modules.ts` (registration, not an import back, keeps the chunk out of an
+  import cycle); child routes render its cached frames synchronously instead of using router `lazy` callbacks, so destination chrome
   never waits for an import or an asynchronous route callback. Keep conversation bodies, Inbox sections,
   task views, Agent activity and section content, and Settings section content code-split behind local
   Suspense boundaries with neutral data regions, without skeletons or loading decoration.
@@ -140,7 +148,7 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   live Agent activity above the bottom-pinned desktop update status. The
   Settings gear takes no row of its own: `ServerLayout` passes `settingsSlot`
   — the footer's leading end wherever the desktop window band runs above (the
-  band keeps to tabs and layout controls), the strip's trailing end on the web
+  band keeps to tabs), the strip's trailing end on the web
   — so the gear's DOM position matches where it is drawn.
   A sidebar page's first navigation row is offset by half the shared
   `--app-shell-band-height` band — Inbox in chat navigation, the back-to-chat
@@ -157,9 +165,8 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   "Haus" crumb linking back to the Inbox: the Inbox band reads Haus › Inbox,
   and Settings reads Haus › Settings › page (› record). Its column is stock,
   so the greeting opens under the band at the page's ordinary top inset on
-  every surface. On desktop that band is the window band — the tab area — so `SettingsBreadcrumb`, which owns where the
-  Settings trail goes, renders it as the content column's first row (same height
-  and gutter) instead of portaling it beside the tabs. Switching,
+  every surface; on desktop each tab's page keeps that band at the top of its pane,
+  under the tab rows. Switching,
   creating, and joining Servers live under Settings → Servers, not in the
   sidebar. Sections compose `ShellSidebarPage` slots; route state
   selects one slot without replacing the sidebar root, and non-chat pages
@@ -172,25 +179,47 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
   never enter the accessibility tree. Routes that add or remove the contextual
   left sidebar also reflow immediately; right-side chat panes retain their own
   open and close motion.
-* The shell renders one `ShellTopbar`. Pages compose its content through
-  `PageTopbar` and `SectionHeader`. Embedded surfaces use `SectionBar`.
-* Desktop workspace tabs are owned by `BrowserWorkspaceProvider`
-  (`useWorkspaceTabs`, a reducer over `hooks/workspace-tabs/`). The Server layout
-  renders the routed column (`BrowserWorkspaceBody`, which expanded mode's
-  selected tab covers) and the side pane (`WorkspaceSidePane`) as siblings, so
-  the side pane sits beside every route. The model is a mode (`split` or
-  `expanded`) over one closable tab list; `workspaceSelection` derives what
-  shows, and one `ClosableTabPage` renders a tab's body wherever the mode puts
-  it, a browser page's native view following its host. Destinations open
-  through the provider (`openArtifact`, `openAgent`, `openThread`) and never
-  pick a place themselves. Thread openers go through
-  `useOpenThread`, which is null on the website, where the chat's own side pane
-  (`useChatThreadPane`) hosts Threads. A tab-able page renders host-agnostically (no
-  outlet context, no band portals) and works at 420px.
-  Thread Task metadata and assignment controls receive the parent Chat's `serverId`
-  explicitly; route-only Server context is unavailable in sibling workspace tabs.
-  Cloud Agent work controls read the cached Server query using the route's Server slug,
-  which remains available in workspace tabs; they do not read outlet context.
+* The web shell renders one `ShellTopbar`; on desktop each tab frame renders its
+  own. Pages compose its content through `PageTopbar` and `SectionHeader`.
+  Embedded surfaces use `SectionBar`.
+* **Desktop tabs route per tab** ([ADR 0039](../adr/0039-desktop-tabs-are-equal-pages.md)).
+  The window's hash router keeps only the Server shell (`/s/:slug`). Each tab's history lives in
+  the tabs reducer (`hooks/desktop-tabs/`, owned by `DesktopTabsProvider` and its controller,
+  persisted per window and Server), and `DesktopTabFrame` renders the shared page table
+  (`server-page-routes.tsx`) under `IsolatedTabRouter` (`features/shell/tab-router.tsx`), a
+  controlled `<Router>` per mounted tab nested inside the window's data router. It resets React
+  Router's outer contexts (`UNSAFE_*`), so every page's `useLocation`, `useParams`, `useNavigate`,
+  `<Navigate>`, and `<Link>` act on its own tab without call-site changes; `tab-router.test.tsx`
+  guards that nesting across `react-router-dom` upgrades. Panes are geometry only: every mounted
+  frame renders in one `DesktopTabLayer` over them, keyed by tab id in id order and never
+  reparented, and CSS positions each frame over its pane's rect (`use-pane-rects.ts` publishes the
+  rects as custom properties from a ResizeObserver, so a divider drag re-renders no tab).
+  `placeTabs` (`desktop-tab-placement.ts`) decides which tab shows over which rect; during a tab
+  drag it previews the drop's `move` without dispatching it, and frame presence separates
+  `visible` (the Activity) from `shown` (committed, counts for unread). Hidden tabs render in
+  `<Activity mode="hidden">`: DOM and state stay, effects tear down. A component whose effect
+  builds DOM from props (the composer's ProseMirror view) must rebuild from the latest props, not
+  its first ones.
+* Two navigator policies place a push (`resolveTabNavigation`, `tab-navigation.ts`). Inside a
+  page (`page`), `replace` and a push to the same page key (`tabPageKey`) stay in the tab; a push
+  to another page is a link and goes through `openLink` (the other pane when two exist, else the
+  same tab; a link never opens the second pane, only a tab `move` does). Window chrome — the
+  sidebar, command menu, settings rail — renders under `ShellTabRouter`, bound to the focused
+  pane's current tab (`shell`), so its pushes navigate that tab and its selection reads that
+  tab's location. Command-click intent rides router state (`tabIntentState`); paths outside the
+  current Server escape to the window router. Server-wide durable events (`ChatEventListeners`)
+  keep caches fresh for every tab. The window hash mirrors the focused tab
+  (`history.replaceState`) and only seeds a window with no stored tabs.
+* Page code reads tab presence, not the window: `useTabPresence()` (`shown`, `focusedPane`)
+  gates mark-read and window-level key handlers; the web default is always shown. Desktop-only
+  openers (`useDesktopPageOpeners` for Threads, Files, and artifacts) are null on the web, where
+  the chat's side panel (`useChatThreadPane`, `useChatFilesPane`) hosts them. A page that can be a
+  tab renders host-agnostically (no outlet context from outside its tab router) and works at
+  420px. Native web views and their placement belong to `BrowserViewsProvider`
+  (`hooks/browser/`); a divider drag covers them (`beginDesktopPointerDrag`), and so does a tab
+  drag for its whole length (`features/shell/tab-drag/`: a pure step machine, `stepTabDrag`, run
+  by an engine that paints the dragged tab at the pointer outside React; rows re-render only when
+  its slot changes and slide their tabs into place with FLIP, `use-row-flip.ts`).
 * Routed destinations render their content inside one `PageColumn`, which owns
   the page gutter, max width, and the rhythm between sections. It encodes
   HeroUI's page idiom (`mx-auto flex w-full flex-col gap-8` plus page padding)
@@ -237,8 +266,8 @@ tab stays blank while its Agent loads, and its strip tab closes it once the Agen
 * **One command opens an Agent's profile.** Every surface — transcript avatars,
   Agent chips, the Inbox's live Agent rows, the chat-rail and DM menus, the
   Computer page's Agent table, Settings → Members — calls
-  `useOpenAgentProfile` (`hooks/agents/use-open-agent-profile.ts`), which opens
-  a tab on desktop and the profile route on web. Real links use
+  `useOpenAgentProfile` (`hooks/agents/use-open-agent-profile.ts`), a push to
+  the profile route that the desktop tab router places like any link. Real links use
   `AgentProfileLink`, which keeps the href and routes its click through the
   same command. Hover shows the Agent hover card; there is no profile pane
   ([ADR 0038](../adr/0038-destinations-open-as-tabs.md)).
