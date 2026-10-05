@@ -35,6 +35,20 @@ those is one a human asked for.
 - Fresh schema only. Existing Runtime reminder history is not imported or
   adopted, and there is no compatibility path.
 
+## Title and description
+
+- `title` is a short label, like a calendar invite subject ("Monday Advertising
+  Review"): it is what a human reads on the cause line. A write that sets it
+  requires one line of at most `REMINDER_TITLE_MAX_CHARS` (60) characters and
+  refuses anything longer with an error that names the format and points to
+  `--description`. Stored titles may still be up to 300 characters, because
+  titles written before the split were whole sentences.
+- `description` is optional: what to do when it fires, in full, at most
+  `REMINDER_DESCRIPTION_MAX_CHARS` (300) characters. Migration 0060 copied every
+  existing title into its description. An update may change the title and the
+  description together; `--description none` clears it.
+- `script` is separate: a command the Computer runs at fire time, never prose.
+
 ## Schedules and authority
 
 - Repeat grammar is exactly `every:<positive>[mhd]`, `daily@HH:MM`, or
@@ -73,8 +87,10 @@ Nothing is written to the anchored Chat, so a fire appends no `message.created`.
 This transaction happens while the Agent's Computer may be offline. Every fire,
 including a script reminder, records itself and queues attention.
 
-The envelope the Agent pulls names the reminder, the fire, and the next
-occurrence, and ends with the line
+The envelope the Agent pulls names the reminder by title, then carries its
+description indented on the next lines (omitted when absent or identical to the
+title, so the Agent always receives the full instruction), then the fire and
+the next occurrence, and ends with the line
 `reply with: haus message send --cause <fireId>`. Bounded script output rides
 that same envelope.
 
@@ -101,7 +117,7 @@ reminder-specific facts are:
 
 - The `cause` a reminder-caused message carries reports `kind` `reminder`, the
   reminder id and fire id, and the snapshot taken when the fire was answered:
-  the title, its cadence string as the summary, the fire time, and the owning
+  the title and description, its cadence string as the summary, the fire time, and the owning
   Agent. Its `live` half — state, last fired time, fire count, script snippet —
   is null once the reminder or that fire has been swept, and the mark reads
   archived rather than disappearing.
