@@ -12,7 +12,9 @@ import {
     automationMarkColor,
     automationMarkElbow,
     messageCauseAttributionNote,
+    messageCauseDescription,
     messageCauseHoverFacts,
+    messageCauseInstruction,
 } from './automation-presentation.ts';
 
 /**
@@ -21,7 +23,9 @@ import {
  *
  * A fire writes nothing to the transcript, so this line is the only chat-
  * visible trace of a Trigger or Reminder going off. The glyph stands where a
- * reply shows its parent's author, and the title fills the rest of the line.
+ * reply shows its parent's author, and the title — a short label, like a
+ * calendar invite subject — fills the rest of the line. What it stands for is
+ * the description, which only the hover card shows.
  * Hovering previews the automation from the message's own `cause`; pressing
  * opens the owning Agent's Automations tab, the one place it is managed.
  *
@@ -75,14 +79,16 @@ const automationNoun = {
 } as const satisfies Record<MessageCause['kind'], string>;
 
 /**
- * The kind sits beside the title; reminder cadence sits below it.
- * one fact line carries status and history, and the standing instruction is
- * clipped to a glance. Managing the automation happens from the Agent's
+ * The kind sits beside the title, and a Reminder's description reads directly
+ * under it, the way an invite's body sits under its subject. The cadence
+ * follows, one fact line carries status and history, and the standing
+ * instruction or script is clipped to a glance. Managing the automation happens from the Agent's
  * Automations tab or the Thread context card, never from a hover.
  */
 export function MessageCauseHoverContent({ cause }: { cause: MessageCause }) {
     const attributionNote = messageCauseAttributionNote(cause);
-    const instruction = cause.live?.instruction;
+    const description = messageCauseDescription(cause);
+    const instruction = messageCauseInstruction(cause);
 
     return (
         <ReferencePreviewHeader
@@ -96,6 +102,11 @@ export function MessageCauseHoverContent({ cause }: { cause: MessageCause }) {
             meta={cause.kind === 'reminder' ? null : cause.summary}
             title={cause.title}
         >
+            {description ? (
+                <ReferencePreviewText className="line-clamp-4" tone="foreground">
+                    {description}
+                </ReferencePreviewText>
+            ) : null}
             {cause.kind === 'reminder' ? (
                 <ReferencePreviewText>{cause.summary}</ReferencePreviewText>
             ) : null}

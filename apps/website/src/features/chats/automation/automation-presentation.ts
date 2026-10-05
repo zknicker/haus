@@ -52,6 +52,25 @@ export function automationStatusChip(status: MessageCauseLive['status']): {
 }
 
 /**
+ * What a Reminder's short title stands for, or null when there is nothing more
+ * to say. A Reminder written before titles became labels copied its sentence
+ * title into its description, and the card says a thing once, not twice.
+ */
+export function messageCauseDescription(cause: Pick<MessageCause, 'description' | 'title'>) {
+    const description = cause.description?.trim();
+    return description && description !== cause.title.trim() ? description : null;
+}
+
+/**
+ * The live instruction a hover card clips — a Trigger's standing instruction or
+ * a Reminder's script — unless the description already said exactly that.
+ */
+export function messageCauseInstruction(cause: MessageCause) {
+    const instruction = cause.live?.instruction?.trim();
+    return instruction && instruction !== messageCauseDescription(cause) ? instruction : null;
+}
+
+/**
  * The hover card's fact line, built from the message alone — the cause rides
  * every message the Server hands a client, so previewing an automation costs
  * no second read. The kind or cadence is the header's `·` clause, so it is not
