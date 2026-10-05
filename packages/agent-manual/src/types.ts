@@ -4,6 +4,11 @@ export type ManualRecipeClass = 'archetype' | 'decision' | 'pattern' | 'playbook
 export type ManualDeliveryTier = 'seeded' | 'query';
 
 interface ManualTopicBase {
+    /**
+     * Exact lookup shapes Agents were observed to try for this topic. Server-side
+     * lookup only; never part of the wire topic. Add an alias only for a real miss.
+     */
+    aliases?: readonly string[];
     body: string;
     id: string;
     kind: ManualTopicKind;

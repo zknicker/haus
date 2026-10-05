@@ -97,7 +97,9 @@ export const agentManualGetQuerySchema = z
     .object({
         intent: agentManualIntentSchema,
         reason: agentManualReasonSchema,
-        topic: agentManualTopicIdSchema,
+        // What the Agent typed, not a stable id: the Server resolves aliases and
+        // normalized forms, and answers a miss with the closest topics.
+        topic: z.string().trim().min(1).max(200),
     })
     .strict();
 

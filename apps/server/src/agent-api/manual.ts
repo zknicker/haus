@@ -1,4 +1,10 @@
-import { getManualTopic, searchManualTopics } from '@haus/agent-manual';
+import {
+    type ManualMissGuidance,
+    manualGetMissGuidance,
+    manualSearchMissGuidance,
+    resolveManualTopic,
+    searchManualTopics,
+} from '@haus/agent-manual';
 import {
     agentManualGetQuerySchema,
     agentManualGetResponseSchema,
@@ -6,7 +12,7 @@ import {
     agentManualSearchResponseSchema,
     manualRunnerCapability,
 } from '@haus/api';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import type * as z from 'zod';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -14,10 +20,14 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentManualLookupAuditTable } from '../postgres/schema.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 
-export class ManualTopicNotFoundError extends Error {
-    constructor(readonly topicId: string) {
-        super(`Manual topic '${topicId}' was not found.`);
-        this.name = 'ManualTopicNotFoundError';
+/** A lookup that found nothing; carries the closest-topic recovery copy. */
+export class ManualLookupMissError extends Error {
+    constructor(
+        readonly code: 'MANUAL_NO_MATCH' | 'MANUAL_TOPIC_NOT_FOUND',
+        readonly guidance: ManualMissGuidance
+    ) {
+        super(guidance.message);
+        this.name = 'ManualLookupMissError';
     }
 }
 
@@ -52,10 +62,8 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: HausDatabase
         try {
             return await readManualTopic(db, runner, parsed.data);
         } catch (cause) {
-            if (cause instanceof ManualTopicNotFoundError) {
-                return sendAgentApiError(reply, 404, 'MANUAL_TOPIC_NOT_FOUND', cause.message, {
-                    nextAction: "Run 'haus manual get index' to browse available topics.",
-                });
+            if (cause instanceof ManualLookupMissError) {
+                return sendManualMiss(reply, cause);
             }
             return sendAgentApiError(
                 reply,
@@ -95,7 +103,10 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: HausDatabase
         }
         try {
             return await searchManual(db, runner, parsed.data);
-        } catch {
+        } catch (cause) {
+            if (cause instanceof ManualLookupMissError) {
+                return sendManualMiss(reply, cause);
+            }
             return sendAgentApiError(
                 reply,
                 500,
@@ -117,10 +128,15 @@ async function readManualTopic(
         reason: input.reason,
         topicId: input.topic,
     });
-    const topic = getManualTopic(input.topic);
-    if (!topic) {
-        throw new ManualTopicNotFoundError(input.topic);
+    const resolved = resolveManualTopic(input.topic);
+    if (!resolved) {
+        throw new ManualLookupMissError(
+            'MANUAL_TOPIC_NOT_FOUND',
+            manualGetMissGuidance(input.topic)
+        );
     }
+    // Aliases steer server-side lookup only; they are not part of the wire topic.
+    const { aliases: _aliases, ...topic } = resolved;
     return agentManualGetResponseSchema.parse({ topic });
 }
 
@@ -136,12 +152,24 @@ async function searchManual(
         reason: input.reason,
     });
     const results = searchManualTopics(input.q, { limit: input.limit, scope: input.scope }).map(
-        ({ body: _body, related: _related, ...result }) => result
+        ({ aliases: _aliases, body: _body, related: _related, ...result }) => result
     );
+    if (results.length === 0) {
+        throw new ManualLookupMissError(
+            'MANUAL_NO_MATCH',
+            manualSearchMissGuidance(input.q, input.scope)
+        );
+    }
     return agentManualSearchResponseSchema.parse({
         query: input.q,
         results,
         scope: input.scope,
+    });
+}
+
+function sendManualMiss(reply: FastifyReply, miss: ManualLookupMissError) {
+    return sendAgentApiError(reply, 404, miss.code, miss.guidance.message, {
+        nextAction: miss.guidance.nextAction,
     });
 }
 
