@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
+import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { developmentArtifactFiles } from '../src/development/seed-artifact-files.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { readPendingCoveCommand } from '../src/onboarding/create-cove.ts';
@@ -58,8 +59,8 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(computersTable)).toHaveLength(2);
     const agents = await connection.db.select().from(agentsTable);
     expect(agents).toHaveLength(3);
-    // Base workspace plus the UI gallery channel and its example threads.
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(25);
+    // Base workspace, the UI gallery channel and its threads, and #automations.
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(26);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -69,7 +70,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(60);
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(67);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -214,4 +215,37 @@ test('seeds a demo workspace an operator can actually look at', async () => {
 
     // A Server-managed connection the Agent Connections surface can grant.
     expect(await connection.db.select().from(mcpConnectionsTable)).toHaveLength(1);
+});
+
+test('seeds #automations with live, archived, and replying automation causes', async () => {
+    const chats = await connection.db.select().from(chatsTable);
+    const channel = chats.find((chat) => chat.name === 'automations');
+    expect(channel).toBeDefined();
+    const messages = (await connection.db.select().from(chatMessagesTable))
+        .filter((message) => message.chatId === channel?.id)
+        .sort((left, right) => left.sequence - right.sequence);
+    const causes = await readMessageCauses(
+        connection.db,
+        channel?.serverId ?? '',
+        messages.map((message) => message.id)
+    );
+
+    const caused = messages.flatMap((message) => {
+        const cause = causes.get(message.id);
+        return cause
+            ? [{ kind: cause.kind, live: cause.live !== null, reply: message.replyToMessageId }]
+            : [];
+    });
+    expect(caused.map(({ kind, live }) => [kind, live])).toEqual([
+        ['reminder', true],
+        ['reminder', true],
+        ['trigger', true],
+        ['reminder', false],
+    ]);
+    // The stacked case: one reminder answer is also an inline reply.
+    expect(caused.filter((cause) => cause.reply !== null)).toHaveLength(1);
+    // And one plain reply to compare against.
+    expect(
+        messages.filter((message) => message.replyToMessageId && !causes.has(message.id))
+    ).toHaveLength(1);
 });
