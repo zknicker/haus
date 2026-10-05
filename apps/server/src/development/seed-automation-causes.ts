@@ -66,7 +66,7 @@ export async function seedDevelopmentAutomationCauses(
             askChecklist: createOpaqueId('msg'),
             askReviews: createOpaqueId('msg'),
             plainReply: createOpaqueId('msg'),
-            stacked: createOpaqueId('msg'),
+            causedReply: createOpaqueId('msg'),
             trigger: createOpaqueId('msg'),
         };
         const human = (id: string, minutes: number, content: string): SeedMessage => ({
@@ -114,7 +114,7 @@ export async function seedDevelopmentAutomationCauses(
                     'Two PRs have waited more than two days: #412 (session cleanup) and #418 (reply lines). Both need one more approval.'
                 ),
                 agent(
-                    ids.stacked,
+                    ids.causedReply,
                     blippyId,
                     40,
                     'Monday checklist: changelog drafted, iOS build pending, release notes need an owner.'
@@ -135,7 +135,7 @@ export async function seedDevelopmentAutomationCauses(
             serverId,
         });
         await markReply(tx, { messageId: ids.plainReply, parentId: ids.askReviews, serverId });
-        await markReply(tx, { messageId: ids.stacked, parentId: ids.askChecklist, serverId });
+        await markReply(tx, { messageId: ids.causedReply, parentId: ids.askChecklist, serverId });
 
         const reminder = (anchorMessageId: string) => ({ anchorChatId: chatId, anchorMessageId });
         const reviews = await seedReminderFire(tx, {
@@ -179,7 +179,7 @@ export async function seedDevelopmentAutomationCauses(
 
         for (const [messageId, fireId, agentId] of [
             [ids.alone, reviews.fireId, blippyId],
-            [ids.stacked, checklist.fireId, blippyId],
+            [ids.causedReply, checklist.fireId, blippyId],
             [ids.trigger, deploy, tinyId],
             [ids.archived, stale.fireId, blippyId],
         ] as const) {

@@ -242,7 +242,7 @@ test('seeds #automations with live, archived, and replying automation causes', a
         ['trigger', true],
         ['reminder', false],
     ]);
-    // The stacked case: one reminder answer is also an inline reply.
+    // One reminder answer is also an inline reply; its cause line replaces the reply line.
     expect(caused.filter((cause) => cause.reply !== null)).toHaveLength(1);
     // And one plain reply to compare against.
     expect(
