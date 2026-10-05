@@ -79,12 +79,11 @@ model session. Per-turn message delivery is an inbox concern; see
   history. Full reset restores an ordinary Agent's minimal `MEMORY.md`, empty `notes/`, and
   factory-managed skills.
 
-The composed instructions are bounded by a reviewed size budget asserted in
-`apps/computer/src/harness/managed-instructions.test.ts`. It is a review gate, not a runtime limit:
-no adapter enforces a prompt length. Raft-verbatim text is the fixed part and is never trimmed to
-make room; Haus-only additions must fit inside the current budget by simplifying or relocating
-other Haus-only text into Manual topics or skills. See AGENTS.md and
-[the divergence register](../../specs/raft-alignment/prompt-divergences.md).
+The composed instructions are bounded by a size cap asserted in
+`apps/computer/src/harness/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
+decision, not a hard or runtime limit: a justified addition raises the cap with a recorded reason,
+and other prompt text is never cut just to make room. Raft-verbatim text is never trimmed. See
+AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
 
 Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and
 notes), not an injected memory system. Agents read older canonical Chat history
