@@ -144,9 +144,9 @@ reset time: Cursor exposes no supported public personal-account surface for them
 Agents row shows readiness only and never a meter.
 
 Claude Code and Grok Build token totals follow ccusage's source rules: Claude assistant usage rows
-under `${CLAUDE_CONFIG_DIR:-~/.claude}/projects/**/*.jsonl`, including subagents and replay
-deduplication; and completed Grok turns under `${GROK_HOME:-~/.grok}/sessions/**/updates.jsonl`,
-expanded by model without counting reasoning twice. Computer scans only files modified inside the
+under `${CLAUDE_CONFIG_DIR:-~/.claude}/projects/**/*.jsonl`, including the operator's own
+Claude Code sub-agent transcripts (not Haus Agent turns) and replay deduplication; and completed
+Grok turns under `${GROK_HOME:-~/.grok}/sessions/**/updates.jsonl`, expanded by model without counting reasoning twice. Computer scans only files modified inside the
 30-day window, caches parsed rows by path, size, and modification time, and reuses the aggregate
 while the file fingerprint and UTC day are unchanged. The one-minute report therefore checks file
 metadata without repeatedly parsing or aggregating an unchanged ledger. Raw logs never leave the

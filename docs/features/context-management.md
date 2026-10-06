@@ -111,6 +111,12 @@ Grok Agent still sees such files it or a repository puts in its workspace. Haus 
 `*-context-isolation*.test.ts` files under `apps/computer/src/harness/` prove
 each row; the Grok live test fails when Grok changes this behavior.
 
+Sub-agents run on Claude Code only, and only in the foreground:
+`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` removes the Agent tool's `run_in_background`, so a
+sub-agent finishes inside its parent turn. Codex launches with `agents.enabled = false` and
+`features.multi_agent = false` in `CODEX_CONFIG`, and Grok Build with `GROK_SUBAGENTS=0`, so
+neither offers a spawn tool.
+
 The Server stores desired configuration and canonical history. Computer stores
 effective harness state and resume evidence. The App reports that distinction
 instead of inferring session health from process presence.
