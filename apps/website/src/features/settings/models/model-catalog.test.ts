@@ -12,7 +12,13 @@ const computers = [
                 {
                     id: 'codex',
                     label: 'Codex',
-                    models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
+                    models: [
+                        {
+                            features: ['image-generation' as const],
+                            id: 'gpt-5.6-sol',
+                            label: 'GPT-5.6 Sol',
+                        },
+                    ],
                 },
             ],
         },
@@ -37,16 +43,18 @@ const computers = [
     },
 ];
 
-test('deduplicates models and preserves runtime and Computer availability', () => {
+test('deduplicates models and preserves runtime, feature, and Computer availability', () => {
     expect(buildModelCatalog(computers)).toEqual([
         {
             computerCount: 2,
+            features: ['Image generation (ChatGPT paid plans)'],
             id: 'gpt-5.6-sol',
             label: 'GPT-5.6 Sol',
             runtimes: ['Codex', 'Pi'],
         },
         {
             computerCount: 1,
+            features: [],
             id: 'kimi-k2',
             label: 'Kimi K2',
             runtimes: ['Pi'],

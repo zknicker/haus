@@ -17,6 +17,7 @@ import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creati
 import { resolveAgentCreationDefaults } from './agent-creation-defaults.ts';
 import { createAgentHandle } from './agent-handle.ts';
 import { InventorySelect } from './inventory-select.tsx';
+import { modelFeatureDescription } from './model-features.ts';
 import { ReasoningSelect, supportedReasoningEffort } from './reasoning-select.tsx';
 
 export type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
@@ -194,7 +195,14 @@ export function AgentCreationForm({
                             disabled={!runtime}
                             label="Model"
                             onChange={setModelId}
-                            options={models}
+                            options={models.map((entry) => ({
+                                description: modelFeatureDescription(
+                                    runtime?.id ?? '',
+                                    entry.features
+                                ),
+                                id: entry.id,
+                                label: entry.label,
+                            }))}
                             placeholder="Select a model"
                             value={model?.id ?? ''}
                         />

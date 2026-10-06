@@ -13,7 +13,7 @@ export function InventorySelect({
     disabled?: boolean;
     label: string;
     onChange: (value: string) => void;
-    options: ReadonlyArray<{ id: string; label: string }>;
+    options: ReadonlyArray<{ description?: string; id: string; label: string }>;
     placeholder: string;
     value: string;
 }) {
@@ -36,6 +36,9 @@ export function InventorySelect({
                     {options.map((option) => (
                         <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
                             <Label>{option.label}</Label>
+                            {option.description ? (
+                                <Description>{option.description}</Description>
+                            ) : null}
                             <ListBox.ItemIndicator />
                         </ListBox.Item>
                     ))}

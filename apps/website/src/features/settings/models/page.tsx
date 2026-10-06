@@ -213,6 +213,20 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
         minWidth: 160,
     },
     {
+        cell: (item) => (
+            <div className="flex flex-wrap gap-1.5">
+                {item.features.map((feature) => (
+                    <Chip key={feature} size="sm" variant="soft">
+                        {feature}
+                    </Chip>
+                ))}
+            </div>
+        ),
+        header: 'Features',
+        id: 'features',
+        minWidth: 180,
+    },
+    {
         accessorKey: 'computerCount',
         align: 'end',
         allowsSorting: true,

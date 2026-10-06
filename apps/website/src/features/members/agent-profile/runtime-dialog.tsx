@@ -4,6 +4,7 @@ import { CpuIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
+import { modelFeatureDescription } from '../model-features.ts';
 import { ReasoningSelect, supportedReasoningEffort } from '../reasoning-select.tsx';
 import { isRuntimeConfigDraftAvailable, type RuntimeConfigDraft } from './runtime-model.ts';
 
@@ -169,16 +170,25 @@ function RuntimeConfigForm({
                                         <Description>Not installed</Description>
                                     </ListBox.Item>
                                 )}
-                                {models.map((model) => (
-                                    <ListBox.Item
-                                        id={model.id}
-                                        key={model.id}
-                                        textValue={model.label}
-                                    >
-                                        <Label>{model.label}</Label>
-                                        <ListBox.ItemIndicator />
-                                    </ListBox.Item>
-                                ))}
+                                {models.map((model) => {
+                                    const features = modelFeatureDescription(
+                                        runtimeId,
+                                        model.features
+                                    );
+                                    return (
+                                        <ListBox.Item
+                                            id={model.id}
+                                            key={model.id}
+                                            textValue={model.label}
+                                        >
+                                            <Label>{model.label}</Label>
+                                            {features ? (
+                                                <Description>{features}</Description>
+                                            ) : null}
+                                            <ListBox.ItemIndicator />
+                                        </ListBox.Item>
+                                    );
+                                })}
                             </ListBox>
                         </Select.Popover>
                     </Select>
