@@ -5,6 +5,7 @@ import {
     readExecutionJournalSnapshot,
     startExecutionJournalLog,
 } from './execution-journal-store';
+import { settleSubagent } from './execution-journal-subagent';
 import { interruptTool, isJournalDocument } from './execution-journal-values';
 
 export type {
@@ -13,6 +14,8 @@ export type {
     ComputerExecutionJournalReasoning,
     ComputerExecutionJournalResult,
     ComputerExecutionJournalStatus,
+    ComputerExecutionJournalSubagent,
+    ComputerExecutionJournalSubagentPatch,
     ComputerExecutionJournalTool,
     JournalValue,
 } from './execution-journal-types';
@@ -44,6 +47,7 @@ export async function createComputerExecutionJournal(input: {
             if (tool.status !== 'running') {
                 continue;
             }
+            settleSubagent(tool, 'interrupted', now().toISOString());
             interruptTool(tool, now(), 'computer_restart');
         }
         document.status = 'running';

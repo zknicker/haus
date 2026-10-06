@@ -2,6 +2,7 @@
 export type ComputerAgentActivityCategory =
     | 'browsing'
     | 'checking_messages'
+    | 'delegating'
     | 'editing_files'
     | 'reading_files'
     | 'running_command'
@@ -18,6 +19,8 @@ export type ComputerAgentActivityPhase = 'completed' | 'failed' | 'interrupted' 
 export interface ComputerAgentActivityUpdate {
     category: ComputerAgentActivityCategory;
     occurredAt: string;
+    /** Opaque hex id pairing a `delegating` start with its settlement. */
+    operationId?: string;
     phase: ComputerAgentActivityPhase;
     /** Only a canonical Haus-owned identity may cross the Computer boundary. */
     toolRef?: string;

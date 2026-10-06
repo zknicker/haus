@@ -12,6 +12,7 @@ import { applyJournalRecord } from './execution-journal-mutations';
 import type {
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalStatus,
+    ComputerExecutionJournalSubagentPatch,
     JournalValue,
 } from './execution-journal-types';
 
@@ -22,9 +23,16 @@ export type JournalMutationRecord =
           input?: JournalValue;
           nativeName?: string;
           occurredAt: string;
+          parentToolCallId?: string;
           toolCallId: string;
           toolName: string;
           type: 'tool-call';
+      }
+    | {
+          occurredAt: string;
+          patch: ComputerExecutionJournalSubagentPatch;
+          toolCallId: string;
+          type: 'subagent';
       }
     | {
           isError: boolean;

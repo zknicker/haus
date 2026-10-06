@@ -2,10 +2,8 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { agentThoughtActionMaxLength } from '@haus/api';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
-import {
-    createComputerActivityProjector,
-    createComputerActivityRegistry,
-} from './activity-projector.ts';
+import { createComputerActivityProjector } from './activity-projector.ts';
+import { createComputerActivityRegistry } from './activity-registry.ts';
 import { describeFileChange, describeToolAction } from './thought-action.ts';
 import { scrubCommandLine } from './thought-action-scrub.ts';
 

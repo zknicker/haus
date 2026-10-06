@@ -6,6 +6,7 @@
  */
 import { EXECUTION_JOURNAL_REASONING_MAX_BLOCKS } from '@haus/api';
 import type { JournalMutationRecord } from './execution-journal-records';
+import { applySubagent, settleSubagent } from './execution-journal-subagent';
 import type {
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalTool,
@@ -22,6 +23,8 @@ export function applyJournalRecord(
             return applyToolCall(document, record);
         case 'tool-result':
             return applyToolResult(document, record);
+        case 'subagent':
+            return applySubagent(document, record);
         case 'reasoning-start':
             return applyReasoningStart(document, record);
         case 'reasoning-append':
@@ -63,6 +66,7 @@ function applyToolCall(
     }
     tool.toolName = record.toolName;
     tool.nativeName ??= record.nativeName;
+    tool.parentToolCallId ??= record.parentToolCallId;
     if (record.input !== undefined) {
         tool.input = record.input;
     }
@@ -91,6 +95,7 @@ function applyToolResult(
         tool.status = record.isError ? 'failed' : 'completed';
         tool.endedAt = record.occurredAt;
         tool.durationMs = Math.max(0, Date.parse(record.occurredAt) - Date.parse(tool.startedAt));
+        settleSubagent(tool, tool.status, record.occurredAt);
     }
     if (record.isError) {
         tool.error = record.output;
@@ -153,6 +158,7 @@ function applyInterrupt(
         if (tool.status !== 'running') {
             continue;
         }
+        settleSubagent(tool, 'interrupted', record.at);
         if (record.status === 'interrupted') {
             interruptTool(tool, at, record.reason);
         } else {
@@ -173,6 +179,7 @@ function applyFinish(
 ): boolean {
     const at = Date.parse(record.at);
     for (const tool of document.tools) {
+        settleSubagent(tool, 'interrupted', record.at);
         if (tool.status !== 'running') {
             continue;
         }

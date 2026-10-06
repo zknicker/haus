@@ -25,6 +25,7 @@ export function createRunFrames(input: {
                 agentId: input.agentId,
                 category: activity.category,
                 occurredAt: activity.occurredAt,
+                ...(activity.operationId ? { operationId: activity.operationId } : {}),
                 phase: activity.phase,
                 producerSequence: ++activitySequence,
                 runId: input.runId,

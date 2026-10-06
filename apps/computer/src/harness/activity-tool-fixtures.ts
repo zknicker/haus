@@ -23,11 +23,14 @@ export type ComputerToolClassification = ComputerToolActivity | { outcome: 'skip
  */
 export const computerNativeToolActivityFixtures = {
     'claude-code': {
+        // The sub-agent tool; older inits still list it as `Task`.
+        Agent: 'delegating',
         Bash: 'running_command',
         Edit: 'editing_files',
         Glob: 'reading_files',
         Grep: 'reading_files',
         Read: 'reading_files',
+        Task: 'delegating',
         Write: 'editing_files',
         WebFetch: 'browsing',
         WebSearch: 'searching_web',

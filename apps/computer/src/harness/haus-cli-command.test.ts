@@ -1,10 +1,8 @@
 import { afterAll, expect, test } from 'bun:test';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
-import {
-    createComputerActivityProjector,
-    createComputerActivityRegistry,
-} from './activity-projector.ts';
+import { createComputerActivityProjector } from './activity-projector.ts';
+import { createComputerActivityRegistry } from './activity-registry.ts';
 import { isHausCliCommand } from './haus-cli-command.ts';
 
 const runtime = makeDaemonRuntime();

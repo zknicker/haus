@@ -11,6 +11,7 @@ import { isSecretName, scrubCommandLine, scrubPhrase } from './thought-action-sc
  */
 const describedCategories = new Set<ComputerAgentActivityCategory>([
     'browsing',
+    'delegating',
     'editing_files',
     'reading_files',
     'running_command',
@@ -22,8 +23,8 @@ const describedCategories = new Set<ComputerAgentActivityCategory>([
  * A scrubbed, bounded description of a tool action that just started, for the
  * Server to phrase as a thought (ADR 0036): a shell command line with URLs
  * reduced to host and path words and secrets, tokens, and emails removed; a
- * file's basename; a web query or page; or a tool name with a short argument
- * summary. Null when the action is bookkeeping or nothing presentable remains.
+ * file's basename; a web query or page; the short description a sub-agent was
+ * delegated under; or a tool name with a short argument summary. Null when the action is bookkeeping or nothing presentable remains.
  */
 export function describeToolAction(action: {
     classification: ComputerToolClassification;
@@ -54,6 +55,13 @@ export function describeToolAction(action: {
         case 'searching_web': {
             const query = textField(fields, ['query', 'q', 'search_query']);
             return query ? bounded(`web search: ${scrubPhrase(query)}`) : 'web search';
+        }
+        case 'delegating': {
+            // The model's own short task label, never the sub-agent's prompt.
+            const description = textField(fields, ['description']);
+            return description
+                ? bounded(`delegate to a sub-agent: ${scrubPhrase(description)}`)
+                : 'delegate to a sub-agent';
         }
         case 'browsing': {
             const url = textField(fields, ['url', 'uri', 'href']);

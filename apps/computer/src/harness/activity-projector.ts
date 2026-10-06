@@ -1,77 +1,17 @@
-import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import { createAcpReadSteps } from './acp-read-steps.ts';
 import {
-    type ComputerToolActivity,
-    type ComputerToolClassification,
-    isMcpName,
-    knownToolCategory,
-    syntheticHarnessToolActivity,
-} from './activity-tool-fixtures.ts';
+    type ComputerActivityRegistry,
+    createComputerActivityRegistry,
+} from './activity-registry.ts';
+import type { ComputerToolActivity, ComputerToolClassification } from './activity-tool-fixtures.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { createFileChangeFold } from './file-change-fold.ts';
-import { classifyShellCall } from './haus-cli-command.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
+import { createSubagentSteps, delegationOperationId } from './subagent-steps.ts';
 import { describeFileChange, describeToolAction } from './thought-action.ts';
 import type { AgentThoughtNarrator } from './thought-narrator.ts';
 import { createToolFindings } from './thought-result.ts';
-
-export interface HausHostToolRegistration {
-    category: Exclude<ComputerAgentActivityCategory, 'starting_work' | 'thinking' | 'working'>;
-    name: string;
-    toolRef?: string;
-}
-
-export interface ComputerActivityRegistry {
-    classify(input: {
-        dynamic?: boolean;
-        input?: unknown;
-        invalid?: boolean;
-        nativeName?: string;
-        providerExecuted?: boolean;
-        runtimeId: string;
-        toolName: string;
-    }): ComputerToolClassification;
-    registerHausHostTool(registration: HausHostToolRegistration): void;
-}
-
-export function createComputerActivityRegistry(): ComputerActivityRegistry {
-    const hostTools = new Map<string, HausHostToolRegistration>();
-    return {
-        classify(input) {
-            const synthetic = syntheticHarnessToolActivity(
-                input.toolName,
-                input.providerExecuted === true
-            );
-            if (synthetic) {
-                return synthetic === 'skip'
-                    ? { outcome: 'skip' }
-                    : { category: synthetic, outcome: 'activity' };
-            }
-            const known = knownToolCategory(input.runtimeId, input.toolName, input.nativeName);
-            // A runtime builtin whose input failed its schema is still that builtin
-            // (codex-acp sends a parsed file read as `exec_command` with no command).
-            if (known && input.invalid && input.providerExecuted) {
-                return { category: known, outcome: 'activity' };
-            }
-            if (input.dynamic || isMcpName(input.toolName) || isMcpName(input.nativeName)) {
-                return { category: 'using_tool', outcome: 'activity' };
-            }
-            const host = hostTools.get(input.nativeName ?? '') ?? hostTools.get(input.toolName);
-            if (host) {
-                return {
-                    category: host.category,
-                    outcome: 'activity',
-                    ...(host.toolRef ? { toolRef: host.toolRef } : {}),
-                };
-            }
-            return classifyShellCall(known ?? 'using_tool', input.input);
-        },
-        registerHausHostTool(registration) {
-            hostTools.set(registration.name, registration);
-        },
-    };
-}
 
 export function createComputerActivityProjector(input: {
     activity: AgentActivityRun;
@@ -89,6 +29,7 @@ export function createComputerActivityProjector(input: {
         pending: new Map(),
         reads: createAcpReadSteps(input.workspaceDir),
         skipped,
+        subagents: createSubagentSteps(input.journal),
     };
     const { pending } = calls;
     return {
@@ -113,6 +54,7 @@ export function createComputerActivityProjector(input: {
             calls.fileChanges.clear();
             calls.findings.clear();
             calls.reads.clear();
+            calls.subagents.clear();
             await input.journal?.flushReasoning();
         },
         async observe(part: unknown) {
@@ -121,6 +63,7 @@ export function createComputerActivityProjector(input: {
             }
             if (part.type === 'raw') {
                 calls.reads.observeRaw(part);
+                await calls.subagents.observeRaw(part);
                 return;
             }
             if (part.type === 'tool-call') {
@@ -165,7 +108,8 @@ async function observeToolCall(
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
-    if (!(toolCallId && toolName)) {
+    // A sub-agent's own calls are journal evidence only, recorded from raw messages.
+    if (!(toolCallId && toolName) || calls.subagents.isChild(toolCallId)) {
         return;
     }
     if (await calls.fileChanges.observeCall({ part, toolCallId, toolName }, input.journal)) {
@@ -212,7 +156,11 @@ async function observeToolOutcome(
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
-    if (!(toolCallId && toolName) || calls.fileChanges.absorbsResult(toolCallId)) {
+    if (
+        !(toolCallId && toolName) ||
+        calls.subagents.isChild(toolCallId) ||
+        calls.fileChanges.absorbsResult(toolCallId)
+    ) {
         return;
     }
     await startToolActivity({
@@ -249,6 +197,9 @@ async function observeToolOutcome(
     if (isPreliminary) {
         return;
     }
+    if (calls.pending.get(toolCallId)?.category === 'delegating') {
+        await calls.subagents.observeResult(toolCallId, part.output);
+    }
     calls.findings.finished(toolCallId, part.output, failed);
     calls.skipped.delete(toolCallId);
     if (calls.pending.delete(toolCallId)) {
@@ -274,6 +225,9 @@ async function startToolActivity(input: {
     await input.activity.start({
         category: input.classification.category,
         key: toolActivityKey(input.toolCallId),
+        ...(input.classification.category === 'delegating'
+            ? { operationId: delegationOperationId(input.toolCallId) }
+            : {}),
         ...(input.classification.toolRef ? { toolRef: input.classification.toolRef } : {}),
     });
 }
@@ -285,6 +239,7 @@ interface ToolCalls {
     pending: Map<string, ComputerToolActivity>;
     reads: ReturnType<typeof createAcpReadSteps>;
     skipped: Set<string>;
+    subagents: ReturnType<typeof createSubagentSteps>;
 }
 
 function toolActivityKey(toolCallId: string): string {

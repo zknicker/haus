@@ -10,6 +10,7 @@ export type AgentActivityTerminalPhase = 'completed' | 'failed' | 'interrupted';
 
 interface ActivityOperation {
     readonly category: ComputerAgentActivityCategory;
+    readonly operationId?: string;
     readonly toolRef?: string;
 }
 
@@ -129,6 +130,7 @@ export class AgentActivityRun {
                         category: operation.category,
                         occurredAt: new Date(occurredAt).toISOString(),
                         phase: 'started',
+                        ...(operation.operationId ? { operationId: operation.operationId } : {}),
                         ...(operation.toolRef ? { toolRef: operation.toolRef } : {}),
                     });
                 })
@@ -150,6 +152,7 @@ export class AgentActivityRun {
                         category: operation.category,
                         occurredAt: new Date(occurredAt).toISOString(),
                         phase,
+                        ...(operation.operationId ? { operationId: operation.operationId } : {}),
                         ...(operation.toolRef ? { toolRef: operation.toolRef } : {}),
                     });
                 })

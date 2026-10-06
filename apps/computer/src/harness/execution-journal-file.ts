@@ -9,6 +9,7 @@ import type {
     ComputerExecutionJournal,
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalStatus,
+    ComputerExecutionJournalSubagentPatch,
 } from './execution-journal-types';
 import { journalValue } from './execution-journal-values';
 
@@ -31,6 +32,7 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
         input?: unknown;
         nativeName?: string;
         occurredAt?: string;
+        parentToolCallId?: string;
         toolCallId: string;
         toolName: string;
     }): Promise<void> {
@@ -41,6 +43,7 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
             input: input.input === undefined ? undefined : journalValue(input.input),
             nativeName: input.nativeName,
             occurredAt: input.occurredAt ?? this.now().toISOString(),
+            ...(input.parentToolCallId ? { parentToolCallId: input.parentToolCallId } : {}),
             toolCallId: input.toolCallId,
             toolName: input.toolName,
             type: 'tool-call',
@@ -69,6 +72,20 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
             toolCallId: input.toolCallId,
             toolName: input.toolName,
             type: 'tool-result',
+        });
+        await this.flush();
+    }
+
+    async recordSubagent(input: {
+        occurredAt?: string;
+        patch: ComputerExecutionJournalSubagentPatch;
+        toolCallId: string;
+    }): Promise<void> {
+        this.push({
+            occurredAt: input.occurredAt ?? this.now().toISOString(),
+            patch: input.patch,
+            toolCallId: input.toolCallId,
+            type: 'subagent',
         });
         await this.flush();
     }
