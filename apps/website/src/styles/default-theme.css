@@ -1666,6 +1666,15 @@
         max-height: 85vh;
     }
 
+    /*
+     * A dialog that presents one image (a trace's generated image): as wide
+     * as the picture up to a large measure, so it reads at the window's size
+     * rather than a stock form width.
+     */
+    .modal__dialog--image {
+        max-width: 64rem;
+    }
+
     /* Rich references are enhanced inline text, not freestanding badges. */
     .chip.reference-chip {
         gap: var(--spacing);
