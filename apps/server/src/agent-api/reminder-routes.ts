@@ -1,7 +1,13 @@
+import {
+    AGENT_IDEMPOTENCY_KEY_REUSED,
+    agentReminderCommandSchema,
+    agentReminderScheduleInputSchema,
+} from '@haus/api';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as z from 'zod';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { ReminderCommandConflictError } from '../reminders/reminder-model.ts';
 import {
     cancelAgentReminder,
     listAgentReminders,
@@ -11,24 +17,8 @@ import {
     updateAgentReminder,
 } from './reminders.ts';
 
-// Title and description lengths are checked by the reminder model, whose error
-// teaches the Agent the format; a bare schema refusal would not.
-const scheduleSchema = z.object({
-    commandId: z.string().min(1),
-    description: z.string().min(1).optional(),
-    fireAt: z.string().datetime(),
-    messageId: z.string().min(1),
-    repeat: z.string().min(1).optional(),
-    script: z.string().min(1).optional(),
-    title: z.string().min(1),
-});
-const mutationSchema = z.object({
-    commandId: z.string().min(1),
-    expectedVersion: z.number().int().positive(),
-    id: z.string().min(1),
-});
 /** One change per update; the title and description are one label and may change together. */
-const updateSchema = mutationSchema
+const updateSchema = agentReminderCommandSchema
     .extend({
         description: z.string().min(1).nullable().optional(),
         fireAt: z.string().datetime().optional(),
@@ -46,7 +36,7 @@ const updateSchema = mutationSchema
 export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDatabase) {
     app.post('/api/agent/reminders/schedule', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
-        const parsed = scheduleSchema.safeParse(request.body);
+        const parsed = agentReminderScheduleInputSchema.safeParse(request.body);
         if (!(runner && parsed.success)) {
             return sendError(reply, 400, 'The reminder request was invalid.');
         }
@@ -66,7 +56,9 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
 
     app.post('/api/agent/reminders/snooze', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
-        const parsed = mutationSchema.extend({ by: z.string().min(1) }).safeParse(request.body);
+        const parsed = agentReminderCommandSchema
+            .extend({ by: z.string().min(1) })
+            .safeParse(request.body);
         if (!(runner && parsed.success)) {
             return sendError(reply, 400, 'The reminder request was invalid.');
         }
@@ -84,7 +76,7 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
 
     app.post('/api/agent/reminders/cancel', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
-        const parsed = mutationSchema.safeParse(request.body);
+        const parsed = agentReminderCommandSchema.safeParse(request.body);
         if (!(runner && parsed.success)) {
             return sendError(reply, 400, 'The reminder request was invalid.');
         }
@@ -110,6 +102,11 @@ async function runAction(reply: FastifyReply, action: () => Promise<unknown>) {
     try {
         return await action();
     } catch (cause) {
+        if (cause instanceof ReminderCommandConflictError) {
+            return reply
+                .code(409)
+                .send({ code: AGENT_IDEMPOTENCY_KEY_REUSED, message: cause.message });
+        }
         return reply.code(409).send({
             code: 'INVALID_ARG',
             message: cause instanceof Error ? cause.message : 'The reminder request failed.',

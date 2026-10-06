@@ -3,6 +3,7 @@ import * as z from 'zod';
 import {
     type AgentApiRequest,
     type AgentApiRequester,
+    AgentApiTransportError,
     createAgentApiClient,
 } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -82,20 +83,27 @@ export async function runTaskCreate(args: ParsedArgs, deps: TaskDeps): Promise<n
             throw new AgentCliError('MISSING_CONTENT', 'Task body from stdin was empty.');
         }
     }
-    const response = await deps.client.request(
-        '/api/agent/tasks/create',
-        taskCreateResponseSchema,
-        withTaskSignal(deps, {
-            body: {
-                assignee: args.values['--assignee'],
-                content,
-                nonce: deps.mintNonce(),
-                target,
-                titles: titles.length > 0 ? titles : undefined,
-            },
-            method: 'POST',
-        })
-    );
+    // One nonce per invocation: an unanswered request may already have created
+    // the tasks, so it is retried once on that nonce and the Server replays them.
+    // An answered refusal is the Server's decision and is never repeated.
+    const input = withTaskSignal(deps, {
+        body: {
+            assignee: args.values['--assignee'],
+            content,
+            nonce: deps.mintNonce(),
+            target,
+            titles: titles.length > 0 ? titles : undefined,
+        },
+        method: 'POST',
+    });
+    const create = () =>
+        deps.client.request('/api/agent/tasks/create', taskCreateResponseSchema, input);
+    const response = await create().catch((cause: unknown) => {
+        if (!(cause instanceof AgentApiTransportError) || deps.signal?.aborted) {
+            throw cause;
+        }
+        return create();
+    });
     deps.write(formatTasksCreated(response.tasks, target));
     return 0;
 }

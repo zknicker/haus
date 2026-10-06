@@ -14,6 +14,7 @@ export type AgentCliErrorCode =
     | 'AVATAR_PROVIDER_FAILED'
     | 'CHAT_VIEW_STALE'
     | 'CONTENT_FLAG_UNSUPPORTED'
+    | 'IDEMPOTENCY_KEY_REUSED'
     | 'INFO_FAILED'
     | 'INTERNAL_BUG'
     | 'INVALID_ARG'

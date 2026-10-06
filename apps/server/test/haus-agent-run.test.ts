@@ -1813,7 +1813,7 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
         assignee: undefined,
     });
     expect(conflictingReplay).toMatchObject({
-        body: { code: 'TASK_CONFLICT' },
+        body: { code: 'IDEMPOTENCY_KEY_REUSED' },
         status: 409,
     });
     const rows = (await harness.sql`

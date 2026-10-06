@@ -1,3 +1,4 @@
+import { agentTaskCreateInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
@@ -47,15 +48,7 @@ export function registerAgentTaskRoutes(
 
     app.post('/api/agent/tasks/create', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
-        const parsed = z
-            .object({
-                assignee: z.string().optional(),
-                content: z.string().optional(),
-                nonce: z.string().min(1).max(100),
-                target: z.string().min(1),
-                titles: z.array(z.string().min(1)).max(20).optional(),
-            })
-            .safeParse(request.body);
+        const parsed = agentTaskCreateInputSchema.safeParse(request.body);
         if (!(runner && parsed.success)) {
             return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The task request was invalid.');
         }

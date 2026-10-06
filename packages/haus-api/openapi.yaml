@@ -2186,13 +2186,17 @@ components:
     AgentTaskCreateRequest:
       type: object
       additionalProperties: false
-      required: [target]
+      required: [nonce, target]
       properties:
         assignee:
           type: string
           minLength: 1
           description: '@handle of an Agent member of the target Chat.'
         content: { type: string }
+        # Idempotency key, minted once per CLI invocation. The same nonce and
+        # request replay the original tasks; a different request under it is
+        # refused with IDEMPOTENCY_KEY_REUSED.
+        nonce: { type: string, minLength: 1, maxLength: 128 }
         target: { type: string, minLength: 1 }
         titles:
           type: array
@@ -2446,50 +2450,50 @@ components:
     AgentReminderScheduleRequest:
       type: object
       additionalProperties: false
-      required: [messageId, title]
+      required: [commandId, fireAt, messageId, title]
       properties:
-        delaySeconds: { type: integer, minimum: 1 }
-        fireAt: { type: string, minLength: 1 }
+        # Idempotency key, scoped to the authoring Agent. The same key and
+        # request replay the original reminder; a different request under it is
+        # refused with IDEMPOTENCY_KEY_REUSED.
+        commandId: { type: string, minLength: 1, maxLength: 128 }
+        description: { type: string, minLength: 1 }
+        fireAt: { type: string, format: date-time }
         messageId: { type: string, minLength: 1 }
         repeat: { type: string, minLength: 1 }
         script: { type: string, minLength: 1 }
-        title: { type: string, minLength: 1, maxLength: 300 }
-      oneOf:
-        - required: [delaySeconds]
-          not:
-            required: [fireAt]
-        - required: [fireAt]
-          not:
-            required: [delaySeconds]
+        title: { type: string, minLength: 1 }
     AgentReminderSnoozeRequest:
       type: object
       additionalProperties: false
-      required: [by, id]
+      required: [by, commandId, expectedVersion, id]
       properties:
         by: { type: string, minLength: 1 }
+        commandId: { type: string, minLength: 1, maxLength: 128 }
+        expectedVersion: { type: integer, minimum: 1 }
         id: { type: string, minLength: 1 }
     AgentReminderUpdateRequest:
       type: object
       additionalProperties: false
-      minProperties: 2
-      maxProperties: 2
-      required: [id]
+      description: >
+        Changes exactly one thing: the label (title and/or description), fireAt,
+        repeat, or script.
+      required: [commandId, expectedVersion, id]
       properties:
-        fireAt: { type: string, minLength: 1 }
+        commandId: { type: string, minLength: 1, maxLength: 128 }
+        description: { type: [string, 'null'], minLength: 1 }
+        expectedVersion: { type: integer, minimum: 1 }
+        fireAt: { type: string, format: date-time }
         id: { type: string, minLength: 1 }
         repeat: { type: [string, 'null'], minLength: 1 }
         script: { type: [string, 'null'], minLength: 1 }
-        title: { type: string, minLength: 1, maxLength: 300 }
-      oneOf:
-        - required: [fireAt]
-        - required: [repeat]
-        - required: [script]
-        - required: [title]
+        title: { type: string, minLength: 1 }
     AgentReminderCancelRequest:
       type: object
       additionalProperties: false
-      required: [id]
+      required: [commandId, expectedVersion, id]
       properties:
+        commandId: { type: string, minLength: 1, maxLength: 128 }
+        expectedVersion: { type: integer, minimum: 1 }
         id: { type: string, minLength: 1 }
     AgentAttachment:
       type: object

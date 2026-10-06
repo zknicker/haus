@@ -115,6 +115,15 @@ mutate tasks. Every task row carries `version`, the revision `haus task list` pr
 `target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no task
 promotes the message first, so the claim is what creates the task.
 
+`create` takes `{ target, content | titles, assignee?, nonce }`. The `nonce` (1–128) is the
+idempotency key: `haus task create` mints one per invocation and, on a request that got no
+answer, retries once on it. The Server stores `<nonce>:<index>` on each task-message, unique per
+Chat, and checks it under the Server row lock in the create transaction, so concurrent or retried
+requests with the same nonce and request return the original tasks (same ids and numbers) and
+emit no second event, inbox item, or wake. The same nonce with a different title list, title
+count, or assignee returns `409 IDEMPOTENCY_KEY_REUSED`. Keys live with the task-messages; they
+never expire.
+
 Every task projection carries `origin`, which says how the row came to exist:
 
 | `origin` | Written by |
@@ -207,6 +216,16 @@ handle, like a missing, retired, or out-of-Chat one, answers one uniform `409 TA
 The managed CLI ships inside Computer, so these claim, list, and Agent-only assignee shapes require
 Computer protocol 25: an older Computer reports `update-required` and runs no Agent turns instead of failing to parse
 a claim or list response.
+
+### Reminder routes
+
+`POST /api/agent/reminders/schedule`, `/snooze`, `/update`, and `/cancel` each carry a
+`commandId` (1–128), the idempotency key; the CLI mints one per invocation and retries an
+unavailable Server once on it. The Server records each command in `reminder_commands`, scoped to
+`(Server, authoring Agent, commandId)` and written in the same transaction as the reminder under a
+per-key advisory lock. The same key and input replay the original reminder without a second
+`reminder.changed` event; a different input returns `409 IDEMPOTENCY_KEY_REUSED`. Commands live as
+long as their reminder.
 
 ### Agent routes
 

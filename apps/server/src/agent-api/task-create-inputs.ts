@@ -1,3 +1,4 @@
+import { AGENT_TASK_CREATE_MAX_TITLES } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { AgentMessageRecipientPlan } from '../agent-delivery/message-recipients.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -8,7 +9,7 @@ import {
     chatMessagesTable,
 } from '../postgres/schema.ts';
 import { messageSelection } from './message-view.ts';
-import { AgentTaskError } from './task-error.ts';
+import { AgentTaskError, AgentTaskNonceReusedError } from './task-error.ts';
 import { queryAgentTasks } from './task-lookup.ts';
 import { stripAt, taskRow } from './task-row.ts';
 
@@ -53,12 +54,17 @@ export async function resolveTaskAssignee(
     return agent.id;
 }
 
+/**
+ * Replays a batch already created under this nonce, or returns null when the
+ * nonce is fresh. Every index a batch could have used is looked up, so a retry
+ * naming fewer or more titles than the original is a reuse, not a partial replay.
+ */
 export async function replayAgentTasks(
     db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     titles: string[],
-    nonces: string[],
+    nonce: string,
     assigneeAgentId: string | null
 ) {
     const existing = await db
@@ -68,34 +74,42 @@ export async function replayAgentTasks(
             and(
                 eq(chatMessagesTable.serverId, runner.serverId),
                 eq(chatMessagesTable.chatId, chatId),
-                inArray(chatMessagesTable.nonce, nonces)
+                inArray(
+                    chatMessagesTable.nonce,
+                    Array.from({ length: AGENT_TASK_CREATE_MAX_TITLES }, (_, index) =>
+                        taskNonce(nonce, index)
+                    )
+                )
             )
         );
     if (existing.length === 0) {
         return null;
     }
     if (existing.length !== titles.length) {
-        throw new AgentTaskError('That task creation nonce belongs to an incomplete replay.');
+        throw new AgentTaskNonceReusedError();
     }
     const byNonce = new Map(existing.map((message) => [message.nonce, message]));
     return await Promise.all(
         titles.map(async (title, index) => {
-            const message = byNonce.get(nonces[index] ?? '');
+            const message = byNonce.get(taskNonce(nonce, index));
             if (message?.authorAgentId !== runner.agentId || message.content !== title.trim()) {
-                throw new AgentTaskError('That task creation nonce belongs to different content.');
+                throw new AgentTaskNonceReusedError();
             }
             const [task] = await queryAgentTasks(db, runner, chatId, { messageId: message.id });
             if (!task) {
                 throw new AgentTaskError('That task creation nonce has no canonical task.');
             }
             if (task.assigneeAgentId !== assigneeAgentId) {
-                throw new AgentTaskError(
-                    'That task creation nonce belongs to a different assignee.'
-                );
+                throw new AgentTaskNonceReusedError();
             }
             return await taskRow(db, runner, message, task);
         })
     );
+}
+
+/** The message nonce for one title of a batch. */
+export function taskNonce(nonce: string, index: number) {
+    return `${nonce}:${index}`;
 }
 
 export function dedupeRecipients(recipients: AgentMessageRecipientPlan[]) {

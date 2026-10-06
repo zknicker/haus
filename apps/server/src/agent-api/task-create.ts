@@ -1,4 +1,4 @@
-import type { AgentActivityEvent, ServerDurableEvent } from '@haus/api';
+import type { AgentActivityEvent, AgentTaskCreateInput, ServerDurableEvent } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -23,7 +23,12 @@ import { taskAssignmentEnvelope, taskAssignmentKey } from '../tasks/task-assignm
 import { insertTaskEvent } from '../tasks/task-events.ts';
 import { messageSelection, targetForChat } from './message-view.ts';
 import { resolveAgentTarget } from './resolve-target.ts';
-import { dedupeRecipients, replayAgentTasks, resolveTaskAssignee } from './task-create-inputs.ts';
+import {
+    dedupeRecipients,
+    replayAgentTasks,
+    resolveTaskAssignee,
+    taskNonce,
+} from './task-create-inputs.ts';
 import { AgentTaskError } from './task-error.ts';
 import { requireTopLevelTaskChat } from './task-lookup.ts';
 import { type AgentTaskRow, agentHandle, taskRow } from './task-row.ts';
@@ -31,13 +36,7 @@ import { type AgentTaskRow, agentHandle, taskRow } from './task-row.ts';
 export async function createAgentTasks(
     db: HausDatabase,
     runner: ResolvedRunner,
-    input: {
-        assignee?: string;
-        content?: string;
-        nonce: string;
-        target: string;
-        titles?: string[];
-    },
+    input: AgentTaskCreateInput,
     agentDelivery: AgentDelivery
 ) {
     const titles = input.titles?.length ? input.titles : input.content ? [input.content] : [];
@@ -49,12 +48,18 @@ export async function createAgentTasks(
         ? await resolveTaskAssignee(db, runner, chatId, input.assignee)
         : null;
     const selfClaim = assigneeAgentId === runner.agentId;
-    const nonces = titles.map((_, index) => `${input.nonce}:${index}`);
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         await requireChatWritable(tx, { chatId, serverId: runner.serverId });
         await requireTopLevelTaskChat(tx, runner, chatId);
-        const replay = await replayAgentTasks(tx, runner, chatId, titles, nonces, assigneeAgentId);
+        const replay = await replayAgentTasks(
+            tx,
+            runner,
+            chatId,
+            titles,
+            input.nonce,
+            assigneeAgentId
+        );
         if (replay) {
             return { activities: [], events: [], tasks: replay, wakes: [] };
         }
@@ -98,7 +103,7 @@ export async function createAgentTasks(
                     content: title.trim(),
                     id: messageId,
                     mentionedUserIds: mentionedUserIds(title),
-                    nonce: nonces[index],
+                    nonce: taskNonce(input.nonce, index),
                     replyRootMessageId: messageId,
                     runId: runner.runId,
                     sequence: numberedChat.messageSequence,

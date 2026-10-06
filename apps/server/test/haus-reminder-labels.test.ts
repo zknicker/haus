@@ -99,6 +99,23 @@ test('refuses a sentence title with the label format to use instead', async () =
     });
 });
 
+test('a schedule command id reused for different input is refused as a reused key', async () => {
+    const input = {
+        commandId: 'labels-reused-key',
+        fireAt: new Date(Date.now() + 3_600_000).toISOString(),
+        messageId: anchorMessageId,
+        title: 'CI Check',
+    };
+    expect((await agentRequest('POST', '/api/agent/reminders/schedule', input)).status).toBe(200);
+
+    const reused = await agentRequest('POST', '/api/agent/reminders/schedule', {
+        ...input,
+        title: 'Deploy Check',
+    });
+
+    expect(reused).toMatchObject({ body: { code: 'IDEMPOTENCY_KEY_REUSED' }, status: 409 });
+});
+
 test('relabels title and description together and hands the description to the fire', async () => {
     const scheduled = await agentRequest('POST', '/api/agent/reminders/schedule', {
         commandId: 'labels-schedule',
