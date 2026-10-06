@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { HausUpdateComputer, HausUpdateInput } from './haus-update-model.ts';
 import { projectHausUpdate } from './haus-update-model.ts';
-import { selectHausUpdateBatch } from './haus-update-reconciler.ts';
+import { planHausUpdateSequence } from './haus-update-reconciler.ts';
 import { applyRunFailures } from './haus-update-run-failures.ts';
 import { expectedComputerRestartMs } from './haus-update-timing.ts';
 import { nextUpdateExpiry } from './use-offline-computers.ts';
@@ -89,7 +89,7 @@ describe('Haus update reachability', () => {
         expect(persisted).toMatchObject({ phase: 'failed', primaryAction: null });
         expect(persisted.steps[0]).toMatchObject({ connected: false, phase: 'failed' });
         expect(persisted.detail).toContain('Reconnect it');
-        expect(selectHausUpdateBatch(persisted.steps).map((step) => step.kind)).toEqual([]);
+        expect(planHausUpdateSequence(persisted.steps)).toEqual({ computerIds: [], desktop: null });
         expect(
             applyRunFailures(persisted, {
                 failures: [{ detail: 'Home did not finish updating.', stepId: 'cmp_home' }],

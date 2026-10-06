@@ -4,8 +4,8 @@ import {
     OfflineComputersTooltipContent,
     UpdateTooltipContent,
 } from './haus-status-tooltip-content.tsx';
-import { updateDonutSegments } from './haus-update-donut.tsx';
-import { donutSteps, HausUpdateFooter } from './haus-update-footer.tsx';
+import { updateDonutStatus } from './haus-update-donut.tsx';
+import { HausUpdateFooter } from './haus-update-footer.tsx';
 import type {
     HausReleaseSnapshot,
     HausUpdateComputer,
@@ -101,42 +101,45 @@ describe('Haus update surfaces', () => {
         expect(tooltip).toContain('aria-valuenow="42"');
     });
 
-    test('splits the update donut equally between active updates', () => {
-        const view = updateView({
-            computers: [computer({ phase: 'downloading', progress: 0.5 })],
-            desktop: {
-                currentVersion: '1.8.39',
-                kind: 'desktop',
-                phase: 'downloading',
-                progress: 0.25,
-            },
-        });
-        const segments = updateDonutSegments(view.steps);
-        const html = renderToStaticMarkup(<HausUpdateFooter view={view} />);
-
-        expect(segments).toEqual([
-            { fill: 0.25, id: 'cmp_home', offset: 0, progress: 0.5 },
-            { fill: 0.125, id: 'desktop-app', offset: 0.5, progress: 0.25 },
-        ]);
-        expect(html).toContain('aria-label="Updating Haus"');
-        expect(html).toContain('aria-valuenow="38"');
-        expect(html.match(/stroke-dasharray=/gu)).toHaveLength(2);
-    });
-
-    test('draws only the pressed batch, then only live active steps once it settles', () => {
+    test('draws one arc for the active step and counts its place in the run', () => {
         const view = updateView({
             computers: [
-                computer({ id: 'cmp_home', phase: 'downloading' }),
-                computer({ health: 'offline', id: 'cmp_away', phase: 'idle' }),
-                computer({ currentVersion: '1.4.9', id: 'cmp_done', phase: 'idle' }),
+                computer({ id: 'cmp_home', name: 'Home', phase: 'downloading', progress: 0.5 }),
+                computer({ id: 'cmp_office', name: 'Office' }),
             ],
         });
+        const sequence = {
+            activeStepId: 'cmp_home',
+            stepIds: ['desktop-app', 'cmp_home', 'cmp_office'],
+        };
+        const html = renderToStaticMarkup(
+            <HausUpdateFooter isRunning sequence={sequence} view={view} />
+        );
+        const tooltip = renderToStaticMarkup(
+            <UpdateTooltipContent sequence={sequence} view={view} />
+        );
 
-        expect(donutSteps(view.steps, ['cmp_home', 'cmp_done']).map((step) => step.id)).toEqual([
-            'cmp_done',
-            'cmp_home',
-        ]);
-        expect(donutSteps(view.steps, null).map((step) => step.id)).toEqual(['cmp_home']);
+        expect(updateDonutStatus(view, sequence)).toEqual({
+            label: 'Updating Computer · Home (2 of 3)',
+            progress: 0.5,
+        });
+        expect(html).toContain('aria-label="Updating Computer · Home (2 of 3)"');
+        expect(html).toContain('aria-valuenow="50"');
+        expect(html.match(/stroke-dasharray=/gu)).toHaveLength(1);
+        expect(html).not.toContain('animate-spin');
+        expect(tooltip).toContain('1.4.8 → 1.4.9 · waiting');
+    });
+
+    test('spins the donut while the active step reports no progress', () => {
+        const view = updateView({ computers: [computer({ phase: 'verifying' })] });
+        const html = renderToStaticMarkup(<HausUpdateFooter view={view} />);
+
+        expect(updateDonutStatus(view, null)).toEqual({
+            label: "Updating Computer · Zach's MacBook Pro",
+            progress: null,
+        });
+        expect(html).toContain('animate-spin motion-reduce:animate-none');
+        expect(html).not.toContain('aria-valuenow');
     });
 
     test('shows desktop App download progress in the update tooltip', () => {

@@ -2,6 +2,7 @@ import { toast } from '@heroui/react';
 import { useEffect } from 'react';
 import { useComputerUpdateCheck } from '../../hooks/servers/use-computer-update-check.ts';
 import { useComputerUpdateStart } from '../../hooks/servers/use-computer-update-start.ts';
+import { useHausUpdate } from '../updates/use-haus-update.ts';
 import type { ComputerUpdateComputer } from './computer-update-card.tsx';
 import { ComputerUpdateCard } from './computer-update-card.tsx';
 import {
@@ -20,6 +21,7 @@ export function ComputerUpdateControls({
 }) {
     const check = useComputerUpdateCheck(serverId);
     const update = useComputerUpdateStart(serverId, computer.id);
+    const { isSequencing } = useHausUpdate();
     const previewComputer = previewComputerUpdate(computer, previewState);
     const isPreview = previewState !== 'live';
 
@@ -74,6 +76,7 @@ export function ComputerUpdateControls({
             computer={previewComputer}
             isChecking={isPreview ? previewComputer.updatePhase === 'checking' : check.isPending}
             isStarting={isPreview ? false : update.isPending}
+            isUpdateBlocked={!isPreview && isSequencing}
             onCheck={handleCheck}
             onUpdate={handleUpdate}
         />

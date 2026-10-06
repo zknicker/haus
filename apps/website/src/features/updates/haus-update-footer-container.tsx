@@ -27,6 +27,7 @@ export function HausUpdateFooterContainer({ slug }: { slug: string }) {
                     `${serverComputersRoute(slug)}?computer=${encodeURIComponent(computerId)}`
                 );
             }}
+            sequence={update.sequence}
             view={update.view}
         />
     );

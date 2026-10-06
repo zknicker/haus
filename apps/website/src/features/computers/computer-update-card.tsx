@@ -4,56 +4,39 @@ import { useEffect, useReducer } from 'react';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { UpdateProgressBar } from '../updates/haus-update-progress.tsx';
 import { offlineComputerUpdateExpiry } from '../updates/offline-computer-update.ts';
+import { stalledComputerUpdateExpiry } from '../updates/stalled-computer-update.ts';
 import { computerUpdateView } from './computer-update-model.ts';
 
 export type ComputerUpdateComputer = HausOutputs['computer']['list'][number];
-
-const activeUpdatePhases = new Set<ComputerUpdateComputer['updatePhase']>([
-    'requested',
-    'downloading',
-    'verifying',
-    'waiting-for-agents',
-    'installing',
-    'restarting',
-]);
 
 export function ComputerUpdateCard({
     computer,
     isChecking,
     isStarting,
+    isUpdateBlocked = false,
     onCheck,
     onUpdate,
 }: {
     computer: ComputerUpdateComputer;
     isChecking: boolean;
     isStarting: boolean;
+    /** The sidebar updater is sequencing updates; a parallel start would race it. */
+    isUpdateBlocked?: boolean;
     onCheck: () => void;
     onUpdate: () => void;
 }) {
-    const [, refreshTime] = useReducer((value: number) => value + 1, 0);
-    const expiry = offlineComputerUpdateExpiry({
-        health: computer.health,
-        phase: computer.updatePhase,
-        updateUpdatedAt: computer.updateUpdatedAt,
-    });
-    useEffect(() => {
-        if (expiry === null || expiry <= Date.now()) {
-            return;
-        }
-        const timer = window.setTimeout(refreshTime, expiry - Date.now());
-        return () => window.clearTimeout(timer);
-    }, [expiry]);
-
+    useUpdateExpiryRefresh(computer);
     const view = computerUpdateView({
         health: computer.health,
+        installedVersion: computer.productVersion,
         isChecking: isChecking || isStarting,
         phase: computer.updatePhase,
         targetVersion: computer.updateTargetVersion,
         updateUpdatedAt: computer.updateUpdatedAt,
     });
-    const isUpdateActive = activeUpdatePhases.has(computer.updatePhase) && !view.unconfirmed;
     const downloadProgress = computerDownloadProgress(computer);
-    const showCheck = view.canCheck || isChecking || computer.updatePhase === 'checking';
+    const isCheckPending = isChecking || (computer.updatePhase === 'checking' && !view.stalled);
+    const showCheck = view.canCheck || isCheckPending;
     const showUpdate = view.canUpdate || isStarting;
 
     return (
@@ -65,7 +48,7 @@ export function ComputerUpdateCard({
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
-                {isUpdateActive ? (
+                {view.isUpdateActive ? (
                     <UpdateProgressBar label={view.label} progress={downloadProgress} />
                 ) : (
                     <div className="flex items-center gap-2">
@@ -74,7 +57,7 @@ export function ComputerUpdateCard({
                         {view.canCheck || showCheck ? (
                             <Button
                                 isDisabled={!view.canCheck}
-                                isPending={isChecking || computer.updatePhase === 'checking'}
+                                isPending={isCheckPending}
                                 onPress={onCheck}
                                 size="sm"
                                 variant="secondary"
@@ -102,7 +85,7 @@ export function ComputerUpdateCard({
                         )}
                         {showUpdate ? (
                             <Button
-                                isDisabled={!view.canUpdate}
+                                isDisabled={!view.canUpdate || isUpdateBlocked}
                                 isPending={isStarting}
                                 onPress={onUpdate}
                                 size="sm"
@@ -115,6 +98,24 @@ export function ComputerUpdateCard({
             </ItemCard.Action>
         </ItemCard>
     );
+}
+
+/** Re-renders when an active update crosses its unconfirmed or stalled bound. */
+function useUpdateExpiryRefresh(computer: ComputerUpdateComputer) {
+    const [, refreshTime] = useReducer((value: number) => value + 1, 0);
+    const progress = {
+        health: computer.health,
+        phase: computer.updatePhase,
+        updateUpdatedAt: computer.updateUpdatedAt,
+    };
+    const expiry = offlineComputerUpdateExpiry(progress) ?? stalledComputerUpdateExpiry(progress);
+    useEffect(() => {
+        if (expiry === null || expiry <= Date.now()) {
+            return;
+        }
+        const timer = window.setTimeout(refreshTime, expiry - Date.now());
+        return () => window.clearTimeout(timer);
+    }, [expiry]);
 }
 
 function updateButtonLabel(version: string | null) {

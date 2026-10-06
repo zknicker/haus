@@ -16,7 +16,12 @@ test('presents every Computer update phase', () => {
         'complete',
         'failed',
     ];
-    expect(phases.map((phase) => computerUpdateView({ health: 'healthy', phase }).label)).toEqual([
+    const updateUpdatedAt = new Date().toISOString();
+    expect(
+        phases.map(
+            (phase) => computerUpdateView({ health: 'healthy', phase, updateUpdatedAt }).label
+        )
+    ).toEqual([
         'Not checked',
         'Checking production release…',
         'Update available',

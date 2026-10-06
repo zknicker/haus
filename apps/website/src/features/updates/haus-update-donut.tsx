@@ -1,23 +1,30 @@
-import type { HausUpdateStep } from './haus-update-model.ts';
-import { isCompleteUpdateStep } from './haus-update-model.ts';
+import type { HausUpdateView } from './haus-update-model.ts';
+import { isActiveUpdateStep, isCompleteUpdateStep } from './haus-update-model.ts';
+import type { HausUpdateSequence } from './haus-update-reconciler.ts';
 
 const circleCenter = 10;
 const circleRadius = 8;
+const indeterminateArc = 0.25;
 
-export function HausUpdateDonut({ steps }: { steps: readonly HausUpdateStep[] }) {
-    const segments = updateDonutSegments(steps);
-    const progress =
-        segments.length === 0
-            ? 0
-            : segments.reduce((total, segment) => total + segment.progress, 0) / segments.length;
+export interface HausUpdateDonutStatus {
+    label: string;
+    /** The active step's progress; `null` while it reports none. */
+    progress: number | null;
+}
 
+/** One circle for the one update running now; an unmeasured step spins instead. */
+export function HausUpdateDonut({ status }: { status: HausUpdateDonutStatus }) {
+    const progress = status.progress === null ? null : clampProgress(status.progress);
+    const arc = progress ?? indeterminateArc;
     return (
         <svg
-            aria-label="Updating Haus"
+            aria-label={status.label}
             aria-valuemax={100}
             aria-valuemin={0}
-            aria-valuenow={Math.round(progress * 100)}
-            className="size-5"
+            aria-valuenow={progress === null ? undefined : Math.round(progress * 100)}
+            className={
+                progress === null ? 'size-5 animate-spin motion-reduce:animate-none' : 'size-5'
+            }
             role="progressbar"
             viewBox="0 0 20 20"
         >
@@ -28,38 +35,44 @@ export function HausUpdateDonut({ steps }: { steps: readonly HausUpdateStep[] })
                 r={circleRadius}
                 strokeWidth={3}
             />
-            <g transform={`rotate(-90 ${circleCenter} ${circleCenter})`}>
-                {segments.map((segment) => (
-                    <circle
-                        className="fill-none stroke-current"
-                        cx={circleCenter}
-                        cy={circleCenter}
-                        key={segment.id}
-                        pathLength={1}
-                        r={circleRadius}
-                        strokeDasharray={`${segment.fill} ${1 - segment.fill}`}
-                        strokeDashoffset={-segment.offset}
-                        strokeWidth={3}
-                    />
-                ))}
-            </g>
+            <circle
+                className="fill-none stroke-current"
+                cx={circleCenter}
+                cy={circleCenter}
+                pathLength={1}
+                r={circleRadius}
+                strokeDasharray={`${arc} ${1 - arc}`}
+                strokeWidth={3}
+                transform={`rotate(-90 ${circleCenter} ${circleCenter})`}
+            />
         </svg>
     );
 }
 
-export function updateDonutSegments(steps: readonly HausUpdateStep[]) {
-    return steps.map((step, index) => {
-        const share = 1 / steps.length;
-        const progress = isCompleteUpdateStep(step) ? 1 : clampProgress(step.progress);
-        return {
-            fill: progress * share,
-            id: step.id,
-            offset: index * share,
-            progress,
-        };
-    });
+/**
+ * Names the step a run is working on and its place in the run, such as
+ * "Updating Computer · Home (2 of 3)". Without a run, the first active step.
+ */
+export function updateDonutStatus(
+    view: HausUpdateView,
+    sequence: HausUpdateSequence | null
+): HausUpdateDonutStatus {
+    const active =
+        view.steps.find((step) => step.id === sequence?.activeStepId) ??
+        view.steps.find(isActiveUpdateStep);
+    if (!active) {
+        return { label: 'Updating Haus', progress: null };
+    }
+    const stepIds = sequence?.stepIds ?? [];
+    const position = stepIds.indexOf(active.id);
+    const count =
+        position >= 0 && stepIds.length > 1 ? ` (${position + 1} of ${stepIds.length})` : '';
+    return {
+        label: `Updating ${active.label}${count}`,
+        progress: isCompleteUpdateStep(active) ? 1 : active.progress,
+    };
 }
 
-function clampProgress(progress: number | null) {
-    return progress === null ? 0 : Math.min(1, Math.max(0, progress));
+function clampProgress(progress: number) {
+    return Math.min(1, Math.max(0, progress));
 }

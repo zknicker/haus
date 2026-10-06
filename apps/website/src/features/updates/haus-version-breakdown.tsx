@@ -49,6 +49,12 @@ function factDisplay(fact: HausComponentFact) {
             value: `${fact.currentVersion ?? 'Unknown'} → ${fact.targetVersion} · failed`,
         };
     }
+    if (fact.status === 'waiting') {
+        return {
+            tone: 'text-muted',
+            value: `${fact.currentVersion ?? 'Unknown'} → ${fact.targetVersion} · waiting`,
+        };
+    }
     if (fact.status === 'updating') {
         return {
             tone: 'text-danger',

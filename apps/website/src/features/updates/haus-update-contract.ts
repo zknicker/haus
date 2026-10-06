@@ -103,7 +103,7 @@ export interface HausComponentFact {
     kind: 'computer' | 'desktop-app' | 'website';
     label: string;
     remedy: string | null;
-    status: 'current' | 'external' | 'failed' | 'pending' | 'updating';
+    status: 'current' | 'external' | 'failed' | 'pending' | 'updating' | 'waiting';
     targetVersion: string | null;
 }
 
