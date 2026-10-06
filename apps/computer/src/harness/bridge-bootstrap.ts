@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 // The adapter ships a bridge manifest pinning its vendor CLI, and that pin
-// trails the models Haus offers: at @ai-sdk/harness-claude-code 1.0.137 it pins
+// trails the models Haus offers: at @ai-sdk/harness-claude-code 1.0.143 it pins
 // @anthropic-ai/claude-code 2.1.281, while `claude-sonnet-5-5` needs
 // 2.1.284. So Computer owns the manifest and lockfile and takes only the
 // adapter's bridge code from the package. DELETE this override — and go back to

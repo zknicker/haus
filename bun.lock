@@ -22,7 +22,7 @@
       "dependencies": {
         "@ai-sdk/harness": "1.0.133",
         "@ai-sdk/harness-acp": "1.0.71",
-        "@ai-sdk/harness-claude-code": "1.0.137",
+        "@ai-sdk/harness-claude-code": "1.0.143",
         "@ai-sdk/harness-grok-build": "1.0.70",
         "@ai-sdk/harness-pi": "1.0.135",
         "@ai-sdk/provider-utils": "5.0.51",
@@ -272,7 +272,7 @@
   ],
   "patchedDependencies": {
     "@shadcn/react@0.1.0": "patches/@shadcn%2Freact@0.1.0.patch",
-    "@ai-sdk/harness-claude-code@1.0.137": "patches/@ai-sdk%2Fharness-claude-code@1.0.137.patch",
+    "@ai-sdk/harness-claude-code@1.0.143": "patches/@ai-sdk%2Fharness-claude-code@1.0.143.patch",
     "react-aria-components@1.21.1": "patches/react-aria-components@1.21.1.patch",
     "@ai-sdk/harness@1.0.133": "patches/@ai-sdk%2Fharness@1.0.133.patch",
     "@ai-sdk/harness-acp@1.0.71": "patches/@ai-sdk%2Fharness-acp@1.0.71.patch",
@@ -282,6 +282,9 @@
     "react-stately@3.50.0": "patches/react-stately@3.50.0.patch",
   },
   "overrides": {
+    "@ai-sdk/harness": "1.0.133",
+    "@ai-sdk/provider": "4.0.19",
+    "@ai-sdk/provider-utils": "5.0.51",
     "@hono/node-server": "1.19.13",
     "brace-expansion": "5.0.6",
     "esbuild": "0.27.4",
@@ -314,7 +317,7 @@
 
     "@ai-sdk/harness-acp": ["@ai-sdk/harness-acp@1.0.71", "", { "dependencies": { "@ai-sdk/harness": "1.0.133", "@ai-sdk/provider-utils": "5.0.51", "ws": "^8.21.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-eY9oFnF5YzbhNIrRWSafv1x9ZbCgx3fbDn6hpGQSqzSpOhUE4HAd206H0Rjsb3sxiMOp4koZ7irD3ZhIUFScrw=="],
 
-    "@ai-sdk/harness-claude-code": ["@ai-sdk/harness-claude-code@1.0.137", "", { "dependencies": { "@ai-sdk/harness": "1.0.133", "@ai-sdk/provider-utils": "5.0.51", "ws": "^8.21.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-+Phw9rzaql0BuYDiCO+we1r3M8EwaVcTT96xHHmVnJpKT6J+WxOxBipCFwBXhZkqMyLFZ64bZLjwKEMInsyc6A=="],
+    "@ai-sdk/harness-claude-code": ["@ai-sdk/harness-claude-code@1.0.143", "", { "dependencies": { "@ai-sdk/harness": "1.0.139", "@ai-sdk/provider": "4.0.22", "@ai-sdk/provider-utils": "5.0.54", "ws": "^8.21.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-KAvqpPVLfjPnWgRt110CTFJJqMYa3Gf/I647U3Krm6NqegxINdy+FVlI8x4jPo26EDZKXxr0UScnM+zW1aUotg=="],
 
     "@ai-sdk/harness-grok-build": ["@ai-sdk/harness-grok-build@1.0.70", "", { "dependencies": { "@ai-sdk/harness": "1.0.133", "@ai-sdk/harness-acp": "1.0.71", "@ai-sdk/provider-utils": "5.0.51" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-sYKs2xdnc6oGBqgF46zXMrrLl6tQ3s5iAmwGv+SlcqC4kONGpDIHyzTXzefCUa+0ec1yXxi3FLTqf5LS7EMeSw=="],
 

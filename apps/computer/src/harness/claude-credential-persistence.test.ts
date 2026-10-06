@@ -14,8 +14,8 @@ test('the shipped Claude bridge keeps live credentials out of both recovery file
     }
 
     // Exercise the bundled persistence function without launching a vendor runtime.
-    const start = bridge.indexOf('  const writeStartConfig = async (start) => {');
-    const end = bridge.indexOf('  const emit = ', start);
+    const start = bridge.indexOf('const writeStartConfig = async (start) => {');
+    const end = bridge.indexOf('const emit = ', start);
     expect(start).toBeGreaterThan(0);
     expect(end).toBeGreaterThan(start);
     const root = await mkdtemp(join(tmpdir(), 'haus-claude-persistence-'));

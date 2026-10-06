@@ -1,0 +1,482 @@
+diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
+index 673488cae7a449365d589ee439a5c666236eb27f..886cd5e12b6cd28b893429302b0a28974daa0269 100644
+--- a/dist/bridge/index.mjs
++++ b/dist/bridge/index.mjs
+@@ -213,7 +213,13 @@ async function runBridge(options) {
+ 	};
+ 	const writeStartConfig = async (start) => {
+ 		try {
+-			const serialized = JSON.stringify(start);
++			// The host resolves fresh credentials on start and resume; never persist them.
++			const persisted = { ...start };
++			if (start.env != null) {
++				const { AI_GATEWAY_API_KEY, ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, CLAUDE_CODE_OAUTH_TOKEN, ...environment } = start.env;
++				persisted.env = environment;
++			}
++			const serialized = JSON.stringify(persisted);
+ 			await writeFile(startConfigPath, serialized);
+ 			if (!existsSync(rerunStartConfigPath)) await writeFile(rerunStartConfigPath, serialized);
+ 		} catch {}
+@@ -656,6 +662,8 @@ function isExternalMcpTool(nativeName) {
+ }
+ function createEmitStreamEvent({ state, emit, emitWarning, emitTerminalError, onCompactionBoundary, toCommonName }) {
+ 	let streamStarted = false;
++	// Task ids announced by task_started belong to subagents or background work.
++	const startedTaskIds = /* @__PURE__ */ new Set();
+ 	return (msg) => {
+ 		const type = msg.type;
+ 		if (!streamStarted) {
+@@ -674,12 +682,15 @@ function createEmitStreamEvent({ state, emit, emitWarning, emitTerminalError, on
+ 			emitWarning({ message: formatApiRetryWarning(msg) });
+ 			return;
+ 		}
+-		if (typeof msg.error === "string" && msg.error.trim()) state.observedTerminalError = msg.error.trim();
++		// A subagent's message error is the subagent's, never the parent turn's.
++		if (msg.parent_tool_use_id == null && typeof msg.error === "string" && msg.error.trim()) state.observedTerminalError = msg.error.trim();
+ 		if (type === "auth_status" && typeof msg.error === "string" && msg.error.trim()) {
+ 			emitTerminalError(msg.error);
+ 			return;
+ 		}
+-		if (type === "system" && msg.subtype === "task_updated" && msg.patch?.status === "failed" && typeof msg.patch.error === "string") {
++		if (type === "system" && msg.subtype === "task_started" && typeof msg.task_id === "string") startedTaskIds.add(msg.task_id);
++		// A failed subagent or background task is ordinary activity; only an unannounced task failure ends the turn.
++		if (type === "system" && msg.subtype === "task_updated" && msg.patch?.status === "failed" && typeof msg.patch.error === "string" && !startedTaskIds.has(msg.task_id)) {
+ 			emitTerminalError(msg.patch.error);
+ 			return;
+ 		}
+@@ -1477,6 +1488,7 @@ async function runTurn(start, turn) {
+ 		options: {
+ 			...start.model ? { model: start.model } : {},
+ 			...start.maxTurns !== void 0 ? { maxTurns: start.maxTurns } : {},
++			...start.settingSources !== void 0 ? { settingSources: start.settingSources } : {},
+ 			...start.agentProgressSummaries !== void 0 ? { agentProgressSummaries: start.agentProgressSummaries } : {},
+ 			...start.forwardSubagentText !== void 0 ? { forwardSubagentText: start.forwardSubagentText } : {},
+ 			...start.env !== void 0 ? { env: {
+@@ -1507,6 +1519,8 @@ async function runTurn(start, turn) {
+ 			...start.resumeSessionId ?? lastClaudeSessionId ? { resume: start.resumeSessionId ?? lastClaudeSessionId } : start.continue === true || !turn.firstTurn ? { continue: true } : {},
+ 			...permissionOptions,
+ 			mcpServers,
++			// Haus owns the Agent's MCP servers: never load user, project, or plugin MCP config.
++			strictMcpConfig: true,
+ 			cwd: workdir,
+ 			abortSignal: abortCtl.signal
+ 		}
+@@ -1518,6 +1532,7 @@ async function runTurn(start, turn) {
+ 	};
+ 	let turnUsage;
+ 	let totalCostUsd;
++	let planUsage;
+ 	let emittedTerminalError = false;
+ 	let emittedTerminalFinish = false;
+ 	const emitTerminalError = (message) => {
+@@ -1586,6 +1601,9 @@ async function runTurn(start, turn) {
+ 					if (!queryInput.answersSentMessage(msg)) continue;
+ 					queryInput.observeResult();
+ 					if (!queryInput.hasActiveUserMessages()) {
++						if (start.env?.HAUS_CLAUDE_USAGE_REFRESH === "1") try {
++							planUsage = await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
++						} catch {}
+ 						queryInput.close();
+ 						break;
+ 					}
+@@ -1621,8 +1639,9 @@ async function runTurn(start, turn) {
+ 			raw: "stop"
+ 		},
+ 		totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
+-		...totalCostUsd !== void 0 || lastClaudeSessionId !== void 0 ? { harnessMetadata: { "claude-code": {
++		...totalCostUsd !== void 0 || lastClaudeSessionId !== void 0 || planUsage !== void 0 ? { harnessMetadata: { "claude-code": {
+ 			...totalCostUsd !== void 0 ? { costUsd: totalCostUsd } : {},
++			...planUsage !== void 0 ? { planUsage } : {},
+ 			...lastClaudeSessionId !== void 0 ? { sessionId: lastClaudeSessionId } : {}
+ 		} } } : {}
+ 	});
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index da7394d2ab65a24b0e7f814ef2df8f4007bc7fd4..3844bfebd1c3027b62ba87474df9c34ec96bca81 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -14,6 +14,10 @@ type ClaudeCodeThinkingConfig = {
+ };
+ //#endregion
+ //#region src/claude-code-harness.d.ts
++/**
++ * Filesystem settings sources supported by the Claude Agent SDK.
++ */
++type ClaudeCodeSettingSource = 'user' | 'project' | 'local';
+ type ClaudeCodeHarnessSettings = {
+   readonly auth?: ClaudeCodeAuthenticationMode;
+   /**
+@@ -32,6 +36,11 @@ type ClaudeCodeHarnessSettings = {
+    * back to the caller. Unset means the CLI's default.
+    */
+   readonly maxTurns?: number;
++  /**
++   * Selects which Claude Code settings files are loaded inside the sandbox.
++   * Pass an empty array to disable filesystem settings.
++   */
++  readonly settingSources?: ClaudeCodeSettingSource[];
+   /**
+    * Enables periodic AI-generated progress summaries for running subagents.
+    * The summaries are forwarded in raw `task_progress` stream parts.
+@@ -25845,5 +25854,5 @@ export declare const claudeCode: import("@ai-sdk/harness").HarnessV1<{
+   };
+ }>;
+ //#endregion
+-export type { ClaudeCodeAuthenticationMode, ClaudeCodeHarnessSettings, ClaudeCodeThinkingConfig, JSONObject };
++export type { ClaudeCodeAuthenticationMode, ClaudeCodeHarnessSettings, ClaudeCodeSettingSource, ClaudeCodeThinkingConfig, JSONObject };
+ //# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+diff --git a/dist/index.js b/dist/index.js
+index 3bcef0be998f64648d4ff4ea54ed4b53150e7e85..32875e1fb2c196e542e03924ce931da2246c59b7 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -296,6 +296,11 @@ const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+ 		"max"
+ 	]).optional(),
+ 	maxTurns: z.number().optional(),
++	settingSources: z.array(z.enum([
++		"user",
++		"project",
++		"local"
++	])).optional(),
+ 	agentProgressSummaries: z.boolean().optional(),
+ 	forwardSubagentText: z.boolean().optional(),
+ 	env: z.record(z.string(), z.string()).optional(),
+@@ -1038,10 +1043,10 @@ function createClaudeCode(settings = {}) {
+ 				sessionId: startOpts.sessionId
+ 			});
+ 			let supportsUserMessageResponses = false;
+-			const buildConnect = (endpoint) => async ({ abortSignal }) => {
++			const buildConnect = (endpoint, connectTimeoutMs = timeoutMs) => async ({ abortSignal }) => {
+ 				return openBridgeWebSocket({
+ 					endpoint,
+-					timeoutMs,
++					timeoutMs: connectTimeoutMs,
+ 					abortSignal,
+ 					onHello: (supportsResponses) => {
+ 						supportsUserMessageResponses = supportsResponses;
+@@ -1059,7 +1064,9 @@ function createClaudeCode(settings = {}) {
+ 					token: coords.token
+ 				});
+ 				const attachChannel = new SandboxChannel({
+-					connect: buildConnect(attachEndpoint),
++					// A bridge that survived answers within milliseconds; a dead one must
++					// not consume the startup budget the spawn fallback needs.
++					connect: buildConnect(attachEndpoint, Math.min(timeoutMs, BRIDGE_ATTACH_TIMEOUT_MS)),
+ 					outboundSchema: outboundMessageSchema,
+ 					initialLastSeenEventId: coords.lastSeenEventId,
+ 					onDiagnostic,
+@@ -1080,6 +1087,7 @@ function createClaudeCode(settings = {}) {
+ 					...resumeSessionId ? { resumeSessionId } : {},
+ 					proc: void 0,
+ 					maxTurns: settings.maxTurns,
++					settingSources: settings.settingSources,
+ 					agentProgressSummaries: settings.agentProgressSummaries,
+ 					forwardSubagentText: settings.forwardSubagentText,
+ 					env: sandboxClaudeEnvironment,
+@@ -1194,6 +1202,7 @@ function createClaudeCode(settings = {}) {
+ 				finishListenerAttachment,
+ 				proc,
+ 				maxTurns: settings.maxTurns,
++				settingSources: settings.settingSources,
+ 				agentProgressSummaries: settings.agentProgressSummaries,
+ 				forwardSubagentText: settings.forwardSubagentText,
+ 				env: sandboxClaudeEnvironment,
+@@ -1353,6 +1362,7 @@ function openWebSocketAndWaitForBridgeHello({ endpoint, openTimeoutMs, getHelloT
+ 		abortSignal.addEventListener("abort", onAbort, { once: true });
+ 	});
+ }
++const BRIDGE_ATTACH_TIMEOUT_MS = 1e4;
+ async function openBridgeWebSocket({ endpoint, timeoutMs, abortSignal, onHello }) {
+ 	const deadline = Date.now() + timeoutMs;
+ 	let attempt = 0;
+@@ -1394,7 +1404,7 @@ function formatUnknownError(error) {
+ 	if (error instanceof Error) return error.message;
+ 	return String(error);
+ }
+-function createSession({ sessionId, channel, finishListenerAttachment, proc, maxTurns, agentProgressSummaries, forwardSubagentText, env, thinking, effort, isResume, continueOnFirstPrompt, resumeSessionId, rerunContinue, bridgePort, bridgeToken, sandboxId, sandboxCredentialEnvironment, debug, permissionMode, builtinToolFiltering, sandbox, sandboxHomeDir, mcpServers, supportsUserMessageResponses }) {
++function createSession({ sessionId, channel, finishListenerAttachment, proc, maxTurns, settingSources, agentProgressSummaries, forwardSubagentText, env, thinking, effort, isResume, continueOnFirstPrompt, resumeSessionId, rerunContinue, bridgePort, bridgeToken, sandboxId, sandboxCredentialEnvironment, debug, permissionMode, builtinToolFiltering, sandbox, sandboxHomeDir, mcpServers, supportsUserMessageResponses }) {
+ 	let stopped = false;
+ 	let stopPromise;
+ 	let pendingResumeFlag = continueOnFirstPrompt;
+@@ -1546,6 +1556,7 @@ function createSession({ sessionId, channel, finishListenerAttachment, proc, max
+ 				...promptOpts.instructions ? { instructions: promptOpts.instructions } : {},
+ 				model: promptOpts.model,
+ 				maxTurns,
++				...settingSources !== void 0 ? { settingSources } : {},
+ 				...agentProgressSummaries !== void 0 ? { agentProgressSummaries } : {},
+ 				...forwardSubagentText !== void 0 ? { forwardSubagentText } : {},
+ 				...env !== void 0 ? { env } : {},
+@@ -1578,6 +1589,7 @@ function createSession({ sessionId, channel, finishListenerAttachment, proc, max
+ 					...continueOpts.instructions ? { instructions: continueOpts.instructions } : {},
+ 					model: continueOpts.model,
+ 					maxTurns,
++					...settingSources !== void 0 ? { settingSources } : {},
+ 					...agentProgressSummaries !== void 0 ? { agentProgressSummaries } : {},
+ 					...forwardSubagentText !== void 0 ? { forwardSubagentText } : {},
+ 					...env !== void 0 ? { env } : {},
+diff --git a/src/bridge/create-emit-stream-event.ts b/src/bridge/create-emit-stream-event.ts
+index f93aa6910128d5e2003eaceb818dae563a9a88da..0562bbccdd3f5b4cda1506b302345cb031e1a27f 100644
+--- a/src/bridge/create-emit-stream-event.ts
++++ b/src/bridge/create-emit-stream-event.ts
+@@ -6,6 +6,7 @@ export type ClaudeMessage = {
+   type?: string;
+   subtype?: string;
+   parent_tool_use_id?: string | null;
++  task_id?: string;
+   model?: string;
+   error?: string;
+   error_status?: number | null;
+@@ -152,6 +153,8 @@ export function createEmitStreamEvent({
+   toCommonName: (nativeName: string) => string;
+ }): (event: ClaudeMessage) => void {
+   let streamStarted = false;
++  // Task ids announced by task_started belong to subagents or background work.
++  const startedTaskIds = new Set<string>();
+ 
+   return msg => {
+     const type = msg.type;
+@@ -188,7 +191,12 @@ export function createEmitStreamEvent({
+       return;
+     }
+ 
+-    if (typeof msg.error === 'string' && msg.error.trim()) {
++    // A subagent's message error is the subagent's, never the parent turn's.
++    if (
++      msg.parent_tool_use_id == null &&
++      typeof msg.error === 'string' &&
++      msg.error.trim()
++    ) {
+       state.observedTerminalError = msg.error.trim();
+     }
+ 
+@@ -201,11 +209,22 @@ export function createEmitStreamEvent({
+       return;
+     }
+ 
++    if (
++      type === 'system' &&
++      msg.subtype === 'task_started' &&
++      typeof msg.task_id === 'string'
++    ) {
++      startedTaskIds.add(msg.task_id);
++    }
++
++    // A failed subagent or background task is ordinary activity; only an
++    // unannounced task failure ends the turn.
+     if (
+       type === 'system' &&
+       msg.subtype === 'task_updated' &&
+       msg.patch?.status === 'failed' &&
+-      typeof msg.patch.error === 'string'
++      typeof msg.patch.error === 'string' &&
++      !(msg.task_id != null && startedTaskIds.has(msg.task_id))
+     ) {
+       emitTerminalError(msg.patch.error);
+       return;
+diff --git a/src/bridge/index.ts b/src/bridge/index.ts
+index e0a82a00ba5082417375c7e85b575d6e24bd2f6b..5a52b4e3537ef6e96ff2504088457981f4e0dbe1 100644
+--- a/src/bridge/index.ts
++++ b/src/bridge/index.ts
+@@ -484,6 +484,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+     options: {
+       ...(start.model ? { model: start.model } : {}),
+       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
++      ...(start.settingSources !== undefined
++        ? { settingSources: start.settingSources }
++        : {}),
+       ...(start.agentProgressSummaries !== undefined
+         ? { agentProgressSummaries: start.agentProgressSummaries }
+         : {}),
+@@ -552,6 +555,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+           : {}),
+       ...permissionOptions,
+       mcpServers,
++      // Haus owns the Agent's MCP servers: never load user, project, or plugin MCP config.
++      strictMcpConfig: true,
+       cwd: workdir,
+       abortSignal: abortCtl.signal,
+     },
+@@ -571,6 +576,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+   };
+   let turnUsage: Record<string, unknown> | undefined;
+   let totalCostUsd: number | undefined;
++  let planUsage: Record<string, unknown> | undefined;
+   let emittedTerminalError = false;
+   let emittedTerminalFinish = false;
+ 
+@@ -673,6 +679,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+           if (!queryInput.answersSentMessage(msg)) continue;
+           queryInput.observeResult();
+           if (!queryInput.hasActiveUserMessages()) {
++            if (start.env?.HAUS_CLAUDE_USAGE_REFRESH === '1') {
++              try {
++                planUsage =
++                  await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
++              } catch {
++                // Usage evidence is auxiliary; never fail an Agent turn for it.
++              }
++            }
+             queryInput.close();
+             break;
+           }
+@@ -734,11 +748,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+     type: 'finish',
+     finishReason: { unified: 'stop', raw: 'stop' },
+     totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
+-    ...(totalCostUsd !== undefined || lastClaudeSessionId !== undefined
++    ...(totalCostUsd !== undefined ||
++    lastClaudeSessionId !== undefined ||
++    planUsage !== undefined
+       ? {
+           harnessMetadata: {
+             'claude-code': {
+               ...(totalCostUsd !== undefined ? { costUsd: totalCostUsd } : {}),
++              ...(planUsage !== undefined ? { planUsage } : {}),
+               // The conversation this turn belongs to, resumable outside the
+               // SDK with `claude --resume <sessionId>` and captured by the
+               // adapter for exact cross-process resume.
+diff --git a/src/claude-code-bridge-protocol.ts b/src/claude-code-bridge-protocol.ts
+index 1875e21a66bc3cad284d45d8cffe72a183092869..20e07983dc0efcd874c6a9b1ca7150d6dc863526 100644
+--- a/src/claude-code-bridge-protocol.ts
++++ b/src/claude-code-bridge-protocol.ts
+@@ -35,6 +35,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+   thinking: thinkingSchema,
+   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+   maxTurns: z.number().optional(),
++  settingSources: z.array(z.enum(['user', 'project', 'local'])).optional(),
+   agentProgressSummaries: z.boolean().optional(),
+   forwardSubagentText: z.boolean().optional(),
+   env: z.record(z.string(), z.string()).optional(),
+diff --git a/src/claude-code-harness.ts b/src/claude-code-harness.ts
+index 3809e15bea2fe74954fb787d36b520095b5f58d4..39d4a1d30daa357ec18dee41c32508e0eb77126f 100644
+--- a/src/claude-code-harness.ts
++++ b/src/claude-code-harness.ts
+@@ -77,6 +77,11 @@ import type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
+ import { VERSION } from './version';
+ 
+ type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
++/**
++ * Filesystem settings sources supported by the Claude Agent SDK.
++ */
++export type ClaudeCodeSettingSource = 'user' | 'project' | 'local';
++
+ type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
+ 
+ /**
+@@ -102,6 +107,11 @@ export type ClaudeCodeHarnessSettings = {
+    * back to the caller. Unset means the CLI's default.
+    */
+   readonly maxTurns?: number;
++  /**
++   * Selects which Claude Code settings files are loaded inside the sandbox.
++   * Pass an empty array to disable filesystem settings.
++   */
++  readonly settingSources?: ClaudeCodeSettingSource[];
+   /**
+    * Enables periodic AI-generated progress summaries for running subagents.
+    * The summaries are forwarded in raw `task_progress` stream parts.
+@@ -984,7 +994,7 @@ export function createClaudeCode(
+       // (re)connect: open the socket, then wait for `bridge-hello` so the
+       // end-to-end link is proven live before any frame is sent.
+       const buildConnect =
+-        (endpoint: HarnessV1PortEndpoint) =>
++        (endpoint: HarnessV1PortEndpoint, connectTimeoutMs = timeoutMs) =>
+         async ({
+           abortSignal,
+         }: {
+@@ -992,7 +1002,7 @@ export function createClaudeCode(
+         }): Promise<WebSocket> => {
+           return openBridgeWebSocket({
+             endpoint,
+-            timeoutMs,
++            timeoutMs: connectTimeoutMs,
+             abortSignal,
+             onHello: supportsResponses => {
+               supportsUserMessageResponses = supportsResponses;
+@@ -1020,7 +1030,12 @@ export function createClaudeCode(
+             token: coords.token,
+           });
+           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
+-            connect: buildConnect(attachEndpoint),
++            // A bridge that survived answers within milliseconds; a dead one must
++            // not consume the startup budget the spawn fallback needs.
++            connect: buildConnect(
++              attachEndpoint,
++              Math.min(timeoutMs, BRIDGE_ATTACH_TIMEOUT_MS),
++            ),
+             outboundSchema: outboundMessageSchema,
+             initialLastSeenEventId: coords.lastSeenEventId,
+             onDiagnostic,
+@@ -1046,6 +1061,7 @@ export function createClaudeCode(
+             // sandbox is left running, stopped, or destroyed.
+             proc: undefined,
+             maxTurns: settings.maxTurns,
++            settingSources: settings.settingSources,
+             agentProgressSummaries: settings.agentProgressSummaries,
+             forwardSubagentText: settings.forwardSubagentText,
+             env: sandboxClaudeEnvironment,
+@@ -1209,6 +1225,7 @@ export function createClaudeCode(
+         finishListenerAttachment,
+         proc,
+         maxTurns: settings.maxTurns,
++        settingSources: settings.settingSources,
+         agentProgressSummaries: settings.agentProgressSummaries,
+         forwardSubagentText: settings.forwardSubagentText,
+         env: sandboxClaudeEnvironment,
+@@ -1453,6 +1470,8 @@ function openWebSocketAndWaitForBridgeHello({
+   });
+ }
+ 
++const BRIDGE_ATTACH_TIMEOUT_MS = 10_000;
++
+ async function openBridgeWebSocket({
+   endpoint,
+   timeoutMs,
+@@ -1527,6 +1546,7 @@ function createSession({
+   finishListenerAttachment,
+   proc,
+   maxTurns,
++  settingSources,
+   agentProgressSummaries,
+   forwardSubagentText,
+   env,
+@@ -1554,6 +1574,7 @@ function createSession({
+   /** Undefined on `attach` — the live bridge was spawned by another process. */
+   proc: Experimental_SandboxProcess | undefined;
+   maxTurns: number | undefined;
++  settingSources: ClaudeCodeSettingSource[] | undefined;
+   agentProgressSummaries: boolean | undefined;
+   forwardSubagentText: boolean | undefined;
+   env: Readonly<Record<string, string>> | undefined;
+@@ -1829,6 +1850,7 @@ function createSession({
+           : {}),
+         model: promptOpts.model,
+         maxTurns,
++        ...(settingSources !== undefined ? { settingSources } : {}),
+         ...(agentProgressSummaries !== undefined
+           ? { agentProgressSummaries }
+           : {}),
+@@ -1897,6 +1919,7 @@ function createSession({
+             : {}),
+           model: continueOpts.model,
+           maxTurns,
++          ...(settingSources !== undefined ? { settingSources } : {}),
+           ...(agentProgressSummaries !== undefined
+             ? { agentProgressSummaries }
+             : {}),
+diff --git a/src/index.ts b/src/index.ts
+index 509fe91d2fd162d53692a5880a7e6623f4f758c2..97f46703f5f0ce4078daa4da74a07a5826673a89 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -9,7 +9,10 @@ export const claudeCode = createClaudeCode();
+ 
+ export { createClaudeCode } from './claude-code-harness';
+ export { VERSION } from './version';
+-export type { ClaudeCodeHarnessSettings } from './claude-code-harness';
++export type {
++  ClaudeCodeHarnessSettings,
++  ClaudeCodeSettingSource,
++} from './claude-code-harness';
+ export type { ClaudeCodeAuthenticationMode } from './claude-code-auth';
+ export type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
+ export type { JSONObject } from '@ai-sdk/provider';

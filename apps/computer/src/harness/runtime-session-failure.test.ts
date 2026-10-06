@@ -67,3 +67,20 @@ test('ignores raw parts that carry no typed session failure', () => {
         expect(fatalRuntimeSessionFailure(raw)).toBeNull();
     }
 });
+
+test('Claude Code sub-agent and task raw parts are never a fatal session failure', () => {
+    const rawValues = [
+        {
+            type: 'system',
+            subtype: 'task_updated',
+            task_id: 't1',
+            patch: { status: 'failed', error: 'x' },
+        },
+        { type: 'system', subtype: 'task_notification', task_id: 't1', status: 'failed' },
+        { type: 'assistant', parent_tool_use_id: 'toolu_1', error: 'rate_limit', message: {} },
+        { type: 'tool_progress', tool_use_id: 'toolu_1', parent_tool_use_id: 'toolu_1' },
+    ];
+    for (const rawValue of rawValues) {
+        expect(fatalRuntimeSessionFailure(rawValue)).toBeNull();
+    }
+});
