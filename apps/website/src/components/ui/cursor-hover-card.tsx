@@ -116,8 +116,10 @@ export function CursorHoverCard({
 
     return (
         <Tooltip closeDelay={0} delay={0} isOpen={open} onOpenChange={handleOpenChange}>
+            {/* Inline wrapper stays on the baseline: `vertical-align: middle` on a
+                plain inline span shifts the chip it wraps ~1.4px below the line. */}
             <Tooltip.Trigger<'span'>
-                className={cn('align-middle', triggerClassName)}
+                className={triggerClassName}
                 onBlur={() => handleOpenChange(false)}
                 onFocus={(event) => {
                     // A click focuses the link after React Aria closed the card on
