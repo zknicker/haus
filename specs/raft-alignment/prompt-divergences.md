@@ -31,7 +31,8 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **32,496** characters. The cap is a
+`managed-instructions.test.ts` caps the composed prompt at **34,777** characters, measured with
+every conditional section rendered. The cap is a
 ratchet that forces a deliberate decision, not a hard limit: a justified addition raises it to
 the measured render in the same change, with a one-line reason in the history below. Never
 delete, trim, merge, or deduplicate other prompt text just to make room; shrinking the prompt is
@@ -46,7 +47,10 @@ when the Haus-only `## Personality` section arrived (2026-10-03), paid for by sh
 agents section's delivery sentences and measured with a one-word personality, then raised to
 32,529 for reminder title guidance: Reminders gained the Haus-only `--title` label /
 `--description` sentence (2026-10-05), then lowered to 32,496 when Workspace & Memory gained the
-hot-memory-plus-index rules (operator decision, 2026-10-05). Measured line-by-line against the pinned
+hot-memory-plus-index rules (operator decision, 2026-10-05), then raised to 32,579 when Agents
+came to set their own finished tasks `done` (operator decision, 2026-10-05), then raised by 2,198
+to 34,777 when Claude Code Agents gained the adapted `## Working through sub-agents` section
+(operator decision, 2026-10-06; the cap test renders it on). Measured line-by-line against the pinned
 render, about 18,500 characters of the Haus prompt are Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
@@ -90,6 +94,7 @@ Sections are in Haus's render order.
 | Reading history & references | Parity | — |
 | Tasks | Parity for the claim rule, top-level-only, and failed-claim routing. Haus replaces Raft's review-then-done sentence (set `in_review` for human validation, `done` after approval) and the same-turn `done` exception it needed: Agents set their own finished work `done`, and use `in_review` only when the requester asked to sign off or a human decision is pending, saying in the conversation what to check. Haus adds **Keep the conversation together** (acknowledge and answer where asked), reversible `closed`, the `TASK_IN_REVIEW_STALE_DAYS` stale close, and points to the `tasks` Manual topic where Raft points to "the Raft Manual" | Deliberate — operator-approved conversation policy; done-by-default finishing operator-approved 2026-10-05 (the conversation is the review; tasks are Agent-side tracking a human should not have to close); ADR 0015 (`closed`), `apps/server/src/tasks/close-stale-tasks.ts`; covered by `instructions.test.ts` and `product-topics.test.ts` |
 | Splitting tasks | Parity | — |
+| Working through sub-agents | Adopted with Haus adaptations from Raft v1.21's conditional `SUBAGENT_DELEGATION_SECTION` (`systemPrompt.ts`, newer than the pinned commit), at Raft's position between Splitting tasks and @Mentions. Rendered only when the runtime's harness supports sub-agents: Claude Code only (`supportsSubagents` in `runtime-harness.ts`, applied from the turn's runtime in `composeAgentInstructions`; text in `subagent-instructions.ts`; Codex and Grok Build sub-agents are switched off at their harness, Pi has none); other runtimes render the prompt byte-identical to before. Adaptations: Raft → Haus and "the chat"; the separate-tools sentence names Haus tasks and cloud agents; rule 4 says "Assume" a sub-agent sees nothing; rule 5 tells sub-agents not to run `haus`; rule 7 becomes "Finish within your turn" and drops "stay reachable", because Claude Code sub-agents run in the foreground only and end with the turn. Cap +2,198 (32,579 → 34,777) | Deliberate — operator decision 2026-10-06; foreground-only sub-agents (`CLAUDE_FOREGROUND_SUBAGENTS_ENV`); `subagent-instructions.test.ts`, `managed-instructions.test.ts` (cap measured with the section on) |
 | @Mentions | Parity **plus** one Haus-only bullet: to need a human's decision or action, @mention them where the work lives, with one question, a default only if reversible, and what you prepared; their reply wakes you; irreversible acts wait for an explicit yes. Raft keeps this in its `recipes/decision/when-to-ask-human` recipe; Haus lifts it into the prompt because deleting `haus ask` removed the only prompt-taught way to need a human. Haus renders one name, so the display-name bullet interpolates the same value twice | Deliberate — ADR 0037 (replaces the retired Asks family entry, net −6 characters; a later mention-the-asker clause was cut again once an inline reply to a human's message came to address them like a mention, 32,393 → 32,281), specs/identity.md; `managed-instructions.test.ts`, `human-ask-reply-wakes` |
 | Communication style | Parity | — |
 | Conversation etiquette | Parity **plus** "Silence is deliberate" (step 4 holds in a DM: an explicit FYI gets nothing, a thanks or ack one reaction), "DM knowledge is not room knowledge", and "Welcome new teammates" | Deliberate — specs/inbox.md (silence), specs/sessions.md §"Knowledge and discretion", ADR 0028 (welcome fires on a message, so it cannot live in a Manual topic) |
