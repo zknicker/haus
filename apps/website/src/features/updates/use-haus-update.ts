@@ -65,7 +65,6 @@ function useHausUpdateState(serverId: string, canOperate: boolean) {
     observations.current = { computers: visibleComputers, desktop };
     const sequenced = useHausUpdateRun({
         canOperate,
-        canResume: canOperate && presence === 'verified',
         computers,
         discovery: release.data,
         observations,
@@ -82,13 +81,19 @@ function useHausUpdateState(serverId: string, canOperate: boolean) {
         websiteUpdate
     );
 
+    const isAppReady = observedView.steps.some(
+        (step) => step.kind === 'desktop-app' && step.phase === 'restart-required'
+    );
+
     return {
         canOperate,
+        dismissRestartOffer: sequenced.dismissRestartOffer,
+        isRestartOffered: sequenced.isRestartOffered && isAppReady,
         isRunning: sequenced.isRunning,
-        isSequencing: sequenced.isSequencing,
         isSettled: gatedComputers !== null,
         offlineComputers,
         releaseError: release.error,
+        restartApp: sequenced.restartApp,
         run: sequenced.run,
         runResult: sequenced.runResult,
         sequence: sequenced.sequence,

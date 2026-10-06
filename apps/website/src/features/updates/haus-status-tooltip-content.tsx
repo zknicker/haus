@@ -16,16 +16,18 @@ export function UpdateTooltipContent({
     view: HausUpdateView;
 }) {
     const activeStepIds = new Set(view.steps.filter(isActiveUpdateStep).map((step) => step.id));
-    const waitingStepIds = queuedStepIds(sequence);
+    const runStatus = runStepStatuses(sequence);
     const visibleFacts = view.componentFacts
+        .map((fact) => {
+            const status = runStatus.get(fact.id);
+            // A finished step keeps its failure; anything else it reached is done.
+            return status && fact.status !== 'failed' ? { ...fact, status } : fact;
+        })
         .filter(
             (fact) =>
                 fact.status !== 'current' &&
                 fact.status !== 'external' &&
                 !activeStepIds.has(fact.id)
-        )
-        .map((fact) =>
-            waitingStepIds.has(fact.id) ? { ...fact, status: 'waiting' as const } : fact
         );
     const hasSurfaceFailure = visibleFacts.some((fact) => fact.status === 'failed');
     return (
@@ -70,15 +72,22 @@ export function OfflineComputersTooltipContent({
     );
 }
 
-/** Steps the running sequence has not reached yet. */
-function queuedStepIds(sequence: HausUpdateSequence | null) {
+/** Run steps before the active one are done; steps after it are waiting. */
+function runStepStatuses(sequence: HausUpdateSequence | null) {
+    const statuses = new Map<string, 'done' | 'waiting'>();
     if (!sequence) {
-        return new Set<string>();
+        return statuses;
     }
-    const activeIndex = sequence.activeStepId
-        ? sequence.stepIds.indexOf(sequence.activeStepId)
-        : -1;
-    return new Set(sequence.stepIds.slice(activeIndex + 1));
+    const activeIndex =
+        sequence.activeStepId === null
+            ? sequence.stepIds.length
+            : sequence.stepIds.indexOf(sequence.activeStepId);
+    sequence.stepIds.forEach((id, index) => {
+        if (index !== activeIndex) {
+            statuses.set(id, index < activeIndex ? 'done' : 'waiting');
+        }
+    });
+    return statuses;
 }
 
 function tooltipTitle(view: HausUpdateView) {

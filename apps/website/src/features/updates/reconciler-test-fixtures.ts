@@ -12,10 +12,7 @@ export function operations(
 ): HausUpdateOperations {
     return {
         downloadDesktop: async () => undefined,
-        forgetPendingComputers: () => undefined,
         readView,
-        rememberPendingComputers: () => undefined,
-        restartDesktop: async () => undefined,
         updateComputer: async () => undefined,
         waitForChange: async () => undefined,
         ...overrides,
@@ -36,6 +33,7 @@ export function computer(
         id,
         kind: 'computer',
         label: id,
+        name: id,
         phase,
         progress: null,
         targetVersion: '1.4.9',

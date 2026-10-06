@@ -43,6 +43,9 @@ function factDisplay(fact: HausComponentFact) {
     if (fact.status === 'current') {
         return { tone: 'text-success', value: `${fact.targetVersion} · up to date` };
     }
+    if (fact.status === 'done') {
+        return { tone: 'text-success', value: `${fact.targetVersion} · done` };
+    }
     if (fact.status === 'failed') {
         return {
             tone: 'text-danger',

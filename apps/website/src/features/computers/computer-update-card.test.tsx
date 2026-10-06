@@ -132,6 +132,28 @@ test('the development preview covers every update phase and both progress modes'
     });
 });
 
+test('disables the Update button only while the sidebar run is active', () => {
+    const available = {
+        ...computer,
+        updatePhase: 'available',
+        updateTargetVersion: '1.0.3',
+    } as ComputerUpdateComputer;
+    const render = (isUpdateBlocked: boolean) =>
+        renderToStaticMarkup(
+            <ComputerUpdateCard
+                computer={available}
+                isChecking={false}
+                isStarting={false}
+                isUpdateBlocked={isUpdateBlocked}
+                onCheck={() => undefined}
+                onUpdate={() => undefined}
+            />
+        );
+
+    expect(render(true)).toMatch(/<button[^>]*disabled[^>]*>[^<]*Update/u);
+    expect(render(false)).not.toMatch(/<button[^>]*disabled[^>]*>[^<]*Update/u);
+});
+
 function renderUpdateCard(updateComputer: ComputerUpdateComputer) {
     return renderToStaticMarkup(
         <ComputerUpdateCard

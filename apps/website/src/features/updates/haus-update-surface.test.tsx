@@ -101,12 +101,13 @@ describe('Haus update surfaces', () => {
         expect(tooltip).toContain('aria-valuenow="42"');
     });
 
-    test('draws one arc for the active step and counts its place in the run', () => {
+    test('fills one circle cumulatively over the run and counts the active step', () => {
         const view = updateView({
             computers: [
                 computer({ id: 'cmp_home', name: 'Home', phase: 'downloading', progress: 0.5 }),
                 computer({ id: 'cmp_office', name: 'Office' }),
             ],
+            desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'ready' },
         });
         const sequence = {
             activeStepId: 'cmp_home',
@@ -118,28 +119,34 @@ describe('Haus update surfaces', () => {
         const tooltip = renderToStaticMarkup(
             <UpdateTooltipContent sequence={sequence} view={view} />
         );
+        const status = updateDonutStatus(view, sequence);
 
-        expect(updateDonutStatus(view, sequence)).toEqual({
-            label: 'Updating Computer · Home (2 of 3)',
-            progress: 0.5,
-        });
+        expect(status.label).toBe('Updating Computer · Home (2 of 3)');
+        // The App's slice is full; Home has filled 0.05 + 0.55 × 0.5 of its own.
+        expect(status.progress).toBeCloseTo((1 + 0.325) / 3);
         expect(html).toContain('aria-label="Updating Computer · Home (2 of 3)"');
-        expect(html).toContain('aria-valuenow="50"');
+        expect(html).toContain('aria-valuenow="44"');
         expect(html.match(/stroke-dasharray=/gu)).toHaveLength(1);
         expect(html).not.toContain('animate-spin');
+        expect(html).toContain('motion-reduce:transition-none');
+        expect(tooltip).toContain('1.8.40 · done');
         expect(tooltip).toContain('1.4.8 → 1.4.9 · waiting');
     });
 
-    test('spins the donut while the active step reports no progress', () => {
-        const view = updateView({ computers: [computer({ phase: 'verifying' })] });
-        const html = renderToStaticMarkup(<HausUpdateFooter view={view} />);
-
-        expect(updateDonutStatus(view, null)).toEqual({
-            label: "Updating Computer · Zach's MacBook Pro",
-            progress: null,
+    test('names the stage in plain words while a step reports no progress', () => {
+        const view = updateView({
+            computers: [computer({ name: 'Home', phase: 'waiting-for-agents' })],
         });
-        expect(html).toContain('animate-spin motion-reduce:animate-none');
-        expect(html).not.toContain('aria-valuenow');
+        const html = renderToStaticMarkup(<HausUpdateFooter view={view} />);
+        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={view} />);
+
+        expect(updateDonutStatus(view, null)).toMatchObject({
+            label: 'Updating Computer · Home',
+            progress: 0.8,
+        });
+        expect(html).toContain('aria-valuenow="80"');
+        expect(tooltip).toContain('Waiting for Agents to finish on Home');
+        expect(tooltip).not.toContain('role="progressbar"');
     });
 
     test('shows desktop App download progress in the update tooltip', () => {

@@ -21,7 +21,7 @@ export function ComputerUpdateControls({
 }) {
     const check = useComputerUpdateCheck(serverId);
     const update = useComputerUpdateStart(serverId, computer.id);
-    const { isSequencing } = useHausUpdate();
+    const { isRunning } = useHausUpdate();
     const previewComputer = previewComputerUpdate(computer, previewState);
     const isPreview = previewState !== 'live';
 
@@ -76,7 +76,7 @@ export function ComputerUpdateControls({
             computer={previewComputer}
             isChecking={isPreview ? previewComputer.updatePhase === 'checking' : check.isPending}
             isStarting={isPreview ? false : update.isPending}
-            isUpdateBlocked={!isPreview && isSequencing}
+            isUpdateBlocked={!isPreview && isRunning}
             onCheck={handleCheck}
             onUpdate={handleUpdate}
         />

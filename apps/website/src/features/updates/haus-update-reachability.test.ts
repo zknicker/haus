@@ -93,6 +93,7 @@ describe('Haus update reachability', () => {
         expect(
             applyRunFailures(persisted, {
                 failures: [{ detail: 'Home did not finish updating.', stepId: 'cmp_home' }],
+                appReady: false,
                 kind: 'failed',
             })
         ).toBe(persisted);
@@ -104,6 +105,7 @@ describe('Haus update reachability', () => {
         ]);
         const result = applyRunFailures(view, {
             failures: [{ detail: 'Home did not finish updating.', stepId: 'cmp_home' }],
+            appReady: false,
             kind: 'failed',
         });
 
@@ -115,6 +117,7 @@ describe('Haus update reachability', () => {
         const view = project([computer({ phase: 'downloading', updateUpdatedAt: fresh })]);
         const result = applyRunFailures(view, {
             failures: [{ detail: 'Download failed.', stepId: 'cmp_home' }],
+            appReady: false,
             kind: 'failed',
         });
 

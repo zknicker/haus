@@ -79,6 +79,7 @@ function step(overrides: Partial<ComputerUpdateStep> = {}): ComputerUpdateStep {
         id: 'cmp_home',
         kind: 'computer',
         label: 'Home',
+        name: 'Home',
         phase: 'downloading',
         progress: null,
         targetVersion: '1.4.9',

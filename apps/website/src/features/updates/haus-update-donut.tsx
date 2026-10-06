@@ -1,30 +1,33 @@
+import * as React from 'react';
 import type { HausUpdateView } from './haus-update-model.ts';
-import { isActiveUpdateStep, isCompleteUpdateStep } from './haus-update-model.ts';
 import type { HausUpdateSequence } from './haus-update-reconciler.ts';
+import {
+    type HausUpdatePeak,
+    hausUpdateRunProgress,
+    holdPeak,
+} from './haus-update-run-progress.ts';
 
 const circleCenter = 10;
 const circleRadius = 8;
-const indeterminateArc = 0.25;
 
 export interface HausUpdateDonutStatus {
     label: string;
-    /** The active step's progress; `null` while it reports none. */
-    progress: number | null;
+    /** Cumulative fill for the whole run, 0–1. */
+    progress: number;
+    /** Identifies the run; the fill only holds its peak within one run. */
+    runKey: string;
 }
 
-/** One circle for the one update running now; an unmeasured step spins instead. */
+/** One circle that fills once over the whole run and never moves backward. */
 export function HausUpdateDonut({ status }: { status: HausUpdateDonutStatus }) {
-    const progress = status.progress === null ? null : clampProgress(status.progress);
-    const arc = progress ?? indeterminateArc;
+    const progress = useRunPeak(status.runKey, status.progress);
     return (
         <svg
             aria-label={status.label}
             aria-valuemax={100}
             aria-valuemin={0}
-            aria-valuenow={progress === null ? undefined : Math.round(progress * 100)}
-            className={
-                progress === null ? 'size-5 animate-spin motion-reduce:animate-none' : 'size-5'
-            }
+            aria-valuenow={Math.round(progress * 100)}
+            className="size-5"
             role="progressbar"
             viewBox="0 0 20 20"
         >
@@ -36,12 +39,12 @@ export function HausUpdateDonut({ status }: { status: HausUpdateDonutStatus }) {
                 strokeWidth={3}
             />
             <circle
-                className="fill-none stroke-current"
+                className="fill-none stroke-current transition-[stroke-dasharray] duration-300 ease-out motion-reduce:transition-none"
                 cx={circleCenter}
                 cy={circleCenter}
                 pathLength={1}
                 r={circleRadius}
-                strokeDasharray={`${arc} ${1 - arc}`}
+                strokeDasharray={`${progress} ${1 - progress}`}
                 strokeWidth={3}
                 transform={`rotate(-90 ${circleCenter} ${circleCenter})`}
             />
@@ -51,28 +54,30 @@ export function HausUpdateDonut({ status }: { status: HausUpdateDonutStatus }) {
 
 /**
  * Names the step a run is working on and its place in the run, such as
- * "Updating Computer · Home (2 of 3)". Without a run, the first active step.
+ * "Updating Computer · Home (2 of 3)", with the run's cumulative fill.
  */
 export function updateDonutStatus(
     view: HausUpdateView,
     sequence: HausUpdateSequence | null
 ): HausUpdateDonutStatus {
-    const active =
-        view.steps.find((step) => step.id === sequence?.activeStepId) ??
-        view.steps.find(isActiveUpdateStep);
-    if (!active) {
-        return { label: 'Updating Haus', progress: null };
-    }
-    const stepIds = sequence?.stepIds ?? [];
-    const position = stepIds.indexOf(active.id);
+    const run = hausUpdateRunProgress(view, sequence);
     const count =
-        position >= 0 && stepIds.length > 1 ? ` (${position + 1} of ${stepIds.length})` : '';
+        run.position !== null && run.steps.length > 1
+            ? ` (${run.position} of ${sequence?.stepIds.length ?? run.steps.length})`
+            : '';
     return {
-        label: `Updating ${active.label}${count}`,
-        progress: isCompleteUpdateStep(active) ? 1 : active.progress,
+        label: run.activeStep ? `Updating ${run.activeStep.label}${count}` : 'Updating Haus',
+        progress: run.fraction,
+        runKey: sequence ? `run:${sequence.stepIds.join(',')}` : 'live',
     };
 }
 
-function clampProgress(progress: number) {
-    return Math.min(1, Math.max(0, progress));
+function useRunPeak(runKey: string, progress: number) {
+    const [peak, setPeak] = React.useState<HausUpdatePeak>({ key: runKey, value: progress });
+    const next = holdPeak(peak, runKey, progress);
+    // Adjusting state during render keeps a lower reading from ever painting.
+    if (next.key !== peak.key || next.value !== peak.value) {
+        setPeak(next);
+    }
+    return next.value;
 }

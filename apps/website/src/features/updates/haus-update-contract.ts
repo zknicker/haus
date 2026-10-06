@@ -73,6 +73,8 @@ export interface ComputerUpdateStep {
     id: string;
     kind: 'computer';
     label: string;
+    /** The Computer's own name; `label` prefixes it with "Computer · ". */
+    name: string;
     phase: HausUpdateComputerPhase | 'current';
     progress: number | null;
     targetVersion: string;
@@ -103,7 +105,7 @@ export interface HausComponentFact {
     kind: 'computer' | 'desktop-app' | 'website';
     label: string;
     remedy: string | null;
-    status: 'current' | 'external' | 'failed' | 'pending' | 'updating' | 'waiting';
+    status: 'current' | 'done' | 'external' | 'failed' | 'pending' | 'updating' | 'waiting';
     targetVersion: string | null;
 }
 

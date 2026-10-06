@@ -107,6 +107,7 @@ function projectComputerStep(
         id: computer.id,
         kind: 'computer',
         label: computer.name,
+        name: computer.name,
         phase,
         progress: computer.progress ?? null,
         targetVersion,
@@ -178,14 +179,22 @@ function aggregatePhase(steps: readonly HausUpdateStep[]): HausUpdatePhase {
     if (steps.some(isActiveUpdateStep)) {
         return 'updating';
     }
+    // A downloaded App waits for the press to finish other work; its restart comes last.
+    if (
+        steps.some(
+            (step) =>
+                step.phase !== 'failed' &&
+                step.phase !== 'restart-required' &&
+                !isCompleteUpdateStep(step)
+        )
+    ) {
+        return 'available';
+    }
     if (steps.some((step) => step.phase === 'restart-required')) {
         return 'restart-required';
     }
     if (steps.some((step) => step.phase === 'failed' && isConnectedStep(step))) {
         return 'failed';
-    }
-    if (steps.some((step) => step.phase !== 'failed' && !isCompleteUpdateStep(step))) {
-        return 'available';
     }
     if (steps.some((step) => step.phase === 'failed')) {
         return 'failed';

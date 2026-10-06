@@ -11,10 +11,10 @@ export interface HausUpdateFailure {
     stepId: string;
 }
 
+/** `appReady`: a downloaded App waits for the operator to restart it. */
 export type HausUpdateRunResult =
-    | { kind: 'complete' }
-    | { failures: readonly HausUpdateFailure[]; kind: 'failed' }
-    | { kind: 'restarting'; targetVersion: string };
+    | { appReady: boolean; kind: 'complete' }
+    | { appReady: boolean; failures: readonly HausUpdateFailure[]; kind: 'failed' };
 
 /** The ordered steps one run owns and the one it is working on now. */
 export interface HausUpdateSequence {
@@ -22,18 +22,10 @@ export interface HausUpdateSequence {
     stepIds: readonly string[];
 }
 
-/** Computers a relaunched App still owes from the press that restarted it. */
-export interface HausUpdateResume {
-    computerIds: readonly string[];
-}
-
 export interface HausUpdateOperations {
     downloadDesktop: (targetVersion: string) => Promise<void>;
-    forgetPendingComputers: () => void;
     onSequence?: (sequence: HausUpdateSequence) => void;
     readView: () => HausUpdateView | Promise<HausUpdateView>;
-    rememberPendingComputers: (computerIds: readonly string[]) => void;
-    restartDesktop: (targetVersion: string) => Promise<void>;
     updateComputer: (input: { computerId: string; targetVersion: string }) => Promise<void>;
     waitForChange: (step: HausUpdateStep) => Promise<void>;
 }
@@ -42,11 +34,11 @@ export function createHausUpdateController(operations: HausUpdateOperations) {
     let activeRun: Promise<HausUpdateRunResult> | null = null;
 
     return {
-        run(resume?: HausUpdateResume) {
+        run() {
             if (activeRun) {
                 return activeRun;
             }
-            activeRun = runHausUpdateSequence(operations, resume).finally(() => {
+            activeRun = runHausUpdateSequence(operations).finally(() => {
                 activeRun = null;
             });
             return activeRun;
@@ -55,32 +47,27 @@ export function createHausUpdateController(operations: HausUpdateOperations) {
 }
 
 /**
- * Runs one update at a time: the App first, through its restart, then each
- * Computer in view order. Computers the App restart interrupts are remembered
- * and resumed by the relaunched App.
+ * Runs one update at a time: the App download first, then each Computer in view
+ * order. A failed step never stops the next. The App is never restarted here;
+ * the result says whether a downloaded App is waiting for the operator.
  */
 export async function runHausUpdateSequence(
-    operations: HausUpdateOperations,
-    resume?: HausUpdateResume
+    operations: HausUpdateOperations
 ): Promise<HausUpdateRunResult> {
-    if (!resume) {
-        // A fresh press plans every Computer itself; an older owed resume must not linger.
-        operations.forgetPendingComputers();
-    }
-    const plan = planHausUpdateSequence((await operations.readView()).steps, resume);
-    const stepIds = [...(plan.desktop || resume ? ['desktop-app'] : []), ...plan.computerIds];
+    const plan = planHausUpdateSequence((await operations.readView()).steps);
+    const stepIds = [...(plan.desktop ? [plan.desktop.id] : []), ...plan.computerIds];
     const report = (activeStepId: string | null) =>
         operations.onSequence?.({ activeStepId, stepIds });
 
+    const failures: HausUpdateFailure[] = [];
     if (plan.desktop) {
         report(plan.desktop.id);
-        const outcome = await updateDesktop(plan.desktop, plan.computerIds, operations);
-        if (outcome) {
-            return outcome;
+        const failure = await downloadDesktop(plan.desktop, operations);
+        if (failure) {
+            failures.push(failure);
         }
     }
 
-    const failures: HausUpdateFailure[] = [];
     for (const computerId of plan.computerIds) {
         const step = findStep(await operations.readView(), computerId);
         // A Computer that finished, left, or disconnected since planning is not retried.
@@ -97,82 +84,64 @@ export async function runHausUpdateSequence(
 
     const finalView = await operations.readView();
     const finalFailures = finalView.steps
-        .filter((step) => plan.computerIds.includes(step.id) && step.phase === 'failed')
-        .map((step) => ({
-            detail: step.detail ?? `${step.label} could not update.`,
-            stepId: step.id,
-        }));
+        .filter((step) => stepIds.includes(step.id) && step.phase === 'failed')
+        .map(failureFromStep);
     const settledFailures = deduplicateFailures([...failures, ...finalFailures]).filter(
         (failure) => {
             const step = findStep(finalView, failure.stepId);
             // A disconnected Computer's outcome is unconfirmed, not retryable; the
             // projected view owns that state until it reconnects.
-            return !(step && (isCompleteUpdateStep(step) || isDisconnectedComputer(step)));
+            return !(
+                step &&
+                (isCompleteUpdateStep(step) ||
+                    step.phase === 'restart-required' ||
+                    isDisconnectedComputer(step))
+            );
         }
     );
+    const appReady = finalView.steps.some(
+        (step) => step.kind === 'desktop-app' && step.phase === 'restart-required'
+    );
     return settledFailures.length > 0
-        ? { failures: settledFailures, kind: 'failed' }
-        : { kind: 'complete' };
+        ? { appReady, failures: settledFailures, kind: 'failed' }
+        : { appReady, kind: 'complete' };
 }
 
 /**
- * The work one press owns: the App when it needs updating, then every reachable
- * incomplete Computer in view order. A resumed run owns only its remembered
- * Computers; the App already finished before the relaunch.
+ * The work one press owns: the App download when one is needed, then every
+ * reachable incomplete Computer in view order. A downloaded App is not a step.
  */
-export function planHausUpdateSequence(
-    steps: readonly HausUpdateStep[],
-    resume?: HausUpdateResume
-): { computerIds: string[]; desktop: DesktopUpdateStep | null } {
+export function planHausUpdateSequence(steps: readonly HausUpdateStep[]): {
+    computerIds: string[];
+    desktop: DesktopUpdateStep | null;
+} {
     const computers = steps.filter(
         (step): step is ComputerUpdateStep =>
             step.kind === 'computer' && !isCompleteUpdateStep(step) && step.connected
     );
-    if (resume) {
-        return {
-            computerIds: computers
-                .filter((step) => resume.computerIds.includes(step.id))
-                .map((step) => step.id),
-            desktop: null,
-        };
-    }
     // A checking or restarting App has nothing this press can act on yet.
     const desktop = steps.find(
         (step): step is DesktopUpdateStep =>
             step.kind === 'desktop-app' &&
-            ['available', 'downloading', 'failed', 'restart-required'].includes(step.phase)
+            ['available', 'downloading', 'failed'].includes(step.phase)
     );
     return { computerIds: computers.map((step) => step.id), desktop: desktop ?? null };
 }
 
-/** Resolves `null` when the App finished in place and Computers may follow. */
-async function updateDesktop(
+async function downloadDesktop(
     initialStep: DesktopUpdateStep,
-    computerIds: readonly string[],
     operations: HausUpdateOperations
-): Promise<HausUpdateRunResult | null> {
+): Promise<HausUpdateFailure | null> {
     try {
-        let step: HausUpdateStep = initialStep;
-        if (step.phase !== 'restart-required') {
-            if (step.phase === 'available' || step.phase === 'failed') {
-                await operations.downloadDesktop(step.targetVersion);
-            }
-            step = await observeUntilSettled(step, operations);
+        if (initialStep.phase === 'available' || initialStep.phase === 'failed') {
+            await operations.downloadDesktop(initialStep.targetVersion);
         }
-        if (isCompleteUpdateStep(step)) {
-            return null;
-        }
-        if (step.phase !== 'restart-required') {
-            return { failures: [failureFromStep(step)], kind: 'failed' };
-        }
-        if (computerIds.length > 0) {
-            operations.rememberPendingComputers(computerIds);
-        }
-        await operations.restartDesktop(step.targetVersion);
-        return { kind: 'restarting', targetVersion: step.targetVersion };
+        const step = await observeUntilSettled(initialStep, operations);
+        return isCompleteUpdateStep(step) || step.phase === 'restart-required'
+            ? null
+            : failureFromStep(step);
     } catch (error) {
-        operations.forgetPendingComputers();
-        return { failures: [failureForStep(initialStep, error)], kind: 'failed' };
+        return failureForStep(initialStep, error);
     }
 }
 
