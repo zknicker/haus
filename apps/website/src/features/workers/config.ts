@@ -1,10 +1,5 @@
 import type { IconSvgElement } from '@hugeicons/react';
-import {
-    HourglassIcon,
-    Robot02Icon,
-    TerminalIcon,
-    ZapIcon,
-} from '@hugeicons-pro/core-duotone-rounded';
+import { HourglassIcon, TerminalIcon, ZapIcon } from '@hugeicons-pro/core-duotone-rounded';
 import type { TranscriptWorker } from '../chats/transcript-contract.ts';
 
 export const workerKindConfig = {
@@ -28,13 +23,6 @@ export const workerKindConfig = {
         bg: 'bg-warning/10',
         icon: HourglassIcon,
         label: 'Cron',
-    },
-    subagent: {
-        accent: 'var(--success)',
-        accentMuted: 'oklch(from var(--success) l c h / 0.25)',
-        bg: 'bg-success/10',
-        icon: Robot02Icon,
-        label: 'Delegated',
     },
 } satisfies Record<
     TranscriptWorker['kind'],

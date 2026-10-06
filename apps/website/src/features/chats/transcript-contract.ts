@@ -224,7 +224,7 @@ export interface TranscriptWorker {
     error: string | null;
     executionMode: 'detached_session' | 'main_session' | 'unknown';
     id: string;
-    kind: 'acp' | 'cli' | 'cron' | 'subagent';
+    kind: 'acp' | 'cli' | 'cron';
     lastEventAt: string | null;
     notifyPolicy: string | null;
     parentWorkerId: string | null;
