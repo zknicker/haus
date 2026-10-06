@@ -188,6 +188,17 @@ must earn its place. Required teachings in v1:
 - `message read`: `## Message History for <target> (N messages)` header, a
   last-read teaching line (`--after <seq> to see only unread messages`), and
   pagination footers (`--- N messages shown. Use before=<minSeq> … ---`).
+  `message read --unread` reads from the Agent's read position in that chat and
+  moves it, and says `More unread remain` when the same command should run
+  again; it cannot combine with `--before`, `--after`, or `--around`.
+- `inbox check`: `Inbox: N unread conversations (X DMs, Y with mentions). Newest
+  activity first.`, then one row per unread channel, DM, or followed thread
+  (`<target> · N unread · mentions you · latest @sender 3m ago`) with an
+  `  open: haus message read --target "<target>" --after <lastReadSeq>` line;
+  pending rows not yet handed to the Agent (`N new, not yet delivered`) come
+  first; an optional `More: haus inbox check --before <seq>` line; and exactly
+  one closing `Next:` line. `INBOX_UNAVAILABLE` (503) teaches a retry and that
+  `message check` still drains.
 - `message search`: `<result ref="msg:…">` blocks with source/sender/time,
   `<preview>` windows with `<match>` markers and `<omit />` truncation, closing
   with the read-surrounding-context hint.
@@ -350,12 +361,12 @@ per family:
 | Family | Verbs | Lands | v1 behavior |
 | --- | --- | --- | --- |
 | message | `send` | WS1 | Attested send per §6; `--cause <fireId>` names the automation fire this message answers (§6a); `--done` marks the reply-completing message (§6b) |
-| | `read` | WS1 | History with `--before/--after/--around <idOrSeq>`, `--limit` |
+| | `read` | WS1 | History with `--before/--after/--around <idOrSeq>`, `--limit`; `--unread` reads from and moves the Agent's read position (exclusive with the cursor flags) |
 | | `search` | WS1 | `--query --target --sender --sort relevance\|recent --before --after --limit --offset` |
 | | `resolve <id>` | WS1 | One canonical message by short or full id |
 | | `check` | WS1 stub → WS4 | Stub: explains cursor semantics arrive with inbox delivery; exits 1, `Code: NOT_YET_AVAILABLE`, Next action: `message read` |
 | | `react` | WS5 (landed) | `--message-id --emoji [--remove]`; etiquette help text rides `--help` |
-| inbox | `check` | WS1 stub → WS4 | Same stub contract as `message check` |
+| inbox | `check` | Raft 1.21.2 port | Unread-conversation list from the Agent's durable per-chat read positions, newest activity first; `--view unread\|mentions`, `--before <seq>` |
 | server | `info` | WS1 | §8; `--channels --agents --humans --joined --query --limit --offset` (server-side) |
 | user | `info <name>` | WS4 era | Narrow visible facts |
 | channel | `info <target>` | WS1 | Existence, joined state, description, member count |
@@ -392,7 +403,7 @@ POST /api/agent/messages/send      { target, content, attachmentIds?, sendDraft?
                                    | { state: "held", newMessageCount, shownMessages[],
                                        omittedMessageCount, formalMentionCount,
                                        reholdCount }
-GET  /api/agent/history            ?target=&before=&after=&around=&limit=
+GET  /api/agent/history            ?target=&before=&after=&around=&limit=&unread=
 GET  /api/agent/manual/get         ?topic=&intent=&reason=
 GET  /api/agent/manual/search      ?q=&intent=&reason=&scope=&limit=
 GET  /api/agent/messages/search    ?q=&target=&sender=&sort=&before=&after=&limit=&offset=
@@ -401,7 +412,9 @@ GET  /api/agent/server             ?channels=&agents=&humans=&joined=&query=&lim
 GET  /api/agent/channels/info      ?target=
 GET  /api/agent/channels/members   ?target=
 GET  /api/agent/events             (message check drain — WS4)
-GET  /api/agent/inbox              (inbox check — WS4)
+GET  /api/agent/inbox              (pending peek: not-yet-delivered rows)
+GET  /api/agent/inbox/conversations ?view=unread|mentions&before=  (inbox check;
+                                   503 INBOX_UNAVAILABLE)
 POST /api/agent/agents             { avatarConcept?, content, description, displayName,
                                      nonce, target }
                                    → { agent, avatar, chatId, computerId, idempotent,

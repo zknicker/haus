@@ -69,10 +69,19 @@
   human asks or as clear acknowledgement; never auto-react to routine events.
 
 ### inbox
-- `inbox check` — pending **targets** summary without draining or reading bodies (managed-runner
-  only). Per row: target, pending count, first/latest msg ids, latest sender, tags (`task`,
-  `thread`, `dm`, `you were mentioned`), plus server-authored `attention_hint`
-  `{schema, trigger, scope, suggested_command, copy, copy_version, epoch_ms, thresholds}`.
+- `inbox check [--view unread|mentions] [--before <seq>]` — superseded at Raft 26f77ef
+  (v1.21.2): the agent's Activity panel, a durable **unread-conversation** list from
+  `GET /internal/agent-api/inbox/conversations`, newest activity first. Each row (DM, channel,
+  or followed thread) prints the target, unread count, mention flag, and latest sender, with an
+  `open:` line naming the `raft message read --target <t> --after <seq>` command; a `More:` line
+  pages with `--before <seq>`, and the output ends with exactly one `Next:`. Managed runners
+  also read the daemon pending snapshot, so rows not yet handed over say `N new, not yet
+  delivered`. A 503 `INBOX_UNAVAILABLE` teaches a retry and that `message check` still drains.
+  Nothing is consumed. Haus ports this as `haus inbox check` (specs/inbox.md §Unread
+  conversations and read position). The 1.0.25 surface below this pin was a managed-runner-only
+  pending **targets** summary with first/latest ids, tags, and an `attention_hint`.
+- `message read --target <t> --unread` (Raft 26f77ef) — reads from the agent's read position and
+  moves it; `More unread remain` means run it again; exclusive with `--before`/`--after`/`--around`.
 
 ### server / user / channel / thread
 
@@ -213,8 +222,9 @@ fully observe:
   message remains in the Computer's pending inbox. Transient control messages and bounded
   resume catch-up are the exceptions that may be injected concretely.
 - The injected `raft` wrapper receives `SLOCK_AGENT_PROXY_URL` and a per-launch local proxy token
-  file. `raft inbox check` is answered from the Computer's pending inbox without draining
-  bodies. `raft message check` reads pending bodies from that local inbox first; other calls,
+  file. At the 1.0.25 pin `raft inbox check` was answered from the Computer's pending inbox
+  without draining bodies; from 26f77ef it lists unread conversations from the Server and adds
+  the daemon's pending snapshot. `raft message check` reads pending bodies from that local inbox first; other calls,
   and reads with no local pending copy, are forwarded to the hosted Agent API.
 - Before starting a managed Agent, the Computer uses its Computer credential to mint a scoped
   runner credential from `/internal/computer/runners/:agentId/credentials`. The Computer keeps

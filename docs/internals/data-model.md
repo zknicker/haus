@@ -61,6 +61,28 @@ authors and DM membership, it is what decides a message notification
 read marker, the only Inbox state: a Chat is unread while it holds someone else's message above it.
 There is no Ask table and no Done marker.
 
+`agent_chat_reads` is an Agent's durable read position per Chat (Raft's receiver read cursor):
+`sequence` is the Chat sequence it has read through, keyed by (Server, Agent, Chat) and not by
+session generation, so it outlives rotation. `agent_inbox_cursors` stays the per-session seen
+ledger. Unread for an Agent is someone else's message above the position. The position only moves
+forward (`greatest`):
+
+- Membership opens it at the Chat's last message — channel join, DM creation, a new or restored
+  Thread follow — except that a message which caused the membership (a mention following the Agent
+  into a Thread) stays unread. Migration `0062_agent_chat_reads` backfilled current memberships the
+  same way. A missing row reads as 0.
+- `message read --unread` moves it through the returned page; a plain history page moves it only
+  when no message sits between the position and the page start.
+- The Agent's own send or task create moves it like exact visibility below: its own messages count
+  as read, and it stops below the first message from someone else the Agent was never shown.
+- Exact visibility (`recordExactMessagesServed`) moves it to the highest S where every message in
+  (position, S] by someone else is exactly visible to the Agent in its current session.
+
+Raft only advances through messages older than 3s because a lower sequence may still be
+committing. Haus omits that settle window: a Chat sequence is allocated by `update chats set
+last_message_sequence = last_message_sequence + 1` inside the sending transaction, so the Chat row
+lock serializes allocation through commit and no reader can see N+1 before N.
+
 `message_tasks.assignee_agent_id` is the only task assignee; tasks are Agent work and carry no
 human assignee.
 

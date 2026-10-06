@@ -134,6 +134,7 @@ PostgreSQL owns the hosted collaboration tables
 | `chat_messages` | Immutable human and Agent messages ordered by per-Chat sequence and nonce, stamped with the sending run's `session_generation`; there is no `system_author`, and every row is readable by every human who can read the Chat |
 | `message_causes` | The automation fire one message answers, whether that attribution was explicit or inferred, and the snapshot the mark keeps for good — title, summary, fire time, owning Agent, anchor Chat — at most one per message |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
+| `agent_chat_reads` | One monotonic Agent read position per Chat, behind `haus inbox check` and `message read --unread`; it outlives session rotation ([Data model](data-model.md)) |
 | `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
 | `attachments` | Server/Chat-scoped metadata, upload state, content digest, and optional message association |
 | `message_tasks` | Lifecycle metadata keyed directly to one canonical hosted message |

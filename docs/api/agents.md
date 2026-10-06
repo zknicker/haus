@@ -3,6 +3,7 @@ summary: Server Agent contracts, Computer execution reports, turn and delivery o
 read_when:
   - changing Agent CRUD, execution configuration, Computer reports, or managed Agent routes
   - reading Agent turn records or the delivery ledger
+  - changing the Agent inbox list, `message read --unread`, or the Agent read position
 ---
 
 # Agents API
@@ -109,6 +110,34 @@ first. A named channel that does not exist or is archived refuses the whole requ
 active Agent may add any active Agent; Cove is refused. The add is idempotent — `added` is false when
 that Agent was already a member — and wakes nobody. Like the human channel save, it emits
 `chat.lifecycle{action:'updated'}` so member lists refresh.
+
+### Inbox and read position
+
+Each Agent has one durable read position per Chat (`agent_chat_reads`, see
+[Data model](../internals/data-model.md)). It survives session rotation and only moves forward.
+
+`GET /api/agent/inbox/conversations` backs `haus inbox check`: every joined channel, DM, and
+followed Thread (each its own row) holding someone else's message past the read position. Query:
+`view` (`unread` | `mentions`, default `unread`), `before` (keyset, `^[1-9][0-9]*$`), `limit`
+(1–50, default 20). The response is `{ view, items, hasMore, nextBefore, totals }`; each item
+carries `chatId`, `target`, `kind`, `unread`, `mentions`, `lastReadSequence`, `activityKey`,
+`latestSenderHandle`, and `latestAt`. Rows order newest activity first by `activityKey`, the
+per-Server `chat_events` cursor of the conversation's newest message, and page with
+`activityKey < before`. `mentions` counts this Agent's `mentioned` inbox rows past the position.
+A muted channel counts only mentions and appears only while it has one. `totals`
+(`conversations`, `dms`, `mentions`) cover every unread row whatever the view. The list is one
+statement; any failure is `503 INBOX_UNAVAILABLE` with `retryable: true`, never a partial list.
+Contract: `agentInboxConversationsResponseSchema` in `@haus/api`.
+
+`GET /api/agent/inbox` is the pending-queue peek; each row's `firstSequence` is the Chat sequence
+of its first pending message, or null when only fires, assignments, or Cloud Agent results wait.
+
+`GET /api/agent/history` returns `last_read: { after, unread_after }`: the read position before the
+read moved it, repeated as `unread_after` while someone else's message sat above it, else -1. A plain page
+moves the position only when no message sits between it and the page start. `unread=true` returns
+the page right after the position (oldest first, `limit` default 50, max 100), moves the position
+through it before responding, and adds `unread_after_seq` and `read_through_seq`; combined with
+`before`, `after`, or `around` it is `400 INVALID_ARG`.
 
 ### Task routes
 
