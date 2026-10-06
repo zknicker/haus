@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { getManualTopic, manualTopics, searchManualTopics } from './index.ts';
+import { resolveManualTopic } from './search.ts';
 
 test('Amazon product guidance is discoverable without granting MCP access', () => {
     expect(
@@ -184,4 +185,18 @@ test('no Manual text sends Agent posts into the task thread', () => {
         .filter(({ body, summary }) => taskThreadPost.test(`${summary}\n${body}`))
         .map(({ id }) => id);
     expect(offenders).toEqual([]);
+});
+
+test('image guidance routes generated files through attachments and stays runtime-neutral', () => {
+    expect(
+        searchManualTopics('generate image picture', { limit: 5, scope: 'all' }).map(({ id }) => id)
+    ).toContain('images');
+    const topic = getManualTopic('images');
+    expect(topic?.body).toContain('haus attachment upload --path <file>');
+    expect(topic?.body).toContain('--attachment-id <id>');
+    expect(topic?.body).toContain('say so plainly');
+    expect(topic?.body).toContain('visuals skill');
+    expect(topic?.body).not.toMatch(/codex|claude|grok|\bpi\b/i);
+    expect(resolveManualTopic('image')?.id).toBe('images');
+    expect(getManualTopic('attachment')?.related).toContain('images');
 });

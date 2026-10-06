@@ -16,6 +16,23 @@ When you need product facts for analysis, use execute to search for RankWrangler
         title: 'Amazon product references',
     },
     {
+        body: `# Images
+
+Haus has no image-generation command. Whether you can generate an image depends on your runtime and model: some generate images natively, others cannot.
+
+When you can generate one, the runtime may save it outside your workspace. Find the saved file the tool reports, then share it like any attachment: \`haus attachment upload --path <file>\`, then \`haus message send --target <t> --attachment-id <id>\`. Upload infers the media type from the file, so images show inline; pass \`--mime-type\` only to override it. An image that is never uploaded never reaches the chat.
+
+When you cannot generate one, say so plainly instead of describing an image you did not make. Offer what you can make: an SVG you write and attach, or an inline visual.
+
+Diagrams, charts, and figures built from data are visuals, not generated images. Read the visuals skill and render them as an inline visual or artifact page.`,
+        id: 'images',
+        kind: 'overview',
+        related: ['attachment', 'message'],
+        summary:
+            'Share a generated image as an attachment, or say plainly that you cannot make one.',
+        title: 'Images',
+    },
+    {
         body: `# Replies
 
 An inline reply stays in the channel or DM with the message it answers. Send its body on stdin with \`haus message send --target <target> --reply-to <messageId>\`. The parent can be a request or any later reply in that exchange. Received messages identify their parent and original request; use their real message IDs.

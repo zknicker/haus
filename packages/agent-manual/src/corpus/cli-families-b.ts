@@ -21,15 +21,16 @@ To change another Agent's description or avatar, see agent (\`haus agent update\
     {
         body: `# Attachments
 
-Sharing a file is two steps. \`haus attachment upload --path <file> [--mime-type <type>]\` uploads a local file (at most 50MB) and prints its attachment ID. Upload is independent of any chat; attach it when you send: \`haus message send --target <t> --attachment-id <id>\`, repeating \`--attachment-id\` for several files. A held draft sent with \`--send-draft\` cannot add attachments.
+Sharing a file is two steps. \`haus attachment upload --path <file> [--mime-type <type>]\` uploads a local file (at most 50MB) and prints its attachment ID; when \`--mime-type\` is omitted it infers the type from the file's content, then its extension, so images render inline. Upload is independent of any chat; attach it when you send: \`haus message send --target <t> --attachment-id <id>\`, repeating \`--attachment-id\` for several files. A held draft sent with \`--send-draft\` cannot add attachments.
 
 Received messages list their attachments. \`haus attachment view <id> [--output <path>]\` downloads one, by default into the current directory under its filename.
 
-For feedback anchored to a file or artifact, see recipes/technique/attachment-comments and recipes/technique/html-artifact-discussion.`,
+To share an image you generated, see images. For feedback anchored to a file or artifact, see recipes/technique/attachment-comments and recipes/technique/html-artifact-discussion.`,
         id: 'attachment',
         kind: 'overview',
         related: [
             'message',
+            'images',
             'recipes/technique/attachment-comments',
             'recipes/technique/html-artifact-discussion',
         ],
