@@ -79,3 +79,15 @@ Each has a register row.
 - The Server's drain budget (`drain-selection.ts`, `thread-context.ts`) counts raw content
   length, so the continuation prefix adds 4 uncounted characters per body line. The budget is a
   soft bound and was left alone.
+
+## Follow-ups
+
+- **Private-channel clauses omitted** (2026-10-06). Haus has no private channels, so the prompt no
+  longer carries Raft's three private-channel clauses: Discovering's "Private channels require a
+  human with access to add you." and its membership-gated disclosure paragraph, and Channel
+  awareness's private-channel Visibility bullet. The cap fell by exactly 457, 33,513 → 33,056.
+  The register rows say to restore them verbatim if Haus ever adds private channels.
+- **Task-claim-lock card refreshed** (2026-10-06). The captured card was re-captured at the pin and
+  the published Haus card now carries Raft's "lock, not a ruling" text, misroute-correction step,
+  and two new failure modes. Haus's claim conflict output already matches them, so only the
+  existing `taskThreadRouting` swaps apply. The Open TODO is closed.
