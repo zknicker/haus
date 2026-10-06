@@ -12,6 +12,7 @@ const facts = {
     agentName: 'Cove',
     homeTimezone: 'America/Los_Angeles',
     initialRole: 'the operator’s right hand',
+    runtimeId: 'codex',
     webAccess: null,
     workspacePath: '/home/agt_cove/workspace',
 } as const;

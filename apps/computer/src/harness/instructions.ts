@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { hostname, release, type } from 'node:os';
 import computerPackage from '../../package.json' with { type: 'json' };
 import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';
+import { supportsSubagents } from './runtime-harness.ts';
 
 /**
  * Ported composition seam (Runtime's `agent-instructions.ts` +
@@ -20,6 +21,8 @@ export interface AgentInstructionFacts {
     homeTimezone: string;
     initialRole: string | null;
     personality?: string | null;
+    /** Selects runtime-conditional sections such as sub-agent delegation. */
+    runtimeId: string;
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspacePath: string;
 }
@@ -39,6 +42,7 @@ export function composeAgentInstructions(facts: AgentInstructionFacts): Composed
         os: `${type()} ${release()}`,
         personality: facts.personality ?? null,
         runtimeVersion: process.env.HAUS_COMPUTER_PRODUCT_VERSION ?? computerPackage.version,
+        supportsSubagents: supportsSubagents(facts.runtimeId),
         webAccess: facts.webAccess,
         workspacePath: facts.workspacePath,
     };

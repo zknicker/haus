@@ -24,6 +24,15 @@ export const CLAUDE_FOREGROUND_SUBAGENTS_ENV = {
 } as const;
 
 /**
+ * Whether the runtime's harness lets the Agent start sub-agents, which turns on the prompt's
+ * `## Working through sub-agents` section. Only Claude Code: Codex and Grok Build sub-agents are
+ * switched off at their harness, and Pi has none.
+ */
+export function supportsSubagents(runtimeId: string): boolean {
+    return runtimeId === 'claude-code';
+}
+
+/**
  * Applies the Agent's reasoning policy at the native runtime boundary. Every runtime here
  * steers a live turn (`submitUserMessage`), which the composed prompt promises: Claude Code
  * and Pi natively, Grok Build and Codex through Haus's @ai-sdk/harness-acp patch

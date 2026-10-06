@@ -178,6 +178,7 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         homeTimezone: 'America/Los_Angeles',
         initialRole: 'the operator’s right hand',
         personality: 'Terse.',
+        supportsSubagents: true,
         webAccess: 'search',
     });
 
@@ -216,7 +217,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // example list. Raised by operator decision (32,496 → 32,579) when Agents came to set their own
     // finished tasks `done`, keeping `in_review` for requested sign-off or a pending human decision;
     // the Raft review-then-done sentence and the same-turn `done` exception it made redundant went.
-    expect(prompt.length).toBeLessThanOrEqual(32_579);
+    // Raised by operator decision (32,579 → 34,777) when Claude Code Agents gained Raft v1.21's
+    // conditional `## Working through sub-agents` section, adapted for Haus; measured here with it on.
+    expect(prompt.length).toBeLessThanOrEqual(34_777);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

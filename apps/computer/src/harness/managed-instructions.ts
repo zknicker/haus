@@ -11,6 +11,7 @@
  */
 
 import { TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
+import { subagentsSection } from './subagent-instructions.ts';
 
 export const agentWorkDirectoryName = 'workbench';
 
@@ -25,6 +26,8 @@ export interface AgentPromptRenderInput {
     /** Owner/Admin-set tone guidance; private to this prompt. */
     personality?: string | null;
     runtimeVersion: string;
+    /** The runtime's harness can start sub-agents (`supportsSubagents` in runtime-harness.ts). */
+    supportsSubagents?: boolean;
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspacePath: string;
 }
@@ -49,6 +52,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         readingHistorySection,
         tasksSection,
         splittingTasksSection,
+        input.supportsSubagents ? subagentsSection : null,
         mentionsSection(input),
         communicationStyleSection,
         etiquetteSection(),
