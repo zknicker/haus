@@ -6,6 +6,7 @@ import {
     agentAttachmentViewResponseSchema,
 } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
+import { inferAttachmentMediaType } from '../attachment-media-type.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 
@@ -21,10 +22,14 @@ interface AttachmentDeps {
 
 export const ATTACHMENT_SUBCOMMANDS: SubCommand[] = [
     {
-        examples: ['haus attachment upload --path ./report.pdf --mime-type application/pdf'],
+        examples: ['haus attachment upload --path ./chart.png'],
         flags: [
             { description: 'Local file to upload', name: '--path', valueName: '<file>' },
-            { description: 'Optional media type', name: '--mime-type', valueName: '<type>' },
+            {
+                description: 'Media type; inferred from the file when omitted',
+                name: '--mime-type',
+                valueName: '<type>',
+            },
         ],
         name: 'upload',
         positionals: [],
@@ -74,7 +79,8 @@ export async function runAttachmentUpload(args: ParsedArgs, deps: AttachmentDeps
             body: {
                 dataBase64: data.toString('base64'),
                 filename: path.basename(filePath),
-                mediaType: args.values['--mime-type'],
+                mediaType:
+                    args.values['--mime-type']?.trim() || inferAttachmentMediaType(filePath, data),
             },
             method: 'POST',
         }
