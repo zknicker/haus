@@ -8,6 +8,21 @@ export function usageContextTokens(usage: unknown): number | null {
     return isRecord(usage) ? tokenCount(usage.inputTokens) : null;
 }
 
+/**
+ * EXPERIMENT (wake recycle): ACP runtimes (Codex) report no per-step usage, only turn totals; their
+ * `usage_update` session update carries the context window's current fill as `used`.
+ */
+export function acpUsageUpdateContextTokens(
+    rawValue: unknown,
+    current: number | null
+): number | null {
+    const used =
+        isRecord(rawValue) && rawValue.sessionUpdate === 'usage_update'
+            ? tokenCount(rawValue.used)
+            : null;
+    return used ?? current;
+}
+
 export function readTokenUsage(usage: unknown): HarnessTokenUsage | null {
     if (!isRecord(usage)) {
         return null;

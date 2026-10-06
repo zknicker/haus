@@ -58,6 +58,12 @@ import type { HarnessTokenUsage } from './token-usage.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
 import { attestComposedDrain, composeTurnPrompt, type TurnDelivery } from './turn-prompt.ts';
 import { HarnessStreamForeignError, observeTurnStream } from './turn-stream.ts';
+import { coldSessionId } from './wake-recycle.ts';
+import {
+    composeWakeRecycleContext,
+    planWakeRecycle,
+    settledTurnFacts,
+} from './wake-recycle-turn.ts';
 
 /** Drives one isolated, persistent Codex, Claude Code, Grok Build, or Pi Agent session. */
 export interface HarnessTurnInput extends TurnDelivery {
@@ -133,10 +139,19 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
                 runtimeId: input.runtimeId,
             });
             const restartRequested = await isSessionRestartRequested(input.agentRoot);
+            // EXPERIMENT (wake recycle, default off): retire a cold, large session at the wake.
+            const recycle = await planWakeRecycle(input, session);
             const lease = harnessSessionOwner(input.runtime).begin(input.agentRoot);
             let result: HarnessTurnResult;
             try {
-                result = await executeHarnessTurn(input, session, restartRequested, journal, lease);
+                result = await executeHarnessTurn(
+                    input,
+                    recycle.session,
+                    restartRequested,
+                    journal,
+                    lease,
+                    recycle.recycled
+                );
             } catch (error) {
                 if (!(lease.stopping && input.signal?.aborted)) {
                     throw error;
@@ -173,7 +188,8 @@ async function executeHarnessTurn(
     session: AgentSessionState,
     restartRequested: boolean,
     journal: ComputerExecutionJournal,
-    lease: HarnessSessionLease
+    lease: HarnessSessionLease,
+    recycled: boolean
 ): Promise<HarnessTurnResult> {
     const timings = input.turnTimings ?? new AgentTurnTimings();
     // For the prompt's activation hints; runtimes read the library natively.
@@ -212,7 +228,7 @@ async function executeHarnessTurn(
     const hausAgentVersionDrift = session.hausAgentVersion !== hausAgentVersion;
     let hausAgentVersionCanApply = true;
     try {
-        const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
+        const sessionId = session.runtimeSessionId ?? coldSessionId(input.agentId, session);
         const resumeFrom =
             (session.resumeState as HarnessAgentResumeSessionState | null) ?? undefined;
         lease.prepare(resumeFrom, (state, abortSignal) =>
@@ -320,8 +336,9 @@ async function executeHarnessTurn(
             });
             return { aborted: true, claudePlanUsage: null, contextTokens: null, tokenUsage: null };
         }
+        // A recycled wake keeps the warm drain lane, as Raft keeps `isResume` for it.
         const prompt = composeTurnPrompt(input, {
-            isColdStart: !live.isResume,
+            isColdStart: !(live.isResume || recycled),
             sessionGeneration: session.generation,
         });
         // A notice-lane drain is composed here, not served by the Server, so the Computer attests
@@ -330,13 +347,14 @@ async function executeHarnessTurn(
         await attestComposedDrain(input, prompt.drained);
         const turnContent = prompt.turnContent;
         const memoryNotice = await takeMemorySizeNotice(input);
+        const recycleContext = recycled ? await composeWakeRecycleContext(input) : [];
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await agent.stream({
             abortSignal: turnSignal,
             prompt: projectMessageForAgent({
-                content: [factoryGuidanceNotice, turnContent, memoryNotice]
+                content: [factoryGuidanceNotice, ...recycleContext, turnContent, memoryNotice]
                     .filter(Boolean)
                     .join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
@@ -424,6 +442,7 @@ async function executeHarnessTurn(
                 ...session,
                 effectiveReasoningEffort: input.reasoningEffort,
                 hausAgentStatus: hausAgentVersionDrift ? 'failed' : session.hausAgentStatus,
+                ...settledTurnFacts(observation, session),
                 resumeState: resumeState as Record<string, unknown>,
                 runtimeSessionId: live.sessionId,
             });
@@ -443,8 +462,10 @@ async function executeHarnessTurn(
             hausAgentStatus: appliesHausAgentVersion ? 'current' : 'failed',
             hausAgentVersion: appliesHausAgentVersion ? hausAgentVersion : session.hausAgentVersion,
             instructionFingerprint,
+            ...settledTurnFacts(observation, session),
             resumeState: resumeState as Record<string, unknown>,
             runtimeSessionId: live.sessionId,
+            wakeRecycleCount: session.wakeRecycleCount ?? 0,
         });
         if (factoryGuidanceRefreshPending && factoryGuidanceRefreshCanComplete) {
             await clearPendingCoveGuidanceRefresh(input.agentRoot);

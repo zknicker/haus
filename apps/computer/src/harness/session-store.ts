@@ -19,8 +19,14 @@ export interface AgentSessionState {
     hausAgentStatus: 'current' | 'failed' | 'pending';
     hausAgentVersion: string | null;
     instructionFingerprint: string | null;
+    /** EXPERIMENT (wake recycle): full prompt size of the last turn's final step. */
+    lastContextTokens?: number | null;
+    /** EXPERIMENT (wake recycle): when the last turn on this session settled. */
+    lastTurnEndedAt?: string | null;
     resumeState: Record<string, unknown> | null;
     runtimeSessionId: string | null;
+    /** EXPERIMENT (wake recycle): fresh runtime sessions started inside this generation. */
+    wakeRecycleCount?: number;
 }
 
 export interface AgentSessionTokenUsage {

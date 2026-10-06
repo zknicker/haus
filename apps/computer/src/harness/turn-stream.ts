@@ -10,6 +10,7 @@ import {
 } from './runtime-session-failure.ts';
 import type { ToolGate } from './stored-notice.ts';
 import {
+    acpUsageUpdateContextTokens,
     addTokenUsage,
     type HarnessTokenUsage,
     readClaudePlanUsageMetadata,
@@ -100,6 +101,10 @@ export async function observeTurnStream(
                         switch (part.type) {
                             case 'raw':
                                 fatalFailure ??= fatalRuntimeSessionFailure(part.rawValue);
+                                contextTokens = acpUsageUpdateContextTokens(
+                                    part.rawValue,
+                                    contextTokens
+                                );
                                 await projector?.observe(part);
                                 return;
                             case 'reasoning-delta':

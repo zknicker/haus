@@ -22,6 +22,12 @@ export class AgentTurnTimings {
         this.attributes['haus.reasoning.effort'] = effort;
     }
 
+    /** EXPERIMENT (wake recycle): which arm this turn ran. */
+    setWakeRecycle(decision: { reason: string; recycle: boolean }): void {
+        this.attributes['haus.wake_recycle'] =
+            `${decision.recycle ? 'recycle' : 'resume'}:${decision.reason}`;
+    }
+
     mark(milestone: TurnMilestone): void {
         const key = `haus.turn.${milestone}_ms` as const;
         this.attributes[key] ??= this.elapsed();

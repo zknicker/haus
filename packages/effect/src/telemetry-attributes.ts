@@ -28,6 +28,8 @@ export const telemetryAttributeKeys = [
     'haus.tokens.output',
     'haus.tokens.cache_read',
     'haus.tokens.cache_write',
+    // EXPERIMENT (wake recycle): `recycle:<reason>` or `resume:<reason>` when the switch is on.
+    'haus.wake_recycle',
 ] as const;
 
 export type TelemetryAttributeKey = (typeof telemetryAttributeKeys)[number];
