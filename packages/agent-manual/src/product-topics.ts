@@ -20,7 +20,7 @@ When you need product facts for analysis, use execute to search for RankWrangler
 
 Haus has no image-generation command. Whether you can generate an image depends on your runtime and model: some generate images natively, others cannot.
 
-When you can generate one, the runtime may save it outside your workspace. Find the saved file the tool reports, then share it like any attachment: \`haus attachment upload --path <file>\`, then \`haus message send --target <t> --attachment-id <id>\`. Upload infers the media type from the file, so images show inline; pass \`--mime-type\` only to override it. An image that is never uploaded never reaches the chat. Haus also copies each generated or edited image into \`generated-images/\` in your workspace, so you can upload it from there.
+When you can generate one, the runtime may save it outside your workspace. Find the saved file the tool reports, then share it like any attachment: \`haus attachment upload --path <file>\`, then \`haus message send --target <t> --attachment-id <id>\`. Upload infers the media type from the file, so images show inline; pass \`--mime-type\` only to override it. An image that is never uploaded never reaches the chat. Haus moves each generated or edited image into \`generated-images/\` in your workspace, so you can upload it from there.
 
 When you cannot generate one, say so plainly instead of describing an image you did not make. Offer what you can make: an SVG you write and attach, or an inline visual.
 

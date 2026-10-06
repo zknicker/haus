@@ -223,10 +223,12 @@ follows that runtime and model; it is separate from Haus's avatar service and is
 an App setting. A generated image reaches a chat only as an attachment: the Agent uploads the saved
 file with `haus attachment upload` and sends it with `--attachment-id`. Native tools save inside
 the Agent's isolated home, outside its workspace (Codex under `$CODEX_HOME/generated_images/`, Grok
-Build under its session's `images/` folder), so when a generation or edit finishes Computer copies
-the file into the workspace at `generated-images/<UTC yyyymmdd-hhmmss>-<original name>` and the
-execution journal records that workspace path as the call's `path` (with the runtime's original as
-`savedPath`). A copy that fails is logged and the journal keeps the original path. The `images`
+Build under its session's `images/` folder), so when a generation or edit finishes Computer moves
+the file into the workspace at `generated-images/<UTC yyyymmdd-hhmmss>-<original name>` and leaves
+a symlink at the runtime's path so the runtime's own references keep working. The execution
+journal records that workspace path as the call's `path` (with the runtime's original as
+`savedPath`). A move that fails is logged, the image stays at the runtime's path, and the journal
+keeps that path. The `images`
 Manual topic teaches this flow and tells Agents without the capability to say so plainly or draw
 an SVG or inline visual instead.
 

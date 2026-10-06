@@ -46,7 +46,7 @@ name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `we
 `turn-trace-tool-label.ts` names its row and `turn-trace-tool-bodies.tsx` owns the body each kind
 earns. Codex's and Grok Build's native media tools (`image_gen`, `image_edit`, `image_to_video`,
 `reference_to_video`) are `image`: `Generated an image`, `Edited an image`, or `Made a video`, with
-the file and the prompt as the body. The file is the workspace copy Computer journals as `path`
+the file and the prompt as the body. The file is the workspace file Computer journals as `path`
 (`generated-images/…`, see [Agents](../features/agents.md)), falling back to the runtime's own
 `savedPath`; the trace shows the path, not an inline preview. The harness's reserved
 synthetic names get their own kinds so they read as what happened — `Modified <path>`,
