@@ -2041,19 +2041,17 @@
     }
 
     /*
-     * Stock ChatTool sets its section labels in 10px ALL CAPS with extra
-     * tracking. DESIGN.md has no all-caps tier, and a turn trace stacks these
-     * labels beside its own plain muted ones — "Command", "File", "Exit code"
-     * — so the same small muted role carries all of them and nothing in an
-     * expanded call shouts.
+     * Stock ChatTool sets its section labels in 10px uppercase with wide
+     * tracking. The turn trace names every body section the same way —
+     * `COMMAND`, `OUTPUT`, `REPORT` beside the stock `ARGUMENTS` and `RESULT`
+     * — at the type scale's own smallest step, so these take `xs` rather than
+     * an off-scale 10px and the two read as one micro-label tier.
      */
     .chat-tool__args-label,
-    .chat-tool__result-label {
-        font-size: var(--text-sm);
-        line-height: var(--text-sm--line-height);
-        font-weight: 400;
-        letter-spacing: normal;
-        text-transform: none;
+    .chat-tool__result-label,
+    .chat-tool__error-label {
+        font-size: var(--text-xs);
+        line-height: var(--text-xs--line-height);
     }
 
     /*
@@ -2066,6 +2064,11 @@
     .drawer__dialog--turn-details[data-placement='right'] {
         width: 32rem;
         max-width: 100vw;
+    }
+
+    /* The trace inside draws on the drawer's ground, so its bars ring in it. */
+    .drawer__dialog--turn-details {
+        --trace-ground: var(--overlay);
     }
 }
 

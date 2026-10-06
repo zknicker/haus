@@ -57,6 +57,21 @@
         --skill-reference: var(--color-purple-400);
 
         /*
+         * Turn trace waterfall. Three hues tell work apart without a
+         * container: a step that ran other work (a sub-agent, the model's own
+         * reasoning) takes the accent, a tool call a cool teal, and Haus
+         * bookkeeping a quiet muted wash. A failure is `danger`, not a fourth
+         * hue. `--trace-ground` is what the trace is drawn on — the Activity
+         * tab's surface accordion by default; a bar rings itself in it so it
+         * reads as cut from the dotted leader. Hosts on another ground rebind
+         * it (`.drawer__dialog--turn-details`).
+         */
+        --trace-step: var(--accent);
+        --trace-tool: var(--color-teal-400);
+        --trace-quiet: color-mix(in oklab, var(--muted) 45%, transparent);
+        --trace-ground: var(--surface);
+
+        /*
          * Automation provenance. A fire writes nothing to the transcript, so
          * the context line above the Agent's own message is the only thing
          * that says why it spoke — and the two automations have to be told
@@ -143,6 +158,8 @@
 
         --skill-reference: var(--color-purple-700);
 
+        --trace-tool: var(--color-teal-600);
+
         /* The same two hues carried down the ramp: light needs the darker,
          * denser end to hold against a near-white page at 11px. */
         --trigger-mark: oklch(0.66 0.15 88);
@@ -186,4 +203,22 @@
     --color-trigger-mark: var(--trigger-mark);
     --color-trigger-mark-line: var(--trigger-mark-line);
     --color-trigger-mark-soft: var(--trigger-mark-soft);
+    --color-trace-leader-danger: var(--trace-leader-danger);
+    --color-trace-quiet: var(--trace-quiet);
+    --color-trace-row-danger: var(--trace-row-danger);
+    --color-trace-step: var(--trace-step);
+    --color-trace-tool: var(--trace-tool);
+}
+
+/*
+ * Derived per trace, not on :root, so a host that rebinds `--trace-ground`
+ * gets a danger row and a bar ring mixed from its own ground. The danger row
+ * is opaque on purpose: a bar on it rings in exactly the row's fill.
+ */
+@layer base {
+    [data-turn-trace] {
+        --trace-ring: var(--trace-ground);
+        --trace-row-danger: color-mix(in oklab, var(--danger) 10%, var(--trace-ground));
+        --trace-leader-danger: color-mix(in oklab, var(--danger) 55%, transparent);
+    }
 }
