@@ -20,7 +20,11 @@ export function HausUpdateProgress({ steps }: { steps: readonly HausUpdateStep[]
                             {step.currentVersion ?? 'Unknown'} → {step.targetVersion}
                         </p>
                     </div>
-                    <UpdateProgressBar label={updateStepLabel(step)} progress={step.progress} />
+                    {step.progress === null ? (
+                        <p className="text-muted text-sm">{updateStageLine(step)}</p>
+                    ) : (
+                        <UpdateProgressBar label={updateStepLabel(step)} progress={step.progress} />
+                    )}
                 </div>
             ))}
         </div>
@@ -64,5 +68,29 @@ function updateStepLabel(step: HausUpdateStep) {
             return 'Restarting Haus App';
         default:
             return 'Updating Haus App';
+    }
+}
+
+/** A plain stage line for a phase that reports no progress. */
+export function updateStageLine(step: HausUpdateStep) {
+    if (step.kind === 'desktop-app') {
+        return updateStepLabel(step);
+    }
+    switch (step.phase) {
+        case 'checking':
+        case 'requested':
+            return `Starting the update on ${step.name}`;
+        case 'downloading':
+            return `Downloading the update to ${step.name}`;
+        case 'verifying':
+            return `Verifying the update on ${step.name}`;
+        case 'installing':
+            return `Installing the update on ${step.name}`;
+        case 'waiting-for-agents':
+            return `Waiting for Agents to finish on ${step.name}`;
+        case 'restarting':
+            return `Restarting ${step.name}`;
+        default:
+            return computerUpdatePhaseLabel(step.phase === 'current' ? 'complete' : step.phase);
     }
 }

@@ -175,6 +175,15 @@ exiting with an error. The resident Computer replaces the exited daemon using th
 executable. A disposed runtime must never remain alive in the reconnect loop; recovery does not
 claim that the failed shutdown saved every session checkpoint.
 
+The service restart depends on where it runs. An attachment daemon runs inside the
+`com.haus.computer` launchd job's process group (launchd names it through `XPC_SERVICE_NAME`), so
+it restarts the job with `launchctl kickstart -k`, which also ends the daemon. It must never
+`bootout` its own job: launchd reaps the process group before `bootstrap` runs and leaves the
+service unloaded. A rewritten plist takes effect at the job's next load. CLI `upgrade`, rollback,
+and `install` run outside the job and reload the definition with `bootout` plus `bootstrap`.
+Whichever process starts first after the restart, the resident or an attachment daemon, moves
+`restarting` to `complete`, so the next bootstrap handshake reports it.
+
 Shutdown drains accepted writers before saving parked Agent sessions, with a separate 20-second
 deadline for each stage. A completed writer cannot consume the session checkpoint deadline.
 Coordination cleanup has its own three-second deadline; telemetry flush uses the bounded

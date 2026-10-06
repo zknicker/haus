@@ -47,7 +47,9 @@ export function useDesktopUpdate() {
 
     return {
         checkForUpdate,
+        download: downloadDesktopUpdate,
         installedVersion,
+        restart: restartForDesktopUpdate,
         status,
         updateAndRestart,
     };
@@ -183,6 +185,40 @@ async function installDesktopUpdateAndRestart() {
     }
 
     await checkForDesktopUpdate({ install: true });
+}
+
+/** Downloads an available update without restarting; a ready update stays ready. */
+async function downloadDesktopUpdate() {
+    // checkForDesktopUpdate reports an unsupported App itself.
+    if (!isPersistentUpdateStatus(readDesktopUpdateStatus())) {
+        await checkForDesktopUpdate({ install: false });
+    }
+    if (readDesktopUpdateStatus().phase === 'available') {
+        await installCurrentDesktopUpdate();
+    }
+}
+
+/** Restarts into a downloaded update; any other state has nothing to restart. */
+async function restartForDesktopUpdate() {
+    const bridge = getDesktopBridge();
+    const status = readDesktopUpdateStatus();
+    if (!bridge || status.phase !== 'ready') {
+        return;
+    }
+    setDesktopUpdateStatus({ phase: 'restarting', version: status.version });
+    try {
+        await bridge.restartForUpdate();
+    } catch (error) {
+        setDesktopUpdateStatus({
+            phase: 'error',
+            message: getErrorMessage(error, 'Haus could not restart to finish updating.'),
+        });
+    }
+}
+
+// Read through a call so TypeScript does not carry narrowing across awaits.
+function readDesktopUpdateStatus() {
+    return currentStatus;
 }
 
 async function installCurrentDesktopUpdate(options?: { unavailableMessage?: string }) {

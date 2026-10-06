@@ -1,19 +1,29 @@
-import type { HausUpdateStep } from './haus-update-model.ts';
-import { isCompleteUpdateStep } from './haus-update-model.ts';
+import * as React from 'react';
+import type { HausUpdateView } from './haus-update-model.ts';
+import type { HausUpdateSequence } from './haus-update-reconciler.ts';
+import {
+    type HausUpdatePeak,
+    hausUpdateRunProgress,
+    holdPeak,
+} from './haus-update-run-progress.ts';
 
 const circleCenter = 10;
 const circleRadius = 8;
 
-export function HausUpdateDonut({ steps }: { steps: readonly HausUpdateStep[] }) {
-    const segments = updateDonutSegments(steps);
-    const progress =
-        segments.length === 0
-            ? 0
-            : segments.reduce((total, segment) => total + segment.progress, 0) / segments.length;
+export interface HausUpdateDonutStatus {
+    label: string;
+    /** Cumulative fill for the whole run, 0–1. */
+    progress: number;
+    /** Identifies the run; the fill only holds its peak within one run. */
+    runKey: string;
+}
 
+/** One circle that fills once over the whole run and never moves backward. */
+export function HausUpdateDonut({ status }: { status: HausUpdateDonutStatus }) {
+    const progress = useRunPeak(status.runKey, status.progress);
     return (
         <svg
-            aria-label="Updating Haus"
+            aria-label={status.label}
             aria-valuemax={100}
             aria-valuemin={0}
             aria-valuenow={Math.round(progress * 100)}
@@ -28,38 +38,46 @@ export function HausUpdateDonut({ steps }: { steps: readonly HausUpdateStep[] })
                 r={circleRadius}
                 strokeWidth={3}
             />
-            <g transform={`rotate(-90 ${circleCenter} ${circleCenter})`}>
-                {segments.map((segment) => (
-                    <circle
-                        className="fill-none stroke-current"
-                        cx={circleCenter}
-                        cy={circleCenter}
-                        key={segment.id}
-                        pathLength={1}
-                        r={circleRadius}
-                        strokeDasharray={`${segment.fill} ${1 - segment.fill}`}
-                        strokeDashoffset={-segment.offset}
-                        strokeWidth={3}
-                    />
-                ))}
-            </g>
+            <circle
+                className="fill-none stroke-current transition-[stroke-dasharray] duration-300 ease-out motion-reduce:transition-none"
+                cx={circleCenter}
+                cy={circleCenter}
+                pathLength={1}
+                r={circleRadius}
+                strokeDasharray={`${progress} ${1 - progress}`}
+                strokeWidth={3}
+                transform={`rotate(-90 ${circleCenter} ${circleCenter})`}
+            />
         </svg>
     );
 }
 
-export function updateDonutSegments(steps: readonly HausUpdateStep[]) {
-    return steps.map((step, index) => {
-        const share = 1 / steps.length;
-        const progress = isCompleteUpdateStep(step) ? 1 : clampProgress(step.progress);
-        return {
-            fill: progress * share,
-            id: step.id,
-            offset: index * share,
-            progress,
-        };
-    });
+/**
+ * Names the step a run is working on and its place in the run, such as
+ * "Updating Computer · Home (2 of 3)", with the run's cumulative fill.
+ */
+export function updateDonutStatus(
+    view: HausUpdateView,
+    sequence: HausUpdateSequence | null
+): HausUpdateDonutStatus {
+    const run = hausUpdateRunProgress(view, sequence);
+    const count =
+        run.position !== null && run.steps.length > 1
+            ? ` (${run.position} of ${sequence?.stepIds.length ?? run.steps.length})`
+            : '';
+    return {
+        label: run.activeStep ? `Updating ${run.activeStep.label}${count}` : 'Updating Haus',
+        progress: run.fraction,
+        runKey: sequence ? `run:${sequence.stepIds.join(',')}` : 'live',
+    };
 }
 
-function clampProgress(progress: number | null) {
-    return progress === null ? 0 : Math.min(1, Math.max(0, progress));
+function useRunPeak(runKey: string, progress: number) {
+    const [peak, setPeak] = React.useState<HausUpdatePeak>({ key: runKey, value: progress });
+    const next = holdPeak(peak, runKey, progress);
+    // Adjusting state during render keeps a lower reading from ever painting.
+    if (next.key !== peak.key || next.value !== peak.value) {
+        setPeak(next);
+    }
+    return next.value;
 }

@@ -1,211 +1,227 @@
 import { describe, expect, test } from 'bun:test';
-import type {
-    ComputerUpdateStep,
-    DesktopUpdateStep,
-    HausUpdateStep,
-    HausUpdateView,
-} from './haus-update-model.ts';
-import { createHausUpdateController, runHausUpdateSequence } from './haus-update-reconciler.ts';
+import {
+    createHausUpdateController,
+    type HausUpdateSequence,
+    runHausUpdateSequence,
+} from './haus-update-reconciler.ts';
+import { computer, desktop, operations, replaceStep, view } from './reconciler-test-fixtures.ts';
 
 describe('Haus update reconciler', () => {
-    test('starts every Computer and the App before waiting for any one surface', async () => {
+    test('downloads the App, then updates each Computer, and never restarts the App', async () => {
         let state = view([
             computer('alpha', 'available'),
             computer('beta', 'available'),
             desktop('available'),
         ]);
         const calls: string[] = [];
+        const sequences: HausUpdateSequence[] = [];
+        const result = await runHausUpdateSequence(
+            operations(() => state, {
+                downloadDesktop: async () => {
+                    calls.push('download:desktop');
+                    state = replaceStep(state, desktop('downloading'));
+                },
+                onSequence: (sequence) => sequences.push(sequence),
+                updateComputer: async ({ computerId }) => {
+                    calls.push(`start:${computerId}`);
+                    state = replaceStep(state, computer(computerId, 'downloading'));
+                },
+                waitForChange: async (step) => {
+                    calls.push(`wait:${step.id}`);
+                    state = replaceStep(
+                        state,
+                        step.kind === 'desktop-app'
+                            ? desktop('restart-required')
+                            : computer(step.id, 'current')
+                    );
+                },
+            })
+        );
 
-        const result = await runHausUpdateSequence({
-            downloadDesktop: async () => {
-                calls.push('start:desktop');
-                state = replaceStep(state, desktop('downloading'));
-            },
-            readView: () => state,
-            restartDesktop: async () => undefined,
-            updateComputer: async ({ computerId }) => {
-                calls.push(`start:${computerId}`);
-                state = replaceStep(state, computer(computerId, 'downloading'));
-            },
-            waitForChange: async (step) => {
-                calls.push(`wait:${step.id}`);
-                state = replaceStep(
-                    state,
-                    step.kind === 'computer'
-                        ? computer(step.id, 'current')
-                        : desktop('restart-required')
-                );
-            },
-        });
-
-        expect(result).toEqual({ kind: 'restart-required', targetVersion: '1.8.40' });
-        expect(calls.slice(0, 3)).toEqual(['start:alpha', 'start:beta', 'start:desktop']);
-        expect(calls).toContain('wait:alpha');
-        expect(calls).toContain('wait:beta');
-        expect(calls).toContain('wait:desktop-app');
+        expect(result).toEqual({ appReady: true, kind: 'complete' });
+        expect(calls).toEqual([
+            'download:desktop',
+            'wait:desktop-app',
+            'start:alpha',
+            'wait:alpha',
+            'start:beta',
+            'wait:beta',
+        ]);
+        expect(sequences.map((sequence) => sequence.activeStepId)).toEqual([
+            'desktop-app',
+            'alpha',
+            'beta',
+            null,
+        ]);
+        expect(sequences[0]?.stepIds).toEqual(['desktop-app', 'alpha', 'beta']);
     });
 
-    test('restarts a ready App before retrying a settled Computer failure', async () => {
+    test('updates Computers alone when the App was already downloaded', async () => {
+        let state = view([computer('alpha', 'available'), desktop('restart-required')]);
         const calls: string[] = [];
-        const result = await runHausUpdateSequence({
-            downloadDesktop: async () => {
-                calls.push('download');
-            },
-            readView: () => view([computer('alpha', 'failed'), desktop('restart-required')]),
-            restartDesktop: async () => {
-                calls.push('restart');
-            },
-            updateComputer: async () => {
-                calls.push('computer');
-            },
-            waitForChange: async () => {
-                calls.push('wait');
-            },
-        });
+        const sequences: HausUpdateSequence[] = [];
+        const result = await runHausUpdateSequence(
+            operations(() => state, {
+                downloadDesktop: async () => {
+                    calls.push('download');
+                },
+                onSequence: (sequence) => sequences.push(sequence),
+                updateComputer: async ({ computerId }) => {
+                    calls.push(`start:${computerId}`);
+                    state = replaceStep(state, computer(computerId, 'current'));
+                },
+            })
+        );
 
-        expect(result).toEqual({ kind: 'restarting', targetVersion: '1.8.40' });
-        expect(calls).toEqual(['restart']);
+        expect(result).toEqual({ appReady: true, kind: 'complete' });
+        expect(calls).toEqual(['start:alpha']);
+        expect(sequences[0]?.stepIds).toEqual(['alpha']);
     });
 
-    test('keeps an App restart failure attached to the App surface', async () => {
-        const result = await runHausUpdateSequence({
-            downloadDesktop: async () => undefined,
-            readView: () => view([desktop('restart-required')]),
-            restartDesktop: async () => {
-                throw new Error('Haus App could not restart.');
-            },
-            updateComputer: async () => undefined,
-            waitForChange: async () => undefined,
-        });
+    test('reports no ready App when only Computers updated', async () => {
+        let state = view([computer('alpha', 'available'), computer('beta', 'available')]);
+        const result = await runHausUpdateSequence(
+            operations(() => state, {
+                updateComputer: async ({ computerId }) => {
+                    state = replaceStep(state, computer(computerId, 'current'));
+                },
+            })
+        );
 
+        expect(result).toEqual({ appReady: false, kind: 'complete' });
+    });
+
+    test('continues to the Computers when the App download fails', async () => {
+        let state = view([computer('alpha', 'available'), desktop('available')]);
+        const calls: string[] = [];
+        const result = await runHausUpdateSequence(
+            operations(() => state, {
+                downloadDesktop: async () => {
+                    state = replaceStep(state, { ...desktop('failed'), detail: 'Disk full.' });
+                },
+                updateComputer: async ({ computerId }) => {
+                    calls.push(computerId);
+                    state = replaceStep(state, computer(computerId, 'current'));
+                },
+            })
+        );
+
+        expect(calls).toEqual(['alpha']);
         expect(result).toEqual({
-            failures: [{ detail: 'Haus App could not restart.', stepId: 'desktop-app' }],
+            appReady: false,
+            failures: [{ detail: 'Disk full.', stepId: 'desktop-app' }],
             kind: 'failed',
         });
     });
 
-    test('isolates a failed Computer while the other Computer completes', async () => {
+    test('records a thrown App download and still updates the Computers', async () => {
+        let state = view([computer('alpha', 'available'), desktop('available')]);
+        const calls: string[] = [];
+        const result = await runHausUpdateSequence(
+            operations(() => state, {
+                downloadDesktop: async () => {
+                    throw new Error('Network lost.');
+                },
+                updateComputer: async ({ computerId }) => {
+                    calls.push(computerId);
+                    state = replaceStep(state, computer(computerId, 'current'));
+                },
+            })
+        );
+
+        expect(calls).toEqual(['alpha']);
+        expect(result).toEqual({
+            appReady: false,
+            failures: [{ detail: 'Network lost.', stepId: 'desktop-app' }],
+            kind: 'failed',
+        });
+    });
+
+    test('isolates a failed Computer and continues to the next', async () => {
         let state = view([computer('alpha', 'available'), computer('beta', 'available')]);
         const calls: string[] = [];
-        const result = await runHausUpdateSequence({
-            downloadDesktop: async () => undefined,
-            readView: () => state,
-            restartDesktop: async () => undefined,
-            updateComputer: async ({ computerId }) => {
-                calls.push(computerId);
-                if (computerId === 'alpha') {
-                    state = replaceStep(state, computer('alpha', 'failed', 'Signature failed.'));
-                    throw new Error('Signature failed.');
-                }
-                state = replaceStep(state, computer('beta', 'downloading'));
-            },
-            waitForChange: async (step) => {
-                state = replaceStep(state, computer(step.id, 'current'));
-            },
-        });
+        const result = await runHausUpdateSequence(
+            operations(() => state, {
+                updateComputer: async ({ computerId }) => {
+                    calls.push(computerId);
+                    if (computerId === 'alpha') {
+                        state = replaceStep(
+                            state,
+                            computer('alpha', 'failed', 'Signature failed.')
+                        );
+                        throw new Error('Signature failed.');
+                    }
+                    state = replaceStep(state, computer('beta', 'current'));
+                },
+            })
+        );
 
         expect(calls).toEqual(['alpha', 'beta']);
-        expect(state.steps.find((step) => step.id === 'beta')?.phase).toBe('current');
         expect(result).toEqual({
+            appReady: false,
             failures: [{ detail: 'Signature failed.', stepId: 'alpha' }],
             kind: 'failed',
         });
     });
 
-    test('retries failed surfaces while starting other safe pending work', async () => {
-        let state = view([computer('alpha', 'failed'), desktop('available')]);
+    test('skips current and offline Computers and observes one already updating', async () => {
+        let state = view([
+            computer('alpha', 'current'),
+            computer('beta', 'downloading'),
+            computer('gamma', 'available', null, false),
+            computer('delta', 'available'),
+        ]);
         const starts: string[] = [];
-        const result = await runHausUpdateSequence({
-            downloadDesktop: async () => {
-                starts.push('desktop');
-                state = replaceStep(state, desktop('restart-required'));
-            },
-            readView: () => state,
-            restartDesktop: async () => undefined,
-            updateComputer: async ({ computerId }) => {
-                starts.push(computerId);
-                state = replaceStep(state, computer(computerId, 'current'));
-            },
-            waitForChange: async () => undefined,
-        });
+        const waits: string[] = [];
+        const result = await runHausUpdateSequence(
+            operations(() => state, {
+                updateComputer: async ({ computerId }) => {
+                    starts.push(computerId);
+                    state = replaceStep(state, computer(computerId, 'downloading'));
+                },
+                waitForChange: async (step) => {
+                    waits.push(step.id);
+                    state = replaceStep(state, computer(step.id, 'current'));
+                },
+            })
+        );
 
-        expect(starts).toEqual(['alpha', 'desktop']);
-        expect(result).toEqual({ kind: 'restart-required', targetVersion: '1.8.40' });
-    });
-
-    test('observes an already active update without submitting it again', async () => {
-        let state = view([computer('alpha', 'downloading')]);
-        let submissions = 0;
-        const result = await runHausUpdateSequence({
-            downloadDesktop: async () => undefined,
-            readView: () => state,
-            restartDesktop: async () => undefined,
-            updateComputer: async () => {
-                submissions += 1;
-            },
-            waitForChange: async () => {
-                state = view([computer('alpha', 'current')]);
-            },
-        });
-
-        expect(submissions).toBe(0);
-        expect(result).toEqual({ kind: 'complete' });
-    });
-
-    test('does not retry an unreachable Computer while starting reachable work', async () => {
-        let state = view([computer('alpha', 'failed', null, false), desktop('available')]);
-        const starts: string[] = [];
-        const result = await runHausUpdateSequence({
-            downloadDesktop: async () => {
-                starts.push('desktop');
-                state = replaceStep(state, desktop('restart-required'));
-            },
-            readView: () => state,
-            restartDesktop: async () => undefined,
-            updateComputer: async () => {
-                starts.push('computer');
-            },
-            waitForChange: async () => undefined,
-        });
-
-        expect(starts).toEqual(['desktop']);
-        expect(result).toEqual({ kind: 'restart-required', targetVersion: '1.8.40' });
+        expect(result).toEqual({ appReady: false, kind: 'complete' });
+        expect(starts).toEqual(['delta']);
+        expect(waits).toEqual(['beta', 'delta']);
     });
 
     test('settles a Computer that disconnects mid-run without a retryable failure', async () => {
         let state = view([computer('alpha', 'available')]);
-        const result = await runHausUpdateSequence({
-            downloadDesktop: async () => undefined,
-            readView: () => state,
-            restartDesktop: async () => undefined,
-            updateComputer: async () => {
-                state = view([computer('alpha', 'downloading')]);
-            },
-            waitForChange: async () => {
-                state = view([computer('alpha', 'failed', 'Disconnected.', false)]);
-            },
-        });
+        const result = await runHausUpdateSequence(
+            operations(() => state, {
+                updateComputer: async () => {
+                    state = view([computer('alpha', 'downloading')]);
+                },
+                waitForChange: async () => {
+                    state = view([computer('alpha', 'failed', 'Disconnected.', false)]);
+                },
+            })
+        );
 
-        expect(result).toEqual({ kind: 'complete' });
+        expect(result).toEqual({ appReady: false, kind: 'complete' });
     });
 
-    test('coalesces concurrent controller runs into one operation batch', async () => {
+    test('coalesces concurrent controller runs into one run', async () => {
         let releaseDownload: () => void = () => undefined;
         let downloads = 0;
         let state = view([desktop('available')]);
-        const controller = createHausUpdateController({
-            downloadDesktop: async () => {
-                downloads += 1;
-                await new Promise<void>((resolve) => {
-                    releaseDownload = resolve;
-                });
-                state = view([desktop('restart-required')]);
-            },
-            readView: () => state,
-            restartDesktop: async () => undefined,
-            updateComputer: async () => undefined,
-            waitForChange: async () => undefined,
-        });
+        const controller = createHausUpdateController(
+            operations(() => state, {
+                downloadDesktop: async () => {
+                    downloads += 1;
+                    await new Promise<void>((resolve) => {
+                        releaseDownload = resolve;
+                    });
+                    state = view([desktop('restart-required')]);
+                },
+            })
+        );
 
         const first = controller.run();
         const second = controller.run();
@@ -214,58 +230,6 @@ describe('Haus update reconciler', () => {
         expect(second).toBe(first);
 
         releaseDownload();
-        await expect(first).resolves.toEqual({
-            kind: 'restart-required',
-            targetVersion: '1.8.40',
-        });
+        await expect(first).resolves.toEqual({ appReady: true, kind: 'complete' });
     });
 });
-
-function computer(
-    id: string,
-    phase: ComputerUpdateStep['phase'],
-    detail: string | null = null,
-    connected = true
-): ComputerUpdateStep {
-    return {
-        connected,
-        currentVersion: phase === 'current' ? '1.4.9' : '1.4.8',
-        detail,
-        failedPhase: phase === 'failed' ? 'verifying' : null,
-        id,
-        kind: 'computer',
-        label: id,
-        phase,
-        progress: null,
-        targetVersion: '1.4.9',
-    };
-}
-
-function desktop(phase: DesktopUpdateStep['phase']): DesktopUpdateStep {
-    return {
-        currentVersion: phase === 'current' ? '1.8.40' : '1.8.39',
-        detail: null,
-        id: 'desktop-app',
-        kind: 'desktop-app',
-        label: 'Haus App',
-        phase,
-        progress: null,
-        targetVersion: '1.8.40',
-    };
-}
-
-function replaceStep(current: HausUpdateView, step: HausUpdateStep) {
-    return view(current.steps.map((candidate) => (candidate.id === step.id ? step : candidate)));
-}
-
-function view(steps: HausUpdateStep[]): HausUpdateView {
-    return {
-        componentFacts: [],
-        detail: '',
-        headline: '',
-        phase: steps.every((step) => step.phase === 'current') ? 'current' : 'available',
-        primaryAction: null,
-        steps,
-        version: '1.9.0',
-    };
-}

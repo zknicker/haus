@@ -124,6 +124,50 @@ test('update progress ages on the Server clock, not a Computer clock running beh
     socket.close();
 });
 
+test('a Computer reconnecting with the same update snapshot keeps aging toward the stall bound', async () => {
+    const restarting = {
+        detail: 'Restarting Haus Computer.',
+        phase: 'restarting',
+        targetVersion: '4.3.0',
+        updatedAt: new Date().toISOString(),
+    };
+    await connectAndClose(restarting);
+    await harness.sql`
+        update computers set update_updated_at = now() - interval '3 minutes'
+        where id = ${computerId}
+    `;
+    const aged = await storedUpdateUpdatedAt();
+
+    await connectAndClose(restarting);
+    expect(await storedUpdateUpdatedAt()).toEqual(aged);
+
+    await connectAndClose({ ...restarting, detail: 'Haus Computer updated.', phase: 'complete' });
+    expect(Date.now() - (await storedUpdateUpdatedAt()).getTime()).toBeLessThan(60_000);
+    await harness.sql`
+        update computers set update_phase = 'idle', update_updated_at = null
+        where id = ${computerId}
+    `;
+});
+
+async function connectAndClose(update: Parameters<typeof bootstrap>[0]) {
+    const socket = new WebSocket(computerSocketUrl());
+    await opened(socket);
+    const accepted = message(socket);
+    socket.send(bootstrap(update));
+    expect(await accepted).toEqual({ mode: 'ordinary', type: 'bootstrap-accepted' });
+    socket.close();
+}
+
+async function storedUpdateUpdatedAt() {
+    const [row] = (await harness.sql`
+        select update_updated_at from computers where id = ${computerId}
+    `) as { update_updated_at: Date }[];
+    if (!row?.update_updated_at) {
+        throw new Error('Computer update timestamp missing');
+    }
+    return new Date(row.update_updated_at);
+}
+
 async function expectUpdateRejected() {
     await expect(owner.trpc.computer.checkUpdate.mutate({ computerId, serverId })).rejects.toThrow(
         'Reconnect this Computer'

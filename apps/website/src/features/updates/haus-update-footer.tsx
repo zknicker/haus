@@ -6,17 +6,15 @@ import {
     ReloadIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence } from 'motion/react';
-import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { HausStatusEntrance } from './haus-status-entrance.tsx';
 import {
     OfflineComputersTooltipContent,
     UpdateTooltipContent,
 } from './haus-status-tooltip-content.tsx';
-import { HausUpdateDonut } from './haus-update-donut.tsx';
+import { HausUpdateDonut, updateDonutStatus } from './haus-update-donut.tsx';
 import type { HausUpdateView } from './haus-update-model.ts';
-import { isActiveUpdateStep } from './haus-update-model.ts';
-import { selectHausUpdateBatch } from './haus-update-reconciler.ts';
+import type { HausUpdateSequence } from './haus-update-reconciler.ts';
 import type { OfflineComputerNotice } from './use-offline-computers.ts';
 
 export function HausUpdateFooter({
@@ -24,12 +22,14 @@ export function HausUpdateFooter({
     offlineComputers = [],
     onAction,
     onOpenComputer,
+    sequence = null,
     view,
 }: {
     isRunning?: boolean;
     offlineComputers?: readonly OfflineComputerNotice[];
     onAction?: (action: NonNullable<HausUpdateView['primaryAction']>) => void;
     onOpenComputer?: (computerId: string) => void;
+    sequence?: HausUpdateSequence | null;
     view: HausUpdateView;
 }) {
     const showUpdate = view.phase !== 'current';
@@ -50,6 +50,7 @@ export function HausUpdateFooter({
                                 <UpdateTooltipButton
                                     isRunning={isRunning}
                                     onAction={onAction}
+                                    sequence={sequence}
                                     view={view}
                                 />
                             </HausStatusEntrance>
@@ -72,39 +73,33 @@ export function HausUpdateFooter({
 function UpdateTooltipButton({
     isRunning,
     onAction,
+    sequence,
     view,
 }: {
     isRunning: boolean;
     onAction?: (action: NonNullable<HausUpdateView['primaryAction']>) => void;
+    sequence: HausUpdateSequence | null;
     view: HausUpdateView;
 }) {
     const inactive = isRunning || view.phase === 'updating';
-    const [batchStepIds, setBatchStepIds] = React.useState<readonly string[] | null>(null);
-    if (!inactive && batchStepIds !== null) {
-        // The pressed batch settled; later progress draws from live steps only.
-        setBatchStepIds(null);
-    }
-    const progressSteps = donutSteps(view.steps, batchStepIds);
+    const status = inactive ? updateDonutStatus(view, sequence) : null;
     return (
         <Tooltip closeDelay={0} delay={0}>
             <Tooltip.Trigger role="presentation" tabIndex={-1}>
                 <Button
-                    aria-label={buttonLabel(view)}
+                    aria-label={status ? status.label : buttonLabel(view)}
                     className="haus-update-button"
                     isIconOnly
                     isPending={inactive}
                     onPress={() => {
                         if (!inactive && view.primaryAction) {
-                            setBatchStepIds(
-                                selectHausUpdateBatch(view.steps).map((step) => step.id)
-                            );
                             onAction?.(view.primaryAction);
                         }
                     }}
                     size="sm"
                     variant={view.phase === 'failed' ? 'danger-soft' : 'primary'}
                 >
-                    <FooterMark progressSteps={progressSteps} view={view} />
+                    {status ? <HausUpdateDonut status={status} /> : <FooterMark view={view} />}
                 </Button>
             </Tooltip.Trigger>
             <Tooltip.Content
@@ -112,7 +107,7 @@ function UpdateTooltipButton({
                 offset={10}
                 placement="top start"
             >
-                <UpdateTooltipContent view={view} />
+                <UpdateTooltipContent sequence={sequence} title={status?.label} view={view} />
             </Tooltip.Content>
         </Tooltip>
     );
@@ -156,16 +151,8 @@ function OfflineComputersButton({
     );
 }
 
-function FooterMark({
-    progressSteps,
-    view,
-}: {
-    progressSteps: HausUpdateView['steps'];
-    view: HausUpdateView;
-}) {
+function FooterMark({ view }: { view: HausUpdateView }) {
     switch (view.phase) {
-        case 'updating':
-            return <HausUpdateDonut steps={progressSteps} />;
         case 'available':
             return <Icon aria-hidden="true" icon={Download04Icon} />;
         case 'restart-required':
@@ -173,19 +160,10 @@ function FooterMark({
             return <Icon aria-hidden="true" icon={ReloadIcon} />;
         case 'failed':
             return <Icon aria-hidden="true" icon={Alert01Icon} />;
+        case 'updating':
         case 'current':
             return null;
     }
-}
-
-/** Donut segments: the pressed batch while it runs, otherwise the live active steps. */
-export function donutSteps(
-    steps: HausUpdateView['steps'],
-    batchStepIds: readonly string[] | null
-): HausUpdateView['steps'] {
-    return batchStepIds === null
-        ? steps.filter(isActiveUpdateStep)
-        : steps.filter((step) => batchStepIds.includes(step.id));
 }
 
 function buttonLabel(view: HausUpdateView) {
@@ -195,7 +173,7 @@ function buttonLabel(view: HausUpdateView) {
         case 'available':
             return `Update Haus to ${view.version}`;
         case 'updating':
-            return `Updating Haus. ${view.detail}`;
+            return 'Updating Haus';
         case 'restart-required':
             return 'Restart Haus to finish updating';
         case 'reload-required':

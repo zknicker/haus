@@ -27,15 +27,28 @@ Computer stays out of the tooltip. Every Computer row includes its user-facing n
 diagnostics, not update targets. Version drift, live progress, and failures remain attached to
 their own rows. A failure includes the safe reported detail and one concrete recovery suggestion.
 The compact button represents the next useful action: download, live progress, App restart, or
-retry. During an update it stays visually solid but ignores presses. Its donut divides the circle
-equally among the updates in the active batch, and each segment fills with that component's
-reported progress.
+retry. Work Haus can still do comes before a downloaded App's restart, so a ready App waits behind
+an available Computer update. During an update the button stays visually solid but ignores presses.
+Its donut is one circle that fills once over the whole run: each step owns an equal slice, filled
+in run order. The active step fills its slice by App download bytes, or by fixed marks for each
+Computer phase (download bytes in between), and the circle never moves backward during a run.
+Without a run, such as an update started from Settings, the live active steps share the circle the
+same way. The label names the step and its place in the run, such as **Updating Computer · Home (2
+of 3)**. The tooltip marks earlier steps done and later steps waiting, and names a phase that
+reports no progress in plain words, such as **Waiting for Agents to finish on Home** or
+**Restarting Home**.
 
-One click starts every eligible Computer update and the App download concurrently. Each surface
-settles independently, so one Computer failure never cancels successful work elsewhere. An App
-restart takes precedence once downloads have settled; after restart, any remaining Computer
-failure or newly reconnected Computer becomes a fresh update opportunity. A Computer that
-reconnects during an active batch never joins that batch.
+One click runs one step at a time: the App download first, when the desktop App has an update,
+then each reachable Computer in tooltip order. A Computer already current is skipped, one already
+updating is observed rather than started again, and one that is offline is left for later. A
+failed App download or Computer update never stops the next step; failures surface when the run
+ends. A Computer that reconnects during a run never joins it. While a run is active, the
+per-Computer Update button in Settings is disabled so the two never race.
+
+The App never restarts on its own. When a run the operator started ends with the App update
+downloaded, including one downloaded before the click, Haus asks **Update ready** with **Restart
+now** or **Later**. Later leaves the restart button in the sidebar, and clicking it restarts at
+once without asking again. Without an App update there is no prompt.
 
 Computer connectivity is separate product attention. Owners and Admins see a yellow sidebar
 button after a ten-second offline delay. Its tooltip lists each offline Computer and its last
@@ -49,11 +62,14 @@ continue. Reconnection replaces the last reported phase with the Computer's inst
 actual update result. Server requires a live Computer attachment before checking or starting an
 update, so a retained old version alone never starts one. A requested update or check that the
 Computer has not advanced within two minutes is reported as failed, so the updater never shows an
-update in progress indefinitely. The App applies the same bound to any update phase on a connected
-Computer: two minutes without a progress report turns it into a failure with a retry. A Computer
+update in progress indefinitely. The App, in both the sidebar and Computer Settings, applies the same bound to any update phase on
+a connected Computer that has not reached its target version: two minutes without a progress
+report turns it into a failure with a retry. A Computer
 that keeps reporting an unchanged phase, such as waiting for a long Agent turn, is never failed
 while it reports. Server stamps each progress report with its own receive time, so a Computer
-clock running behind never makes a live update read as stalled. The App
+clock running behind never makes a live update read as stalled. A reconnect that repeats the stored
+update snapshot keeps the earlier time, so a Computer reconnecting in a loop still reaches the
+bound. The App
 update is offered only when the native updater reports one; a newer release alone is not enough.
 
 The hosted website contributes a reload opportunity to the same updater. Its build marker ships

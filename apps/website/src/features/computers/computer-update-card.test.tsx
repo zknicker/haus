@@ -14,6 +14,7 @@ const computer = {
     updatePhase: 'idle',
     updateTargetVersion: null,
     updateTotalBytes: null,
+    updateUpdatedAt: new Date().toISOString(),
 } as ComputerUpdateComputer;
 
 test('keeps Software Update copy stable after a failed check', () => {
@@ -74,6 +75,31 @@ test('an offline update stops showing endless progress after its connection wind
     expect(html).not.toContain('progress-bar');
 });
 
+test('a connected Computer that stops reporting no longer shows endless progress', () => {
+    const html = renderUpdateCard({
+        ...computer,
+        updatePhase: 'restarting',
+        updateTargetVersion: '1.5.0',
+        updateUpdatedAt: '2020-01-01T00:00:00.000Z',
+    });
+
+    expect(html).toContain('This Computer stopped reporting update progress.');
+    expect(html).toContain('Update to v1.5.0');
+    expect(html).not.toContain('progress-bar');
+});
+
+test('a connected Computer already on its target never reads as stalled', () => {
+    const html = renderUpdateCard({
+        ...computer,
+        productVersion: '1.5.0',
+        updatePhase: 'restarting',
+        updateTargetVersion: '1.5.0',
+        updateUpdatedAt: '2020-01-01T00:00:00.000Z',
+    });
+
+    expect(html).not.toContain('stopped reporting');
+});
+
 test('the development preview covers every update phase and both progress modes', () => {
     const previewIds = computerUpdatePreviewStates.map((state) => state.id);
 
@@ -104,6 +130,28 @@ test('the development preview covers every update phase and both progress modes'
         updatePhase: 'downloading',
         updateTotalBytes: null,
     });
+});
+
+test('disables the Update button only while the sidebar run is active', () => {
+    const available = {
+        ...computer,
+        updatePhase: 'available',
+        updateTargetVersion: '1.0.3',
+    } as ComputerUpdateComputer;
+    const render = (isUpdateBlocked: boolean) =>
+        renderToStaticMarkup(
+            <ComputerUpdateCard
+                computer={available}
+                isChecking={false}
+                isStarting={false}
+                isUpdateBlocked={isUpdateBlocked}
+                onCheck={() => undefined}
+                onUpdate={() => undefined}
+            />
+        );
+
+    expect(render(true)).toMatch(/<button[^>]*disabled[^>]*>[^<]*Update/u);
+    expect(render(false)).not.toMatch(/<button[^>]*disabled[^>]*>[^<]*Update/u);
 });
 
 function renderUpdateCard(updateComputer: ComputerUpdateComputer) {

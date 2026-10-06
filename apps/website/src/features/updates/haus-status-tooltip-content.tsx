@@ -2,19 +2,37 @@ import { RelativeTime } from '../../components/time/relative-time.tsx';
 import type { HausUpdateView } from './haus-update-model.ts';
 import { isActiveUpdateStep } from './haus-update-model.ts';
 import { HausUpdateProgress } from './haus-update-progress.tsx';
+import type { HausUpdateSequence } from './haus-update-reconciler.ts';
 import { HausVersionBreakdown } from './haus-version-breakdown.tsx';
 import type { OfflineComputerNotice } from './use-offline-computers.ts';
 
-export function UpdateTooltipContent({ view }: { view: HausUpdateView }) {
+export function UpdateTooltipContent({
+    sequence = null,
+    title,
+    view,
+}: {
+    sequence?: HausUpdateSequence | null;
+    title?: string;
+    view: HausUpdateView;
+}) {
     const activeStepIds = new Set(view.steps.filter(isActiveUpdateStep).map((step) => step.id));
-    const visibleFacts = view.componentFacts.filter(
-        (fact) =>
-            fact.status !== 'current' && fact.status !== 'external' && !activeStepIds.has(fact.id)
-    );
+    const runStatus = runStepStatuses(sequence);
+    const visibleFacts = view.componentFacts
+        .map((fact) => {
+            const status = runStatus.get(fact.id);
+            // A finished step keeps its failure; anything else it reached is done.
+            return status && fact.status !== 'failed' ? { ...fact, status } : fact;
+        })
+        .filter(
+            (fact) =>
+                fact.status !== 'current' &&
+                fact.status !== 'external' &&
+                !activeStepIds.has(fact.id)
+        );
     const hasSurfaceFailure = visibleFacts.some((fact) => fact.status === 'failed');
     return (
         <div className="grid gap-2.5">
-            <p className="text-foreground text-sm">{tooltipTitle(view)}</p>
+            <p className="text-foreground text-sm">{title ?? tooltipTitle(view)}</p>
             <HausUpdateProgress steps={view.steps} />
             {visibleFacts.length > 0 ? <HausVersionBreakdown facts={visibleFacts} /> : null}
             {view.phase === 'failed' && !hasSurfaceFailure ? (
@@ -52,6 +70,24 @@ export function OfflineComputersTooltipContent({
             </dl>
         </div>
     );
+}
+
+/** Run steps before the active one are done; steps after it are waiting. */
+function runStepStatuses(sequence: HausUpdateSequence | null) {
+    const statuses = new Map<string, 'done' | 'waiting'>();
+    if (!sequence) {
+        return statuses;
+    }
+    const activeIndex =
+        sequence.activeStepId === null
+            ? sequence.stepIds.length
+            : sequence.stepIds.indexOf(sequence.activeStepId);
+    sequence.stepIds.forEach((id, index) => {
+        if (index !== activeIndex) {
+            statuses.set(id, index < activeIndex ? 'done' : 'waiting');
+        }
+    });
+    return statuses;
 }
 
 function tooltipTitle(view: HausUpdateView) {

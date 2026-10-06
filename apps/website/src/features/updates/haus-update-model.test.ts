@@ -229,6 +229,16 @@ describe('Haus update projection', () => {
         });
     });
 
+    test('offers Computer work before a downloaded App restart', () => {
+        const view = projectHausUpdate({
+            ...currentInput,
+            computers: [computer({ phase: 'available' })],
+            desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'ready' },
+        });
+
+        expect(view).toMatchObject({ phase: 'available', primaryAction: { kind: 'start' } });
+    });
+
     test('gives the web Computer actions without a desktop step', () => {
         const view = projectHausUpdate({ ...currentInput, desktop: { kind: 'web' } });
 

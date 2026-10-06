@@ -87,6 +87,8 @@ export function previewComputerUpdate(
         updatePhase: phase,
         updateTargetVersion: phase === 'idle' ? null : '1.5.0',
         updateTotalBytes: state === 'downloading' ? 100 : null,
+        // A preview phase is freshly reported, never stalled.
+        updateUpdatedAt: new Date().toISOString(),
     };
 }
 

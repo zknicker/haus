@@ -18,6 +18,7 @@ import type { HausUser } from '../users/haus-user.ts';
 import { presentComputer } from './computer-presence.ts';
 import type { ComputerConnections } from './connections.ts';
 import type { ComputerHandshake } from './contracts.ts';
+import { handshakeUpdateColumns } from './handshake-update.ts';
 
 export class ComputerSetupDeniedError extends Error {
     readonly code?: 'computer_machine_unlinked';
@@ -73,14 +74,7 @@ export async function reportComputerHandshake(
                 connectionGeneration,
                 health: compatible ? handshake.health : 'update-required',
                 lastConnectedAt: connectedAt,
-                updateDetail: update.detail,
-                updateDownloadedBytes: update.downloadedBytes,
-                updateFailedPhase: update.failedPhase,
-                updatePhase: update.phase,
-                updateActiveAgentCount: update.activeAgentCount,
-                updateTargetVersion: update.targetVersion,
-                updateTotalBytes: update.totalBytes,
-                updateUpdatedAt: connectedAt,
+                ...(await handshakeUpdateColumns(tx, computer.id, update, connectedAt)),
             })
             .where(eq(computersTable.id, computer.id));
         await tx.insert(computerSystemEventsTable).values({
