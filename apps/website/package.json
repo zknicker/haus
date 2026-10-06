@@ -79,7 +79,7 @@
     "prosemirror-keymap": "1.2.3",
     "prosemirror-model": "1.25.7",
     "prosemirror-state": "1.4.4",
-    "prosemirror-view": "1.41.8",
+    "prosemirror-view": "1.42.3",
     "react": "19.2.3",
     "react-aria": "3.52.1",
     "react-aria-components": "1.21.1",
