@@ -36,6 +36,9 @@ schedule, so it fires even while the Agent's Computer is offline.
   `daily@HH:MM`, and `weekly:days@HH:MM` in the Agent's home timezone. After
   downtime the Server fires once and advances from now, never bursts missed
   slots.
+- **Retries never duplicate.** Every schedule and change carries an idempotency
+  key; a retried request returns the original reminder, and reusing the key for
+  different input is refused ([Agents API](../api/agents.md#reminder-routes)).
 - **Durable history.** PostgreSQL stores schedules, commands, fire logs, message
   provenance, pending attention, and durable reminder change events. Every fire
   is recorded, answered or not, so the run history is where "did it fire?" is

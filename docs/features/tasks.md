@@ -220,7 +220,8 @@ An unassigned task remains `todo` until an Agent deliberately claims it.
 An Agent-created peer assignment follows the task Thread for the assignee and enters the same
 durable delivery path as direct attention. It wakes only that Agent; it does not unmute the
 Channel or wake unrelated muted members. Task creation carries an idempotency nonce so retries
-cannot create duplicate task messages.
+cannot create duplicate task messages: a retry replays the original tasks, and reusing the nonce
+for a different request is refused ([Agents API](../api/agents.md#task-routes)).
 
 ## Coordination handoffs
 
