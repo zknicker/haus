@@ -41,10 +41,15 @@ import {
 } from './harness/thought-narrator.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
+import {
+    fakeRuntimeOutcome,
+    runnerMintFailureReport,
+    runtimeNotInstalledReport,
+} from './launch-failure-turns.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
-import type { RuntimeFailureKind } from './runtime-failure.ts';
+import type { RuntimeFailureFields } from './runtime-failure.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
 import { parseStartAgentFacts } from './start-command-facts.ts';
 import {
@@ -123,26 +128,15 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
 
     const runtimeExecutable = resolveRuntimeById(command.runtimeId);
     if (command.runtimeId !== 'fake' && !runtimeExecutable && !options.harnessAgentFactory) {
-        return reportTurn(options, {
-            failureKind: 'configuration',
-            messageCount: 0,
-            startedAt,
-            status: 'failed',
-            summary: `Runtime "${command.runtimeId}" is not installed.`,
-        });
+        return reportTurn(options, runtimeNotInstalledReport(command.runtimeId, startedAt));
     }
 
     let runner: { runnerId: string; runnerToken: string };
     try {
         runner = await mintRunner(options);
     } catch (error) {
-        return reportTurn(options, {
-            failureKind: 'transport',
-            messageCount: 0,
-            startedAt,
-            status: 'failed',
-            summary: `Runner authority mint failed: ${messageOf(error)}`,
-        });
+        await writeTrace({ command, dirs }, `Runner authority mint failed: ${messageOf(error)}\n`);
+        return reportTurn(options, runnerMintFailureReport(error, startedAt));
     }
 
     const host = acquireAgentLaunchHost({
@@ -198,8 +192,8 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
         await options.onRuntimeReady?.();
         result =
             command.runtimeId === 'fake'
-                ? {
-                      status: await runFakeRuntime({
+                ? fakeRuntimeOutcome(
+                      await runFakeRuntime({
                           activity,
                           agentEnv,
                           command,
@@ -208,8 +202,8 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                           runtime: options.runtime,
                           serverId: options.attachment.serverId,
                           signal: options.signal,
-                      }),
-                  }
+                      })
+                  )
                 : await runRealRuntime({
                       attestVisible: visibilityReceipt(options.serverOrigin, runner.runnerToken),
                       turnTimings: options.turnTimings,
@@ -457,10 +451,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function reportTurn(
     options: RunAgentLaunchOptions,
-    input: {
+    input: Partial<RuntimeFailureFields> & {
         activity?: AgentTurnActivitySummary;
         messageCount: number;
-        failureKind?: RuntimeFailureKind;
         startedAt: string;
         status: 'completed' | 'failed' | 'interrupted';
         summary: string;
@@ -473,6 +466,8 @@ function reportTurn(
         agentId: options.command.agentId,
         endedAt: new Date().toISOString(),
         ...(input.failureKind ? { failureKind: input.failureKind } : {}),
+        ...(input.failureCode ? { failureCode: input.failureCode } : {}),
+        ...(input.failureFingerprint ? { failureFingerprint: input.failureFingerprint } : {}),
         messageCount: input.messageCount,
         modelId: options.command.modelId,
         outputProduced: input.messageCount > 0,

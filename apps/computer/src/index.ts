@@ -103,7 +103,7 @@ import {
     resetAgentState,
     runAgentLaunch,
 } from './launch.ts';
-import { launchCrashTurn } from './launch-crash-turn.ts';
+import { tracedCrashTurn } from './launch-crash-turn.ts';
 import {
     computerServiceLabel,
     replaceLaunchdService,
@@ -1594,7 +1594,7 @@ async function handleStartCommand(input: {
             // A crash after the ack must still report a terminal turn, or the
             // Server's in-flight run never settles. The launch failed before any
             // managed send, so the work is safe to requeue (outputProduced false).
-            summary = launchCrashTurn(command, startedAt, error);
+            summary = await tracedCrashTurn(dataRoot, attachment, command, startedAt, error);
             await settle(summary);
             return;
         }

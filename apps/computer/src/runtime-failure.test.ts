@@ -1,8 +1,13 @@
 import { expect, test } from 'bun:test';
+import { AgentSessionResumeRejectedError } from './harness/resume-rejection.ts';
+import { RuntimeSessionFailureError } from './harness/runtime-session-failure.ts';
+import { HarnessStartupTimeoutError } from './harness/start-gate.ts';
 import {
     classifyRuntimeFailure,
+    classifyRuntimeFailureCause,
     isContextWindowOverflow,
     isRetryableRuntimeFailure,
+    runtimeFailureFields,
 } from './runtime-failure.ts';
 
 test('classifies operator-action failures as terminal', () => {
@@ -88,4 +93,54 @@ test('recognizes a context-window overflow as terminal input', () => {
         expect(classifyRuntimeFailure(new Error(message))).toBe('input');
     }
     expect(isContextWindowOverflow(new Error('HTTP 413'))).toBe(false);
+});
+
+test('names a stable failure code beside every kind', () => {
+    for (const [error, kind, code] of [
+        [new Error('Not logged in. Run codex login.'), 'authentication', 'authentication-required'],
+        [new Error('Unknown model gpt-nope'), 'configuration', 'model-unavailable'],
+        [
+            new Error("Cannot find module '/agent/.harness-bootstrap/codex/bridge.mjs'"),
+            'configuration',
+            'configuration-invalid',
+        ],
+        [new Error('prompt is too long: 201234 tokens'), 'input', 'context-too-large'],
+        [new Error('429 Too Many Requests'), 'rate-limit', 'rate-limited'],
+        [new Error('Request timed out'), 'timeout', 'provider-unavailable'],
+        [new Error('503 Service Unavailable'), 'transport', 'provider-unavailable'],
+        [new Error('Something else failed'), 'unknown', 'provider-error'],
+        [new HarnessStartupTimeoutError(120_000), 'timeout', 'launch-failed'],
+        [new AgentSessionResumeRejectedError('agt_1'), 'session-resume', 'session-resume-rejected'],
+        [
+            new RuntimeSessionFailureError({ category: 'access', severity: 'error', title: 'x' }),
+            'authentication',
+            'authentication-required',
+        ],
+    ] as const) {
+        expect(classifyRuntimeFailureCause(error)).toEqual({ code, kind });
+    }
+});
+
+test('names a failed compaction unless a more specific cause explains it', () => {
+    for (const message of [
+        'Auto-compaction failed: summarizer returned nothing',
+        'Error during compaction: Conversation too long',
+        'Error running remote compact task',
+    ]) {
+        expect(classifyRuntimeFailureCause(new Error(message))).toEqual({
+            code: 'compaction-failed',
+            kind: 'input',
+        });
+    }
+    expect(classifyRuntimeFailureCause(new Error('Compaction failed: 401 Unauthorized'))).toEqual({
+        code: 'authentication-required',
+        kind: 'authentication',
+    });
+});
+
+test('failure fields carry a fingerprint only when raw text exists', () => {
+    const fields = runtimeFailureFields(new Error('503 Service Unavailable'));
+    expect(fields).toMatchObject({ failureCode: 'provider-unavailable', failureKind: 'transport' });
+    expect(fields.failureFingerprint).toMatch(/^[0-9a-f]{16}$/u);
+    expect(runtimeFailureFields(undefined).failureFingerprint).toBeUndefined();
 });

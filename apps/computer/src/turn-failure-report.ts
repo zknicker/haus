@@ -3,15 +3,13 @@ import { Effect } from 'effect';
 import type { AgentTurnFrame } from './agent-commands.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { HarnessTurnFailedError, type HarnessTurnResult } from './harness/executor.ts';
-import { AgentSessionResumeRejectedError } from './harness/resume-rejection.ts';
 import {
-    classifyRuntimeFailure,
     isContextWindowOverflow,
-    type RuntimeFailureKind,
+    type RuntimeFailureFields,
+    runtimeFailureFields,
 } from './runtime-failure.ts';
 
-export interface RuntimeTurnOutcome {
-    failureKind?: RuntimeFailureKind;
+export interface RuntimeTurnOutcome extends Partial<RuntimeFailureFields> {
     status: 'completed' | 'failed' | 'interrupted';
     summary?: string;
     tokenUsage?: AgentTurnFrame['tokenUsage'];
@@ -22,6 +20,7 @@ export function settledTurnOutcome(turn: HarnessTurnResult): RuntimeTurnOutcome 
     if (turn.stalled) {
         // Unlike a Stop, a deterministic stall must back off and count toward degrading.
         return {
+            failureCode: 'turn-stalled',
             failureKind: 'timeout',
             status: 'failed',
             summary: 'The Agent turn made no progress and was interrupted (timeout).',
@@ -33,7 +32,7 @@ export function settledTurnOutcome(turn: HarnessTurnResult): RuntimeTurnOutcome 
 
 /**
  * Classifies a failed Harness turn and logs one concise line. Raw provider text stays in the
- * Agent's trace; only the compact kind crosses to the Server.
+ * Agent's trace; only the kind, code, and a hash of the text cross to the Server.
  */
 export async function reportHarnessTurnFailure(
     runtime: DaemonRuntime,
@@ -47,18 +46,20 @@ export async function reportHarnessTurnFailure(
     }
     const turn = { agentId, runId, runtimeId };
     const failure = error instanceof HarnessTurnFailedError ? error.cause : error;
-    const failureKind: RuntimeFailureKind =
-        failure instanceof AgentSessionResumeRejectedError
-            ? 'session-resume'
-            : classifyRuntimeFailure(failure);
+    const fields = runtimeFailureFields(failure);
     await settle(
         runtime,
         Effect.logWarning('Harness turn failed.').pipe(
-            Effect.annotateLogs({ ...turn, event: 'harness-turn-failed', failureKind })
+            Effect.annotateLogs({
+                ...turn,
+                event: 'harness-turn-failed',
+                failureCode: fields.failureCode,
+                failureKind: fields.failureKind,
+            })
         )
     );
     return {
-        failureKind,
+        ...fields,
         status: 'failed',
         summary: isContextWindowOverflow(failure)
             ? "Context window full — reset this agent's session."

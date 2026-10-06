@@ -1,4 +1,4 @@
-import type { AgentTurnActivitySummary } from '@haus/api';
+import type { AgentTurnActivitySummary, AgentTurnFailureCode } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
 
@@ -77,6 +77,9 @@ export interface AgentTurnFrame {
     activity: AgentTurnActivitySummary;
     agentId: string;
     endedAt: string;
+    failureCode?: AgentTurnFailureCode;
+    /** A hash of the normalized raw failure text; the text itself stays on the Computer. */
+    failureFingerprint?: string;
     failureKind?: RuntimeFailureKind;
     messageCount: number;
     modelId: string;

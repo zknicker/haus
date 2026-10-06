@@ -36,6 +36,7 @@ function rejectedAgentStart(frame: unknown): AgentTurnFrame | null {
         ...identity.data,
         activity: { operations: [] },
         endedAt: now,
+        failureCode: 'start-rejected',
         failureKind: 'configuration',
         messageCount: 0,
         outputProduced: false,
