@@ -1,8 +1,8 @@
 import { join } from 'node:path';
 import type { AgentExecutionJournalRequest, AgentExecutionJournalResult } from '@haus/api';
 import { agentExecutionJournalRequestSchema } from '@haus/api';
+import { presentExecutionJournal } from './execution-journal-presentation.ts';
 import {
-    type ComputerExecutionJournalDocument,
     isExecutionJournalRunId,
     readComputerExecutionJournal,
 } from './harness/execution-journal.ts';
@@ -31,7 +31,7 @@ export async function readExecutionJournalRequest(input: {
     return journal
         ? {
               agentId: input.request.agentId,
-              journal: journal as ComputerExecutionJournalDocument,
+              journal: await presentExecutionJournal(journal, agentRoot),
               requestId: input.request.requestId,
               runId: input.request.runId,
               status: 'available',
