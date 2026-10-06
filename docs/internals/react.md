@@ -163,7 +163,8 @@ page stays blank while its Agent loads.
   destination: the page's own glyph and its breadcrumb trail, in Settings' own
   band shape, and nothing at the trailing end. Every band's trail leads with a
   "Haus" crumb linking back to the Inbox: the Inbox band reads Haus › Inbox,
-  and Settings reads Haus › Settings › page (› record). Its column is stock,
+  Settings reads Haus › Settings › page (› record), and an Agent profile reads
+  Haus › Agent (› section). Its column is stock,
   so the greeting opens under the band at the page's ordinary top inset on
   every surface; on desktop each tab's page keeps that band at the top of its pane,
   under the tab rows. Switching,

@@ -37,7 +37,10 @@ selected tab keeps its close button, and the row's plus button stays pinned afte
 page keeps its own band at the top of its pane, under the rows; because the tab names the page, band
 content drops what repeats that identity and keeps only controls or a more specific title. A band
 its page leaves empty collapses, so the page starts at the top of its pane: a Chat, DM, Inbox,
-Agent profile, Thread, Files, or artifact page shows no band. A Chat's actions live in its tab's
+Agent profile hub, Thread, Files, or artifact page shows no band. An Agent profile section keeps
+its trail and actions in the band, except Workspace: its bar (breadcrumb, file controls, and "…"
+menu) sits over the content column in band chrome so the file rail reaches the top of the pane,
+and the band collapses. A Chat's actions live in its tab's
 context menu and in its sidebar row's context menu. A sidebar chat or DM row's menu offers Open in
 new tab right after Open: the same background tab as Command-clicking the row, as Chrome's link
 and bookmark menus open one.
@@ -237,6 +240,9 @@ then history matches ranked by address start, word start, then anywhere, newest 
 move the highlight, Enter or a click commits it, Shift-Delete forgets a highlighted history page, and
 Escape restores the URL. The address does not complete inline. Successful visits retain up to 50
 addresses, titles, and favicon URLs in App-local storage; no personal browser history is imported.
+
+The new tab page, an artifact page, and an Agent's Workspace share this toolbar's shape: one row,
+icon-only actions with tooltips, and a bottom hairline as its only edge.
 
 Find in page opens a compact row under the toolbar with a field, a match count, and Previous, Next,
 and Close; the page shrinks by the row's height rather than being covered. Enter and Shift-Enter step

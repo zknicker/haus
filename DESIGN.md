@@ -828,6 +828,17 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   material (`--surface` + `--surface-shadow`, so it still reads on the ghost hover fill) at the
   identity-mark curve `×2.5`, holding a 20px favicon or globe, over one muted `text-sm` label that
   ends in an ellipsis. The tile takes the shell corner. No instruction copy; no history, no tiles.
+- **Page toolbar:** A page's one top bar where the page has no shell band — a browser tab, the
+  new tab page, an artifact page — is `PageToolbar` (`features/shell/page-toolbar.tsx`, `.page-toolbar` in
+  `default-theme.css`): `×2` side padding, `×1.25` block padding, `×1.5` gap, a bottom `--hairline`
+  and no other edge. Actions are icon-only ghost `sm` buttons with tooltips (`PageToolbarButton`);
+  a `Toolbar` inside the bar tightens to a `×0.5` cluster. Toggles in the bar are ghost `sm`
+  ToggleButtons, and overflow is one "…" menu. A file page splits its edges by role: chrome rows
+  — the bar's leading crumbs, a read-only or truncation notice, the status footer — sit on the
+  shell band's `px-3` chrome gutter, and reading content — rendered markdown, raw code text — sits
+  on the `px-6` reading gutter `PageColumn` uses. The Agent Workspace's bar rides in the band on
+  the web (`placement="band"`) and in a local `SectionBar` over the content column in a desktop tab
+  (`placement="column"`, rail full height). A page never stacks a header band over this bar.
 - **Find in page:** A row under the page toolbar (`.browser-find-bar`), never an overlay, so the
   native page stays live: a right-aligned stock `TextField` + secondary `InputGroup` (288px) with a
   muted tabular match count in its suffix, then Previous, Next, and Close as the toolbar's icon-only

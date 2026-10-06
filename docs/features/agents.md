@@ -67,14 +67,22 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity with consecutive
   identical failures folded into one row (`Failed after 2m · 5× since …`) and **See all** into
   Activity, and a compact 30-day processed-token tile linking to Usage.
-- A drill-down section shows a breadcrumb (`Juniper / Connections`) back to the hub, with the
-  lifecycle menu at its end for Owners and Admins; it is the section's only header. **Runs on**
+- The profile's trail rides in the page's top band, in Settings' band shape: the Agent's face,
+  then `Haus / Juniper / Connections`, the Agent crumb leading back to the hub. On the hub the trail
+  ends at the Agent and titles the web band; a desktop tab already names the Agent, so there the
+  hub's band collapses. A drill-down section's band also holds the lifecycle menu at its end for
+  Owners and Admins; it is the section's only header (Workspace folds both into one bar). **Runs on**
   holds the assigned Computer and the model/runtime/effort editor; **Profile** the identity
   facts (name, handle, description, created by); **Automations** Reminders and Triggers;
   **Skills** and **Connections** their editors; **Activity** the turn-by-turn execution history;
-  **Workspace** the Agent's files as a full-height browser. Workspace renders its toolbar, search
-  rail, and preview frame before the file listing arrives; pending reads and errors stay in the
-  rail. Automations keeps section headings and actions visible while each list loads, without
+  **Workspace** the Agent's files as a full-height browser. Workspace has no separate breadcrumb
+  header: its band starts with the trail (`Haus / Juniper / Workspace / MEMORY.md`, the open file
+  last), then the file's Copy and Raw controls, then one "…" menu holding Show hidden files, Copy
+  link, Copy path, and — for Owners and Admins — the lifecycle verbs. In a desktop tab that bar
+  sits over the content column only, with the band's height and gutter, and the file rail runs the
+  tab's full height with its search on the bar's midline; the shell band, left empty, collapses.
+  The bar stays while the Computer is offline. Workspace renders this bar, the search rail, and the
+  preview frame before the file listing arrives; pending reads and errors stay in the rail. Automations keeps section headings and actions visible while each list loads, without
   showing an empty count before its first result. Cached lists remain visible during refreshes.
 - Members in Settings lists Agents and Humans and links into these profiles. Member lists stay
   lightweight; Agent and human profile routes load one focused detail record so profile refreshes
