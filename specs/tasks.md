@@ -28,8 +28,9 @@ cannot show — the status left `in_progress`/`done`, or the claiming run settle
 — so the tier predicate stays a pure function of one row, and only ever
 moves a task from background to tracked.
 
-An explicit status update completes the task. Posting a message never sets it `done`. Same-turn
-work can finish directly without `in_review`; claims left open when a run settles remain
+An explicit status update completes the task. Posting a message never sets it `done`. Agents set
+their own finished work `done`, using `in_review` only for a requested sign-off or a pending human
+decision; claims left open when a run settles remain
 `in_progress` and become tracked, including completed, failed, interrupted, and stopped runs.
 
 `task_labels` is the small Server task-label catalog; `message_task_labels` links catalog entries

@@ -29,9 +29,9 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
   promoted promotes it, with `origin` `claimed` — distinct from a human's `converted` (Convert to
   Task) and `composed` (created as a task). A claim is a concurrency lock, so it fails closed
   against a claim someone else holds.
-- When finished work turns out to need no feedback, the Agent sets `done` itself instead of
-  parking the task in `in_review`. The composed Agent prompt under `apps/computer/src/harness/`
-  carries this rule and its tests.
+- The Agent sets its own finished work `done`. It uses `in_review` only when the requester asked to
+  sign off or a human decision is still pending, and says in the conversation what to check. The
+  composed Agent prompt under `apps/computer/src/harness/` carries this rule and its tests.
 - Each parent Chat allocates monotonic task numbers while its Chat row is locked.
 - Status is `todo`, `in_progress`, `in_review`, `done`, or reversible `closed`.
 - Every task reads as one of two **tiers**, inferred from evidence rather than declared. A

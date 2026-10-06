@@ -100,7 +100,7 @@ same-turn claimed work resolves to `done` without passing through
 `in_review`, because `in_review` means a person has to look and nobody does.
 A claim the run does not answer is not closed — it is stamped tracked, which
 is exactly the case a person should be able to see. The Agent setting its own
-same-turn work `done` is the primary path; this auto-resolve is a backstop, and
+finished work `done` is the primary path; this auto-resolve is a backstop, and
 every one of its edges deliberately errs toward leaving a claim open and tracked
 rather than closing work that may still be live.
 
