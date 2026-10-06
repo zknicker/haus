@@ -148,13 +148,13 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
             usage: 'haus task unassign --target <target> --number <n> [--expected-revision <n>]',
         },
         {
-            examples: ['haus task update --target "#general" --number 1 --status in_review'],
+            examples: ['haus task update --target "#general" --number 1 --status done'],
             flags: [targetFlag, numberFlag, statusFlag],
             name: 'update',
             positionals: [],
             run: (args) => runTaskUpdate(args, resolveDeps()),
             summary:
-                'Move a task through todo → in_progress → in_review → done (closed is reversible)',
+                'Move a task through todo → in_progress → done (in_review only for a requested sign-off; closed is reversible)',
             usage: 'haus task update --target <target> --number <n> --status <status>',
         },
     ];

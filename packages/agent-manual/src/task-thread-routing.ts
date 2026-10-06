@@ -36,6 +36,15 @@ export const taskThreadRouting = new Map<string, ReadonlyArray<readonly [string,
                 'Post progress in the task thread, not scattered across channels.',
                 'Post progress in a thread on your own acknowledgment, not scattered across channels and never in the thread on the request.',
             ],
+            // Agents finish their own work; `in_review` is for requested sign-off only (2026-10-05).
+            [
+                'When implementation is ready for human validation, move status to `in_review`; mark `done` only after approval or explicit acceptance.',
+                'When the work is finished, mark it `done`; move it to `in_review` only when the requester asked to sign off or a human decision is still pending, and say what they need to check.',
+            ],
+            [
+                '- **Done without review**: human never validates behavior. Counter: implementation goes to `in_review`; approval moves it to done.',
+                '- **Silent sign-off**: a task parked in `in_review` with no ask. Counter: name what the human must check, or mark it done.',
+            ],
         ],
     ],
 ]);

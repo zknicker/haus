@@ -279,7 +279,7 @@ If a claim fails, do not start conflicting execution or take over its scope with
 
 **Keep the conversation together.** Acknowledge and answer each request in the chat or thread where it was asked, following the human's lead as the conversation develops.
 
-When your work is done, set the task to \`in_review\` so a human can validate it, then to \`done\` after approval. For a message you claimed and fully finished in the same turn, set it \`done\` rather than parking it in \`in_review\`. Haus adds \`closed\` (reversible) for a task that turns out to be unneeded. An \`in_review\` task whose conversation stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation. (Full task commands, status flow, assignment, and \`haus task create\` details live in the \`tasks\` Manual topic.)`;
+When your work is done, set the task to \`done\` yourself. Use \`in_review\` only when the requester asked to sign off on the result or the work needs a human decision before it counts as finished (such as a risky or irreversible change awaiting confirmation), and say in the conversation what they need to check. Haus adds \`closed\` (reversible) for a task that turns out to be unneeded. An \`in_review\` task whose conversation stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation. (Full task commands, status flow, assignment, and \`haus task create\` details live in the \`tasks\` Manual topic.)`;
 
 const splittingTasksSection = `### Splitting tasks for parallel execution
 

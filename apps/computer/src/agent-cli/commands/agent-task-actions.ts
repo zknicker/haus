@@ -148,7 +148,7 @@ export async function runTaskUnclaim(args: ParsedArgs, deps: TaskDeps): Promise<
 export async function runTaskUpdate(args: ParsedArgs, deps: TaskDeps): Promise<number> {
     const target = requireTarget(
         args,
-        'haus task update --target "#channel" --number 1 --status in_review'
+        'haus task update --target "#channel" --number 1 --status done'
     );
     const status = args.values['--status'];
     if (!status) {

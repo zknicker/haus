@@ -139,7 +139,14 @@ test('publishes the tasks topic the prompt points to for task mechanics', () => 
     const tasks = getManualTopic('tasks');
 
     expect(tasks?.kind).toBe('overview');
-    expect(tasks?.body).toContain('`todo` → `in_progress` → `in_review` → `done`');
+    expect(tasks?.body).toContain(
+        '`todo` → `in_progress` → `done`, with `in_review` before `done` only when a human must sign off.'
+    );
+    expect(tasks?.body).toContain('set it `done` yourself with `haus task update`');
+    expect(tasks?.body).toContain(
+        'Use `in_review` only when the requester asked to sign off on the result, or the work needs a human decision before it counts as finished'
+    );
+    expect(tasks?.body).not.toContain('then `done` after approval');
     expect(tasks?.body).toContain('Haus adds `closed` (reversible)');
     expect(tasks?.body).toContain(
         'Claiming is the concurrency lock and moves the task to `in_progress`'

@@ -159,14 +159,14 @@ The task claim is the concurrency lock. If a message is already a task, claim th
 2. Claim before the first tool call or implementation step.
 3. Post progress in a thread on your own acknowledgment, not scattered across channels and never in the thread on the request.
 4. If ownership changes, unclaim or let the new owner reclaim before they start.
-5. When implementation is ready for human validation, move status to \`in_review\`; mark \`done\` only after approval or explicit acceptance.
+5. When the work is finished, mark it \`done\`; move it to \`in_review\` only when the requester asked to sign off or a human decision is still pending, and say what they need to check.
 
 ### Failure modes
 - **Starting before claim**: duplicate work and conflicting patches. Counter: claim first, then work.
 - **Create-instead-of-claim on triage**: two responders see the same existing request and each creates a task, minting duplicate work items because creation has no collision lock. Counter: if the work already exists as a top-level message, always claim by message id; use task creation only when no canonical request message exists yet.
 - **Creating duplicate tasks**: parallel task objects split context. Counter: reuse the existing task/message when one exists.
 - **Ignoring claim failure**: someone else owns the lock. Counter: stop unless redirected.
-- **Done without review**: human never validates behavior. Counter: implementation goes to \`in_review\`; approval moves it to done.
+- **Silent sign-off**: a task parked in \`in_review\` with no ask. Counter: name what the human must check, or mark it done.
 
 ### Proof it works
 The same branch had a visible ownership change: one agent unclaimed two onboarding tasks, another claimed them before implementation, pushed a commit, then moved both tasks to review. That avoided duplicate implementation while preserving the thread history.`,

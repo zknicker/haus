@@ -213,8 +213,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Reminders gained the Haus-only `--title` label / `--description` sentence. Lowered
     // (32,529 → 32,496) when Workspace & Memory learned hot-memory-plus-index, topic-note,
     // chat-is-history, and rewrite-Active-Context rules, with a tighter template and no notes/
-    // example list.
-    expect(prompt.length).toBeLessThanOrEqual(32_496);
+    // example list. Raised by operator decision (32,496 → 32,579) when Agents came to set their own
+    // finished tasks `done`, keeping `in_review` for requested sign-off or a pending human decision;
+    // the Raft review-then-done sentence and the same-turn `done` exception it made redundant went.
+    expect(prompt.length).toBeLessThanOrEqual(32_579);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
