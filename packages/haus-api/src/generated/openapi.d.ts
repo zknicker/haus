@@ -1482,6 +1482,7 @@ export interface components {
             /** @description @handle of an Agent member of the target Chat. */
             assignee?: string;
             content?: string;
+            nonce: string;
             target: string;
             titles?: string[];
         };
@@ -1629,25 +1630,36 @@ export interface components {
             runs: components["schemas"]["AgentReminderRun"][];
         };
         AgentReminderScheduleRequest: {
-            delaySeconds?: number;
-            fireAt?: string;
+            commandId: string;
+            description?: string;
+            /** Format: date-time */
+            fireAt: string;
             messageId: string;
             repeat?: string;
             script?: string;
             title: string;
-        } & (unknown | unknown);
+        };
         AgentReminderSnoozeRequest: {
             by: string;
+            commandId: string;
+            expectedVersion: number;
             id: string;
         };
+        /** @description Changes exactly one thing: the label (title and/or description), fireAt, repeat, or script. */
         AgentReminderUpdateRequest: {
+            commandId: string;
+            description?: string | null;
+            expectedVersion: number;
+            /** Format: date-time */
             fireAt?: string;
             id: string;
             repeat?: string | null;
             script?: string | null;
             title?: string;
-        } & (unknown | unknown | unknown | unknown);
+        };
         AgentReminderCancelRequest: {
+            commandId: string;
+            expectedVersion: number;
             id: string;
         };
         AgentAttachment: {

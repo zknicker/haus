@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { agentIdempotencyKeySchema } from './agent-idempotency.ts';
 import { AUTOMATION_HISTORY_RETENTION_DAYS } from './automation.ts';
 import { idSchema, reminderChangedEventSchema } from './chat.ts';
 
@@ -119,6 +120,31 @@ export const reminderCancelInputSchema = z
         serverId: idSchema,
     })
     .strict();
+
+/**
+ * `haus reminder schedule` behind the loopback proxy. `commandId` is the
+ * idempotency key, scoped to the authoring Agent: the same key and input replay
+ * the first result. Title and description lengths are checked by the reminder
+ * model, whose error teaches the Agent the format.
+ */
+export const agentReminderScheduleInputSchema = z
+    .object({
+        commandId: agentIdempotencyKeySchema,
+        description: z.string().min(1).optional(),
+        fireAt: z.iso.datetime(),
+        messageId: z.string().min(1),
+        repeat: z.string().min(1).optional(),
+        script: z.string().min(1).optional(),
+        title: z.string().min(1),
+    })
+    .strict();
+
+/** The optimistic, idempotent envelope every Agent reminder change carries. */
+export const agentReminderCommandSchema = z.object({
+    commandId: agentIdempotencyKeySchema,
+    expectedVersion: z.number().int().positive(),
+    id: z.string().min(1),
+});
 
 export const reminderMutationResultSchema = z
     .object({
