@@ -253,6 +253,7 @@ test('classifies structured Haus message and Browser proxy boundaries', () => {
     );
     expect(classifyHausProxyBoundary('POST', '/api/agent/browser')).toBe('browsing');
     expect(classifyHausProxyBoundary('GET', '/api/agent/inbox')).toBeNull();
+    expect(classifyHausProxyBoundary('GET', '/api/agent/inbox/conversations')).toBeNull();
 });
 test('semantic activity frames have no raw tool fields and host categories are registration-owned', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-host-tool-'));

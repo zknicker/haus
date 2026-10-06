@@ -15,6 +15,8 @@ export type AgentCliErrorCode =
     | 'CHAT_VIEW_STALE'
     | 'CONTENT_FLAG_UNSUPPORTED'
     | 'IDEMPOTENCY_KEY_REUSED'
+    | 'INBOX_CHECK_FAILED'
+    | 'INBOX_UNAVAILABLE'
     | 'INFO_FAILED'
     | 'INTERNAL_BUG'
     | 'INVALID_ARG'
@@ -39,7 +41,8 @@ export type AgentCliErrorCode =
     | 'SERVER_5XX'
     | 'TARGET_NOT_FOUND'
     | 'TOKEN_FILE_EMPTY'
-    | 'TOKEN_FILE_UNREADABLE';
+    | 'TOKEN_FILE_UNREADABLE'
+    | 'UNSUPPORTED_BY_SERVER';
 
 export class AgentCliError extends Error {
     constructor(

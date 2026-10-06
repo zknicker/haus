@@ -33,11 +33,20 @@ export function renderSendResponse(target: string, response: AgentSendResponse):
         : renderHeld(target, response);
 }
 
-export function renderHistory(response: AgentHistoryResponse): string {
+/** `anchored`: the read used --before, --after, or --around, so the cursor hint is noise. */
+export function renderHistory(
+    response: AgentHistoryResponse,
+    options: { anchored?: boolean } = {}
+): string {
     const reactivated = new Set(response.thread_follow_reactivated_message_ids);
+    const readThrough = response.last_read.after;
     const lines = [
         `## Message History for ${response.target} (${response.messages.length} messages)`,
-        `Last read through seq ${response.last_read.after}; use --after ${response.last_read.unread_after} to see only unread messages.`,
+        ...(readThrough > 0 && !options.anchored
+            ? [
+                  `Server unread cursor before this read: seq ${readThrough}. Use haus message read --target "${response.target}" --after ${readThrough} to browse newer messages.`,
+              ]
+            : []),
         '',
         ...response.messages.flatMap((message) => [
             ...(reactivated.has(message.id)
