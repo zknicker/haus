@@ -10,6 +10,7 @@ import {
     TurnTraceNote,
     TurnTraceProse,
 } from './turn-trace-blocks.tsx';
+import { ShellBody } from './turn-trace-shell-body.tsx';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 import {
     clampTraceText,
@@ -17,7 +18,6 @@ import {
     readFileDiff,
     readHostname,
     readRecord,
-    readShellOutput,
     readString,
     readTraceSources,
     readTraceText,
@@ -48,24 +48,6 @@ export function TurnTraceToolBody({ tool }: { tool: TurnTraceTool }) {
         default:
             return <GenericBody tool={tool} />;
     }
-}
-
-function ShellBody({ tool }: { tool: TurnTraceTool }) {
-    const shell = readShellOutput(tool.output);
-
-    return (
-        <>
-            {tool.command ? (
-                <TurnTraceCode code={tool.command} label="Command" language="shellscript" />
-            ) : null}
-            {shell.stdout ? <TurnTraceCode code={shell.stdout} label="Output" /> : null}
-            {shell.stderr ? <TurnTraceCode code={shell.stderr} label="Standard error" /> : null}
-            {/* A failed call already states its exit code above its evidence. */}
-            {tool.failure || shell.exitCode === null || shell.exitCode === 0 ? null : (
-                <TurnTraceFact label="Exit code" value={String(shell.exitCode)} />
-            )}
-        </>
-    );
 }
 
 /** The runtime owns compaction; the trace only states what it did to the context. */

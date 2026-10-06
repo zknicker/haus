@@ -39,8 +39,10 @@ Agent profile Activity tab.
 `turn-trace-model.ts` builds that column. Server semantic verbs stay out of it, since the
 journal already shows the work they summarize; the one exception is `received_message`,
 Server history no journal holds, which joins the column at its time as a `Received a new
-message` step. `turn-trace-view.ts` groups that column into steps (folds, one Haus
-bookkeeping step, reasoning captions, parallel lanes, totals) on the turn's time axis. A fold
+message` step. `turn-trace-view.ts` groups that column into steps (folds, Haus
+bookkeeping, reasoning captions, parallel lanes, totals) on the turn's time axis. Bookkeeping lifts out to where it first happened: one
+call stays its own muted row, and only two or more become one muted `Haus bookkeeping` row
+whose members carry the specifics. A fold
 keys by its first call, so in a live turn a call that gains a same-kind sibling becomes the fold
 in place, and an open fold stays open as calls (captioned or not) join it.
 
@@ -95,9 +97,13 @@ both pure and both proved on their own:
   (`/bin/zsh -lc "…"`, `bash -lc`, `sh -c`), takes the first non-empty line, drops a
   trailing heredoc opener, collapses whitespace, and caps the result. A real `haus`
   command — the Agent CLI names in `apps/computer/src/agent-cli.ts` — reads as the
-  product verb it is (`Sent a message with haus`), because that is activity that
-  merely happens to be typed at a shell. The Command body still shows the original
-  verbatim.
+  product action it is, from its parsed arguments (`turn-trace-haus-command.ts`):
+  `Sent a message to #product`, `Sent a message to DM` (never the peer's name),
+  `Replied in DM` for `--reply-to`, `Replied in thread` for a `:<shortId>` target,
+  `Claimed a task`, `Reacted`, `Set a reminder`. The muted bookkeeping row already
+  says it is Haus, so no label says "with haus". A `haus message send` opens to the
+  message itself — its place and its heredoc or here-string body as markdown — with
+  the command and the CLI's reply behind one quiet, closed `Command` disclosure.
 - `turn-trace-reasoning.tsx` presents a reasoning block in place, with no disclosure.
   Codex opens each summary with a bold title line, so that title leads (through the
   transcript's `parseThinkingSummary`) and the rest is the body; untitled reasoning is

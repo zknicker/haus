@@ -25,10 +25,13 @@ import type {
 export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
     const { status, timing, tool } = step;
     const mark = traceMark(tool.kind, status, tool.image?.media ?? null);
+    // Settled bookkeeping reads as Haus upkeep: the muted Haus mark, not the tool's.
+    const isQuiet = tool.isBookkeeping && (status === 'completed' || status === 'running');
     const line = (
         <TraceLine
             detail={tool.target?.dir || null}
-            icon={mark.icon}
+            icon={isQuiet ? Task01Icon : mark.icon}
+            isQuiet={isQuiet}
             isRunning={timing.isRunning}
             label={step.label}
             meta={tool.extraCommands > 0 ? `+${tool.extraCommands} more` : null}
@@ -110,7 +113,7 @@ export function TraceFoldStep({ step }: { step: TurnTraceFoldStep }) {
     );
 }
 
-/** The Agent's Haus bookkeeping, one muted row for the whole turn. */
+/** The Agent's Haus bookkeeping when it made several calls, one muted row for the whole turn. */
 export function TraceHausStep({ step }: { step: TurnTraceHausStep }) {
     return (
         <TraceDisclosure
@@ -121,6 +124,7 @@ export function TraceHausStep({ step }: { step: TurnTraceHausStep }) {
                     isQuiet
                     isRunning={step.timing.isRunning}
                     label={step.label}
+                    meta={`${step.members.length} steps`}
                 />
             }
             timing={<TraceTiming bars={[]} timing={step.timing} />}

@@ -34,7 +34,7 @@ test('the complex turn reads as Haus, three parallel sub-agents, then the work',
     assert.deepEqual(
         steps.map((step) => ('label' in step ? `${step.kind}: ${step.label}` : step.kind)),
         [
-            'haus: Claimed a task · Sent a message',
+            'haus: Haus bookkeeping',
             'subagent: Ran sub-agent: Security review',
             'subagent: Ran sub-agent: Test coverage audit',
             'subagent: Ran sub-agent: API docs check',
@@ -133,11 +133,18 @@ test('P1-1: bookkeeping folds into one Haus step where it began', () => {
     const { steps } = settled(codexFailureTurn);
     const haus = find(steps, 'haus');
     assert.equal(steps[0], haus);
-    assert.equal(
-        haus.label,
-        'Claimed a task · Read MEMORY.md · Sent a message · Updated a task · Modified MEMORY.md'
+    assert.equal(haus.label, 'Haus bookkeeping');
+    // Members carry the specifics; none repeats the group's own wording.
+    assert.deepEqual(
+        haus.members.map((member) => member.label),
+        [
+            'Claimed a task',
+            'Read MEMORY.md',
+            'Replied in DM',
+            'Updated a task',
+            'Modified MEMORY.md',
+        ]
     );
-    assert.equal(haus.members.length, 5);
     assert.equal(haus.parallel, null);
 });
 
@@ -182,7 +189,40 @@ test('a turn that only did bookkeeping shows it plainly', () => {
     );
     const { steps } = settled(trivial);
     assert.equal(steps.length, 1);
-    assert.equal(find(steps, 'call').label, 'Sent a message with haus');
+    assert.equal(find(steps, 'call').label, 'Sent a message to DM');
+});
+
+test('a single bookkeeping call is its own row, never a group of one', () => {
+    const turn = journal(
+        'run_Sg1',
+        ['40:00.000', '40:20.000'],
+        [
+            call('ls', 'bash', ['40:01.000', '40:02.000'], { command: 'ls' }),
+            call('send', 'bash', ['40:03.000', '40:04.000'], {
+                command:
+                    "haus message send --target dm:@zach --reply-to 1a2b --done <<'HAUSMSG'\nDone.\nHAUSMSG",
+            }),
+            call('pwd', 'bash', ['40:05.000', '40:06.000'], { command: 'pwd' }),
+        ]
+    );
+    const { steps } = settled(turn);
+    assert.equal(
+        steps.some((step) => step.kind === 'haus'),
+        false
+    );
+    assert.deepEqual(
+        steps.map((step) => ('label' in step ? `${step.kind}: ${step.label}` : step.kind)),
+        // At its own time, and never folded into the commands beside it.
+        ['call: Ran ls', 'call: Replied in DM', 'call: Ran pwd']
+    );
+    const send = find(steps, 'call', 1);
+    assert.equal(send.parallel, null);
+    assert.deepEqual(send.tool.hausMessage, {
+        body: 'Done.',
+        isReply: true,
+        isThread: false,
+        place: 'DM',
+    });
 });
 
 test('P0-4: a turn that failed before any call states why', () => {

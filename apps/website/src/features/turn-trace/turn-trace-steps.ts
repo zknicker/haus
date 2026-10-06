@@ -1,4 +1,4 @@
-import { formatBookkeepingSummary, formatFoldLabel } from './turn-trace-fold-label.ts';
+import { formatFoldLabel } from './turn-trace-fold-label.ts';
 import type { TurnTraceEntry } from './turn-trace-model.ts';
 import type {
     TurnTraceCallStep,
@@ -18,8 +18,9 @@ import type { TurnTraceStatus, TurnTraceTool } from './turn-trace-tool-model.ts'
 
 /**
  * Steps from the flat trace. Title-only reasoning rides the next step as its
- * caption instead of breaking it apart; bookkeeping lifts out into one Haus
- * step where it first happened (unless bookkeeping is all the turn did);
+ * caption instead of breaking it apart; bookkeeping lifts out to where it
+ * first happened (unless bookkeeping is all the turn did), as one Haus step
+ * when there are several calls and as the call itself when there is one;
  * consecutive same-kind calls fold; overlapping siblings share lanes.
  * Failures and interruptions never fold, so each is always its own row.
  */
@@ -40,12 +41,13 @@ export function buildTraceSteps(
     for (const step of flat) {
         if (lifted.has(step)) {
             if (step === bookkeeping[0]) {
-                steps.push(toHausStep(bookkeeping));
+                // One call is its own row; a group wrapper would only repeat it.
+                steps.push(bookkeeping.length === 1 ? step : toHausStep(bookkeeping));
             }
             continue;
         }
         const previous = steps.at(-1);
-        if (step.kind === 'call' && previous && canFold(previous, step)) {
+        if (step.kind === 'call' && previous && !lifted.has(previous) && canFold(previous, step)) {
             steps[steps.length - 1] = toFoldStep([...membersOf(previous), step]);
             continue;
         }
@@ -210,9 +212,10 @@ function toFoldStep(members: readonly TurnTraceCallStep[]): TurnTraceFoldStep {
 function toHausStep(members: readonly TurnTraceCallStep[]): TurnTraceHausStep {
     const [first] = members as [TurnTraceCallStep, ...TurnTraceCallStep[]];
     return {
-        ...base(`haus:${first.key}`, sumTimings(members.map((member) => member.timing)), []),
+        // The first call's key: a live single call that gains a second becomes this group in place.
+        ...base(first.key, sumTimings(members.map((member) => member.timing)), []),
         kind: 'haus',
-        label: formatBookkeepingSummary(members.map((member) => member.tool)),
+        label: 'Haus bookkeeping',
         members,
         status: rollupStatus(members),
     };
@@ -240,7 +243,9 @@ function withLanes(steps: TurnTraceStep[]): TurnTraceStep[] {
     // Haus spans the whole turn by construction; laning it would mark everything parallel.
     const lanes = assignLanes(
         steps.map((step) =>
-            step.kind === 'call' || step.kind === 'fold' || step.kind === 'subagent'
+            (step.kind === 'call' && !step.tool.isBookkeeping) ||
+            step.kind === 'fold' ||
+            step.kind === 'subagent'
                 ? step.timing
                 : null
         )

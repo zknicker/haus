@@ -61,7 +61,14 @@ export function TurnTraceReasoning({
  * Model-authored markdown in the trace — a thought, a sub-agent's report —
  * through the message renderer, folded to six lines when long.
  */
-export function TurnTraceMarkdown({ content: body }: { content: string }) {
+export function TurnTraceMarkdown({
+    content: body,
+    tone = 'muted',
+}: {
+    content: string;
+    /** `foreground` for text someone else reads as a message, not the Agent's working notes. */
+    tone?: 'foreground' | 'muted';
+}) {
     const reducedMotion = useReducedMotion();
     const [expanded, setExpanded] = React.useState(false);
     const bodyId = React.useId();
@@ -81,7 +88,13 @@ export function TurnTraceMarkdown({ content: body }: { content: string }) {
                 initial={false}
                 transition={reducedMotion ? { duration: 0 } : springs.drawer}
             >
-                <ReferenceMarkdown className="chat-markdown text-muted text-sm" content={body} />
+                <ReferenceMarkdown
+                    className={cn(
+                        'chat-markdown text-sm',
+                        tone === 'muted' ? 'text-muted' : 'text-foreground'
+                    )}
+                    content={body}
+                />
             </motion.div>
             {foldable ? (
                 <Button

@@ -174,3 +174,27 @@ function tool(overrides: Partial<AgentExecutionJournalTool>): AgentExecutionJour
         ...overrides,
     };
 }
+
+test('a sent message opens to the message, with the command one quiet press away', () => {
+    const markup = renderBodies([
+        tool({
+            input: {
+                command:
+                    "haus message send --target dm:@zach-knickerbocker --reply-to 1a2b3c4d --done <<'HAUSMSG'\nThe deploy is **green**.\nHAUSMSG",
+            },
+            output: {
+                exit_code: 0,
+                formatted_output:
+                    'Message sent to dm:@zach-knickerbocker. Message ID: msg_1 (to reply in this message\'s thread, use target "dm:@zach-knickerbocker:1a2b")',
+            },
+            toolCallId: 'call-send',
+            toolName: 'bash',
+        }),
+    ]);
+
+    assert.match(markup, /<strong>green<\/strong>/);
+    assert.match(markup, />DM</);
+    assert.match(markup, /aria-expanded="false"[^>]*>[\s\S]*?Command/);
+    // The raw command, the peer, and the CLI hint stay inside the closed disclosure.
+    assert.doesNotMatch(markup, /HAUSMSG|zach-knickerbocker|to reply in this message/);
+});

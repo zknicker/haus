@@ -1,8 +1,9 @@
 import type { AgentExecutionJournalTool } from '@haus/api';
 import type { ToolPartState } from '@heroui-pro/react/chat-tool';
 import { readFailure, type TurnTraceError } from './turn-trace-error.ts';
+import { type HausMessage, readHausMessage } from './turn-trace-haus-command.ts';
 import { readTracePath, type TracePath } from './turn-trace-path.ts';
-import { readShellLabel } from './turn-trace-shell-label.ts';
+import { readShellLabel, unwrapShellCommand } from './turn-trace-shell-label.ts';
 import {
     formatSubagentInterruption,
     formatSubagentLabel,
@@ -44,6 +45,8 @@ export interface TurnTraceTool extends TurnTraceToolFields {
     readonly failedChildCount: number;
     /** The error as a person reads it; null unless the call failed. */
     readonly failure: TurnTraceError | null;
+    /** A shell call that only ran `haus message send`: where it went and what it said. */
+    readonly hausMessage: HausMessage | null;
     readonly image: TurnTraceImage | null;
     /** Stopped by the turn ending, not by failing: rendered calm, never as an error. */
     readonly interrupted: boolean;
@@ -99,6 +102,10 @@ export function classifyTraceTool(
         extraCommands: shell?.extraCommands ?? 0,
         failedChildCount,
         failure: runStatus === 'failed' ? readFailure(tool.failure, error) : null,
+        hausMessage:
+            shell?.isHausOnly && fields.command
+                ? readHausMessage(unwrapShellCommand(fields.command))
+                : null,
         image: fields.kind === 'image' ? readImage(name, tool.input, output) : null,
         interrupted: runStatus === 'interrupted',
         interruption: readInterruption(tool, isSubagent),

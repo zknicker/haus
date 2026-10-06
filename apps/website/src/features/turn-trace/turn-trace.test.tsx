@@ -91,8 +91,9 @@ test('same-kind runs fold into one expandable row, and parallel runs say so', ()
 test('Haus bookkeeping is one muted row', () => {
     const markup = renderJournal(complexTurn);
 
-    assert.equal(markup.match(/Claimed a task · Sent a message/g)?.length, 1);
-    assert.doesNotMatch(markup, /text-foreground">Claimed a task/);
+    assert.equal(markup.match(/Haus bookkeeping/g)?.length, 1);
+    assert.match(markup, /2 steps/);
+    assert.doesNotMatch(markup, /text-foreground">Haus bookkeeping/);
 });
 
 test('a sub-agent that finished with failed calls warns and counts them', () => {

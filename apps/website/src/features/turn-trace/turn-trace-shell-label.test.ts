@@ -31,7 +31,7 @@ test('a heredoc body is never read as a command', () => {
         formatShellLabel(
             `/bin/zsh -lc "haus message send --target \\"#all\\" <<'HAUSMSG'\nrm -rf /\nHAUSMSG"`
         ),
-        'Sent a message with haus'
+        'Sent a message to #all'
     );
     assert.equal(formatShellLabel('cat > notes.md <<EOF\nnpm test\nEOF'), 'Wrote notes.md');
     // A bit shift is not a heredoc opener.
@@ -49,18 +49,37 @@ test('a long command is capped so the row stays one line', () => {
     assert.ok(label.endsWith('…'));
 });
 
-test('a haus command reads as the product verb it is', () => {
+test('a haus command reads as the product action it is, never "with haus"', () => {
     assert.equal(
         formatShellLabel(`/bin/zsh -lc "haus message send --target \\"#all\\" <<'HAUSMSG'"`),
-        'Sent a message with haus'
+        'Sent a message to #all'
     );
     assert.equal(
         formatShellLabel(`/bin/zsh -lc 'haus message send --send-draft --target "#all"'`),
-        'Sent a message with haus'
+        'Sent a message to #all'
     );
-    assert.equal(formatShellLabel(`zsh -lc 'haus message check'`), 'Checked messages with haus');
-    assert.equal(formatShellLabel(`zsh -lc 'haus inbox check'`), 'Checked inbox with haus');
-    assert.equal(formatShellLabel('haus task claim --number 3'), 'Claimed a task with haus');
+    assert.equal(formatShellLabel(`zsh -lc 'haus message check'`), 'Checked messages');
+    assert.equal(formatShellLabel(`zsh -lc 'haus inbox check'`), 'Checked inbox');
+    assert.equal(formatShellLabel('haus task claim --number 3'), 'Claimed a task');
+    assert.equal(formatShellLabel('haus task update --number 3 --status done'), 'Updated a task');
+    assert.equal(formatShellLabel('haus message react --target "#all" --message-id 1a'), 'Reacted');
+    assert.equal(formatShellLabel('haus reminder schedule --delay-seconds 60'), 'Set a reminder');
+});
+
+test('a sent message names where it went; a DM is "DM", never the peer', () => {
+    const send = (flags: string) =>
+        formatShellLabel(`haus message send ${flags} --done <<'HAUSMSG'\nHi\nHAUSMSG`);
+    assert.equal(send('--target dm:@zach-knickerbocker'), 'Sent a message to DM');
+    assert.equal(send("--target '#product'"), 'Sent a message to #product');
+    assert.equal(send('--target=#product'), 'Sent a message to #product');
+    assert.equal(send('--target dm:@zach-knickerbocker --reply-to 1a2b3c4d'), 'Replied in DM');
+    assert.equal(send('--target "#product" --reply-to 1a2b3c4d'), 'Replied in #product');
+    assert.equal(send('--target "#product:1a2b3c4d"'), 'Replied in thread');
+    assert.equal(send('--target dm:@zach:1a2b3c4d'), 'Replied in thread');
+    assert.equal(
+        readShellLabel("haus message send --target dm:@zach <<'HAUSMSG'\nHi\nHAUSMSG").present,
+        'Sending a message to DM'
+    );
 });
 
 test('a haus command with no verb of its own still states what ran', () => {
@@ -95,7 +114,7 @@ test('only an all-haus script is bookkeeping, and it reads as its first real ver
     const label = readShellLabel(
         "haus message send --target dm:@zach <<'HAUSMSG'\nDone.\nHAUSMSG\nhaus task update --help"
     );
-    assert.equal(label.past, 'Sent a message with haus');
+    assert.equal(label.past, 'Sent a message to DM');
     assert.equal(label.extraCommands, 1);
     assert.equal(label.isHausOnly, true);
     assert.equal(

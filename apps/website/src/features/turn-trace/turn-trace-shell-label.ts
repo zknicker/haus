@@ -1,3 +1,4 @@
+import { readHausVerb } from './turn-trace-haus-command.ts';
 import { basenameOf } from './turn-trace-path.ts';
 import { parseShellScript, type ShellCommand } from './turn-trace-shell-script.ts';
 import type { TraceTense } from './turn-trace-tense.ts';
@@ -49,27 +50,6 @@ const noisePrograms = new Set([
 const minorPrograms = new Set(['chmod', 'ls', 'mkdir', 'pwd', 'rm', 'touch', 'which']);
 const runnerCommand =
     /^(?:(?:npm|pnpm|yarn|bun)\s+(?:test|run|build|install|ci|x)\b|(?:npx|bunx|pytest|vitest|jest|tsc|cargo|go|make|gradle|mvn|swift|xcodebuild|uv|deno)\b)/u;
-
-/**
- * Real `haus` commands, from the Agent CLI's own dispatcher
- * (`apps/computer/src/agent-cli.ts`), as [past, present].
- */
-const hausVerbs: Record<string, readonly [string, string]> = {
-    'attachment upload': ['Uploaded a file', 'Uploading a file'],
-    'inbox check': ['Checked inbox', 'Checking inbox'],
-    'message check': ['Checked messages', 'Checking messages'],
-    'message react': ['Reacted to a message', 'Reacting to a message'],
-    'message read': ['Read messages', 'Reading messages'],
-    'message resolve': ['Looked up a message', 'Looking up a message'],
-    'message search': ['Searched messages', 'Searching messages'],
-    'message send': ['Sent a message', 'Sending a message'],
-    'task claim': ['Claimed a task', 'Claiming a task'],
-    'task create': ['Created a task', 'Creating a task'],
-    'task list': ['Listed tasks', 'Listing tasks'],
-    'task unclaim': ['Released a task', 'Releasing a task'],
-    'task update': ['Updated a task', 'Updating a task'],
-    'thread unfollow': ['Unfollowed a thread', 'Unfollowing a thread'],
-};
 
 export function formatShellLabel(command: string, tense: TraceTense = 'past'): string {
     return readShellLabel(command)[tense];
@@ -123,14 +103,16 @@ export function unwrapShellCommand(command: string): string {
 }
 
 function readHausLabel(commands: readonly ShellCommand[]) {
-    const verbs = commands.filter((entry) => !isHelp(entry)).map(readHausVerb);
+    const verbs = commands
+        .filter((entry) => !isHelp(entry))
+        .map((entry) => readHausVerb(entry.text));
     const extraCommands = commands.length - 1;
     if (verbs.length === 0) {
         return { extraCommands, past: 'Read haus help', present: 'Reading haus help' };
     }
     const [first] = verbs;
     if (Array.isArray(first)) {
-        return { extraCommands, past: `${first[0]} with haus`, present: `${first[1]} with haus` };
+        return { extraCommands, past: first[0], present: first[1] };
     }
     const typed = clampLabel(commands.find((entry) => !isHelp(entry))?.text ?? 'haus');
     return { extraCommands, past: `Ran ${typed}`, present: `Running ${typed}` };
@@ -177,13 +159,6 @@ function isHelp(command: ShellCommand): boolean {
     return words.includes('--help') || words.includes('-h') || words[1] === 'help';
 }
 
-function readHausVerb(command: ShellCommand): readonly [string, string] | null {
-    const words = command.text.split(' ').slice(1);
-    const group = words[0] ?? '';
-    const subcommand = words[1]?.startsWith('-') ? '' : (words[1] ?? '');
-    return hausVerbs[`${group} ${subcommand}`.trim()] ?? hausVerbs[group] ?? null;
-}
-
 function readFirstLine(command: string): string {
     const line = unwrapShellCommand(command)
         .split('\n')
@@ -201,7 +176,8 @@ function readQuoted(value: string): string {
     const end = value.length > 1 && value.endsWith(quote) ? value.length - 1 : value.length;
     const inner = value.slice(1, end);
 
-    return quote === '"' ? inner.replace(doubleQuoteEscape, '$1') : inner;
+    // `'\''` is how a single-quoted wrapper spells a quote inside it.
+    return quote === '"' ? inner.replace(doubleQuoteEscape, '$1') : inner.replace(/'\\''/gu, "'");
 }
 
 function clampLabel(summary: string): string {

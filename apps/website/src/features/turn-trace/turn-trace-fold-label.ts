@@ -24,21 +24,6 @@ export function formatFoldLabel(
     return { past: `${past} ${count} ${noun}`, present: `${present} ${count} ${noun}` };
 }
 
-/**
- * One line naming what the Haus bookkeeping did, in first-seen order with
- * repeats counted: `Claimed a task · Sent a message ×2 · Read MEMORY.md`.
- */
-export function formatBookkeepingSummary(members: readonly TurnTraceTool[]): string {
-    const counts = new Map<string, number>();
-    for (const member of members) {
-        const label = member.labels.past.replace(/ with haus$/u, '');
-        counts.set(label, (counts.get(label) ?? 0) + 1);
-    }
-    return [...counts]
-        .map(([label, count]) => (count > 1 ? `${label} ×${count}` : label))
-        .join(' · ');
-}
-
 const genericVerbs = ['Used', 'Using', 'tools'] as const;
 
 const foldVerbs: Record<string, readonly [string, string, string]> = {
