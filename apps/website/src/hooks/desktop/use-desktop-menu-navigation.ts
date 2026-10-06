@@ -40,21 +40,47 @@ export function useDesktopTabHistory(handler: (direction: HistoryDirection) => v
 }
 
 /**
- * Go menu and macOS swipes. Inside a Server the desktop tabs own history
- * (`useDesktopTabHistory`); elsewhere (the Server picker) the window router does.
+ * Go menu, macOS swipes, and the mouse's back and forward buttons. Inside a
+ * Server the desktop tabs own history (`useDesktopTabHistory`); elsewhere (the
+ * Server picker) the window router does.
  */
 export function useDesktopHistoryNavigation() {
     const navigate = useNavigate();
 
-    useEffect(
-        () =>
-            getDesktopBridge()?.onHistoryNavigate?.((direction) => {
-                if (tabHistory) {
-                    tabHistory(direction);
-                    return;
-                }
-                navigate(direction === 'back' ? -1 : 1);
-            }),
-        [navigate]
-    );
+    useEffect(() => {
+        const bridge = getDesktopBridge();
+        if (!bridge) {
+            return;
+        }
+        const follow = (direction: HistoryDirection) => {
+            if (tabHistory) {
+                tabHistory(direction);
+                return;
+            }
+            navigate(direction === 'back' ? -1 : 1);
+        };
+        // Chromium hands buttons 4 and 5 to the page but, unlike Chrome, Electron
+        // never turns them into navigation, and macOS sends no app-command.
+        const onMouseUp = (event: MouseEvent) => {
+            const direction = mouseHistoryDirection(event.button);
+            if (direction) {
+                event.preventDefault();
+                follow(direction);
+            }
+        };
+        window.addEventListener('mouseup', onMouseUp);
+        const unsubscribe = bridge.onHistoryNavigate?.(follow);
+        return () => {
+            window.removeEventListener('mouseup', onMouseUp);
+            unsubscribe?.();
+        };
+    }, [navigate]);
+}
+
+/** DOM `MouseEvent.button`: 3 is the back button, 4 forward. */
+export function mouseHistoryDirection(button: number): HistoryDirection | null {
+    if (button === 3) {
+        return 'back';
+    }
+    return button === 4 ? 'forward' : null;
 }

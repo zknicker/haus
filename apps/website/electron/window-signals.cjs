@@ -15,7 +15,8 @@ function forwardWindowSignals(window) {
     });
 
     if (process.platform === 'darwin') {
-        // "Swipe between pages" and mouse back/forward buttons. Electron
+        // "Swipe between pages" (mouse buttons 4 and 5 reach the renderer as
+        // DOM mouseup events; see useDesktopHistoryNavigation). Electron
         // reports the AppKit delta convention, not the physical finger
         // direction: the back gesture arrives as 'left' (verified on device —
         // do not "fix" this to match Safari intuition).
