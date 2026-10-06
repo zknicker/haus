@@ -1,6 +1,7 @@
-import type { AgentReasoningEffort, ComputerInventory } from '@haus/api';
+import type { AgentReasoningEffort, ComputerInventory, ComputerModelFeature } from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
 import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
+import { supportsSubagents } from './harness/runtime-harness.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];
@@ -80,6 +81,7 @@ function supportedRuntime(
             defaultReasoningEffort:
                 id === 'claude-code' && model.id === 'claude-haiku-4-5' ? 'default' : 'medium',
             reasoningEfforts: reasoningEffortsForModel(id, model.id),
+            features: featuresForRuntime(id),
         })),
     };
 }
@@ -93,4 +95,21 @@ export function reasoningEffortsForModel(
         return ['default'];
     }
     return ['low', 'medium', 'high', 'xhigh', 'max'];
+}
+
+/**
+ * Core abilities as Haus launches each runtime, so this list must follow the harness settings:
+ * sub-agents come from `supportsSubagents` (runtime-harness.ts), with Codex's `agents.enabled =
+ * false` (codex-acp.ts) and Grok's `GROK_SUBAGENTS=0` (create-agent.ts) switching them off.
+ * Codex and Grok Build keep their native image generation; Claude Code and Pi have none.
+ */
+export function featuresForRuntime(runtimeId: ComputerRuntimeId): ComputerModelFeature[] {
+    const features: ComputerModelFeature[] = [];
+    if (supportsSubagents(runtimeId)) {
+        features.push('subagents');
+    }
+    if (runtimeId === 'codex' || runtimeId === 'grok-build') {
+        features.push('image-generation');
+    }
+    return features;
 }

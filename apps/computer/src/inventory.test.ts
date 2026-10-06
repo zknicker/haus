@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { detectInventory, reasoningEffortsForModel } from './inventory.ts';
+import { detectInventory, featuresForRuntime, reasoningEffortsForModel } from './inventory.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 
 test('reports effort capabilities for the runtime and concrete model', () => {
@@ -14,6 +14,13 @@ test('reports effort capabilities for the runtime and concrete model', () => {
         'max',
     ]);
     expect(reasoningEffortsForModel('claude-code', 'claude-haiku-4-5')).toEqual(['default']);
+});
+
+test('reports the core features each runtime is launched with', () => {
+    expect(featuresForRuntime('claude-code')).toEqual(['subagents']);
+    expect(featuresForRuntime('codex')).toEqual(['image-generation']);
+    expect(featuresForRuntime('grok-build')).toEqual(['image-generation']);
+    expect(featuresForRuntime('pi')).toEqual([]);
 });
 
 test('offers Claude 5.5 models with medium default effort after the existing default', async () => {
@@ -35,6 +42,7 @@ test('offers Claude 5.5 models with medium default effort after the existing def
                 label,
                 defaultReasoningEffort: 'medium',
                 reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+                features: ['subagents'],
             });
         }
     } finally {
@@ -89,6 +97,7 @@ test('discovers a runtime from the Computer search path and verifies the executa
             label: 'GPT-6.1 Sol',
             defaultReasoningEffort: 'medium',
             reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+            features: ['image-generation'],
         });
         expect(inventory.runtimes.at(-1)?.models.map(({ id, label }) => ({ id, label }))).toEqual([
             { id: 'grok-4.6', label: 'Grok 4.6' },

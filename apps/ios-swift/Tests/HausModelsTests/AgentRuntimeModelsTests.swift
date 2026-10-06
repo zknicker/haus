@@ -71,6 +71,7 @@ final class AgentRuntimeModelsTests: XCTestCase {
                     "label":"Codex",
                     "models":[{
                       "defaultReasoningEffort":"xhigh",
+                      "features":["image-generation"],
                       "id":"gpt-5.6-sol",
                       "label":"GPT-5.6 Sol",
                       "reasoningEfforts":["medium","high","xhigh","max"]

@@ -6,6 +6,11 @@ import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './cloud
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
+/** Core abilities an Agent gets on this model as Haus launches its runtime. */
+export const computerModelFeatureSchema = z.enum(['subagents', 'image-generation']);
+
+export type ComputerModelFeature = z.infer<typeof computerModelFeatureSchema>;
+
 /** Sanitized Computer inventory excludes credentials and session material by construction. */
 export const computerModelSchema = z
     .object({
@@ -13,6 +18,7 @@ export const computerModelSchema = z
         label: z.string().trim().min(1).max(200),
         defaultReasoningEffort: agentReasoningEffortSchema.optional(),
         reasoningEfforts: z.array(agentReasoningEffortSchema).min(1).max(6).optional(),
+        features: z.array(computerModelFeatureSchema).max(8).optional(),
     })
     .strict()
     .refine(

@@ -16,6 +16,17 @@ test('model defaults are concrete, supported settings', () => {
     );
 });
 
+test('model features are a bounded known vocabulary', () => {
+    const model = { id: 'model', label: 'Model' };
+    expect(
+        computerModelSchema.parse({ ...model, features: ['subagents', 'image-generation'] })
+            .features
+    ).toEqual(['subagents', 'image-generation']);
+    expect(computerModelSchema.safeParse({ ...model, features: ['web-search'] }).success).toBe(
+        false
+    );
+});
+
 test('only the Grok adapter requires a fresh session for an effort change', () => {
     for (const runtimeId of ['claude-code', 'codex', 'pi']) {
         expect(reasoningChangeResetsSession(runtimeId)).toBe(false);
