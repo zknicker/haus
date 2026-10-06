@@ -39,7 +39,7 @@ function event(
     };
 }
 
-test('a delegating frame carries an opaque hex operation id and never counts as an operation', () => {
+test('a delegating frame carries an opaque hex operation id and counts as a sub-agent', () => {
     const frame = {
         agentId: 'agt_one',
         category: 'delegating',
@@ -58,7 +58,7 @@ test('a delegating frame carries an opaque hex operation id and never counts as 
         agentTurnActivitySummarySchema.safeParse({
             operations: [{ category: 'delegating', completed: 1, failed: 0, interrupted: 0 }],
         }).success
-    ).toBe(false);
+    ).toBe(true);
 });
 
 test('current activity tracks running sub-agents until each settles', () => {

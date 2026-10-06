@@ -60,6 +60,28 @@ test('turn activity summaries retain only exact low-cardinality operation counts
     ).toBe(false);
 });
 
+test('turn summaries count sub-agents and generated media but never live-only categories', () => {
+    const counted = agentTurnActivitySummarySchema.parse({
+        operations: [
+            { category: 'delegating', completed: 2, failed: 1, interrupted: 0 },
+            { category: 'generating_media', completed: 1, failed: 0, interrupted: 0 },
+        ],
+    });
+    expect(counted.operations.map((operation) => operation.category)).toEqual([
+        'delegating',
+        'generating_media',
+    ]);
+    // `generating_media` is a turn count, never a live activity category.
+    expect(agentActivityCategorySchema.safeParse('generating_media').success).toBe(false);
+    for (const category of ['received_message', 'sending_message', 'starting_work', 'working']) {
+        expect(
+            agentTurnActivitySummarySchema.safeParse({
+                operations: [{ category, completed: 1, failed: 0, interrupted: 0 }],
+            }).success
+        ).toBe(false);
+    }
+});
+
 test('Computer frames reject detailed evidence and Server identity fields', () => {
     expect(agentActivityFrameSchema.parse(frame)).toEqual(frame);
     expect(

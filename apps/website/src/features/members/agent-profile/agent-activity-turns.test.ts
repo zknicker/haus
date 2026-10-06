@@ -112,6 +112,7 @@ function settledTurn(overrides: Partial<AgentTurn> = {}): AgentTurn {
         startedAt: '2026-08-11T12:00:00.000Z',
         status: 'completed',
         summary: null,
+        trigger: null,
         ...overrides,
     };
 }

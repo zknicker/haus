@@ -301,37 +301,6 @@ export const agentDeliveryStateSchema = z
 
 export type AgentDeliveryState = z.infer<typeof agentDeliveryStateSchema>;
 
-/**
- * One settled Agent turn. `outputProduced` and `failureKind` are what make a
- * silent turn readable: a completed turn with no output and no messages is
- * positive proof the Agent chose to stay quiet, not evidence of a lost run.
- */
-export const agentTurnSchema = z
-    .object({
-        activity: agentTurnActivitySummarySchema,
-        agentId: idSchema,
-        endedAt: timestampSchema,
-        failureKind: z.string().trim().min(1).max(64).nullable(),
-        messageCount: z.number().int().nonnegative(),
-        outputProduced: z.boolean(),
-        runId: idSchema,
-        startedAt: timestampSchema,
-        status: z.enum(['completed', 'failed', 'interrupted']),
-        summary: z.string().max(2000).nullable(),
-    })
-    .strict();
-
-export type AgentTurn = z.infer<typeof agentTurnSchema>;
-
-export const agentTurnsInputSchema = agentDetailInputSchema.extend({
-    limit: z.number().int().min(1).max(50).default(10),
-    runId: idSchema.optional(),
-});
-
-export type AgentTurnsInput = z.infer<typeof agentTurnsInputSchema>;
-
-export const agentTurnsSchema = z.array(agentTurnSchema);
-
 /** Why an Agent's session was rotated; the App names the reason on the mark. */
 export const agentSessionRotationReasonSchema = z.enum([
     'configuration',

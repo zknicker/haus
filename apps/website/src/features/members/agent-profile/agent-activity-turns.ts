@@ -211,7 +211,9 @@ function pluralize(count: number, singular: string): string {
 const operationLabels: Record<AgentTurnOperationCategory, [string, string]> = {
     browsing: ['browser action', 'browser actions'],
     checking_messages: ['message check', 'message checks'],
+    delegating: ['sub-agent', 'sub-agents'],
     editing_files: ['file edit', 'file edits'],
+    generating_media: ['image or video generated', 'images or videos generated'],
     reading_files: ['file read', 'file reads'],
     running_command: ['command', 'commands'],
     searching_web: ['web search', 'web searches'],

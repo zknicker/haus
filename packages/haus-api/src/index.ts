@@ -69,6 +69,7 @@ export * from './agent-task-input.ts';
 export * from './agent-thought.ts';
 export * from './agent-thought-phrase.ts';
 export * from './agent-thought-request-narration.ts';
+export * from './agent-turn.ts';
 export * from './agent-workspace-files.ts';
 export * from './app-protocol.ts';
 export * from './attachments.ts';

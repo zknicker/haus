@@ -27,6 +27,23 @@ const executionJournalResultSchema = z
     })
     .strict();
 
+/** The longest normalized failure message a journal presents. */
+export const EXECUTION_JOURNAL_FAILURE_MAX_CHARS = 4000;
+
+/**
+ * A runtime error normalized at the Computer boundary: Codex's
+ * `{ formatted_output, exit_code }` and Claude's `<tool_use_error>` wrapper both
+ * become a plain message. The raw `error` stays beside it.
+ */
+export const executionJournalFailureSchema = z
+    .object({
+        exitCode: z.number().int().optional(),
+        message: z.string().min(1).max(EXECUTION_JOURNAL_FAILURE_MAX_CHARS),
+    })
+    .strict();
+
+export type AgentExecutionJournalFailure = z.infer<typeof executionJournalFailureSchema>;
+
 /** The longest sub-agent label or latest-action line a journal keeps. */
 export const EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS = 128;
 
@@ -38,6 +55,11 @@ export const EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS = 128;
 const executionJournalSubagentSchema = z
     .object({
         endedAt: timestampSchema.optional(),
+        /**
+         * How many of the sub-agent's own tool calls failed. Computer derives it when it
+         * serves the journal; absent only in hand-built evidence.
+         */
+        failedToolCount: z.number().int().nonnegative().safe().optional(),
         label: z.string().max(EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS),
         latestAction: z.string().max(EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS).optional(),
         startedAt: timestampSchema,
@@ -61,6 +83,8 @@ const executionJournalToolSchema = z
         durationMs: z.number().int().nonnegative().optional(),
         endedAt: timestampSchema.optional(),
         error: z.unknown().optional(),
+        /** The normalized `error` of a failed call, when it carries a message. */
+        failure: executionJournalFailureSchema.optional(),
         final: executionJournalResultSchema.optional(),
         input: z.unknown().optional(),
         interruptions: z
@@ -127,6 +151,8 @@ export const agentExecutionJournalSchema = z
     .object({
         endedAt: timestampSchema.optional(),
         error: z.unknown().optional(),
+        /** The turn's terminal error as one readable line; the raw `error` stays beside it. */
+        failure: executionJournalFailureSchema.optional(),
         reasoning: z
             .array(executionJournalReasoningSchema)
             .max(EXECUTION_JOURNAL_REASONING_MAX_BLOCKS)

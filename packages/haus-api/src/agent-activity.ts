@@ -33,13 +33,23 @@ export type AgentActivityCategory = z.infer<typeof agentActivityCategorySchema>;
 export const agentActivityPhaseSchema = z.enum(['started', 'completed', 'failed', 'interrupted']);
 export type AgentActivityPhase = z.infer<typeof agentActivityPhaseSchema>;
 
-export const agentTurnOperationCategorySchema = agentActivityCategorySchema.exclude([
+/**
+ * What a settled turn counts. Mostly the semantic activity categories that are work;
+ * `delegating` counts sub-agents, and `generating_media` is turn-only: a native image or
+ * video tool opens `using_tool` activity but counts here instead, because the media is
+ * usually what the human asked for.
+ */
+export const agentTurnOperationCategorySchema = z.enum([
+    'browsing',
+    'checking_messages',
     'delegating',
-    'received_message',
-    'sending_message',
-    'starting_work',
-    'thinking',
-    'working',
+    'editing_files',
+    'generating_media',
+    'reading_files',
+    'running_command',
+    'searching_web',
+    'updating_instructions',
+    'using_tool',
 ]);
 export type AgentTurnOperationCategory = z.infer<typeof agentTurnOperationCategorySchema>;
 
@@ -59,7 +69,9 @@ export type AgentTurnOperationCount = z.infer<typeof agentTurnOperationCountSche
 /** Exact Computer-owned semantic operation totals for one settled turn. */
 export const agentTurnActivitySummarySchema = z
     .object({
-        operations: z.array(agentTurnOperationCountSchema).max(8),
+        operations: z
+            .array(agentTurnOperationCountSchema)
+            .max(agentTurnOperationCategorySchema.options.length),
     })
     .strict()
     .refine(
