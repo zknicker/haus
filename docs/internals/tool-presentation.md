@@ -39,8 +39,20 @@ Agent profile Activity tab.
 `turn-trace-model.ts` builds that column. Server semantic verbs stay out of it, since the
 journal already shows the work they summarize; the one exception is `received_message`,
 Server history no journal holds, which joins the column at its time as a `Received a new
-message` step. Reasoning and that step share `TurnTraceStep` (`turn-trace-blocks.tsx`), whose
-box matches a ChatTool trigger's so every step's icon sits in the tool status-icon column. `turn-trace-tool-model.ts` classifies one journal tool by wire
+message` step. `turn-trace-view.ts` groups that column into steps (folds, one Haus
+bookkeeping step, reasoning captions, parallel lanes, totals) on the turn's time axis.
+
+The view renders as one stock `ChainOfThought` rail (`turn-trace-steps-view.tsx`), never a
+stack of bordered cards. Every step is one borderless line: a kind mark (or a danger, warning,
+or stop mark for its outcome), the label, the muted directory, and a right-hand timing column
+— a thin waterfall bar on the turn's axis and a tabular duration, hidden under a second for a
+settled leaf. Steps that ran side by side share time on the bars, and a parallel fold draws its
+members as stacked lanes in one bar. The totals sit once above the rail, and a turn's own
+`failure` reads as a danger note above it rather than "No activity was recorded". A row is a
+`ChainOfThought` disclosure, the one tab stop it earns, only when it opens to something
+(`hasCallBody`); its body mounts on first open, so a long turn pays for what someone reads.
+Running steps shimmer in the present tense, and the elapsed times tick from a one-second clock
+that runs only while the journal is running (`use-turn-trace-now.ts`). `turn-trace-tool-model.ts` classifies one journal tool by wire
 name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `web`, `image`, `mcp`,
 `message`, `file-change`, `compaction`, `subagent`, `generic`) with typed fields;
 `turn-trace-tool-label.ts` names its row and `turn-trace-tool-bodies.tsx` owns the body each kind
@@ -48,7 +60,10 @@ earns. Codex's and Grok Build's native media tools (`image_gen`, `image_edit`, `
 `reference_to_video`) are `image`: `Generated an image`, `Edited an image`, or `Made a video`, with
 the file and the prompt as the body. The file is the workspace file Computer journals as `path`
 (`generated-images/…`, see [Agents](../features/agents.md)), falling back to the runtime's own
-`savedPath`; the trace shows the path, not an inline preview. The harness's reserved
+`savedPath`. An image step shows the picture in place, read through the same
+`agent.workspaceFile` query the workspace pane uses, with its prompt folded to three lines; a
+video, a host-only path, or a failed read names the file instead. Nothing renders while it
+loads. The harness's reserved
 synthetic names get their own kinds so they read as what happened — `Modified <path>`,
 `Compacted the context` — rather than a generic call with empty arguments.
 
@@ -56,12 +71,13 @@ A sub-agent is a call the runtime reported with `subagent` metadata (never a wir
 guess). `buildTurnTrace` nests every call whose `parentToolCallId` names it under that row,
 in start order; a child whose parent is missing, or a malformed parent cycle, stays
 top-level so no evidence is hidden. The row reads `Ran sub-agent: <label>` (or `Running`,
-`failed`, `interrupted` from the sub-agent's own status), its trailing meta is tool count,
-tokens, and duration, and its body is the type, the child calls rendered exactly as
-top-level calls, and the sub-agent's report. Only a failed call, top-level or nested, takes
-ChatTool's danger frame and opens on its own; an interrupted one stopped because the turn
-ended, so it settles as a plain row with a muted stop mark, stays closed, and its body says
-why it stopped. The Agent hover card carries only a count and
+`failed`, `interrupted` from the sub-agent's own status), its trailing meta is tool count and
+tokens with any failed child calls counted in danger (a completed sub-agent with failures takes
+the warning mark), its duration sits in the timing column, and its body is the type, the child calls rendered exactly as
+top-level calls, and the sub-agent's report rendered as markdown. Only a failed call, top-level or nested, takes
+the danger mark and opens on its own, its readable `failure` (message and exit code, never the
+transport payload) first in its body; an interrupted one stopped because the turn ended, so it
+settles with a muted stop mark, stays closed, and its body says why it stopped. The Agent hover card carries only a count and
 elapsed time from current activity's `activeDelegations`, shown while any are running.
 
 ## Row labels
@@ -91,12 +107,12 @@ opened, and a step a live turn adds, grow into place (`turn-trace-reveal.tsx`); 
 that closes keeps its last trace, and reopening shows it while the relay refreshes. In the
 Activity tab, rows open and close with one animated height transition: a reopened row
 grows to the trace it kept exactly as a collapsing row shrinks from it, and only a row
-opened before its first trace arrives opens at once and lets the trace grow in. Each tool row is
+opened before its first trace arrives opens at once and lets the trace grow in. Each step row is
 its own disclosure: the trace resets React Aria's disclosure-group context, so the
 Activity tab's turn accordion never owns a call's open state.
 
-Labels stay in sentence case. Stock `ChatTool` sets its `Arguments`, `Result`, and error
-labels in ALL CAPS, which `DESIGN.md` forbids; `default-theme.css` returns those three
+Labels stay in sentence case. Stock `ChatTool` sets its `Arguments` and `Result`
+labels in ALL CAPS, which `DESIGN.md` forbids; `default-theme.css` returns those
 BEM parts to the trace's own small muted role.
 
 ## Rules
@@ -135,10 +151,9 @@ BEM parts to the trace's own small muted role.
 - A step whose start and end arrived together shows no duration. Codex reports a
   fast command's or patch's ACP start and completion in the same instant, and its
   own measured duration for them is also zero, so there is no real span to state.
-- Nothing bounds a model- or MCP-authored payload, and every tool body in a trace
-  mounts behind its disclosure at once, so text is clamped by character
+- Nothing bounds a model- or MCP-authored payload, and one opened body can hold any of it, so text is clamped by character
   (`clampTraceText` / `clampTraceValue`) before it reaches a code block, a diff, or a
   stock `ChatTool` block. A line-count collapse alone does not bound one unbroken line.
-- Detail bodies compose the stock Pro chat primitives — `ChatTool` for a call and
-  `ChatSource` for a citation — and the app's one diff renderer for an edit. Source pills carry no third-party favicon, which
+- Detail bodies compose the stock Pro chat primitives — `ChatTool.Args`/`Result` for a
+  raw payload and `ChatSource` for a citation — and the app's one diff renderer for an edit. Source pills carry no third-party favicon, which
   would leak every visited host to an icon service.
