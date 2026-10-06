@@ -19,6 +19,7 @@ test('the runtime table drives Codex through codex-acp behind harness-acp', asyn
         'apply_patch',
         'bash',
         'compaction',
+        'image_gen',
         'webSearch',
     ]);
     expect(bootstrap?.bootstrapDir).toBe('.harness-bootstrap/codex');
