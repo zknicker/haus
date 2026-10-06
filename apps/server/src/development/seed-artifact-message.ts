@@ -8,6 +8,7 @@ import {
     developmentArtifactFiles,
     developmentArtifactMessageContent,
 } from './seed-artifact-files.ts';
+import { recordSeedMessageEvents } from './seed-message-events.ts';
 
 const seedNonce = 'dev-artifact-tabs';
 
@@ -76,6 +77,9 @@ export async function ensureDevelopmentArtifactMessage(
             sequence,
             serverId: input.serverId,
         });
+        await recordSeedMessageEvents(tx, input.serverId, [
+            { chatId: chat.id, id: messageId, sequence },
+        ]);
         await tx
             .update(chatsTable)
             .set({ lastActivityAt: new Date(), lastMessageSequence: sequence })

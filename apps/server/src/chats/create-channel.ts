@@ -1,5 +1,6 @@
 import type { ChannelCreateInput, Chat, ServerDurableEvent } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -84,6 +85,9 @@ export async function createChannel(
         await tx
             .insert(channelAgentParticipantsTable)
             .values(agentIds.map((agentId) => ({ agentId, chatId: id, serverId: input.serverId })));
+        for (const agentId of agentIds) {
+            await openAgentChatRead(tx, { agentId, chatId: id, serverId: input.serverId });
+        }
         const event = await insertLifecycleEvent(
             tx,
             { chatId: id, serverId: input.serverId },

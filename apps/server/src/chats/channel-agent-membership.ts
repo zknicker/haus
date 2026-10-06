@@ -1,4 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
+import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts';
 
@@ -33,6 +34,9 @@ export async function joinChannelAgents(
         )
         .onConflictDoNothing()
         .returning({ agentId: channelAgentParticipantsTable.agentId });
+    for (const { agentId } of inserted) {
+        await openAgentChatRead(db, { agentId, chatId: input.chatId, serverId: input.serverId });
+    }
     return inserted.map((row) => row.agentId);
 }
 

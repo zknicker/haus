@@ -8,7 +8,6 @@ import {
     agentTokenUsageDailyTable,
     channelAgentParticipantsTable,
     channelParticipantsTable,
-    chatMessagesTable,
     chatsTable,
     computersTable,
     mcpConnectionsTable,
@@ -34,6 +33,7 @@ import {
 import { ensureDevelopmentCove } from './seed-cove.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
 import { seedDevelopmentInboxActivity } from './seed-inbox-activity.ts';
+import { insertSeedMessages } from './seed-message-events.ts';
 import { seedDevelopmentUiGallery } from './seed-ui-gallery.ts';
 
 const demoInventory = {
@@ -217,7 +217,7 @@ export async function seedDevelopmentServer(
             { agentId: blippyId, chatId: demoChannelId, serverId },
             { agentId: tinyId, chatId: demoChannelId, serverId },
         ]);
-        await tx.insert(chatMessagesTable).values([
+        await insertSeedMessages(tx, serverId, [
             demoMessage(serverId, channelId, 1, {
                 authorUserId: user.id,
                 content: 'Morning team — what should we focus on today?',
@@ -294,7 +294,7 @@ export async function seedDevelopmentServer(
             userId: user.id,
         });
 
-        await tx.insert(chatMessagesTable).values([
+        await insertSeedMessages(tx, serverId, [
             demoMessage(serverId, threadChatId, 1, {
                 authorAgentId: blippyId,
                 content: 'Reading it now — the sequencing looks right to me.',

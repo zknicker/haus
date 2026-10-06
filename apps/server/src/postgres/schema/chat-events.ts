@@ -3,6 +3,7 @@ import {
     bigint,
     check,
     foreignKey,
+    index,
     integer,
     pgTable,
     text,
@@ -53,6 +54,10 @@ export const chatEventsTable = pgTable(
     },
     (table) => [
         uniqueIndex('chat_events_server_cursor_key').on(table.serverId, table.cursor),
+        // An Agent inbox row orders by its newest message's created-event cursor.
+        index('chat_events_message_created_idx')
+            .on(table.serverId, table.messageId)
+            .where(sql`${table.type} = 'message.created'`),
         check('chat_events_positive_cursor', sql`${table.cursor} > 0`),
         check(
             'chat_events_lifecycle_shape',

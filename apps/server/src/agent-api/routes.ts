@@ -21,7 +21,8 @@ import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
-import { readAgentHistory, resolveAgentMessage, searchAgentMessages } from './message-read.ts';
+import { readAgentHistory } from './message-history.ts';
+import { resolveAgentMessage, searchAgentMessages } from './message-read.ts';
 import { registerAgentMessageSendRoute } from './message-send-route.ts';
 import { readAgentProfile, updateAgentProfile } from './profile.ts';
 import { registerAgentReactionRoutes } from './reaction-routes.ts';
@@ -35,6 +36,10 @@ const historyQuerySchema = z.object({
     before: z.string().min(1).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(50),
     target: z.string().min(1),
+    unread: z
+        .enum(['true', 'false'])
+        .optional()
+        .transform((value) => value === 'true'),
 });
 const searchQuerySchema = z.object({
     after: z.coerce.date().optional(),
@@ -224,6 +229,15 @@ export function registerAgentApiRoutes(
         const parsed = historyQuerySchema.safeParse(request.query);
         if (!parsed.success) {
             return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The history request was invalid.');
+        }
+        const { after, around, before, unread } = parsed.data;
+        if (unread && (after || around || before)) {
+            return sendAgentApiError(
+                reply,
+                400,
+                'INVALID_ARG',
+                '--unread cannot be combined with --before, --after, or --around.'
+            );
         }
         try {
             return await readAgentHistory(options.db, runner, parsed.data);

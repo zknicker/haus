@@ -60,6 +60,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0059_agent_creation_request',
             '0060_reminder_descriptions',
             '0061_agent_wake_pause',
+            '0062_agent_chat_reads',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
@@ -170,6 +171,7 @@ test('copies each existing reminder title into its new description', async () =>
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([
             '0060_reminder_descriptions',
             '0061_agent_wake_pause',
+            '0062_agent_chat_reads',
         ]);
         expect(await upgraded`SELECT title, description FROM reminders`).toEqual([
             { description: title, title },

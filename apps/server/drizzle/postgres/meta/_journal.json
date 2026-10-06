@@ -435,6 +435,13 @@
       "when": 1791297233357,
       "tag": "0061_agent_wake_pause",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1791303357444,
+      "tag": "0062_agent_chat_reads",
+      "breakpoints": true
     }
   ]
 }

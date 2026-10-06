@@ -1,5 +1,5 @@
 import type { AddressedReason } from '@haus/api';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -10,6 +10,7 @@ import {
     chatsTable,
 } from '../postgres/schema.ts';
 import { planInlineReplyMessage } from './inline-reply-recipients.ts';
+import { activeDmThreadRecipient, followMentionedIntoThread } from './thread-recipients.ts';
 
 export interface AgentMessageRecipientPlan {
     /**
@@ -72,6 +73,7 @@ export async function planAgentMessageRecipients(
             return parent.dmAgentId && parent.dmAgentId !== input.authorAgentId
                 ? await activeDmThreadRecipient(db, {
                       agentId: parent.dmAgentId,
+                      causeMessageId: input.messageId ?? null,
                       content: input.content,
                       serverId: input.serverId,
                       threadChatId: input.chatId,
@@ -138,34 +140,17 @@ export async function planAgentMessageRecipients(
     const muted = new Set(mutes.map((row) => row.agentId));
     const followByAgent = new Map(follows.map((row) => [row.agentId, row.followed]));
     const mentioned = mentionedAgentIds(input.content, agents);
-    const reactivated = new Set<string>();
-
-    if (chat.kind === 'thread') {
-        for (const agentId of mentioned) {
-            const previousFollow = followByAgent.get(agentId);
-            if (agentIds.includes(agentId) && previousFollow !== true) {
-                await db
-                    .insert(agentThreadFollowsTable)
-                    .values({
-                        agentId,
-                        serverId: input.serverId,
-                        threadChatId: input.chatId,
-                    })
-                    .onConflictDoUpdate({
-                        set: { followed: true, updatedAt: sql`now()` },
-                        target: [
-                            agentThreadFollowsTable.serverId,
-                            agentThreadFollowsTable.agentId,
-                            agentThreadFollowsTable.threadChatId,
-                        ],
-                    });
-                if (previousFollow === false) {
-                    reactivated.add(agentId);
-                }
-                followByAgent.set(agentId, true);
-            }
-        }
-    }
+    const reactivated =
+        chat.kind === 'thread'
+            ? await followMentionedIntoThread(db, {
+                  agentIds,
+                  causeMessageId: input.messageId ?? null,
+                  followByAgent,
+                  mentioned,
+                  serverId: input.serverId,
+                  threadChatId: input.chatId,
+              })
+            : new Set<string>();
 
     return agentIds.flatMap((agentId) => {
         const isMentioned = mentioned.has(agentId);
@@ -208,65 +193,4 @@ async function activeDmRecipient(
     return agent
         ? [{ addressedReason: 'dm', agentId, mentioned: false, threadFollowReactivated: false }]
         : [];
-}
-
-async function activeDmThreadRecipient(
-    db: HausDatabase,
-    input: { agentId: string; content: string; serverId: string; threadChatId: string }
-): Promise<AgentMessageRecipientPlan[]> {
-    const [agent] = await db
-        .select({ handle: agentsTable.handle, id: agentsTable.id })
-        .from(agentsTable)
-        .where(
-            and(
-                eq(agentsTable.serverId, input.serverId),
-                eq(agentsTable.id, input.agentId),
-                isNull(agentsTable.retiredAt)
-            )
-        )
-        .limit(1);
-    if (!agent) {
-        return [];
-    }
-    const [follow] = await db
-        .select({ followed: agentThreadFollowsTable.followed })
-        .from(agentThreadFollowsTable)
-        .where(
-            and(
-                eq(agentThreadFollowsTable.serverId, input.serverId),
-                eq(agentThreadFollowsTable.agentId, input.agentId),
-                eq(agentThreadFollowsTable.threadChatId, input.threadChatId)
-            )
-        )
-        .limit(1);
-    const mentioned = mentionedAgentIds(input.content, [agent]).has(input.agentId);
-    if (follow?.followed === false && !mentioned) {
-        return [];
-    }
-    const reactivated = follow?.followed === false;
-    if (follow?.followed !== true) {
-        await db
-            .insert(agentThreadFollowsTable)
-            .values({
-                agentId: input.agentId,
-                serverId: input.serverId,
-                threadChatId: input.threadChatId,
-            })
-            .onConflictDoUpdate({
-                set: { followed: true, updatedAt: sql`now()` },
-                target: [
-                    agentThreadFollowsTable.serverId,
-                    agentThreadFollowsTable.agentId,
-                    agentThreadFollowsTable.threadChatId,
-                ],
-            });
-    }
-    return [
-        {
-            addressedReason: 'dm',
-            agentId: input.agentId,
-            mentioned,
-            threadFollowReactivated: reactivated,
-        },
-    ];
 }

@@ -10,6 +10,7 @@ import {
     chatsTable,
 } from '../postgres/schema.ts';
 import previewPath from './seed-attachments/cove-avatar-experiment.png' with { type: 'file' };
+import { recordSeedMessageEvents } from './seed-message-events.ts';
 
 const seedNonce = 'dev-image-preview';
 const stagingKey = 'upl_devimagepreview0';
@@ -90,6 +91,7 @@ export async function ensureDevelopmentChatAttachment(
             sequence,
             serverId,
         });
+        await recordSeedMessageEvents(tx, serverId, [{ chatId: chat.id, id: messageId, sequence }]);
         await tx.insert(attachmentsTable).values({
             byteSize: bytes.byteLength,
             chatId: chat.id,

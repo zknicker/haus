@@ -8,6 +8,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
+import { advanceAgentChatReadsSeen } from '../agent-reads/agent-chat-reads.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -170,6 +171,13 @@ export async function sendAgentMessage(
             })
             .returning();
         await associateMessageAttachments(tx, attachments, message.id, input.chatId);
+        // Own messages count as read; the position stops below the first message
+        // from someone else the Agent was never shown (DMs and continueAnyway skip the hold).
+        await advanceAgentChatReadsSeen(tx, {
+            agentId: input.agentId,
+            chatIds: [input.chatId],
+            serverId: input.serverId,
+        });
         if (input.cause) {
             await insertMessageCause(tx, {
                 attribution: input.cause.attribution,

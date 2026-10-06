@@ -1,5 +1,6 @@
 import { idSchema } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -12,7 +13,7 @@ import { followMaterializedTaskThread } from '../tasks/task-thread-follows.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { threadChatIdForAnchor } from './thread-id.ts';
 
-type ThreadWriter = Pick<HausDatabase, 'insert' | 'select'>;
+type ThreadWriter = Pick<HausDatabase, 'execute' | 'insert' | 'select'>;
 
 export class InvalidThreadAnchorError extends Error {
     constructor() {
@@ -77,6 +78,11 @@ export async function ensureThread(
                 updatedAt: new Date(),
             })
             .onConflictDoNothing();
+        await openAgentChatRead(db, {
+            agentId: anchor.authorAgentId,
+            chatId: thread.id,
+            serverId: input.serverId,
+        });
     }
     return thread;
 }

@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { deleteQueuedOrdinaryItems } from '../agent-delivery/store.ts';
+import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentChannelMutesTable, agentThreadFollowsTable, chatsTable } from '../postgres/schema.ts';
@@ -102,10 +103,25 @@ export async function unfollowAgentThread(
     return { target, unfollowed: true };
 }
 
+/**
+ * Follows a Thread for an Agent. A new or restored follow starts the Agent's
+ * read position there; an already-followed Thread keeps its unread.
+ */
 export async function followAgentThread(
-    db: HausDatabase,
+    db: Pick<HausDatabase, 'execute' | 'insert' | 'select'>,
     input: { agentId: string; serverId: string; threadChatId: string }
 ) {
+    const [previous] = await db
+        .select({ followed: agentThreadFollowsTable.followed })
+        .from(agentThreadFollowsTable)
+        .where(
+            and(
+                eq(agentThreadFollowsTable.serverId, input.serverId),
+                eq(agentThreadFollowsTable.agentId, input.agentId),
+                eq(agentThreadFollowsTable.threadChatId, input.threadChatId)
+            )
+        )
+        .limit(1);
     await db
         .insert(agentThreadFollowsTable)
         .values({ ...input, followed: true, updatedAt: new Date() })
@@ -117,4 +133,11 @@ export async function followAgentThread(
                 agentThreadFollowsTable.threadChatId,
             ],
         });
+    if (previous?.followed !== true) {
+        await openAgentChatRead(db, {
+            agentId: input.agentId,
+            chatId: input.threadChatId,
+            serverId: input.serverId,
+        });
+    }
 }
