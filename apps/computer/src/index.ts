@@ -104,7 +104,12 @@ import {
     runAgentLaunch,
 } from './launch.ts';
 import { launchCrashTurn } from './launch-crash-turn.ts';
-import { replaceLaunchdService } from './launchd.ts';
+import {
+    computerServiceLabel,
+    replaceLaunchdService,
+    restartLaunchdService,
+    runsInsideLaunchdJob,
+} from './launchd.ts';
 import {
     completeComputerLogin,
     ensureComputerLoginSession,
@@ -118,15 +123,12 @@ import { runtimeSearchPath } from './runtime-discovery.ts';
 import {
     admitActiveRun,
     isNewerVersion,
-    progress,
     readProductionRelease,
     readUpdateProgress,
     rollbackComputer,
     runSignedUpdate,
-    writeUpdateProgress,
 } from './update.ts';
 import {
-    type ComputerUpdateProgress,
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
     parseBootstrapAccepted,
@@ -134,6 +136,7 @@ import {
     parseComputerHeartbeatConfiguration,
     parseComputerUpdateCommand,
 } from './update-contract.ts';
+import { finishRestart, recoverInterruptedUpdate } from './update-recovery.ts';
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
 import { saveOpenRouterManagementKey } from './usage/openrouter-settings.ts';
 import { createUsageReporter } from './usage/report.ts';
@@ -322,8 +325,8 @@ async function main(args: string[]) {
         return;
     }
     if (command === 'start') {
-        await recoverInterruptedUpdate();
-        await finishRestart();
+        await recoverInterruptedUpdate(dataRoot);
+        await finishRestart(dataRoot);
         await rm(stoppedPath(), { force: true });
         const targetAttachment = target ? await requiredAttachment(target) : null;
         if (targetAttachment && (await reportUnlinkedAttachment(targetAttachment))) {
@@ -382,6 +385,7 @@ async function main(args: string[]) {
         if (!attachment) {
             throw new Error('This Server is not attached to this Haus Computer.');
         }
+        await finishRestart(dataRoot);
         const prewarm = createBridgePrewarmer({
             agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
             ...(process.env.HAUS_DEV_STACK === '1' ? { harnessIds: ['codex'] } : {}),
@@ -780,32 +784,45 @@ function attachmentDaemonPath(attachment: Attachment) {
 }
 
 async function installResidentService() {
+    replaceLaunchdService(await writeResidentService());
+}
+
+/** Restarts the resident service after an update, from the CLI or from inside the job. */
+async function restartResidentService() {
+    restartLaunchdService({
+        ...(await writeResidentService()),
+        insideJob: runsInsideLaunchdJob(computerServiceLabel, process.env),
+    });
+}
+
+async function writeResidentService() {
     const agentsRoot = join(homedir(), 'Library', 'LaunchAgents');
-    const plistPath = join(agentsRoot, 'com.haus.computer.plist');
+    const plistPath = join(agentsRoot, `${computerServiceLabel}.plist`);
     await mkdir(agentsRoot, { recursive: true });
     await mkdir(dataRoot, { mode: 0o700, recursive: true });
     await mkdir(join(dataRoot, 'logs'), { mode: 0o700, recursive: true });
-    await writeFile(plistPath, launchdPlist(computerEntrypoint()), {
-        mode: 0o600,
-    });
-    const domain = `gui/${userInfo().uid}`;
-    replaceLaunchdService({
-        domain,
-        label: 'com.haus.computer',
+    const plist = launchdPlist(computerEntrypoint());
+    // An in-job kickstart keeps the loaded definition; a changed plist applies at the next load.
+    if ((await readFile(plistPath, 'utf8').catch(() => null)) !== plist) {
+        await writeFile(plistPath, plist, { mode: 0o600 });
+    }
+    return {
+        domain: `gui/${userInfo().uid}`,
+        label: computerServiceLabel,
         plistPath,
-        run: (args) =>
+        run: (args: string[]) =>
             Bun.spawnSync(['/bin/launchctl', ...args], {
                 stderr: 'ignore',
                 stdout: 'ignore',
             }).exitCode,
-    });
+    };
 }
 
 async function stopResidentService() {
     if (platform() !== 'darwin') {
         return;
     }
-    const plistPath = join(homedir(), 'Library', 'LaunchAgents', 'com.haus.computer.plist');
+    const plistPath = join(homedir(), 'Library', 'LaunchAgents', `${computerServiceLabel}.plist`);
     if (!(await stat(plistPath).catch(() => null))) {
         return;
     }
@@ -825,49 +842,10 @@ async function restartAfterUpdate() {
         }
         await rm(attachmentDaemonPath(attachment), { force: true });
     }
-    await installResidentService();
+    await restartResidentService();
     if (process.env.HAUS_COMPUTER_ATTACHMENT_DAEMON === '1') {
         process.exit(0);
     }
-}
-
-async function finishRestart() {
-    const current = await readUpdateProgress(dataRoot);
-    if (current.phase !== 'restarting') {
-        return;
-    }
-    await writeUpdateProgress(
-        dataRoot,
-        progress('complete', current.targetVersion, 'Haus Computer updated successfully.')
-    );
-}
-
-export async function recoverInterruptedUpdate(root = dataRoot) {
-    const current = await readUpdateProgress(root);
-    if (!isInterruptedUpdatePhase(current.phase)) {
-        return;
-    }
-    await writeUpdateProgress(
-        root,
-        progress(
-            'failed',
-            current.targetVersion,
-            'Update was interrupted. Retry in Settings or run haus-computer upgrade locally.',
-            {
-                downloadedBytes: current.downloadedBytes,
-                failedPhase: current.phase,
-                totalBytes: current.totalBytes,
-            }
-        )
-    );
-}
-
-function isInterruptedUpdatePhase(
-    phase: ComputerUpdateProgress['phase']
-): phase is 'downloading' | 'installing' | 'requested' | 'verifying' | 'waiting-for-agents' {
-    return ['requested', 'downloading', 'verifying', 'installing', 'waiting-for-agents'].includes(
-        phase
-    );
 }
 
 export function launchdPlist(entrypoint: { args: string[]; executable: string }) {
@@ -878,7 +856,7 @@ export function launchdPlist(entrypoint: { args: string[]; executable: string })
         .join('');
     const logPath = escapeXml(join(dataRoot, 'logs', 'computer.log'));
     const path = escapeXml(runtimeSearchPath());
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.haus.computer</string><key>ProgramArguments</key><array>${programArguments}</array><key>EnvironmentVariables</key><dict><key>HAUS_COMPUTER_DATA_ROOT</key><string>${escaped.at(-1)}</string><key>HAUS_COMPUTER_RESIDENT</key><string>1</string><key>PATH</key><string>${path}</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>${computerServiceLabel}</string><key>ProgramArguments</key><array>${programArguments}</array><key>EnvironmentVariables</key><dict><key>HAUS_COMPUTER_DATA_ROOT</key><string>${escaped.at(-1)}</string><key>HAUS_COMPUTER_RESIDENT</key><string>1</string><key>PATH</key><string>${path}</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
 }
 
 function escapeXml(value: string) {

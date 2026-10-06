@@ -6,8 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { computerProtocolVersion } from '@haus/api';
 import type { ServerWebSocket } from 'bun';
 import { computerVersion } from './build-identity.ts';
-import { launchdPlist, recoverInterruptedUpdate } from './index.ts';
-import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';
+import { launchdPlist } from './index.ts';
 
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
@@ -890,25 +889,6 @@ test('the resident service keeps its state root outside executable code', () => 
     expect(plist).toContain('/usr/local/bin');
     expect(plist).toContain('/.local/bin');
     expect(plist).not.toContain('/opt/haus/package/.haus');
-});
-
-test('startup reopens admission after an interrupted update', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
-    try {
-        await writeUpdateProgress(
-            dataRoot,
-            progress('waiting-for-agents', '1.1.0', 'Waiting for active Agents.')
-        );
-        await recoverInterruptedUpdate(dataRoot);
-        expect(await readUpdateProgress(dataRoot)).toMatchObject({
-            detail: expect.stringContaining('interrupted'),
-            failedPhase: 'waiting-for-agents',
-            phase: 'failed',
-            targetVersion: '1.1.0',
-        });
-    } finally {
-        await rm(dataRoot, { force: true, recursive: true });
-    }
 });
 
 /**
