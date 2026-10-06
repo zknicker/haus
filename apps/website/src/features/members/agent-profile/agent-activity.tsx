@@ -112,6 +112,7 @@ function ActivityTurnHistory({
     const rows = collapseRecentActivity(turns, Number.POSITIVE_INFINITY);
     const titleOf = useTurnRowTitles(
         serverId,
+        agentId,
         rows.map((row) => row.latest)
     );
 

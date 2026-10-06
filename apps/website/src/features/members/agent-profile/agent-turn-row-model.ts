@@ -76,7 +76,9 @@ export function formatTurnOutcome(turn: AgentActivityTurn): string {
         const latest = turn.events.at(-1);
         return latest ? formatAgentActivityEvent(latest) : 'Starting…';
     }
-    return 'No actions';
+    // `outputProduced` is false here (no messages), so a completed turn is the
+    // Agent's positive choice to stay quiet, not a lost run.
+    return turn.status === 'completed' ? 'Stayed quiet' : 'Ended before any action';
 }
 
 /** Status only when it is news: a completed turn says nothing. */

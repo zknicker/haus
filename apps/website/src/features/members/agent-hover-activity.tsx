@@ -16,15 +16,16 @@ import {
     collapseRecentActivity,
     type RecentActivityRow,
 } from './agent-profile/recent-activity-rows.ts';
-import { useTurnRowTitles } from './agent-profile/use-turn-row-titles.ts';
+import { useRunTitle, useTurnRowTitles } from './agent-profile/use-turn-row-titles.ts';
 
 /** Turns read to find the last two rows once repeated failures fold. */
 const recentTurnRead = 10;
 const recentTurnRows = 2;
 
 /**
- * The hover card's activity: while the Agent works, what it is doing now, its
- * running sub-agents, and the run's latest steps; while idle, its last two turns.
+ * The hover card's activity: while the Agent works, the request it is on, what
+ * it is doing now, its running sub-agents, and the run's latest steps; while
+ * idle, its last two turns.
  */
 export function AgentHoverActivity({ agentId, serverId }: { agentId: string; serverId: string }) {
     const context = useOptionalCurrentAgentActivity();
@@ -60,9 +61,19 @@ function AgentHoverLive({
     const preview = useAgentActivityPreview(serverId, agentId);
     const delegations = formatAgentDelegationSummary(current.activeDelegations, now);
     const log = selectHoverLogLines(preview.data?.events ?? [], current);
+    const title = useRunTitle(serverId, agentId, current.runId);
 
     return (
         <>
+            {title.kind === 'none' ? null : (
+                // Held blank while the trigger reads, so the live line never jumps.
+                <p className="flex min-h-4 min-w-0 gap-1.5">
+                    <span className="min-w-0 truncate text-foreground">
+                        {title.kind === 'text' ? title.text : null}
+                    </span>
+                    {title.place ? <span className="shrink-0 text-muted">{title.place}</span> : null}
+                </p>
+            )}
             <p className="truncate font-medium text-accent tabular-nums">
                 {formatHoverLiveLine(current, now)}
             </p>
@@ -94,6 +105,7 @@ function AgentHoverRecentTurns({ agentId, serverId }: { agentId: string; serverI
     );
     const titleOf = useTurnRowTitles(
         serverId,
+        agentId,
         rows.map((row) => row.latest)
     );
     // Blank while the first read is out; "none yet" only when there are none.

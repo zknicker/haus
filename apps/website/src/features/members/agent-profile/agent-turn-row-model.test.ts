@@ -79,13 +79,17 @@ test('the outcome lists actions taken, most telling first, with no invented coun
     expect(formatTurnOutcome(turn)).toBe(
         '2 sub-agents · 1 image or video · 3 file edits · 4 commands (1 failed) · 1 message'
     );
-    expect(formatTurnOutcome(settled())).toBe('No actions');
+    // Nothing done and nothing said: a completed turn chose quiet; any other ended early.
+    expect(formatTurnOutcome(settled())).toBe('Stayed quiet');
+    expect(formatTurnOutcome({ ...settled(), status: 'interrupted' })).toBe(
+        'Ended before any action'
+    );
     expect(formatTurnOutcome({ ...settled(), failureKind: 'timeout', status: 'failed' })).toBe(
         'Timed out'
     );
     // An unknown reason never repeats the row's own "Failed" mark.
     expect(formatTurnOutcome({ ...settled(), failureKind: 'mystery', status: 'failed' })).toBe(
-        'No actions'
+        'Ended before any action'
     );
 });
 

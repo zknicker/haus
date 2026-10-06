@@ -61,21 +61,24 @@ export function AgentRecentActivity({
                         : 'No activity yet.'}
                 </ProfileListSection.Empty>
             ) : (
-                <RecentActivityRows rows={rows} serverId={server.id} />
+                <RecentActivityRows agentId={agent.id} rows={rows} serverId={server.id} />
             )}
         </ProfileListSection>
     );
 }
 
 function RecentActivityRows({
+    agentId,
     rows,
     serverId,
 }: {
+    agentId: string;
     rows: readonly RecentActivityRow[];
     serverId: string;
 }) {
     const titleOf = useTurnRowTitles(
         serverId,
+        agentId,
         rows.map((row) => row.latest)
     );
     return rows.map((row, index) => (
