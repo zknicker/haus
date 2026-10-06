@@ -245,7 +245,10 @@ persisted message count. Duration and start time sit in right-aligned columns. S
 when it is news: failed, interrupted, or still working; a completed turn carries none. Consecutive
 failed turns with the same failure kind and trigger fold into one row with a count. When the
 trigger is private, unrecorded, or its message is unreadable to the viewer, the row shows no title
-and its action list stands in. Trigger messages are read once per list through a small rolling
+and its action list stands in; a turn with no actions and no messages reads `Stayed quiet` when it
+completed and `Ended before any action` otherwise. A running turn has not settled into
+`agent.turns`, so its row reads its trigger through `agent.runTrigger` and is titled the same way
+while it works. Trigger messages are read once per list through a small rolling
 window of ordinary message reads, never one burst per row. These compact totals are part of
 the durable turn summary, so a settled row does not depend on every best-effort live activity frame
 having arrived. A run the Server resends after a Computer restart keeps its first start and the
@@ -287,8 +290,9 @@ DM headers mirror global Agent status with concise text such as `Online`, `Worki
 Hovering or focusing an Agent avatar in the Chat transcript or an Agent rich
 reference opens one shared HeroUI hover card. It shows the Agent identity and
 global availability, current effective runtime and model, reasoning effort,
-and its activity. While the Agent works, one live line names the current step on the turn's
-clock (`Running a command · 0:42`), a status line counts running sub-agents, and a short log lists
+and its activity. While the Agent works, the run's trigger titles the section as a turn row's
+title does, then one live line names the current step on the turn's clock
+(`Running a command · 0:42`), a status line counts running sub-agents, and a short log lists
 the run's latest steps: settled steps in past tense, and a start only while it is still running, so
 stale `…ing` lines never pile up. While idle, it shows the last two turns, each titled by its
 trigger with its actions and relative time, repeated failures folded as in Activity History.

@@ -57,8 +57,8 @@ the prompt's closing `## Personality` section.
 
 ## Turn And Delivery Observability
 
-Two member-scoped queries expose what an Agent actually did, without reading
-Computer-local execution traces. Both require Server membership and both treat a
+Member-scoped queries expose what an Agent actually did, without reading
+Computer-local execution traces. Each requires Server membership and treats a
 denied or unknown Agent as `NOT_FOUND`, so probing cannot distinguish "not
 yours" from "does not exist".
 
@@ -80,6 +80,13 @@ in a Chat the reader cannot see is `{ kind: 'private' }`, and `null` means the S
 recorded none (turns from before the record existed, or an unrecognized source). The
 App resolves a message's text through its ordinary message reads. The listing is one
 joined query; it never fans out per turn.
+
+`agent.runTrigger` (`{ serverId, agentId, runId }`) returns `{ trigger }` for one run
+in the same shape and with the same visibility gate, so a turn that is still working
+can be titled before it settles. The trigger is recorded in the dispatch transaction
+that writes the run's `starting_work` activity, so any run the App sees already has
+one; `null` means none was recorded. It is a Server-to-App read only and adds nothing
+to the Computer protocol.
 
 A turn's `startedAt` is the run's first launch. When the Server resends an accepted
 run after the Computer restarts, the relaunch resumes a Computer-local turn ledger
