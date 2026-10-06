@@ -408,6 +408,14 @@ default (currently Haus's Medium), which the App selects when a prior choice is 
 `default` is reserved for models without an effort control, shown as Not configurable; it omits
 the effort setting at the adapter boundary. An applied value records the requested policy, not measured thinking.
 
+Computer protocol 27 adds per-model `features`: the core abilities an Agent gets on that model as
+Haus launches its runtime, from `subagents` and `image-generation`. Computer declares them beside
+the effort list in `apps/computer/src/inventory.ts`, following the harness settings: Claude Code
+has sub-agents; Codex and Grok Build keep native image generation with sub-agents switched off;
+Pi has neither. Codex image generation needs a paid ChatGPT plan and drops silently otherwise.
+Web search is not a reported feature. An absent list means an older Computer, not "none". The
+App shows these facts in the Agent model picker and Settings -> Models.
+
 The Agent profile is the human's canonical edit surface. `agent.update`, `agent.configure`, and
 the avatar mutations on the Server `agent` tRPC router remain the Owner/Admin path for every field,
 including runtime, model, and reasoning effort, which no Agent-facing route exposes.

@@ -23,7 +23,8 @@ every provider Haus may support.
 
 Haus Computer reports installed execution runtimes and a maintained model list from
 `apps/computer/src/inventory.ts`. Each model carries its selectable `reasoningEfforts` and concrete
-`defaultReasoningEffort`. These are Haus's explicit settings, not inferred native CLI defaults.
+`defaultReasoningEffort`, plus the core `features` (sub-agents, image generation) its runtime
+is launched with. These are Haus's explicit settings, not inferred native CLI defaults.
 Server validates Agent configuration against the assigned Computer's report, and App consumes
 that same report for creation and Setup. AI SDK's installed harness adapters define accepted
 runtime settings but do not expose per-model capability discovery. New model entries therefore
