@@ -1,15 +1,48 @@
-import { Button } from '@heroui/react';
+import { Button, Surface } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 import { clampTraceText } from './turn-trace-values.ts';
 
-// Output is evidence, not the point: eight lines say what it was, the rest is a press away.
-const collapsedLineCount = 8;
+/**
+ * The trace's one section label: the stock ChatTool label role (muted, small,
+ * uppercase, wide tracking) so `COMMAND`, `OUTPUT`, `REPORT`, and the stock
+ * `ARGUMENTS` / `RESULT` all read as one tier above their surfaces.
+ */
+export function TraceMicroLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <span className="font-medium text-muted text-xs uppercase tracking-wide">{children}</span>
+    );
+}
 
 /**
- * The trace's one code surface: a labelled snippet with copy, collapsed to a
- * readable height when the Agent wrote or read something long.
+ * A body section that is prose rather than code — a report, a message — on
+ * the code blocks' own quiet surface, named by a micro label above it and
+ * bounded to a readable height that scrolls.
+ */
+export function TraceSection({
+    children,
+    label,
+}: {
+    children: React.ReactNode;
+    label: React.ReactNode;
+}) {
+    return (
+        <section className="grid min-w-0 gap-1">
+            <TraceMicroLabel>{label}</TraceMicroLabel>
+            <Surface
+                className="max-h-72 min-w-0 overflow-y-auto rounded-2xl px-3 py-2"
+                variant="secondary"
+            >
+                {children}
+            </Surface>
+        </section>
+    );
+}
+
+/**
+ * The trace's one code surface: a labelled snippet with copy, bounded to a
+ * readable height that scrolls when the Agent wrote or read something long.
  */
 export function TurnTraceCode({
     code,
@@ -20,35 +53,25 @@ export function TurnTraceCode({
     label: string;
     language?: string;
 }) {
-    const [expanded, setExpanded] = React.useState(false);
     // The character clamp is the real bound: a runtime can hand back one
-    // unbroken multi-megabyte line, which no line count would collapse.
+    // unbroken multi-megabyte line, which no height would bound.
     const { clipped: truncated, text } = clampTraceText(code);
-    const lines = text.split('\n');
-    const clipped = !expanded && lines.length > collapsedLineCount;
-    const shown = clipped ? lines.slice(0, collapsedLineCount).join('\n') : text;
 
     return (
         <div className="grid min-w-0 gap-1.5">
             <CodeBlock className="min-w-0">
                 <CodeBlock.Header>
-                    <span className="text-muted text-sm">{label}</span>
+                    <TraceMicroLabel>{label}</TraceMicroLabel>
                     {/* The copy control is icon-only, so it carries the
                         section's own name: "Copy command", "Copy output". */}
                     <CodeBlock.CopyButton aria-label={`Copy ${label.toLowerCase()}`} code={text} />
                 </CodeBlock.Header>
-                <CodeBlock.Code className="overflow-x-auto" code={shown} language={language} />
+                <CodeBlock.Code
+                    className="max-h-72 overflow-auto"
+                    code={text}
+                    language={language}
+                />
             </CodeBlock>
-            {lines.length > collapsedLineCount ? (
-                <Button
-                    className="justify-self-start"
-                    onPress={() => setExpanded((current) => !current)}
-                    size="sm"
-                    variant="ghost"
-                >
-                    {clipped ? `Show all ${lines.length} lines` : 'Show less'}
-                </Button>
-            ) : null}
             {truncated ? (
                 <TurnTraceNote>Only the first 20,000 characters are shown.</TurnTraceNote>
             ) : null}

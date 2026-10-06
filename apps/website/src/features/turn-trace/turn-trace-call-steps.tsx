@@ -1,16 +1,10 @@
-import { ChainOfThought } from '@heroui-pro/react';
 import { Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { hasCallBody, TurnTraceCallBody } from './turn-trace-call-body.tsx';
+import { type TraceBar, TraceBody, TraceNested } from './turn-trace-grid.tsx';
 import { traceMark } from './turn-trace-icons.ts';
 import { TurnTraceImagePreview } from './turn-trace-image.tsx';
-import {
-    TraceDisclosure,
-    TraceLine,
-    TraceRow,
-    TraceShimmer,
-    TraceTiming,
-} from './turn-trace-row.tsx';
+import { TraceDisclosure, TraceLine, TraceRow } from './turn-trace-row.tsx';
 import type {
     TurnTraceCallStep,
     TurnTraceFoldStep,
@@ -19,63 +13,56 @@ import type {
 
 /**
  * One call. A row with evidence opens to it; a row without stays a plain
- * line. A failure opens on its own because it is why someone opened the
- * trace; an image shows what it made in place.
+ * line. A failure tints its row and opens on its own because it is why
+ * someone opened the trace; an image shows what it made in place.
  */
 export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
     const { status, timing, tool } = step;
     const mark = traceMark(tool.kind, status, tool.image?.media ?? null);
     // Settled bookkeeping reads as Haus upkeep: the muted Haus mark, not the tool's.
     const isQuiet = tool.isBookkeeping && (status === 'completed' || status === 'running');
-    const line = (
-        <TraceLine
-            detail={tool.target?.dir || null}
-            icon={isQuiet ? Task01Icon : mark.icon}
-            isQuiet={isQuiet}
-            isRunning={timing.isRunning}
-            label={step.label}
-            meta={tool.extraCommands > 0 ? `+${tool.extraCommands} more` : null}
-            tone={mark.tone}
-        />
-    );
-    const columns = (
-        <TraceTiming
-            bars={[
-                {
-                    lane: step.parallel,
-                    timing,
-                    tone: step.parallel && status === 'completed' ? 'parallel' : status,
-                },
-            ]}
-            timing={timing}
-        />
-    );
+    const cells = {
+        bars: [
+            {
+                kind: isQuiet ? 'quiet' : 'tool',
+                lane: step.parallel,
+                status,
+                timing,
+            } satisfies TraceBar,
+        ],
+        line: (
+            <TraceLine
+                detail={tool.target?.dir || null}
+                icon={isQuiet ? Task01Icon : mark.icon}
+                isQuiet={isQuiet}
+                isRunning={timing.isRunning}
+                label={step.label}
+                meta={tool.extraCommands > 0 ? `+${tool.extraCommands} more` : null}
+                tone={mark.tone}
+            />
+        ),
+        timing,
+        tone: status === 'failed' ? ('danger' as const) : ('default' as const),
+    };
 
     if (tool.image && status !== 'failed') {
         return (
             <div className="grid min-w-0 grid-cols-[minmax(0,1fr)]">
-                <TraceRow timing={columns}>
-                    <TraceShimmer isRunning={timing.isRunning}>{line}</TraceShimmer>
-                </TraceRow>
-                <TurnTraceImagePreview image={tool.image} />
+                <TraceRow {...cells} />
+                <TraceBody>
+                    <TurnTraceImagePreview image={tool.image} />
+                </TraceBody>
             </div>
         );
     }
     if (!hasCallBody(tool)) {
-        return (
-            <TraceRow timing={columns}>
-                <TraceShimmer isRunning={timing.isRunning}>{line}</TraceShimmer>
-            </TraceRow>
-        );
+        return <TraceRow {...cells} />;
     }
     return (
-        <TraceDisclosure
-            defaultExpanded={status === 'failed'}
-            isRunning={timing.isRunning}
-            line={line}
-            timing={columns}
-        >
-            <TurnTraceCallBody tool={tool} />
+        <TraceDisclosure {...cells} defaultExpanded={status === 'failed'}>
+            <TraceBody>
+                <TurnTraceCallBody tool={tool} />
+            </TraceBody>
         </TraceDisclosure>
     );
 }
@@ -86,17 +73,18 @@ export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
  */
 export function TraceFoldStep({ step }: { step: TurnTraceFoldStep }) {
     const mark = traceMark(step.toolKind, step.status);
-    const bars = step.isParallel
+    const bars: TraceBar[] = step.isParallel
         ? step.members.map((member) => ({
+              kind: 'tool',
               lane: member.parallel,
+              status: member.status === 'running' ? 'running' : 'completed',
               timing: member.timing,
-              tone: member.status === 'running' ? ('running' as const) : ('parallel' as const),
           }))
-        : [{ lane: step.parallel, timing: step.timing, tone: step.status }];
+        : [{ kind: 'tool', lane: step.parallel, status: step.status, timing: step.timing }];
 
     return (
         <TraceDisclosure
-            isRunning={step.timing.isRunning}
+            bars={bars}
             line={
                 <TraceLine
                     icon={mark.icon}
@@ -106,7 +94,7 @@ export function TraceFoldStep({ step }: { step: TurnTraceFoldStep }) {
                     tone={mark.tone}
                 />
             }
-            timing={<TraceTiming bars={bars} timing={step.timing} />}
+            timing={step.timing}
         >
             <TraceMembers members={step.members} />
         </TraceDisclosure>
@@ -117,7 +105,11 @@ export function TraceFoldStep({ step }: { step: TurnTraceFoldStep }) {
 export function TraceHausStep({ step }: { step: TurnTraceHausStep }) {
     return (
         <TraceDisclosure
-            isRunning={step.timing.isRunning}
+            bars={step.members.map((member) => ({
+                kind: 'quiet',
+                status: member.status,
+                timing: member.timing,
+            }))}
             line={
                 <TraceLine
                     icon={Task01Icon}
@@ -127,38 +119,27 @@ export function TraceHausStep({ step }: { step: TurnTraceHausStep }) {
                     meta={`${step.members.length} steps`}
                 />
             }
-            timing={<TraceTiming bars={[]} timing={step.timing} />}
+            timing={step.timing}
         >
             <TraceMembers members={step.members} />
         </TraceDisclosure>
     );
 }
 
+/** A fold's members: rows one depth in, on the same columns as the fold. */
 function TraceMembers({ members }: { members: readonly TurnTraceCallStep[] }) {
     return (
-        <TraceStack>
-            {members.map((member) => (
-                <ChainOfThought.Step key={member.key}>
-                    <TraceCallStep step={member} />
-                </ChainOfThought.Step>
-            ))}
-        </TraceStack>
+        <TraceNested>
+            <TraceStack>
+                {members.map((member) => (
+                    <TraceCallStep key={member.key} step={member} />
+                ))}
+            </TraceStack>
+        </TraceNested>
     );
 }
 
-/**
- * Steps inside an opened row. The row's body edge already anchors them, so
- * they stack on its label column with no second rail and no second indent.
- */
+/** A list of rows. Rows carry their own 32px line, so the list adds only a hairline gap. */
 export function TraceStack({ children }: { children: React.ReactNode }) {
-    return <div className="grid min-w-0 gap-1">{children}</div>;
-}
-
-/**
- * The trace's one top-level rail: stock ChainOfThought steps. Rows carry
- * their own 32px line, so the rail tightens its stock step gap the way the
- * ChainOfThought agent-trace example does.
- */
-export function TraceRail({ children }: { children: React.ReactNode }) {
-    return <ChainOfThought.Steps className="min-w-0 gap-1">{children}</ChainOfThought.Steps>;
+    return <div className="grid min-w-0 gap-px">{children}</div>;
 }

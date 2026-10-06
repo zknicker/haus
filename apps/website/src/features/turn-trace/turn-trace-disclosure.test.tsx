@@ -20,7 +20,7 @@ test('every row with evidence is a real button that states whether it is open', 
         })
     );
 
-    const triggers = markup.match(/<button[^>]*chain-of-thought__trigger[^>]*>/g) ?? [];
+    const triggers = markup.match(/<button[^>]*data-trace-row[^>]*>/g) ?? [];
     assert.equal(triggers.length, 2);
     for (const trigger of triggers) {
         assert.match(trigger, /aria-expanded="false"/);
@@ -151,11 +151,11 @@ test('a turn row reopens on the same transition it closes with', () => {
     assert.match(retained, /data-turn-trace="true"><div/);
 });
 
-test('the theme keeps stock ChatTool section labels out of all caps', () => {
+test('the theme sets stock ChatTool section labels on the trace micro-label tier', () => {
     assert.doesNotMatch(theme, /\.accordion--activity-history \.accordion__indicator/);
     assert.match(
         theme,
-        /\.chat-tool__args-label,\s*\.chat-tool__result-label \{[^}]*text-transform: none;/
+        /\.chat-tool__args-label,\s*\.chat-tool__result-label,\s*\.chat-tool__error-label \{\s*font-size: var\(--text-xs\);/
     );
 });
 

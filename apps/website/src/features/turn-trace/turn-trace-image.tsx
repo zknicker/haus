@@ -17,7 +17,7 @@ export function TurnTraceImagePreview({ image }: { image: TurnTraceImage }) {
     const previewable = image.media === 'image' && image.workspacePath !== null && workspace;
 
     return (
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] justify-items-start gap-1.5 ps-5.5 pb-2">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] justify-items-start gap-1.5">
             {previewable ? (
                 <WorkspaceImage
                     image={image}

@@ -1,4 +1,3 @@
-import { ChainOfThought } from '@heroui-pro/react';
 import { BrainIcon, BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence } from 'motion/react';
 import * as React from 'react';
@@ -7,36 +6,30 @@ import {
     TraceCallStep,
     TraceFoldStep,
     TraceHausStep,
-    TraceRail,
     TraceStack,
 } from './turn-trace-call-steps.tsx';
+import { TraceBody, TraceNested, traceTextInset, useTraceDepthStyle } from './turn-trace-grid.tsx';
 import { TurnTraceReasoning } from './turn-trace-reasoning.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
-import {
-    TraceDisclosure,
-    TraceLine,
-    TraceRow,
-    TraceShimmer,
-    TraceTiming,
-} from './turn-trace-row.tsx';
+import { TraceDisclosure, TraceLine, TraceRow } from './turn-trace-row.tsx';
 import type { TurnTraceStep, TurnTraceThoughtStep } from './turn-trace-step-types.ts';
 import { TraceSubagentStep } from './turn-trace-subagent-step.tsx';
 
 /**
- * The trace's steps on one rail, in order. A step a live turn adds grows into
- * place; a reasoning title the Agent wrote before a step rides it as a caption.
+ * The trace's steps on one grid, in order. A step a live turn adds fades and
+ * rises into place; a reasoning title the Agent wrote before a step rides it
+ * as a caption. Nested steps (a sub-agent's own calls) sit one depth in on
+ * the same columns.
  */
 export function TurnTraceSteps({
     isNested = false,
     steps,
 }: {
-    /** Inside an opened row, whose body edge anchors the steps instead of a rail. */
     isNested?: boolean;
     steps: readonly TurnTraceStep[];
 }) {
-    const List = isNested ? TraceStack : TraceRail;
-    return (
-        <List>
+    const list = (
+        <TraceStack>
             <AnimatePresence initial={false}>
                 {steps.map((step) => (
                     <TurnTraceReveal
@@ -50,8 +43,9 @@ export function TurnTraceSteps({
                     </TurnTraceReveal>
                 ))}
             </AnimatePresence>
-        </List>
+        </TraceStack>
     );
+    return isNested ? <TraceNested>{list}</TraceNested> : list;
 }
 
 function TurnTraceStepView({ step }: { step: TurnTraceStep }) {
@@ -75,20 +69,23 @@ function TurnTraceStepView({ step }: { step: TurnTraceStep }) {
                 <TurnTraceReasoning
                     isStreaming={step.isStreaming}
                     reasoning={step.reasoning}
-                    timing={<TraceTiming bars={[]} timing={step.timing} />}
+                    timing={step.timing}
                 />
             );
         case 'thought':
             return <TraceThoughtStep step={step} />;
         case 'event':
             return (
-                <TraceRow>
-                    <TraceLine
-                        icon={BubbleChatIcon}
-                        isQuiet
-                        label={formatAgentActivityEvent(step.event)}
-                    />
-                </TraceRow>
+                <TraceRow
+                    bars={[]}
+                    line={
+                        <TraceLine
+                            icon={BubbleChatIcon}
+                            isQuiet
+                            label={formatAgentActivityEvent(step.event)}
+                        />
+                    }
+                />
             );
         default:
             return null;
@@ -108,56 +105,63 @@ function TraceThoughtStep({ step }: { step: TurnTraceThoughtStep }) {
         />
     );
     if (earlier.length === 0) {
-        return (
-            <TraceRow>
-                <TraceShimmer isRunning={step.isStreaming}>{line}</TraceShimmer>
-            </TraceRow>
-        );
+        return <TraceRow bars={[]} line={line} />;
     }
     return (
-        <TraceDisclosure isRunning={step.isStreaming} line={line}>
-            <ThoughtList thoughts={earlier} />
+        <TraceDisclosure bars={[]} line={line}>
+            <TraceBody>
+                <ThoughtList thoughts={earlier} />
+            </TraceBody>
         </TraceDisclosure>
     );
 }
 
 /**
  * The reasoning titles the Agent wrote before a step, as that step's muted
- * caption. Several read as the latest one; the earlier ones are a press away,
- * at the same weight. The step's children keep one position whether or not a
- * caption is present: a live fold that gains a captioned member must not
- * remount its row, or the row forgets it was open.
+ * caption on its label text. Several read as the latest one; the earlier ones
+ * are a press away, at the same weight. The step's children keep one position
+ * whether or not a caption is present: a live fold that gains a captioned
+ * member must not remount its row, or the row forgets it was open.
  */
 function CaptionedStep({ children, step }: { children: React.ReactNode; step: TurnTraceStep }) {
     const [expanded, setExpanded] = React.useState(false);
     const listId = React.useId();
+    const depthStyle = useTraceDepthStyle();
     // A thought step is its own caption.
     const caption = step.kind === 'thought' ? null : step.caption;
     const earlier = caption ? step.thoughts.slice(0, -1) : [];
 
     return (
-        <ChainOfThought.Step
-            label={
-                caption && earlier.length > 0 ? (
-                    <button
-                        aria-controls={listId}
-                        aria-expanded={expanded}
-                        className="cursor-(--cursor-interactive) text-left hover:text-foreground"
-                        onClick={() => setExpanded((current) => !current)}
-                        type="button"
-                    >
-                        {`${caption} · ${step.thoughts.length} thoughts`}
-                    </button>
-                ) : (
-                    caption
-                )
-            }
-        >
-            {earlier.length > 0 ? (
-                <ThoughtList hidden={!expanded} id={listId} thoughts={earlier} />
+        <div className="grid min-w-0">
+            {caption ? (
+                <div
+                    className="grid min-w-0 justify-items-start gap-0.5 pe-2 pt-1 text-muted text-sm"
+                    data-trace-caption
+                    style={{
+                        ...depthStyle,
+                        paddingInlineStart: traceTextInset,
+                    }}
+                >
+                    {earlier.length > 0 ? (
+                        <button
+                            aria-controls={listId}
+                            aria-expanded={expanded}
+                            className="cursor-(--cursor-interactive) text-left hover:text-foreground"
+                            onClick={() => setExpanded((current) => !current)}
+                            type="button"
+                        >
+                            {`${caption} · ${step.thoughts.length} thoughts`}
+                        </button>
+                    ) : (
+                        <span>{caption}</span>
+                    )}
+                    {earlier.length > 0 ? (
+                        <ThoughtList hidden={!expanded} id={listId} thoughts={earlier} />
+                    ) : null}
+                </div>
             ) : null}
             {children}
-        </ChainOfThought.Step>
+        </div>
     );
 }
 

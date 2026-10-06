@@ -5,9 +5,9 @@ import { springs } from '../../lib/springs.ts';
 /**
  * How trace content arrives: its height opens on the shared no-bounce spring
  * so whatever sits below slides rather than jumps, and the content fades in
- * with it on the transcript's step-entrance curve (`.chat-step-enter`, 180ms).
- * A delayed fade left an empty box open for a beat. Nothing moves or scales;
- * reduced motion places it at once.
+ * with it on the transcript's step-entrance curve (`.chat-step-enter`, 180ms)
+ * while rising a few pixels into place. A delayed fade left an empty box open
+ * for a beat. Nothing scales; reduced motion places it at once.
  */
 export function turnTraceRevealTransition(reducedMotion: boolean | null): Transition {
     if (reducedMotion) {
@@ -16,6 +16,7 @@ export function turnTraceRevealTransition(reducedMotion: boolean | null): Transi
     return {
         height: springs.drawer,
         opacity: { duration: 0.18, ease: [0.23, 1, 0.32, 1] },
+        y: { duration: 0.26, ease: [0.22, 1, 0.36, 1] },
     };
 }
 
@@ -38,10 +39,10 @@ export function TurnTraceReveal({
 
     return (
         <motion.div
-            animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
+            animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' }, y: 0 }}
             className={className}
             // Clipped only while it grows, so a settled row keeps its focus ring.
-            initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+            initial={{ height: 0, opacity: 0, overflow: 'hidden', y: 6 }}
             transition={turnTraceRevealTransition(reducedMotion)}
             {...props}
         >

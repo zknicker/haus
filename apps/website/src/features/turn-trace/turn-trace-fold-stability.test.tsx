@@ -64,10 +64,7 @@ test('a call appended to a fold keeps the fold row, and its open state, mounted'
     expect(find(container, (node) => readAttribute(node, 'data-trace-anchor') !== null)).toBe(
         anchor
     );
-    const trigger = find(
-        container,
-        (node) => readAttribute(node, 'data-slot') === 'chain-of-thought'
-    );
+    const trigger = find(container, (node) => readAttribute(node, 'data-slot') === 'disclosure');
     expect(trigger).not.toBeNull();
 
     await act(() =>
@@ -77,7 +74,7 @@ test('a call appended to a fold keeps the fold row, and its open state, mounted'
         )
     );
     expect(container.textContent).toContain('Checking the last file');
-    expect(find(container, (node) => readAttribute(node, 'data-slot') === 'chain-of-thought')).toBe(
+    expect(find(container, (node) => readAttribute(node, 'data-slot') === 'disclosure')).toBe(
         trigger
     );
     await act(() => root?.unmount());

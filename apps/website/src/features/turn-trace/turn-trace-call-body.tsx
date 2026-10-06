@@ -1,5 +1,5 @@
 import { ChatTool } from '@heroui-pro/react/chat-tool';
-import { TurnTraceNote } from './turn-trace-blocks.tsx';
+import { TraceMicroLabel, TurnTraceNote } from './turn-trace-blocks.tsx';
 import type { TurnTraceError } from './turn-trace-error.ts';
 import { TurnTraceToolBody } from './turn-trace-tool-bodies.tsx';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
@@ -21,7 +21,9 @@ import {
 export function TurnTraceCallBody({ tool }: { tool: TurnTraceTool }) {
     return (
         <>
-            {tool.failure ? <TraceFailure failure={readCallFailure(tool, tool.failure)} /> : null}
+            {tool.failure ? (
+                <TraceErrorSection failure={readCallFailure(tool, tool.failure)} />
+            ) : null}
             <TurnTraceToolBody tool={tool} />
             {tool.preliminary === undefined ? null : (
                 <ChatTool.Result
@@ -31,6 +33,16 @@ export function TurnTraceCallBody({ tool }: { tool: TurnTraceTool }) {
             )}
             {tool.interruption ? <TurnTraceNote>{tool.interruption}</TurnTraceNote> : null}
         </>
+    );
+}
+
+/** Why a call or sub-agent failed, under the body's one section label. */
+export function TraceErrorSection({ failure }: { failure: TurnTraceError }) {
+    return (
+        <section className="grid min-w-0 gap-1">
+            <TraceMicroLabel>Error</TraceMicroLabel>
+            <TraceFailure failure={failure} />
+        </section>
     );
 }
 

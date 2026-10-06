@@ -1,9 +1,13 @@
-import { CommandLineIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type * as React from 'react';
-import { TurnTraceCode, TurnTraceFact } from './turn-trace-blocks.tsx';
+import { Disclosure } from '@heroui/react';
+import * as React from 'react';
+import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
+import {
+    TraceMicroLabel,
+    TraceSection,
+    TurnTraceCode,
+    TurnTraceFact,
+} from './turn-trace-blocks.tsx';
 import type { HausMessage } from './turn-trace-haus-command.ts';
-import { TurnTraceMarkdown } from './turn-trace-reasoning.tsx';
-import { TraceDisclosure, TraceLine } from './turn-trace-row.tsx';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 import { clampTraceText, readShellOutput } from './turn-trace-values.ts';
 
@@ -29,12 +33,18 @@ export function ShellBody({ tool }: { tool: TurnTraceTool }) {
  */
 function HausMessageBody({ message, tool }: { message: HausMessage; tool: TurnTraceTool }) {
     const place = message.place ? `${message.place}${message.isThread ? ' thread' : ''}` : null;
+    const body = message.body?.trim() ? clampTraceText(message.body).text : null;
     return (
         <>
             {place ? <TurnTraceFact label="To" value={place} /> : null}
             {/* No readable body (a saved draft, a piped echo): the Command still has it. */}
-            {message.body?.trim() ? (
-                <TurnTraceMarkdown content={clampTraceText(message.body).text} tone="foreground" />
+            {body ? (
+                <TraceSection label="Message">
+                    <ReferenceMarkdown
+                        className="chat-markdown text-foreground text-sm"
+                        content={body}
+                    />
+                </TraceSection>
             ) : null}
             <CommandDisclosure>
                 <ShellEvidence tool={tool} />
@@ -43,12 +53,26 @@ function HausMessageBody({ message, tool }: { message: HausMessage; tool: TurnTr
     );
 }
 
-/** The raw command and what it printed, one quiet press away. */
+/**
+ * The raw command and what it printed, one quiet press away: a stock
+ * Disclosure whose trigger is the section's own micro label, so evidence
+ * behind it never reads as one more row of the trace.
+ */
 function CommandDisclosure({ children }: { children: React.ReactNode }) {
+    // Mounted on first open, like a row's body: closed evidence is not in the page.
+    const [opened, setOpened] = React.useState(false);
     return (
-        <TraceDisclosure line={<TraceLine icon={CommandLineIcon} isQuiet label="Command" />}>
-            {children}
-        </TraceDisclosure>
+        <Disclosure onExpandedChange={(next) => next && setOpened(true)}>
+            <Disclosure.Heading>
+                <Disclosure.Trigger className="flex items-center gap-1 text-muted">
+                    <TraceMicroLabel>Command</TraceMicroLabel>
+                    <Disclosure.Indicator />
+                </Disclosure.Trigger>
+            </Disclosure.Heading>
+            <Disclosure.Content>
+                {opened ? <div className="grid min-w-0 gap-2 pt-1">{children}</div> : null}
+            </Disclosure.Content>
+        </Disclosure>
     );
 }
 

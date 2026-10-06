@@ -36,28 +36,34 @@ test('TurnTrace does not flash a loading label or semantic replacement while the
     assert.doesNotMatch(markup, /Loading|Started work|No activity/);
 });
 
-test('reasoning reads inline on the rail, with no disclosure, even before the first tool', () => {
+test('reasoning reads inline as a row, with no disclosure, even before the first tool', () => {
     const markup = renderJournal({
         ...journal([]),
         reasoning: [{ id: 'thinking', startedAt: at(1), text: 'Inspecting the delivery queue.' }],
         status: 'running',
     });
 
-    assert.match(markup, /chain-of-thought__steps/);
+    assert.match(markup, /data-trace-row/);
     assert.match(markup, /Inspecting the delivery queue/);
     assert.doesNotMatch(markup, /aria-expanded/);
 });
 
-test('the trace is one rail of borderless rows with totals stated once', () => {
+test('the trace is one grid of borderless rows with totals stated once, in its footer', () => {
     const markup = renderJournal(complexTurn);
 
-    // Stock ChainOfThought rail, not a stack of bordered ChatTool cards.
-    assert.match(markup, /chain-of-thought__steps/);
+    // Rows on the trace grid, not a stack of bordered ChatTool cards.
+    assert.match(markup, /data-trace-row/);
     assert.doesNotMatch(markup, /class="chat-tool\b/);
-    assert.match(markup, /1m 25s · 12 calls · 3 sub-agents/);
-    assert.match(markup, /<span class="text-danger">[^<]*3 failed<\/span>/);
+    const footer = markup.slice(markup.indexOf('data-trace-footer'));
+    assert.match(footer, /data-trace-stat="Calls"[\s\S]*?>12<\/dd>/);
+    assert.match(footer, /data-trace-stat="Sub-agents"[\s\S]*?>3<\/dd>/);
+    assert.match(footer, /data-trace-stat="Failed"[\s\S]*?text-danger[^"]*">3<\/dd>/);
+    assert.match(footer, /data-trace-stat="Done"[\s\S]*?>1m 25s<\/dd>/);
     // Durations sit in one right-aligned tabular column; a sub-second leaf states none.
-    assert.match(markup, /w-14 text-end text-muted text-sm tabular-nums">19s</);
+    assert.match(
+        markup,
+        /class="whitespace-nowrap text-end text-muted text-sm tabular-nums" data-trace-cell="duration">19s</
+    );
     assert.doesNotMatch(markup, />\d+ms</);
 });
 
@@ -71,7 +77,7 @@ test('steps are tab stops only when they open to something', () => {
 
     const buttons = markup.match(/<button[^>]*>/g) ?? [];
     assert.equal(buttons.length, 1);
-    assert.match(buttons[0] ?? '', /chain-of-thought__trigger/);
+    assert.match(buttons[0] ?? '', /data-trace-row/);
     assert.match(buttons[0] ?? '', /aria-expanded="false"/);
     // The bare call is still a row, just not a control.
     assert.match(markup, /Used mystery_tool/);
@@ -141,7 +147,7 @@ test('an image step without a readable workspace copy names its file and prompt'
 test('reasoning titles ride the next step as its caption, earlier ones a press away', () => {
     const markup = renderJournal(codexFailureTurn);
 
-    assert.match(markup, /chain-of-thought__step-label[^>]*>Running five parallel exec commands</);
+    assert.match(markup, /data-trace-caption[^>]*><span>Running five parallel exec commands</);
     assert.match(
         markup,
         /<button[^>]*aria-expanded="false"[^>]*>Testing Bing search access · 2 thoughts/
@@ -172,7 +178,7 @@ test('a live trace ticks: the running step and the totals re-derive from the clo
     assert.doesNotMatch(settled, /text-shimmer/);
 });
 
-test('the drawer states the outcome once: the chip leads the trace totals, never a second count', () => {
+test('the drawer states the outcome once: the chip leads the trace, the footer holds the totals', () => {
     const outcome = settledTurn();
     const withSteps = renderToStaticMarkup(
         <TurnTracePresentation
@@ -189,7 +195,7 @@ test('the drawer states the outcome once: the chip leads the trace totals, never
         />
     );
     assert.equal(withSteps.match(/>Completed</g)?.length, 1);
-    assert.match(withSteps, /2 calls/);
+    assert.match(withSteps, /data-trace-stat="Calls"[\s\S]*?>2<\/dd>/);
     assert.doesNotMatch(withSteps, /Completed in|tool call|message/);
 
     // No steps to total: the turn's own record says how it went.

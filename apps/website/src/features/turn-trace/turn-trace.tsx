@@ -18,7 +18,7 @@ import {
 } from '../members/agent-profile/agent-activity-turns.ts';
 import { TurnTraceNote } from './turn-trace-blocks.tsx';
 import { TraceFailure } from './turn-trace-call-body.tsx';
-import { formatTraceDuration } from './turn-trace-duration.ts';
+import { TurnTraceFooter } from './turn-trace-footer.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
 import { TurnTraceScopeProvider, type TurnTraceWorkspace } from './turn-trace-scope.tsx';
 import { TurnTraceScroll } from './turn-trace-scroll.tsx';
@@ -133,19 +133,14 @@ export function TurnTracePresentation({
                 ) : (
                     // The relay answers after the row or drawer has opened, so the
                     // trace grows into place instead of landing at full height.
-                    <TurnTraceReveal className="grid min-w-0 gap-1">
-                        {outcome ? (
-                            <TurnTraceOutcome turn={outcome}>
-                                <TurnTraceTotals view={view} />
-                            </TurnTraceOutcome>
-                        ) : (
-                            <TurnTraceTotals view={view} />
-                        )}
+                    <TurnTraceReveal className="grid min-w-0 gap-2">
+                        {outcome ? <TurnTraceOutcome turn={outcome} /> : null}
                         <TurnTraceScopeProvider scope={{ axisMs: readAxis(view), workspace }}>
                             <TurnTraceScroll>
                                 <TurnTraceSteps steps={view.steps} />
                             </TurnTraceScroll>
                         </TurnTraceScopeProvider>
+                        <TurnTraceFooter totals={view.totals} />
                     </TurnTraceReveal>
                 )}
                 {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
@@ -166,12 +161,12 @@ function TurnTraceError({ error }: { error: NonNullable<TurnTraceView['error']> 
     );
 }
 
-/** How the turn ended, beside the one line that says how long and how much. */
+/** How the turn ended; with no steps, beside the turn's own record of how it went. */
 function TurnTraceOutcome({
     children,
     turn,
 }: {
-    children: React.ReactNode;
+    children?: React.ReactNode;
     turn: AgentActivityTurn;
 }) {
     const phase = getActivityTurnPhase(turn);
@@ -183,34 +178,6 @@ function TurnTraceOutcome({
             {children}
         </div>
     );
-}
-
-/** The trace's totals, stated once: how long, how much, and what went wrong. */
-function TurnTraceTotals({ view }: { view: TurnTraceView }) {
-    const { totals } = view;
-    const duration = formatTraceDuration(totals.durationMs, { isRunning: totals.isRunning });
-    const facts = [
-        totals.isRunning ? `Working${duration ? ` for ${duration}` : ''}` : duration,
-        plural(totals.calls, 'call'),
-        plural(totals.subagents, 'sub-agent'),
-        plural(totals.images, 'image'),
-    ].filter((fact): fact is string => Boolean(fact));
-
-    return (
-        <p className="text-muted text-sm tabular-nums">
-            {facts.join(' · ')}
-            {totals.failed > 0 ? (
-                <span className="text-danger">{`${facts.length > 0 ? ' · ' : ''}${totals.failed} failed`}</span>
-            ) : null}
-        </p>
-    );
-}
-
-function plural(count: number, noun: string): string | null {
-    if (count === 0) {
-        return null;
-    }
-    return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 /** Every bar's scale: the turn's wall time, widened to any step that outlasts it. */
