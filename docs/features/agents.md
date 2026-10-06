@@ -98,7 +98,7 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   it also names the pending choice and when it applies, or notes that it needs attention.
   A paused Agent's preview reads **Paused** and opens with a red edge-to-edge banner,
   "Paused after repeated failures", saying when Haus retries ("Retrying in …. Send a message or
-  restart to try now.", or "Retrying now…" while the probe runs). The profile names the last error;
+  restart this agent from its profile.", or "Retrying now…" while the probe runs). The profile names the last error;
   the preview does not. A sign-in issue outranks the banner, as on the profile.
 - Automations is where the cause line on an Agent's message leads: pressing it
   opens the owning Agent's Automations tab. See [Chat](chat.md#in-the-box) for the

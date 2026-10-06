@@ -46,13 +46,13 @@ test('the retry phrase reads the next automatic try as relative time', () => {
 test('the hover banner line says when the retry lands and how to try now', () => {
     expect(wakePauseBannerDescription(null, now)).toBe('Retrying now…');
     expect(wakePauseBannerDescription('2026-10-06T15:00:00.000Z', now)).toBe(
-        'Retrying in 3 hours. Send a message or restart to try now.'
+        'Retrying in 3 hours. Send a message or restart this agent from its profile.'
     );
     expect(wakePauseBannerDescription('2026-10-06T13:00:00.000Z', now)).toBe(
-        'Retrying in an hour. Send a message or restart to try now.'
+        'Retrying in an hour. Send a message or restart this agent from its profile.'
     );
     expect(wakePauseBannerDescription('2026-10-06T11:00:00.000Z', now)).toBe(
-        'Retrying soon. Send a message or restart to try now.'
+        'Retrying soon. Send a message or restart this agent from its profile.'
     );
 });
 

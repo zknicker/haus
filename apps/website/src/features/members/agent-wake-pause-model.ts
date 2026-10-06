@@ -66,7 +66,7 @@ export function wakePauseBannerDescription(nextProbeAt: string | null, now = Dat
     if (nextProbeAt === null) {
         return 'Retrying now…';
     }
-    return `Retrying ${relativeFuture(nextProbeAt, now) ?? 'soon'}. Send a message or restart to try now.`;
+    return `Retrying ${relativeFuture(nextProbeAt, now) ?? 'soon'}. Send a message or restart this agent from its profile.`;
 }
 
 export function failureCountPhrase(count: number): string {
