@@ -23,8 +23,8 @@ export const manualBehaviorAdaptations = new Map<string, ReadonlyArray<readonly 
                 "cut over on **observed completion**, never on \"I've got it\": the old owner's backstop reminder is cancelled only after the new owner's first real run is evidenced, including its required deliverable or quiet-check checkpoint",
             ],
             [
-                'Counter: reconcile FIRED-log against actual output every wake, not the receipt.',
-                'Counter: reconcile FIRED-log against the agreed outcome every wake, not the receipt; quiet checks need execution evidence, required deliverables need their actual output.',
+                '- **Fire-without-run**: a reminder firing into a restarting/idle agent advances `next` and reads as delivered; the run is silently lost. Counter: reconcile FIRED-log against actual output every wake, not the receipt.',
+                '- **Fire-without-run**: a reminder fires and advances `next`, but its wake may be held while the Agent is stopped, offline, paused or failing. A fire is not evidence of execution. On resume, several held fires from one reminder may arrive together: reconcile them once against the agreed outcome, run the current check once, and backfill missed windows only for required deliverables, labeled as backfill. For quiet checks, save execution evidence and a checkpoint without an all-clear post; do not recreate or duplicate the schedule merely because delivery was held.',
             ],
         ],
     ],

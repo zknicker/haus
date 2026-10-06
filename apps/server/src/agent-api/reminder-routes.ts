@@ -47,8 +47,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
     app.post('/api/agent/reminders/schedule', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
         const parsed = agentReminderScheduleInputSchema.safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => scheduleAgentReminder(db, runner, parsed.data));
     });
@@ -69,8 +72,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
         const parsed = agentReminderCommandSchema
             .extend({ by: z.string().min(1) })
             .safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => snoozeAgentReminder(db, runner, parsed.data));
     });
@@ -78,8 +84,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
     app.post('/api/agent/reminders/update', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
         const parsed = updateSchema.safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => updateAgentReminder(db, runner, parsed.data));
     });
@@ -87,8 +96,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
     app.post('/api/agent/reminders/cancel', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
         const parsed = agentReminderCommandSchema.safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => cancelAgentReminder(db, runner, parsed.data));
     });
@@ -101,8 +113,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
                 limit: z.coerce.number().int().min(1).max(100).default(50),
             })
             .safeParse(request.query);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => readAgentReminderLog(db, runner, parsed.data));
     });
@@ -145,4 +160,11 @@ async function authorizeRunner(db: HausDatabase, request: FastifyRequest) {
 function sendError(reply: FastifyReply, status: number, message: string) {
     const code = status === 401 ? 'MISSING_TOKEN' : 'INVALID_ARG';
     return reply.code(status).send({ code, message });
+}
+
+function reminderValidationMessage(error: z.ZodError) {
+    return `The reminder request was invalid: ${error.issues
+        .slice(0, 5)
+        .map((issue) => `${issue.path.map(String).join('.') || 'request'}: ${issue.message}`)
+        .join('; ')}`;
 }
