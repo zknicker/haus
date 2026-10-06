@@ -1,57 +1,80 @@
-import { formatShellLabel } from './turn-trace-shell-label.ts';
-import type { TurnTraceToolFields } from './turn-trace-tool-model.ts';
+import { basenameOf } from './turn-trace-path.ts';
+import { readShellLabel } from './turn-trace-shell-label.ts';
+import type { TraceLabel } from './turn-trace-tense.ts';
+import type { TurnTraceToolFields } from './turn-trace-tool-fields.ts';
 import { readHostname } from './turn-trace-values.ts';
 
-/** The row verb and target for one classified call; `name` is its wire name. */
-export function formatTraceToolLabel(fields: TurnTraceToolFields, name: string): string {
+/**
+ * The row verb and target for one classified call, in both tenses; `name` is
+ * its wire name. A path target is the file's basename — the directory is the
+ * row's muted `target.dir`, never part of the label.
+ */
+export function formatTraceToolLabel(fields: TurnTraceToolFields, name: string): TraceLabel {
+    const file = fields.path ? basenameOf(fields.path) : null;
     switch (fields.kind) {
         case 'compaction':
-            return 'Compacted the context';
+            return verb('Compacted', 'Compacting', 'the context');
         case 'file-change':
-            return formatFileChangeLabel(fields);
+            return formatFileChangeLabel(fields.changeEvent, file);
         case 'file-edit':
-            return fields.path ? `Edited ${fields.path}` : 'Edited a file';
+            return verb('Edited', 'Editing', file ?? 'a file');
         case 'file-read':
-            return fields.path ? `Read ${fields.path}` : 'Read a file';
+            return verb('Read', 'Reading', file ?? 'a file');
         case 'file-write':
-            return fields.path ? `Wrote ${fields.path}` : 'Wrote a file';
+            return verb('Wrote', 'Writing', file ?? 'a file');
         case 'image':
-            return imageLabels[name.toLowerCase()] ?? 'Generated an image';
+            return imageLabels[name.toLowerCase()] ?? verb('Generated', 'Generating', 'an image');
         case 'mcp':
-            return `Called ${[fields.connection, fields.remoteTool].filter(Boolean).join(' · ')}`;
+            return verb(
+                'Called',
+                'Calling',
+                [fields.connection, fields.remoteTool].filter(Boolean).join(' · ')
+            );
         case 'message':
-            return 'Sent a message';
+            return verb('Sent', 'Sending', 'a message');
         case 'search':
-            return `Searched ${fields.pattern ?? fields.path ?? 'the workspace'}`;
+            return verb('Searched', 'Searching', fields.pattern ?? file ?? 'the workspace');
         case 'shell':
-            return fields.command ? formatShellLabel(fields.command) : 'Ran a command';
+            return fields.command
+                ? readShellLabel(fields.command)
+                : verb('Ran', 'Running', 'a command');
         case 'web':
             return formatWebLabel(fields);
         default:
-            return `Used ${name}`;
+            return verb(
+                'Used',
+                'Using',
+                fields.inputKeys.length > 0 ? `${name} · ${fields.inputKeys.join(', ')}` : name
+            );
     }
 }
 
-const imageLabels: Record<string, string> = {
-    image_edit: 'Edited an image',
-    image_to_video: 'Made a video',
-    reference_to_video: 'Made a video',
-};
-
-const fileChangeVerbs: Record<string, string> = {
-    create: 'Created',
-    delete: 'Deleted',
-    modify: 'Modified',
-};
-
-function formatFileChangeLabel(fields: TurnTraceToolFields): string {
-    const verb = fileChangeVerbs[fields.changeEvent ?? ''] ?? 'Changed';
-    return fields.path ? `${verb} ${fields.path}` : `${verb} a file`;
+function verb(past: string, present: string, target: string): TraceLabel {
+    return { past: `${past} ${target}`, present: `${present} ${target}` };
 }
 
-function formatWebLabel(fields: TurnTraceToolFields): string {
+const imageLabels: Record<string, TraceLabel> = {
+    image_edit: verb('Edited', 'Editing', 'an image'),
+    image_to_video: verb('Made', 'Making', 'a video'),
+    reference_to_video: verb('Made', 'Making', 'a video'),
+};
+
+const fileChangeVerbs: Record<string, readonly [string, string]> = {
+    create: ['Created', 'Creating'],
+    delete: ['Deleted', 'Deleting'],
+    modify: ['Modified', 'Modifying'],
+};
+
+function formatFileChangeLabel(event: string | null, file: string | null): TraceLabel {
+    const [past, present] = fileChangeVerbs[event ?? ''] ?? ['Changed', 'Changing'];
+    return verb(past, present, file ?? 'a file');
+}
+
+function formatWebLabel(fields: TurnTraceToolFields): TraceLabel {
     if (fields.url) {
-        return `Fetched ${readHostname(fields.url)}`;
+        return verb('Fetched', 'Fetching', readHostname(fields.url));
     }
-    return fields.query ? `Searched the web for ${fields.query}` : 'Used the web';
+    return fields.query
+        ? verb('Searched', 'Searching', `the web for ${fields.query}`)
+        : verb('Used', 'Using', 'the web');
 }

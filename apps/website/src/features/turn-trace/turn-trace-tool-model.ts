@@ -1,113 +1,78 @@
 import type { AgentExecutionJournalTool } from '@haus/api';
 import type { ToolPartState } from '@heroui-pro/react/chat-tool';
+import { readFailure, type TurnTraceError } from './turn-trace-error.ts';
+import { readTracePath, type TracePath } from './turn-trace-path.ts';
+import { readShellLabel } from './turn-trace-shell-label.ts';
 import {
     formatSubagentInterruption,
     formatSubagentLabel,
     resolveSubagentStatus,
 } from './turn-trace-subagent.ts';
+import type { TraceLabel } from './turn-trace-tense.ts';
+import {
+    blankToolFields,
+    readToolFields,
+    type TurnTraceToolFields,
+} from './turn-trace-tool-fields.ts';
 import { formatTraceToolLabel } from './turn-trace-tool-label.ts';
-import { readRecord, readString, stableJson } from './turn-trace-values.ts';
+import { readRecord, readString, readTraceText, stableJson } from './turn-trace-values.ts';
 
-export type TurnTraceToolKind =
-    | 'compaction'
-    | 'file-change'
-    | 'file-edit'
-    | 'file-read'
-    | 'file-write'
-    | 'generic'
-    | 'image'
-    | 'mcp'
-    | 'message'
-    | 'search'
-    | 'shell'
-    | 'subagent'
-    | 'web';
+export type { TurnTraceToolFields, TurnTraceToolKind } from './turn-trace-tool-fields.ts';
 
-/** Typed fields parsed out of one journal tool's runtime-shaped input. */
-export interface TurnTraceToolFields {
-    readonly changeEvent: string | null;
-    readonly command: string | null;
-    readonly connection: string | null;
-    readonly content: string | null;
-    readonly kind: TurnTraceToolKind;
-    readonly newText: string | null;
-    readonly oldText: string | null;
-    readonly path: string | null;
-    readonly pattern: string | null;
-    readonly query: string | null;
-    readonly remoteTool: string | null;
-    readonly replaceAll: boolean;
-    readonly url: string | null;
+/**
+ * A call's settled outcome. `warning` is a sub-agent that completed while one
+ * of its own calls failed: done, but not cleanly.
+ */
+export type TurnTraceStatus = 'completed' | 'failed' | 'interrupted' | 'running' | 'warning';
+
+/** A generated image or video: the workspace file a preview reads, and the prompt behind it. */
+export interface TurnTraceImage {
+    readonly file: TracePath | null;
+    readonly media: 'image' | 'video';
+    readonly prompt: string | null;
+    /** Workspace-relative (`generated-images/…`), readable through `agent.workspaceFile`; null when only a host path exists. */
+    readonly workspacePath: string | null;
 }
 
 export interface TurnTraceTool extends TurnTraceToolFields {
     /** A sub-agent's own calls, in order; empty for every other kind. */
     readonly children: readonly TurnTraceTool[];
     readonly error: unknown;
+    /** Other commands a compound shell script ran beyond the one its label names. */
+    readonly extraCommands: number;
+    /** Failed calls anywhere under a sub-agent. */
+    readonly failedChildCount: number;
+    /** The error as a person reads it; null unless the call failed. */
+    readonly failure: TurnTraceError | null;
+    readonly image: TurnTraceImage | null;
     /** Stopped by the turn ending, not by failing: rendered calm, never as an error. */
     readonly interrupted: boolean;
     readonly interruption: string | null;
+    /** Haus CLI calls and MEMORY.md upkeep: the Agent's bookkeeping, not its work. */
+    readonly isBookkeeping: boolean;
+    /** The label in the call's own tense: present while it runs. */
     readonly label: string;
+    readonly labels: TraceLabel;
     readonly output: unknown;
     readonly preliminary: unknown;
+    /** A finished sub-agent's report, model-authored markdown. */
+    readonly report: string | null;
+    /** A shell call's script lines outside heredoc bodies; 0 for every other kind. */
+    readonly scriptLines: number;
     readonly source: AgentExecutionJournalTool;
     readonly state: ToolPartState;
+    readonly status: TurnTraceStatus;
+    /** The file a call is about, filename first. */
+    readonly target: TracePath | null;
 }
-
-const blankFields = {
-    changeEvent: null,
-    command: null,
-    connection: null,
-    content: null,
-    newText: null,
-    oldText: null,
-    path: null,
-    pattern: null,
-    query: null,
-    remoteTool: null,
-    replaceAll: false,
-    url: null,
-} as const;
-
-/**
- * Wire names, lowercased. `compaction` and `filechange` are the reserved names
- * the AI SDK harness projects its own runtime events under; they carry no
- * result worth a generic dump.
- */
-const toolKindsByName: Record<string, TurnTraceToolKind> = {
-    bash: 'shell',
-    browser: 'web',
-    command: 'shell',
-    compaction: 'compaction',
-    filechange: 'file-change',
-    edit: 'file-edit',
-    exec: 'shell',
-    glob: 'search',
-    grep: 'search',
-    // Codex and Grok Build native media tools (Computer `generated-images.ts`).
-    image_edit: 'image',
-    image_gen: 'image',
-    image_to_video: 'image',
-    message: 'message',
-    multiedit: 'file-edit',
-    read: 'file-read',
-    reference_to_video: 'image',
-    send_message: 'message',
-    shell: 'shell',
-    terminal: 'shell',
-    web_fetch: 'web',
-    web_search: 'web',
-    webfetch: 'web',
-    websearch: 'web',
-    write: 'file-write',
-    zsh: 'shell',
-};
 
 const interruptionReasons: Record<string, string> = {
     computer_restart: 'the Computer restarted',
     stream_abort: 'the run was stopped',
     stream_error: 'the execution stream failed',
 };
+
+const memoryFile = 'MEMORY.md';
 
 export function classifyTraceTool(
     tool: AgentExecutionJournalTool,
@@ -116,26 +81,72 @@ export function classifyTraceTool(
     const name = tool.toolName.trim();
     // A call is a sub-agent by what the runtime reported, never by its wire name.
     const isSubagent = tool.subagent !== undefined || children.length > 0;
-    const interrupted = resolveSubagentStatus(tool) === 'interrupted';
+    const runStatus = resolveSubagentStatus(tool);
     const fields: TurnTraceToolFields = isSubagent
-        ? { ...blankFields, kind: 'subagent' }
+        ? { ...blankToolFields, kind: 'subagent' }
         : readToolFields(name, readRecord(tool.input) ?? {});
+    const shell = fields.kind === 'shell' && fields.command ? readShellLabel(fields.command) : null;
+    const labels = isSubagent ? readSubagentLabels(tool) : formatTraceToolLabel(fields, name);
+    const failedChildCount = countFailedChildren(tool, children);
+    const output = resolveTraceOutput(tool);
+    const error = resolveTraceError(tool);
+    const target = fields.path ? readTracePath(fields.path) : null;
 
     return {
         ...fields,
         children,
-        error: resolveTraceError(tool),
-        interrupted,
-        interruption:
-            formatInterruption(tool) ??
-            (isSubagent ? formatSubagentInterruption(tool) : null) ??
-            (interrupted ? 'The call stopped before it finished.' : null),
-        label: isSubagent ? formatSubagentLabel(tool) : formatTraceToolLabel(fields, name),
-        output: resolveTraceOutput(tool),
+        error,
+        extraCommands: shell?.extraCommands ?? 0,
+        failedChildCount,
+        failure: runStatus === 'failed' ? readFailure(tool.failure, error) : null,
+        image: fields.kind === 'image' ? readImage(name, tool.input, output) : null,
+        interrupted: runStatus === 'interrupted',
+        interruption: readInterruption(tool, isSubagent),
+        isBookkeeping:
+            (shell?.isHausOnly ?? false) || fields.kind === 'message' || isMemoryFile(target),
+        label: runStatus === 'running' ? labels.present : labels.past,
+        labels,
+        output,
         preliminary: resolveTracePreliminary(tool),
+        scriptLines: shell?.lines ?? 0,
+        report: isSubagent && runStatus === 'completed' ? readTraceText(output) : null,
         source: tool,
         state: resolveToolPartState(tool),
+        status: runStatus === 'completed' && failedChildCount > 0 ? 'warning' : runStatus,
+        target,
     };
+}
+
+/**
+ * Computer counts a sub-agent's failed calls when it serves the journal; the
+ * nested children are the fallback for hand-built or older evidence.
+ */
+function countFailedChildren(
+    tool: AgentExecutionJournalTool,
+    children: readonly TurnTraceTool[]
+): number {
+    return (
+        tool.subagent?.failedToolCount ??
+        children.reduce(
+            (count, child) => count + child.failedChildCount + (child.status === 'failed' ? 1 : 0),
+            0
+        )
+    );
+}
+
+function readInterruption(tool: AgentExecutionJournalTool, isSubagent: boolean): string | null {
+    return (
+        formatInterruption(tool) ??
+        (isSubagent ? formatSubagentInterruption(tool) : null) ??
+        (resolveSubagentStatus(tool) === 'interrupted'
+            ? 'The call stopped before it finished.'
+            : null)
+    );
+}
+
+/** The Agent's own memory file at the workspace root. */
+function isMemoryFile(target: TracePath | null): boolean {
+    return target?.name === memoryFile && target.dir === '';
 }
 
 /**
@@ -181,79 +192,26 @@ export function formatInterruption(tool: AgentExecutionJournalTool): string | nu
     return `Interrupted because ${interruptionReasons[interruption.reason] ?? 'the run ended'}.`;
 }
 
-function readToolFields(name: string, input: Record<string, unknown>): TurnTraceToolFields {
-    const kind = readToolKind(name.toLowerCase());
-
-    switch (kind) {
-        case 'file-change':
-            return {
-                ...blankFields,
-                changeEvent: readString(input.event),
-                kind,
-                path: readFilePath(input),
-            };
-        case 'file-edit':
-            return {
-                ...blankFields,
-                kind,
-                newText: readString(input.new_string),
-                oldText: readString(input.old_string),
-                path: readFilePath(input),
-                replaceAll: input.replace_all === true,
-            };
-        case 'file-read':
-            return { ...blankFields, kind, path: readFilePath(input) };
-        case 'file-write':
-            return {
-                ...blankFields,
-                content: readString(input.content),
-                kind,
-                path: readFilePath(input),
-            };
-        case 'mcp':
-            return { ...blankFields, kind, ...readMcpName(name) };
-        case 'search':
-            return {
-                ...blankFields,
-                kind,
-                path: readFilePath(input),
-                pattern: readString(input.pattern) ?? readString(input.glob),
-            };
-        case 'shell':
-            return {
-                ...blankFields,
-                command: readString(input.command) ?? readString(input.cmd),
-                kind,
-            };
-        case 'web':
-            return {
-                ...blankFields,
-                kind,
-                query: readString(input.query),
-                url: readString(input.url),
-            };
-        default:
-            return { ...blankFields, kind };
-    }
+function readSubagentLabels(tool: AgentExecutionJournalTool): TraceLabel {
+    const label = formatSubagentLabel(tool);
+    return { past: label, present: label };
 }
 
-function readToolKind(normalized: string): TurnTraceToolKind {
-    if (normalized.startsWith('mcp__')) {
-        return 'mcp';
-    }
-    return toolKindsByName[normalized] ?? 'generic';
-}
-
-/** `mcp__<connection>__<tool>_<hash>` — the trailing hex hash is noise here. */
-function readMcpName(name: string): { connection: string | null; remoteTool: string | null } {
-    const [connection, ...rest] = name.slice('mcp__'.length).split('__');
-    const remoteTool = rest.join('__').replace(/_[0-9a-f]{6,}$/i, '');
+/**
+ * Computer journals a finished image as its workspace copy (`path`) beside the
+ * runtime's own file (`savedPath`); a call journaled before that copy, or a
+ * video, carries only the runtime's host path, which no preview can read. The
+ * prompt is Grok Build's input or Codex's revised prompt.
+ */
+function readImage(name: string, input: unknown, output: unknown): TurnTraceImage {
+    const record = readRecord(output);
+    const path = readString(record?.path);
+    const workspacePath = path && !path.startsWith('/') ? path : null;
+    const display = path ?? readString(record?.savedPath);
     return {
-        connection: connection && connection.length > 0 ? connection : null,
-        remoteTool: remoteTool.length > 0 ? remoteTool : null,
+        file: display ? readTracePath(display) : null,
+        media: /video/u.test(name.toLowerCase()) ? 'video' : 'image',
+        prompt: readString(readRecord(input)?.prompt) ?? readString(record?.revisedPrompt),
+        workspacePath,
     };
-}
-
-function readFilePath(input: Record<string, unknown>): string | null {
-    return readString(input.file_path) ?? readString(input.path) ?? readString(input.filePath);
 }

@@ -121,7 +121,7 @@ test('a failed sub-agent opens on its own and shows its calls and type', () => {
     );
     assert.match(markup, /Sub-agent failed: Count files in apps/);
     assert.match(markup, /Explore/);
-    assert.match(markup, /Read apps\/README\.md/);
+    assert.match(markup, /Read README\.md/);
 });
 
 test('an interrupted sub-agent stays closed under a calm stop mark; a failed one still opens', () => {

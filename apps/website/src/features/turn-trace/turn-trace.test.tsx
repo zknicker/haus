@@ -118,7 +118,7 @@ test('TurnTrace states what the runtime changed and compacted, not raw arguments
         },
     });
 
-    assert.match(markup, /Modified apps\/computer\/src\/index\.ts/);
+    assert.match(markup, /Modified index\.ts/);
     assert.match(markup, /Compacted the context/);
     assert.match(markup, /Condensed the earlier turns\./);
     assert.doesNotMatch(markup, /Used compaction/);

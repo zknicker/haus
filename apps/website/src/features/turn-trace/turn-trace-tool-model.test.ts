@@ -62,7 +62,8 @@ test('classifyTraceTool reads each runtime tool shape into typed fields', () => 
     assert.equal(shell.kind, 'shell');
     assert.equal(shell.label, 'Ran bun test');
     assert.equal(write.kind, 'file-write');
-    assert.equal(write.label, 'Wrote apps/x.ts');
+    assert.equal(write.label, 'Wrote x.ts');
+    assert.deepEqual(write.target, { dir: 'apps', name: 'x.ts', path: 'apps/x.ts' });
     assert.equal(edit.kind, 'file-edit');
     assert.equal(edit.oldText, 'before');
     assert.equal(edit.newText, 'after');
@@ -103,9 +104,9 @@ test('classifyTraceTool names the harness-synthesized runtime events', () => {
     );
 
     assert.equal(changed.kind, 'file-change');
-    assert.equal(changed.label, 'Modified apps/x.ts');
-    assert.equal(created.label, 'Created apps/y.ts');
-    assert.equal(deleted.label, 'Deleted apps/z.ts');
+    assert.equal(changed.label, 'Modified x.ts');
+    assert.equal(created.label, 'Created y.ts');
+    assert.equal(deleted.label, 'Deleted z.ts');
     assert.equal(compaction.kind, 'compaction');
     assert.equal(compaction.label, 'Compacted the context');
 });
@@ -163,4 +164,46 @@ test('readTraceSources lifts cited URLs out of a web result', () => {
         }),
         [{ title: 'Haus', url: 'https://haus.dev' }]
     );
+});
+
+test('a running call reads in the present tense; it settles into the past', () => {
+    const running = classifyTraceTool(
+        tool({ input: { file_path: 'src/a.ts' }, status: 'running', toolName: 'read' })
+    );
+    assert.equal(running.label, 'Reading a.ts');
+    assert.equal(running.status, 'running');
+    assert.deepEqual(running.labels, { past: 'Read a.ts', present: 'Reading a.ts' });
+});
+
+test('MEMORY.md upkeep and all-haus commands are bookkeeping; real work is not', () => {
+    const memory = classifyTraceTool(tool({ input: { path: 'MEMORY.md' }, toolName: 'read' }));
+    const nested = classifyTraceTool(tool({ input: { path: 'docs/MEMORY.md' }, toolName: 'read' }));
+    const claim = classifyTraceTool(tool({ input: { command: 'haus task claim --number 1' } }));
+    const mixed = classifyTraceTool(tool({ input: { command: 'haus task claim && bun test' } }));
+    assert.equal(memory.isBookkeeping, true);
+    assert.equal(nested.isBookkeeping, false);
+    assert.equal(claim.isBookkeeping, true);
+    assert.equal(mixed.isBookkeeping, false);
+    assert.equal(mixed.label, 'Ran bun test');
+});
+
+test('a failed call carries a readable failure; an interrupted one does not', () => {
+    const failed = classifyTraceTool(
+        tool({ error: { exit_code: 1, formatted_output: 'nope\n' }, input: {}, status: 'failed' })
+    );
+    assert.deepEqual(failed.failure, { exitCode: 1, message: 'nope' });
+    assert.equal(classifyTraceTool(tool({ status: 'interrupted' })).failure, null);
+});
+
+test('a sub-agent with a failed child warns, preferring the Computer count', () => {
+    const child = classifyTraceTool(tool({ status: 'failed', toolCallId: 'c', toolName: 'Glob' }));
+    const subagent = { label: 'Audit', startedAt: at(1), status: 'completed' as const };
+    const derived = classifyTraceTool(tool({ subagent, toolName: 'Agent' }), [child]);
+    const reported = classifyTraceTool(
+        tool({ subagent: { ...subagent, failedToolCount: 4 }, toolName: 'Agent' }),
+        [child]
+    );
+    assert.equal(derived.status, 'warning');
+    assert.equal(derived.failedChildCount, 1);
+    assert.equal(reported.failedChildCount, 4);
 });
