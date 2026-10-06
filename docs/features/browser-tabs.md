@@ -202,7 +202,7 @@ elsewhere; on macOS other Control combos stay with the page's text bindings.
 | Command-Shift-W | Close the window |
 | Command-1 … Command-9 | Select a tab in the focused pane's row; 9 selects its last |
 | Control-Tab / Control-Shift-Tab, Command-Shift-] / [, Command-Option-Right / Left | Next / previous tab in the focused pane |
-| Command-[ / Command-] | Back / forward: a web page's own history first, then the tab's |
+| Command-[ / Command-], swipe between pages, mouse back / forward buttons | Back / forward in the focused pane: a web page's own history first, then the tab's (mouse buttons act only over App pages) |
 | Command-L | Focus and select a web page's address |
 | Command-R | Reload the web page; refetch an App page's data |
 | Command-Shift-R | Reload bypassing the cache (web page only) |
