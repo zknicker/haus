@@ -95,7 +95,9 @@ export function ArtifactOptionsMenu({ target }: { target: HausResourceTarget }) 
                         <Icon icon={Link01Icon} size={16} />
                         <Label>Copy link</Label>
                     </Dropdown.Item>
-                    <Separator />
+                    {/* Explicit: this menu also opens from a Toolbar (the artifact
+                        page), whose context would otherwise turn it vertical. */}
+                    <Separator orientation="horizontal" />
                     <Dropdown.Item id="copy-path" textValue="Copy path">
                         <Icon icon={File01Icon} size={16} />
                         <Label>Copy path</Label>

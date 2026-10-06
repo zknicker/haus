@@ -12,6 +12,7 @@ import {
 } from '../../features/chats/chat-artifact-workspace-preview.tsx';
 import type { HausResourceTarget } from '../../features/chats/haus-resource-link.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
+import { PageToolbar } from '../../features/shell/page-toolbar.tsx';
 import { parseArtifactPageKey } from './desktop-page-paths.ts';
 
 /**
@@ -68,13 +69,13 @@ function ArtifactFile({
     }
     return (
         <>
-            <header className="artifact-toolbar flex shrink-0 items-center gap-1.5 py-1.25 ps-4 pe-2">
-                <p className="min-w-0 flex-1 truncate text-muted text-sm">{target.path}</p>
+            <PageToolbar>
+                <p className="min-w-0 flex-1 truncate ps-2 text-muted text-sm">{target.path}</p>
                 <Toolbar aria-label="Artifact actions" className="shrink-0">
                     <WorkspaceArtifactControls artifact={artifact} />
                     <ArtifactOptionsMenu target={target} />
                 </Toolbar>
-            </header>
+            </PageToolbar>
             <div className="min-h-0 flex-1">
                 <WorkspaceArtifactContent agentId={agentId} artifact={artifact} target={target} />
             </div>

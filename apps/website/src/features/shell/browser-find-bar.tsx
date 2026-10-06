@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import type { BrowserFindResult, BrowserTab } from '../../lib/desktop-browser.ts';
-import { BrowserToolbarButton } from './browser-workspace-navigation.tsx';
+import { PageToolbarButton, pageToolbarClassName } from './page-toolbar.tsx';
 
 /**
  * Find in page (⌘F) for one browser tab. It is a row under the toolbar, not an
@@ -26,7 +26,9 @@ export function BrowserFindBar({ tab }: { tab: BrowserTab }) {
         return null;
     }
     return (
-        <div className="browser-find-bar flex shrink-0 items-center justify-end gap-1.5 px-2 py-1.25">
+        <div
+            className={`${pageToolbarClassName} browser-find-bar flex shrink-0 items-center justify-end`}
+        >
             <TextField
                 aria-label="Find in page"
                 className="w-64"
@@ -55,21 +57,21 @@ export function BrowserFindBar({ tab }: { tab: BrowserTab }) {
                 </InputGroup>
             </TextField>
             <Toolbar aria-label="Find actions">
-                <BrowserToolbarButton
+                <PageToolbarButton
                     icon={<Icon icon={ArrowUp01Icon} size={16} />}
                     isDisabled={!tab.find?.matches}
                     label="Previous match"
                     onPress={() => find.step(false)}
                     shortcut="⇧⌘G"
                 />
-                <BrowserToolbarButton
+                <PageToolbarButton
                     icon={<Icon icon={ArrowDown01Icon} size={16} />}
                     isDisabled={!tab.find?.matches}
                     label="Next match"
                     onPress={() => find.step(true)}
                     shortcut="⌘G"
                 />
-                <BrowserToolbarButton
+                <PageToolbarButton
                     icon={<Icon icon={Cancel01Icon} size={16} />}
                     label="Close find"
                     onPress={find.close}

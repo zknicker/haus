@@ -7,7 +7,6 @@ import {
 
 export function WorkspaceBrowserPreview({
     agentId,
-    directoryLoadError,
     artifact,
     controls,
     selectedPath,
@@ -15,7 +14,6 @@ export function WorkspaceBrowserPreview({
     agentId: string;
     artifact: WorkspaceArtifact;
     controls?: ReactNode;
-    directoryLoadError: null | string;
     selectedPath: null | string;
 }) {
     return (
@@ -29,10 +27,7 @@ export function WorkspaceBrowserPreview({
                 />
             ) : (
                 <WorkspaceArtifactEmpty
-                    detail={
-                        directoryLoadError ??
-                        'Select a Markdown, HTML, image, or text file from the workspace sidebar.'
-                    }
+                    detail="Select a Markdown, HTML, image, or text file from the workspace sidebar."
                     title="No file selected"
                 />
             )}
@@ -40,22 +35,37 @@ export function WorkspaceBrowserPreview({
     );
 }
 
+/**
+ * The rail and the content column, with the page's bar either across both
+ * (`toolbarOverPreview` false: its own row, or portaled to the shell band) or
+ * over the content column only, so the rail runs the body's full height.
+ */
 export function WorkspaceBrowserFrame({
     fileRail,
     pageToolbar,
-    preview,
+    preview: previewPane,
     railWidth,
+    toolbarOverPreview = false,
     treeAtStart,
 }: {
     fileRail: ReactNode;
     pageToolbar?: ReactNode;
     preview: ReactNode;
     railWidth: number;
+    toolbarOverPreview?: boolean;
     treeAtStart: boolean;
 }) {
+    const preview = toolbarOverPreview ? (
+        <div className="flex min-h-0 min-w-0 flex-col">
+            {pageToolbar}
+            <div className="min-h-0 flex-1">{previewPane}</div>
+        </div>
+    ) : (
+        previewPane
+    );
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-            {pageToolbar}
+            {toolbarOverPreview ? null : pageToolbar}
             <div
                 className="grid min-h-0 flex-1 overflow-hidden"
                 style={{

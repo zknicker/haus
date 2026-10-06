@@ -12,6 +12,7 @@ import { resolveBrowserAddress } from './browser-address.ts';
 import { type BrowserRecentSite, selectRecentSites } from './browser-recent-sites.ts';
 import { BrowserWorkspaceAddress } from './browser-workspace-address.tsx';
 import { PageHistoryButtons } from './browser-workspace-navigation.tsx';
+import { pageToolbarClassName } from './page-toolbar.tsx';
 
 /**
  * The new tab page (⌘T, a row's plus; ADR 0039): a pure browser start page.
@@ -52,7 +53,7 @@ export function NewTabPage({ className, tabId }: { className?: string; tabId: st
             className={cn('flex min-h-0 flex-col bg-background', className)}
         >
             <form
-                className="browser-toolbar grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5 px-2 py-1.25"
+                className={`${pageToolbarClassName} browser-toolbar grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center`}
                 onSubmit={(event) => event.preventDefault()}
             >
                 <Toolbar aria-label="Page navigation">

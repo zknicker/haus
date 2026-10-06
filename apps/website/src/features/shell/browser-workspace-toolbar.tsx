@@ -7,10 +7,8 @@ import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { formatBrowserDisplayUrl, resolveBrowserAddress } from './browser-address.ts';
 import { BrowserWorkspaceAddress } from './browser-workspace-address.tsx';
-import {
-    BrowserToolbarButton,
-    BrowserWorkspaceNavigation,
-} from './browser-workspace-navigation.tsx';
+import { BrowserWorkspaceNavigation } from './browser-workspace-navigation.tsx';
+import { PageToolbarButton, pageToolbarClassName } from './page-toolbar.tsx';
 
 export function BrowserWorkspaceToolbar({ tab }: { tab: BrowserTab }) {
     const workspace = useBrowserViews();
@@ -28,7 +26,7 @@ export function BrowserWorkspaceToolbar({ tab }: { tab: BrowserTab }) {
     };
     return (
         <form
-            className="browser-toolbar relative grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 px-2 py-1.25"
+            className={`${pageToolbarClassName} browser-toolbar relative grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center`}
             onSubmit={(event) => {
                 event.preventDefault();
                 const value = address.trim();
@@ -73,7 +71,7 @@ export function BrowserWorkspaceToolbar({ tab }: { tab: BrowserTab }) {
                         </Tooltip.Content>
                     </Tooltip>
                 )}
-                <BrowserToolbarButton
+                <PageToolbarButton
                     icon={<Icon icon={LinkSquare02Icon} size={16} />}
                     label="Open in default browser"
                     onPress={() => {

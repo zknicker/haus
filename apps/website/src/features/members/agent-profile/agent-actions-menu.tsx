@@ -1,5 +1,5 @@
 import type { Agent } from '@haus/api';
-import { AlertDialog, Button, Dropdown, Header, Label, Separator } from '@heroui/react';
+import { AlertDialog, Button, Dropdown, Header, Label, Separator, Tooltip } from '@heroui/react';
 import {
     ArrowReloadHorizontalIcon,
     Delete02Icon,
@@ -17,9 +17,16 @@ import { useAgentState } from '../../../hooks/members/use-agent-state.ts';
 import { useAgentStop } from '../../../hooks/members/use-agent-stop.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import { disabledAgentActions, fullResetCopy } from './agent-actions-model.ts';
+import { type AgentAction, disabledAgentActions, fullResetCopy } from './agent-actions-model.ts';
 
 const menuIconSize = 16;
+
+interface AgentActionsValue {
+    disabledKeys: ReadonlySet<AgentAction>;
+    run: (action: AgentAction) => void;
+}
+
+const AgentActionsContext = React.createContext<AgentActionsValue | null>(null);
 
 /**
  * Every lifecycle verb an Agent has, in one overflow menu on its profile
@@ -29,14 +36,55 @@ const menuIconSize = 16;
  * no role gate, so its queries never start for a Member.
  */
 export function AgentActionsMenu({
-    agent,
-    onDeleted,
-    server,
-}: {
+    variant = 'secondary',
+    ...props
+}: AgentActionsProps & {
+    /** `ghost` in the shell band, beside the band's other icon-only actions. */
+    variant?: 'ghost' | 'secondary';
+}) {
+    return (
+        <AgentActions {...props}>
+            <Dropdown>
+                <Tooltip>
+                    <Button
+                        aria-label={`${props.agent.displayName} — Agent actions`}
+                        isIconOnly
+                        size="sm"
+                        variant={variant}
+                    >
+                        <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={menuIconSize} />
+                    </Button>
+                    <Tooltip.Content>Agent actions</Tooltip.Content>
+                </Tooltip>
+                <Dropdown.Popover placement="bottom end">
+                    <Dropdown.Menu aria-label="Agent actions">
+                        <AgentActionsSections />
+                    </Dropdown.Menu>
+                </Dropdown.Popover>
+            </Dropdown>
+        </AgentActions>
+    );
+}
+
+interface AgentActionsProps {
     agent: Agent;
     onDeleted: () => void;
     server: ServerDetail;
-}) {
+}
+
+/**
+ * Owns the lifecycle mutations and their confirmation dialogs, so the verbs
+ * can ride in any host's menu (`AgentActionsSections`) — the profile header's
+ * own menu, or the Workspace page bar's single "…" menu. The dialogs live
+ * here, outside the menu, because a menu unmounts as soon as an item runs.
+ * Same role gate as the menu: render only where `canRunAgentActions` allows.
+ */
+export function AgentActions({
+    agent,
+    children,
+    onDeleted,
+    server,
+}: AgentActionsProps & { children: React.ReactNode }) {
     const [fullResetOpen, setFullResetOpen] = React.useState(false);
     const [deleteOpen, setDeleteOpen] = React.useState(false);
     const reset = useAgentReset(server.id, agent.id);
@@ -48,84 +96,30 @@ export function AgentActionsMenu({
         onDeleted();
     });
     const resetCopy = fullResetCopy(agent.factoryKind);
-    const disabledKeys = disabledAgentActions({
-        isPending: remove.isPending || reset.isPending || restart.isPending || stop.isPending,
-        isRunning: Boolean(state.data?.running),
-    });
+    const disabledKeys = new Set(
+        disabledAgentActions({
+            isPending: remove.isPending || reset.isPending || restart.isPending || stop.isPending,
+            isRunning: Boolean(state.data?.running),
+        })
+    );
 
-    const runAction = (key: React.Key) => {
-        const action = String(key);
+    const run = (action: AgentAction) => {
         if (action === 'stop') {
             void stop.stop();
-            return;
-        }
-        if (action === 'restart') {
+        } else if (action === 'restart') {
             void restart.restart();
-            return;
-        }
-        if (action === 'fresh-session') {
+        } else if (action === 'fresh-session') {
             reset.reset('session').catch(() => undefined);
-            return;
-        }
-        if (action === 'full-reset') {
+        } else if (action === 'full-reset') {
             setFullResetOpen(true);
-            return;
-        }
-        if (action === 'delete') {
+        } else {
             setDeleteOpen(true);
         }
     };
 
     return (
-        <>
-            <Dropdown>
-                <Button
-                    aria-label={`${agent.displayName} — Agent actions`}
-                    isIconOnly
-                    size="sm"
-                    variant="secondary"
-                >
-                    <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={menuIconSize} />
-                </Button>
-                <Dropdown.Popover placement="bottom end">
-                    <Dropdown.Menu disabledKeys={disabledKeys} onAction={runAction}>
-                        <Dropdown.Section>
-                            <Header>Session</Header>
-                            <Dropdown.Item id="stop" textValue="Stop">
-                                <Icon
-                                    aria-hidden="true"
-                                    icon={StopCircleIcon}
-                                    size={menuIconSize}
-                                />
-                                <Label>Stop</Label>
-                            </Dropdown.Item>
-                            <Dropdown.Item id="restart" textValue="Restart">
-                                <Icon aria-hidden="true" icon={RefreshIcon} size={menuIconSize} />
-                                <Label>Restart</Label>
-                            </Dropdown.Item>
-                            <Dropdown.Item id="fresh-session" textValue="Start fresh session">
-                                <Icon aria-hidden="true" icon={SparklesIcon} size={menuIconSize} />
-                                <Label>Start fresh session</Label>
-                            </Dropdown.Item>
-                        </Dropdown.Section>
-                        <Separator />
-                        <Dropdown.Section>
-                            <Dropdown.Item id="full-reset" textValue="Full reset" variant="danger">
-                                <Icon
-                                    aria-hidden="true"
-                                    icon={ArrowReloadHorizontalIcon}
-                                    size={menuIconSize}
-                                />
-                                <Label>Full reset</Label>
-                            </Dropdown.Item>
-                            <Dropdown.Item id="delete" textValue="Delete Agent" variant="danger">
-                                <Icon aria-hidden="true" icon={Delete02Icon} size={menuIconSize} />
-                                <Label>Delete Agent</Label>
-                            </Dropdown.Item>
-                        </Dropdown.Section>
-                    </Dropdown.Menu>
-                </Dropdown.Popover>
-            </Dropdown>
+        <AgentActionsContext.Provider value={{ disabledKeys, run }}>
+            {children}
             <AlertDialog isOpen={fullResetOpen} onOpenChange={setFullResetOpen}>
                 <AlertDialog.Backdrop isDismissable>
                     <AlertDialog.Container size="sm">
@@ -178,6 +172,50 @@ export function AgentActionsMenu({
                     title="Delete Agent"
                 />
             ) : null}
+        </AgentActionsContext.Provider>
+    );
+}
+
+/** The lifecycle verbs as menu sections; renders nothing outside `AgentActions`. */
+export function AgentActionsSections() {
+    const actions = React.useContext(AgentActionsContext);
+    if (!actions) {
+        return null;
+    }
+    const item = (action: AgentAction) => ({
+        id: action,
+        isDisabled: actions.disabledKeys.has(action),
+        onAction: () => actions.run(action),
+    });
+    return (
+        <>
+            <Dropdown.Section>
+                <Header>Session</Header>
+                <Dropdown.Item {...item('stop')} textValue="Stop">
+                    <Icon aria-hidden="true" icon={StopCircleIcon} size={menuIconSize} />
+                    <Label>Stop</Label>
+                </Dropdown.Item>
+                <Dropdown.Item {...item('restart')} textValue="Restart">
+                    <Icon aria-hidden="true" icon={RefreshIcon} size={menuIconSize} />
+                    <Label>Restart</Label>
+                </Dropdown.Item>
+                <Dropdown.Item {...item('fresh-session')} textValue="Start fresh session">
+                    <Icon aria-hidden="true" icon={SparklesIcon} size={menuIconSize} />
+                    <Label>Start fresh session</Label>
+                </Dropdown.Item>
+            </Dropdown.Section>
+            {/* Explicit: a host menu may open from a Toolbar, whose context turns separators vertical. */}
+            <Separator orientation="horizontal" />
+            <Dropdown.Section>
+                <Dropdown.Item {...item('full-reset')} textValue="Full reset" variant="danger">
+                    <Icon aria-hidden="true" icon={ArrowReloadHorizontalIcon} size={menuIconSize} />
+                    <Label>Full reset</Label>
+                </Dropdown.Item>
+                <Dropdown.Item {...item('delete')} textValue="Delete Agent" variant="danger">
+                    <Icon aria-hidden="true" icon={Delete02Icon} size={menuIconSize} />
+                    <Label>Delete Agent</Label>
+                </Dropdown.Item>
+            </Dropdown.Section>
         </>
     );
 }

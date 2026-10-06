@@ -278,20 +278,26 @@
     }
 
     /*
-     * The page toolbar sits on the page ground, so a hairline rather than
-     * empty space separates it from the native page below. The loading line
-     * rides this edge.
+     * A page's one top bar (`PageToolbar`, features/shell/page-toolbar.tsx):
+     * a browser tab, the new tab page, an artifact page, the Agent Workspace.
+     * It sits on the page ground, so a hairline rather than empty space
+     * separates it from the page below; the browser's loading line rides this
+     * edge.
      */
-    .browser-toolbar,
-    .browser-find-bar,
-    .artifact-toolbar {
+    .page-toolbar {
+        gap: calc(var(--spacing) * 1.5);
+        padding: calc(var(--spacing) * 1.25) calc(var(--spacing) * 2);
         border-bottom: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
     }
 
-    /* Back, Forward, and Reload (and the find bar's steps) read as one tight cluster. */
-    .browser-toolbar .toolbar,
-    .browser-find-bar .toolbar {
+    /* Back, Forward, and Reload (any icon cluster in the bar) read as one tight set. */
+    .page-toolbar .toolbar {
         gap: calc(var(--spacing) * 0.5);
+    }
+
+    /* A file preview's status footer: the bar's hairline, mirrored at the foot. */
+    .workspace-file-footer {
+        border-top: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
     }
 
     /*

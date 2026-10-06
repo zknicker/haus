@@ -1,12 +1,19 @@
 import type { Agent } from '@haus/api';
-import { Breadcrumbs } from '@heroui/react';
 import * as React from 'react';
+import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import {
+    type WorkspaceBarPlacement,
+    WorkspaceOpenFileCrumb,
+    WorkspacePageToolbar,
+    WorkspaceRootCrumb,
+} from '../../chats/chat-artifact-workspace-toolbar.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { AgentActionsMenu } from './agent-actions-menu.tsx';
+import { AgentActions, AgentActionsSections } from './agent-actions-menu.tsx';
 import { canRunAgentActions } from './agent-actions-model.ts';
 import { AgentHub } from './agent-hub.tsx';
 import { AgentLoading } from './agent-loading.tsx';
+import { AgentHubBand, AgentSectionBand, AgentTrail } from './agent-profile-band.tsx';
 import { loadAgentProfileContent } from './agent-profile-module.ts';
 import type { AgentSection } from './agent-sections.ts';
 
@@ -37,7 +44,9 @@ const sectionLabels: Record<Exclude<AgentSection, 'home'>, string> = {
 
 /**
  * An Agent's profile body, host-agnostic: the web route and the desktop agent
- * tab both render it. It owns its breadcrumb and never portals into the band.
+ * tab both render it. Its trail and controls portal into the page's shell
+ * band (`PageTopbar`), as every routed destination's do; the hub's trail is
+ * its title, which a desktop tab already shows, so there the band collapses.
  *
  * It fills a height-bounded parent and scrolls itself, and every width rule is
  * a container query, so it lays out the same in a full window and a 420px
@@ -52,25 +61,13 @@ export function AgentProfileView({
     section,
 }: AgentProfileViewProps) {
     if (section === 'workspace') {
-        // The file browser is a full-height tool surface with its own rail and
-        // scroll, so it takes the space below the trail instead of a column.
         return (
-            <div className="@container flex h-full min-h-0 w-full flex-col">
-                <div className="mx-auto w-full max-w-6xl shrink-0 px-6 pt-4 pb-3">
-                    <SectionTrail
-                        agent={agent}
-                        label={sectionLabels.workspace}
-                        onDeleted={onDeleted}
-                        onHome={() => onSectionChange('home')}
-                        server={server}
-                    />
-                </div>
-                <div className="min-h-0 flex-1 overflow-hidden">
-                    <React.Suspense fallback={<AgentLoading label="Loading workspace" />}>
-                        <AgentWorkspace agent={agent} server={server} />
-                    </React.Suspense>
-                </div>
-            </div>
+            <AgentWorkspacePage
+                agent={agent}
+                onDeleted={onDeleted}
+                onHome={() => onSectionChange('home')}
+                server={server}
+            />
         );
     }
 
@@ -80,58 +77,98 @@ export function AgentProfileView({
             key={section}
         >
             {section === 'home' ? (
-                <PageColumn>
-                    <AgentHub
-                        agent={agent}
-                        onDeleted={onDeleted}
-                        onSectionChange={onSectionChange}
-                        server={server}
-                    />
-                </PageColumn>
+                <>
+                    <AgentHubBand agent={agent} serverSlug={server.slug} />
+                    <PageColumn>
+                        <AgentHub
+                            agent={agent}
+                            onDeleted={onDeleted}
+                            onSectionChange={onSectionChange}
+                            server={server}
+                        />
+                    </PageColumn>
+                </>
             ) : (
-                <PageColumn className="pt-4">
-                    <SectionTrail
+                <>
+                    <AgentSectionBand
                         agent={agent}
                         label={sectionLabels[section]}
                         onDeleted={onDeleted}
                         onHome={() => onSectionChange('home')}
                         server={server}
                     />
-                    <React.Suspense fallback={<AgentLoading label="Loading Agent section" />}>
-                        <AgentSectionBody agent={agent} section={section} server={server} />
-                    </React.Suspense>
-                </PageColumn>
+                    <PageColumn>
+                        <React.Suspense fallback={<AgentLoading label="Loading Agent section" />}>
+                            <AgentSectionBody agent={agent} section={section} server={server} />
+                        </React.Suspense>
+                    </PageColumn>
+                </>
             )}
         </div>
     );
 }
 
 /**
- * "Juniper / Connections": the way back to the hub, and where you are. The
- * lifecycle menu rides at its far end so every section reaches it.
+ * The Workspace is a full-height tool surface with its own rail and scroll, so
+ * it takes the whole column. Its one bar holds the trail (ending in the open
+ * file), the file's controls, and one "…" menu that also holds the Agent's
+ * lifecycle verbs, rather than a trail stacked over a toolbar. On the web the
+ * bar rides in the shell band. In a desktop tab it sits over the content
+ * column only, so the file rail runs the tab's full height and the band,
+ * left empty, collapses.
  */
-function SectionTrail({
+function AgentWorkspacePage({
     agent,
-    label,
     onDeleted,
     onHome,
     server,
 }: {
     agent: Agent;
-    label: string;
     onDeleted: () => void;
     onHome: () => void;
     server: ServerDetail;
 }) {
-    return (
-        <div className="flex min-w-0 items-center justify-between gap-2">
-            <Breadcrumbs className="min-w-0">
-                <Breadcrumbs.Item onPress={onHome}>{agent.displayName}</Breadcrumbs.Item>
-                <Breadcrumbs.Item>{label}</Breadcrumbs.Item>
-            </Breadcrumbs>
-            {canRunAgentActions(server.role) ? (
-                <AgentActionsMenu agent={agent} onDeleted={onDeleted} server={server} />
-            ) : null}
+    const canAct = canRunAgentActions(server.role);
+    const barPlacement: Extract<WorkspaceBarPlacement, 'band' | 'column'> =
+        useTabPresence().tabId === null ? 'band' : 'column';
+    const menuSections = canAct ? <AgentActionsSections /> : undefined;
+    const trail = (
+        <AgentTrail agent={agent} onHome={onHome} serverSlug={server.slug}>
+            <WorkspaceRootCrumb>{sectionLabels.workspace}</WorkspaceRootCrumb>
+            <WorkspaceOpenFileCrumb />
+        </AgentTrail>
+    );
+    const page = (
+        <div className="@container flex h-full min-h-0 w-full flex-col overflow-hidden">
+            <React.Suspense
+                fallback={
+                    <>
+                        <WorkspacePageToolbar
+                            leading={trail}
+                            menuSections={menuSections}
+                            placement={barPlacement}
+                            selectedPath={null}
+                            title={null}
+                        />
+                        <AgentLoading label="Loading workspace" />
+                    </>
+                }
+            >
+                <AgentWorkspace
+                    agent={agent}
+                    barPlacement={barPlacement}
+                    menuSections={menuSections}
+                    server={server}
+                    toolbarLeading={trail}
+                />
+            </React.Suspense>
         </div>
+    );
+    return canAct ? (
+        <AgentActions agent={agent} onDeleted={onDeleted} server={server}>
+            {page}
+        </AgentActions>
+    ) : (
+        page
     );
 }
