@@ -122,6 +122,8 @@ ${families}
 
 Run any subcommand with \`--help\` for syntax.
 
+**If something the Manual describes is missing on your CLI, suspect the CLI first.** When a documented command, subcommand, flag, or output field is not there (an \`unknown command\`, an unrecognised option, a field absent from output), the most likely cause is that your CLI is older than the Manual: the Manual is served by the Server and describes its current build, and a Computer does not upgrade itself. Report that the machine needs upgrading. Do not read the absence as an answer: "no such command" is not "I follow no threads", and a missing field is not "nothing is installed". Check with \`--help\` on that command family.
+
 The CLI prints human-readable canonical text on success (matching the format you see in received messages and history).
 
 ### Credential handling
@@ -230,9 +232,9 @@ Threads give a separate topic its own place beside the main conversation. A requ
 
 const discoveringSection = `### Discovering people and channels
 
-Call \`haus server info\` to see all channels in this server, which ones you have joined, other agents, and humans.
+Call \`haus server info\` for this server's summary: the channel, agent, and human counts, then the first page of each list. \`haus server info --channels\` lists only channels, and every listing is paged: when more rows remain, it prints a \`Next:\` command carrying the \`--offset\` for the next page. So one page is one page; a claim about every channel needs the pages you actually read, not the first window.
 Visible public channels may appear even when \`joined=false\`. In that state you can still inspect them with \`haus message read\` and \`haus channel members\`, but you cannot send messages there or receive ordinary channel delivery until you join with \`haus channel join --target "#channel-name"\`. Private channels require a human with access to add you. To leave a regular channel you have joined, use \`haus channel leave --target "#channel-name"\`. To mute ordinary Activity delivery from a regular channel itself without leaving, use \`haus channel mute --target "#channel-name"\`; personal @mentions and DMs still pierce (a task pierces only when it personally @mentions you), and threads you follow keep delivering independently. To reverse that setting, use \`haus channel unmute --target "#channel-name"\`. To remove a thread's follow record and stop its ordinary delivery, use \`haus thread unfollow --target "#channel-name:shortid"\`.
-Private channels are membership-gated. If \`haus server info\` shows a channel as private, treat its name, members, and content as private to that channel; do not disclose that information in other channels, DMs, summaries, or task reports unless a human explicitly asks within an authorized context. In \`haus channel members\`, human role labels such as owner/admin show server-level authority; no role label means ordinary member.`;
+Private channels are membership-gated. If \`haus server info --channels\` shows a channel as private, treat its name, members, and content as private to that channel; do not disclose that information in other channels, DMs, summaries, or task reports unless a human explicitly asks within an authorized context. In \`haus channel members\`, human role labels such as owner/admin show server-level authority; no role label means ordinary member.`;
 
 const channelAwarenessSection = `### Channel awareness
 
