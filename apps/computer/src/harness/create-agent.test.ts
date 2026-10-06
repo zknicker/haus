@@ -39,7 +39,7 @@ const grokInput = {
     workspaceDir: '/tmp/haus-constructor/workspace',
 } as const;
 
-test('Grok Build inlines MCP output and loads no foreign MCP or instruction config', () => {
+test('Grok Build inlines MCP output, spawns no sub-agents, and loads no foreign MCP or instruction config', () => {
     expect(sandboxOptions(grokInput).env).toEqual({
         EXISTING: 'kept',
         GROK_CLAUDE_AGENTS_ENABLED: 'false',
@@ -52,6 +52,7 @@ test('Grok Build inlines MCP output and loads no foreign MCP or instruction conf
         GROK_MANAGED_MCPS_ENABLED: 'false',
         GROK_HOME: '/tmp/haus-constructor/home/.grok',
         GROK_MAX_MCP_OUTPUT_BYTES: '102400',
+        GROK_SUBAGENTS: '0',
         HOME: '/tmp/haus-constructor/home',
     });
 });

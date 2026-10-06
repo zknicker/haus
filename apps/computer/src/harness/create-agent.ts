@@ -90,6 +90,8 @@ export function sandboxOptions(
                 ...GROK_FOREIGN_MCP_SOURCES_OFF,
                 GROK_HOME: join(input.homeDir, '.grok'),
                 GROK_MAX_MCP_OUTPUT_BYTES: String(GROK_MCP_OUTPUT_BYTES),
+                // Haus Agents run without sub-agents; Grok 1.0.13 then omits `spawn_subagent`.
+                GROK_SUBAGENTS: '0',
                 HOME: input.homeDir,
             },
             homeDir: input.homeDir,
