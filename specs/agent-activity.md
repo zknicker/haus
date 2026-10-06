@@ -37,6 +37,7 @@ the category is current.
 | `editing_files` | `Editing files…` | A known file-write/edit capability runs |
 | `running_command` | `Running a command…` | A known shell/process capability runs |
 | `using_tool` | `Using a tool…` or `Using <safe name>…` | A known safe tool identity has no narrower category |
+| `delegating` | `Running a sub-agent…` (past: `Ran a sub-agent`) | A runtime sub-agent tool runs (Claude Code `Agent`, listed as `Task` in older inits) |
 | `sending_message` | `Sending a message…` | Server begins the canonical Agent message-send boundary |
 | `working` | `Working…` | No narrower truthful category is current |
 
@@ -47,6 +48,10 @@ activity never adds a synthetic `Finished` row; the Agent leaves it when its tur
 when it consumes a Computer notice-ack that marks queued work newly noticed by the accepted run; an
 ack naming only work the run already noticed, or a run that is no longer accepted, writes none. It
 never becomes the current activity label and never counts as a turn operation.
+
+`delegating` covers only the parent sub-agent call. The sub-agent's own tool calls never open
+activity and never become thoughts; they are execution-journal evidence nested under the parent
+call. `delegating` is not a turn operation category, so it never appears in turn operation counts.
 
 ## Mapping evidence to activity
 
@@ -108,8 +113,13 @@ type AgentActivityEvent = {
   phase: "started" | "completed" | "failed" | "interrupted"
   occurredAt: string
   toolRef?: string
+  operationId?: string // /^[0-9a-f]{16,64}$/
 }
 ```
+
+`operationId` is an opaque Computer-made id that pairs one operation's `started` event with its
+settlement. Computer derives it by hashing the runtime's tool-call id (the first 32 hex characters
+of its SHA-256), so the id never reveals provider identifiers. Only `delegating` carries one today.
 
 Each producer assigns a monotonic `producerSequence` within the run. Server validates the currently
 assigned Computer and active run, deduplicates `(serverId, agentId, runId, producer,
@@ -133,6 +143,13 @@ start evidence is absent. Live App projections retain the same timestamp, and sn
 restores it after reload or reconnect. Journal and subscription events retain their original shape.
 The Inbox uses this timestamp for a locally ticking, second-resolution total-turn clock.
 
+The same projection also keeps `activeDelegations: { operationId, startedAt }[]`, the run's
+sub-agents that started and have not settled, oldest first and at most 16; the field is omitted
+when none run. A `delegating` start adds its `operationId`, any settlement removes it, and the
+Server's terminal turn event clears the row. While a sub-agent still runs, a settled step falls
+back to `delegating` rather than `Working…`. It is enough to show "N sub-agents running" with an
+elapsed clock without any model-authored text; sub-agent labels stay in the execution journal.
+
 Heartbeats and repeated identical current states are not persisted. Short adjacent events may be
 coalesced for live presentation, but every meaningful transition remains available in history.
 
@@ -150,7 +167,13 @@ Harness tool call/result
 ```
 
 The **Agent execution journal** is keyed by `runId` and retains tool-call ids, exact observed tool
-identity, inputs, outputs, errors, timings, and the turn's model reasoning blocks. A tool's timing
+identity, inputs, outputs, errors, timings, and the turn's model reasoning blocks. A runtime
+sub-agent's tool calls are journal tools whose `parentToolCallId` names the delegating call, and
+that call carries a `subagent` record (label, sub-agent type, status, timings, token and tool-use
+totals, latest progress line); see [Agents API](../docs/api/agents.md). Claude Code reports both
+only through raw SDK messages (`task_*` system messages and the sub-agent's messages tagged with
+`parent_tool_use_id`), which the projector maps in `subagent-steps.ts`. A sub-agent the turn's
+interruption or end leaves running is settled `interrupted`. A tool's timing
 runs from the observed tool call to its result. The ACP adapter holds a runtime tool call for up
 to a second while it checks whether the call is a host-tool invocation echoed back; Codex calls
 that codex-acp does not tag as MCP are Codex's own and skip that window, so their steps span the

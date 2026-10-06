@@ -70,10 +70,13 @@ most one `agent-thought` frame:
    (`GITHUB_TOKEN=…`, `Authorization: Bearer …`), emails, credentials, and token-like strings
    removed, and absolute paths cut to their basename; a file read or edit as its basename
    (`read launch-checklist.md`); a web search as its query; a page as its host and path words;
+   a sub-agent delegation as its scrubbed short task label, never its prompt
+   (`delegate to a sub-agent: count lines`);
    and any other or MCP tool as its name plus up to three short scrubbed scalar arguments,
    never a credential-named one (`password`, `api_key`). Real
    actions are the Activity projector's `running_command`, `reading_files`, `editing_files`,
-   `searching_web`, `browsing`, and `using_tool` calls; a shell call that only runs the `haus` CLI
+   `searching_web`, `browsing`, `delegating`, and `using_tool` calls (a sub-agent's own calls
+   are none of them: they stay in the execution journal); a shell call that only runs the `haus` CLI
    classifies as skipped there and never becomes a thought, and message checks and sends are not
    actions. Full arguments never leave the Computer (`thought-action.ts`).
 4. **Results are findings.** Titles, excerpts, and actions only say what the Agent is doing; a

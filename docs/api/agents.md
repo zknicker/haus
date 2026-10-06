@@ -430,7 +430,12 @@ either the Computer-local journal or an explicit `unavailable` result (`offline`
 An available journal carries `runId`, `status`, timestamps, a `tools` array (tool-call id, observed
 identity, input, `output`, `error`, `preliminary`, `final`, interruptions, and timings), and an
 optional `reasoning` array of `{ id, startedAt, endedAt?, text, truncated? }` blocks capped at
-64,000 characters each and 1,000 blocks per turn. Reasoning exists only in this response. Every
+64,000 characters each and 1,000 blocks per turn. A tool a runtime sub-agent made carries
+`parentToolCallId`, the delegating tool call it ran under. That delegating tool carries an optional
+`subagent` record: `{ label, subagentType?, status, startedAt, endedAt?, latestAction?, usage? }`,
+where `label` and `latestAction` are at most 128 characters, `status` is `running`, `completed`,
+`failed`, or `interrupted`, and `usage` is `{ totalTokens, toolUses, durationMs }`. Sub-agent token
+totals live only here; they are not yet part of turn token usage or daily usage. Reasoning exists only in this response. Every
 other string leaf the journal carries is capped at 256,000 characters and ends with
 `…[truncated N more characters]` when clipped, so one oversized tool output cannot dominate the
 relayed response.

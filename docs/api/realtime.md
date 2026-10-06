@@ -176,7 +176,8 @@ a Thread's parent Chat. Inactive transcripts remain stale until opened. The norm
 `message.created` listener retains its precise Chat and parent invalidation.
 
 Semantic Agent activity is written before broadcast. Computer frames carry a narrow category,
-phase, run id, per-run sequence, timestamp, and optional canonical safe tool reference. They never
+phase, run id, per-run sequence, timestamp, optional canonical safe tool reference, and an optional
+opaque hex `operationId` that pairs a `delegating` start with its settlement. They never
 carry reasoning, drafts, commands, paths, inputs, or outputs. Reconnect reads durable Activity
 History plus the current unsettled-Agent snapshot before applying later live updates. Hosted tRPC
 uses one Server-scoped `agent.onActivity` subscription; `agent.activityHistory` and
@@ -187,7 +188,9 @@ run as `Finishing up…`. Terminal lifecycle proof owns both current-activity re
 Agent's working-to-idle transition, keeping those surfaces synchronized. Trailing completion events preserve
 the finishing state; a later started operation replaces it. A Server `received_message:completed`
 activity, committed when a notice-ack marks new work noticed by the run, is history only: it never
-replaces the current row.
+replaces the current row. Each current row also carries `activeDelegations`, the run's unsettled
+sub-agents by `operationId` and start time (at most 16, omitted when none), projected by the same
+`projectAgentCurrentActivity` the snapshot uses.
 
 Agent thoughts ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)) are
 volatile and never written. A Computer `agent-thought` frame carries `kind: 'phrase'` with a
