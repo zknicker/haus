@@ -33,12 +33,24 @@ extension HausStore {
         _ event: AgentActivityEvent,
         active: Bool
     ) -> AgentActivityPresentation {
-        let state: AgentActivityState = active
-            ? .active
-            : event.phase == .failed ? .failed : .completed
+        let state: AgentActivityState = if active {
+            .active
+        } else {
+            switch event.phase {
+            case .failed, .interrupted: .failed
+            case .started, .completed: .completed
+            }
+        }
+        let title = if active {
+            event.category.activeTitle
+        } else if event.phase == .interrupted {
+            event.category.interruptedTitle
+        } else {
+            event.category.completedTitle
+        }
         return AgentActivityPresentation(
             id: event.id,
-            title: active ? event.category.activeTitle : event.category.completedTitle,
+            title: title,
             occurredAt: event.occurredAt,
             state: state
         )
@@ -52,14 +64,16 @@ private extension AgentActivityCategory {
         case .checkingMessages: "Checking messages…"
         case .receivedMessage: "Received a new message…"
         case .thinking: "Thinking…"
+        case .updatingInstructions: "Updating instructions…"
         case .browsing: "Browsing…"
         case .searchingWeb: "Searching the web…"
         case .readingFiles: "Reading files…"
         case .editingFiles: "Editing files…"
         case .runningCommand: "Running a command…"
         case .usingTool: "Using a tool…"
+        case .delegating: "Running a sub-agent…"
         case .sendingMessage: "Finishing up…"
-        case .working: "Working…"
+        case .working, .unknown: "Working…"
         }
     }
 
@@ -69,14 +83,35 @@ private extension AgentActivityCategory {
         case .checkingMessages: "Checked messages"
         case .receivedMessage: "Received a new message"
         case .thinking: "Finished thinking"
+        case .updatingInstructions: "Updated instructions"
         case .browsing: "Finished browsing"
         case .searchingWeb: "Searched the web"
         case .readingFiles: "Read files"
         case .editingFiles: "Edited files"
         case .runningCommand: "Ran a command"
         case .usingTool: "Used a tool"
+        case .delegating: "Ran a sub-agent"
         case .sendingMessage: "Sent a message"
-        case .working: "Finished work"
+        case .working, .unknown: "Finished work"
+        }
+    }
+
+    var interruptedTitle: String {
+        switch self {
+        case .startingWork: "Starting work was interrupted"
+        case .checkingMessages: "Message check was interrupted"
+        case .receivedMessage: "Receiving a new message was interrupted"
+        case .thinking: "Thinking was interrupted"
+        case .updatingInstructions: "Instruction update was interrupted"
+        case .browsing: "Browsing was interrupted"
+        case .searchingWeb: "Web search was interrupted"
+        case .readingFiles: "File reading was interrupted"
+        case .editingFiles: "File editing was interrupted"
+        case .runningCommand: "Command was interrupted"
+        case .usingTool: "Tool use was interrupted"
+        case .delegating: "Sub-agent was interrupted"
+        case .sendingMessage: "Message send was interrupted"
+        case .working, .unknown: "Work was interrupted"
         }
     }
 }
