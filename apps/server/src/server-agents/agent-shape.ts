@@ -6,14 +6,23 @@ import {
     type HausAgentStatus,
     hausAgentVersion,
 } from '@haus/api';
+import { toWakePause, type WakeState } from '../agent-delivery/wake-pause.ts';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
-export interface ConfiguredAgentRow {
+export interface ConfiguredAgentRow
+    extends Pick<
+        WakeState,
+        | 'consecutiveFailures'
+        | 'lastFailureAt'
+        | 'lastFailureCode'
+        | 'lastFailureKind'
+        | 'pausedAt'
+        | 'retryAfter'
+    > {
     activeRunId: string | null;
     avatarId: string | null;
     computerHealth: 'degraded' | 'healthy' | 'offline' | 'update-required';
     computerId: string | null;
-    consecutiveFailures: number;
     createdAt: Date;
     createdByAgentId: string | null;
     createdByUserId: string | null;
@@ -116,5 +125,6 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         missingResources: row.effectiveMissing ?? [],
         serverId: row.serverId,
         status: deriveAgentStatus(row),
+        wakePause: toWakePause(row),
     };
 }

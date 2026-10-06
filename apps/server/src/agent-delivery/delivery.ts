@@ -51,12 +51,12 @@ import {
     noticeWindow,
     startFrame,
 } from './drain-selection.ts';
-import { recordTurnFailure, releaseFailureHoldForHuman } from './failure-hold.ts';
+import * as failureHold from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
-import { isBackedOff, maxDeliveryFailures } from './retry-policy.ts';
+import { isBackedOff } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
@@ -109,17 +109,13 @@ export interface EnqueueInput {
  * run drains a bounded slice across all pending targets.
  */
 export class AgentDelivery {
-    private readonly db: HausDatabase;
-    private readonly transport: DeliveryTransport;
+    private readonly wakePauseLifts = new failureHold.WakePauseLifts();
 
     constructor(
-        db: HausDatabase,
-        transport: DeliveryTransport,
+        private readonly db: HausDatabase,
+        private readonly transport: DeliveryTransport,
         private readonly runtime?: EffectRuntime<never>
-    ) {
-        this.db = db;
-        this.transport = transport;
-    }
+    ) {}
 
     /**
      * Records inbound work durably, inside the caller's transaction so the
@@ -131,12 +127,11 @@ export class AgentDelivery {
         const source = input.source ?? 'human';
         await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
         await store.enqueueInboxItem(tx, { ...input, source });
-        // Only human intent re-enables a failed Agent, and it releases the
-        // Agent-authored chain ceiling even when older Agent rows precede it.
-        // Agent and automation work queues behind any failure hold.
+        // Only human intent lifts a wake pause, releases a failure hold, or
+        // releases the Agent-authored chain ceiling, even when older Agent rows
+        // precede it. Agent and automation work queues behind any hold.
         if (source === 'human') {
-            await releaseFailureHoldForHuman(tx, input.agentId);
-            await store.setAgentChainTurns(tx, { agentId: input.agentId, turns: 0 });
+            await failureHold.releaseHoldsForHuman(tx, input, this.wakePauseLifts);
         }
     }
 
@@ -149,6 +144,7 @@ export class AgentDelivery {
                 return this.planDispatch(tx, input.agentId);
             })
         );
+        this.wakePauseLifts.announce(input.agentId);
         this.emit(plan);
     }
 
@@ -165,6 +161,7 @@ export class AgentDelivery {
                 return this.planDispatch(tx, agentId, options);
             })
         );
+        this.wakePauseLifts.announce(agentId);
         this.emit(plan);
     }
 
@@ -246,7 +243,7 @@ export class AgentDelivery {
         const plan = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, input.serverId);
             await store.setStopped(tx, { ...input, stopped: false });
-            await store.clearDeliveryFailures(tx, input.agentId);
+            await failureHold.clearDeliveryFailures(tx, input.agentId);
             await store.clearInboxNotices(tx, { agentId: input.agentId });
             return this.planDispatch(tx, input.agentId);
         });
@@ -323,6 +320,7 @@ export class AgentDelivery {
                 await store.clearActiveRun(tx, input.agentId);
             }
             await store.clearInboxNotices(tx, { agentId: input.agentId });
+            await failureHold.clearDeliveryFailures(tx, input.agentId);
             const [rotated] = await tx
                 .update(agentsTable)
                 .set({
@@ -506,7 +504,7 @@ export class AgentDelivery {
                 await tx
                     .delete(agentMessageDraftsTable)
                     .where(eq(agentMessageDraftsTable.agentId, summary.agentId));
-                await store.clearDeliveryFailures(tx, summary.agentId);
+                await failureHold.clearDeliveryFailures(tx, summary.agentId);
                 const config = await readAgentDispatchConfig(tx, summary.agentId);
                 await recordSessionRotation(tx, {
                     agentId: summary.agentId,
@@ -596,7 +594,7 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
-                await store.clearDeliveryFailures(tx, summary.agentId);
+                await failureHold.clearDeliveryFailures(tx, summary.agentId);
                 await store.setAgentChainTurns(tx, {
                     agentId: summary.agentId,
                     turns: nextAgentChainTurns(budgetRows, state.agentChainTurns),
@@ -627,8 +625,8 @@ export class AgentDelivery {
             }
             // A failed turn that produced model-visible output must not requeue
             // its work — redelivering it would re-trigger that output. Only a
-            // failure with no output is safe to retry. Either way it does not
-            // re-drive immediately: repeated failures back off, then degrade.
+            // failure with no output is safe to retry. Either way it counts and
+            // does not re-drive immediately: failures back off, then pause.
             if (summary.outputProduced) {
                 // A durable Agent send proves the model handled this prompt,
                 // even if the runtime failed during later cleanup.
@@ -672,10 +670,10 @@ export class AgentDelivery {
             });
             const taskEvents = await settleAgentBackgroundClaims(tx, runScope);
             await store.clearActiveRun(tx, summary.agentId);
-            await recordTurnFailure(tx, runScope, {
-                consecutiveFailures: state.consecutiveFailures,
+            await failureHold.recordTurnFailure(tx, runScope, state, {
+                failureCode: summary.failureCode,
+                failureFingerprint: summary.failureFingerprint,
                 failureKind: summary.failureKind,
-                outputProduced: summary.outputProduced,
             });
             return { activity, chatId, configuration, plan: null, taskEvents };
         });
@@ -839,7 +837,7 @@ export class AgentDelivery {
 
     /** Periodic reconciliation: resend unacknowledged deliveries, drain stragglers. */
     async sweep(): Promise<void> {
-        const candidates = await store.listDispatchCandidates(this.db, maxDeliveryFailures);
+        const candidates = await store.listDispatchCandidates(this.db);
         for (const candidate of candidates) {
             await this.dispatchAgent(candidate.agentId, candidate.serverId);
         }

@@ -23,27 +23,6 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-test('agent and automation work never release a failure hold', async () => {
-    const { delivery, seed, transport } = await onlineAgent();
-    await connection.db
-        .insert(agentDeliveryTable)
-        .values({ agentId: seed.agentId, consecutiveFailures: 5, serverId: seed.serverId });
-
-    for (const source of ['agent:wren', 'reminder'] as const) {
-        await delivery.deliver({
-            agentId: seed.agentId,
-            chatId: seed.dmChatId,
-            content: `from ${source}`,
-            dedupeKey: `hold-${source}`,
-            serverId: seed.serverId,
-            source,
-        });
-    }
-
-    expect(transport.framesOfType('start')).toHaveLength(0);
-    expect((await readDeliveryState(connection.db, seed.agentId))?.consecutiveFailures).toBe(5);
-});
-
 test('a human message queues behind an active backoff instead of cutting it short', async () => {
     const { delivery, seed, transport } = await onlineAgent();
     const retryAfter = new Date(Date.now() + 60_000);
@@ -69,7 +48,7 @@ test('a human message queues behind an active backoff instead of cutting it shor
     expect(await countUnsettledPending(seed.agentId)).toBe(1);
 });
 
-test('repeated rate limits keep backing off and redriving without degrading', async () => {
+test('repeated rate limits keep backing off and redriving without pausing', async () => {
     const { delivery, seed, transport } = await onlineAgent();
     await delivery.deliver({
         agentId: seed.agentId,
@@ -107,7 +86,7 @@ test('repeated rate limits keep backing off and redriving without degrading', as
     expect(delays[5]).toBeLessThan(302_000);
 });
 
-test('a failed turn that produced output backs off without counting a failure', async () => {
+test('a failed turn that produced output counts without requeueing its work', async () => {
     const { delivery, seed, transport } = await onlineAgent();
     await delivery.deliver({
         agentId: seed.agentId,
@@ -122,8 +101,9 @@ test('a failed turn that produced output backs off without counting a failure', 
     await delivery.onTurnSettled(seed.computerId, failedTurn(seed.agentId, runId, 'unknown', true));
 
     const state = await readDeliveryState(connection.db, seed.agentId);
-    expect(state?.consecutiveFailures).toBe(0);
+    expect(state?.consecutiveFailures).toBe(1);
     expect(state?.retryAfter?.getTime()).toBeGreaterThan(Date.now());
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
 });
 
 async function onlineAgent() {

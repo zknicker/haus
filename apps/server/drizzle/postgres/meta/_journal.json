@@ -428,6 +428,13 @@
       "when": 1791232208164,
       "tag": "0060_reminder_descriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1791297233357,
+      "tag": "0061_agent_wake_pause",
+      "breakpoints": true
     }
   ]
 }

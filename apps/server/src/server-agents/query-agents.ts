@@ -1,6 +1,7 @@
 import type { Agent } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import { wakePauseColumns } from '../agent-delivery/failure-hold.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentsTable, chatsTable, computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -28,7 +29,6 @@ export async function queryAgents(
             createdByAgentId: agentsTable.createdByAgentId,
             createdByUserId: agentsTable.createdByUserId,
             computerHealth: computersTable.health,
-            consecutiveFailures: agentDeliveryTable.consecutiveFailures,
             createdAt: agentsTable.createdAt,
             description: agentsTable.description,
             desiredModelId: agentsTable.desiredModelId,
@@ -49,6 +49,7 @@ export async function queryAgents(
             id: agentsTable.id,
             serverId: agentsTable.serverId,
             stopped: agentDeliveryTable.stopped,
+            ...wakePauseColumns,
         })
         .from(agentsTable)
         .leftJoin(
