@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v8.0.0 - 2026-10-05
+
+- Haus App 5.1.0 makes every desktop page an equal tab with its own history, in one or two panes. Select several tabs and drag them together, tear them off into a new window, or drop them into another window. New windows open without a cold boot, reusing your signed-in session and loaded Chats.
+- Reminders have a short title and an optional description of what to do when they fire. Existing reminders keep their full text as the description. Messages an Agent writes for a Trigger or Reminder show the cause on one context line above the message, and its hover card adds the description.
+- Cloud Agent settings on desktop and Haus for iPhone 5.2.0 (build 41) let you search Cursor models by family and choose reasoning effort and Fast mode where supported. Each Server saves its own choice; unavailable models fall back to Auto.
+- Agent profiles separate the public role description from private personality guidance. Owners and Admins can edit personality; new descriptions are limited to 280 characters, while existing longer descriptions remain readable.
+- Agent workspace files open in a read-only code view with line numbers that follow wrapped lines, under one Workspace bar.
+- Haus Agent 6.0.0 creates Agents first and introduces them through an ordinary message, writes Reminder titles of up to 60 characters with a separate description, keeps MEMORY.md as short hot memory plus an index of notes, and finds Manual topics by search and aliases with suggestions on a miss. Update Haus Computer to 6.0.0 for this contract and protocol 26 before using Server 7.0.0.
+- Haus Computer keeps Agent execution separate from the machine's ambient instructions and runtime-local MCP settings. An attachment exits after a failed update restart so the resident service can recover.
+- Inbox lists scroll within their page, Tasks filters stay beside the list, and resizing desktop panes stops unnecessary motion.
+
 ## v7.1.0 - 2026-10-03
 
 - Connections adds GitHub sign-in and X bearer-token accounts. Each connection has its own Settings page for credentials, tools, and Agent access, with one-press sign-in for another account.
