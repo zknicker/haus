@@ -21,7 +21,7 @@ import {
 export function TurnTraceCallBody({ tool }: { tool: TurnTraceTool }) {
     return (
         <>
-            {tool.failure ? <TraceFailure failure={tool.failure} /> : null}
+            {tool.failure ? <TraceFailure failure={readCallFailure(tool, tool.failure)} /> : null}
             <TurnTraceToolBody tool={tool} />
             {tool.preliminary === undefined ? null : (
                 <ChatTool.Result
@@ -34,18 +34,26 @@ export function TurnTraceCallBody({ tool }: { tool: TurnTraceTool }) {
     );
 }
 
-/** A failure's readable message, never its transport payload, and the exit code a command set. */
+/** A failure in one line: its readable message, never its transport payload, and any exit code. */
 export function TraceFailure({ failure }: { failure: TurnTraceError }) {
     return (
-        <div className="grid min-w-0 gap-0.5 text-sm">
-            <p className="whitespace-pre-wrap break-words text-danger">
-                {clampTraceText(failure.message).text}
-            </p>
+        <p className="whitespace-pre-wrap break-words text-danger text-sm">
+            {clampTraceText(failure.message).text}
             {failure.exitCode === null ? null : (
-                <p className="text-muted tabular-nums">{`Exit code ${failure.exitCode}`}</p>
+                <span className="text-muted tabular-nums">{` · Exit code ${failure.exitCode}`}</span>
             )}
-        </div>
+        </p>
     );
+}
+
+/**
+ * A command that exited non-zero journals its output as the "message"; that
+ * output is evidence, not the reason, so it stays with the command.
+ */
+function readCallFailure(tool: TurnTraceTool, failure: TurnTraceError): TurnTraceError {
+    return tool.kind === 'shell' && failure.exitCode !== null
+        ? { exitCode: failure.exitCode, message: 'Command failed' }
+        : failure;
 }
 
 /**

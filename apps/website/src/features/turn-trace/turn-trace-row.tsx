@@ -37,6 +37,16 @@ export function TraceRow({
 }
 
 /**
+ * Where everything a row opens to sits: on the row's label column, behind one
+ * edge that drops from its icon. The label sits 4.5 spacing steps in (the
+ * icon, which hangs half a step out, and its gap); the stock body pads two,
+ * so the edge's 1px and 2.5 steps less that pixel land on the label. Each
+ * depth is that one step, so a nested row's own body is one step further in.
+ */
+const traceBodyClass =
+    'grid min-w-0 gap-2 border-default border-s ps-[calc(var(--spacing)*2.5-1px)] pb-2';
+
+/**
  * A row that opens to its evidence. The row is stock ChainOfThought: its
  * trigger is the one tab stop, and it shimmers while the step runs. The body
  * mounts on first open, so a long turn pays only for what someone reads.
@@ -72,7 +82,7 @@ export function TraceDisclosure({
             <ChainOfThought.Trigger className="max-w-full">{line}</ChainOfThought.Trigger>
             {timing ?? <span />}
             <ChainOfThought.Content className="col-span-full min-w-0">
-                {opened ? <div className="grid min-w-0 gap-2 ps-5.5 pb-2">{children}</div> : null}
+                {opened ? <div className={traceBodyClass}>{children}</div> : null}
             </ChainOfThought.Content>
         </ChainOfThought>
     );

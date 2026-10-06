@@ -104,12 +104,17 @@ test('a sub-agent that finished with failed calls warns and counts them', () => 
     assert.match(markup, /<span class="shrink-0 text-danger tabular-nums">2 failed<\/span>/);
 });
 
-test('a failed call opens on its own and reads as text with its exit code, never JSON', () => {
+test('a failed command opens to one line with its exit code; its output waits behind Command', () => {
     const markup = renderJournal(codexFailureTurn);
 
     assert.equal(markup.match(/aria-expanded="true"/g)?.length, 1);
-    assert.match(markup, /ls: \/definitely\/not\/here: No such file or directory/);
-    assert.match(markup, /Exit code 1/);
+    assert.match(
+        markup,
+        /Command failed<span class="text-muted tabular-nums"> · Exit code 1<\/span>/
+    );
+    // The printed output is evidence, not the reason: it is never promoted to the error line.
+    assert.doesNotMatch(markup, /ls: \/definitely\/not\/here: No such file or directory/);
+    assert.match(markup, /aria-expanded="false"[^>]*>[\s\S]*?Command</);
     assert.doesNotMatch(markup, /formatted_output|exit_code/);
 });
 

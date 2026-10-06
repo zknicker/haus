@@ -32,6 +32,8 @@ const stderrRedirect = /\s*\d?>&\d|\s*\d>\s*\/dev\/null/gu;
 const writeRedirect = /(?:^|\s)\d?>>?\s*(?!&)("[^"]*"|'[^']*'|[^\s;|&<>]+)/u;
 const quotedString = /'[^']*'|"(?:\\.|[^"\\])*"/gu;
 const envAssignment = /^(?:env\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/u;
+/** `if`/`then`/`while` lead the command they guard; the command is what ran. */
+const controlPrefix = /^(?:(?:if|then|else|elif|do|while|until|!)\s+)+/u;
 
 export function parseShellScript(script: string): ShellScript {
     const commands: ShellCommand[] = [];
@@ -143,7 +145,11 @@ function isRedirection(line: string, index: number): boolean {
 
 function readCommand(segment: string, piped: boolean): ShellCommand | null {
     const unwrapped = segment.trim().replace(/^\(+/u, '').replace(/\)+$/u, '').trim();
-    const text = unwrapped.replace(envAssignment, '').replace(stderrRedirect, '').trim();
+    const text = unwrapped
+        .replace(controlPrefix, '')
+        .replace(envAssignment, '')
+        .replace(stderrRedirect, '')
+        .trim();
     if (text.length === 0) {
         return null;
     }

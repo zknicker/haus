@@ -136,18 +136,26 @@ export function TraceHausStep({ step }: { step: TurnTraceHausStep }) {
 
 function TraceMembers({ members }: { members: readonly TurnTraceCallStep[] }) {
     return (
-        <TraceRail>
+        <TraceStack>
             {members.map((member) => (
                 <ChainOfThought.Step key={member.key}>
                     <TraceCallStep step={member} />
                 </ChainOfThought.Step>
             ))}
-        </TraceRail>
+        </TraceStack>
     );
 }
 
 /**
- * The trace's one rail, at every depth: stock ChainOfThought steps. Rows carry
+ * Steps inside an opened row. The row's body edge already anchors them, so
+ * they stack on its label column with no second rail and no second indent.
+ */
+export function TraceStack({ children }: { children: React.ReactNode }) {
+    return <div className="grid min-w-0 gap-1">{children}</div>;
+}
+
+/**
+ * The trace's one top-level rail: stock ChainOfThought steps. Rows carry
  * their own 32px line, so the rail tightens its stock step gap the way the
  * ChainOfThought agent-trace example does.
  */

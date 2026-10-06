@@ -4,7 +4,11 @@ import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
 import { buildTurnTrace } from './turn-trace-model.ts';
-import { formatSubagentLabel, formatSubagentMeta } from './turn-trace-subagent.ts';
+import {
+    formatSubagentDetails,
+    formatSubagentLabel,
+    formatSubagentToolCount,
+} from './turn-trace-subagent.ts';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 
 test('a sub-agent call nests its own calls in start order under one top-level row', () => {
@@ -84,7 +88,17 @@ test('sub-agent meta prefers reported usage, else counts the calls seen so far',
     const settled = tool({
         subagent: subagent({ usage: { durationMs: 41_000, toolUses: 12, totalTokens: 34_200 } }),
     });
-    assert.equal(formatSubagentMeta(settled, 3), '12 tools · 34.2K tokens');
+    assert.equal(formatSubagentToolCount(settled, 3), '12 tools');
+    const timing = { durationMs: 41_000, isRunning: false, offsetMs: 0 };
+    // The default type is noise; a specific one says what ran.
+    assert.equal(formatSubagentDetails(settled, timing), '34.2K tokens · 41s');
+    const explorer = tool({
+        subagent: subagent({
+            subagentType: 'Explore',
+            usage: { durationMs: 1, totalTokens: 900, toolUses: 1 },
+        }),
+    });
+    assert.equal(formatSubagentDetails(explorer, timing), 'Explore · 900 tokens · 41s');
     const live: AgentExecutionJournalTool = {
         startedAt: at(1),
         status: 'running',
@@ -92,7 +106,7 @@ test('sub-agent meta prefers reported usage, else counts the calls seen so far',
         toolCallId: 'task',
         toolName: 'Agent',
     };
-    assert.equal(formatSubagentMeta(live, 1), '1 tool');
+    assert.equal(formatSubagentToolCount(live, 1), '1 tool');
 });
 
 test('a failed sub-agent opens on its own and shows its calls and type', () => {
@@ -154,7 +168,10 @@ test('an interrupted sub-agent stays closed under a calm stop mark; a failed one
     const failed = render('failed');
     assert.match(failed, /aria-expanded="true"/);
     assert.match(failed, /<svg[^>]*class="size-3\.5 shrink-0 text-danger"/);
-    assert.match(failed, /<p class="whitespace-pre-wrap break-words text-danger">aborted<\/p>/);
+    assert.match(
+        failed,
+        /<p class="whitespace-pre-wrap break-words text-danger text-sm">aborted<\/p>/
+    );
 });
 
 function toolAt(entries: ReturnType<typeof buildTurnTrace>, index: number): TurnTraceTool {

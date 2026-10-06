@@ -3,16 +3,14 @@ import { BrainIcon, BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence } from 'motion/react';
 import * as React from 'react';
 import { formatAgentActivityEvent } from '../members/agent-profile/agent-activity-model.ts';
-import { TurnTraceFact, TurnTraceNote } from './turn-trace-blocks.tsx';
-import { TraceFailure } from './turn-trace-call-body.tsx';
 import {
     TraceCallStep,
     TraceFoldStep,
     TraceHausStep,
     TraceRail,
+    TraceStack,
 } from './turn-trace-call-steps.tsx';
-import { traceMark } from './turn-trace-icons.ts';
-import { TurnTraceMarkdown, TurnTraceReasoning } from './turn-trace-reasoning.tsx';
+import { TurnTraceReasoning } from './turn-trace-reasoning.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
 import {
     TraceDisclosure,
@@ -21,20 +19,24 @@ import {
     TraceShimmer,
     TraceTiming,
 } from './turn-trace-row.tsx';
-import type {
-    TurnTraceStep,
-    TurnTraceSubagentStep,
-    TurnTraceThoughtStep,
-} from './turn-trace-step-types.ts';
-import { formatSubagentMeta } from './turn-trace-subagent.ts';
+import type { TurnTraceStep, TurnTraceThoughtStep } from './turn-trace-step-types.ts';
+import { TraceSubagentStep } from './turn-trace-subagent-step.tsx';
 
 /**
  * The trace's steps on one rail, in order. A step a live turn adds grows into
  * place; a reasoning title the Agent wrote before a step rides it as a caption.
  */
-export function TurnTraceSteps({ steps }: { steps: readonly TurnTraceStep[] }) {
+export function TurnTraceSteps({
+    isNested = false,
+    steps,
+}: {
+    /** Inside an opened row, whose body edge anchors the steps instead of a rail. */
+    isNested?: boolean;
+    steps: readonly TurnTraceStep[];
+}) {
+    const List = isNested ? TraceStack : TraceRail;
     return (
-        <TraceRail>
+        <List>
             <AnimatePresence initial={false}>
                 {steps.map((step) => (
                     <TurnTraceReveal
@@ -48,7 +50,7 @@ export function TurnTraceSteps({ steps }: { steps: readonly TurnTraceStep[] }) {
                     </TurnTraceReveal>
                 ))}
             </AnimatePresence>
-        </TraceRail>
+        </List>
     );
 }
 
@@ -63,7 +65,9 @@ function TurnTraceStepView({ step }: { step: TurnTraceStep }) {
         case 'subagent':
             return (
                 <TraceSubagentStep step={step}>
-                    {step.children.length > 0 ? <TurnTraceSteps steps={step.children} /> : null}
+                    {step.children.length > 0 ? (
+                        <TurnTraceSteps isNested steps={step.children} />
+                    ) : null}
                 </TraceSubagentStep>
             );
         case 'reasoning':
@@ -89,65 +93,6 @@ function TurnTraceStepView({ step }: { step: TurnTraceStep }) {
         default:
             return null;
     }
-}
-
-/**
- * A sub-agent is a row like any call, with its own calls nested on the rail
- * inside it. It states how many of them failed even when it finished, and its
- * report reads as the prose it is.
- */
-function TraceSubagentStep({
-    children,
-    step,
-}: {
-    children: React.ReactNode;
-    step: TurnTraceSubagentStep;
-}) {
-    const { status, timing, tool } = step;
-    const mark = traceMark('subagent', status);
-    const meta = formatSubagentMeta(tool.source, tool.children.length);
-    const latestAction =
-        tool.children.length === 0 && status === 'running'
-            ? (tool.source.subagent?.latestAction ?? null)
-            : null;
-
-    return (
-        <TraceDisclosure
-            defaultExpanded={status === 'failed'}
-            isRunning={timing.isRunning}
-            line={
-                <TraceLine
-                    alert={tool.failedChildCount > 0 ? `${tool.failedChildCount} failed` : null}
-                    icon={mark.icon}
-                    isRunning={timing.isRunning}
-                    label={step.label}
-                    meta={meta || null}
-                    tone={mark.tone}
-                />
-            }
-            timing={
-                <TraceTiming
-                    bars={[
-                        {
-                            lane: step.parallel,
-                            timing,
-                            tone: step.parallel && status === 'completed' ? 'parallel' : status,
-                        },
-                    ]}
-                    timing={timing}
-                />
-            }
-        >
-            {tool.failure ? <TraceFailure failure={tool.failure} /> : null}
-            {tool.source.subagent?.subagentType ? (
-                <TurnTraceFact label="Type" value={tool.source.subagent.subagentType} />
-            ) : null}
-            {children}
-            {latestAction ? <TurnTraceNote>{latestAction}</TurnTraceNote> : null}
-            {tool.interruption ? <TurnTraceNote>{tool.interruption}</TurnTraceNote> : null}
-            {tool.report ? <TurnTraceMarkdown content={tool.report} /> : null}
-        </TraceDisclosure>
-    );
 }
 
 /** Title-only reasoning with no step after it yet: the live "thinking" line, or the closing thought. */

@@ -47,7 +47,10 @@ keys by its first call, so in a live turn a call that gains a same-kind sibling 
 in place, and an open fold stays open as calls (captioned or not) join it.
 
 The view renders as one stock `ChainOfThought` rail (`turn-trace-steps-view.tsx`), never a
-stack of bordered cards. Every step is one borderless line: a kind mark (or a danger, warning,
+stack of bordered cards. Everything a row opens to — its body, a fold's members, a sub-agent's
+calls — sits on that row's label column behind one edge dropped from its icon
+(`traceBodyClass` in `turn-trace-row.tsx`), with no second rail: each depth is exactly one
+step in, and errors, commands, and output never take a deeper column of their own. Every step is one borderless line: a kind mark (or a danger, warning,
 or stop mark for its outcome), the label, the muted directory, and a right-hand timing column
 — a thin waterfall bar on the turn's axis and a tabular duration, hidden under a second for a
 settled leaf. Steps that ran side by side share time on the bars, and a parallel fold draws its
@@ -79,12 +82,17 @@ A sub-agent is a call the runtime reported with `subagent` metadata (never a wir
 guess). `buildTurnTrace` nests every call whose `parentToolCallId` names it under that row,
 in start order; a child whose parent is missing, or a malformed parent cycle, stays
 top-level so no evidence is hidden. The row reads `Ran sub-agent: <label>` (or `Running`,
-`failed`, `interrupted` from the sub-agent's own status), its trailing meta is tool count and
-tokens with any failed child calls counted in danger (a completed sub-agent with failures takes
-the warning mark), its duration sits in the timing column, and its body is the type, the child calls rendered exactly as
-top-level calls, and the sub-agent's report rendered as markdown. Only a failed call, top-level or nested, takes
-the danger mark and opens on its own, its readable `failure` (message and exit code, never the
-transport payload) first in its body; an interrupted one stopped because the turn ended, so it
+`failed`, `interrupted` from the sub-agent's own status), its trailing meta is its tool count
+with any failed child calls counted in danger (a completed sub-agent with failures takes
+the warning mark), and its duration sits in the timing column. Opened, it is one muted line —
+its type only when it is not `general-purpose`, its tokens, its duration — then its child calls
+rendered exactly as top-level calls, then a labelled `Report` on the code blocks' quiet surface,
+so the sub-agent's markdown never reads as one more step. Only a failed call, top-level or
+nested, takes the danger mark and opens on its own, its readable `failure` first in its body as
+one line (message · exit code, never the transport payload). A command that exited non-zero
+journals its printed output as the failure message, so a failed shell call states `Command
+failed · Exit code N` and keeps the command and that output behind its quiet `Command`
+disclosure; an interrupted one stopped because the turn ended, so it
 settles with a muted stop mark, stays closed, and its body says why it stopped. The Agent hover card carries only a count and
 elapsed time from current activity's `activeDelegations`, shown while any are running.
 
@@ -95,7 +103,11 @@ both pure and both proved on their own:
 
 - `turn-trace-shell-label.ts` names a shell call. It unwraps the runtime's own wrapper
   (`/bin/zsh -lc "…"`, `bash -lc`, `sh -c`), takes the first non-empty line, drops a
-  trailing heredoc opener, collapses whitespace, and caps the result. A real `haus`
+  trailing heredoc opener, collapses whitespace, and caps the result. A compound script
+  reads as its most meaningful command, never as shell syntax: `if`/`then`/`while` lead
+  the command they guard, `fi`/`done`/`[` never name a row, and a pipeline with a plainer
+  name reads as its purpose (`find packages -type f | wc -l` → `Counted files in packages`).
+  A real `haus`
   command — the Agent CLI names in `apps/computer/src/agent-cli.ts` — reads as the
   product action it is, from its parsed arguments (`turn-trace-haus-command.ts`):
   `Sent a message to #product`, `Sent a message to DM` (never the peer's name),

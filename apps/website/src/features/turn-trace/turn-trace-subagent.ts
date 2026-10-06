@@ -1,7 +1,11 @@
 import type { AgentExecutionJournalTool } from '@haus/api';
+import { formatTraceDuration } from './turn-trace-duration.ts';
+import type { TurnTraceTiming } from './turn-trace-timing.ts';
 import { readRecord, readString } from './turn-trace-values.ts';
 
 type SubagentStatus = AgentExecutionJournalTool['status'];
+
+const defaultSubagentType = 'general-purpose';
 
 const labelPrefixes: Record<SubagentStatus, string> = {
     completed: 'Ran sub-agent',
@@ -29,16 +33,32 @@ export function formatSubagentLabel(tool: AgentExecutionJournalTool): string {
 }
 
 /**
- * Tool count and tokens for the row's trailing meta; the duration has its own
- * column. The runtime's usage is authoritative once reported; until then the
- * count is the child calls seen so far.
+ * The row's trailing meta: how many calls it made. The runtime's usage is
+ * authoritative once reported; until then the count is the child calls seen
+ * so far.
  */
-export function formatSubagentMeta(tool: AgentExecutionJournalTool, childCount: number): string {
-    const usage = tool.subagent?.usage;
-    const toolUses = usage?.toolUses ?? childCount;
+export function formatSubagentToolCount(
+    tool: AgentExecutionJournalTool,
+    childCount: number
+): string | null {
+    const toolUses = tool.subagent?.usage?.toolUses ?? childCount;
+    return toolUses > 0 ? `${toolUses} ${toolUses === 1 ? 'tool' : 'tools'}` : null;
+}
+
+/**
+ * The opened sub-agent's one muted line: its type when it is not the default
+ * general-purpose one, its tokens, and how long it ran.
+ */
+export function formatSubagentDetails(
+    tool: AgentExecutionJournalTool,
+    timing: TurnTraceTiming
+): string {
+    const type = tool.subagent?.subagentType;
+    const tokens = tool.subagent?.usage?.totalTokens ?? 0;
     return [
-        toolUses > 0 ? `${toolUses} ${toolUses === 1 ? 'tool' : 'tools'}` : null,
-        usage && usage.totalTokens > 0 ? `${compactCount.format(usage.totalTokens)} tokens` : null,
+        type && type !== defaultSubagentType ? type : null,
+        tokens > 0 ? `${compactCount.format(tokens)} tokens` : null,
+        formatTraceDuration(timing.durationMs, { isRunning: timing.isRunning }),
     ]
         .filter(Boolean)
         .join(' · ');

@@ -877,6 +877,9 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   snap shut; the body follows React Aria's animated height both ways instead. And the Turn
   details drawer carries code blocks and diffs, so `drawer__dialog--turn-details` widens the
   right drawer to 32rem, capped at the viewport; every other drawer keeps the stock measure.
+  An opened row's contents sit on its label column behind one `--default` edge dropped from
+  its icon, one step per depth and no second rail; a sub-agent's report is a labelled `Report`
+  on the code blocks' `surface-secondary` material at their `×2` radius.
   Reasoning is a step in the same icon column as each call's status icon: the model's own
   title in medium muted type, then its prose in muted `sm` at the prose measure, with the
   transcript's Markdown block spacing. A long thought folds to six lines behind the

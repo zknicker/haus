@@ -156,3 +156,25 @@ test('a > inside quoted code is not a file write', () => {
     );
     assert.equal(formatShellLabel('cd app && echo "x" > "out file.txt"'), 'Wrote out file.txt');
 });
+
+test('control flow never names a row; the command it guards does', () => {
+    const script =
+        'cd "$PWD" && pwd | sed "s|.*/workspace|<workspace>|"\nif [ -d packages ]; then\n  find packages -type f | wc -l\nelse\n  echo absent; exit 1\nfi';
+    const label = readShellLabel(script);
+    assert.equal(label.past, 'Counted files in packages');
+    assert.equal(label.extraCommands, 1);
+    assert.equal(formatShellLabel('for f in src/*.ts; do\n  wc -l "$f"\ndone'), 'Ran wc -l "$f"');
+    assert.equal(
+        formatShellLabel('while read line; do echo "$line"; done < list.txt'),
+        'Ran read line'
+    );
+});
+
+test('a pipeline with a plainer name reads as its purpose', () => {
+    assert.equal(formatShellLabel('find packages -type f | wc -l'), 'Counted files in packages');
+    assert.equal(formatShellLabel('find . -name "*.ts" | wc -l'), 'Counted files');
+    assert.equal(
+        formatShellLabel('find packages -type f | head'),
+        'Ran find packages -type f | head'
+    );
+});

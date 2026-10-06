@@ -28,12 +28,29 @@ export interface ShellLabel {
 const labelMaxChars = 80;
 
 const shellWrapper = /^(?:\S*\/)?(?:sh|bash|zsh|dash|ksh)\s+(-[a-z]+)\s+([\s\S]+)$/u;
+/** A line that opens with shell syntax reads as the command inside it, never as typed. */
+const controlLead = /^(?:if|while|until|for|case|select|!)\s/u;
 const doubleQuoteEscape = /\\(["$\\`])/gu;
 
-/** Setup that never names a row. */
+/** Setup and shell syntax that never name a row. */
 const noisePrograms = new Set([
     '.',
     ':',
+    '[',
+    '[[',
+    '{',
+    '}',
+    'case',
+    'do',
+    'done',
+    'elif',
+    'else',
+    'esac',
+    'fi',
+    'for',
+    'select',
+    'test',
+    'then',
     'cd',
     'echo',
     'exit',
@@ -75,8 +92,13 @@ export function readShellLabel(command: string): ShellLabel {
         script.lines === 1 &&
         !script.hasHeredoc &&
         haus.length === 0 &&
-        heads[0] === meaningful[0]
+        heads[0] === meaningful[0] &&
+        !controlLead.test(readFirstLine(command))
     ) {
+        const idiom = heads[0] ? readIdiom(script.commands, heads[0]) : null;
+        if (idiom) {
+            return { ...base, past: idiom[0], present: idiom[1] };
+        }
         const typed = clampLabel(
             script.commands.length === 1 ? (heads[0]?.text ?? '') : readFirstLine(command)
         );
@@ -84,7 +106,10 @@ export function readShellLabel(command: string): ShellLabel {
     }
     return {
         ...base,
-        ...readCompoundLabel(meaningful.filter((entry) => entry.program !== 'haus')),
+        ...readCompoundLabel(
+            meaningful.filter((entry) => entry.program !== 'haus'),
+            (entry) => readIdiom(script.commands, entry)
+        ),
     };
 }
 
@@ -119,7 +144,10 @@ function readHausLabel(commands: readonly ShellCommand[]) {
 }
 
 /** Writes fold into a count; the heaviest other command names the row. */
-function readCompoundLabel(commands: readonly ShellCommand[]) {
+function readCompoundLabel(
+    commands: readonly ShellCommand[],
+    describe: (command: ShellCommand) => readonly [string, string] | null
+) {
     const writes = commands.filter((entry) => entry.writes !== null);
     const others = commands.filter((entry) => entry.writes === null);
     const best = others.reduce<ShellCommand | null>(
@@ -129,22 +157,48 @@ function readCompoundLabel(commands: readonly ShellCommand[]) {
     const extraCommands = Math.max(0, others.length - 1);
     const wrote =
         writes.length === 1 ? basenameOf(writes[0]?.writes ?? '') : `${writes.length} files`;
+    const idiom = best ? describe(best) : null;
     const ran = best ? clampLabel(best.text) : null;
 
     if (writes.length > 0 && ran) {
         return {
             extraCommands,
-            past: `Wrote ${wrote}, ran ${ran}`,
-            present: `Writing ${wrote}, running ${ran}`,
+            past: `Wrote ${wrote}, ${idiom ? lowerFirst(idiom[0]) : `ran ${ran}`}`,
+            present: `Writing ${wrote}, ${idiom ? lowerFirst(idiom[1]) : `running ${ran}`}`,
         };
     }
     if (writes.length > 0) {
         return { extraCommands: 0, past: `Wrote ${wrote}`, present: `Writing ${wrote}` };
     }
+    if (idiom) {
+        return { extraCommands, past: idiom[0], present: idiom[1] };
+    }
     if (ran) {
         return { extraCommands, past: `Ran ${ran}`, present: `Running ${ran}` };
     }
     return { extraCommands: 0, past: 'Ran a script', present: 'Running a script' };
+}
+
+/**
+ * A pipeline whose purpose has a plainer name than its syntax:
+ * `find packages -type f | wc -l` counted the files in packages.
+ */
+function readIdiom(
+    commands: readonly ShellCommand[],
+    head: ShellCommand
+): readonly [string, string] | null {
+    const filter = commands[commands.indexOf(head) + 1];
+    if (!(head.program === 'find' && filter?.piped && /^wc\s+-l$/u.test(filter.text))) {
+        return null;
+    }
+    const root = head.text.split(' ')[1];
+    const place =
+        root && !root.startsWith('-') && root !== '.' ? ` in ${root.replace(/\/$/u, '')}` : '';
+    return [`Counted files${place}`, `Counting files${place}`];
+}
+
+function lowerFirst(value: string): string {
+    return value.charAt(0).toLowerCase() + value.slice(1);
 }
 
 function weigh(command: ShellCommand): number {

@@ -1,4 +1,5 @@
 import { CommandLineIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type * as React from 'react';
 import { TurnTraceCode, TurnTraceFact } from './turn-trace-blocks.tsx';
 import type { HausMessage } from './turn-trace-haus-command.ts';
 import { TurnTraceMarkdown } from './turn-trace-reasoning.tsx';
@@ -10,6 +11,14 @@ import { clampTraceText, readShellOutput } from './turn-trace-values.ts';
 export function ShellBody({ tool }: { tool: TurnTraceTool }) {
     if (tool.hausMessage) {
         return <HausMessageBody message={tool.hausMessage} tool={tool} />;
+    }
+    // A failure already states itself in one line above; the raw evidence waits behind it.
+    if (tool.failure) {
+        return (
+            <CommandDisclosure>
+                <ShellEvidence tool={tool} />
+            </CommandDisclosure>
+        );
     }
     return <ShellEvidence tool={tool} />;
 }
@@ -27,22 +36,38 @@ function HausMessageBody({ message, tool }: { message: HausMessage; tool: TurnTr
             {message.body?.trim() ? (
                 <TurnTraceMarkdown content={clampTraceText(message.body).text} tone="foreground" />
             ) : null}
-            <TraceDisclosure line={<TraceLine icon={CommandLineIcon} isQuiet label="Command" />}>
+            <CommandDisclosure>
                 <ShellEvidence tool={tool} />
-            </TraceDisclosure>
+            </CommandDisclosure>
         </>
     );
 }
 
-export function ShellEvidence({ tool }: { tool: TurnTraceTool }) {
+/** The raw command and what it printed, one quiet press away. */
+function CommandDisclosure({ children }: { children: React.ReactNode }) {
+    return (
+        <TraceDisclosure line={<TraceLine icon={CommandLineIcon} isQuiet label="Command" />}>
+            {children}
+        </TraceDisclosure>
+    );
+}
+
+function ShellEvidence({ tool }: { tool: TurnTraceTool }) {
     const shell = readShellOutput(tool.output);
+    // A non-zero exit journals its output as the failure message (see `readCallFailure`).
+    const failedOutput =
+        tool.failure && tool.failure.exitCode !== null && !shell.stdout && !shell.stderr
+            ? tool.failure.message
+            : null;
 
     return (
         <>
             {tool.command ? (
                 <TurnTraceCode code={tool.command} label="Command" language="shellscript" />
             ) : null}
-            {shell.stdout ? <TurnTraceCode code={shell.stdout} label="Output" /> : null}
+            {shell.stdout || failedOutput ? (
+                <TurnTraceCode code={shell.stdout || failedOutput || ''} label="Output" />
+            ) : null}
             {shell.stderr ? <TurnTraceCode code={shell.stderr} label="Standard error" /> : null}
             {/* A failed call already states its exit code above its evidence. */}
             {tool.failure || shell.exitCode === null || shell.exitCode === 0 ? null : (
