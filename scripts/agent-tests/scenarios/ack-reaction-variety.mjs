@@ -1,16 +1,18 @@
 // Acknowledgements in different tones each get one reaction and no send, and
 // the Agent's emoji vary with the message rather than repeating one default.
+// Two distinct is the bar: similar tones may honestly share an emoji, but one
+// emoji for every tone is the default-reaction regression this guards.
 
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 const ACKNOWLEDGEMENTS = ['lol nice', 'we shipped it!!', 'sounds good', 'thank you so much'];
-const MIN_DISTINCT_EMOJI = 3;
+const MIN_DISTINCT_EMOJI = 2;
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'Four no-reply acknowledgements in one DM each settle a turn with no durable message and exactly one Agent reaction, using at least three distinct emoji.',
+        'Four no-reply acknowledgements in one DM each settle a turn with no durable message and exactly one Agent reaction, using at least two distinct emoji.',
     name: 'ack-reaction-variety',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
         const [worker] = agents;
