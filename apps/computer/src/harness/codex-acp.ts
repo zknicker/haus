@@ -72,9 +72,9 @@ export function codexAcpEnvironment(settings: CodexAcpSettings): Record<string, 
 /**
  * Only the builtins Activity names. codex-acp tags shell calls with the tool
  * name `exec_command` and sends web searches with their query as raw input.
- * A patch and a context compaction carry no tool name, only codex-acp's fixed
- * ACP title and kind, so they resolve by title; any other unnamed call stays a
- * generic tool.
+ * A patch, an image generation, and a context compaction carry no tool name,
+ * only codex-acp's fixed ACP title and kind, so they resolve by title; any
+ * other unnamed call stays a generic tool.
  */
 export const codexBuiltinTools = {
     apply_patch: {
@@ -87,6 +87,11 @@ export const codexBuiltinTools = {
         nativeName: 'exec_command',
         toolUseKind: 'bash',
     }),
+    // codex-acp's native image generation (`image_gen.imagegen`), which carries no tool name.
+    image_gen: {
+        ...tool({ inputSchema: z.looseObject({}) }),
+        title: 'Image generation',
+    },
     // The harness's reserved compaction name, which Activity already keeps silent.
     compaction: {
         ...tool({ inputSchema: z.looseObject({}) }),

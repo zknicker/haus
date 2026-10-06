@@ -1,6 +1,7 @@
 import { agentThoughtActionMaxLength } from '@haus/api';
 import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { ComputerToolClassification } from './activity-tool-fixtures.ts';
+import { type NativeImageToolAction, nativeImageToolAction } from './generated-images.ts';
 import { readShellCommand, unwrapShell } from './haus-cli-command.ts';
 import { isSecretName, scrubCommandLine, scrubPhrase } from './thought-action-scrub.ts';
 
@@ -24,13 +25,16 @@ const describedCategories = new Set<ComputerAgentActivityCategory>([
  * Server to phrase as a thought (ADR 0036): a shell command line with URLs
  * reduced to host and path words and secrets, tokens, and emails removed; a
  * file's basename; a web query or page; the short description a sub-agent was
- * delegated under; or a tool name with a short argument summary. Null when the action is bookkeeping or nothing presentable remains.
+ * delegated under; an image or video request with its prompt; or a tool name
+ * with a short argument summary. Null when the action is bookkeeping or nothing
+ * presentable remains.
  */
 export function describeToolAction(action: {
     classification: ComputerToolClassification;
     input: unknown;
     nativeName?: string;
     readPath?: string;
+    runtimeId?: string;
     toolName: string;
 }): string | null {
     const { classification } = action;
@@ -41,6 +45,12 @@ export function describeToolAction(action: {
         return fileAction('read', action.readPath);
     }
     const fields = inputFields(action.input);
+    const media = action.runtimeId
+        ? nativeImageToolAction(action.runtimeId, action.toolName)
+        : undefined;
+    if (media) {
+        return mediaAction(media, fields);
+    }
     switch (classification.category) {
         case 'running_command': {
             const command = readShellCommand(action.input);
@@ -81,6 +91,19 @@ export function describeFileChange(input: unknown): string | null {
     }
     const event = textField(fields, ['event']);
     return fileAction(event === 'add' ? 'create' : event === 'delete' ? 'delete' : 'edit', path);
+}
+
+const mediaVerbs: Record<NativeImageToolAction, string> = {
+    edit: 'edit an image',
+    generate: 'generate an image',
+    video: 'make a video',
+};
+
+/** Grok Build sends the prompt; Codex's call carries only its id, so it reads as the bare verb. */
+function mediaAction(media: NativeImageToolAction, fields: Record<string, unknown>): string | null {
+    const prompt = textField(fields, ['prompt']);
+    const scrubbed = prompt ? scrubPhrase(prompt) : '';
+    return bounded(scrubbed ? `${mediaVerbs[media]}: ${scrubbed}` : mediaVerbs[media]);
 }
 
 function fileToolAction(verb: 'edit' | 'read', fields: Record<string, unknown>): string | null {

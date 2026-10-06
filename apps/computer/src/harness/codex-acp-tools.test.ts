@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from 'bun:test';
-import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
@@ -86,7 +86,17 @@ test('codex-acp tool calls get readable names, categories, and real durations', 
         ['exec-patch', 'fileChange'],
         ['compact-1', 'compaction'],
         ['mcp-1', 'acp_tool_mcp-1'],
+        ['exec-image', 'image_gen'],
     ]);
+    // The generated image lands in the workspace; the journal keeps its path, not its base64.
+    const image = document?.tools.find((tool) => tool.toolCallId === 'exec-image');
+    const imagePath = (image?.output as { path?: string } | undefined)?.path ?? '';
+    expect(image?.output).toEqual({
+        path: expect.stringMatching(/^generated-images\/\d{8}-\d{6}-exec-image\.png$/u),
+        revisedPrompt: 'A red circle.',
+        savedPath: join(homeDir, '.codex/generated_images/codex-thread/exec-image.png'),
+    });
+    expect(await readFile(join(rootDir, 'workspace', imagePath), 'utf8')).toBe('png');
     expect(document?.tools.find((tool) => tool.toolCallId === 'exec-read')).toMatchObject({
         input: { path: 'notes.txt' },
         nativeName: 'bash',
@@ -113,12 +123,14 @@ test('codex-acp tool calls get readable names, categories, and real durations', 
         { category: 'editing_files', phase: 'completed' },
         { category: 'using_tool', phase: 'started' },
         { category: 'using_tool', phase: 'completed' },
+        { category: 'using_tool', phase: 'started' },
+        { category: 'using_tool', phase: 'completed' },
     ]);
     await rm(rootDir, { force: true, recursive: true });
 }, 60_000);
 
 // The update shapes codex-acp 1.12.0 sends for a command, a parsed file read,
-// an apply_patch, a context compaction, and an MCP call.
+// an apply_patch, a context compaction, an MCP call, and an image generation.
 const fakeCodexAcp = `#!/usr/bin/env node
 const { createInterface } = require('node:readline');
 const send = (message) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...message }) + '\\n');
@@ -150,6 +162,14 @@ async function turn(sessionId) {
         _meta: { is_mcp_tool_call: true } });
     update({ sessionUpdate: 'tool_call_update', toolCallId: 'mcp-1', status: 'completed',
         rawOutput: { result: { content: [] }, error: null } });
+    const savedPath = process.env.HOME + '/.codex/generated_images/' + sessionId + '/exec-image.png';
+    require('node:fs').mkdirSync(require('node:path').dirname(savedPath), { recursive: true });
+    require('node:fs').writeFileSync(savedPath, 'png');
+    update({ sessionUpdate: 'tool_call', toolCallId: 'exec-image', kind: 'other',
+        title: 'Image generation', status: 'in_progress', rawInput: { id: 'exec-image' } });
+    update({ sessionUpdate: 'tool_call_update', toolCallId: 'exec-image', status: 'completed',
+        content: [{ type: 'content', content: { type: 'image', data: 'cG5n', mimeType: 'image/png', uri: savedPath } }],
+        rawOutput: { status: 'completed', revisedPrompt: 'A red circle.', result: 'cG5n', savedPath } });
 }
 createInterface({ input: process.stdin }).on('line', async (line) => {
     const message = JSON.parse(line);

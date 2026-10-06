@@ -7,6 +7,7 @@ import {
 import type { ComputerToolActivity, ComputerToolClassification } from './activity-tool-fixtures.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { createFileChangeFold } from './file-change-fold.ts';
+import { createGeneratedImageSteps } from './generated-images.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 import { createSubagentSteps, delegationOperationId } from './subagent-steps.ts';
 import { describeFileChange, describeToolAction } from './thought-action.ts';
@@ -26,6 +27,7 @@ export function createComputerActivityProjector(input: {
     const calls: ToolCalls = {
         fileChanges: createFileChangeFold(skipped),
         findings: createToolFindings(input.thoughts),
+        images: createGeneratedImageSteps(input),
         pending: new Map(),
         reads: createAcpReadSteps(input.workspaceDir),
         skipped,
@@ -132,7 +134,14 @@ async function observeToolCall(
     calls.findings.started(
         toolCallId,
         classification,
-        describeToolAction({ classification, input: part.input, nativeName, readPath, toolName })
+        describeToolAction({
+            classification,
+            input: part.input,
+            nativeName,
+            readPath,
+            runtimeId: input.runtimeId,
+            toolName,
+        })
     );
     await startToolActivity({ activity: input.activity, calls, classification, toolCallId });
     await input.journal?.recordToolCall({
@@ -182,11 +191,17 @@ async function observeToolOutcome(
     });
     const failed = part.type === 'tool-error' || part.isError === true;
     const isPreliminary = part.preliminary === true;
+    // The translated stream carries payloads on `output`; `tool-error` on `error`.
+    const output =
+        part.type === 'tool-error'
+            ? part.error
+            : isPreliminary
+              ? part.output
+              : await calls.images.settle(toolName, part.output, failed);
     await input.journal?.recordToolResult({
         isError: failed,
         nativeName: stringValue(part.nativeName),
-        // The translated stream carries payloads on `output`; `tool-error` on `error`.
-        output: part.type === 'tool-error' ? part.error : part.output,
+        output,
         preliminary: isPreliminary,
         toolCallId,
         toolName: calls.reads.journalName(
@@ -200,7 +215,7 @@ async function observeToolOutcome(
     if (calls.pending.get(toolCallId)?.category === 'delegating') {
         await calls.subagents.observeResult(toolCallId, part.output);
     }
-    calls.findings.finished(toolCallId, part.output, failed);
+    calls.findings.finished(toolCallId, output, failed);
     calls.skipped.delete(toolCallId);
     if (calls.pending.delete(toolCallId)) {
         await input.activity.finish(toolActivityKey(toolCallId), failed ? 'failed' : 'completed');
@@ -236,6 +251,7 @@ async function startToolActivity(input: {
 interface ToolCalls {
     fileChanges: ReturnType<typeof createFileChangeFold>;
     findings: ReturnType<typeof createToolFindings>;
+    images: ReturnType<typeof createGeneratedImageSteps>;
     pending: Map<string, ComputerToolActivity>;
     reads: ReturnType<typeof createAcpReadSteps>;
     skipped: Set<string>;

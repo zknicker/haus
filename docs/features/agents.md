@@ -221,8 +221,12 @@ native to an Agent's selected execution runtime: Codex (on ChatGPT plans that in
 generation) and Grok Build generate images natively; Claude Code and Pi do not. Availability
 follows that runtime and model; it is separate from Haus's avatar service and is not controlled by
 an App setting. A generated image reaches a chat only as an attachment: the Agent uploads the saved
-file with `haus attachment upload` and sends it with `--attachment-id`. Native tools may save
-outside the Agent workspace (Codex writes under its `generated_images` directory). The `images`
+file with `haus attachment upload` and sends it with `--attachment-id`. Native tools save inside
+the Agent's isolated home, outside its workspace (Codex under `$CODEX_HOME/generated_images/`, Grok
+Build under its session's `images/` folder), so when a generation or edit finishes Computer copies
+the file into the workspace at `generated-images/<UTC yyyymmdd-hhmmss>-<original name>` and the
+execution journal records that workspace path as the call's `path` (with the runtime's original as
+`savedPath`). A copy that fails is logged and the journal keeps the original path. The `images`
 Manual topic teaches this flow and tells Agents without the capability to say so plainly or draw
 an SVG or inline visual instead.
 

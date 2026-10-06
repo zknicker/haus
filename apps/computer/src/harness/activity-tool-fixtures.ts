@@ -45,14 +45,20 @@ export const computerNativeToolActivityFixtures = {
     codex: {
         apply_patch: 'editing_files',
         bash: 'running_command',
+        // Native media tools (`generated-images.ts`) are tools, not file edits.
+        image_gen: 'using_tool',
         webSearch: 'searching_web',
     },
     'grok-build': {
         bash: 'running_command',
         edit: 'editing_files',
         grep: 'reading_files',
+        image_edit: 'using_tool',
+        image_gen: 'using_tool',
+        image_to_video: 'using_tool',
         list_dir: 'reading_files',
         read_file: 'reading_files',
+        reference_to_video: 'using_tool',
         webSearch: 'searching_web',
         write: 'editing_files',
     },
