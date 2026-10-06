@@ -17,6 +17,10 @@ export function formatFoldLabel(
         return { past: `${first.past} ×${count}`, present: `${first.present} ×${count}` };
     }
     const [past, present, noun] = foldVerbs[kind] ?? genericVerbs;
+    if (kind === 'image') {
+        const media = mediaNoun(members);
+        return { past: `${past} ${count} ${media}`, present: `${present} ${count} ${media}` };
+    }
     return { past: `${past} ${count} ${noun}`, present: `${present} ${count} ${noun}` };
 }
 
@@ -49,3 +53,12 @@ const foldVerbs: Record<string, readonly [string, string, string]> = {
     shell: ['Ran', 'Running', 'commands'],
     web: ['Made', 'Making', 'web requests'],
 };
+
+/** A media fold names what it made: `images`, `videos`, or both. */
+function mediaNoun(members: readonly TurnTraceTool[]): string {
+    const videos = members.filter((member) => member.image?.media === 'video').length;
+    if (videos === 0) {
+        return 'images';
+    }
+    return videos === members.length ? 'videos' : 'images and videos';
+}

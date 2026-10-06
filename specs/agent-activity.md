@@ -54,10 +54,10 @@ activity and never become thoughts; they are execution-journal evidence nested u
 call. A settled turn counts each sub-agent once under the `delegating` operation category, so a
 delegation-heavy turn does not read as idle.
 
-Turn operation counts also have one turn-only category, `generating_media`: a runtime-native image
-or video tool (`generated-images.ts`) opens ordinary `using_tool` activity while it runs but counts
-as generated media, because the image is usually what the human asked for. It is never a live
-activity category.
+Turn operation counts also have two turn-only categories, `generating_image` and
+`generating_video`: a runtime-native image or video tool (`generated-images.ts`) opens ordinary
+`using_tool` activity while it runs but counts as the media it makes, because that media is usually
+what the human asked for. Neither is a live activity category.
 
 ## Mapping evidence to activity
 

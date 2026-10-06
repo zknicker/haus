@@ -64,15 +64,19 @@ test('turn summaries count sub-agents and generated media but never live-only ca
     const counted = agentTurnActivitySummarySchema.parse({
         operations: [
             { category: 'delegating', completed: 2, failed: 1, interrupted: 0 },
-            { category: 'generating_media', completed: 1, failed: 0, interrupted: 0 },
+            { category: 'generating_image', completed: 1, failed: 0, interrupted: 0 },
+            { category: 'generating_video', completed: 2, failed: 0, interrupted: 0 },
         ],
     });
     expect(counted.operations.map((operation) => operation.category)).toEqual([
         'delegating',
-        'generating_media',
+        'generating_image',
+        'generating_video',
     ]);
-    // `generating_media` is a turn count, never a live activity category.
-    expect(agentActivityCategorySchema.safeParse('generating_media').success).toBe(false);
+    // Media kinds are turn counts, never live activity categories.
+    for (const category of ['generating_image', 'generating_video']) {
+        expect(agentActivityCategorySchema.safeParse(category).success).toBe(false);
+    }
     for (const category of ['received_message', 'sending_message', 'starting_work', 'working']) {
         expect(
             agentTurnActivitySummarySchema.safeParse({

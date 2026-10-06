@@ -7,7 +7,11 @@ import {
 import type { ComputerToolActivity, ComputerToolClassification } from './activity-tool-fixtures.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { createFileChangeFold } from './file-change-fold.ts';
-import { createGeneratedImageSteps, nativeImageToolAction } from './generated-images.ts';
+import {
+    createGeneratedImageSteps,
+    type NativeImageToolAction,
+    nativeImageToolAction,
+} from './generated-images.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 import { createSubagentSteps, delegationOperationId } from './subagent-steps.ts';
 import { describeFileChange, describeToolAction } from './thought-action.ts';
@@ -147,7 +151,7 @@ async function observeToolCall(
         activity: input.activity,
         calls,
         classification,
-        media: nativeImageToolAction(input.runtimeId, toolName) !== undefined,
+        media: mediaOperationCategory(nativeImageToolAction(input.runtimeId, toolName)),
         toolCallId,
     });
     await input.journal?.recordToolCall({
@@ -193,7 +197,7 @@ async function observeToolOutcome(
                 runtimeId: input.runtimeId,
                 toolName,
             }),
-        media: nativeImageToolAction(input.runtimeId, toolName) !== undefined,
+        media: mediaOperationCategory(nativeImageToolAction(input.runtimeId, toolName)),
         toolCallId,
     });
     const failed = part.type === 'tool-error' || part.isError === true;
@@ -234,8 +238,8 @@ async function startToolActivity(input: {
     activity: AgentActivityRun;
     calls: ToolCalls;
     classification: ComputerToolClassification;
-    /** A runtime-native image or video tool: live `using_tool`, counted as media. */
-    media: boolean;
+    /** A runtime-native image or video tool: live `using_tool`, counted as its media kind. */
+    media: MediaOperationCategory | undefined;
     toolCallId: string;
 }) {
     if (input.classification.outcome === 'skip') {
@@ -252,7 +256,7 @@ async function startToolActivity(input: {
         ...(input.classification.category === 'delegating'
             ? { operationId: delegationOperationId(input.toolCallId) }
             : {}),
-        ...(input.media ? { summaryCategory: 'generating_media' as const } : {}),
+        ...(input.media ? { summaryCategory: input.media } : {}),
         ...(input.classification.toolRef ? { toolRef: input.classification.toolRef } : {}),
     });
 }
@@ -266,6 +270,17 @@ interface ToolCalls {
     reads: ReturnType<typeof createAcpReadSteps>;
     skipped: Set<string>;
     subagents: ReturnType<typeof createSubagentSteps>;
+}
+
+type MediaOperationCategory = 'generating_image' | 'generating_video';
+
+function mediaOperationCategory(
+    action: NativeImageToolAction | undefined
+): MediaOperationCategory | undefined {
+    if (!action) {
+        return;
+    }
+    return action === 'video' ? 'generating_video' : 'generating_image';
 }
 
 function toolActivityKey(toolCallId: string): string {

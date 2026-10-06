@@ -35,16 +35,17 @@ export type AgentActivityPhase = z.infer<typeof agentActivityPhaseSchema>;
 
 /**
  * What a settled turn counts. Mostly the semantic activity categories that are work;
- * `delegating` counts sub-agents, and `generating_media` is turn-only: a native image or
- * video tool opens `using_tool` activity but counts here instead, because the media is
- * usually what the human asked for.
+ * `delegating` counts sub-agents, and `generating_image` / `generating_video` are turn-only:
+ * a native image or video tool opens `using_tool` activity but counts here instead, because
+ * the media is usually what the human asked for.
  */
 export const agentTurnOperationCategorySchema = z.enum([
     'browsing',
     'checking_messages',
     'delegating',
     'editing_files',
-    'generating_media',
+    'generating_image',
+    'generating_video',
     'reading_files',
     'running_command',
     'searching_web',

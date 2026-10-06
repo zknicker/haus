@@ -172,7 +172,8 @@ const failureReasons: Readonly<Record<string, string>> = {
 
 const outcomeOrder: readonly AgentTurnOperationCategory[] = [
     'delegating',
-    'generating_media',
+    'generating_image',
+    'generating_video',
     'editing_files',
     'running_command',
     'searching_web',
@@ -188,7 +189,8 @@ const outcomeNouns: Record<AgentTurnOperationCategory, readonly [string, string]
     checking_messages: ['message check', 'message checks'],
     delegating: ['sub-agent', 'sub-agents'],
     editing_files: ['file edit', 'file edits'],
-    generating_media: ['image or video', 'images or videos'],
+    generating_image: ['image', 'images'],
+    generating_video: ['video', 'videos'],
     reading_files: ['file read', 'file reads'],
     running_command: ['command', 'commands'],
     searching_web: ['web search', 'web searches'],

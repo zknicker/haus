@@ -79,7 +79,7 @@ test('resumes an earlier launch of the run and counts sub-agents and media', asy
     await run.start({
         category: 'using_tool',
         key: 'tool:image',
-        summaryCategory: 'generating_media',
+        summaryCategory: 'generating_image',
     });
     await run.finish('tool:image', 'completed');
     await run.runPromise({ category: 'reading_files', key: 'tool:read' }, async () => 'read');
@@ -87,7 +87,7 @@ test('resumes an earlier launch of the run and counts sub-agents and media', asy
     expect(run.snapshot()).toEqual({
         operations: [
             { category: 'delegating', completed: 1, failed: 0, interrupted: 0 },
-            { category: 'generating_media', completed: 1, failed: 0, interrupted: 0 },
+            { category: 'generating_image', completed: 1, failed: 0, interrupted: 0 },
             { category: 'reading_files', completed: 4, failed: 0, interrupted: 0 },
         ],
     });

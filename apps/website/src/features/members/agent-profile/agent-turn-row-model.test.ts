@@ -72,12 +72,13 @@ test('the outcome lists actions taken, most telling first, with no invented coun
         operations: [
             op('running_command', 4, 1),
             op('editing_files', 3),
-            op('generating_media', 1),
+            op('generating_video', 2),
+            op('generating_image', 1),
             op('delegating', 2),
         ],
     });
     expect(formatTurnOutcome(turn)).toBe(
-        '2 sub-agents · 1 image or video · 3 file edits · 4 commands (1 failed) · 1 message'
+        '2 sub-agents · 1 image · 2 videos · 3 file edits · 4 commands (1 failed) · 1 message'
     );
     // Nothing done and nothing said: a completed turn chose quiet; any other ended early.
     expect(formatTurnOutcome(settled())).toBe('Stayed quiet');
