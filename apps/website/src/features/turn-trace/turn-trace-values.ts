@@ -115,13 +115,6 @@ export function clampTraceValue(value: unknown): unknown {
     return `${serialized.slice(0, traceTextMaxChars)}\n… truncated`;
 }
 
-export function formatTraceValue(value: unknown): string {
-    if (typeof value === 'string') {
-        return value;
-    }
-    return stableJson(value) ?? String(value);
-}
-
 export function readHostname(url: string): string {
     try {
         return new URL(url).hostname || url;

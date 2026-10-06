@@ -2032,36 +2032,13 @@
     }
 
     /*
-     * Stock ChatTool pins a closed body to `height: 0 !important`, which beats
-     * the collapse React Aria animates through `--disclosure-panel-height`: a
-     * call opened over 200ms and snapped shut. Following the variable makes
-     * closing the same transition as opening. Same layer, imported later.
-     */
-    .chat-tool__content:not([data-expanded='true']) {
-        height: var(--disclosure-panel-height, 0px) !important;
-    }
-
-    /*
-     * ChatTool sets its trigger and error text in `xs`, which DESIGN.md
-     * reserves for chips and badges. A call's name is a row title and its error
-     * is the reason someone opened the trace, so both take the body step.
-     */
-    .chat-tool__trigger,
-    .chat-tool__trigger-label,
-    .chat-tool__error {
-        font-size: var(--text-sm);
-        line-height: var(--text-sm--line-height);
-    }
-
-    /*
-     * Stock ChatTool sets its three section labels in 10px ALL CAPS with extra
+     * Stock ChatTool sets its section labels in 10px ALL CAPS with extra
      * tracking. DESIGN.md has no all-caps tier, and a turn trace stacks these
      * labels beside its own plain muted ones — "Command", "File", "Exit code"
      * — so the same small muted role carries all of them and nothing in an
      * expanded call shouts.
      */
     .chat-tool__args-label,
-    .chat-tool__error-label,
     .chat-tool__result-label {
         font-size: var(--text-sm);
         line-height: var(--text-sm--line-height);
