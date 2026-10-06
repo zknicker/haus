@@ -38,11 +38,7 @@ export function useDesktopUpdate() {
     }, []);
 
     const checkForUpdate = useCallback(async () => {
-        await checkForDesktopUpdate({ install: false });
-    }, []);
-
-    const updateAndRestart = useCallback(async () => {
-        await installDesktopUpdateAndRestart();
+        await checkForDesktopUpdate();
     }, []);
 
     return {
@@ -51,7 +47,6 @@ export function useDesktopUpdate() {
         installedVersion,
         restart: restartForDesktopUpdate,
         status,
-        updateAndRestart,
     };
 }
 
@@ -71,7 +66,7 @@ function startDesktopUpdateMonitor() {
     void readDesktopInstalledVersion(bridge).then(setDesktopInstalledVersion, () => {
         setDesktopInstalledVersion(null);
     });
-    void checkForDesktopUpdate({ install: false });
+    void checkForDesktopUpdate();
 }
 
 function subscribeDesktopUpdate(listener: () => void) {
@@ -119,7 +114,7 @@ export async function readDesktopInstalledVersion(
     return info.version;
 }
 
-async function checkForDesktopUpdate({ install }: { install: boolean }) {
+async function checkForDesktopUpdate() {
     const bridge = getDesktopBridge();
 
     if (!bridge) {
@@ -138,14 +133,14 @@ async function checkForDesktopUpdate({ install }: { install: boolean }) {
 
     setDesktopUpdateStatus({ phase: 'checking' });
 
-    activeTask = checkForDesktopUpdateTask({ install }).finally(() => {
+    activeTask = checkForDesktopUpdateTask().finally(() => {
         activeTask = null;
     });
 
     await activeTask;
 }
 
-async function checkForDesktopUpdateTask({ install }: { install: boolean }) {
+async function checkForDesktopUpdateTask() {
     const bridge = getDesktopBridge();
 
     if (!bridge) {
@@ -155,12 +150,6 @@ async function checkForDesktopUpdateTask({ install }: { install: boolean }) {
 
     try {
         await bridge.checkForUpdate();
-
-        if (install) {
-            await installCurrentDesktopUpdate({
-                unavailableMessage: 'No Haus update is available to install.',
-            });
-        }
     } catch (error) {
         setDesktopUpdateStatus({
             phase: 'error',
@@ -169,32 +158,14 @@ async function checkForDesktopUpdateTask({ install }: { install: boolean }) {
     }
 }
 
-async function installDesktopUpdateAndRestart() {
-    const bridge = getDesktopBridge();
-
-    if (!bridge) {
-        setDesktopUpdateStatus({ phase: 'unsupported' });
-        return;
-    }
-
-    if (currentStatus.phase === 'available' || currentStatus.phase === 'ready') {
-        await installCurrentDesktopUpdate({
-            unavailableMessage: 'No Haus update is available to install.',
-        });
-        return;
-    }
-
-    await checkForDesktopUpdate({ install: true });
-}
-
 /** Downloads an available update without restarting; a ready update stays ready. */
 async function downloadDesktopUpdate() {
     // checkForDesktopUpdate reports an unsupported App itself.
     if (!isPersistentUpdateStatus(readDesktopUpdateStatus())) {
-        await checkForDesktopUpdate({ install: false });
+        await checkForDesktopUpdate();
     }
     if (readDesktopUpdateStatus().phase === 'available') {
-        await installCurrentDesktopUpdate();
+        await downloadAvailableDesktopUpdate();
     }
 }
 
@@ -221,27 +192,10 @@ function readDesktopUpdateStatus() {
     return currentStatus;
 }
 
-async function installCurrentDesktopUpdate(options?: { unavailableMessage?: string }) {
+async function downloadAvailableDesktopUpdate() {
     const bridge = getDesktopBridge();
 
-    if (!bridge) {
-        setDesktopUpdateStatus({ phase: 'unsupported' });
-        return;
-    }
-
-    if (currentStatus.phase === 'ready') {
-        setDesktopUpdateStatus({ phase: 'restarting', version: currentStatus.version });
-        await bridge.restartForUpdate();
-        return;
-    }
-
-    if (currentStatus.phase !== 'available') {
-        if (options?.unavailableMessage) {
-            setDesktopUpdateStatus({
-                message: options.unavailableMessage,
-                phase: 'error',
-            });
-        }
+    if (!bridge || currentStatus.phase !== 'available') {
         return;
     }
 
@@ -253,7 +207,7 @@ async function installCurrentDesktopUpdate(options?: { unavailableMessage?: stri
     } catch (error) {
         setDesktopUpdateStatus({
             phase: 'error',
-            message: getErrorMessage(error, 'Haus could not install the update.'),
+            message: getErrorMessage(error, 'Haus could not download the update.'),
         });
     }
 }
