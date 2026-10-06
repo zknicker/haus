@@ -166,6 +166,57 @@ test('a live trace ticks: the running step and the totals re-derive from the clo
     assert.doesNotMatch(settled, /text-shimmer/);
 });
 
+test('the drawer states the outcome once: the chip leads the trace totals, never a second count', () => {
+    const outcome = settledTurn();
+    const withSteps = renderToStaticMarkup(
+        <TurnTracePresentation
+            access="journal"
+            isPending={false}
+            outcome={outcome}
+            presentation={{
+                journal: journal([
+                    tool({ toolCallId: 'call-a', toolName: 'read' }),
+                    tool({ input: { command: 'bun test' }, toolCallId: 'call-b' }),
+                ]),
+                kind: 'available',
+            }}
+        />
+    );
+    assert.equal(withSteps.match(/>Completed</g)?.length, 1);
+    assert.match(withSteps, /2 calls/);
+    assert.doesNotMatch(withSteps, /Completed in|tool call|message/);
+
+    // No steps to total: the turn's own record says how it went.
+    const summary = renderToStaticMarkup(
+        <TurnTracePresentation access="summary" isPending outcome={outcome} presentation={null} />
+    );
+    assert.match(summary, />Completed<[\s\S]*Completed in 11s/);
+
+    // While the first relay is pending nothing stands in for the totals.
+    const pending = renderToStaticMarkup(
+        <TurnTracePresentation access="journal" isPending outcome={outcome} presentation={null} />
+    );
+    assert.doesNotMatch(pending, /Completed/);
+});
+
+function settledTurn(): NonNullable<Parameters<typeof TurnTracePresentation>[0]['outcome']> {
+    return {
+        durationMs: 11_000,
+        endedAt: at(11),
+        events: [],
+        failureKind: null,
+        kind: 'settled',
+        messageCount: 1,
+        operationCount: 1,
+        operations: [{ category: 'using_tool', completed: 1, failed: 0, interrupted: 0 }],
+        outputProduced: true,
+        runId: 'run-outcome',
+        startedAt: at(0),
+        status: 'completed',
+        trigger: null,
+    };
+}
+
 function renderSteps(source: AgentExecutionJournal, now: number) {
     const view = buildTurnTraceView(source, [], now);
     return renderToStaticMarkup(

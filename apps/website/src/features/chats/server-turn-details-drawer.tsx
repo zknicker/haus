@@ -5,7 +5,7 @@ import { useAgentTurnActivityHistory } from '../../hooks/members/use-agent-activ
 import { useAgentTurn } from '../../hooks/members/use-agent-turns.ts';
 import type { TurnDetailAccess } from '../members/agent-profile/agent-activity-model.ts';
 import { groupAgentActivityTurns } from '../members/agent-profile/agent-activity-turns.ts';
-import { TurnTrace, TurnTraceHeader } from '../turn-trace/turn-trace.tsx';
+import { TurnTrace } from '../turn-trace/turn-trace.tsx';
 
 export function ServerTurnDetailsDrawer({
     access,
@@ -107,16 +107,14 @@ function ServerTurnTrace({
     }
 
     return (
-        <div className="grid gap-3">
-            {turn ? <TurnTraceHeader turn={turn} /> : null}
-            <TurnTrace
-                access={access}
-                agentId={agentId}
-                enabled={open}
-                runId={runId}
-                serverId={serverId}
-                turn={turn}
-            />
-        </div>
+        <TurnTrace
+            access={access}
+            agentId={agentId}
+            enabled={open}
+            outcome={turn}
+            runId={runId}
+            serverId={serverId}
+            turn={turn}
+        />
     );
 }

@@ -13,7 +13,6 @@ import {
 } from '../members/agent-profile/agent-activity-model.ts';
 import {
     type AgentActivityTurn,
-    formatActivityTurnCounts,
     formatActivityTurnHeadline,
     getActivityTurnPhase,
 } from '../members/agent-profile/agent-activity-turns.ts';
@@ -27,23 +26,6 @@ import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from './turn-trace-view.ts';
 import { useTurnTraceNow } from './use-turn-trace-now.ts';
 
-/** The turn's outcome at a glance, for surfaces that do not already say it. */
-export function TurnTraceHeader({ turn }: { turn: AgentActivityTurn }) {
-    const phase = getActivityTurnPhase(turn);
-
-    return (
-        <div className="flex flex-wrap items-center gap-2">
-            <Chip color={getAgentActivityColor(phase)} size="sm" variant="soft">
-                {getAgentActivityPhaseLabel(phase)}
-            </Chip>
-            <span className="font-medium text-foreground text-sm">
-                {formatActivityTurnHeadline(turn)}
-            </span>
-            <span className="text-muted text-sm">{formatActivityTurnCounts(turn)}</span>
-        </div>
-    );
-}
-
 /**
  * What the Agent actually did, in order: the Computer's reasoning and tool calls.
  * The journal is requested only
@@ -53,6 +35,7 @@ export function TurnTrace({
     access,
     agentId,
     enabled,
+    outcome = null,
     runId,
     serverId,
     turn,
@@ -60,6 +43,8 @@ export function TurnTrace({
     access: TurnDetailAccess;
     agentId: string | null;
     enabled: boolean;
+    /** The turn whose outcome leads the totals; omitted where a row already states it. */
+    outcome?: AgentActivityTurn | null;
     runId: string | null;
     serverId: string;
     turn: AgentActivityTurn | null;
@@ -86,6 +71,7 @@ export function TurnTrace({
             access={access}
             events={turn?.events}
             isPending={journal.isPending}
+            outcome={outcome}
             presentation={presentation}
             refreshError={journal.refreshError}
             workspace={agentId ? { agentId, serverId } : null}
@@ -98,6 +84,7 @@ export function TurnTracePresentation({
     access,
     events,
     isPending,
+    outcome = null,
     presentation,
     refreshError = null,
     workspace = null,
@@ -105,6 +92,7 @@ export function TurnTracePresentation({
     access: TurnDetailAccess;
     events?: AgentActivityTurn['events'];
     isPending: boolean;
+    outcome?: AgentActivityTurn | null;
     presentation: TurnJournalPresentation | null;
     refreshError?: string | null;
     workspace?: TurnTraceWorkspace | null;
@@ -113,6 +101,7 @@ export function TurnTracePresentation({
         access === 'journal' && presentation?.kind === 'available' ? presentation.journal : null;
     const now = useTurnTraceNow(journal?.status === 'running');
     const view = buildTurnTraceView(journal, events, now);
+    const awaitingJournal = access === 'journal' && isPending && !presentation;
 
     return (
         // Every step row is its own disclosure. Inside the Activity tab's
@@ -123,6 +112,14 @@ export function TurnTracePresentation({
             {/* The Activity tab animates a row's open only when this holds
                 something to measure (`default-theme.css`). */}
             <div className="@container grid min-w-0 gap-2 text-sm" data-turn-trace>
+                {/* With no steps there are no totals, so the turn's own record
+                    says how it went — once the journal has answered, so the
+                    line does not flip to the totals a moment later. */}
+                {outcome && view.steps.length === 0 && !awaitingJournal ? (
+                    <TurnTraceOutcome turn={outcome}>
+                        <span className="text-muted">{formatActivityTurnHeadline(outcome)}</span>
+                    </TurnTraceOutcome>
+                ) : null}
                 <TurnTraceNotice
                     access={access}
                     isPending={isPending}
@@ -137,7 +134,13 @@ export function TurnTracePresentation({
                     // The relay answers after the row or drawer has opened, so the
                     // trace grows into place instead of landing at full height.
                     <TurnTraceReveal className="grid min-w-0 gap-1">
-                        <TurnTraceTotals view={view} />
+                        {outcome ? (
+                            <TurnTraceOutcome turn={outcome}>
+                                <TurnTraceTotals view={view} />
+                            </TurnTraceOutcome>
+                        ) : (
+                            <TurnTraceTotals view={view} />
+                        )}
                         <TurnTraceScopeProvider scope={{ axisMs: readAxis(view), workspace }}>
                             <TurnTraceScroll>
                                 <TurnTraceSteps steps={view.steps} />
@@ -159,6 +162,25 @@ function TurnTraceError({ error }: { error: NonNullable<TurnTraceView['error']> 
                 <Icon className="size-3.5 text-danger" icon={CancelCircleIcon} />
             </span>
             <TraceFailure failure={error} />
+        </div>
+    );
+}
+
+/** How the turn ended, beside the one line that says how long and how much. */
+function TurnTraceOutcome({
+    children,
+    turn,
+}: {
+    children: React.ReactNode;
+    turn: AgentActivityTurn;
+}) {
+    const phase = getActivityTurnPhase(turn);
+    return (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Chip color={getAgentActivityColor(phase)} size="sm" variant="soft">
+                {getAgentActivityPhaseLabel(phase)}
+            </Chip>
+            {children}
         </div>
     );
 }
