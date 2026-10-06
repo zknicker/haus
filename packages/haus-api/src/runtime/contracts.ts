@@ -15,7 +15,6 @@ const agentRuntimeCoreCapabilityIds = [
     'apiServer',
     'gateway',
     'modelExecution',
-    'imageGeneration',
     'skills',
     'cron',
     'autoDispatch',
@@ -253,19 +252,6 @@ export const agentRuntimeSaveModelCategorySettingsResultSchema =
     agentRuntimeModelCategorySettingsSchema.extend({
         restartScheduled: z.boolean(),
     });
-
-export const agentRuntimeModelCapabilitySelectionsSchema = z.object({
-    imageGeneration: agentRuntimeModelNameSchema.nullable(),
-});
-
-export const agentRuntimeModelCapabilitySelectionSettingsSchema = z.object({
-    selections: agentRuntimeModelCapabilitySelectionsSchema,
-    updatedAt: z.string().datetime().nullable(),
-});
-
-export const agentRuntimeSaveModelCapabilitySelectionsSchema = z.object({
-    selections: agentRuntimeModelCapabilitySelectionsSchema.partial(),
-});
 
 export const agentRuntimeTimezoneSettingsSchema = z.object({
     resolvedTimezone: z.string().trim().min(1),
@@ -904,7 +890,7 @@ export const agentRuntimeArchiveBindingSchema = z.object({
     id: z.string().trim().min(1),
 });
 
-export const agentRuntimeModelCapabilitySchema = z.enum(['agent', 'imageGeneration']);
+export const agentRuntimeModelCapabilitySchema = z.enum(['agent']);
 
 export const agentRuntimeModelExecutionKindSchema = z.enum(['harness', 'direct']);
 
@@ -1843,15 +1829,6 @@ export type AgentRuntimeSaveModelCategorySettings = z.infer<
 >;
 export type AgentRuntimeSaveModelCategorySettingsResult = z.infer<
     typeof agentRuntimeSaveModelCategorySettingsResultSchema
->;
-export type AgentRuntimeModelCapabilitySelections = z.infer<
-    typeof agentRuntimeModelCapabilitySelectionsSchema
->;
-export type AgentRuntimeModelCapabilitySelectionSettings = z.infer<
-    typeof agentRuntimeModelCapabilitySelectionSettingsSchema
->;
-export type AgentRuntimeSaveModelCapabilitySelections = z.infer<
-    typeof agentRuntimeSaveModelCapabilitySelectionsSchema
 >;
 export type AgentRuntimeTimezoneSettings = z.infer<typeof agentRuntimeTimezoneSettingsSchema>;
 export type AgentRuntimeSaveTimezoneSettings = z.infer<
