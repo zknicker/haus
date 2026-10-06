@@ -70,9 +70,11 @@ the stored runtimes and models, then emits a Computer update event before the mu
 Failed, disconnected, or unanswered requests preserve the last inventory. Computer separately
 reports refreshed usage. These optional frames leave older peers' ordinary reports intact.
 
-Computer protocol 26 adds the Cursor model catalog to inventory and the resolved model to each
-Cloud Agent Run. The release that ships protocol 26 requires an exact match: Server accepts
-ordinary work only from a Computer that reports protocol 26. A protocol-25 or older Computer
+Computer protocol 27 adds the stable `failureCode` and `failureFingerprint` to each settled turn
+summary, which the strict summary schema of a protocol-26 Server would reject. Protocol 26 added
+the Cursor model catalog to inventory and the resolved model to each Cloud Agent Run. The release
+that ships protocol 27 requires an exact match: Server accepts ordinary work only from a Computer
+that reports protocol 27. A protocol-26 or older Computer
 connects in bootstrap mode, which keeps update control but cannot execute ordinary work, so the
 Computer artifact must publish before the Server is promoted
 ([release prerequisites](../operations/releases.md#prerequisites)). App protocol 8 gates the unread Inbox, the removal of Needs you

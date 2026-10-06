@@ -29,6 +29,14 @@ or an idle Agent has applied the release. A Computer reconnect clears the Server
 that connection reports its durable receipt, preventing a rollback to an older Computer from
 leaving a stale Current label.
 
+Each Agent projection also carries `wakePause`, null unless the Server has paused automatic wakes
+after repeated failures. A pause reports `failureCount` (counted failures in a row),
+`lastFailure` (`at`, `kind`, and the stable `code` or null), `pausedAt`, and `nextProbeAt`, the
+time of the single probe run, null while that probe is running. `availability` stays `error`
+while paused. Automatic work keeps queuing behind the pause; any human message, Start, Restart,
+session reset, or runtime/model change lifts it. See
+[Agent daemon delivery](../internals/agent-daemon-delivery.md#bounds-and-failures) for the policy.
+
 When runtime, model, or reasoning effort changes during an active turn, Server preserves that turn's
 frozen configuration through settlement, then applies the latest saved configuration before the
 next turn starts. Runtime or model changes rotate the Agent session; effort-only changes preserve
@@ -415,7 +423,11 @@ including runtime, model, and reasoning effort, which no Agent-facing route expo
 Each settled turn summary includes its runtime and model plus normalized input,
 output, cache-read, and cache-write counts when the runtime reports them. Server
 persists those bounded counters for usage aggregation; raw usage payloads and
-execution traces remain Computer-local.
+execution traces remain Computer-local. A failed summary may also carry
+`failureCode`, the stable cause (for example `compaction-failed` or
+`turn-stalled`) that Server policy and App copy use instead of error text, and
+`failureFingerprint`, a 16-hex hash the Computer computes from the normalized raw
+error so the Server can tell the same failure repeating without receiving it.
 
 Wire schemas live in `packages/haus-api`; Server handlers live in `apps/server/src/agent-api/`
 and `apps/server/src/haus-api/agent/`; Computer proxy and launch behavior live in

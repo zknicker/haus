@@ -287,24 +287,41 @@ Sixteen consecutive drains containing only Agent-authored messages are
 allowed. The seventeenth remains queued until human input arrives; any drain
 containing human input resets the counter.
 
-Authentication, invalid model/runtime configuration, and oversized input
-failures degrade immediately because retrying cannot repair them. Timeouts,
-transport failures (including provider 5xx and overload), and unknown failures
-back off exponentially from 5 seconds to a 60-second cap with up to 10% jitter,
-and the fifth consecutive one degrades the Agent. Rate limits, usage limits, and
-model-capacity errors back off from 10 seconds to a 5-minute cap and never
-count toward that bound, so a long usage limit parks the Agent instead of
-degrading it. A failed turn that produced output also backs off without
-counting a failure. New work keeps queuing during any backoff and the retry
-sweep drains it once `retry_after` passes.
+Every failed or interrupted turn except a rate limit counts toward the
+Agent's failure streak, including a turn that produced output; that turn still
+consumes its work instead of requeueing it. A counted failure backs off
+exponentially from 5 seconds to a 60-second cap with up to 10% jitter. Rate
+limits, usage limits, and model-capacity errors back off from 10 seconds to a
+5-minute cap and never touch the streak, so a long usage limit parks the Agent
+without pausing it.
 
-A human Restart or Start clears the failure hold and redrives queued work
-without rotating the Agent's session. A new human message also clears a
-degraded or counted hold, but never cuts an active backoff window short.
-Agent-authored, reminder, trigger, and other automated work never clears a
-hold; it waits behind it. Raw failure evidence remains Computer-local; the
-compact failure kind crosses the Server boundary, and Computer logs one
-`harness-turn-failed` line with the Agent, run, runtime, and kind.
+The Server pauses automatic wakes (Raft's terminal failure breaker) when the
+same failure repeats three times, when five counted failures run back to back
+whatever they were, or at once for authentication, invalid model/runtime
+configuration, and oversized input, which retrying cannot repair. "The same
+failure" is the Computer's `failureFingerprint`, or `<failureKind>/<failureCode>`
+when the Computer sends none. A pause sets `retry_after` one hour out. When it
+passes, the ordinary sweep and dispatch path runs one probe: the Agent's single
+active-run slot admits exactly one run, and the sweep only resends that run
+while it is unacknowledged. A probe that fails climbs to a 4-hour wait, then 24
+hours, then repeats every 24 hours. Any completed run clears the streak, the
+fingerprint, and the pause. New work keeps queuing during any backoff or pause
+and the sweep drains it once `retry_after` passes.
+
+A human message lifts a pause at once and dispatches immediately; the Server
+announces the lift with a `server.updated` `agent` event after the message
+commits. Start, Restart, a session reset, and a configure that changes runtime
+or model also lift it, without rotating the session beyond what that action
+already does. Outside a pause, a human message releases a counted hold only
+after its window passes and never cuts a short or rate-limit backoff short.
+Agent-authored, reminder, trigger, task-assignment, Cloud Agent, and onboarding
+work never lifts a pause or releases a hold; it waits behind it. `agent.get`
+and `agent.list` project the pause as `wakePause` (failure count, last failure
+kind, code, and time, `pausedAt`, and `nextProbeAt`, null while the probe runs);
+availability stays `error`. Raw failure evidence remains Computer-local; only the
+failure kind, a stable failure code, and a fingerprint (a hash of the normalized
+raw text) cross the Server boundary, and Computer logs one `harness-turn-failed`
+line with the Agent, run, runtime, kind, and code.
 
 A provider failure must settle the turn as failed even when the runtime ends
 it normally. codex-acp does that by default: it reports a provider error as
@@ -385,7 +402,8 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | `agent.turns` and `agent.deliveries` are member-scoped and deny as `NOT_FOUND` | `apps/server/test/haus-agent-observability.test.ts` |
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
-| Backoff schedule, rate-limit and progress exemptions, human-only hold release | `apps/server/src/agent-delivery/retry-policy.test.ts`, `apps/server/test/agent-delivery-backoff.test.ts` |
+| Backoff schedule and rate-limit exemption | `apps/server/src/agent-delivery/retry-policy.test.ts`, `apps/server/test/agent-delivery-backoff.test.ts` |
+| Wake pause opens on a repeated or persistent failure, probes 1h → 4h → 24h, clears on success, and lifts only for human intent | `apps/server/src/agent-delivery/wake-pause.test.ts`, `apps/server/test/agent-wake-pause.test.ts`, `apps/server/test/haus-agent-wake-pause.test.ts` |
 | A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, opt-in `apps/computer/src/harness/codex-auth-live.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
 | `As Task` enters the inbox with canonical task metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |

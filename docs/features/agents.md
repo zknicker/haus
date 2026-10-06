@@ -60,7 +60,11 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - The hub's header states the Agent's photo, name, role, and current availability, offers
   **Edit Profile** (name, description, and the private personality) for an ordinary Agent, and holds one overflow menu of lifecycle verbs — Stop,
   Restart, Start fresh session, Full reset, Delete Agent — for Owners and Admins. Members see the
-  header without that menu. A runtime sign-in issue leads under the header.
+  header without that menu. A runtime sign-in issue leads under the header. When the Server has
+  paused automatic wakes after repeated failed turns, the header status reads **Paused** and a
+  warning Alert there names the failure streak, the last error as a plain sentence (from the
+  failure code, never raw error text), and when Haus retries on its own; Owners and Admins also
+  get **Restart**. A sign-in issue outranks the pause, so only one of the two shows.
 - Below the header, six cards each state a fact and open a section: **Runs on** (Computer and
   model, with the Computer's health), **Profile** (who created the Agent and when, else its handle), **Automations**
   (standing reminders and triggers), **Skills** and **Connections** (the first display names, `+N` for the
@@ -92,6 +96,10 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   activity; Agent reference chips use the same preview.
   The preview shows the Computer-confirmed configuration. When a saved model or runtime differs,
   it also names the pending choice and when it applies, or notes that it needs attention.
+  A paused Agent's preview reads **Paused** and opens with a red edge-to-edge banner,
+  "Paused after repeated failures", saying when Haus retries ("Retrying in …. Send a message or
+  restart to try now.", or "Retrying now…" while the probe runs). The profile names the last error;
+  the preview does not. A sign-in issue outranks the banner, as on the profile.
 - Automations is where the cause line on an Agent's message leads: pressing it
   opens the owning Agent's Automations tab. See [Chat](chat.md#in-the-box) for the
   line itself.
