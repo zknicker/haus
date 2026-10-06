@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TurnTraceToolCall } from './turn-trace-tool.tsx';
+import { TurnTraceImagePreview } from './turn-trace-image.tsx';
 import { classifyTraceTool } from './turn-trace-tool-model.ts';
 
 function tool(overrides: Partial<AgentExecutionJournalTool>): AgentExecutionJournalTool {
@@ -16,11 +16,14 @@ function tool(overrides: Partial<AgentExecutionJournalTool>): AgentExecutionJour
     };
 }
 
+/** The row's label, then what the step shows beneath it with no workspace to read from. */
 function render(source: AgentExecutionJournalTool) {
-    return renderToStaticMarkup(<TurnTraceToolCall tool={classifyTraceTool(source)} />);
+    const tool = classifyTraceTool(source);
+    assert.ok(tool.image);
+    return `${tool.label}\n${renderToStaticMarkup(<TurnTraceImagePreview image={tool.image} />)}`;
 }
 
-test('a Codex image generation reads as one and shows its workspace copy and prompt', () => {
+test('a Codex image generation reads as one and, unpreviewed, names its workspace copy and prompt', () => {
     // What Computer journals for codex-acp's "Image generation" call.
     const markup = render(
         tool({
@@ -34,7 +37,11 @@ test('a Codex image generation reads as one and shows its workspace copy and pro
     );
 
     assert.match(markup, /Generated an image/);
-    assert.match(markup, /generated-images\/20261006-130501-exec-4df6\.png/);
+    assert.match(
+        markup,
+        /20261006-130501-exec-4df6\.png<\/span><span class="min-w-0 truncate text-muted">generated-images</
+    );
+    assert.doesNotMatch(markup, /<img/);
     assert.match(markup, /A red circle on white\./);
     assert.doesNotMatch(markup, /Used image_gen|\.codex\/generated_images/);
 });
@@ -59,8 +66,8 @@ test('Grok Build edits and videos read as what they made', () => {
     );
 
     assert.match(edit, /Edited an image/);
-    assert.match(edit, /generated-images\/20261006-130501-2\.jpg/);
+    assert.match(edit, /20261006-130501-2\.jpg/);
     assert.match(edit, /Make the circle blue\./);
     assert.match(video, /Made a video/);
-    assert.match(video, /videos\/1\.mp4/);
+    assert.match(video, /1\.mp4<\/span><span class="min-w-0 truncate text-muted">[^<]*videos</);
 });

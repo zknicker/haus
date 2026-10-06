@@ -10,17 +10,17 @@ import { turnTraceRevealTransition } from './turn-trace-reveal.tsx';
 
 const theme = readFileSync(new URL('../../styles/default-theme.css', import.meta.url), 'utf8');
 
-test('every tool row is a real button that states whether it is open', () => {
+test('every row with evidence is a real button that states whether it is open', () => {
     const markup = render(
         journal({
             tools: [
-                tool({ toolCallId: 'call-read', toolName: 'read' }),
+                tool({ output: 'line one', toolCallId: 'call-read', toolName: 'read' }),
                 tool({ input: { command: 'bun test' }, toolCallId: 'call-shell' }),
             ],
         })
     );
 
-    const triggers = markup.match(/<button[^>]*chat-tool__trigger[^>]*>/g) ?? [];
+    const triggers = markup.match(/<button[^>]*chain-of-thought__trigger[^>]*>/g) ?? [];
     assert.equal(triggers.length, 2);
     for (const trigger of triggers) {
         assert.match(trigger, /aria-expanded="false"/);
@@ -151,17 +151,11 @@ test('a turn row reopens on the same transition it closes with', () => {
     assert.match(retained, /data-turn-trace="true"><div/);
 });
 
-test('the theme animates closing and never pins a closed tool body', () => {
+test('the theme keeps stock ChatTool section labels out of all caps', () => {
     assert.doesNotMatch(theme, /\.accordion--activity-history \.accordion__indicator/);
-    // ChatTool's closed body follows React Aria's animated height.
     assert.match(
         theme,
-        /\.chat-tool__content:not\(\[data-expanded='true'\]\) \{\s*height: var\(--disclosure-panel-height, 0px\) !important;/
-    );
-    // Row titles take the body step, never `xs`.
-    assert.match(
-        theme,
-        /\.chat-tool__trigger,\s*\.chat-tool__trigger-label,[^{]*\{\s*font-size: var\(--text-sm\);/
+        /\.chat-tool__args-label,\s*\.chat-tool__result-label \{[^}]*text-transform: none;/
     );
 });
 

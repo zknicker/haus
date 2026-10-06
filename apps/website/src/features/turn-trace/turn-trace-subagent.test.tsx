@@ -84,7 +84,7 @@ test('sub-agent meta prefers reported usage, else counts the calls seen so far',
     const settled = tool({
         subagent: subagent({ usage: { durationMs: 41_000, toolUses: 12, totalTokens: 34_200 } }),
     });
-    assert.equal(formatSubagentMeta(settled, 3), '12 tools · 34.2K tokens · 41s');
+    assert.equal(formatSubagentMeta(settled, 3), '12 tools · 34.2K tokens');
     const live: AgentExecutionJournalTool = {
         startedAt: at(1),
         status: 'running',
@@ -124,7 +124,7 @@ test('a failed sub-agent opens on its own and shows its calls and type', () => {
     assert.match(markup, /Read README\.md/);
 });
 
-test('an interrupted sub-agent stays closed under a calm stop mark; a failed one still opens', () => {
+test('an interrupted sub-agent stays closed under a calm stop mark; a failed one opens to why', () => {
     const render = (status: 'failed' | 'interrupted') =>
         renderToStaticMarkup(
             <TurnTracePresentation
@@ -145,19 +145,16 @@ test('an interrupted sub-agent stays closed under a calm stop mark; a failed one
             />
         );
 
+    // Interrupted is not failed: a calm stop mark, closed, nothing in danger.
     const interrupted = render('interrupted');
     assert.match(interrupted, /Sub-agent interrupted: Count files in apps/);
-    assert.doesNotMatch(interrupted, /data-state="output-error"/);
-    assert.doesNotMatch(interrupted, /chat-tool--error/);
-    assert.doesNotMatch(interrupted, /aria-expanded="true"/);
-    assert.doesNotMatch(interrupted, /data-slot="chat-tool-status"/);
-    assert.match(interrupted, /The sub-agent stopped before it finished\./);
-    assert.doesNotMatch(interrupted, /data-slot="chat-tool-error"/);
+    assert.match(interrupted, /aria-expanded="false"/);
+    assert.doesNotMatch(interrupted, /text-danger|aria-expanded="true"/);
 
     const failed = render('failed');
-    assert.match(failed, /data-state="output-error"/);
     assert.match(failed, /aria-expanded="true"/);
-    assert.match(failed, /data-slot="chat-tool-error"/);
+    assert.match(failed, /<svg[^>]*class="size-3\.5 shrink-0 text-danger"/);
+    assert.match(failed, /<p class="whitespace-pre-wrap break-words text-danger">aborted<\/p>/);
 });
 
 function toolAt(entries: ReturnType<typeof buildTurnTrace>, index: number): TurnTraceTool {

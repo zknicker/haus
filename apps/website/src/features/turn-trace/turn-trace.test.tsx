@@ -3,7 +3,11 @@ import test from 'node:test';
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
-import { traceTextMaxChars } from './turn-trace-values.ts';
+import { complexTurn } from './turn-trace-claude-fixtures.ts';
+import { codexFailureTurn, imageTurn } from './turn-trace-codex-fixtures.ts';
+import { TurnTraceScopeProvider } from './turn-trace-scope.tsx';
+import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
+import { buildTurnTraceView } from './turn-trace-view.ts';
 
 test('TurnTrace tells a member where execution detail lives', () => {
     const markup = render({ access: 'summary', presentation: null });
@@ -25,23 +29,6 @@ test('TurnTrace states why a journal could not be read without hiding the turn',
     assert.doesNotMatch(markup, /Started work/);
 });
 
-test('TurnTrace shows reasoning inline without a disclosure, even before the first tool', () => {
-    const markup = render({
-        presentation: {
-            kind: 'available',
-            journal: {
-                ...journal([]),
-                status: 'running',
-                reasoning: [
-                    { id: 'thinking', startedAt: at(1), text: 'Inspecting the delivery queue.' },
-                ],
-            },
-        },
-    });
-    assert.match(markup, /Inspecting the delivery queue/);
-    assert.doesNotMatch(markup, /chain-of-thought__trigger|aria-expanded/);
-});
-
 test('TurnTrace does not flash a loading label or semantic replacement while the first relay is pending', () => {
     const markup = renderToStaticMarkup(
         <TurnTracePresentation access="journal" isPending presentation={null} />
@@ -49,189 +36,148 @@ test('TurnTrace does not flash a loading label or semantic replacement while the
     assert.doesNotMatch(markup, /Loading|Started work|No activity/);
 });
 
-test('TurnTrace renders each tool kind with its own evidence', () => {
-    const markup = render({
-        presentation: {
-            journal: journal([
-                tool({
-                    input: { command: 'bun test' },
-                    output: 'ok',
-                    toolCallId: 'call-shell',
-                    toolName: 'bash',
-                }),
-                tool({
-                    input: { content: 'export const x = 1;', file_path: 'apps/website/src/x.ts' },
-                    toolCallId: 'call-write',
-                    toolName: 'write',
-                }),
-                tool({
-                    input: {
-                        file_path: 'apps/website/src/y.ts',
-                        new_string: 'const after = 2;',
-                        old_string: 'const before = 1;',
-                    },
-                    toolCallId: 'call-edit',
-                    toolName: 'edit',
-                }),
-                tool({
-                    input: { term: 'mug' },
-                    toolCallId: 'call-mcp',
-                    toolName: 'mcp__merchbase__products_search_a1b2c3d4',
-                }),
-            ]),
-            kind: 'available',
-        },
+test('reasoning reads inline on the rail, with no disclosure, even before the first tool', () => {
+    const markup = renderJournal({
+        ...journal([]),
+        reasoning: [{ id: 'thinking', startedAt: at(1), text: 'Inspecting the delivery queue.' }],
+        status: 'running',
     });
 
-    assert.match(markup, /bun test/);
-    assert.match(markup, /apps\/website\/src\/x\.ts/);
-    assert.match(markup, /apps\/website\/src\/y\.ts/);
-    assert.match(markup, /const before = 1;/);
-    assert.match(markup, /const after = 2;/);
-    assert.match(markup, /merchbase/);
-    assert.match(markup, /products_search/);
+    assert.match(markup, /chain-of-thought__steps/);
+    assert.match(markup, /Inspecting the delivery queue/);
+    assert.doesNotMatch(markup, /aria-expanded/);
 });
 
-test('TurnTrace states what the runtime changed and compacted, not raw arguments', () => {
-    const markup = render({
-        presentation: {
-            journal: journal([
-                tool({
-                    input: { event: 'modify', path: 'apps/computer/src/index.ts' },
-                    output: { event: 'modify', path: 'apps/computer/src/index.ts' },
-                    toolCallId: 'call-file-change',
-                    toolName: 'fileChange',
-                }),
-                tool({
-                    input: {},
-                    output: {
-                        summary: 'Condensed the earlier turns.',
-                        tokensAfter: 20_000,
-                        tokensBefore: 140_000,
-                        trigger: 'auto',
-                    },
-                    toolCallId: 'call-compaction',
-                    toolName: 'compaction',
-                }),
-            ]),
-            kind: 'available',
-        },
-    });
+test('the trace is one rail of borderless rows with totals stated once', () => {
+    const markup = renderJournal(complexTurn);
 
-    assert.match(markup, /Modified index\.ts/);
-    assert.match(markup, /Compacted the context/);
-    assert.match(markup, /Condensed the earlier turns\./);
-    assert.doesNotMatch(markup, /Used compaction/);
-    assert.doesNotMatch(markup, /Used fileChange/);
+    // Stock ChainOfThought rail, not a stack of bordered ChatTool cards.
+    assert.match(markup, /chain-of-thought__steps/);
+    assert.doesNotMatch(markup, /class="chat-tool\b/);
+    assert.match(markup, /1m 25s · 12 calls · 3 sub-agents/);
+    assert.match(markup, /<span class="text-danger">[^<]*3 failed<\/span>/);
+    // Durations sit in one right-aligned tabular column; a sub-second leaf states none.
+    assert.match(markup, /w-14 text-end text-muted text-sm tabular-nums">19s</);
+    assert.doesNotMatch(markup, />\d+ms</);
 });
 
-test('TurnTrace shows the evidence codex-acp journals for a command, an edit, and a read', () => {
-    const markup = render({
-        presentation: {
-            journal: journal([
-                tool({
-                    endedAt: at(1),
-                    input: { command: 'date', cwd: '<workspace>' },
-                    output: { exit_code: 0, formatted_output: 'Wed Sep 23 13:47:04 EDT 2026\n' },
-                    toolCallId: 'call-date',
-                }),
-                tool({
-                    input: { command: 'false' },
-                    output: { exit_code: 2, formatted_output: 'boom\n' },
-                    toolCallId: 'call-false',
-                }),
-                tool({
-                    input: { event: 'create', path: 'probe-notes.txt' },
-                    nativeName: 'apply_patch',
-                    output: [
-                        {
-                            newText: 'alpha\n',
-                            oldText: null,
-                            path: 'probe-notes.txt',
-                            type: 'diff',
-                        },
-                    ],
-                    toolCallId: 'call-create',
-                    toolName: 'fileChange',
-                }),
-                tool({
-                    input: { event: 'modify', path: 'notes.md' },
-                    output: [
-                        {
-                            newText: 'after line\n',
-                            oldText: 'before line\n',
-                            path: 'notes.md',
-                            type: 'diff',
-                        },
-                    ],
-                    toolCallId: 'call-modify',
-                    toolName: 'fileChange',
-                }),
-                tool({
-                    input: { path: 'probe-notes.txt' },
-                    nativeName: 'bash',
-                    output: { exit_code: 0, formatted_output: 'read-back text\n' },
-                    toolCallId: 'call-read',
-                    toolName: 'read',
-                }),
-            ]),
-            kind: 'available',
-        },
-    });
+test('steps are tab stops only when they open to something', () => {
+    const markup = renderJournal(
+        journal([
+            tool({ toolCallId: 'call-bare', toolName: 'mystery_tool' }),
+            tool({ input: { command: 'bun test' }, toolCallId: 'call-shell' }),
+        ])
+    );
 
-    assert.match(markup, /Wed Sep 23 13:47:04 EDT 2026/);
-    // Only a failing command states its exit code.
-    assert.equal(markup.match(/Exit code/g)?.length, 1);
-    assert.match(markup, /boom/);
-    // A step whose start and end arrived together claims no duration.
-    assert.doesNotMatch(markup, />0ms</);
-    assert.match(markup, /Created probe-notes\.txt/);
-    assert.match(markup, /alpha/);
-    assert.match(markup, /Modified notes\.md/);
-    assert.match(markup, /before line/);
-    assert.match(markup, /after line/);
-    assert.match(markup, /Read probe-notes\.txt/);
-    assert.match(markup, /read-back text/);
+    const buttons = markup.match(/<button[^>]*>/g) ?? [];
+    assert.equal(buttons.length, 1);
+    assert.match(buttons[0] ?? '', /chain-of-thought__trigger/);
+    assert.match(buttons[0] ?? '', /aria-expanded="false"/);
+    // The bare call is still a row, just not a control.
+    assert.match(markup, /Used mystery_tool/);
+    // Only that trigger takes focus; rows, rails, and bars carry no tabindex.
+    assert.equal(markup.match(/tabindex="0"/g)?.length, 1);
 });
 
-test('TurnTrace bounds a single unbroken line of tool output', () => {
-    const markup = render({
-        presentation: {
-            journal: journal([
-                tool({
-                    input: { command: 'cat huge.log' },
-                    output: 'x'.repeat(traceTextMaxChars * 2),
-                    toolCallId: 'call-huge',
-                    toolName: 'bash',
-                }),
-            ]),
-            kind: 'available',
-        },
-    });
+test('same-kind runs fold into one expandable row, and parallel runs say so', () => {
+    const markup = renderJournal(codexFailureTurn);
 
-    assert.equal(markup.match(/x{100,}/g)?.[0]?.length, traceTextMaxChars);
-    assert.match(markup, /Only the first 20,000 characters are shown\./);
+    assert.match(markup, /aria-expanded="false"[^>]*>[\s\S]*?Ran sleep 45 &amp;&amp; echo done ×5/);
+    assert.match(markup, /in parallel/);
+    // Five lanes drawn inside the fold's one bar.
+    assert.equal(markup.match(/height:calc\(20% - 1px\)/g)?.length, 5);
 });
 
-test('TurnTrace opens a failed tool so the error is the first thing read', () => {
-    const markup = render({
-        presentation: {
-            journal: journal([
-                tool({ toolCallId: 'call-ok', toolName: 'read' }),
-                tool({
-                    error: 'Permission denied',
-                    status: 'failed',
-                    toolCallId: 'call-bad',
-                    toolName: 'bash',
-                }),
-            ]),
-            kind: 'available',
-        },
-    });
+test('Haus bookkeeping is one muted row', () => {
+    const markup = renderJournal(complexTurn);
+
+    assert.equal(markup.match(/Claimed a task · Sent a message/g)?.length, 1);
+    assert.doesNotMatch(markup, /text-foreground">Claimed a task/);
+});
+
+test('a sub-agent that finished with failed calls warns and counts them', () => {
+    const markup = renderJournal(complexTurn);
+
+    assert.match(markup, /text-warning/);
+    assert.match(markup, /Ran sub-agent: Security review/);
+    assert.match(markup, /<span class="shrink-0 text-danger tabular-nums">2 failed<\/span>/);
+});
+
+test('a failed call opens on its own and reads as text with its exit code, never JSON', () => {
+    const markup = renderJournal(codexFailureTurn);
 
     assert.equal(markup.match(/aria-expanded="true"/g)?.length, 1);
-    assert.match(markup, /Permission denied/);
+    assert.match(markup, /ls: \/definitely\/not\/here: No such file or directory/);
+    assert.match(markup, /Exit code 1/);
+    assert.doesNotMatch(markup, /formatted_output|exit_code/);
 });
+
+test('a turn that failed states why above its steps instead of claiming nothing ran', () => {
+    const markup = renderJournal({
+        ...journal([]),
+        failure: { message: 'Harness session has an unfinished turn and must be continued.' },
+        status: 'failed',
+    });
+
+    assert.match(markup, /Harness session has an unfinished turn/);
+    assert.doesNotMatch(markup, /No activity was recorded/);
+});
+
+test('an image step without a readable workspace copy names its file and prompt', () => {
+    const markup = renderJournal(imageTurn);
+
+    assert.match(markup, /Generated an image/);
+    assert.doesNotMatch(markup, /<img/);
+    assert.match(markup, /20261006-174019-exec-0b47[^<]*\.png/);
+    assert.match(markup, /lighthouse/i);
+});
+
+test('reasoning titles ride the next step as its caption, earlier ones a press away', () => {
+    const markup = renderJournal(codexFailureTurn);
+
+    assert.match(markup, /chain-of-thought__step-label[^>]*>Running five parallel exec commands</);
+    assert.match(
+        markup,
+        /<button[^>]*aria-expanded="false"[^>]*>Testing Bing search access · 2 thoughts/
+    );
+});
+
+test('a live trace ticks: the running step and the totals re-derive from the clock', () => {
+    const live: AgentExecutionJournal = {
+        ...journal([
+            tool({
+                endedAt: undefined,
+                input: { command: 'sleep 30 && date' },
+                status: 'running',
+                toolCallId: 'call-live',
+            }),
+        ]),
+        status: 'running',
+    };
+    const at12 = renderSteps(live, Date.parse(at(13)));
+    const at13 = renderSteps(live, Date.parse(at(14)));
+
+    assert.match(at12, /text-shimmer/);
+    assert.match(at12, /Running sleep 30 &amp;&amp; date/);
+    assert.match(at12, />12s</);
+    assert.match(at13, />13s</);
+
+    const settled = renderJournal(complexTurn);
+    assert.doesNotMatch(settled, /text-shimmer/);
+});
+
+function renderSteps(source: AgentExecutionJournal, now: number) {
+    const view = buildTurnTraceView(source, [], now);
+    return renderToStaticMarkup(
+        <TurnTraceScopeProvider scope={{ axisMs: view.totals.durationMs ?? 0, workspace: null }}>
+            <TurnTraceSteps steps={view.steps} />
+        </TurnTraceScopeProvider>
+    );
+}
+
+function renderJournal(source: AgentExecutionJournal) {
+    return render({ presentation: { journal: source, kind: 'available' } });
+}
 
 function render(input: {
     access?: 'journal' | 'summary';
