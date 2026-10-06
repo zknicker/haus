@@ -2,7 +2,7 @@ import type { AgentTurnSummary } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentsTable, agentTurnsTable } from '../postgres/schema.ts';
+import { agentRunTriggersTable, agentsTable, agentTurnsTable } from '../postgres/schema.ts';
 
 /**
  * Persists a Computer's compact turn summary. The `computer_id` guard means a
@@ -70,4 +70,19 @@ export async function recordAgentTurnSummary(
             },
             target: [agentTurnsTable.serverId, agentTurnsTable.agentId, agentTurnsTable.runId],
         });
+}
+
+/**
+ * Records the inbox work that woke a new run, once at dispatch, so its settled
+ * turn can name what started it after the inbox row is requeued or retired.
+ */
+export async function recordRunTrigger(
+    db: HausDatabase,
+    run: { agentId: string; runId: string; serverId: string },
+    first: { chatId: string; dedupeKey: string; source: string }
+): Promise<void> {
+    await db
+        .insert(agentRunTriggersTable)
+        .values({ ...run, chatId: first.chatId, source: first.source, workId: first.dedupeKey })
+        .onConflictDoNothing();
 }

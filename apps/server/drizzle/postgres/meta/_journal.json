@@ -435,6 +435,13 @@
       "when": 1791303476606,
       "tag": "0061_delegating_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1791312456332,
+      "tag": "0062_agent_run_triggers",
+      "breakpoints": true
     }
   ]
 }

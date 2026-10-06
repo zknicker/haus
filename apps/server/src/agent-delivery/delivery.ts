@@ -22,7 +22,7 @@ import {
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { readActiveAgentActivity } from '../server-agents/agent-activity-history.ts';
 import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
-import { recordAgentTurnSummary } from '../server-agents/record-agent-turn.ts';
+import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
@@ -1003,17 +1003,17 @@ export class AgentDelivery {
             // reproduces exactly these two sets.
             ({ drainRows, warmDrainRows } = await humanDrainSets(tx, noticeRows));
         }
-        const chatId = first.chatId;
         // Freeze execution configuration onto the run so every resend uses these values.
         await store.beginActiveRun(tx, {
             agentId,
-            chatId,
+            chatId: first.chatId,
             computerId: config.computerId,
             modelId: config.desiredModelId,
             reasoningEffort: config.desiredReasoningEffort,
             runId,
             runtimeId: config.desiredRuntimeId,
         });
+        await recordRunTrigger(tx, { agentId, runId, serverId: state.serverId }, first);
         const activity = await appendServerAgentActivity(tx, {
             agentId,
             category: 'starting_work',
@@ -1033,7 +1033,7 @@ export class AgentDelivery {
                 agentId,
                 ...startPromptFacts(config),
                 agentName: config.agentName,
-                chatId,
+                chatId: first.chatId,
                 drainItemIds: drainRows.map((row) => row.dedupeKey),
                 homeTimezone: config.homeTimezone,
                 inbox: await buildInboxItems(tx, concrete ? selected : noticeRows, agentId),

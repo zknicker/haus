@@ -60,9 +60,14 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0059_agent_creation_request',
             '0060_reminder_descriptions',
             '0061_delegating_activity',
+            '0062_agent_run_triggers',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
+        ]);
+        // Existing turns gain no invented trigger: the new table starts empty.
+        expect(await upgraded`SELECT count(*)::int AS total FROM agent_run_triggers`).toEqual([
+            { total: 0 },
         ]);
         expect(
             await upgraded`SELECT data_type, is_nullable, column_default
@@ -170,6 +175,7 @@ test('copies each existing reminder title into its new description', async () =>
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([
             '0060_reminder_descriptions',
             '0061_delegating_activity',
+            '0062_agent_run_triggers',
         ]);
         expect(await upgraded`SELECT title, description FROM reminders`).toEqual([
             { description: title, title },
