@@ -220,7 +220,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // adopted verbatim, and Discovering's `server info` sentences rewritten for its paged listing.
     // Lowered (33,513 → 33,056) when Raft's three private-channel clauses (Discovering's two, the
     // Visibility bullet) were omitted: Haus has no private channels.
-    expect(prompt.length).toBeLessThanOrEqual(33_056);
+    // Raised by exactly 332 (33,056 → 33,388): the Inbox entry adopted Raft's `inbox check` text.
+    expect(prompt.length).toBeLessThanOrEqual(33_388);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

@@ -18,13 +18,13 @@ const deliveryTrailer = [
 
 /**
  * Notice-handling guidance rides the notice, as Raft's `formatInboxUpdateRuntimeInput` carries
- * it, so the standing prompt keeps only collaboration principles. specs/inbox.md §Notices owns
- * these guarantees: bodies withheld, not absent; not a request; deferral reported honestly.
+ * it, so the standing prompt keeps only collaboration principles. The first line is Raft
+ * 26f77ef's closing line; the second carries the specs/inbox.md §Notices guarantees Raft does
+ * not state: bodies withheld, not absent; not a request; deferral reported honestly.
  */
 const noticeGuidance = [
-    'These messages have not been read; their bodies are withheld to avoid flooding you, not absent. The notice is not itself a request, so do not acknowledge it.',
-    'Choose when to read them with `haus message check` (locally cached bodies) or `haus message read --target <target>`; `haus inbox check` lists pending targets without reading them. If what you read is higher priority, pivot to it; otherwise continue your current work.',
-    'Deferral needs no visible reply and the messages remain queryable, but deferring them does not establish that there is no work: if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending.',
+    "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them. Deferring them does not establish that there is no work.",
+    'Their bodies are withheld to avoid flooding you, not absent. The notice is not itself a request, so do not acknowledge it. If what you read is higher priority, pivot to it; otherwise continue your current work. Deferral needs no visible reply and the messages remain queryable; if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending.',
 ].join('\n');
 
 /** Exact model-visible drain shape from specs/inbox.md. */
@@ -49,7 +49,8 @@ export function composeInboxDrain(items: AgentInboxItem[], homeTimezone = 'UTC')
 }
 
 /**
- * Raft's per-wake digest of queued work the frame itself does not carry. It is
+ * Raft's per-wake digest of queued work the frame itself does not carry, in Raft 26f77ef's
+ * wording (`formatOtherUnreadChannelsSuffix`). It is
  * counts only, it advances nothing, and an empty list renders nothing at all.
  */
 export function formatUnreadElsewhere(entries: UnreadElsewhere[]): string | null {
@@ -59,7 +60,7 @@ export function formatUnreadElsewhere(entries: UnreadElsewhere[]): string | null
     return [
         'You also have unread messages in other channels:',
         ...entries.map((entry) => `- ${entry.target}: ${entry.count} unread`),
-        'Use the inbox/read commands at a natural breakpoint if you choose to inspect those targets.',
+        'Run `haus inbox check` at a natural breakpoint if you choose to inspect those targets; it lists every unread conversation with the command that opens it.',
     ].join('\n');
 }
 

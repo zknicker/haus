@@ -56,9 +56,9 @@ dropped because Haus has not observed this shape. The captured card was refreshe
 Each has a register row.
 
 - **Sub-agent delegation section** (conditional in Raft): pending operator decision.
-- **Inbox entry as "Activity panel"**, the inbox notice's new `--unread` closing line, the unread
-  digest's `inbox check` closing line, and the App inbox notice suffix: pending operator decision
-  (Inbox).
+- **App inbox notice suffix**: Haus has no built-in Apps. The Inbox family entry (as "your
+  Inbox"), the inbox notice's `--unread` closing line, and the unread digest's `inbox check`
+  closing line were pending here and have since been adopted (operator decision 2026-10-06).
 - **Wake briefing panel, startup memory block, wake session recycling**: pending operator decision.
 - **MEMORY.md 16 KB sentence**: renders only with Raft's startup memory block; pending with it.
   Haus's 16 KiB guidance already rides the memory-size notice.
