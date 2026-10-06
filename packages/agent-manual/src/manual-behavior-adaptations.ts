@@ -7,6 +7,10 @@ export const manualBehaviorAdaptations = new Map<string, ReadonlyArray<readonly 
         [
             ...(reminderSemantics.get('recipes/pattern/recurring-recovery') ?? []),
             [
+                'Counter: staged cancellation on observed first delivery.',
+                'Counter: staged cancellation on observed first completion (the required deliverable, or the quiet-check execution evidence and checkpoint).',
+            ],
+            [
                 "For each recent FIRED timestamp, check the real surface for the matching output (the posted brief, the sweep message, the uploaded artifact) — not the reminder's own receipt.",
                 "For each recent FIRED timestamp, check the real surface for the agreed outcome (the posted brief, the sweep evidence, the uploaded artifact) — not the reminder's own receipt. A quiet check may correctly post nothing: reconcile its actual execution evidence and saved checkpoint instead of treating silence as a missed run.",
             ],

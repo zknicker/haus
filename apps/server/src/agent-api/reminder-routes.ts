@@ -61,9 +61,12 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
         if (!runner) {
             return sendError(reply, 401, 'A valid runner credential is required.');
         }
-        const query = z.object({ status: z.string().optional() }).parse(request.query);
+        const query = z.object({ status: z.string().optional() }).safeParse(request.query);
+        if (!query.success) {
+            return sendError(reply, 400, reminderValidationMessage(query.error));
+        }
         return await runAction(reply, () =>
-            listAgentReminders(db, runner, query.status?.split(','))
+            listAgentReminders(db, runner, query.data.status?.split(','))
         );
     });
 

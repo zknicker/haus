@@ -24,6 +24,17 @@ test('reminder routes distinguish invalid credentials from malformed authenticat
         undefined,
         false
     );
+    const invalidList = await fetch(
+        new URL('/api/agent/reminders?status=scheduled&status=fired', fixture.harness.url),
+        {
+            headers: { authorization: `Bearer ${runner.token}` },
+        }
+    );
+    expect(invalidList.status).toBe(400);
+    expect(await invalidList.json()).toMatchObject({
+        code: 'INVALID_ARG',
+        message: expect.stringContaining('status'),
+    });
     const response = await post(runner.token, 'schedule', {
         commandId: 'x'.repeat(129),
         fireAt: new Date(Date.now() + 86_400_000).toISOString(),
