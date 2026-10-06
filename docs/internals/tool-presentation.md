@@ -46,20 +46,38 @@ whose members carry the specifics. A fold
 keys by its first call, so in a live turn a call that gains a same-kind sibling becomes the fold
 in place, and an open fold stays open as calls (captioned or not) join it.
 
-The view renders as one stock `ChainOfThought` rail (`turn-trace-steps-view.tsx`), never a
-stack of bordered cards. Everything a row opens to — its body, a fold's members, a sub-agent's
-calls — sits on that row's label column behind one edge dropped from its icon
-(`traceBodyClass` in `turn-trace-row.tsx`), with no second rail: each depth is exactly one
-step in, and errors, commands, and output never take a deeper column of their own. Every step is one borderless line: a kind mark (or a danger, warning,
-or stop mark for its outcome), the label, the muted directory, and a right-hand timing column
-— a thin waterfall bar on the turn's axis and a tabular duration, hidden under a second for a
-settled leaf. Steps that ran side by side share time on the bars, and a parallel fold draws its
-members as stacked lanes in one bar. The totals sit once above the rail (in the drawer, led by
-the turn's outcome chip; with no steps to total, the turn's own record says how long it took),
-and a turn's own
-`failure` reads as a danger note above it rather than "No activity was recorded". A row is a
-`ChainOfThought` disclosure, the one tab stop it earns, only when it opens to something
-(`hasCallBody`); its body mounts on first open, so a long turn pays for what someone reads.
+The view renders on one locked row grid (`turn-trace-grid.tsx`), never a stack of bordered
+cards or nested rails. Every row at every depth — call, fold, Haus bookkeeping, sub-agent, a
+sub-agent's own calls, reasoning — shares four columns: a label cell (`clamp(8rem, 45%, 28rem)`,
+so it narrows with the trace), a flexible waterfall track, a fixed right-aligned tabular duration
+that never wraps (and states nothing for a settled step under a second), and a disclosure slot reserved on leaves so labels never shift. Depth indents
+inside the label cell only (`--trace-depth`, 0.75rem per step), so the track and duration columns
+land at the same x on every row. A row is a kind mark (or a danger, warning, or stop mark for its
+outcome), the label, the muted directory, and a dotted leader from the label's end that runs on
+through the track at the row's center; the step's bar (6px, full radius) sits over that leader on
+the turn's axis, ringed in the trace's ground so it reads as cut from the line. Bars say what kind
+of work ran: a sub-agent or reasoning in the step hue, a call in the tool hue, Haus bookkeeping in
+the quiet hue, a failure in danger (tokens in `product-tokens.css`). Hierarchy is indent, mark,
+and bar color only: a sub-agent's calls are rows one depth in, with no background or edge of their
+own. A failed row tints whole — fill, bar, and leader — and opens on its own. Steps that ran side
+by side share time on the bars, and a parallel fold draws its members as stacked lanes in one bar.
+While the turn runs, the axis is its elapsed time, so bars rescale (200ms linear), the running bar
+pulses, and a new row fades and rises into place; all of it is off under reduced motion.
+
+Everything a row opens to that is not itself a row — its evidence, a sub-agent's fact line and
+report, a sent message — starts on the row's label text (`TraceBody`, `traceTextInset`) and stops
+short of the edge. Each section is named by one micro label (`TraceMicroLabel`: `ERROR`,
+`COMMAND`, `OUTPUT`, `REPORT`, `MESSAGE`, and stock ChatTool's `ARGUMENTS` / `RESULT` on the same
+tier) over the code blocks' quiet surface, bounded to a readable height that scrolls. The trace's
+totals sit once in its footer (`turn-trace-footer.tsx`): calls, sub-agents, images, and failures
+as tabular figures over micro labels, closed by the wall time labelled `Running` while the turn
+works and `Done` once it settles. The journal reports tokens only per sub-agent, so the footer
+states none for the turn. In the drawer the turn's outcome chip leads the trace; with no steps to
+total, the turn's own record says how long it took, and a turn's own `failure` reads as a danger
+note above the rows rather than "No activity was recorded". A row is a stock `Disclosure`, whose
+trigger is the whole row and its one tab stop (Enter or Space toggles it, the ring is
+keyboard-only), only when it opens to something (`hasCallBody`); the stock panel animates its
+height both ways, and its body mounts on first open, so a long turn pays for what someone reads.
 Running steps shimmer in the present tense, and the elapsed times tick from a one-second clock
 that runs only while the journal is running (`use-turn-trace-now.ts`). `turn-trace-tool-model.ts` classifies one journal tool by wire
 name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `web`, `image`, `mcp`,
@@ -84,14 +102,14 @@ in start order; a child whose parent is missing, or a malformed parent cycle, st
 top-level so no evidence is hidden. The row reads `Ran sub-agent: <label>` (or `Running`,
 `failed`, `interrupted` from the sub-agent's own status), its trailing meta is its tool count
 with any failed child calls counted in danger (a completed sub-agent with failures takes
-the warning mark), and its duration sits in the timing column. Opened, it is one muted line —
-its type only when it is not `general-purpose`, its tokens, its duration — then its child calls
-rendered exactly as top-level calls, then a labelled `Report` on the code blocks' quiet surface,
-so the sub-agent's markdown never reads as one more step. Only a failed call, top-level or
+the warning mark), and its duration sits in the duration column. Opened, it is one muted line on
+its label text — its type only when it is not `general-purpose`, its tokens, its duration — then
+its child calls as rows one depth in on the trace's columns, then its `REPORT` section, so the
+sub-agent's markdown never reads as one more step. Only a failed call, top-level or
 nested, takes the danger mark and opens on its own, its readable `failure` first in its body as
-one line (message · exit code, never the transport payload). A command that exited non-zero
-journals its printed output as the failure message, so a failed shell call states `Command
-failed · Exit code N` and keeps the command and that output behind its quiet `Command`
+one line under `ERROR` (message · exit code, never the transport payload). A command that exited
+non-zero journals its printed output as the failure message, so a failed shell call states
+`Command failed · Exit code N` and keeps the command and that output behind its quiet `COMMAND`
 disclosure; an interrupted one stopped because the turn ended, so it
 settles with a muted stop mark, stays closed, and its body says why it stopped. The Agent hover card carries only a count and
 elapsed time from current activity's `activeDelegations`, shown while any are running.
@@ -114,12 +132,14 @@ both pure and both proved on their own:
   `Replied in DM` for `--reply-to`, `Replied in thread` for a `:<shortId>` target,
   `Claimed a task`, `Reacted`, `Set a reminder`. The muted bookkeeping row already
   says it is Haus, so no label says "with haus". A `haus message send` opens to the
-  message itself — its place and its heredoc or here-string body as markdown — with
-  the command and the CLI's reply behind one quiet, closed `Command` disclosure.
-- `turn-trace-reasoning.tsx` presents a reasoning block in place, with no disclosure.
-  Codex opens each summary with a bold title line, so that title leads (through the
-  transcript's `parseThinkingSummary`) and the rest is the body; untitled reasoning is
-  all body, with no invented label. A body longer than roughly ten prose lines folds
+  message itself — its place and its heredoc or here-string body as markdown under
+  `MESSAGE` — with the command and the CLI's reply behind one quiet, closed `COMMAND`
+  disclosure.
+- `turn-trace-reasoning.tsx` presents a reasoning block in place, with no disclosure:
+  a row on the grid, then its prose on the label text. Codex opens each summary with a
+  bold title line, so that title names the row (through the transcript's
+  `parseThinkingSummary`) and the rest is the body; untitled reasoning's row reads
+  `Thought` and all of its text is the body. A body longer than roughly ten prose lines folds
   to six behind a Show more button, decided from the text so the fold never appears
   late.
 
@@ -135,9 +155,9 @@ opened before its first trace arrives opens at once and lets the trace grow in. 
 its own disclosure: the trace resets React Aria's disclosure-group context, so the
 Activity tab's turn accordion never owns a call's open state.
 
-Labels stay in sentence case. Stock `ChatTool` sets its `Arguments` and `Result`
-labels in ALL CAPS, which `DESIGN.md` forbids; `default-theme.css` returns those
-BEM parts to the trace's own small muted role.
+Row labels stay in sentence case. Body sections are named on the one micro-label tier
+(`DESIGN.md` → Turn trace); `default-theme.css` moves stock `ChatTool`'s own section labels
+from an off-scale 10px onto that tier's `xs` step.
 
 ## Rules
 

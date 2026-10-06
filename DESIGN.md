@@ -868,25 +868,34 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   opened before its execution details have arrived has nothing to measure, so it opens at once
   and the trace reveals its own height when the relay answers. The scoped
   `accordion--activity-history` modifier owns that exception.
-- **Turn trace:** The trace composes stock Pro chat primitives, so their defaults are
-  corrected in `default-theme.css` rather than at the call site. `ChatTool`'s `Arguments`,
-  `Result`, and error labels ship in 10px ALL CAPS with wide tracking; those three BEM parts
-  take the same small muted role as the trace's own labels, because this page has no all-caps
-  tier. Its trigger and error text ship at `xs`; a call's name is a row title, so both take `sm`.
-  Its closed body is pinned to `height: 0 !important`, which made a call open over 200ms and
-  snap shut; the body follows React Aria's animated height both ways instead. And the Turn
+- **Turn trace:** Every trace row sits on one locked grid — label `clamp(8rem, 45%, 28rem)`,
+  a flexible waterfall track, a `3.75rem` right-aligned tabular duration that never wraps, and a
+  `1rem` disclosure slot reserved on leaves — at `min-h-8` with a hairline gap between rows. Depth
+  indents inside the label cell only (0.75rem per step), so the track and duration columns hold
+  one x at every depth; hierarchy is indent, mark, and bar color, never a nested background,
+  edge, or rail. A dotted `--border` leader runs from the label's end through the track at the
+  row's center, and the step's 6px full-radius bar sits over it ringed 2px in `--trace-ring`
+  (the trace's `--trace-ground`, the hover fill on a hovered row, the danger fill on a failed
+  one) so it reads as cut from the line. Bar hues are product tokens in `product-tokens.css`:
+  `--trace-step` (the accent: a sub-agent, reasoning), `--trace-tool` (teal: a call),
+  `--trace-quiet` (a muted wash: Haus bookkeeping, an interrupted step), with `danger` and
+  `warning` for outcomes rather than a fourth hue. A host on another ground rebinds
+  `--trace-ground` (the drawer to `--overlay`); a failed row's opaque `--trace-row-danger` fill
+  and tinted `--trace-leader-danger` derive from it per trace. Expanded bodies start on the
+  row's label text and name each section with the one **micro label** tier — `xs`, medium,
+  uppercase, `tracking-wide`, muted — over the code blocks' `surface-secondary` material at
+  their `×2` radius, bounded to a readable height that scrolls. That tier is the page's only
+  uppercase text: stock `ChatTool` ships its `Arguments`, `Result`, and error labels in an
+  off-scale 10px, so `default-theme.css` moves them onto `xs`. The totals footer is tabular
+  `sm` medium figures over micro labels, the wall time labelled `Running`, then `Done`. Rows
+  open on stock `Disclosure` (200ms height, chevron rotate), bars rescale on a 200ms linear
+  `left`/`width` transition while a turn runs, the running bar pulses, and a new row fades and
+  rises 6px on the transcript's 180ms step fade; reduced motion turns all of it off. The Turn
   details drawer carries code blocks and diffs, so `drawer__dialog--turn-details` widens the
-  right drawer to 32rem, capped at the viewport; every other drawer keeps the stock measure.
-  An opened row's contents sit on its label column behind one `--default` edge dropped from
-  its icon, one step per depth and no second rail; a sub-agent's report is a labelled `Report`
-  on the code blocks' `surface-secondary` material at their `×2` radius.
-  Reasoning is a step in the same icon column as each call's status icon: the model's own
-  title in medium muted type, then its prose in muted `sm` at the prose measure, with the
-  transcript's Markdown block spacing. A long thought folds to six lines behind the
-  transcript's bottom fade and a Show more button. A step a live turn adds, and a trace the
-  relay answers after its row opened, grow into place on the shared no-bounce `drawer`
-  spring with the transcript's 180ms step fade, so rows below slide instead of jumping;
-  nothing slides or scales, and reduced motion places them at once.
+  right drawer to 32rem, capped at the viewport. Reasoning is a row in the step hue whose prose
+  sits on its label text in muted `sm` at the prose measure, with the transcript's Markdown
+  block spacing; a long thought folds to six lines behind the transcript's bottom fade and a
+  Show more button.
 - **Tasks in Chat:** A task states itself in the header of the recessed Thread surface beneath its
   message and nowhere else; a task an Agent claimed for itself states nothing there at all unless
   the reader has turned **Show tasks in chat** on.
@@ -944,7 +953,7 @@ artifact-panel toggle; artifacts open as their own tabs.
 - Don't nest visually heavy surfaces inside other heavy surfaces; avoid card-on-card depth unless hierarchy truly needs it.
 - Don't let badges, chips, tags, or compact indicators stretch full width; they should remain content-sized.
 - Don't add redundant icons, logos, badges, wrappers, or trust signals that do not introduce new information.
-- Don't use ALL CAPS labels or verbose headings when short Title Case labels communicate the section clearly.
+- Don't use ALL CAPS labels or verbose headings when short Title Case labels communicate the section clearly. The one exception is the turn trace's micro-label tier (see **Turn trace**).
 - Don't misuse warning for neutral emphasis or decoration; reserve it for genuine caution.
 - Don't allow floating controls to overlap content; add enough spacing or padding for close buttons, badges, and overlay actions.
 - Don't add hover or transition behavior to non-interactive content; reserve feedback for actual interactions.
