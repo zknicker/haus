@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { settleStoppedTurn } from './harness/stopped-turn.ts';
 import {
     classifyRuntimeFailure,
     isContextWindowOverflow,
@@ -88,4 +89,12 @@ test('recognizes a context-window overflow as terminal input', () => {
         expect(classifyRuntimeFailure(new Error(message))).toBe('input');
     }
     expect(isContextWindowOverflow(new Error('HTTP 413'))).toBe(false);
+});
+
+test('a cancelled turn that never winds down fails as a retryable timeout', async () => {
+    const neverSettles = { consumeStream: () => new Promise<void>(() => undefined) };
+
+    const error = await settleStoppedTurn(neverSettles, 'codex', 5).catch((cause) => cause);
+
+    expect(classifyRuntimeFailure(error)).toBe('timeout');
 });

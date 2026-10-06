@@ -189,6 +189,7 @@ function launch(
             };
         }) as unknown as HarnessAgent['createSession'],
         stream: (async ({ abortSignal }: { abortSignal?: AbortSignal }) => ({
+            consumeStream: async () => undefined,
             fullStream: (async function* () {
                 yield* options.parts ?? [{ type: 'finish' }];
                 if (options.stall && abortSignal) {

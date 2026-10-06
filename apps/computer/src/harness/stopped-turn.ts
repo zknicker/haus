@@ -1,6 +1,14 @@
 /** How long a cancelled turn may take to reach the SDK's idle boundary before it is torn down. */
 export const stoppedTurnSettleMs = 20_000;
 
+/** A cancelled turn never reached the SDK's idle boundary; it fails as a retryable timeout. */
+export class StoppedTurnTimeoutError extends Error {
+    constructor(runtimeId: string, timeoutMs: number) {
+        super(`The stopped ${runtimeId} turn timed out after ${timeoutMs / 1000}s winding down.`);
+        this.name = 'StoppedTurnTimeoutError';
+    }
+}
+
 /**
  * Waits for a cancelled turn to wind down inside the SDK. Parking a session whose turn is still
  * running stores a continuation, and the SDK then refuses every new prompt until that turn is
@@ -15,12 +23,7 @@ export async function settleStoppedTurn(
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_, reject) => {
         timer = setTimeout(
-            () =>
-                reject(
-                    new Error(
-                        `The stopped ${runtimeId} turn did not wind down within ${timeoutMs / 1000}s.`
-                    )
-                ),
+            () => reject(new StoppedTurnTimeoutError(runtimeId, timeoutMs)),
             timeoutMs
         );
     });

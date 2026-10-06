@@ -1,4 +1,5 @@
 import { RuntimeSessionFailureError } from './harness/runtime-session-failure.ts';
+import { StoppedTurnTimeoutError } from './harness/stopped-turn.ts';
 
 export type RuntimeFailureKind =
     | 'authentication'
@@ -14,6 +15,9 @@ export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
     // A typed runtime failure names a rejected credential by category; its title may not.
     if (error instanceof RuntimeSessionFailureError && error.category === 'access') {
         return 'authentication';
+    }
+    if (error instanceof StoppedTurnTimeoutError) {
+        return 'timeout';
     }
     const message = runtimeErrorMessage(error);
     const normalized = message.toLowerCase();
