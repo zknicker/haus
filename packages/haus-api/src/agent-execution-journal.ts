@@ -27,6 +27,35 @@ const executionJournalResultSchema = z
     })
     .strict();
 
+/** The longest sub-agent label or latest-action line a journal keeps. */
+export const EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS = 128;
+
+/**
+ * The sub-agent a delegating tool call ran, as the runtime reported it. Rides
+ * the parent tool; the sub-agent's own tool calls are sibling tools that name
+ * the parent in `parentToolCallId`.
+ */
+const executionJournalSubagentSchema = z
+    .object({
+        endedAt: timestampSchema.optional(),
+        label: z.string().max(EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS),
+        latestAction: z.string().max(EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS).optional(),
+        startedAt: timestampSchema,
+        status: z.enum(['completed', 'failed', 'interrupted', 'running']),
+        subagentType: z.string().max(EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS).optional(),
+        usage: z
+            .object({
+                durationMs: z.number().int().nonnegative().safe(),
+                toolUses: z.number().int().nonnegative().safe(),
+                totalTokens: z.number().int().nonnegative().safe(),
+            })
+            .strict()
+            .optional(),
+    })
+    .strict();
+
+export type AgentExecutionJournalSubagent = z.infer<typeof executionJournalSubagentSchema>;
+
 const executionJournalToolSchema = z
     .object({
         durationMs: z.number().int().nonnegative().optional(),
@@ -47,9 +76,12 @@ const executionJournalToolSchema = z
             .optional(),
         nativeName: z.string().max(256).optional(),
         output: z.unknown().optional(),
+        /** The delegating tool call whose sub-agent made this call. */
+        parentToolCallId: z.string().trim().min(1).max(256).optional(),
         preliminary: executionJournalResultSchema.optional(),
         startedAt: timestampSchema,
         status: z.enum(['completed', 'failed', 'interrupted', 'running']),
+        subagent: executionJournalSubagentSchema.optional(),
         toolCallId: z.string().trim().min(1).max(256),
         toolName: z.string().trim().min(1).max(256),
     })

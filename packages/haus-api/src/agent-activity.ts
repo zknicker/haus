@@ -23,6 +23,7 @@ export const agentActivityCategorySchema = z.enum([
     'editing_files',
     'running_command',
     'using_tool',
+    'delegating',
     'sending_message',
     'working',
 ]);
@@ -33,6 +34,7 @@ export const agentActivityPhaseSchema = z.enum(['started', 'completed', 'failed'
 export type AgentActivityPhase = z.infer<typeof agentActivityPhaseSchema>;
 
 export const agentTurnOperationCategorySchema = agentActivityCategorySchema.exclude([
+    'delegating',
     'received_message',
     'sending_message',
     'starting_work',
@@ -69,6 +71,24 @@ export const agentTurnActivitySummarySchema = z
 
 export type AgentTurnActivitySummary = z.infer<typeof agentTurnActivitySummarySchema>;
 
+/**
+ * An opaque Computer-hashed id that pairs one operation's start with its settlement.
+ * Only `delegating` carries one today; it never reveals the runtime's tool-call id.
+ */
+export const agentActivityOperationIdSchema = z.string().regex(/^[0-9a-f]{16,64}$/u);
+
+/** The current-activity snapshot lists at most this many running sub-agents. */
+export const AGENT_ACTIVE_DELEGATIONS_MAX = 16;
+
+/** One sub-agent the Agent delegated to that has not settled yet. */
+export const agentActiveDelegationSchema = z
+    .object({
+        operationId: agentActivityOperationIdSchema,
+        startedAt: timestampSchema,
+    })
+    .strict();
+export type AgentActiveDelegation = z.infer<typeof agentActiveDelegationSchema>;
+
 export const agentActivityProducerSchema = z.enum(['server', 'computer']);
 export type AgentActivityProducer = z.infer<typeof agentActivityProducerSchema>;
 
@@ -78,6 +98,7 @@ export const agentActivityFrameSchema = z
         agentId: idSchema,
         category: agentActivityCategorySchema,
         occurredAt: timestampSchema,
+        operationId: agentActivityOperationIdSchema.optional(),
         phase: agentActivityPhaseSchema,
         producerSequence: positiveSequenceSchema,
         runId: idSchema,
@@ -95,6 +116,7 @@ export const agentActivityEventSchema = z
         category: agentActivityCategorySchema,
         id: idSchema,
         occurredAt: timestampSchema,
+        operationId: agentActivityOperationIdSchema.optional(),
         phase: agentActivityPhaseSchema,
         position: positiveSequenceSchema,
         producer: agentActivityProducerSchema,
@@ -109,6 +131,12 @@ export const agentActivityEventSchema = z
 export type AgentActivityEvent = z.infer<typeof agentActivityEventSchema>;
 
 export const agentCurrentActivitySchema = agentActivityEventSchema.extend({
+    /** Running sub-agents of this run, oldest first; omitted when none run. */
+    activeDelegations: z
+        .array(agentActiveDelegationSchema)
+        .min(1)
+        .max(AGENT_ACTIVE_DELEGATIONS_MAX)
+        .optional(),
     runStartedAt: timestampSchema.nullable(),
 });
 export type AgentCurrentActivity = z.infer<typeof agentCurrentActivitySchema>;
@@ -119,9 +147,10 @@ export function projectAgentCurrentActivity(
     event: AgentActivityEvent | AgentCurrentActivity
 ): AgentCurrentActivity | null {
     const previous = current?.runId === event.runId ? current : null;
+    const snapshot = 'runStartedAt' in event;
     const runStartedAt =
         previous?.runStartedAt ??
-        ('runStartedAt' in event ? event.runStartedAt : null) ??
+        (snapshot ? event.runStartedAt : null) ??
         (event.producer === 'server' &&
         event.category === 'starting_work' &&
         event.phase === 'started'
@@ -130,20 +159,56 @@ export function projectAgentCurrentActivity(
     if (isAgentCurrentActivityTerminalEvent(event)) {
         return null;
     }
+    const delegations = projectActiveDelegations(
+        snapshot ? (event.activeDelegations ?? []) : (previous?.activeDelegations ?? []),
+        event
+    );
+    const project = (activity: AgentActivityEvent): AgentCurrentActivity => {
+        const { activeDelegations: _replaced, ...rest } = activity as AgentCurrentActivity;
+        return {
+            ...rest,
+            ...(delegations.length > 0 ? { activeDelegations: delegations } : {}),
+            runStartedAt,
+        };
+    };
     // A noticed message is history, not work: it never displaces what the Agent is doing.
     if (event.category === 'received_message') {
         return previous;
     }
     if (previous && isAgentFinishingActivityEvent(previous) && event.phase !== 'started') {
-        return previous;
+        return project(previous);
     }
-    if (event.phase === 'started') {
-        return { ...event, runStartedAt };
+    if (event.phase === 'started' || isAgentFinishingActivityEvent(event)) {
+        return project(event);
     }
-    if (isAgentFinishingActivityEvent(event)) {
-        return { ...event, runStartedAt };
+    // A settled operation falls back to the sub-agents still running, else to plain work.
+    return previous
+        ? project({
+              ...event,
+              category: delegations.length > 0 ? 'delegating' : 'working',
+              phase: 'started',
+          })
+        : null;
+}
+
+/** Adds a started sub-agent and drops a settled one; at most the first sixteen are listed. */
+function projectActiveDelegations(
+    delegations: readonly AgentActiveDelegation[],
+    event: AgentActivityEvent
+): AgentActiveDelegation[] {
+    const { operationId } = event;
+    if (event.category !== 'delegating' || !operationId) {
+        return [...delegations];
     }
-    return previous ? { ...event, category: 'working', phase: 'started', runStartedAt } : null;
+    const others = delegations.filter((delegation) => delegation.operationId !== operationId);
+    if (event.phase !== 'started') {
+        return others;
+    }
+    const existing = delegations.find((delegation) => delegation.operationId === operationId);
+    if (existing || delegations.length >= AGENT_ACTIVE_DELEGATIONS_MAX) {
+        return [...delegations];
+    }
+    return [...delegations, { operationId, startedAt: event.occurredAt }];
 }
 
 export function isAgentCurrentActivityTerminalEvent(event: AgentActivityEvent) {
