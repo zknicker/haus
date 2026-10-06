@@ -7,7 +7,10 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as z from 'zod';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { ReminderCommandConflictError } from '../reminders/reminder-model.ts';
+import {
+    ReminderCommandConflictError,
+    ReminderScheduleExpiredError,
+} from '../reminders/reminder-model.ts';
 import {
     cancelAgentReminder,
     listAgentReminders,
@@ -34,6 +37,13 @@ const updateSchema = agentReminderCommandSchema
     );
 
 export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDatabase) {
+    app.get('/api/agent/reminders/capabilities', async (request, reply) => {
+        const runner = await authorizeRunner(db, request);
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        return { supportsReminderTimezone: true };
+    });
     app.post('/api/agent/reminders/schedule', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
         const parsed = agentReminderScheduleInputSchema.safeParse(request.body);
@@ -103,9 +113,20 @@ async function runAction(reply: FastifyReply, action: () => Promise<unknown>) {
         return await action();
     } catch (cause) {
         if (cause instanceof ReminderCommandConflictError) {
-            return reply
-                .code(409)
-                .send({ code: AGENT_IDEMPOTENCY_KEY_REUSED, message: cause.message });
+            return reply.code(409).send({
+                code: AGENT_IDEMPOTENCY_KEY_REUSED,
+                message: cause.message,
+                nextAction:
+                    'List reminders to reconcile the existing command. A changed schedule revision needs a new saved command id; never replace an earlier command input.',
+            });
+        }
+        if (cause instanceof ReminderScheduleExpiredError) {
+            return reply.code(409).send({
+                code: 'REMINDER_FIRE_TIME_PASSED',
+                message: cause.message,
+                nextAction:
+                    'Run haus reminder list. If no matching reminder exists, save the next agreed slot and a new command id before scheduling.',
+            });
         }
         return reply.code(409).send({
             code: 'INVALID_ARG',

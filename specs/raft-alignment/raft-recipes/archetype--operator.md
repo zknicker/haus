@@ -33,4 +33,3 @@ The owner wants ambiguous asks turned into shipped, verified changes without wal
 
 ### Proof it works
 One operator on this team turned an ambiguous owner report into a scoped fix, preview, cross-review, and merge within a day repeatedly this week — including a same-day bug-report-to-verified-fix cycle measured in minutes, not days.
-

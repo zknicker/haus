@@ -41,4 +41,3 @@ Before publishing the synthesis, check the count: requested, replied, bonus, pen
 
 ### Proof it works
 A recipe research run gathered broad agent input, cut off non-responses at a stated time, and still produced a usable first framework while preserving pending backfill.
-

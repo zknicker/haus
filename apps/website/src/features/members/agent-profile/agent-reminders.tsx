@@ -7,13 +7,10 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentLoading } from './agent-loading.tsx';
-import {
-    formatReminderSchedule,
-    reminderDescription,
-    scheduledReminders,
-} from './agent-reminder-model.ts';
+import { reminderDescription, scheduledReminders } from './agent-reminder-model.ts';
 import { ProfileListSection } from './profile-list-section.tsx';
 import { ReminderHistoryDrawer } from './reminder-history-drawer.tsx';
+import { formatReminderSchedule } from './reminder-schedule-presentation.ts';
 
 /**
  * The Agent's time-based wakes. Read-only: authoring is a CLI verb.
@@ -63,24 +60,32 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
                         Nothing scheduled. Just tell {agent.displayName} what to remember and when.
                     </ProfileListSection.Empty>
                 ) : (
-                    scheduled.map((reminder, index) => (
-                        <React.Fragment key={reminder.id}>
-                            {index > 0 ? <Separator /> : null}
-                            <ItemCard>
-                                <ItemCard.Content>
-                                    <ItemCard.Title>{reminder.title}</ItemCard.Title>
-                                    {reminderDescription(reminder) ? (
-                                        <ItemCard.Description title={reminder.description ?? ''}>
-                                            {reminderDescription(reminder)}
+                    scheduled.map((reminder, index) => {
+                        const schedule = formatReminderSchedule(reminder);
+                        return (
+                            <React.Fragment key={reminder.id}>
+                                {index > 0 ? <Separator /> : null}
+                                <ItemCard>
+                                    <ItemCard.Content>
+                                        <ItemCard.Title>{reminder.title}</ItemCard.Title>
+                                        {reminderDescription(reminder) ? (
+                                            <ItemCard.Description
+                                                title={reminder.description ?? ''}
+                                            >
+                                                {reminderDescription(reminder)}
+                                            </ItemCard.Description>
+                                        ) : null}
+                                        <ItemCard.Description
+                                            className="overflow-visible text-clip whitespace-normal break-words tabular-nums"
+                                            title={schedule.title}
+                                        >
+                                            {schedule.text}
                                         </ItemCard.Description>
-                                    ) : null}
-                                    <ItemCard.Description className="tabular-nums">
-                                        {formatReminderSchedule(reminder)}
-                                    </ItemCard.Description>
-                                </ItemCard.Content>
-                            </ItemCard>
-                        </React.Fragment>
-                    ))
+                                    </ItemCard.Content>
+                                </ItemCard>
+                            </React.Fragment>
+                        );
+                    })
                 )}
             </ProfileListSection>
             {canView ? (

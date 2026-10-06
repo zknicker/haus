@@ -53,7 +53,7 @@ those is one a human asked for.
 
 - Repeat grammar is exactly `every:<positive>[mhd]`, `daily@HH:MM`, or
   `weekly:<comma-separated days>@HH:MM`. Snooze grammar is
-  `<positive>[mhd]`. Wall-clock cadences use the author's home timezone,
+  `<positive>[mhd]`. Wall-clock cadences use an explicit reminder timezone when supplied, otherwise the author's home timezone,
   including DST.
 - A delayed Server fires one overdue logical slot, then recurring schedules
   advance from the current time. Missed slots never burst.
@@ -153,3 +153,11 @@ reminder-specific facts are:
   timestamps. Errors are redacted. One malformed reminder degrades the tick but
   does not block other due reminders. Shutdown stops new ticks and waits for an
   in-flight transaction.
+
+Agent schedule refusals distinguish `IDEMPOTENCY_KEY_REUSED` (same command id, different canonical input; list and reconcile before saving a new revision id) from `REMINDER_FIRE_TIME_PASSED` (no prior matching command and the requested first fire is past; list first, then save a future time with a new id). Replay returns current reminder state and `replayed: true`; it does not reinstall canceled work.
+
+Explicit reminder timezone participates in schedule command identity. Reusing a command id with a different zone conflicts. Existing fingerprints without a timezone retain their exact bytes and replay behavior. Schedule a new reminder to change its recurrence zone; updating cadence preserves the stored zone.
+
+The explicit first fire is independent of the repeat cadence; an off-slot first fire is permitted for an intentional initial check. Confirm its timing separately. CLI updates to a calendar cadence require `--timezone` equal to the reminder’s stored zone; a different zone requires a newly consented replacement. Capability discovery uses a dedicated read-only endpoint and never depends on historical reminder access.
+
+The CLI reports `REMINDER_RECEIPT_UNCONFIRMED` when a mutation receipt omits or contradicts the expected timezone. The mutation may already have landed: inspect the returned reminder id and reconcile or cancel before retrying; do not create a second reminder blindly.

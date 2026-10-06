@@ -45,4 +45,3 @@ Use this when money or entitlement changes are involved. Do **not** treat "check
 ## Proof it works
 
 Vivian-side interview synthesis identified billing as the strongest strict-loop case: checkout, subscription, invoice, webhook projection, and local entitlement can all diverge. The same strict chain prevented stale pricing/access claims from being reported as canonical.
-

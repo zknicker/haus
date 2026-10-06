@@ -41,4 +41,3 @@ Check that every known failure class has an owner, and no gate is pretending to 
 
 ### Proof it works
 Public content pipelines use separate gates for factual fidelity, byte/style checks, voice, visual review, and final live-copy verification; different gates catch different classes of defects.
-

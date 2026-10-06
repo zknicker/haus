@@ -115,7 +115,7 @@ describe('reminders', () => {
         );
     });
 
-    test('replays the original schedule result after time and later mutations', async () => {
+    test('replays current schedule state after time and later mutations', async () => {
         const input = {
             anchorChatId: chatId,
             anchorMessageId,
@@ -127,7 +127,7 @@ describe('reminders', () => {
         const created = await scheduleReminder(connection.db, agentId, input, {
             now: () => new Date('2026-07-26T12:00:00.000Z'),
         });
-        await updateReminder(
+        const updated = await updateReminder(
             connection.db,
             agentId,
             {
@@ -144,7 +144,7 @@ describe('reminders', () => {
             now: () => new Date('2027-02-01T12:00:00.000Z'),
         });
 
-        expect(replayed).toEqual({ ...created, idempotent: true });
+        expect(replayed).toEqual({ ...updated, idempotent: true });
     });
 
     test('serializes concurrent retries of the same schedule command', async () => {
@@ -470,7 +470,7 @@ describe('reminders', () => {
             version: 3,
         });
         expect(retried).toEqual({ ...snoozed, idempotent: true });
-        expect(replayedUpdate).toEqual({ ...updated, idempotent: true });
+        expect(replayedUpdate).toEqual({ ...snoozed, idempotent: true });
     });
 
     test('serializes concurrent retries of the same update command', async () => {

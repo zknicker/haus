@@ -76,7 +76,7 @@ Schedule a Haus reminder anchored to the relevant message or thread. A reminder 
 
 ### Scripts and fires
 Use \`--script\` for a local workspace check: empty output records a quiet tick; non-empty output wakes you with the output. See \`haus reminder schedule --help\` for syntax.
-A fire arrives through your inbox, including on a later turn if you are busy, and writes nothing to chat itself. Send an answer top-level in the anchor chat with \`--cause <fireId>\`, not in a thread. Inspect runs with \`haus reminder log\`.
+A fire arrives through your inbox, including on a later turn if you are busy, and writes nothing to chat itself. Answer top-level in the anchor chat with \`--cause <fireId>\` unless the reporting agreement requires silence for unchanged or healthy state; never answer in a thread. Inspect runs with \`haus reminder log\`.
 
 ### Title and description
 The title labels your answer in chat, so keep it a short calendar-invite subject (60 characters at most); the action-language instruction from step 2 goes in \`--description\` and comes back in the fire. For example: \`--title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments"\`.`,
@@ -154,13 +154,13 @@ Use this whenever fulfilling a request requires action beyond just replying: run
 ### The rule
 The task claim is the concurrency lock. If a message is already a task, claim the task number. If it is a regular top-level work request, claim by message id. If the claim fails, do not start conflicting execution and do not take over its scope without a redirect.
 
-**A failed claim is a lock, not a ruling on who owns the lane.** It reports one thing: who holds the implementation lock right now. It does not decide who is responsible for this area of work, and it is not evidence that the assignee is the right owner. If you are that lane's canonical owner, or you believe the routing is wrong, **say so in the original thread** — going silent is not the conservative choice, it is an unowned lane.
+**A failed claim is a lock, not a ruling on who owns the lane.** It reports one thing: who holds the implementation lock right now. It does not decide who is responsible for this area of work, and it is not evidence that the assignee is the right owner. If you are that lane's canonical owner, or you believe the routing is wrong, **say so in an inline reply where the request arrived** — going silent is not the conservative choice, it is an unowned lane.
 
 ### Steps
 1. Identify the canonical work item: existing task number or message id beats a new duplicate task.
 2. Claim before the first tool call or implementation step.
 3. Post progress in a thread on your own acknowledgment, not scattered across channels and never in the thread on the request.
-4. If the claim failed but the lane is yours, correct the routing in the original thread before anything else. Do not repeat QA or investigation the current assignee has already done — take their evidence and carry the root cause, fix and closure.
+4. If the claim failed but the lane is yours, correct the routing inline where the request arrived before anything else. Do not repeat QA or investigation the current assignee has already done — take their evidence and carry the root cause, fix and closure.
 5. If ownership changes, unclaim or let the new owner reclaim before they start.
 6. When the work is finished, mark it \`done\`; move it to \`in_review\` only when the requester asked to sign off or a human decision is still pending, and say what they need to check.
 
@@ -170,7 +170,7 @@ The task claim is the concurrency lock. If a message is already a task, claim th
 - **Creating duplicate tasks**: parallel task objects split context. Counter: reuse the existing task/message when one exists.
 - **Ignoring claim failure**: starting conflicting work while someone else holds the lock. Counter: do not execute; coordinate instead.
 - **Treating metadata as ownership truth**: the assignee field is assignment state at a moment, not a verdict on responsibility. A DRI who reads "assigned to someone else" as "not mine" abandons a lane they own, and the silence looks like agreement. Counter: the lock blocks execution, never your duty to correct routing.
-- **Silent retreat**: claim fails, the agent says nothing, and no one learns the routing was wrong. Counter: one line in the original thread costs nothing and is the only thing that surfaces a misroute.
+- **Silent retreat**: claim fails, the agent says nothing, and no one learns the routing was wrong. Counter: one inline reply where the request arrived costs nothing and is the only thing that surfaces a misroute.
 - **Silent sign-off**: a task parked in \`in_review\` with no ask. Counter: name what the human must check, or mark it done.
 
 ### Proof it works

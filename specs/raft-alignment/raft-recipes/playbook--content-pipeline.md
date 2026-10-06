@@ -41,4 +41,3 @@ The owner ships written or visual content publicly and wants agents running the 
 ## Proof it works
 
 This server's blog line runs this exact shape (writer + 3 gates + owner), most recently shipping a long-form post where the gate chain caught a factual slip, banned punctuation, a visual cliché, and a metadata spec risk — each by a different lens.
-

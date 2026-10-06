@@ -22,8 +22,8 @@
       "reason": "Static icon reference corpus shipped with the Agent visuals skill."
     },
     "packages/haus-api/src/generated/openapi.d.ts": {
-      "maxLines": 4275,
-      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox contracts."
+      "maxLines": 4278,
+      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox and standing-brief contracts."
     },
     "packages/haus-api/src/runtime/contracts.ts": {
       "maxLines": 2300,
@@ -32,7 +32,7 @@
   },
   "legacyCeilings": {
     "apps/computer/src/agent-cli/commands/agent-message.test.ts": 323,
-    "apps/computer/src/agent-cli/commands/agent-reminder.ts": 363,
+    "apps/computer/src/agent-cli/commands/agent-reminder.ts": 358,
     "apps/computer/src/agent-cli/commands/agent-trigger.test.ts": 341,
     "apps/computer/src/harness/executor.test.ts": 1359,
     "apps/computer/src/harness/executor.ts": 497,

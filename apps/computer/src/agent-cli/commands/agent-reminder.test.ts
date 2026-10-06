@@ -24,6 +24,77 @@ const reminder = {
 };
 
 describe('Agent reminder CLI', () => {
+    test('does not confirm an update whose receipt lost its stored timezone', async () => {
+        const lines: string[] = [];
+        const client = requester((route) =>
+            route === '/api/agent/reminders'
+                ? { reminders: [{ ...reminder, timezone: 'UTC' }] }
+                : { reminder }
+        );
+        const result = runReminderUpdate(
+            args({
+                '--id': reminder.id,
+                '--repeat': 'daily@09:00',
+                '--timezone': 'UTC',
+            }),
+            { client, write: (line) => lines.push(line) }
+        );
+        await expect(result).rejects.toMatchObject({ code: 'REMINDER_RECEIPT_UNCONFIRMED' });
+        expect(lines).toHaveLength(0);
+    });
+
+    test('refuses a calendar update in a different zone before any mutation', async () => {
+        const routes: string[] = [];
+        const client = requester((route) => {
+            routes.push(route);
+            return { reminders: [{ ...reminder, timezone: 'UTC' }] };
+        });
+        await expect(
+            runReminderUpdate(
+                args({
+                    '--id': reminder.id,
+                    '--repeat': 'weekly:fri@09:00',
+                    '--timezone': 'America/New_York',
+                }),
+                { client, write: () => undefined }
+            )
+        ).rejects.toThrow('stored timezone');
+        expect(routes).toEqual(['/api/agent/reminders']);
+    });
+
+    test('verifies schedule timezone before printing success and labels the first instant', async () => {
+        for (const timezone of [undefined, 'UTC', 'America/New_York']) {
+            const lines: string[] = [];
+            const client = requester((route, input) => {
+                if (route.endsWith('/schedule')) {
+                    expect(input.body).toHaveProperty('timezone', 'America/New_York');
+                }
+                return route.endsWith('/capabilities')
+                    ? { supportsReminderTimezone: true }
+                    : { reminder: { ...reminder, repeat: 'weekly:fri@09:00', timezone } };
+            });
+            const result = runReminderSchedule(
+                args({
+                    '--delay-seconds': '120',
+                    '--message-id': 'deadbeef',
+                    '--repeat': 'weekly:fri@09:00',
+                    '--timezone': 'America/New_York',
+                    '--title': reminder.title,
+                }),
+                { client, write: (line) => lines.push(line) }
+            );
+            if (timezone === 'America/New_York') {
+                await result;
+                expect(lines.join('')).toContain(
+                    `fires ${reminder.fireAt} repeats weekly:fri@09:00 in America/New_York`
+                );
+            } else {
+                await expect(result).rejects.toThrow('receipt');
+                expect(lines).toHaveLength(0);
+            }
+        }
+    });
+
     test('retries a schedule with the same idempotency key', async () => {
         const requests: AgentApiRequest[] = [];
         let attempts = 0;

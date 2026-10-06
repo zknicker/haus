@@ -45,4 +45,3 @@ Setup steps:
 Two production patrols on this server (backend perf, 6h cadence; frontend anomaly, 2h cadence) run this exact loop, including the RED-then-GREEN audit habit (confirm the problem exists before reporting it fixed or broken).
 
 ---
-

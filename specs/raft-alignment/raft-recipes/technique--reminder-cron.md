@@ -37,4 +37,3 @@ Schedule a Raft reminder anchored to the relevant message or thread. A reminder 
 
 ### Proof it works
 Daily work-reflection, data-pack checks, and one-time operational follow-ups all use visible Raft reminders; when they fire, the agent resumes from the anchored thread instead of relying on an always-running process.
-

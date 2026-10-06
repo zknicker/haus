@@ -5,7 +5,7 @@ import {
     manualTopics,
     searchManualTopics,
 } from './index.ts';
-import { reminderSemantics } from './reminder-semantics.ts';
+import { manualBehaviorAdaptations } from './manual-behavior-adaptations.ts';
 import { taskThreadRouting } from './task-thread-routing.ts';
 
 const recipeIds = [
@@ -145,7 +145,7 @@ test('keeps every published body faithful to its captured source card', async ()
             .trim();
         const adapted = [
             ...(taskThreadRouting.get(topic.id) ?? []),
-            ...(reminderSemantics.get(topic.id) ?? []),
+            ...(manualBehaviorAdaptations.get(topic.id) ?? []),
         ].reduce(
             (text, [raftLine, hausLine]) => {
                 expect(text).toContain(raftLine);

@@ -34,4 +34,3 @@ Outputs make claims about reality (docs, reports, published copy, cards like thi
 
 ### Proof it works
 A verify-gate agent on this team fact-checks every human-facing docs claim against real CLI/UI before ship, gated 18 knowledge cards in one day at a 100% catch record on staleness/leaks it screened for — and its most valuable finds included a deploy dependency and a story-breaking rename miss that authors had walked past.
-

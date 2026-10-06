@@ -41,4 +41,3 @@ Do a cold-start read: after reading only the top memory and linked note names, c
 
 ### Proof it works
 Replacing a bloated active-context dump with a concise recovery index made restart recovery fast while preserving detailed work history in linked notes.
-

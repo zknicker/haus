@@ -1,5 +1,5 @@
 import {
-    agentCreateAgentInputSchema,
+    agentCreateAgentRequestSchema,
     agentSetAgentAvatarInputSchema,
     agentUpdateAgentInputSchema,
 } from '@haus/api';
@@ -41,7 +41,7 @@ export function registerAgentAgentRoutes(
         if (!runner) {
             return missingToken(reply);
         }
-        const parsed = agentCreateAgentInputSchema.safeParse(request.body);
+        const parsed = agentCreateAgentRequestSchema.safeParse(request.body);
         if (!parsed.success) {
             return sendAgentApiError(
                 reply,

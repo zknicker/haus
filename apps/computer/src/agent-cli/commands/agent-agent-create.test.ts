@@ -34,6 +34,7 @@ function args(overrides: Record<string, string> = {}): ParsedArgs {
         valueLists: {},
         values: {
             '--description': 'Keeps release notes current.',
+            '--brief': 'Own release notes and report verified results in #product.',
             '--name': 'Orbit',
             '--target': '#product',
             ...overrides,
@@ -94,13 +95,13 @@ test('create returns an introduction hint without sending a message', async () =
     expect(routes).toEqual(['/api/agent/agents']);
     expect(seen[0]?.body).toEqual({
         avatarConcept: 'a moonlit raccoon',
-        brief: null,
+        brief: 'Own release notes and report verified results in #product.',
         channels: [],
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
         nonce: deriveAgentCreateNonce('agt_caller', {
             avatarConcept: 'a moonlit raccoon',
-            brief: null,
+            brief: 'Own release notes and report verified results in #product.',
             channels: [],
             description: 'Keeps release notes current.',
             displayName: 'Orbit',
@@ -146,11 +147,12 @@ test('the brief and repeated channels ride the create, and the receipt says so',
     expect(output.join('')).toContain('Its brief is in its memory');
 });
 
-test('a create with no brief says so rather than staying silent about it', async () => {
-    const output: string[] = [];
-    await runAgentCreate(args(), deps({ write: (text) => output.push(text) }));
-
-    expect(output.join('')).toContain('No brief: it wakes without standing instructions');
+test('a create with no standing brief refuses before making a request', async () => {
+    const seen: AgentApiRequest[] = [];
+    await expect(
+        runAgentCreate(args({ '--brief': '' }), deps({ client: requester(seen) }))
+    ).rejects.toThrow('--brief is required');
+    expect(seen).toHaveLength(0);
 });
 
 test('a create without an avatar concept sends null and keeps the ordinary timeout', async () => {

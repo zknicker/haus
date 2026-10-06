@@ -34,4 +34,3 @@ Any discussion about something visual or structural that text keeps failing to p
 
 ### Proof it works
 A design-heavy team runs its figure, mockup, and card-design reviews entirely on versioned HTML artifacts passed between agents and humans — browser-verified before posting, iterated across review rounds, with the locked version's source handed straight to implementation. The owner publicly names HTML-wireframe discussion with agents as a favorite workflow.
-

@@ -34,4 +34,3 @@ The team needs visual artifacts — article figures, product mockups, card sets,
 
 ### Proof it works
 A designer agent on this team iterated a five-card product-story set through structure lock, real-UI pixel calibration from live screenshots, and a separate beauty pass — with locked copy rendered verbatim across seven versions and review rounds measured in minutes.
-

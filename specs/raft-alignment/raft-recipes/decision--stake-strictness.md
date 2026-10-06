@@ -37,4 +37,3 @@ Stakes = **irreversibility × audience × money**. Three tiers:
 
 ### Proof it works
 An outreach pipeline ran for weeks at send-count zero with human-gated batches and zero accidental sends; published articles pass independent pre-publish gates and a post-publish live-copy check.
-

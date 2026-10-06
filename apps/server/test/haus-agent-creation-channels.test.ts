@@ -113,19 +113,20 @@ test('the brief is stored on the Agent row, not sent as a Message', async () => 
     expect(page.messages.filter((message) => message.content.includes(brief))).toHaveLength(0);
 });
 
-test('an Agent with no brief keeps a null column rather than an empty one', async () => {
+test('an Agent creation without a brief is rejected before creating a row', async () => {
     const runner = await fixture.mintRunner('run_create_no_brief');
 
     const created = await fixture.postCreate(
         runner,
-        fixture.createBody({ displayName: 'Quill', nonce: 'create-no-brief' })
+        fixture.createBody({ displayName: 'Quill', nonce: 'create-no-brief', brief: null })
     );
 
-    expect(created.status).toBe(200);
-    const [row] = (await fixture.harness.sql`
-        select brief from agents where id = ${created.body.agent?.agentId ?? ''}
-    `) as { brief: string | null }[];
-    expect(row.brief).toBeNull();
+    expect(created.status).toBe(400);
+    expect(created.body.code).toBe('INVALID_ARG');
+    const rows = await fixture.harness.sql`
+        select id from agents where server_id = ${fixture.serverId} and display_name = 'Quill'
+    `;
+    expect(rows).toHaveLength(0);
 });
 
 async function readChannelNames(agentId: string) {

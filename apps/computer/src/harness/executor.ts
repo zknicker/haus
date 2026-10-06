@@ -27,6 +27,7 @@ import {
     clearPendingCoveGuidanceRefresh,
     coveGuidanceConflictNotice,
     coveGuidanceRefreshNotice,
+    coveTurnGuidanceNotice,
     hasPendingCoveGuidanceRefresh,
     markCoveGuidanceRefreshPending,
 } from './cove-guidance-refresh.ts';
@@ -218,7 +219,7 @@ async function executeHarnessTurn(
         lease.prepare(resumeFrom, (state, abortSignal) =>
             agent.createSession({ abortSignal, resumeFrom: state, sessionId })
         );
-        let factoryGuidanceNotice: string | null = null;
+        let factoryGuidanceNotice: string | null = coveTurnGuidanceNotice(input.factoryKind);
         let factoryGuidanceRefreshPending =
             input.factoryKind === 'cove' && (await hasPendingCoveGuidanceRefresh(input.agentRoot));
         let factoryGuidanceRefreshCanComplete = factoryGuidanceRefreshPending;
@@ -485,7 +486,6 @@ export function setHarnessAgentFactoryForTesting(factory: HarnessAgentFactory) {
 }
 
 type HarnessBootstrapRefresh = typeof refreshHarnessBootstrap;
-
 let harnessBootstrapRefresh: HarnessBootstrapRefresh = refreshHarnessBootstrap;
 
 export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRefresh) {

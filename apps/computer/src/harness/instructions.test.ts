@@ -99,7 +99,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
         'A fire arrives through your inbox and writes nothing to chat by itself.'
     );
     expect(instructions).toContain(
-        'Answer a fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in.'
+        'Exception: for an explicitly agreed quiet reminder check, do not answer unchanged or healthy state; report only new actionable evidence.'
     );
     // Titles are short labels; the instruction rides `--description` (the Server caps titles).
     expect(instructions).toContain(
@@ -129,7 +129,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     );
     // Provenance rides the Agent's own message: the fire itself is silent in chat.
     expect(instructions).toContain(
-        'Answer a fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in.'
+        'Answer a trigger fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in.'
     );
     // Outside payloads cannot acquire the configured instruction's authority.
     expect(instructions).toContain(

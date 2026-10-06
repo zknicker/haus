@@ -136,6 +136,7 @@ export const agentReminderScheduleInputSchema = z
         repeat: z.string().min(1).optional(),
         script: z.string().min(1).optional(),
         title: z.string().min(1),
+        timezone: z.string().min(1).optional(),
     })
     .strict();
 

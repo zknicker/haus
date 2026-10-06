@@ -7,11 +7,8 @@ import {
     useAgentReminderHistory,
 } from '../../../hooks/members/use-agent-reminder-history.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
-import {
-    formatReminderCadence,
-    formatReminderTime,
-    reminderExecutionOutcome,
-} from './agent-reminder-model.ts';
+import { formatReminderTime, reminderExecutionOutcome } from './agent-reminder-model.ts';
+import { formatReminderCadence } from './reminder-schedule-presentation.ts';
 
 /**
  * History is a log of executions, not a list of settled reminders: one row per
@@ -99,12 +96,14 @@ function executionColumns(serverSlug: string): DataGridColumn<ReminderHistoryEnt
                 <span className="tabular-nums">{formatReminderTime(entry.firedAt)}</span>
             ),
             cellClassName: 'text-muted',
-            header: 'Executed',
+            header: 'Executed (your time)',
             id: 'firedAt',
             minWidth: 150,
         },
         {
-            cell: (entry) => formatReminderCadence(entry.repeat),
+            cell: (entry) => (
+                <span title={entry.repeat ?? undefined}>{formatReminderCadence(entry.repeat)}</span>
+            ),
             cellClassName: 'text-muted',
             header: 'Cadence',
             id: 'repeat',

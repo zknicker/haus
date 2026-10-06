@@ -33,4 +33,3 @@ The team shape is set (see one-or-many) but boundaries blur: overlaps, collision
 
 ### Proof it works
 A recurring daily deliverable moved between two agents on this team with zero missed runs and zero double-runs: knowledge packaged in three documents, receiver's tooling verified end to end before cutover, old owner's backstop cancelled per-shift only after observing the new owner's first clean delivery.
-

@@ -1,4 +1,4 @@
-import type { AgentCreateAgentInput } from '@haus/api';
+import type { AgentCreateAgentRequest } from '@haus/api';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../avatar-generation/service.ts';
 import { hashAvatarBytes } from '../avatars/avatar-bytes.ts';
@@ -7,6 +7,10 @@ import { ChatArchivedError } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import { AgentConfigDeniedError } from '../server-agents/agent-config-errors.ts';
 import type { CreationAvatar } from '../server-agents/create-agent-from-agent.ts';
+import {
+    AgentCreationGuidanceRequiredError,
+    AgentStandingBriefRequiredError,
+} from '../server-agents/creation-guidance.ts';
 import {
     AgentCreateConflictError,
     AgentCreateNoComputerError,
@@ -28,7 +32,7 @@ import { AgentTargetError } from './resolve-target.ts';
 export async function generateCreationAvatar(
     avatarImageService: AvatarImageService,
     runner: ResolvedRunner,
-    input: AgentCreateAgentInput
+    input: AgentCreateAgentRequest
 ): Promise<CreationAvatar> {
     if (!input.avatarConcept) {
         return { bytes: null, outcome: { status: 'none' } };
@@ -79,6 +83,18 @@ export function sendAgentRouteFailure(
     }
     if (cause instanceof AgentCreateConflictError) {
         return sendAgentApiError(reply, 409, 'AGENT_CREATE_IDEMPOTENCY_CONFLICT', cause.message);
+    }
+    if (cause instanceof AgentStandingBriefRequiredError) {
+        return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message, {
+            nextAction:
+                'Supply --brief, then retrieve the full agent, one-or-many and relevant archetype topics in this run before retrying.',
+        });
+    }
+    if (cause instanceof AgentCreationGuidanceRequiredError) {
+        return sendAgentApiError(reply, 409, 'AGENT_CREATION_GUIDANCE_REQUIRED', cause.message, {
+            nextAction:
+                'Use haus manual get agent and recipes/decision/one-or-many, then search recipes for the proposed lane and get its full archetype. Each lookup needs --intent and --reason. Adapt the guidance into --brief before retrying.',
+        });
     }
     if (cause instanceof AgentCreateNoComputerError) {
         return sendAgentApiError(reply, 409, 'AGENT_NO_COMPUTER', cause.message, {

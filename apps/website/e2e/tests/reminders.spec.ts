@@ -1,7 +1,13 @@
+import { signInAsClerkHuman } from '../support/clerk-session.ts';
 import { attachComputer, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) => {
+test.use({ timezoneId: 'America/New_York', locale: 'en-US' });
+
+test('an Owner sees an Agent reminder on the Agent profile', async ({
+    page,
+    browser,
+}, testInfo) => {
     const { client, server, session } = await createTestServer(page, {
         displayName: 'Agent Reminders',
         slug: 'reminders',
@@ -28,7 +34,35 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
     await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
     await page.getByRole('button', { name: /^Automations/u }).click();
     await expect(page.getByText('Local watchdog', { exact: true })).toBeVisible();
-    await expect(page.getByText(/daily@09:00/u)).toBeVisible();
+    await expect(page.getByText(/Daily at 9:00 AM · New York time/u)).toBeVisible();
+    await expect(page.getByText(/your time/u)).toHaveCount(0);
+    await page.screenshot({
+        path: testInfo.outputPath('reminders-new-york.png'),
+        animations: 'disabled',
+    });
+
+    const context = await browser.newContext({
+        timezoneId: 'Asia/Tokyo',
+        locale: 'en-US',
+        viewport: { width: 600, height: 900 },
+    });
+    try {
+        const other = await context.newPage();
+        await signInAsClerkHuman(other);
+        await other.goto(page.url());
+        const schedule = other.getByText(/Daily at 9:00 AM · New York time/u);
+        await expect(schedule).toContainText('10:00 PM your time');
+        await expect(schedule).toHaveCSS('white-space', 'normal');
+        expect(
+            await schedule.evaluate((element) => element.scrollWidth <= element.clientWidth)
+        ).toBe(true);
+        await other.screenshot({
+            path: testInfo.outputPath('reminders-tokyo-narrow.png'),
+            animations: 'disabled',
+        });
+    } finally {
+        await context.close();
+    }
     // Reminders and Triggers share the Automations page, each as its own section.
     await expect(page.getByText(/No triggers yet\./u)).toBeVisible();
 
@@ -48,11 +82,16 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
     // time — "Once" for the one-shot.
     const rows = drawer.getByRole('row');
     await expect(rows).toHaveCount(5);
+    await expect(drawer.getByRole('columnheader', { name: 'Executed (your time)' })).toBeVisible();
+    await page.screenshot({
+        path: testInfo.outputPath('reminder-history.png'),
+        animations: 'disabled',
+    });
     await expect(rows.nth(1)).toContainText('Local watchdog');
-    await expect(rows.nth(1)).toContainText('daily@09:00');
+    await expect(rows.nth(1)).toContainText('Daily');
     await expect(rows.nth(1)).toContainText('Exit 0');
     await expect(rows.nth(2)).toContainText('Standup nudge');
-    await expect(rows.nth(2)).toContainText('weekly:mon@09:00');
+    await expect(rows.nth(2)).toContainText('Every Monday');
     await expect(rows.nth(2)).toContainText('No answer');
     await expect(rows.nth(3)).toContainText('Deploy check');
     await expect(rows.nth(3)).toContainText('Once');

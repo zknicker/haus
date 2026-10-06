@@ -47,4 +47,3 @@ You (or your owner) are building an internal tool — dashboard, review app, ops
 
 ### Proof it works
 Reproducible, not anecdotal: the contract tests on the OAuth client + the staging preflight sequence (`integration login` → `--list-actions` → one real `--action`) pass against the live CLI; the login-ready message alone is not proof that the App's service session works. Production consumers (internal dashboard, feature-flag admin, mail.build with dual human/agent principals) run this exact pattern.
-
