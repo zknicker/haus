@@ -70,21 +70,7 @@ async function recordTaskMessage(
         return;
     }
     if (message.subtype === 'task_started') {
-        const toolCallId = stringValue(message.tool_use_id);
-        // Background shells are tasks too; only a sub-agent belongs to a delegating call.
-        if (message.task_type !== 'local_agent' || !toolCallId) {
-            return;
-        }
-        tasks.set(taskId, toolCallId);
-        const description = label(message.description);
-        const subagentType = label(message.subagent_type);
-        // A finished task may be revived under the same id; it runs again.
-        await record(journal, toolCallId, {
-            endedAt: null,
-            status: 'running',
-            ...(description ? { label: description } : {}),
-            ...(subagentType ? { subagentType } : {}),
-        });
+        await recordTaskStarted(journal, tasks, taskId, message);
         return;
     }
     const toolCallId = tasks.get(taskId);
@@ -112,6 +98,29 @@ async function recordTaskMessage(
         }
         await recordStatus(journal, toolCallId, message.status, undefined);
     }
+}
+
+async function recordTaskStarted(
+    journal: ComputerExecutionJournal,
+    tasks: Map<string, string>,
+    taskId: string,
+    message: Record<string, unknown>
+) {
+    const toolCallId = stringValue(message.tool_use_id);
+    // Background shells are tasks too; only a sub-agent belongs to a delegating call.
+    if (message.task_type !== 'local_agent' || !toolCallId) {
+        return;
+    }
+    tasks.set(taskId, toolCallId);
+    const description = label(message.description);
+    const subagentType = label(message.subagent_type);
+    // A finished task may be revived under the same id; it runs again.
+    await record(journal, toolCallId, {
+        endedAt: null,
+        status: 'running',
+        ...(description ? { label: description } : {}),
+        ...(subagentType ? { subagentType } : {}),
+    });
 }
 
 async function recordStatus(
