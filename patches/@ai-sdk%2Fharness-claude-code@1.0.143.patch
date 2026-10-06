@@ -1,5 +1,5 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 673488cae7a449365d589ee439a5c666236eb27f..886cd5e12b6cd28b893429302b0a28974daa0269 100644
+index 673488cae7a449365d589ee439a5c666236eb27f..d83038d128a54f9f9a114b2d4871ce627a7ca79b 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
 @@ -213,7 +213,13 @@ async function runBridge(options) {
@@ -52,7 +52,17 @@ index 673488cae7a449365d589ee439a5c666236eb27f..886cd5e12b6cd28b893429302b0a2897
  			...start.agentProgressSummaries !== void 0 ? { agentProgressSummaries: start.agentProgressSummaries } : {},
  			...start.forwardSubagentText !== void 0 ? { forwardSubagentText: start.forwardSubagentText } : {},
  			...start.env !== void 0 ? { env: {
-@@ -1507,6 +1519,8 @@ async function runTurn(start, turn) {
+@@ -1486,6 +1498,9 @@ async function runTurn(start, turn) {
+ 			...skillsOption ? { skills: skillsOption } : {},
+ 			...nativeTools !== void 0 ? { tools: nativeTools } : {},
+ 			...inactiveNativeTools.length > 0 ? { disallowedTools: inactiveNativeTools } : {},
++			// Claude Code's native build drops Glob and Grep for every agent and sub-agent unless
++			// the launch names them; naming them in allowedTools restores both tools.
++			allowedTools: ["Glob", "Grep"].filter((name) => !inactiveNativeTools.includes(name)),
+ 			systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
+ 			thinking: start.thinking,
+ 			...start.effort !== void 0 ? { effort: start.effort } : {},
+@@ -1507,6 +1522,8 @@ async function runTurn(start, turn) {
  			...start.resumeSessionId ?? lastClaudeSessionId ? { resume: start.resumeSessionId ?? lastClaudeSessionId } : start.continue === true || !turn.firstTurn ? { continue: true } : {},
  			...permissionOptions,
  			mcpServers,
@@ -61,7 +71,7 @@ index 673488cae7a449365d589ee439a5c666236eb27f..886cd5e12b6cd28b893429302b0a2897
  			cwd: workdir,
  			abortSignal: abortCtl.signal
  		}
-@@ -1518,6 +1532,7 @@ async function runTurn(start, turn) {
+@@ -1518,6 +1535,7 @@ async function runTurn(start, turn) {
  	};
  	let turnUsage;
  	let totalCostUsd;
@@ -69,7 +79,7 @@ index 673488cae7a449365d589ee439a5c666236eb27f..886cd5e12b6cd28b893429302b0a2897
  	let emittedTerminalError = false;
  	let emittedTerminalFinish = false;
  	const emitTerminalError = (message) => {
-@@ -1586,6 +1601,9 @@ async function runTurn(start, turn) {
+@@ -1586,6 +1604,9 @@ async function runTurn(start, turn) {
  					if (!queryInput.answersSentMessage(msg)) continue;
  					queryInput.observeResult();
  					if (!queryInput.hasActiveUserMessages()) {
@@ -79,7 +89,7 @@ index 673488cae7a449365d589ee439a5c666236eb27f..886cd5e12b6cd28b893429302b0a2897
  						queryInput.close();
  						break;
  					}
-@@ -1621,8 +1639,9 @@ async function runTurn(start, turn) {
+@@ -1621,8 +1642,9 @@ async function runTurn(start, turn) {
  			raw: "stop"
  		},
  		totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
@@ -274,7 +284,7 @@ index f93aa6910128d5e2003eaceb818dae563a9a88da..0562bbccdd3f5b4cda1506b302345cb0
        emitTerminalError(msg.patch.error);
        return;
 diff --git a/src/bridge/index.ts b/src/bridge/index.ts
-index e0a82a00ba5082417375c7e85b575d6e24bd2f6b..5a52b4e3537ef6e96ff2504088457981f4e0dbe1 100644
+index e0a82a00ba5082417375c7e85b575d6e24bd2f6b..1d6d561397b770c7522e00f28e8a5cdefe5489fe 100644
 --- a/src/bridge/index.ts
 +++ b/src/bridge/index.ts
 @@ -484,6 +484,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
@@ -287,7 +297,19 @@ index e0a82a00ba5082417375c7e85b575d6e24bd2f6b..5a52b4e3537ef6e96ff2504088457981
        ...(start.agentProgressSummaries !== undefined
          ? { agentProgressSummaries: start.agentProgressSummaries }
          : {}),
-@@ -552,6 +555,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -496,6 +499,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+       ...(inactiveNativeTools.length > 0
+         ? { disallowedTools: inactiveNativeTools }
+         : {}),
++      // Claude Code's native build drops Glob and Grep for every agent and sub-agent unless
++      // the launch names them; naming them in allowedTools restores both tools.
++      allowedTools: ['Glob', 'Grep'].filter(
++        (name) => !inactiveNativeTools.includes(name),
++      ),
+       systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
+       thinking: start.thinking,
+       ...(start.effort !== undefined ? { effort: start.effort } : {}),
+@@ -552,6 +560,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            : {}),
        ...permissionOptions,
        mcpServers,
@@ -296,7 +318,7 @@ index e0a82a00ba5082417375c7e85b575d6e24bd2f6b..5a52b4e3537ef6e96ff2504088457981
        cwd: workdir,
        abortSignal: abortCtl.signal,
      },
-@@ -571,6 +576,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -571,6 +581,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    };
    let turnUsage: Record<string, unknown> | undefined;
    let totalCostUsd: number | undefined;
@@ -304,7 +326,7 @@ index e0a82a00ba5082417375c7e85b575d6e24bd2f6b..5a52b4e3537ef6e96ff2504088457981
    let emittedTerminalError = false;
    let emittedTerminalFinish = false;
  
-@@ -673,6 +679,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -673,6 +684,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            if (!queryInput.answersSentMessage(msg)) continue;
            queryInput.observeResult();
            if (!queryInput.hasActiveUserMessages()) {
@@ -319,7 +341,7 @@ index e0a82a00ba5082417375c7e85b575d6e24bd2f6b..5a52b4e3537ef6e96ff2504088457981
              queryInput.close();
              break;
            }
-@@ -734,11 +748,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -734,11 +753,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
      type: 'finish',
      finishReason: { unified: 'stop', raw: 'stop' },
      totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
