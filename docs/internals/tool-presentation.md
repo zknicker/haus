@@ -42,10 +42,19 @@ Server history no journal holds, which joins the column at its time as a `Receiv
 message` step. Reasoning and that step share `TurnTraceStep` (`turn-trace-blocks.tsx`), whose
 box matches a ChatTool trigger's so every step's icon sits in the tool status-icon column. `turn-trace-tool-model.ts` classifies one journal tool by wire
 name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `web`, `mcp`,
-`message`, `file-change`, `compaction`, `generic`) with typed fields;
+`message`, `file-change`, `compaction`, `subagent`, `generic`) with typed fields;
 `turn-trace-tool-bodies.tsx` owns the body each kind earns. The harness's reserved
 synthetic names get their own kinds so they read as what happened — `Modified <path>`,
 `Compacted the context` — rather than a generic call with empty arguments.
+
+A sub-agent is a call the runtime reported with `subagent` metadata (never a wire-name
+guess). `buildTurnTrace` nests every call whose `parentToolCallId` names it under that row,
+in start order; a child whose parent is missing, or a malformed parent cycle, stays
+top-level so no evidence is hidden. The row reads `Ran sub-agent: <label>` (or `Running`,
+`failed`, `interrupted` from the sub-agent's own status), its trailing meta is tool count,
+tokens, and duration, and its body is the type, the child calls rendered exactly as
+top-level calls, and the sub-agent's report. The Agent hover card carries only a count and
+elapsed time from current activity's `activeDelegations`, shown while any are running.
 
 ## Row labels
 
