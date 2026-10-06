@@ -41,13 +41,13 @@ export function WorkspaceArtifactControls({ artifact }: { artifact: WorkspaceArt
         return null;
     }
 
-    const markdown = file.mediaType === 'text/markdown' || /\.(?:md|mdx)$/iu.test(target.path);
+    const markdown = isWorkspaceMarkdownFile(file, target.path);
 
     return (
         <>
             <CopyButton label="Copy file contents" value={file.content} />
             {markdown ? (
-                <ToggleButton isSelected={raw} onChange={setRaw}>
+                <ToggleButton isSelected={raw} onChange={setRaw} size="sm" variant="ghost">
                     Raw
                 </ToggleButton>
             ) : null}
@@ -70,4 +70,8 @@ export function WorkspaceArtifactInlineControls({ artifact }: { artifact: Worksp
 
 export function isWorkspaceSourceFile(file: { binary: boolean; mediaType: string }) {
     return !(file.binary || file.mediaType.startsWith('image/')) && file.mediaType !== 'text/html';
+}
+
+export function isWorkspaceMarkdownFile(file: { mediaType: string }, path: string) {
+    return file.mediaType === 'text/markdown' || /\.(?:md|mdx)$/iu.test(path);
 }

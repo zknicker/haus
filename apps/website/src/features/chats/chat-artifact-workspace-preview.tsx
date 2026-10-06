@@ -1,16 +1,19 @@
 import { EmptyState } from '@heroui-pro/react';
-import { CodeBlock } from '@heroui-pro/react/code-block';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { type ReactNode, useMemo } from 'react';
 import { agentHtmlSandbox } from '../../agent-html/sandbox.ts';
 import { agentHtmlTokenCss, injectHostTokenStyle } from '../../agent-html/tokens.ts';
-import { SelectionQuoteContainer } from '../../components/quote/selection-quote.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { codeLanguageForPath } from '../../lib/code-language.ts';
-import { isWorkspaceSourceFile, type WorkspaceArtifact } from './chat-artifact-workspace-file.tsx';
+import { codeLanguageForPath, countCodeLines } from '../../lib/code-language.ts';
+import { WorkspaceCodeView } from './chat-artifact-workspace-code-view.tsx';
+import {
+    isWorkspaceMarkdownFile,
+    isWorkspaceSourceFile,
+    type WorkspaceArtifact,
+} from './chat-artifact-workspace-file.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
-import { formatHausResourceLink, type HausResourceTarget } from './haus-resource-link.ts';
+import type { HausResourceTarget } from './haus-resource-link.ts';
 
 export function WorkspaceArtifactContent({
     agentId,
@@ -49,6 +52,7 @@ export function WorkspaceArtifactContent({
 
     const file = fileQuery.data;
     const sourceFile = isWorkspaceSourceFile(file);
+    const codeView = sourceFile && (raw || !isWorkspaceMarkdownFile(file, target.path));
 
     if (file.binary && !file.mediaType.startsWith('image/')) {
         return (
@@ -76,12 +80,15 @@ export function WorkspaceArtifactContent({
                     target={target}
                 />
             </div>
-            {/* File facts are status, not chrome: a quiet footer keeps them
-                available without competing with the tab bar above. Language
-                sits trailing, editor-status-bar style. */}
-            <div className="flex shrink-0 items-center justify-between gap-3 border-separator border-t px-3 py-1.5">
+            {/* File facts are status, not chrome: a quiet hairline-topped footer
+                keeps them available without competing with the bar above, on
+                the band's px-3 chrome gutter. Language sits trailing,
+                editor-status-bar style. */}
+            <div className="workspace-file-footer flex shrink-0 items-center justify-between gap-3 px-3 py-1.5">
                 <span className="min-w-0 truncate text-muted text-xs tabular-nums">
-                    {formatWorkspaceFileMetadata(file.sizeBytes, file.updatedAt)}
+                    {formatWorkspaceFileMetadata(file.sizeBytes, file.updatedAt, {
+                        lineCount: codeView ? countCodeLines(file.content) : null,
+                    })}
                 </span>
                 {sourceFile ? (
                     <span className="shrink-0 text-muted text-xs">
@@ -122,32 +129,25 @@ function WorkspaceFilePreview({
     if (mediaType === 'text/html') {
         return <WorkspaceHtmlPreview content={content} path={path} />;
     }
-    if (!raw && (mediaType === 'text/markdown' || /\.(?:md|mdx)$/iu.test(path))) {
+    if (!raw && isWorkspaceMarkdownFile({ mediaType }, path)) {
         return (
             <div className="h-full overflow-auto px-6 py-5 text-base">
                 <ChatMarkdownText content={content} />
             </div>
         );
     }
-    // Stock CodeBlock (the app's one code renderer) rather than a read-only
-    // editor: the raw view only ever displays, and this is what retired the
-    // prismjs/react-simple-code-editor pipeline. `.code-pane` (theme layer)
-    // sheds the root's snippet-card chrome so the code fills the pane on its
-    // own ground; copy lives in the pane toolbar and the language in the
-    // status footer, so no header here.
-    return (
-        <div className="code-pane h-full min-h-0 overflow-auto px-3 py-2">
-            <SelectionQuoteContainer source={{ href: formatHausResourceLink(target), label: path }}>
-                <CodeBlock>
-                    <CodeBlock.Code code={content} language={codeLanguageForPath(path).id} />
-                </CodeBlock>
-            </SelectionQuoteContainer>
-        </div>
-    );
+    return <WorkspaceCodeView content={content} path={path} target={target} />;
 }
 
-export function formatWorkspaceFileMetadata(sizeBytes: number, updatedAt: string | null) {
+export function formatWorkspaceFileMetadata(
+    sizeBytes: number,
+    updatedAt: string | null,
+    { lineCount = null }: { lineCount?: number | null } = {}
+) {
     const parts = [formatWorkspaceFileBytes(sizeBytes)];
+    if (lineCount !== null) {
+        parts.push(`${lineCount.toLocaleString()} ${lineCount === 1 ? 'line' : 'lines'}`);
+    }
     if (updatedAt) {
         parts.push(
             `Modified ${new Intl.DateTimeFormat(undefined, {

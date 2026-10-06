@@ -1179,16 +1179,73 @@
     /*
      * CodeBlock is built for snippet habitats — a fenced block in chat, a
      * command card in a dialog — so its root is a card: secondary surface,
-     * shell radius, block margin. Hosted as the fill of a file-viewer pane
-     * (the workspace raw view), the pane itself is the surface, so inside a
-     * `.code-pane` the root sheds that chrome and the shiki region renders
-     * straight onto the pane's ground. Scoped to the structural class so
-     * every snippet habitat keeps the stock card.
+     * shell radius, block margin, its own horizontal scroller. Hosted as the
+     * fill of a file-viewer pane (`WorkspaceCodeView`), the pane itself is the
+     * surface and scroller, IDE-style with soft wrap: the root sheds its card
+     * chrome and clip, and long lines wrap instead of scrolling sideways.
+     * Scoped to the structural class so every snippet habitat keeps the stock
+     * card.
      */
     .code-pane .code-block {
         background-color: transparent;
         border-radius: 0;
         margin-block: 0;
+        overflow: visible;
+    }
+
+    .code-pane .code-block__code {
+        overflow-x: visible;
+    }
+
+    /*
+     * Line numbers ride each shiki `.line` as a CSS counter in a hanging
+     * gutter, so a wrapped line keeps one number on its first row and its
+     * continuation rows indent under the code. Generated content is never
+     * selected or copied. The number column starts on the body's ×6 reading
+     * gutter and is `--code-pane-digits` wide (set by the view); code starts ×3
+     * past it, and each number hangs right-aligned ×3 before its line. Before shiki resolves (and for files too large to highlight)
+     * CodeBlock paints one plain `<pre>` with no lines, so that pre takes the
+     * same start inset and highlighting lands without moving the text.
+     */
+    .code-pane pre {
+        --code-pane-code-start: calc(
+            var(--spacing) * 9 + var(--code-pane-digits, 1) * 1ch
+        );
+        counter-reset: code-line;
+        overflow-wrap: anywhere;
+        padding-block: calc(var(--spacing) * 2);
+        padding-inline: calc(var(--spacing) * 6);
+        white-space: pre-wrap;
+    }
+
+    .code-pane pre:not(.shiki) {
+        padding-inline-start: var(--code-pane-code-start);
+    }
+
+    /* Stock `.code-block__code .line` pins `padding-inline: 0 !important`, so
+       the hanging gutter is a margin and the number hangs outside the line. */
+    .code-pane .line {
+        counter-increment: code-line;
+        display: block;
+        margin-inline-start: calc(
+            var(--code-pane-digits, 1) * 1ch + var(--spacing) * 3
+        );
+        position: relative;
+    }
+
+    .code-pane .line::before {
+        color: var(--muted);
+        content: counter(code-line);
+        font-variant-numeric: tabular-nums;
+        inset-inline-end: calc(100% + var(--spacing) * 3);
+        position: absolute;
+        user-select: none;
+        white-space: nowrap;
+    }
+
+    /* Shiki emits a final empty line for a trailing newline; editors don't number it. */
+    .code-pane .line:last-child:empty {
+        display: none;
     }
 
     /*
