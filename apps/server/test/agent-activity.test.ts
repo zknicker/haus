@@ -1,20 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { randomBytes } from 'node:crypto';
-import type { AgentCommand } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
-import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import {
-    agentActivityTable,
-    agentsTable,
-    chatsTable,
-    computersTable,
-    serverMembershipsTable,
-    serversTable,
-    usersTable,
-} from '../src/postgres/schema.ts';
+import { agentActivityTable, computersTable } from '../src/postgres/schema.ts';
 import {
     appendServerAgentActivity,
     recordComputerAgentActivity,
@@ -25,7 +14,7 @@ import {
     readActiveAgentActivity,
 } from '../src/server-agents/agent-activity-history.ts';
 import { lockServerRow } from '../src/servers/server-lock.ts';
-import { activityFrame, summary } from './agent-activity-fixture.ts';
+import { activityFrame, seedActivity, startRun, summary } from './agent-activity-fixture.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
@@ -42,102 +31,9 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-class FakeTransport implements DeliveryTransport {
-    readonly online = new Set<string>();
-    readonly sent: AgentCommand[] = [];
-
-    isOnline(computerId: string) {
-        return this.online.has(computerId);
-    }
-
-    send(computerId: string, frame: AgentCommand) {
-        if (!this.online.has(computerId)) {
-            return false;
-        }
-        this.sent.push(frame);
-        return true;
-    }
-}
-
-interface Seed {
-    agentId: string;
-    chatId: string;
-    computerId: string;
-    serverId: string;
-}
-
-async function seedActivity(): Promise<Seed> {
-    const userId = createOpaqueId('usr');
-    const serverId = createOpaqueId('srv');
-    const computerId = createOpaqueId('cmp');
-    const agentId = createOpaqueId('agt');
-    const chatId = createOpaqueId('cht');
-    await connection.db
-        .insert(usersTable)
-        .values({ clerkUserId: createOpaqueId('clk'), id: userId });
-    await connection.db.insert(serversTable).values({
-        displayName: 'Activity',
-        id: serverId,
-        slug: `activity-${randomBytes(4).toString('hex')}`,
-    });
-    await connection.db.insert(serverMembershipsTable).values({
-        handle: `human-${randomBytes(4).toString('hex')}`,
-        id: createOpaqueId('mem'),
-        role: 'owner',
-        serverId,
-        userId,
-    });
-    await connection.db.insert(computersTable).values({
-        attachedByUserId: userId,
-        credentialHash: randomBytes(32).toString('hex'),
-        health: 'healthy',
-        id: computerId,
-        serverId,
-    });
-    await connection.db.insert(agentsTable).values({
-        computerId,
-        desiredModelId: 'fake-model',
-        desiredRuntimeId: 'fake',
-        displayName: 'Ada',
-        handle: `ada-${randomBytes(4).toString('hex')}`,
-        homeTimezone: 'UTC',
-        id: agentId,
-        serverId,
-    });
-    await connection.db.insert(chatsTable).values({
-        dmAgentId: agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
-        id: chatId,
-        kind: 'dm',
-        serverId,
-    });
-    return { agentId, chatId, computerId, serverId };
-}
-
-async function startRun(seed: Seed) {
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
-    await delivery.deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'activity work',
-        dedupeKey: createOpaqueId('msg'),
-        serverId: seed.serverId,
-    });
-    const frame = transport.sent.find(
-        (item): item is Extract<AgentCommand, { type: 'start' }> => item.type === 'start'
-    );
-    if (!frame) {
-        throw new Error('The test run did not start.');
-    }
-    return { delivery, frame, transport };
-}
-
 test('deduplicates out-of-order Computer frames and interleaves by Server position', async () => {
-    const seed = await seedActivity();
-    const { delivery, frame } = await startRun(seed);
+    const seed = await seedActivity(connection.db);
+    const { delivery, frame } = await startRun(connection.db, seed);
     await delivery.onAck({ agentId: seed.agentId, runId: frame.runId });
     const first = await recordComputerAgentActivity(connection.db, {
         computerId: seed.computerId,
@@ -211,8 +107,8 @@ test('deduplicates out-of-order Computer frames and interleaves by Server positi
     expect(secondPage.nextBefore).toBeNull();
 });
 test('persists instruction refresh activity in agent history', async () => {
-    const seed = await seedActivity();
-    const { delivery, frame } = await startRun(seed);
+    const seed = await seedActivity(connection.db);
+    const { delivery, frame } = await startRun(connection.db, seed);
     await delivery.onAck({ agentId: seed.agentId, runId: frame.runId });
 
     const activity = await recordComputerAgentActivity(connection.db, {
@@ -235,8 +131,8 @@ test('persists instruction refresh activity in agent history', async () => {
 });
 
 test('rejects wrong identities and settled runs, while active snapshot recovers the latest event', async () => {
-    const seed = await seedActivity();
-    const { delivery, frame } = await startRun(seed);
+    const seed = await seedActivity(connection.db);
+    const { delivery, frame } = await startRun(connection.db, seed);
     expect(await readActiveAgentActivity(connection.db, seed.serverId)).toEqual({
         activities: [],
     });
@@ -336,7 +232,7 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
     expect(stale).toBeNull();
     expect((await readActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual([]);
 
-    const nextRun = await startRun(seed);
+    const nextRun = await startRun(connection.db, seed);
     const allRuns = await listAgentActivityHistory(connection.db, {
         agentId: seed.agentId,
         limit: 1,

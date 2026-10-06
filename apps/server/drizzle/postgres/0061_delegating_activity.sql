@@ -1,0 +1,4 @@
+ALTER TABLE "agent_activity" DROP CONSTRAINT "agent_activity_category";--> statement-breakpoint
+ALTER TABLE "agent_activity" ADD COLUMN "operation_id" text;--> statement-breakpoint
+ALTER TABLE "agent_activity" ADD CONSTRAINT "agent_activity_operation_id" CHECK ("agent_activity"."operation_id" is null or "agent_activity"."operation_id" ~ '^[0-9a-f]{16,64}$');--> statement-breakpoint
+ALTER TABLE "agent_activity" ADD CONSTRAINT "agent_activity_category" CHECK ("agent_activity"."category" in ('starting_work', 'updating_instructions', 'checking_messages', 'received_message', 'thinking', 'browsing', 'searching_web', 'reading_files', 'editing_files', 'running_command', 'using_tool', 'delegating', 'sending_message', 'working'));

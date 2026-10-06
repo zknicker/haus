@@ -59,7 +59,6 @@
     "apps/server/src/haus-server-activation.ts": 310,
     "apps/server/src/reminders/scheduler.ts": 344,
     "apps/server/src/server-mcp/icons.test.ts": 317,
-    "apps/server/test/agent-activity.test.ts": 346,
     "apps/server/test/agent-delivery.test.ts": 2787,
     "apps/server/test/haus-agent-run.test.ts": 2822,
     "apps/server/test/haus-agents.test.ts": 717,

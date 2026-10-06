@@ -133,6 +133,7 @@ export function toAgentActivityEvent(
         category: row.category,
         id: row.id,
         occurredAt: row.occurredAt.toISOString(),
+        ...(row.operationId ? { operationId: row.operationId } : {}),
         phase: row.phase,
         position: row.position,
         producer: row.producer,

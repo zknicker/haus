@@ -24,6 +24,7 @@ export const agentActivityTable = pgTable(
         category: text('category').notNull().$type<AgentActivityCategory>(),
         id: text('id').primaryKey(),
         occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+        operationId: text('operation_id'),
         phase: text('phase').notNull().$type<AgentActivityPhase>(),
         position: integer('position').notNull(),
         producer: text('producer').notNull().$type<AgentActivityProducer>(),
@@ -72,7 +73,7 @@ export const agentActivityTable = pgTable(
         }).onDelete('cascade'),
         check(
             'agent_activity_category',
-            sql`${table.category} in ('starting_work', 'updating_instructions', 'checking_messages', 'received_message', 'thinking', 'browsing', 'searching_web', 'reading_files', 'editing_files', 'running_command', 'using_tool', 'sending_message', 'working')`
+            sql`${table.category} in ('starting_work', 'updating_instructions', 'checking_messages', 'received_message', 'thinking', 'browsing', 'searching_web', 'reading_files', 'editing_files', 'running_command', 'using_tool', 'delegating', 'sending_message', 'working')`
         ),
         check(
             'agent_activity_phase',
@@ -83,6 +84,10 @@ export const agentActivityTable = pgTable(
         check('agent_activity_positive_run_order', sql`${table.runOrder} > 0`),
         check('agent_activity_positive_sequence', sql`${table.producerSequence} > 0`),
         check('agent_activity_id_shape', sql`${table.id} ~ '^aev_[A-Za-z0-9_-]{16}$'`),
+        check(
+            'agent_activity_operation_id',
+            sql`${table.operationId} is null or ${table.operationId} ~ '^[0-9a-f]{16,64}$'`
+        ),
         check(
             'agent_activity_tool_ref',
             sql`${table.toolRef} is null or ${table.toolRef} ~ '^[a-z0-9][a-z0-9._:-]*$'`

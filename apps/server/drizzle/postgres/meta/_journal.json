@@ -428,6 +428,13 @@
       "when": 1791232208164,
       "tag": "0060_reminder_descriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1791303476606,
+      "tag": "0061_delegating_activity",
+      "breakpoints": true
     }
   ]
 }

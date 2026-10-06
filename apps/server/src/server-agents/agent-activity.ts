@@ -12,6 +12,7 @@ interface AppendActivityInput {
     agentId: string;
     category: AgentActivityFrame['category'];
     occurredAt?: string;
+    operationId?: string;
     phase: AgentActivityFrame['phase'];
     producer: 'computer' | 'server';
     producerId: string;
@@ -111,6 +112,7 @@ export async function appendAgentActivity(
             category: input.category,
             id: createOpaqueId('aev'),
             occurredAt: input.occurredAt ? new Date(input.occurredAt) : new Date(),
+            ...(input.operationId ? { operationId: input.operationId } : {}),
             phase: input.phase,
             position,
             producer: input.producer,
@@ -199,6 +201,7 @@ export async function recordComputerAgentActivityWithStatus(
             agentId: input.frame.agentId,
             category: input.frame.category,
             occurredAt: input.frame.occurredAt,
+            operationId: input.frame.operationId,
             phase: input.frame.phase,
             producer: 'computer',
             producerId: input.computerId,
