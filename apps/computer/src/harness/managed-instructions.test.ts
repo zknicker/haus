@@ -218,7 +218,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // the Raft review-then-done sentence and the same-turn `done` exception it made redundant went.
     // Raised (32,579 → 33,513) on the Raft v1.21.2 re-pin: Raft's suspect-the-CLI-first paragraph
     // adopted verbatim, and Discovering's `server info` sentences rewritten for its paged listing.
-    expect(prompt.length).toBeLessThanOrEqual(33_513);
+    // Lowered (33,513 → 33,056) when Raft's three private-channel clauses (Discovering's two, the
+    // Visibility bullet) were omitted: Haus has no private channels.
+    expect(prompt.length).toBeLessThanOrEqual(33_056);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
