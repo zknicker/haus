@@ -287,7 +287,7 @@ test('reference labels align with surrounding text for activated and inert chips
         labelPaddingBottom: '3px',
         labelTransform: 'none',
         markHeight: 18,
-        referenceVerticalAlign: 'middle',
+        referenceVerticalAlign: 'baseline',
     });
     expect(metrics.inert.labelBackgroundImage).not.toBe('none');
     expect(underlinePixels.visibleInkPixels).toBeGreaterThan(12);
