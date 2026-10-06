@@ -118,13 +118,15 @@ test('Codex launch configuration follows the Agent reasoning and web access', ()
         NO_BROWSER: '1',
     });
     expect(JSON.parse(environment.CODEX_CONFIG ?? '')).toEqual({
-        features: { apps: false, plugins: false },
+        agents: { enabled: false },
+        features: { apps: false, multi_agent: false, plugins: false },
         model_reasoning_effort: 'high',
         project_doc_max_bytes: 0,
         web_search: 'live',
     });
     expect(JSON.parse(codexAcpEnvironment({ webSearch: false }).CODEX_CONFIG ?? '')).toEqual({
-        features: { apps: false, plugins: false },
+        agents: { enabled: false },
+        features: { apps: false, multi_agent: false, plugins: false },
         project_doc_max_bytes: 0,
         web_search: 'disabled',
     });
@@ -135,6 +137,16 @@ test('Codex Agents launch with ChatGPT apps and plugin MCP switched off', () => 
     // otherwise adds the operator's connectors as the built-in `codex_apps` server.
     for (const webSearch of [true, false]) {
         const config = JSON.parse(codexAcpEnvironment({ webSearch }).CODEX_CONFIG ?? '');
-        expect(config.features).toEqual({ apps: false, plugins: false });
+        expect(config.features).toMatchObject({ apps: false, plugins: false });
+    }
+});
+
+test('Codex Agents launch with sub-agents switched off', () => {
+    // codex 0.159.0: `features.multi_agent` alone leaves a v2 catalog model its
+    // collaboration tools; `agents.enabled = false` removes them for every model.
+    for (const webSearch of [true, false]) {
+        const config = JSON.parse(codexAcpEnvironment({ webSearch }).CODEX_CONFIG ?? '');
+        expect(config.agents).toEqual({ enabled: false });
+        expect(config.features.multi_agent).toBe(false);
     }
 });

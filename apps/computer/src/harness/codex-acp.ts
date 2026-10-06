@@ -58,7 +58,10 @@ export function codexAcpEnvironment(settings: CodexAcpSettings): Record<string, 
             project_doc_max_bytes: 0,
             // Haus owns an Agent's MCP access (specs/mcp.md): no ChatGPT apps
             // (the `codex_apps` connector server) and no plugin MCP servers.
-            features: { apps: false, plugins: false },
+            features: { apps: false, plugins: false, multi_agent: false },
+            // Haus Agents run without sub-agents. Catalog models pick the v2 collaboration
+            // tools (`spawn_agent`, `wait_agent`) on their own; only `agents.enabled` drops them.
+            agents: { enabled: false },
         }),
         // Haus Agents run unattended: never ask for approval, never sandbox.
         INITIAL_AGENT_MODE: 'agent-full-access',
