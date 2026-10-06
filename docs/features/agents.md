@@ -216,9 +216,15 @@ the workspace, its ancestors, or the operator's home (Grok Build still reads
 generic names in the workspace; see
 [Context Management](context-management.md)).
 
-Computer does not suppress image-generation capabilities native to an Agent's selected execution
-runtime. Availability follows that runtime and model; it is separate from Haus's avatar service
-and is not controlled by an App setting.
+Haus has no general image generator. Computer does not suppress image-generation capabilities
+native to an Agent's selected execution runtime: Codex (on ChatGPT plans that include image
+generation) and Grok Build generate images natively; Claude Code and Pi do not. Availability
+follows that runtime and model; it is separate from Haus's avatar service and is not controlled by
+an App setting. A generated image reaches a chat only as an attachment: the Agent uploads the saved
+file with `haus attachment upload` and sends it with `--attachment-id`. Native tools may save
+outside the Agent workspace (Codex writes under its `generated_images` directory). The `images`
+Manual topic teaches this flow and tells Agents without the capability to say so plainly or draw
+an SVG or inline visual instead.
 
 Haus Agent releases do not force fresh model context. Computer supplies the current managed
 instructions on the next accepted turn and applies any release-owned bootstrap or factory guidance

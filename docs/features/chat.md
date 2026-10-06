@@ -117,7 +117,11 @@ and [Agent Inbox](../../specs/inbox.md).
   second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. The App streams human-selected bytes directly to that Server, and
-  Agents upload through their scoped Server credential. The Server publishes
+  Agents upload through their scoped Server credential with `haus attachment upload`, which infers
+  the media type from the file's content (PNG, JPEG, GIF, WebP, SVG, PDF), then its extension, when
+  `--mime-type` is omitted; the Server stores the declared type and falls back to
+  `application/octet-stream`. An image renders as a preview only when its stored type is an image
+  type. The Server publishes
   the ready attachment and message atomically. The App renders authenticated
   compact image previews that open into a full image viewer. Download lives in
   the viewer and the image context menu. Attachments follow the message text; other files retain
