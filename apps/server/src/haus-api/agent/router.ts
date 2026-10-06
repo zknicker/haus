@@ -17,6 +17,7 @@ import { onAgentLifecycleProcedure } from './on-lifecycle.ts';
 import { agentPersonalityProcedure } from './personality.ts';
 import { resetAgentProcedure } from './reset.ts';
 import { restartAgentProcedure } from './restart.ts';
+import { agentRunTriggerProcedure } from './run-trigger.ts';
 import { agentSessionRotationProcedure } from './session-rotation.ts';
 import {
     agentSkillFileProcedure,
@@ -51,6 +52,7 @@ export const agentRouter = createRouter({
     personality: agentPersonalityProcedure,
     reset: resetAgentProcedure,
     restart: restartAgentProcedure,
+    runTrigger: agentRunTriggerProcedure,
     sessionRotation: agentSessionRotationProcedure,
     start: startAgentProcedure,
     stop: stopAgentProcedure,

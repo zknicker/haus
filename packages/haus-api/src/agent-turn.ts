@@ -67,3 +67,15 @@ export const agentTurnsInputSchema = agentDetailInputSchema.extend({
 export type AgentTurnsInput = z.infer<typeof agentTurnsInputSchema>;
 
 export const agentTurnsSchema = z.array(agentTurnSchema);
+
+/** One run's trigger, readable while the run still works and before it settles into a turn. */
+export const agentRunTriggerInputSchema = agentDetailInputSchema.extend({ runId: idSchema });
+
+export type AgentRunTriggerInput = z.infer<typeof agentRunTriggerInputSchema>;
+
+/** `trigger` is null when the Server recorded none for the run, as in `agent.turns`. */
+export const agentRunTriggerSchema = z
+    .object({ trigger: agentTurnTriggerSchema.nullable() })
+    .strict();
+
+export type AgentRunTrigger = z.infer<typeof agentRunTriggerSchema>;

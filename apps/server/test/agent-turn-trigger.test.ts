@@ -15,6 +15,7 @@ import {
 } from '../src/postgres/schema.ts';
 import { agentTurnTrigger } from '../src/server-agents/agent-turn-trigger.ts';
 import { listAgentTurns } from '../src/server-agents/list-agent-turns.ts';
+import { readAgentRunTrigger } from '../src/server-agents/read-agent-run-trigger.ts';
 import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -100,6 +101,42 @@ test('a failed turn still names the human message that woke it', async () => {
         serverId: seed.serverId,
     });
     expect(hidden?.trigger).toEqual({ kind: 'private' });
+});
+
+test('a running turn names its trigger before it settles, gated like agent.turns', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'draft the launch post',
+        dedupeKey: 'msg_triggerrunning01',
+        serverId: seed.serverId,
+    });
+    const [runId = ''] = transport.startedRunIds();
+    await delivery.onAck({ agentId: seed.agentId, runId });
+
+    const input = { agentId: seed.agentId, runId, serverId: seed.serverId };
+    expect(await listAgentTurns(connection.db, seed.owner, { ...input, limit: 1 })).toEqual([]);
+    expect(await readAgentRunTrigger(connection.db, seed.owner, input)).toEqual({
+        trigger: {
+            author: 'human',
+            chatId: seed.chatId,
+            kind: 'message',
+            messageId: 'msg_triggerrunning01',
+        },
+    });
+
+    const outsider = await addMember(seed.serverId);
+    expect(await readAgentRunTrigger(connection.db, outsider, input)).toEqual({
+        trigger: { kind: 'private' },
+    });
+    expect(
+        await readAgentRunTrigger(connection.db, seed.owner, { ...input, runId: 'run_unknown01' })
+    ).toEqual({ trigger: null });
 });
 
 test('a turn the Server never dispatched reports no trigger instead of guessing', async () => {
