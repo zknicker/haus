@@ -1,6 +1,11 @@
 import type { AgentExecutionJournalTool } from '@haus/api';
 import type { ToolPartState } from '@heroui-pro/react/chat-tool';
 import { formatShellLabel } from './turn-trace-shell-label.ts';
+import {
+    formatSubagentInterruption,
+    formatSubagentLabel,
+    resolveSubagentStatus,
+} from './turn-trace-subagent.ts';
 import { readHostname, readRecord, readString, stableJson } from './turn-trace-values.ts';
 
 export type TurnTraceToolKind =
@@ -14,6 +19,7 @@ export type TurnTraceToolKind =
     | 'message'
     | 'search'
     | 'shell'
+    | 'subagent'
     | 'web';
 
 /** Typed fields parsed out of one journal tool's runtime-shaped input. */
@@ -34,6 +40,8 @@ interface TurnTraceToolFields {
 }
 
 export interface TurnTraceTool extends TurnTraceToolFields {
+    /** A sub-agent's own calls, in order; empty for every other kind. */
+    readonly children: readonly TurnTraceTool[];
     readonly error: unknown;
     readonly interruption: string | null;
     readonly label: string;
@@ -93,15 +101,24 @@ const interruptionReasons: Record<string, string> = {
     stream_error: 'the execution stream failed',
 };
 
-export function classifyTraceTool(tool: AgentExecutionJournalTool): TurnTraceTool {
+export function classifyTraceTool(
+    tool: AgentExecutionJournalTool,
+    children: readonly TurnTraceTool[] = []
+): TurnTraceTool {
     const name = tool.toolName.trim();
-    const fields = readToolFields(name, readRecord(tool.input) ?? {});
+    // A call is a sub-agent by what the runtime reported, never by its wire name.
+    const isSubagent = tool.subagent !== undefined || children.length > 0;
+    const fields: TurnTraceToolFields = isSubagent
+        ? { ...blankFields, kind: 'subagent' }
+        : readToolFields(name, readRecord(tool.input) ?? {});
 
     return {
         ...fields,
+        children,
         error: resolveTraceError(tool),
-        interruption: formatInterruption(tool),
-        label: formatTraceToolLabel(fields, name),
+        interruption:
+            formatInterruption(tool) ?? (isSubagent ? formatSubagentInterruption(tool) : null),
+        label: isSubagent ? formatSubagentLabel(tool) : formatTraceToolLabel(fields, name),
         output: resolveTraceOutput(tool),
         preliminary: resolveTracePreliminary(tool),
         source: tool,
@@ -110,10 +127,11 @@ export function classifyTraceTool(tool: AgentExecutionJournalTool): TurnTraceToo
 }
 
 export function resolveToolPartState(tool: AgentExecutionJournalTool): ToolPartState {
-    if (tool.status === 'running') {
+    const status = resolveSubagentStatus(tool);
+    if (status === 'running') {
         return 'input-available';
     }
-    return tool.status === 'completed' ? 'output-available' : 'output-error';
+    return status === 'completed' ? 'output-available' : 'output-error';
 }
 
 /**

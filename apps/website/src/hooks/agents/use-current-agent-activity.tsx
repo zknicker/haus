@@ -82,9 +82,7 @@ export function useCurrentAgentActivity(
         () =>
             reconcileCurrentAgentActivity(
                 query.data?.activities ?? [],
-                liveState.serverId === serverId
-                    ? [...liveState.byAgentId.values()].map((overlay) => overlay.event)
-                    : []
+                liveState.serverId === serverId ? [...liveState.byAgentId.values()] : []
             ),
         [liveState, query.data?.activities, serverId]
     );

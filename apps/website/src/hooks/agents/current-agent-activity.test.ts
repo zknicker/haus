@@ -188,7 +188,7 @@ test('the live overlay keeps finishing activity across trailing completions', ()
     const overlay = mergeCurrentAgentActivityLiveEvent(committedOverlay, trailingCommand);
 
     expect(overlay.latestPosition).toBe(12);
-    expect(reconcileCurrentAgentActivity([snapshot], [overlay.event])).toEqual([messageCommitted]);
+    expect(reconcileCurrentAgentActivity([snapshot], [overlay])).toEqual([messageCommitted]);
     expect(
         mergeCurrentAgentActivityLiveEvent(
             overlay,
@@ -219,7 +219,7 @@ test('the live overlay keeps working absolute after a started operation complete
         })
     );
 
-    expect(reconcileCurrentAgentActivity([], [completed.event])).toEqual([
+    expect(reconcileCurrentAgentActivity([], [completed])).toEqual([
         activity({
             category: 'working',
             id: 'aev_command_done',
@@ -247,7 +247,7 @@ test('turn settlement keeps the row until canonical availability stops working',
         mergeCurrentAgentActivityLiveEvent(undefined, finishing),
         terminal
     );
-    const projected = reconcileCurrentAgentActivity([finishing], [terminalOverlay.event]);
+    const projected = reconcileCurrentAgentActivity([finishing], [terminalOverlay]);
 
     expect(terminalOverlay.event).toEqual(finishing);
     expect(terminalOverlay.latestPosition).toBe(3);

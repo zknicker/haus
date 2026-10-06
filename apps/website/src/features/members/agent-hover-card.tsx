@@ -1,7 +1,9 @@
 import { Spinner } from '@heroui/react';
 import type * as React from 'react';
+import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useAgentActivityPreview } from '../../hooks/members/use-agent-activity-preview.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
@@ -18,6 +20,7 @@ import {
     ReferencePreviewText,
 } from '../mentions/reference-preview-header.tsx';
 import { AgentExecutionChips } from './agent-execution-chips.tsx';
+import { formatAgentDelegationSummary } from './agent-hover-delegations.ts';
 import {
     resolveAgentHoverExecution,
     resolveAgentHoverModelChange,
@@ -147,6 +150,7 @@ export function AgentHoverCardContent({
                     {modelChange}
                 </p>
             ) : null}
+            <AgentHoverDelegations agentId={agentId} serverId={serverId} />
             <section
                 aria-label="Recent activity"
                 className="flex min-w-0 flex-col gap-1 border-separator border-t pt-2.5 text-xs"
@@ -184,6 +188,30 @@ export function AgentHoverCardContent({
                 )}
             </section>
         </div>
+    );
+}
+
+/** Shown only while the Agent's current run has sub-agents running. */
+function AgentHoverDelegations({ agentId, serverId }: { agentId: string; serverId: string }) {
+    const current = useOptionalCurrentAgentActivity();
+    const delegations =
+        current?.serverId === serverId
+            ? current.activities.find((activity) => activity.agentId === agentId)?.activeDelegations
+            : undefined;
+    if (!delegations || delegations.length === 0) {
+        return null;
+    }
+    return <AgentHoverDelegationLine delegations={delegations} />;
+}
+
+function AgentHoverDelegationLine({
+    delegations,
+}: {
+    delegations: Parameters<typeof formatAgentDelegationSummary>[0];
+}) {
+    const now = useRelativeNow(1000);
+    return (
+        <p className="text-foreground text-xs">{formatAgentDelegationSummary(delegations, now)}</p>
     );
 }
 

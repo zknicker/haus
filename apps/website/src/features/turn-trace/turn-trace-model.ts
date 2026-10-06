@@ -2,6 +2,7 @@ import type {
     AgentActivityEvent,
     AgentExecutionJournal,
     AgentExecutionJournalReasoning,
+    AgentExecutionJournalTool,
 } from '@haus/api';
 import { classifyTraceTool, type TurnTraceTool } from './turn-trace-tool-model.ts';
 
@@ -57,16 +58,16 @@ export function buildTurnTrace(
         });
     }
 
-    for (const [index, tool] of (journal?.tools ?? []).entries()) {
+    for (const { index, tool } of nestTraceTools(journal?.tools ?? [])) {
         ordered.push({
             entry: {
-                at: tool.startedAt,
-                key: `tool:${tool.toolCallId}`,
+                at: tool.source.startedAt,
+                key: `tool:${tool.source.toolCallId}`,
                 kind: 'tool',
-                tool: classifyTraceTool(tool),
+                tool,
             },
             sequence: index,
-            time: Date.parse(tool.startedAt),
+            time: Date.parse(tool.source.startedAt),
         });
     }
 
@@ -82,6 +83,57 @@ export function buildTurnTrace(
     }
 
     return ordered.sort(compareEntries).map((item) => item.entry);
+}
+
+/**
+ * Top-level calls with each sub-agent's own calls nested under it, in start
+ * order. A child whose parent is missing from the journal stays top-level, and
+ * so does any call a malformed parent cycle would otherwise hide.
+ */
+function nestTraceTools(
+    tools: readonly AgentExecutionJournalTool[]
+): Array<{ index: number; tool: TurnTraceTool }> {
+    const ids = new Set(tools.map((tool) => tool.toolCallId));
+    const indexed = tools.map((tool, index) => ({ index, tool }));
+    const childrenOf = new Map<string, typeof indexed>();
+    for (const item of indexed) {
+        const parent = item.tool.parentToolCallId;
+        if (parent && parent !== item.tool.toolCallId && ids.has(parent)) {
+            childrenOf.set(parent, [...(childrenOf.get(parent) ?? []), item]);
+        }
+    }
+    const visited = new Set<string>();
+    const nest = (tool: AgentExecutionJournalTool): TurnTraceTool => {
+        visited.add(tool.toolCallId);
+        const children = (childrenOf.get(tool.toolCallId) ?? [])
+            .filter((child) => !visited.has(child.tool.toolCallId))
+            .sort(compareTools)
+            .map((child) => nest(child.tool));
+        return classifyTraceTool(tool, children);
+    };
+    const isRoot = (tool: AgentExecutionJournalTool) =>
+        !(tool.parentToolCallId && ids.has(tool.parentToolCallId)) ||
+        tool.parentToolCallId === tool.toolCallId;
+    const roots = indexed
+        .filter((item) => isRoot(item.tool))
+        .map((item) => ({
+            index: item.index,
+            tool: nest(item.tool),
+        }));
+    for (const item of indexed) {
+        if (!visited.has(item.tool.toolCallId)) {
+            roots.push({ index: item.index, tool: nest(item.tool) });
+        }
+    }
+    return roots;
+}
+
+function compareTools(
+    left: { index: number; tool: AgentExecutionJournalTool },
+    right: { index: number; tool: AgentExecutionJournalTool }
+): number {
+    const delta = Date.parse(left.tool.startedAt) - Date.parse(right.tool.startedAt);
+    return delta === 0 || Number.isNaN(delta) ? left.index - right.index : delta;
 }
 
 function compareEntries(left: OrderedEntry, right: OrderedEntry): number {

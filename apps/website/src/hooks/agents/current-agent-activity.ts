@@ -5,6 +5,7 @@ import type {
     AgentLifecycleEvent,
 } from '@haus/api';
 import {
+    AGENT_ACTIVE_DELEGATIONS_MAX,
     isAgentCurrentActivityTerminalEvent,
     isAgentFinishingActivityEvent,
     projectAgentCurrentActivity,
@@ -15,6 +16,7 @@ export type CurrentAgentActivity = AgentCurrentActivity;
 const activityLabels: Record<AgentActivityEvent['category'], string> = {
     browsing: 'Browsing…',
     checking_messages: 'Checking messages…',
+    delegating: 'Running a sub-agent…',
     editing_files: 'Editing files…',
     reading_files: 'Reading files…',
     received_message: 'Received a new message…',
@@ -91,54 +93,72 @@ export function projectCurrentAgentActivitySnapshot(
 
 export function reconcileCurrentAgentActivity(
     snapshot: readonly CurrentAgentActivity[],
-    liveEvents: readonly CurrentAgentActivity[]
+    overlays: readonly CurrentAgentActivityLiveOverlay[]
 ) {
-    return liveEvents.reduce(
-        applyCurrentAgentActivityEvent,
-        projectCurrentAgentActivitySnapshot(snapshot)
+    const projected = projectCurrentAgentActivitySnapshot(snapshot);
+    return overlays.reduce(
+        (activities, overlay) =>
+            applyCurrentAgentActivityEvent(
+                activities,
+                withSnapshotDelegations(activities, overlay)
+            ),
+        projected
     );
 }
 
-/** Compacts the live overlay to one event per Agent without losing event ordering. */
+/**
+ * Compacts the live overlay to one event per Agent without losing event ordering.
+ * The overlay may begin mid-run, after the snapshot listed sub-agents it never
+ * saw start, so it remembers which sub-agents it saw settle for that run.
+ */
 export interface CurrentAgentActivityLiveOverlay {
     event: CurrentAgentActivity;
     latestPosition: number;
+    settledOperationIds: readonly string[];
 }
 
 export function mergeCurrentAgentActivityLiveEvent(
     previous: CurrentAgentActivityLiveOverlay | undefined,
     event: AgentActivityEvent
 ): CurrentAgentActivityLiveOverlay {
-    if (previous?.event.runId === event.runId && previous.latestPosition >= event.position) {
+    const sameRun = previous?.event.runId === event.runId;
+    if (previous && sameRun && previous.latestPosition >= event.position) {
         return previous;
     }
-    if (previous?.event.runId === event.runId && isAgentCurrentActivityTerminalEvent(event)) {
-        return { ...previous, latestPosition: event.position };
+    const settledOperationIds = settledDelegations(
+        sameRun ? (previous?.settledOperationIds ?? []) : [],
+        event
+    );
+    const next = (current: Omit<CurrentAgentActivityLiveOverlay, 'settledOperationIds'>) => ({
+        ...current,
+        settledOperationIds,
+    });
+    if (previous && sameRun && isAgentCurrentActivityTerminalEvent(event)) {
+        return next({ event: previous.event, latestPosition: event.position });
     }
     if (
-        previous?.event.runId === event.runId &&
+        previous &&
+        sameRun &&
         isAgentFinishingActivityEvent(previous.event) &&
         event.phase !== 'started'
     ) {
-        return { ...previous, latestPosition: event.position };
+        return next({ event: previous.event, latestPosition: event.position });
     }
     if (
-        previous?.event.runId === event.runId &&
+        previous &&
+        sameRun &&
         (previous.event.phase === 'started' || isAgentFinishingActivityEvent(previous.event))
     ) {
         const projected = projectAgentCurrentActivity(previous.event, event);
-        return {
+        return next({
             event: projected ?? { ...event, runStartedAt: previous.event.runStartedAt },
             latestPosition: event.position,
-        };
+        });
     }
-    return {
-        event: {
-            ...event,
-            runStartedAt: projectAgentCurrentActivity(null, event)?.runStartedAt ?? null,
-        },
+    return next({
+        event: projectAgentCurrentActivity(null, event) ?? { ...event, runStartedAt: null },
         latestPosition: event.position,
-    };
+    });
 }
 
 /** Semantic activity describes only Agents whose canonical availability is working. */
@@ -161,6 +181,42 @@ export function filterCurrentAgentActivityByLifecycle(
         const lifecycle = lifecycles.get(activity.agentId);
         return !lifecycle || lifecycle.phase === 'settled' || lifecycle.runId === activity.runId;
     });
+}
+
+/**
+ * Carries the snapshot's running sub-agents into an overlay of the same run,
+ * minus those the overlay saw settle, so a mid-run reload keeps its count.
+ */
+function withSnapshotDelegations(
+    activities: readonly CurrentAgentActivity[],
+    overlay: CurrentAgentActivityLiveOverlay
+): CurrentAgentActivity {
+    const { event } = overlay;
+    const snapshot = activities.find((activity) => activityKey(activity) === activityKey(event));
+    const inherited = (snapshot?.activeDelegations ?? []).filter(
+        (delegation) =>
+            !(
+                overlay.settledOperationIds.includes(delegation.operationId) ||
+                event.activeDelegations?.some((own) => own.operationId === delegation.operationId)
+            )
+    );
+    if (inherited.length === 0) {
+        return event;
+    }
+    const activeDelegations = [...inherited, ...(event.activeDelegations ?? [])].slice(
+        0,
+        AGENT_ACTIVE_DELEGATIONS_MAX
+    );
+    const category =
+        event.category === 'working' && event.phase === 'started' ? 'delegating' : event.category;
+    return { ...event, activeDelegations, category };
+}
+
+function settledDelegations(settled: readonly string[], event: AgentActivityEvent) {
+    if (event.category !== 'delegating' || event.phase === 'started' || !event.operationId) {
+        return settled;
+    }
+    return settled.includes(event.operationId) ? settled : [...settled, event.operationId];
 }
 
 function activityKey(activity: AgentActivityEvent) {

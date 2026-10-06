@@ -38,8 +38,8 @@ test('snapshot replay and compacted live steps preserve the same turn start', ()
     let overlay = mergeCurrentAgentActivityLiveEvent(undefined, start);
     overlay = mergeCurrentAgentActivityLiveEvent(overlay, tool);
     overlay = mergeCurrentAgentActivityLiveEvent(overlay, completed);
-    const live = reconcileCurrentAgentActivity([], [overlay.event]);
-    const reloaded = reconcileCurrentAgentActivity([snapshot], [overlay.event]);
+    const live = reconcileCurrentAgentActivity([], [overlay]);
+    const reloaded = reconcileCurrentAgentActivity([snapshot], [overlay]);
     expect(live).toEqual(reloaded);
     expect(live[0]).toMatchObject({ category: 'working', runStartedAt: start.occurredAt });
     expect(projectAgentCurrentActivity(snapshot, completed)).toEqual(live[0]);
@@ -50,9 +50,10 @@ test('joining mid-turn recovers timing from the snapshot without inventing a ste
     expect(overlay.event.runStartedAt).toBeNull();
     const snapshot = projectAgentCurrentActivity(null, start);
     expect(snapshot).not.toBeNull();
-    expect(
-        reconcileCurrentAgentActivity(snapshot ? [snapshot] : [], [overlay.event])[0]
-    ).toMatchObject({ category: 'using_tool', runStartedAt: start.occurredAt });
+    expect(reconcileCurrentAgentActivity(snapshot ? [snapshot] : [], [overlay])[0]).toMatchObject({
+        category: 'using_tool',
+        runStartedAt: start.occurredAt,
+    });
 });
 
 test('a new turn gets its own clock and settlement clears the Server projection', () => {

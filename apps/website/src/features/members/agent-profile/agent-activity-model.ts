@@ -20,6 +20,12 @@ const activityCopy: Record<AgentActivityCategory, ActivityCopy> = {
         interrupted: 'Message check was interrupted',
         started: 'Checking messages…',
     },
+    delegating: {
+        completed: 'Ran a sub-agent',
+        failed: 'Sub-agent failed',
+        interrupted: 'Sub-agent was interrupted',
+        started: 'Running a sub-agent…',
+    },
     editing_files: {
         completed: 'Edited files',
         failed: 'Failed to edit files',
