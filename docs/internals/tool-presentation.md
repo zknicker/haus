@@ -40,14 +40,18 @@ Agent profile Activity tab.
 journal already shows the work they summarize; the one exception is `received_message`,
 Server history no journal holds, which joins the column at its time as a `Received a new
 message` step. `turn-trace-view.ts` groups that column into steps (folds, one Haus
-bookkeeping step, reasoning captions, parallel lanes, totals) on the turn's time axis.
+bookkeeping step, reasoning captions, parallel lanes, totals) on the turn's time axis. A fold
+keys by its first call, so in a live turn a call that gains a same-kind sibling becomes the fold
+in place, and an open fold stays open as calls (captioned or not) join it.
 
 The view renders as one stock `ChainOfThought` rail (`turn-trace-steps-view.tsx`), never a
 stack of bordered cards. Every step is one borderless line: a kind mark (or a danger, warning,
 or stop mark for its outcome), the label, the muted directory, and a right-hand timing column
 — a thin waterfall bar on the turn's axis and a tabular duration, hidden under a second for a
 settled leaf. Steps that ran side by side share time on the bars, and a parallel fold draws its
-members as stacked lanes in one bar. The totals sit once above the rail, and a turn's own
+members as stacked lanes in one bar. The totals sit once above the rail (in the drawer, led by
+the turn's outcome chip; with no steps to total, the turn's own record says how long it took),
+and a turn's own
 `failure` reads as a danger note above it rather than "No activity was recorded". A row is a
 `ChainOfThought` disclosure, the one tab stop it earns, only when it opens to something
 (`hasCallBody`); its body mounts on first open, so a long turn pays for what someone reads.
@@ -63,7 +67,9 @@ the file and the prompt as the body. The file is the workspace file Computer jou
 `savedPath`. An image step shows the picture in place, read through the same
 `agent.workspaceFile` query the workspace pane uses, with its prompt folded to three lines; a
 video, a host-only path, or a failed read names the file instead. Nothing renders while it
-loads. The harness's reserved
+loads. Pressing the picture (Enter or Space) opens it in a HeroUI Modal at the window's size
+with its file name and prompt, and on desktop an "Open in workspace" action that opens the file
+as an artifact page; the web omits it, since the trace has no Artifact Panel. The harness's reserved
 synthetic names get their own kinds so they read as what happened — `Modified <path>`,
 `Compacted the context` — rather than a generic call with empty arguments.
 
