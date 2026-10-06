@@ -66,9 +66,25 @@ yours" from "does not exist".
 with `limit` between 1 and 50 (default 10). Each record carries `runId`,
 `startedAt`, `endedAt`, `status` (`completed` or `failed`), `failureKind` (the
 compact kind that crosses the Server boundary, otherwise null), `outputProduced`,
-`messageCount`, and the bounded `summary`. `outputProduced` is what makes a
-silent turn readable: a completed turn with no output and no messages is
-positive proof the Agent chose to stay quiet, not evidence of a lost run.
+`messageCount`, the bounded `summary`, the Computer-reported `activity` totals,
+and `trigger`. `outputProduced` is what makes a silent turn readable: a completed
+turn with no output and no messages is positive proof the Agent chose to stay
+quiet, not evidence of a lost run.
+
+`trigger` names the inbox work the Server chose when it dispatched the run, recorded
+once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
+rows. It carries ids only: `{ kind: 'message', author: 'human' | 'agent', chatId,
+messageId }`, `{ kind: 'task', chatId, messageId }` (the task's message), or
+`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`. A trigger
+in a Chat the reader cannot see is `{ kind: 'private' }`, and `null` means the Server
+recorded none (turns from before the record existed, or an unrecognized source). The
+App resolves a message's text through its ordinary message reads. The listing is one
+joined query; it never fans out per turn.
+
+A turn's `startedAt` is the run's first launch. When the Server resends an accepted
+run after the Computer restarts, the relaunch resumes a Computer-local turn ledger
+(`runtime/turns/<runId>.json`) holding that first start and every operation total the
+lost launch settled, so the summary spans the whole run rather than its tail.
 
 `agent.deliveries` returns that Agent's delivery ledger, newest first by
 `createdAt`, with `limit` between 1 and 100 (default 50). Each record carries
@@ -440,13 +456,28 @@ identity, input, `output`, `error`, `preliminary`, `final`, interruptions, and t
 optional `reasoning` array of `{ id, startedAt, endedAt?, text, truncated? }` blocks capped at
 64,000 characters each and 1,000 blocks per turn. A tool a runtime sub-agent made carries
 `parentToolCallId`, the delegating tool call it ran under. That delegating tool carries an optional
-`subagent` record: `{ label, subagentType?, status, startedAt, endedAt?, latestAction?, usage? }`,
+`subagent` record: `{ label, subagentType?, status, startedAt, endedAt?, latestAction?, usage?,
+failedToolCount? }`,
 where `label` and `latestAction` are at most 128 characters, `status` is `running`, `completed`,
-`failed`, or `interrupted`, and `usage` is `{ totalTokens, toolUses, durationMs }`. Sub-agent token
+`failed`, or `interrupted`, `usage` is `{ totalTokens, toolUses, durationMs }`, and
+`failedToolCount` counts the sub-agent's own failed calls so a sub-agent that completed
+with failures can read as a warning. Sub-agent token
 totals live only here; they are not yet part of turn token usage or daily usage. Reasoning exists only in this response. Every
 other string leaf the journal carries is capped at 256,000 characters and ends with
 `…[truncated N more characters]` when clipped, so one oversized tool output cannot dominate the
 relayed response.
+
+Computer shapes the stored journal as it serves it; the file on disk stays raw. Paths
+under the Agent workspace read workspace-relative (the workspace itself reads
+`<workspace>`) and paths under the Agent home read `~/…`, in tool inputs, outputs,
+errors, sub-agent progress lines, and reasoning, so host usernames and Server and Agent
+ids never reach the App. A failed tool carries `failure: { message, exitCode? }` beside
+its raw `error`: Codex's `{ formatted_output, exit_code }`, Claude's
+`<tool_use_error>…</tool_use_error>` wrapper, an `Exit code N` first line, and the
+Computer's own codes (`missing_result`, `stream_failed`) all normalize there. A failed
+turn carries the same `failure` with the first line of its terminal error, so a turn that
+failed before any tool ran still says why. Raw provider error text stays out of the
+Server turn record; only `failureKind` crosses there.
 
 A running turn is answered from the Computer's append-only `<runId>.ndjson` log and a settled one
 from the consolidated `<runId>.json` snapshot; both live under the Agent's

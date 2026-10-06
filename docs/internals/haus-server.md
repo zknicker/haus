@@ -130,6 +130,7 @@ PostgreSQL owns the hosted collaboration tables
 | `agents` / `channel_agent_participants` | Hosted Agent identity and uploaded avatar (`avatar_id`), immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, the creating human or Agent plus the announcement Message an Agent-created Agent anchors to, and Channel access for reminder authorship |
 | `agent_delivery` / `agent_inbox` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the agent inbox drained into runs — the only agent-only lane, including the items with no backing message: automation fires and task assignments |
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
+| `agent_run_triggers` | The inbox work (source, Chat, work id) the Server chose to wake each run, recorded at dispatch so a settled turn can name its trigger |
 | `agent_session_rotations` | One row per Agent session rotation: the generation it started, when, and why |
 | `chat_messages` | Immutable human and Agent messages ordered by per-Chat sequence and nonce, stamped with the sending run's `session_generation`; there is no `system_author`, and every row is readable by every human who can read the Chat |
 | `message_causes` | The automation fire one message answers, whether that attribution was explicit or inferred, and the snapshot the mark keeps for good — title, summary, fire time, owning Agent, anchor Chat — at most one per message |

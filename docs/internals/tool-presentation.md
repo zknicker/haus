@@ -128,6 +128,10 @@ BEM parts to the trace's own small muted role.
   workspace prefix, and a bare mention of the workspace itself reads `<workspace>`
   (Haus's `@ai-sdk/harness` patch; upstream wrote `.`, which turned
   `cwd is /…/workspace.` into `cwd is ..`). The journal stores that display text.
+  The patch only reaches the top-level Agent, so Computer applies the same rule (plus
+  `~/` for the Agent home) to every string it serves from the journal, sub-agent
+  calls included, and adds a normalized `failure: { message, exitCode? }` beside each
+  raw tool `error` and on a failed turn; prefer it over parsing `error`.
 - A step whose start and end arrived together shows no duration. Codex reports a
   fast command's or patch's ACP start and completion in the same instant, and its
   own measured duration for them is also zero, so there is no real span to state.

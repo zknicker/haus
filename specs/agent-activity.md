@@ -51,7 +51,13 @@ never becomes the current activity label and never counts as a turn operation.
 
 `delegating` covers only the parent sub-agent call. The sub-agent's own tool calls never open
 activity and never become thoughts; they are execution-journal evidence nested under the parent
-call. `delegating` is not a turn operation category, so it never appears in turn operation counts.
+call. A settled turn counts each sub-agent once under the `delegating` operation category, so a
+delegation-heavy turn does not read as idle.
+
+Turn operation counts also have one turn-only category, `generating_media`: a runtime-native image
+or video tool (`generated-images.ts`) opens ordinary `using_tool` activity while it runs but counts
+as generated media, because the image is usually what the human asked for. It is never a live
+activity category.
 
 ## Mapping evidence to activity
 
@@ -233,7 +239,11 @@ The Agent profile Activity tab reads the durable Server journal newest-first wit
 groups it by turn. Each collapsed turn shows its duration, outcome, exact persisted message count,
 and exact Computer-reported totals by semantic operation category. These compact totals are part of
 the durable turn summary, so a settled row does not depend on every best-effort live activity frame
-having arrived. Silent completion and interruption are explicit. Expanding a turn reveals the
+having arrived. A run the Server resends after a Computer restart keeps its first start and the
+totals its lost launch settled (the Computer-local turn ledger), so duration and counts cover the
+whole run. Each settled turn also names its trigger — the message, task, reminder, or other inbox
+work that woke it — as ids the App resolves through ordinary message reads
+([Agents API](../docs/api/agents.md#turn-and-delivery-observability)). Silent completion and interruption are explicit. Expanding a turn reveals the
 existing granular semantic timeline when retained; repeated heartbeats and raw details never appear.
 
 Every Server member may see the summarized history. Complete execution evidence is restricted to
