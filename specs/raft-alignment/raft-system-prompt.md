@@ -5,14 +5,18 @@ authoritative text is read from it at the commit pinned in
 [prompt-divergences.md](prompt-divergences.md):
 
 - Repository: <https://github.com/botiverse/raft-source>
-- Pinned commit: `05f7d8fd77d2535f993d5d90b85118438bc18216` (release `v1.13.0-source.1`,
-  daemon 1.0.25)
+- Pinned commit: `26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6` (release `v1.21.2-source.1`,
+  daemon 1.0.43)
 - Rendered prompt: `packages/daemon/src/drivers/__snapshots__/systemPrompt/common.md`
-  (26,764 characters for the example agent "Alice", no initial role). The per-driver
+  (28,599 characters for the example agent "Alice", no initial role). The per-driver
   `*.patch` snapshots beside it are empty diffs except the Windows variants (PowerShell
   here-strings) and `configured`, which adds the `## Current Runtime Context` block, runtime
   critical rules, the `## Runtime Profile Control` release notice, and `## Initial role`.
-- Prompt builder and writing rules: `packages/daemon/src/drivers/systemPrompt.ts`. Its header
+- Prompt builder and writing rules: `packages/daemon/src/drivers/systemPrompt.ts`; the CLI guide
+  sections it assembles live in `packages/shared/src/raftCliGuide.ts`. Three parts render only
+  under Server flags and so are absent from the snapshot: `## Working through sub-agents`
+  (`subagentDelegation` plus a runtime that can start sub-agents), the MEMORY.md 16 KB target
+  (`constructedWakeContext`), and an installed-apps directory in the Integrations entry. The builder's header
   comment is the pruning rule Haus follows: keep durable collaboration principles in the standing
   prompt; put event formats, delivery mechanics, and event-specific actions in the event input.
 - Event input (inbox notice, concrete delivery, thread-join context):
@@ -23,7 +27,7 @@ To read it locally:
 
 ```sh
 git clone https://github.com/botiverse/raft-source && cd raft-source
-git checkout 05f7d8fd77d2535f993d5d90b85118438bc18216
+git checkout 26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6
 cat packages/daemon/src/drivers/__snapshots__/systemPrompt/common.md
 ```
 
