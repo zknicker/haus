@@ -16,6 +16,14 @@ import { withCodexAcpBootstrap } from './codex-acp-bootstrap.ts';
 export const CLAUDE_SETTING_SOURCES = ['user'] as const;
 
 /**
+ * Claude Code sub-agents run in the foreground only: this drops `run_in_background` from the
+ * Agent tool, so a sub-agent finishes inside the parent turn and the turn ends in one result.
+ */
+export const CLAUDE_FOREGROUND_SUBAGENTS_ENV = {
+    CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
+} as const;
+
+/**
  * Applies the Agent's reasoning policy at the native runtime boundary. Every runtime here
  * steers a live turn (`submitUserMessage`), which the composed prompt promises: Claude Code
  * and Pi natively, Grok Build and Codex through Haus's @ai-sdk/harness-acp patch
@@ -37,6 +45,7 @@ export function createHarnessForRuntime(
                     // legitimately run long tool loops.
                     maxTurns: 50,
                     settingSources: [...CLAUDE_SETTING_SOURCES],
+                    env: CLAUDE_FOREGROUND_SUBAGENTS_ENV,
                     effort: reasoningEffort === 'default' ? undefined : reasoningEffort,
                     ...(modelId === 'claude-haiku-4-5'
                         ? { thinking: { type: 'enabled' as const } }

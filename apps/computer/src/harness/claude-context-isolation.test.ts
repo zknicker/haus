@@ -18,7 +18,7 @@ afterEach(async () => {
 // every ancestor of the workspace and loaded the operator's own CLAUDE.md as Project memory.
 // This drives Computer's real Claude harness and the shipped bridge, with a recording stand-in
 // for the Agent SDK, to prove query() receives only the Agent HOME settings source.
-test('the Claude bridge asks the Agent SDK for user settings only', async () => {
+test('the Claude bridge asks the Agent SDK for user settings and foreground sub-agents only', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-claude-context-'));
     roots.push(root);
     const agentRoot = join(root, 'parent', 'servers', 'srv', 'agents', 'agt');
@@ -56,6 +56,7 @@ test('the Claude bridge asks the Agent SDK for user settings only', async () => 
         ]);
         const options = JSON.parse(await readFile(recordPath, 'utf8'));
         expect(options.settingSources).toEqual(['user']);
+        expect(options.backgroundTasksDisabled).toBe('1');
         expect(options.cwd).toBe(workspace);
     } finally {
         await session.doDestroy?.();
@@ -113,6 +114,7 @@ function sdkStandIn(recordPath: string): string {
 export function query({ options }) {
     writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
         cwd: options.cwd,
+        backgroundTasksDisabled: options.env?.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS,
         settingSources: options.settingSources,
     }));
     async function* messages() {
