@@ -50,6 +50,21 @@ test('wraps transcript reference previews in HeroUI tooltip triggers', () => {
     expect(markup).toContain('aria-label="Preview Blippy"');
 });
 
+// The trigger span is plain inline; `align-middle` on it dropped the chip's label
+// below the surrounding text baseline. The button inside owns the centering.
+test('keeps the hover-card trigger span on the text baseline', () => {
+    const markup = renderToStaticMarkup(
+        <ReferenceChip id="agent://agent_blippy" kind="agent" label="Blippy" preview />
+    );
+
+    expect(markup).not.toMatch(
+        /<span[^>]*class="[^"]*\balign-middle\b[^"]*"[^>]*data-slot="tooltip-trigger"/
+    );
+    expect(markup).not.toMatch(
+        /<span[^>]*data-slot="tooltip-trigger"[^>]*class="[^"]*\balign-middle\b/
+    );
+});
+
 test('renders a readable thread chip without exposing its anchor id', () => {
     const markup = renderToStaticMarkup(
         <ReferenceChip
