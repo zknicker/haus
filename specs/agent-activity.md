@@ -241,11 +241,14 @@ by its trigger — the first line of the waking message with its Chat as context
 for a direct message, never the peer's name), or the kind of typed work (`Reminder`) — and its
 muted second line lists the actions taken, most telling first (`3 sub-agents · 2 file edits ·
 1 message`), from the exact Computer-reported totals by semantic operation category and the exact
-persisted message count. Duration and start time sit in right-aligned columns. Status shows only
-when it is news: failed, interrupted, or still working; a completed turn carries none. Consecutive
+persisted message count. One fixed, non-wrapping, tabular column on the right stacks duration over
+start time; durations use at most two units with no zero padding (`<1s`, `42s`, `1m 24s`, `6m`,
+`1h 2m`), and a running turn's duration ticks live. Status shows only when it is news — failed,
+interrupted, or still working — as an explicit mark in its own slot before that column; a
+completed turn carries none. Consecutive
 failed turns with the same failure kind and trigger fold into one row with a count. When the
 trigger is private, unrecorded, or its message is unreadable to the viewer, the row shows no title
-and its action list stands in; a turn with no actions and no messages reads `Stayed quiet` when it
+and its action list stands in as a single line, never repeated beneath; a turn with no actions and no messages reads `Stayed quiet` when it
 completed and `Ended before any action` otherwise. A running turn has not settled into
 `agent.turns`, so its row reads its trigger through `agent.runTrigger` and is titled the same way
 while it works. Trigger messages are read once per list through a small rolling
@@ -291,11 +294,12 @@ Hovering or focusing an Agent avatar in the Chat transcript or an Agent rich
 reference opens one shared HeroUI hover card. It shows the Agent identity and
 global availability, current effective runtime and model, reasoning effort,
 and its activity. While the Agent works, the run's trigger titles the section as a turn row's
-title does, then one live line names the current step on the turn's clock
-(`Running a command · 0:42`), a status line counts running sub-agents, and a short log lists
+title does, then one live line names the current step, a status line counts running sub-agents,
+and a short log lists the run's latest steps. Every length and time in the card sits in one
+right-aligned tabular column in the turn-row duration format (`Running a command` … `42s`). The log lists
 the run's latest steps: settled steps in past tense, and a start only while it is still running, so
 stale `…ing` lines never pile up. While idle, it shows the last two turns, each titled by its
-trigger with its actions and relative time, repeated failures folded as in Activity History.
+trigger with its actions, duration over relative time in the same column, repeated failures folded as in Activity History.
 The preview reads Server history and remains useful while Computer is offline;
 it never requests Computer-local execution evidence. Clicking the avatar or
 reference still opens the full Agent profile.
