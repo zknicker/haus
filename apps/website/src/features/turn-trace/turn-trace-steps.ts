@@ -195,7 +195,9 @@ function toFoldStep(members: readonly TurnTraceCallStep[]): TurnTraceFoldStep {
     const lanes = assignLanes(members.map((member) => member.timing));
     const thoughts = members.flatMap((member) => member.thoughts);
     return {
-        ...base(`fold:${first.key}`, spanTimings(members.map((member) => member.timing)), thoughts),
+        // The first call's key: a live call that gains a same-kind sibling
+        // becomes this fold in place instead of leaving and re-entering.
+        ...base(first.key, spanTimings(members.map((member) => member.timing)), thoughts),
         isParallel: lanes.every((lane) => lane !== null),
         kind: 'fold',
         label: status === 'running' ? labels.present : labels.past,

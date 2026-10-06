@@ -179,33 +179,35 @@ function TraceThoughtStep({ step }: { step: TurnTraceThoughtStep }) {
 /**
  * The reasoning titles the Agent wrote before a step, as that step's muted
  * caption. Several read as the latest one; the earlier ones are a press away,
- * at the same weight.
+ * at the same weight. The step's children keep one position whether or not a
+ * caption is present: a live fold that gains a captioned member must not
+ * remount its row, or the row forgets it was open.
  */
 function CaptionedStep({ children, step }: { children: React.ReactNode; step: TurnTraceStep }) {
     const [expanded, setExpanded] = React.useState(false);
     const listId = React.useId();
     // A thought step is its own caption.
-    if (step.kind === 'thought' || !step.caption) {
-        return <ChainOfThought.Step>{children}</ChainOfThought.Step>;
-    }
-    const earlier = step.thoughts.slice(0, -1);
-    const label =
-        earlier.length === 0 ? (
-            step.caption
-        ) : (
-            <button
-                aria-controls={listId}
-                aria-expanded={expanded}
-                className="cursor-(--cursor-interactive) text-left hover:text-foreground"
-                onClick={() => setExpanded((current) => !current)}
-                type="button"
-            >
-                {`${step.caption} · ${step.thoughts.length} thoughts`}
-            </button>
-        );
+    const caption = step.kind === 'thought' ? null : step.caption;
+    const earlier = caption ? step.thoughts.slice(0, -1) : [];
 
     return (
-        <ChainOfThought.Step label={label}>
+        <ChainOfThought.Step
+            label={
+                caption && earlier.length > 0 ? (
+                    <button
+                        aria-controls={listId}
+                        aria-expanded={expanded}
+                        className="cursor-(--cursor-interactive) text-left hover:text-foreground"
+                        onClick={() => setExpanded((current) => !current)}
+                        type="button"
+                    >
+                        {`${caption} · ${step.thoughts.length} thoughts`}
+                    </button>
+                ) : (
+                    caption
+                )
+            }
+        >
             {earlier.length > 0 ? (
                 <ThoughtList hidden={!expanded} id={listId} thoughts={earlier} />
             ) : null}
