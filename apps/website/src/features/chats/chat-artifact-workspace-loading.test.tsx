@@ -5,6 +5,7 @@ import { getQueryKey } from '@trpc/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
+import type { WorkspaceBarPlacement } from './chat-artifact-workspace-toolbar.tsx';
 
 const input = { agentId: 'agent-1', includeHidden: false, path: '', serverId: 'server-1' };
 const queryKey = getQueryKey(hausTrpc.agent.workspaceFiles, input, 'query');
@@ -34,6 +35,18 @@ test('a failed refresh preserves the cached file tree', async () => {
     expect(markup).not.toContain('Unable to browse this workspace.');
 });
 
+test('a column bar tops the content column while the rail runs the full height', () => {
+    const markup = render(new QueryClient(), 'column');
+    expectChrome(markup);
+    const bar = markup.indexOf('aria-label="Workspace tools"');
+    const rail = markup.indexOf('<aside');
+    // Preview column first (tree at the end), its bar before the empty preview,
+    // then the rail as the grid's second column, its search on the band line.
+    expect(bar).toBeLessThan(markup.indexOf('No file selected'));
+    expect(markup.indexOf('No file selected')).toBeLessThan(rail);
+    expect(markup.slice(rail)).toContain('h-[var(--app-shell-band-height)]');
+});
+
 async function failListing(queryClient: QueryClient) {
     await queryClient
         .fetchQuery({
@@ -51,7 +64,7 @@ function expectChrome(markup: string) {
     expect(markup).toContain('<aside');
 }
 
-function render(queryClient: QueryClient) {
+function render(queryClient: QueryClient, pageBarPlacement: WorkspaceBarPlacement = 'page') {
     queryClient.setDefaultOptions({ queries: { retryOnMount: false } });
     const client = hausTrpc.createClient({
         links: [httpBatchLink({ url: 'http://127.0.0.1:1/trpc' })],
@@ -61,6 +74,7 @@ function render(queryClient: QueryClient) {
             <hausTrpc.Provider client={client} queryClient={queryClient}>
                 <WorkspaceBrowserContent
                     agentId={input.agentId}
+                    pageBarPlacement={pageBarPlacement}
                     railVariant="sidebar"
                     serverId={input.serverId}
                 />

@@ -1,7 +1,5 @@
 import * as React from 'react';
 import { useResizablePaneWidth } from '../../components/ui/resizable-pane-rail.tsx';
-import { hausTrpc } from '../../lib/haus-server.tsx';
-import { queryPolicy } from '../../lib/query-policy.ts';
 import { WorkspaceBrowserRail } from './chat-artifact-workspace-browser-rail.tsx';
 import {
     useWorkspaceArtifact,
@@ -12,18 +10,12 @@ import {
     WorkspaceBrowserFrame,
     WorkspaceBrowserPreview,
 } from './chat-artifact-workspace-layout.tsx';
-import {
-    buildWorkspaceTree,
-    filterWorkspaceTree,
-    initialWorkspaceExpansion,
-    normalizeWorkspacePath,
-    type WorkspaceDirectoryEntries,
-    withWorkspacePaths,
-    workspaceAncestorPaths,
-    workspaceRootTreePath,
-} from './chat-artifact-workspace-model.ts';
 import { WorkspaceArtifactEmpty } from './chat-artifact-workspace-preview.tsx';
-import { WorkspacePageToolbar } from './chat-artifact-workspace-toolbar.tsx';
+import {
+    type WorkspaceBarPlacement,
+    WorkspacePageToolbar,
+} from './chat-artifact-workspace-toolbar.tsx';
+import { useWorkspaceTreeState } from './use-workspace-tree-state.ts';
 
 // HeroUI Sidebar scopes its 240px width internally; repeat it here so the two
 // navigation columns align without sharing a surface.
@@ -37,6 +29,9 @@ export function WorkspaceBrowserContent({
     selectedPath: controlledSelectedPath,
     onSelectPath,
     pageTitle,
+    pageToolbarLeading,
+    pageMenuSections,
+    pageBarPlacement = 'page',
     serverId,
     treeSide = 'end',
 }: {
@@ -52,6 +47,15 @@ export function WorkspaceBrowserContent({
     onSelectPath?: (path: null | string) => void;
     /** The sidebar-rail toolbar's label while no file is open; null when the host titles the page. */
     pageTitle?: null | string;
+    /** Host-owned start of the sidebar-rail toolbar (e.g. the Agent profile breadcrumb);
+        replaces the path label so the page keeps one top bar. */
+    pageToolbarLeading?: React.ReactNode;
+    /** Host sections for the sidebar-rail toolbar's one "…" menu (e.g. the Agent lifecycle verbs). */
+    pageMenuSections?: React.ReactNode;
+    /** Where the sidebar-rail toolbar renders: its own row, the shell band of
+        a host page that has one (the Agent profile on the web), or over the
+        content column beside a full-height rail (that page in a desktop tab). */
+    pageBarPlacement?: WorkspaceBarPlacement;
     serverId: string;
     /** Which edge the file rail sits on. The Artifact Panel keeps it trailing,
         beside the chat it belongs to; a page reads it as navigation and leads. */
@@ -69,7 +73,6 @@ export function WorkspaceBrowserContent({
         },
         [onSelectPath]
     );
-    const [query, setQuery] = React.useState('');
     const [includeHidden, setIncludeHidden] = React.useState(false);
     const selectedTarget = selectedPath
         ? ({ kind: 'workspaceFile', path: selectedPath } as const)
@@ -80,108 +83,32 @@ export function WorkspaceBrowserContent({
         serverId,
         target: selectedTarget,
     });
-    const [expandedPaths, setExpandedPaths] =
-        React.useState<ReadonlySet<string>>(initialWorkspaceExpansion);
-    const [loadedEntriesByDirectory, setLoadedEntriesByDirectory] =
-        React.useState<WorkspaceDirectoryEntries>({});
-    const [directoryLoadError, setDirectoryLoadError] = React.useState<string | null>(null);
-    const initialDirectory = normalizeWorkspacePath(initialDirectoryPath);
-    const serverUtils = hausTrpc.useUtils();
+    const tree = useWorkspaceTreeState({
+        agentId,
+        includeHidden,
+        initialDirectoryPath,
+        selectedPath,
+        serverId,
+    });
     const fileSidebarWidth = useResizablePaneWidth({
         defaultWidth: 300,
         maxWidth: 440,
         minWidth: 220,
         storageKey: sidebarStorageKey,
     });
-    const filesQuery = hausTrpc.agent.workspaceFiles.useQuery(
-        { agentId, includeHidden, path: '', serverId },
-        { ...queryPolicy.computerSnapshot, enabled: agentId.length > 0 }
-    );
-    const entriesByDirectory = React.useMemo(
-        () => ({
-            ...loadedEntriesByDirectory,
-            '': filesQuery.data?.entries ?? [],
-        }),
-        [filesQuery.data?.entries, loadedEntriesByDirectory]
-    );
-    const visibleNodes = React.useMemo(
-        () => filterWorkspaceTree(buildWorkspaceTree(entriesByDirectory), query),
-        [entriesByDirectory, query]
-    );
 
+    // The open file belongs to the Agent it came from; clear it only when the
+    // Agent actually changes, not on mount — a URL-driven (controlled)
+    // selection must survive the initial render.
     const setSelectedPathRef = React.useRef(setSelectedPath);
     setSelectedPathRef.current = setSelectedPath;
     const previousAgentRef = React.useRef(agentId);
-    const previousRootRefreshRef = React.useRef(filesQuery.dataUpdatedAt);
     React.useEffect(() => {
-        setLoadedEntriesByDirectory({});
-        setExpandedPaths(initialWorkspaceExpansion);
-        setDirectoryLoadError(agentId ? null : 'No active agent workspace is available.');
-
-        // Clear the open file only when the agent actually changes, not on mount — a
-        // URL-driven (controlled) selection must survive the initial render.
         if (previousAgentRef.current !== agentId) {
             previousAgentRef.current = agentId;
             setSelectedPathRef.current(null);
         }
     }, [agentId]);
-
-    React.useEffect(() => {
-        if (previousRootRefreshRef.current === filesQuery.dataUpdatedAt) {
-            return;
-        }
-        previousRootRefreshRef.current = filesQuery.dataUpdatedAt;
-        setLoadedEntriesByDirectory({});
-        setExpandedPaths(initialWorkspaceExpansion);
-        setDirectoryLoadError(null);
-    }, [filesQuery.dataUpdatedAt]);
-
-    const loadDirectory = React.useCallback(
-        async (nextPath: string) => {
-            setDirectoryLoadError(null);
-            if (loadedEntriesByDirectory[nextPath]) {
-                return;
-            }
-
-            try {
-                const result = await serverUtils.agent.workspaceFiles.fetch({
-                    agentId,
-                    includeHidden,
-                    path: nextPath,
-                    serverId,
-                });
-                setLoadedEntriesByDirectory((current) => ({
-                    ...current,
-                    [nextPath]: result.entries,
-                }));
-            } catch {
-                setDirectoryLoadError('Unable to load this workspace folder.');
-            }
-        },
-        [
-            agentId,
-            serverUtils.agent.workspaceFiles,
-            includeHidden,
-            loadedEntriesByDirectory,
-            serverId,
-        ]
-    );
-
-    React.useEffect(() => {
-        if (filesQuery.data && initialDirectory) {
-            setExpandedPaths((current) => withWorkspacePaths(current, [initialDirectory]));
-            void loadDirectory(initialDirectory);
-        }
-    }, [filesQuery.data, initialDirectory, loadDirectory]);
-
-    // A host-driven selection (the URL, a linked artifact) has to reveal itself.
-    React.useEffect(() => {
-        if (selectedPath) {
-            setExpandedPaths((current) =>
-                withWorkspacePaths(current, workspaceAncestorPaths(selectedPath))
-            );
-        }
-    }, [selectedPath]);
 
     if (!agentId) {
         return (
@@ -203,50 +130,23 @@ export function WorkspaceBrowserContent({
             controls={
                 isSidebarRail ? null : <WorkspaceArtifactInlineControls artifact={artifact} />
             }
-            directoryLoadError={directoryLoadError}
             selectedPath={selectedPath}
         />
     );
 
     const railWidth = isSidebarRail ? sidebarRailWidth : fileSidebarWidth.width;
-    const changeHiddenFiles = (value: boolean) => {
-        setIncludeHidden(value);
-        setLoadedEntriesByDirectory({});
-        setExpandedPaths(initialWorkspaceExpansion);
-        setDirectoryLoadError(null);
-    };
+    const toolbarOverPreview = isSidebarRail && pageBarPlacement === 'column';
     const fileRail = (
         <WorkspaceBrowserRail
-            expandedPaths={expandedPaths}
             includeHidden={includeHidden}
             isPageRail={isSidebarRail}
-            nodes={visibleNodes}
-            onExpandedChange={(paths) => {
-                for (const path of paths) {
-                    if (path !== workspaceRootTreePath && !expandedPaths.has(path)) {
-                        void loadDirectory(path);
-                    }
-                }
-                setExpandedPaths(paths);
-            }}
-            onIncludeHiddenChange={changeHiddenFiles}
-            onQueryChange={setQuery}
-            onSelectDirectory={(path) => {
-                setExpandedPaths((current) => withWorkspacePaths(current, [path]));
-                void loadDirectory(path);
-            }}
+            onIncludeHiddenChange={setIncludeHidden}
             onSelectFile={setSelectedPath}
             onWidthChange={fileSidebarWidth.setWidth}
             onWidthCommit={fileSidebarWidth.persistWidth}
-            query={query}
+            searchOnBandLine={toolbarOverPreview}
             selectedPath={selectedPath}
-            status={
-                filesQuery.isPending
-                    ? 'loading'
-                    : filesQuery.error && !filesQuery.data
-                      ? 'error'
-                      : 'ready'
-            }
+            tree={tree}
             treeAtStart={treeAtStart}
             width={fileSidebarWidth.width}
         />
@@ -259,7 +159,11 @@ export function WorkspaceBrowserContent({
                 isSidebarRail ? (
                     <WorkspacePageToolbar
                         includeHidden={includeHidden}
-                        onIncludeHiddenChange={changeHiddenFiles}
+                        leading={pageToolbarLeading}
+                        menuSections={pageMenuSections}
+                        onCloseFile={() => setSelectedPath(null)}
+                        onIncludeHiddenChange={setIncludeHidden}
+                        placement={pageBarPlacement}
                         selectedPath={selectedPath}
                         title={pageTitle}
                     >
@@ -269,6 +173,7 @@ export function WorkspaceBrowserContent({
             }
             preview={preview}
             railWidth={railWidth}
+            toolbarOverPreview={toolbarOverPreview}
             treeAtStart={treeAtStart}
         />
     );
