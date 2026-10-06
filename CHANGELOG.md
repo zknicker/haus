@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v8.1.0 - 2026-10-06
+
+- One Update press updates the desktop App first, then each Computer in turn, filling a single progress circle across the run. The App no longer restarts on its own: a Restart now / Later prompt ends the run. A Computer that stops reporting progress for two minutes shows as stalled, including one that keeps reconnecting.
+- Haus Computer 6.1.0 restarts itself after a self-update instead of leaving its service unloaded. Computers updating from 6.0.0 still run the old updater, so this update can stop at "restarting" once; run `haus-computer start` on that machine to bring it back.
+- Haus Agent 6.1.0 sets its own finished tasks to done and uses in review only when you asked to sign off or a decision is waiting on you, saying what to check. `haus task create` retries once when the Server does not answer without creating duplicate tasks, and a reused task or reminder key is refused instead of replaying a different request. Update Haus Computer to 6.1.0 for this behavior.
+- Mouse back and forward buttons step through desktop tab history. Agent, Channel, and Skill reference chips sit on the text baseline when they wrap.
+
 ## v8.0.0 - 2026-10-05
 
 - Haus App 5.1.0 makes every desktop page an equal tab with its own history, in one or two panes. Select several tabs and drag them together, tear them off into a new window, or drop them into another window. New windows open without a cold boot, reusing your signed-in session and loaded Chats.

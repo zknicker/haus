@@ -1,7 +1,7 @@
 {
   "name": "@haus/website",
   "private": true,
-  "version": "5.1.0",
+  "version": "5.1.1",
   "type": "module",
   "main": "electron/main.cjs",
   "packageManager": "bun@1.4.2",
