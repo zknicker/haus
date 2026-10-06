@@ -1,12 +1,11 @@
 import { Chip } from '@heroui/react';
-import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { AnimatePresence } from 'motion/react';
+import { CancelCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { DisclosureGroupStateContext } from 'react-aria-components';
+import { Icon } from '../../components/ui/icon.tsx';
 import type { TurnJournalSnapshot } from '../../hooks/members/turn-journal-relay.ts';
 import { useTurnJournal } from '../../hooks/members/use-turn-journal.ts';
 import {
-    formatAgentActivityEvent,
     getAgentActivityColor,
     getAgentActivityPhaseLabel,
     type TurnDetailAccess,
@@ -18,12 +17,15 @@ import {
     formatActivityTurnHeadline,
     getActivityTurnPhase,
 } from '../members/agent-profile/agent-activity-turns.ts';
-import { TurnTraceNote, TurnTraceStep } from './turn-trace-blocks.tsx';
-import { buildTurnTrace } from './turn-trace-model.ts';
-import { TurnTraceReasoning } from './turn-trace-reasoning.tsx';
+import { TurnTraceNote } from './turn-trace-blocks.tsx';
+import { TraceFailure } from './turn-trace-call-body.tsx';
+import { formatTraceDuration } from './turn-trace-duration.ts';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
+import { TurnTraceScopeProvider, type TurnTraceWorkspace } from './turn-trace-scope.tsx';
 import { TurnTraceScroll } from './turn-trace-scroll.tsx';
-import { TurnTraceToolCall } from './turn-trace-tool.tsx';
+import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
+import { buildTurnTraceView, type TurnTraceView } from './turn-trace-view.ts';
+import { useTurnTraceNow } from './use-turn-trace-now.ts';
 
 /** The turn's outcome at a glance, for surfaces that do not already say it. */
 export function TurnTraceHeader({ turn }: { turn: AgentActivityTurn }) {
@@ -86,6 +88,7 @@ export function TurnTrace({
             isPending={journal.isPending}
             presentation={presentation}
             refreshError={journal.refreshError}
+            workspace={agentId ? { agentId, serverId } : null}
         />
     );
 }
@@ -97,73 +100,101 @@ export function TurnTracePresentation({
     isPending,
     presentation,
     refreshError = null,
+    workspace = null,
 }: {
     access: TurnDetailAccess;
     events?: AgentActivityTurn['events'];
     isPending: boolean;
     presentation: TurnJournalPresentation | null;
     refreshError?: string | null;
+    workspace?: TurnTraceWorkspace | null;
 }) {
-    const entries = buildTurnTrace(
-        access === 'journal' && presentation?.kind === 'available' ? presentation.journal : null,
-        events
-    );
+    const journal =
+        access === 'journal' && presentation?.kind === 'available' ? presentation.journal : null;
+    const now = useTurnTraceNow(journal?.status === 'running');
+    const view = buildTurnTraceView(journal, events, now);
 
     return (
-        // Every tool row is its own disclosure. Inside the Activity tab's
+        // Every step row is its own disclosure. Inside the Activity tab's
         // accordion, React Aria would otherwise enrol each one in the turn
         // rows' group: the group's keys would decide a call's state, so a
         // failed call would not open on its own there as it does in the drawer.
         <DisclosureGroupStateContext.Provider value={null}>
             {/* The Activity tab animates a row's open only when this holds
                 something to measure (`default-theme.css`). */}
-            <div className="grid min-w-0 gap-2" data-turn-trace>
+            <div className="@container grid min-w-0 gap-2 text-sm" data-turn-trace>
                 <TurnTraceNotice
                     access={access}
                     isPending={isPending}
                     presentation={presentation}
                 />
-                {entries.length === 0 ? (
-                    presentation?.kind === 'available' &&
-                    presentation.journal.status !== 'running' ? (
+                {view.error ? <TurnTraceError error={view.error} /> : null}
+                {view.steps.length === 0 ? (
+                    journal && journal.status !== 'running' && !view.error ? (
                         <TurnTraceNote>No activity was recorded for this turn.</TurnTraceNote>
                     ) : null
                 ) : (
                     // The relay answers after the row or drawer has opened, so the
                     // trace grows into place instead of landing at full height.
-                    <TurnTraceReveal className="min-w-0">
-                        <TurnTraceScroll>
-                            <AnimatePresence initial={false}>
-                                {entries.map((entry) => (
-                                    <TurnTraceReveal
-                                        className="min-w-0"
-                                        data-trace-anchor={entry.key}
-                                        key={entry.key}
-                                    >
-                                        {entry.kind === 'event' ? (
-                                            <TurnTraceStep icon={BubbleChatIcon}>
-                                                <p className="text-muted">
-                                                    {formatAgentActivityEvent(entry.event)}
-                                                </p>
-                                            </TurnTraceStep>
-                                        ) : entry.kind === 'reasoning' ? (
-                                            <TurnTraceReasoning
-                                                isStreaming={entry.isStreaming}
-                                                reasoning={entry.reasoning}
-                                            />
-                                        ) : (
-                                            <TurnTraceToolCall tool={entry.tool} />
-                                        )}
-                                    </TurnTraceReveal>
-                                ))}
-                            </AnimatePresence>
-                        </TurnTraceScroll>
+                    <TurnTraceReveal className="grid min-w-0 gap-1">
+                        <TurnTraceTotals view={view} />
+                        <TurnTraceScopeProvider scope={{ axisMs: readAxis(view), workspace }}>
+                            <TurnTraceScroll>
+                                <TurnTraceSteps steps={view.steps} />
+                            </TurnTraceScroll>
+                        </TurnTraceScopeProvider>
                     </TurnTraceReveal>
                 )}
                 {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
             </div>
         </DisclosureGroupStateContext.Provider>
     );
+}
+
+/** The turn's own failure, above its steps: the reason the turn stopped, not a call's. */
+function TurnTraceError({ error }: { error: NonNullable<TurnTraceView['error']> }) {
+    return (
+        <div className="flex min-w-0 gap-2 text-sm">
+            <span className="flex h-5 shrink-0 items-center">
+                <Icon className="size-3.5 text-danger" icon={CancelCircleIcon} />
+            </span>
+            <TraceFailure failure={error} />
+        </div>
+    );
+}
+
+/** The trace's totals, stated once: how long, how much, and what went wrong. */
+function TurnTraceTotals({ view }: { view: TurnTraceView }) {
+    const { totals } = view;
+    const duration = formatTraceDuration(totals.durationMs, { isRunning: totals.isRunning });
+    const facts = [
+        totals.isRunning ? `Working${duration ? ` for ${duration}` : ''}` : duration,
+        plural(totals.calls, 'call'),
+        plural(totals.subagents, 'sub-agent'),
+        plural(totals.images, 'image'),
+    ].filter((fact): fact is string => Boolean(fact));
+
+    return (
+        <p className="text-muted text-sm tabular-nums">
+            {facts.join(' · ')}
+            {totals.failed > 0 ? (
+                <span className="text-danger">{`${facts.length > 0 ? ' · ' : ''}${totals.failed} failed`}</span>
+            ) : null}
+        </p>
+    );
+}
+
+function plural(count: number, noun: string): string | null {
+    if (count === 0) {
+        return null;
+    }
+    return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/** Every bar's scale: the turn's wall time, widened to any step that outlasts it. */
+function readAxis(view: TurnTraceView): number {
+    const ends = view.steps.map((step) => step.timing.offsetMs + (step.timing.durationMs ?? 0));
+    return Math.max(view.totals.durationMs ?? 0, ...ends);
 }
 
 function TurnTraceNotice({

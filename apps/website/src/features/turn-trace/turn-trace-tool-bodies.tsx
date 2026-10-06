@@ -4,7 +4,12 @@ import type { ReactNode } from 'react';
 import { buildDiffHunks, countDiffStats } from '../../components/diff/diff-hunks.ts';
 import { DiffStatBadge, DiffView } from '../../components/diff/diff-view.tsx';
 import { codeLanguageForPath } from '../../lib/code-language.ts';
-import { TurnTraceCode, TurnTraceFact, TurnTraceNote } from './turn-trace-blocks.tsx';
+import {
+    TurnTraceCode,
+    TurnTraceFact,
+    TurnTraceNote,
+    TurnTraceProse,
+} from './turn-trace-blocks.tsx';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 import {
     clampTraceText,
@@ -55,7 +60,8 @@ function ShellBody({ tool }: { tool: TurnTraceTool }) {
             ) : null}
             {shell.stdout ? <TurnTraceCode code={shell.stdout} label="Output" /> : null}
             {shell.stderr ? <TurnTraceCode code={shell.stderr} label="Standard error" /> : null}
-            {shell.exitCode === null || shell.exitCode === 0 ? null : (
+            {/* A failed call already states its exit code above its evidence. */}
+            {tool.failure || shell.exitCode === null || shell.exitCode === 0 ? null : (
                 <TurnTraceFact label="Exit code" value={String(shell.exitCode)} />
             )}
         </>
@@ -86,7 +92,9 @@ function readTokenCount(value: unknown): string | null {
 function FileWriteBody({ tool }: { tool: TurnTraceTool }) {
     return (
         <>
-            {tool.path ? <TurnTraceFact label="File" value={tool.path} /> : null}
+            {tool.path ? (
+                <TurnTraceFact label="File" value={tool.target?.path ?? tool.path} />
+            ) : null}
             {tool.content ? (
                 <TurnTraceCode
                     code={tool.content}
@@ -100,7 +108,11 @@ function FileWriteBody({ tool }: { tool: TurnTraceTool }) {
 
 function FileEditBody({ tool }: { tool: TurnTraceTool }) {
     return (
-        <FileDiffBody after={tool.newText ?? ''} before={tool.oldText ?? ''} path={tool.path}>
+        <FileDiffBody
+            after={tool.newText ?? ''}
+            before={tool.oldText ?? ''}
+            path={tool.target?.path ?? tool.path}
+        >
             {tool.replaceAll ? (
                 <TurnTraceNote>Applied to every match in the file.</TurnTraceNote>
             ) : null}
@@ -112,12 +124,20 @@ function FileEditBody({ tool }: { tool: TurnTraceTool }) {
 function FileChangeBody({ tool }: { tool: TurnTraceTool }) {
     const diff = readFileDiff(tool.output, tool.path);
     if (!diff) {
-        return tool.path ? <TurnTraceFact label="File" value={tool.path} /> : null;
+        return tool.path ? (
+            <TurnTraceFact label="File" value={tool.target?.path ?? tool.path} />
+        ) : null;
     }
     if (tool.changeEvent === 'create') {
         return <FileWriteBody tool={{ ...tool, content: diff.after }} />;
     }
-    return <FileDiffBody after={diff.after} before={diff.before} path={tool.path} />;
+    return (
+        <FileDiffBody
+            after={diff.after}
+            before={diff.before}
+            path={tool.target?.path ?? tool.path}
+        />
+    );
 }
 
 function FileDiffBody(props: {
@@ -150,7 +170,9 @@ function FileLookupBody({ tool }: { tool: TurnTraceTool }) {
     return (
         <>
             {tool.pattern ? <TurnTraceFact label="Pattern" value={tool.pattern} /> : null}
-            {tool.path ? <TurnTraceFact label="Path" value={tool.path} /> : null}
+            {tool.path ? (
+                <TurnTraceFact label="Path" value={tool.target?.path ?? tool.path} />
+            ) : null}
             {text ? (
                 <TurnTraceCode
                     code={text}
@@ -202,22 +224,12 @@ function TurnTraceSources({ sources }: { sources: Array<{ title: string; url: st
     );
 }
 
-/**
- * Computer journals a finished image as its workspace copy (`path`) beside the
- * runtime's own file (`savedPath`); a call journaled before that copy, or a
- * video, carries only the runtime's path. The prompt is Grok Build's input or
- * Codex's revised prompt.
- */
+/** A failed or unpreviewable media call: the file it named and the prompt behind it. */
 function ImageBody({ tool }: { tool: TurnTraceTool }) {
-    const output = readRecord(tool.output);
-    const path = readString(output?.path) ?? readString(output?.savedPath);
-    const prompt =
-        readString(readRecord(tool.source.input)?.prompt) ?? readString(output?.revisedPrompt);
-
     return (
         <>
-            {path ? <TurnTraceFact label="File" value={path} /> : null}
-            {prompt ? <TurnTraceCode code={prompt} label="Prompt" /> : null}
+            {tool.image?.file ? <TurnTraceFact label="File" value={tool.image.file.path} /> : null}
+            {tool.image?.prompt ? <TurnTraceProse text={tool.image.prompt} /> : null}
         </>
     );
 }

@@ -1,5 +1,4 @@
 import type { AgentExecutionJournalTool } from '@haus/api';
-import { formatToolDuration } from '../sessions/tools/tool-ui.ts';
 import { readRecord, readString } from './turn-trace-values.ts';
 
 type SubagentStatus = AgentExecutionJournalTool['status'];
@@ -30,23 +29,16 @@ export function formatSubagentLabel(tool: AgentExecutionJournalTool): string {
 }
 
 /**
- * Tool count, tokens, and duration for the row's trailing meta. The runtime's
- * usage is authoritative once reported; until then the count is the child
- * calls seen so far and the duration is left to the clock.
+ * Tool count and tokens for the row's trailing meta; the duration has its own
+ * column. The runtime's usage is authoritative once reported; until then the
+ * count is the child calls seen so far.
  */
 export function formatSubagentMeta(tool: AgentExecutionJournalTool, childCount: number): string {
     const usage = tool.subagent?.usage;
     const toolUses = usage?.toolUses ?? childCount;
-    const duration = usage
-        ? formatToolDuration(new Date(0).toISOString(), new Date(usage.durationMs).toISOString())
-        : formatToolDuration(
-              tool.subagent?.startedAt ?? tool.startedAt,
-              tool.subagent?.endedAt ?? tool.endedAt ?? null
-          );
     return [
         toolUses > 0 ? `${toolUses} ${toolUses === 1 ? 'tool' : 'tools'}` : null,
         usage && usage.totalTokens > 0 ? `${compactCount.format(usage.totalTokens)} tokens` : null,
-        duration,
     ]
         .filter(Boolean)
         .join(' · ');

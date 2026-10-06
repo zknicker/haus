@@ -4,11 +4,11 @@ import { TextShimmer } from '@heroui-pro/react';
 import { BrainIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { motion, useReducedMotion } from 'motion/react';
 import * as React from 'react';
+import { Icon } from '../../components/ui/icon.tsx';
 import { springs } from '../../lib/springs.ts';
 import { cn } from '../../lib/utils.ts';
 import { parseThinkingSummary } from '../chats/chat-transcript-system-step.tsx';
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
-import { TurnTraceStep } from './turn-trace-blocks.tsx';
 
 /** Lines a long thought shows before it asks to be opened. */
 export const reasoningCollapsedLines = 6;
@@ -20,34 +20,48 @@ const markdownLineHeightEm = 1.625;
 
 /**
  * A reasoning block reads as a step of the trace: the same icon column as a
- * tool call, the model's own title when it wrote one, and its prose at a
- * readable measure. Reasoning is readable in place; only a long thought folds.
+ * call, the model's own title when it wrote one, and its prose at a readable
+ * measure. Reasoning is readable in place; only a long thought folds.
  */
 export function TurnTraceReasoning({
     isStreaming = false,
     reasoning,
+    timing,
 }: {
     isStreaming?: boolean;
     reasoning: AgentExecutionJournalReasoning;
+    timing?: React.ReactNode;
 }) {
     const { body, title } = readReasoning(reasoning.text);
 
     return (
-        <TurnTraceStep icon={BrainIcon}>
-            {title ? (
-                isStreaming ? (
-                    <TextShimmer className="font-medium text-muted">{title}</TextShimmer>
-                ) : (
-                    <p className="font-medium text-muted">{title}</p>
-                )
-            ) : null}
-            {body ? <ReasoningBody body={body} /> : null}
-            {reasoning.truncated ? <p className="text-muted">(truncated)</p> : null}
-        </TurnTraceStep>
+        <div className="flex min-w-0 items-start gap-3 text-sm">
+            <div className="flex min-w-0 flex-1 gap-2 py-1.5">
+                <span className="flex h-5 shrink-0 items-center">
+                    <Icon aria-hidden className="size-3.5 text-muted" icon={BrainIcon} />
+                </span>
+                <div className="grid min-w-0 max-w-prose flex-1 justify-items-start gap-1">
+                    {title ? (
+                        isStreaming ? (
+                            <TextShimmer className="text-muted">{title}</TextShimmer>
+                        ) : (
+                            <p className="text-muted">{title}</p>
+                        )
+                    ) : null}
+                    {body ? <TurnTraceMarkdown content={body} /> : null}
+                    {reasoning.truncated ? <p className="text-muted">(truncated)</p> : null}
+                </div>
+            </div>
+            {timing ? <span className="flex h-8 items-center">{timing}</span> : null}
+        </div>
     );
 }
 
-function ReasoningBody({ body }: { body: string }) {
+/**
+ * Model-authored markdown in the trace — a thought, a sub-agent's report —
+ * through the message renderer, folded to six lines when long.
+ */
+export function TurnTraceMarkdown({ content: body }: { content: string }) {
     const reducedMotion = useReducedMotion();
     const [expanded, setExpanded] = React.useState(false);
     const bodyId = React.useId();

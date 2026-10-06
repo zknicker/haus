@@ -1,11 +1,11 @@
 import { Button } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
-import type { IconSvgElement } from '@hugeicons/react';
 import * as React from 'react';
-import { Icon } from '../../components/ui/icon.tsx';
+import { cn } from '../../lib/utils.ts';
 import { clampTraceText } from './turn-trace-values.ts';
 
-const collapsedLineCount = 24;
+// Output is evidence, not the point: eight lines say what it was, the rest is a press away.
+const collapsedLineCount = 8;
 
 /**
  * The trace's one code surface: a labelled snippet with copy, collapsed to a
@@ -71,25 +71,40 @@ export function TurnTraceNote({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * A trace step that is not a tool call. The transparent border and padding
- * match a ChatTool trigger's box, so its icon sits in each tool's status-icon
- * column and its text on the tool labels' line.
+ * Model-authored prose a step carries (an image prompt): wrapped at a reading
+ * measure, folded to three lines when long, with the rest a press away.
  */
-export function TurnTraceStep({
-    children,
-    icon,
-}: {
-    children: React.ReactNode;
-    icon: IconSvgElement;
-}) {
+export function TurnTraceProse({ text }: { text: string }) {
+    const [expanded, setExpanded] = React.useState(false);
+    const bodyId = React.useId();
+    const { text: shown } = clampTraceText(text);
+    const foldable = shown.length > proseFoldChars || shown.split('\n').length > proseFoldLines;
+
     return (
-        <div className="flex min-w-0 gap-2 border border-transparent px-3 py-2 text-sm">
-            <span className="flex h-5 shrink-0 items-center">
-                <Icon aria-hidden className="size-3.5 text-muted" icon={icon} />
-            </span>
-            <div className="grid min-w-0 max-w-prose flex-1 justify-items-start gap-1">
-                {children}
-            </div>
+        <div className="grid w-full min-w-0 justify-items-start gap-1">
+            <p
+                className={cn(
+                    'max-w-prose whitespace-pre-wrap break-words text-muted text-sm',
+                    foldable && !expanded && 'line-clamp-3'
+                )}
+                id={bodyId}
+            >
+                {shown}
+            </p>
+            {foldable ? (
+                <Button
+                    aria-controls={bodyId}
+                    aria-expanded={expanded}
+                    onPress={() => setExpanded((current) => !current)}
+                    size="sm"
+                    variant="ghost"
+                >
+                    {expanded ? 'Show less' : 'Show more'}
+                </Button>
+            ) : null}
         </div>
     );
 }
+
+const proseFoldChars = 240;
+const proseFoldLines = 3;
