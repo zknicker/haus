@@ -1,4 +1,6 @@
 import { ChatTool } from '@heroui-pro/react/chat-tool';
+import { StopCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Icon } from '../../components/ui/icon.tsx';
 import { formatToolDuration } from '../sessions/tools/tool-ui.ts';
 import { TurnTraceCode, TurnTraceFact, TurnTraceNote } from './turn-trace-blocks.tsx';
 import { formatSubagentMeta } from './turn-trace-subagent.ts';
@@ -9,7 +11,8 @@ import { clampTraceValue, formatTraceValue, readTraceText } from './turn-trace-v
 /**
  * One tool call in the trace. The row states the verb and its target; the body
  * is whatever that kind of call actually produced. Failures open on their own
- * because they are why someone opened the trace.
+ * because they are why someone opened the trace. An interrupted call is not a
+ * failure: it stays closed under a muted stop mark, and its note says why.
  */
 export function TurnTraceToolCall({ tool }: { tool: TurnTraceTool }) {
     const meta =
@@ -17,7 +20,9 @@ export function TurnTraceToolCall({ tool }: { tool: TurnTraceTool }) {
             ? formatSubagentMeta(tool.source, tool.children.length)
             : formatToolDuration(tool.source.startedAt, tool.source.endedAt ?? null);
     const errorText =
-        tool.error === undefined ? null : formatTraceValue(clampTraceValue(tool.error));
+        tool.interrupted || tool.error === undefined
+            ? null
+            : formatTraceValue(clampTraceValue(tool.error));
 
     return (
         <ChatTool
@@ -27,7 +32,15 @@ export function TurnTraceToolCall({ tool }: { tool: TurnTraceTool }) {
         >
             <ChatTool.Trigger>
                 <span className="flex min-w-0 flex-1 items-center gap-2">
-                    <ChatTool.StatusIcon />
+                    {tool.interrupted ? (
+                        <Icon
+                            aria-hidden
+                            className="size-3.5 shrink-0 text-muted"
+                            icon={StopCircleIcon}
+                        />
+                    ) : (
+                        <ChatTool.StatusIcon />
+                    )}
                     <span className="min-w-0 truncate text-left">{tool.label}</span>
                 </span>
                 {meta ? (

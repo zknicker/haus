@@ -43,6 +43,8 @@ export interface TurnTraceTool extends TurnTraceToolFields {
     /** A sub-agent's own calls, in order; empty for every other kind. */
     readonly children: readonly TurnTraceTool[];
     readonly error: unknown;
+    /** Stopped by the turn ending, not by failing: rendered calm, never as an error. */
+    readonly interrupted: boolean;
     readonly interruption: string | null;
     readonly label: string;
     readonly output: unknown;
@@ -108,6 +110,7 @@ export function classifyTraceTool(
     const name = tool.toolName.trim();
     // A call is a sub-agent by what the runtime reported, never by its wire name.
     const isSubagent = tool.subagent !== undefined || children.length > 0;
+    const interrupted = resolveSubagentStatus(tool) === 'interrupted';
     const fields: TurnTraceToolFields = isSubagent
         ? { ...blankFields, kind: 'subagent' }
         : readToolFields(name, readRecord(tool.input) ?? {});
@@ -116,8 +119,11 @@ export function classifyTraceTool(
         ...fields,
         children,
         error: resolveTraceError(tool),
+        interrupted,
         interruption:
-            formatInterruption(tool) ?? (isSubagent ? formatSubagentInterruption(tool) : null),
+            formatInterruption(tool) ??
+            (isSubagent ? formatSubagentInterruption(tool) : null) ??
+            (interrupted ? 'The call stopped before it finished.' : null),
         label: isSubagent ? formatSubagentLabel(tool) : formatTraceToolLabel(fields, name),
         output: resolveTraceOutput(tool),
         preliminary: resolveTracePreliminary(tool),
@@ -126,12 +132,16 @@ export function classifyTraceTool(
     };
 }
 
+/**
+ * ChatTool has no stopped state. An interrupted call settles as a plain row so
+ * only a real failure gets the danger frame; the row swaps in its own stop mark.
+ */
 export function resolveToolPartState(tool: AgentExecutionJournalTool): ToolPartState {
     const status = resolveSubagentStatus(tool);
     if (status === 'running') {
         return 'input-available';
     }
-    return status === 'completed' ? 'output-available' : 'output-error';
+    return status === 'failed' ? 'output-error' : 'output-available';
 }
 
 /**

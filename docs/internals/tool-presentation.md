@@ -53,7 +53,10 @@ in start order; a child whose parent is missing, or a malformed parent cycle, st
 top-level so no evidence is hidden. The row reads `Ran sub-agent: <label>` (or `Running`,
 `failed`, `interrupted` from the sub-agent's own status), its trailing meta is tool count,
 tokens, and duration, and its body is the type, the child calls rendered exactly as
-top-level calls, and the sub-agent's report. The Agent hover card carries only a count and
+top-level calls, and the sub-agent's report. Only a failed call, top-level or nested, takes
+ChatTool's danger frame and opens on its own; an interrupted one stopped because the turn
+ended, so it settles as a plain row with a muted stop mark, stays closed, and its body says
+why it stopped. The Agent hover card carries only a count and
 elapsed time from current activity's `activeDelegations`, shown while any are running.
 
 ## Row labels

@@ -114,7 +114,7 @@ test('resolveToolPartState maps journal status onto the tool card state', () => 
     assert.equal(resolveToolPartState(tool({ status: 'running' })), 'input-available');
     assert.equal(resolveToolPartState(tool({ status: 'completed' })), 'output-available');
     assert.equal(resolveToolPartState(tool({ status: 'failed' })), 'output-error');
-    assert.equal(resolveToolPartState(tool({ status: 'interrupted' })), 'output-error');
+    assert.equal(resolveToolPartState(tool({ status: 'interrupted' })), 'output-available');
 });
 
 test('classifyTraceTool explains why an interrupted call stopped', () => {
@@ -126,8 +126,14 @@ test('classifyTraceTool explains why an interrupted call stopped', () => {
         })
     );
 
-    assert.equal(interrupted.state, 'output-error');
+    assert.equal(interrupted.state, 'output-available');
+    assert.equal(interrupted.interrupted, true);
     assert.match(interrupted.interruption ?? '', /Computer restarted/);
+    assert.equal(
+        classifyTraceTool(tool({ status: 'interrupted', toolName: 'bash' })).interruption,
+        'The call stopped before it finished.'
+    );
+    assert.equal(classifyTraceTool(tool({ status: 'failed' })).interrupted, false);
 });
 
 test('trace output prefers the live value and keeps only distinct preliminaries', () => {

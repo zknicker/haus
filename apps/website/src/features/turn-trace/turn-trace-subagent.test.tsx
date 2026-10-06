@@ -124,6 +124,42 @@ test('a failed sub-agent opens on its own and shows its calls and type', () => {
     assert.match(markup, /Read apps\/README\.md/);
 });
 
+test('an interrupted sub-agent stays closed under a calm stop mark; a failed one still opens', () => {
+    const render = (status: 'failed' | 'interrupted') =>
+        renderToStaticMarkup(
+            <TurnTracePresentation
+                access="journal"
+                isPending={false}
+                presentation={{
+                    journal: journal([
+                        tool({
+                            error: 'aborted',
+                            status,
+                            subagent: subagent({ status }),
+                            toolCallId: 'task',
+                            toolName: 'Agent',
+                        }),
+                    ]),
+                    kind: 'available',
+                }}
+            />
+        );
+
+    const interrupted = render('interrupted');
+    assert.match(interrupted, /Sub-agent interrupted: Count files in apps/);
+    assert.doesNotMatch(interrupted, /data-state="output-error"/);
+    assert.doesNotMatch(interrupted, /chat-tool--error/);
+    assert.doesNotMatch(interrupted, /aria-expanded="true"/);
+    assert.doesNotMatch(interrupted, /data-slot="chat-tool-status"/);
+    assert.match(interrupted, /The sub-agent stopped before it finished\./);
+    assert.doesNotMatch(interrupted, /data-slot="chat-tool-error"/);
+
+    const failed = render('failed');
+    assert.match(failed, /data-state="output-error"/);
+    assert.match(failed, /aria-expanded="true"/);
+    assert.match(failed, /data-slot="chat-tool-error"/);
+});
+
 function toolAt(entries: ReturnType<typeof buildTurnTrace>, index: number): TurnTraceTool {
     const entry = entries[index];
     assert.ok(entry?.kind === 'tool');
