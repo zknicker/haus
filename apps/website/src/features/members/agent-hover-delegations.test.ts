@@ -10,7 +10,7 @@ test('the delegation line is hidden when no sub-agent is running', () => {
 });
 
 test('the delegation line counts sub-agents and times the earliest start', () => {
-    assert.equal(
+    assert.deepEqual(
         formatAgentDelegationSummary(
             [
                 { operationId: 'op_b', startedAt: '2026-10-06T12:08:30.000Z' },
@@ -18,20 +18,20 @@ test('the delegation line counts sub-agents and times the earliest start', () =>
             ],
             now
         ),
-        '2 sub-agents running · 3:00'
+        { elapsed: '3m', label: '2 sub-agents running' }
     );
-    assert.equal(
+    assert.deepEqual(
         formatAgentDelegationSummary(
             [{ operationId: 'op_a', startedAt: '2026-10-06T12:09:15.000Z' }],
             now
         ),
-        '1 sub-agent running · 0:45'
+        { elapsed: '45s', label: '1 sub-agent running' }
     );
-    assert.equal(
+    assert.deepEqual(
         formatAgentDelegationSummary(
             [{ operationId: 'op_a', startedAt: '2026-10-06T10:55:00.000Z' }],
             now
         ),
-        '1 sub-agent running · 1:15:00'
+        { elapsed: '1h 15m', label: '1 sub-agent running' }
     );
 });

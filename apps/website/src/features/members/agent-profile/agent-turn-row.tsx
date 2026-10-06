@@ -3,6 +3,7 @@ import { AlertCircleIcon, StopCircleIcon } from '@hugeicons-pro/core-stroke-roun
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
+import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import {
     formatTurnDuration,
     formatTurnOutcome,
@@ -13,9 +14,10 @@ import {
 import type { RecentActivityRow } from './recent-activity-rows.ts';
 
 /**
- * One turn as a row: the request that woke it (with its Chat), the actions it
- * took beneath, and its length and start time in right-aligned columns. Status
- * shows only when it is news — failed, interrupted, or still working.
+ * One turn as a row: the request that woke it (with its Chat) over the actions
+ * it took, then a fixed numeric column — length over start time — so every
+ * row's numbers share one right edge. Status shows only when it is news
+ * (failed, interrupted, or still working), in its own slot before the numbers.
  */
 export function TurnRowContent({ row, title }: { row: RecentActivityRow; title: TurnRowTitle }) {
     const outcome = formatTurnOutcome(row.latest);
@@ -26,39 +28,39 @@ export function TurnRowContent({ row, title }: { row: RecentActivityRow; title: 
         // the row truncates instead of widening the Accordion past the viewport.
         <span className="me-2 flex w-0 min-w-0 flex-1 items-center gap-3 text-left font-normal text-sm">
             <span className="flex min-w-0 flex-1 flex-col">
-                <span className="flex min-h-5 min-w-0 items-center gap-1.5">
-                    {status ? <TurnRowStatusMark status={status} /> : null}
-                    {title.kind === 'none' ? (
-                        <span className="min-w-0 truncate text-foreground">{outcome}</span>
-                    ) : (
-                        <>
+                {title.kind === 'none' ? (
+                    // No request the reader may see: what the turn did is the
+                    // whole row, one line set against the two-line numbers.
+                    <span className="min-w-0 truncate text-foreground">{outcome}</span>
+                ) : (
+                    <>
+                        <span className="flex min-h-5 min-w-0 items-baseline gap-1.5">
                             <span className="min-w-0 truncate font-medium text-foreground">
                                 {title.kind === 'text' ? title.text : null}
                             </span>
                             {title.place ? (
                                 <span className="shrink-0 text-muted">{title.place}</span>
                             ) : null}
-                        </>
-                    )}
-                </span>
-                {title.kind === 'none' ? null : (
-                    <span className="min-w-0 truncate text-muted">{outcome}</span>
+                        </span>
+                        <span className="min-w-0 truncate text-muted">{outcome}</span>
+                    </>
                 )}
             </span>
-            <span className="w-14 shrink-0 text-right text-muted tabular-nums">
-                {row.latest.kind === 'active' ? (
-                    <ActiveTurnDuration startedAt={row.latest.startedAt} />
-                ) : (
-                    formatTurnDuration(row.latest.durationMs)
-                )}
+            {status ? <TurnRowStatusMark status={status} /> : null}
+            <span className="flex w-18 shrink-0 flex-col items-end whitespace-nowrap text-muted tabular-nums">
+                <TurnDuration turn={row.latest} />
+                <time dateTime={row.latest.startedAt}>{formatShortTime(row.latest.startedAt)}</time>
             </span>
-            <time
-                className="w-16 shrink-0 text-right text-muted tabular-nums"
-                dateTime={row.latest.startedAt}
-            >
-                {formatShortTime(row.latest.startedAt)}
-            </time>
         </span>
+    );
+}
+
+/** A turn's length; a running turn ticks on its own clock. */
+export function TurnDuration({ turn }: { turn: AgentActivityTurn }) {
+    return turn.kind === 'active' ? (
+        <ActiveTurnDuration startedAt={turn.startedAt} />
+    ) : (
+        <span>{formatTurnDuration(turn.durationMs)}</span>
     );
 }
 
@@ -91,5 +93,5 @@ function TurnRowStatusMark({ status }: { status: NonNullable<TurnRowStatus> }) {
 /** The one ticking clock on the page, mounted only in a running turn's row. */
 function ActiveTurnDuration({ startedAt }: { startedAt: string }) {
     const now = useRelativeNow(1000);
-    return <>{formatTurnDuration(now - Date.parse(startedAt))}</>;
+    return <span>{formatTurnDuration(now - Date.parse(startedAt))}</span>;
 }

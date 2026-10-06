@@ -120,17 +120,31 @@ export function groupTurnRowsByDay(
     return groups;
 }
 
-/** A turn's length for a right-aligned column: `42s`, `3m 05s`, `1h 02m`. */
+/**
+ * A length for a right-aligned numeric column, at most two units and no
+ * zero padding, so it never outgrows the column: `<1s`, `42s`, `1m 24s`, `6m`,
+ * `1h 2m`; `—` when the length is unknown. Turn rows and the hover card share it.
+ */
 export function formatTurnDuration(durationMs: number): string {
-    const seconds = Math.max(0, Math.round(durationMs / 1000));
+    if (!Number.isFinite(durationMs)) {
+        return '—';
+    }
+    if (durationMs < 1000) {
+        return '<1s';
+    }
+    const seconds = Math.round(durationMs / 1000);
     if (seconds < 60) {
         return `${seconds}s`;
     }
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) {
-        return `${minutes}m ${String(seconds % 60).padStart(2, '0')}s`;
+        return joinUnits(minutes, 'm', seconds % 60, 's');
     }
-    return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`;
+    return joinUnits(Math.floor(minutes / 60), 'h', minutes % 60, 'm');
+}
+
+function joinUnits(major: number, majorUnit: string, minor: number, minorUnit: string) {
+    return minor === 0 ? `${major}${majorUnit}` : `${major}${majorUnit} ${minor}${minorUnit}`;
 }
 
 function localDayKey(date: Date): string {

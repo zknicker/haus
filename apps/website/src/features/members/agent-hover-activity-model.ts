@@ -2,23 +2,24 @@ import type { AgentActivityEvent, AgentCurrentActivity } from '@haus/api';
 import { formatCurrentAgentActivityLabel } from '../../hooks/agents/current-agent-activity.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { formatAgentActivityEvent } from './agent-profile/agent-activity-model.ts';
+import { formatTurnDuration } from './agent-profile/agent-turn-row-model.ts';
 
-/** What the Agent is doing now, on the turn's clock: `Running a command · 0:42`. */
-export function formatHoverLiveLine(activity: AgentCurrentActivity, now: number): string {
-    const label = formatCurrentAgentActivityLabel(activity).replace(/…$/u, '');
-    const started = activity.runStartedAt ? Date.parse(activity.runStartedAt) : Number.NaN;
-    return Number.isNaN(started) ? label : `${label} · ${formatElapsedClock(now - started)}`;
+/** A hover line: words on the left, a length in the right-aligned numeric column. */
+export interface HoverTimedLine {
+    readonly elapsed: string | null;
+    readonly label: string;
 }
 
-/** Elapsed time as a clock: `0:42`, `12:05`, `1:02:03`. */
-export function formatElapsedClock(ms: number): string {
-    const total = Math.max(0, Math.floor(ms / 1000));
-    const hours = Math.floor(total / 3600);
-    const minutes = Math.floor((total % 3600) / 60);
-    const seconds = String(total % 60).padStart(2, '0');
-    return hours > 0
-        ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}`
-        : `${minutes}:${seconds}`;
+/** What the Agent is doing now, on the turn's clock: `Running a command` · `42s`. */
+export function formatHoverLiveLine(activity: AgentCurrentActivity, now: number): HoverTimedLine {
+    const label = formatCurrentAgentActivityLabel(activity).replace(/…$/u, '');
+    const started = activity.runStartedAt ? Date.parse(activity.runStartedAt) : Number.NaN;
+    return { elapsed: formatElapsedSince(started, now), label };
+}
+
+/** The shared turn-length format since an epoch-ms start, or null when it is unknown. */
+export function formatElapsedSince(startedMs: number, now: number): string | null {
+    return Number.isNaN(startedMs) ? null : formatTurnDuration(now - startedMs);
 }
 
 export interface HoverLogLine {

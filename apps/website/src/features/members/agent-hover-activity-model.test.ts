@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { AgentActivityEvent, AgentCurrentActivity } from '@haus/api';
 import {
-    formatElapsedClock,
+    formatElapsedSince,
     formatHoverLiveLine,
     selectHoverLogLines,
 } from './agent-hover-activity-model.ts';
@@ -10,14 +10,20 @@ const now = Date.parse('2026-10-06T17:40:42.000Z');
 
 test('the live line names the current step on the turn clock', () => {
     const current = live({ category: 'running_command', runStartedAt: '2026-10-06T17:40:00.000Z' });
-    expect(formatHoverLiveLine(current, now)).toBe('Running a command · 0:42');
-    expect(formatHoverLiveLine({ ...current, runStartedAt: null }, now)).toBe('Running a command');
+    expect(formatHoverLiveLine(current, now)).toEqual({
+        elapsed: '42s',
+        label: 'Running a command',
+    });
+    expect(formatHoverLiveLine({ ...current, runStartedAt: null }, now)).toEqual({
+        elapsed: null,
+        label: 'Running a command',
+    });
 });
 
-test('the clock reads minutes and seconds, then hours', () => {
-    expect(formatElapsedClock(42_000)).toBe('0:42');
-    expect(formatElapsedClock(725_000)).toBe('12:05');
-    expect(formatElapsedClock(3_723_000)).toBe('1:02:03');
+test('elapsed time uses the turn-row duration format', () => {
+    expect(formatElapsedSince(now - 725_000, now)).toBe('12m 5s');
+    expect(formatElapsedSince(now - 3_723_000, now)).toBe('1h 2m');
+    expect(formatElapsedSince(Number.NaN, now)).toBeNull();
 });
 
 test('stale starts give way to the past-tense steps that ended them', () => {

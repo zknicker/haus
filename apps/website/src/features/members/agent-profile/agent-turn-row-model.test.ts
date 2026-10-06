@@ -133,10 +133,18 @@ test('rows group under Today, Yesterday, then a short date', () => {
     ]);
 });
 
-test('durations read at a glance in a fixed column', () => {
+test('durations stay short enough for a fixed column', () => {
+    expect(formatTurnDuration(0)).toBe('<1s');
+    expect(formatTurnDuration(999)).toBe('<1s');
+    expect(formatTurnDuration(-5)).toBe('<1s');
     expect(formatTurnDuration(42_400)).toBe('42s');
-    expect(formatTurnDuration(185_000)).toBe('3m 05s');
-    expect(formatTurnDuration(3_720_000)).toBe('1h 02m');
+    expect(formatTurnDuration(84_000)).toBe('1m 24s');
+    // Zero minor units drop: the "11m 00s" that wrapped the column reads "11m".
+    expect(formatTurnDuration(660_000)).toBe('11m');
+    expect(formatTurnDuration(59_600)).toBe('1m');
+    expect(formatTurnDuration(3_599_600)).toBe('1h');
+    expect(formatTurnDuration(3_720_000)).toBe('1h 2m');
+    expect(formatTurnDuration(Number.NaN)).toBe('—');
 });
 
 function op(
