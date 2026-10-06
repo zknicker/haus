@@ -1,4 +1,4 @@
-import type { AgentTurnActivitySummary } from '@haus/api';
+import type { AgentTurnActivitySummary, AgentTurnOperationCategory } from '@haus/api';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Cause, Clock, Data, Effect, Exit } from 'effect';
 import type {
@@ -11,6 +11,8 @@ export type AgentActivityTerminalPhase = 'completed' | 'failed' | 'interrupted';
 interface ActivityOperation {
     readonly category: ComputerAgentActivityCategory;
     readonly operationId?: string;
+    /** Counts the settled operation under this turn category instead of `category`. */
+    readonly summaryCategory?: AgentTurnOperationCategory;
     readonly toolRef?: string;
 }
 
@@ -36,27 +38,41 @@ class AgentActivityOperationError extends Data.TaggedError('AgentActivityOperati
 const aggregateCategories = [
     'browsing',
     'checking_messages',
+    'delegating',
     'editing_files',
+    'generating_media',
     'reading_files',
     'running_command',
     'searching_web',
     'updating_instructions',
     'using_tool',
-] as const satisfies readonly ComputerAgentActivityCategory[];
+] as const satisfies readonly AgentTurnOperationCategory[];
 
-const aggregateCategorySet = new Set<ComputerAgentActivityCategory>(aggregateCategories);
+const aggregateCategorySet = new Set<string>(aggregateCategories);
+
+export interface AgentActivityRunOptions {
+    /** Called with the turn totals after every settled operation. */
+    readonly onCounts?: (summary: AgentTurnActivitySummary) => void;
+    /** Totals an earlier launch of the same run already settled. */
+    readonly seed?: AgentTurnActivitySummary;
+}
 
 /** Owns the semantic activity emitted by one Agent turn. */
 export class AgentActivityRun {
     private readonly active = new Map<string, ActivityOperation>();
-    private readonly counts = new Map<ComputerAgentActivityCategory, ActivityCounts>();
+    private readonly counts = new Map<AgentTurnOperationCategory, ActivityCounts>();
     private closed = false;
     private sequence = 0;
 
     constructor(
         private readonly runtime: EffectRuntime<never>,
-        private readonly emit: (activity: ComputerAgentActivityUpdate) => void
-    ) {}
+        private readonly emit: (activity: ComputerAgentActivityUpdate) => void,
+        private readonly options: AgentActivityRunOptions = {}
+    ) {
+        for (const { category, ...counts } of options.seed?.operations ?? []) {
+            this.counts.set(category, { ...counts });
+        }
+    }
 
     around<A, E, R>(
         effect: Effect.Effect<A, E, R>,
@@ -147,7 +163,7 @@ export class AgentActivityRun {
                         return;
                     }
                     this.active.delete(key);
-                    this.record(operation.category, phase);
+                    this.record(operation.summaryCategory ?? operation.category, phase);
                     this.emit({
                         category: operation.category,
                         occurredAt: new Date(occurredAt).toISOString(),
@@ -160,8 +176,11 @@ export class AgentActivityRun {
         );
     }
 
-    private record(category: ComputerAgentActivityCategory, phase: AgentActivityTerminalPhase) {
-        if (!aggregateCategorySet.has(category)) {
+    private record(
+        category: ComputerAgentActivityCategory | AgentTurnOperationCategory,
+        phase: AgentActivityTerminalPhase
+    ) {
+        if (!isAggregateCategory(category)) {
             return;
         }
         const counts = this.counts.get(category) ?? {
@@ -171,7 +190,12 @@ export class AgentActivityRun {
         };
         counts[phase] += 1;
         this.counts.set(category, counts);
+        this.options.onCounts?.(this.snapshot());
     }
+}
+
+function isAggregateCategory(category: string): category is AgentTurnOperationCategory {
+    return aggregateCategorySet.has(category);
 }
 
 function activityOutcome<A, E>(

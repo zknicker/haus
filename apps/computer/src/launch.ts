@@ -2,7 +2,6 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { seedCoveWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
-import type { AgentTurnActivitySummary } from '@haus/api';
 import type { TraceCarrier } from '@haus/effect';
 import { AgentActivityRun } from './agent-activity-run.ts';
 import type {
@@ -42,9 +41,9 @@ import {
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
+import { reportTurn } from './launch-turn-report.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
-import type { RuntimeFailureKind } from './runtime-failure.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
 import { parseStartAgentFacts } from './start-command-facts.ts';
 import {
@@ -52,6 +51,7 @@ import {
     reportHarnessTurnFailure,
     settledTurnOutcome,
 } from './turn-failure-report.ts';
+import { type OpenTurnLedger, openTurnLedger } from './turn-ledger.ts';
 import { visibilityReceipt } from './visibility-receipt.ts';
 import { writeHausWrapper } from './wrapper.ts';
 
@@ -101,7 +101,6 @@ const moduleDir = dirname(fileURLToPath(import.meta.url));
 const fakeRuntimePath = resolve(moduleDir, 'fake-runtime.ts');
 /** Runs one isolated Agent launch; only its compact summary leaves Computer. */
 export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<AgentTurnFrame> {
-    const startedAt = new Date().toISOString();
     const { command } = options;
     const agentRoot = join(
         options.dataRoot,
@@ -110,6 +109,23 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
         'agents',
         command.agentId
     );
+    // A relaunch of the same run after a Computer restart resumes its first start
+    // and settled totals, so the summary spans the whole run.
+    const ledger = await openTurnLedger({ agentRoot, now: () => new Date(), runId: command.runId });
+    try {
+        return await runLedgeredLaunch(options, agentRoot, ledger);
+    } finally {
+        await ledger.remove();
+    }
+}
+
+async function runLedgeredLaunch(
+    options: RunAgentLaunchOptions,
+    agentRoot: string,
+    ledger: OpenTurnLedger
+): Promise<AgentTurnFrame> {
+    const { command } = options;
+    const { startedAt } = ledger;
     const dirs = {
         home: join(agentRoot, 'home'),
         runtime: join(agentRoot, 'runtime'),
@@ -159,7 +175,10 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     proxy.setTraceContext(options.turnTraceContext);
     proxy.setOnCommittedSend((send) => options.turnTimings?.recordSend(send));
     const frames = createRunFrames({ ...command, sendFrame: options.sendFrame });
-    const activity = new AgentActivityRun(options.runtime, frames.activity);
+    const activity = new AgentActivityRun(options.runtime, frames.activity, {
+        onCounts: (summary) => ledger.record(summary),
+        seed: ledger.seed,
+    });
     const thoughts = createAgentThoughtNarrator({ emit: frames.thought });
     proxy.setActivityRun(activity);
     const tokenFile = join(dirs.runtime, 'proxy-token');
@@ -453,40 +472,6 @@ export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
-}
-
-function reportTurn(
-    options: RunAgentLaunchOptions,
-    input: {
-        activity?: AgentTurnActivitySummary;
-        messageCount: number;
-        failureKind?: RuntimeFailureKind;
-        startedAt: string;
-        status: 'completed' | 'failed' | 'interrupted';
-        summary: string;
-        tokenUsage?: AgentTurnFrame['tokenUsage'];
-        visibleMessages?: Array<{ chatId: string; id: string; sequence: number }>;
-    }
-): AgentTurnFrame {
-    const frame: AgentTurnFrame = {
-        activity: input.activity ?? { operations: [] },
-        agentId: options.command.agentId,
-        endedAt: new Date().toISOString(),
-        ...(input.failureKind ? { failureKind: input.failureKind } : {}),
-        messageCount: input.messageCount,
-        modelId: options.command.modelId,
-        outputProduced: input.messageCount > 0,
-        runId: options.command.runId,
-        runtimeId: options.command.runtimeId,
-        startedAt: input.startedAt,
-        status: input.status,
-        summary: input.summary,
-        tokenUsage: input.tokenUsage ?? null,
-        type: 'turn',
-        visibleMessages: input.visibleMessages ?? [],
-    };
-    options.sendFrame(frame);
-    return frame;
 }
 
 interface RuntimeExecutionInput {

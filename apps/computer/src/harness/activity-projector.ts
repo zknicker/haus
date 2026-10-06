@@ -7,7 +7,7 @@ import {
 import type { ComputerToolActivity, ComputerToolClassification } from './activity-tool-fixtures.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { createFileChangeFold } from './file-change-fold.ts';
-import { createGeneratedImageSteps } from './generated-images.ts';
+import { createGeneratedImageSteps, nativeImageToolAction } from './generated-images.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 import { createSubagentSteps, delegationOperationId } from './subagent-steps.ts';
 import { describeFileChange, describeToolAction } from './thought-action.ts';
@@ -143,7 +143,13 @@ async function observeToolCall(
             toolName,
         })
     );
-    await startToolActivity({ activity: input.activity, calls, classification, toolCallId });
+    await startToolActivity({
+        activity: input.activity,
+        calls,
+        classification,
+        media: nativeImageToolAction(input.runtimeId, toolName) !== undefined,
+        toolCallId,
+    });
     await input.journal?.recordToolCall({
         input: readPath ? { path: readPath } : part.input,
         nativeName: readPath ? toolName : stringValue(part.nativeName),
@@ -187,6 +193,7 @@ async function observeToolOutcome(
                 runtimeId: input.runtimeId,
                 toolName,
             }),
+        media: nativeImageToolAction(input.runtimeId, toolName) !== undefined,
         toolCallId,
     });
     const failed = part.type === 'tool-error' || part.isError === true;
@@ -227,6 +234,8 @@ async function startToolActivity(input: {
     activity: AgentActivityRun;
     calls: ToolCalls;
     classification: ComputerToolClassification;
+    /** A runtime-native image or video tool: live `using_tool`, counted as media. */
+    media: boolean;
     toolCallId: string;
 }) {
     if (input.classification.outcome === 'skip') {
@@ -243,6 +252,7 @@ async function startToolActivity(input: {
         ...(input.classification.category === 'delegating'
             ? { operationId: delegationOperationId(input.toolCallId) }
             : {}),
+        ...(input.media ? { summaryCategory: 'generating_media' as const } : {}),
         ...(input.classification.toolRef ? { toolRef: input.classification.toolRef } : {}),
     });
 }

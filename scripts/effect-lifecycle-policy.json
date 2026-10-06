@@ -258,7 +258,7 @@
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 1,
-        "finallyBlock": 1,
+        "finallyBlock": 2,
         "manualPromise": 0,
         "timer": 0
       }
@@ -315,6 +315,17 @@
         "catchAndIgnore": 0,
         "finallyBlock": 0,
         "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/turn-ledger.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Best-effort ledger writes are one finite atomic file replace each; a failed write removes its temporary file and costs only relaunch resume accuracy.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 2,
+        "finallyBlock": 0,
+        "manualPromise": 0,
         "timer": 0
       }
     },

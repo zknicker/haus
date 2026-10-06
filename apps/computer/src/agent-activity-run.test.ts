@@ -61,3 +61,35 @@ test('uses Cause interruption for lexical operations', async () => {
 
     expect(events.map(({ phase }) => phase)).toEqual(['started', 'interrupted']);
 });
+
+test('resumes an earlier launch of the run and counts sub-agents and media', async () => {
+    const reported: number[] = [];
+    const run = new AgentActivityRun(runtime, () => undefined, {
+        onCounts: (summary) =>
+            reported.push(
+                summary.operations.reduce((total, operation) => total + operation.completed, 0)
+            ),
+        seed: {
+            operations: [{ category: 'reading_files', completed: 3, failed: 0, interrupted: 0 }],
+        },
+    });
+
+    await run.start({ category: 'delegating', key: 'tool:agent', operationId: 'a'.repeat(32) });
+    await run.finish('tool:agent', 'completed');
+    await run.start({
+        category: 'using_tool',
+        key: 'tool:image',
+        summaryCategory: 'generating_media',
+    });
+    await run.finish('tool:image', 'completed');
+    await run.runPromise({ category: 'reading_files', key: 'tool:read' }, async () => 'read');
+
+    expect(run.snapshot()).toEqual({
+        operations: [
+            { category: 'delegating', completed: 1, failed: 0, interrupted: 0 },
+            { category: 'generating_media', completed: 1, failed: 0, interrupted: 0 },
+            { category: 'reading_files', completed: 4, failed: 0, interrupted: 0 },
+        ],
+    });
+    expect(reported).toEqual([4, 5, 6]);
+});

@@ -154,8 +154,10 @@ test('a sub-agent is one paired delegating operation with its calls nested in th
             { category: 'delegating', id: operationId, phase: 'completed' },
         ]
     );
-    // The delegation never counts toward the turn's operation totals.
-    expect(activity.snapshot()).toEqual({ operations: [] });
+    // The delegation counts once as a sub-agent; its child calls never count.
+    expect(activity.snapshot()).toEqual({
+        operations: [{ category: 'delegating', completed: 1, failed: 0, interrupted: 0 }],
+    });
     expect(actions).toEqual(['delegate to a sub-agent: Count lines a']);
 
     const document = agentExecutionJournalSchema.parse(journal.snapshot());
