@@ -19,6 +19,12 @@ export interface AgentSessionState {
     hausAgentStatus: 'current' | 'failed' | 'pending';
     hausAgentVersion: string | null;
     instructionFingerprint: string | null;
+    /**
+     * The last turn was interrupted by Stop, restart, shutdown, or the no-progress deadline. The
+     * next resumed prompt says so, because the runtime records the cancelled tool call as the
+     * user declining it. Any completed turn clears it.
+     */
+    interruptedTurn?: true;
     resumeState: Record<string, unknown> | null;
     runtimeSessionId: string | null;
 }
@@ -40,7 +46,12 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
         const { cumulativeTokenUsage: _codexExecBaseline, ...stored } = JSON.parse(
             raw
         ) as AgentSessionState & { cumulativeTokenUsage?: unknown };
-        const parsed = { ...stored, resumeState: withoutAbandonedTurn(stored.resumeState) };
+        const { interruptedTurn, ...rest } = stored;
+        const parsed = {
+            ...rest,
+            ...(interruptedTurn === true ? { interruptedTurn } : {}),
+            resumeState: withoutAbandonedTurn(stored.resumeState),
+        };
         if (
             typeof parsed.generation === 'number' &&
             typeof parsed.effectiveModel?.modelId === 'string' &&

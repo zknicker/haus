@@ -79,10 +79,32 @@ test('a session parked mid-turn by an earlier Stop drops the abandoned turn and 
     expect(stored?.resumeState).not.toHaveProperty('continueFrom');
 });
 
+test('the turn after a Stop tells the Agent Haus interrupted it, once', async () => {
+    const events: string[] = [];
+    const prompts: string[] = [];
+    const started = Promise.withResolvers<void>();
+    const harness = stopHarness({ events, hangFirstPrompt: true, prompts, started });
+    const stop = new AbortController();
+    const stopped = runHarnessTurn(turnInput(harness, stop.signal));
+    await started.promise;
+    stop.abort();
+    await stopped;
+    expect((await readAgentSessionState(root))?.interruptedTurn).toBe(true);
+
+    await runHarnessTurn(turnInput(harness, new AbortController().signal));
+    await runHarnessTurn(turnInput(harness, new AbortController().signal));
+
+    const interrupted = 'Your previous turn was interrupted by Haus';
+    expect(prompts.map((prompt) => prompt.includes(interrupted))).toEqual([false, true, false]);
+    expect(prompts[1]).toContain('nobody declined it');
+    expect(await readAgentSessionState(root)).not.toHaveProperty('interruptedTurn');
+});
+
 /** An ACP-shaped adapter: cancellation settles a beat after abort, and suspend returns a continuation. */
 function stopHarness(input: {
     events: string[];
     hangFirstPrompt: boolean;
+    prompts?: string[];
     started: ReturnType<typeof Promise.withResolvers<void>>;
 }): HarnessV1 {
     const state = {
@@ -125,6 +147,7 @@ function stopHarness(input: {
                 },
                 doPromptTurn: async (options) => {
                     input.events.push('prompt');
+                    input.prompts?.push(JSON.stringify(options.prompt));
                     prompts += 1;
                     const done = Promise.withResolvers<void>();
                     if (input.hangFirstPrompt && prompts === 1) {

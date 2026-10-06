@@ -218,6 +218,11 @@ groups before exiting. Ordinary turn completion still uses `session.detach()`. A
 no-progress deadline also waits for the SDK turn to settle before detaching: parking a turn that is
 still running stores a `continueFrom` continuation, and the SDK then refuses every new prompt until
 that turn is continued. Haus never continues a turn, so a stored `continueFrom` is dropped on read.
+Server requeues the interrupted run's unseen inbox items, so Start (or the retry after a timeout)
+offers the same work again. The runtime records the cancelled tool call as the user declining it,
+so the session store marks the turn interrupted and the next resumed prompt opens with a line
+saying Haus interrupted it and nobody declined it (`apps/computer/src/harness/turn-prompt.ts`);
+the next completed turn clears the mark.
 
 Shutdown allows 20 seconds for session checkpoints and accepted writers, then
 forces process cleanup and reports a failure if state could not be saved. The

@@ -48,7 +48,10 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   reminders continue to accumulate in its inbox but cannot wake it. A human Start resumes the
   current session and offers pending work again. A stopped turn is abandoned, never continued:
   Computer waits up to twenty seconds for the SDK turn to wind down and parks the idle session, so
-  the next prompt resumes the same conversation. A runtime that ignores cancellation fails the turn
+  the next prompt resumes the same conversation. The stopped run's unseen inbox items return to
+  the queue, so Start re-offers the message that triggered the stopped turn. That resumed prompt
+  tells the Agent Haus interrupted its previous turn, because the runtime's transcript records the
+  cancelled tool call as the user declining it. A runtime that ignores cancellation fails the turn
   instead, which destroys its live session and keeps the last idle resume state.
 
 ## Cursors

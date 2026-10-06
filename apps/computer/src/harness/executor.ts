@@ -322,6 +322,7 @@ async function executeHarnessTurn(
         }
         const prompt = composeTurnPrompt(input, {
             isColdStart: !live.isResume,
+            resumesInterruptedTurn: live.isResume && session.interruptedTurn === true,
             sessionGeneration: session.generation,
         });
         // A notice-lane drain is composed here, not served by the Server, so the Computer attests
@@ -424,6 +425,7 @@ async function executeHarnessTurn(
                 ...session,
                 effectiveReasoningEffort: input.reasoningEffort,
                 hausAgentStatus: hausAgentVersionDrift ? 'failed' : session.hausAgentStatus,
+                interruptedTurn: true,
                 resumeState: resumeState as Record<string, unknown>,
                 runtimeSessionId: live.sessionId,
             });

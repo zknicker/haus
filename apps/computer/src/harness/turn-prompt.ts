@@ -29,6 +29,20 @@ export interface TurnDelivery {
     warmDrainItemIds: string[];
 }
 
+/**
+ * Haus interrupted the previous turn. Claude Code records the cancelled tool call as the user
+ * declining it, so without this the Agent tells the requester its work was refused.
+ */
+const interruptedTurnLine =
+    'Your previous turn was interrupted by Haus (a Stop, a restart, or a stalled-turn timeout), not by anyone in the conversation. A tool call it cancelled may read as declined or rejected by the user; nobody declined it, and its side effects may be partial. Any work that turn left unfinished is offered again here.';
+
+interface TurnSession {
+    isColdStart: boolean;
+    /** The resumed conversation ends in a turn Haus interrupted. */
+    resumesInterruptedTurn?: boolean;
+    sessionGeneration: number;
+}
+
 const resetContextLine =
     'Fresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact — MEMORY.md is your recovery point.';
 
@@ -47,10 +61,7 @@ export interface TurnPrompt {
  * alive-idle wake; a cold start drains only the items addressed to this Agent
  * and notices the rest, which is Raft's hybrid shape (specs/inbox.md).
  */
-export function composeTurnPrompt(
-    input: TurnDelivery,
-    session: { isColdStart: boolean; sessionGeneration: number }
-): TurnPrompt {
+export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): TurnPrompt {
     const drainable = new Set(
         session.isColdStart
             ? input.drainItemIds
@@ -69,17 +80,18 @@ export function composeTurnPrompt(
     return {
         drained,
         notice,
-        turnContent: [openingPrompt(session, body), formatUnreadElsewhere(input.unreadElsewhere)]
+        turnContent: [
+            session.resumesInterruptedTurn ? interruptedTurnLine : null,
+            openingPrompt(session, body),
+            formatUnreadElsewhere(input.unreadElsewhere),
+        ]
             .filter(Boolean)
             .join('\n\n'),
     };
 }
 
 /** `Start.` is reserved for a cold session with nothing pending. */
-function openingPrompt(
-    session: { isColdStart: boolean; sessionGeneration: number },
-    body: string | null
-): string {
+function openingPrompt(session: TurnSession, body: string | null): string {
     const resetContext = session.sessionGeneration === 1 ? null : resetContextLine;
     if (!session.isColdStart) {
         return body ?? 'Resume the interrupted turn.';
