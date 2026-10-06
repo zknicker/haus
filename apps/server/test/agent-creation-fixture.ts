@@ -7,6 +7,7 @@ import type {
 } from '../src/avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../src/avatar-generation/service.ts';
 import type { MessageRouter } from '../src/message-routing/jev.ts';
+import { readCreationGuidance } from './agent-creation-guidance-fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -152,6 +153,7 @@ export function agentCreationFixture(messageRouter?: MessageRouter) {
 
     function createBody(overrides: Record<string, unknown> = {}) {
         return {
+            brief: 'Own delivery checks in #product. Verify fresh evidence, route problems to @ada, and report one actionable finding. Ask before installing a cadence.',
             description: 'Watches the delivery lane.',
             displayName: 'Scout',
             nonce: 'agent-create-default',
@@ -160,7 +162,12 @@ export function agentCreationFixture(messageRouter?: MessageRouter) {
         };
     }
 
-    async function mintRunner(runId: string, agentId = orbitAgentId, chatId = channelId) {
+    async function mintRunner(
+        runId: string,
+        agentId = orbitAgentId,
+        chatId = channelId,
+        withGuidance = true
+    ) {
         const response = await fetch(new URL('/computer/runner/mint', harness.url), {
             body: JSON.stringify({ agentId, chatId, credentialHash, runId }),
             headers: { 'content-type': 'application/json' },
@@ -168,6 +175,9 @@ export function agentCreationFixture(messageRouter?: MessageRouter) {
         });
         expect(response.status).toBe(200);
         const { runnerToken } = (await response.json()) as { runnerToken: string };
+        if (withGuidance) {
+            await readCreationGuidance(harness.url, runnerToken);
+        }
         return { runId, token: runnerToken };
     }
 

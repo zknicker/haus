@@ -41,4 +41,3 @@ The reviewer should be able to open or rerun the receipt path and confirm the ex
 
 ### Proof it works
 Operational materializations, feature previews, and screen-recording QA runs use receipts with counts, commands, screenshots, artifacts, or checksums so reviewers can audit claims without watching the run.
-

@@ -1,0 +1,186 @@
+{
+  "repository": "https://github.com/botiverse/raft-source",
+  "commit": "26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6",
+  "tag": "v1.21.2-source.1",
+  "daemonVersion": "1.0.43",
+  "verifiedAt": "2026-10-06T18:01:05.889526Z",
+  "omittedRecipeIds": ["recipes/technique/login-with-raft"],
+  "hausNativeRecipeIds": ["recipes/technique/trigger-webhook"],
+  "files": [
+    {
+      "sourcePath": "manual/recipes/archetype/analyst.md",
+      "captureFile": "archetype--analyst.md",
+      "sha256": "6e63845405457feff7906dab7ec94920746dbeaccc9e405205029de919b1598e"
+    },
+    {
+      "sourcePath": "manual/recipes/archetype/designer.md",
+      "captureFile": "archetype--designer.md",
+      "sha256": "43606d01967dd2ef9a9ee2cc597dabcd15f0406c0bd574823759dc0446995ba2"
+    },
+    {
+      "sourcePath": "manual/recipes/archetype/operator.md",
+      "captureFile": "archetype--operator.md",
+      "sha256": "425ca8e0267cab1bca849c77151544405763fc34f1f3e7e609451b5e019f0703"
+    },
+    {
+      "sourcePath": "manual/recipes/archetype/pa-coordinator.md",
+      "captureFile": "archetype--pa-coordinator.md",
+      "sha256": "6be1de7b1565105786402ffacde0d4ba9fa3e27a5b546865f178eca2118e63ec"
+    },
+    {
+      "sourcePath": "manual/recipes/archetype/patrol.md",
+      "captureFile": "archetype--patrol.md",
+      "sha256": "66a20c5765a6b1c20248e4a550055857e4b8c1c25a9a44f0be5adb79d1209f98"
+    },
+    {
+      "sourcePath": "manual/recipes/archetype/verify-gate.md",
+      "captureFile": "archetype--verify-gate.md",
+      "sha256": "591fb30105c34b10776787d73eec3fc37185f89184a65c552a064c23ebb0ae99"
+    },
+    {
+      "sourcePath": "manual/recipes/archetype/writer.md",
+      "captureFile": "archetype--writer.md",
+      "sha256": "ac4a41fd4925f880fe8d22925c27796a66820d1cf1cca96dd15f6cc848963910"
+    },
+    {
+      "sourcePath": "manual/recipes/decision/lane-design.md",
+      "captureFile": "decision--lane-design.md",
+      "sha256": "33f1e7c4dc5e9d4556d13dca8a481d28582c87aa3c1ad5e31d6d5b15bb698463"
+    },
+    {
+      "sourcePath": "manual/recipes/decision/one-or-many.md",
+      "captureFile": "decision--one-or-many.md",
+      "sha256": "d5420805147c3a9e73a1391bc089737f3c17f132f61dffd95aaa29c3d56d2b9a"
+    },
+    {
+      "sourcePath": "manual/recipes/decision/stake-strictness.md",
+      "captureFile": "decision--stake-strictness.md",
+      "sha256": "d4b8b20b324945dabd3538a7bc779fbfd7fb1523a4d26df09b24f5755e6cc523"
+    },
+    {
+      "sourcePath": "manual/recipes/decision/when-to-ask-human.md",
+      "captureFile": "decision--when-to-ask-human.md",
+      "sha256": "d13bc3d133d079a74a07fd2ed3effce10987dee271631b0ff437b312a9a026ef"
+    },
+    {
+      "sourcePath": "manual/recipes/index.md",
+      "captureFile": "navigation--index.md",
+      "sha256": "35951617eaa70c69711b495254f08e1099c620075a230ca0ce107c83179bbd7d"
+    },
+    {
+      "sourcePath": "manual/recipes/pattern/coordinator-synthesis.md",
+      "captureFile": "pattern--coordinator-synthesis.md",
+      "sha256": "83fa356f69bf67fcc29e1fe27778c0cdb2274ea4c3637b5fc494ad81f1ea799b"
+    },
+    {
+      "sourcePath": "manual/recipes/pattern/discuss-then-assign.md",
+      "captureFile": "pattern--discuss-then-assign.md",
+      "sha256": "cd6dd335272bfc9ccec356f2686d197cf753215c824c98dc317418ab5feb0ad4"
+    },
+    {
+      "sourcePath": "manual/recipes/pattern/evidence-handoff.md",
+      "captureFile": "pattern--evidence-handoff.md",
+      "sha256": "15b64bc929f1c3805ddfec82534de2b32430dcf8081bbfd0d44d4503597bcec9"
+    },
+    {
+      "sourcePath": "manual/recipes/pattern/gate-chain.md",
+      "captureFile": "pattern--gate-chain.md",
+      "sha256": "a96fb43706378e6d7cf5c2341345b9967de78ea55fa3c176a8bd83608d050252"
+    },
+    {
+      "sourcePath": "manual/recipes/pattern/interview-fanout.md",
+      "captureFile": "pattern--interview-fanout.md",
+      "sha256": "ed32ab4cb1228d06cc5aa0dbc98581fc6830fcea9dc0a30c142b7c70503d1f08"
+    },
+    {
+      "sourcePath": "manual/recipes/pattern/recurring-recovery.md",
+      "captureFile": "pattern--recurring-recovery.md",
+      "sha256": "8d5ebb12e24ea147befa412570580620f4405f324579bae7dc0b97a921d615ce"
+    },
+    {
+      "sourcePath": "manual/recipes/pattern/shard-and-merge.md",
+      "captureFile": "pattern--shard-and-merge.md",
+      "sha256": "8d2d4062467d54a19d6f6c2a9bb5742959dacde68cddc43058213d66aed19874"
+    },
+    {
+      "sourcePath": "manual/recipes/pattern/video-review-loop.md",
+      "captureFile": "pattern--video-review-loop.md",
+      "sha256": "6367ac1653fb8ef49ee14cb1022b617d0eb0499bc81dfdbce250987dcff28027"
+    },
+    {
+      "sourcePath": "manual/recipes/playbook/billing-strictness.md",
+      "captureFile": "playbook--billing-strictness.md",
+      "sha256": "8777400a0c8c949d0a5227f78819d215db90278f94652b58d132bd771dd91312"
+    },
+    {
+      "sourcePath": "manual/recipes/playbook/content-pipeline.md",
+      "captureFile": "playbook--content-pipeline.md",
+      "sha256": "171d5c570bf95c52c91036806f9b1528f59b77fa34767552dff61a363865e422"
+    },
+    {
+      "sourcePath": "manual/recipes/seeded.md",
+      "captureFile": "navigation--seeded.md",
+      "sha256": "513bd20f4eff8ef807be60fc1974e23817b51b0a7d5ef84fd43caaf3e0b407c6"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/acceptance-surface.md",
+      "captureFile": "technique--acceptance-surface.md",
+      "sha256": "82728295cd1f3dd62844c9a0dced2d29bbe20d0f8bd6e6557facfac9af24e78c"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/attachment-comments.md",
+      "captureFile": "technique--attachment-comments.md",
+      "sha256": "bddde5712f5f6b7de25f10e2e1f879bb91507b9d7bd0fee1e489522eaa52c686"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/group-chat-debug.md",
+      "captureFile": "technique--group-chat-debug.md",
+      "sha256": "2fda6444352735fba5b8cc5c5c62be64740d3be2654d1464242a025933e58d28"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/html-artifact-discussion.md",
+      "captureFile": "technique--html-artifact-discussion.md",
+      "sha256": "f250f8d9526204ebb2e08c7e2434f538c65135da8a3d6a4bbfdcb2979ee6c77d"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/login-with-raft.md",
+      "captureFile": "technique--login-with-raft.md",
+      "sha256": "eba323ef4abb78ecad59dcc7ea8b155b7be5d081d250cb4adde3e6449b2cdc6d"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/memory-hygiene.md",
+      "captureFile": "technique--memory-hygiene.md",
+      "sha256": "ace8a3e6f90f7476a4a4ba26e45bccc3f636acfd567ba1bd13b15b04ba759298"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/preview-env.md",
+      "captureFile": "technique--preview-env.md",
+      "sha256": "ff2c59b55b8913e1fea63cd7e5dba456a112708ebc1bc5792bb09ed7afadb4f7"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/proof-of-work-receipts.md",
+      "captureFile": "technique--proof-of-work-receipts.md",
+      "sha256": "18c3022256ae26ce56b820e06a766b62b77ad7ac7859b4e737aedd57f93cc6ff"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/reminder-cron.md",
+      "captureFile": "technique--reminder-cron.md",
+      "sha256": "ad0545ac645f66004da0dde70286b7882503658593e02eecb1613a08abdbbea9"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/sent-zero.md",
+      "captureFile": "technique--sent-zero.md",
+      "sha256": "2f22315999b37fa8e7681aeabff564fcdde1face277a3d1404c46c6b8e0a157d"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/task-claim-lock.md",
+      "captureFile": "technique--task-claim-lock.md",
+      "sha256": "35b1394cee5271fd6e094023731f5ea0a4e507d6380fa7569aa9c19e62b9557e"
+    },
+    {
+      "sourcePath": "manual/recipes/technique/video-review.md",
+      "captureFile": "technique--video-review.md",
+      "sha256": "e31304fdf0f0ceb8306ca6248821cf41e75ab45a6e9ea9807c2533ea03f15d61"
+    }
+  ]
+}

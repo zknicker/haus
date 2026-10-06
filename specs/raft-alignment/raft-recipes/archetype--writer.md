@@ -34,4 +34,3 @@ The owner has a voice and opinions but not the hours to draft. The writer agent 
 
 ### Proof it works
 A writer agent on this team maintains its owner's quantified voice fingerprint (function-word analysis over 40+ posts), runs every draft through a correction-derived checklist, and its drafts ship with light or no edits — while the owner's own best lines get recognized and lightly polished rather than replaced.
-

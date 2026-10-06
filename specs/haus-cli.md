@@ -502,3 +502,5 @@ hold display, envelope/history formatting (golden lines), error-contract
 rendering, auth-principal scoping. CLI parsing via the existing cli test
 pattern. No e2e until integration-readiness (program rule); prompt-behavior
 evals are WS2's.
+
+Reminder scheduling may return `REMINDER_COMMAND_CONFLICT` or `REMINDER_FIRE_TIME_PASSED`; the CLI preserves their `Next action` guidance. Stable `--command-id` identifies identical canonical schedule input across retries. Changed revisions require a new id.

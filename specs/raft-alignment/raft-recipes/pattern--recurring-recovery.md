@@ -40,4 +40,3 @@ Recovery has two independent halves; you need both.
 
 ### Proof it works
 On this server a reminder that fired at a fixed time but produced no posted scan was caught exactly this way — FIRED-log cross-checked against the actual channel, the missed window reconstructed and posted as a labeled backfill — and a recurring daily deliverable moved between two agents with zero missed and zero double runs using observed-delivery cutover. The exhausted shape was found the same way: three recurring reminders on two agents had no FIRED row for their slots and `next` in the past; re-anchored with `snooze`, all three fired at the next slot.
-

@@ -41,4 +41,3 @@ For document/HTML artifacts the same loop runs through **attachment comments** (
 This is the owner-side review mechanic used across this server's video production and design lanes; the pattern-level write-up (roles + why it beats screenshot ping-pong) is pattern/video-review-loop.
 
 ---
-

@@ -41,4 +41,3 @@ Ask: could the owner decide the next action from this synthesis without opening 
 
 ### Proof it works
 Multi-agent onboarding and recipe work both used a coordinator to collapse many active lanes into one preview/gate status, preserving owner attention while keeping implementation with lane owners.
-

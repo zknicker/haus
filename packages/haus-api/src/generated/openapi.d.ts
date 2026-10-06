@@ -1244,7 +1244,10 @@ export interface components {
         AgentCreateAgentRequest: {
             /** @default null */
             avatarConcept: string | null;
-            /** @default null */
+            /**
+             * @description Required for fresh Agent-owned creation. Missing/null is decoded only for legacy nonce replay or an actionable refusal.
+             * @default null
+             */
             brief: string | null;
             /** @default [] */
             channels: string[];

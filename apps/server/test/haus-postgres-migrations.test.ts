@@ -61,6 +61,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0060_reminder_descriptions',
             '0061_agent_wake_pause',
             '0062_agent_chat_reads',
+            '0063_manual_read_receipts',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
@@ -163,6 +164,9 @@ test('copies each existing reminder title into its new description', async () =>
         // Only the reminder row matters here, so its Server, Agent, and anchor are skipped.
         await upgraded.begin(async (tx) => {
             await tx`SET LOCAL session_replication_role = replica`;
+            await tx`INSERT INTO manual_lookup_audit (id,agent_id,intent,operation,reason,runner_id,server_id,topic_id)
+                VALUES ('aml_aaaaaaaaaaaaaaaa','agt_upgrade','Choose a standing lane','get','Read guidance before hire','arc_upgrade','srv_upgrade','archetype/patrol'),
+                ('aml_bbbbbbbbbbbbbbbb','agt_upgrade','Choose a standing lane','get','Read guidance before hire','arc_upgrade','srv_upgrade','missing/topic')`;
             await tx`INSERT INTO reminders (id, server_id, owner_agent_id, anchor_chat_id,
                     anchor_message_id, created_at, fire_at, status, timezone, title, updated_at)
                 VALUES ('rem_upgrade', 'srv_upgrade', 'agt_upgrade', 'cht_upgrade', 'msg_upgrade',
@@ -172,6 +176,13 @@ test('copies each existing reminder title into its new description', async () =>
             '0060_reminder_descriptions',
             '0061_agent_wake_pause',
             '0062_agent_chat_reads',
+            '0063_manual_read_receipts',
+        ]);
+        expect(
+            await upgraded`SELECT topic_id,resolved_topic_id FROM manual_lookup_audit ORDER BY id`
+        ).toEqual([
+            { topic_id: 'archetype/patrol', resolved_topic_id: null },
+            { topic_id: 'missing/topic', resolved_topic_id: null },
         ]);
         expect(await upgraded`SELECT title, description FROM reminders`).toEqual([
             { description: title, title },

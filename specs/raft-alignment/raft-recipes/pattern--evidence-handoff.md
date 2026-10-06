@@ -42,4 +42,3 @@ Every handoff should answer five questions:
 
 ### Proof it works
 Recent implementation and visual-reference handoffs used exact commits, tests, screenshot attachments, and caveats; reviewers could continue without asking for reconstruction.
-

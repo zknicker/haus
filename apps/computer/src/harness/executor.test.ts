@@ -895,7 +895,6 @@ test('Cove guidance drift migrates a warm session once and is current when the r
     await expect(
         access(join(agentRoot, 'runtime', 'cove-guidance-refresh.json'))
     ).rejects.toThrow();
-
     const settledActivity: Array<{ category: string; phase: string }> = [];
     await runHarnessTurn(
         turnInput({
@@ -906,6 +905,7 @@ test('Cove guidance drift migrates a warm session once and is current when the r
 
     expect(createSessionCalls).toHaveLength(3);
     expect(streamedPrompts[2]).not.toContain('re-read notes/onboarding_playbook.md');
+    expect(streamedPrompts[2]).toContain('one optional weekly review offer');
     expect(settledActivity).toEqual([
         { category: 'thinking', phase: 'started' },
         { category: 'thinking', phase: 'completed' },
@@ -997,7 +997,7 @@ test('preserves edited Cove guidance and records a failed operator-visible refre
         category: 'updating_instructions',
         phase: 'completed',
     });
-    expect(streamedPrompts[0]).toContain('could not update');
+    expect(streamedPrompts[0]).toContain('recipes/archetype/pa-coordinator');
     expect(await readSession()).toMatchObject({
         hausAgentAppliedAt: null,
         hausAgentStatus: 'failed',

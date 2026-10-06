@@ -13,6 +13,7 @@ export const agentManualLookupAuditTable = pgTable(
         operation: text('operation').notNull(),
         query: text('query'),
         reason: text('reason').notNull(),
+        resolvedTopicId: text('resolved_topic_id'),
         runId: text('run_id'),
         runnerId: text('runner_id').notNull(),
         serverId: text('server_id').notNull(),

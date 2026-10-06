@@ -183,7 +183,7 @@ Setup steps:
 
 ## Failure modes
 
-- **Watch duty inside a busy agent**: project work always outranks watching; gaps appear silently. Counter: dedicated agent, or at minimum a dedicated recurring reminder with a posted receipt each run.
+- **Watch duty inside a busy agent**: project work always outranks watching; gaps appear silently. Counter: dedicated agent, or at minimum a dedicated recurring reminder with recorded completion evidence each run. For an agreed quiet watch, preserve the last raised evidence and stay silent for unchanged gaps or all-clear checks.
 - **Stale-data false alarms**: patroller reads a dead dashboard and pages the owner. Counter: freshness check is step one of every sweep — verify the signal source updated before interpreting it.
 - **"Please investigate" handoffs**: routing a symptom without evidence makes the owner redo discovery. Counter: the evidence package (root cause + location + fix shape) IS the handoff.
 

@@ -181,14 +181,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         webAccess: 'search',
     });
 
-    // A ratchet that forces a deliberate decision, not a hard or runtime limit: no adapter
-    // enforces a prompt length. A justified addition raises this cap to the measured render in the
-    // same change, with a one-line reason in specs/raft-alignment/prompt-divergences.md. Never
-    // delete, trim, merge, or deduplicate other prompt text to make room; shrinking the prompt is
-    // its own change with its own reason, and lowers the cap. Raft-verbatim text (present in the
-    // Raft prompt at the pinned source commit) is never trimmed. See AGENTS.md "Agent System
-    // Prompt Changes".
-    //
+    // Review ratchet, not a runtime limit. Never trim prompt text to fit this cap;
+    // additions need measured budgets and a reason in specs/raft-alignment/prompt-divergences.md.
     // Lowered from 40,270 on the Raft 1.0.25 re-baseline (render 40,270 → 32,359): notice
     // mechanics moved into the inbox notice, task mechanics into the `tasks` Manual topic, and
     // clauses Raft deleted were cut. Raised by exactly 42 when Haus gained task assign/unassign
@@ -221,7 +215,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Lowered (33,513 → 33,056) when Raft's three private-channel clauses (Discovering's two, the
     // Visibility bullet) were omitted: Haus has no private channels.
     // Raised by exactly 332 (33,056 → 33,388): the Inbox entry adopted Raft's `inbox check` text.
-    expect(prompt.length).toBeLessThanOrEqual(33_388);
+    // Raised by 522 (33,388 → 33,910) for quiet agreements, one confirmation and reaction-only acknowledgments.
+    expect(prompt.length).toBeLessThanOrEqual(33_910);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
@@ -237,11 +232,16 @@ test('teaches automation provenance without an envelope tutorial', () => {
     // provenance reason are the same rule and read as one.
     expect(prompt).not.toContain('When you speak because a reminder fired');
     expect(prompt).not.toContain('When you speak because a trigger fired');
-    expect(
-        prompt.match(
-            /Answer a fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in\./gu
-        )
-    ).toHaveLength(2);
+    expect(prompt).toContain(
+        'Exception: for an explicitly agreed quiet reminder check, do not answer unchanged or healthy state; report only new actionable evidence.'
+    );
+    expect(prompt).toContain(
+        'Answer a trigger fire with a new top-level message in the anchor chat'
+    );
+    expect(prompt).toContain(
+        'For a short schedule confirmation, correction, or opt-out, send one confirmed result as the acknowledgment; honor requests for one reply to those short changes. Longer work still needs an initial acknowledgment.'
+    );
+
     expect(prompt).not.toContain('the Server records the cause even if you omit the flag');
     expect(prompt).not.toContain(
         "Each fire is its own message; never reply into an earlier fire's thread."

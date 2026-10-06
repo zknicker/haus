@@ -25,6 +25,7 @@ export async function scheduleAgentReminder(
         repeat?: string;
         script?: string;
         title: string;
+        timezone?: string;
     }
 ) {
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
@@ -42,10 +43,14 @@ export async function scheduleAgentReminder(
             script: input.script,
             serverId: runner.serverId,
             title: input.title,
+            timezone: input.timezone,
         },
         clock
     );
-    return { reminder: await toCliReminder(db, runner.serverId, result.reminder) };
+    return {
+        reminder: await toCliReminder(db, runner.serverId, result.reminder),
+        replayed: result.idempotent,
+    };
 }
 
 export async function listAgentReminders(
@@ -79,7 +84,10 @@ export async function snoozeAgentReminder(
         commandInput(runner, input, { duration: input.by }),
         clock
     );
-    return { reminder: await toCliReminder(db, runner.serverId, result.reminder) };
+    return {
+        reminder: await toCliReminder(db, runner.serverId, result.reminder),
+        replayed: result.idempotent,
+    };
 }
 
 export async function updateAgentReminder(
@@ -109,7 +117,10 @@ export async function updateAgentReminder(
         }),
         clock
     );
-    return { reminder: await toCliReminder(db, runner.serverId, result.reminder) };
+    return {
+        reminder: await toCliReminder(db, runner.serverId, result.reminder),
+        replayed: result.idempotent,
+    };
 }
 
 export async function cancelAgentReminder(
@@ -119,7 +130,10 @@ export async function cancelAgentReminder(
 ) {
     await ownedReminder(db, runner, input.id);
     const result = await cancelReminder(db, runner.agentId, commandInput(runner, input, {}), clock);
-    return { reminder: await toCliReminder(db, runner.serverId, result.reminder) };
+    return {
+        reminder: await toCliReminder(db, runner.serverId, result.reminder),
+        replayed: result.idempotent,
+    };
 }
 
 export async function readAgentReminderLog(
@@ -199,6 +213,7 @@ async function toCliReminder(db: HausDatabase, serverId: string, reminder: Remin
         script: reminder.hasScript,
         status: reminder.status,
         title: reminder.title,
+        timezone: reminder.timezone,
         version: reminder.version,
     };
 }

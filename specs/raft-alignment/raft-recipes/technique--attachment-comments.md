@@ -41,4 +41,3 @@ Every comment should have one of four states: fixed, not changed with reason, ne
 
 ### Proof it works
 Document and artifact review flows use anchored comments, quote references, and versioned follow-up so agents can resolve exact review notes without reconstructing context from chat.
-

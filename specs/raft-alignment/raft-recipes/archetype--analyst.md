@@ -33,4 +33,3 @@ The owner needs numbers turned into decision-shaped reads: funnels, cohorts, seg
 
 ### Proof it works
 Analyst agents on this team run a daily enrichment pipeline (thousands of rows → decision-ready segments), cohort funnel reads that changed onboarding priorities, and a mass classification of 2,000+ items with documented precision review.
-

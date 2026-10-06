@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { AgentCreateAgentInput, AgentCreateAgentReceipt } from '@haus/api';
+import type { AgentCreateAgentReceipt, AgentCreateAgentRequest } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
 import { resolveAgentTarget } from '../agent-api/resolve-target.ts';
@@ -9,9 +9,10 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
 import { readAgentChannels, requireCreationChannels } from './creation-channels.ts';
+import { requireAgentCreationGuidance } from './creation-guidance.ts';
 import { AgentCreateConflictError } from './errors.ts';
 
-export function agentCreationRequestHash(input: AgentCreateAgentInput): string {
+export function agentCreationRequestHash(input: AgentCreateAgentRequest): string {
     return createHash('sha256')
         .update(
             JSON.stringify([
@@ -49,7 +50,7 @@ export async function readAgentCreationReplay(
     db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
-    input: AgentCreateAgentInput
+    input: AgentCreateAgentRequest
 ): Promise<AgentCreateAgentReceipt | null> {
     const [row] = await db
         .select()
@@ -92,13 +93,14 @@ export async function readAgentCreationReplay(
 export async function precheckAgentCreation(
     db: HausDatabase,
     runner: ResolvedRunner,
-    input: AgentCreateAgentInput
+    input: AgentCreateAgentRequest
 ): Promise<{ replayed: boolean }> {
     const { chatId } = await resolveCreationContext(db, runner, input.target);
     if (await readAgentCreationReplay(db, runner, chatId, input)) {
         return { replayed: true };
     }
     await assertFreshAgentView(db, runner, chatId);
+    await requireAgentCreationGuidance(db, runner, input.brief);
     await requireCreationChannels(db, runner.serverId, input.channels);
     return { replayed: false };
 }

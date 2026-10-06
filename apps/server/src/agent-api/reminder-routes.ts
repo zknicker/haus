@@ -7,7 +7,10 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as z from 'zod';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { ReminderCommandConflictError } from '../reminders/reminder-model.ts';
+import {
+    ReminderCommandConflictError,
+    ReminderScheduleExpiredError,
+} from '../reminders/reminder-model.ts';
 import {
     cancelAgentReminder,
     listAgentReminders,
@@ -34,11 +37,21 @@ const updateSchema = agentReminderCommandSchema
     );
 
 export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDatabase) {
+    app.get('/api/agent/reminders/capabilities', async (request, reply) => {
+        const runner = await authorizeRunner(db, request);
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        return { supportsReminderTimezone: true };
+    });
     app.post('/api/agent/reminders/schedule', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
         const parsed = agentReminderScheduleInputSchema.safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => scheduleAgentReminder(db, runner, parsed.data));
     });
@@ -48,9 +61,12 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
         if (!runner) {
             return sendError(reply, 401, 'A valid runner credential is required.');
         }
-        const query = z.object({ status: z.string().optional() }).parse(request.query);
+        const query = z.object({ status: z.string().optional() }).safeParse(request.query);
+        if (!query.success) {
+            return sendError(reply, 400, reminderValidationMessage(query.error));
+        }
         return await runAction(reply, () =>
-            listAgentReminders(db, runner, query.status?.split(','))
+            listAgentReminders(db, runner, query.data.status?.split(','))
         );
     });
 
@@ -59,8 +75,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
         const parsed = agentReminderCommandSchema
             .extend({ by: z.string().min(1) })
             .safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => snoozeAgentReminder(db, runner, parsed.data));
     });
@@ -68,8 +87,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
     app.post('/api/agent/reminders/update', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
         const parsed = updateSchema.safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => updateAgentReminder(db, runner, parsed.data));
     });
@@ -77,8 +99,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
     app.post('/api/agent/reminders/cancel', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
         const parsed = agentReminderCommandSchema.safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => cancelAgentReminder(db, runner, parsed.data));
     });
@@ -91,8 +116,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDataba
                 limit: z.coerce.number().int().min(1).max(100).default(50),
             })
             .safeParse(request.query);
-        if (!(runner && parsed.success)) {
-            return sendError(reply, 400, 'The reminder request was invalid.');
+        if (!runner) {
+            return sendError(reply, 401, 'A valid runner credential is required.');
+        }
+        if (!parsed.success) {
+            return sendError(reply, 400, reminderValidationMessage(parsed.error));
         }
         return await runAction(reply, () => readAgentReminderLog(db, runner, parsed.data));
     });
@@ -103,9 +131,20 @@ async function runAction(reply: FastifyReply, action: () => Promise<unknown>) {
         return await action();
     } catch (cause) {
         if (cause instanceof ReminderCommandConflictError) {
-            return reply
-                .code(409)
-                .send({ code: AGENT_IDEMPOTENCY_KEY_REUSED, message: cause.message });
+            return reply.code(409).send({
+                code: AGENT_IDEMPOTENCY_KEY_REUSED,
+                message: cause.message,
+                nextAction:
+                    'List reminders to reconcile the existing command. A changed schedule revision needs a new saved command id; never replace an earlier command input.',
+            });
+        }
+        if (cause instanceof ReminderScheduleExpiredError) {
+            return reply.code(409).send({
+                code: 'REMINDER_FIRE_TIME_PASSED',
+                message: cause.message,
+                nextAction:
+                    'Run haus reminder list. If no matching reminder exists, save the next agreed slot and a new command id before scheduling.',
+            });
         }
         return reply.code(409).send({
             code: 'INVALID_ARG',
@@ -124,4 +163,11 @@ async function authorizeRunner(db: HausDatabase, request: FastifyRequest) {
 function sendError(reply: FastifyReply, status: number, message: string) {
     const code = status === 401 ? 'MISSING_TOKEN' : 'INVALID_ARG';
     return reply.code(status).send({ code, message });
+}
+
+function reminderValidationMessage(error: z.ZodError) {
+    return `The reminder request was invalid: ${error.issues
+        .slice(0, 5)
+        .map((issue) => `${issue.path.map(String).join('.') || 'request'}: ${issue.message}`)
+        .join('; ')}`;
 }

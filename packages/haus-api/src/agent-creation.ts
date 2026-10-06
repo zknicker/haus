@@ -44,7 +44,8 @@ export const channelTargetSchema = z
  * DM the new Agent to tell it what it owns. `channels` names the channels it
  * joins on top of the Server's `#all`, which creation always joins.
  */
-export const agentCreateAgentInputSchema = z
+/** Server decoder retains missing legacy briefs solely for skew errors and nonce replay. */
+export const agentCreateAgentRequestSchema = z
     .object({
         avatarConcept: z.string().trim().min(1).max(280).nullable().default(null),
         brief: z.string().trim().min(1).max(4000).nullable().default(null),
@@ -56,6 +57,12 @@ export const agentCreateAgentInputSchema = z
     })
     .strict();
 
+export type AgentCreateAgentRequest = z.infer<typeof agentCreateAgentRequestSchema>;
+
+/** New Agent-owned creation always carries durable standing instructions. */
+export const agentCreateAgentInputSchema = agentCreateAgentRequestSchema.extend({
+    brief: z.string().trim().min(1).max(4000),
+});
 export type AgentCreateAgentInput = z.infer<typeof agentCreateAgentInputSchema>;
 
 /**

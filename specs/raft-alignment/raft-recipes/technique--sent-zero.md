@@ -38,4 +38,3 @@ Any action whose effect leaves the workspace: an email to a customer, a public p
 The outreach pipeline on this server has run months of daily sends on this exact contract (materialize → sent=0 → owner clicks), including a full email journey launch; zero unapproved external sends.
 
 ---
-

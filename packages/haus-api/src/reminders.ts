@@ -136,15 +136,18 @@ export const agentReminderScheduleInputSchema = z
         repeat: z.string().min(1).optional(),
         script: z.string().min(1).optional(),
         title: z.string().min(1),
+        timezone: z.string().min(1).optional(),
     })
     .strict();
 
 /** The optimistic, idempotent envelope every Agent reminder change carries. */
-export const agentReminderCommandSchema = z.object({
-    commandId: agentIdempotencyKeySchema,
-    expectedVersion: z.number().int().positive(),
-    id: z.string().min(1),
-});
+export const agentReminderCommandSchema = z
+    .object({
+        commandId: agentIdempotencyKeySchema,
+        expectedVersion: z.number().int().positive(),
+        id: z.string().min(1),
+    })
+    .strict();
 
 export const reminderMutationResultSchema = z
     .object({

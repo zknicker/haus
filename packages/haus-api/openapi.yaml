@@ -1789,7 +1789,7 @@ components:
       required: [description, displayName, nonce, target]
       properties:
         avatarConcept: { type: [string, 'null'], minLength: 1, maxLength: 280, default: null }
-        brief: { type: [string, 'null'], minLength: 1, maxLength: 4000, default: null }
+        brief: { type: [string, 'null'], minLength: 1, maxLength: 4000, default: null, description: 'Required for fresh Agent-owned creation. Missing/null is decoded only for legacy nonce replay or an actionable refusal.' }
         channels:
           type: array
           maxItems: 20

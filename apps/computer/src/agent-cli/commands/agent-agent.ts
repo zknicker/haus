@@ -72,7 +72,7 @@ const CREATE_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runAgentCreate(args, defaultDeps()),
     summary: 'Create one Agent that inherits your runtime, model, reasoning effort, and Computer',
-    usage: 'haus agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel <#name>] [--avatar-concept <text>]',
+    usage: 'haus agent create --target <target> --name <name> --description <text> --brief <text> [--channel <#name>] [--avatar-concept <text>]',
 };
 
 const UPDATE_COMMAND: SubCommand = {
@@ -126,8 +126,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
     const avatarConcept = rawConcept
         ? bounded(rawConcept, '--avatar-concept', maxConceptLength)
         : null;
-    const rawBrief = args.values['--brief']?.trim();
-    const brief = rawBrief ? bounded(rawBrief, '--brief', maxBriefLength) : null;
+    const brief = bounded(requiredValue(args, '--brief'), '--brief', maxBriefLength);
     const channels = readChannels(args);
 
     const receipt = await requestAgentCreate(deps.client, deps.callerAgentId, {
@@ -144,9 +143,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
         `Created @${agent.handle} (${agent.displayName}). Agent ID: ${agent.agentId}`,
         `Runtime ${receipt.runtimeId} · model ${receipt.modelId} · reasoning ${receipt.reasoningEffort} · Computer ${receipt.computerId} — inherited from you.`,
         `In ${receipt.channels.join(', ')}.`,
-        brief
-            ? 'Its brief is in its memory; it reads it on every startup.'
-            : 'No brief: it wakes without standing instructions, so tell it what it owns in the chat.',
+        'Its brief is in its memory; it reads it on every startup.',
         `Next: introduce @${agent.handle} in #all with haus message send --target "#all", unless the human asked for a private introduction. Write it in your own voice.`,
     ];
     if (receipt.avatar.status === 'unavailable') {

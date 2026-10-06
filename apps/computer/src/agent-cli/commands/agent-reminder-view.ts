@@ -1,7 +1,13 @@
 import * as z from 'zod';
+import type { AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { formatLocalTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
+
+export interface ReminderDeps {
+    client: AgentApiRequester;
+    write(text: string): void;
+}
 
 // The reminder rows the Agent API returns, and how the CLI prints them.
 
@@ -16,9 +22,13 @@ export const reminderViewSchema = z.object({
     status: z.string(),
     title: z.string(),
     version: z.number().int().positive(),
+    timezone: z.string().optional(),
 });
 
-export const reminderSingleSchema = z.object({ reminder: reminderViewSchema });
+export const reminderSingleSchema = z.object({
+    reminder: reminderViewSchema,
+    replayed: z.boolean().default(false),
+});
 export const reminderListSchema = z.object({ reminders: z.array(reminderViewSchema) });
 export const reminderLogSchema = z.object({
     runs: z.array(
@@ -34,13 +44,16 @@ export const reminderLogSchema = z.object({
 });
 
 export function describeReminder(reminder: z.infer<typeof reminderViewSchema>): string {
-    const repeat = reminder.repeat ? ` repeats ${reminder.repeat}` : '';
+    const repeat = reminder.repeat
+        ? ` repeats ${reminder.repeat}${reminder.timezone ? ` in ${reminder.timezone}` : ''}`
+        : '';
     const script = reminder.script ? ' (script)' : '';
     const description =
         reminder.description && reminder.description !== reminder.title
             ? ` — ${clip(reminder.description)}`
             : '';
-    return `${reminder.id} [${reminder.status}] "${reminder.title}"${description} — fires ${formatLocalTime(reminder.fireAt)}${repeat}${script}, anchored in ${reminder.anchorTarget}`;
+    const firstFire = reminder.timezone ? reminder.fireAt : formatLocalTime(reminder.fireAt);
+    return `${reminder.id} [${reminder.status}] "${reminder.title}"${description} — fires ${firstFire}${repeat}${script}, anchored in ${reminder.anchorTarget}`;
 }
 
 export function normalizeClearable(value: string | undefined): string | null | undefined {
@@ -61,4 +74,15 @@ export function requireFlag(args: ParsedArgs, name: string): string {
 export function clip(value: string): string {
     const flat = value.replaceAll(/\s+/gu, ' ').trim();
     return flat.length > 120 ? `${flat.slice(0, 119)}…` : flat;
+}
+
+export async function readReminderForMutation(deps: { client: AgentApiRequester }, id: string) {
+    const response = await deps.client.request('/api/agent/reminders', reminderListSchema, {
+        method: 'GET',
+    });
+    const reminder = response.reminders.find((candidate) => candidate.id === id);
+    if (!reminder) {
+        throw new AgentCliError('INVALID_ARG', 'The reminder is not owned by this Agent.');
+    }
+    return reminder;
 }

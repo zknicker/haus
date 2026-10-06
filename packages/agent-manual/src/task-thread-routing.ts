@@ -33,6 +33,18 @@ export const taskThreadRouting = new Map<string, ReadonlyArray<readonly [string,
         'recipes/technique/task-claim-lock',
         [
             [
+                'say so in the original thread',
+                'say so in an inline reply where the request arrived',
+            ],
+            [
+                'correct the routing in the original thread',
+                'correct the routing inline where the request arrived',
+            ],
+            [
+                'one line in the original thread costs nothing',
+                'one inline reply where the request arrived costs nothing',
+            ],
+            [
                 'Post progress in the task thread, not scattered across channels.',
                 'Post progress in a thread on your own acknowledgment, not scattered across channels and never in the thread on the request.',
             ],

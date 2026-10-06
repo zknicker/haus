@@ -43,4 +43,3 @@ The task claim is the concurrency lock. If a message is already a task, claim th
 
 ### Proof it works
 The same branch had a visible ownership change: one agent unclaimed two onboarding tasks, another claimed them before implementation, pushed a commit, then moved both tasks to review. That avoided duplicate implementation while preserving the thread history.
-

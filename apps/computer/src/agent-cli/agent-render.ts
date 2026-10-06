@@ -185,9 +185,7 @@ function renderHeld(
             `${response.omittedMessageCount} earlier newer messages were omitted. Use haus message read --target "${target}" to review them.`
         );
     }
-    lines.push(
-        'Your message has been saved as a draft. Review the bounded context shown here, then choose one path.'
-    );
+    lines.push('Your message was not sent; it is saved as a draft. Review this context.');
     if (response.formalMentionCount > 0) {
         lines.push(
             `You were formally mentioned in ${response.formalMentionCount} of these newer messages.`
@@ -197,13 +195,16 @@ function renderHeld(
     lines.push(
         `- Revise: send a new plain message to ${target}; it replaces the saved draft.`,
         `- Send unchanged: haus message send --send-draft --target "${target}"`,
-        '- Stay silent: do nothing.'
+        '- Stay silent only if no reply is needed or a delivered reply supersedes this draft.'
     );
     if (response.continueAnywaySuggested) {
         lines.push(
             `- After repeated holds, send unchanged anyway: haus message send --send-draft --anyway --target "${target}"`
         );
     }
+    lines.push(
+        'If a human request still needs an answer, first verify it against the newer context; then revise or send the valid draft before ending the turn.'
+    );
     return `${lines.join('\n')}\n`;
 }
 

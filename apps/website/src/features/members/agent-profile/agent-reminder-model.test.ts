@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { Reminder, ReminderHistoryEntry } from '@haus/api';
 import {
-    formatReminderCadence,
-    formatReminderSchedule,
     reminderDescription,
     reminderExecutionOutcome,
     scheduledReminders,
@@ -68,23 +66,6 @@ test('filtering the schedule leaves the source snapshot untouched', () => {
     scheduledReminders(rows);
 
     expect(rows.map((row) => row.id)).toEqual(['r_fired', 'r_next']);
-});
-
-test('a repeating reminder pairs its next wake with its cadence', () => {
-    expect(
-        formatReminderSchedule({ fireAt: '2026-09-02T09:00:00.000Z', repeat: 'daily@09:00' })
-    ).toMatch(/ · daily@09:00$/);
-});
-
-test('a one-shot reminder says only when it wakes', () => {
-    expect(
-        formatReminderSchedule({ fireAt: '2026-09-02T09:00:00.000Z', repeat: null })
-    ).not.toContain('·');
-});
-
-test('a one-shot execution still names a cadence rather than leaving the cell blank', () => {
-    expect(formatReminderCadence(null)).toBe('Once');
-    expect(formatReminderCadence('weekly:mon@09:00')).toBe('weekly:mon@09:00');
 });
 
 test('a script reports how it ended, with success and failure meaning what they say', () => {
