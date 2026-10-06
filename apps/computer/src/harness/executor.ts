@@ -53,6 +53,7 @@ import {
 } from './session-store.ts';
 import { readAgentSkills } from './skills.ts';
 import { createNoticeDelivery } from './steer-inbox-notice.ts';
+import { settleStoppedTurn } from './stopped-turn.ts';
 import { createNoticeCoordinator, deliverStoredNotice } from './stored-notice.ts';
 import type { HarnessTokenUsage } from './token-usage.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
@@ -413,9 +414,9 @@ async function executeHarnessTurn(
             noticeCoordinator.close();
             await storedNoticeDelivery;
         }
-        if (lease.stopping) {
-            // Let cancellation reach the SDK's idle boundary before stopping the runtime.
-            await turn.consumeStream();
+        if (observation.aborted || lease.stopping) {
+            // Stop, the no-progress deadline, and shutdown all park at the SDK's idle boundary.
+            await settleStoppedTurn(turn, input.runtimeId);
         }
         const resumeState = await lease.checkpoint();
         observation = { ...observation, aborted: observation.aborted || lease.stopping };

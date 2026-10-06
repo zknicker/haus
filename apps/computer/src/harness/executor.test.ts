@@ -142,6 +142,7 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                 );
             }
             return {
+                consumeStream: async () => undefined,
                 fullStream: (async function* () {
                     for (const [index, toolName] of streamToolNames.entries()) {
                         yield { toolCallId: `call_${index}`, toolName, type: 'tool-call' };

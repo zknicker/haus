@@ -37,9 +37,10 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
     try {
         const raw = await readFile(join(agentRoot, sessionFileName), 'utf8');
         // `cumulativeTokenUsage` was the `codex exec` usage baseline; drop it on read.
-        const { cumulativeTokenUsage: _codexExecBaseline, ...parsed } = JSON.parse(
+        const { cumulativeTokenUsage: _codexExecBaseline, ...stored } = JSON.parse(
             raw
         ) as AgentSessionState & { cumulativeTokenUsage?: unknown };
+        const parsed = { ...stored, resumeState: withoutAbandonedTurn(stored.resumeState) };
         if (
             typeof parsed.generation === 'number' &&
             typeof parsed.effectiveModel?.modelId === 'string' &&
@@ -123,6 +124,21 @@ export async function writeFailedTurnSession(
         hausAgentStatus: failure.versionFailed ? 'failed' : session.hausAgentStatus,
         resumeState,
     });
+}
+
+/**
+ * Haus never continues a turn: Stop and shutdown park at the SDK's idle boundary. A `continueFrom`
+ * can only be a turn an older Computer parked mid-Stop, and the SDK refuses every new prompt until
+ * it is continued, so resume the conversation without it.
+ */
+function withoutAbandonedTurn(
+    resumeState: AgentSessionState['resumeState']
+): AgentSessionState['resumeState'] {
+    if (!(resumeState && 'continueFrom' in resumeState)) {
+        return resumeState ?? null;
+    }
+    const { continueFrom: _abandonedTurn, ...rest } = resumeState;
+    return rest;
 }
 
 /**

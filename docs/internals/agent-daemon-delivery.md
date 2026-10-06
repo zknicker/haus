@@ -214,7 +214,10 @@ cancels active turns, and waits for their AI SDK streams to settle before callin
 `session.stop()`. Parked sessions are reattached and stopped through the same SDK
 contract. Computer saves each returned opaque resume state without rotating the
 generation or discarding conversation context, then reaps all owned sandbox process
-groups before exiting. Ordinary turn completion still uses `session.detach()`.
+groups before exiting. Ordinary turn completion still uses `session.detach()`. A Stop or the
+no-progress deadline also waits for the SDK turn to settle before detaching: parking a turn that is
+still running stores a `continueFrom` continuation, and the SDK then refuses every new prompt until
+that turn is continued. Haus never continues a turn, so a stored `continueFrom` is dropped on read.
 
 Shutdown allows 20 seconds for session checkpoints and accepted writers, then
 forces process cleanup and reports a failure if state could not be saved. The

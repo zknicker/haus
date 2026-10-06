@@ -46,7 +46,10 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   as interrupted, never as a resume failure.
 - Stop interrupts the live turn and persists the Agent's stopped lifecycle state. New messages and
   reminders continue to accumulate in its inbox but cannot wake it. A human Start resumes the
-  current session and offers pending work again.
+  current session and offers pending work again. A stopped turn is abandoned, never continued:
+  Computer waits up to twenty seconds for the SDK turn to wind down and parks the idle session, so
+  the next prompt resumes the same conversation. A runtime that ignores cancellation fails the turn
+  instead, which destroys its live session and keeps the last idle resume state.
 
 ## Cursors
 
