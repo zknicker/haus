@@ -703,6 +703,17 @@
         "timer": 0
       }
     },
+    "apps/computer/src/harness/stopped-turn.ts": {
+      "disposition": "external-adapter",
+      "reason": "Bounds the foreign AI SDK turn's consumeStream settlement with one deadline timer that the finally block always clears; the executor owns the turn and fails it when the deadline wins.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 2
+      }
+    },
     "apps/computer/src/harness/stored-notice.ts": {
       "disposition": "external-adapter",
       "reason": "The executor owns this finite foreign notice-delivery queue and always closes it when the turn settles; unresolved callback Promises are settled on close.",

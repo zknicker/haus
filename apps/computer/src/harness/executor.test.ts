@@ -161,10 +161,7 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                             }
                         }
                     }
-                    yield {
-                        type: 'finish-step',
-                        usage: publicUsage(streamUsageScale),
-                    };
+                    yield { type: 'finish-step', usage: publicUsage(streamUsageScale) };
                     if (streamAborts) {
                         yield { type: 'abort' };
                     } else if (streamFails) {

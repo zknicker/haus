@@ -312,7 +312,6 @@ async function executeHarnessTurn(
             timings,
         });
         await phase('session ready');
-
         if (lease.stopping) {
             await writeAgentSessionState(input.agentRoot, {
                 ...session,
