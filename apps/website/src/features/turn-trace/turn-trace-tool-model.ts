@@ -1,12 +1,12 @@
 import type { AgentExecutionJournalTool } from '@haus/api';
 import type { ToolPartState } from '@heroui-pro/react/chat-tool';
-import { formatShellLabel } from './turn-trace-shell-label.ts';
 import {
     formatSubagentInterruption,
     formatSubagentLabel,
     resolveSubagentStatus,
 } from './turn-trace-subagent.ts';
-import { readHostname, readRecord, readString, stableJson } from './turn-trace-values.ts';
+import { formatTraceToolLabel } from './turn-trace-tool-label.ts';
+import { readRecord, readString, stableJson } from './turn-trace-values.ts';
 
 export type TurnTraceToolKind =
     | 'compaction'
@@ -15,6 +15,7 @@ export type TurnTraceToolKind =
     | 'file-read'
     | 'file-write'
     | 'generic'
+    | 'image'
     | 'mcp'
     | 'message'
     | 'search'
@@ -23,7 +24,7 @@ export type TurnTraceToolKind =
     | 'web';
 
 /** Typed fields parsed out of one journal tool's runtime-shaped input. */
-interface TurnTraceToolFields {
+export interface TurnTraceToolFields {
     readonly changeEvent: string | null;
     readonly command: string | null;
     readonly connection: string | null;
@@ -83,9 +84,14 @@ const toolKindsByName: Record<string, TurnTraceToolKind> = {
     exec: 'shell',
     glob: 'search',
     grep: 'search',
+    // Codex and Grok Build native media tools (Computer `generated-images.ts`).
+    image_edit: 'image',
+    image_gen: 'image',
+    image_to_video: 'image',
     message: 'message',
     multiedit: 'file-edit',
     read: 'file-read',
+    reference_to_video: 'image',
     send_message: 'message',
     shell: 'shell',
     terminal: 'shell',
@@ -246,51 +252,6 @@ function readMcpName(name: string): { connection: string | null; remoteTool: str
         connection: connection && connection.length > 0 ? connection : null,
         remoteTool: remoteTool.length > 0 ? remoteTool : null,
     };
-}
-
-const fileChangeVerbs: Record<string, string> = {
-    create: 'Created',
-    delete: 'Deleted',
-    modify: 'Modified',
-};
-
-function formatTraceToolLabel(fields: TurnTraceToolFields, name: string): string {
-    switch (fields.kind) {
-        case 'compaction':
-            return 'Compacted the context';
-        case 'file-change':
-            return formatFileChangeLabel(fields);
-        case 'file-edit':
-            return fields.path ? `Edited ${fields.path}` : 'Edited a file';
-        case 'file-read':
-            return fields.path ? `Read ${fields.path}` : 'Read a file';
-        case 'file-write':
-            return fields.path ? `Wrote ${fields.path}` : 'Wrote a file';
-        case 'mcp':
-            return `Called ${[fields.connection, fields.remoteTool].filter(Boolean).join(' · ')}`;
-        case 'message':
-            return 'Sent a message';
-        case 'search':
-            return `Searched ${fields.pattern ?? fields.path ?? 'the workspace'}`;
-        case 'shell':
-            return fields.command ? formatShellLabel(fields.command) : 'Ran a command';
-        case 'web':
-            return formatWebLabel(fields);
-        default:
-            return `Used ${name}`;
-    }
-}
-
-function formatFileChangeLabel(fields: TurnTraceToolFields): string {
-    const verb = fileChangeVerbs[fields.changeEvent ?? ''] ?? 'Changed';
-    return fields.path ? `${verb} ${fields.path}` : `${verb} a file`;
-}
-
-function formatWebLabel(fields: TurnTraceToolFields): string {
-    if (fields.url) {
-        return `Fetched ${readHostname(fields.url)}`;
-    }
-    return fields.query ? `Searched the web for ${fields.query}` : 'Used the web';
 }
 
 function readFilePath(input: Record<string, unknown>): string | null {

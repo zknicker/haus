@@ -32,6 +32,8 @@ export function TurnTraceToolBody({ tool }: { tool: TurnTraceTool }) {
             return <FileLookupBody tool={tool} />;
         case 'file-write':
             return <FileWriteBody tool={tool} />;
+        case 'image':
+            return <ImageBody tool={tool} />;
         case 'mcp':
             return <McpBody tool={tool} />;
         case 'shell':
@@ -197,6 +199,26 @@ function TurnTraceSources({ sources }: { sources: Array<{ title: string; url: st
                 </ChatSources.List>
             </ChatSources.Content>
         </ChatSources>
+    );
+}
+
+/**
+ * Computer journals a finished image as its workspace copy (`path`) beside the
+ * runtime's own file (`savedPath`); a call journaled before that copy, or a
+ * video, carries only the runtime's path. The prompt is Grok Build's input or
+ * Codex's revised prompt.
+ */
+function ImageBody({ tool }: { tool: TurnTraceTool }) {
+    const output = readRecord(tool.output);
+    const path = readString(output?.path) ?? readString(output?.savedPath);
+    const prompt =
+        readString(readRecord(tool.source.input)?.prompt) ?? readString(output?.revisedPrompt);
+
+    return (
+        <>
+            {path ? <TurnTraceFact label="File" value={path} /> : null}
+            {prompt ? <TurnTraceCode code={prompt} label="Prompt" /> : null}
+        </>
     );
 }
 

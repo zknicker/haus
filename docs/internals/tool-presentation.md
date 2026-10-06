@@ -41,9 +41,14 @@ journal already shows the work they summarize; the one exception is `received_me
 Server history no journal holds, which joins the column at its time as a `Received a new
 message` step. Reasoning and that step share `TurnTraceStep` (`turn-trace-blocks.tsx`), whose
 box matches a ChatTool trigger's so every step's icon sits in the tool status-icon column. `turn-trace-tool-model.ts` classifies one journal tool by wire
-name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `web`, `mcp`,
+name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `web`, `image`, `mcp`,
 `message`, `file-change`, `compaction`, `subagent`, `generic`) with typed fields;
-`turn-trace-tool-bodies.tsx` owns the body each kind earns. The harness's reserved
+`turn-trace-tool-label.ts` names its row and `turn-trace-tool-bodies.tsx` owns the body each kind
+earns. Codex's and Grok Build's native media tools (`image_gen`, `image_edit`, `image_to_video`,
+`reference_to_video`) are `image`: `Generated an image`, `Edited an image`, or `Made a video`, with
+the file and the prompt as the body. The file is the workspace copy Computer journals as `path`
+(`generated-images/…`, see [Agents](../features/agents.md)), falling back to the runtime's own
+`savedPath`; the trace shows the path, not an inline preview. The harness's reserved
 synthetic names get their own kinds so they read as what happened — `Modified <path>`,
 `Compacted the context` — rather than a generic call with empty arguments.
 
