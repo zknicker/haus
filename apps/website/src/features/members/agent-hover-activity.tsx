@@ -71,7 +71,9 @@ function AgentHoverLive({
                     <span className="min-w-0 truncate text-foreground">
                         {title.kind === 'text' ? title.text : null}
                     </span>
-                    {title.place ? <span className="shrink-0 text-muted">{title.place}</span> : null}
+                    {title.place ? (
+                        <span className="shrink-0 text-muted">{title.place}</span>
+                    ) : null}
                 </p>
             )}
             <p className="truncate font-medium text-accent tabular-nums">
