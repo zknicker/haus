@@ -54,7 +54,8 @@ test('diagnostic copy contains only the Server-safe activity summary', () => {
 });
 
 test('activity phases map onto HeroUI Chip presentation', () => {
-    expect(getAgentActivityColor('started')).toBe('warning');
+    expect(getAgentActivityColor('started')).toBe('accent');
+    expect(getAgentActivityColor('interrupted')).toBe('warning');
     expect(getAgentActivityColor('completed')).toBe('success');
     expect(getAgentActivityColor('failed')).toBe('danger');
     expect(getAgentActivityPhaseLabel('started')).toBe('Active');

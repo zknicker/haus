@@ -1,14 +1,9 @@
 import { Spinner } from '@heroui/react';
 import type * as React from 'react';
-import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgent } from '../../hooks/members/use-agent.ts';
-import { useAgentActivityPreview } from '../../hooks/members/use-agent-activity-preview.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { formatShortTime } from '../../lib/format.ts';
-import { cn } from '../../lib/utils.ts';
 import {
     agentExecutionLabels,
     availabilityLabel,
@@ -20,15 +15,11 @@ import {
     ReferencePreviewText,
 } from '../mentions/reference-preview-header.tsx';
 import { AgentExecutionChips } from './agent-execution-chips.tsx';
-import { formatAgentDelegationSummary } from './agent-hover-delegations.ts';
+import { AgentHoverActivity } from './agent-hover-activity.tsx';
 import {
     resolveAgentHoverExecution,
     resolveAgentHoverModelChange,
 } from './agent-hover-execution.ts';
-import {
-    formatAgentActivityEvent,
-    getAgentActivityColor,
-} from './agent-profile/agent-activity-model.ts';
 
 export function AgentHoverCard({
     agentId,
@@ -67,7 +58,6 @@ export function AgentHoverCardContent({
     serverId: string;
 }) {
     const agent = useAgent(serverId, agentId);
-    const activity = useAgentActivityPreview(serverId, agentId);
     const computers = useComputers(serverId);
 
     if (agent.isPending && !agent.data) {
@@ -100,7 +90,6 @@ export function AgentHoverCardContent({
                   computer?.reportedInventory ?? null
               )
             : null;
-    const events = activity.data?.events ?? [];
     const issue = agentRuntimeIssue(value, computer?.reportedInventory ?? null);
     const modelChange = resolveAgentHoverModelChange(value);
     const desiredExecution = agentExecutionLabels(value, computer?.reportedInventory ?? null);
@@ -150,78 +139,7 @@ export function AgentHoverCardContent({
                     {modelChange}
                 </p>
             ) : null}
-            <AgentHoverDelegations agentId={agentId} serverId={serverId} />
-            <section
-                aria-label="Recent activity"
-                className="flex min-w-0 flex-col gap-1 border-separator border-t pt-2.5 text-xs"
-            >
-                {activity.isPending ? (
-                    <span className="flex items-center gap-2 text-muted">
-                        <Spinner color="current" size="sm" />
-                        Loading activity…
-                    </span>
-                ) : events.length === 0 ? (
-                    <p className="text-muted">No recent activity.</p>
-                ) : (
-                    <ul className="flex min-w-0 flex-col gap-1">
-                        {events.map((event) => (
-                            <li className="flex min-w-0 items-center gap-2" key={event.id}>
-                                <span
-                                    aria-hidden="true"
-                                    className={cn(
-                                        'size-1.5 shrink-0 rounded-full',
-                                        activityDotClassName(getAgentActivityColor(event.phase))
-                                    )}
-                                />
-                                <time
-                                    className="w-14 shrink-0 text-muted tabular-nums"
-                                    dateTime={event.occurredAt}
-                                >
-                                    {formatShortTime(event.occurredAt)}
-                                </time>
-                                <span className="min-w-0 truncate text-foreground">
-                                    {formatAgentActivityEvent(event)}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
+            <AgentHoverActivity agentId={agentId} serverId={serverId} />
         </div>
     );
-}
-
-/** Shown only while the Agent's current run has sub-agents running. */
-function AgentHoverDelegations({ agentId, serverId }: { agentId: string; serverId: string }) {
-    const current = useOptionalCurrentAgentActivity();
-    const delegations =
-        current?.serverId === serverId
-            ? current.activities.find((activity) => activity.agentId === agentId)?.activeDelegations
-            : undefined;
-    if (!delegations || delegations.length === 0) {
-        return null;
-    }
-    return <AgentHoverDelegationLine delegations={delegations} />;
-}
-
-function AgentHoverDelegationLine({
-    delegations,
-}: {
-    delegations: Parameters<typeof formatAgentDelegationSummary>[0];
-}) {
-    const now = useRelativeNow(1000);
-    return (
-        <p className="text-foreground text-xs">{formatAgentDelegationSummary(delegations, now)}</p>
-    );
-}
-
-function activityDotClassName(color: ReturnType<typeof getAgentActivityColor>) {
-    switch (color) {
-        case 'danger':
-            return 'bg-danger';
-        case 'warning':
-            return 'bg-warning';
-        case 'success':
-            return 'bg-success';
-    }
 }

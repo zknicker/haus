@@ -15,7 +15,7 @@ export interface RecentActivityRow {
 }
 
 /**
- * Folds consecutive failed turns with the same failure kind. Turns arrive
+ * Folds consecutive failed turns with the same failure kind and trigger. Turns arrive
  * newest first (as `groupAgentActivityTurns` sorts them), so the first turn of
  * a run is the latest and the last is where the run began. Only failures fold:
  * completed turns are distinct work, and a repeat there is not a symptom.
@@ -49,6 +49,12 @@ function isSameFailure(left: AgentActivityTurn, right: AgentActivityTurn): boole
         right.kind === 'settled' &&
         left.status === 'failed' &&
         right.status === 'failed' &&
-        left.failureKind === right.failureKind
+        left.failureKind === right.failureKind &&
+        sameTrigger(left.trigger, right.trigger)
     );
+}
+
+/** A retry loop re-runs one request; different requests failing alike stay apart. */
+function sameTrigger(left: AgentActivityTurn['trigger'], right: AgentActivityTurn['trigger']) {
+    return JSON.stringify(left) === JSON.stringify(right);
 }

@@ -1,5 +1,5 @@
 import type { Agent } from '@haus/api';
-import { Accordion, Button, Chip } from '@heroui/react';
+import { Accordion, Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { CopyButton } from '../../../components/copy-button.tsx';
@@ -11,20 +11,15 @@ import { TurnTrace } from '../../turn-trace/turn-trace.tsx';
 import { TurnTraceScroll } from '../../turn-trace/turn-trace-scroll.tsx';
 import {
     formatAgentActivityDiagnosticInfo,
-    getAgentActivityColor,
-    getAgentActivityPhaseLabel,
     getTurnDetailAccess,
     type TurnDetailAccess,
 } from './agent-activity-model.ts';
-import {
-    type AgentActivityTurn,
-    formatActivityTurnCounts,
-    formatActivityTurnHeadline,
-    formatActivityTurnTime,
-    getActivityTurnPhase,
-    groupAgentActivityTurns,
-} from './agent-activity-turns.ts';
+import { type AgentActivityTurn, groupAgentActivityTurns } from './agent-activity-turns.ts';
 import { AgentLoading } from './agent-loading.tsx';
+import { TurnRowContent } from './agent-turn-row.tsx';
+import { groupTurnRowsByDay } from './agent-turn-row-model.ts';
+import { collapseRecentActivity, type RecentActivityRow } from './recent-activity-rows.ts';
+import { useTurnRowTitles } from './use-turn-row-titles.ts';
 
 export function AgentActivity({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const activity = useAgentActivityHistory(server.id, agent.id);
@@ -50,7 +45,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
                     value={diagnosticInfo}
                 />
             </ItemCardGroup.Header>
-            {activity.isPending && settledTurns.isPending ? (
+            {activity.isPending || settledTurns.isPending ? (
                 <AgentLoading label="Loading activity history..." />
             ) : unavailable ? (
                 // Empty and error states sit in the group they replace, so
@@ -114,64 +109,66 @@ function ActivityTurnHistory({
     // Expansion is the journal's request gate: a turn asks its Computer for
     // execution detail only once someone opens it.
     const [expanded, setExpanded] = React.useState<ReadonlySet<string>>(new Set());
+    const rows = collapseRecentActivity(turns, Number.POSITIVE_INFINITY);
+    const titleOf = useTurnRowTitles(
+        serverId,
+        rows.map((row) => row.latest)
+    );
 
     return (
         <TurnTraceScroll>
-            <Accordion
-                allowsMultipleExpanded
-                className="accordion--activity-history"
-                expandedKeys={expanded}
-                onExpandedChange={(keys) => setExpanded(new Set([...keys].map(String)))}
-                variant="surface"
-            >
-                {turns.map((turn) => {
-                    const phase = getActivityTurnPhase(turn);
-                    return (
-                        <Accordion.Item id={turn.runId} key={turn.runId}>
-                            <Accordion.Heading>
-                                <Accordion.Trigger>
-                                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-left">
-                                        {/* The trigger is medium weight for the
-                                            headline; time and counts are body text. */}
-                                        <time
-                                            className="shrink-0 font-normal text-muted text-sm tabular-nums"
-                                            dateTime={turn.startedAt}
-                                        >
-                                            {formatActivityTurnTime(turn.startedAt)}
-                                        </time>
-                                        <Chip
-                                            color={getAgentActivityColor(phase)}
-                                            size="sm"
-                                            variant="soft"
-                                        >
-                                            {getAgentActivityPhaseLabel(phase)}
-                                        </Chip>
-                                        <span className="font-medium text-foreground text-sm">
-                                            {formatActivityTurnHeadline(turn)}
-                                        </span>
-                                        <span className="font-normal text-muted text-sm">
-                                            {formatActivityTurnCounts(turn)}
-                                        </span>
-                                    </span>
-                                    <Accordion.Indicator />
-                                </Accordion.Trigger>
-                            </Accordion.Heading>
-                            <Accordion.Panel>
-                                <Accordion.Body>
-                                    <TurnTrace
-                                        access={access}
-                                        agentId={agentId}
-                                        enabled={expanded.has(turn.runId)}
-                                        runId={turn.runId}
-                                        serverId={serverId}
-                                        turn={turn}
-                                    />
-                                </Accordion.Body>
-                            </Accordion.Panel>
-                        </Accordion.Item>
-                    );
-                })}
-            </Accordion>
+            <div className="flex min-w-0 flex-col gap-4">
+                {groupTurnRowsByDay(rows).map((day) => (
+                    <section aria-label={day.label} className="flex flex-col gap-2" key={day.key}>
+                        <h3 className="px-4 font-medium text-muted text-xs">{day.label}</h3>
+                        <Accordion
+                            allowsMultipleExpanded
+                            className="accordion--activity-history"
+                            expandedKeys={expanded}
+                            onExpandedChange={(keys) =>
+                                setExpanded(replaceDayKeys(expanded, day.rows, keys))
+                            }
+                            variant="surface"
+                        >
+                            {day.rows.map((row) => (
+                                <Accordion.Item id={row.latest.runId} key={row.latest.runId}>
+                                    <Accordion.Heading>
+                                        <Accordion.Trigger>
+                                            <TurnRowContent row={row} title={titleOf(row.latest)} />
+                                            <Accordion.Indicator />
+                                        </Accordion.Trigger>
+                                    </Accordion.Heading>
+                                    <Accordion.Panel>
+                                        <Accordion.Body>
+                                            <TurnTrace
+                                                access={access}
+                                                agentId={agentId}
+                                                enabled={expanded.has(row.latest.runId)}
+                                                runId={row.latest.runId}
+                                                serverId={serverId}
+                                                turn={row.latest}
+                                            />
+                                        </Accordion.Body>
+                                    </Accordion.Panel>
+                                </Accordion.Item>
+                            ))}
+                        </Accordion>
+                    </section>
+                ))}
+            </div>
         </TurnTraceScroll>
     );
+}
+
+/** Each day is its own Accordion; one day's change keeps the other days' open rows. */
+function replaceDayKeys(
+    expanded: ReadonlySet<string>,
+    dayRows: readonly RecentActivityRow[],
+    dayKeys: Iterable<React.Key>
+): ReadonlySet<string> {
+    const day = new Set(dayRows.map((row) => row.latest.runId));
+    return new Set([
+        ...[...expanded].filter((runId) => !day.has(runId)),
+        ...[...dayKeys].map(String),
+    ]);
 }

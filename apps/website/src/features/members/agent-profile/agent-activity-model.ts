@@ -94,7 +94,7 @@ const activityCopy: Record<AgentActivityCategory, ActivityCopy> = {
     },
 };
 
-export type ActivityColor = 'danger' | 'success' | 'warning';
+export type ActivityColor = 'accent' | 'danger' | 'success' | 'warning';
 
 export function formatAgentActivityEvent(event: AgentActivityEvent): string {
     const copy = activityCopy[event.category][event.phase];
@@ -122,7 +122,11 @@ export function getAgentActivityColor(phase: AgentActivityPhase): ActivityColor 
     if (phase === 'failed') {
         return 'danger';
     }
-    if (phase === 'started' || phase === 'interrupted') {
+    // Working is the normal state, not a caution.
+    if (phase === 'started') {
+        return 'accent';
+    }
+    if (phase === 'interrupted') {
         return 'warning';
     }
     return 'success';

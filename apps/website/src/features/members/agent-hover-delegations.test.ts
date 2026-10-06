@@ -18,20 +18,20 @@ test('the delegation line counts sub-agents and times the earliest start', () =>
             ],
             now
         ),
-        '2 sub-agents running · 3m'
+        '2 sub-agents running · 3:00'
     );
     assert.equal(
         formatAgentDelegationSummary(
             [{ operationId: 'op_a', startedAt: '2026-10-06T12:09:15.000Z' }],
             now
         ),
-        '1 sub-agent running · 45s'
+        '1 sub-agent running · 0:45'
     );
     assert.equal(
         formatAgentDelegationSummary(
             [{ operationId: 'op_a', startedAt: '2026-10-06T10:55:00.000Z' }],
             now
         ),
-        '1 sub-agent running · 1h 15m'
+        '1 sub-agent running · 1:15:00'
     );
 });

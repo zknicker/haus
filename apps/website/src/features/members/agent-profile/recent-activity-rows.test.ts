@@ -48,6 +48,21 @@ test('the limit counts rows, so a folded run still leaves room for older turns',
     expect(rows.map((row) => row.latest.runId)).toEqual(['r4', 'r2']);
 });
 
+test('the same failure on different requests stays separate rows', () => {
+    const rows = collapseRecentActivity(
+        [
+            { ...failed('r2', '2026-10-01T16:50:00Z'), trigger: messageTrigger('msg_b') },
+            { ...failed('r1', '2026-10-01T16:45:00Z'), trigger: messageTrigger('msg_a') },
+        ],
+        5
+    );
+    expect(rows.map((row) => row.count)).toEqual([1, 1]);
+});
+
+function messageTrigger(messageId: string): AgentActivityTurn['trigger'] {
+    return { author: 'human', chatId: 'cht_one', kind: 'message', messageId };
+}
+
 function failed(runId: string, startedAt: string, failureKind = 'runtime'): AgentActivityTurn {
     return { ...settled(runId, startedAt), failureKind, status: 'failed' };
 }
@@ -70,5 +85,6 @@ function settled(runId: string, startedAt: string): SettledTurn {
         runId,
         startedAt,
         status: 'completed',
+        trigger: null,
     };
 }

@@ -1,8 +1,10 @@
 import type { AgentActiveDelegation } from '@haus/api';
+import { formatElapsedClock } from './agent-hover-activity-model.ts';
 
 /**
  * The hover card's one line about running sub-agents: how many, and how long
- * since the first of them started. Null when none are running.
+ * since the first of them started, on the same clock as the live line. Null
+ * when none are running.
  */
 export function formatAgentDelegationSummary(
     delegations: readonly AgentActiveDelegation[] | undefined,
@@ -16,17 +18,5 @@ export function formatAgentDelegationSummary(
         delegations.length === 1
             ? '1 sub-agent running'
             : `${delegations.length} sub-agents running`;
-    return Number.isNaN(earliest) ? count : `${count} · ${formatElapsed(now - earliest)}`;
-}
-
-function formatElapsed(ms: number): string {
-    const seconds = Math.max(0, Math.floor(ms / 1000));
-    if (seconds < 60) {
-        return `${seconds}s`;
-    }
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) {
-        return `${minutes}m`;
-    }
-    return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+    return Number.isNaN(earliest) ? count : `${count} · ${formatElapsedClock(now - earliest)}`;
 }

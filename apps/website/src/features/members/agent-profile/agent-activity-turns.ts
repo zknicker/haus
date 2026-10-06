@@ -5,6 +5,7 @@ import type {
     AgentTurn,
     AgentTurnOperationCategory,
     AgentTurnOperationCount,
+    AgentTurnTrigger,
 } from '@haus/api';
 
 const operationCategories = new Set<AgentActivityCategory>([
@@ -26,6 +27,8 @@ interface ActivityTurnBase {
     readonly operations: readonly AgentTurnOperationCount[];
     readonly runId: string;
     readonly startedAt: string;
+    /** What woke the turn; known once the Server settles it. */
+    readonly trigger: AgentTurnTrigger | null;
 }
 
 export type AgentActivityTurn =
@@ -87,6 +90,7 @@ export function groupAgentActivityTurns(
                 operations,
                 runId,
                 startedAt,
+                trigger: settled?.trigger ?? null,
             };
 
             if (!(settled || terminal)) {

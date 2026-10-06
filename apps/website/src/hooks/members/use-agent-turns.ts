@@ -3,9 +3,9 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 
 const turnLimit = 50;
 
-export function useAgentTurns(serverId: string, agentId: string) {
+export function useAgentTurns(serverId: string, agentId: string, limit = turnLimit) {
     const utils = hausTrpc.useUtils();
-    const input = { agentId, limit: turnLimit, serverId };
+    const input = { agentId, limit, serverId };
 
     hausTrpc.agent.onLifecycle.useSubscription(
         { serverId },
