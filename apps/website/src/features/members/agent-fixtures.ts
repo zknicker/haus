@@ -36,6 +36,7 @@ export function testAgent(overrides: Partial<Agent> = {}): Agent {
         missingResources: [],
         serverId: 'server_one',
         status: 'applied',
+        wakePause: null,
         ...overrides,
     };
 }

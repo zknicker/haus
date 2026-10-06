@@ -1,9 +1,11 @@
 import type { Chat } from '@haus/api';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { canRunAgentActions } from '../../members/agent-profile/agent-actions-model.ts';
 import { ArchivedChannelBar } from './archived-channel-bar.tsx';
 import { ChatComposer } from './chat-composer-variants.tsx';
 import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 import { ChatTypingIndicator } from './chat-typing-indicator.tsx';
+import { StoppedAgentDmNotice } from './stopped-agent-dm-notice.tsx';
 
 export function ChatViewFooter({
     chat,
@@ -45,17 +47,26 @@ export function ChatViewFooter({
                     new messages.
                 </p>
             ) : (
-                <ChatComposer
-                    agentDmId={chat.peerAgentId ?? undefined}
-                    chatId={chat.id}
-                    chatName={chatName}
-                    inlineReply={inlineReply}
-                    onInlineReplyCancel={onInlineReplyCancel}
-                    onInlineReplySent={onInlineReplySent}
-                    pendingChatId={chat.id}
-                    serverId={chat.serverId}
-                    status={<ChatTypingIndicator chatId={chat.id} serverId={chat.serverId} />}
-                />
+                <>
+                    {chat.peerAgentId ? (
+                        <StoppedAgentDmNotice
+                            agentId={chat.peerAgentId}
+                            canStart={canRunAgentActions(server.role)}
+                            serverId={chat.serverId}
+                        />
+                    ) : null}
+                    <ChatComposer
+                        agentDmId={chat.peerAgentId ?? undefined}
+                        chatId={chat.id}
+                        chatName={chatName}
+                        inlineReply={inlineReply}
+                        onInlineReplyCancel={onInlineReplyCancel}
+                        onInlineReplySent={onInlineReplySent}
+                        pendingChatId={chat.id}
+                        serverId={chat.serverId}
+                        status={<ChatTypingIndicator chatId={chat.id} serverId={chat.serverId} />}
+                    />
+                </>
             )}
         </>
     );

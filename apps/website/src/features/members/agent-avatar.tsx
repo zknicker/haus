@@ -3,6 +3,7 @@ import { Badge } from '@heroui/react';
 import type React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { cn } from '../../lib/utils.ts';
+import { availabilityLabel } from '../computers/presentation.ts';
 
 /** Agent availability mapped onto the stock Badge color vocabulary. */
 export function availabilityBadgeColor(availability: AgentAvailability) {
@@ -16,21 +17,6 @@ export function availabilityBadgeColor(availability: AgentAvailability) {
         case 'offline':
         case 'stopped':
             return 'default' as const;
-    }
-}
-
-export function availabilityLabel(availability: AgentAvailability) {
-    switch (availability) {
-        case 'idle':
-            return 'Online';
-        case 'working':
-            return 'Working';
-        case 'offline':
-            return 'Offline';
-        case 'stopped':
-            return 'Stopped';
-        case 'error':
-            return 'Needs attention';
     }
 }
 
@@ -48,6 +34,7 @@ export function AgentAvatar({
         availability: AgentAvailability;
         avatarUrl: Agent['avatarUrl'];
         displayName: Agent['displayName'];
+        wakePause?: Agent['wakePause'];
         id: Agent['id'];
     };
     className?: string;
@@ -73,7 +60,7 @@ export function AgentAvatar({
                 color={availabilityBadgeColor(availability)}
                 placement="bottom-right"
                 size="sm"
-                title={availabilityLabel(availability)}
+                title={availabilityLabel(agent)}
             />
         </Badge.Anchor>
     );

@@ -123,7 +123,7 @@ export function AgentHeader({
             }
             badges={
                 <Chip color={agentAvailabilityColor(agent.availability)} size="sm" variant="soft">
-                    <Chip.Label>{availabilityLabel(agent.availability)}</Chip.Label>
+                    <Chip.Label>{availabilityLabel(agent)}</Chip.Label>
                 </Chip>
             }
             description={agent.description}

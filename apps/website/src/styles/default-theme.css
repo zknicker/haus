@@ -181,6 +181,9 @@
     --tooltip-foreground: var(--snow);
     --tooltip-muted: oklch(75% 0.008 286.4);
     --tooltip-kbd: color-mix(in oklab, var(--snow) 16%, transparent);
+
+    /* Supporting copy on a `--danger-soft` fill: the title's red, eased toward the ink. */
+    --danger-soft-muted: color-mix(in oklab, var(--danger-soft-foreground) 65%, var(--foreground));
 }
 
 [data-theme="dark"],
@@ -195,6 +198,9 @@
     --tooltip-foreground: var(--snow);
     --tooltip-muted: oklch(75% 0.008 286.4);
     --tooltip-kbd: color-mix(in oklab, var(--snow) 14%, transparent);
+
+    /* Supporting copy on a `--danger-soft` fill: the title's red, eased toward the ink. */
+    --danger-soft-muted: color-mix(in oklab, var(--danger-soft-foreground) 65%, var(--foreground));
 }
 
 /*
@@ -1863,6 +1869,39 @@
      */
     .haus-hover-card__faces .avatar {
         box-shadow: 0 0 0 2px var(--eclipse);
+    }
+
+    /*
+     * A sectioned hover card moves the card inset onto its sections so a
+     * full-bleed band (the wake-pause Alert) can run edge to edge between
+     * them; the card clips the band to its own corners.
+     */
+    .hover-card__content.haus-hover-card.haus-hover-card--sectioned {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .haus-hover-card__section {
+        padding: calc(var(--spacing) * 3);
+    }
+
+    .alert.haus-hover-card__banner {
+        border-radius: 0;
+        box-shadow: none;
+        gap: calc(var(--spacing) * 2.5);
+        padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3);
+    }
+
+    .alert.haus-hover-card__banner .alert__indicator {
+        padding-inline: 0;
+    }
+
+    .alert--danger.haus-hover-card__banner {
+        background: var(--danger-soft);
+    }
+
+    .alert--danger.haus-hover-card__banner .alert__description {
+        color: var(--danger-soft-muted);
     }
 
     /*

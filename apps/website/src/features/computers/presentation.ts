@@ -89,8 +89,15 @@ export function computerRuntimePresentations(
     ];
 }
 
-export function availabilityLabel(value: Agent['availability']) {
-    switch (value) {
+/** An Agent's status word; a Server wake pause reads as Paused rather than a generic error. */
+export function availabilityLabel(agent: {
+    availability: Agent['availability'];
+    wakePause?: Agent['wakePause'];
+}) {
+    if (agent.wakePause) {
+        return 'Paused';
+    }
+    switch (agent.availability) {
         case 'idle':
             return 'Online';
         case 'working':

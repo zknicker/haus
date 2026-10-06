@@ -20,6 +20,7 @@ interface ComputerAgentRow {
     id: string;
     model: string;
     runtime: string;
+    wakePause: Agent['wakePause'];
 }
 
 type ComputerAgentGridState =
@@ -111,6 +112,7 @@ function computerAgentRows(
             availability: agent.availability,
             displayName: agent.displayName,
             id: agent.id,
+            wakePause: agent.wakePause,
             model: execution.model,
             runtime: execution.runtime,
         };
@@ -157,7 +159,7 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
         align: 'end',
         cell: (item) => (
             <Chip color={availabilityBadgeColor(item.availability)} size="lg" variant="soft">
-                {availabilityLabel(item.availability)}
+                {availabilityLabel(item)}
             </Chip>
         ),
         header: 'Status',
