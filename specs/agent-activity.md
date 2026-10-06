@@ -236,8 +236,17 @@ is still in flight.
 ### Agent activity history
 
 The Agent profile Activity tab reads the durable Server journal newest-first with pagination and
-groups it by turn. Each collapsed turn shows its duration, outcome, exact persisted message count,
-and exact Computer-reported totals by semantic operation category. These compact totals are part of
+groups it by turn under day headers (`Today`, `Yesterday`, `Oct 4`). Each collapsed turn is titled
+by its trigger — the first line of the waking message with its Chat as context (`#product`, or `DM`
+for a direct message, never the peer's name), or the kind of typed work (`Reminder`) — and its
+muted second line lists the actions taken, most telling first (`3 sub-agents · 2 file edits ·
+1 message`), from the exact Computer-reported totals by semantic operation category and the exact
+persisted message count. Duration and start time sit in right-aligned columns. Status shows only
+when it is news: failed, interrupted, or still working; a completed turn carries none. Consecutive
+failed turns with the same failure kind and trigger fold into one row with a count. When the
+trigger is private, unrecorded, or its message is unreadable to the viewer, the row shows no title
+and its action list stands in. Trigger messages are read once per list through a small rolling
+window of ordinary message reads, never one burst per row. These compact totals are part of
 the durable turn summary, so a settled row does not depend on every best-effort live activity frame
 having arrived. A run the Server resends after a Computer restart keeps its first start and the
 totals its lost launch settled (the Computer-local turn ledger), so duration and counts cover the
@@ -278,7 +287,11 @@ DM headers mirror global Agent status with concise text such as `Online`, `Worki
 Hovering or focusing an Agent avatar in the Chat transcript or an Agent rich
 reference opens one shared HeroUI hover card. It shows the Agent identity and
 global availability, current effective runtime and model, reasoning effort,
-and the newest five durable activity events in one compact summary.
+and its activity. While the Agent works, one live line names the current step on the turn's
+clock (`Running a command · 0:42`), a status line counts running sub-agents, and a short log lists
+the run's latest steps: settled steps in past tense, and a start only while it is still running, so
+stale `…ing` lines never pile up. While idle, it shows the last two turns, each titled by its
+trigger with its actions and relative time, repeated failures folded as in Activity History.
 The preview reads Server history and remains useful while Computer is offline;
 it never requests Computer-local execution evidence. Clicking the avatar or
 reference still opens the full Agent profile.

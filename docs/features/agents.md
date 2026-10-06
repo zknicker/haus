@@ -64,9 +64,9 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Below the header, six cards each state a fact and open a section: **Runs on** (Computer and
   model, with the Computer's health), **Profile** (who created the Agent and when, else its handle), **Automations**
   (standing reminders and triggers), **Skills** and **Connections** (the first display names, `+N` for the
-  rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity with consecutive
-  identical failures folded into one row (`Failed after 2m · 5× since …`) and **See all** into
-  Activity, and a compact 30-day processed-token tile linking to Usage.
+  rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity — each turn titled by the request that woke it, with the
+  actions it took, its duration, and its time, and consecutive identical failures folded into one
+  row (`Failed 5×`) — and **See all** into Activity, and a compact 30-day processed-token tile linking to Usage.
 - The profile's trail rides in the page's top band, in Settings' band shape: the Agent's face,
   then `Haus / Juniper / Connections`, the Agent crumb leading back to the hub. On the hub the trail
   ends at the Agent and titles the web band; a desktop tab already names the Agent, so there the
@@ -88,8 +88,9 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   lightweight; Agent and human profile routes load one focused detail record so profile refreshes
   do not rebuild the directory.
 - Clicking an Agent avatar in Chat opens its profile. Hover or keyboard focus previews the
-  Agent's current availability, compact runtime/model/reasoning configuration, and newest durable
-  activity; Agent reference chips use the same preview.
+  Agent's current availability, compact runtime/model/reasoning configuration, and activity: what
+  it is doing now with running sub-agents and the run's latest steps, or, while idle, its last two
+  turns; Agent reference chips use the same preview.
   The preview shows the Computer-confirmed configuration. When a saved model or runtime differs,
   it also names the pending choice and when it applies, or notes that it needs attention.
 - Automations is where the cause line on an Agent's message leads: pressing it
