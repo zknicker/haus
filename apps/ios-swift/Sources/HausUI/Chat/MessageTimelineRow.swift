@@ -24,7 +24,10 @@ struct MessageTimelineRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if showsReplyReference, let inlineReply = message.inlineReply {
+            // A fire is why the Agent spoke, so its line replaces a reply's.
+            if let cause = message.cause {
+                MessageCauseLine(cause: cause)
+            } else if showsReplyReference, let inlineReply = message.inlineReply {
                 InlineReplyPreview(
                     reference: inlineReply,
                     onOpen: { onOpenInlineReply(inlineReply) }

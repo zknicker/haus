@@ -55,6 +55,7 @@ public enum HausIconName: String, CaseIterable, Sendable {
     case permissions = "UserLock01Icon"
     case plus = "PlusSignIcon"
     case pullRequest = "GitPullRequestIcon"
+    case reminder = "Clock01Icon"
     case search = "Search01Icon"
     // Not `ArrowUp01Icon`, which is a bare chevron: the family numbers its
     // arrows by shape, not by weight, and only `02` carries a shaft.
@@ -66,6 +67,8 @@ public enum HausIconName: String, CaseIterable, Sendable {
     case skill = "AiSparklesIcon"
     case tasks = "CheckListIcon"
     case terminal = "CommandLineIcon"
+    case thread = "MessageMultiple02Icon"
+    case trigger = "FlashIcon"
     case video = "Video01Icon"
     case voice = "AudioWave01Icon"
     case website = "Globe02Icon"

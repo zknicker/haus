@@ -277,6 +277,7 @@ extension MentionPresentationKind {
         case .plugin: "Plugin"
         case .pullRequest: "Pull request"
         case .skill: "Skill"
+        case .thread: "Thread"
         case .website: "Website"
         }
     }

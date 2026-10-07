@@ -112,7 +112,8 @@ extension HausStore {
                 ).map(cloudAgentPresentation),
                 reactions: reactionPresentations(message.reactions),
                 richBlocks: richMessageBlocks(fenced.prose),
-                visualBody: fenced
+                visualBody: fenced,
+                cause: message.cause.flatMap(MessageCausePresentation.init)
             )
         }
     }
@@ -187,6 +188,8 @@ extension HausStore {
                     avatarURL: nil,
                     channelAppearance: ChannelAppearance(icon: chat.icon, color: chat.color)
                 )
+            case .thread:
+                return threadReferencePresentation(wireTarget: id)
             // No other kind names Server state, so the parser's own chip stands.
             default: return nil
             }

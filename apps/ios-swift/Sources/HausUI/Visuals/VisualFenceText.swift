@@ -22,6 +22,7 @@ extension VisualFence {
     /// Message content with every visual fence collapsed to its fallback text,
     /// so a one-line preview reads the visual's name instead of its markup.
     public static func previewText(_ content: String) -> String {
+        let content = ArtifactFence.previewText(content)
         let segments = split(content)
         guard segments.contains(where: { if case .visual = $0 { return true } else { return false } })
         else {

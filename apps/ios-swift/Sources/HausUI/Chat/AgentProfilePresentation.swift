@@ -25,17 +25,21 @@ public struct AgentProfilePresentation: Hashable, Sendable {
     public let description: String
     public let runtime: String
     public let model: String
+    /// Why the Server stopped waking this Agent on its own, while it has.
+    public let wakePause: AgentWakePausePresentation?
 
     public init(
         handle: String = "",
         description: String = "",
         runtime: String = "",
-        model: String = ""
+        model: String = "",
+        wakePause: AgentWakePausePresentation? = nil
     ) {
         self.handle = handle
         self.description = description
         self.runtime = runtime
         self.model = model
+        self.wakePause = wakePause
     }
 
     /// The `@handle` the hero shows under the Agent's name, or nothing.

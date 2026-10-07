@@ -189,6 +189,9 @@ final class RichMessageLinkCoordinator: NSObject, UITextViewDelegate {
         defaultAction: UIAction
     ) -> UIAction? {
         guard case .link(let url) = textItem.content else { return defaultAction }
+        if let route = InAppReferenceRoutes.action(for: url) {
+            return UIAction { _ in route() }
+        }
         return UIAction { _ in
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }

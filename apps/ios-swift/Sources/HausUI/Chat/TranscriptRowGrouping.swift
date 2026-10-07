@@ -20,7 +20,9 @@ struct TranscriptRowGrouping: Equatable {
         let repeatsReference = previous.map { Self.continuesReplyChain($0, message) } ?? false
         showsReplyReference = message.inlineReply != nil && !repeatsReference
 
-        guard let previous,
+        // A cause line sits above its message's identity, so that message
+        // always opens its own block.
+        guard let previous, message.cause == nil,
               previous.author.id == message.author.id,
               message.createdAt.timeIntervalSince(previous.createdAt) < Self.continuationWindow
         else {

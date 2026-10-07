@@ -10,6 +10,9 @@ import WebKit
 /// app state, and every navigation after the initial load is refused.
 struct VisualWebView: UIViewRepresentable {
     let document: String
+    /// An inline card leaves vertical scrolling to the transcript; a full
+    /// page (an artifact) scrolls itself.
+    var scrolls = false
     let onHeight: (CGFloat) -> Void
 
     /// Every visual frame shares one non-persistent store. A store per view is
@@ -39,8 +42,8 @@ struct VisualWebView: UIViewRepresentable {
         webView.allowsBackForwardNavigationGestures = false
         webView.isOpaque = false
         webView.backgroundColor = .clear
-        webView.scrollView.isScrollEnabled = false
-        webView.scrollView.bounces = false
+        webView.scrollView.isScrollEnabled = scrolls
+        webView.scrollView.bounces = scrolls
         webView.scrollView.backgroundColor = .clear
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         context.coordinator.load(document, into: webView)

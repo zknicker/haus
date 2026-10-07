@@ -66,6 +66,7 @@ extension AuthenticatedHausView {
             inlineReplies: inlineReplies(for: thread),
             onOpenAgent: openAgentFromThread,
             follow: threadFollow(for: thread),
+            engagementChatID: resolvedThreadChatID(for: thread),
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {

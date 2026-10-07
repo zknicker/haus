@@ -105,6 +105,8 @@ public struct ChatScreenView: View {
             // transcript never puts a sharp row below the composer, and the only rows that
             // reach it are the ones its glass is already refracting.
             .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                ChatComposerStatus(chatID: chat.durableChat?.id, peerAgentID: chat.kind.peerAgentID)
                 MessageComposerView(
                     text: $draft,
                     interaction: composerInteraction,
@@ -126,6 +128,7 @@ public struct ChatScreenView: View {
                 // the keyboard is still sliding in below them.
                 .animation(ComposerKeyboardMotion.travel, value: chatBottomInset)
                 .openingEntrance(.composer)
+                }
             }
             // The portal is drawn in an overlay window above the keyboard, measured against the
             // display rather than against this screen: the card keeps its full height and its gap
@@ -247,6 +250,10 @@ public struct ChatScreenView: View {
 }
 
 private extension ChatKind {
+    var peerAgentID: String? {
+        if case .agentDirectMessage(let agent) = self { agent.id } else { nil }
+    }
+
     var isChannel: Bool {
         if case .channel = self { true } else { false }
     }

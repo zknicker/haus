@@ -20,6 +20,9 @@ public struct ThreadDetailView: View {
     let onOpenAgent: (String) -> Void
     /// Nil until Server has a Thread row to follow.
     private let follow: ThreadFollow?
+    /// The Thread's own Chat, whose engaged Agents the typing strip shows.
+    /// Nil until the first reply creates it.
+    private let engagementChatID: String?
     /// The reply ids the transcript is showing. Read acknowledgement is built
     /// on this; the anchor and task rows carry no Server sequence, so the App
     /// simply cannot resolve them.
@@ -65,6 +68,7 @@ public struct ThreadDetailView: View {
         inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         follow: ThreadFollow? = nil,
+        engagementChatID: String? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
@@ -78,6 +82,7 @@ public struct ThreadDetailView: View {
         self.inlineReplies = inlineReplies
         self.onOpenAgent = onOpenAgent
         self.follow = follow
+        self.engagementChatID = engagementChatID
         self.onVisibleMessagesChange = onVisibleMessagesChange
     }
 
@@ -99,6 +104,7 @@ public struct ThreadDetailView: View {
         inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         follow: ThreadFollow? = nil,
+        engagementChatID: String? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
@@ -112,6 +118,7 @@ public struct ThreadDetailView: View {
         self.inlineReplies = inlineReplies
         self.onOpenAgent = onOpenAgent
         self.follow = follow
+        self.engagementChatID = engagementChatID
         self.onVisibleMessagesChange = onVisibleMessagesChange
     }
 
@@ -143,6 +150,8 @@ public struct ThreadDetailView: View {
                         if isReadOnly {
                             ThreadReadOnlyNotice()
                         } else {
+                            VStack(spacing: 0) {
+                            ChatComposerStatus(chatID: engagementChatID)
                             MessageComposerView(
                                 text: $draft,
                                 interaction: composerInteraction,
@@ -155,6 +164,7 @@ public struct ThreadDetailView: View {
                                     return await onSend(content, attachments)
                                 }
                             )
+                            }
                         }
                     }
             }
