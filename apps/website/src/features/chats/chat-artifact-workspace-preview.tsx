@@ -1,7 +1,7 @@
+import { agentHtmlSandbox } from '@haus/api/widgets/visual/frame';
 import { EmptyState } from '@heroui-pro/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { type ReactNode, useMemo } from 'react';
-import { agentHtmlSandbox } from '../../agent-html/sandbox.ts';
 import { agentHtmlTokenCss, injectHostTokenStyle } from '../../agent-html/tokens.ts';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

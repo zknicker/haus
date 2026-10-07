@@ -1,8 +1,8 @@
 /**
  * The CSS variables Haus hands to agent-authored HTML.
  *
- * Agent HTML renders in a frame with an opaque origin (see sandbox.ts), so it
- * cannot read the app's stylesheets. Instead each surface snapshots the
+ * Agent HTML renders in a frame with an opaque origin (`agentHtmlSandbox` in
+ * `@haus/api/widgets/visual/frame`), so it cannot read the app's stylesheets. Instead each surface snapshots the
  * resolved values of these tokens off the live document and injects them as a
  * `:root` block — that is what makes an agent-written page wear the app theme
  * in light and dark. Values resolve through `styles/artifact-tokens.css`,

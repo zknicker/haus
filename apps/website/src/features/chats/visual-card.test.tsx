@@ -1,13 +1,14 @@
 import { expect, test } from 'bun:test';
-import { renderToStaticMarkup } from 'react-dom/server';
 import {
     buildVisualSrcDoc,
-    VisualCard,
     visualD3Url,
     visualTopojsonClientUrl,
     visualUsAtlasStatesUrl,
     visualWorldAtlasCountriesUrl,
-} from './visual-card.tsx';
+} from '@haus/api/widgets/visual/frame';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { VisualCard } from './visual-card.tsx';
+import { visualHeightCache, visualIdentity } from './visual-height-cache.ts';
 
 /** The policy the sandbox document actually carries, read off its meta tag. */
 const cspOf = (doc: string) =>
@@ -28,7 +29,7 @@ test('renders a sandboxed opaque-origin iframe around the visual body', () => {
 });
 
 test('the sandbox document pins external sources to the exact CDN files', () => {
-    const doc = buildVisualSrcDoc('<div>chart</div>', '');
+    const doc = buildVisualSrcDoc('<div>chart</div>', '', 'dark');
 
     expect(doc).toContain('Content-Security-Policy');
     expect(cspOf(doc)).toBe(
@@ -48,7 +49,7 @@ test('the sandbox document pins external sources to the exact CDN files', () => 
 });
 
 test('the sandbox CSP names no other origin and no wildcard', () => {
-    const csp = cspOf(buildVisualSrcDoc('<div>map</div>', ''));
+    const csp = cspOf(buildVisualSrcDoc('<div>map</div>', '', 'dark'));
 
     expect(csp.match(/https?:\/\/[^\s;]+/g)).toEqual([
         visualD3Url,
@@ -72,13 +73,13 @@ test('every allowed CDN resource is pinned to an exact version and path', () => 
 });
 
 test('the sandbox fallback uses HeroUI body typography', () => {
-    const doc = buildVisualSrcDoc('<p>Body</p>', '');
+    const doc = buildVisualSrcDoc('<p>Body</p>', '', 'dark');
 
     expect(doc).toContain('font-size: var(--app-ui-font-size, 14px)');
 });
 
 test('the model body streams last so partial documents still parse', () => {
-    const doc = buildVisualSrcDoc('<div><h2>Par', '--foreground: #fff;');
+    const doc = buildVisualSrcDoc('<div><h2>Par', '--foreground: #fff;', 'dark');
 
     expect(doc.indexOf('haus-visual-size')).toBeLessThan(doc.indexOf('<div><h2>Par'));
     expect(doc.indexOf('--foreground: #fff;')).toBeLessThan(doc.indexOf('<div><h2>Par'));
@@ -95,13 +96,13 @@ test('malformed html still renders inside the sandbox instead of failing', () =>
 });
 
 test('the sandbox paints native controls with the frame accent, not the browser one', () => {
-    const doc = buildVisualSrcDoc('<input type="range">', '');
+    const doc = buildVisualSrcDoc('<input type="range">', '', 'dark');
 
     expect(doc).toContain('accent-color: var(--accent, currentColor)');
 });
 
 test('the sandbox pre-styles bare form controls in published tokens', () => {
-    const doc = buildVisualSrcDoc('<input><select></select><button>Go</button>', '');
+    const doc = buildVisualSrcDoc('<input><select></select><button>Go</button>', '', 'dark');
 
     // Field metrics: the control radius tier, a hairline edge, the surface
     // behind it, the control pad — every value a published name.
@@ -125,7 +126,7 @@ test('the sandbox pre-styles bare form controls in published tokens', () => {
 });
 
 test('the sandbox gives every table its own scroller before the first size report', () => {
-    const doc = buildVisualSrcDoc('<table><tr><td>wide</td></tr></table>', '');
+    const doc = buildVisualSrcDoc('<table><tr><td>wide</td></tr></table>', '', 'dark');
 
     expect(doc).toContain('data-haus-table-scroll');
     expect(doc).toContain('overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch;');
@@ -139,7 +140,7 @@ test('the sandbox gives every table its own scroller before the first size repor
 });
 
 test('the sandbox keeps a table caption visible while the table pans', () => {
-    const doc = buildVisualSrcDoc('<table><caption>Sales</caption></table>', '');
+    const doc = buildVisualSrcDoc('<table><caption>Sales</caption></table>', '', 'dark');
 
     // Sticky alone is not enough: a caption box is table-wide, so it has to
     // shrink to its content before `left: 0` has anything to hold on to.
@@ -147,4 +148,31 @@ test('the sandbox keeps a table caption visible while the table pans', () => {
     expect(doc).toContain(
         'caption { position: sticky; left: 0; width: max-content; max-width: 100%;'
     );
+});
+
+test('a never-seen visual reserves the fallback height', () => {
+    const markup = renderToStaticMarkup(<VisualCard html="<p>never seen before</p>" />);
+
+    expect(markup).toContain('height:240px');
+});
+
+test('a re-mounted visual reserves its last reported height before the frame reports', () => {
+    const html = '<section>quarterly report</section>';
+    visualHeightCache.record(visualIdentity(html), 736, 1432);
+
+    expect(renderToStaticMarkup(<VisualCard html={html} />)).toContain('height:1432px');
+});
+
+test('a streaming visual ignores the height cache', () => {
+    const html = '<section>still streaming</section>';
+    visualHeightCache.record(visualIdentity(html), 736, 1432);
+
+    expect(renderToStaticMarkup(<VisualCard html={html} open />)).toContain('height:240px');
+});
+
+test('a cached height stays inside the clamps', () => {
+    const html = '<section>tiny</section>';
+    visualHeightCache.record(visualIdentity(html), 736, 40);
+
+    expect(renderToStaticMarkup(<VisualCard html={html} />)).toContain('height:120px');
 });
