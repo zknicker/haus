@@ -49,7 +49,10 @@ extension HausStore {
     func setForegrounded(_ foregrounded: Bool) async {
         guard isForegrounded != foregrounded else { return }
         isForegrounded = foregrounded
-        if !foregrounded { backgroundedAt = Date() }
+        if !foregrounded {
+            backgroundedAt = Date()
+            await flushLaunchSnapshot()
+        }
         guard foregrounded, let openChatID else { return }
         await markChatReadIfNeeded(chatID: openChatID)
     }

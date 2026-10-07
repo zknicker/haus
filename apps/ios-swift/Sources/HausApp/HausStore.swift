@@ -10,8 +10,9 @@ import OSLog
 @Observable
 final class HausStore {
     static let logger = Logger(subsystem: "chat.haus.ios", category: "server")
-    private(set) var state: State = .idle
-    private(set) var isConnected = false
+    // Internal so the launch can live in `HausStoreServerReload.swift`.
+    var state: State = .idle
+    var isConnected = false
     // Internal so the batched snapshot apply can live with the rest of the
     // realtime plumbing.
     var servers: [ServerSummary] = []
@@ -92,6 +93,12 @@ final class HausStore {
     /// full snapshot while its streams are still up.
     @ObservationIgnored var backgroundedAt: Date?
     @ObservationIgnored var chatListRefresh: Task<Void, Never>?
+    // Launch (`HausStoreServerReload.swift`, `HausStoreLaunchSnapshot.swift`).
+    /// Whether a live load has replaced whatever the launch painted from disk.
+    @ObservationIgnored var hasLiveServerState = false
+    @ObservationIgnored var launchRetry: Task<Void, Never>?
+    @ObservationIgnored var launchSnapshotWrite: Task<Void, Never>?
+    let launchSnapshots = LaunchSnapshotStore.applicationSupport()
     @ObservationIgnored var chatListRefreshAgain = false
     var chatEventCatchUpInFlight = false
     var chatEventCatchUpPending = false
@@ -156,39 +163,6 @@ final class HausStore {
 
     var activeServer: ServerSummary? { servers.first }
 
-    func start() async {
-        guard case .idle = state else { return }
-        state = .loading
-        do {
-            if HausRuntimeConfiguration.development != nil {
-                let _: ServerSummary = try await client.mutation("server.developmentBootstrap")
-            }
-            let loadedServers: [ServerSummary] = try await client.query("server.list")
-            if activeServer?.id != loadedServers.first?.id {
-                resetInlineReplyCache()
-            }
-            servers = loadedServers
-            guard let server = loadedServers.first else {
-                state = .failed("You do not have a Haus Server yet.")
-                return
-            }
-            try await syncHumanIdentity(serverID: server.id)
-            try await reloadServer(server.id)
-            startEventStreams(serverID: server.id)
-            isConnected = true
-            state = .loaded
-        } catch {
-            state = .failed(error.localizedDescription)
-            isConnected = false
-        }
-    }
-
-    func retry() async {
-        stopEventStreams()
-        state = .idle
-        await start()
-    }
-
     /// Observation notifies on equal-value writes, so the event paths must not
     /// restate a connection they already have: doing so invalidated the root
     /// body once per SSE frame. `markDisconnected` is the same rule for the
@@ -220,6 +194,7 @@ final class HausStore {
         set {
             guard storedAgents != newValue else { return }
             storedAgents = newValue
+            scheduleLaunchSnapshotWrite()
             projections.retireAgents(newValue)
         }
     }
@@ -230,6 +205,7 @@ final class HausStore {
         set {
             guard storedMembers != newValue else { return }
             storedMembers = newValue
+            scheduleLaunchSnapshotWrite()
             projections.retireMembers(newValue?.members ?? [])
         }
     }
@@ -252,6 +228,7 @@ final class HausStore {
             if !hasLoadedChats { hasLoadedChats = true }
             guard storedChats != newValue else { return }
             storedChats = newValue
+            scheduleLaunchSnapshotWrite()
             projections.retireChatList(newValue)
         }
     }
@@ -272,6 +249,7 @@ final class HausStore {
             let changed = KeyedChanges.between(storedMessagesByChatID, newValue)
             guard !changed.isEmpty else { return }
             storedMessagesByChatID = newValue
+            scheduleLaunchSnapshotWrite()
             projections.retireMessages(chatIDs: changed)
         }
     }
