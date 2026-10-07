@@ -115,6 +115,16 @@ export function traceRowClass(
     );
 }
 
+/**
+ * The highlight fill — a hovered row, or a turn the overview points at. It
+ * wins over the danger tint: a failed row highlights like its neighbors and
+ * keeps only its red icon, bar, and leader. Bars ring in the fill, not the
+ * ground. The turn form rebinds the danger tint so its failed rows join in.
+ */
+export const traceRowHoverClass = 'hover:bg-default hover:[--trace-ring:var(--default)]';
+export const traceTurnHighlightClass =
+    'bg-default [--trace-ring:var(--default)] [--trace-row-danger:var(--default)]';
+
 export function TraceCells({ bars, line, slot, timing = null, tone = 'default' }: TraceCellsProps) {
     const layout = useTraceLayout();
     return (

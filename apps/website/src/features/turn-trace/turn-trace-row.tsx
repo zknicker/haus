@@ -8,6 +8,7 @@ import {
     TraceCells,
     type TraceCellsProps,
     traceRowClass,
+    traceRowHoverClass,
     useTraceDepthStyle,
     useTraceLayout,
 } from './turn-trace-grid.tsx';
@@ -24,7 +25,7 @@ export function TraceRow(props: TraceCellsProps) {
         <div
             className={cn(
                 traceRowClass(props.tone, layout),
-                layout === 'log' && props.tone !== 'danger' && traceRowHoverClass
+                layout === 'log' && traceRowHoverClass
             )}
             data-trace-row
             style={useTraceDepthStyle()}
@@ -61,10 +62,7 @@ export function TraceDisclosure({
         >
             <Disclosure.Heading>
                 <Disclosure.Trigger
-                    className={cn(
-                        traceRowClass(cells.tone, layout),
-                        cells.tone !== 'danger' && traceRowHoverClass
-                    )}
+                    className={cn(traceRowClass(cells.tone, layout), traceRowHoverClass)}
                     data-trace-row
                     style={useTraceDepthStyle()}
                 >
@@ -75,9 +73,6 @@ export function TraceDisclosure({
         </Disclosure>
     );
 }
-
-// A hovered row's bars ring in the hover fill, not the ground.
-const traceRowHoverClass = 'hover:bg-default hover:[--trace-ring:var(--default)]';
 
 /**
  * Icon, label, muted detail (the place it happened, or a script's first

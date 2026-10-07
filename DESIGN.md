@@ -884,7 +884,9 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   `--trace-quiet` (a muted wash: Haus bookkeeping, an interrupted step), with `danger` and
   `warning` for outcomes rather than a fourth hue. A host on another ground rebinds
   `--trace-ground` (the drawer to `--overlay`); a failed row's opaque `--trace-row-danger` fill
-  and tinted `--trace-leader-danger` derive from it per trace. Expanded bodies start on the
+  and tinted `--trace-leader-danger` derive from it per trace. A highlight (row hover, or a
+  turn the overview points at) wins over that fill: a failed row highlights like its neighbors
+  and keeps only its red icon, bar, and leader. Expanded bodies start on the
   row's label text and name each section with the one **micro label** tier — `xs`, medium,
   uppercase, `tracking-wide`, muted — over the code blocks' `surface-secondary` material at
   their `×2` radius, bounded to a readable height that scrolls. That tier is the page's only

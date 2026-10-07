@@ -4,7 +4,12 @@ import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import { readTurnTraceAxis } from '../../turn-trace/turn-trace.tsx';
-import { TraceNested, traceRowClass } from '../../turn-trace/turn-trace-grid.tsx';
+import {
+    TraceNested,
+    traceRowClass,
+    traceRowHoverClass,
+    traceTurnHighlightClass,
+} from '../../turn-trace/turn-trace-grid.tsx';
 import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
 import { TurnTraceScopeProvider } from '../../turn-trace/turn-trace-scope.tsx';
 import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
@@ -80,7 +85,7 @@ export function ActivityLogTurn({
         <div
             className={cn(
                 'grid min-w-0 scroll-mt-40 pt-1.5 pb-1 transition-colors duration-150 motion-reduce:transition-none',
-                isLinked && 'bg-default [--trace-ring:var(--default)]'
+                isLinked && traceTurnHighlightClass
             )}
             data-log-turn={turn.runId}
             onPointerLeave={() => hover.set(null)}
@@ -103,10 +108,7 @@ export function ActivityLogTurn({
                     <div className="group/turn-header relative">
                         <Disclosure.Heading>
                             <Disclosure.Trigger
-                                className={cn(
-                                    traceRowClass('default', 'log'),
-                                    'hover:bg-default hover:[--trace-ring:var(--default)]'
-                                )}
+                                className={cn(traceRowClass('default', 'log'), traceRowHoverClass)}
                                 data-log-header
                             >
                                 <time

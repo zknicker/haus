@@ -6,7 +6,15 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
 import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { TurnTraceFooter } from './turn-trace-footer.tsx';
-import { TraceBody, TraceNested, traceGridClass } from './turn-trace-grid.tsx';
+import {
+    TraceBody,
+    TraceLayoutProvider,
+    TraceNested,
+    traceGridClass,
+    traceRowHoverClass,
+    traceTurnHighlightClass,
+} from './turn-trace-grid.tsx';
+import { TraceRow } from './turn-trace-row.tsx';
 import { TurnTraceScopeProvider } from './turn-trace-scope.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { call, journal } from './turn-trace-test-fixtures.ts';
@@ -110,6 +118,28 @@ test('a failed row tints whole, with a danger bar and a danger leader', () => {
         tokens,
         /--trace-row-danger: color-mix\(in oklab, var\(--danger\) \d+%, var\(--trace-ground\)\)/
     );
+});
+
+test('the highlight fill wins over the danger tint, so a failed row highlights like its neighbors', () => {
+    // Direct hover: failed rows take the same hover fill and ring as any row;
+    // the hover variant outranks the resting tint.
+    const failed = render(nested).match(/<button[^>]*bg-trace-row-danger[^>]*>/g) ?? [];
+    assert.equal(failed.length, 2);
+    for (const row of failed) {
+        assert.ok(row.includes(traceRowHoverClass), row);
+    }
+    const leaf = renderToStaticMarkup(
+        <TraceLayoutProvider layout="log">
+            <TraceRow bars={[]} line="Ran a command" tone="danger" />
+        </TraceLayoutProvider>
+    );
+    assert.match(leaf, /bg-trace-row-danger/);
+    assert.ok(leaf.includes(traceRowHoverClass), leaf);
+    // Linked highlight: the turn rebinds the danger tint to its own fill, so
+    // a failed row's fill and bar ring match the rest of the turn.
+    assert.match(traceTurnHighlightClass, /(^| )bg-default( |$)/);
+    assert.ok(traceTurnHighlightClass.includes('[--trace-row-danger:var(--default)]'));
+    assert.ok(traceTurnHighlightClass.includes('[--trace-ring:var(--default)]'));
 });
 
 test('bodies open on the label text, and nested rows never sit inside one', () => {
