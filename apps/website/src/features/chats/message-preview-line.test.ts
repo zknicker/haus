@@ -90,6 +90,8 @@ test('a preview line reads Markdown escapes as the characters they protect', () 
 
 test('a preview line flattens bold, code, and links around escapes into one line', () => {
     expect(
-        messagePreviewLine('**Deploy** `bun run build \\&\\& ship`\nsee [the docs](https://haus.dev)')
+        messagePreviewLine(
+            '**Deploy** `bun run build` \\&\\& ship\nsee [the docs](https://haus.dev)'
+        )
     ).toBe('Deploy bun run build && ship see the docs');
 });
