@@ -4,6 +4,8 @@ import {
     type AgentExecutionOutlineStepKind,
     EXECUTION_OUTLINE_LABEL_MAX_CHARS,
     EXECUTION_OUTLINE_MAX_STEPS,
+    type ExecutionToolKind,
+    readExecutionToolKind,
 } from '@haus/api';
 import {
     type ComputerToolClassification,
@@ -24,8 +26,8 @@ const maxDepth = 16;
 
 /**
  * The compact skeleton of one stored journal: each tool call and reasoning
- * block as a kind, a scrubbed label, its place in the sub-agent tree, and its
- * timing. Labels come from the same scrubbing that action thoughts use (ADR
+ * block as a kind (a tool call also as the trace's call kind), a scrubbed
+ * label, its place in the sub-agent tree, and its timing. Labels come from the same scrubbing that action thoughts use (ADR
  * 0036), so no tool input, output, report, or reasoning text leaves here.
  * Top-level steps are kept first when a run has more than the cap.
  */
@@ -78,6 +80,7 @@ interface Draft {
     startMs: number;
     status: AgentExecutionOutlineStep['status'];
     subagentLabel?: string;
+    toolKind?: ExecutionToolKind;
 }
 
 interface Tree {
@@ -106,6 +109,7 @@ function draftTool(tool: ComputerExecutionJournalTool, tree: Tree): Draft {
         ...(tool.parentToolCallId ? { parentId: tool.parentToolCallId } : {}),
         startMs,
         status: tool.status,
+        ...(kind === 'tool' ? { toolKind: readExecutionToolKind(tool.toolName) } : {}),
         ...(tool.subagent
             ? {
                   failedToolCount: tree.failedChildren.get(tool.toolCallId) ?? 0,
@@ -135,6 +139,7 @@ function toStep(draft: Draft, origin: number): AgentExecutionOutlineStep {
                       label: draft.subagentLabel,
                   },
               }),
+        ...(draft.toolKind === undefined ? {} : { toolKind: draft.toolKind }),
     };
 }
 

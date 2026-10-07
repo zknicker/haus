@@ -97,13 +97,13 @@ test('outlines steps by kind, tree, and timing without any free-text bodies', ()
         runId: 'run_outline',
         status: 'completed',
     });
-    expect(outline.steps.map((step) => [step.id, step.kind, step.depth])).toEqual([
-        ['think_1', 'reasoning', 0],
-        ['call_shell', 'tool', 0],
-        ['call_haus', 'bookkeeping', 0],
-        ['call_agent', 'subagent', 0],
-        ['call_child', 'tool', 1],
-        ['call_open', 'tool', 0],
+    expect(outline.steps.map((step) => [step.id, step.kind, step.depth, step.toolKind])).toEqual([
+        ['think_1', 'reasoning', 0, undefined],
+        ['call_shell', 'tool', 0, 'shell'],
+        ['call_haus', 'bookkeeping', 0, undefined],
+        ['call_agent', 'subagent', 0, undefined],
+        ['call_child', 'tool', 1, 'file-read'],
+        ['call_open', 'tool', 0, 'shell'],
     ]);
     const byId = new Map(outline.steps.map((step) => [step.id, step]));
     expect(byId.get('call_shell')).toMatchObject({ durationMs: 2000, startOffsetMs: 1000 });
@@ -169,4 +169,23 @@ test('caps steps, keeping top-level steps first, and clips long labels', () => {
     for (const step of outline.steps) {
         expect(step.label.length).toBeLessThanOrEqual(EXECUTION_OUTLINE_LABEL_MAX_CHARS);
     }
+});
+
+test('a tool step names its call kind as the turn trace classifies it', () => {
+    const outline = outlineExecutionJournal({
+        ...document,
+        reasoning: [],
+        tools: [
+            tool({ input: { url: 'https://haus.dev' }, toolCallId: 'web', toolName: 'WebFetch' }),
+            tool({ input: { prompt: 'a ghost' }, toolCallId: 'image', toolName: 'image_gen' }),
+            tool({ input: {}, toolCallId: 'mcp', toolName: 'mcp__linear__list_issues' }),
+            tool({ input: { x: 1 }, toolCallId: 'other', toolName: 'spreadsheet' }),
+        ],
+    });
+    expect(Object.fromEntries(outline.steps.map((step) => [step.id, step.toolKind]))).toEqual({
+        image: 'image',
+        mcp: 'mcp',
+        other: 'generic',
+        web: 'web',
+    });
 });
