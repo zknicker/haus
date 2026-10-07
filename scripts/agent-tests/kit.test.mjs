@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createAgentInputSchema } from '../../packages/haus-api/src/agent.ts';
+import { createAgentInputSchema } from '../../packages/haus-api/src/agent-creation.ts';
 import { chunkChatIds, expandEvalCleanupChatIds } from './cleanup-chats.mjs';
 import { marker } from './kit.mjs';
 import {
