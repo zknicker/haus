@@ -5,7 +5,7 @@ test('the Inbox family entry teaches the unread-conversation list in Raft 26f77e
     const prompt = renderPrompt();
 
     expect(prompt).toContain(
-        '4. **Inbox** — `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, threads), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <seq>` from the `More:` line pages.'
+        '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, threads), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <seq>` from the `More:` line pages.'
     );
 });
 
