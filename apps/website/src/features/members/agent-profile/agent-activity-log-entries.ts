@@ -1,6 +1,6 @@
 import type { AgentExecutionOutline, AgentExecutionOutlineStep } from '@haus/api';
 import type { TraceBarKind } from '../../turn-trace/turn-trace-grid.tsx';
-import { traceStepKind } from '../../turn-trace/turn-trace-kind.ts';
+import { traceStepKind, traceToolKind } from '../../turn-trace/turn-trace-kind.ts';
 import type { TurnTraceStep } from '../../turn-trace/turn-trace-step-types.ts';
 import type { TurnTraceStatus } from '../../turn-trace/turn-trace-tool-model.ts';
 import type { TimelineStatus } from './agent-activity-log-overview-model.ts';
@@ -102,9 +102,8 @@ export function readStepMarks(steps: readonly TurnTraceStep[], axisMs: number): 
 /**
  * An unread turn's top-level steps from its Computer outline, toned as
  * {@link readStepMarks} tones a read trace: bookkeeping Haus, reasoning
- * thinking, a sub-agent its own hue (a warning when its calls failed). An
- * outline names no tool kind, so its calls take the general tool hue until
- * the turn is read.
+ * thinking, a sub-agent its own hue (a warning when its calls failed), and a
+ * call by the kind the Computer classified it with, the trace's own classifier.
  */
 export function readOutlineMarks(outline: AgentExecutionOutline, turnMs: number): StepMark[] {
     const axisMs = Math.max(outline.durationMs, turnMs);
@@ -114,19 +113,25 @@ export function readOutlineMarks(outline: AgentExecutionOutline, turnMs: number)
     return outline.steps
         .filter((step) => step.depth === 0)
         .map((step) => ({
-            kind: outlineBarKinds[step.kind],
+            kind: readOutlineKind(step),
             start: Math.min(1, step.startOffsetMs / axisMs),
             status: readOutlineStatus(step),
             width: Math.min(1, (step.durationMs ?? 0) / axisMs),
         }));
 }
 
-const outlineBarKinds: Record<AgentExecutionOutlineStep['kind'], TraceBarKind> = {
-    bookkeeping: 'haus',
-    reasoning: 'thinking',
-    subagent: 'subagent',
-    tool: 'tool',
-};
+function readOutlineKind(step: AgentExecutionOutlineStep): TraceBarKind {
+    switch (step.kind) {
+        case 'bookkeeping':
+            return 'haus';
+        case 'reasoning':
+            return 'thinking';
+        case 'subagent':
+            return 'subagent';
+        case 'tool':
+            return step.toolKind ? traceToolKind(step.toolKind) : 'tool';
+    }
+}
 
 function readOutlineStatus(step: AgentExecutionOutlineStep): TurnTraceStatus {
     return step.status === 'completed' && (step.subagent?.failedToolCount ?? 0) > 0

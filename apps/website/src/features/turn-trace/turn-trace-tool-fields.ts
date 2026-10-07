@@ -1,19 +1,7 @@
+import { type ExecutionToolKind, readExecutionToolKind } from '@haus/api';
 import { readString } from './turn-trace-values.ts';
 
-export type TurnTraceToolKind =
-    | 'compaction'
-    | 'file-change'
-    | 'file-edit'
-    | 'file-read'
-    | 'file-write'
-    | 'generic'
-    | 'image'
-    | 'mcp'
-    | 'message'
-    | 'search'
-    | 'shell'
-    | 'subagent'
-    | 'web';
+export type TurnTraceToolKind = ExecutionToolKind;
 
 /** Typed fields parsed out of one journal tool's runtime-shaped input. */
 export interface TurnTraceToolFields {
@@ -50,42 +38,8 @@ export const blankToolFields = {
     url: null,
 } as const;
 
-/**
- * Wire names, lowercased. `compaction` and `filechange` are the reserved names
- * the AI SDK harness projects its own runtime events under; they carry no
- * result worth a generic dump.
- */
-const toolKindsByName: Record<string, TurnTraceToolKind> = {
-    bash: 'shell',
-    browser: 'web',
-    command: 'shell',
-    compaction: 'compaction',
-    filechange: 'file-change',
-    edit: 'file-edit',
-    exec: 'shell',
-    glob: 'search',
-    grep: 'search',
-    // Codex and Grok Build native media tools (Computer `generated-images.ts`).
-    image_edit: 'image',
-    image_gen: 'image',
-    image_to_video: 'image',
-    message: 'message',
-    multiedit: 'file-edit',
-    read: 'file-read',
-    reference_to_video: 'image',
-    send_message: 'message',
-    shell: 'shell',
-    terminal: 'shell',
-    web_fetch: 'web',
-    web_search: 'web',
-    webfetch: 'web',
-    websearch: 'web',
-    write: 'file-write',
-    zsh: 'shell',
-};
-
 export function readToolFields(name: string, input: Record<string, unknown>): TurnTraceToolFields {
-    const kind = readToolKind(name.toLowerCase());
+    const kind = readExecutionToolKind(name);
 
     switch (kind) {
         case 'file-change':
@@ -138,13 +92,6 @@ export function readToolFields(name: string, input: Record<string, unknown>): Tu
         default:
             return { ...blankToolFields, inputKeys: Object.keys(input).slice(0, 3), kind };
     }
-}
-
-function readToolKind(normalized: string): TurnTraceToolKind {
-    if (normalized.startsWith('mcp__')) {
-        return 'mcp';
-    }
-    return toolKindsByName[normalized] ?? 'generic';
 }
 
 /** `mcp__<connection>__<tool>_<hash>` — the trailing hex hash is noise here. */

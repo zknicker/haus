@@ -162,7 +162,7 @@ function entry(
     return { agent, row: { count: 1, latest: turn, since: iso }, title: { kind: 'none' } };
 }
 
-test('an outline draws top-level marks on the turn axis, toned like a read trace', () => {
+test('an outline draws top-level marks on the turn axis, toned by kind like a read trace', () => {
     const marks = readOutlineMarks(
         {
             durationMs: 8000,
@@ -207,6 +207,7 @@ test('an outline draws top-level marks on the turn axis, toned like a read trace
                     parentId: 's',
                     startOffsetMs: 2500,
                     status: 'failed',
+                    toolKind: 'file-read',
                 },
                 {
                     depth: 0,
@@ -215,7 +216,20 @@ test('an outline draws top-level marks on the turn axis, toned like a read trace
                     label: 'bash',
                     startOffsetMs: 6000,
                     status: 'failed',
+                    toolKind: 'shell',
                 },
+                ...(['web', 'image', 'file-edit', 'mcp', 'generic'] as const).map(
+                    (toolKind, index) => ({
+                        depth: 0,
+                        durationMs: 100,
+                        id: `k${index}`,
+                        kind: 'tool' as const,
+                        label: toolKind,
+                        startOffsetMs: 7000 + index * 100,
+                        status: 'completed' as const,
+                        toolKind,
+                    })
+                ),
             ],
         },
         10_000
@@ -224,7 +238,13 @@ test('an outline draws top-level marks on the turn axis, toned like a read trace
         { kind: 'thinking', start: 0, status: 'completed', width: 0.1 },
         { kind: 'haus', start: 0.1, status: 'completed', width: 0.05 },
         { kind: 'subagent', start: 0.2, status: 'warning', width: 0.4 },
-        { kind: 'tool', start: 0.6, status: 'failed', width: 0 },
+        { kind: 'shell', start: 0.6, status: 'failed', width: 0 },
+        { kind: 'web', start: 0.7, status: 'completed', width: 0.01 },
+        { kind: 'media', start: 0.71, status: 'completed', width: 0.01 },
+        { kind: 'file', start: 0.72, status: 'completed', width: 0.01 },
+        // An MCP or unrecognized call keeps the general tool hue, as in a read trace.
+        { kind: 'tool', start: 0.73, status: 'completed', width: 0.01 },
+        { kind: 'tool', start: 0.74, status: 'completed', width: 0.01 },
     ]);
 });
 
