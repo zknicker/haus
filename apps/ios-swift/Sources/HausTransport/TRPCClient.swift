@@ -3,7 +3,11 @@ import Foundation
 /// A small, dependency-free client for the subset of tRPC used by the iPhone
 /// app. Queries and mutations intentionally use one POST per operation; this
 /// mirrors the existing App client's `methodOverride: 'POST'` configuration.
-public actor TRPCClient {
+///
+/// Not an actor: every stored property is immutable and Sendable, so requests,
+/// SSE consumption, and JSON decoding run concurrently on the cooperative pool
+/// instead of queueing behind one another on a single executor.
+public final class TRPCClient: Sendable {
     let config: AppConfig
     let sessionTokenProvider: any SessionTokenProvider
     let session: URLSession

@@ -260,7 +260,7 @@ final class TRPCClientTests: XCTestCase {
         )
 
         var values: [SubscriptionOutput] = []
-        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = await client.subscribe(
+        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
             "chat.onEvent",
             input: SubscriptionInput(serverID: "srv_123"),
             options: TRPCSubscriptionOptions(reconnect: false)
@@ -270,6 +270,44 @@ final class TRPCClientTests: XCTestCase {
         }
 
         XCTAssertEqual(values, [SubscriptionOutput(kind: "message", text: "hello")])
+    }
+
+    func testSubscriptionAcceptsEnvelopeAndBareFramesInOneStream() async throws {
+        StubURLProtocol.requestHandler = { _ in
+            let body = """
+            data: {"id":"1","data":{"kind":"message","text":"enveloped"}}
+
+            data: {"kind":"message","text":"bare"}
+
+            event: return
+            data:
+
+            """
+            return response(
+                headers: ["Content-Type": "text/event-stream"],
+                data: Data(body.utf8)
+            )
+        }
+        let client = TRPCClient(
+            config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
+            sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
+            session: makeStubSession()
+        )
+
+        var values: [SubscriptionOutput] = []
+        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
+            "chat.onEvent",
+            input: SubscriptionInput(serverID: "srv_123"),
+            options: TRPCSubscriptionOptions(reconnect: false)
+        )
+        for try await value in stream {
+            values.append(value)
+        }
+
+        XCTAssertEqual(values, [
+            SubscriptionOutput(kind: "message", text: "enveloped"),
+            SubscriptionOutput(kind: "message", text: "bare"),
+        ])
     }
 
     func testSubscriptionCallsOnConnectedAfterEachReconnect() async throws {
@@ -294,7 +332,7 @@ final class TRPCClientTests: XCTestCase {
             session: makeStubSession()
         )
 
-        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = await client.subscribe(
+        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
             "chat.onEvent",
             input: SubscriptionInput(serverID: "srv_123"),
             options: TRPCSubscriptionOptions(
