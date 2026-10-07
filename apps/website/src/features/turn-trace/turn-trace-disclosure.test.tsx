@@ -5,7 +5,7 @@ import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api
 import { DisclosureGroup } from 'react-aria-components';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
-import { readReasoning, shouldFoldReasoning } from './turn-trace-reasoning.tsx';
+import { readReasoning } from './turn-trace-reasoning.tsx';
 import { turnTraceRevealTransition } from './turn-trace-reveal.tsx';
 
 const theme = readFileSync(new URL('../../styles/default-theme.css', import.meta.url), 'utf8');
@@ -92,28 +92,28 @@ test('a titled thought leads with its title and keeps its prose', () => {
     });
 });
 
-test('only a long thought folds, behind a button that names what it controls', () => {
-    const short = 'Weighing du against find.';
+test('a thought is one closed row like any step, its first line as detail', () => {
     const long = Array.from({ length: 6 }, () => 'A considered sentence about options. '.repeat(4))
         .join('\n\n')
         .trim();
-    assert.equal(shouldFoldReasoning(short), false);
-    assert.equal(shouldFoldReasoning(long), true);
-
     const markup = render(
         journal({
             reasoning: [
-                { id: 'short', startedAt: at(1), text: short },
+                { id: 'titled', startedAt: at(1), text: '**Weighing tools**\n\nDu or find.' },
                 { id: 'long', startedAt: at(2), text: long },
+                { id: 'bare', startedAt: at(3), text: '**Only a title**' },
             ],
         })
     );
-    const toggles = markup.match(/<button[^>]*>Show more<\/button>/g) ?? [];
-    assert.equal(toggles.length, 1);
-    assert.match(toggles[0] ?? '', /aria-expanded="false"/);
-    const controls = toggles[0]?.match(/aria-controls="([^"]+)"/)?.[1];
-    assert.ok(controls);
-    assert.match(markup, new RegExp(`id="${controls}"`));
+    // No fold, no fade, no Show more: each thought with prose is a closed disclosure.
+    assert.doesNotMatch(markup, /Show more|scroll-fade-b/);
+    const triggers = markup.match(/<button[^>]*aria-expanded="false"[^>]*>/g) ?? [];
+    assert.equal(triggers.length, 2);
+    assert.match(markup, />Weighing tools<\/span><span[^>]*>Du or find\.</);
+    assert.match(markup, />Thought<\/span><span[^>]*>A considered sentence/);
+    // A title with no prose has nothing to open.
+    assert.match(markup, />Only a title</);
+    assert.doesNotMatch(markup, /chat-markdown/);
 });
 
 test('trace content reveals on a no-bounce spring, and at once under reduced motion', () => {

@@ -71,9 +71,9 @@ export function TraceDisclosure({
 }
 
 /**
- * Icon, label, the muted place it happened, and any trailing fact. On a
- * narrow label column the meta gives way first, then the directory; the
- * label and an alert keep their width. A running label shimmers.
+ * Icon, label, muted detail (the place it happened, or a script's first
+ * line), and any trailing fact. On a narrow label column the meta gives way
+ * first, then the detail; the label and an alert keep their width. A running label shimmers.
  */
 export function TraceLine({
     alert,
@@ -99,6 +99,9 @@ export function TraceLine({
         <span
             className={cn(
                 'min-w-0 truncate',
+                // Beside detail the label holds its width: flex shrinks by
+                // width, so a long detail would otherwise clip a short label.
+                detail && 'max-w-full shrink-0',
                 !(isRunning || isQuiet) && 'text-foreground',
                 isQuiet && !isRunning && 'text-muted'
             )}
