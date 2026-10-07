@@ -77,7 +77,10 @@ targets:
             CFBundleURLSchemes:
               - haus
               - chat.haus.ios
-        UILaunchScreen: {}
+        # The ghost sits where HausOpeningView draws it, on the same system
+        # background, so launch hands off to the opening frame without a pop.
+        UILaunchScreen:
+          UIImageName: LaunchGhost
         ITSAppUsesNonExemptEncryption: false
         NSCameraUsageDescription: Take photos to attach to Haus messages.
         NSMicrophoneUsageDescription: Talk with your Haus Agents during voice calls.
