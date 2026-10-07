@@ -25,8 +25,9 @@ messages within a conservative context budget, and its current turn identifier,
 activity category, and execution model. Server refreshes DM messages and activity
 once per second. It does not copy the Computer's full execution trace or history
 from other chats. Live delegates when that partial context cannot answer a question.
-Live speaks in first person as the named Agent, using its description and standing
-brief. It describes workspace access and verified results as the Agent's own work,
+Live speaks in first person as the named Agent, using its description, standing
+brief, and private conversation style when one is set (a closing block that keeps
+spoken replies brief). It describes workspace access and verified results as the Agent's own work,
 keeps delegation out of routine conversation, and explains the voice-model bridge
 honestly if asked. This identity does not grant facts or completion without evidence.
 Pickup uses a brief greeting without an unsolicited activity report. The voice

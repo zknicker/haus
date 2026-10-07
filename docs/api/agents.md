@@ -4,6 +4,7 @@ read_when:
   - changing Agent CRUD, execution configuration, Computer reports, or managed Agent routes
   - reading Agent turn records or the delivery ledger
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
+  - changing an Agent's conversation style, signature emoji, or self-profile update
 ---
 
 # Agents API
@@ -46,7 +47,7 @@ resume compatibility identity and requires rotation. Computer stops a parked nat
 differs (or is unknown), then resumes its saved session with a newly configured adapter. The new
 effort remains fixed throughout that turn, including tool continuations.
 
-## Description And Personality
+## Description, Conversation Style, And Signature Emoji
 
 Every description write — `agent.create`, `agent.updateProfile`, `haus agent create`,
 `haus agent update`, and `haus profile update` — is capped at 280 characters after trimming
@@ -57,12 +58,25 @@ shortened in place. The cap applies only to a new or changed value: the update p
 500 characters on the wire and pass a description equal to the stored one, because clients such
 as iOS resend it with every profile save (`isAgentDescriptionWriteAllowed`).
 
-`personality` (up to 2000 characters, optional) is how the Agent talks. Only Owners and Admins
-read it (`agent.personality`) or write it (`agent.updateProfile`, where omitting the field leaves
-it unchanged and blank clears it); Cove refuses it like the rest of its identity. It is absent from
-the `Agent` projection, every Agent route, rosters, envelopes, and `agent-configure` frames. It
-reaches the assigned Computer only as `agentPersonality` on the `start` frame, which renders it as
-the prompt's closing `## Personality` section.
+Every Agent's prompt carries a built-in house `## Personality` section; it is product text, not
+stored per Agent. On top of it, each Agent has two optional private fields:
+
+- `conversationStyle` (up to 2000 characters): a voice and banter layer. Blank or `null` clears it.
+- `signatureEmoji` (exactly one emoji, stored fully qualified): the reaction the Agent uses when it
+  picks up a request that needs real work. `null` means the Computer default, 👀.
+
+Owners and Admins read both with `agent.conversationStyle` and write them with
+`agent.updateConversationStyle`; an absent field stays as it is. `agent.updateProfile` does not
+carry them. The Agent reads its own pair in `haus profile show` (`GET /api/agent/profile`, self
+only) and writes it with `haus profile update` (`POST /api/agent/profile/update`, which also takes
+`description`). The runner token fixes the Agent, so that route changes only the caller, and one
+transaction applies every field or none. Cove refuses a conversation style but accepts an emoji.
+Neither field appears in the `Agent` projection, rosters, envelopes, `agent-configure` frames, or
+another Agent's profile view.
+
+They reach the assigned Computer only on the `start` frame, as `agentConversationStyle` and
+`agentSignatureEmoji`. The prompt renders the house `## Personality` right after `## Who you are`,
+then `## Conversation style` when one is set, and names the signature emoji in the pickup rule.
 
 ## Turn And Delivery Observability
 

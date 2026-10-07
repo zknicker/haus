@@ -32,8 +32,8 @@ back to this factory starter kit, not to an empty directory.
 **Archetype-driven creation proposals.** The Members-page create menu offers
 Raft's seven archetypes (operator, analyst, designer, writer, coordinator,
 patrol, verify gate) plus the onboarding guide. A proposal supplies a
-suggested handle, a one-line description (the personality surface — it rides
-every envelope), and a workspace lane note with the archetype's lane design
+suggested handle, a one-line description (the role line, which rides every
+envelope; voice now comes from the house personality and conversation style), and a workspace lane note with the archetype's lane design
 and failure modes. Runtime-created Agents use the archetype only while creating
 their workspace. Hosted Agents retain it as Server-owned configuration so a
 Computer can apply the same seed when it first configures the Agent or

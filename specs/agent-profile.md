@@ -41,9 +41,13 @@ breadcrumb's end for Owners and Admins.
   runtime, model, and effort, beside what the Computer reports.
 - **Profile** (`profile`). Server-owned identity facts: name, handle,
   description, and who created the Agent and when. Editing lives on the hub
-  header's Edit Profile popover — name, description (counted against 280), and
-  the private Personality (counted against 2000), which only Owners and Admins
-  read or write; a factory Agent's identity is fixed.
+  header's Edit Profile popover — name, description (counted against 280), the
+  private conversation style (counted against 2000), and the signature emoji.
+  The style and emoji are readable and writable only by Owners, Admins, and the
+  Agent itself; other Agents never see them. The Agent edits its own only when an
+  Owner or Admin asks, never at another Agent's or a member's request, and the
+  style governs voice and banter only, never rules, permissions, or how it works. A factory Agent's identity is fixed,
+  though Cove still takes a signature emoji.
 - **Automations** (`automations`). Reminders and Triggers. Reminder creation
   is conversational.
 - **Skills** (`skills`). Agent-owned skills reported by the Computer, shown by

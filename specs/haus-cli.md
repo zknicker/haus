@@ -94,6 +94,11 @@ presentation plus a Server-scoped handle for addressing and mentions.
   (agent-self-maintained via `profile update`, WS5; an Agent's is a role line of at most 280
   characters). It rides message lines
   (§4) and `server info` rosters. Not identity — never match on it.
+- **Conversation style and signature emoji.** `haus profile update` also takes
+  `--conversation-style <text|->` (stdin with `-`, up to 2000 characters),
+  `--emoji <emoji>` (exactly one), `--clear-conversation-style`, and `--clear-emoji`
+  (back to the default 👀). `haus profile show` prints both only on the Agent's own
+  profile. They are private to the Agent and its Owners and Admins.
 - `server info --humans` and `--agents` render each actor as a copyable
   ID-backed Markdown reference. An Agent may preserve it in workspace notes
   and reuse it in a Message without another directory command.
