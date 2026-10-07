@@ -6,6 +6,7 @@ import type {
     TurnTraceHausStep,
     TurnTraceStep,
     TurnTraceSubagentStep,
+    TurnTraceThoughtStep,
 } from './turn-trace-step-types.ts';
 import {
     assignLanes,
@@ -17,8 +18,8 @@ import {
 import type { TurnTraceStatus, TurnTraceTool } from './turn-trace-tool-model.ts';
 
 /**
- * Steps from the flat trace. Title-only reasoning rides the next step as its
- * caption instead of breaking it apart; bookkeeping lifts out to where it
+ * Steps from the flat trace. A run of title-only reasoning is one Thought
+ * step at its place in time; bookkeeping lifts out to where it
  * first happened (unless bookkeeping is all the turn did), as one Haus step
  * when there are several calls and as the call itself when there is one;
  * consecutive same-kind calls fold; overlapping siblings share lanes.
@@ -64,69 +65,79 @@ function toFlatSteps(entries: readonly TurnTraceEntry[], clock: TraceClock): Tur
     for (const entry of entries) {
         const titles = entry.kind === 'reasoning' ? readThoughtTitles(entry.reasoning.text) : null;
         if (entry.kind === 'reasoning' && titles) {
-            pending = extendThought(pending, entry, entry.isStreaming, titles);
+            pending = extendThought(pending, entry, titles);
             continue;
         }
-        const thoughts = pending?.titles ?? [];
-        pending = null;
-        steps.push(toStep(entry, thoughts, clock));
+        if (pending) {
+            steps.push(toThoughtStep(pending, clock));
+            pending = null;
+        }
+        steps.push(toStep(entry, clock));
     }
     const tail = pending as PendingThought | null;
     if (tail) {
-        const timing = readTiming(tail.entry.at, undefined, tail.isStreaming, clock);
-        steps.push({
-            ...base(`thought:${tail.entry.key}`, timing, tail.titles),
-            isStreaming: tail.isStreaming,
-            kind: 'thought',
-        });
+        steps.push(toThoughtStep(tail, clock));
     }
     return steps;
 }
 
 function extendThought(
     pending: PendingThought | null,
-    entry: TurnTraceEntry,
-    isStreaming: boolean,
+    entry: ReasoningEntry,
     titles: readonly string[]
 ): PendingThought {
     return {
-        entry: pending?.entry ?? entry,
-        isStreaming,
+        first: pending?.first ?? entry,
+        last: entry,
         titles: [...(pending?.titles ?? []), ...titles],
     };
 }
 
+/** One Thought row for a run of titles: from the first block's start to the last one's end. */
+function toThoughtStep(pending: PendingThought, clock: TraceClock): TurnTraceThoughtStep {
+    const { first, last, titles } = pending;
+    const timing = readTiming(
+        first.reasoning.startedAt,
+        last.reasoning.endedAt,
+        last.isStreaming,
+        clock
+    );
+    return {
+        ...base(`thought:${first.key}`, timing),
+        isStreaming: last.isStreaming,
+        kind: 'thought',
+        thoughts: titles,
+    };
+}
+
+type ReasoningEntry = Extract<TurnTraceEntry, { kind: 'reasoning' }>;
+
 interface PendingThought {
-    readonly entry: TurnTraceEntry;
-    readonly isStreaming: boolean;
+    readonly first: ReasoningEntry;
+    readonly last: ReasoningEntry;
     readonly titles: readonly string[];
 }
 
-function toStep(
-    entry: TurnTraceEntry,
-    thoughts: readonly string[],
-    clock: TraceClock
-): TurnTraceStep {
+function toStep(entry: TurnTraceEntry, clock: TraceClock): TurnTraceStep {
     if (entry.kind === 'event') {
         const timing = readTiming(entry.at, entry.at, false, clock);
-        return { ...base(entry.key, timing, thoughts), event: entry.event, kind: 'event' };
+        return { ...base(entry.key, timing), event: entry.event, kind: 'event' };
     }
     if (entry.kind === 'reasoning') {
         const { reasoning } = entry;
         const timing = readTiming(reasoning.startedAt, reasoning.endedAt, entry.isStreaming, clock);
         return {
-            ...base(entry.key, timing, thoughts),
+            ...base(entry.key, timing),
             isStreaming: entry.isStreaming,
             kind: 'reasoning',
             reasoning,
         };
     }
-    return toToolStep(entry.tool, thoughts, clock);
+    return toToolStep(entry.tool, clock);
 }
 
 function toToolStep(
     tool: TurnTraceTool,
-    thoughts: readonly string[],
     clock: TraceClock
 ): TurnTraceCallStep | TurnTraceSubagentStep {
     const { source } = tool;
@@ -134,7 +145,7 @@ function toToolStep(
     const endedAt = source.subagent?.endedAt ?? source.endedAt;
     const timing = readTiming(startedAt, endedAt, tool.status === 'running', clock);
     const common = {
-        ...base(`tool:${source.toolCallId}`, timing, thoughts),
+        ...base(`tool:${source.toolCallId}`, timing),
         label: tool.label,
         status: tool.status,
         tool,
@@ -195,11 +206,10 @@ function toFoldStep(members: readonly TurnTraceCallStep[]): TurnTraceFoldStep {
         members.map((member) => member.tool)
     );
     const lanes = assignLanes(members.map((member) => member.timing));
-    const thoughts = members.flatMap((member) => member.thoughts);
     return {
         // The first call's key: a live call that gains a same-kind sibling
         // becomes this fold in place instead of leaving and re-entering.
-        ...base(first.key, spanTimings(members.map((member) => member.timing)), thoughts),
+        ...base(first.key, spanTimings(members.map((member) => member.timing))),
         isParallel: lanes.every((lane) => lane !== null),
         kind: 'fold',
         label: status === 'running' ? labels.present : labels.past,
@@ -213,7 +223,7 @@ function toHausStep(members: readonly TurnTraceCallStep[]): TurnTraceHausStep {
     const [first] = members as [TurnTraceCallStep, ...TurnTraceCallStep[]];
     return {
         // The first call's key: a live single call that gains a second becomes this group in place.
-        ...base(first.key, sumTimings(members.map((member) => member.timing)), []),
+        ...base(first.key, sumTimings(members.map((member) => member.timing))),
         kind: 'haus',
         label: 'Haus bookkeeping',
         members,
@@ -253,8 +263,8 @@ function withLanes(steps: TurnTraceStep[]): TurnTraceStep[] {
     return steps.map((step, index) => ({ ...step, parallel: lanes[index] ?? null }));
 }
 
-function base(key: string, timing: TurnTraceTiming, thoughts: readonly string[]) {
-    return { caption: thoughts.at(-1) ?? null, key, parallel: null, thoughts, timing };
+function base(key: string, timing: TurnTraceTiming) {
+    return { key, parallel: null, timing };
 }
 
 const titleLine = /^\*\*([^*\n]+)\*\*$/u;

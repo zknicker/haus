@@ -13,8 +13,8 @@ import type {
 
 /**
  * One call. A row with evidence opens to it; a row without stays a plain
- * line. A failure tints its row and opens on its own because it is why
- * someone opened the trace; an image shows what it made in place.
+ * line. A failure tints its row and stays closed until someone opens it; an
+ * image shows what it made in place.
  */
 export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
     const { status, timing, tool } = step;
@@ -59,7 +59,7 @@ export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
         return <TraceRow {...cells} />;
     }
     return (
-        <TraceDisclosure {...cells} defaultExpanded={status === 'failed'}>
+        <TraceDisclosure {...cells}>
             <TraceBody>
                 <TurnTraceCallBody tool={tool} />
             </TraceBody>

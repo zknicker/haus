@@ -35,7 +35,6 @@ export function TraceSubagentStep({
     return (
         <TraceDisclosure
             bars={[{ kind: 'step', lane: step.parallel, status, timing }]}
-            defaultExpanded={status === 'failed'}
             line={
                 <TraceLine
                     alert={tool.failedChildCount > 0 ? `${tool.failedChildCount} failed` : null}

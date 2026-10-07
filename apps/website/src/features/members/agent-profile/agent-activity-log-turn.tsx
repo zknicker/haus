@@ -5,7 +5,6 @@ import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import { readTurnTraceAxis } from '../../turn-trace/turn-trace.tsx';
 import { TraceNested, traceRowClass } from '../../turn-trace/turn-trace-grid.tsx';
-import { TraceRuler } from '../../turn-trace/turn-trace-ruler.tsx';
 import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
 import { TurnTraceScopeProvider } from '../../turn-trace/turn-trace-scope.tsx';
 import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
@@ -18,18 +17,18 @@ import {
     ChatButtonRoom,
     LogChatButton,
     readChatTarget,
-    rulerYieldClass,
+    TurnRuler,
 } from './agent-activity-log-turn-parts.tsx';
 import type { TurnDetailAccess, TurnJournalPresentation } from './agent-activity-model.ts';
 import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
 import { formatTurnOutcome, getTurnRowStatus } from './agent-turn-row-model.ts';
 
 /**
- * One turn as a group in the flat log: a header
- * row on the log's columns (clock time, request, the turn's span on the
- * track, length), then its steps one depth in on the same columns, each
- * step's time its offset from the turn's start and its bar on the turn's own
- * scale. Nothing is boxed; the group's hairline separates it from the next.
+ * One turn as a group in the flat log: a header row on the log's columns
+ * (clock time, request, an empty track, length), then, open, a thin ruler row
+ * and its steps one depth in on the same columns, each step's time its offset
+ * from the turn's start and its bar on the ruler's scale. Nothing is boxed;
+ * the group's hairline separates it from the next.
  */
 export function ActivityLogTurn({
     access,
@@ -116,16 +115,7 @@ export function ActivityLogTurn({
                                 >
                                     {formatShortTime(turn.startedAt)}
                                 </time>
-                                {/* A section title: the request across label and track, or beside an open turn's ruler. */}
-                                <span
-                                    className={cn(
-                                        'flex min-w-0 items-center gap-2 font-semibold',
-                                        // Beside a ruler the title stops short of its 0 label.
-                                        ruler
-                                            ? 'col-span-1 @min-2xl/activity-log:pe-4'
-                                            : '@max-2xl/activity-log:col-span-1 col-span-2'
-                                    )}
-                                >
+                                <span className="flex min-w-0 items-center gap-2 font-semibold">
                                     {status ? <TurnStatusGlyph status={status} /> : null}
                                     {showAgent ? (
                                         <span className="flex shrink-0 items-center gap-1.5">
@@ -142,16 +132,14 @@ export function ActivityLogTurn({
                                         title={title}
                                         turn={turn}
                                     />
-                                    {chatTarget ? (
-                                        <ChatButtonRoom hasRuler={ruler !== null} />
-                                    ) : null}
+                                    {chatTarget ? <ChatButtonRoom /> : null}
                                 </span>
-                                {ruler ? (
-                                    <TraceRuler
-                                        className={chatTarget ? rulerYieldClass : undefined}
-                                        scale={ruler}
-                                    />
-                                ) : null}
+                                {/* The track column stays empty: the Chat button shows here on hover. */}
+                                <span
+                                    aria-hidden
+                                    className="@max-2xl/activity-log:hidden"
+                                    data-trace-cell="track"
+                                />
                                 <span className="whitespace-nowrap text-end text-muted text-sm tabular-nums">
                                     <TurnDuration turn={turn} />
                                 </span>
@@ -163,13 +151,13 @@ export function ActivityLogTurn({
                         {chatTarget ? (
                             <LogChatButton
                                 agentName={agent.displayName}
-                                hasRuler={ruler !== null}
                                 serverSlug={serverSlug}
                                 target={chatTarget}
                             />
                         ) : null}
                     </div>
                     <Disclosure.Content>
+                        {ruler ? <TurnRuler scale={ruler} /> : null}
                         <TurnSteps
                             access={access}
                             outcome={formatTurnOutcome(turn)}

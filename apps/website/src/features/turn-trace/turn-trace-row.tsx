@@ -14,12 +14,18 @@ import {
 
 /**
  * A row that only states what happened: one line on the trace grid, no
- * disclosure, no tab stop. Its disclosure slot stays reserved and empty.
+ * disclosure, no tab stop. Its disclosure slot stays reserved and empty. In
+ * the log it still takes the hover fill, since pointing at it lights its span
+ * in the overview.
  */
 export function TraceRow(props: TraceCellsProps) {
+    const layout = useTraceLayout();
     return (
         <div
-            className={traceRowClass(props.tone, useTraceLayout())}
+            className={cn(
+                traceRowClass(props.tone, layout),
+                layout === 'log' && props.tone !== 'danger' && traceRowHoverClass
+            )}
             data-trace-row
             style={useTraceDepthStyle()}
         >
@@ -37,14 +43,10 @@ export function TraceRow(props: TraceCellsProps) {
  */
 export function TraceDisclosure({
     children,
-    defaultExpanded = false,
     ...cells
-}: Omit<TraceCellsProps, 'slot'> & {
-    children: React.ReactNode;
-    defaultExpanded?: boolean;
-}) {
-    const [expanded, setExpanded] = React.useState(defaultExpanded);
-    const [opened, setOpened] = React.useState(defaultExpanded);
+}: Omit<TraceCellsProps, 'slot'> & { children: React.ReactNode }) {
+    const [expanded, setExpanded] = React.useState(false);
+    const [opened, setOpened] = React.useState(false);
     const layout = useTraceLayout();
 
     return (
@@ -61,9 +63,7 @@ export function TraceDisclosure({
                 <Disclosure.Trigger
                     className={cn(
                         traceRowClass(cells.tone, layout),
-                        // A hovered row's bars ring in the hover fill, not the ground.
-                        cells.tone !== 'danger' &&
-                            'hover:bg-default hover:[--trace-ring:var(--default)]'
+                        cells.tone !== 'danger' && traceRowHoverClass
                     )}
                     data-trace-row
                     style={useTraceDepthStyle()}
@@ -75,6 +75,9 @@ export function TraceDisclosure({
         </Disclosure>
     );
 }
+
+// A hovered row's bars ring in the hover fill, not the ground.
+const traceRowHoverClass = 'hover:bg-default hover:[--trace-ring:var(--default)]';
 
 /**
  * Icon, label, muted detail (the place it happened, or a script's first

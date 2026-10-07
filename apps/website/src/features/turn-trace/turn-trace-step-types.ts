@@ -8,15 +8,9 @@ import type { TurnTraceStatus, TurnTraceTool, TurnTraceToolKind } from './turn-t
  * siblings (`parallel`).
  */
 export interface TurnTraceStepBase {
-    readonly caption: string | null;
     readonly key: string;
     /** Overlapping siblings share a group; null when the step ran alone. */
     readonly parallel: TurnTraceLane | null;
-    /**
-     * Title-only reasoning (Codex's `**Planning…**` lines) the Agent emitted
-     * just before this step, oldest first; `caption` is the latest.
-     */
-    readonly thoughts: readonly string[];
     readonly timing: TurnTraceTiming;
 }
 
@@ -61,10 +55,15 @@ export interface TurnTraceReasoningStep extends TurnTraceStepBase {
     readonly reasoning: AgentExecutionJournalReasoning;
 }
 
-/** Title-only reasoning with no step after it yet: the live "thinking" line, or the closing thought. */
+/**
+ * A run of title-only reasoning (Codex's `**Planning…**` lines) at its place
+ * in time: one `Thought` row, the latest title as its detail.
+ */
 export interface TurnTraceThoughtStep extends TurnTraceStepBase {
     readonly isStreaming: boolean;
     readonly kind: 'thought';
+    /** The run's titles, oldest first. */
+    readonly thoughts: readonly string[];
 }
 
 export interface TurnTraceEventStep extends TurnTraceStepBase {
