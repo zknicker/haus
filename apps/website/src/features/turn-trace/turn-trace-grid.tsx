@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 import { formatTraceDuration } from './turn-trace-duration.ts';
-import { useTurnTraceScope } from './turn-trace-scope.tsx';
 import type { TurnTraceLane, TurnTraceTiming } from './turn-trace-timing.ts';
 import type { TurnTraceStatus } from './turn-trace-tool-model.ts';
+import { TraceTrack } from './turn-trace-track.tsx';
 
 /**
  * The trace's one row grid. Every row at every depth — call, fold, Haus
@@ -60,6 +60,9 @@ const tracePad = 'var(--trace-pad, calc(var(--spacing) * 2))';
  * (`size-3.5`), and its gap (2 steps).
  */
 export const traceTextInset = `calc(var(--trace-lead, 0rem) + ${tracePad} + var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 5.5)`;
+
+// The overview paints its step marks with the bars' fill rule.
+export { barTone } from './turn-trace-track.tsx';
 
 /** What a bar says about the work: a step that ran others, a call, or Haus upkeep. */
 export type TraceBarKind = 'quiet' | 'step' | 'tool';
@@ -125,7 +128,7 @@ export function TraceCells({ bars, line, slot, timing = null, tone = 'default' }
                 {line}
                 <TraceLeader tone={tone} />
             </span>
-            <TraceTrack bars={bars} tone={tone} />
+            <TraceTrack bars={bars} layout={layout} tone={tone} />
             <TraceDuration timing={timing} />
             <span className="flex size-4 items-center justify-center" data-trace-cell="slot">
                 {slot}
@@ -154,7 +157,10 @@ export function TraceBody({ children }: { children: React.ReactNode }) {
     );
 }
 
-/** The dotted line from a label's end, carried across the track at the row's center. */
+/**
+ * The dotted line from a label's end at the row's center; the track carries
+ * it on (`TraceTrack`).
+ */
 function TraceLeader({ tone }: { tone: TraceRowTone }) {
     return (
         <span
@@ -165,46 +171,6 @@ function TraceLeader({ tone }: { tone: TraceRowTone }) {
             )}
             data-trace-leader
         />
-    );
-}
-
-/**
- * The waterfall track: the leader runs its full width (and across the column
- * gap, so it meets the label's), and each bar sits over it on the turn's own
- * axis, ringed in the row's ground so it reads as cut from the line. Parallel
- * members stack as lanes in one bar.
- */
-function TraceTrack({ bars, tone }: { bars: readonly TraceBar[]; tone: TraceRowTone }) {
-    const { axisMs } = useTurnTraceScope();
-    return (
-        <span
-            aria-hidden
-            className="relative @max-2xl/activity-log:hidden h-4 min-w-0"
-            data-trace-cell="track"
-        >
-            <span
-                className={cn(
-                    'absolute -inset-s-2 inset-e-0 top-1/2 border-t border-dotted',
-                    tone === 'danger' ? 'border-trace-leader-danger' : 'border-border'
-                )}
-            />
-            {axisMs > 0
-                ? bars.map((bar, index) => (
-                      <span
-                          className={cn(
-                              'absolute min-w-1 rounded-full shadow-[0_0_0_2px_var(--trace-ring)]',
-                              'transition-[left,width] duration-200 ease-linear motion-reduce:transition-none',
-                              barTone(bar),
-                              bar.status === 'running' && 'motion-safe:animate-pulse'
-                          )}
-                          data-trace-bar={bar.status === 'failed' ? 'danger' : bar.kind}
-                          // biome-ignore lint/suspicious/noArrayIndexKey: bars never reorder within one row.
-                          key={index}
-                          style={placeBar(bar, axisMs)}
-                      />
-                  ))
-                : null}
-        </span>
     );
 }
 
@@ -251,37 +217,4 @@ function TraceDuration({ timing }: { timing: TurnTraceTiming | null }) {
             {duration}
         </span>
     );
-}
-
-/** A bar's fill; the log's overview paints step marks with the same rule. */
-export function barTone(bar: Pick<TraceBar, 'kind' | 'status'>): string {
-    if (bar.status === 'failed') {
-        return 'bg-danger';
-    }
-    if (bar.status === 'warning') {
-        return 'bg-warning';
-    }
-    if (bar.status === 'interrupted') {
-        return 'bg-trace-quiet';
-    }
-    return barKinds[bar.kind];
-}
-
-const barKinds: Record<TraceBarKind, string> = {
-    quiet: 'bg-trace-quiet',
-    step: 'bg-trace-step',
-    tool: 'bg-trace-tool',
-};
-
-function placeBar(bar: TraceBar, axisMs: number): React.CSSProperties {
-    const left = Math.min(100, (bar.timing.offsetMs / axisMs) * 100);
-    const width = Math.min(100 - left, ((bar.timing.durationMs ?? 0) / axisMs) * 100);
-    const lanes = bar.lane?.lanes ?? 1;
-    const lane = bar.lane && lanes > 1 ? bar.lane.lane : 0;
-    return {
-        height: lanes > 1 ? `calc(${100 / lanes}% - 1px)` : '6px',
-        left: `${left}%`,
-        top: lanes > 1 ? `${(lane / lanes) * 100}%` : 'calc(50% - 3px)',
-        width: `${width}%`,
-    };
 }

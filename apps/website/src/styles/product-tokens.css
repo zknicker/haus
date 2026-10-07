@@ -70,6 +70,13 @@
         --trace-tool: var(--color-teal-400);
         --trace-quiet: color-mix(in oklab, var(--muted) 45%, transparent);
         --trace-ground: var(--surface);
+        /*
+         * The Activity log's per-turn ruler: a baseline and its 0 gridline
+         * in the border tone (the steps' shared left edge), later ticks at a
+         * fraction of it so the grid recedes behind the bars.
+         */
+        --trace-axis: var(--border);
+        --trace-grid: color-mix(in oklab, var(--border) 35%, transparent);
 
         /*
          * Automation provenance. A fire writes nothing to the transcript, so
@@ -203,6 +210,8 @@
     --color-trigger-mark: var(--trigger-mark);
     --color-trigger-mark-line: var(--trigger-mark-line);
     --color-trigger-mark-soft: var(--trigger-mark-soft);
+    --color-trace-axis: var(--trace-axis);
+    --color-trace-grid: var(--trace-grid);
     --color-trace-leader-danger: var(--trace-leader-danger);
     --color-trace-quiet: var(--trace-quiet);
     --color-trace-row-danger: var(--trace-row-danger);

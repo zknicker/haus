@@ -5,6 +5,8 @@ import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import { readTurnTraceAxis } from '../../turn-trace/turn-trace.tsx';
 import { TraceNested, traceRowClass } from '../../turn-trace/turn-trace-grid.tsx';
+import { TraceRuler } from '../../turn-trace/turn-trace-ruler.tsx';
+import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
 import { TurnTraceScopeProvider } from '../../turn-trace/turn-trace-scope.tsx';
 import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from '../../turn-trace/turn-trace-view.ts';
@@ -12,7 +14,12 @@ import { useTurnTraceNow } from '../../turn-trace/use-turn-trace-now.ts';
 import { type ActivityLogEntry, readStepMarks } from './agent-activity-log-entries.ts';
 import { useLogTurnJournal } from './agent-activity-log-journal.ts';
 import { useActivityLogStores, useIsLinkedFromOverview } from './agent-activity-log-stores.ts';
-import { ChatButtonRoom, LogChatButton, readChatTarget } from './agent-activity-log-turn-parts.tsx';
+import {
+    ChatButtonRoom,
+    LogChatButton,
+    readChatTarget,
+    rulerYieldClass,
+} from './agent-activity-log-turn-parts.tsx';
 import type { TurnDetailAccess, TurnJournalPresentation } from './agent-activity-model.ts';
 import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
 import { formatTurnOutcome, getTurnRowStatus } from './agent-turn-row-model.ts';
@@ -57,6 +64,9 @@ export function ActivityLogTurn({
     const view = buildTurnTraceView(journal, turn.events, now);
     const turnMs = turn.kind === 'active' ? now - Date.parse(turn.startedAt) : turn.durationMs;
     const axisMs = Math.max(readTurnTraceAxis(view), turnMs);
+    // Bars sit on the rounded scale; the overview keeps the turn's own span.
+    const scale = readTraceScale(axisMs);
+    const ruler = isOpen && journal && view.steps.length > 0 ? scale : null;
     const stepMarks = journal ? readStepMarks(view.steps, axisMs) : null;
     React.useEffect(() => {
         if (stepMarks) {
@@ -83,7 +93,13 @@ export function ActivityLogTurn({
                 });
             }}
         >
-            <TurnTraceScopeProvider scope={{ axisMs, workspace: { agentId: agent.id, serverId } }}>
+            <TurnTraceScopeProvider
+                scope={{
+                    axisMs: scale?.scaleMs ?? axisMs,
+                    gridTicks: scale?.ticks,
+                    workspace: { agentId: agent.id, serverId },
+                }}
+            >
                 <Disclosure isExpanded={isOpen} onExpandedChange={onOpenChange}>
                     <div className="group/turn-header relative">
                         <Disclosure.Heading>
@@ -100,8 +116,16 @@ export function ActivityLogTurn({
                                 >
                                     {formatShortTime(turn.startedAt)}
                                 </time>
-                                {/* A section title: the request across label and track, no bar. */}
-                                <span className="@max-2xl/activity-log:col-span-1 col-span-2 flex min-w-0 items-center gap-2 font-semibold">
+                                {/* A section title: the request across label and track, or beside an open turn's ruler. */}
+                                <span
+                                    className={cn(
+                                        'flex min-w-0 items-center gap-2 font-semibold',
+                                        // Beside a ruler the title stops short of its 0 label.
+                                        ruler
+                                            ? 'col-span-1 @min-2xl/activity-log:pe-4'
+                                            : '@max-2xl/activity-log:col-span-1 col-span-2'
+                                    )}
+                                >
                                     {status ? <TurnStatusGlyph status={status} /> : null}
                                     {showAgent ? (
                                         <span className="flex shrink-0 items-center gap-1.5">
@@ -118,8 +142,16 @@ export function ActivityLogTurn({
                                         title={title}
                                         turn={turn}
                                     />
-                                    {chatTarget ? <ChatButtonRoom /> : null}
+                                    {chatTarget ? (
+                                        <ChatButtonRoom hasRuler={ruler !== null} />
+                                    ) : null}
                                 </span>
+                                {ruler ? (
+                                    <TraceRuler
+                                        className={chatTarget ? rulerYieldClass : undefined}
+                                        scale={ruler}
+                                    />
+                                ) : null}
                                 <span className="whitespace-nowrap text-end text-muted text-sm tabular-nums">
                                     <TurnDuration turn={turn} />
                                 </span>
@@ -131,6 +163,7 @@ export function ActivityLogTurn({
                         {chatTarget ? (
                             <LogChatButton
                                 agentName={agent.displayName}
+                                hasRuler={ruler !== null}
                                 serverSlug={serverSlug}
                                 target={chatTarget}
                             />

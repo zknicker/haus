@@ -13,6 +13,11 @@ export interface TurnTraceWorkspace {
  */
 export interface TurnTraceScope {
     readonly axisMs: number;
+    /**
+     * The log's ruler ticks on `axisMs`, drawn as gridlines down the turn's
+     * step rows. A chat's trace has no ruler, so it draws none.
+     */
+    readonly gridTicks?: readonly number[];
     readonly workspace: TurnTraceWorkspace | null;
 }
 
