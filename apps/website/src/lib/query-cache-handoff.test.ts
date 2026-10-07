@@ -20,6 +20,11 @@ function sourceClient() {
         }
     );
     client.setQueryData([['invitation', 'preview'], { input: { token: 't' }, type: 'query' }], {});
+    // Execution journals are large; copying them would overflow the handoff.
+    client.setQueryData(
+        [['agent', 'executionJournal'], { input: { runId: 'run_1' }, type: 'query' }],
+        { status: 'available' }
+    );
     return client;
 }
 
