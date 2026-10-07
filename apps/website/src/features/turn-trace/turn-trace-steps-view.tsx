@@ -7,7 +7,7 @@ import {
     TraceHausStep,
     TraceStack,
 } from './turn-trace-call-steps.tsx';
-import { type TraceBar, TraceBody, TraceNested } from './turn-trace-grid.tsx';
+import { type TraceBar, TraceBody, TraceGroup, TraceNested } from './turn-trace-grid.tsx';
 import { TurnTraceReasoning } from './turn-trace-reasoning.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
 import { TraceDisclosure, TraceLine, TraceRow } from './turn-trace-row.tsx';
@@ -120,14 +120,16 @@ function TraceThoughtStep({ step }: { step: TurnTraceThoughtStep }) {
     }
     return (
         <TraceDisclosure {...cells}>
-            <TraceBody>
-                <ul className="grid gap-0.5 text-muted text-sm">
-                    {thoughts.map((thought, index) => (
-                        // biome-ignore lint/suspicious/noArrayIndexKey: thoughts are append-only.
-                        <li key={index}>{thought}</li>
-                    ))}
-                </ul>
-            </TraceBody>
+            <TraceGroup>
+                <TraceBody>
+                    <ul className="grid gap-0.5 text-muted text-sm">
+                        {thoughts.map((thought, index) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: thoughts are append-only.
+                            <li key={index}>{thought}</li>
+                        ))}
+                    </ul>
+                </TraceBody>
+            </TraceGroup>
         </TraceDisclosure>
     );
 }

@@ -2,7 +2,7 @@ import type * as React from 'react';
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
 import { TraceSection, TurnTraceNote } from './turn-trace-blocks.tsx';
 import { TraceErrorSection } from './turn-trace-call-body.tsx';
-import { TraceBody } from './turn-trace-grid.tsx';
+import { TraceBody, TraceGroup } from './turn-trace-grid.tsx';
 import { traceMark } from './turn-trace-icons.ts';
 import { TraceDisclosure, TraceLine } from './turn-trace-row.tsx';
 import type { TurnTraceSubagentStep } from './turn-trace-step-types.ts';
@@ -48,13 +48,17 @@ export function TraceSubagentStep({
             timing={timing}
             tone={status === 'failed' ? 'danger' : 'default'}
         >
-            {tool.failure || details ? (
-                <TraceBody>
-                    {tool.failure ? <TraceErrorSection failure={tool.failure} /> : null}
-                    {details ? <p className="text-muted text-sm tabular-nums">{details}</p> : null}
-                </TraceBody>
-            ) : null}
-            {children}
+            <SubagentRows hasRows={children != null}>
+                {tool.failure || details ? (
+                    <TraceBody>
+                        {tool.failure ? <TraceErrorSection failure={tool.failure} /> : null}
+                        {details ? (
+                            <p className="text-muted text-sm tabular-nums">{details}</p>
+                        ) : null}
+                    </TraceBody>
+                ) : null}
+                {children}
+            </SubagentRows>
             {closing ? (
                 <TraceBody>
                     {latestAction ? <TurnTraceNote>{latestAction}</TurnTraceNote> : null}
@@ -64,6 +68,11 @@ export function TraceSubagentStep({
             ) : null}
         </TraceDisclosure>
     );
+}
+
+/** Its fact line and own calls share the group rail; the closing report sits past its end. */
+function SubagentRows({ children, hasRows }: { children: React.ReactNode; hasRows: boolean }) {
+    return hasRows ? <TraceGroup>{children}</TraceGroup> : children;
 }
 
 function SubagentReport({ report }: { report: string }) {

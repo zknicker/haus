@@ -50,7 +50,7 @@ step: the latest title is its muted detail, its bar spans the run's blocks, and 
 opens to every title, oldest first.
 
 The view renders on one locked row grid (`turn-trace-grid.tsx`), never a stack of bordered
-cards or nested rails. Every row at every depth — call, fold, Haus bookkeeping, sub-agent, a
+cards or nested containers. Every row at every depth — call, fold, Haus bookkeeping, sub-agent, a
 sub-agent's own calls, reasoning — shares four columns: a label cell (`clamp(8rem, 45%, 28rem)`,
 so it narrows with the trace), a flexible waterfall track, a fixed right-aligned tabular duration
 that never wraps (and states nothing for a settled step under a second), and a disclosure slot reserved on leaves so labels never shift. Depth indents
@@ -61,8 +61,12 @@ through the track at the row's center; the step's bar (6px, full radius) sits ov
 the turn's axis, ringed in the trace's ground so it reads as cut from the line. Bars say what kind
 of work ran: a sub-agent or reasoning in the step hue, a call in the tool hue, Haus bookkeeping in
 the quiet hue, a failure in danger (tokens in `product-tokens.css`). Hierarchy is indent, mark,
-and bar color only: a sub-agent's calls are rows one depth in, with no background or edge of their
-own. A failed row tints whole — fill, bar, and leader — and stays closed until someone opens it. Steps that ran side
+bar color, and one rail: a sub-agent's calls are rows one depth in, with no background or edge of
+their own. An opened group — a fold, Haus bookkeeping, a sub-agent's fact line and calls, a run of
+thoughts — draws one 1px `separator` rail (`TraceGroup`) at the center of its row's icon, from the
+panel's top to the center of its last row, inside the label cell only and over row tints and
+highlights. A nested group draws its own rail at its own icon; a sub-agent's report sits past its
+rail's end. A failed row tints whole — fill, bar, and leader — and stays closed until someone opens it. Steps that ran side
 by side share time on the bars, and a parallel fold draws its members as stacked lanes in one bar.
 While the turn runs, the axis is its elapsed time, so bars rescale (200ms linear), the running bar
 pulses, and a new row fades and rises into place; all of it is off under reduced motion.

@@ -192,6 +192,31 @@ export function TraceBody({ children }: { children: React.ReactNode }) {
     );
 }
 
+/**
+ * A group row's opened rows — a fold's members, a sub-agent's calls, a run of
+ * thoughts — tied to it by one rail: a hairline at the center of the group
+ * row's icon, from the panel's top to the center of the last row (`bottom-4`,
+ * half a row). It sits in the label cell, so the time, track, and duration
+ * columns stay clean, and paints over the rows' tints and highlights. A
+ * nested group draws its own rail at its own icon.
+ */
+export function TraceGroup({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="relative min-w-0" data-trace-group>
+            {children}
+            <span
+                aria-hidden
+                className="pointer-events-none absolute top-0 bottom-4 w-px bg-separator"
+                data-trace-rail
+                style={{ ...useTraceDepthStyle(), insetInlineStart: traceRailInset }}
+            />
+        </div>
+    );
+}
+
+/** The group row icon's center (`size-3.5`), less half the rail. */
+const traceRailInset = `calc(var(--trace-lead, 0rem) + ${tracePad} + var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 1.75 - 0.5px)`;
+
 /** The log body's label text start from its first column: `traceTextInset` less the row pad. */
 const traceLogTextInset = `calc(var(--trace-lead, 0rem) + var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 5.5)`;
 
