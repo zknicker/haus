@@ -88,6 +88,15 @@ that writes the run's `starting_work` activity, so any run the App sees already 
 one; `null` means none was recorded. It is a Server-to-App read only and adds nothing
 to the Computer protocol.
 
+`agent.serverTurns` (`{ serverId, agentIds?, before?, limit? }`) is the Server-wide
+listing behind the Activity page: every Agent's settled turns on one Server, interleaved
+newest first by `startedAt` (ties broken by `runId`), in exactly the `agent.turns`
+record shape with the same trigger visibility gate. It requires Server membership only,
+since every member can see every Agent; `agentIds` (1–100 distinct ids) narrows it, and
+ids naming no Agent simply match nothing. `limit` is 1–50 (default 30). It returns
+`{ turns, nextBefore }`, where `nextBefore` is the `{ startedAt, runId }` keyset cursor
+for the next page, or null at the end. Like `agent.turns`, each page is one joined query.
+
 A turn's `startedAt` is the run's first launch. When the Server resends an accepted
 run after the Computer restarts, the relaunch resumes a Computer-local turn ledger
 (`runtime/turns/<runId>.json`) holding that first start and every operation total the

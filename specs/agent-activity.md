@@ -2,7 +2,7 @@
 summary: Agent activity — Server-persisted semantic work history, the live current-activity projection on the Inbox, avatar status dots, and Computer-local detailed execution evidence.
 read_when:
   - changing Agent activity events, presence dots, or the Inbox's live Agent rows
-  - changing the Agent profile Activity tab or Turn Details drawer
+  - changing the Agent profile Activity tab, the Server Activity page, or Turn Details drawer
   - changing Computer tool observation or the Server/Computer execution-evidence boundary
 ---
 
@@ -290,6 +290,25 @@ whole run. Each settled turn also names its trigger — the message, task, remin
 work that woke it — as ids the App resolves through ordinary message reads
 ([Agents API](../docs/api/agents.md#turn-and-delivery-observability)). Silent completion and interruption are explicit. Expanding a turn reveals the
 existing granular semantic timeline when retained; repeated heartbeats and raw details never appear.
+
+### Server Activity page
+
+The Server's Activity page (`/s/:slug/activity`, in the sidebar's top menu after Tasks) is the same
+event log with every Agent's turns interleaved; an Agent's Activity tab is that log filtered to one
+Agent, and reads unchanged. When a log shows more than one Agent, each turn header names its Agent
+(avatar and name) after any status glyph, and the overview's hover readout leads with the Agent's
+name. The overview keeps one lane with status tones; concurrent turns of different Agents slide
+past each other as any neighbours do. A stock multi-select menu at the end of the day bar narrows
+the Agents (`All Agents`, one name, or `2 Agents`), kept in the URL as `?agents=<id>,<id>` so a
+narrowed view reloads and links; it shows only when the Server has more than one Agent.
+
+Settled turns come a page at a time from `agent.serverTurns` (one request per page, narrowed on
+the Server when filtered), refreshed when any Agent's turn settles. A working run comes from the
+Server's one current-activity projection, started at its recorded run start; its steps stream
+from the live journal for Owners and Admins, and other members see only its header. Turn
+titles, trigger messages, and journals read as in the Agent tab. Outlines are still one batched
+`agent.executionOutlines` read per Agent per day, and every log in a window shares one gate of at
+most three outline reads in flight, so a day with many Agents never bursts the Server.
 
 Every Server member may see the summarized history. Complete execution evidence is restricted to
 Server Owners and Admins and remains Computer-local. Agent creation provenance grants no additional

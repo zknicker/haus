@@ -20,6 +20,7 @@ implementation ownership, and runtime details live under
 | Rich references | [Rich references](rich-references.md) |
 | Clarifications | [Clarifications](clarifications.md) |
 | Tasks | [Tasks](tasks.md) |
+| Activity | [Activity](activity.md) |
 | Reminders | [Reminders](reminders.md) |
 | Triggers | [Triggers](triggers.md) |
 | Skills and Tools | [Skills and Tools](skills.md) |
