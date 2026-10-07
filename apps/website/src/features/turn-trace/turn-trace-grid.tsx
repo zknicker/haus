@@ -2,6 +2,7 @@ import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 import { tracePad, useTraceDepthStyle } from './turn-trace-depth.tsx';
 import { formatTraceDuration } from './turn-trace-duration.ts';
+import type { TraceKind } from './turn-trace-kind.ts';
 import type { TurnTraceLane, TurnTraceTiming } from './turn-trace-timing.ts';
 import type { TurnTraceStatus } from './turn-trace-tool-model.ts';
 import { TraceLane, TraceTrack } from './turn-trace-track.tsx';
@@ -56,8 +57,8 @@ export const traceTextInset = `calc(var(--trace-lead, 0rem) + ${tracePad} + var(
 // The overview paints its step marks with the bars' fill rule.
 export { barTone } from './turn-trace-track.tsx';
 
-/** What a bar says about the work: a step that ran others, a call, or Haus upkeep. */
-export type TraceBarKind = 'quiet' | 'step' | 'tool';
+/** What a bar says about the work: its kind's hue, one per kind across the trace. */
+export type TraceBarKind = TraceKind;
 
 export interface TraceBar {
     readonly kind: TraceBarKind;

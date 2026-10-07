@@ -163,6 +163,7 @@ test('an image step is a closed row like any step, its picture and prompt behind
         )?.[0] ?? '';
 
     assert.match(trigger, /aria-expanded="false"/);
+    assert.match(trigger, /text-trace-media/);
     // Closed, neither the picture, its file, nor its prompt is in the page.
     assert.doesNotMatch(markup, /<img|20261006-174019-exec-0b47|lighthouse/i);
 });

@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import { cn } from '../../lib/utils.ts';
-import type { TraceBar, TraceBarKind, TraceLayout, TraceRowTone } from './turn-trace-grid.tsx';
+import type { TraceBar, TraceLayout, TraceRowTone } from './turn-trace-grid.tsx';
+import { traceKindFill } from './turn-trace-kind.ts';
 import { placeTick } from './turn-trace-scale.ts';
 import { useTurnTraceScope } from './turn-trace-scope.tsx';
 
@@ -114,14 +115,8 @@ export function barTone(bar: Pick<TraceBar, 'kind' | 'status'>): string {
     if (bar.status === 'interrupted') {
         return 'bg-trace-quiet';
     }
-    return barKinds[bar.kind];
+    return traceKindFill[bar.kind];
 }
-
-const barKinds: Record<TraceBarKind, string> = {
-    quiet: 'bg-trace-quiet',
-    step: 'bg-trace-step',
-    tool: 'bg-trace-tool',
-};
 
 /** A bar's box as fractions of the axis, clamped inside the lane. */
 export function placeBar(bar: TraceBar, axisMs: number): React.CSSProperties {

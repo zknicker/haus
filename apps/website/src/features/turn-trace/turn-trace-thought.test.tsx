@@ -16,7 +16,7 @@ test('a reasoning title is a Thought row on the grid, its title as muted detail'
     assert.match(row, /text-muted">Thought</);
     assert.match(row, /class="min-w-0 shrink-\[4\] truncate text-muted">Running five parallel/);
     // On the lane like any step: a mark at its time, nothing to open.
-    assert.match(row, /data-trace-bar="step"/);
+    assert.match(row, /data-trace-bar="thinking"/);
     assert.match(row, /data-trace-cell="slot"><\/span>/);
 });
 

@@ -1,5 +1,6 @@
 import type { AgentExecutionOutline, AgentExecutionOutlineStep } from '@haus/api';
 import type { TraceBarKind } from '../../turn-trace/turn-trace-grid.tsx';
+import { traceStepKind } from '../../turn-trace/turn-trace-kind.ts';
 import type { TurnTraceStep } from '../../turn-trace/turn-trace-step-types.ts';
 import type { TurnTraceStatus } from '../../turn-trace/turn-trace-tool-model.ts';
 import type { TimelineStatus } from './agent-activity-log-overview-model.ts';
@@ -83,15 +84,10 @@ export function readStepMarks(steps: readonly TurnTraceStep[], axisMs: number): 
             return [];
         }
         const status = 'status' in step ? step.status : 'completed';
-        const kind =
-            step.kind === 'haus' ||
-            (step.kind === 'call' &&
-                step.tool.isBookkeeping &&
-                (status === 'completed' || status === 'running'))
-                ? 'quiet'
-                : step.kind === 'call' || step.kind === 'fold'
-                  ? 'tool'
-                  : 'step';
+        const kind = traceStepKind(step);
+        if (!kind) {
+            return [];
+        }
         return [
             {
                 kind,
@@ -105,8 +101,10 @@ export function readStepMarks(steps: readonly TurnTraceStep[], axisMs: number): 
 
 /**
  * An unread turn's top-level steps from its Computer outline, toned as
- * {@link readStepMarks} tones a read trace: bookkeeping quiet, reasoning a
- * step, calls and sub-agents tools, a sub-agent with failed calls a warning.
+ * {@link readStepMarks} tones a read trace: bookkeeping Haus, reasoning
+ * thinking, a sub-agent its own hue (a warning when its calls failed). An
+ * outline names no tool kind, so its calls take the general tool hue until
+ * the turn is read.
  */
 export function readOutlineMarks(outline: AgentExecutionOutline, turnMs: number): StepMark[] {
     const axisMs = Math.max(outline.durationMs, turnMs);
@@ -124,9 +122,9 @@ export function readOutlineMarks(outline: AgentExecutionOutline, turnMs: number)
 }
 
 const outlineBarKinds: Record<AgentExecutionOutlineStep['kind'], TraceBarKind> = {
-    bookkeeping: 'quiet',
-    reasoning: 'step',
-    subagent: 'tool',
+    bookkeeping: 'haus',
+    reasoning: 'thinking',
+    subagent: 'subagent',
     tool: 'tool',
 };
 

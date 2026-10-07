@@ -10,7 +10,7 @@ import type { TurnTraceTiming } from './turn-trace-timing.ts';
 /**
  * A reasoning block reads as a step of the trace: a row on the trace grid
  * with the model's own title (or `Thought` when it wrote none) and its first
- * line as muted detail, its bar in the step hue. Like every other step it is
+ * line as muted detail, its icon and bar in the thinking hue. Like every other step it is
  * one line until opened; open, its prose sits on the row's label text at a
  * readable measure.
  */
@@ -27,7 +27,7 @@ export function TurnTraceReasoning({
     const cells = {
         bars: [
             {
-                kind: 'step',
+                kind: 'thinking',
                 status: isStreaming ? 'running' : 'completed',
                 timing,
             } satisfies TraceBar,
@@ -39,6 +39,7 @@ export function TurnTraceReasoning({
                 isQuiet
                 isRunning={isStreaming}
                 label={title ?? 'Thought'}
+                tone="thinking"
             />
         ),
         timing,

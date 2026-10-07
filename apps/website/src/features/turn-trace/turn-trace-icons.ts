@@ -18,12 +18,16 @@ import {
     Video01Icon,
     Wrench01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import { type TraceKind, traceToolKind } from './turn-trace-kind.ts';
 import type { TurnTraceStatus, TurnTraceToolKind } from './turn-trace-tool-model.ts';
+
+/** An icon's ink: its kind's hue, unless its outcome says more. */
+export type TraceIconTone = 'danger' | 'muted' | 'warning' | TraceKind;
 
 /** A row's leading mark: what kind of work it was, unless its outcome says more. */
 export interface TraceMark {
     readonly icon: IconSvgElement;
-    readonly tone: 'danger' | 'muted' | 'warning';
+    readonly tone: TraceIconTone;
 }
 
 const kindIcons: Record<TurnTraceToolKind, IconSvgElement> = {
@@ -56,5 +60,5 @@ export function traceMark(
     if (status === 'interrupted') {
         return { icon: StopCircleIcon, tone: 'muted' };
     }
-    return { icon: media === 'video' ? Video01Icon : kindIcons[kind], tone: 'muted' };
+    return { icon: media === 'video' ? Video01Icon : kindIcons[kind], tone: traceToolKind(kind) };
 }

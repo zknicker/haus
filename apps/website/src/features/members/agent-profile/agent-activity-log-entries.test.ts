@@ -57,21 +57,28 @@ test('step marks are fractions of the turn axis, toned as their rows', () => {
                 kind: 'call',
                 status: 'completed',
                 timing: { durationMs: 500, offsetMs: 0 },
-                tool: { isBookkeeping: true },
+                tool: { isBookkeeping: true, kind: 'shell' },
             },
             {
                 kind: 'call',
                 status: 'failed',
                 timing: { durationMs: 2000, offsetMs: 1000 },
-                tool: { isBookkeeping: false },
+                tool: { isBookkeeping: false, kind: 'shell' },
+            },
+            {
+                kind: 'fold',
+                status: 'completed',
+                timing: { durationMs: 1000, offsetMs: 3000 },
+                toolKind: 'file-read',
             },
             { kind: 'event', timing: { durationMs: null, offsetMs: 0 } },
         ] as never,
         4000
     );
     expect(marks).toEqual([
-        { kind: 'quiet', start: 0, status: 'completed', width: 0.125 },
-        { kind: 'tool', start: 0.25, status: 'failed', width: 0.5 },
+        { kind: 'haus', start: 0, status: 'completed', width: 0.125 },
+        { kind: 'shell', start: 0.25, status: 'failed', width: 0.5 },
+        { kind: 'file', start: 0.75, status: 'completed', width: 0.25 },
     ]);
     expect(readStepMarks([], 0)).toEqual([]);
 });
@@ -214,9 +221,9 @@ test('an outline draws top-level marks on the turn axis, toned like a read trace
         10_000
     );
     expect(marks).toEqual([
-        { kind: 'step', start: 0, status: 'completed', width: 0.1 },
-        { kind: 'quiet', start: 0.1, status: 'completed', width: 0.05 },
-        { kind: 'tool', start: 0.2, status: 'warning', width: 0.4 },
+        { kind: 'thinking', start: 0, status: 'completed', width: 0.1 },
+        { kind: 'haus', start: 0.1, status: 'completed', width: 0.05 },
+        { kind: 'subagent', start: 0.2, status: 'warning', width: 0.4 },
         { kind: 'tool', start: 0.6, status: 'failed', width: 0 },
     ]);
 });
@@ -224,7 +231,7 @@ test('an outline draws top-level marks on the turn axis, toned like a read trace
 test("a read journal's marks win over its outline", () => {
     const store = new StepMarksStore();
     const outline = [{ kind: 'tool', start: 0, status: 'completed', width: 1 }] as const;
-    const journal = [{ kind: 'step', start: 0, status: 'completed', width: 0.5 }] as const;
+    const journal = [{ kind: 'thinking', start: 0, status: 'completed', width: 0.5 }] as const;
     store.setOutline('run_a', outline);
     expect(store.get('run_a')).toBe(outline);
     store.set('run_a', journal);

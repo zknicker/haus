@@ -100,7 +100,7 @@ function TraceThoughtStep({ step }: { step: TurnTraceThoughtStep }) {
     const cells = {
         bars: [
             {
-                kind: 'step',
+                kind: 'thinking',
                 status: isStreaming ? 'running' : 'completed',
                 timing,
             } satisfies TraceBar,
@@ -113,6 +113,7 @@ function TraceThoughtStep({ step }: { step: TurnTraceThoughtStep }) {
                 isRunning={isStreaming}
                 label="Thought"
                 meta={thoughts.length > 1 ? `${thoughts.length} thoughts` : null}
+                tone="thinking"
             />
         ),
         timing,

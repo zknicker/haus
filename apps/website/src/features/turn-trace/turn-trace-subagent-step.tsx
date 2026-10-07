@@ -12,7 +12,7 @@ import { clampTraceText } from './turn-trace-values.ts';
 
 /**
  * A sub-agent is a row like any call, told apart only by its mark and its
- * step-colored bar — never by a container. Opened, its own calls are rows one
+ * sub-agent hue — never by a container. Opened, its own calls are rows one
  * depth in on the trace's columns (`children`), between its muted fact line
  * and its named report, which sit on the row's label text.
  */
@@ -35,7 +35,7 @@ export function TraceSubagentStep({
 
     return (
         <TraceDisclosure
-            bars={[{ kind: 'step', lane: step.parallel, status, timing }]}
+            bars={[{ kind: 'subagent', lane: step.parallel, status, timing }]}
             line={
                 <TraceLine
                     alert={tool.failedChildCount > 0 ? `${tool.failedChildCount} failed` : null}

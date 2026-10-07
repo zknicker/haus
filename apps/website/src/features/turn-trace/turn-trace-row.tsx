@@ -12,6 +12,8 @@ import {
     traceRowHoverClass,
     useTraceLayout,
 } from './turn-trace-grid.tsx';
+import type { TraceIconTone } from './turn-trace-icons.ts';
+import { traceKindText } from './turn-trace-kind.ts';
 
 /**
  * A row that only states what happened: one line on the trace grid, no
@@ -97,7 +99,7 @@ export function TraceLine({
     isRunning?: boolean;
     label: string;
     meta?: React.ReactNode;
-    tone?: 'danger' | 'muted' | 'warning';
+    tone?: TraceIconTone;
 }) {
     const text = (
         <span
@@ -115,15 +117,7 @@ export function TraceLine({
     );
     return (
         <>
-            <Icon
-                className={cn(
-                    'size-3.5 shrink-0',
-                    tone === 'danger' && 'text-danger',
-                    tone === 'warning' && 'text-warning',
-                    tone === 'muted' && 'text-muted'
-                )}
-                icon={icon}
-            />
+            <Icon className={cn('size-3.5 shrink-0', iconInk(tone))} icon={icon} />
             {isRunning ? <TextShimmer className="min-w-0 truncate">{text}</TextShimmer> : text}
             {detail ? (
                 <span className="min-w-0 shrink-[4] truncate text-muted">{detail}</span>
@@ -134,4 +128,17 @@ export function TraceLine({
             {alert ? <span className="shrink-0 text-danger tabular-nums">{alert}</span> : null}
         </>
     );
+}
+
+function iconInk(tone: TraceIconTone): string {
+    switch (tone) {
+        case 'danger':
+            return 'text-danger';
+        case 'warning':
+            return 'text-warning';
+        case 'muted':
+            return 'text-muted';
+        default:
+            return traceKindText[tone];
+    }
 }

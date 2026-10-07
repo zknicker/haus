@@ -101,10 +101,10 @@ test('every row carries a dotted leader through its track, and bars ring over it
         markup,
         /shadow-\[0_0_0_2px_var\(--trace-row-lift\),0_0_0_2px_var\(--trace-turn-lift\),0_0_0_2px_var\(--trace-ring\)\]/
     );
-    // Bars say what kind of work ran: a sub-agent is a step, a call a tool.
-    assert.match(markup, /data-trace-bar="tool"/);
+    // Bars say what kind of work ran, in that kind's hue; a failure is danger.
+    assert.match(markup, /data-trace-bar="file"/);
     assert.match(markup, /data-trace-bar="danger"/);
-    assert.match(markup, /bg-trace-tool/);
+    assert.match(markup, /bg-trace-file/);
 });
 
 test('a failed row tints whole, with a danger bar and a danger leader', () => {

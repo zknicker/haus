@@ -5,6 +5,7 @@ import { TraceElbow, TraceGroup, TraceNested, traceBranchClass } from './turn-tr
 import { type TraceBar, TraceBody } from './turn-trace-grid.tsx';
 import { traceMark } from './turn-trace-icons.ts';
 import { TurnTraceImagePreview } from './turn-trace-image.tsx';
+import { isQuietCall, traceToolKind } from './turn-trace-kind.ts';
 import { TraceDisclosure, TraceLine, TraceRow } from './turn-trace-row.tsx';
 import type {
     TurnTraceCallStep,
@@ -21,11 +22,11 @@ export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
     const { status, timing, tool } = step;
     const mark = traceMark(tool.kind, status, tool.image?.media ?? null);
     // Settled bookkeeping reads as Haus upkeep: the muted Haus mark, not the tool's.
-    const isQuiet = tool.isBookkeeping && (status === 'completed' || status === 'running');
+    const isQuiet = isQuietCall(tool.isBookkeeping, status);
     const cells = {
         bars: [
             {
-                kind: isQuiet ? 'quiet' : 'tool',
+                kind: isQuiet ? 'haus' : traceToolKind(tool.kind),
                 lane: step.parallel,
                 status,
                 timing,
@@ -39,7 +40,7 @@ export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
                 isRunning={timing.isRunning}
                 label={step.label}
                 meta={tool.extraCommands > 0 ? `+${tool.extraCommands} more` : null}
-                tone={mark.tone}
+                tone={isQuiet ? 'muted' : mark.tone}
             />
         ),
         timing,
@@ -73,14 +74,15 @@ export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
  */
 export function TraceFoldStep({ step }: { step: TurnTraceFoldStep }) {
     const mark = traceMark(step.toolKind, step.status);
+    const kind = traceToolKind(step.toolKind);
     const bars: TraceBar[] = step.isParallel
         ? step.members.map((member) => ({
-              kind: 'tool',
+              kind,
               lane: member.parallel,
               status: member.status === 'running' ? 'running' : 'completed',
               timing: member.timing,
           }))
-        : [{ kind: 'tool', lane: step.parallel, status: step.status, timing: step.timing }];
+        : [{ kind, lane: step.parallel, status: step.status, timing: step.timing }];
 
     return (
         <TraceDisclosure
@@ -106,7 +108,7 @@ export function TraceHausStep({ step }: { step: TurnTraceHausStep }) {
     return (
         <TraceDisclosure
             bars={step.members.map((member) => ({
-                kind: 'quiet',
+                kind: 'haus',
                 status: member.status,
                 timing: member.timing,
             }))}
