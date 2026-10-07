@@ -236,31 +236,44 @@ is still in flight.
 ### Agent activity history
 
 The Agent profile Activity tab reads the durable Server journal newest-first with pagination and
-groups it by turn under day headers (`Today`, `Yesterday`, `Oct 4`). Each collapsed turn is one
-line on fixed columns: start time (tabular), a status glyph only when it is news — failed,
-interrupted, or still working, with a folded repeat count (`3×`) after the title — then the title in
-regular weight, truncated to one line, then the duration in a tabular, non-wrapping column, then
-the chevron. A completed turn carries no glyph. The title is the trigger — the first line of the
-waking message with its Chat as muted context (`#product`, or `DM` for a direct message, never the
-peer's name), or the kind of typed work (`Reminder`). The row states no per-action marks.
-Durations use at most two units with no zero padding (`<1s`, `42s`, `1m 24s`, `6m`, `1h 2m`), and
-a running turn's duration ticks live. Consecutive failed turns with the same failure kind and
-trigger fold into one row with a count. When the trigger is private, unrecorded, or its message is
-unreadable to the viewer, the row is titled, muted so it recedes beside real requests, by what the
-turn did in words, most telling first (`Edited 3 files · read 4 · sent 1 message`), from the exact
-Computer-reported totals by semantic operation category and the exact persisted message count; a
-noun the previous action named is not repeated. A turn with no actions and no messages reads
-`Stayed quiet` when it completed and `Ended before any action` otherwise.
+shows it as one full-width event log. The page's trail (`Haus › Tiny › Activity`) names it; there
+is no section heading. A band pinned to the top of the tab's scroll region holds the day bar —
+older/newer day buttons, the day's label, a readout (`12 turns · 13m 12s working · 1 failed`), and
+the diagnostic copy action — over an overview strip of that day: every turn a block at its real
+time on a dotted lane, idle stretches longer than 12 minutes folded to a broken-axis mark, each
+block at least a pointable minimum width, today's axis running to `Now`. The band takes the page
+ground and shows a hairline edge only while the log scrolls under it, follows the day under it as
+the log scrolls, and below a 42rem log drops the strip, keeping the day bar. Pointing at a block
+lights its turn in the log and names it in the readout; pointing at a turn or step lights its
+block and the step's span; pressing a block opens its turn and brings it into view.
 
-Opening a turn replaces its truncated title in place with the whole request, wrapping, stated
-once. Below it, on the page's own ground with no inset panel and starting at the request's left
-edge, sit one muted totals line (`32s · 8 calls · 3 sub-agents · 1 failed · Done`, failures in
-`danger`) and the trace. The totals line ends, on the trace's right edge, in a small `secondary`
-button with a trailing arrow back to its Chat (`View in #product`, or `View in DM with Tiny` naming
-this Agent, the one place a DM names its peer). The line always stands: until the journal's steps
-arrive, and for viewers or offline Computers without them, it states the turn summary instead
-(`32s · Ran 3 sub-agents · sent 1 message · Done`), and the journal's totals later take the same
-line. The row's hairline closes it; there is no totals footer. A running turn has not settled into
+Under the band, turns sit under day rows (`Yesterday`, `Oct 4`; the band names the first day),
+newest first, as collapsible groups divided by hairlines. Rows run edge to edge — hover, linked,
+and failure tints included — while text keeps the shell's page gutter. A turn's header is one line
+on the log's columns: start time (tabular), a status glyph only when it is news — failed,
+interrupted, or still working, with a folded repeat count (`3×`) after the title — then the title
+in semibold, truncated to one line, with its place regular-weight and muted, then the duration in a
+tabular, non-wrapping column, then the chevron. A completed turn carries no glyph. The title is the
+trigger — the first line of the waking message with its Chat as muted context (`#product`, or `DM`
+for a direct message, never the peer's name), or the kind of typed work (`Reminder`). Durations use
+at most two units with no zero padding (`<1s`, `42s`, `1m 24s`, `6m`, `1h 2m`), and a running
+turn's duration ticks live. Consecutive failed turns with the same failure kind and trigger fold
+into one row with a count. When the trigger is private, unrecorded, or its message is unreadable to
+the viewer, the header is titled, muted, by what the turn did in words, most telling first
+(`Edited 3 files · read 4 · sent 1 message`), from the exact Computer-reported totals by semantic
+operation category and the exact persisted message count; a noun the previous action named is not
+repeated. A turn with no actions and no messages reads `Stayed quiet` when it completed and `Ended
+before any action` otherwise. A header whose request came from a Chat the viewer can open reveals,
+on hover or keyboard focus, a ghost button back to it (`View in #product`, or `View in DM with
+Tiny` naming this Agent, the one place a DM names its peer), in room the header holds so it never
+covers the title.
+
+An open turn lists its steps one depth in on the same columns, each step's time its offset from
+the turn's start (`+2.3s`) and its bar on the turn's own scale. The newest day's ten latest turns
+open on arrival; everything older waits for a click. Journals are read through a queue of at most
+three in flight; a settled journal is read once and kept, so collapsing, reopening, or revisiting
+costs nothing. Viewers without execution access, and turns whose Computer did not answer, see one
+muted line instead of steps. A running turn has not settled into
 `agent.turns`, so its row reads its trigger through `agent.runTrigger` and is titled the same way
 while it works. Trigger messages are read once per list through a small rolling
 window of ordinary message reads, never one burst per row. These compact totals are part of

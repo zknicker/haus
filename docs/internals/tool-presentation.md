@@ -68,14 +68,15 @@ Everything a row opens to that is not itself a row — its evidence, a sub-agent
 report, a sent message — starts on the row's label text (`TraceBody`, `traceTextInset`) and stops
 short of the edge. Each section is named by one micro label (`TraceMicroLabel`: `ERROR`,
 `COMMAND`, `OUTPUT`, `REPORT`, `MESSAGE`, and stock ChatTool's `ARGUMENTS` / `RESULT` on the same
-tier) over the code blocks' quiet surface, bounded to a readable height that scrolls. The trace's
-totals sit once, placed by its host (`totalsPlacement`). The drawer closes the trace with a footer
-(`turn-trace-footer.tsx`): calls, sub-agents, images, and failures as tabular figures over micro
-labels, closed by the wall time labelled `Running` while the turn works and `Done` once it
-settles. The Activity tab, whose open row already leads with the request, states them as one
-muted strip above the steps (`turn-trace-stats-strip.tsx`): `32s · 8 calls · 3 sub-agents ·
-1 failed · Done`, the journal's own status closing it. The journal reports tokens only per
-sub-agent, so neither states any for the turn. In the drawer the turn's outcome chip leads the trace; with no steps to
+tier) over the code blocks' quiet surface, bounded to a readable height that scrolls. The drawer
+closes the trace with a footer (`turn-trace-footer.tsx`): calls, sub-agents, images, and failures
+as tabular figures over micro labels, closed by the wall time labelled `Running` while the turn
+works and `Done` once it settles. The Activity tab's event log
+(`members/agent-profile/agent-activity-log*.tsx`) states no totals: each turn's header carries its
+length, and its steps render through `TurnTraceSteps` on the log's grid (`TraceLayoutProvider`
+`layout="log"`), which leads every row with the step's offset from the turn's start and drops the
+track below a 42rem log. The journal reports tokens only per sub-agent, so neither states any for
+the turn. In the drawer the turn's outcome chip leads the trace; with no steps to
 total, the turn's own record says how long it took, and a turn's own `failure` reads as a danger
 note above the rows rather than "No activity was recorded". A row is a stock `Disclosure`, whose
 trigger is the whole row and its one tab stop (Enter or Space toggles it, the ring is
@@ -150,11 +151,11 @@ the same safe renderer a message uses — `react-markdown` with no raw-HTML pass
 The trace owns its motion and disclosure state. A trace the relay answers after its view
 opened, and a step a live turn adds, grow into place (`turn-trace-reveal.tsx`); a view
 that closes keeps its last trace, and reopening shows it while the relay refreshes. In the
-Activity tab, rows open and close with one animated height transition: a reopened row
-grows to the trace it kept exactly as a collapsing row shrinks from it, and a row opened
-before its first trace arrives opens to its totals line, then lets the trace grow in. Each step row is
-its own disclosure: the trace resets React Aria's disclosure-group context, so the
-Activity tab's turn accordion never owns a call's open state.
+Activity log, each turn is a stock `Disclosure` (never a group), and each step row is its own
+disclosure, so a failed call opens on its own there as in the drawer. Shared, high-churn log state
+— the linked hover between strip and rows, each read turn's step marks, and the journal read queue
+(at most three in flight) — lives in small external stores (`agent-activity-log-stores.ts`) so a
+hover re-renders only the rows that read it.
 
 Row labels stay in sentence case. Body sections are named on the one micro-label tier
 (`DESIGN.md` → Turn trace); `default-theme.css` moves stock `ChatTool`'s own section labels

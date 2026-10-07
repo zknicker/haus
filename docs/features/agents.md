@@ -66,7 +66,7 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   (standing reminders and triggers), **Skills** and **Connections** (the first display names, `+N` for the
   rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity — each turn one line: its time, the request that woke it
   (or, muted, what it did in words when no request is visible), and its duration, and consecutive identical failures folded into one
-  row (`Failed 5×`) — and **See all** into Activity, and a compact 30-day processed-token tile linking to Usage.
+  row (`Failed 5×`) — and **See all** into Activity, the full-width event log of every turn and its steps under a pinned day overview, and a compact 30-day processed-token tile linking to Usage.
 - The profile's trail rides in the page's top band, in Settings' band shape: the Agent's face,
   then `Haus / Juniper / Connections`, the Agent crumb leading back to the hub. On the hub the trail
   ends at the Agent and titles the web band; a desktop tab already names the Agent, so there the
