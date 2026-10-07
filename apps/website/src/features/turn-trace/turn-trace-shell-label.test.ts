@@ -178,3 +178,21 @@ test('a pipeline with a plainer name reads as its purpose', () => {
         'Ran find packages -type f | head'
     );
 });
+
+test('a heredoc script names its language and quotes its first working line, never a bare -', () => {
+    const python = readShellLabel(
+        "cd projects/tinylink && python3 - <<'PY'\nimport json\n\n# check codes\nprint(len(codes))\nPY"
+    );
+    assert.equal(python.past, 'Ran a Python script');
+    assert.equal(python.present, 'Running a Python script');
+    assert.equal(python.detail, 'print(len(codes))');
+    assert.equal(python.extraCommands, 0);
+    assert.equal(
+        readShellLabel(`/bin/zsh -lc "node <<'JS'\nconst fs = require('fs')\nfs.rmSync('x')\nJS"`)
+            .past,
+        'Ran a Node script'
+    );
+    // A script file is typed as run; only stdin reads stand in for a language.
+    assert.equal(formatShellLabel('python3 build.py'), 'Ran python3 build.py');
+    assert.equal(readShellLabel('python3 build.py').detail, null);
+});

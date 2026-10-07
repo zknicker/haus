@@ -32,7 +32,7 @@ export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
         ],
         line: (
             <TraceLine
-                detail={tool.target?.dir || null}
+                detail={tool.target?.dir || tool.detail}
                 icon={isQuiet ? Task01Icon : mark.icon}
                 isQuiet={isQuiet}
                 isRunning={timing.isRunning}

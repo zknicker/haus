@@ -15,6 +15,8 @@ import type { TraceTense } from './turn-trace-tense.ts';
  * "Claimed a task". The Command body still shows the original verbatim.
  */
 export interface ShellLabel {
+    /** A muted line beside the label: a stdin script's first meaningful line. */
+    readonly detail: string | null;
     /** Other meaningful commands the label does not name: the row's `+N commands`. */
     readonly extraCommands: number;
     /** Every command is a `haus` CLI call: Agent bookkeeping, not work. */
@@ -80,13 +82,30 @@ export function readShellLabel(command: string): ShellLabel {
         (entry) => entry.writes !== null || !noisePrograms.has(entry.program)
     );
     const haus = meaningful.filter((entry) => entry.program === 'haus');
-    const base = { extraCommands: 0, isHausOnly: false, lines: script.lines };
+    const base = { detail: null, extraCommands: 0, isHausOnly: false, lines: script.lines };
 
     if (heads.length === 0) {
         return { ...base, past: 'Ran a command', present: 'Running a command' };
     }
     if (haus.length > 0 && haus.length === meaningful.length) {
         return { ...base, ...readHausLabel(haus), isHausOnly: true };
+    }
+    // `python3 - <<'PY'` runs the document, not `-`: name the language, quote its first line.
+    const stdinScript = script.hasHeredoc
+        ? meaningful.find((entry) => readStdinLanguage(entry) !== null)
+        : undefined;
+    if (stdinScript) {
+        const language = readStdinLanguage(stdinScript) ?? 'a script';
+        const others = meaningful.filter(
+            (entry) => entry !== stdinScript && entry.program !== 'haus'
+        );
+        return {
+            ...base,
+            detail: readHeredocLine(command, stdinScript.program),
+            extraCommands: others.length,
+            past: `Ran ${language}`,
+            present: `Running ${language}`,
+        };
     }
     if (
         script.lines === 1 &&
@@ -126,6 +145,41 @@ export function unwrapShellCommand(command: string): string {
 
     return readQuoted(script.trim());
 }
+
+/** `a Python script` when a command runs an interpreter on its stdin; null otherwise. */
+function readStdinLanguage(command: ShellCommand): string | null {
+    const language = interpreterLanguages[command.program.replace(/[\d.]+$/u, '')];
+    const args = command.text.split(' ').slice(1);
+    // Only flags (`-u`) or `-` follow: the program reads its script from stdin.
+    return language && args.every((arg) => arg.startsWith('-')) ? language : null;
+}
+
+const interpreterLanguages: Readonly<Record<string, string>> = {
+    bash: 'a shell script',
+    node: 'a Node script',
+    perl: 'a Perl script',
+    php: 'a PHP script',
+    python: 'a Python script',
+    ruby: 'a Ruby script',
+    sh: 'a shell script',
+    zsh: 'a shell script',
+};
+
+/** The heredoc's first line that does something: no blank, comment, or import line. */
+function readHeredocLine(command: string, program: string): string | null {
+    const lines = unwrapShellCommand(command).split('\n');
+    const opener = lines.findIndex(
+        (line) => line.includes(program) && /<<-?\s*['"]?[A-Za-z_]/u.test(line)
+    );
+    const body = opener === -1 ? [] : lines.slice(opener + 1);
+    const line = body
+        .map((entry) => entry.trim())
+        .find((entry) => entry.length > 0 && !scriptPreamble.test(entry));
+    return line ? clampLabel(line) : null;
+}
+
+const scriptPreamble =
+    /^(?:#|\/\/|import\s|from\s+\S+\s+import\s|['"]use strict['"]|(?:const|let|var)\s+\w+\s*=\s*require\(|require\s|use\s+(?:strict|warnings)\b)/u;
 
 function readHausLabel(commands: readonly ShellCommand[]) {
     const verbs = commands

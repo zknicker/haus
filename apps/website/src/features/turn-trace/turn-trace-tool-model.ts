@@ -3,7 +3,7 @@ import type { ToolPartState } from '@heroui-pro/react/chat-tool';
 import { readFailure, type TurnTraceError } from './turn-trace-error.ts';
 import { type HausMessage, readHausMessage } from './turn-trace-haus-command.ts';
 import { readTracePath, type TracePath } from './turn-trace-path.ts';
-import { readShellLabel, unwrapShellCommand } from './turn-trace-shell-label.ts';
+import { readShellLabel, type ShellLabel, unwrapShellCommand } from './turn-trace-shell-label.ts';
 import {
     formatSubagentInterruption,
     formatSubagentLabel,
@@ -38,6 +38,8 @@ export interface TurnTraceImage {
 export interface TurnTraceTool extends TurnTraceToolFields {
     /** A sub-agent's own calls, in order; empty for every other kind. */
     readonly children: readonly TurnTraceTool[];
+    /** A muted line beside the label, such as a stdin script's first line. */
+    readonly detail: string | null;
     readonly error: unknown;
     /** Other commands a compound shell script ran beyond the one its label names. */
     readonly extraCommands: number;
@@ -98,8 +100,8 @@ export function classifyTraceTool(
     return {
         ...fields,
         children,
+        ...readShellFacts(shell),
         error,
-        extraCommands: shell?.extraCommands ?? 0,
         failedChildCount,
         failure: runStatus === 'failed' ? readFailure(tool.failure, error) : null,
         hausMessage:
@@ -115,7 +117,6 @@ export function classifyTraceTool(
         labels,
         output,
         preliminary: resolveTracePreliminary(tool),
-        scriptLines: shell?.lines ?? 0,
         report: isSubagent && runStatus === 'completed' ? readTraceText(output) : null,
         source: tool,
         state: resolveToolPartState(tool),
@@ -220,5 +221,14 @@ function readImage(name: string, input: unknown, output: unknown): TurnTraceImag
         media: /video/u.test(name.toLowerCase()) ? 'video' : 'image',
         prompt: readString(readRecord(input)?.prompt) ?? readString(record?.revisedPrompt),
         workspacePath,
+    };
+}
+
+/** What a shell call's label leaves to the row: its detail, extra commands, and script size. */
+function readShellFacts(shell: ShellLabel | null) {
+    return {
+        detail: shell?.detail ?? null,
+        extraCommands: shell?.extraCommands ?? 0,
+        scriptLines: shell?.lines ?? 0,
     };
 }
