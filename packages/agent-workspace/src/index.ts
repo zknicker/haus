@@ -10,6 +10,7 @@ export {
 } from './cove-starter-kit.ts';
 export {
     defaultVisualsSkill,
+    factoryManagedSkillHashes,
     seedFactoryManagedSkills,
     visualsSkillFiles,
     visualsSkillId,

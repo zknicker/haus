@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { seedCoveWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
+import { seedCoveWorkspace } from '@haus/agent-workspace';
 import type { TraceCarrier } from '@haus/effect';
 import { AgentActivityRun } from './agent-activity-run.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './agent-commands.ts';
@@ -37,6 +37,7 @@ import {
 } from './launch-failure-turns.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
 import { reportTurn } from './launch-turn-report.ts';
+import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
@@ -290,7 +291,7 @@ export async function resetAgentState(input: {
                 seed.factoryKind === 'cove'
                     ? seedCoveWorkspace(join(agentRoot, 'workspace'))
                     : seedOrdinaryWorkspace(seed, join(agentRoot, 'workspace')),
-                seedFactoryManagedSkills(join(agentRoot, 'skills')),
+                seedAgentManagedSkills(agentRoot),
             ]);
         }
         return;

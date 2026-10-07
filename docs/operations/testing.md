@@ -320,6 +320,18 @@ bun run test:agents --include-opt-in --only warm-dm-memory-refresh --only respon
 They log durations for comparison; a single model run is not a latency guarantee. Run agent-test
 commands serially against one dev stack, because startup cleanup sweeps prior run records.
 
+The managed-skill update probe is opt-in because it rewrites one test Agent's skill library and
+`runtime/managed-skills.json` on the dev Computer's disk, so the Computer must be this checkout's
+local dev stack. It installs a legacy visuals skill with a literal `Share %` second axis, has the
+Agent chart and save `notes/sales-chart-recipe.md`, marks the record stale and reapplies the
+Agent's configuration so Computer reseeds the current skill and queues the update notice, then
+asks for the next chart. It gates on the notice being queued and consumed, the second chart and
+the rebuilt recipe dropping `Share %`, and the recipe naming its visuals origin:
+
+```sh
+bun run test:agents --include-opt-in --only managed-skill-update-rebuilds-recipe --lanes 1
+```
+
 The Cove creation scenario is opt-in because it needs a real active Cove on an
 attached healthy Computer plus the local deterministic avatar fixture. Start
 the dev stack with an absolute JSONL path, then run the scenario:

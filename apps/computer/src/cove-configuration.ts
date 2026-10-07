@@ -1,10 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import {
-    seedCoveWorkspace,
-    seedFactoryManagedSkills,
-    validateCoveWorkspace,
-} from '@haus/agent-workspace';
+import { seedCoveWorkspace, validateCoveWorkspace } from '@haus/agent-workspace';
 import {
     type ComputerInventory,
     type CoveApplyCommand,
@@ -16,6 +12,7 @@ import {
     readAppliedAgentConfiguration,
     resolveConfiguration,
 } from './agent-configuration.ts';
+import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 
 /**
  * Cove's factory application: a replayable, receipt-guarded seed of the one
@@ -45,7 +42,7 @@ export async function applyCoveConfiguration(input: {
         }
         const agentRoot = await ensureAgentRoot(input.dataRoot, input.serverId, command.agentId);
         const receiptPath = join(agentRoot, 'cove-application.json');
-        await seedFactoryManagedSkills(join(agentRoot, 'skills'));
+        await seedAgentManagedSkills(agentRoot);
         const existing = await readCoveReceipt(receiptPath);
         if (existing) {
             assertMatchingCoveReceipt(existing, command);

@@ -14,8 +14,11 @@ description: >
 
 # Visuals
 
-Managed by Haus. Do not edit this skill directory; Haus refreshes it on startup. You render two
-kinds of visual output in chat:
+Managed by Haus. Do not edit this skill directory; Haus refreshes it on startup. If you save a
+chart script, recipe, or preference derived from this skill, note that it came from the visuals
+skill, and rebuild it when the skill changes; never save chart geometry as a standing preference.
+
+You render two kinds of visual output in chat:
 
 - A **visual** — bespoke inline HTML/SVG in a ```` ```visual ```` fence:
   charts, composed reports, diagrams, calculators, comparisons, timelines, state

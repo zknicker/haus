@@ -101,7 +101,8 @@ without erasing the workspace or skills. Full reset restores the workspace for
 the Agent's persisted factory kind: minimal `MEMORY.md` and empty `notes/` for an ordinary Agent,
 or the exact four-file Cove onboarding seed under root `MEMORY.md` and `notes/`.
 It deletes all existing skills and restores only current factory-managed skills,
-presently `visuals`.
+presently `visuals`, without a skill update notice. A managed skill that changes between ordinary
+seeds queues a one-turn update notice ([Skills](../docs/features/skills.md#factory-managed-skills)).
 Retirement removes the local execution host after Server retirement has
 completed.
 

@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { seedAgentWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
+import { seedAgentWorkspace } from '@haus/agent-workspace';
 import {
     type AgentConfigureCommand,
     type AgentReasoningEffort,
@@ -9,6 +9,7 @@ import {
     type ComputerInventory,
     type CoveApplyCommand,
 } from '@haus/api';
+import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 
 export interface AppliedAgentConfiguration {
     missingResources: string[];
@@ -50,7 +51,7 @@ export async function applyAgentConfiguration(input: {
         )
     );
     await seedOrdinaryWorkspace(input.command, join(agentRoot, 'workspace'));
-    await seedFactoryManagedSkills(join(agentRoot, 'skills'));
+    await seedAgentManagedSkills(agentRoot);
     const destination = join(agentRoot, 'configuration.json');
     const temporary = `${destination}.${process.pid}.tmp`;
     await writeFile(
