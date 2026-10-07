@@ -7,9 +7,9 @@
  * exact CDN files below. Treat the body as attacker-controlled; nothing from
  * the fence may reach the app origin.
  *
- * Nothing here reads a document: the App, Haus Computer's headless renderer,
- * and the visuals lab each pass the resolved theme tokens and color scheme, so
- * all three build the same frame byte for byte.
+ * Nothing here reads a document: the App and the visuals lab each pass the
+ * resolved theme tokens and color scheme, so both build the same frame byte
+ * for byte.
  */
 
 /**

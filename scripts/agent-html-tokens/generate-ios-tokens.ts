@@ -1,18 +1,15 @@
 /**
- * Snapshot the published agent-HTML token contract for iOS and Haus Computer.
+ * Snapshot the published agent-HTML token contract for iOS.
  *
  * The web reads these values off `getComputedStyle(document.documentElement)`;
- * iOS and the compiled Computer have no app stylesheets to read from, so this
- * resolves the same names statically out of the stylesheets the web app
- * imports and writes them into the Swift package and into `@haus/api`
- * (`render-api-tokens.ts`). Run it with `bun run gen:ios-tokens`; both
- * checked-in files are drift-tested, so a theme change that is not regenerated
- * fails CI.
+ * iOS has no browser to read from, so this resolves the same names statically
+ * out of the stylesheets the web app imports and writes them into the Swift
+ * package. Run it with `bun run gen:ios-tokens`; the checked-in file is
+ * drift-tested, so a theme change that is not regenerated fails CI.
  */
 
 import { agentHtmlTokenNames } from '../../apps/website/src/agent-html/tokens.ts';
 import { type Cascade, collectCascade, type Scheme } from './css-cascade.ts';
-import { API_OUTPUT_PATH, type ResolvedToken, renderApiTokensSource } from './render-api-tokens.ts';
 import { resolveExpression, resolveVariable } from './resolve-token.ts';
 
 const REPO = new URL('../..', import.meta.url).pathname;
@@ -63,7 +60,10 @@ const DERIVED: Record<string, string> = {
 
 const SCHEMES: Scheme[] = ['dark', 'light'];
 
-export type { ResolvedToken } from './render-api-tokens.ts';
+export interface ResolvedToken {
+    name: string;
+    value: string;
+}
 
 /**
  * Every name the web snapshot emits — the taught vocabulary plus the derived
@@ -124,9 +124,4 @@ function swiftString(value: string): string {
 if (import.meta.main) {
     await Bun.write(OUTPUT_PATH, renderSwiftSource());
     console.log(`Wrote ${OUTPUT_PATH}`);
-    await Bun.write(
-        API_OUTPUT_PATH,
-        renderApiTokensSource({ dark: resolveTokens('dark'), light: resolveTokens('light') })
-    );
-    console.log(`Wrote ${API_OUTPUT_PATH}`);
 }

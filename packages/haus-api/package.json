@@ -24,7 +24,6 @@
     "./widgets/artifact": "./src/widgets/artifact/contracts.ts",
     "./widgets/visual": "./src/widgets/visual/contracts.ts",
     "./widgets/visual/frame": "./src/widgets/visual/frame.ts",
-    "./widgets/visual/tokens": "./src/widgets/visual/tokens.ts",
     "./openapi.yaml": "./openapi.yaml"
   },
   "scripts": {
