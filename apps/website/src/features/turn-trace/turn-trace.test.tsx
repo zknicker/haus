@@ -155,13 +155,16 @@ test('a turn that failed states why above its steps instead of claiming nothing 
     assert.doesNotMatch(markup, /No activity was recorded/);
 });
 
-test('an image step without a readable workspace copy names its file and prompt', () => {
+test('an image step is a closed row like any step, its picture and prompt behind it', () => {
     const markup = renderJournal(imageTurn);
+    const trigger =
+        markup.match(
+            /<button[^>]*data-trace-row[^>]*>(?:(?!<\/button>)[\s\S])*Generated an image[\s\S]*?<\/button>/
+        )?.[0] ?? '';
 
-    assert.match(markup, /Generated an image/);
-    assert.doesNotMatch(markup, /<img/);
-    assert.match(markup, /20261006-174019-exec-0b47[^<]*\.png/);
-    assert.match(markup, /lighthouse/i);
+    assert.match(trigger, /aria-expanded="false"/);
+    // Closed, neither the picture, its file, nor its prompt is in the page.
+    assert.doesNotMatch(markup, /<img|20261006-174019-exec-0b47|lighthouse/i);
 });
 
 test('a live trace ticks: the running step and the totals re-derive from the clock', () => {

@@ -15,7 +15,7 @@ import type {
 /**
  * One call. A row with evidence opens to it; a row without stays a plain
  * line. A failure tints its row and stays closed until someone opens it; an
- * image shows what it made in place.
+ * image opens to what it made.
  */
 export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
     const { status, timing, tool } = step;
@@ -48,12 +48,11 @@ export function TraceCallStep({ step }: { step: TurnTraceCallStep }) {
 
     if (tool.image && status !== 'failed') {
         return (
-            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)]">
-                <TraceRow {...cells} />
+            <TraceDisclosure {...cells}>
                 <TraceBody>
                     <TurnTraceImagePreview image={tool.image} />
                 </TraceBody>
-            </div>
+            </TraceDisclosure>
         );
     }
     if (!hasCallBody(tool)) {
