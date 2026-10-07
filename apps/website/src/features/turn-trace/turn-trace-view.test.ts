@@ -115,18 +115,20 @@ test('P1-3: five parallel sleeps fold into one parallel row on five lanes', () =
         fold.members.map((member) => member.parallel?.lane),
         [0, 1, 2, 3, 4]
     );
-    assert.equal(fold.caption, 'Running five parallel exec commands');
     assert.equal(fold.timing.durationMs, 44_865);
 });
 
-test('P1-4: reasoning titles caption the next step without breaking a fold', () => {
-    const curls = find(settled(codexFailureTurn).steps, 'fold', 1);
-    assert.equal(curls.label, 'Ran 2 commands');
-    assert.deepEqual(curls.thoughts, [
-        'Planning web search using curl',
-        'Testing Bing search access',
-    ]);
-    assert.equal(curls.caption, 'Testing Bing search access');
+test('P1-4: each reasoning title is a Thought step at its own time, between the calls', () => {
+    const { steps } = settled(codexFailureTurn);
+    const tail = steps.slice(-4).map((step) => ('thoughts' in step ? step.thoughts[0] : step.kind));
+    assert.equal(
+        tail.join(' / '),
+        'Planning web search using curl / call / Testing Bing search access / call'
+    );
+    // A thought spans its reasoning block on the turn's axis, keyed by its first block.
+    const planning = find(steps, 'thought', 1);
+    assert.deepEqual([planning.key, planning.timing.durationMs], ['thought:reasoning:r2', 118]);
+    assert.equal(steps[steps.indexOf(find(steps, 'thought')) + 1]?.kind, 'fold');
 });
 
 test('P1-1: bookkeeping folds into one Haus step where it began', () => {
@@ -162,15 +164,14 @@ test('P1-6: an image step carries the workspace file and its prompt', () => {
         prompt: 'A small friendly pixel-art lighthouse on a foggy shoreline at dusk',
         workspacePath: 'generated-images/20261006-174019-exec-0b470f15.png',
     });
-    assert.equal(image.caption, 'Calling image generation tool');
+    assert.deepEqual(find(steps, 'thought').thoughts, ['Calling image generation tool']);
     assert.equal(totals.images, 1);
     assert.equal(find(steps, 'call').tool.target?.dir, '~/.codex/skills/.system/imagegen');
 });
 
-test('a closing run of reasoning titles is its own thought step, latest first', () => {
+test('a run of consecutive reasoning titles folds into one thought step, oldest first', () => {
     const thought = settled(imageTurn).steps.at(-1);
     assert.ok(thought?.kind === 'thought');
-    assert.equal(thought.caption, 'Confirming minimal final response');
     assert.deepEqual(thought.thoughts, [
         'Resolving final output format',
         'Confirming minimal final response',

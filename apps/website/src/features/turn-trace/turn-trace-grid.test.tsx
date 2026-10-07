@@ -4,14 +4,19 @@ import test from 'node:test';
 import type { AgentExecutionJournal } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
+import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { TurnTraceFooter } from './turn-trace-footer.tsx';
-import { traceGridClass } from './turn-trace-grid.tsx';
+import { TraceBody, TraceNested, traceGridClass } from './turn-trace-grid.tsx';
+import { TurnTraceScopeProvider } from './turn-trace-scope.tsx';
+import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { call, journal } from './turn-trace-test-fixtures.ts';
+import { buildTurnTraceView } from './turn-trace-view.ts';
 
 const tokens = readFileSync(new URL('../../styles/product-tokens.css', import.meta.url), 'utf8');
 
-// A failed sub-agent opens on its own, and so does its failed child call, so
-// one static render holds rows at depth 0 and 1 plus bodies at both.
+// A failed sub-agent and its failed child call. Rows stay closed until opened,
+// so `render` draws the sub-agent's children one depth in and the failed
+// call's body beside the top-level rows: rows at depth 0 and 1, and a body.
 const nested: AgentExecutionJournal = journal(
     'run-grid',
     ['00:00.000', '00:30.000'],
@@ -158,11 +163,34 @@ test('the footer states each total once, and flips Running to Done', () => {
 });
 
 function render(source: AgentExecutionJournal) {
-    return renderToStaticMarkup(
+    const trace = renderToStaticMarkup(
         <TurnTracePresentation
             access="journal"
             isPending={false}
             presentation={{ journal: source, kind: 'available' }}
         />
+    );
+    const view = buildTurnTraceView(source, [], Date.parse(source.endedAt ?? source.startedAt));
+    const subagent = view.steps.find((step) => step.kind === 'subagent');
+    if (!subagent) {
+        return trace;
+    }
+    const failed = subagent.children.find(
+        (step) => step.kind === 'call' && step.status === 'failed'
+    );
+    return (
+        trace +
+        renderToStaticMarkup(
+            <TurnTraceScopeProvider scope={{ axisMs: 30_000, workspace: null }}>
+                <TraceNested>
+                    <TurnTraceSteps steps={subagent.children} />
+                </TraceNested>
+                {failed?.kind === 'call' ? (
+                    <TraceBody>
+                        <TurnTraceCallBody tool={failed.tool} />
+                    </TraceBody>
+                ) : null}
+            </TurnTraceScopeProvider>
+        )
     );
 }

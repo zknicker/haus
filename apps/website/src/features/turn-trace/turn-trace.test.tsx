@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
+import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { complexTurn } from './turn-trace-claude-fixtures.ts';
 import { codexFailureTurn, imageTurn } from './turn-trace-codex-fixtures.ts';
 import { TurnTraceScopeProvider } from './turn-trace-scope.tsx';
@@ -115,10 +116,24 @@ test('a sub-agent that finished with failed calls warns and counts them', () => 
     assert.match(markup, /<span class="shrink-0 text-danger tabular-nums">2 failed<\/span>/);
 });
 
-test('a failed command opens to one line with its exit code; its output waits behind Command', () => {
+test('a failed row tints but stays closed until someone opens it', () => {
     const markup = renderJournal(codexFailureTurn);
 
-    assert.equal(markup.match(/aria-expanded="true"/g)?.length, 1);
+    assert.doesNotMatch(markup, /aria-expanded="true"/);
+    const failed = markup.match(/<button[^>]*bg-trace-row-danger[^>]*>/)?.[0] ?? '';
+    assert.match(failed, /aria-expanded="false"/);
+});
+
+test('a failed command opens to one line with its exit code; its output waits behind Command', () => {
+    const view = buildTurnTraceView(
+        codexFailureTurn,
+        [],
+        Date.parse(codexFailureTurn.endedAt ?? '')
+    );
+    const failed = view.steps.find((step) => step.kind === 'call' && step.status === 'failed');
+    assert.ok(failed?.kind === 'call');
+    const markup = renderToStaticMarkup(<TurnTraceCallBody tool={failed.tool} />);
+
     assert.match(
         markup,
         /Command failed<span class="text-muted tabular-nums"> · Exit code 1<\/span>/
@@ -147,16 +162,6 @@ test('an image step without a readable workspace copy names its file and prompt'
     assert.doesNotMatch(markup, /<img/);
     assert.match(markup, /20261006-174019-exec-0b47[^<]*\.png/);
     assert.match(markup, /lighthouse/i);
-});
-
-test('reasoning titles ride the next step as its caption, earlier ones a press away', () => {
-    const markup = renderJournal(codexFailureTurn);
-
-    assert.match(markup, /data-trace-caption[^>]*><span>Running five parallel exec commands</);
-    assert.match(
-        markup,
-        /<button[^>]*aria-expanded="false"[^>]*>Testing Bing search access · 2 thoughts/
-    );
 });
 
 test('a live trace ticks: the running step and the totals re-derive from the clock', () => {

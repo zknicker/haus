@@ -109,7 +109,7 @@ test('sub-agent meta prefers reported usage, else counts the calls seen so far',
     assert.equal(formatSubagentToolCount(live, 1), '1 tool');
 });
 
-test('a failed sub-agent opens on its own and shows its calls and type', () => {
+test('a failed sub-agent stays closed until opened', () => {
     const markup = renderToStaticMarkup(
         <TurnTracePresentation
             access="journal"
@@ -134,11 +134,12 @@ test('a failed sub-agent opens on its own and shows its calls and type', () => {
         />
     );
     assert.match(markup, /Sub-agent failed: Count files in apps/);
-    assert.match(markup, /Explore/);
-    assert.match(markup, /Read README\.md/);
+    assert.match(markup, /bg-trace-row-danger/);
+    assert.match(markup, /aria-expanded="false"/);
+    assert.doesNotMatch(markup, /aria-expanded="true"|Read README\.md/);
 });
 
-test('an interrupted sub-agent stays closed under a calm stop mark; a failed one opens to why', () => {
+test('an interrupted sub-agent takes a calm stop mark; a failed one the danger mark', () => {
     const render = (status: 'failed' | 'interrupted') =>
         renderToStaticMarkup(
             <TurnTracePresentation
@@ -166,12 +167,8 @@ test('an interrupted sub-agent stays closed under a calm stop mark; a failed one
     assert.doesNotMatch(interrupted, /text-danger|aria-expanded="true"/);
 
     const failed = render('failed');
-    assert.match(failed, /aria-expanded="true"/);
+    assert.match(failed, /aria-expanded="false"/);
     assert.match(failed, /<svg[^>]*class="size-3\.5 shrink-0 text-danger"/);
-    assert.match(
-        failed,
-        /<p class="whitespace-pre-wrap break-words text-danger text-sm">aborted<\/p>/
-    );
 });
 
 function toolAt(entries: ReturnType<typeof buildTurnTrace>, index: number): TurnTraceTool {
