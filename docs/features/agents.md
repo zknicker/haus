@@ -209,7 +209,9 @@ Every Agent shares a built-in house personality: a senior teammate, short plain
 sentences, a committed take, no closing offers, no em dashes. The conversation
 style layers a voice on top of it (up to 2000 characters) and wins on tone; it
 shapes only voice and banter, never rules, permissions, or how the Agent works. The signature emoji is the reaction an Agent leaves when it picks
-up a request that needs real work (default 👀). Owners and Admins set both in Edit
+up a request that needs real work (default 👀). It can be picked at creation, in
+the App's Create Agent dialog or with `haus agent create --emoji`, and is null when omitted.
+Owners and Admins set both in Edit
 Profile, and an Agent tunes its own with `haus profile update` only when an Owner
 or Admin asks, never at another Agent's or a member's request.
 Both are private to the Agent and its Owners and Admins: they never appear in
