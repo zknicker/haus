@@ -2754,8 +2754,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "conversation_style": {
-          "name": "conversation_style",
+        "personality": {
+          "name": "personality",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2958,7 +2958,7 @@
         },
         "agents_conversation_style_length": {
           "name": "agents_conversation_style_length",
-          "value": "\"agents\".\"conversation_style\" is null or char_length(\"agents\".\"conversation_style\") between 1 and 2000"
+          "value": "\"agents\".\"personality\" is null or char_length(\"agents\".\"personality\") between 1 and 2000"
         },
         "agents_signature_emoji_length": {
           "name": "agents_signature_emoji_length",

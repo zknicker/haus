@@ -74,7 +74,8 @@ export const agentsTable = pgTable(
          * Admins, or the Agent itself. It rides only the Agent's own start frame and self profile;
          * no roster, envelope, or other Agent reads it.
          */
-        conversationStyle: text('conversation_style'),
+        // Server 7.1.0 reads and writes this column during application rollback.
+        conversationStyle: text('personality'),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
         /** One fully qualified emoji: the Agent's pickup reaction. Null means the default. */
         signatureEmoji: text('signature_emoji'),
