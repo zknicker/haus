@@ -56,7 +56,10 @@ struct TaskSectionHeader: View {
                     .font(.subheadline)
                     .monospacedDigit()
             }
-            .foregroundStyle(.secondary)
+            // The system's secondary label color, not a hierarchical
+            // `.secondary`, which resolved against the header's own ink and
+            // read too faint.
+            .foregroundStyle(HausPlatformColor.secondaryLabel)
             .padding(.horizontal, TaskListMetrics.horizontalInset)
             .padding(.bottom, 4)
         }
