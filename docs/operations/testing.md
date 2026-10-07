@@ -504,8 +504,9 @@ Nothing reaches an unselected model and skill pair.
 Every cell's stats line also carries an objective read on the fences it
 shipped: layout findings and console errors from an in-frame geometry probe
 (`scripts/visuals-lab/engine/layout-probe.ts`: horizontal overflow, text
-clipped by `overflow: hidden`, SVG text outside its svg, and text colliding on
-a line; messages on hover). Runs from before the probe are backfilled into a
+clipped by `overflow: hidden`, SVG text outside its svg, text colliding on
+a line, and two series lines in one svg drawn almost on top of each other,
+judged in `engine/coincident-lines.ts`; messages on hover). Runs from before the probe are backfilled into a
 `<slug>.findings.json` sidecar the first time the lab reads them.
 
 The verdict is human. Judge a rendered cell against

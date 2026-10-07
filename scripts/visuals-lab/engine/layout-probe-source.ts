@@ -1,3 +1,5 @@
+import { seriesLinesSource } from './series-lines-source.ts';
+
 /**
  * The in-frame geometry collector, as plain JavaScript source. It is a string
  * rather than a serialized TypeScript function so a transpiler can never
@@ -127,6 +129,7 @@ export const layoutFactsSource = `function () {
         clipCandidates: clipCandidates,
         overflowRoots: overflowRoots,
         scrollWidth: root.scrollWidth,
+        seriesLines: (${seriesLinesSource})(visible, snippet),
         svgTexts: svgTexts,
         textBoxes: textBoxes,
         viewportWidth: viewportWidth,
