@@ -67,10 +67,7 @@ import {
     readComputerLogs,
     readComputerStatus,
 } from './diagnostics.ts';
-import {
-    parseExecutionJournalRequest,
-    readExecutionJournalRequest,
-} from './execution-journal-relay.ts';
+import { readExecutionEvidenceFrame } from './execution-journal-relay.ts';
 import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
@@ -1288,15 +1285,9 @@ async function connect(
                 );
                 return;
             }
-            const executionJournalRequest = parseExecutionJournalRequest(frame);
-            if (executionJournalRequest) {
-                void trackWriter(
-                    readExecutionJournalRequest({
-                        dataRoot,
-                        request: executionJournalRequest,
-                        serverId: attachment.serverId,
-                    }).then((result) => sendFrame(result))
-                );
+            const evidence = readExecutionEvidenceFrame(frame, dataRoot, attachment.serverId);
+            if (evidence) {
+                void trackWriter(evidence.then((result) => sendFrame(result)));
                 return;
             }
             const browserRequest = parseBrowserRequest(frame);

@@ -2,9 +2,12 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { agentExecutionOutlinesResultSchema } from '@haus/api';
 import {
     parseExecutionJournalRequest,
+    parseExecutionOutlinesRequest,
     readExecutionJournalRequest,
+    readExecutionOutlinesRequest,
 } from './execution-journal-relay.ts';
 import { createComputerExecutionJournal } from './harness/execution-journal.ts';
 
@@ -108,4 +111,40 @@ test('returns explicit missing for a run id that cannot address a local file', a
     await expect(
         readExecutionJournalRequest({ dataRoot, request: request!, serverId: 'srv_attached' })
     ).resolves.toMatchObject({ reason: 'missing', status: 'unavailable' });
+});
+
+test('outlines every requested run in one answer and names the missing ones', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-outline-relay-'));
+    roots.push(dataRoot);
+    const journal = await createComputerExecutionJournal({
+        agentRoot: join(dataRoot, 'servers', 'srv_attached', 'agents', 'agt_attached'),
+        runId: 'run_present',
+    });
+    await journal.finish('completed');
+
+    const request = parseExecutionOutlinesRequest({
+        agentId: 'agt_attached',
+        requestId: 'req_outlines',
+        runIds: ['run_present', 'run_absent'],
+        type: 'agent-execution-outlines-request',
+    });
+    expect(request).not.toBeNull();
+    const result = await readExecutionOutlinesRequest({
+        dataRoot,
+        request: request!,
+        serverId: 'srv_attached',
+    });
+    expect(agentExecutionOutlinesResultSchema.parse(result)).toEqual(result);
+    expect(result.outlines).toMatchObject([
+        { outline: { runId: 'run_present', status: 'completed', steps: [] }, status: 'available' },
+        { reason: 'missing', runId: 'run_absent', status: 'unavailable' },
+    ]);
+
+    // Another Server's partition never answers for this one.
+    const foreign = await readExecutionOutlinesRequest({
+        dataRoot,
+        request: request!,
+        serverId: 'srv_other',
+    });
+    expect(foreign.outlines.every((entry) => entry.status === 'unavailable')).toBe(true);
 });

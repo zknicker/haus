@@ -38,7 +38,7 @@
     "apps/computer/src/harness/executor.ts": 496,
     "apps/computer/src/inbox-store.ts": 371,
     "apps/computer/src/index.test.ts": 931,
-    "apps/computer/src/index.ts": 1648,
+    "apps/computer/src/index.ts": 1639,
     "apps/computer/src/launch.test.ts": 562,
     "apps/computer/src/launch.ts": 578,
     "apps/computer/src/login.ts": 409,
