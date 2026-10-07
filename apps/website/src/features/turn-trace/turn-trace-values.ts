@@ -106,15 +106,6 @@ export function clampTraceText(value: string): { clipped: boolean; text: string 
         : { clipped: false, text: value };
 }
 
-/** Keeps a payload small enough to hand a stock ChatTool block. */
-export function clampTraceValue(value: unknown): unknown {
-    const serialized = typeof value === 'string' ? value : stableJson(value);
-    if (serialized === null || serialized.length <= traceTextMaxChars) {
-        return value;
-    }
-    return `${serialized.slice(0, traceTextMaxChars)}\n… truncated`;
-}
-
 export function readHostname(url: string): string {
     try {
         return new URL(url).hostname || url;
@@ -144,3 +135,15 @@ export function stableJson(value: unknown): string | null {
         return null;
     }
 }
+
+/**
+ * Terminal styling a command printed for a TTY (`\x1b[31m`, cursor moves,
+ * OSC links) is noise once it is read as text: the escape is invisible and
+ * the rest of the sequence prints as `[31m`.
+ */
+export function stripTerminalEscapes(text: string): string {
+    return text.replace(terminalEscapePattern, '');
+}
+
+// CSI sequences (colors, cursor moves) and OSC sequences (titles, links) ended by BEL or ST.
+const terminalEscapePattern = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g;

@@ -59,16 +59,18 @@ export function TraceSubagentStep({
                 <TraceBody>
                     {latestAction ? <TurnTraceNote>{latestAction}</TurnTraceNote> : null}
                     {tool.interruption ? <TurnTraceNote>{tool.interruption}</TurnTraceNote> : null}
-                    {tool.report ? (
-                        <TraceSection label="Report">
-                            <ReferenceMarkdown
-                                className="chat-markdown text-foreground text-sm"
-                                content={clampTraceText(tool.report).text}
-                            />
-                        </TraceSection>
-                    ) : null}
+                    {tool.report ? <SubagentReport report={tool.report} /> : null}
                 </TraceBody>
             ) : null}
         </TraceDisclosure>
+    );
+}
+
+function SubagentReport({ report }: { report: string }) {
+    const text = clampTraceText(report).text;
+    return (
+        <TraceSection copy={text} label="Report">
+            <ReferenceMarkdown className="chat-markdown text-foreground text-sm" content={text} />
+        </TraceSection>
     );
 }

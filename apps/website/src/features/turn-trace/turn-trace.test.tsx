@@ -124,7 +124,7 @@ test('a failed row tints but stays closed until someone opens it', () => {
     assert.match(failed, /aria-expanded="false"/);
 });
 
-test('a failed command opens to one line with its exit code; its output waits behind Command', () => {
+test('a failed command opens to its reason, then its output, with nothing behind a second press', () => {
     const view = buildTurnTraceView(
         codexFailureTurn,
         [],
@@ -136,11 +136,11 @@ test('a failed command opens to one line with its exit code; its output waits be
 
     assert.match(
         markup,
-        /Command failed<span class="text-muted tabular-nums"> · Exit code 1<\/span>/
+        /Command failed<span class="text-muted tabular-nums"> · exit code 1<\/span>/
     );
-    // The printed output is evidence, not the reason: it is never promoted to the error line.
-    assert.doesNotMatch(markup, /ls: \/definitely\/not\/here: No such file or directory/);
-    assert.match(markup, /aria-expanded="false"[^>]*>[\s\S]*?Command</);
+    // The printed output is evidence, not the reason: it shows as Output, never as the error line.
+    assert.match(markup, />Output<[\s\S]*ls: \/definitely\/not\/here: No such file or directory/);
+    assert.doesNotMatch(markup, /aria-expanded/);
     assert.doesNotMatch(markup, /formatted_output|exit_code/);
 });
 

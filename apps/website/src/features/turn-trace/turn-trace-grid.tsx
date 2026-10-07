@@ -3,7 +3,7 @@ import { cn } from '../../lib/utils.ts';
 import { formatTraceDuration } from './turn-trace-duration.ts';
 import type { TurnTraceLane, TurnTraceTiming } from './turn-trace-timing.ts';
 import type { TurnTraceStatus } from './turn-trace-tool-model.ts';
-import { TraceTrack } from './turn-trace-track.tsx';
+import { TraceLane, TraceTrack } from './turn-trace-track.tsx';
 
 /**
  * The trace's one row grid. Every row at every depth — call, fold, Haus
@@ -158,23 +158,42 @@ export function TraceCells({ bars, line, slot, timing = null, tone = 'default' }
 
 /**
  * What a row opens to that is not itself a row — evidence, a report, a
- * message — starts on the row's label text and stops short of the edge.
- * Nested rows never sit in here: they keep the trace's columns.
+ * message — starts on the row's label text. In a chat's trace it runs to the
+ * edge. In the log it stays in the time and label columns and the track
+ * column beside it keeps the turn's gridlines, so the chart reads unbroken
+ * from the ruler to the last row with bodies open. Nested rows never sit in
+ * here: they keep the trace's columns.
  */
 export function TraceBody({ children }: { children: React.ReactNode }) {
+    const layout = useTraceLayout();
+    const style = useTraceDepthStyle();
+    if (layout === 'trace') {
+        return (
+            <div
+                className="grid min-w-0 gap-2 pe-2.5 pt-1 pb-2"
+                data-trace-body
+                style={{ ...style, paddingInlineStart: traceTextInset }}
+            >
+                {children}
+            </div>
+        );
+    }
     return (
-        <div
-            className="grid min-w-0 gap-2 pe-2.5 pt-1 pb-2"
-            data-trace-body
-            style={{
-                ...useTraceDepthStyle(),
-                paddingInlineStart: traceTextInset,
-            }}
-        >
-            {children}
+        <div className={cn(traceLogGridClass, 'px-(--trace-pad)')} data-trace-body style={style}>
+            <div
+                // The padding lives on the cell, not the grid, so the lane stretches the body's full height.
+                className="@max-2xl/activity-log:col-span-full col-span-2 grid min-w-0 gap-2 pe-2 pt-1 pb-2"
+                style={{ paddingInlineStart: traceLogTextInset }}
+            >
+                {children}
+            </div>
+            <TraceLane />
         </div>
     );
 }
+
+/** The log body's label text start from its first column: `traceTextInset` less the row pad. */
+const traceLogTextInset = `calc(var(--trace-lead, 0rem) + var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 5.5)`;
 
 /**
  * The dotted line from a label's end at the row's center. It runs on across

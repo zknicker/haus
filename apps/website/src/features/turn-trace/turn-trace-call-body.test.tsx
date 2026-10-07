@@ -123,7 +123,7 @@ test('a call shows the evidence codex-acp journals for a command, an edit, and a
 
     assert.match(markup, /Wed Sep 23 13:47:04 EDT 2026/);
     // Only a failing command states its exit code.
-    assert.equal(markup.match(/Exit code/g)?.length, 1);
+    assert.equal(markup.match(/>Exit code</g)?.length, 1);
     assert.match(markup, /boom/);
     // A step whose start and end arrived together claims no duration.
     assert.doesNotMatch(markup, />0ms</);
@@ -175,7 +175,7 @@ function tool(overrides: Partial<AgentExecutionJournalTool>): AgentExecutionJour
     };
 }
 
-test('a sent message opens to the message, with the command one quiet press away', () => {
+test('a sent message opens to everything: where it went, the message, then the command and output', () => {
     const markup = renderBodies([
         tool({
             input: {
@@ -194,7 +194,64 @@ test('a sent message opens to the message, with the command one quiet press away
 
     assert.match(markup, /<strong>green<\/strong>/);
     assert.match(markup, />DM</);
-    assert.match(markup, /aria-expanded="false"[^>]*>[\s\S]*?Command/);
-    // The raw command, the peer, and the CLI hint stay inside the closed disclosure.
-    assert.doesNotMatch(markup, /HAUSMSG|zach-knickerbocker|to reply in this message/);
+    // No disclosure inside a body: the command and the CLI's reply are open beside the message.
+    assert.doesNotMatch(markup, /aria-expanded/);
+    assert.ok(markup.indexOf('>Message<') < markup.indexOf('>Command<'));
+    assert.ok(markup.indexOf('>Command<') < markup.indexOf('>Output<'));
+    assert.match(markup, /HAUSMSG/);
+    assert.match(markup, /to reply in this message/);
+});
+
+test('an MCP call shows its wire name, then its input and result as JSON trees', () => {
+    const markup = renderBodies([
+        tool({
+            input: { first: 2, team: 'PRD' },
+            output: { content: [{ text: '{"issues":[{"id":"PRD-1"}],"total":1}', type: 'text' }] },
+            toolCallId: 'call-mcp',
+            toolName: 'mcp__linear__list_issues',
+        }),
+    ]);
+
+    assert.match(markup, />mcp__linear__list_issues</);
+    assert.equal(markup.match(/role="treegrid"/g)?.length, 2);
+    assert.match(markup, /aria-label="Input"/);
+    assert.match(markup, /aria-label="Result"/);
+    assert.match(markup, />\{1 key\}</);
+    assert.doesNotMatch(markup, /&quot;content&quot;/);
+});
+
+test('terminal escapes a command printed are stripped from its output', () => {
+    const markup = renderBodies([
+        tool({
+            input: { command: 'npm test' },
+            output: {
+                exit_code: 0,
+                formatted_output: '\u001b[31m✖ src\u001b[39m\n\u001b[34mℹ pass 0\u001b[39m\n',
+            },
+            toolCallId: 'call-ansi',
+        }),
+    ]);
+
+    assert.match(markup, /✖ src\nℹ pass 0/);
+    assert.doesNotMatch(markup, /\[3\dm/);
+});
+
+test('every section label in a body is a micro label; what it names stays in sentence case', () => {
+    const markup = renderBodies([
+        tool({
+            error: { exit_code: 1, formatted_output: 'no such file\n' },
+            input: { command: 'ls /missing' },
+            status: 'failed',
+            toolCallId: 'call-failed',
+        }),
+    ]);
+
+    const labels = [...markup.matchAll(/<span class="[^"]*uppercase[^"]*">([^<]+)<\/span>/g)].map(
+        (match) => match[1]
+    );
+    assert.deepEqual(labels, ['Error', 'Command', 'Output']);
+    assert.match(
+        markup,
+        /Command failed<span class="text-muted tabular-nums"> · exit code 1<\/span>/
+    );
 });

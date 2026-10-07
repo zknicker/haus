@@ -67,6 +67,23 @@ export function TraceTrack({
 }
 
 /**
+ * The log's lane beside an open row's body: the turn's gridlines only, so the
+ * 0 edge and the ticks run on through the body to the rows below it.
+ */
+export function TraceLane() {
+    const { axisMs, gridTicks } = useTurnTraceScope();
+    return (
+        <span
+            aria-hidden
+            className="relative @max-2xl/activity-log:hidden min-w-0 self-stretch"
+            data-trace-cell="lane"
+        >
+            {gridTicks ? <TraceGridlines axisMs={axisMs} ticks={gridTicks} /> : null}
+        </span>
+    );
+}
+
+/**
  * The ruler's ticks carried down a step row: hairlines, the 0 line darkest so
  * the turn's steps share one visible left edge. Each reaches 1px above the
  * row to bridge the list's hairline gap.

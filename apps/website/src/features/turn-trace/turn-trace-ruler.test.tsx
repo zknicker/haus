@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { type TraceLayout, TraceLayoutProvider } from './turn-trace-grid.tsx';
+import { TraceBody, type TraceLayout, TraceLayoutProvider } from './turn-trace-grid.tsx';
 import { TraceRow } from './turn-trace-row.tsx';
 import { TraceRuler } from './turn-trace-ruler.tsx';
 import { readTraceScale } from './turn-trace-scale.ts';
@@ -90,3 +90,30 @@ function trackOf(markup: string): string {
     assert.ok(start > 0 && end > start, 'row has a track before its duration');
     return markup.slice(start, end);
 }
+
+test("an open row's body keeps the lane's gridlines beside it in the log, and spans the trace", () => {
+    const body = (layout: TraceLayout) =>
+        renderToStaticMarkup(
+            <TurnTraceScopeProvider
+                scope={{ axisMs: scale.scaleMs, gridTicks: scale.ticks, workspace: null }}
+            >
+                <TraceLayoutProvider layout={layout}>
+                    <TraceBody>
+                        <p>evidence</p>
+                    </TraceBody>
+                </TraceLayoutProvider>
+            </TurnTraceScopeProvider>
+        );
+
+    const log = body('log');
+    // The content sits in the time and label columns; the lane beside it draws every tick, 0 first.
+    assert.match(
+        log,
+        /col-span-2[^"]*"[^>]*><p>evidence<\/p><\/div><span[^>]*data-trace-cell="lane"/
+    );
+    assert.deepEqual(
+        [...log.matchAll(/data-trace-gridline="(\d+)"/g)].map(([, tick]) => Number(tick)),
+        scale.ticks
+    );
+    assert.doesNotMatch(body('trace'), /data-trace-cell="lane"|data-trace-gridline/);
+});

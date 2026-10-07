@@ -1,11 +1,10 @@
-import { ChatTool } from '@heroui-pro/react/chat-tool';
 import { TraceMicroLabel, TurnTraceNote } from './turn-trace-blocks.tsx';
+import { TraceValue } from './turn-trace-code.tsx';
 import type { TurnTraceError } from './turn-trace-error.ts';
 import { TurnTraceToolBody } from './turn-trace-tool-bodies.tsx';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 import {
     clampTraceText,
-    clampTraceValue,
     readFileDiff,
     readRecord,
     readShellOutput,
@@ -26,10 +25,7 @@ export function TurnTraceCallBody({ tool }: { tool: TurnTraceTool }) {
             ) : null}
             <TurnTraceToolBody tool={tool} />
             {tool.preliminary === undefined ? null : (
-                <ChatTool.Result
-                    label="Preliminary output"
-                    value={clampTraceValue(tool.preliminary)}
-                />
+                <TraceValue label="Preliminary output" value={tool.preliminary} />
             )}
             {tool.interruption ? <TurnTraceNote>{tool.interruption}</TurnTraceNote> : null}
         </>
@@ -52,7 +48,7 @@ export function TraceFailure({ failure }: { failure: TurnTraceError }) {
         <p className="whitespace-pre-wrap break-words text-danger text-sm">
             {clampTraceText(failure.message).text}
             {failure.exitCode === null ? null : (
-                <span className="text-muted tabular-nums">{` · Exit code ${failure.exitCode}`}</span>
+                <span className="text-muted tabular-nums">{` · exit code ${failure.exitCode}`}</span>
             )}
         </p>
     );

@@ -1,20 +1,19 @@
 import { ChatSource, ChatSources } from '@heroui-pro/react';
-import { ChatTool } from '@heroui-pro/react/chat-tool';
 import type { ReactNode } from 'react';
 import { buildDiffHunks, countDiffStats } from '../../components/diff/diff-hunks.ts';
 import { DiffStatBadge, DiffView } from '../../components/diff/diff-view.tsx';
 import { codeLanguageForPath } from '../../lib/code-language.ts';
 import {
-    TurnTraceCode,
+    TraceSection,
     TurnTraceFact,
+    TurnTraceFacts,
     TurnTraceNote,
-    TurnTraceProse,
 } from './turn-trace-blocks.tsx';
+import { TraceValue, TurnTraceCode } from './turn-trace-code.tsx';
 import { ShellBody } from './turn-trace-shell-body.tsx';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 import {
     clampTraceText,
-    clampTraceValue,
     readFileDiff,
     readHostname,
     readRecord,
@@ -60,7 +59,9 @@ function CompactionBody({ tool }: { tool: TurnTraceTool }) {
     return (
         <>
             {before && after ? (
-                <TurnTraceFact label="Tokens" value={`${before} → ${after}`} />
+                <TurnTraceFacts>
+                    <TurnTraceFact label="Tokens" value={`${before} → ${after}`} />
+                </TurnTraceFacts>
             ) : null}
             {summary ? <TurnTraceCode code={summary} label="Summary" /> : null}
         </>
@@ -75,7 +76,9 @@ function FileWriteBody({ tool }: { tool: TurnTraceTool }) {
     return (
         <>
             {tool.path ? (
-                <TurnTraceFact label="File" value={tool.target?.path ?? tool.path} />
+                <TurnTraceFacts>
+                    <TurnTraceFact label="File" value={tool.target?.path ?? tool.path} />
+                </TurnTraceFacts>
             ) : null}
             {tool.content ? (
                 <TurnTraceCode
@@ -107,7 +110,9 @@ function FileChangeBody({ tool }: { tool: TurnTraceTool }) {
     const diff = readFileDiff(tool.output, tool.path);
     if (!diff) {
         return tool.path ? (
-            <TurnTraceFact label="File" value={tool.target?.path ?? tool.path} />
+            <TurnTraceFacts>
+                <TurnTraceFact label="File" value={tool.target?.path ?? tool.path} />
+            </TurnTraceFacts>
         ) : null;
     }
     if (tool.changeEvent === 'create') {
@@ -137,7 +142,13 @@ function FileDiffBody(props: {
     return (
         <>
             <div className="flex min-w-0 items-baseline justify-between gap-3">
-                {props.path ? <TurnTraceFact label="File" value={props.path} /> : <span />}
+                {props.path ? (
+                    <TurnTraceFacts>
+                        <TurnTraceFact label="File" value={props.path} />
+                    </TurnTraceFacts>
+                ) : (
+                    <span />
+                )}
                 <DiffStatBadge additions={stats.additions} deletions={stats.deletions} />
             </div>
             {props.children}
@@ -151,9 +162,13 @@ function FileLookupBody({ tool }: { tool: TurnTraceTool }) {
 
     return (
         <>
-            {tool.pattern ? <TurnTraceFact label="Pattern" value={tool.pattern} /> : null}
-            {tool.path ? (
-                <TurnTraceFact label="Path" value={tool.target?.path ?? tool.path} />
+            {tool.pattern || tool.path ? (
+                <TurnTraceFacts>
+                    {tool.pattern ? <TurnTraceFact label="Pattern" value={tool.pattern} /> : null}
+                    {tool.path ? (
+                        <TurnTraceFact label="Path" value={tool.target?.path ?? tool.path} />
+                    ) : null}
+                </TurnTraceFacts>
             ) : null}
             {text ? (
                 <TurnTraceCode
@@ -176,9 +191,13 @@ function WebBody({ tool }: { tool: TurnTraceTool }) {
 
     return (
         <>
-            {tool.query ? <TurnTraceFact label="Query" value={tool.query} /> : null}
+            {tool.query ? (
+                <TurnTraceFacts>
+                    <TurnTraceFact label="Query" value={tool.query} />
+                </TurnTraceFacts>
+            ) : null}
             <TurnTraceSources sources={sources} />
-            {text ? <TurnTraceCode code={text} label="Response" /> : null}
+            {text ? <TraceValue label="Response" value={text} /> : null}
         </>
     );
 }
@@ -208,21 +227,34 @@ function TurnTraceSources({ sources }: { sources: Array<{ title: string; url: st
 
 /** A failed or unpreviewable media call: the file it named and the prompt behind it. */
 function ImageBody({ tool }: { tool: TurnTraceTool }) {
+    const prompt = tool.image?.prompt ? clampTraceText(tool.image.prompt).text : null;
     return (
         <>
-            {tool.image?.file ? <TurnTraceFact label="File" value={tool.image.file.path} /> : null}
-            {tool.image?.prompt ? <TurnTraceProse text={tool.image.prompt} /> : null}
+            {tool.image?.file ? (
+                <TurnTraceFacts>
+                    <TurnTraceFact label="File" value={tool.image.file.path} />
+                </TurnTraceFacts>
+            ) : null}
+            {prompt ? (
+                <TraceSection copy={prompt} label="Prompt">
+                    <p className="whitespace-pre-wrap break-words text-foreground text-sm">
+                        {prompt}
+                    </p>
+                </TraceSection>
+            ) : null}
         </>
     );
 }
 
+/** An MCP call: its wire name for the developer reading it, then what went in and came back. */
 function McpBody({ tool }: { tool: TurnTraceTool }) {
     return (
         <>
-            {tool.connection ? <TurnTraceFact label="Connection" value={tool.connection} /> : null}
-            <TurnTraceFact label="Tool" value={tool.remoteTool ?? tool.source.toolName} />
-            <ChatTool.Args input={clampTraceValue(tool.source.input)} label="Arguments" />
-            <ChatTool.Result label="Response" value={clampTraceValue(tool.output)} />
+            <TurnTraceFacts>
+                <TurnTraceFact label="Tool" value={tool.source.toolName} />
+            </TurnTraceFacts>
+            <TraceValue label="Input" value={tool.source.input} />
+            <TraceValue label="Result" value={readToolResult(tool.output)} />
         </>
     );
 }
@@ -230,8 +262,24 @@ function McpBody({ tool }: { tool: TurnTraceTool }) {
 function GenericBody({ tool }: { tool: TurnTraceTool }) {
     return (
         <>
-            <ChatTool.Args input={clampTraceValue(tool.source.input)} label="Arguments" />
-            <ChatTool.Result label="Result" value={clampTraceValue(tool.output)} />
+            <TraceValue label="Input" value={tool.source.input} />
+            <TraceValue label="Result" value={readToolResult(tool.output)} />
         </>
     );
+}
+
+/**
+ * An MCP result wraps its payload in `content: [{ type: 'text', text }]`;
+ * the text is the result (often serialized JSON). Anything else is itself.
+ */
+export function readToolResult(output: unknown): unknown {
+    const content = readRecord(output)?.content;
+    if (
+        Array.isArray(content) &&
+        content.length > 0 &&
+        content.every((entry) => readRecord(entry)?.type === 'text')
+    ) {
+        return content.map((entry) => readString(readRecord(entry)?.text) ?? '').join('\n');
+    }
+    return output;
 }
