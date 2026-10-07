@@ -19,6 +19,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { AgentReplyOffice } from './agent-reply-office.ts';
 import { BrowserReplyOffice } from './browser-reply-office.ts';
 import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
+import { ExecutionOutlineReplies } from './execution-outline-replies.ts';
 import { HostSkillFileReplies } from './host-skill-file-replies.ts';
 import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
 
@@ -44,6 +45,7 @@ interface AttachedComputer {
 export class ComputerConnections implements DeliveryTransport {
     readonly hostSkillFiles: HostSkillFileReplies;
     readonly inventoryRefresh: InventoryRefreshReplies;
+    readonly executionOutlines: ExecutionOutlineReplies;
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly agentReplies: AgentReplyOffice;
     private readonly browserReplies: BrowserReplyOffice;
@@ -55,6 +57,12 @@ export class ComputerConnections implements DeliveryTransport {
             send: (computerId, frame) => this.send(computerId, frame),
         });
         this.inventoryRefresh = new InventoryRefreshReplies({
+            runtime,
+            send: (computerId, frame) => this.send(computerId, frame),
+        });
+        this.executionOutlines = new ExecutionOutlineReplies({
+            isAttached: (computerId, serverId) =>
+                this.attached.get(computerId)?.serverId === serverId && this.isOnline(computerId),
             runtime,
             send: (computerId, frame) => this.send(computerId, frame),
         });
@@ -79,6 +87,7 @@ export class ComputerConnections implements DeliveryTransport {
     unregister(computerId: string): void {
         this.hostSkillFiles.disconnect(computerId);
         this.inventoryRefresh.disconnect(computerId);
+        this.executionOutlines.disconnect(computerId);
         this.attached.delete(computerId);
         this.agentReplies.disconnect(computerId);
         this.browserReplies.disconnect(computerId);

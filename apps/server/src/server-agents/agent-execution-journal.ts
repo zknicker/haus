@@ -1,4 +1,9 @@
-import type { AgentExecutionJournalInput, AgentExecutionJournalResult } from '@haus/api';
+import type {
+    AgentExecutionJournalInput,
+    AgentExecutionJournalResult,
+    AgentExecutionOutlines,
+    AgentExecutionOutlinesInput,
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -12,6 +17,35 @@ export async function requestAgentExecutionJournal(
     member: HausUser | null,
     input: AgentExecutionJournalInput
 ): Promise<AgentExecutionJournalResult> {
+    const computerId = await requireExecutionEvidenceComputer(db, member, input);
+    return await connections.requestExecutionJournal(computerId, {
+        agentId: input.agentId,
+        runId: input.runId,
+        serverId: input.serverId,
+    });
+}
+
+/** Outlines of many runs in one Computer round trip, under the journal's authorization. */
+export async function requestAgentExecutionOutlines(
+    db: HausDatabase,
+    connections: ComputerConnections,
+    member: HausUser | null,
+    input: AgentExecutionOutlinesInput
+): Promise<AgentExecutionOutlines> {
+    const computerId = await requireExecutionEvidenceComputer(db, member, input);
+    return await connections.executionOutlines.request(computerId, {
+        agentId: input.agentId,
+        runIds: input.runIds,
+        serverId: input.serverId,
+    });
+}
+
+/** Owners and Admins only; the Agent's assigned Computer holds the evidence. */
+async function requireExecutionEvidenceComputer(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: { agentId: string; serverId: string }
+): Promise<string> {
     const server = await requireServerMembership(db, member, input.serverId);
     if (!member || (server.role !== 'owner' && server.role !== 'admin')) {
         throw new AgentExecutionJournalAccessError(
@@ -26,11 +60,7 @@ export async function requestAgentExecutionJournal(
     if (!agent?.computerId) {
         throw new AgentExecutionJournalAccessError('No Agent exists with that id.');
     }
-    return await connections.requestExecutionJournal(agent.computerId, {
-        agentId: input.agentId,
-        runId: input.runId,
-        serverId: input.serverId,
-    });
+    return agent.computerId;
 }
 
 export class AgentExecutionJournalAccessError extends Error {}

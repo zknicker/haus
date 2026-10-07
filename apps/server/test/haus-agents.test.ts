@@ -203,21 +203,21 @@ test('restricts one-run execution detail to Server Owners and Admins', async () 
         throw new Error('Expected the provisioned Agent.');
     }
 
-    await expect(
-        member.trpc.agent.executionJournal.query({
-            agentId: agent.id,
-            runId: 'run_detail',
-            serverId,
-        })
-    ).rejects.toThrow(/Owner or Admin/i);
-
-    await expect(
-        owner.trpc.agent.executionJournal.query({
-            agentId: agent.id,
-            runId: 'run_detail',
-            serverId,
-        })
-    ).resolves.toMatchObject({ reason: 'offline', status: 'unavailable' });
+    const input = { agentId: agent.id, runId: 'run_detail', serverId };
+    const outlines = { agentId: agent.id, runIds: ['run_detail'], serverId };
+    for (const viewer of [member, owner]) {
+        const journal = viewer.trpc.agent.executionJournal.query(input);
+        const outline = viewer.trpc.agent.executionOutlines.query(outlines);
+        if (viewer === member) {
+            await expect(journal).rejects.toThrow(/Owner or Admin/i);
+            await expect(outline).rejects.toThrow(/Owner or Admin/i);
+        } else {
+            await expect(journal).resolves.toMatchObject({ reason: 'offline' });
+            await expect(outline).resolves.toEqual({
+                outlines: [{ reason: 'offline', runId: 'run_detail', status: 'unavailable' }],
+            });
+        }
+    }
 });
 
 test('fails closed on a runtime or model the assigned Computer never reported', async () => {

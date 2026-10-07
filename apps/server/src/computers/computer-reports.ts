@@ -3,6 +3,7 @@ import {
     agentDeliveryAckSchema,
     agentEffectiveStateSchema,
     agentExecutionJournalResultSchema,
+    agentExecutionOutlinesResultSchema,
     agentNoticeAckSchema,
     agentSkillFileResultSchema,
     agentSkillImportResultSchema,
@@ -181,6 +182,12 @@ function ingestReply(context: ReportContext, frame: unknown): boolean {
     const executionJournal = agentExecutionJournalResultSchema.safeParse(frame);
     if (executionJournal.success) {
         connections.acceptExecutionJournalResult(computerId, executionJournal.data);
+        return true;
+    }
+
+    const executionOutlines = agentExecutionOutlinesResultSchema.safeParse(frame);
+    if (executionOutlines.success) {
+        connections.executionOutlines.accept(computerId, executionOutlines.data);
         return true;
     }
 
