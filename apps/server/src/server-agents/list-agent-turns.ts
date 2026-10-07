@@ -1,5 +1,5 @@
 import { type AgentTurn, type AgentTurnsInput, agentTurnActivitySummarySchema } from '@haus/api';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, type SQL } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, agentTurnsTable, chatsTable } from '../postgres/schema.ts';
@@ -22,9 +22,30 @@ export async function listAgentTurns(
     await requireServerMembership(db, member, input.serverId);
     await requireAgent(db, input);
 
+    return await readSettledTurns(db, member, {
+        limit: input.limit,
+        orderBy: [desc(agentTurnsTable.startedAt)],
+        where: and(
+            eq(agentTurnsTable.serverId, input.serverId),
+            eq(agentTurnsTable.agentId, input.agentId),
+            input.runId ? eq(agentTurnsTable.runId, input.runId) : undefined
+        ),
+    });
+}
+
+/**
+ * Settled turns matching `where`, each with its trigger joined and gated by
+ * the reader's Chat visibility. Callers must have required Server membership.
+ */
+export async function readSettledTurns(
+    db: HausDatabase,
+    member: HausUser | null,
+    query: { limit: number; orderBy: SQL[]; where: SQL | undefined }
+): Promise<AgentTurn[]> {
     const rows = await db
         .select({
             activity: agentTurnsTable.activity,
+            agentId: agentTurnsTable.agentId,
             endedAt: agentTurnsTable.endedAt,
             failureKind: agentTurnsTable.failureKind,
             messageCount: agentTurnsTable.messageCount,
@@ -53,25 +74,18 @@ export async function listAgentTurns(
                 eq(chatsTable.serverId, agentRunTriggersTable.serverId),
                 eq(chatsTable.id, agentRunTriggersTable.chatId),
                 isNull(chatsTable.deletedAt),
-                // Membership was required above, so a null member never reaches here.
+                // Callers required membership, so a null member never reaches here.
                 visibleChats(member?.id ?? '')
             )
         )
-        .where(
-            and(
-                eq(agentTurnsTable.serverId, input.serverId),
-                eq(agentTurnsTable.agentId, input.agentId),
-                input.runId ? eq(agentTurnsTable.runId, input.runId) : undefined
-            )
-        )
-        .orderBy(desc(agentTurnsTable.startedAt))
-        .limit(input.limit);
+        .where(query.where)
+        .orderBy(...query.orderBy)
+        .limit(query.limit);
 
     return rows.map(
         ({ triggerChatId, triggerSource, triggerVisibleChatId, triggerWorkId, ...row }) => ({
             ...row,
             activity: agentTurnActivitySummarySchema.parse(row.activity),
-            agentId: input.agentId,
             endedAt: row.endedAt.toISOString(),
             startedAt: row.startedAt.toISOString(),
             trigger: agentTurnTrigger(

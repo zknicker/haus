@@ -142,7 +142,8 @@ function turnRow(input: {
         outputProduced: !failed,
         outputTokens: failed ? 180 : 1450,
         reportedAt: new Date(input.startedAt.getTime() + turnSpacingMs / 2),
-        runId: `run_dev_turn_${input.daysAgo}_${input.turnIndex}`,
+        // Run ids are Server-unique (real ones are random), so each Agent's seeded runs carry its id.
+        runId: `run_dev_turn_${input.plan.agentId}_${input.daysAgo}_${input.turnIndex}`,
         runtimeId: input.execution.runtimeId,
         serverId: input.context.serverId,
         startedAt: input.startedAt,
