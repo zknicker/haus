@@ -48,6 +48,7 @@ test('an outline step carries no free-text body fields', () => {
                 label: 'bash',
                 startOffsetMs: 0,
                 status: 'completed',
+                toolKind: 'shell',
             },
         ],
     };
@@ -59,4 +60,33 @@ test('an outline step carries no free-text body fields', () => {
         steps: [{ ...outline.steps[0], label: 'x'.repeat(EXECUTION_OUTLINE_LABEL_MAX_CHARS + 1) }],
     };
     expect(agentExecutionOutlineSchema.safeParse(longLabel).success).toBe(false);
+});
+
+test('exactly the tool steps of an outline carry a tool kind', () => {
+    const step = {
+        depth: 0,
+        id: 'call_1',
+        kind: 'tool',
+        label: 'Read README.md',
+        startOffsetMs: 0,
+        status: 'completed',
+        toolKind: 'file-read',
+    } as const;
+    const outline = (steps: unknown[]) => ({
+        durationMs: 10,
+        runId: 'run_1',
+        startedAt: '2026-10-01T10:00:00.000Z',
+        status: 'completed',
+        steps,
+    });
+    expect(agentExecutionOutlineSchema.safeParse(outline([step])).success).toBe(true);
+    const { toolKind: _kind, ...untyped } = step;
+    expect(agentExecutionOutlineSchema.safeParse(outline([untyped])).success).toBe(false);
+    expect(
+        agentExecutionOutlineSchema.safeParse(outline([{ ...step, kind: 'reasoning' }])).success
+    ).toBe(false);
+    expect(
+        agentExecutionOutlineSchema.safeParse(outline([{ ...step, toolKind: 'spreadsheet' }]))
+            .success
+    ).toBe(false);
 });

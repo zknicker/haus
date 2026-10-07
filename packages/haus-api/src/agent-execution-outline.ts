@@ -9,6 +9,7 @@
 import * as z from 'zod';
 import { agentExecutionJournalRequestSchema } from './agent-execution-journal.ts';
 import { idSchema } from './chat.ts';
+import { executionToolKindSchema } from './execution-tool-kind.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -53,8 +54,18 @@ const executionOutlineStepSchema = z
             })
             .strict()
             .optional(),
+        /**
+         * A `tool` step's call kind, from the classifier the turn trace uses, so
+         * an outlined turn colors its calls as a read trace does. Only `tool`
+         * steps carry one.
+         */
+        toolKind: executionToolKindSchema.optional(),
     })
-    .strict();
+    .strict()
+    .refine((step) => (step.kind === 'tool') === (step.toolKind !== undefined), {
+        message: 'Exactly the tool steps carry a toolKind.',
+        path: ['toolKind'],
+    });
 
 export type AgentExecutionOutlineStep = z.infer<typeof executionOutlineStepSchema>;
 
