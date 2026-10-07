@@ -47,6 +47,7 @@
 		91CD1375E99A47E7F7363F09 /* HausTransport in Frameworks */ = {isa = PBXBuildFile; productRef = 1DB905D686A4CE7B1959646B /* HausTransport */; };
 		9478CA0B56335FE8DE0B45B6 /* HausOpeningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020A718A9A0014626B19C74B /* HausOpeningView.swift */; };
 		96550EF01529DFA5F7B037B9 /* VoiceAudioStartup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */; };
+		A406D3697FB81609EE18BD38 /* HausStoreChatListRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB6091A95BBA5FC3DEA3CBCB /* HausStoreChatListRefresh.swift */; };
 		A57173988EB2AAA7F998517A /* AuthenticatedHausView+Reads.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA7862918F19A262989712BD /* AuthenticatedHausView+Reads.swift */; };
 		AF15E7CEEDD94078E44902A6 /* TranscriptRenderingPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0771A40C5602C904730B80CD /* TranscriptRenderingPerformanceTests.swift */; };
 		B7EBCFDD218F89C868E6FE75 /* SettingsPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */; };
@@ -165,6 +166,7 @@
 		E56E7535CC7FF21EC23A66EF /* HausStoreComputers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreComputers.swift; sourceTree = "<group>"; };
 		E5CD0E9C85581C948DF53EC2 /* HausStoreInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreInbox.swift; sourceTree = "<group>"; };
 		EA7862918F19A262989712BD /* AuthenticatedHausView+Reads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Reads.swift"; sourceTree = "<group>"; };
+		EB6091A95BBA5FC3DEA3CBCB /* HausStoreChatListRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreChatListRefresh.swift; sourceTree = "<group>"; };
 		EE6D4F94243A206BB010F00B /* ios-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "ios-swift"; path = .; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -288,6 +290,7 @@
 				289CE0DDE04F299E41767304 /* HausStore.swift */,
 				197041FDE46D01CE30061965 /* HausStoreActivity.swift */,
 				D6E1927FC2A1E1B00A79F28F /* HausStoreAgentDM.swift */,
+				EB6091A95BBA5FC3DEA3CBCB /* HausStoreChatListRefresh.swift */,
 				114C9BE553275D26E429E17F /* HausStoreChatReads.swift */,
 				5905A0B13F5B6C3D1B243267 /* HausStoreCloudAgents.swift */,
 				E56E7535CC7FF21EC23A66EF /* HausStoreComputers.swift */,
@@ -525,6 +528,7 @@
 				0DE10FD705D86DDDD6DC2CBC /* HausStore.swift in Sources */,
 				EECBD3F5DF1F0DB3BA83E5D0 /* HausStoreActivity.swift in Sources */,
 				62125AE71C8239413ECE3A78 /* HausStoreAgentDM.swift in Sources */,
+				A406D3697FB81609EE18BD38 /* HausStoreChatListRefresh.swift in Sources */,
 				23F49FE4C0A512B9B169FD44 /* HausStoreChatReads.swift in Sources */,
 				2DA4E995560C3C0E770FC121 /* HausStoreCloudAgents.swift in Sources */,
 				706A5F38A3EDB1A53744B2D9 /* HausStoreComputers.swift in Sources */,
