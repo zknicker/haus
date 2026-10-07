@@ -63,7 +63,9 @@ long-form values such as descriptions preview as a subtitle. An up/down chevron 
 picker and a right chevron marks navigation. Explanations live in section footers. All
 profile values and avatars originate from Server records; the app must not create mobile-only identity
 state. On startup, iOS reports the signed-in Clerk name and email through `member.syncIdentity` before
-loading the Server snapshot, matching the web app's default-handle bootstrap. A human edits their
+reading the member list, matching the web app's default-handle bootstrap. The sync runs beside the
+Chat and Agent list reads and is never fatal: a failure logs, the member list loads anyway, and the
+sync retries with backoff, refreshing the member list once it lands. A human edits their
 Server-scoped handle alongside their display name. Native validation mirrors
 the shared handle grammar for immediate feedback, while `member.updateProfile` carries the active
 `serverId` and Server remains authoritative for cross-human/Agent uniqueness. The app also reads
@@ -757,10 +759,30 @@ visible, refetches its Server snapshot in one gathered pass — applied as a sin
 every Chat surface on the stack refetched eagerly: the deepest open Chat first, then the canvas Chat
 underneath it, so popping a Thread reveals a parent that is already fresh instead of one round trip
 stale; the event walk and `openChat` cover the rest — then restarts live Chat and Agent lifecycle
-streams. A voluntary refresh keeps the connected state;
-offline is what a failed refresh or a broken stream reports. Live SSE Chat events coalesce for a
+streams. A return from under 30 seconds in the background with healthy streams skips all of that and
+keeps the streams: a frame sent while suspended is still in the socket, and a dropped socket
+reconnects and walks the event log on its own. A voluntary refresh keeps the connected state;
+offline is what a failed refresh or a broken stream reports. The transport reconnects transport
+failures itself; an error it will not retry (auth, procedure) or a stream the Server ends restarts
+all three streams with capped exponential backoff (1s doubling to 60s) after a forced Clerk token
+refresh, and the chat stream's connect catch-up recovers what was missed. Live SSE Chat events coalesce for a
 short window (`ChatEventCoalescer`) before the existing batch applier runs, so a burst lands as one
-refetch fan-out rather than one per frame.
+refetch fan-out rather than one per frame. The batch refetches affected loaded pages concurrently,
+and every event-driven `chat.list` read shares one coalesced refresh with a 150ms gather window, so
+the `chat.read` echo of the acknowledgement a `message.created` batch made does not read the list
+again. Events carry no unread count (it includes followed Thread replies and excludes the reader's
+own), so the client never patches unread locally.
+
+A cold launch paints from an on-disk launch snapshot before the network answers
+(`LaunchSnapshot`, `HausStoreLaunchSnapshot.swift`): the last Server list, Chat list, Agent and
+member directories, and up to three bounded latest-message pages (the canvas and open Chats first),
+written as versioned JSON to Application Support atomically, off the main actor, at most once per two
+seconds and again when the app leaves the foreground. It is a cache: scoped to the signed-in Clerk
+user, discarded on a version, user, or decode mismatch, cleared on sign-out, and replaced by the
+live load. The live launch is `server.list`, then `chat.eventHead`, then the Chat list, Agent list,
+and identity-synced member list together, then the mounted pages; Computers and the badge load
+after the shell is up. A painted launch whose live load fails stays on the painted state, reports
+offline, and retries with backoff.
 
 The Chat projections the shell renders every frame — message rows and the destination list — are
 memoized in the Store behind a structural invalidation contract: their input fields are stored
@@ -768,7 +790,11 @@ privately in `HausStore` and published through accessors whose setters drop equa
 retire exactly the cached projections that field feeds. A new field a projection reads must join
 that "Projected Server state" block, and a projection must read its observable inputs before its
 cache check so a cached answer leaves the calling view subscribed to exactly what a rebuilt one
-would. Optimistic rows adopt the canonical Server message id from the send receipt, so a pending
+would. Rows are cheap to rebuild; body parsing is not, so each message's parsed body (visual fences,
+rich blocks, resolved reference chips) is memoized by id, content, and a reference revision
+(`MessageBodyMemo`, `ReferenceDirectory`) that moves only when a chip-visible name, avatar, or
+channel appearance changes. Presence and unread churn rebuild rows from cached bodies, and a page,
+optimistic-row, or cloud-work write retires only the Chats whose values changed. Optimistic rows adopt the canonical Server message id from the send receipt, so a pending
 row's presentation id is a real Server id from that moment and its ForEach identity never changes
 when the durable row arrives. Chat and Thread timelines keep a 200-message window in Server sequence
 order. `chat.messages` reads 50 rows using exclusive `beforeSequence`, `afterSequence`, or
@@ -788,7 +814,8 @@ The Swift prototype keeps one in-memory event cursor per active
 Server, walks `chat.events` from that cursor on reconnect, and refetches loaded affected Chat pages.
 The SSE connection is established before recovery, while buffered live events are consumed only after
 the walk completes, so events arriving during recovery are not missed. A cold start seeds the cursor
-from `chat.eventHead` after refreshing the Server snapshot;
+from `chat.eventHead` read before its Chat list, directory, and page reads, so the first stream
+connect walks only newer events;
 cursor state is intentionally process-memory only for this prototype.
 
 Agent creation stays inside that same canonical message pipeline. `HausModels` decodes the
