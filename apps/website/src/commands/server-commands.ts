@@ -9,6 +9,7 @@ import {
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
+    activityRoute,
     inboxRoute,
     serverArchivedChatsRoute,
     serverChatRoute,
@@ -87,6 +88,12 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
             id: 'tasks',
             route: tasksRoute(context.serverSlug),
             title: 'Tasks',
+        },
+        {
+            icon: getRouteTabIcon('activity'),
+            id: 'activity',
+            route: activityRoute(context.serverSlug),
+            title: 'Activity',
         },
         {
             icon: getRouteTabIcon('members'),

@@ -24,6 +24,7 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'dm/:agentId', Component: serverRouteComponent('ImplicitAgentDmRoute') },
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
         { path: 'tasks', Component: serverRouteComponent('TasksPage') },
+        { path: 'activity', Component: serverRouteComponent('ActivityPage') },
         // An Agent is a first-class record, so its page lives in the Server
         // layout rather than inside the settings rail.
         { path: 'agents/:agentId', element: <AgentHomeRedirect /> },

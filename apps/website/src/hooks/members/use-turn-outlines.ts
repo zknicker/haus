@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useComputers } from '../servers/use-computers.ts';
 import {
+    createReadGate,
     indexOutlines,
     isSettledOutlineEntry,
     readTurnOutlines,
@@ -11,6 +12,9 @@ import {
 
 /** Settled outlines are immutable; keep them while the log is in use. */
 const outlinesGcMs = 30 * 60_000;
+
+/** Every log in this window shares one gate: at most 3 outline reads in flight. */
+const outlineReads = createReadGate(3);
 
 /**
  * The compact outlines of one Agent's settled turns, read in one batched
@@ -49,11 +53,13 @@ export function useTurnOutlines({
                 client,
                 fetch: async (pending) =>
                     (
-                        await utils.client.agent.executionOutlines.query({
-                            agentId,
-                            runIds: pending,
-                            serverId,
-                        })
+                        await outlineReads(() =>
+                            utils.client.agent.executionOutlines.query({
+                                agentId,
+                                runIds: pending,
+                                serverId,
+                            })
+                        )
                     ).outlines,
                 runIds: sorted,
                 serverId,

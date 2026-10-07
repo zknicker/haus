@@ -32,6 +32,10 @@ export function inboxRoute(slug: string) {
     return `${serverRoute(slug)}/inbox`;
 }
 
+export function activityRoute(slug: string) {
+    return `${serverRoute(slug)}/activity`;
+}
+
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }

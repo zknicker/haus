@@ -7,7 +7,7 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import { inboxRoute, tasksRoute } from '../servers/server-routes.ts';
+import { activityRoute, inboxRoute, tasksRoute } from '../servers/server-routes.ts';
 import { AgentDmNavigationRow } from './agent-dm-navigation-row.tsx';
 import { chatNavigationName } from './chat-navigation-name.ts';
 import { ChatNavigationRow } from './chat-navigation-row.tsx';
@@ -36,7 +36,7 @@ export function ChatNavigation({
     inboxUnreadCount?: number;
     onCreateAgent?: () => void;
     onCreateChannel: () => void;
-    onPreloadSection: (section: 'inbox' | 'search' | 'tasks') => void;
+    onPreloadSection: (section: 'activity' | 'inbox' | 'search' | 'tasks') => void;
     selectedAgentDmId?: string;
     selectedChatId: string | undefined;
     serverId: string;
@@ -59,7 +59,7 @@ export function ChatNavigation({
     return (
         <ShellSidebarPageContent>
             <Sidebar.Group>
-                {/* One menu so Inbox, Search, and Tasks share one row anatomy
+                {/* One menu so Inbox, Search, Tasks, and Activity share one row anatomy
                     and one pitch. Inbox leads: it is the sidebar's top-left
                     anchor, wearing the Haus mark on the macOS desktop and the
                     route's own glyph on the web, where the mark leads the
@@ -108,6 +108,20 @@ export function ChatNavigation({
                         </Sidebar.MenuIcon>
                         <Sidebar.MenuItemContent>
                             <Sidebar.MenuLabel>Tasks</Sidebar.MenuLabel>
+                        </Sidebar.MenuItemContent>
+                    </Sidebar.MenuItem>
+                    <Sidebar.MenuItem
+                        href={activityRoute(slug)}
+                        id="activity"
+                        isCurrent={location.pathname.startsWith(activityRoute(slug))}
+                        onHoverStart={() => onPreloadSection('activity')}
+                        textValue="Activity"
+                    >
+                        <Sidebar.MenuIcon>
+                            <RouteTabIcon size={16} tab="activity" />
+                        </Sidebar.MenuIcon>
+                        <Sidebar.MenuItemContent>
+                            <Sidebar.MenuLabel>Activity</Sidebar.MenuLabel>
                         </Sidebar.MenuItemContent>
                     </Sidebar.MenuItem>
                 </Sidebar.Menu>

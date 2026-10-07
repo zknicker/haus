@@ -74,7 +74,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
 }
 
 /** Empty and error states keep a card's shape instead of a loose line of grey text. */
-function ActivityNote({ children }: { children: React.ReactNode }) {
+export function ActivityNote({ children }: { children: React.ReactNode }) {
     return (
         <div className="px-3 pt-4">
             <ItemCardGroup className="overflow-hidden">

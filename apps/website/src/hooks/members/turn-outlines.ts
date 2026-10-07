@@ -88,3 +88,32 @@ function readSettledEntries(
     }
     return settled;
 }
+
+/**
+ * Runs at most `limit` reads at once, the rest in arrival order. An all-Agents
+ * log reads one outline batch per Agent; unbounded, a day with many Agents
+ * would burst the Server's query pool.
+ */
+export function createReadGate(limit: number) {
+    let running = 0;
+    const waiting: Array<() => void> = [];
+    return async function run<T>(read: () => Promise<T>): Promise<T> {
+        if (running >= limit) {
+            // A finishing read hands its slot straight to the next waiter, so
+            // a caller arriving in between can never take it too.
+            await new Promise<void>((resolve) => waiting.push(resolve));
+        } else {
+            running += 1;
+        }
+        try {
+            return await read();
+        } finally {
+            const next = waiting.shift();
+            if (next) {
+                next();
+            } else {
+                running -= 1;
+            }
+        }
+    };
+}

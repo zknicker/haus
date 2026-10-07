@@ -8,7 +8,7 @@ import {
     type ActivityLogFilter,
     readLogDays,
     readOpenOnArrival,
-    useAgentLogEntries,
+    useLogEntries,
 } from './agent-activity-log-entries.ts';
 import { ActivityLogOverview } from './agent-activity-log-overview.tsx';
 import {
@@ -32,7 +32,7 @@ export function AgentActivityLog({
     agent: ActivityLogAgent;
     turns: readonly AgentActivityTurn[];
 }) {
-    const entries = useAgentLogEntries(serverId, agent, turns);
+    const entries = useLogEntries(serverId, [{ agent, turns }]);
     return (
         <ActivityLog
             {...log}
@@ -73,6 +73,7 @@ export function ActivityLog({
     serverSlug,
 }: ActivityLogProps) {
     const days = readLogDays(entries, filter);
+    const showAgent = filter.agentIds.length > 1;
     const [toggled, setToggled] = React.useState<ReadonlyMap<string, boolean>>(new Map());
     const openByDefault = readOpenOnArrival(days);
     const isOpen = (runId: string) => toggled.get(runId) ?? openByDefault.has(runId);
@@ -129,6 +130,7 @@ export function ActivityLog({
                                 older={days[index + 1] ?? null}
                                 onDayChange={showDay}
                                 serverId={serverId}
+                                showAgent={showAgent}
                             />
                         ) : null}
                         {days.map((logDay, dayIndex) => (
@@ -161,7 +163,7 @@ export function ActivityLog({
                                             }
                                             serverId={serverId}
                                             serverSlug={serverSlug}
-                                            showAgent={filter.agentIds.length > 1}
+                                            showAgent={showAgent}
                                         />
                                     ))}
                                 </div>

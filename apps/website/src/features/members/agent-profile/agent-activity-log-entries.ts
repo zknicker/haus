@@ -7,7 +7,7 @@ import type { StepMark } from './agent-activity-log-stores.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import { groupTurnRowsByDay, type TurnRowTitle } from './agent-turn-row-model.ts';
 import { collapseRecentActivity, type RecentActivityRow } from './recent-activity-rows.ts';
-import { useTurnRowTitles } from './use-turn-row-titles.ts';
+import { useAgentsTurnRowTitles } from './use-turn-row-titles.ts';
 
 /**
  * What the log renders: turns from any number of
@@ -136,17 +136,26 @@ function readOutlineStatus(step: AgentExecutionOutlineStep): TurnTraceStatus {
         : step.status;
 }
 
-/** One Agent's turns as log entries, titled from their requests. */
-export function useAgentLogEntries(
+/** One Agent's turns, as the log reads them. */
+export interface ActivityLogAgentTurns {
+    readonly agent: ActivityLogAgent;
+    readonly turns: readonly AgentActivityTurn[];
+}
+
+/**
+ * Turns from any number of Agents as log entries, titled from their requests.
+ * Failures fold within one Agent only: two Agents failing alike are two facts.
+ */
+export function useLogEntries(
     serverId: string,
-    agent: ActivityLogAgent,
-    turns: readonly AgentActivityTurn[]
+    groups: readonly ActivityLogAgentTurns[]
 ): ActivityLogEntry[] {
-    const rows = collapseRecentActivity(turns, Number.POSITIVE_INFINITY);
-    const titleOf = useTurnRowTitles(
-        serverId,
-        agent.id,
-        rows.map((row) => row.latest)
+    const rows = groups.flatMap(({ agent, turns }) =>
+        collapseRecentActivity(turns, Number.POSITIVE_INFINITY).map((row) => ({ agent, row }))
     );
-    return rows.map((row) => ({ agent, row, title: titleOf(row.latest) }));
+    const titleOf = useAgentsTurnRowTitles(
+        serverId,
+        rows.map(({ agent, row }) => ({ agentId: agent.id, turn: row.latest }))
+    );
+    return rows.map(({ agent, row }) => ({ agent, row, title: titleOf(row.latest) }));
 }

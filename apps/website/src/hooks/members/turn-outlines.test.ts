@@ -1,7 +1,12 @@
 import { expect, test } from 'bun:test';
 import type { AgentExecutionOutlineEntry } from '@haus/api';
 import { QueryClient } from '@tanstack/react-query';
-import { isSettledOutlineEntry, readTurnOutlines, turnOutlinesKey } from './turn-outlines.ts';
+import {
+    createReadGate,
+    isSettledOutlineEntry,
+    readTurnOutlines,
+    turnOutlinesKey,
+} from './turn-outlines.ts';
 
 const serverId = 'srv_1';
 const agentId = 'agt_1';
@@ -83,4 +88,33 @@ test('reads offline, timed-out, and still-running runs again; a missing journal 
     await read(client, runIds, remote.fetch, 'offline');
     await read(client, runIds, remote.fetch, 'reconnected');
     expect(remote.calls).toEqual([runIds, ['run_offline', 'run_running', 'run_timeout']]);
+});
+
+test('the read gate keeps at most its limit in flight and runs the rest in order', async () => {
+    const gate = createReadGate(3);
+    let inFlight = 0;
+    let peak = 0;
+    const order: number[] = [];
+    const releases: Array<() => void> = [];
+    const reads = Array.from({ length: 7 }, (_, index) =>
+        gate(async () => {
+            inFlight += 1;
+            peak = Math.max(peak, inFlight);
+            order.push(index);
+            await new Promise<void>((resolve) => releases.push(resolve));
+            inFlight -= 1;
+            return index;
+        })
+    );
+    while (order.length < 7) {
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        releases.shift()?.();
+    }
+    for (const release of releases) {
+        release();
+    }
+    expect(await Promise.all(reads)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(peak).toBe(3);
+    expect(order).toEqual([0, 1, 2, 3, 4, 5, 6]);
 });

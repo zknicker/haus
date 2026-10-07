@@ -10,11 +10,10 @@ import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
 test('leads the Server menu with Inbox, on the menu’s own glyph column', () => {
     const markup = navigationMarkup();
 
-    expect([...markup.matchAll(/>(Inbox|Search|Tasks)</g)].map((match) => match[1])).toEqual([
-        'Inbox',
-        'Search',
-        'Tasks',
-    ]);
+    expect(
+        [...markup.matchAll(/>(Inbox|Search|Tasks|Activity)</g)].map((match) => match[1])
+    ).toEqual(['Inbox', 'Search', 'Tasks', 'Activity']);
+    expect(markup).toContain('href="/s/haus/activity"');
     // On the web the Haus mark leads the titlebar strip, so the row carries
     // the route's own glyph instead — the same element at the same measure
     // Search and Tasks use, not an oversized box inside the icon column.

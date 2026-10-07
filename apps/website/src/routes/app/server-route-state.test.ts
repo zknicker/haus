@@ -24,13 +24,18 @@ describe('Server route state', () => {
     });
 
     test('treats removed overview routes as Chat entry paths', () => {
-        expect(resolveActiveSection('/s/dev/activity', 'dev')).toBe('chat');
         expect(resolveActiveSection('/s/dev/design/brief', 'dev')).toBe('chat');
     });
 
     test('reads the selected Chat and settings section from the current Server path', () => {
         expect(resolveSelectedChatId('/s/dev/chats/chat%2Fone', 'dev')).toBe('chat/one');
         expect(resolveSettingsSection('/s/dev/settings/preferences', 'dev')).toBe('preferences');
+    });
+
+    test('routes the Server Activity page to its own section, beside the chat navigation', () => {
+        expect(resolveActiveSection('/s/dev/activity', 'dev')).toBe('activity');
+        expect(resolveActiveSection('/s/dev/activity?agents=agt_tiny', 'dev')).toBe('activity');
+        expect(resolveSidebarPage('activity')).toBe('server');
     });
 
     test("keeps the chat navigation on an Agent's own page", () => {

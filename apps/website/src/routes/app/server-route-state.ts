@@ -10,7 +10,7 @@ import {
 import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 
 /** Top-level routed destinations within one server. */
-export type AppSection = 'agent' | 'chat' | 'inbox' | 'search' | 'settings' | 'tasks';
+export type AppSection = 'activity' | 'agent' | 'chat' | 'inbox' | 'search' | 'settings' | 'tasks';
 
 /**
  * Only Settings replaces the sidebar. Everywhere else the chat navigation
@@ -44,6 +44,9 @@ export function resolveActiveSection(pathname: string, slug: string): AppSection
     }
     if (suffix.startsWith('/tasks')) {
         return 'tasks';
+    }
+    if (suffix.startsWith('/activity')) {
+        return 'activity';
     }
     if (suffix.startsWith('/inbox')) {
         return 'inbox';

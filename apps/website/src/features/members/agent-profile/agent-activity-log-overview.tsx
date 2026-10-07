@@ -39,6 +39,7 @@ export function ActivityLogOverview({
     older,
     onDayChange,
     serverId,
+    showAgent,
 }: {
     access: TurnDetailAccess;
     action?: React.ReactNode;
@@ -48,6 +49,8 @@ export function ActivityLogOverview({
     older: ActivityLogDay | null;
     onDayChange: (day: ActivityLogDay) => void;
     serverId: string;
+    /** Names each pointed-at turn's Agent, as the log's headers do. */
+    showAgent: boolean;
 }) {
     const { hover } = useActivityLogStores();
     const [width, ref] = useWidth();
@@ -116,7 +119,7 @@ export function ActivityLogOverview({
                     <h3 aria-live="polite" className="ms-1 shrink-0 font-medium text-sm">
                         {day.label}
                     </h3>
-                    <OverviewReadout day={day}>
+                    <OverviewReadout day={day} showAgent={showAgent}>
                         {turns.length === 1 ? '1 turn' : `${turns.length} turns`}
                         {` · ${formatTurnDuration(workedMs)} working`}
                         {failed > 0 ? (

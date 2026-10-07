@@ -19,7 +19,7 @@ export function AppSidebar({
     selectedAgentDmId,
 }: {
     currentServer: ServerSummary;
-    onPreloadSection: (section: 'inbox' | 'search' | 'tasks') => void;
+    onPreloadSection: (section: 'activity' | 'inbox' | 'search' | 'tasks') => void;
     selectedChatId: string | undefined;
     selectedAgentDmId?: string;
 }) {

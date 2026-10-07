@@ -17,9 +17,11 @@ import { formatTurnDuration, formatTurnOutcome } from './agent-turn-row-model.ts
 export function OverviewReadout({
     children,
     day,
+    showAgent,
 }: {
     children: React.ReactNode;
     day: ActivityLogDay;
+    showAgent: boolean;
 }) {
     const linked = useLinkedHover();
     const reducedMotion = useReducedMotion();
@@ -40,6 +42,9 @@ export function OverviewReadout({
                 >
                     {entry && turn ? (
                         <>
+                            {showAgent ? (
+                                <span className="text-foreground">{`${entry.agent.displayName} · `}</span>
+                            ) : null}
                             {`${formatShortTime(turn.startedAt)} · `}
                             <span className="text-foreground">
                                 {entry.title.kind === 'text'
