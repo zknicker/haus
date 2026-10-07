@@ -73,8 +73,9 @@ reports refreshed usage. These optional frames leave older peers' ordinary repor
 Computer protocol 26 adds the Cursor model catalog to inventory and the resolved model to each
 Cloud Agent Run. Computer protocol 27 adds per-model `features` to inventory; the inventory schema
 is strict, so a protocol-26 Server would reject a report that carries them. Computer protocol 28
-adds the `delegating`, `generating_image`, and `generating_video` turn operation categories and the served journal's
-`failure` and `failedToolCount` fields. Server and Computer
+adds the `delegating`, `generating_image`, and `generating_video` turn operation categories, the served journal's
+`failure` and `failedToolCount` fields, and the batched `agent-execution-outlines-request` and
+`-result` frames behind `agent.executionOutlines`. Server and Computer
 therefore ship each in the same release, and the release requires an exact match: Server accepts
 ordinary work only from a Computer that reports protocol 28. A protocol-27 or older Computer
 connects in bootstrap mode, which keeps update control but cannot execute ordinary work, so the

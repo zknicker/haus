@@ -272,7 +272,9 @@ An open turn lists its steps one depth in on the same columns, each step's time 
 the turn's start (`+2.3s`) and its bar on the turn's own scale. The newest day's ten latest turns
 open on arrival; everything older waits for a click. Journals are read through a queue of at most
 three in flight; a settled journal is read once and kept, so collapsing, reopening, or revisiting
-costs nothing. Viewers without execution access, and turns whose Computer did not answer, see one
+costs nothing. The overview draws a closed turn's steps from its execution outline instead: the
+day's settled turns are outlined in one batched `agent.executionOutlines` read, a settled outline
+is never read again, and a turn whose Computer is offline stays a plain block until it reconnects. Viewers without execution access, and turns whose Computer did not answer, see one
 muted line instead of steps. A running turn has not settled into
 `agent.turns`, so its row reads its trigger through `agent.runTrigger` and is titled the same way
 while it works. Trigger messages are read once per list through a small rolling

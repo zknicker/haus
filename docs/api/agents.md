@@ -486,6 +486,19 @@ turn carries the same `failure` with the first line of its terminal error, so a 
 failed before any tool ran still says why. Raw provider error text stays out of the
 Server turn record; only `failureKind` crosses there.
 
+`agent.executionOutlines` is the batched, compact companion: one `serverId` and `agentId`, and
+1–50 distinct `runIds`, under the same Owner/Admin authorization and relay. Computer answers
+every run in one round trip, in request order, each as `available` with its outline or
+`unavailable` with `missing`, `offline`, or `timeout` (Server fills the last two when the Computer
+never answers). An outline is `{ runId, status, startedAt, durationMs, steps, omittedSteps? }`:
+each step is `{ id, kind, label, depth, parentId?, startOffsetMs, durationMs?, status, subagent? }`
+with `kind` one of `tool`, `bookkeeping`, `reasoning`, or `subagent`, `subagent` as
+`{ label, failedToolCount }`, and offsets from the outline's `startedAt`, its earliest evidence.
+Labels are the scrubbed action descriptions used for thoughts (ADR 0036), at most 96
+characters; a shell call's label stops before any heredoc. An outline never carries tool inputs
+or outputs, errors, reports, reasoning text, message bodies, or images. It keeps at most 200
+steps, top-level first, and counts the rest in `omittedSteps`.
+
 A running turn is answered from the Computer's append-only `<runId>.ndjson` log and a settled one
 from the consolidated `<runId>.json` snapshot; both live under the Agent's
 `runtime/execution-journal/` directory and neither reaches the Server's store.

@@ -153,9 +153,12 @@ opened, and a step a live turn adds, grow into place (`turn-trace-reveal.tsx`); 
 that closes keeps its last trace, and reopening shows it while the relay refreshes. In the
 Activity log, each turn is a stock `Disclosure` (never a group), and each step row is its own
 disclosure, so a failed call opens on its own there as in the drawer. Shared, high-churn log state
-— the linked hover between strip and rows, each read turn's step marks, and the journal read queue
+— the linked hover between strip and rows, each turn's step marks, and the journal read queue
 (at most three in flight) — lives in small external stores (`agent-activity-log-stores.ts`) so a
-hover re-renders only the rows that read it.
+hover re-renders only the rows that read it. The strip's marks for unread turns come from Computer
+outlines (`use-turn-outlines.ts`): one `agent.executionOutlines` read per Agent per day page,
+settled outlines reused across days and revisits and never read again, unanswered runs read again
+when a Computer comes back online. An opened turn's journal marks replace its outline's.
 
 Row labels stay in sentence case. Body sections are named on the one micro-label tier
 (`DESIGN.md` → Turn trace); `default-theme.css` moves stock `ChatTool`'s own section labels

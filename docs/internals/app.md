@@ -121,7 +121,8 @@ windows.
 - **What is copied.** `isShareableQuery` is the one rule. It copies successful tRPC queries only.
   It skips App-local caches such as update checks and presence probes, and it skips reads that opt
   out of mount refetch (`queryPolicy.volatileState`), because a live subscription keeps those
-  current. It also skips one-time-code and invitation reads. A cache over 4 MB (JSON estimate) is
+  current. It also skips one-time-code and invitation reads, and execution journals. Activity-log execution
+outlines live under App-local keys, so a new window reads its own in one request. A cache over 4 MB (JSON estimate) is
   not handed off at all.
 - **Carry.** IPC structured clone carries the copy as is, so no transformer is involved (the tRPC
   link has none). Main holds it in memory for the one new window and never writes it to disk. Main
