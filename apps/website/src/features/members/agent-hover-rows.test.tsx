@@ -32,7 +32,7 @@ test('a recent turn stacks request over place and outcome, length over age', () 
     const markup = renderToStaticMarkup(
         <AgentHoverTurn
             row={{ count: 1, latest: turn(), since: startedAt }}
-            title={{ kind: 'text', place: 'DM', request: 'Ship it', text: 'Ship it' }}
+            title={{ kind: 'text', place: 'DM', text: 'Ship it' }}
         />
     );
     const [title, outcome, length] = text(markup);

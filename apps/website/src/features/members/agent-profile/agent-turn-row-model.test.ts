@@ -29,17 +29,8 @@ test('a message turn is titled by its first line, with a DM labeled "DM", never 
     expect(resolveTurnRowTitle(dmMessage, messages, chats)).toEqual({
         kind: 'text',
         place: 'DM',
-        request: 'Set up a project in tinylink',
         text: 'Set up a project in tinylink',
     });
-    // The open row's request keeps its paragraphs.
-    expect(
-        resolveTurnRowTitle(
-            dmMessage,
-            reads(['msg_one', resolved('First ask.\n\nThen this.')]),
-            chats
-        )
-    ).toMatchObject({ request: 'First ask.\nThen this.', text: 'First ask. Then this.' });
     expect(
         resolveTurnRowTitle({ ...dmMessage, chatId: 'cht_product' }, messages, chats)
     ).toMatchObject({ place: '#product' });
@@ -60,12 +51,11 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
     expect(resolveTurnRowTitle(null, reads(), chats)).toEqual({ kind: 'none' });
     expect(
         resolveTurnRowTitle({ chatId: 'cht_product', kind: 'reminder' }, reads(), chats)
-    ).toEqual({ kind: 'text', place: '#product', request: 'Reminder', text: 'Reminder' });
+    ).toEqual({ kind: 'text', place: '#product', text: 'Reminder' });
     // A Chat outside the reader's list (a Thread) loses its place, not its title.
     expect(resolveTurnRowTitle({ chatId: 'cht_thread', kind: 'trigger' }, reads(), chats)).toEqual({
         kind: 'text',
         place: null,
-        request: 'Trigger',
         text: 'Trigger',
     });
 });

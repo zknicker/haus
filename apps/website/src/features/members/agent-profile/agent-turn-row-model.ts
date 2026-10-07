@@ -7,21 +7,15 @@ import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import type { RecentActivityRow } from './recent-activity-rows.ts';
 
 /**
- * What a turn row is titled by: the request that woke it. `text` is its first
- * line for the collapsed row and `request` the whole of it, line breaks kept,
- * for the open row. `pending` holds the title line blank while the message
+ * What a turn row is titled by: the request that woke it, as its first line
+ * (`text`). `pending` holds the title line blank while the message
  * reads; `none` means there is nothing the reader may see (private,
  * unrecorded, or unreadable), so the row is titled by what the turn did.
  */
 export type TurnRowTitle =
     | { readonly kind: 'none' }
     | { readonly kind: 'pending'; readonly place: string | null }
-    | {
-          readonly kind: 'text';
-          readonly place: string | null;
-          readonly request: string;
-          readonly text: string;
-      };
+    | { readonly kind: 'text'; readonly place: string | null; readonly text: string };
 
 export function resolveTurnRowTitle(
     trigger: AgentTurnTrigger | null,
@@ -44,12 +38,10 @@ export function resolveTurnRowTitle(
         const text =
             messagePreviewLine(read.message.content) ||
             (read.message.attachments.length > 0 ? 'Attachment' : '');
-        return text
-            ? { kind: 'text', place, request: readRequest(read.message.content) || text, text }
-            : { kind: 'none' };
+        return text ? { kind: 'text', place, text } : { kind: 'none' };
     }
     const title = workTitles[trigger.kind];
-    return { kind: 'text', place, request: title, text: title };
+    return { kind: 'text', place, text: title };
 }
 
 /**
@@ -255,15 +247,6 @@ const outcomeWords: Record<
 function outcomeAction(category: keyof typeof outcomeWords, count: number) {
     const [verb, one, many] = outcomeWords[category];
     return { count, isRepeat: one === 'time', noun: count === 1 ? one : many, verb };
-}
-
-/** A message's whole text as plain lines, one per paragraph it was written in. */
-function readRequest(content: string): string {
-    return content
-        .split(/\n{2,}/u)
-        .map((paragraph) => messagePreviewLine(paragraph))
-        .filter(Boolean)
-        .join('\n');
 }
 
 function lowerFirst(value: string): string {

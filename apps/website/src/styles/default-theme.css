@@ -2022,11 +2022,6 @@
         font-weight: 600;
     }
 
-    /* An open turn can be thousands of pixels of trace; do not promote it. */
-    .accordion--activity-history .accordion__panel[data-expanded='true'] {
-        will-change: auto;
-    }
-
     /*
      * Stock ChatTool sets its section labels in 10px uppercase with wide
      * tracking. The turn trace names every body section the same way —

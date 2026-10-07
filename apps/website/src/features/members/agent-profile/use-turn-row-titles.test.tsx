@@ -27,13 +27,11 @@ test('a running turn is titled by the trigger it reads before it settles', async
     expect(harness.titleOf(running)).toEqual({
         kind: 'text',
         place: '#product',
-        request: 'Ship the changelog',
         text: 'Ship the changelog',
     });
     expect(harness.titleOf(settled)).toEqual({
         kind: 'text',
         place: '#product',
-        request: 'Reminder',
         text: 'Reminder',
     });
     // Only the running turn asks for its trigger; a settled one already carries it.
