@@ -31,6 +31,9 @@ extension HausStore {
     /// enough that a single message still lands as an immediate arrival.
     static let liveChatEventWindow = Duration.milliseconds(80)
 
+    /// Below this time in the background, a return skips the full snapshot.
+    static let quickReturnInterval: TimeInterval = 30
+
     /// Reads every snapshot projection concurrently.
     ///
     /// Computers are deliberately left to `loadComputers`, which owns its own
@@ -80,6 +83,16 @@ extension HausStore {
               let serverID = activeServer?.id
         else { return }
 
+        // A short trip away leaves healthy streams standing: any frame missed
+        // while suspended is still in the socket, and a dropped socket
+        // reconnects and walks the event log on its own.
+        if streamsHealthy, isConnected,
+           let backgroundedAt,
+           Date().timeIntervalSince(backgroundedAt) < Self.quickReturnInterval {
+            await refreshIconBadge()
+            return
+        }
+
         foregroundRefreshInFlight = true
         defer { foregroundRefreshInFlight = false }
         stopEventStreams()
@@ -113,11 +126,11 @@ extension HausStore {
         // content through the pop animation. Every other cached page is
         // refreshed by the event walk that follows this snapshot, by live
         // events, and by `openChat` when the user navigates back to it.
-        for chatID in OpenChatPages.toRefresh(
-            focusedChatID: openChatID,
-            canvasChatID: canvasChatID
-        ) {
-            await loadMessages(chatID: chatID)
+        let stack = OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID)
+        await withTaskGroup(of: Void.self) { group in
+            for chatID in stack {
+                group.addTask { await self.loadMessages(chatID: chatID) }
+            }
         }
         // Reads belong to the deepest surface alone. A covered canvas Chat was
         // refreshed above but is not what the user is looking at.

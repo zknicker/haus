@@ -83,6 +83,14 @@ final class HausStore {
     var chatEventServerID: String?
     var chatEventReplay = ChatEventReplayState()
     @ObservationIgnored lazy var reactionStickers = Self.makeReactionStickerBoard { [weak self] in self }
+    // Stream recovery (`HausStoreEventStreams.swift`).
+    @ObservationIgnored var streamRestart: Task<Void, Never>?
+    @ObservationIgnored var streamRestartAttempt = 0
+    @ObservationIgnored var streamsStartedAt: Date?
+    @ObservationIgnored var streamsHealthy = false
+    /// When the app last left the foreground, so a quick return can skip the
+    /// full snapshot while its streams are still up.
+    @ObservationIgnored var backgroundedAt: Date?
     @ObservationIgnored var chatListRefresh: Task<Void, Never>?
     @ObservationIgnored var chatListRefreshAgain = false
     var chatEventCatchUpInFlight = false
