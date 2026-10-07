@@ -68,6 +68,48 @@ export type AgentTurnsInput = z.infer<typeof agentTurnsInputSchema>;
 
 export const agentTurnsSchema = z.array(agentTurnSchema);
 
+/**
+ * Keyset cursor for Server-wide turn pages: the last turn's start, ties broken
+ * by its run id, so a page boundary never skips or repeats a turn.
+ */
+export const serverTurnsCursorSchema = z
+    .object({ runId: idSchema, startedAt: timestampSchema })
+    .strict();
+
+export type ServerTurnsCursor = z.infer<typeof serverTurnsCursorSchema>;
+
+/**
+ * `agent.serverTurns`: every Agent's settled turns on one Server, newest first,
+ * in the `agent.turns` shape. `agentIds` narrows to those Agents; omitted, it
+ * reads them all.
+ */
+export const serverTurnsInputSchema = z
+    .object({
+        agentIds: z
+            .array(idSchema)
+            .min(1)
+            .max(100)
+            .refine((ids) => new Set(ids).size === ids.length, {
+                message: 'Agent ids must be unique.',
+            })
+            .optional(),
+        before: serverTurnsCursorSchema.optional(),
+        limit: z.number().int().min(1).max(50).default(30),
+        serverId: idSchema,
+    })
+    .strict();
+
+export type ServerTurnsInput = z.infer<typeof serverTurnsInputSchema>;
+
+export const serverTurnsPageSchema = z
+    .object({
+        nextBefore: serverTurnsCursorSchema.nullable(),
+        turns: z.array(agentTurnSchema),
+    })
+    .strict();
+
+export type ServerTurnsPage = z.infer<typeof serverTurnsPageSchema>;
+
 /** One run's trigger, readable while the run still works and before it settles into a turn. */
 export const agentRunTriggerInputSchema = agentDetailInputSchema.extend({ runId: idSchema });
 

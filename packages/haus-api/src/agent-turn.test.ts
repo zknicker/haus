@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentExecutionJournalSchema } from './agent-execution-journal.ts';
-import { agentTurnSchema, agentTurnTriggerSchema } from './agent-turn.ts';
+import { agentTurnSchema, agentTurnTriggerSchema, serverTurnsInputSchema } from './agent-turn.ts';
 
 test('a turn trigger carries ids only, never message text', () => {
     expect(
@@ -61,5 +61,22 @@ test('a served journal pairs raw errors with a normalized failure', () => {
     expect(journal.tools[0]?.failure).toEqual({ exitCode: 1, message: 'ls: nope' });
     expect(
         agentExecutionJournalSchema.safeParse({ ...journal, failure: { message: '' } }).success
+    ).toBe(false);
+});
+
+test('a Server-wide turn page reads every Agent by default and narrows to unique ids', () => {
+    expect(serverTurnsInputSchema.parse({ serverId: 'srv_one' })).toEqual({
+        limit: 30,
+        serverId: 'srv_one',
+    });
+    expect(
+        serverTurnsInputSchema.safeParse({ agentIds: ['agt_a', 'agt_a'], serverId: 'srv_one' })
+            .success
+    ).toBe(false);
+    expect(
+        serverTurnsInputSchema.safeParse({
+            before: { runId: 'run_one', startedAt: 'yesterday' },
+            serverId: 'srv_one',
+        }).success
     ).toBe(false);
 });
