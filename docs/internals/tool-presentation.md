@@ -58,9 +58,14 @@ inside the label cell only (`--trace-indent`: 0.75rem per plain step, 1.25rem in
 land at the same x on every row. A row is a kind mark (or a danger, warning, or stop mark for its
 outcome), the label, the muted directory, and a dotted leader from the label's end that runs on
 through the track at the row's center; the step's bar (6px, full radius) sits over that leader on
-the turn's axis, ringed in the trace's ground so it reads as cut from the line. Bars say what kind
-of work ran: a sub-agent or reasoning in the step hue, a call in the tool hue, Haus bookkeeping in
-the quiet hue, a failure in danger (tokens in `product-tokens.css`). Hierarchy is indent, mark,
+the turn's axis, ringed in the trace's ground so it reads as cut from the line. Each kind of work
+has one hue (`TraceKind` in `turn-trace-kind.ts`) that paints the row's icon, its bar, and its
+Activity overview segment: thinking, shell, files (reads, edits, writes, search), web, sub-agents,
+image or media, and MCP or other tools. Haus bookkeeping stays the quiet muted wash, an interrupted
+step quiet, and a failure or warning paints danger or warning over any hue. Labels stay neutral.
+An unread turn's overview segments come from its Computer outline, which names no tool kind, so
+its calls take the general tool hue until the turn is read (tokens in `product-tokens.css`,
+palette in `DESIGN.md`). Hierarchy is indent, mark,
 bar color, and one rail: a sub-agent's calls are rows one depth in, with no background or edge of
 their own. An opened group — a fold, Haus bookkeeping, a sub-agent's fact line and calls, a run of
 thoughts — hangs its children off one 1px `separator` rail at the center of its row's icon, file
@@ -136,8 +141,9 @@ earns. Codex's and Grok Build's native media tools (`image_gen`, `image_edit`, `
 `reference_to_video`) are `image`: `Generated an image`, `Edited an image`, or `Made a video`, with
 the file and the prompt as the body. The file is the workspace file Computer journals as `path`
 (`generated-images/…`, see [Agents](../features/agents.md)), falling back to the runtime's own
-`savedPath`. An image step shows the picture in place, read through the same
-`agent.workspaceFile` query the workspace pane uses, with its prompt folded to three lines; a
+`savedPath`. An image step is a closed row like any other; opened, it shows the picture, read
+through the same `agent.workspaceFile` query the workspace pane uses, with its prompt folded to
+three lines; a
 video, a host-only path, or a failed read names the file instead. Nothing renders while it
 loads. Pressing the picture (Enter or Space) opens it in a HeroUI Modal at the window's size
 with its file name and prompt, and on desktop an "Open in workspace" action that opens the file

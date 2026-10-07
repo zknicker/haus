@@ -879,10 +879,17 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   edge, or rail. A dotted `--border` leader runs from the label's end through the track at the
   row's center, and the step's 6px full-radius bar sits over it ringed 2px in `--trace-ring`
   (the trace's `--trace-ground`, the hover fill on a hovered row, the danger fill on a failed
-  one) so it reads as cut from the line. Bar hues are product tokens in `product-tokens.css`:
-  `--trace-step` (the accent: a sub-agent, reasoning), `--trace-tool` (teal: a call),
-  `--trace-quiet` (a muted wash: Haus bookkeeping, an interrupted step), with `danger` and
-  `warning` for outcomes rather than a fourth hue. A host on another ground rebinds
+  one) so it reads as cut from the line. **Kind palette:** one product-token hue per kind of
+  work paints the row's icon, its bar, and its overview segment — never the label text.
+  Dark / light: `--trace-thinking` violet `#857ad6` / `#55489e`, `--trace-shell` green
+  `#00a577` / `#009f71`, `--trace-file` blue `#286db7` / `#2167b0`, `--trace-web` cyan
+  `#00a6c0` / `#00a3bd`, `--trace-subagent` magenta `#a8508a` / `#9e4781`, `--trace-media`
+  orange `#ce7e2c` / `#974d00`, `--trace-tool` olive (MCP and other tools) `#617300` /
+  `#75880d`. `--trace-quiet` (a muted wash) stays Haus bookkeeping and interrupted steps, and
+  `danger` and `warning` paint outcomes over any hue. The set is validated with the dataviz
+  categorical checks (L band, chroma >= 0.10, adjacent CVD and normal-vision separation, >= 3:1
+  on `--surface`); 7 hues cannot clear every pair, so each row's distinct icon and label carry
+  identity too. Retune both modes together and re-run the validator. A host on another ground rebinds
   `--trace-ground` (the drawer to `--overlay`); a failed row's opaque `--trace-row-danger` fill
   and tinted `--trace-leader-danger` derive from it per trace. A highlight (row hover, or a
   turn the overview points at) is additive: a translucent `--trace-row-highlight` layer over
