@@ -888,11 +888,16 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   turn the overview points at) is additive: a translucent `--trace-row-highlight` layer over
   whatever the row rests on, so a plain row and a failed row's tint lift by the same step,
   and bar rings stack the same layers. Expanded bodies start on the
-  row's label text and name each section with the one **micro label** tier — `xs`, medium,
-  uppercase, `tracking-wide`, muted — over the code blocks' `surface-secondary` material at
-  their `×2` radius, bounded to a readable height that scrolls. That tier is the page's only
-  uppercase text: stock `ChatTool` ships its `Arguments`, `Result`, and error labels in an
-  off-scale 10px, so `default-theme.css` moves them onto `xs`. The drawer's totals footer is
+  row's label text; in the log they keep to the time and label columns so the lane's gridlines
+  run on beside them unbroken. A body opens to everything, with no disclosure inside it. Each
+  section is named by the one **micro label** tier — `xs`, medium, uppercase, `tracking-wide`,
+  muted — and only labels are uppercase; content stays in sentence case. Code, JSON, and prose
+  sections share one compact developer block: the stock CodeBlock with `.code-block--compact`
+  (`xs` mono on a 1.5 line, `surface-secondary` at the `×1.5` fields radius, a slim header with
+  the label and copy), line numbers from the shared `.code-block--numbered` counters (also the
+  workspace file view's), a muted `$` prompt for a one-line shell command, and a fold to eight
+  lines with a muted `xs` `Show N more lines` at the block's bottom. JSON keys and literals take
+  `--code-constant` and strings `--code-string`, the CodeBlock's GitHub theme inks. The drawer's totals footer is
   tabular `sm` medium figures over micro labels, the wall time labelled `Running`, then `Done`;
   the Activity log states no totals beyond each header's length. Rows
   open on stock `Disclosure` (200ms height, chevron rotate), bars rescale on a 200ms linear

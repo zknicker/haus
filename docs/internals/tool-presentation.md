@@ -68,10 +68,30 @@ While the turn runs, the axis is its elapsed time, so bars rescale (200ms linear
 pulses, and a new row fades and rises into place; all of it is off under reduced motion.
 
 Everything a row opens to that is not itself a row — its evidence, a sub-agent's fact line and
-report, a sent message — starts on the row's label text (`TraceBody`, `traceTextInset`) and stops
-short of the edge. Each section is named by one micro label (`TraceMicroLabel`: `ERROR`,
-`COMMAND`, `OUTPUT`, `REPORT`, `MESSAGE`, and stock ChatTool's `ARGUMENTS` / `RESULT` on the same
-tier) over the code blocks' quiet surface, bounded to a readable height that scrolls. The drawer
+report, a sent message — starts on the row's label text (`TraceBody`, `traceTextInset`). In a
+chat's trace it runs to the edge; in the log it stays in the time and label columns while the track
+column beside it keeps the turn's gridlines (`TraceLane`), so the 0 edge and the ticks run unbroken
+from the ruler to the last row with bodies open. A body shows everything on open, with no
+disclosure inside it: a failed command reads `ERROR`, then `COMMAND`, then `OUTPUT`; a sent message
+reads `TO`, `MESSAGE`, `COMMAND`, `OUTPUT`; an MCP or generic call reads `INPUT` and `RESULT`. Every
+section label is one micro label (`TraceMicroLabel`, uppercase), and only labels are uppercase:
+what they name stays in sentence case (`Command failed · exit code 1`). Short facts (`TO`, `FILE`,
+`PATH`, `TOOL`, `EXIT CODE`) are a `TurnTraceFacts` list with micro-label keys.
+
+Code sections are the stock CodeBlock on the theme's compact trace modifier
+(`turn-trace-code.tsx`, `.code-block--compact`): `xs` mono on a 1.5 line, the fields radius tier,
+a slim header holding the micro label and copy. Multi-line text carries line numbers from the same
+`.code-block--numbered` counter rule the workspace file view uses; a one-line shell command sits at
+a muted `$` prompt instead. Terminal escapes a command printed are stripped from its output. A block
+longer than ten lines folds to eight with `Show N more lines` at its bottom (`turn-trace-fold.ts`),
+and copy always takes the whole text; prose sections (a report, a message, a prompt) share the same
+surface and fold at a height with `Show more`. Text past 20,000 characters is clamped with a note.
+A tool payload that is, or parses as, a JSON object or array within that bound renders as a JSON
+tree instead (`turn-trace-json.tsx`, `TraceValue`): a React Aria tree on the same compact surface,
+first level open, closed containers stating their size (`{3 keys}`, `[12]`), long strings folded
+until their row is pressed, keys and literals in the `--code-constant` ink and strings in
+`--code-string` (the CodeBlock's GitHub themes), arrow keys to walk and open it, and per-row copy
+on hover or focus. The drawer
 closes the trace with a footer (`turn-trace-footer.tsx`): calls, sub-agents, images, and failures
 as tabular figures over micro labels, closed by the wall time labelled `Running` while the turn
 works and `Done` once it settles. The Activity tab's event log
@@ -84,8 +104,9 @@ minute, then 1, 2, 5, 10, 15, 30 minutes; `turn-trace-scale.ts`), so a 32s turn 
 and a 6m10s turn on 0–8m. An open turn draws that ruler on its own thin, inert row under the
 header, in the track column only (`TurnRuler`, `turn-trace-ruler.tsx`): a hairline baseline, a short tick and a tiny muted tabular label per
 step. Its step rows carry the ticks down as gridlines (`--trace-grid`), the 0 line darker
-(`--trace-axis`) as the steps' shared left edge; they live inside each row's track, so they break
-under a step's evidence and never cross into another turn or the label and duration columns. In
+(`--trace-axis`) as the steps' shared left edge; they live inside each row's track and each open
+body's lane, so they continue past a step's evidence and never cross into another turn or the label
+and duration columns. In
 the log a row's dotted leader stops at that 0 edge, so the lane holds only gridlines and bars. A
 running turn's scale steps up as its elapsed time grows, and the ticks slide with the bars. The
 header's own track column stays empty, and its Chat button shows at that column's end on hover or
