@@ -56,3 +56,16 @@ test('visuals keeps the reply to the takeaway and reports inline', () => {
     expect(skill).toContain('[report](references/fragments/report.md)');
     expect(flowText(moduleSource('charts.md'))).toContain('## Reports');
 });
+
+/**
+ * Agents drew a goal pace dashed on top of a near-identical actual line, which
+ * the old rule's "one solid, one dashed" advice invited. The procedure now
+ * measures the gap before a second line and names dashing as no fix.
+ */
+test('visuals guards against near-coincident lines in the chart procedure', () => {
+    const skill = flowText(defaultVisualsSkill);
+
+    expect(skill).toContain('**Before drawing a second line**');
+    expect(skill).toContain('dashing one does not fix it');
+    expect(skill).toContain('("$381 ahead of pace")');
+});

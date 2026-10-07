@@ -188,11 +188,12 @@ around a mark to separate it: a stroke is ink that is not data.
   never across a line, a bar, or another label. Check each label's box against
   the marks before closing the fence; if there is no clear space, move it out
   or drop it.
-- **When two lines nearly coincide, do not draw them on top of each other.**
-  Draw the one that matters solid and the other dashed in `--chart-5`, and name
-  the gap in one label ("$381 ahead of pace"); or drop the second line and say
-  it in that label. Two series whose difference is invisible at the chart's
-  scale are a number, not a picture.
+- **When two lines nearly coincide, draw one.** Measure first: y of both at the
+  start, middle, and latest point; within 6px at two of the three, they
+  coincide. Dashing one does not separate them. Keep the line that matters and
+  name the gap in one label at its end ("$381 ahead of pace"), or plot the gap
+  itself around a zero rule. Two series whose difference is invisible at the
+  chart's scale are a number, not a picture.
 - A label only goes inside a bar when the rendered text fits with padding on
   both sides (`chars × 6.3 + 8 ≤ bar length` at 12px). Otherwise it moves
   outside the bar end, or drops to the tooltip. Never crop it with

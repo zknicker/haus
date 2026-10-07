@@ -11,7 +11,9 @@ the end labels), y 16→212. Eight points make seven gaps, so gap = 580/7 = 82.9
 and x_i = 48 + 82.9i. The high is 41%, so niceStep gives step 10 and max 50,
 y(v) = 212 − v/50×196, gridlines every 10% up to 50%. Two lines finish 2 points
 apart, under the ~14px two rows of 12px text need, so one label is nudged up
-8px and keeps a leader line back to its own end.
+8px and keeps a leader line back to its own end. Converging at the end is fine;
+two series within 6px of each other for most of the plot are not two lines —
+draw one and say the gap, or plot the difference.
 
 ```html
 <h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Harvest tees hold the lowest ACOS at 17%, while the holiday push climbed to 41% over the last eight weeks.</h2>
