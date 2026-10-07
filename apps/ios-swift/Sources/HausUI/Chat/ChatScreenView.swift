@@ -222,6 +222,12 @@ public struct ChatScreenView: View {
                 .frame(maxWidth: 220)
             }
             .buttonStyle(.plain)
+            // The header caps its text size like a navigation bar does, so a
+            // reader at an accessibility size gets the system's enlarged
+            // preview on a long press instead.
+            .accessibilityShowsLargeContentViewer {
+                Text(chat.title)
+            }
         } trailing: {
             HStack(spacing: 8) {
                 if let onCall {

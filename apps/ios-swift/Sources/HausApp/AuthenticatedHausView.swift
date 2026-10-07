@@ -144,6 +144,7 @@ struct AuthenticatedHausView: View {
                     inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
                     onOpenTasks: { path.append(.tasks) },
                     onOpenInbox: openInbox,
+                    showsTasks: path.last == .tasks,
                     inboxHasUnread: (store.unreadChatCount ?? 0) > 0,
                     ghostTempo: store.agentActivityGhostTempo,
                     onOpenThread: openThread,
@@ -174,9 +175,12 @@ struct AuthenticatedHausView: View {
                         try await store.downloadAttachment(attachment)
                     },
                     onCallAgent: openAgentCall,
+                    onMarkRead: { chat in
+                        Task { await store.markChatRead(chatID: chat.id) }
+                    },
                     messageHistory: { store.messageHistory(chatID: $0.id) },
-                    searchMessages: { query in
-                        try await store.searchMessagePresentations(query: query)
+                    searchMessages: { query, chatID in
+                        try await store.searchMessagePresentations(query: query, chatID: chatID)
                     },
                     searchRecoveryRevision: store.agentMessageSearchRevision,
                     loadArchivedChannels: {
@@ -205,7 +209,11 @@ struct AuthenticatedHausView: View {
                     createChannel: { draft in
                         try await store.createNativeChannel(draft)
                     },
-                    onVisibleMessages: reportVisibleMessages
+                    onVisibleMessages: reportVisibleMessages,
+                    // Runs inside the drawer's animation, so a re-sort animates.
+                    // MERGE: open ? store.holdSidebarOrder() : store.releaseSidebarOrder()
+                    onDrawerPresentedChange: { _ in },
+                    notice: { store.sendError }
                 )
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in

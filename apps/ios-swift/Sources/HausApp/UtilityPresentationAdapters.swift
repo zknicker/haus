@@ -11,10 +11,13 @@ extension HausStore {
     /// Projects Server-wide message search into the native result row. Search
     /// results are limited to the active chat directory because the shell can
     /// only select chats currently mounted in its active-chat projection.
-    func searchMessagePresentations(query: String) async throws -> [MessageSearchResultPresentation] {
+    func searchMessagePresentations(
+        query: String,
+        chatID: String? = nil
+    ) async throws -> [MessageSearchResultPresentation] {
         guard let serverID = activeServer?.id else { return [] }
         let results = try await searchChatMessages(
-            input: ChatSearchInput(query: query, serverID: serverID)
+            input: ChatSearchInput(query: query, serverID: serverID, chatID: chatID)
         )
         let chatsByID = Dictionary(
             chats.map { ($0.id, $0) },

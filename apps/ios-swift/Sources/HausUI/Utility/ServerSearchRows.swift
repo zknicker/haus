@@ -4,6 +4,7 @@ let searchRowInsets = EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
 
 struct ChatSearchResultRow: View {
     let chat: ChatPresentation
+    var query = ""
 
     var body: some View {
         HStack(spacing: 12) {
@@ -16,7 +17,7 @@ struct ChatSearchResultRow: View {
                 AvatarView(name: human.name, url: human.avatarURL, presence: nil, size: 36)
             }
 
-            Text(chat.title)
+            Text(SearchHighlight.attributed(chat.title, term: query))
                 .font(.body)
                 .fontWeight(chat.unreadCount > 0 ? .semibold : .regular)
                 .foregroundStyle(.primary)
@@ -35,6 +36,7 @@ struct ChatSearchResultRow: View {
 
 struct MessageSearchResultRow: View {
     let result: MessageSearchResultPresentation
+    var query = ""
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -57,7 +59,7 @@ struct MessageSearchResultRow: View {
                         .foregroundStyle(.tertiary)
                 }
 
-                Text(result.content)
+                Text(SearchHighlight.attributed(SearchHighlight.excerpt(result.content, term: query), term: query))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -102,7 +104,7 @@ private enum ServerSearchPreviewFixtures {
 #Preview("Search results") {
     ServerSearchView(
         chats: ChatFixtures.chats,
-        searchMessages: { _ in ServerSearchPreviewFixtures.results },
+        searchMessages: { _, _ in ServerSearchPreviewFixtures.results },
         onSelectChat: { _ in },
         onSelectMessage: { _ in true }
     )
@@ -111,7 +113,7 @@ private enum ServerSearchPreviewFixtures {
 #Preview("Search error") {
     ServerSearchView(
         chats: ChatFixtures.chats,
-        searchMessages: { _ in
+        searchMessages: { _, _ in
             struct PreviewError: LocalizedError {
                 var errorDescription: String? { "The Server could not be reached." }
             }

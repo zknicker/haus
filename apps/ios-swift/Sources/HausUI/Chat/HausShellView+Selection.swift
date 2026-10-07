@@ -37,9 +37,9 @@ extension HausShellView {
     /// that was never behind it, and the slide waits a turn so the page
     /// mounting inside it is not pinned at the closed position.
     func openInboxCanvas() {
-        if !showsInbox { drawerClose = .chatSelection }
+        if !showsInbox { drawer.close = .chatSelection }
         onOpenInbox()
-        Task { @MainActor in setDrawer(open: false) }
+        Task { @MainActor [drawer] in drawer.set(open: false) }
     }
 
     func selectDestination(_ destination: ChatDestination) {
@@ -54,8 +54,11 @@ extension HausShellView {
         // never behind it, which is the fade this replaces. Re-selecting the
         // Chat already on the canvas mounts nothing, so that close keeps the
         // interactive fade like any other close over an unchanged Chat.
-        if destination.id != selectedDestination?.id {
-            drawerClose = .chatSelection
+        if destination.id != selectedDestination?.id || showsInbox {
+            drawer.close = .chatSelection
+            // An open drawer's snap is this switch's tick; a switch from a
+            // sheet or a route has no snap, so it ticks on its own.
+            if !drawer.isPresented { chatSwitchFeedback += 1 }
         }
         // Selecting a Chat is what takes the canvas off the Inbox; every other
         // way back to it is the App's.
@@ -75,7 +78,7 @@ extension HausShellView {
         // which is the earliest a spring can start without sharing that
         // transaction. The hold is therefore one frame plus the new screen's
         // first layout, and cannot go below one frame.
-        Task { @MainActor in setDrawer(open: false) }
+        Task { @MainActor [drawer] in drawer.set(open: false) }
     }
 
     /// Opens one Agent's Chat, which is where the phone shows an Agent profile:
