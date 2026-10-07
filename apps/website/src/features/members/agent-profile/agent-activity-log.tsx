@@ -121,12 +121,14 @@ export function ActivityLog({
                     >
                         {day ? (
                             <ActivityLogOverview
+                                access={access}
                                 action={dayBarAction}
                                 day={day}
                                 newer={days[index - 1] ?? null}
                                 now={now}
                                 older={days[index + 1] ?? null}
                                 onDayChange={showDay}
+                                serverId={serverId}
                             />
                         ) : null}
                         {days.map((logDay, dayIndex) => (

@@ -110,11 +110,14 @@ export interface StepMark {
 }
 
 /**
- * Each read turn's step marks, published by its log group so the overview
- * draws a turn's inner rhythm without reading any journal itself.
+ * Each turn's step marks for the overview, so it draws a turn's inner rhythm
+ * without reading any journal itself. A read turn's log group publishes marks
+ * from its journal; every other settled turn's come from its Computer outline.
+ * The journal's marks win once both exist.
  */
 export class StepMarksStore {
-    private readonly marks = new Map<string, readonly StepMark[]>();
+    private readonly journal = new Map<string, readonly StepMark[]>();
+    private readonly outline = new Map<string, readonly StepMark[]>();
     private readonly keys = new Map<string, string>();
     private readonly listeners = new Set<() => void>();
 
@@ -123,15 +126,28 @@ export class StepMarksStore {
         return () => this.listeners.delete(listener);
     };
 
-    get = (runId: string) => this.marks.get(runId) ?? null;
+    get = (runId: string) => this.journal.get(runId) ?? this.outline.get(runId) ?? null;
 
     set(runId: string, marks: readonly StepMark[]) {
+        this.write(this.journal, 'journal', runId, marks);
+    }
+
+    setOutline(runId: string, marks: readonly StepMark[]) {
+        this.write(this.outline, 'outline', runId, marks);
+    }
+
+    private write(
+        target: Map<string, readonly StepMark[]>,
+        source: 'journal' | 'outline',
+        runId: string,
+        marks: readonly StepMark[]
+    ) {
         const key = JSON.stringify(marks);
-        if (this.keys.get(runId) === key) {
+        if (this.keys.get(`${source}:${runId}`) === key) {
             return;
         }
-        this.keys.set(runId, key);
-        this.marks.set(runId, marks);
+        this.keys.set(`${source}:${runId}`, key);
+        target.set(runId, marks);
         for (const listener of this.listeners) {
             listener();
         }

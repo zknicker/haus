@@ -1,4 +1,7 @@
+import type { AgentExecutionOutline, AgentExecutionOutlineStep } from '@haus/api';
+import type { TraceBarKind } from '../../turn-trace/turn-trace-grid.tsx';
 import type { TurnTraceStep } from '../../turn-trace/turn-trace-step-types.ts';
+import type { TurnTraceStatus } from '../../turn-trace/turn-trace-tool-model.ts';
 import type { TimelineStatus } from './agent-activity-log-overview-model.ts';
 import type { StepMark } from './agent-activity-log-stores.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
@@ -98,6 +101,39 @@ export function readStepMarks(steps: readonly TurnTraceStep[], axisMs: number): 
             },
         ];
     });
+}
+
+/**
+ * An unread turn's top-level steps from its Computer outline, toned as
+ * {@link readStepMarks} tones a read trace: bookkeeping quiet, reasoning a
+ * step, calls and sub-agents tools, a sub-agent with failed calls a warning.
+ */
+export function readOutlineMarks(outline: AgentExecutionOutline, turnMs: number): StepMark[] {
+    const axisMs = Math.max(outline.durationMs, turnMs);
+    if (axisMs <= 0) {
+        return [];
+    }
+    return outline.steps
+        .filter((step) => step.depth === 0)
+        .map((step) => ({
+            kind: outlineBarKinds[step.kind],
+            start: Math.min(1, step.startOffsetMs / axisMs),
+            status: readOutlineStatus(step),
+            width: Math.min(1, (step.durationMs ?? 0) / axisMs),
+        }));
+}
+
+const outlineBarKinds: Record<AgentExecutionOutlineStep['kind'], TraceBarKind> = {
+    bookkeeping: 'quiet',
+    reasoning: 'step',
+    subagent: 'tool',
+    tool: 'tool',
+};
+
+function readOutlineStatus(step: AgentExecutionOutlineStep): TurnTraceStatus {
+    return step.status === 'completed' && (step.subagent?.failedToolCount ?? 0) > 0
+        ? 'warning'
+        : step.status;
 }
 
 /** One Agent's turns as log entries, titled from their requests. */

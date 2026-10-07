@@ -6,6 +6,7 @@ import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import { barTone } from '../../turn-trace/turn-trace-grid.tsx';
 import { type ActivityLogDay, timelineStatus } from './agent-activity-log-entries.ts';
+import { ActivityLogDayOutlines } from './agent-activity-log-outlines.tsx';
 import {
     buildDayTimeline,
     type TimelineBlock,
@@ -18,6 +19,7 @@ import {
     useWidth,
 } from './agent-activity-log-overview-parts.tsx';
 import { useActivityLogStores, useLinkedHover, useStepMarks } from './agent-activity-log-stores.ts';
+import type { TurnDetailAccess } from './agent-activity-model.ts';
 import { formatTurnDuration } from './agent-turn-row-model.ts';
 
 /**
@@ -29,19 +31,23 @@ import { formatTurnDuration } from './agent-turn-row-model.ts';
  * into view. Pointing at a row lights its block, and a step's own span.
  */
 export function ActivityLogOverview({
+    access,
     action,
     day,
     newer,
     now,
     older,
     onDayChange,
+    serverId,
 }: {
+    access: TurnDetailAccess;
     action?: React.ReactNode;
     day: ActivityLogDay;
     newer: ActivityLogDay | null;
     now: number;
     older: ActivityLogDay | null;
     onDayChange: (day: ActivityLogDay) => void;
+    serverId: string;
 }) {
     const { hover } = useActivityLogStores();
     const [width, ref] = useWidth();
@@ -74,6 +80,7 @@ export function ActivityLogOverview({
         <>
             {/* Scrolls out of view the moment the log scrolls under the band. */}
             <span aria-hidden className="h-px" ref={sentinel} />
+            <ActivityLogDayOutlines access={access} day={day} serverId={serverId} />
             <section
                 aria-label={`${day.label} overview`}
                 className={cn(

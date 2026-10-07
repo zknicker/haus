@@ -3,9 +3,10 @@ import {
     type ActivityLogEntry,
     readLogDays,
     readOpenOnArrival,
+    readOutlineMarks,
     readStepMarks,
 } from './agent-activity-log-entries.ts';
-import { JournalQueue, LinkedHoverStore } from './agent-activity-log-stores.ts';
+import { JournalQueue, LinkedHoverStore, StepMarksStore } from './agent-activity-log-stores.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 
 const tiny = { avatarUrl: null, displayName: 'Tiny', id: 'agt_tiny' };
@@ -153,3 +154,80 @@ function entry(
     } satisfies AgentActivityTurn;
     return { agent, row: { count: 1, latest: turn, since: iso }, title: { kind: 'none' } };
 }
+
+test('an outline draws top-level marks on the turn axis, toned like a read trace', () => {
+    const marks = readOutlineMarks(
+        {
+            durationMs: 8000,
+            runId: 'run_outline',
+            startedAt: '2026-10-01T10:00:00.000Z',
+            status: 'completed',
+            steps: [
+                {
+                    depth: 0,
+                    durationMs: 1000,
+                    id: 'r',
+                    kind: 'reasoning',
+                    label: 'Reasoning',
+                    startOffsetMs: 0,
+                    status: 'completed',
+                },
+                {
+                    depth: 0,
+                    durationMs: 500,
+                    id: 'h',
+                    kind: 'bookkeeping',
+                    label: 'haus',
+                    startOffsetMs: 1000,
+                    status: 'completed',
+                },
+                {
+                    depth: 0,
+                    durationMs: 4000,
+                    id: 's',
+                    kind: 'subagent',
+                    label: 'delegate',
+                    startOffsetMs: 2000,
+                    status: 'completed',
+                    subagent: { failedToolCount: 2, label: 'Survey' },
+                },
+                {
+                    depth: 1,
+                    durationMs: 100,
+                    id: 'c',
+                    kind: 'tool',
+                    label: 'read a.ts',
+                    parentId: 's',
+                    startOffsetMs: 2500,
+                    status: 'failed',
+                },
+                {
+                    depth: 0,
+                    id: 'f',
+                    kind: 'tool',
+                    label: 'bash',
+                    startOffsetMs: 6000,
+                    status: 'failed',
+                },
+            ],
+        },
+        10_000
+    );
+    expect(marks).toEqual([
+        { kind: 'step', start: 0, status: 'completed', width: 0.1 },
+        { kind: 'quiet', start: 0.1, status: 'completed', width: 0.05 },
+        { kind: 'tool', start: 0.2, status: 'warning', width: 0.4 },
+        { kind: 'tool', start: 0.6, status: 'failed', width: 0 },
+    ]);
+});
+
+test("a read journal's marks win over its outline", () => {
+    const store = new StepMarksStore();
+    const outline = [{ kind: 'tool', start: 0, status: 'completed', width: 1 }] as const;
+    const journal = [{ kind: 'step', start: 0, status: 'completed', width: 0.5 }] as const;
+    store.setOutline('run_a', outline);
+    expect(store.get('run_a')).toBe(outline);
+    store.set('run_a', journal);
+    store.setOutline('run_a', [...outline]);
+    expect(store.get('run_a')).toBe(journal);
+});
