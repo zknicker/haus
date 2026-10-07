@@ -176,36 +176,73 @@ struct PendingChatMessage: Identifiable, Equatable, Sendable {
 /// Store owns every write to that state. So they are retired by those writes
 /// rather than validated on each read: see the accessors under "Projected
 /// Server state" in `HausStore`, which are the only way that state changes.
+///
+/// Two tiers: transcript rows are cheap to rebuild and are retired broadly,
+/// while parsed bodies (`bodies`) survive every write that cannot change a
+/// body or its reference chips — presence, unread counts, other Chats' pages.
 struct ChatProjectionCaches {
     var agentsByID: [String: AgentSummary]?
     var chatsByID: [String: ChatSummary]?
     var membersByID: [String: MemberSummary]?
     var messagePresentationsByChatID: [String: [MessagePresentation]] = [:]
     var chatDestinations: [ChatDestination]?
+    var bodies = MessageBodyMemo<ParsedMessageBody>()
+    /// Bumped whenever a reference chip could resolve differently, which is
+    /// what retires a parsed body that did not itself change.
+    private(set) var referenceRevision = 0
+    private var references = ReferenceDirectory()
 
-    /// Agent and Member names, avatars, and presence reach every row the shell
-    /// draws, so a directory write retires everything.
-    mutating func retireDirectoryProjections() {
+    /// Names, avatars, and presence reach every transcript row and sidebar
+    /// entry; chips reparse only when a chip-visible fact moved.
+    mutating func retireAgents(_ agents: [AgentSummary]) {
         agentsByID = nil
+        retireRows()
+        if references.update(agents: agents) { referenceRevision += 1 }
+    }
+
+    mutating func retireMembers(_ members: [MemberSummary]) {
         membersByID = nil
-        chatsByID = nil
-        messagePresentationsByChatID.removeAll()
-        chatDestinations = nil
+        retireRows()
+        if references.update(members: members) { referenceRevision += 1 }
     }
 
-    /// Message pages and optimistic rows reach the transcript alone.
-    mutating func retireMessageProjections() {
+    /// Presence reaches author dots and sidebar rows, never a body.
+    mutating func retirePresence() {
+        retireRows()
+    }
+
+    /// The Chat list reaches the sidebar, and transcripts only through the
+    /// name and appearance a channel chip draws.
+    mutating func retireChatList(_ chats: [ChatSummary]) {
+        chatsByID = nil
+        chatDestinations = nil
+        if references.update(chats: chats) {
+            referenceRevision += 1
+            messagePresentationsByChatID.removeAll()
+        }
+    }
+
+    /// A page, optimistic-row, or cloud-work write reaches its own transcript.
+    mutating func retireMessages(chatIDs: Set<String>) {
+        for chatID in chatIDs { messagePresentationsByChatID.removeValue(forKey: chatID) }
+    }
+
+    mutating func retireAllMessages() {
         messagePresentationsByChatID.removeAll()
     }
 
-    /// The Chat list and its receipt-backed Agent DMs reach the sidebar — and,
-    /// through channel references, the name and appearance a transcript chip
-    /// draws.
-    mutating func retireChatListProjection() {
+    private mutating func retireRows() {
         chatDestinations = nil
-        chatsByID = nil
         messagePresentationsByChatID.removeAll()
     }
+}
+
+/// A message body resolved for drawing: trimmed, split around visual fences,
+/// and its prose parsed into rich blocks with resolved reference chips.
+struct ParsedMessageBody {
+    let body: String
+    let visuals: VisualMessageBody
+    let richBlocks: [RichMessageBlock]
 }
 
 enum HausStoreError: LocalizedError {

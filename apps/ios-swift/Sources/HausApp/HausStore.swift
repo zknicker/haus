@@ -73,7 +73,8 @@ final class HausStore {
     var taskBackgroundCount = 0
     var cloudAgentWorkByChatID: [String: [ThreadCloudAgentWork]] = [:] {
         didSet {
-            if oldValue != cloudAgentWorkByChatID { projections.retireMessageProjections() }
+            guard oldValue != cloudAgentWorkByChatID else { return }
+            projections.retireMessages(chatIDs: KeyedChanges.between(oldValue, cloudAgentWorkByChatID))
         }
     }
     private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
@@ -209,7 +210,7 @@ final class HausStore {
         set {
             guard storedAgents != newValue else { return }
             storedAgents = newValue
-            projections.retireDirectoryProjections()
+            projections.retireAgents(newValue)
         }
     }
 
@@ -219,7 +220,7 @@ final class HausStore {
         set {
             guard storedMembers != newValue else { return }
             storedMembers = newValue
-            projections.retireDirectoryProjections()
+            projections.retireMembers(newValue?.members ?? [])
         }
     }
 
@@ -231,7 +232,7 @@ final class HausStore {
         set {
             guard storedLifecycleAvailability != newValue else { return }
             storedLifecycleAvailability = newValue
-            projections.retireDirectoryProjections()
+            projections.retirePresence()
         }
     }
 
@@ -241,7 +242,7 @@ final class HausStore {
             if !hasLoadedChats { hasLoadedChats = true }
             guard storedChats != newValue else { return }
             storedChats = newValue
-            projections.retireChatListProjection()
+            projections.retireChatList(newValue)
         }
     }
 
@@ -251,25 +252,27 @@ final class HausStore {
         set {
             guard storedReceiptBackedAgentDMsByChatID != newValue else { return }
             storedReceiptBackedAgentDMsByChatID = newValue
-            projections.retireChatListProjection()
+            projections.chatDestinations = nil
         }
     }
 
     var messagesByChatID: [String: ChatMessagePage] {
         get { storedMessagesByChatID }
         set {
-            guard storedMessagesByChatID != newValue else { return }
+            let changed = KeyedChanges.between(storedMessagesByChatID, newValue)
+            guard !changed.isEmpty else { return }
             storedMessagesByChatID = newValue
-            projections.retireMessageProjections()
+            projections.retireMessages(chatIDs: changed)
         }
     }
 
     var pendingMessagesByChatID: [String: [PendingChatMessage]] {
         get { storedPendingMessagesByChatID }
         set {
-            guard storedPendingMessagesByChatID != newValue else { return }
+            let changed = KeyedChanges.between(storedPendingMessagesByChatID, newValue)
+            guard !changed.isEmpty else { return }
             storedPendingMessagesByChatID = newValue
-            projections.retireMessageProjections()
+            projections.retireMessages(chatIDs: changed)
         }
     }
 }
