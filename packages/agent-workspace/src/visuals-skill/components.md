@@ -7,7 +7,7 @@ file the index points at and change its content.
 
 | What you are making | Read |
 | --- | --- |
-| A few headline numbers | [kpi-row](fragments/kpi-row.md) |
+| A few headline numbers | [kpi-row](fragments/kpi-row.md); in a report, the plate-less stat row in [report](fragments/report.md) |
 | Headline numbers that must show a trend on their own | [tile-with-sparkline](fragments/tile-with-sparkline.md) |
 | Two or three options side by side | [comparison-cards](fragments/comparison-cards.md) |
 | One product, listing, order, or contact | [record-card](fragments/record-card.md) |
@@ -15,6 +15,7 @@ file the index points at and change its content.
 | One number against a limit | [meter](fragments/meter.md) |
 | A number the reader should be able to move | [calculator](fragments/calculator.md) |
 | A table that sorts, filters, or belongs to a record | [table](fragments/table.md) |
+| A mockup of a product screen, or alternative designs for one | [UI mockups](#ui-mockups), no fragment |
 
 ## The plate and the card
 
@@ -105,3 +106,31 @@ a hand-built control looks alien. An interactive visual:
   advance. `--error-foreground` is the text color on the `--error-bg` tint, not
   on the page.
 - Updates on `input`, never on a submit button, and never fetches anything.
+
+## UI mockups
+
+A mockup of a product screen or flow — "show me two or three ways this banner
+could look", "what would the composer look like with X" — is a use for the
+visual fence, not an artifact, when it fits the reply column.
+
+- **Build it from the host's tokens**, so it reads as the real app: surfaces
+  (`--background` for the screen ground, `--surface`, `--surface-secondary`),
+  `--border` hairlines, `--radius` / `--radius-card`, `--font-sans` at the app's
+  sizes, real copy and plausible numbers. Controls are bare `button`, `input`,
+  and `select`, styled by the frame. No lorem ipsum, no gray boxes standing in
+  for text.
+- **One frame per variant**: the mocked component's own surface — the banner,
+  the panel, the composer — drawn once, bordered `--surface` if that is how it
+  looks in the app. Never wrap it in a second page or window card, and never
+  set a plate inside that frame just to hold it. Surrounding chrome for context
+  (a page title, a header row) sits unframed above it; the visual itself has no
+  outer card.
+- **Labeled variants, stacked vertically.** Each variant opens with a bold
+  sentence-case label outside its frame, 14px weight 500 — "Now", "1. Inline progress banner ·
+  recommended", "2. Compact chip in the header" — then the mockup under it,
+  `--gap-lg` between variants. Show the current state first when there is one.
+- Show only the slice of the screen the change touches, with just enough
+  surrounding chrome to place it. No hover layer, no working logic unless the
+  user asked to try it.
+- The trade-offs between variants go in the reply, not under the mockups — and
+  the reply names the pick and why, without re-describing what each variant shows.

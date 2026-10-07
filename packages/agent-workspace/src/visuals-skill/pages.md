@@ -1,8 +1,10 @@
 # Haus visuals — artifact pages
 
 Read [design-system.md](design-system.md) first. An artifact is a durable
-self-contained HTML page, carded in chat and opened in the artifact pane, for
-anything the user will keep or iterate on. Everything in the design system
+self-contained HTML page, carded in chat and opened in the artifact pane, for a
+page the user asked to keep, share, or revisit, or content too long for one
+inline visual. A report, comparison, or set of mockups answered in chat is a
+visual, not a page. Everything in the design system
 holds; this module covers what changes. The skeleton is
 [artifact-page](fragments/artifact-page.md).
 

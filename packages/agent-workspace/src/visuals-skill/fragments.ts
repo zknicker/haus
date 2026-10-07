@@ -24,6 +24,7 @@ import pairedPanelsMd from './fragments/paired-panels.md' with { type: 'text' };
 import pipelineMd from './fragments/pipeline.md' with { type: 'text' };
 import rankedHorizontalBarMd from './fragments/ranked-horizontal-bar.md' with { type: 'text' };
 import recordCardMd from './fragments/record-card.md' with { type: 'text' };
+import reportMd from './fragments/report.md' with { type: 'text' };
 import scatterBubbleMd from './fragments/scatter-bubble.md' with { type: 'text' };
 import sequenceMd from './fragments/sequence.md' with { type: 'text' };
 import sparklineMd from './fragments/sparkline.md' with { type: 'text' };
@@ -58,6 +59,7 @@ export const visualsSkillFragmentFiles: Record<string, string> = {
     'pipeline.md': pipelineMd,
     'ranked-horizontal-bar.md': rankedHorizontalBarMd,
     'record-card.md': recordCardMd,
+    'report.md': reportMd,
     'scatter-bubble.md': scatterBubbleMd,
     'sequence.md': sequenceMd,
     'sparkline.md': sparklineMd,

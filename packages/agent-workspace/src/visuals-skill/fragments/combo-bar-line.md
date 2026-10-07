@@ -29,8 +29,9 @@ series line up day by day.
 <div style="position:relative">
   <svg viewBox="0 0 736 240" width="100%" role="img" aria-label="Units sold as bars on the left axis and royalties as a line on the right axis, both climbing from Sep 15 to Sep 21">
     <title>Units sold and royalties per day, Sep 15 to Sep 21</title>
-    <!-- scale: plot box x 40→684, y 24→212; plotW 644, plotH 188
-         n = 7, slot = 644/7 = 92, barW = min(24, slot*0.6 = 55.2) = 24, x_i = centre_i - barW/2 = 74, 166, …
+    <!-- scale: padL 40 ≥ widest left tick "80" 2 × 7.6 + 8 = 23.2, ticks right-aligned at 32; padR 52 holds "$300" (4 × 7.6 = 30.4) from x 692
+         plot box x 40→684, y 24→212; plotW 644, plotH 188
+         n = 7, slot = 644/7 = 92, barW = slot*0.6 = 55.2, x_i = centre_i - barW/2 = 58.4, 150.4, …
          left axis, units: peak 75 → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (15) = 20 → max = first multiple at or above the peak = 80 → step 20 · max 80, y(v) = 212 - v/80*188, ticks 0 / 20 / 40 / 60 / 80 at y 212 / 165 / 118 / 71 / 24
          right axis, royalties: peak $282 → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (56.4) = 100 → max = first multiple at or above the peak = 300 → step 100 · max 300, y(v) = 212 - v/300*188, ticks $0 / $100 / $200 / $300 at y 212 / 149.3 / 86.7 / 24
          both axes start at zero and the gridlines are the left axis alone, drawn once; the right ticks label themselves at x = 684 + 8 -->
@@ -51,13 +52,13 @@ series line up day by day.
       <text x="454" y="230" text-anchor="middle">Sep 19</text>
       <text x="546" y="230" text-anchor="middle">Sep 20</text>
       <text x="638" y="230" text-anchor="middle">Sep 21</text>
-      <g class="m"><path d="M 74,212 V 105.6 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="40" y="24" width="92" height="188" fill="transparent" data-label="Sep 15" data-value="47|$170" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="86"/></g>
-      <g class="m"><path d="M 166,212 V 93.8 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="132" y="24" width="92" height="188" fill="transparent" data-label="Sep 16" data-value="52|$186" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="178"/></g>
-      <g class="m"><path d="M 258,212 V 72.7 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="224" y="24" width="92" height="188" fill="transparent" data-label="Sep 17" data-value="61|$214" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="270"/></g>
-      <g class="m"><path d="M 350,212 V 79.7 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="316" y="24" width="92" height="188" fill="transparent" data-label="Sep 18" data-value="58|$203" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="362"/></g>
-      <g class="m"><path d="M 442,212 V 60.9 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="408" y="24" width="92" height="188" fill="transparent" data-label="Sep 19" data-value="66|$232" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="454"/></g>
-      <g class="m"><path d="M 534,212 V 49.2 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="500" y="24" width="92" height="188" fill="transparent" data-label="Sep 20" data-value="71|$255" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="546"/></g>
-      <g class="m"><path d="M 626,212 V 39.8 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="592" y="24" width="92" height="188" fill="transparent" data-label="Sep 21" data-value="75|$282" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="638"/></g>
+      <g class="m"><path d="M 58.4,212 V 105.6 a4 4 0 0 1 4,-4 h 47.2 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="40" y="24" width="92" height="188" fill="transparent" data-label="Sep 15" data-value="47|$170" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="86"/></g>
+      <g class="m"><path d="M 150.4,212 V 93.8 a4 4 0 0 1 4,-4 h 47.2 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="132" y="24" width="92" height="188" fill="transparent" data-label="Sep 16" data-value="52|$186" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="178"/></g>
+      <g class="m"><path d="M 242.4,212 V 72.7 a4 4 0 0 1 4,-4 h 47.2 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="224" y="24" width="92" height="188" fill="transparent" data-label="Sep 17" data-value="61|$214" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="270"/></g>
+      <g class="m"><path d="M 334.4,212 V 79.7 a4 4 0 0 1 4,-4 h 47.2 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="316" y="24" width="92" height="188" fill="transparent" data-label="Sep 18" data-value="58|$203" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="362"/></g>
+      <g class="m"><path d="M 426.4,212 V 60.9 a4 4 0 0 1 4,-4 h 47.2 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="408" y="24" width="92" height="188" fill="transparent" data-label="Sep 19" data-value="66|$232" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="454"/></g>
+      <g class="m"><path d="M 518.4,212 V 49.2 a4 4 0 0 1 4,-4 h 47.2 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="500" y="24" width="92" height="188" fill="transparent" data-label="Sep 20" data-value="71|$255" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="546"/></g>
+      <g class="m"><path d="M 610.4,212 V 39.8 a4 4 0 0 1 4,-4 h 47.2 a4 4 0 0 1 4,4 V 212 Z" fill="var(--chart-1)"/><rect x="592" y="24" width="92" height="188" fill="transparent" data-label="Sep 21" data-value="75|$282" data-series="Units sold|Royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="638"/></g>
       <line class="crosshair" x1="86" y1="24" x2="86" y2="212" stroke="var(--border-strong)" stroke-width="1" visibility="hidden"/>
       <polyline points="86,105.5 178,95.4 270,77.9 362,84.8 454,66.6 546,52.2 638,35.3" fill="none" stroke="var(--chart-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       <circle cx="638" cy="35.3" r="4" fill="var(--chart-2)" stroke="var(--background)" stroke-width="2"/>

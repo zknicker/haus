@@ -24,7 +24,8 @@ apart, under the ~14px two rows of 12px text need, so one label is nudged up
 <div style="position:relative">
   <svg viewBox="0 0 736 240" width="100%" role="img" aria-label="Weekly ACOS for four campaigns, harvest tees lowest at 17% and the holiday push highest at 41%">
     <title>Weekly ACOS by campaign, harvest tees lowest at 17%</title>
-    <!-- scale: plot box x 48→628 (right pad 108 holds the end labels), y 16→212; plotW 580, plotH 196
+    <!-- scale: padL 48 ≥ widest tick "50%" 2 × 7.6 + 11.4 (the %) + 8 = 34.6; ticks right-aligned at 40
+         plot box x 48→628 (right pad 108 holds the end labels), y 16→212; plotW 580, plotH 196
          n = 8 points, gap = 580/(n-1) = 82.9, x_i = 48 + 82.9*i = 48, 130.9, … , 628
          peak 41% → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (8.2) = 10 → max = first multiple at or above the peak = 50 → step 10 · max 50, y(v) = 212 - v/50*196, ticks 0% / 10% / 20% / 30% / 40% / 50% at y 212 / 172.8 / 133.6 / 94.4 / 55.2 / 16
          end labels sit at y(last); dog lovers (26%) and bee family (24%) land 7.8px apart, under the ~14px two lines of

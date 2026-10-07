@@ -1,8 +1,10 @@
 # Haus visuals — interaction
 
-Read [design-system.md](design-system.md) and [charts.md](charts.md) first. An
-inline chart is interactive by default: the hover layer ships with it. The only
-form that skips it is a bare stat tile with no plot.
+Read [design-system.md](design-system.md) and [charts.md](charts.md) first. The
+hover layer is optional. A chart must carry its answer as a static image —
+sparse ticks plus direct labels on the few marks that matter — and the hover
+layer adds exact values for every mark on top when that is worth the script.
+Reports and mockups usually skip it.
 
 There is no chart library, so the hover layer is a small inline script. Copy the
 canonical snippet below verbatim. Every chart fragment carries the same one, so
@@ -68,8 +70,8 @@ you are working from. What it fixes, and why it is never rewritten per chart:
 
 ## Hit targets
 
-- **Every hit target is at least 24px.** A 24px-capped bar is right at the line
-  and a `r="4"` dot is nowhere near it, so give thin marks and dots a
+- **Every hit target is at least 24px.** A slot-sized bar usually clears it,
+  but a `r="4"` dot is nowhere near it, so give thin marks and dots a
   transparent companion carrying the `data-*` attributes: a
   `<rect fill="transparent">` the width of the slot, or a
   `<circle r="12" fill="transparent">`. The painted mark keeps only its fill.

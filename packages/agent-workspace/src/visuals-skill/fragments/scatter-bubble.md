@@ -19,7 +19,8 @@ each hit circle is r + 4 with a 12px floor so no bubble is a pinpoint.
 <div style="position:relative">
   <svg viewBox="0 0 736 260" width="100%" role="img" aria-label="Campaign spend against ACOS, the largest spender at $780 also the least efficient at 41%">
     <title>Spend against ACOS by campaign, sized by units sold</title>
-    <!-- scale: plot box x 48→708, y 16→232; plotW 660, plotH 216
+    <!-- scale: padL 48 ≥ widest tick "50%" 2 × 7.6 + 11.4 (the %) + 8 = 34.6; ticks right-aligned at 40
+         plot box x 48→708, y 16→232; plotW 660, plotH 216
          x, spend: peak $780 → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (156) = 200 → max = first multiple at or above the peak = 800 → step 200 · max 800, x(s) = 48 + s/800*660; labels $0 / $200 / $400 / $600 / $800 under the plot
          y, ACOS: peak 41% → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (8.2) = 10 → max = first multiple at or above the peak = 50 → step 10 · max 50; a measure against a measure, so the floor is the data's: the step multiple at or under the 17% low, 10%
          y(a) = 232 - (a - 10)/40*216, ticks 10% / 20% / 30% / 40% / 50% at y 232 / 178 / 124 / 70 / 16

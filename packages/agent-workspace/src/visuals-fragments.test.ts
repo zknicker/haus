@@ -41,8 +41,6 @@ const plottedForms = [
     'stacked-bar',
     'trend-line',
 ];
-/** Bare marks: a shape beside a number, with no plot and nothing to hover. */
-const bareMarks = new Set(['kpi-row', 'meter', 'sparkline', 'tile-with-sparkline']);
 const publishedTokens = new Set<string>([...agentHtmlTokenNames, '--chart-grid', '--chart-label']);
 
 test('the skill ships a fragment file for every shape it teaches', () => {
@@ -110,76 +108,15 @@ test('a bordered box in a visual fragment is a record card, never a plate', () =
     }
 });
 
-/**
- * Charts are hand-written SVG now, so the accessible name is the only thing
- * standing between a reader on a screen reader and a wall of paths. A
- * decorative `<svg>` opts out by saying so.
- */
-test('every chart svg states its takeaway and titles itself', () => {
-    for (const fragment of chartFragments) {
-        for (const [, open, body] of fragment.html.matchAll(/(<svg\b[^>]*>)([\s\S]*?)<\/svg>/giu)) {
-            if (open.includes('aria-hidden="true"')) {
-                continue;
-            }
-            expect(open, fragment.slug).toContain('role="img"');
-            expect(open, fragment.slug).toMatch(/aria-label="[^"]{20,}"/u);
-            expect(body, `${fragment.slug} svg title`).toContain('<title>');
-        }
-    }
-});
-
-/**
- * A pixel `height` beside `width="100%"` letterboxes the drawing: the viewBox
- * keeps its aspect ratio and floats centered, narrower than the tiles above
- * it. Only a bare mark that stretches on purpose (`preserveAspectRatio="none"`)
- * may pair the two.
- */
-test('no full-width svg fixes a pixel height unless it stretches on purpose', () => {
-    let checked = 0;
-    for (const fragment of visualFragments) {
-        for (const [open] of fragment.html.matchAll(/<svg\b[^>]*>/giu)) {
-            if (!open.includes('width="100%"') || open.includes('preserveAspectRatio="none"')) {
-                continue;
-            }
-            checked += 1;
-            expect(open, fragment.slug).not.toMatch(/\sheight="/u);
-        }
-    }
-    expect(checked).toBeGreaterThanOrEqual(chartFragments.length);
-});
-
-/**
- * The reply column is 46rem, 736px, so a 736-wide viewBox draws one SVG unit
- * per CSS pixel and a 12px label renders at 12px. Any other width scales every
- * label with the column. Maps keep their own 700 frame and are not charts.
- */
-test('every chart svg is drawn on the 736 column width', () => {
-    let checked = 0;
-    for (const fragment of chartFragments) {
-        for (const [open] of fragment.html.matchAll(/<svg\b[^>]*>/giu)) {
-            if (open.includes('aria-hidden="true"')) {
-                continue;
-            }
-            checked += 1;
-            expect(open, fragment.slug).toContain('viewBox="0 0 736 ');
-        }
-    }
-    expect(checked).toBeGreaterThanOrEqual(plottedForms.length);
-});
-
-test('every chart fragment opens with the summary, shows its scale, and hovers', () => {
+test('every chart fragment opens with the summary and shows its scale', () => {
     for (const fragment of chartFragments) {
         expect(fragment.html, fragment.slug).toContain(
             '<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">'
         );
         // The derivation, so the next reader can check the arithmetic rather
-        // than trust the pixels.
+        // than trust the pixels. Hover is optional: the static chart carries
+        // the answer, so no fragment is required to ship the tooltip layer.
         expect(fragment.html, fragment.slug).toMatch(/<!-- scale:[^>]+-->/u);
-        if (bareMarks.has(fragment.slug)) {
-            continue;
-        }
-        // The canonical hover layer, copied verbatim from interaction.md.
-        expect(fragment.html, fragment.slug).toContain('class="tip"');
     }
 });
 

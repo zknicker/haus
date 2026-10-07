@@ -21,8 +21,9 @@ day's hit target carries both values, so one tip answers the pair.
 <div style="position:relative">
   <svg viewBox="0 0 736 150" width="100%" role="img" aria-label="Units sold per day, climbing from 47 on Sep 15 to 75 on Sep 21">
     <title>Units sold per day, 47 rising to 75</title>
-    <!-- scale: units panel, plot box x 48→724, y 16→138; plotW 676, plotH 122
-         n = 7, slot = 676/7 = 96.6, barW = min(24, slot*0.6 = 57.9) = 24, x_i = centre_i - barW/2 = 84.3, 180.9, …
+    <!-- scale: padL 48 ≥ the widest tick of either panel, "$300" 4 × 7.6 + 8 = 38.4; ticks right-aligned at 40
+         units panel, plot box x 48→724, y 16→138; plotW 676, plotH 122
+         n = 7, slot = 676/7 = 96.6, barW = slot*0.6 = 57.9, x_i = centre_i - barW/2 = 67.3, 163.9, …
          peak 75 → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (15) = 20 → max = first multiple at or above the peak = 80 → step 20 · max 80, y(v) = 138 - v/80*122, ticks 0 / 20 / 40 / 60 / 80 at y 138 / 107.5 / 77 / 46.5 / 16
          this panel has no x labels: the lower one carries the shared band, and both use the same left pad so the plots line up -->
     <g font-family="var(--font-sans)" font-size="12" fill="var(--chart-label)">
@@ -31,13 +32,13 @@ day's hit target carries both values, so one tip answers the pair.
       <line x1="48" y1="77" x2="724" y2="77" stroke="var(--chart-grid)" stroke-width="1"/><text x="40" y="77" text-anchor="end" dominant-baseline="middle">40</text>
       <line x1="48" y1="46.5" x2="724" y2="46.5" stroke="var(--chart-grid)" stroke-width="1"/><text x="40" y="46.5" text-anchor="end" dominant-baseline="middle">60</text>
       <line x1="48" y1="16" x2="724" y2="16" stroke="var(--chart-grid)" stroke-width="1"/><text x="40" y="16" text-anchor="end" dominant-baseline="middle">80</text>
-      <g class="m"><path d="M 84.3,138 V 70.3 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="48" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 15" data-value="47|$170" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="96.3"/></g>
-      <g class="m"><path d="M 180.9,138 V 62.7 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="144.6" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 16" data-value="52|$186" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="192.9"/></g>
-      <g class="m"><path d="M 277.4,138 V 49 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="241.1" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 17" data-value="61|$214" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="289.4"/></g>
-      <g class="m"><path d="M 374,138 V 53.6 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="337.7" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 18" data-value="58|$203" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="386"/></g>
-      <g class="m"><path d="M 470.6,138 V 41.4 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="434.3" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 19" data-value="66|$232" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="482.6"/></g>
-      <g class="m"><path d="M 567.1,138 V 33.7 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="530.9" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 20" data-value="71|$255" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="579.1"/></g>
-      <g class="m"><path d="M 663.7,138 V 27.6 a4 4 0 0 1 4,-4 h 16 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="627.4" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 21" data-value="75|$282" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="675.7"/></g>
+      <g class="m"><path d="M 67.3,138 V 70.3 a4 4 0 0 1 4,-4 h 49.9 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="48" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 15" data-value="47|$170" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="96.3"/></g>
+      <g class="m"><path d="M 164,138 V 62.7 a4 4 0 0 1 4,-4 h 49.9 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="144.6" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 16" data-value="52|$186" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="192.9"/></g>
+      <g class="m"><path d="M 260.4,138 V 49 a4 4 0 0 1 4,-4 h 49.9 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="241.1" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 17" data-value="61|$214" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="289.4"/></g>
+      <g class="m"><path d="M 357.1,138 V 53.6 a4 4 0 0 1 4,-4 h 49.9 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="337.7" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 18" data-value="58|$203" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="386"/></g>
+      <g class="m"><path d="M 453.7,138 V 41.4 a4 4 0 0 1 4,-4 h 49.9 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="434.3" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 19" data-value="66|$232" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="482.6"/></g>
+      <g class="m"><path d="M 550.1,138 V 33.7 a4 4 0 0 1 4,-4 h 49.9 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="530.9" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 20" data-value="71|$255" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="579.1"/></g>
+      <g class="m"><path d="M 646.8,138 V 27.6 a4 4 0 0 1 4,-4 h 49.9 a4 4 0 0 1 4,4 V 138 Z" fill="var(--chart-1)"/><rect x="627.4" y="16" width="96.6" height="122" fill="transparent" data-label="Sep 21" data-value="75|$282" data-series="units|royalties" data-color="var(--chart-1)|var(--chart-2)" data-x="675.7"/></g>
     </g>
   </svg>
   <svg viewBox="0 0 736 118" width="100%" role="img" aria-label="Royalties per day over the same week, $170 rising to $282">

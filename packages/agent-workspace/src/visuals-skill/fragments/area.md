@@ -17,7 +17,8 @@ the tip carry the other thirteen.
 <div style="position:relative">
   <svg viewBox="0 0 736 240" width="100%" role="img" aria-label="Daily royalties over 14 days, totalling $3,058 and ending at its high of $282">
     <title>Daily royalties over 14 days, ending at a high of $282</title>
-    <!-- scale: plot box x 48→680 (right pad 56 holds the end label), y 20→212; plotW 632, plotH 192
+    <!-- scale: padL 48 ≥ widest tick "$300" 4 × 7.6 + 8 = 38.4; ticks right-aligned at 40
+         plot box x 48→680 (right pad 56 holds the end label), y 20→212; plotW 632, plotH 192
          n = 14 points, gap = 632/(n-1) = 48.6, x_i = 48 + 48.6*i = 48, 96.6, … , 680
          peak $282 → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (56.4) = 100 → max = first multiple at or above the peak = 300 → step 100 · max 300, y(v) = 212 - v/300*192
          ticks $0 / $100 / $200 / $300 at y 212 / 148 / 84 / 20; every third day is labelled so the band never crowds

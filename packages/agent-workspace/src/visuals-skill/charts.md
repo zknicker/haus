@@ -7,7 +7,7 @@ assigns the color. The geometry is in
 [anti-patterns.md](anti-patterns.md).
 
 Charts are hand-written inline SVG. Read the ONE fragment file the index points
-at — two at most — and change its data. The fragments are the house style;
+at — two at most; a [report](#reports) reads [report](fragments/report.md) — and change its data. The fragments are the house style;
 improvising from the prose is how five agents produce five looks.
 
 ## Fragment index
@@ -15,6 +15,7 @@ improvising from the prose is how five agents produce five looks.
 | The question | Read |
 | --- | --- |
 | "How is X doing", any period question | [kpi-row](fragments/kpi-row.md) above [emphasis-bar](fragments/emphasis-bar.md) |
+| "How did the week go", a report, several facets at once | [report](fragments/report.md) — swap in [stacked-bar](fragments/stacked-bar.md) when the trend splits into parts |
 | This one against its own history | [emphasis-bar](fragments/emphasis-bar.md) |
 | This period against the prior one | [grouped-bar](fragments/grouped-bar.md) |
 | How big is each, ranked, top N | [ranked-horizontal-bar](fragments/ranked-horizontal-bar.md) |
@@ -48,6 +49,7 @@ axes, drawn when the user asks for it.
 | One number against a limit | A meter (components.md), never a pie |
 | A few headline numbers | A KPI row (components.md) |
 | "How is X doing", any period question | A KPI row above one chart, tiles per the tile grammar |
+| Several facets of one period — headline, trend, breakdowns | A report: stat row, full-width time series, side-by-side ranked lists |
 | More than ~7 classes | A Markdown table in the reply |
 
 ## The job → the form
@@ -69,8 +71,9 @@ for categorical only when the series themselves are the subject, and for
 emphasis when the story is that one of them moved. Emphasis is the most
 underused form and usually the honest answer to "make this chart clearer".
 
-Lead with the answer: annotate the one notable point — never a number on every
-point. Label the endpoint or the extreme; ticks and the tooltip carry the rest.
+Lead with the answer: label the few marks that matter — the peak or two, the
+latest — never a number on every point. Sparse ticks carry the rest; the chart
+must read fully as a static image, with or without a tooltip.
 The takeaway belongs in your reply, never a heading or caption inside the visual.
 
 ## Color by job
@@ -97,8 +100,12 @@ value you pick is not.
 - **Comparison pair** — this week against last, actual against baseline:
   `--chart-1` against `--chart-5`. Blue against gray, never blue against blue.
 - **Status** — `--success`, `--warning`, and `--error` mean good, stale, bad.
-  They are reserved for state and never carry a series, and a series never
-  borrows them. Status always ships with a label, never color alone.
+  They are reserved for state: an arbitrary series (products, marketplaces,
+  weeks) never borrows them. The one exception is a series whose categories
+  **are** states or severities — serious / minor / no flaw, failed / flaky /
+  passed, overdue / due / done. Those take `--error`, `--warning`, `--success`
+  in bad → good order, stacked bad on top or listed bad first, and the legend
+  names each state in words. Status always ships with a label, never color alone.
 - **Parts of one whole** — a stacked share, a donut — is not categorical. It is
   one hue in sequential steps, because the slices are one measure cut up, not
   several independent things.
@@ -117,6 +124,33 @@ value you pick is not.
 | 2–3 | An HTML legend above the plot, values in the legend labels |
 | 4 | Yellow enters here, so add direct end labels beside the legend |
 | 5+ | Stop. Fold the tail into "Other" in `--chart-5`, emphasize one, or send it to a table |
+
+## Reports
+
+When the question has several facets — "how did this week go", "give me the
+weekly report", "where are we" — one inline visual composes the answer instead
+of picking one chart, and it stays a visual even though the user said
+"report". Start from [report](fragments/report.md). A report is a column of
+titled panels:
+
+1. **A stat row** — up to four headline numbers, each a 28–32px weight-500
+   value over a 12px `--muted-foreground` caption, and nothing else: no plate,
+   no border, no chip. A change appears only when the question asks about
+   change, as one more muted 12px line (`↓ 0.7% vs prior 7d`), never a tinted
+   pill.
+2. **A full-width time series** — the trend, per week or per day, as a fluid
+   column plot ([emphasis-bar](fragments/emphasis-bar.md)) or, when the measure
+   splits into states or parts, a [stacked-bar](fragments/stacked-bar.md).
+3. **Breakdowns** — one or two pairs of
+   [ranked-horizontal-bar](fragments/ranked-horizontal-bar.md) lists side by
+   side, each at most six rows, the value right after each bar.
+
+Each panel opens with a bold sentence-case title, 14px weight 500
+`--foreground`, naming the measure and period ("Revenue per week", "Top
+designs · 7d"); `--gap-lg` between panels, `--gap-sm` between a title and its
+chart. Below 560px the pairs stack and the stat row wraps to 2×2 — the
+fragment's `<style>` does it. No hover layer; label the peaks and the latest
+mark directly. The takeaway goes in the reply, which never re-lists the panels.
 
 ## Numbers
 
@@ -177,22 +211,33 @@ simply not load:
 
 ## Before closing the fence
 
-- [ ] One idea. Tiles above one chart, or one chart — the rest is reply text.
+- [ ] One question. Tiles above one chart, one chart, or a titled report for a
+      many-faceted question — the rest is reply text.
 - [ ] Hidden summary `<h2>` first; `role="img"`, an `aria-label` stating the
       takeaway, and a `<title>` first child on the `<svg>`.
 - [ ] Every coordinate derived from the data, with the `<!-- scale: … -->`
       comment showing the derivation.
 - [ ] Ticks from the rule: step = the smallest of 1, 2, 5 × 10^k at or above
       peak/5, max = the first multiple of it at or above the peak.
-- [ ] No heading, caption, or prose in the body. No bordered wrapper.
+- [ ] No heading, caption, or prose in the body beyond a report's panel titles.
+      No bordered wrapper.
 - [ ] Every color, radius, pad, and gap is a `var(--…)`. No hex, no `rgb()`.
-- [ ] Bars at most 24px wide; 4px rounded at the data end, square at the baseline.
-- [ ] The hover layer is present, with the tooltip on a `--surface` plate.
+- [ ] Columns take 55–65% of their slot (16–72px); ranked bars 24–32px thick;
+      4px rounded at the data end, square at the baseline; 2px background gap
+      between stacked or grouped neighbours.
+- [ ] The chart reads as a static image. A hover layer, if present, puts the
+      tooltip on a `--surface` plate.
 - [ ] Every number rounded — ticks, labels, tooltip.
-- [ ] Exactly one label on the chart, on the mark the question is about.
+- [ ] Direct labels on the few marks that matter — the peak or two, the latest —
+      and nowhere else; no label sits on a line or mark, none crosses the frame.
+- [ ] Tick labels fit: the left pad is the widest tick at 7.6px a character
+      (11.4 for `%` or `M`) plus 8, ticks right-aligned inside it.
+- [ ] Reads at 375px: panels stack, stats wrap 2×2, column charts are fluid
+      plots, ranked lists are HTML rows.
 - [ ] Y axis from zero, one y-axis unless the user asked for bars and a line
       together, hairlines on the value axis only.
 - [ ] Legend only past one series, with values in the labels.
 - [ ] A label that will not fit moves outside the bar or drops to the tooltip;
       it is never cropped by `overflow: hidden`.
-- [ ] Categorical hues in numeric order. Status colors mean status.
+- [ ] Categorical hues in numeric order. Status colors mean status, or carry a
+      series only when the series are states ordered bad → good.

@@ -11,7 +11,7 @@ This file is the core. Read it, then read the one module for what you are making
 | --- | --- |
 | Any chart, plot, sparkline, heat map, or map | [charts.md](charts.md), then [marks-and-anatomy.md](marks-and-anatomy.md), [interaction.md](interaction.md), and [anti-patterns.md](anti-patterns.md) |
 | A flow, tree, sequence, timeline, or state machine | [diagrams.md](diagrams.md) |
-| Tiles, cards, status lists, meters, calculators, tables | [components.md](components.md) |
+| Tiles, cards, status lists, meters, calculators, tables, UI mockups | [components.md](components.md) |
 | A durable artifact page | [pages.md](pages.md) |
 | Anything with an icon-shaped spot | [icons.md](icons.md) |
 
@@ -23,7 +23,8 @@ This file is the core. Read it, then read the one module for what you are making
 - **Ink over hue** — `--foreground` and gray do the work; color is reserved
   for meaning (status, series, one emphasis), never for "this is a UI".
 - **Sentence case, two weights** — 400/500, never Title Case, CAPS, or 700.
-- **One idea per visual** — a second legend means a second visual.
+- **One question per visual** — a narrow question gets one chart; a question
+  with several facets gets one titled report (charts.md → Reports).
 - **The conversation is the container** — no bordered box around it; tiles are plates.
 
 ## Tokens
@@ -83,6 +84,9 @@ status text takes the raw `--success` / `--warning` / `--error`.
   width, so one long label blows the column instead of truncating.
 - **Sections** — `--gap-lg` between, `--gap-sm` within.
 - Width `100%`; no nested scrolling and no reserved empty space.
+- **Narrow** — the same visual renders on a ~375px phone. Side-by-side panels
+  stack and a four-tile row wraps to 2×2 below 560px, through one
+  `@media (max-width: 560px)` rule in the visual's `<style>`.
 - Never round a single-sided border; a top-only rule with a corner radius reads broken.
 
 ## Native elements
@@ -120,6 +124,9 @@ Font metrics vary by platform. Before putting text in a fixed box or hand-drawn 
 | 12px | ~6.3px |
 | 14px | ~7.3px |
 | 16px | ~8.4px |
+
+Figures run wider than letters: a tick or value of digits and `$` takes
+~7.6px a character at 12px, and `%` or `M` ~11.4px. Size an axis gutter by that, never by the letter budget.
 
 If it doesn't fit: shorten the label, drop a size, or widen the box. Keep 4px minimum between text and any container edge.
 

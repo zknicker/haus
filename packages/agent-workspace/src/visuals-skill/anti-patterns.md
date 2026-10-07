@@ -44,9 +44,12 @@ opposite.
 Good: `--chart-1` against `--chart-2`, warm against cool, with a neutral
 midpoint mixed from `--chart-5`.
 
-**Bad: a status color on a series**, or a series color standing in for status.
+**Bad: a status color on an arbitrary series**, products or marketplaces in
+green and red, or a series color standing in for status.
 Good: `--success`, `--warning`, and `--error` mean state, always with a label.
-Identity is categorical.
+Identity is categorical. When the series themselves are states or severities —
+serious / minor / no flaw — they do take `--error`, `--warning`, `--success`,
+ordered bad → good and named in the legend.
 
 **Bad: the series color on text**, a legend label in blue or a value in green.
 Why: a light hue is illegible as text on the surface, and the color stops
@@ -70,24 +73,32 @@ Good: a bar, or the numbers. Part-to-whole at a glance only, six slices at most.
 **Bad: more than about seven classes carrying meaning.**
 Good: a Markdown table in the reply, or a table beside a chart.
 
-**Bad: prose inside the visual**: a caption, a heading, a sentence of
-explanation under the plot.
+**Bad: prose inside the visual**: a caption, a heading over a single chart, a
+sentence of explanation under the plot.
 Why: the fence is the figure and the reply is the text. A caption inside it
 duplicates the sentence above it and cannot be edited or searched.
 Good: the takeaway goes in the reply. The only text in the body is the hidden
-summary `<h2>`, the labels, and the ticks.
+summary `<h2>`, the labels, the ticks, and — in a report or a mockup — a short
+bold title per panel.
 
 **Bad: a bordered box around the visual**, or tiles drawn as bordered cards.
 Why: the conversation is the container; a border makes it a card in a card.
 Good: plates in `--surface-secondary` at `--radius`, no border. A bordered
 `--surface` card is for one bounded object, such as a record.
 
+**Bad: a frame inside a frame in a mockup** — a bordered page card around a
+plate holding the component being designed.
+Good: one frame per variant, the mocked component's own surface; its label and
+any surrounding chrome sit outside it, unframed.
+
 ## Marks and chrome
 
-**Bad: bars that fill their slot**, 60px-wide blocks touching each other.
-Why: it reads loud and childish at any size, and there is nowhere for the eye
-to rest.
-Good: at most 24px thick, with the band's leftover left as air.
+**Bad: bars that fill their slot**, blocks touching each other — or the
+opposite, 12–24px pins floating in a wide band.
+Why: touching blocks read loud; pins read timid and leave the chart mostly
+empty, so the reader sees air instead of data.
+Good: a column takes 55–65% of its slot (16–72px); a ranked horizontal bar is
+24–32px thick. The rest of the band is the gap between neighbours.
 
 **Bad: copying a fragment's pixel coordinates with a different number of
 points.** The bars drift off the ticks, the last one leaves the plot.
@@ -97,10 +108,12 @@ arithmetic in the `<!-- scale: … -->` comment.
 
 **Bad: a `<rect rx="4">` for a bar.** It rounds the baseline too, so the bar
 floats off the axis.
-Good: the bar path that rounds the data end only.
+Good: the bar path that rounds the data end only, or in a fluid plot the
+`rx="4"` rect inside a nested `<svg>` viewport that clips its baseline corners.
 
 **Bad: a stroke around each mark to separate touching bars or stack segments.**
-Good: a 2px gap painted in `--surface`, the same width across the chart.
+Good: a 2px gap in the background color — simply not drawn — the same width
+across the chart.
 
 **Bad: dashed gridlines**, or a box around the plot.
 Why: dashing reads as "projection" or "threshold" when it is just a grid.
@@ -108,7 +121,8 @@ Good: solid horizontal hairlines in `--chart-grid`, no axis lines at all. A
 dash is reserved for a reference line, which gets a legend entry.
 
 **Bad: a number on every point.**
-Good: one direct label, on the mark the question is about.
+Good: direct labels on the few marks that matter — the peak or two, the
+latest.
 
 **Bad: a label clipped by its own bar**, including `overflow: hidden` cropping
 the first characters.
@@ -118,13 +132,29 @@ to the tooltip.
 **Bad: stacked end labels where lines converge.**
 Good: leader lines from label to line end, or small multiples.
 
+**Bad: text on ink** — a value label drawn across a line, an annotation on a
+bar, two lines that nearly coincide drawn on top of each other with their
+labels colliding.
+Why: the reader can read neither the mark nor the text.
+Good: labels in clear space; when two lines coincide, one solid and one dashed
+in `--chart-5` with the gap named in one label, or one line and the gap in words.
+
+**Bad: tick labels clipped at the left edge** — `$8,000` right-aligned at a
+fixed x of 40 loses its `$`.
+Good: measure the widest tick (7.6px a character at 12px, 11.4 for `%` or `M`,
+plus 8) and set the left pad or gutter to it.
+
+**Bad: a ranked list's values in a far-right column**, a long empty run
+between a short bar and its number.
+Good: the value muted 8px after the bar end, where the eye already is.
+
 **Bad: a viewBox or container height that excludes the x-axis band.** The plot
 fits, the axis labels do not, so they clip or the card gets a tiny nested
 scrollbar.
 Good: the viewBox height is plot plus axis band, and the container grows with
 its content instead of fixing a height.
 
-**Bad: a pixel `height` beside `width="100%"` on a plot**, as in
+**Bad: a pixel `height` beside `width="100%"` on a viewBox plot**, as in
 `<svg width="100%" height="240" viewBox="0 0 736 240">`.
 Why: the viewBox keeps its aspect ratio, so in any column that is not exactly
 736px wide the drawing letterboxes: it floats centered inside a box of the
@@ -132,7 +162,8 @@ wrong shape, out of line with the KPI tiles above it, with dead space around it.
 Good: `<svg viewBox="0 0 736 240" width="100%" style="display:block">` with no
 `height`. The rendered height follows from the aspect ratio and the plot fills
 the column. Only a bare sparkline or meter sets a height, and it pairs it with
-`preserveAspectRatio="none"`.
+`preserveAspectRatio="none"`. A fluid plot has no viewBox, so its fixed
+height is the point: x in percent, y in pixels, nothing letterboxes.
 
 **Bad: `tabular-nums` on a hero or tile value.** Equal-width digits make `121`
 look loose at display sizes.
@@ -151,10 +182,7 @@ Good: the canonical `.tip` plate: `--surface`, a `--border` hairline,
 **Bad: a pinpoint hover target**, a `r="4"` dot you have to hit dead center.
 Good: a transparent companion mark of at least 24px carrying the `data-*`.
 
-**Bad: a plot with no hover layer at all.**
-Good: every plot ships the canonical snippet. A bare stat tile is the only
-exemption.
-
-**Bad: the tooltip as the only place a value exists.**
-Good: the direct label, the ticks, and the `aria-label` carry the answer in a
-screenshot.
+**Bad: the tooltip as the only place a value exists**, a chart with no labels
+that only answers on hover.
+Good: the direct labels, the ticks, and the `aria-label` carry the answer in a
+screenshot. The hover layer is optional on top.

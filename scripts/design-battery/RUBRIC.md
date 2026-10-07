@@ -30,26 +30,45 @@ geometry is the agent's and these checks are about arithmetic as much as taste.
 - [ ] Series colors follow the fixed categorical order (chart-1 blue, chart-2
       orange, chart-3 aqua, chart-4 yellow), never cycled; a single metric is
       chart-1; emphasis is chart-1 against chart-5.
-- [ ] Status colors appear only for state, never as a series. Text never wears
-      the series color.
+- [ ] Status colors appear only for state, never on an arbitrary series; a
+      series that is itself a state or severity (failed / flaky / passed) takes
+      them, ordered bad → good and named in the legend. Text never wears the
+      series color.
 - [ ] One y-axis unless the user asked for bars and a line together. Two
       measures in different units are paired panels on a shared x axis; a
       requested combo plot draws both axes from zero on nice maxima, with the
       gridlines from the left axis alone.
-- [ ] Bars at most 24px thick with air left in the slot; rounded at the data end
-      only, square at the baseline; 2px surface gap between touching marks.
+- [ ] Columns take 55–65% of their slot (16–72px), ranked bars 24–32px; rounded
+      at the data end only, square at the baseline; a 2px background gap between
+      touching marks.
 - [ ] Coordinates derived from the data — marks land on their ticks at any point
       count, and the fence carries its `<!-- scale: … -->` comment.
-- [ ] Horizontal gridlines only; muted 11–12px axis labels; legend only when
-      >1 series.
-- [ ] Hover layer present: the canonical tooltip on a surface plate with a
-      hairline border, value first, and hit targets a finger can land on.
+- [ ] Horizontal gridlines only, three to five; muted 11–12px axis labels;
+      legend only when >1 series.
+- [ ] Tick labels fit: no tick text clipped at the left edge (gutter = widest
+      tick at 7.6px a character, 11.4 for `%` or `M`, plus 8).
+- [ ] Reads as a static image: the answer is visible without hovering. A hover
+      layer is optional; when present it is the canonical tooltip.
 - [ ] Leads with the answer (headline number or takeaway above the chart), with
-      one direct label, not a number on every point.
+      direct labels on the few marks that matter, not a number on every point,
+      and no text sitting on a line or mark.
+- [ ] Ranked lists put each value muted right after its bar, not in a far-right
+      column.
+- [ ] Reads at 375px: panels stack, column charts stay full height with 12px
+      text.
 - [ ] Values whole through 9,999, compact from 10,000 (`$14.4K`, `$28K`);
       deltas use success/error foregrounds.
 - [ ] Nothing in the skill's anti-pattern catalog
       (`packages/agent-workspace/src/visuals-skill/anti-patterns.md`) is present.
+
+## Reports
+
+- [ ] A many-faceted question answered in chat ("how did the week go") is one
+      composed report visual, not an artifact: a plate-less stat row, a
+      full-width time series, then ranked lists side by side, each panel with a
+      short 14px/500 title.
+- [ ] Report stats are value plus muted caption, no plates or pills; a change
+      only when the question asks about change, as a muted line.
 
 ## Stat tiles / KPI rows
 
@@ -88,5 +107,9 @@ geometry is the agent's and these checks are about arithmetic as much as taste.
 ## Process (from the transcript, not the screenshot)
 
 - [ ] The agent read the visuals skill before its first fence.
-- [ ] Prose around the fence adds context without restating the visual.
+- [ ] Routing: a chart, report, comparison, or mockup answered in chat is an
+      inline visual; an artifact only when the user asked for a page to keep or
+      share, or the content outgrows one visual.
+- [ ] The reply adds only the takeaway, a caveat, or a next step — no re-listed
+      numbers, rows, or panels; usually two to four sentences, under ~80 words.
 - [ ] No narration after the visual rendered.

@@ -11,7 +11,7 @@ read_when:
 
 ## Status
 
-Accepted, 2026-09-22. Amends [ADR 0032](0032-visual-sandbox-allows-pinned-map-resources.md)
+Accepted, 2026-09-22; amended 2026-10-07 (see the amendment below). Amends [ADR 0032](0032-visual-sandbox-allows-pinned-map-resources.md)
 (Chart.js leaves the allowlist; the four map resources stay) and extends
 [ADR 0012](0012-design-guidance-is-skill-carried.md).
 
@@ -79,7 +79,7 @@ rather than longer.
 
 The cost is that correctness now lives in guidance instead of a library, so it
 has to be tested. The visuals lint tests check SVG anatomy: the accessible role
-and title, the scale derivation, the hover layer, published tokens only. The
+and title, the scale derivation, published tokens only. The
 visuals lab battery is the gate for regressions, rendering every fragment
 through the real frame in both schemes and across models, since a rule that one
 model follows and another ignores is a rule that has not landed.
@@ -96,3 +96,22 @@ would survive.
   instead of the chart. The old skill required every canvas to carry the
   takeaway and its numbers as fallback, so these degrade to a sentence rather
   than to a blank, and they are not migrated.
+
+## Amendment, 2026-10-07: static charts carry the answer
+
+A visuals-lab A/B across two models and 22 prompts showed charts built to be
+hovered read thin as static images and on phones, and that replies re-listed
+what the chart already showed. The hand-drawn SVG decision stands; what the
+skill teaches around it changed:
+
+- The hover script is optional. A chart must read as a static image, so the
+  marks that matter carry direct labels; the lint no longer requires the
+  tooltip layer.
+- Columns take 55–65% of their slot (16–72px) instead of a 24px cap.
+- Column charts are fluid plots — a fixed-width tick gutter beside a
+  full-width plot with x in percent and y in pixels — so they keep 12px text
+  at 375px. Lines, areas, grouped bars, and scatter keep the 736 viewBox.
+- The left gutter is measured per axis: 7.6px a character at 12px, 11.4 for
+  `%` and `M`, plus 8.
+- A many-faceted question answered in chat is a composed report visual, not
+  an artifact, and the reply adds only the takeaway.

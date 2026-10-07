@@ -6,8 +6,25 @@ turns data into coordinates. The data is the only thing allowed to be loud.
 
 ## The scaffolding
 
-Every chart is one `<svg>` with a fixed viewBox, `width="100%"`, and no
-`height` attribute:
+Two scaffoldings, because the same fence renders in a 736px column and on a
+360px phone.
+
+**Column charts — emphasis, stacked, and every report time series — are fluid
+plots.** A flex row of two `<svg>`s with no viewBox: a gutter `<svg>` exactly
+as wide as the widest tick needs, holding the ticks right-aligned 8px inside
+its edge, then the plot `<svg width="100%" height="240">` (`flex:1 1 0;
+min-width:0`). In the plot, **x is a percentage of its width and y is pixels**:
+`slot = 100/n %`, bar `= min(60/n, 10) %`, gridlines `x1="0" x2="100%"`. Each
+bar is a nested `<svg>` viewport at the bar's box holding one `rx="4"` rect 4px
+taller than the box, so the viewport clips the baseline corners square. The
+chart keeps its height and its 12px text at any width; below 560px hide every
+other x label (`class="alt"` plus `@media (max-width: 560px) { .alt { display:
+none } }`). A label on the last column anchors `end` at its bar's right edge.
+[emphasis-bar](fragments/emphasis-bar.md) is the worked example.
+
+**Every other plot** — lines, areas, grouped bars, scatter, donut — is one
+`<svg>` with a fixed viewBox, `width="100%"`, and no `height` attribute; it
+scales with the column, text included:
 
 ```
 <svg viewBox="0 0 736 240" width="100%" role="img"
@@ -20,7 +37,7 @@ Every chart is one `<svg>` with a fixed viewBox, `width="100%"`, and no
 
 - **The viewBox fixes the geometry, `width="100%"` fills the column, and the
   rendered height follows from the aspect ratio.** Never set a pixel `height`
-  beside a percentage width on a plot. The drawing letterboxes: it keeps its
+  beside a percentage width on a viewBox plot. The drawing letterboxes: it keeps its
   aspect ratio, floats centered with dead space on both sides, and no longer
   lines up with the tiles above it. The one exception is a bare sparkline or
   meter, which stretches on purpose with `preserveAspectRatio="none"`.
@@ -50,8 +67,7 @@ the axis.
 
 ```
 const W = 736, H = 240;                  // the viewBox
-const padL = 48, padR = 16, padT = 16, padB = 28;
-const plotW = W - padL - padR;           // 672
+const padR = 16, padT = 16, padB = 28;
 const plotH = H - padT - padB;           // 196
 
 const niceStep = (peak, intervals = 5) => {  // 1, 2 or 5 × 10^k
@@ -66,8 +82,15 @@ const max = Math.ceil(peak / step) * step;
 const ticks = Array.from({ length: Math.round(max / step) + 1 }, (_, i) => i * step);
 const y = (v) => padT + plotH * (1 - v / max);
 
+// The left pad fits the widest tick as drawn ("$1,500", "8%"):
+// 7.6 a character at 12px, 11.4 for % or M.
+const tickW = (text) => [...text].reduce((w, c) => w + ('%M'.includes(c) ? 11.4 : 7.6), 0);
+const widest = Math.max(...tickLabels.map(tickW));
+const padL = Math.ceil((widest + 8) / 4) * 4; // "$1,500" → 56, "8%" → 28
+const plotW = W - padL - padR;           // 672 at padL 48
+
 const slot = plotW / values.length;      // one band per category
-const barW = Math.min(24, slot * 0.6);   // 24px is the hard cap
+const barW = Math.min(72, Math.max(16, slot * 0.6)); // 55–65% of the band
 const x = (i) => padL + i * slot + (slot - barW) / 2;
 ```
 
@@ -87,12 +110,19 @@ const x = (i) => padL + i * slot + (slot - barW) / 2;
   formats on one axis: `$0 / $500 / $1,000 / $1,500`, not `$1K` beside `$1,500`.
 - **A line or area** uses point centers instead of bar slots:
   `x = padL + i * (plotW / (points.length - 1))`.
-- **A horizontal bar chart** swaps the axes: row height 32 to 40px, bar
-  thickness still at most 24px, `width = plotW * v / max`, and the hairlines run
-  vertically.
-- **Padding follows the labels.** `padL` is wide enough for the longest tick
-  (`chars × 6.3 + 8` at 12px); `padB` holds the category labels; `padT` holds
-  the one direct label above the tallest mark.
+- **A ranked list** is HTML rows, not a plot: a 28px bar whose width is
+  `(100% − reserve) × v / leader`, and its value muted 8px after the bar end —
+  `reserve` is the widest value's width plus that gap, so the leader's value
+  fits too. No value axis. [ranked-horizontal-bar](fragments/ranked-horizontal-bar.md).
+- **Padding follows the labels.** `padL` (or the gutter's width) is measured
+  for the widest tick: `chars × 7.6 + 8` at 12px — tabular figures, `$`, and
+  commas each count a full 7.6, `%` and `M` count 11.4 — rounded up to a
+  multiple of 4, with the ticks right-aligned at `padL − 8`. `$8,000` needs 56,
+  `$10K` 40, `8%` 28, `80` 24; a fixed 48 clips `$8,000` at the frame edge and a
+  24 gutter clips `8%`. No tick text starts left of x 0. `padB` holds the category labels; `padT`
+  holds the direct labels above the tallest marks.
+- **Sparse ticks.** Three to five gridlines is the range; a report panel takes
+  the low end.
 - Round the numbers you write into the markup to one decimal. Coordinates with
   twelve decimals are noise in the diff and in the reply.
 
@@ -101,7 +131,7 @@ numbers it computed, so the next reader can check the arithmetic instead of
 trusting the pixels:
 
 ```
-<!-- scale: 8 bars · plot 672×196 in 736×240 · slot 84 · bar 24 · peak $8,100 → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (1,620) = 2,000 → max = first multiple at or above the peak = 10,000 → step 2000 · max 10000 · ticks $0/$2K/$4K/$6K/$8K/$10K -->
+<!-- scale: 8 bars · plot 672×196 in 736×240 · slot 84 · bar 50.4 · peak $8,100 → step = smallest of 1, 2, 5 × 10^k at or above peak/5 (1,620) = 2,000 → max = first multiple at or above the peak = 10,000 → step 2000 · max 10000 · ticks $0/$2K/$4K/$6K/$8K/$10K -->
 ```
 
 Write the pair as `step <n> · max <n>`, bare numbers, once per value axis, and
@@ -113,7 +143,7 @@ It is the only comment a visual body may carry.
 
 | Mark | Spec |
 | --- | --- |
-| Bar, column | **At most 24px** thick, and never filling the slot: the band's leftover is air. 4px rounded at the data end, square at the baseline |
+| Bar, column | **55–65% of its slot** (floor 16px, ceiling 72px); a ranked horizontal bar is **24–32px** thick. 4px rounded at the data end, square at the baseline |
 | Line | 2px, `stroke-linejoin="round"`, `stroke-linecap="round"`, straight segments, no curve fitting |
 | Marker, end dot | `r="4"` with a 2px `--background` ring (`--surface` on a card), so a dot stays legible where it crosses a line |
 | Area fill | the series hue at about 10%: `color-mix(in srgb, var(--chart-1) 10%, transparent)`, a wash and never a block |
@@ -132,8 +162,9 @@ const bar = (x, yTop, w, yBase) => {
 ```
 
 **The 2px gap does the separating.** Touching marks, the segments of a stacked
-bar and two adjacent bars in a group, are held apart by a 2px gap painted in
-`--surface`, the same width everywhere in the chart. Never stroke a border
+bar and two adjacent bars in a group, are held apart by a 2px gap in the
+background color — the gap is simply not drawn — the same width everywhere in
+the chart. Never stroke a border
 around a mark to separate it: a stroke is ink that is not data.
 
 ## Axes and labels
@@ -147,9 +178,21 @@ around a mark to separate it: a stroke is ink that is not data.
   against a measure, starts at the step multiple at or below the minimum.
 - A date axis names the month at least once. Twelve or fewer categories all get
   a label; past that, label every other one rather than rotating text.
-- **Label selectively.** One direct label per chart: the endpoint, the extreme,
-  or the one series the story is about. A number beside every mark is chaos and
-  goes unread; the ticks and the tooltip carry the rest.
+- **Label selectively.** Direct labels go on the few marks the story is about:
+  the peak or two, the latest, the one series that moved — two or three per
+  chart, never more. A number beside every mark is chaos and goes unread; sparse
+  ticks carry the rest, so the chart reads as a static image. In a ranked list
+  every row carries its value, muted, 8px after its bar end.
+- **Text never sits on ink.** A label, legend, or annotation goes in clear
+  space — above a column, past a line's end, in the empty band of the plot —
+  never across a line, a bar, or another label. Check each label's box against
+  the marks before closing the fence; if there is no clear space, move it out
+  or drop it.
+- **When two lines nearly coincide, do not draw them on top of each other.**
+  Draw the one that matters solid and the other dashed in `--chart-5`, and name
+  the gap in one label ("$381 ahead of pace"); or drop the second line and say
+  it in that label. Two series whose difference is invisible at the chart's
+  scale are a number, not a picture.
 - A label only goes inside a bar when the rendered text fits with padding on
   both sides (`chars × 6.3 + 8 ≤ bar length` at 12px). Otherwise it moves
   outside the bar end, or drops to the tooltip. Never crop it with

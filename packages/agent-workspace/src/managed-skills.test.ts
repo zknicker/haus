@@ -128,7 +128,7 @@ test('visuals skill states the non-negotiables before the design-system pointer'
         defaultVisualsSkill.indexOf('Required: read the design system')
     );
     expect(flowText(defaultVisualsSkill)).toContain('**One y-axis by default.**');
-    expect(flowText(defaultVisualsSkill)).toContain('Bars are **at most 24px** wide');
+    expect(flowText(defaultVisualsSkill)).toContain('a column takes **55–65% of its band**');
     expect(defaultVisualsSkill).toContain('Round every number that reaches the screen');
     expect(defaultVisualsSkill).toContain('No mid-sentence bolding in the reply');
     // Text on the surface is the raw role token; `--error-foreground` is text
@@ -144,7 +144,7 @@ test('visuals skill states the non-negotiables before the design-system pointer'
  * anywhere in the file. Pins run against flowed text: these sentences are
  * wrapped in the source and rewrapping them must not silently drop a pin.
  */
-test('visuals skill sends tables to the reply and keeps the visual to one idea', () => {
+test('visuals skill sends tables to the reply and keeps the visual to one question', () => {
     const flowed = flowText(defaultVisualsSkill);
 
     expect(flowed).toContain('show the essential inline; explain the rest in the reply');
@@ -154,7 +154,7 @@ test('visuals skill sends tables to the reply and keeps the visual to one idea',
     expect(flowed).not.toContain('a long reply is fine');
     expect(flowed).not.toContain('Compose the reply in order');
     expect(flowed).toContain(
-        'tiles above one chart, or one chart, or one diagram — no table inside it'
+        'tiles above one chart, one chart, one diagram, or a titled report for a many-faceted question — no table inside it'
     );
     expect(flowed).not.toContain('then Markdown tables for the detail');
     expect(flowed).not.toContain('never a Markdown table');
@@ -185,7 +185,7 @@ function flowText(text: string) {
  * carry on its own, so both are pinned, along with the procedure that orders
  * the work and the anti-pattern catalog that closes it.
  */
-test('visuals teaches the SVG procedure, the 24px cap, and one axis', () => {
+test('visuals teaches the SVG procedure, slot-share bars, and one axis', () => {
     const marks = flowText(moduleSource('marks-and-anatomy.md'));
 
     for (const source of everySkillSource()) {
@@ -195,8 +195,8 @@ test('visuals teaches the SVG procedure, the 24px cap, and one axis', () => {
     }
     expect(defaultVisualsSkill).toContain('## Making a chart — do these in order');
     expect(defaultVisualsSkill).toContain('references/anti-patterns.md');
-    expect(marks).toContain('**At most 24px** thick');
-    expect(marks).toContain('const barW = Math.min(24, slot * 0.6);');
+    expect(marks).toContain('**55–65% of its slot** (floor 16px, ceiling 72px)');
+    expect(marks).toContain('const barW = Math.min(72, Math.max(16, slot * 0.6));');
     expect(marks).toContain('**One y-axis by default.**');
     expect(flowText(moduleSource('charts.md'))).toContain(
         '[paired-panels](fragments/paired-panels.md)'
@@ -213,9 +213,10 @@ test('visuals teaches the SVG procedure, the 24px cap, and one axis', () => {
     expect(marks).toContain('const W = 736, H = 240;');
     expect(defaultVisualsSkill).not.toContain('0 0 640');
     expect(marks).not.toContain('0 0 640');
-    expect(marks).toContain('Never set a pixel `height` beside a percentage width on a plot.');
+    expect(marks).toContain(
+        'Never set a pixel `height` beside a percentage width on a viewBox plot.'
+    );
     expect(defaultVisualsSkill).not.toContain('height="240"');
-    expect(marks).not.toContain('height="240"');
     expect(marks).not.toContain('fixed rendered height');
 });
 

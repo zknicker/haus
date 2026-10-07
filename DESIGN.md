@@ -927,8 +927,9 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   is the neutral for baselines and de-emphasis. Independent series separate by hue rather than by
   lightness, and they hold up under color vision deficiency in both schemes. One y-axis per chart by default:
   two units mean two paired panels, and a second axis only when the reader asked for bars and a
-  line on one plot, both axes then drawn from zero. Bars are 24px at most with a 4px radius on the data end only,
-  the grid is a hairline on horizontals alone, and labels are 12px. The app's usage chart and
+  line on one plot, both axes then drawn from zero. A column takes 55–65% of its slot with a 4px radius on the
+  data end only, the grid is a hairline on horizontals alone, and labels are 12px. Column charts are fluid plots
+  (x in percent, y in pixels) so their text stays 12px on a phone; every other plot draws on a 736 viewBox. The app's usage chart and
   agent-authored visuals share the same tokens.
 
 The desktop window band keeps one primary Chat tab and additional browser and artifact tabs in one
