@@ -59,6 +59,9 @@ test('a fresh form starts empty on the setup Cove already runs on', () => {
     expect(markup).toContain('Reasoning effort');
     expect(markup).toContain('aria-label="Upload avatar"');
     expect(markup).toContain('value=""');
+    // The signature emoji is optional and shows the default until one is picked.
+    expect(markup).toContain('Signature emoji');
+    expect(markup).toContain('👀');
 });
 
 test('a Server without Cove falls back to the first Computer that reports an inventory', () => {

@@ -1254,6 +1254,11 @@ export interface components {
             description: string;
             displayName: string;
             nonce: string;
+            /**
+             * @description Exactly one emoji grapheme, the new Agent's pickup reaction. Null means the default.
+             * @default null
+             */
+            signatureEmoji: string | null;
             target: string;
         };
         CreatedAgentSummary: {

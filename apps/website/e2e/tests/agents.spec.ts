@@ -43,6 +43,9 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
     await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
     await createDialog.getByRole('textbox', { name: 'Name' }).fill('Scout');
+    // The signature emoji is optional at creation and starts on the 👀 default.
+    await createDialog.getByRole('button', { name: '👀 Signature emoji' }).click();
+    await page.getByRole('option', { name: '🎉', exact: true }).click();
     await createDialog.getByRole('button', { name: 'Create Agent' }).click();
 
     await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
@@ -76,9 +79,9 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await editor
         .getByRole('textbox', { name: 'Conversation style', exact: true })
         .fill('Dry and deadpan.');
-    // No signature emoji yet reads as the 👀 default, with nothing to reset.
-    await expect(editor.getByRole('button', { name: 'Reset' })).toHaveCount(0);
-    await editor.getByRole('button', { name: '👀 Signature emoji' }).click();
+    // The emoji chosen at creation is already stored, so Reset is offered.
+    await expect(editor.getByRole('button', { name: 'Reset' })).toBeVisible();
+    await editor.getByRole('button', { name: '🎉 Signature emoji' }).click();
     await page.getByRole('option', { name: '🔥', exact: true }).click();
     await expect(editor.getByRole('button', { name: '🔥 Signature emoji' })).toBeVisible();
     await editor.getByRole('button', { name: 'Save' }).click();

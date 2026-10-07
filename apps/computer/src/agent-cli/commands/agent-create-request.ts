@@ -30,6 +30,8 @@ export function deriveAgentCreateNonce(callerAgentId: string, request: AgentCrea
         request.avatarConcept,
         request.brief,
         [...new Set(request.channels)].sort(),
+        // Appended only when set, so emoji-less requests keep their pre-emoji nonce.
+        ...(request.signatureEmoji === null ? [] : [request.signatureEmoji]),
     ]);
     return `agent-create-${createHash('sha256').update(canonical).digest('hex')}`;
 }

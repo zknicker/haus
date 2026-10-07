@@ -22,8 +22,8 @@
       "reason": "Static icon reference corpus shipped with the Agent visuals skill."
     },
     "packages/haus-api/src/generated/openapi.d.ts": {
-      "maxLines": 4286,
-      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox, standing-brief, and conversation-style contracts."
+      "maxLines": 4291,
+      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox, standing-brief, conversation-style, and create signature-emoji contracts."
     },
     "packages/haus-api/src/runtime/contracts.ts": {
       "maxLines": 2300,
@@ -94,7 +94,7 @@
     "apps/website/src/features/servers/chat/chat-search.tsx": 338,
     "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
     "packages/haus-api/src/agent-runner.ts": 473,
-    "packages/haus-api/src/agent.ts": 387,
+    "packages/haus-api/src/agent.ts": 367,
     "packages/haus-api/src/chat.ts": 510,
     "packages/haus-sdk/src/client.ts": 431,
     "scripts/agent-tests/kit.mjs": 309,

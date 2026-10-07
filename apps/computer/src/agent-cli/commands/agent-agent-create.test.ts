@@ -105,8 +105,10 @@ test('create returns an introduction hint without sending a message', async () =
             channels: [],
             description: 'Keeps release notes current.',
             displayName: 'Orbit',
+            signatureEmoji: null,
             target: '#product',
         }),
+        signatureEmoji: null,
         target: '#product',
     });
     // Avatar generation alone takes up to 75 s, so the request must outwait it.
@@ -145,6 +147,19 @@ test('the brief and repeated channels ride the create, and the receipt says so',
     // Repeats collapse; #all is the Server's business, not a flag.
     expect(body.channels).toEqual(['#product', '#design']);
     expect(output.join('')).toContain('Its brief is in its memory');
+});
+
+test('--emoji rides the create normalized, and the nonce tells it apart', async () => {
+    const seen: AgentApiRequest[] = [];
+    await runAgentCreate(args({ '--emoji': ' ❤ ' }), deps({ client: requester(seen) }));
+    await runAgentCreate(args(), deps({ client: requester(seen) }));
+
+    const [withEmoji, without] = seen.map(
+        (request) => request.body as { nonce: string; signatureEmoji: string | null }
+    );
+    expect(withEmoji?.signatureEmoji).toBe('❤️');
+    expect(without?.signatureEmoji).toBeNull();
+    expect(withEmoji?.nonce).not.toBe(without?.nonce);
 });
 
 test('a create with no standing brief refuses before making a request', async () => {
@@ -215,6 +230,8 @@ test('create refuses locally before spending a request on a bad flag', async () 
         [{ '--avatar-concept': 'x'.repeat(281) }, /--avatar-concept must be 280 characters/u],
         [{ '--brief': 'x'.repeat(4001) }, /--brief must be 4000 characters/u],
         [{ '--channel': 'product' }, /Invalid channel "product"/u],
+        [{ '--emoji': 'fox' }, /exactly one emoji/u],
+        [{ '--emoji': '🦊🦊' }, /exactly one emoji/u],
     ];
     for (const [overrides, expected] of cases) {
         await expect(runAgentCreate(args(overrides), deps({ client }))).rejects.toThrow(expected);

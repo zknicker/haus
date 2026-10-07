@@ -7,12 +7,9 @@ export * from './haus-agent-state.ts';
 import * as z from 'zod';
 import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
-import { agentDescriptionInputSchema } from './agent-profile-text.ts';
 import { agentWakePauseSchema } from './agent-turn-failure.ts';
 import { workspacePathSchema } from './agent-workspace-files.ts';
-import { avatarBytesInputSchema } from './avatar.ts';
 import { idSchema } from './chat.ts';
-import { participantHandleSchema } from './participant-handle.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -63,23 +60,6 @@ export const agentSchema = z
     .strict();
 
 export type Agent = z.infer<typeof agentSchema>;
-
-/** Creating an Agent binds it to exactly one reported Computer, runtime, and model. */
-export const createAgentInputSchema = z
-    .object({
-        avatar: avatarBytesInputSchema.optional(),
-        computerId: idSchema,
-        description: agentDescriptionInputSchema.nullable().optional(),
-        displayName: z.string().trim().min(1).max(80),
-        handle: participantHandleSchema,
-        modelId: z.string().trim().min(1).max(128),
-        reasoningEffort: agentReasoningEffortSchema.default('medium'),
-        runtimeId: z.string().trim().min(1).max(64),
-        serverId: idSchema,
-    })
-    .strict();
-
-export type CreateAgentInput = z.infer<typeof createAgentInputSchema>;
 
 /** Deletion retires the Server record but preserves authored collaboration history. */
 export const deleteAgentInputSchema = z

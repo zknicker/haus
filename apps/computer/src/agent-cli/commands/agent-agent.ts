@@ -2,6 +2,8 @@ import {
     AGENT_DESCRIPTION_MAX_LENGTH,
     agentSetAgentAvatarReceiptSchema,
     agentUpdateAgentReceiptSchema,
+    signatureEmojiInputSchema,
+    signatureEmojiRule,
 } from '@haus/api';
 import { AgentApiClient, type AgentApiRequester } from '../agent-api-client.ts';
 import { resolveAgentContext } from '../agent-context.ts';
@@ -24,7 +26,7 @@ const CREATE_RECIPE = `haus agent create --target "#all" --name "Orbit" \\
   --description "Keeps release notes current and chases missing changelog entries." \\
   --channel "#product" \\
   --brief "You own release notes. Draft them from merged PRs, post a digest in #product every Friday, and ask the owner before changing the format." \\
-  --avatar-concept "a moonlit raccoon cartographer"`;
+  --avatar-concept "a moonlit raccoon cartographer" --emoji 🦝`;
 
 export interface AgentAgentDeps {
     /** The Agent running the command; a create's idempotency key is derived from it. */
@@ -62,6 +64,11 @@ const CREATE_COMMAND: SubCommand = {
             name: '--avatar-concept',
             valueName: '<text>',
         },
+        {
+            description: 'Its signature pickup reaction: exactly one emoji (default 👀)',
+            name: '--emoji',
+            valueName: '<emoji>',
+        },
     ],
     name: 'create',
     notes: [
@@ -72,7 +79,7 @@ const CREATE_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runAgentCreate(args, defaultDeps()),
     summary: 'Create one Agent that inherits your runtime, model, reasoning effort, and Computer',
-    usage: 'haus agent create --target <target> --name <name> --description <text> --brief <text> [--channel <#name>] [--avatar-concept <text>]',
+    usage: 'haus agent create --target <target> --name <name> --description <text> --brief <text> [--channel <#name>] [--avatar-concept <text>] [--emoji <emoji>]',
 };
 
 const UPDATE_COMMAND: SubCommand = {
@@ -128,6 +135,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
         : null;
     const brief = bounded(requiredValue(args, '--brief'), '--brief', maxBriefLength);
     const channels = readChannels(args);
+    const signatureEmoji = readSignatureEmoji(args);
 
     const receipt = await requestAgentCreate(deps.client, deps.callerAgentId, {
         avatarConcept,
@@ -135,6 +143,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
         channels,
         description,
         displayName,
+        signatureEmoji,
         target,
     });
 
@@ -202,6 +211,21 @@ function readChannels(args: ParsedArgs): string[] {
         );
     }
     return channels;
+}
+
+/** Normalized here so the derived nonce matches what the Server stores. */
+function readSignatureEmoji(args: ParsedArgs): string | null {
+    const raw = args.values['--emoji'];
+    if (raw === undefined) {
+        return null;
+    }
+    const parsed = signatureEmojiInputSchema.safeParse(raw);
+    if (!parsed.success) {
+        throw new AgentCliError('INVALID_ARG', signatureEmojiRule, {
+            nextAction: 'Pass one emoji, for example --emoji 🦊, or leave --emoji off for 👀.',
+        });
+    }
+    return parsed.data;
 }
 
 function readAgentHandle(args: ParsedArgs): string {

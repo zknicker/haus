@@ -1798,6 +1798,10 @@ components:
         description: { type: string, minLength: 1, maxLength: 280 }
         displayName: { type: string, minLength: 1, maxLength: 80 }
         nonce: { type: string, minLength: 1, maxLength: 128 }
+        signatureEmoji:
+          type: [string, 'null']
+          default: null
+          description: Exactly one emoji grapheme, the new Agent's pickup reaction. Null means the default.
         target: { type: string, minLength: 1, maxLength: 200 }
     CreatedAgentSummary:
       type: object

@@ -204,6 +204,7 @@ test('the create nonce is the request itself, so an identical re-issue replays',
         channels: ['#product', '#design'],
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
+        signatureEmoji: null,
         target: '#product',
     };
     const nonce = deriveAgentCreateNonce('agt_caller', request);
@@ -226,6 +227,7 @@ test('the create nonce is the request itself, so an identical re-issue replays',
         { ...request, channels: ['#product'] },
         { ...request, description: 'Keeps the changelog current.' },
         { ...request, displayName: 'Orbit II' },
+        { ...request, signatureEmoji: '🦊' },
         { ...request, target: '#all' },
     ];
     for (const request_ of changed) {

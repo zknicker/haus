@@ -7,9 +7,9 @@ import { ProfileFieldInfo } from './profile-text-field.tsx';
 export const DEFAULT_SIGNATURE_EMOJI = '👀';
 
 /**
- * The Agent's signature emoji: one compact row in the Edit Profile editor. `null` means the
- * Agent uses the default, which the trigger still shows so the row never reads empty; Reset
- * appears only once a custom emoji is chosen.
+ * The Agent's signature emoji: one compact row in the Edit Profile editor and the New Agent
+ * form. `null` means the Agent uses the default, which the trigger still shows so the row never
+ * reads empty; Reset appears only once a custom emoji is chosen.
  *
  * The picker offers the reaction vocabulary. An emoji the Agent set for itself outside that
  * catalog still shows here, and stays until someone picks another or resets it.

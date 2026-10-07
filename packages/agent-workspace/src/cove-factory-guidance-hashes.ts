@@ -28,5 +28,6 @@ export const recognizedFactoryGuidanceHashes: Record<
         '24c59b28c7c9115c05ea352477d7f0f16f15fbf0978558c55e04424662b7edb3',
         '4b0ae6d933d6f772313f644f842c10776e957f02890f45f0481b7a598be77356',
         'ecf87bdf577d09e4e56af5308fae95b9b3726618f3ffb7eab21b3f14031f5ef4',
+        '61123e7c0e58a333b6f8a5079cc58e9c269d019c38c615668d802a9dfee17b5e',
     ],
 };

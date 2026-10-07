@@ -115,6 +115,7 @@ export async function createAgentInTransaction(
             homeTimezone: 'UTC',
             id: agentId,
             serverId: input.serverId,
+            signatureEmoji: input.signatureEmoji ?? null,
         });
     } catch (cause) {
         if (

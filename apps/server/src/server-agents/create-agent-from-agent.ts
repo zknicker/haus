@@ -96,6 +96,7 @@ export async function createAgentFromAgent(
                 reasoningEffort: execution.reasoningEffort,
                 runtimeId: execution.runtimeId,
                 serverId: runner.serverId,
+                signatureEmoji: input.signatureEmoji,
             },
             avatar.bytes
         );

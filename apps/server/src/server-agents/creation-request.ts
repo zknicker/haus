@@ -22,6 +22,8 @@ export function agentCreationRequestHash(input: AgentCreateAgentRequest): string
                 input.avatarConcept,
                 input.brief,
                 [...new Set(input.channels)].sort(),
+                // Appended only when set, so requests stored before the field keep their hash.
+                ...(input.signatureEmoji === null ? [] : [input.signatureEmoji]),
             ])
         )
         .digest('hex');
