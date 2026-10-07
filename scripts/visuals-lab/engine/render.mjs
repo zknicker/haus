@@ -1,6 +1,6 @@
 // Renders one model-authored visual through the real product frame: the same
-// `buildVisualSrcDoc` the chat card builds, inside a host page that mirrors
-// the card shell, screenshotted in both schemes.
+// `buildVisualSrcDoc` (@haus/api/widgets/visual/frame) the chat card builds,
+// inside a host page that mirrors the card shell, screenshotted in both schemes.
 //
 // Nothing here re-implements the frame. The only things this file owns are the
 // shell box the card would draw around the iframe and the size handshake the
@@ -8,22 +8,22 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+    analyzeLayout,
+    layoutFactsExpression,
+    layoutFactsSchema,
+} from '../../../apps/computer/src/visual-preview/layout-probe.ts';
+import {
+    agentHtmlSandbox,
+    buildVisualSrcDoc,
+    visualHeights,
+    visualSizeMessageType,
+} from '../../../packages/haus-api/src/widgets/visual/frame.ts';
 import { resolveTokens } from '../../agent-html-tokens/generate-ios-tokens.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const websiteRequire = createRequire(path.join(here, '../../../apps/website/package.json'));
 const { chromium } = websiteRequire('@playwright/test');
-
-// visual-card.tsx resolves the active scheme through `agentHtmlColorScheme()`,
-// which reads `document.documentElement.dataset.theme`. Bun has no DOM, so
-// stand up the one field that function touches before the module loads — and
-// flip it per scheme below, exactly as the app's theme toggle does.
-globalThis.document ??= { documentElement: { dataset: { theme: 'dark' } } };
-
-const { buildVisualSrcDoc, visualHeights } = await import(
-    '../../../apps/website/src/features/chats/visual-card.tsx'
-);
-const { agentHtmlSandbox } = await import('../../../apps/website/src/agent-html/sandbox.ts');
 
 const schemes = ['dark', 'light'];
 const tokensCssByScheme = new Map(
@@ -35,20 +35,14 @@ const tokensCssByScheme = new Map(
     ])
 );
 
-export { agentHtmlSandbox, visualHeights };
+export { agentHtmlSandbox, visualHeights, visualSizeMessageType };
 
 /** The published token declarations for a scheme, as the CSS text the frame injects. */
 export const tokensCssFor = (scheme) => tokensCssByScheme.get(scheme) ?? '';
 
-/**
- * The exact srcdoc the chat card would build for this scheme. `buildVisualSrcDoc`
- * reads the scheme off `document.documentElement.dataset.theme`, so flip it here —
- * the one place that knows the scheme — just as the app's theme toggle does.
- */
-export const buildVisualDocument = ({ html, scheme }) => {
-    globalThis.document.documentElement.dataset.theme = scheme;
-    return buildVisualSrcDoc(html, tokensCssFor(scheme));
-};
+/** The exact srcdoc the chat card would build for this scheme. */
+export const buildVisualDocument = ({ html, scheme }) =>
+    buildVisualSrcDoc(html, tokensCssFor(scheme), scheme);
 
 export const createVisualRenderer = async ({ width = 736 } = {}) => {
     const browser = await chromium.launch();
@@ -68,49 +62,91 @@ export const createVisualRenderer = async ({ width = 736 } = {}) => {
     });
     page.on('pageerror', (error) => consoleErrors.push(String(error)));
 
+    // Loads one visual into the host page and waits for it to settle.
+    // `ready: 'network'` is the opt-in for a visual that fetches its own
+    // data — a choropleth pulling pinned map topology, say. Its first size
+    // report lands before the fetch does, so the capture waits for the
+    // network to go quiet and lets the ResizeObserver's second report
+    // resize the frame. Everything else keeps the plain paint wait.
+    const load = async ({ html, ready, scheme }) => {
+        consoleErrors.length = 0;
+        await page.setContent(hostPage({ scheme, tokensCss: tokensCssFor(scheme), width }), {
+            waitUntil: 'domcontentloaded',
+        });
+        await page.evaluate(
+            (srcDoc) => window.hausRenderVisual(srcDoc),
+            buildVisualDocument({ html, scheme })
+        );
+        // A visual that never reports a size still gets captured at the
+        // fallback height; a missing handshake is itself a finding.
+        await page
+            .waitForFunction(() => window.hausVisualSized === true, null, { timeout: 15_000 })
+            .catch(() => null);
+        if (ready === 'network') {
+            await page.waitForLoadState('networkidle').catch(() => null);
+        }
+        // A visual's own script (the hover layer, a computed label)
+        // runs after the size report, so give it a frame to settle.
+        await page.waitForTimeout(500);
+    };
+
+    // The same in-frame geometry collector and judgment `haus visual preview`
+    // uses, so a lab finding and an agent's own preview finding are one rule.
+    const probeLayout = async () => {
+        const frame = page
+            .frames()
+            .find((candidate) => candidate.parentFrame() === page.mainFrame());
+        if (!frame) {
+            return ['the visual frame never loaded'];
+        }
+        const raw = await frame.evaluate(layoutFactsExpression).catch((error) => {
+            consoleErrors.push(`layout probe failed: ${String(error)}`);
+            return null;
+        });
+        // The frame runs agent script, which can replace JSON; a garbled answer
+        // is a probe failure for this visual, never a crashed run.
+        let facts = null;
+        try {
+            facts = typeof raw === 'string' ? layoutFactsSchema.safeParse(JSON.parse(raw)) : null;
+        } catch (error) {
+            consoleErrors.push(`layout probe failed: ${String(error)}`);
+        }
+        return facts?.success ? analyzeLayout(facts.data).map((finding) => finding.message) : [];
+    };
+
     return {
         close: () => browser.close(),
-        // `ready: 'network'` is the opt-in for a visual that fetches its own
-        // data — a choropleth pulling pinned map topology, say. Its first size
-        // report lands before the fetch does, so the capture waits for the
-        // network to go quiet and lets the ResizeObserver's second report
-        // resize the frame. Everything else keeps the plain paint wait.
+        // Quality facts only, no screenshot: for runs recorded before the lab
+        // probed layout. Judged on the dark scheme, like `render`.
+        probe: async ({ html, ready = 'paint' }) => {
+            await load({ html, ready, scheme: 'dark' });
+            const findings = await probeLayout();
+            return { consoleErrors: [...new Set(consoleErrors)], findings };
+        },
         render: async ({ html, outDir, ready = 'paint', slug }) => {
             const errors = [];
             const files = {};
             const heights = {};
+            const unique = new Set();
+            let findings = [];
             for (const scheme of schemes) {
-                consoleErrors.length = 0;
-                await page.setContent(
-                    hostPage({ scheme, tokensCss: tokensCssFor(scheme), width }),
-                    { waitUntil: 'domcontentloaded' }
-                );
-                await page.evaluate(
-                    (srcDoc) => window.hausRenderVisual(srcDoc),
-                    buildVisualDocument({ html, scheme })
-                );
-                // A visual that never reports a size still gets captured at the
-                // fallback height; a missing handshake is itself a finding.
-                await page
-                    .waitForFunction(() => window.hausVisualSized === true, null, {
-                        timeout: 15_000,
-                    })
-                    .catch(() => null);
-                if (ready === 'network') {
-                    await page.waitForLoadState('networkidle').catch(() => null);
-                }
-                // A visual's own script (the hover layer, a computed label)
-                // runs after the size report, so give it a frame to settle.
-                await page.waitForTimeout(500);
+                await load({ html, ready, scheme });
                 const file = `${slug}-${scheme}.png`;
                 await page.locator('#shell').screenshot({ path: path.join(outDir, file) });
                 files[scheme] = file;
                 heights[scheme] = await page.evaluate(
                     () => document.getElementById('frame').getBoundingClientRect().height
                 );
+                // Geometry barely moves between schemes; judge it once.
+                if (scheme === 'dark') {
+                    findings = await probeLayout();
+                }
+                for (const text of consoleErrors) {
+                    unique.add(text);
+                }
                 errors.push(...consoleErrors.map((text) => `${scheme}: ${text}`));
             }
-            return { errors, files, heights };
+            return { consoleErrors: [...unique], errors, files, findings, heights };
         },
     };
 };
@@ -138,7 +174,7 @@ addEventListener('message', function (event) {
     var frame = document.getElementById('frame');
     if (!frame || event.source !== frame.contentWindow) { return; }
     var data = event.data;
-    if (!data || data.type !== 'haus-visual-size' || typeof data.height !== 'number') { return; }
+    if (!data || data.type !== '${visualSizeMessageType}' || typeof data.height !== 'number') { return; }
     var height = Math.min(${visualHeights.max}, Math.max(${visualHeights.min}, Math.round(data.height)));
     frame.style.height = height + 'px';
     window.hausVisualSized = true;

@@ -46,6 +46,9 @@ export const resolveRunConfig = () => {
         executable,
         items,
         modelId,
+        // Puts a `haus` shim on the turn's PATH so the agent can preview its
+        // own draft; set by the lab for a revision whose lab.json asks for it.
+        preview: process.argv.includes('--preview'),
         outDir: outDirFlag
             ? path.resolve(outDirFlag)
             : path.join(here, '../results', `${stamp}-${slugify(runLabel)}`),

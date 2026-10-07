@@ -9,6 +9,9 @@
 //
 // `reasoning` is the effort a run starts at; the page can override it per model
 // before a run, which is why it lives here as a default rather than a constant.
+//
+// The page's columns are these models crossed with the skills: see
+// columns.mjs.
 export const models = [
     {
         id: 'grok',
@@ -39,6 +42,13 @@ export const models = [
         runtime: 'claude-code',
     },
     {
+        id: 'opus-5-5',
+        label: 'Opus 5.5',
+        model: 'claude-opus-5-5',
+        reasoning: 'medium',
+        runtime: 'claude-code',
+    },
+    {
         id: 'fable',
         label: 'Fable 5.1',
         model: 'claude-fable-5-1',
@@ -49,5 +59,3 @@ export const models = [
 
 /** The effort levels the page offers and the run script accepts. */
 export const efforts = ['low', 'medium', 'high'];
-
-export const modelById = (id) => models.find((model) => model.id === id) ?? null;

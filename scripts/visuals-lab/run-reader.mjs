@@ -5,7 +5,10 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findingsFileFor } from './engine/findings.mjs';
+import { countPreviewCallsInTrace } from './engine/preview-calls.mjs';
 import { fragmentFiles, skillModules } from './engine/skill-fragments.mjs';
+import { backfillFindings } from './findings-backfill.mjs';
 import { stripVisualFences } from './reply-html.mjs';
 
 /** Where every run lands. Gitignored: these are big and disposable. */
@@ -40,19 +43,29 @@ const latestRun = async (model) => {
             if (bySlug.has(prompt.slug) || prompt.status === 'pending') {
                 continue;
             }
-            bySlug.set(prompt.slug, await promptEntry(prompt, { base, runDir, stamp }));
+            bySlug.set(
+                prompt.slug,
+                await promptEntry(prompt, { base, runDir, stamp, width: run.width })
+            );
         }
     }
     return newest ? { ...newest, prompts: [...bySlug.values()] } : null;
 };
 
-const promptEntry = async (prompt, { base, runDir, stamp }) => {
+const promptEntry = async (prompt, { base, runDir, stamp, width }) => {
     const files = prompt.files ?? {};
+    const refs = files.trace ? await traceReads(path.join(runDir, files.trace)) : null;
+    const quality = await qualityFor(prompt, { runDir, width });
     return {
         ...prompt,
+        consoleErrors: quality?.console.length ?? null,
+        findings: quality,
+        layoutFindings: quality?.layout.length ?? null,
+        // Older manifests never counted previews; the trace still shows them.
+        previewCalls: prompt.previewCalls ?? refs?.previewCalls ?? null,
         height: files.dark ? await pngHeight(path.join(runDir, files.dark)) : null,
         logUrl: `${base}/job.log`,
-        refs: files.trace ? await traceReads(path.join(runDir, files.trace)) : null,
+        refs,
         reply: files.reply ? await replyStats(path.join(runDir, files.reply)) : null,
         stamp,
         urls: Object.fromEntries(
@@ -107,9 +120,32 @@ const traceReads = (file) =>
         return {
             fragments: named(text, fragmentFiles().map(withoutExtension)),
             modules: named(text, skillModules.map(withoutExtension)),
+            previewCalls: countPreviewCallsInTrace(text),
             skill: skillRead.test(text),
         };
     });
+
+// What the shipped fences did in the real frame: the findings sidecar
+// (findings.mjs). A run from before the lab probed layout has none, so queue a
+// backfill and report nothing until it lands; only a sidecar that exists is
+// cached, so the next poll picks it up.
+const qualityFor = async (prompt, { runDir, width }) => {
+    if (prompt.status !== 'ok' || !(prompt.fenceCount > 0)) {
+        return null;
+    }
+    const file = path.join(runDir, findingsFileFor(prompt.slug));
+    if (derived.has(file)) {
+        return derived.get(file);
+    }
+    const text = await readFile(file, 'utf8').catch(() => null);
+    if (text === null) {
+        backfillFindings({ fenceCount: prompt.fenceCount, runDir, slug: prompt.slug, width });
+        return null;
+    }
+    const quality = JSON.parse(text);
+    derived.set(file, quality);
+    return quality;
+};
 
 // The rendered height of the visual, straight off the capture: the PNG is shot
 // at deviceScaleFactor 2, so its IHDR height is twice the frame's CSS height.

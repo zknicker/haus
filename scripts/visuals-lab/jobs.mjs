@@ -6,7 +6,6 @@
 // by the queue rather than by how many processes Bun will start.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { modelById } from './models.mjs';
 import { mkUniqueResultsDir, repoRoot, stampFor } from './paths.mjs';
 import { resultsDir } from './run-reader.mjs';
 
@@ -22,37 +21,38 @@ let running = 0;
 /** The recent jobs the page shows; older ones fall off the end. */
 export const recentJobs = () => jobs.slice(-40);
 
-export const enqueue = (model, only, effort) => {
+/** Queues one run of `column` (a model under a skill, see columns.mjs). */
+export const enqueue = (column, only, effort) => {
     const job = {
         effort,
         finishedAt: null,
         id: `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
-        model,
+        column: column.id,
         only: only ?? null,
         outDir: null,
         startedAt: null,
         status: 'queued',
     };
     jobs.push(job);
-    queue.push(job);
+    // The column rides beside the job, not on it: the job is what the page polls.
+    queue.push({ column, job });
     pump();
     return job;
 };
 
 const pump = () => {
     while (running < maxConcurrent && queue.length > 0) {
-        const job = queue.shift();
+        const { column, job } = queue.shift();
         running += 1;
-        startJob(job).finally(() => {
+        startJob(job, column).finally(() => {
             running -= 1;
             pump();
         });
     }
 };
 
-const startJob = async (job) => {
-    const spec = modelById(job.model);
-    const outDir = await mkUniqueResultsDir(path.join(resultsDir, job.model), stampFor());
+const startJob = async (job, column) => {
+    const outDir = await mkUniqueResultsDir(path.join(resultsDir, column.id), stampFor());
     job.outDir = path.relative(resultsDir, outDir);
     job.startedAt = new Date().toISOString();
     job.status = 'running';
@@ -61,7 +61,7 @@ const startJob = async (job) => {
     const args = [
         runScript,
         '--model',
-        `${spec.runtime}/${spec.model}`,
+        `${column.runtime}/${column.model}`,
         '--out-dir',
         outDir,
         '--reasoning',
@@ -69,6 +69,12 @@ const startJob = async (job) => {
     ];
     if (job.only) {
         args.push('--only', job.only);
+    }
+    if (column.skillDir) {
+        args.push('--skill-dir', column.skillDir);
+    }
+    if (column.preview) {
+        args.push('--preview');
     }
 
     log.write(`$ bun ${args.join(' ')}\n\n`);

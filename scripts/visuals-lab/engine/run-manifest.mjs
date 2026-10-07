@@ -13,9 +13,12 @@ export const createRunManifest = async ({ items, meta, outDir }) => {
         finishedAt: null,
         prompts: items.map((item) => ({
             ask: item.ask,
+            consoleErrors: null,
             designSystemRead: false,
             fenceCount: 0,
             files: {},
+            layoutFindings: null,
+            previewCalls: 0,
             slug: item.slug,
             status: 'pending',
             tokens: null,

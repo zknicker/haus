@@ -531,19 +531,20 @@
             text-align: center;
         }
 
-        /* ── All models: the at-a-glance grid, PNGs so the page stays light ──── */
+        /* ── The grid: selected models down, selected skills across. PNGs so the
+   page stays light; a column is as wide as the frame it stands in for. ─── */
         #overview {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 1180px;
+            display: grid;
+            grid-template-columns: 132px repeat(var(--skills, 1), minmax(0, 1fr));
+            gap: 10px 12px;
+            align-items: start;
+            max-width: calc(144px + var(--skills, 1) * (var(--shell-w, 736px) + 60px));
             margin-top: 18px;
         }
-        .ovrow {
-            display: grid;
-            grid-template-columns: 132px minmax(0, 1fr);
-            gap: 12px;
-            align-items: start;
+        .ovhead {
+            padding: 0 2px;
+            font-size: 12.5px;
+            font-weight: 650;
         }
         .ovname {
             padding-top: 10px;
@@ -574,7 +575,8 @@
         }
         .ovcell .line {
             display: flex;
-            gap: 8px;
+            flex-wrap: wrap;
+            gap: 4px 8px;
             align-items: center;
             padding: 6px 9px;
             font-size: 11.5px;
@@ -602,6 +604,31 @@
             color: var(--muted);
             text-align: center;
             border-top: 1px solid var(--border);
+        }
+        /* The skill a full-size cell ran under, beside the model's name. */
+        .panel .skill {
+            padding: 1px 7px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text);
+            background: var(--chip);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+        }
+        .panel .back {
+            padding: 1px 8px;
+            font-size: 11.5px;
+        }
+        .tabrow button.all {
+            color: var(--muted);
+            border-style: dashed;
+        }
+        .menuitems .scope {
+            white-space: pre-line;
+        }
+        .menuitems .scope b {
+            font-weight: 600;
+            color: var(--text);
         }
 
         /* ── Fragments gallery ───────────────────────────────────────────────── */
@@ -754,6 +781,8 @@
             <p class="ask" id="ask"></p>
             <div class="rowlabel">model</div>
             <nav class="tabrow" id="models"></nav>
+            <div class="rowlabel" style="margin-top: 12px">skill</div>
+            <nav class="tabrow" id="skills"></nav>
             <div id="panels"></div>
             <div id="overview"></div>
         </section>
@@ -770,20 +799,33 @@
         </section>
 
         <script type="module">
-        // ── View state. Question, model and view live in the hash so a reload keeps
-        // the place; theme and frame width are per-eye settings and stay local.
-        const view = { model: 'all', slug: null, tab: 'runs', theme: 'dark' };
+        // ── View state. The question, the selected models and skills, and a focused
+        // cell live in the hash so a reload keeps the place; the selection is also
+        // kept per viewer so a fresh tab opens on the last pairing. Theme and frame
+        // width are per-eye settings and stay local.
+        const view = {
+            focus: null,
+            models: [],
+            skills: [],
+            slug: null,
+            tab: 'runs',
+            theme: 'dark',
+        };
         let state = null;
-        // The reasoning effort each model will run at next. Seeded from the lineup's
-        // own default and held here, not in the URL: it is a knob for the next run,
-        // not a description of the results already on screen.
+        // The reasoning effort each model will run at next, under any skill. Seeded
+        // from the lineup's own default and held here, not in the URL: it is a knob
+        // for the next run, not a description of the results already on screen.
         const efforts = new Map();
         const effortSelects = new Map();
         let chromeBuilt = false;
         const panels = new Map();
         const questionTabs = new Map();
         const modelTabs = new Map();
-        const overviewRows = new Map();
+        const skillTabs = new Map();
+        const overviewCorner = document.createElement('div');
+        const overviewHeads = new Map();
+        const overviewNames = new Map();
+        const overviewCells = new Map();
         const frames = new Set();
 
         const titleCase = (slug) =>
@@ -793,7 +835,7 @@
         // trusted from the frame that sent it, and clamped the way the card clamps.
         addEventListener('message', (event) => {
             const data = event.data;
-            if (data?.type !== 'haus-visual-size' || typeof data.height !== 'number') {
+            if (data?.type !== state?.frame.sizeMessageType || typeof data.height !== 'number') {
                 return;
             }
             for (const frame of frames) {
@@ -872,27 +914,40 @@
                 method: 'POST',
             }).then(() => refresh());
 
-        // ── Lookups over the polled state ───────────────────────────────────────
-        const jobFor = (modelId, slug) => {
+        // ── Lookups over the polled state. A cell is a column: one model under one
+        // skill, keyed by the column id the server hands out.
+        const columnOf = (modelId, skillId) =>
+            state.columns.find((column) => column.model === modelId && column.skill === skillId) ??
+            null;
+
+        /** The selected cells, model-major: exactly what the grid shows and Run spends. */
+        const selectedCells = () =>
+            view.models.flatMap((modelId) =>
+                view.skills.map((skillId) => columnOf(modelId, skillId)).filter(Boolean)
+            );
+
+        const labelOf = (key, id) => state[key].find((item) => item.id === id)?.label ?? id;
+
+        const jobFor = (columnId, slug) => {
             const matches = state.jobs.filter(
-                (job) => job.model === modelId && (!job.only || job.only === slug)
+                (job) => job.column === columnId && (!job.only || job.only === slug)
             );
             return matches.at(-1) ?? null;
         };
 
-        const entryFor = (modelId, slug) =>
-            state.results[modelId]?.prompts.find((prompt) => prompt.slug === slug) ?? null;
+        const entryFor = (columnId, slug) =>
+            state.results[columnId]?.prompts.find((prompt) => prompt.slug === slug) ?? null;
 
         /** One word for a cell: what the dot, the pill and the overview all read from. */
-        const statusOf = (modelId, slug) => {
-            const job = jobFor(modelId, slug);
+        const statusOf = (columnId, slug) => {
+            const job = jobFor(columnId, slug);
             if (job?.status === 'queued') {
                 return 'queued';
             }
             if (job?.status === 'running') {
                 return 'running';
             }
-            const entry = entryFor(modelId, slug);
+            const entry = entryFor(columnId, slug);
             if (entry?.status === 'ok') {
                 return 'ok';
             }
@@ -960,47 +1015,74 @@
                 questionTabs.set(prompt.slug, button);
             }
 
-            const modelsRow = document.getElementById('models');
+            // Models and skills are two independent multi-selects; the grid is their
+            // cross product.
             for (const model of state.models) {
                 efforts.set(model.id, model.reasoning);
                 effortSelects.set(model.id, []);
-                const button = document.createElement('button');
-                button.innerHTML =
-                    '<span class="label"></span><span class="dots"><i class="dot"></i></span>';
-                button.querySelector('.label').textContent = model.label;
-                button.onclick = () => {
-                    view.model = model.id;
-                    pushHash();
-                    applyView();
-                };
-                modelsRow.append(button);
-                modelTabs.set(model.id, button);
             }
-            const all = document.createElement('button');
-            all.textContent = 'All models';
-            all.onclick = () => {
-                view.model = 'all';
-                pushHash();
-                applyView();
-            };
-            modelsRow.append(all);
-            modelTabs.set('all', all);
+            buildToggleRow('models', modelTabs, 'All models');
+            buildToggleRow('skills', skillTabs, 'All skills');
+            for (const skill of state.skills) {
+                skillTabs.get(skill.id).title = skill.source;
+            }
 
             const host = document.getElementById('panels');
-            for (const model of state.models) {
-                const panel = buildPanel(model);
-                panels.set(model.id, panel);
+            for (const column of state.columns) {
+                const panel = buildPanel(column);
+                panels.set(column.id, panel);
                 host.append(panel);
             }
             buildOverview();
             chromeBuilt = true;
         };
 
-        const buildPanel = (model) => {
+        /** A row of toggles over `state[key]`, plus an all/one switch at the end. */
+        const buildToggleRow = (key, tabs, allLabel) => {
+            const row = document.getElementById(key);
+            for (const item of state[key]) {
+                const button = document.createElement('button');
+                button.innerHTML = '<span class="label"></span><span class="dots"></span>';
+                button.querySelector('.label').textContent = item.label;
+                button.onclick = () => select(key, toggled(view[key], item.id, state[key]));
+                row.append(button);
+                tabs.set(item.id, button);
+            }
+            const all = document.createElement('button');
+            all.className = 'all';
+            all.textContent = allLabel;
+            all.title = 'select every one; press again to go back to the first';
+            all.onclick = () => {
+                const ids = state[key].map((item) => item.id);
+                select(key, view[key].length === ids.length ? ids.slice(0, 1) : ids);
+            };
+            row.append(all);
+            tabs.set('*', all);
+        };
+
+        /** Adds or drops one id, kept in lineup order; the last one selected stays. */
+        const toggled = (list, id, items) => {
+            if (list.includes(id)) {
+                return list.length === 1 ? list : list.filter((other) => other !== id);
+            }
+            return items
+                .map((item) => item.id)
+                .filter((other) => other === id || list.includes(other));
+        };
+
+        const select = (key, ids) => {
+            view[key] = ids;
+            saveSelection();
+            pushHash();
+            applyView();
+        };
+
+        const buildPanel = (column) => {
             const panel = document.createElement('div');
             panel.className = 'panel';
-            panel.innerHTML = `<div class="bar"><span class="who"></span><span class="pill"></span>
-      <span class="effortslot"></span><span class="spacer"></span><button class="plain run">Run</button></div>
+            panel.innerHTML = `<div class="bar"><span class="who"></span><span class="skill"></span>
+      <span class="pill"></span><span class="effortslot"></span><span class="spacer"></span>
+      <button class="plain back" type="button"></button><button class="plain run" type="button">Run</button></div>
     <div class="facts"><span>wall <b class="wall">—</b></span><span>out <b class="tok">—</b> tok</span>
       <span class="reads"></span></div>
     <div class="ground"><div class="shell"><iframe class="frame"></iframe></div></div>
@@ -1008,18 +1090,26 @@
     <div class="reply"></div>
     <div class="caption"></div>
     <div class="links"></div>`;
-            panel.querySelector('.who').textContent = model.label;
-            panel.querySelector('.effortslot').replaceWith(buildEffortSelect(model));
+            panel.querySelector('.who').textContent = labelOf('models', column.model);
+            panel.querySelector('.skill').textContent = labelOf('skills', column.skill);
+            panel.querySelector('.effortslot').replaceWith(buildEffortSelect(column.model));
             const frame = panel.querySelector('.frame');
             frame.setAttribute('sandbox', state.frame.sandbox);
             frame.style.height = `${state.frame.heights.fallback}px`;
             frames.add(frame);
-            panel.querySelector('.run').onclick = () =>
+            const run = panel.querySelector('.run');
+            run.title = 'one turn: this model under this skill, this question';
+            run.onclick = () =>
                 post('/api/run', {
-                    effort: efforts.get(model.id),
-                    model: model.id,
+                    column: column.id,
+                    effort: efforts.get(column.model),
                     only: view.slug,
                 });
+            panel.querySelector('.back').onclick = () => {
+                view.focus = null;
+                pushHash();
+                applyView();
+            };
             for (const [kind, label] of [
                 ['reply', 'reply.md'],
                 ['visual', 'visual.html'],
@@ -1038,51 +1128,72 @@
         };
 
         /** One low/medium/high select; every copy for a model stays in step. */
-        const buildEffortSelect = (model) => {
+        const buildEffortSelect = (modelId) => {
             const select = document.createElement('select');
             select.className = 'effort';
-            select.title = 'reasoning effort for the next run';
+            select.title = 'reasoning effort for the next run, under every skill';
             for (const effort of state.efforts) {
                 const option = document.createElement('option');
                 option.value = effort;
                 option.textContent = effort;
                 select.append(option);
             }
-            select.value = efforts.get(model.id);
+            select.value = efforts.get(modelId);
             select.onchange = () => {
-                efforts.set(model.id, select.value);
-                for (const other of effortSelects.get(model.id)) {
+                efforts.set(modelId, select.value);
+                for (const other of effortSelects.get(modelId)) {
                     other.value = select.value;
                 }
             };
-            effortSelects.get(model.id).push(select);
+            effortSelects.get(modelId).push(select);
             return select;
         };
 
+        // Every head, name and cell is built once; layoutOverview only moves the
+        // selected ones into place, so a thumbnail never reloads on a toggle.
         const buildOverview = () => {
-            const host = document.getElementById('overview');
+            for (const skill of state.skills) {
+                const head = document.createElement('div');
+                head.className = 'ovhead';
+                head.textContent = skill.label;
+                head.title = skill.source;
+                overviewHeads.set(skill.id, head);
+            }
             for (const model of state.models) {
-                const row = document.createElement('div');
-                row.className = 'ovrow';
                 const name = document.createElement('div');
                 name.className = 'ovname';
                 name.innerHTML = '<span class="label"></span><span class="effortslot"></span>';
                 name.querySelector('.label').textContent = model.label;
-                name.querySelector('.effortslot').replaceWith(buildEffortSelect(model));
-                row.append(name);
+                name.querySelector('.effortslot').replaceWith(buildEffortSelect(model.id));
+                overviewNames.set(model.id, name);
+            }
+            for (const column of state.columns) {
                 const cell = document.createElement('button');
                 cell.className = 'ovcell';
+                cell.title = `${labelOf('models', column.model)} · ${labelOf('skills', column.skill)} — open full size`;
                 cell.innerHTML = `<span class="line"><span class="pill"></span><span class="stats"></span></span>
         <span class="thumbwrap"><img class="thumb" alt=""></span><span class="blank"></span>`;
                 cell.onclick = () => {
-                    view.model = model.id;
+                    view.focus = column.id;
                     pushHash();
                     applyView();
                 };
-                row.append(cell);
-                host.append(row);
-                overviewRows.set(model.id, row);
+                overviewCells.set(column.id, cell);
             }
+        };
+
+        const layoutOverview = () => {
+            const host = document.getElementById('overview');
+            host.style.setProperty('--skills', String(view.skills.length));
+            const rows = view.models.flatMap((modelId) => [
+                overviewNames.get(modelId),
+                ...view.skills.map((skillId) => overviewCells.get(columnOf(modelId, skillId)?.id)),
+            ]);
+            host.replaceChildren(
+                overviewCorner,
+                ...view.skills.map((skillId) => overviewHeads.get(skillId)),
+                ...rows.filter(Boolean)
+            );
         };
 
         // ── Tick: text, classes, img src and hrefs only. No node is replaced, and a
@@ -1096,24 +1207,44 @@
                 running: 'running…',
             })[status] ?? status;
 
-        /** The reply's own line: words and tables, and how tall the visual came out. */
+        /**
+         * The reply's own line: words and tables, how tall the visual came out,
+         * then the objective read on the shipped fences (layout findings and
+         * console errors, "…" while an old run is being probed) and, when the
+         * turn ran any, its own `haus visual preview` calls.
+         */
         const replyStatsLine = (entry) =>
             entry?.reply
-                ? `${entry.reply.words} words · ${entry.reply.tables} tables${
-                      entry.height ? ` · ${entry.height}px` : ''
-                  }`
+                ? [
+                      `${entry.reply.words} words`,
+                      `${entry.reply.tables} tables`,
+                      entry.height ? `${entry.height}px` : null,
+                      entry.fenceCount > 0 ? qualityStats(entry) : null,
+                      entry.previewCalls > 0 ? plural(entry.previewCalls, 'preview') : null,
+                  ]
+                      .filter(Boolean)
+                      .join(' · ')
                 : '';
 
-        const updatePanel = (panel, model) => {
+        const qualityStats = (entry) =>
+            entry.layoutFindings === null || entry.layoutFindings === undefined
+                ? 'findings …'
+                : `${plural(entry.layoutFindings, 'finding')} · ${plural(entry.consoleErrors, 'error')}`;
+
+        /** The finding and error messages behind the counts, for the stats hover. */
+        const qualityTitle = (entry) =>
+            [...(entry?.findings?.layout ?? []), ...(entry?.findings?.console ?? [])].join('\n');
+
+        const updatePanel = (panel, column) => {
             const slug = view.slug;
-            const entry = entryFor(model.id, slug);
-            const status = statusOf(model.id, slug);
+            const entry = entryFor(column.id, slug);
+            const status = statusOf(column.id, slug);
 
             const pill = panel.querySelector('.pill');
             pill.className = `pill ${status}`;
             pill.textContent =
                 status === 'running'
-                    ? `running ${elapsed(jobFor(model.id, slug).startedAt)}`
+                    ? `running ${elapsed(jobFor(column.id, slug).startedAt)}`
                     : status === 'none'
                       ? 'no run'
                       : status;
@@ -1201,6 +1332,7 @@
             const caption = panel.querySelector('.caption');
             caption.style.display = entry?.reply ? '' : 'none';
             caption.textContent = `reply: ${replyStatsLine(entry)}`;
+            caption.title = qualityTitle(entry);
         };
 
         const updateLinks = (panel, entry) => {
@@ -1220,14 +1352,14 @@
             }
         };
 
-        const updateOverviewRow = (row, model) => {
-            const cell = row.querySelector('.ovcell');
-            const entry = entryFor(model.id, view.slug);
-            const status = statusOf(model.id, view.slug);
+        const updateOverviewCell = (cell, column) => {
+            const entry = entryFor(column.id, view.slug);
+            const status = statusOf(column.id, view.slug);
             const pill = cell.querySelector('.pill');
             pill.className = `pill ${status}`;
             pill.textContent = status === 'none' ? 'no run' : status;
             cell.querySelector('.stats').textContent = replyStatsLine(entry);
+            cell.querySelector('.stats').title = qualityTitle(entry);
 
             const thumb = cell.querySelector('.thumb');
             const png = entry?.urls?.[view.theme] ?? null;
@@ -1242,6 +1374,31 @@
                 thumb.dataset.key = png;
                 thumb.src = png;
             }
+        };
+
+        /** One dot per selected partner: a model's dots are its skills, and back. */
+        const syncDots = (button, pairs) => {
+            const host = button.querySelector('.dots');
+            while (host.children.length < pairs.length) {
+                host.append(document.createElement('i'));
+            }
+            while (host.children.length > pairs.length) {
+                host.lastChild.remove();
+            }
+            pairs.forEach(([label, column], index) => {
+                const status = column ? statusOf(column.id, view.slug) : 'none';
+                const dot = host.children[index];
+                dot.className = `dot ${status}`;
+                dot.title = `${label}: ${status}`;
+            });
+        };
+
+        /** The one cell shown full size: the focused cell, or the selection when it is one. */
+        const shownCell = () => {
+            const cells = selectedCells();
+            return cells.length === 1
+                ? cells[0]
+                : (cells.find((column) => column.id === view.focus) ?? null);
         };
 
         const tick = () => {
@@ -1261,29 +1418,65 @@
                 return;
             }
             for (const [modelId, button] of modelTabs) {
-                if (modelId === 'all') {
-                    continue;
+                if (modelId !== '*') {
+                    syncDots(
+                        button,
+                        view.skills.map((skillId) => [
+                            labelOf('skills', skillId),
+                            columnOf(modelId, skillId),
+                        ])
+                    );
                 }
-                const status = statusOf(modelId, view.slug);
-                const dot = button.querySelector('.dot');
-                dot.className = `dot ${status}`;
-                dot.title = status;
             }
-            for (const model of state.models) {
-                if (view.model === model.id) {
-                    updatePanel(panels.get(model.id), model);
-                } else if (view.model === 'all') {
-                    updateOverviewRow(overviewRows.get(model.id), model);
+            for (const [skillId, button] of skillTabs) {
+                if (skillId !== '*') {
+                    syncDots(
+                        button,
+                        view.models.map((modelId) => [
+                            labelOf('models', modelId),
+                            columnOf(modelId, skillId),
+                        ])
+                    );
                 }
+            }
+            const shown = shownCell();
+            if (shown) {
+                updatePanel(panels.get(shown.id), shown);
+                return;
+            }
+            for (const column of selectedCells()) {
+                updateOverviewCell(overviewCells.get(column.id), column);
             }
         };
 
-        const runScopeLabel = () => {
-            const model = state.models.find((candidate) => candidate.id === view.model);
-            return model ? `scope: ${model.label}` : `scope: all ${state.models.length} models`;
+        const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+        // The Run menu spends exactly the selected cells, so it says which ones and
+        // how many turns each choice costs before anything is pressed.
+        const updateRunMenu = () => {
+            const cells = selectedCells();
+            const scope = document.getElementById('runscope');
+            scope.replaceChildren();
+            const count = document.createElement('b');
+            count.textContent = `${plural(view.models.length, 'model')} × ${plural(view.skills.length, 'skill')} = ${plural(cells.length, 'cell')}`;
+            scope.append(
+                count,
+                `\n${cells
+                    .map(
+                        (column) =>
+                            `${labelOf('models', column.model)} · ${labelOf('skills', column.skill)}`
+                    )
+                    .join('\n')}`
+            );
+            const turns = { all: cells.length * state.prompts.length, one: cells.length };
+            for (const button of menu.querySelectorAll('.menuitems button')) {
+                const scopeName = button.dataset.scope;
+                button.textContent = `${scopeName === 'one' ? 'this question' : 'all questions'} · ${plural(turns[scopeName], 'turn')}`;
+            }
         };
 
-        const applyView = () => {
+        /** Every toggle's aria-pressed, from the view. */
+        const applyPressed = () => {
             for (const [id, key] of [
                 ['view', 'tab'],
                 ['theme', 'theme'],
@@ -1295,9 +1488,42 @@
             for (const [slug, button] of questionTabs) {
                 button.setAttribute('aria-pressed', String(view.slug === slug));
             }
-            for (const [modelId, button] of modelTabs) {
-                button.setAttribute('aria-pressed', String(view.model === modelId));
+            for (const [key, tabs] of [
+                ['models', modelTabs],
+                ['skills', skillTabs],
+            ]) {
+                for (const [id, button] of tabs) {
+                    const pressed =
+                        id === '*'
+                            ? view[key].length === state[key].length
+                            : view[key].includes(id);
+                    button.setAttribute('aria-pressed', String(pressed));
+                }
             }
+        };
+
+        /** One cell full size, or the grid of every selected cell. */
+        const applyCells = () => {
+            const cells = selectedCells();
+            if (!cells.some((column) => column.id === view.focus)) {
+                view.focus = null;
+            }
+            const shown = shownCell();
+            for (const [columnId, panel] of panels) {
+                panel.style.display = shown?.id === columnId ? '' : 'none';
+            }
+            if (shown) {
+                const back = panels.get(shown.id).querySelector('.back');
+                back.style.display = cells.length > 1 ? '' : 'none';
+                back.textContent = `← all ${cells.length} cells`;
+            } else {
+                layoutOverview();
+            }
+            document.getElementById('overview').style.display = shown ? 'none' : '';
+        };
+
+        const applyView = () => {
+            applyPressed();
             const prompt = state.prompts.find((candidate) => candidate.slug === view.slug);
             document.getElementById('ask').innerHTML =
                 '<span class="slug"></span><span class="text"></span>';
@@ -1309,11 +1535,9 @@
             document.getElementById('runs').style.display = runs ? '' : 'none';
             document.getElementById('fragments').style.display = runs ? 'none' : 'grid';
             document.getElementById('runmenu').style.display = runs ? '' : 'none';
-            document.getElementById('runscope').textContent = runs ? runScopeLabel() : '';
-            for (const [modelId, panel] of panels) {
-                panel.style.display = view.model === modelId ? '' : 'none';
-            }
-            document.getElementById('overview').style.display = view.model === 'all' ? '' : 'none';
+            updateRunMenu();
+
+            applyCells();
 
             loadTokens();
             if (!runs) {
@@ -1425,24 +1649,91 @@
             }
         };
 
-        // ── Deep links: view/question/model live in the hash, so a reload lands back
-        // on the same cell.
+        // ── Deep links: view, question, the model and skill selection, and a focused
+        // cell live in the hash, so a reload lands back on the same grid:
+        //     #/runs/<question>/<model,model>/<skill,skill>[/<focused column>]
+        const selectionKey = 'visuals-lab:selection';
+
+        /** Known ids from `ids`, in lineup order. */
+        const known = (key, ids) => state[key].map((item) => item.id).filter((id) => ids.has(id));
+
+        // A model token may be an older column id (`opus-5-5@v2`), so its skill is
+        // read off it too; `all` selects the whole row.
+        const parseSelection = (modelsPart = '', skillsPart = '') => {
+            const models = new Set();
+            const skills = new Set();
+            for (const token of modelsPart.split(',').filter(Boolean)) {
+                const [modelId, skillId] = decodeURIComponent(token).split('@');
+                for (const id of modelId === 'all' ? state.models.map((m) => m.id) : [modelId]) {
+                    models.add(id);
+                }
+                if (skillId) {
+                    skills.add(skillId);
+                }
+            }
+            for (const token of skillsPart.split(',').filter(Boolean)) {
+                for (const id of token === 'all' ? state.skills.map((s) => s.id) : [token]) {
+                    skills.add(decodeURIComponent(id));
+                }
+            }
+            return { models: known('models', models), skills: known('skills', skills) };
+        };
+
         const readHash = () => {
-            const [tab, slug, model] = location.hash.replace(/^#\/?/u, '').split('/');
+            const [tab, slug, models, skills, focus] = location.hash
+                .replace(/^#\/?/u, '')
+                .split('/');
             if (tab === 'fragments' || tab === 'runs') {
                 view.tab = tab;
             }
             if (slug && state.prompts.some((prompt) => prompt.slug === slug)) {
                 view.slug = slug;
             }
-            if (model === 'all' || state.models.some((candidate) => candidate.id === model)) {
-                view.model = model;
+            const picked = parseSelection(models, skills);
+            if (picked.models.length > 0) {
+                view.models = picked.models;
+            }
+            if (picked.skills.length > 0) {
+                view.skills = picked.skills;
+            }
+            view.focus = focus ? decodeURIComponent(focus) : null;
+        };
+
+        // Fills whatever the hash left empty: the viewer's last selection, then the
+        // first model under Current.
+        const restoreSelection = () => {
+            let saved = null;
+            try {
+                saved = JSON.parse(localStorage.getItem(selectionKey) ?? 'null');
+            } catch {
+                saved = null;
+            }
+            for (const key of ['models', 'skills']) {
+                if (view[key].length === 0 && Array.isArray(saved?.[key])) {
+                    view[key] = known(key, new Set(saved[key]));
+                }
+                if (view[key].length === 0) {
+                    view[key] = state[key].slice(0, 1).map((item) => item.id);
+                }
+            }
+        };
+
+        const saveSelection = () => {
+            try {
+                localStorage.setItem(
+                    selectionKey,
+                    JSON.stringify({ models: view.models, skills: view.skills })
+                );
+            } catch {
+                // Storage is a convenience; the hash still carries the selection.
             }
         };
 
         const pushHash = () => {
             const hash =
-                view.tab === 'fragments' ? '#/fragments' : `#/runs/${view.slug}/${view.model}`;
+                view.tab === 'fragments'
+                    ? '#/fragments'
+                    : `#/runs/${view.slug}/${view.models.join(',')}/${view.skills.join(',')}${view.focus ? `/${view.focus}` : ''}`;
             if (location.hash !== hash) {
                 history.replaceState(null, '', hash);
             }
@@ -1450,6 +1741,7 @@
 
         addEventListener('hashchange', () => {
             readHash();
+            pushHash();
             applyView();
         });
 
@@ -1458,6 +1750,8 @@
             view.slug ??= state.prompts[0]?.slug ?? null;
             if (!chromeBuilt) {
                 readHash();
+                restoreSelection();
+                saveSelection();
                 view.slug ??= state.prompts[0]?.slug ?? null;
                 buildChrome();
                 pushHash();
@@ -1496,9 +1790,11 @@
         for (const button of menu.querySelectorAll('.menuitems button')) {
             button.onclick = () => {
                 menu.classList.remove('open');
+                // The selected cells by id, never "everything": an unselected pair
+                // cannot be reached from here.
                 post('/api/run-all', {
+                    columns: selectedCells().map((column) => column.id),
                     efforts: Object.fromEntries(efforts),
-                    models: view.model === 'all' ? undefined : [view.model],
                     only: button.dataset.scope === 'one' ? view.slug : undefined,
                 });
             };

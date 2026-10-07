@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { columnById, readColumns, readSkills } from './columns.mjs';
 import { visualsBattery } from './engine/prompts.mjs';
 // The real frame, straight from the product: the card's srcdoc builder, the
 // sandbox capability list, the height clamp, and the resolved theme tokens.
@@ -20,12 +21,13 @@ import {
     buildVisualDocument,
     tokensCssFor,
     visualHeights,
+    visualSizeMessageType,
 } from './engine/render.mjs';
 // The skill's own copy-ready fences, read off the working tree at request time
 // so an edit to a module shows up on reload without restarting the server.
 import { readSkillFragments, skillDir, skillModules } from './engine/skill-fragments.mjs';
 import { enqueue, fragmentCheck, recentJobs, startFragmentCheck } from './jobs.mjs';
-import { efforts, modelById, models } from './models.mjs';
+import { efforts, models } from './models.mjs';
 import { replyToHtml } from './reply-html.mjs';
 import { readResults, resultsDir } from './run-reader.mjs';
 
@@ -33,18 +35,36 @@ const lab = path.dirname(fileURLToPath(import.meta.url));
 const schemes = ['light', 'dark'];
 const port = Number(process.env.PORT ?? 4390);
 
-const readState = async () => ({
-    efforts,
-    fragmentCheck,
-    frame: { heights: visualHeights, sandbox: agentHtmlSandbox },
-    jobs: recentJobs(),
-    models,
-    // The module names the read-chips are drawn from, without the extension,
-    // so the page never keeps its own copy of the skill's index.
-    modules: skillModules.map(withoutExtension),
-    prompts: visualsBattery.map((item) => ({ ask: item.ask, slug: item.slug })),
-    results: await readResults(models),
-});
+// The page selects models and skills separately and keys every cell off the
+// column id where they cross (columns.mjs).
+const readState = async () => {
+    const skills = readSkills();
+    const columns = readColumns();
+    return {
+        columns: columns.map(({ id, modelId, preview, skill }) => ({
+            id,
+            model: modelId,
+            preview,
+            skill,
+        })),
+        efforts,
+        fragmentCheck,
+        frame: {
+            heights: visualHeights,
+            sandbox: agentHtmlSandbox,
+            sizeMessageType: visualSizeMessageType,
+        },
+        jobs: recentJobs(),
+        models: models.map(({ id, label, reasoning }) => ({ id, label, reasoning })),
+        // The module names the read-chips are drawn from, without the extension,
+        // so the page never keeps its own copy of the skill's index.
+        modules: skillModules.map(withoutExtension),
+        prompts: visualsBattery.map((item) => ({ ask: item.ask, slug: item.slug })),
+        results: await readResults(columns),
+        // `preview`: the revision's lab.json puts `haus visual preview` on its turns' PATH.
+        skills: skills.map(({ id, label, preview, source }) => ({ id, label, preview, source })),
+    };
+};
 
 // A fragment belongs to whichever module's index points at it — the gallery
 // groups by that rather than by the one directory they all share. Read at call
@@ -147,7 +167,7 @@ const serveResult = async (pathname) => {
         : new Response('not found', { status: 404 });
 };
 
-/** The effort a run request asked for, defaulting to the model's own. */
+/** The effort a run request asked for, defaulting to the model's own. Efforts are per model. */
 const effortFor = (spec, requested) => (efforts.includes(requested) ? requested : spec.reasoning);
 
 Bun.serve({
@@ -181,28 +201,37 @@ Bun.serve({
         // The prose around the visual, as HTML: the whole message gets judged,
         // not just the frame.
         '/api/reply': renderReply,
+        // One cell: a column id, as the page's panel names it.
         '/api/run': {
             POST: async (request) => {
                 const body = await request.json();
-                const spec = modelById(body.model);
-                if (!spec) {
-                    return json({ error: 'unknown model' }, 400);
+                const column = columnById(body.column);
+                if (!column) {
+                    return json({ error: 'unknown column' }, 400);
                 }
-                return json({ job: enqueue(spec.id, body.only, effortFor(spec, body.effort)) });
+                return json({ job: enqueue(column, body.only, effortFor(column, body.effort)) });
             },
         },
+        // The page's selected cells, named explicitly. There is no "everything"
+        // default: a run never reaches a pair the page did not select.
         '/api/run-all': {
             POST: async (request) => {
                 const body = await request.json().catch(() => ({}));
-                const specs = body.models?.length
-                    ? body.models.map((id) => modelById(id))
-                    : [...models];
-                if (!specs.every(Boolean)) {
-                    return json({ error: 'unknown model' }, 400);
+                if (!(Array.isArray(body.columns) && body.columns.length > 0)) {
+                    return json({ error: 'name the columns to run' }, 400);
+                }
+                const columns = readColumns();
+                const picked = body.columns.map((id) => columnById(id, columns));
+                if (!picked.every(Boolean)) {
+                    return json({ error: 'unknown column' }, 400);
                 }
                 return json({
-                    jobs: specs.map((spec) =>
-                        enqueue(spec.id, body.only, effortFor(spec, body.efforts?.[spec.id]))
+                    jobs: picked.map((column) =>
+                        enqueue(
+                            column,
+                            body.only,
+                            effortFor(column, body.efforts?.[column.modelId])
+                        )
                     ),
                 });
             },

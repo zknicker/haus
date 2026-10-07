@@ -22,7 +22,9 @@ import {
     visualFallbackText,
 } from '../../../packages/haus-api/src/widgets/visual/contracts.ts';
 import { writeContactSheet } from '../../design-battery/contact-sheet.mjs';
+import { fenceFilesFor, findingsFileFor } from './findings.mjs';
 import { createHarnessRunner } from './harness-runner.mjs';
+import { countPreviewCalls } from './preview-calls.mjs';
 import { createVisualRenderer } from './render.mjs';
 import { assert, resolveRunConfig } from './run-config.mjs';
 import { createRunManifest, manifestTokens } from './run-manifest.mjs';
@@ -35,6 +37,7 @@ const {
     items,
     modelId,
     outDir,
+    preview,
     reasoningEffort,
     runLabel,
     runtimeId,
@@ -57,10 +60,12 @@ await ensureNativeSkillLinks(homeDir, skillsDir);
 const skills = await readAgentSkills(skillsDir);
 assert(skills.length > 0, `no skills seeded into ${skillsDir}`);
 
-const runner = createHarnessRunner({
+const runner = await createHarnessRunner({
+    binDir: path.join(agentRoot, 'bin'),
     executable,
     homeDir,
     modelId,
+    preview,
     reasoningEffort,
     runtimeId,
     workspaceDir,
@@ -74,11 +79,15 @@ process.stdout.write(
         ? `skill revision: ${skillDir} (${skillOverrides.join(', ')})\n`
         : 'skill revision: working tree\n'
 );
+if (preview) {
+    process.stdout.write(`preview: haus shim at ${path.join(agentRoot, 'bin', 'haus')}\n`);
+}
 
 const manifest = await createRunManifest({
     items,
     meta: {
         modelId,
+        preview,
         reasoningEffort,
         runtimeId,
         skillDir,
@@ -125,6 +134,7 @@ try {
         const readDesignSystem = turn.trace.some((entry) =>
             entry.input.includes('design-system.md')
         );
+        const previewCalls = countPreviewCalls(turn.trace);
         usageBySlug[item.slug] = {
             costUsd: turn.costUsd,
             readDesignSystem,
@@ -139,12 +149,13 @@ try {
         );
         usageBySlug[item.slug].visuals = visuals.length;
         process.stdout.write(
-            `  ${visuals.length} visual(s) · ${turn.trace.length} tool calls · design-system.md ${readDesignSystem ? 'read' : 'NOT read'} · ${seconds}s\n`
+            `  ${visuals.length} visual(s) · ${turn.trace.length} tool calls · ${previewCalls} preview(s) · design-system.md ${readDesignSystem ? 'read' : 'NOT read'} · ${seconds}s\n`
         );
         const entry = {
             designSystemRead: readDesignSystem,
             fenceCount: visuals.length,
             files: { reply: replyFile, trace: traceFile },
+            previewCalls,
             tokens: manifestTokens(turn.usage),
             wallMs,
         };
@@ -158,10 +169,18 @@ try {
             continue;
         }
 
+        const quality = { console: [], layout: [] };
+        const fenceFiles = fenceFilesFor(item.slug, visuals.length);
         for (const [index, visual] of visuals.entries()) {
             const slug = index === 0 ? item.slug : `${item.slug}-${index + 1}`;
-            await writeFile(path.join(outDir, `${slug}.visual.html`), visual.html);
-            const { files } = await renderer.render({ html: visual.html, outDir, slug });
+            await writeFile(path.join(outDir, fenceFiles[index]), visual.html);
+            const { consoleErrors, files, findings } = await renderer.render({
+                html: visual.html,
+                outDir,
+                slug,
+            });
+            quality.console.push(...consoleErrors.map((text) => `${slug}: ${text}`));
+            quality.layout.push(...findings.map((text) => `${slug}: ${text}`));
             captures.push({
                 files,
                 item: {
@@ -174,11 +193,24 @@ try {
                 Object.assign(entry.files, {
                     dark: files.dark,
                     light: files.light,
-                    visual: `${slug}.visual.html`,
+                    visual: fenceFiles[0],
                 });
             }
         }
-        await manifest.record(item.slug, { ...entry, status: 'ok' });
+        // The objective read on every column: what the shipped fences do in the
+        // real frame, whether or not the agent previewed them first.
+        const findingsFile = findingsFileFor(item.slug);
+        await writeFile(path.join(outDir, findingsFile), `${JSON.stringify(quality, null, 2)}\n`);
+        process.stdout.write(
+            `  ${quality.layout.length} layout finding(s) · ${quality.console.length} console error(s)\n`
+        );
+        await manifest.record(item.slug, {
+            ...entry,
+            consoleErrors: quality.console.length,
+            files: { ...entry.files, findings: findingsFile },
+            layoutFindings: quality.layout.length,
+            status: 'ok',
+        });
     }
 } finally {
     await renderer.close();

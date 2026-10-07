@@ -48,6 +48,11 @@ const asks = {
     'marketplace-glance': "how's each marketplace doing at a glance",
     'monthly-goal-progress': 'how close am I to my $30K monthly revenue goal?',
     'account-health': 'anything I should worry about — returns, cancellations, stale sync?',
+    'weekly-report':
+        'can you put together my weekly report? headline numbers for the last 7 days, how revenue has trended week by week over the last month, and the breakdowns — which designs, which marketplaces, which product categories. one view I can skim',
+    'quarter-trend': 'how have weekly sales trended this quarter? break it down by marketplace',
+    'ui-mockup':
+        "I want a sales-goal progress banner at the top of my dashboard showing how I'm tracking against the $30K monthly goal. mock up 2–3 different designs for it right here so I can pick one, and tell me which you'd go with",
 };
 
 /** `ask` is the human line alone; `prompt` is that line plus the data block. */
