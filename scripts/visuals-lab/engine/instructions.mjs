@@ -14,20 +14,9 @@ export const visualsPointer = `## Visuals
 
 Numbers over time or across categories get an inline visual (bespoke HTML/SVG) by default; keepable deliverables get artifact pages. Before emitting either fence, read the visuals skill: it says when not to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
 
-// The no-CLI rule is exactly what every pre-preview run was given, so a plain
-// column's prompt does not move. A `--preview` run puts a `haus` shim on PATH
-// (harness-runner.mjs) whose only working group is `haus visual`, so its rule
-// names that one command instead.
-const cliRules = {
-    none: 'There is no `haus message send` here and no haus CLI; do not try to run it.',
-    preview:
-        'There is no `haus message send` here; the only haus command that works is `haus visual preview`.',
-};
+const outputsSection = `## Outputs
 
-/** The lab's whole prompt: the visuals pointer plus an Outputs rule that keeps the fence in the reply. */
-export const labInstructionsFor = ({ preview = false } = {}) => `${visualsPointer}
-
-## Outputs
-
-- Fences render directly in your reply: write the \`\`\`visual fence in the body of your final assistant message. ${preview ? cliRules.preview : cliRules.none}
+- Fences render directly in your reply: write the \`\`\`visual fence in the body of your final assistant message. There is no \`haus message send\` here and no haus CLI; do not try to run it.
 - Text goes in your reply, the visual goes in the fence.`;
+
+export const labInstructions = `${visualsPointer}\n\n${outputsSection}`;

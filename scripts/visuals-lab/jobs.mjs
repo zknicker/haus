@@ -73,9 +73,6 @@ const startJob = async (job, column) => {
     if (column.skillDir) {
         args.push('--skill-dir', column.skillDir);
     }
-    if (column.preview) {
-        args.push('--preview');
-    }
 
     log.write(`$ bun ${args.join(' ')}\n\n`);
     const child = Bun.spawn(['bun', ...args], { cwd: repoRoot, stderr: 'pipe', stdout: 'pipe' });

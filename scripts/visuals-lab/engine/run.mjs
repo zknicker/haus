@@ -24,7 +24,6 @@ import {
 import { writeContactSheet } from '../../design-battery/contact-sheet.mjs';
 import { fenceFilesFor, findingsFileFor } from './findings.mjs';
 import { createHarnessRunner } from './harness-runner.mjs';
-import { countPreviewCalls } from './preview-calls.mjs';
 import { createVisualRenderer } from './render.mjs';
 import { assert, resolveRunConfig } from './run-config.mjs';
 import { createRunManifest, manifestTokens } from './run-manifest.mjs';
@@ -37,7 +36,6 @@ const {
     items,
     modelId,
     outDir,
-    preview,
     reasoningEffort,
     runLabel,
     runtimeId,
@@ -60,12 +58,10 @@ await ensureNativeSkillLinks(homeDir, skillsDir);
 const skills = await readAgentSkills(skillsDir);
 assert(skills.length > 0, `no skills seeded into ${skillsDir}`);
 
-const runner = await createHarnessRunner({
-    binDir: path.join(agentRoot, 'bin'),
+const runner = createHarnessRunner({
     executable,
     homeDir,
     modelId,
-    preview,
     reasoningEffort,
     runtimeId,
     workspaceDir,
@@ -79,15 +75,11 @@ process.stdout.write(
         ? `skill revision: ${skillDir} (${skillOverrides.join(', ')})\n`
         : 'skill revision: working tree\n'
 );
-if (preview) {
-    process.stdout.write(`preview: haus shim at ${path.join(agentRoot, 'bin', 'haus')}\n`);
-}
 
 const manifest = await createRunManifest({
     items,
     meta: {
         modelId,
-        preview,
         reasoningEffort,
         runtimeId,
         skillDir,
@@ -134,7 +126,6 @@ try {
         const readDesignSystem = turn.trace.some((entry) =>
             entry.input.includes('design-system.md')
         );
-        const previewCalls = countPreviewCalls(turn.trace);
         usageBySlug[item.slug] = {
             costUsd: turn.costUsd,
             readDesignSystem,
@@ -149,13 +140,12 @@ try {
         );
         usageBySlug[item.slug].visuals = visuals.length;
         process.stdout.write(
-            `  ${visuals.length} visual(s) · ${turn.trace.length} tool calls · ${previewCalls} preview(s) · design-system.md ${readDesignSystem ? 'read' : 'NOT read'} · ${seconds}s\n`
+            `  ${visuals.length} visual(s) · ${turn.trace.length} tool calls · design-system.md ${readDesignSystem ? 'read' : 'NOT read'} · ${seconds}s\n`
         );
         const entry = {
             designSystemRead: readDesignSystem,
             fenceCount: visuals.length,
             files: { reply: replyFile, trace: traceFile },
-            previewCalls,
             tokens: manifestTokens(turn.usage),
             wallMs,
         };
@@ -198,7 +188,7 @@ try {
             }
         }
         // The objective read on every column: what the shipped fences do in the
-        // real frame, whether or not the agent previewed them first.
+        // real frame.
         const findingsFile = findingsFileFor(item.slug);
         await writeFile(path.join(outDir, findingsFile), `${JSON.stringify(quality, null, 2)}\n`);
         process.stdout.write(

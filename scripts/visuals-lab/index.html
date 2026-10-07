@@ -1210,8 +1210,7 @@
         /**
          * The reply's own line: words and tables, how tall the visual came out,
          * then the objective read on the shipped fences (layout findings and
-         * console errors, "…" while an old run is being probed) and, when the
-         * turn ran any, its own `haus visual preview` calls.
+         * console errors, "…" while an old run is being probed).
          */
         const replyStatsLine = (entry) =>
             entry?.reply
@@ -1220,7 +1219,6 @@
                       `${entry.reply.tables} tables`,
                       entry.height ? `${entry.height}px` : null,
                       entry.fenceCount > 0 ? qualityStats(entry) : null,
-                      entry.previewCalls > 0 ? plural(entry.previewCalls, 'preview') : null,
                   ]
                       .filter(Boolean)
                       .join(' · ')

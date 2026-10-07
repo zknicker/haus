@@ -18,7 +18,6 @@ export const createRunManifest = async ({ items, meta, outDir }) => {
             fenceCount: 0,
             files: {},
             layoutFindings: null,
-            previewCalls: 0,
             slug: item.slug,
             status: 'pending',
             tokens: null,

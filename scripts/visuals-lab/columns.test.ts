@@ -21,16 +21,13 @@ afterEach(async () => {
     await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
 });
 
-const variantsRoot = async (variants: Record<string, { lab?: string; skill?: boolean }>) => {
+const variantsRoot = async (variants: Record<string, { skill?: boolean }>) => {
     const root = await mkdtemp(path.join(tmpdir(), 'visuals-lab-variants-'));
     roots.push(root);
-    for (const [name, { lab, skill = true }] of Object.entries(variants)) {
+    for (const [name, { skill = true }] of Object.entries(variants)) {
         await mkdir(path.join(root, name), { recursive: true });
         if (skill) {
             await writeFile(path.join(root, name, 'SKILL.md'), '# skill\n');
-        }
-        if (lab !== undefined) {
-            await writeFile(path.join(root, name, 'lab.json'), lab);
         }
     }
     return root;
@@ -69,25 +66,4 @@ test('directories without a SKILL.md, with an unsafe name, or named current are 
     const root = await variantsRoot({ Bad_Name: {}, current: {}, 'no-skill': { skill: false } });
     expect(readSkills(root).map((skill) => skill.id)).toEqual(['current']);
     expect(readColumns(lineup, root).map((column) => column.id)).toEqual(['opus', 'grok']);
-});
-
-test('a revision whose lab.json asks for preview runs its columns with preview', async () => {
-    const root = await variantsRoot({
-        plain: {},
-        quiet: { lab: '{"preview": false}' },
-        seen: { lab: '{"preview": true}' },
-    });
-    expect(readSkills(root).map((skill) => [skill.id, skill.preview])).toEqual([
-        ['current', false],
-        ['plain', false],
-        ['quiet', false],
-        ['seen', true],
-    ]);
-    const previewing = readColumns(lineup, root).filter((column) => column.preview);
-    expect(previewing.map((column) => column.id)).toEqual(['opus@seen', 'grok@seen']);
-});
-
-test('a malformed lab.json is an error, not a silent default', async () => {
-    const root = await variantsRoot({ broken: { lab: '{preview: true' } });
-    expect(() => readSkills(root)).toThrow(/lab\.json is not valid JSON/u);
 });

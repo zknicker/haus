@@ -9,17 +9,13 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-    analyzeLayout,
-    layoutFactsExpression,
-    layoutFactsSchema,
-} from '../../../apps/computer/src/visual-preview/layout-probe.ts';
-import {
     agentHtmlSandbox,
     buildVisualSrcDoc,
     visualHeights,
     visualSizeMessageType,
 } from '../../../packages/haus-api/src/widgets/visual/frame.ts';
 import { resolveTokens } from '../../agent-html-tokens/generate-ios-tokens.ts';
+import { analyzeLayout, layoutFactsExpression, layoutFactsSchema } from './layout-probe.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const websiteRequire = createRequire(path.join(here, '../../../apps/website/package.json'));
@@ -90,8 +86,8 @@ export const createVisualRenderer = async ({ width = 736 } = {}) => {
         await page.waitForTimeout(500);
     };
 
-    // The same in-frame geometry collector and judgment `haus visual preview`
-    // uses, so a lab finding and an agent's own preview finding are one rule.
+    // Measures the frame in place (layout-probe-source.ts) and judges the
+    // geometry outside it (layout-probe.ts).
     const probeLayout = async () => {
         const frame = page
             .frames()

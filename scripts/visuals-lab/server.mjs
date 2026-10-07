@@ -41,12 +41,7 @@ const readState = async () => {
     const skills = readSkills();
     const columns = readColumns();
     return {
-        columns: columns.map(({ id, modelId, preview, skill }) => ({
-            id,
-            model: modelId,
-            preview,
-            skill,
-        })),
+        columns: columns.map(({ id, modelId, skill }) => ({ id, model: modelId, skill })),
         efforts,
         fragmentCheck,
         frame: {
@@ -61,8 +56,7 @@ const readState = async () => {
         modules: skillModules.map(withoutExtension),
         prompts: visualsBattery.map((item) => ({ ask: item.ask, slug: item.slug })),
         results: await readResults(columns),
-        // `preview`: the revision's lab.json puts `haus visual preview` on its turns' PATH.
-        skills: skills.map(({ id, label, preview, source }) => ({ id, label, preview, source })),
+        skills: skills.map(({ id, label, source }) => ({ id, label, source })),
     };
 };
 

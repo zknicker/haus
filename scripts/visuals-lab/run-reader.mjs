@@ -6,7 +6,6 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findingsFileFor } from './engine/findings.mjs';
-import { countPreviewCallsInTrace } from './engine/preview-calls.mjs';
 import { fragmentFiles, skillModules } from './engine/skill-fragments.mjs';
 import { backfillFindings } from './findings-backfill.mjs';
 import { stripVisualFences } from './reply-html.mjs';
@@ -61,8 +60,6 @@ const promptEntry = async (prompt, { base, runDir, stamp, width }) => {
         consoleErrors: quality?.console.length ?? null,
         findings: quality,
         layoutFindings: quality?.layout.length ?? null,
-        // Older manifests never counted previews; the trace still shows them.
-        previewCalls: prompt.previewCalls ?? refs?.previewCalls ?? null,
         height: files.dark ? await pngHeight(path.join(runDir, files.dark)) : null,
         logUrl: `${base}/job.log`,
         refs,
@@ -120,7 +117,6 @@ const traceReads = (file) =>
         return {
             fragments: named(text, fragmentFiles().map(withoutExtension)),
             modules: named(text, skillModules.map(withoutExtension)),
-            previewCalls: countPreviewCallsInTrace(text),
             skill: skillRead.test(text),
         };
     });

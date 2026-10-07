@@ -8,15 +8,10 @@
 // under a revision it is `<model>@<name>`, its runs pass `--skill-dir`, and they
 // land in `results/<model>@<name>/<stamp>/`.
 //
-// A revision may carry a `lab.json` beside its SKILL.md: lab metadata, never
-// copied into the seeded skill. `{"preview": true}` runs its columns with
-// `--preview`, which puts a `haus` shim on the turn's PATH so the agent can
-// call `haus visual preview` (harness-runner.mjs).
-//
 // Every pair is a column; the page's selection, not this file, decides which
 // ones get run. Skills are read at request time, so dropping a directory in
 // shows up on reload.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { models } from './models.mjs';
@@ -26,7 +21,6 @@ export const variantsDir = path.join(path.dirname(fileURLToPath(import.meta.url)
 export const currentSkill = {
     id: 'current',
     label: 'Current',
-    preview: false,
     skillDir: null,
     source: 'packages/agent-workspace/src/visuals-skill',
 };
@@ -45,7 +39,6 @@ export const readColumns = (lineup = models, dir = variantsDir) => {
             ...spec,
             id: columnId(spec.id, skill.id),
             modelId: spec.id,
-            preview: skill.preview,
             skill: skill.id,
             skillDir: skill.skillDir,
         }))
@@ -70,22 +63,8 @@ export const readVariants = (dir = variantsDir) => {
         .map((entry) => ({
             id: entry.name,
             label: entry.name,
-            preview: readLabMarker(path.join(dir, entry.name)).preview === true,
             skillDir: path.join(dir, entry.name),
             source: `scripts/visuals-lab/skills/${entry.name}`,
         }))
         .sort((a, b) => a.id.localeCompare(b.id));
-};
-
-/** The revision's `lab.json`, or `{}` when it has none. A malformed one is an error, not a default. */
-const readLabMarker = (skillDir) => {
-    const file = path.join(skillDir, 'lab.json');
-    if (!existsSync(file)) {
-        return {};
-    }
-    try {
-        return JSON.parse(readFileSync(file, 'utf8'));
-    } catch (error) {
-        throw new Error(`${file} is not valid JSON: ${String(error)}`);
-    }
 };
