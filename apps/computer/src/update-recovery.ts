@@ -1,18 +1,32 @@
+import { computerVersion } from './build-identity.ts';
 import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';
 import type { ComputerUpdateProgress } from './update-contract.ts';
 
 /**
- * Any process that starts after an update restart reports completion, so the Server sees
- * `complete` whether the resident or an attachment daemon comes up first.
+ * Any process that starts after an update restart settles it, so the Server sees the outcome
+ * whether the resident or an attachment daemon comes up first. The running version decides:
+ * the previous process's shutdown errors do not.
  */
-export async function finishRestart(root: string) {
+export async function finishRestart(root: string, runningVersion = computerVersion) {
     const current = await readUpdateProgress(root);
     if (current.phase !== 'restarting') {
         return;
     }
+    if (current.targetVersion === runningVersion) {
+        await writeUpdateProgress(
+            root,
+            progress('complete', current.targetVersion, 'Haus Computer updated successfully.')
+        );
+        return;
+    }
     await writeUpdateProgress(
         root,
-        progress('complete', current.targetVersion, 'Haus Computer updated successfully.')
+        progress(
+            'failed',
+            current.targetVersion,
+            `Haus Computer restarted on ${runningVersion} instead of ${current.targetVersion}.`,
+            { failedPhase: 'restarting' }
+        )
     );
 }
 

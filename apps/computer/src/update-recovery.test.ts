@@ -32,13 +32,29 @@ test('a restart completes only a restarting update', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     try {
         await writeUpdateProgress(dataRoot, progress('installing', '1.1.0', 'Installing update.'));
-        await finishRestart(dataRoot);
+        await finishRestart(dataRoot, '1.1.0');
         expect((await readUpdateProgress(dataRoot)).phase).toBe('installing');
 
         await writeUpdateProgress(dataRoot, progress('restarting', '1.1.0', 'Restarting.'));
-        await finishRestart(dataRoot);
+        await finishRestart(dataRoot, '1.1.0');
         expect(await readUpdateProgress(dataRoot)).toMatchObject({
             phase: 'complete',
+            targetVersion: '1.1.0',
+        });
+    } finally {
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('a restart that comes up on another version reports the restart as failed', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    try {
+        await writeUpdateProgress(dataRoot, progress('restarting', '1.1.0', 'Restarting.'));
+        await finishRestart(dataRoot, '1.0.0');
+        expect(await readUpdateProgress(dataRoot)).toMatchObject({
+            detail: 'Haus Computer restarted on 1.0.0 instead of 1.1.0.',
+            failedPhase: 'restarting',
+            phase: 'failed',
             targetVersion: '1.1.0',
         });
     } finally {
@@ -88,7 +104,11 @@ test('an attachment daemon reports a restarted update as complete on reconnect',
     );
     await writeUpdateProgress(dataRoot, progress('restarting', '1.1.0', 'Restarting.'));
     const child = Bun.spawn(['bun', entrypoint, '__attachment-daemon', serverId], {
-        env: { ...process.env, HAUS_COMPUTER_DATA_ROOT: dataRoot },
+        env: {
+            ...process.env,
+            HAUS_COMPUTER_BUILD_VERSION: '1.1.0',
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+        },
         stderr: 'pipe',
         stdout: 'pipe',
     });
