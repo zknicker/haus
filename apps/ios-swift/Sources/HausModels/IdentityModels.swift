@@ -190,6 +190,9 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
     public let missingResources: [String]
     public let serverID: String
     public let status: AgentStatus
+    /// Set while the Server has paused automatic wakes after repeated
+    /// failures. Servers that predate the field omit it.
+    public var wakePause: AgentWakePause? = nil
 
     enum CodingKeys: String, CodingKey {
         case availability
@@ -213,6 +216,7 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
         case missingResources
         case serverID = "serverId"
         case status
+        case wakePause
     }
 }
 

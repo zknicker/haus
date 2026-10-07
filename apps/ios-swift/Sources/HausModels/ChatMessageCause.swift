@@ -2,10 +2,13 @@ import Foundation
 
 /// Why a message exists: the automation fire that produced it.
 ///
-/// The Server attaches this to messages an automation caused. It is an
-/// evolving wire shape — new keys ship on the Server independent of client
-/// releases — so unknown keys decode away and an unknown `kind` keeps its raw
-/// string rather than failing the row.
+/// The Server attaches this to messages a Reminder or Trigger caused
+/// (`messageCauseSchema`). It is an evolving wire shape — new keys ship on the
+/// Server independent of client releases — so unknown keys decode away and an
+/// unknown `kind` keeps its raw string rather than failing the row. `title`,
+/// `summary`, `description`, and `firedAt` are snapshotted when the cause is
+/// recorded, so the provenance outlives the automation; `live` is the
+/// automation as it stands now, null once it has been archived.
 public struct ChatMessageCause: Codable, Sendable, Equatable {
     /// Server-defined automation kinds, tolerant of values this build does not
     /// know, in the same shape as `ChatAuthor.SystemAuthor`.
@@ -33,46 +36,70 @@ public struct ChatMessageCause: Codable, Sendable, Equatable {
         }
     }
 
+    /// The automation as it stands now, read live from its record.
+    public struct Live: Codable, Sendable, Equatable {
+        public let fireCount: Int
+        /// The Trigger's standing instruction or the Reminder's script, snipped.
+        public let instruction: String?
+        public let lastFiredAt: Date?
+        /// `armed`, `scheduled`, `fired`, `canceled`, or `disabled`.
+        public let status: String
+
+        public init(fireCount: Int, instruction: String?, lastFiredAt: Date?, status: String) {
+            self.fireCount = fireCount
+            self.instruction = instruction
+            self.lastFiredAt = lastFiredAt
+            self.status = status
+        }
+    }
+
+    /// `explicit` when the Agent named the fire, `inferred` when the Server did.
+    public let attribution: String
     public let automationID: String
-    public let fireCount: Int
+    /// What a Reminder's short title stands for; null for a Trigger.
+    public let description: String?
+    public let firedAt: Date
     public let fireID: String
-    public let instruction: String?
     public let kind: Kind
-    public let lastFiredAt: Date?
-    public let status: String
+    public let live: Live?
+    public let ownerAgentID: String
+    /// A Reminder's cadence or a Trigger's kind label ("Webhook").
     public let summary: String
     public let title: String
 
     enum CodingKeys: String, CodingKey {
+        case attribution
         case automationID = "automationId"
-        case fireCount
+        case description
+        case firedAt
         case fireID = "fireId"
-        case instruction
         case kind
-        case lastFiredAt
-        case status
+        case live
+        case ownerAgentID = "ownerAgentId"
         case summary
         case title
     }
 
     public init(
+        attribution: String,
         automationID: String,
-        fireCount: Int,
+        description: String?,
+        firedAt: Date,
         fireID: String,
-        instruction: String?,
         kind: Kind,
-        lastFiredAt: Date?,
-        status: String,
+        live: Live?,
+        ownerAgentID: String,
         summary: String,
         title: String
     ) {
+        self.attribution = attribution
         self.automationID = automationID
-        self.fireCount = fireCount
+        self.description = description
+        self.firedAt = firedAt
         self.fireID = fireID
-        self.instruction = instruction
         self.kind = kind
-        self.lastFiredAt = lastFiredAt
-        self.status = status
+        self.live = live
+        self.ownerAgentID = ownerAgentID
         self.summary = summary
         self.title = title
     }
