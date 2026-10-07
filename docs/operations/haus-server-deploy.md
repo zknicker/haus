@@ -234,6 +234,10 @@ rollback does not reverse database changes. Destructive cleanup lands only in a
 later release after every deployed Server version has stopped using the old
 shape.
 
+Migration 0064 keeps the physical `agents.personality` column for rollback to Server 7.1.0.
+The current Server maps its conversation-style field onto that same column, so both versions
+read and write the same value. The product API uses conversation style.
+
 The retired `chat_reads.done_sequence` column remains solely for rollback to Server 5.0.0.
 Migration 0054 deliberately keeps it and its values. Remove it in a new migration only after
 Server 5.0.0 is outside the production rollback window; never reinstate the Done feature.
