@@ -151,8 +151,8 @@ The trace owns its motion and disclosure state. A trace the relay answers after 
 opened, and a step a live turn adds, grow into place (`turn-trace-reveal.tsx`); a view
 that closes keeps its last trace, and reopening shows it while the relay refreshes. In the
 Activity tab, rows open and close with one animated height transition: a reopened row
-grows to the trace it kept exactly as a collapsing row shrinks from it, and only a row
-opened before its first trace arrives opens at once and lets the trace grow in. Each step row is
+grows to the trace it kept exactly as a collapsing row shrinks from it, and a row opened
+before its first trace arrives opens to its totals line, then lets the trace grow in. Each step row is
 its own disclosure: the trace resets React Aria's disclosure-group context, so the
 Activity tab's turn accordion never owns a call's open state.
 

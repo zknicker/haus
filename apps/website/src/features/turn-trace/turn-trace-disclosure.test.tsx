@@ -127,28 +127,16 @@ test('trace content reveals on a no-bounce spring, and at once under reduced mot
     assert.ok(transition.opacity.duration <= 0.2);
 });
 
-test('a turn row reopens on the same transition it closes with', () => {
-    // Only a row with nothing yet to measure opens at once; one holding a
-    // trace keeps the stock height transition both ways, and no open panel is
-    // promoted to its own layer.
-    assert.match(
-        theme,
-        /\.accordion--activity-history\s+\.accordion__panel\[data-expanded='true'\]:not\(:has\(\[data-turn-trace\] > \*\)\) \{\s*transition: none;\s*\}/
-    );
+test('a turn row opens and closes on the one stock height transition', () => {
+    // The open row's totals line stands before the relay answers, so every
+    // panel holds something to measure: no row opens at once, and no open
+    // panel is promoted to its own layer.
+    assert.doesNotMatch(theme, /:not\(:has\(\[data-turn-trace\]/);
     assert.match(
         theme,
         /\.accordion--activity-history \.accordion__panel\[data-expanded='true'\] \{\s*will-change: auto;\s*\}/
     );
     assert.doesNotMatch(theme, /\.accordion--activity-history[^{]*\{[^}]*will-change: (?!auto)/);
-
-    // A row opened before the relay answers holds an empty trace root; a
-    // closed row's retained trace keeps content there to measure.
-    const pending = renderToStaticMarkup(
-        <TurnTracePresentation access="journal" isPending presentation={null} />
-    );
-    assert.match(pending, /<div class="[^"]*" data-turn-trace="true"><\/div>/);
-    const retained = render(journal({ tools: [tool({ toolCallId: 'call-read' })] }));
-    assert.match(retained, /data-turn-trace="true"><div/);
 });
 
 test('the theme sets stock ChatTool section labels on the trace micro-label tier', () => {

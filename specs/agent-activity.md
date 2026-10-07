@@ -254,10 +254,13 @@ noun the previous action named is not repeated. A turn with no actions and no me
 
 Opening a turn replaces its truncated title in place with the whole request, wrapping, stated
 once. Below it, on the page's own ground with no inset panel and starting at the request's left
-edge, sit a small ghost button back to its Chat (`View in #product`, or `View in DM with Tiny`
-naming this Agent, the one place a DM names its peer), one muted totals line
-(`32s · 8 calls · 3 sub-agents · 1 failed · Done`, failures in `danger`), and the trace. The row's
-hairline closes it; there is no totals footer. A running turn has not settled into
+edge, sit one muted totals line (`32s · 8 calls · 3 sub-agents · 1 failed · Done`, failures in
+`danger`) and the trace. The totals line ends, on the trace's right edge, in a small `secondary`
+button with a trailing arrow back to its Chat (`View in #product`, or `View in DM with Tiny` naming
+this Agent, the one place a DM names its peer). The line always stands: until the journal's steps
+arrive, and for viewers or offline Computers without them, it states the turn summary instead
+(`32s · Ran 3 sub-agents · sent 1 message · Done`), and the journal's totals later take the same
+line. The row's hairline closes it; there is no totals footer. A running turn has not settled into
 `agent.turns`, so its row reads its trigger through `agent.runTrigger` and is titled the same way
 while it works. Trigger messages are read once per list through a small rolling
 window of ordinary message reads, never one burst per row. These compact totals are part of

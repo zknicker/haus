@@ -1,9 +1,11 @@
 import type { Agent } from '@haus/api';
 import { Accordion, Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CopyButton } from '../../../components/copy-button.tsx';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
@@ -158,12 +160,6 @@ function ActivityTurnHistory({
                                     <Accordion.Panel>
                                         <Accordion.Body>
                                             <TurnRowBody>
-                                                <TurnChatButton
-                                                    agentName={agentName}
-                                                    serverSlug={serverSlug}
-                                                    title={titleOf(row.latest)}
-                                                    turn={row.latest}
-                                                />
                                                 {/* Trace rows pad their own hover fill;
                                                     their icons, not the fill, meet the
                                                     request's edge. */}
@@ -174,6 +170,14 @@ function ActivityTurnHistory({
                                                         enabled={expanded.has(row.latest.runId)}
                                                         runId={row.latest.runId}
                                                         serverId={serverId}
+                                                        stripAction={
+                                                            <TurnChatButton
+                                                                agentName={agentName}
+                                                                serverSlug={serverSlug}
+                                                                title={titleOf(row.latest)}
+                                                                turn={row.latest}
+                                                            />
+                                                        }
                                                         totalsPlacement="strip"
                                                         turn={row.latest}
                                                     />
@@ -191,7 +195,7 @@ function ActivityTurnHistory({
     );
 }
 
-/** The way back to the Chat the request came from, once the row is open. */
+/** The way back to the Chat the request came from, ending the open row's totals line. */
 function TurnChatButton({
     agentName,
     serverSlug,
@@ -209,17 +213,14 @@ function TurnChatButton({
         return null;
     }
     return (
-        // The ghost button pads its own hover fill; its label, not the fill,
-        // meets the request's edge, like the trace rows below it.
-        <div className="-mx-3 flex">
-            <Button
-                onPress={() => navigate(serverChatRoute(serverSlug, trigger.chatId))}
-                size="sm"
-                variant="ghost"
-            >
-                {turnChatActionLabel(title.place, agentName)}
-            </Button>
-        </div>
+        <Button
+            onPress={() => navigate(serverChatRoute(serverSlug, trigger.chatId))}
+            size="sm"
+            variant="secondary"
+        >
+            {turnChatActionLabel(title.place, agentName)}
+            <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
+        </Button>
     );
 }
 

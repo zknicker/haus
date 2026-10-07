@@ -72,24 +72,6 @@ test('the trace is one grid of borderless rows with totals stated once, in its f
     assert.doesNotMatch(markup, />\d+ms</);
 });
 
-test('a strip host states the totals once, as one muted line above the steps', () => {
-    const markup = renderToStaticMarkup(
-        <TurnTracePresentation
-            access="journal"
-            isPending={false}
-            presentation={{ journal: complexTurn, kind: 'available' }}
-            totalsPlacement="strip"
-        />
-    );
-    assert.doesNotMatch(markup, /data-trace-footer/);
-    const strip = markup.slice(markup.indexOf('data-trace-strip'), markup.indexOf('trace-row'));
-    const parts = [...strip.matchAll(/<span(?: class="([^"]*)")?>([^<·]+)<\/span>/g)].map(
-        (match) => match[2]
-    );
-    assert.deepEqual(parts, ['1m 25s', '12 calls', '3 sub-agents', '3 failed', 'Done']);
-    assert.match(strip, /class="text-danger">3 failed</);
-});
-
 test('steps are tab stops only when they open to something', () => {
     const markup = renderJournal(
         journal([

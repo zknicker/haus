@@ -1,3 +1,4 @@
+import type { AgentExecutionJournal } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { CancelCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -22,7 +23,11 @@ import { TurnTraceFooter } from './turn-trace-footer.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
 import { TurnTraceScopeProvider, type TurnTraceWorkspace } from './turn-trace-scope.tsx';
 import { TurnTraceScroll } from './turn-trace-scroll.tsx';
-import { TurnTraceStatsStrip } from './turn-trace-stats-strip.tsx';
+import {
+    journalStripParts,
+    summaryStripParts,
+    TurnTraceStatsStrip,
+} from './turn-trace-stats-strip.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from './turn-trace-view.ts';
 import { useTurnTraceNow } from './use-turn-trace-now.ts';
@@ -39,6 +44,7 @@ export function TurnTrace({
     outcome = null,
     runId,
     serverId,
+    stripAction,
     totalsPlacement = 'footer',
     turn,
 }: {
@@ -49,6 +55,8 @@ export function TurnTrace({
     outcome?: AgentActivityTurn | null;
     runId: string | null;
     serverId: string;
+    /** Ends the `strip` line, on the trace's right edge. */
+    stripAction?: React.ReactNode;
     /**
      * `footer` closes the trace with its totals; `strip` states them as one
      * muted line above the steps, for a host whose header leads into the trace.
@@ -81,6 +89,8 @@ export function TurnTrace({
             outcome={outcome}
             presentation={presentation}
             refreshError={journal.refreshError}
+            stripAction={stripAction}
+            summary={turn}
             totalsPlacement={totalsPlacement}
             workspace={agentId ? { agentId, serverId } : null}
         />
@@ -95,6 +105,8 @@ export function TurnTracePresentation({
     outcome = null,
     presentation,
     refreshError = null,
+    stripAction,
+    summary = null,
     totalsPlacement = 'footer',
     workspace = null,
 }: {
@@ -104,14 +116,19 @@ export function TurnTracePresentation({
     outcome?: AgentActivityTurn | null;
     presentation: TurnJournalPresentation | null;
     refreshError?: string | null;
+    stripAction?: React.ReactNode;
+    /** The turn's own record: the `strip` line until the journal's steps arrive. */
+    summary?: AgentActivityTurn | null;
     totalsPlacement?: 'footer' | 'strip';
     workspace?: TurnTraceWorkspace | null;
 }) {
     const journal =
         access === 'journal' && presentation?.kind === 'available' ? presentation.journal : null;
-    const now = useTurnTraceNow(journal?.status === 'running');
+    const now = useTurnTraceNow(journal?.status === 'running' || summary?.kind === 'active');
     const view = buildTurnTraceView(journal, events, now);
     const awaitingJournal = access === 'journal' && isPending && !presentation;
+    const stripParts =
+        totalsPlacement === 'strip' ? readStripParts(view, journal, summary, now) : null;
 
     return (
         // Every step row is its own disclosure. Inside the Activity tab's
@@ -119,9 +136,10 @@ export function TurnTracePresentation({
         // rows' group: the group's keys would decide a call's state, so a
         // failed call would not open on its own there as it does in the drawer.
         <DisclosureGroupStateContext.Provider value={null}>
-            {/* The Activity tab animates a row's open only when this holds
-                something to measure (`default-theme.css`). */}
             <div className="@container grid min-w-0 gap-2 text-sm" data-turn-trace>
+                {stripParts ? (
+                    <TurnTraceStatsStrip action={stripAction} parts={stripParts} />
+                ) : null}
                 {/* With no steps there are no totals, so the turn's own record
                     says how it went — once the journal has answered, so the
                     line does not flip to the totals a moment later. */}
@@ -145,12 +163,6 @@ export function TurnTracePresentation({
                     // trace grows into place instead of landing at full height.
                     <TurnTraceReveal className="grid min-w-0 gap-2">
                         {outcome ? <TurnTraceOutcome turn={outcome} /> : null}
-                        {totalsPlacement === 'strip' ? (
-                            <TurnTraceStatsStrip
-                                status={journal?.status ?? null}
-                                totals={view.totals}
-                            />
-                        ) : null}
                         <TurnTraceScopeProvider scope={{ axisMs: readAxis(view), workspace }}>
                             <TurnTraceScroll>
                                 <TurnTraceSteps steps={view.steps} />
@@ -196,6 +208,22 @@ function TurnTraceOutcome({
             {children}
         </div>
     );
+}
+
+/**
+ * The strip line always stands, so its action is never orphaned: the
+ * journal's totals once it has steps, the turn summary until then.
+ */
+function readStripParts(
+    view: TurnTraceView,
+    journal: AgentExecutionJournal | null,
+    summary: AgentActivityTurn | null,
+    now: number
+): readonly string[] | null {
+    if (view.steps.length > 0) {
+        return journalStripParts(journal?.status ?? null, view.totals);
+    }
+    return summary ? summaryStripParts(summary, now) : null;
 }
 
 /** Every bar's scale: the turn's wall time, widened to any step that outlasts it. */
