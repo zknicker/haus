@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
+import { tracePad, useTraceDepthStyle } from './turn-trace-depth.tsx';
 import { formatTraceDuration } from './turn-trace-duration.ts';
 import type { TurnTraceLane, TurnTraceTiming } from './turn-trace-timing.ts';
 import type { TurnTraceStatus } from './turn-trace-tool-model.ts';
@@ -45,21 +46,12 @@ export function useTraceLayout(): TraceLayout {
     return React.use(TraceLayoutContext);
 }
 
-/** One depth step inside the label cell. */
-const traceIndentRem = 0.75;
-
-/**
- * A row's inline pad: 2 steps in a trace's rounded rows; the log's
- * edge-to-edge rows set `--trace-pad` to the page gutter.
- */
-const tracePad = 'var(--trace-pad, calc(var(--spacing) * 2))';
-
 /**
  * Where a row's label text starts, from the row's edge: the log's time column
- * (`--trace-lead`), the row's inline pad, the depth indent, the icon
+ * (`--trace-lead`), the row's inline pad, the depth indent (`--trace-indent`), the icon
  * (`size-3.5`), and its gap (2 steps).
  */
-export const traceTextInset = `calc(var(--trace-lead, 0rem) + ${tracePad} + var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 5.5)`;
+export const traceTextInset = `calc(var(--trace-lead, 0rem) + ${tracePad} + var(--trace-indent, 0rem) + var(--spacing) * 5.5)`;
 
 // The overview paints its step marks with the bars' fill rule.
 export { barTone } from './turn-trace-track.tsx';
@@ -86,20 +78,6 @@ export interface TraceCellsProps {
 
 /** A failed step tints its whole row; everything else rests on the trace's ground. */
 export type TraceRowTone = 'danger' | 'default';
-
-const TraceDepthContext = React.createContext(0);
-
-/** Rows inside this sit one depth step further in, on the same columns. */
-export function TraceNested({ children }: { children: React.ReactNode }) {
-    const depth = React.use(TraceDepthContext);
-    return <TraceDepthContext value={depth + 1}>{children}</TraceDepthContext>;
-}
-
-/** The depth's custom property, set once per row or body so indents derive from it. */
-export function useTraceDepthStyle(): React.CSSProperties {
-    const depth = React.use(TraceDepthContext);
-    return { '--trace-depth': depth } as React.CSSProperties;
-}
 
 /** The row frame: the grid, the danger tint, and the depth every cell reads. */
 export function traceRowClass(
@@ -142,7 +120,7 @@ export function TraceCells({ bars, line, slot, timing = null, tone = 'default' }
             <span
                 className="flex min-w-0 items-center gap-2"
                 data-trace-cell="label"
-                style={{ paddingInlineStart: `calc(var(--trace-depth) * ${traceIndentRem}rem)` }}
+                style={{ paddingInlineStart: 'var(--trace-indent, 0rem)' }}
             >
                 {line}
                 <TraceLeader layout={layout} tone={tone} />
@@ -192,33 +170,9 @@ export function TraceBody({ children }: { children: React.ReactNode }) {
     );
 }
 
-/**
- * A group row's opened rows — a fold's members, a sub-agent's calls, a run of
- * thoughts — tied to it by one rail: a hairline at the center of the group
- * row's icon, from the panel's top to the center of the last row (`bottom-4`,
- * half a row). It sits in the label cell, so the time, track, and duration
- * columns stay clean, and paints over the rows' tints and highlights. A
- * nested group draws its own rail at its own icon.
- */
-export function TraceGroup({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="relative min-w-0" data-trace-group>
-            {children}
-            <span
-                aria-hidden
-                className="pointer-events-none absolute top-0 bottom-4 w-px bg-separator"
-                data-trace-rail
-                style={{ ...useTraceDepthStyle(), insetInlineStart: traceRailInset }}
-            />
-        </div>
-    );
-}
-
-/** The group row icon's center (`size-3.5`), less half the rail. */
-const traceRailInset = `calc(var(--trace-lead, 0rem) + ${tracePad} + var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 1.75 - 0.5px)`;
-
 /** The log body's label text start from its first column: `traceTextInset` less the row pad. */
-const traceLogTextInset = `calc(var(--trace-lead, 0rem) + var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 5.5)`;
+const traceLogTextInset =
+    'calc(var(--trace-lead, 0rem) + var(--trace-indent, 0rem) + var(--spacing) * 5.5)';
 
 /**
  * The dotted line from a label's end at the row's center. It runs on across

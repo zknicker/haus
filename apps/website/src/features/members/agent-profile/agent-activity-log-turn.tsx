@@ -4,8 +4,8 @@ import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import { readTurnTraceAxis } from '../../turn-trace/turn-trace.tsx';
+import { TraceNested } from '../../turn-trace/turn-trace-depth.tsx';
 import {
-    TraceNested,
     traceRowClass,
     traceRowHoverClass,
     traceTurnClass,

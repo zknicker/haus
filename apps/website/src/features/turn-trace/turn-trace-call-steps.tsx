@@ -1,7 +1,8 @@
 import { Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { hasCallBody, TurnTraceCallBody } from './turn-trace-call-body.tsx';
-import { type TraceBar, TraceBody, TraceGroup, TraceNested } from './turn-trace-grid.tsx';
+import { TraceElbow, TraceGroup, TraceNested, traceBranchClass } from './turn-trace-depth.tsx';
+import { type TraceBar, TraceBody } from './turn-trace-grid.tsx';
 import { traceMark } from './turn-trace-icons.ts';
 import { TurnTraceImagePreview } from './turn-trace-image.tsx';
 import { TraceDisclosure, TraceLine, TraceRow } from './turn-trace-row.tsx';
@@ -133,7 +134,10 @@ function TraceMembers({ members }: { members: readonly TurnTraceCallStep[] }) {
             <TraceNested>
                 <TraceStack>
                     {members.map((member) => (
-                        <TraceCallStep key={member.key} step={member} />
+                        <div className={traceBranchClass} key={member.key}>
+                            <TraceCallStep step={member} />
+                            <TraceElbow at="row" />
+                        </div>
                     ))}
                 </TraceStack>
             </TraceNested>

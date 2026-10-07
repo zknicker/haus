@@ -54,7 +54,7 @@ cards or nested containers. Every row at every depth — call, fold, Haus bookke
 sub-agent's own calls, reasoning — shares four columns: a label cell (`clamp(8rem, 45%, 28rem)`,
 so it narrows with the trace), a flexible waterfall track, a fixed right-aligned tabular duration
 that never wraps (and states nothing for a settled step under a second), and a disclosure slot reserved on leaves so labels never shift. Depth indents
-inside the label cell only (`--trace-depth`, 0.75rem per step), so the track and duration columns
+inside the label cell only (`--trace-indent`: 0.75rem per plain step, 1.25rem into an opened group), so the track and duration columns
 land at the same x on every row. A row is a kind mark (or a danger, warning, or stop mark for its
 outcome), the label, the muted directory, and a dotted leader from the label's end that runs on
 through the track at the row's center; the step's bar (6px, full radius) sits over that leader on
@@ -63,10 +63,15 @@ of work ran: a sub-agent or reasoning in the step hue, a call in the tool hue, H
 the quiet hue, a failure in danger (tokens in `product-tokens.css`). Hierarchy is indent, mark,
 bar color, and one rail: a sub-agent's calls are rows one depth in, with no background or edge of
 their own. An opened group — a fold, Haus bookkeeping, a sub-agent's fact line and calls, a run of
-thoughts — draws one 1px `separator` rail (`TraceGroup`) at the center of its row's icon, from the
-panel's top to the center of its last row, inside the label cell only and over row tints and
-highlights. A nested group draws its own rail at its own icon; a sub-agent's report sits past its
-rail's end. A failed row tints whole — fill, bar, and leader — and stays closed until someone opens it. Steps that ran side
+thoughts — hangs its children off one 1px `separator` rail at the center of its row's icon, file
+tree style (`TraceGroup`, `TraceElbow` in `turn-trace-depth.tsx`): each child gets a square elbow
+on its row line (a thought on its first line), ├ for every child and └ for the last, where the
+rail ends. The connector stops just short of the child's icon. Each child draws its own stretch of
+rail over its whole height, so an opened child's body keeps the rail running to later siblings;
+a sub-agent's fact line takes a plain stretch with no elbow, and its report sits past the rail's
+end. Rails and elbows stay inside the label cell, paint over row tints and highlights, and
+straddle the icon's center so they snap to whole device pixels. A nested group draws its own.
+A failed row tints whole — fill, bar, and leader — and stays closed until someone opens it. Steps that ran side
 by side share time on the bars, and a parallel fold draws its members as stacked lanes in one bar.
 While the turn runs, the axis is its elapsed time, so bars rescale (200ms linear), the running bar
 pulses, and a new row fades and rises into place; all of it is off under reduced motion.

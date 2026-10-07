@@ -7,7 +7,8 @@ import {
     TraceHausStep,
     TraceStack,
 } from './turn-trace-call-steps.tsx';
-import { type TraceBar, TraceBody, TraceGroup, TraceNested } from './turn-trace-grid.tsx';
+import { TraceElbow, TraceGroup, TraceNested, traceBranchClass } from './turn-trace-depth.tsx';
+import { type TraceBar, TraceBody } from './turn-trace-grid.tsx';
 import { TurnTraceReasoning } from './turn-trace-reasoning.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
 import { TraceDisclosure, TraceLine, TraceRow } from './turn-trace-row.tsx';
@@ -31,11 +32,12 @@ export function TurnTraceSteps({
             <AnimatePresence initial={false}>
                 {steps.map((step) => (
                     <TurnTraceReveal
-                        className="min-w-0"
+                        className={traceBranchClass}
                         data-trace-anchor={step.key}
                         key={step.key}
                     >
                         <TurnTraceStepView step={step} />
+                        <TraceElbow at="row" />
                     </TurnTraceReveal>
                 ))}
             </AnimatePresence>
@@ -125,7 +127,10 @@ function TraceThoughtStep({ step }: { step: TurnTraceThoughtStep }) {
                     <ul className="grid gap-0.5 text-muted text-sm">
                         {thoughts.map((thought, index) => (
                             // biome-ignore lint/suspicious/noArrayIndexKey: thoughts are append-only.
-                            <li key={index}>{thought}</li>
+                            <li className={traceBranchClass} key={index}>
+                                {thought}
+                                <TraceElbow at="line" />
+                            </li>
                         ))}
                     </ul>
                 </TraceBody>

@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TraceGroup, TraceNested } from './turn-trace-grid.tsx';
+import { TraceElbow, TraceGroup, TraceNested, traceBranchClass } from './turn-trace-depth.tsx';
 import { TraceLine, TraceRow } from './turn-trace-row.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { call, journal } from './turn-trace-test-fixtures.ts';
 import { buildTurnTraceView } from './turn-trace-view.ts';
 
 const railPattern = /<span[^>]*data-trace-rail[^>]*>/g;
+const elbowPattern = /<span[^>]*data-trace-elbow[^>]*>/g;
 
 test('closed groups draw no rail: the rail lives in the opened panel', () => {
     const view = buildTurnTraceView(
@@ -28,30 +30,64 @@ test('closed groups draw no rail: the rail lives in the opened panel', () => {
     assert.doesNotMatch(markup, /data-trace-rail/);
 });
 
-test('an opened group draws one rail at its own row icon, and a nested group its own', () => {
-    const row = (label: string) => (
-        <TraceRow bars={[]} line={<TraceLine icon={[]} label={label} />} />
+test('each child of an opened group hangs off its rail by a square elbow, nested groups their own', () => {
+    const branch = (label: string, nested?: React.ReactNode) => (
+        <div className={traceBranchClass}>
+            <TraceRow bars={[]} line={<TraceLine icon={[]} label={label} />} />
+            {nested}
+            <TraceElbow at="row" />
+        </div>
     );
     const markup = renderToStaticMarkup(
         <TraceGroup>
             <TraceNested>
-                {row('Read a.ts')}
-                <TraceGroup>
-                    <TraceNested>{row('Read b.ts')}</TraceNested>
-                </TraceGroup>
+                {branch(
+                    'Read a.ts',
+                    <TraceGroup>
+                        <TraceNested>{branch('Read b.ts')}</TraceNested>
+                    </TraceGroup>
+                )}
+                {branch('Read c.ts')}
             </TraceNested>
         </TraceGroup>
     );
 
     const rails = markup.match(railPattern) ?? [];
-    assert.equal(rails.length, 2);
-    // Each rail follows its rows and sits at its group row's depth, one step
-    // out from them: the nested group's first, then the outer group's.
-    assert.match(rails[0] ?? '', /--trace-depth:1/);
-    assert.match(rails[1] ?? '', /--trace-depth:0/);
+    const elbows = markup.match(elbowPattern) ?? [];
+    // One stretch of rail and one elbow per child: the nested child's first.
+    assert.equal(rails.length, 3);
+    assert.equal(elbows.length, 3);
+    // Children of the outer group step 1.25rem in; the nested group's another.
+    assert.match(rails[0] ?? '', /--trace-depth:2;--trace-indent:2.5rem/);
+    assert.match(rails[1] ?? '', /--trace-depth:1;--trace-indent:1.25rem/);
+    assert.match(rails[2] ?? '', /--trace-depth:1;--trace-indent:1.25rem/);
     for (const rail of rails) {
         assert.match(rail, /aria-hidden="true"/);
-        assert.match(rail, /inset-inline-start:calc\(var\(--trace-lead, 0rem\)/);
+        // Each stretch sits one branch step out, at the group row's icon, and
+        // runs across the list's gap; the last child's hides for its └.
+        assert.match(rail, /inset-inline-start:calc\(var\(--trace-lead, 0rem\).*- 1.25rem/);
         assert.match(rail, /bg-separator/);
+        assert.match(rail, /-bottom-px/);
+        assert.match(rail, /\[:last-child&gt;&amp;\]:hidden/);
     }
+    for (const elbow of elbows) {
+        assert.match(elbow, /border-separator border-b/);
+        assert.match(elbow, /\[:last-child&gt;&amp;\]:border-s/);
+        assert.match(elbow, /--trace-arm:calc\(1.25rem - var\(--spacing\) \* 2.5 - 0.5px\)/);
+    }
+});
+
+test('rows outside an opened group draw no elbow', () => {
+    const markup = renderToStaticMarkup(
+        <TraceNested>
+            <div className={traceBranchClass}>
+                <TraceRow bars={[]} line={<TraceLine icon={[]} label="Read a.ts" />} />
+                <TraceElbow at="row" />
+            </div>
+        </TraceNested>
+    );
+
+    assert.doesNotMatch(markup, /data-trace-rail|data-trace-elbow/);
+    // A plain nesting (a log turn's steps) keeps the 0.75rem step.
+    assert.match(markup, /--trace-indent:0.75rem/);
 });

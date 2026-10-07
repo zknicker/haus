@@ -5,11 +5,11 @@ import type { AgentExecutionJournal } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
 import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
+import { TraceNested } from './turn-trace-depth.tsx';
 import { TurnTraceFooter } from './turn-trace-footer.tsx';
 import {
     TraceBody,
     TraceLayoutProvider,
-    TraceNested,
     traceGridClass,
     traceRowHoverClass,
     traceTurnClass,
@@ -70,8 +70,8 @@ test('every row, at every depth, lays out on the one grid', () => {
     }
     // Depth lives in a custom property the label cell indents by; the row
     // frame itself never moves.
-    assert.match(markup, /data-trace-row[^>]*style="--trace-depth:0"/);
-    assert.match(markup, /data-trace-row[^>]*style="--trace-depth:1"/);
+    assert.match(markup, /data-trace-row[^>]*style="--trace-depth:0;--trace-indent:0rem"/);
+    assert.match(markup, /data-trace-row[^>]*style="--trace-depth:1;--trace-indent:0.75rem"/);
 });
 
 test('the track and duration columns are identical cells at every depth', () => {
@@ -88,7 +88,7 @@ test('the track and duration columns are identical cells at every depth', () => 
     // Only the label cell indents, by depth.
     assert.match(
         markup,
-        /data-trace-cell="label" style="padding-inline-start:calc\(var\(--trace-depth\) \* 0.75rem\)"/
+        /data-trace-cell="label" style="padding-inline-start:var\(--trace-indent, 0rem\)"/
     );
     assert.doesNotMatch(markup, /border-s/);
 });
@@ -160,7 +160,7 @@ test('bodies open on the label text, and nested rows never sit inside one', () =
     const markup = render(nested);
     assert.match(
         markup,
-        /data-trace-body="true" style="--trace-depth:0;padding-inline-start:calc\(/
+        /data-trace-body="true" style="--trace-depth:0;--trace-indent:0rem;padding-inline-start:calc\(/
     );
     const bodies = markup.match(/<div[^>]*data-trace-body[\s\S]*?<\/div>/g) ?? [];
     for (const body of bodies) {

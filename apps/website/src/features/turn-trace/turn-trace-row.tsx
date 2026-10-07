@@ -4,12 +4,12 @@ import type { IconSvgElement } from '@hugeicons/react';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
+import { useTraceDepthStyle } from './turn-trace-depth.tsx';
 import {
     TraceCells,
     type TraceCellsProps,
     traceRowClass,
     traceRowHoverClass,
-    useTraceDepthStyle,
     useTraceLayout,
 } from './turn-trace-grid.tsx';
 
