@@ -36,6 +36,16 @@ test('a message turn is titled by its first line, with a DM labeled "DM", never 
     ).toMatchObject({ place: '#product' });
 });
 
+test('a message turn title is plain text, never escaped Markdown', () => {
+    const messages = reads([
+        'msg_one',
+        resolved('**Run** sleep 20 \\&\\& echo hi per [the doc](https://haus.dev)'),
+    ]);
+    expect(resolveTurnRowTitle(dmMessage, messages, chats)).toMatchObject({
+        text: 'Run sleep 20 && echo hi per the doc',
+    });
+});
+
 test('a title stays blank while its message reads, and is absent when unreadable', () => {
     expect(resolveTurnRowTitle(dmMessage, reads(), chats)).toEqual({
         kind: 'pending',

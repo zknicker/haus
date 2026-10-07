@@ -73,3 +73,23 @@ test('a preview line leaves a message without a visual fence alone', () => {
         'Shipped the visual renderer today'
     );
 });
+
+test('a preview line reads Markdown escapes as the characters they protect', () => {
+    expect(messagePreviewLine('Run sleep 20 \\&\\& echo hi')).toBe('Run sleep 20 && echo hi');
+    expect(messagePreviewLine('2 \\* 3 \\_not emphasis\\_ \\# not a heading')).toBe(
+        '2 * 3 _not emphasis_ # not a heading'
+    );
+    // An escaped marker is literal text, not formatting to drop.
+    expect(messagePreviewLine('\\*\\*kept\\*\\* and \\`ticks\\`')).toBe('**kept** and `ticks`');
+    expect(messagePreviewLine('\\[not a link\\](https://haus.dev)')).toBe(
+        '[not a link](https://haus.dev)'
+    );
+    // A backslash before a letter is not an escape.
+    expect(messagePreviewLine('C:\\temp')).toBe('C:\\temp');
+});
+
+test('a preview line flattens bold, code, and links around escapes into one line', () => {
+    expect(
+        messagePreviewLine('**Deploy** `bun run build \\&\\& ship`\nsee [the docs](https://haus.dev)')
+    ).toBe('Deploy bun run build && ship see the docs');
+});
