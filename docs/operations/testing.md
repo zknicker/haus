@@ -465,28 +465,52 @@ changes (PRD-86, ADR 0012).
 ## Visuals Lab
 
 `bun run visuals:lab` starts the one in-repo tool for judging what the agents
-actually render. It shows one thing: what each model renders with the visuals
-skill as it is in the working tree right now. It is where a change to the skill,
-a fragment, or the visual frame gets looked at before it ships. Open the URL it
-prints (port 4390 by default, `PORT` overrides).
+actually render. It shows what each model renders under each version of the
+visuals skill: the one in the working tree, plus any revision set beside it. It
+is where a change to the skill, a fragment, or the visual frame gets looked at
+before it ships. Open the URL it prints (port 4390 by default, `PORT`
+overrides).
 
-**Runs** is a question tab per battery prompt over a model tab per contender.
-Pick a model and you get one cell: the live sandboxed frame the chat card would
-build, with the agent's reply rendered beneath it, plus what the turn cost in
-wall time and output tokens and which skill files the trace shows it opened.
-Pick **All models** and the same question becomes a one-row-per-model PNG grid
-for the at-a-glance read. **Fragments** is the skill's own copy-ready fences,
-grouped by the module whose index points at them, rendered live from the working
-tree; **Check all fragments** renders every one of them headlessly and reports
+**Runs** is a question tab per battery prompt over two multi-select rows,
+**Model** and **Skill**. The cells are their cross product: one row per selected
+model, one column per selected skill, as PNGs for the at-a-glance read. When the
+selection is a single cell, or a grid cell is clicked, that cell opens full size:
+the live sandboxed frame the chat card would build, with the agent's reply
+rendered beneath it, plus what the turn cost in wall time and output tokens and
+which skill files the trace shows it opened. The selection lives in the URL and
+is remembered per browser; it defaults to the first model under Current.
+**Fragments** is the skill's own copy-ready fences, grouped by the module whose
+index points at them, rendered live from the working tree; **Check all fragments** renders every one of them headlessly and reports
 console errors and collapsed heights.
 
 The question tabs are the battery the server hands the page, so adding a prompt
 to `scripts/visuals-lab/engine/prompts.mjs` shows up as a tab with no page edit.
-Each model's reasoning effort is a select beside its Run button, defaulting to
-medium; every model runs the harness bridge Haus itself ships, so a result is a
-judgement about the product. Runs land in
+Each model's reasoning effort is a select beside its name, defaulting to medium
+and shared across skills; every model runs the harness bridge Haus itself ships,
+so a result is a judgement about the product. Runs land in
 `scripts/visuals-lab/results/<model>/<stamp>/` (gitignored), and a cell reads the
 newest run that carries that prompt, so a narrow rerun never hides the rest.
+
+**Current** is the skill in `packages/agent-workspace/src/visuals-skill/` as the
+working tree has it, so it stays correct when a revision is promoted. To compare
+a revision against it, drop it in `scripts/visuals-lab/skills/<name>/`
+(gitignored; same layout, with `fragments/` beside `SKILL.md`; `current` is
+reserved). It shows up in the Skill row on reload; its runs pass `--skill-dir`
+and land in `results/<model>@<name>/<stamp>/`. A cell's **Run** spends one turn,
+and the header **Run** menu spends exactly the selected cells, for this question
+or every question, with the cell list and turn count shown before you press.
+Nothing reaches an unselected model and skill pair.
+
+A revision may carry a `lab.json` beside its `SKILL.md` (lab metadata, never
+seeded into the skill). `{"preview": true}` runs its cells with `--preview`,
+which puts a `haus` shim on the turn's PATH that execs the Agent CLI from
+source, so the agent can run `haus visual preview` on its draft; no other
+`haus` subcommand works there. Every cell's stats line also carries an
+objective read on the fences it shipped, whether or not the agent previewed:
+layout findings and console errors from the same in-frame probe the preview
+command uses (messages on hover), plus the turn's preview calls when it made
+any. Runs from before the probe are backfilled into a
+`<slug>.findings.json` sidecar the first time the lab reads them.
 
 The verdict is human. Judge a rendered cell against
 `scripts/design-battery/RUBRIC.md` and the Non-negotiables in
@@ -504,7 +528,8 @@ The parts that do run in `check:fast` are the static ones:
 for published token names, hardcoded colors, stray headings, bordered plates,
 and the SVG anatomy a hand-drawn chart needs: an accessible role, `aria`
 wiring and a title, a visible scale derivation rather than baked coordinates,
-and the shared hover layer;
+and (in `visuals-chart-geometry.test.ts`) a 736 viewBox or the fluid-plot
+anatomy with no svg text past the drawing's left or right edge;
 `packages/agent-workspace/src/managed-skills.test.ts` pins that every fragment
 seeds and is reachable from a module index.
 

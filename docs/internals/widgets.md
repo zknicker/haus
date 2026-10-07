@@ -6,6 +6,7 @@ read_when:
   - changing the published agent-visual token vocabulary or the chart palette
   - changing how assistant final replies become app-rendered chat UI
   - touching legacy stored widget activity or its fallback rendering
+  - changing `haus visual preview` or the Computer's headless visual renderer
 ---
 
 # Agent-authored HTML
@@ -18,9 +19,10 @@ renders in one of two places.
 | Visual | a ```` ```visual ```` fence inside a message | inline in the transcript | `features/chats/visual-card.tsx` |
 | Artifact | a durable `.html` file in the workspace | card in chat → artifact side pane | `features/chats/artifact-card.tsx` → `chat-artifact-workspace-preview.tsx` |
 
-Both share `src/agent-html/`: `tokens.ts` is the single published token
-list plus the snapshot/injection helpers, and `sandbox.ts` is the single
-`sandbox=` capability list. Never add `allow-same-origin` — the opaque origin
+Both share `src/agent-html/tokens.ts`, the single published token list plus
+the snapshot/injection helpers, and `agentHtmlSandbox` in
+`packages/haus-api/src/widgets/visual/frame.ts`, the single `sandbox=`
+capability list. Never add `allow-same-origin` — the opaque origin
 is what stops agent HTML reaching app cookies, storage, or DOM.
 
 `features/chats/legacy-widget-row.tsx` replays catalog widgets stored before
@@ -79,14 +81,17 @@ registration), with optional info-string text as the title:
   Computer-side projection. Data is embedded at generation time; visuals never fetch
   live app data.
 - **Sandbox.** Opaque origin, `srcDoc`, scripts allowed, never
-  `allow-same-origin`, no browser storage
-  (`apps/website/src/features/chats/visual-card.tsx`). A CSP meta locks the document
+  `allow-same-origin`, no browser storage. The frame document is pure
+  strings in `packages/haus-api/src/widgets/visual/frame.ts`
+  (`buildVisualSrcDoc(html, tokensCss, scheme)`), shared by the chat card,
+  Haus Computer, and the visuals lab; the caller passes resolved tokens and
+  the color scheme, so it never reads a DOM. A CSP meta locks the document
   down: `default-src 'none'`, inline scripts/styles allowed, `img-src
   data: blob:` only, and a `connect-src` that names two files and nothing else
   (see the allowlist below).
 - **CDN allowlist.** Four pinned resources, all on jsdelivr, all at an exact
   version and an exact path — the constants live beside the CSP in
-  `visual-card.tsx` and are mirrored in `VisualSandboxDocument.swift`. All four
+  `frame.ts` and are mirrored in `VisualSandboxDocument.swift`. All four
   are for maps: charts are hand-drawn SVG and load nothing
   ([ADR 0033](../adr/0033-agent-charts-are-hand-drawn-svg.md)).
   - `visualD3Url` — D3 `7.9.0`, and `visualTopojsonClientUrl` —
@@ -148,7 +153,14 @@ registration), with optional info-string text as the title:
   Heights apply immediately, without animation. The host validates the frame
   source and accepts only positive finite measurements, with a 120px minimum
   and a 100,000px resource guard for pathological documents. Until the first
-  report it reserves 240px. Ordinary reports have no nested vertical scrolling;
+  report it reserves the last height that visual reported at the nearest
+  width, or 240px for a visual never seen, so re-mounts (virtualized scroll,
+  chat switches, reloads) open at their real size instead of jumping. The web
+  cache (`features/chats/visual-height-cache.ts`) is app-local presentation
+  state keyed by a hash of the fence body and a 16px width bucket, persisted to
+  localStorage as a bounded LRU; a still-streaming body is never looked up or
+  recorded, and the frame's own report always overrides a cached height. The
+  iPhone app holds heights per screen in `VisualHeightRegistry`. Ordinary reports have no nested vertical scrolling;
   wide tables retain horizontal overflow. Authors must avoid fixed page heights,
   viewport-height layouts, and vertical scroll containers.
   No pane promotion, and no bridge of any kind (no sendPrompt, no
@@ -188,7 +200,7 @@ registration), with optional info-string text as the title:
   no visible heading but the hidden summary, a bordered box only as a record
   card, and every chart fence carrying the SVG anatomy a hand-drawn chart needs
   — an accessible role and title, a visible scale derivation rather than baked
-  coordinates, and the shared hover layer. `managed-skills.test.ts` pins the other
+  coordinates, and (`visuals-chart-geometry.test.ts`) tick text inside the drawing. `managed-skills.test.ts` pins the other
   direction — every fragment file seeds, and every fragment is reachable from a
   module index. Quality is tuned in the visuals lab (`bun run visuals:lab`)
   and with the design battery (`bun run eval:design`,
@@ -211,7 +223,45 @@ registration), with optional info-string text as the title:
   `apps/ios-swift/Sources/HausUI/Visuals/AgentHtmlTokens.generated.swift`,
   and a bun test fails when the checked-in file drifts from the stylesheets.
   Rerun it after changing the token list or any value it resolves from.
+  The same run writes the identical table into `@haus/api` as
+  `packages/haus-api/src/widgets/visual/tokens.generated.ts`, read through
+  `@haus/api/widgets/visual/tokens` (`agentHtmlTokenSnapshotCss(scheme)`, or
+  `agentHtmlTokenSnapshotDeclarations(scheme)` for `buildVisualSrcDoc`) by
+  renderers with no app stylesheets, such as Haus Computer's headless visual
+  preview. Its values are folded literals, where the web's runtime read keeps
+  `color-mix()`/`calc()` spellings; the rendered result is the same. A
+  `test:fast` gate keeps it byte-equal to a render of the Swift table.
   See [ios.md](ios.md).
+
+## Visual preview
+
+`haus visual preview [file|-]` (Agent CLI, `apps/computer/src/agent-cli/commands/agent-visual.ts`)
+lets an Agent see a visual before sending it. No runtime can return an image
+from a host tool, so the command renders in the Agent's own shell, writes PNGs
+the Agent opens with its own image reader, and prints text findings for
+runtimes without vision. It is local-only: no Server call, no runner token.
+
+The renderer lives in `apps/computer/src/visual-preview/`. It launches system
+Google Chrome headless on a throwaway temp profile (never the operator's
+browser profile; agent HTML is untrusted), drives it over a minimal CDP client,
+and kills Chrome and deletes the profile on every exit path. Each fence,
+scheme, and width renders on its own target through a host page that mirrors
+the chat card and the lab: `buildVisualSrcDoc` with the static token snapshot
+(`agentHtmlTokenSnapshotDeclarations`), the same sandbox, the same size
+handshake and clamp, device scale 1. Browser-wide request interception allows
+only `data:`, `blob:`, and the four pinned CDN files, behind the frame CSP.
+Chrome is launched with `IsolateSandboxedIframes`, so the sandboxed frame is
+always its own target; the renderer auto-attaches to it paused, enables
+console, exception, and CSP-issue (`Audits`) reporting, then releases it.
+
+Per render it reports the clamped height (and the raw report), console
+errors, uncaught exceptions with fence-relative line numbers, CSP refusals,
+blocked requests, and geometry findings from an in-frame collector judged in
+`layout-probe.ts`: horizontal overflow, text clipped by `overflow: hidden`
+(ellipsis and line clamps are deliberate and skipped), SVG text outside its
+svg, and text boxes colliding on a line. Thresholds are conservative. A render
+waits up to 5s for the handshake, settles 400ms, and is capped at 15s.
+Findings never fail the command; only bad input or a missing Chrome does.
 
 ## Artifacts
 
@@ -331,7 +381,8 @@ Canonical names, props schemas, and the render envelope live in
 `packages/haus-api/src/widgets`. Visuals parse and render on the Website:
 `splitVisualFences` (`packages/haus-api/src/widgets/visual`) splits fences
 from message content and `assistant-reply-body.tsx` renders the iframe card —
-Computer does not parse fences or write `widget` activity. Server still
+Computer does not parse fences or write `widget` activity; its only fence
+reader is the local `haus visual preview` command below. Server still
 holds the dormant row projection (`apps/server/src/widgets/widgets.ts`) and
 Website the `widget`-row renderers (`apps/website/src/widgets`: artifact card
 and fallback card) for the pipeline noted under **Storage**. The pane's HTML
