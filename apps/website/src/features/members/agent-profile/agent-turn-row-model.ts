@@ -53,6 +53,17 @@ export function resolveTurnRowTitle(
 }
 
 /**
+ * The open row's way back to its Chat: `View in #product`. A DM is always a
+ * person and this Agent, so it names the Agent (`View in DM with Tiny`), where
+ * the title's muted place stays a bare `DM`.
+ */
+export function turnChatActionLabel(place: string, agentName: string): string {
+    return place === dmPlace ? `View in DM with ${agentName}` : `View in ${place}`;
+}
+
+const dmPlace = chatPlace({ kind: 'dm', name: null });
+
+/**
  * What a turn did, in words, most telling first: `Ran 2 sub-agents · edited 3
  * files · read 4 · sent 1 message`. A noun the previous action already named
  * is not repeated. Failed or interrupted calls follow their count.

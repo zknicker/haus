@@ -2,7 +2,7 @@ import type { Agent } from '@haus/api';
 import { Accordion, Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
@@ -19,7 +19,11 @@ import {
 import { type AgentActivityTurn, groupAgentActivityTurns } from './agent-activity-turns.ts';
 import { AgentLoading } from './agent-loading.tsx';
 import { TurnRowBody, TurnRowContent } from './agent-turn-row.tsx';
-import { groupTurnRowsByDay, type TurnRowTitle } from './agent-turn-row-model.ts';
+import {
+    groupTurnRowsByDay,
+    type TurnRowTitle,
+    turnChatActionLabel,
+} from './agent-turn-row-model.ts';
 import { collapseRecentActivity, type RecentActivityRow } from './recent-activity-rows.ts';
 import { useTurnRowTitles } from './use-turn-row-titles.ts';
 
@@ -77,6 +81,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
                 <ActivityTurnHistory
                     access={getTurnDetailAccess(server.role)}
                     agentId={agent.id}
+                    agentName={agent.displayName}
                     serverId={server.id}
                     serverSlug={server.slug}
                     turns={turns}
@@ -101,12 +106,14 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
 function ActivityTurnHistory({
     access,
     agentId,
+    agentName,
     serverId,
     serverSlug,
     turns,
 }: {
     access: TurnDetailAccess;
     agentId: string;
+    agentName: string;
     serverId: string;
     serverSlug: string;
     turns: readonly AgentActivityTurn[];
@@ -151,7 +158,8 @@ function ActivityTurnHistory({
                                     <Accordion.Panel>
                                         <Accordion.Body>
                                             <TurnRowBody>
-                                                <TurnChatLink
+                                                <TurnChatButton
+                                                    agentName={agentName}
                                                     serverSlug={serverSlug}
                                                     title={titleOf(row.latest)}
                                                     turn={row.latest}
@@ -184,26 +192,34 @@ function ActivityTurnHistory({
 }
 
 /** The way back to the Chat the request came from, once the row is open. */
-function TurnChatLink({
+function TurnChatButton({
+    agentName,
     serverSlug,
     title,
     turn,
 }: {
+    agentName: string;
     serverSlug: string;
     title: TurnRowTitle;
     turn: AgentActivityTurn;
 }) {
+    const navigate = useNavigate();
     const trigger = turn.trigger;
     if (!(trigger && trigger.kind !== 'private' && title.kind === 'text' && title.place)) {
         return null;
     }
     return (
-        <Link
-            className="w-fit text-accent text-xs"
-            to={serverChatRoute(serverSlug, trigger.chatId)}
-        >
-            Open in {title.place}
-        </Link>
+        // The ghost button pads its own hover fill; its label, not the fill,
+        // meets the request's edge, like the trace rows below it.
+        <div className="-mx-3 flex">
+            <Button
+                onPress={() => navigate(serverChatRoute(serverSlug, trigger.chatId))}
+                size="sm"
+                variant="ghost"
+            >
+                {turnChatActionLabel(title.place, agentName)}
+            </Button>
+        </div>
     );
 }
 

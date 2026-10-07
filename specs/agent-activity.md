@@ -254,7 +254,8 @@ noun the previous action named is not repeated. A turn with no actions and no me
 
 Opening a turn replaces its truncated title in place with the whole request, wrapping, stated
 once. Below it, on the page's own ground with no inset panel and starting at the request's left
-edge, sit an `Open in DM` (or `#channel`) link back to its Chat, one muted totals line
+edge, sit a small ghost button back to its Chat (`View in #product`, or `View in DM with Tiny`
+naming this Agent, the one place a DM names its peer), one muted totals line
 (`32s · 8 calls · 3 sub-agents · 1 failed · Done`, failures in `danger`), and the trace. The row's
 hairline closes it; there is no totals footer. A running turn has not settled into
 `agent.turns`, so its row reads its trigger through `agent.runTrigger` and is titled the same way

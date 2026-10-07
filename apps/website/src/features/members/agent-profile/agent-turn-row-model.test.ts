@@ -8,6 +8,7 @@ import {
     getTurnRowStatus,
     groupTurnRowsByDay,
     resolveTurnRowTitle,
+    turnChatActionLabel,
 } from './agent-turn-row-model.ts';
 
 type SettledTurn = Extract<AgentActivityTurn, { kind: 'settled' }>;
@@ -217,3 +218,8 @@ function settled(overrides: Partial<SettledTurn> = {}): SettledTurn {
         ...overrides,
     };
 }
+
+test('the open row names its Chat, and a DM names the Agent it is with', () => {
+    expect(turnChatActionLabel('#product', 'Tiny')).toBe('View in #product');
+    expect(turnChatActionLabel('DM', 'Tiny')).toBe('View in DM with Tiny');
+});
