@@ -6,7 +6,6 @@ read_when:
   - changing the published agent-visual token vocabulary or the chart palette
   - changing how assistant final replies become app-rendered chat UI
   - touching legacy stored widget activity or its fallback rendering
-  - changing `haus visual preview` or the Computer's headless visual renderer
 ---
 
 # Agent-authored HTML
@@ -83,8 +82,8 @@ registration), with optional info-string text as the title:
 - **Sandbox.** Opaque origin, `srcDoc`, scripts allowed, never
   `allow-same-origin`, no browser storage. The frame document is pure
   strings in `packages/haus-api/src/widgets/visual/frame.ts`
-  (`buildVisualSrcDoc(html, tokensCss, scheme)`), shared by the chat card,
-  Haus Computer, and the visuals lab; the caller passes resolved tokens and
+  (`buildVisualSrcDoc(html, tokensCss, scheme)`), shared by the chat card
+  and the visuals lab; the caller passes resolved tokens and
   the color scheme, so it never reads a DOM. A CSP meta locks the document
   down: `default-src 'none'`, inline scripts/styles allowed, `img-src
   data: blob:` only, and a `connect-src` that names two files and nothing else
@@ -223,45 +222,7 @@ registration), with optional info-string text as the title:
   `apps/ios-swift/Sources/HausUI/Visuals/AgentHtmlTokens.generated.swift`,
   and a bun test fails when the checked-in file drifts from the stylesheets.
   Rerun it after changing the token list or any value it resolves from.
-  The same run writes the identical table into `@haus/api` as
-  `packages/haus-api/src/widgets/visual/tokens.generated.ts`, read through
-  `@haus/api/widgets/visual/tokens` (`agentHtmlTokenSnapshotCss(scheme)`, or
-  `agentHtmlTokenSnapshotDeclarations(scheme)` for `buildVisualSrcDoc`) by
-  renderers with no app stylesheets, such as Haus Computer's headless visual
-  preview. Its values are folded literals, where the web's runtime read keeps
-  `color-mix()`/`calc()` spellings; the rendered result is the same. A
-  `test:fast` gate keeps it byte-equal to a render of the Swift table.
   See [ios.md](ios.md).
-
-## Visual preview
-
-`haus visual preview [file|-]` (Agent CLI, `apps/computer/src/agent-cli/commands/agent-visual.ts`)
-lets an Agent see a visual before sending it. No runtime can return an image
-from a host tool, so the command renders in the Agent's own shell, writes PNGs
-the Agent opens with its own image reader, and prints text findings for
-runtimes without vision. It is local-only: no Server call, no runner token.
-
-The renderer lives in `apps/computer/src/visual-preview/`. It launches system
-Google Chrome headless on a throwaway temp profile (never the operator's
-browser profile; agent HTML is untrusted), drives it over a minimal CDP client,
-and kills Chrome and deletes the profile on every exit path. Each fence,
-scheme, and width renders on its own target through a host page that mirrors
-the chat card and the lab: `buildVisualSrcDoc` with the static token snapshot
-(`agentHtmlTokenSnapshotDeclarations`), the same sandbox, the same size
-handshake and clamp, device scale 1. Browser-wide request interception allows
-only `data:`, `blob:`, and the four pinned CDN files, behind the frame CSP.
-Chrome is launched with `IsolateSandboxedIframes`, so the sandboxed frame is
-always its own target; the renderer auto-attaches to it paused, enables
-console, exception, and CSP-issue (`Audits`) reporting, then releases it.
-
-Per render it reports the clamped height (and the raw report), console
-errors, uncaught exceptions with fence-relative line numbers, CSP refusals,
-blocked requests, and geometry findings from an in-frame collector judged in
-`layout-probe.ts`: horizontal overflow, text clipped by `overflow: hidden`
-(ellipsis and line clamps are deliberate and skipped), SVG text outside its
-svg, and text boxes colliding on a line. Thresholds are conservative. A render
-waits up to 5s for the handshake, settles 400ms, and is capped at 15s.
-Findings never fail the command; only bad input or a missing Chrome does.
 
 ## Artifacts
 
@@ -381,8 +342,7 @@ Canonical names, props schemas, and the render envelope live in
 `packages/haus-api/src/widgets`. Visuals parse and render on the Website:
 `splitVisualFences` (`packages/haus-api/src/widgets/visual`) splits fences
 from message content and `assistant-reply-body.tsx` renders the iframe card —
-Computer does not parse fences or write `widget` activity; its only fence
-reader is the local `haus visual preview` command below. Server still
+Computer does not parse fences or write `widget` activity. Server still
 holds the dormant row projection (`apps/server/src/widgets/widgets.ts`) and
 Website the `widget`-row renderers (`apps/website/src/widgets`: artifact card
 and fallback card) for the pipeline noted under **Storage**. The pane's HTML

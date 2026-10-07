@@ -501,15 +501,11 @@ and the header **Run** menu spends exactly the selected cells, for this question
 or every question, with the cell list and turn count shown before you press.
 Nothing reaches an unselected model and skill pair.
 
-A revision may carry a `lab.json` beside its `SKILL.md` (lab metadata, never
-seeded into the skill). `{"preview": true}` runs its cells with `--preview`,
-which puts a `haus` shim on the turn's PATH that execs the Agent CLI from
-source, so the agent can run `haus visual preview` on its draft; no other
-`haus` subcommand works there. Every cell's stats line also carries an
-objective read on the fences it shipped, whether or not the agent previewed:
-layout findings and console errors from the same in-frame probe the preview
-command uses (messages on hover), plus the turn's preview calls when it made
-any. Runs from before the probe are backfilled into a
+Every cell's stats line also carries an objective read on the fences it
+shipped: layout findings and console errors from an in-frame geometry probe
+(`scripts/visuals-lab/engine/layout-probe.ts`: horizontal overflow, text
+clipped by `overflow: hidden`, SVG text outside its svg, and text colliding on
+a line; messages on hover). Runs from before the probe are backfilled into a
 `<slug>.findings.json` sidecar the first time the lab reads them.
 
 The verdict is human. Judge a rendered cell against
