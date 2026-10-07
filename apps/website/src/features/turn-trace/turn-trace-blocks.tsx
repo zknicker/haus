@@ -1,13 +1,15 @@
-import { Button, Surface } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
+import { formatTraceFold } from './turn-trace-fold.ts';
 import { clampTraceText } from './turn-trace-values.ts';
 
 /**
- * The trace's one section label: the stock ChatTool label role (muted, small,
- * uppercase, wide tracking) so `COMMAND`, `OUTPUT`, `REPORT`, and the stock
- * `ARGUMENTS` / `RESULT` all read as one tier above their surfaces.
+ * The trace's one section label: muted, `xs`, uppercase, wide tracking, so
+ * `COMMAND`, `OUTPUT`, `INPUT`, `RESULT`, `REPORT`, and a fact's `TO` or
+ * `FILE` all read as one tier above or beside their content. Labels are the
+ * only uppercase text in a body; what they name stays in sentence case.
  */
 export function TraceMicroLabel({ children }: { children: React.ReactNode }) {
     return (
@@ -17,75 +19,105 @@ export function TraceMicroLabel({ children }: { children: React.ReactNode }) {
 
 /**
  * A body section that is prose rather than code — a report, a message — on
- * the code blocks' own quiet surface, named by a micro label above it and
- * bounded to a readable height that scrolls.
+ * the code blocks' own compact surface and header, so every block in a body
+ * is one material with its label and copy in the same place. A long section
+ * folds to about eight lines with the rest a press away.
  */
 export function TraceSection({
     children,
+    copy,
     label,
 }: {
     children: React.ReactNode;
-    label: React.ReactNode;
+    /** The section's source text, for its copy control. */
+    copy: string;
+    label: string;
 }) {
+    const [isExpanded, setExpanded] = React.useState(false);
+    const { overflows, ref } = useOverflow<HTMLDivElement>(isExpanded);
+    const bodyId = React.useId();
+
     return (
-        <section className="grid min-w-0 gap-1">
-            <TraceMicroLabel>{label}</TraceMicroLabel>
-            <Surface
-                className="max-h-72 min-w-0 cursor-text overflow-y-auto rounded-2xl px-3 py-2"
-                variant="secondary"
+        <CodeBlock className="code-block--compact min-w-0" data-trace-section={label}>
+            <CodeBlock.Header>
+                <TraceMicroLabel>{label}</TraceMicroLabel>
+                <CodeBlock.CopyButton aria-label={`Copy ${label.toLowerCase()}`} code={copy} />
+            </CodeBlock.Header>
+            <div
+                className={cn(
+                    'min-w-0 cursor-text px-3 pb-2',
+                    !isExpanded && 'max-h-40 overflow-hidden',
+                    // A folded prose block cuts mid-line wherever its height lands, so the cut fades.
+                    !isExpanded && overflows && 'mask-b-from-[calc(100%-2.5rem)] mask-b-to-100%'
+                )}
+                id={bodyId}
+                ref={ref}
             >
                 {children}
-            </Surface>
-        </section>
+            </div>
+            {overflows ? (
+                <TraceFoldButton
+                    controls={bodyId}
+                    hiddenLines={null}
+                    isExpanded={isExpanded}
+                    onToggle={() => setExpanded((current) => !current)}
+                />
+            ) : null}
+        </CodeBlock>
     );
 }
 
 /**
- * The trace's one code surface: a labelled snippet with copy, bounded to a
- * readable height that scrolls when the Agent wrote or read something long.
+ * A long block's fold control, at the block's bottom on its code inset: how
+ * many lines it holds back, or how to put them away again.
  */
-export function TurnTraceCode({
-    code,
-    label,
-    language = 'text',
+export function TraceFoldButton({
+    controls,
+    hiddenLines,
+    isExpanded,
+    onToggle,
 }: {
-    code: string;
-    label: string;
-    language?: string;
+    controls: string;
+    hiddenLines: number | null;
+    isExpanded: boolean;
+    onToggle: () => void;
 }) {
-    // The character clamp is the real bound: a runtime can hand back one
-    // unbroken multi-megabyte line, which no height would bound.
-    const { clipped: truncated, text } = clampTraceText(code);
-
     return (
-        <div className="grid min-w-0 gap-1.5">
-            <CodeBlock className="min-w-0">
-                <CodeBlock.Header>
-                    <TraceMicroLabel>{label}</TraceMicroLabel>
-                    {/* The copy control is icon-only, so it carries the
-                        section's own name: "Copy command", "Copy output". */}
-                    <CodeBlock.CopyButton aria-label={`Copy ${label.toLowerCase()}`} code={text} />
-                </CodeBlock.Header>
-                <CodeBlock.Code
-                    className="max-h-72 cursor-text overflow-auto"
-                    code={text}
-                    language={language}
-                />
-            </CodeBlock>
-            {truncated ? (
-                <TurnTraceNote>Only the first 20,000 characters are shown.</TurnTraceNote>
-            ) : null}
+        <div className="code-block__fold">
+            <Button
+                aria-controls={controls}
+                aria-expanded={isExpanded}
+                onPress={onToggle}
+                size="sm"
+                variant="ghost"
+            >
+                {formatTraceFold(hiddenLines, isExpanded)}
+            </Button>
         </div>
     );
 }
 
-/** A single mono fact — a path, a pattern, an MCP tool — above its body. */
+/**
+ * Short mono facts — a file, a pattern, where a message went — as one
+ * aligned list: micro labels in a column, values in sentence case beside them.
+ */
+export function TurnTraceFacts({ children }: { children: React.ReactNode }) {
+    return (
+        <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1">
+            {children}
+        </dl>
+    );
+}
+
+/** One fact inside `TurnTraceFacts`. */
 export function TurnTraceFact({ label, value }: { label: string; value: string }) {
     return (
-        <p className="flex min-w-0 items-baseline gap-2 text-sm">
-            <span className="shrink-0 text-muted">{label}</span>
-            <span className="min-w-0 truncate font-mono text-foreground">{value}</span>
-        </p>
+        <>
+            <dt>
+                <TraceMicroLabel>{label}</TraceMicroLabel>
+            </dt>
+            <dd className="min-w-0 truncate font-mono text-foreground text-xs">{value}</dd>
+        </>
     );
 }
 
@@ -132,3 +164,27 @@ export function TurnTraceProse({ text }: { text: string }) {
 
 const proseFoldChars = 240;
 const proseFoldLines = 3;
+
+/**
+ * Whether a height-bounded element clips its content. Measured only while
+ * folded, so the answer holds while the reader has it open.
+ */
+function useOverflow<T extends HTMLElement>(isExpanded: boolean) {
+    const ref = React.useRef<T>(null);
+    const [overflows, setOverflows] = React.useState(false);
+    React.useLayoutEffect(() => {
+        const element = ref.current;
+        if (!element || isExpanded) {
+            return;
+        }
+        const measure = () => setOverflows(element.scrollHeight > element.clientHeight + 1);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(element);
+        if (element.firstElementChild) {
+            observer.observe(element.firstElementChild);
+        }
+        return () => observer.disconnect();
+    }, [isExpanded]);
+    return { overflows, ref };
+}
