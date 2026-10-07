@@ -80,6 +80,14 @@ final class HausStore {
     }
     private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
     private var storedLifecycleAvailability: [String: AgentAvailability] = [:]
+    /// The sidebar's row order, frozen while the drawer is open so a new
+    /// message cannot move a row under the reader's finger. See
+    /// `holdSidebarOrder()`.
+    var sidebarOrder = HeldOrder<ChatDestination.ID>() {
+        didSet {
+            if oldValue != sidebarOrder { projections.chatDestinations = nil }
+        }
+    }
     var sendError: String?
     var chatEventServerID: String?
     var chatEventReplay = ChatEventReplayState()
