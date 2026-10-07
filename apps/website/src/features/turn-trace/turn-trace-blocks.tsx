@@ -31,7 +31,7 @@ export function TraceSection({
         <section className="grid min-w-0 gap-1">
             <TraceMicroLabel>{label}</TraceMicroLabel>
             <Surface
-                className="max-h-72 min-w-0 overflow-y-auto rounded-2xl px-3 py-2"
+                className="max-h-72 min-w-0 cursor-text overflow-y-auto rounded-2xl px-3 py-2"
                 variant="secondary"
             >
                 {children}
@@ -67,7 +67,7 @@ export function TurnTraceCode({
                     <CodeBlock.CopyButton aria-label={`Copy ${label.toLowerCase()}`} code={text} />
                 </CodeBlock.Header>
                 <CodeBlock.Code
-                    className="max-h-72 overflow-auto"
+                    className="max-h-72 cursor-text overflow-auto"
                     code={text}
                     language={language}
                 />

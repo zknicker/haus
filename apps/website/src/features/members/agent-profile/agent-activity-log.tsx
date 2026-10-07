@@ -107,7 +107,7 @@ export function ActivityLog({
     return (
         <ActivityLogStoresContext value={stores}>
             <TraceLayoutProvider layout="log">
-                <div className="@container/activity-log min-w-0" ref={root}>
+                <div className="@container/activity-log min-w-0 cursor-default" ref={root}>
                     <div
                         className={cn(
                             'grid min-w-0 text-sm [--trace-ground:var(--background)]',

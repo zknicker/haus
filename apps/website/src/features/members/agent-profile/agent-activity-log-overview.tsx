@@ -84,7 +84,7 @@ export function ActivityLogOverview({
             <section
                 aria-label={`${day.label} overview`}
                 className={cn(
-                    'sticky top-0 z-10 -mt-px grid gap-1.5 border-b bg-background px-(--trace-pad) pt-2 pb-1',
+                    'sticky top-0 z-10 -mt-px grid cursor-default gap-1.5 border-b bg-background px-(--trace-pad) pt-2 pb-1',
                     'transition-colors duration-150 motion-reduce:transition-none',
                     isStuck ? 'border-separator' : 'border-transparent'
                 )}

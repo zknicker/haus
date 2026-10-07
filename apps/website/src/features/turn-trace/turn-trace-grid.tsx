@@ -108,7 +108,8 @@ export function traceRowClass(
 ): string {
     return cn(
         layout === 'log' ? traceLogGridClass : traceGridClass,
-        'min-h-8 w-full text-start text-sm',
+        // Rows are controls, not prose: the desktop arrow, never the text I-beam.
+        'min-h-8 w-full cursor-default text-start text-sm',
         // The log's rows run edge to edge; a trace's rows are rounded insets.
         layout === 'log' ? 'px-(--trace-pad)' : 'rounded-lg px-2',
         tone === 'danger'
