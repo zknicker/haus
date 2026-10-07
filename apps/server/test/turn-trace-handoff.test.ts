@@ -3,7 +3,7 @@ import { makeTelemetryLayer, parseTraceCarrier } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
 import { traceAgentTurn } from '../../computer/src/agent-turn-telemetry.ts';
-import { parseStartCommand } from '../../computer/src/launch.ts';
+import { parseStartCommand } from '../../computer/src/agent-command-frames.ts';
 import { startLoopbackProxy } from '../../computer/src/proxy.ts';
 import { traceAgentDispatch } from '../src/agent-delivery/dispatch-telemetry.ts';
 import { McpClientCache } from '../src/server-mcp/client-cache.ts';
