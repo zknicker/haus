@@ -40,11 +40,14 @@ Agent profile Activity tab.
 journal already shows the work they summarize; the one exception is `received_message`,
 Server history no journal holds, which joins the column at its time as a `Received a new
 message` step. `turn-trace-view.ts` groups that column into steps (folds, Haus
-bookkeeping, reasoning captions, parallel lanes, totals) on the turn's time axis. Bookkeeping lifts out to where it first happened: one
+bookkeeping, Thought rows, parallel lanes, totals) on the turn's time axis. Bookkeeping lifts out to where it first happened: one
 call stays its own muted row, and only two or more become one muted `Haus bookkeeping` row
 whose members carry the specifics. A fold
 keys by its first call, so in a live turn a call that gains a same-kind sibling becomes the fold
-in place, and an open fold stays open as calls (captioned or not) join it.
+in place, and an open fold stays open as calls join it. A run of title-only reasoning (Codex's
+`**Planning…**` lines) is one `Thought` step at its place in time, never a caption on the next
+step: the latest title is its muted detail, its bar spans the run's blocks, and a run of several
+opens to every title, oldest first.
 
 The view renders on one locked row grid (`turn-trace-grid.tsx`), never a stack of bordered
 cards or nested rails. Every row at every depth — call, fold, Haus bookkeeping, sub-agent, a
@@ -59,7 +62,7 @@ the turn's axis, ringed in the trace's ground so it reads as cut from the line. 
 of work ran: a sub-agent or reasoning in the step hue, a call in the tool hue, Haus bookkeeping in
 the quiet hue, a failure in danger (tokens in `product-tokens.css`). Hierarchy is indent, mark,
 and bar color only: a sub-agent's calls are rows one depth in, with no background or edge of their
-own. A failed row tints whole — fill, bar, and leader — and opens on its own. Steps that ran side
+own. A failed row tints whole — fill, bar, and leader — and stays closed until someone opens it. Steps that ran side
 by side share time on the bars, and a parallel fold draws its members as stacked lanes in one bar.
 While the turn runs, the axis is its elapsed time, so bars rescale (200ms linear), the running bar
 pulses, and a new row fades and rises into place; all of it is off under reduced motion.
@@ -78,14 +81,15 @@ length, and its steps render through `TurnTraceSteps` on the log's grid (`TraceL
 track below a 42rem log. Each turn keeps its own scale, but the log gives it a visible one: the
 turn's axis rounds up to a clock step it can count in four intervals or fewer (1/2/5 below a
 minute, then 1, 2, 5, 10, 15, 30 minutes; `turn-trace-scale.ts`), so a 32s turn draws on 0–40s
-and a 6m10s turn on 0–8m. An open turn's header draws that ruler in its track column
-(`turn-trace-ruler.tsx`): a hairline baseline, a short tick and a tiny muted tabular label per
+and a 6m10s turn on 0–8m. An open turn draws that ruler on its own thin, inert row under the
+header, in the track column only (`TurnRuler`, `turn-trace-ruler.tsx`): a hairline baseline, a short tick and a tiny muted tabular label per
 step. Its step rows carry the ticks down as gridlines (`--trace-grid`), the 0 line darker
 (`--trace-axis`) as the steps' shared left edge; they live inside each row's track, so they break
 under a step's evidence and never cross into another turn or the label and duration columns. In
 the log a row's dotted leader stops at that 0 edge, so the lane holds only gridlines and bars. A
 running turn's scale steps up as its elapsed time grows, and the ticks slide with the bars. The
-header's Chat button lays over the ruler, which fades while the button shows; a collapsed turn
+header's own track column stays empty, and its Chat button shows at that column's end on hover or
+focus, fading nothing; a collapsed turn
 or a narrow log has no ruler. The overview strip keeps the turn's unrounded span. The journal reports tokens only per sub-agent, so neither states any for
 the turn. In the drawer the turn's outcome chip leads the trace; with no steps to
 total, the turn's own record says how long it took, and a turn's own `failure` reads as a danger
@@ -121,7 +125,7 @@ the warning mark), and its duration sits in the duration column. Opened, it is o
 its label text — its type only when it is not `general-purpose`, its tokens, its duration — then
 its child calls as rows one depth in on the trace's columns, then its `REPORT` section, so the
 sub-agent's markdown never reads as one more step. Only a failed call, top-level or
-nested, takes the danger mark and opens on its own, its readable `failure` first in its body as
+nested, takes the danger mark, and once opened its readable `failure` leads its body as
 one line under `ERROR` (message · exit code, never the transport payload). A command that exited
 non-zero journals its printed output as the failure message, so a failed shell call states
 `Command failed · Exit code N` and keeps the command and that output behind its quiet `COMMAND`
@@ -163,7 +167,8 @@ The trace owns its motion and disclosure state. A trace the relay answers after 
 opened, and a step a live turn adds, grow into place (`turn-trace-reveal.tsx`); a view
 that closes keeps its last trace, and reopening shows it while the relay refreshes. In the
 Activity log, each turn is a stock `Disclosure` (never a group), and each step row is its own
-disclosure, so a failed call opens on its own there as in the drawer. Shared, high-churn log state
+disclosure, closed until opened, failed or not; plain rows still take the hover fill there,
+since pointing at one lights its span in the overview. Shared, high-churn log state
 — the linked hover between strip and rows, each turn's step marks, and the journal read queue
 (at most three in flight) — lives in small external stores (`agent-activity-log-stores.ts`) so a
 hover re-renders only the rows that read it. The strip's marks for unread turns come from Computer

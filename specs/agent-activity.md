@@ -265,11 +265,15 @@ operation category and the exact persisted message count; a noun the previous ac
 repeated. A turn with no actions and no messages reads `Stayed quiet` when it completed and `Ended
 before any action` otherwise. A header whose request came from a Chat the viewer can open reveals,
 on hover or keyboard focus, a ghost button back to it (`View in #product`, or `View in DM with
-Tiny` naming this Agent, the one place a DM names its peer), in room the header holds so it never
-covers the title.
+Tiny` naming this Agent, the one place a DM names its peer), at the end of the header's empty
+track column (on a narrow log, as an icon at the end of the title), so it covers and fades nothing.
 
-An open turn lists its steps one depth in on the same columns, each step's time its offset from
-the turn's start (`+2.3s`) and its bar on the turn's own scale. The newest day's ten latest turns
+An open turn puts a thin ruler row under its header: the track column only, inert and hidden from
+assistive tech, labeling the turn's rounded scale. Its steps follow one depth in on the same
+columns, each step's time its offset from the turn's start (`+2.3s`) and its bar on that scale;
+the ruler's ticks run down through every step row as gridlines, the 0 line darkest. Reasoning
+titles are `Thought` rows like any step. Every step row stays closed until opened, a failed one
+included; failure shows as its tint and mark. The newest day's ten latest turns
 open on arrival; everything older waits for a click. Journals are read through a queue of at most
 three in flight; a settled journal is read once and kept, so collapsing, reopening, or revisiting
 costs nothing. The overview draws a closed turn's steps from its execution outline instead: the
