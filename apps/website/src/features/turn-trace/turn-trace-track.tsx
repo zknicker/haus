@@ -5,8 +5,8 @@ import { placeTick } from './turn-trace-scale.ts';
 import { useTurnTraceScope } from './turn-trace-scope.tsx';
 
 /**
- * The waterfall track. In a chat's trace the leader runs its full width (and
- * across the column gap, so it meets the label's). In the log the leader stops
+ * The waterfall track. In a chat's trace the label's leader runs on across the
+ * lane, on the label leader's centerline. In the log the label's leader stops
  * at the lane's 0 edge, and the lane holds only the turn's gridlines and bars.
  * Each bar sits on the turn's axis, ringed in the row's ground so it reads as
  * cut from what it crosses. Parallel members stack as lanes in one bar.
@@ -32,13 +32,16 @@ export function TraceTrack({
             )}
             data-trace-cell="track"
         >
-            <span
-                className={cn(
-                    'absolute -inset-s-2 top-1/2 border-t border-dotted',
-                    isLog ? 'w-2' : 'inset-e-0',
-                    tone === 'danger' ? 'border-trace-leader-danger' : 'border-border'
-                )}
-            />
+            {isLog ? null : (
+                <span
+                    className={cn(
+                        // The label leader's 1px border box centers on the row: its top is 0.5px up.
+                        'absolute inset-x-0 top-[calc(50%-0.5px)] border-t border-dotted',
+                        tone === 'danger' ? 'border-trace-leader-danger' : 'border-border'
+                    )}
+                    data-trace-leader-lane
+                />
+            )}
             {isLog && gridTicks ? <TraceGridlines axisMs={axisMs} ticks={gridTicks} /> : null}
             <span className="absolute inset-x-0 top-1/2 h-4 -translate-y-1/2">
                 {axisMs > 0

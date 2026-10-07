@@ -38,12 +38,14 @@ test('log bars sit on the rounded scale, so the longest no longer touches the en
     assert.match(markup, /style="height:6px;left:5%;top:calc\(50% - 3px\);width:62.5%"/);
 });
 
-test('in the log, the leader stops at the lane edge and the lane holds the gridlines', () => {
+test('in the log, one leader runs to the lane edge and the lane holds the gridlines', () => {
     const markup = row('log');
     const track = trackOf(markup);
-    // Only the column gap carries the dots; the lane itself does not.
-    assert.match(track, /-inset-s-2 top-1\/2 border-t border-dotted w-2/);
-    assert.doesNotMatch(track, /inset-e-0/);
+    // One dotted element per row: the label's leader spans the column gap to
+    // the 0 edge (a second segment there seamed), and the lane carries no dots.
+    assert.equal(markup.match(/border-dotted/g)?.length, 1);
+    assert.match(markup, /border-dotted -me-2 @max-2xl\/activity-log:me-0[^"]*" data-trace-leader/);
+    assert.doesNotMatch(track, /border-dotted/);
     const lines = [...track.matchAll(/data-trace-gridline="(\d+)"/g)].map(([, tick]) => tick);
     assert.deepEqual(lines, ['0', '10000', '20000', '30000', '40000']);
     // The 0 line is the shared left edge, darker than the rest.
@@ -52,8 +54,11 @@ test('in the log, the leader stops at the lane edge and the lane holds the gridl
 });
 
 test("a chat's trace keeps its full-width leader and draws no gridlines", () => {
-    const track = trackOf(row('trace'));
-    assert.match(track, /border-dotted inset-e-0/);
+    const markup = row('trace');
+    const track = trackOf(markup);
+    // The label's leader crosses the gap; the lane's picks up on its centerline.
+    assert.match(markup, /border-dotted -me-2 border-border" data-trace-leader/);
+    assert.match(track, /inset-x-0 top-\[calc\(50%-0\.5px\)\] border-t border-dotted/);
     assert.doesNotMatch(track, /data-trace-gridline/);
 });
 

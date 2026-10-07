@@ -145,7 +145,7 @@ export function TraceCells({ bars, line, slot, timing = null, tone = 'default' }
                 style={{ paddingInlineStart: `calc(var(--trace-depth) * ${traceIndentRem}rem)` }}
             >
                 {line}
-                <TraceLeader tone={tone} />
+                <TraceLeader layout={layout} tone={tone} />
             </span>
             <TraceTrack bars={bars} layout={layout} tone={tone} />
             <TraceDuration timing={timing} />
@@ -177,15 +177,21 @@ export function TraceBody({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * The dotted line from a label's end at the row's center; the track carries
- * it on (`TraceTrack`).
+ * The dotted line from a label's end at the row's center. It runs on across
+ * the column gap to the track's edge as one element: a second segment sat a
+ * half pixel lower with its own dot phase, so the seam glitched. In the log it
+ * stops there, at the lane's 0 edge (and at the label's end once a narrow log
+ * drops the track); in a chat's trace the track carries it on (`TraceTrack`).
  */
-function TraceLeader({ tone }: { tone: TraceRowTone }) {
+function TraceLeader({ layout, tone }: { layout: TraceLayout; tone: TraceRowTone }) {
     return (
         <span
             aria-hidden
             className={cn(
                 'h-0 min-w-0 flex-1 border-t border-dotted',
+                // Cancels the label cell's share of the column gap, not a HeroUI part's padding.
+                '-me-2',
+                layout === 'log' && '@max-2xl/activity-log:me-0',
                 tone === 'danger' ? 'border-trace-leader-danger' : 'border-border'
             )}
             data-trace-leader

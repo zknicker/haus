@@ -96,7 +96,7 @@ test('the track and duration columns are identical cells at every depth', () => 
 test('every row carries a dotted leader through its track, and bars ring over it', () => {
     const markup = render(nested);
     const rows = markup.match(/data-trace-row/g)?.length ?? 0;
-    assert.equal(markup.match(/data-trace-leader/g)?.length, rows);
+    assert.equal(markup.match(/data-trace-leader(?!-)/g)?.length, rows);
     assert.match(
         markup,
         /shadow-\[0_0_0_2px_var\(--trace-row-lift\),0_0_0_2px_var\(--trace-turn-lift\),0_0_0_2px_var\(--trace-ring\)\]/
