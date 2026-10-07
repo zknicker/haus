@@ -100,7 +100,8 @@ describe('Server command groups', () => {
         });
         const titles = groups.flatMap((group) => group.commands.map((command) => command.title));
 
-        expect(titles).not.toContain('Activity');
+        // The Server Activity page is member-readable (agent.serverTurns is a member procedure).
+        expect(titles).toContain('Activity');
         expect(titles).not.toContain('Computers');
         expect(titles).not.toContain('Reminders');
 
