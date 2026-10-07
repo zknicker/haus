@@ -258,7 +258,12 @@ final class HausStore {
             guard !changed.isEmpty else { return }
             storedMessagesByChatID = newValue
             scheduleLaunchSnapshotWrite()
-            projections.retireMessages(chatIDs: changed)
+            // A Thread's rows resolve cloud-agent conversation links through
+            // its parent's page, so loaded Threads (pages the Chat list does
+            // not name) follow any page write.
+            let listedChatIDs = Set(storedChats.map(\.id))
+            let threadChatIDs = newValue.keys.filter { !listedChatIDs.contains($0) }
+            projections.retireMessages(chatIDs: changed.union(threadChatIDs))
         }
     }
 
