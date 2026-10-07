@@ -1439,9 +1439,9 @@
     /*
      * App chrome sits one step back from content. HeroUI paints `.sidebar` with
      * `--background`, which is the content plane — the two then read as one
-     * flat field. The fallback keeps dark mode on `--background`, where a
-     * single plane is correct: dark already separates chrome from content by
-     * the surfaces sitting on it, not by tinting the ground.
+     * flat field. Dark leaves `--sidebar-surface` unset globally, so the
+     * fallback keeps it on `--background`; the desktop shell card sets it in
+     * both themes (see "Shell variants").
      */
     .sidebar {
         background-color: var(--sidebar-surface, var(--background));
@@ -2272,18 +2272,28 @@
 
 [data-theme="dark"],
 .dark {
-    /* Dark has no sidebar tint; the canvas steps below the page instead. */
-    --shell-canvas: color-mix(in oklab, var(--background) 72%, black);
-    --shell-card: var(--background);
-    /* The same ladder in dark: canvas under the card, lines a step lighter than it. */
-    --shell-band-canvas: color-mix(in oklab, var(--background) 72%, black);
-    --shell-band-sidebar: color-mix(in oklab, var(--background) 98%, white);
-    --shell-card-border: color-mix(in oklab, var(--background) 88%, white);
-    --shell-band-divider: color-mix(in oklab, var(--background) 94%, white);
+    /*
+     * Dark keeps light's ladder, inverted in lightness: a near-black canvas
+     * under the tabs, a sidebar a step up, and the card the brightest ground,
+     * so the active tab and the card it opens into lift off the window.
+     */
+    --shell-canvas: oklch(10.5% 0.004 286);
+    --shell-card: oklch(16.5% 0.005 286);
+    --shell-band-canvas: var(--shell-canvas);
+    --shell-band-sidebar: oklch(14% 0.004 286);
+    --shell-card-border: color-mix(in oklab, var(--foreground) 8%, transparent);
+    --shell-band-divider: color-mix(in oklab, var(--foreground) 6%, transparent);
     --shell-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    /* Codex dark: ghost hover 8%; selected shadow-sm at 1.25 × the .2 shadow alpha. */
-    --shell-tab-hover: color-mix(in oklab, var(--foreground) 8%, transparent);
+    /* Ghost hover 5%: at Codex's 8% a hovered tab over the 10.5% canvas matched the active tab. */
+    --shell-tab-hover: color-mix(in oklab, var(--foreground) 5%, transparent);
     --shell-tab-active-shadow: 0 1px 2px -1px rgba(0, 0, 0, 0.25);
+    /*
+     * Shadows vanish on near-black, so the shown tab lifts by fill instead: a
+     * step above the card (the field's 21%), and resting titles read at 62%.
+     */
+    --shell-tab-active-background: oklch(21% 0.005 286);
+    --shell-tab-active-border: color-mix(in oklab, var(--foreground) 10%, transparent);
+    --shell-tab-foreground-muted: color-mix(in oklab, var(--foreground) 62%, transparent);
 }
 
 :root:is([data-shell-variant="canvas"], [data-shell-variant="band"]) {
@@ -2537,12 +2547,21 @@
     /* The band card's geometry and edge: hairline border, faint shadow, round 12px corners. */
     [data-shell-variant="canvas"] .app-shell .app-shell-main {
         --background: var(--shell-card);
+        --color-background: var(--background);
         overflow: hidden;
         border: var(--shell-card-border-width) solid var(--shell-card-border);
         corner-shape: round;
         border-radius: var(--shell-card-radius);
         background-color: var(--shell-card);
         box-shadow: var(--shell-card-shadow);
+    }
+
+    /* Dark lifts the card itself, so a field needs its own step and a hairline to read on it. */
+    :root:is([data-theme="dark"], .dark)[data-shell-variant="canvas"] .app-shell .app-shell-main,
+    :root:is([data-theme="dark"], .dark)[data-shell-variant="band"] .app-shell [data-app-layout] {
+        --field-background: oklch(21% 0.005 286);
+        --field-border: color-mix(in oklab, var(--foreground) 7%, transparent);
+        --border-width-field: 0.5px;
     }
 
     /* band: one rounded card, inset from the canvas, holds sidebar and content. */
@@ -2561,6 +2580,7 @@
 
     [data-shell-variant="band"] .app-shell [data-app-layout] {
         --background: var(--shell-card);
+        --color-background: var(--background);
         --sidebar-surface: var(--shell-band-sidebar);
         overflow: hidden;
         border: var(--shell-card-border-width) solid var(--shell-card-border);
