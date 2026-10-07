@@ -240,7 +240,7 @@
 }
 
 /*
- * The two highlight layers, registered as colors so they transition: a turn's
+ * The two highlight layers, registered as colors: a turn's
  * (`--trace-turn-lift`, painted by the turn and re-painted over an opaque
  * failed row) and a row's own hover (`--trace-row-lift`). Both rest
  * transparent; a bar's ring stacks them over `--trace-ring` so it always

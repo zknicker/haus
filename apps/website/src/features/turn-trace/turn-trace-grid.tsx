@@ -111,7 +111,6 @@ export function traceRowClass(
         'min-h-8 w-full text-start text-sm',
         // The log's rows run edge to edge; a trace's rows are rounded insets.
         layout === 'log' ? 'px-(--trace-pad)' : 'rounded-lg px-2',
-        'transition-[--trace-row-lift] duration-150 motion-reduce:transition-none',
         tone === 'danger'
             ? // Opaque, so it re-paints the turn's lift the turn painted beneath it.
               'bg-[linear-gradient(var(--trace-row-lift),var(--trace-row-lift)),linear-gradient(var(--trace-turn-lift),var(--trace-turn-lift))] bg-trace-row-danger [--trace-ring:var(--trace-row-danger)]'
@@ -130,7 +129,6 @@ export const traceRowHoverClass = 'hover:[--trace-row-lift:var(--trace-row-highl
 export function traceTurnClass(isHighlighted: boolean): string {
     return cn(
         'bg-[linear-gradient(var(--trace-turn-lift),var(--trace-turn-lift))]',
-        'transition-[--trace-turn-lift] duration-150 motion-reduce:transition-none',
         isHighlighted && '[--trace-turn-lift:var(--trace-row-highlight)]'
     );
 }

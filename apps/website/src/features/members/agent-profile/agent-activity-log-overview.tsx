@@ -180,7 +180,7 @@ function TimelineTurn({ block, startedAt }: { block: TimelineBlock; startedAt: s
                 className={cn(
                     'relative h-4 w-full overflow-hidden rounded-xs',
                     // Cut from the lane like a waterfall bar from its leader.
-                    'shadow-[0_0_0_2px_var(--trace-ground)] transition-[opacity,box-shadow] duration-150 motion-reduce:transition-none',
+                    'shadow-[0_0_0_2px_var(--trace-ground)]',
                     // Solid: the quiet tone over the ground, so the lane never shows through.
                     'bg-background',
                     isLinked &&

@@ -70,7 +70,7 @@ export function LogChatButton({
             className={cn(
                 traceRowClass('default', 'log'),
                 'pointer-events-none absolute inset-0',
-                'opacity-0 transition-opacity duration-150 motion-reduce:transition-none',
+                'opacity-0',
                 'focus-within:opacity-100 group-hover/turn-header:opacity-100',
                 'group-has-[[data-log-header]:focus-visible]/turn-header:opacity-100'
             )}
