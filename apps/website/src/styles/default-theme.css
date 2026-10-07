@@ -1193,6 +1193,7 @@
      * card.
      */
     .code-pane .code-block {
+        --code-pre-inline: calc(var(--spacing) * 6);
         background-color: transparent;
         border-radius: 0;
         margin-block: 0;
@@ -1203,55 +1204,128 @@
         overflow-x: visible;
     }
 
-    /*
-     * Line numbers ride each shiki `.line` as a CSS counter in a hanging
-     * gutter, so a wrapped line keeps one number on its first row and its
-     * continuation rows indent under the code. Generated content is never
-     * selected or copied. The number column starts on the body's ×6 reading
-     * gutter and is `--code-pane-digits` wide (set by the view); code starts ×3
-     * past it, and each number hangs right-aligned ×3 before its line. Before shiki resolves (and for files too large to highlight)
-     * CodeBlock paints one plain `<pre>` with no lines, so that pre takes the
-     * same start inset and highlighting lands without moving the text.
-     */
     .code-pane pre {
-        --code-pane-code-start: calc(
-            var(--spacing) * 9 + var(--code-pane-digits, 1) * 1ch
-        );
-        counter-reset: code-line;
         overflow-wrap: anywhere;
         padding-block: calc(var(--spacing) * 2);
-        padding-inline: calc(var(--spacing) * 6);
+        padding-inline: var(--code-pre-inline);
         white-space: pre-wrap;
     }
 
-    .code-pane pre:not(.shiki) {
-        padding-inline-start: var(--code-pane-code-start);
+    /*
+     * Line numbers, shared by every numbered CodeBlock (the workspace file
+     * view, a trace's multi-line evidence). They ride each shiki `.line` as a
+     * CSS counter in a hanging gutter, so a wrapped line keeps one number on
+     * its first row and its continuation rows indent under the code.
+     * Generated content is never selected or copied. The host sets
+     * `--code-line-digits` from its line count; the number column starts on
+     * the pre's own inline pad (`--code-pre-inline`), code starts
+     * `--code-line-gap` past it, and each number hangs right-aligned that gap
+     * before its line. Before shiki resolves (and for text too large to
+     * highlight) CodeBlock paints one plain `<pre>` with no lines, so that
+     * pre takes the same start inset and highlighting lands without moving
+     * the text.
+     */
+    .code-block--numbered {
+        --code-line-gap: calc(var(--spacing) * 3);
+        --code-line-start: calc(var(--code-line-digits, 1) * 1ch + var(--code-line-gap));
+    }
+
+    .code-block--numbered pre {
+        counter-reset: code-line;
+    }
+
+    .code-block--numbered pre:not(.shiki) {
+        padding-inline-start: calc(var(--code-pre-inline) + var(--code-line-start));
     }
 
     /* Stock `.code-block__code .line` pins `padding-inline: 0 !important`, so
        the hanging gutter is a margin and the number hangs outside the line. */
-    .code-pane .line {
+    .code-block--numbered .line {
         counter-increment: code-line;
         display: block;
-        margin-inline-start: calc(
-            var(--code-pane-digits, 1) * 1ch + var(--spacing) * 3
-        );
+        margin-inline-start: var(--code-line-start);
         position: relative;
     }
 
-    .code-pane .line::before {
+    .code-block--numbered .line::before {
         color: var(--muted);
         content: counter(code-line);
         font-variant-numeric: tabular-nums;
-        inset-inline-end: calc(100% + var(--spacing) * 3);
+        inset-inline-end: calc(100% + var(--code-line-gap));
         position: absolute;
         user-select: none;
         white-space: nowrap;
     }
 
     /* Shiki emits a final empty line for a trailing newline; editors don't number it. */
-    .code-pane .line:last-child:empty {
+    .code-block--numbered .line:last-child:empty {
         display: none;
+    }
+
+    /*
+     * The trace's compact developer block: evidence in an event log, not a
+     * snippet in prose. Mono `xs` on a tight line, the stock surface at the
+     * fields tier (a smaller box than a chat snippet takes a smaller step),
+     * no block margin (the body's gap spaces it), a slim header that holds
+     * only the micro label and copy, and soft wrap so a narrow log column
+     * never scrolls sideways.
+     */
+    .code-block--compact {
+        --code-line-gap: calc(var(--spacing) * 2.5);
+        --code-pre-inline: calc(var(--spacing) * 3);
+        border-radius: var(--radius-xl);
+        margin-block: 0;
+    }
+
+    .code-block--compact .code-block__header {
+        min-height: calc(var(--spacing) * 7);
+        padding-block: calc(var(--spacing) * 0.5) 0;
+        padding-inline: var(--code-pre-inline) calc(var(--spacing) * 0.5);
+    }
+
+    .code-block--compact .code-block__code {
+        font-size: var(--text-xs);
+        line-height: 1.5;
+    }
+
+    /* Evidence is read for its content, so its gutter recedes a step past a file view's. */
+    .code-block--compact .line::before {
+        opacity: 0.7;
+    }
+
+    .code-block--compact pre {
+        overflow-wrap: anywhere;
+        padding-block: calc(var(--spacing) * 0.5) calc(var(--spacing) * 2);
+        padding-inline: var(--code-pre-inline);
+        white-space: pre-wrap;
+    }
+
+    /*
+     * A folded block's "Show 12 more lines" sits on the code's own inset as
+     * part of the block, not a second action beside it: muted `xs` like the
+     * micro label above it, so it reads as the block's footnote.
+     */
+    .code-block__fold {
+        display: flex;
+        padding: 0 calc(var(--spacing) * 0.5) calc(var(--spacing) * 1);
+    }
+
+    /* The fold's control is the folded block's bottom edge, so the code above drops its own. */
+    .code-block--compact .code-block__code:has(+ .code-block__fold) pre {
+        padding-block-end: 0;
+    }
+
+    .code-block__fold .button {
+        color: var(--muted);
+        font-size: var(--text-xs);
+    }
+
+    /* A one-line shell command reads as typed at a prompt; the `$` is never copied. */
+    .code-block--prompt .line::before {
+        color: var(--muted);
+        content: '$';
+        margin-inline-end: 1ch;
+        user-select: none;
     }
 
     /*
@@ -2020,20 +2094,6 @@
         font-size: var(--text-lg);
         line-height: var(--text-lg--line-height);
         font-weight: 600;
-    }
-
-    /*
-     * Stock ChatTool sets its section labels in 10px uppercase with wide
-     * tracking. The turn trace names every body section the same way —
-     * `COMMAND`, `OUTPUT`, `REPORT` beside the stock `ARGUMENTS` and `RESULT`
-     * — at the type scale's own smallest step, so these take `xs` rather than
-     * an off-scale 10px and the two read as one micro-label tier.
-     */
-    .chat-tool__args-label,
-    .chat-tool__result-label,
-    .chat-tool__error-label {
-        font-size: var(--text-xs);
-        line-height: var(--text-xs--line-height);
     }
 
     /*

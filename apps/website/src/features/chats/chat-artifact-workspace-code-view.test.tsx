@@ -7,7 +7,7 @@ const target = { agentId: 'agent-1', kind: 'workspaceFile', path } as const;
 
 test('the number column is sized to the line count', () => {
     const lines = Array.from({ length: 120 }, (_, index) => `line ${index}`).join('\n');
-    expect(render(lines)).toContain('--code-pane-digits:3');
+    expect(render(lines)).toContain('--code-line-digits:3');
 });
 
 test('the code paints as plain text before highlighting resolves', () => {

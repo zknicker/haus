@@ -1,13 +1,10 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
 import { readReasoning } from './turn-trace-reasoning.tsx';
 import { turnTraceRevealTransition } from './turn-trace-reveal.tsx';
-
-const theme = readFileSync(new URL('../../styles/default-theme.css', import.meta.url), 'utf8');
 
 test('every row with evidence is a real button that states whether it is open', () => {
     const markup = render(
@@ -95,13 +92,6 @@ test('trace content reveals on a no-bounce spring, and at once under reduced mot
     assert.equal(transition.height.type, 'spring');
     assert.equal(transition.height.bounce, 0);
     assert.ok(transition.opacity.duration <= 0.2);
-});
-
-test('the theme sets stock ChatTool section labels on the trace micro-label tier', () => {
-    assert.match(
-        theme,
-        /\.chat-tool__args-label,\s*\.chat-tool__result-label,\s*\.chat-tool__error-label \{\s*font-size: var\(--text-xs\);/
-    );
 });
 
 function render(presentation: AgentExecutionJournal) {

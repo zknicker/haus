@@ -85,6 +85,16 @@
         --trace-row-highlight: color-mix(in oklab, var(--foreground) 5%, transparent);
 
         /*
+         * Syntax inks for structured values drawn outside shiki (the trace's
+         * JSON tree), taken from the themes CodeBlock highlights with
+         * (`github-dark` here, `github-light` below) so a tree beside a
+         * highlighted block speaks the same colors: keys and literals in the
+         * constant blue, strings in the string blue.
+         */
+        --code-constant: #79c0ff;
+        --code-string: #a5d6ff;
+
+        /*
          * Automation provenance. A fire writes nothing to the transcript, so
          * the context line above the Agent's own message is the only thing
          * that says why it spoke — and the two automations have to be told
@@ -173,6 +183,8 @@
 
         --trace-tool: var(--color-teal-600);
         --trace-row-highlight: color-mix(in oklab, var(--foreground) 4%, transparent);
+        --code-constant: #005cc5;
+        --code-string: #032f62;
 
         /* The same two hues carried down the ramp: light needs the darker,
          * denser end to hold against a near-white page at 11px. */
@@ -203,6 +215,8 @@
 /* Expose the wash to Tailwind so bg-background-hover works like bg-surface-hover. */
 @theme inline {
     --color-background-hover: var(--background-hover);
+    --color-code-constant: var(--code-constant);
+    --color-code-string: var(--code-string);
     --color-nested-surface: var(--nested-surface);
     --color-nested-surface-hover: var(--nested-surface-hover);
     --color-reasoning-high: var(--reasoning-high);
