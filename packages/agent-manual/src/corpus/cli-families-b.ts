@@ -103,21 +103,4 @@ A fire posts nothing on its own. Answer it with \`haus message send --cause <fir
         summary: 'Create, secure, inspect, and answer inbound webhook triggers.',
         title: 'Triggers',
     },
-    {
-        body: `# Visual preview
-
-\`haus visual preview\` shows you a \`\`\`visual fence before anyone else sees it. It renders on your own machine through the same sandboxed frame and theme the chat uses, so it needs no Server and works in any shell with Google Chrome.
-
-Write the draft message to a file, then run \`haus visual preview draft.md\` (or pipe it with \`-\`). Every fence renders, up to four; input with no fence is treated as one fence body. It writes \`.haus/previews/<slug>-<scheme>-<width>.png\` and prints, per fence, the PNG paths, the frame height, script errors, CSP refusals, and layout findings: horizontal overflow, clipped text, SVG text outside its svg, and overlapping text.
-
-Open the PNG with your image reader and look at it; the findings catch only what geometry can. Defaults are dark at the 736px chat column. \`--schemes both\` adds light, \`--width 375\` checks a phone, and \`--out <dir>\` moves the PNGs. Findings never fail the command; a non-zero exit means bad input or Chrome could not run.
-
-Fix what it found, preview again, then send the same fences with \`haus message send\`.`,
-        id: 'visual',
-        kind: 'overview',
-        related: ['message'],
-        summary:
-            'Render a draft visual fence to PNGs and check it for errors and layout problems before sending.',
-        title: 'Visual preview',
-    },
 ];

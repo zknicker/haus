@@ -18,5 +18,4 @@ export const cliFamilyTopics = {
     task: 'tasks',
     thread: 'thread',
     trigger: 'trigger',
-    visual: 'visual',
 } as const;

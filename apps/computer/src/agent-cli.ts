@@ -12,7 +12,6 @@ import { SKILL_SUBCOMMANDS } from './agent-cli/commands/agent-skill.ts';
 import { TASK_SUBCOMMANDS } from './agent-cli/commands/agent-task.ts';
 import { THREAD_SUBCOMMANDS } from './agent-cli/commands/agent-thread.ts';
 import { TRIGGER_SUBCOMMANDS } from './agent-cli/commands/agent-trigger.ts';
-import { VISUAL_SUBCOMMANDS } from './agent-cli/commands/agent-visual.ts';
 import { UsageError } from './agent-cli/parse.ts';
 import { dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
 import { errorBlock } from './agent-cli/ui.ts';
@@ -32,8 +31,6 @@ export const commandGroups = {
     task: TASK_SUBCOMMANDS,
     thread: THREAD_SUBCOMMANDS,
     trigger: TRIGGER_SUBCOMMANDS,
-    // Local-only: renders on this machine and never calls the Server.
-    visual: VISUAL_SUBCOMMANDS,
 } satisfies Record<string, SubCommand[]>;
 
 /**
