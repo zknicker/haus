@@ -236,20 +236,27 @@ is still in flight.
 ### Agent activity history
 
 The Agent profile Activity tab reads the durable Server journal newest-first with pagination and
-groups it by turn under day headers (`Today`, `Yesterday`, `Oct 4`). Each collapsed turn is titled
-by its trigger — the first line of the waking message with its Chat as context (`#product`, or `DM`
-for a direct message, never the peer's name), or the kind of typed work (`Reminder`) — and its
-muted second line lists the actions taken, most telling first (`3 sub-agents · 2 file edits ·
-1 message`), from the exact Computer-reported totals by semantic operation category and the exact
-persisted message count. One fixed, non-wrapping, tabular column on the right stacks duration over
-start time; durations use at most two units with no zero padding (`<1s`, `42s`, `1m 24s`, `6m`,
-`1h 2m`), and a running turn's duration ticks live. Status shows only when it is news — failed,
-interrupted, or still working — as an explicit mark in its own slot before that column; a
-completed turn carries none. Consecutive
-failed turns with the same failure kind and trigger fold into one row with a count. When the
-trigger is private, unrecorded, or its message is unreadable to the viewer, the row shows no title
-and its action list stands in as a single line, never repeated beneath; a turn with no actions and no messages reads `Stayed quiet` when it
-completed and `Ended before any action` otherwise. A running turn has not settled into
+groups it by turn under day headers (`Today`, `Yesterday`, `Oct 4`). Each collapsed turn is one
+line on fixed columns: start time (tabular), a status glyph only when it is news — failed,
+interrupted, or still working, with a folded repeat count (`3×`) after the title — then the title in
+regular weight, truncated to one line, then the duration in a tabular, non-wrapping column, then
+the chevron. A completed turn carries no glyph. The title is the trigger — the first line of the
+waking message with its Chat as muted context (`#product`, or `DM` for a direct message, never the
+peer's name), or the kind of typed work (`Reminder`). The row states no per-action marks.
+Durations use at most two units with no zero padding (`<1s`, `42s`, `1m 24s`, `6m`, `1h 2m`), and
+a running turn's duration ticks live. Consecutive failed turns with the same failure kind and
+trigger fold into one row with a count. When the trigger is private, unrecorded, or its message is
+unreadable to the viewer, the row is titled, muted so it recedes beside real requests, by what the
+turn did in words, most telling first (`Edited 3 files · read 4 · sent 1 message`), from the exact
+Computer-reported totals by semantic operation category and the exact persisted message count; a
+noun the previous action named is not repeated. A turn with no actions and no messages reads
+`Stayed quiet` when it completed and `Ended before any action` otherwise.
+
+Opening a turn replaces its truncated title in place with the whole request, wrapping, stated
+once. Below it, on the page's own ground with no inset panel and starting at the request's left
+edge, sit an `Open in DM` (or `#channel`) link back to its Chat, one muted totals line
+(`32s · 8 calls · 3 sub-agents · 1 failed · Done`, failures in `danger`), and the trace. The row's
+hairline closes it; there is no totals footer. A running turn has not settled into
 `agent.turns`, so its row reads its trigger through `agent.runTrigger` and is titled the same way
 while it works. Trigger messages are read once per list through a small rolling
 window of ordinary message reads, never one burst per row. These compact totals are part of
@@ -299,7 +306,7 @@ and a short log lists the run's latest steps. Every length and time in the card 
 right-aligned tabular column in the turn-row duration format (`Running a command` … `42s`). The log lists
 the run's latest steps: settled steps in past tense, and a start only while it is still running, so
 stale `…ing` lines never pile up. While idle, it shows the last two turns, each titled by its
-trigger with its actions, duration over relative time in the same column, repeated failures folded as in Activity History.
+trigger with what it did in words, duration over relative time in the same column, repeated failures folded as in Activity History.
 The preview reads Server history and remains useful while Computer is offline;
 it never requests Computer-local execution evidence. Clicking the avatar or
 reference still opens the full Agent profile.

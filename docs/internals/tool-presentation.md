@@ -69,10 +69,13 @@ report, a sent message — starts on the row's label text (`TraceBody`, `traceTe
 short of the edge. Each section is named by one micro label (`TraceMicroLabel`: `ERROR`,
 `COMMAND`, `OUTPUT`, `REPORT`, `MESSAGE`, and stock ChatTool's `ARGUMENTS` / `RESULT` on the same
 tier) over the code blocks' quiet surface, bounded to a readable height that scrolls. The trace's
-totals sit once in its footer (`turn-trace-footer.tsx`): calls, sub-agents, images, and failures
-as tabular figures over micro labels, closed by the wall time labelled `Running` while the turn
-works and `Done` once it settles. The journal reports tokens only per sub-agent, so the footer
-states none for the turn. In the drawer the turn's outcome chip leads the trace; with no steps to
+totals sit once, placed by its host (`totalsPlacement`). The drawer closes the trace with a footer
+(`turn-trace-footer.tsx`): calls, sub-agents, images, and failures as tabular figures over micro
+labels, closed by the wall time labelled `Running` while the turn works and `Done` once it
+settles. The Activity tab, whose open row already leads with the request, states them as one
+muted strip above the steps (`turn-trace-stats-strip.tsx`): `32s · 8 calls · 3 sub-agents ·
+1 failed · Done`, the journal's own status closing it. The journal reports tokens only per
+sub-agent, so neither states any for the turn. In the drawer the turn's outcome chip leads the trace; with no steps to
 total, the turn's own record says how long it took, and a turn's own `failure` reads as a danger
 note above the rows rather than "No activity was recorded". A row is a stock `Disclosure`, whose
 trigger is the whole row and its one tab stop (Enter or Space toggles it, the ring is
@@ -135,13 +138,11 @@ both pure and both proved on their own:
   message itself — its place and its heredoc or here-string body as markdown under
   `MESSAGE` — with the command and the CLI's reply behind one quiet, closed `COMMAND`
   disclosure.
-- `turn-trace-reasoning.tsx` presents a reasoning block in place, with no disclosure:
-  a row on the grid, then its prose on the label text. Codex opens each summary with a
-  bold title line, so that title names the row (through the transcript's
-  `parseThinkingSummary`) and the rest is the body; untitled reasoning's row reads
-  `Thought` and all of its text is the body. A body longer than roughly ten prose lines folds
-  to six behind a Show more button, decided from the text so the fold never appears
-  late.
+- `turn-trace-reasoning.tsx` presents a reasoning block as a step like any other: one line on
+  the grid that opens to its prose. Codex opens each summary with a bold title line, so that
+  title names the row (through the transcript's `parseThinkingSummary`) and the rest is the body;
+  untitled reasoning's row reads `Thought`. The body's first line rides the row as muted detail,
+  and the row opens to the whole body on the label text; a title with no body is a plain row.
 
 Reasoning bodies are model-authored markdown and render through `ReferenceMarkdown`,
 the same safe renderer a message uses — `react-markdown` with no raw-HTML pass.

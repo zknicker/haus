@@ -64,8 +64,8 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Below the header, six cards each state a fact and open a section: **Runs on** (Computer and
   model, with the Computer's health), **Profile** (who created the Agent and when, else its handle), **Automations**
   (standing reminders and triggers), **Skills** and **Connections** (the first display names, `+N` for the
-  rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity — each turn titled by the request that woke it, with the
-  actions it took, its duration, and its time, and consecutive identical failures folded into one
+  rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity — each turn one line: its time, the request that woke it
+  (or, muted, what it did in words when no request is visible), and its duration, and consecutive identical failures folded into one
   row (`Failed 5×`) — and **See all** into Activity, and a compact 30-day processed-token tile linking to Usage.
 - The profile's trail rides in the page's top band, in Settings' band shape: the Agent's face,
   then `Haus / Juniper / Connections`, the Agent crumb leading back to the hub. On the hub the trail

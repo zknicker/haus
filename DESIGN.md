@@ -867,7 +867,12 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   closed row keeps its last trace, so reopening animates the same content closing did. A row
   opened before its execution details have arrived has nothing to measure, so it opens at once
   and the trace reveals its own height when the relay answers. The scoped
-  `accordion--activity-history` modifier owns that exception.
+  `accordion--activity-history` modifier owns that exception. A row is one line on fixed columns
+  — tabular time, a status glyph slot, the regular-weight request with its muted place, a
+  tabular duration — with no action marks; an untitled turn's summary is muted. Opened, the
+  request wraps in place and the content sits on the same columns at the request's edge, on the
+  accordion's own ground: no inset surface or border, since the trace's bars would sink into a
+  card's fill.
 - **Turn trace:** Every trace row sits on one locked grid — label `clamp(8rem, 45%, 28rem)`,
   a flexible waterfall track, a `3.75rem` right-aligned tabular duration that never wraps, and a
   `1rem` disclosure slot reserved on leaves — at `min-h-8` with a hairline gap between rows. Depth
@@ -886,16 +891,17 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   uppercase, `tracking-wide`, muted — over the code blocks' `surface-secondary` material at
   their `×2` radius, bounded to a readable height that scrolls. That tier is the page's only
   uppercase text: stock `ChatTool` ships its `Arguments`, `Result`, and error labels in an
-  off-scale 10px, so `default-theme.css` moves them onto `xs`. The totals footer is tabular
-  `sm` medium figures over micro labels, the wall time labelled `Running`, then `Done`. Rows
+  off-scale 10px, so `default-theme.css` moves them onto `xs`. The drawer's totals footer is
+  tabular `sm` medium figures over micro labels, the wall time labelled `Running`, then `Done`;
+  the Activity tab states the same totals as one muted `xs` strip above the steps. Rows
   open on stock `Disclosure` (200ms height, chevron rotate), bars rescale on a 200ms linear
   `left`/`width` transition while a turn runs, the running bar pulses, and a new row fades and
   rises 6px on the transcript's 180ms step fade; reduced motion turns all of it off. The Turn
   details drawer carries code blocks and diffs, so `drawer__dialog--turn-details` widens the
   right drawer to 32rem, capped at the viewport. Reasoning is a row in the step hue whose prose
   sits on its label text in muted `sm` at the prose measure, with the transcript's Markdown
-  block spacing; a long thought folds to six lines behind the transcript's bottom fade and a
-  Show more button.
+  block spacing; like every other step it is one line (its first line as muted detail) until
+  opened, never a fade or a Show more button.
 - **Tasks in Chat:** A task states itself in the header of the recessed Thread surface beneath its
   message and nowhere else; a task an Agent claimed for itself states nothing there at all unless
   the reader has turned **Show tasks in chat** on.
