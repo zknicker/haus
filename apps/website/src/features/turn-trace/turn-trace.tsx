@@ -1,8 +1,6 @@
-import type { AgentExecutionJournal } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { CancelCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { DisclosureGroupStateContext } from 'react-aria-components';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { TurnJournalSnapshot } from '../../hooks/members/turn-journal-relay.ts';
 import { useTurnJournal } from '../../hooks/members/use-turn-journal.ts';
@@ -23,11 +21,6 @@ import { TurnTraceFooter } from './turn-trace-footer.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
 import { TurnTraceScopeProvider, type TurnTraceWorkspace } from './turn-trace-scope.tsx';
 import { TurnTraceScroll } from './turn-trace-scroll.tsx';
-import {
-    journalStripParts,
-    summaryStripParts,
-    TurnTraceStatsStrip,
-} from './turn-trace-stats-strip.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from './turn-trace-view.ts';
 import { useTurnTraceNow } from './use-turn-trace-now.ts';
@@ -44,8 +37,6 @@ export function TurnTrace({
     outcome = null,
     runId,
     serverId,
-    stripAction,
-    totalsPlacement = 'footer',
     turn,
 }: {
     access: TurnDetailAccess;
@@ -55,13 +46,6 @@ export function TurnTrace({
     outcome?: AgentActivityTurn | null;
     runId: string | null;
     serverId: string;
-    /** Ends the `strip` line, on the trace's right edge. */
-    stripAction?: React.ReactNode;
-    /**
-     * `footer` closes the trace with its totals; `strip` states them as one
-     * muted line above the steps, for a host whose header leads into the trace.
-     */
-    totalsPlacement?: 'footer' | 'strip';
     turn: AgentActivityTurn | null;
 }) {
     const journal = useRetainedJournal(
@@ -89,9 +73,7 @@ export function TurnTrace({
             outcome={outcome}
             presentation={presentation}
             refreshError={journal.refreshError}
-            stripAction={stripAction}
             summary={turn}
-            totalsPlacement={totalsPlacement}
             workspace={agentId ? { agentId, serverId } : null}
         />
     );
@@ -105,9 +87,7 @@ export function TurnTracePresentation({
     outcome = null,
     presentation,
     refreshError = null,
-    stripAction,
     summary = null,
-    totalsPlacement = 'footer',
     workspace = null,
 }: {
     access: TurnDetailAccess;
@@ -116,10 +96,8 @@ export function TurnTracePresentation({
     outcome?: AgentActivityTurn | null;
     presentation: TurnJournalPresentation | null;
     refreshError?: string | null;
-    stripAction?: React.ReactNode;
-    /** The turn's own record: the `strip` line until the journal's steps arrive. */
+    /** The turn's own record: whether it is still running. */
     summary?: AgentActivityTurn | null;
-    totalsPlacement?: 'footer' | 'strip';
     workspace?: TurnTraceWorkspace | null;
 }) {
     const journal =
@@ -127,55 +105,38 @@ export function TurnTracePresentation({
     const now = useTurnTraceNow(journal?.status === 'running' || summary?.kind === 'active');
     const view = buildTurnTraceView(journal, events, now);
     const awaitingJournal = access === 'journal' && isPending && !presentation;
-    const stripParts =
-        totalsPlacement === 'strip' ? readStripParts(view, journal, summary, now) : null;
 
     return (
-        // Every step row is its own disclosure. Inside the Activity tab's
-        // accordion, React Aria would otherwise enrol each one in the turn
-        // rows' group: the group's keys would decide a call's state, so a
-        // failed call would not open on its own there as it does in the drawer.
-        <DisclosureGroupStateContext.Provider value={null}>
-            <div className="@container grid min-w-0 gap-2 text-sm" data-turn-trace>
-                {stripParts ? (
-                    <TurnTraceStatsStrip action={stripAction} parts={stripParts} />
-                ) : null}
-                {/* With no steps there are no totals, so the turn's own record
+        <div className="@container grid min-w-0 gap-2 text-sm" data-turn-trace>
+            {/* With no steps there are no totals, so the turn's own record
                     says how it went — once the journal has answered, so the
                     line does not flip to the totals a moment later. */}
-                {outcome && view.steps.length === 0 && !awaitingJournal ? (
-                    <TurnTraceOutcome turn={outcome}>
-                        <span className="text-muted">{formatActivityTurnHeadline(outcome)}</span>
-                    </TurnTraceOutcome>
-                ) : null}
-                <TurnTraceNotice
-                    access={access}
-                    isPending={isPending}
-                    presentation={presentation}
-                />
-                {view.error ? <TurnTraceError error={view.error} /> : null}
-                {view.steps.length === 0 ? (
-                    journal && journal.status !== 'running' && !view.error ? (
-                        <TurnTraceNote>No activity was recorded for this turn.</TurnTraceNote>
-                    ) : null
-                ) : (
-                    // The relay answers after the row or drawer has opened, so the
-                    // trace grows into place instead of landing at full height.
-                    <TurnTraceReveal className="grid min-w-0 gap-2">
-                        {outcome ? <TurnTraceOutcome turn={outcome} /> : null}
-                        <TurnTraceScopeProvider scope={{ axisMs: readAxis(view), workspace }}>
-                            <TurnTraceScroll>
-                                <TurnTraceSteps steps={view.steps} />
-                            </TurnTraceScroll>
-                        </TurnTraceScopeProvider>
-                        {totalsPlacement === 'footer' ? (
-                            <TurnTraceFooter totals={view.totals} />
-                        ) : null}
-                    </TurnTraceReveal>
-                )}
-                {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
-            </div>
-        </DisclosureGroupStateContext.Provider>
+            {outcome && view.steps.length === 0 && !awaitingJournal ? (
+                <TurnTraceOutcome turn={outcome}>
+                    <span className="text-muted">{formatActivityTurnHeadline(outcome)}</span>
+                </TurnTraceOutcome>
+            ) : null}
+            <TurnTraceNotice access={access} isPending={isPending} presentation={presentation} />
+            {view.error ? <TurnTraceError error={view.error} /> : null}
+            {view.steps.length === 0 ? (
+                journal && journal.status !== 'running' && !view.error ? (
+                    <TurnTraceNote>No activity was recorded for this turn.</TurnTraceNote>
+                ) : null
+            ) : (
+                // The relay answers after the row or drawer has opened, so the
+                // trace grows into place instead of landing at full height.
+                <TurnTraceReveal className="grid min-w-0 gap-2">
+                    {outcome ? <TurnTraceOutcome turn={outcome} /> : null}
+                    <TurnTraceScopeProvider scope={{ axisMs: readTurnTraceAxis(view), workspace }}>
+                        <TurnTraceScroll>
+                            <TurnTraceSteps steps={view.steps} />
+                        </TurnTraceScroll>
+                    </TurnTraceScopeProvider>
+                    <TurnTraceFooter totals={view.totals} />
+                </TurnTraceReveal>
+            )}
+            {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
+        </div>
     );
 }
 
@@ -210,24 +171,8 @@ function TurnTraceOutcome({
     );
 }
 
-/**
- * The strip line always stands, so its action is never orphaned: the
- * journal's totals once it has steps, the turn summary until then.
- */
-function readStripParts(
-    view: TurnTraceView,
-    journal: AgentExecutionJournal | null,
-    summary: AgentActivityTurn | null,
-    now: number
-): readonly string[] | null {
-    if (view.steps.length > 0) {
-        return journalStripParts(journal?.status ?? null, view.totals);
-    }
-    return summary ? summaryStripParts(summary, now) : null;
-}
-
 /** Every bar's scale: the turn's wall time, widened to any step that outlasts it. */
-function readAxis(view: TurnTraceView): number {
+export function readTurnTraceAxis(view: TurnTraceView): number {
     const ends = view.steps.map((step) => step.timing.offsetMs + (step.timing.durationMs ?? 0));
     return Math.max(view.totals.durationMs ?? 0, ...ends);
 }

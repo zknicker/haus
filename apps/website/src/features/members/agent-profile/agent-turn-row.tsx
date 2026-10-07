@@ -1,6 +1,5 @@
 import { Spinner } from '@heroui/react';
 import { AlertCircleIcon, StopCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
@@ -19,18 +18,10 @@ import type { RecentActivityRow } from './recent-activity-rows.ts';
  * when it is news (failed, interrupted, still working), the request with its
  * Chat, and the turn's length. Every row shares the columns, so times,
  * requests, and lengths each line up down the list. A turn with no request
- * the reader may see is titled, muted, by what it did. Open, the request
- * replaces its one truncated line in place, whole and wrapping.
+ * the reader may see is titled, muted, by what it did. The profile hub's
+ * Recent activity card reads the Activity log's turns this compactly.
  */
-export function TurnRowContent({
-    isExpanded = false,
-    row,
-    title,
-}: {
-    isExpanded?: boolean;
-    row: RecentActivityRow;
-    title: TurnRowTitle;
-}) {
+export function TurnRowContent({ row, title }: { row: RecentActivityRow; title: TurnRowTitle }) {
     const turn = row.latest;
     const status = getTurnRowStatus(row);
 
@@ -49,7 +40,6 @@ export function TurnRowContent({
             </span>
             <TurnRowTitleLine
                 count={status?.kind === 'failed' ? status.count : 1}
-                isExpanded={isExpanded}
                 title={title}
                 turn={turn}
             />
@@ -57,18 +47,6 @@ export function TurnRowContent({
                 <TurnDuration turn={turn} />
             </span>
         </span>
-    );
-}
-
-/**
- * An open row's content, on the row's own columns: it starts at the request's
- * left edge, so what the turn did reads as the request's continuation.
- */
-export function TurnRowBody({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="grid min-w-0 grid-cols-[4.25rem_1rem_minmax(0,1fr)] gap-x-2">
-            <div className="col-start-3 grid min-w-0 gap-3">{children}</div>
-        </div>
     );
 }
 
@@ -81,15 +59,13 @@ export function TurnDuration({ turn }: { turn: AgentActivityTurn }) {
     );
 }
 
-function TurnRowTitleLine({
+export function TurnRowTitleLine({
     count,
-    isExpanded,
     title,
     turn,
 }: {
     /** Folded repeats of a failure: `3×`. */
     count: number;
-    isExpanded: boolean;
     title: TurnRowTitle;
     turn: AgentActivityTurn;
 }) {
@@ -103,25 +79,21 @@ function TurnRowTitleLine({
             </span>
         );
     }
-    if (isExpanded && title.kind === 'text') {
-        return (
-            <span className="min-w-0 whitespace-pre-line break-words text-foreground">
-                {title.request}
-            </span>
-        );
-    }
     return (
         <span className="flex min-w-0 items-baseline gap-1.5">
             <span className="min-w-0 truncate text-foreground">
                 {title.kind === 'text' ? title.text : null}
             </span>
-            {title.place ? <span className="shrink-0 text-muted">{title.place}</span> : null}
+            {/* Regular weight even after a log header's semibold title. */}
+            {title.place ? (
+                <span className="shrink-0 font-normal text-muted">{title.place}</span>
+            ) : null}
             {repeats}
         </span>
     );
 }
 
-function TurnStatusGlyph({ status }: { status: NonNullable<TurnRowStatus> }) {
+export function TurnStatusGlyph({ status }: { status: NonNullable<TurnRowStatus> }) {
     if (status.kind === 'working') {
         return (
             <span className="flex text-accent" title="Working">

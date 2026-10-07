@@ -9,27 +9,16 @@ test('a titled row is one line: time, request, place, length — no action marks
     const markup = render(settled({ durationMs: 660_000 }), {
         kind: 'text',
         place: 'DM',
-        request: 'Ship the changelog\nThen tag it',
         text: 'Ship the changelog Then tag it',
     });
     expect(text(markup)).toEqual([time(), 'Ship the changelog Then tag it', 'DM', '11m']);
     expect(markup).toMatch(/class="[^"]*truncate text-foreground/);
+    // The place stays regular weight even under a log header's semibold title.
+    expect(markup).toContain('<span class="shrink-0 font-normal text-muted">DM</span>');
     expect(markup).not.toMatch(/font-medium|Failed|<svg/);
     // Time and length are tabular and never wrap.
     expect(markup).toMatch(/<time class="whitespace-nowrap text-muted tabular-nums"/);
     expect(markup).toMatch(/whitespace-nowrap text-end text-muted tabular-nums/);
-});
-
-test('an open row replaces its truncated title with the whole request, once', () => {
-    const markup = render(
-        settled(),
-        { kind: 'text', place: 'DM', request: 'Ship it\nThen tag it', text: 'Ship it Then tag it' },
-        1,
-        true
-    );
-    expect(text(markup)).toEqual([time(), 'Ship it\nThen tag it', '1m']);
-    expect(markup).toContain('whitespace-pre-line');
-    expect(markup).not.toContain('truncate');
 });
 
 test('a row without a visible request is titled, muted, by what the turn did', () => {
@@ -66,13 +55,9 @@ function op(category: AgentTurnOperationCount['category'], completed: number) {
     return { category, completed, failed: 0, interrupted: 0 };
 }
 
-function render(turn: AgentActivityTurn, title: TurnRowTitle, count = 1, isExpanded = false) {
+function render(turn: AgentActivityTurn, title: TurnRowTitle, count = 1) {
     return renderToStaticMarkup(
-        <TurnRowContent
-            isExpanded={isExpanded}
-            row={{ count, latest: turn, since: turn.startedAt }}
-            title={title}
-        />
+        <TurnRowContent row={{ count, latest: turn, since: turn.startedAt }} title={title} />
     );
 }
 

@@ -97,14 +97,32 @@ export function AgentProfileView({
                         onHome={() => onSectionChange('home')}
                         server={server}
                     />
-                    <PageColumn>
+                    <SectionColumn section={section}>
                         <React.Suspense fallback={<AgentLoading label="Loading Agent section" />}>
                             <AgentSectionBody agent={agent} section={section} server={server} />
                         </React.Suspense>
-                    </PageColumn>
+                    </SectionColumn>
                 </>
             )}
         </div>
+    );
+}
+
+/**
+ * Sections are document columns, except Activity: its log is a full-bleed
+ * list whose rows run edge to edge under a band pinned to this scroll region.
+ */
+function SectionColumn({
+    children,
+    section,
+}: {
+    children: React.ReactNode;
+    section: Exclude<AgentSection, 'home' | 'workspace'>;
+}) {
+    return section === 'activity' ? (
+        <div className="min-w-0 pb-16">{children}</div>
+    ) : (
+        <PageColumn>{children}</PageColumn>
     );
 }
 

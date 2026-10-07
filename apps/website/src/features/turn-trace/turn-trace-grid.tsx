@@ -16,14 +16,50 @@ import type { TurnTraceStatus } from './turn-trace-tool-model.ts';
 export const traceGridClass =
     'grid grid-cols-[clamp(8rem,45%,28rem)_minmax(0,1fr)_3.75rem_1rem] items-center gap-x-2';
 
+/**
+ * The Activity log leads every row with a time column — a turn's clock time,
+ * a step's offset from the turn's start — and drops the track on a narrow log
+ * (`@container/activity-log`).
+ */
+const traceLogGridClass = cn(
+    'grid grid-cols-[4.5rem_clamp(10rem,40%,32rem)_minmax(0,1fr)_3.75rem_1rem] items-center gap-x-2',
+    '@max-2xl/activity-log:grid-cols-[3.75rem_minmax(0,1fr)_3rem_1rem]'
+);
+
+/** Which grid a row lays out on: the trace's four columns, or the log's five. */
+export type TraceLayout = 'log' | 'trace';
+
+const TraceLayoutContext = React.createContext<TraceLayout>('trace');
+
+export function TraceLayoutProvider({
+    children,
+    layout,
+}: {
+    children: React.ReactNode;
+    layout: TraceLayout;
+}) {
+    return <TraceLayoutContext value={layout}>{children}</TraceLayoutContext>;
+}
+
+export function useTraceLayout(): TraceLayout {
+    return React.use(TraceLayoutContext);
+}
+
 /** One depth step inside the label cell. */
 const traceIndentRem = 0.75;
 
 /**
- * Where a row's label text starts, from the row's edge: the row's inline pad
- * (2 steps), the depth indent, the icon (`size-3.5`), and its gap (2 steps).
+ * A row's inline pad: 2 steps in a trace's rounded rows; the log's
+ * edge-to-edge rows set `--trace-pad` to the page gutter.
  */
-export const traceTextInset = `calc(var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 7.5)`;
+const tracePad = 'var(--trace-pad, calc(var(--spacing) * 2))';
+
+/**
+ * Where a row's label text starts, from the row's edge: the log's time column
+ * (`--trace-lead`), the row's inline pad, the depth indent, the icon
+ * (`size-3.5`), and its gap (2 steps).
+ */
+export const traceTextInset = `calc(var(--trace-lead, 0rem) + ${tracePad} + var(--trace-depth) * ${traceIndentRem}rem + var(--spacing) * 5.5)`;
 
 /** What a bar says about the work: a step that ran others, a call, or Haus upkeep. */
 export type TraceBarKind = 'quiet' | 'step' | 'tool';
@@ -63,17 +99,24 @@ export function useTraceDepthStyle(): React.CSSProperties {
 }
 
 /** The row frame: the grid, the danger tint, and the depth every cell reads. */
-export function traceRowClass(tone: TraceRowTone = 'default'): string {
+export function traceRowClass(
+    tone: TraceRowTone = 'default',
+    layout: TraceLayout = 'trace'
+): string {
     return cn(
-        traceGridClass,
-        'min-h-8 w-full rounded-lg px-2 text-start text-sm',
+        layout === 'log' ? traceLogGridClass : traceGridClass,
+        'min-h-8 w-full text-start text-sm',
+        // The log's rows run edge to edge; a trace's rows are rounded insets.
+        layout === 'log' ? 'px-(--trace-pad)' : 'rounded-lg px-2',
         tone === 'danger' && 'bg-trace-row-danger [--trace-ring:var(--trace-row-danger)]'
     );
 }
 
 export function TraceCells({ bars, line, slot, timing = null, tone = 'default' }: TraceCellsProps) {
+    const layout = useTraceLayout();
     return (
         <>
+            {layout === 'log' ? <TraceTime timing={timing} /> : null}
             <span
                 className="flex min-w-0 items-center gap-2"
                 data-trace-cell="label"
@@ -134,7 +177,11 @@ function TraceLeader({ tone }: { tone: TraceRowTone }) {
 function TraceTrack({ bars, tone }: { bars: readonly TraceBar[]; tone: TraceRowTone }) {
     const { axisMs } = useTurnTraceScope();
     return (
-        <span aria-hidden className="relative h-4 min-w-0" data-trace-cell="track">
+        <span
+            aria-hidden
+            className="relative @max-2xl/activity-log:hidden h-4 min-w-0"
+            data-trace-cell="track"
+        >
             <span
                 className={cn(
                     'absolute -inset-s-2 inset-e-0 top-1/2 border-t border-dotted',
@@ -161,6 +208,36 @@ function TraceTrack({ bars, tone }: { bars: readonly TraceBar[]; tone: TraceRowT
     );
 }
 
+/**
+ * The log's time column: a step's offset from its turn's start (`+0.4s`,
+ * `+12s`), carrying its span for the overview's linked hover.
+ */
+function TraceTime({ timing }: { timing: TurnTraceTiming | null }) {
+    return (
+        <span
+            className="whitespace-nowrap text-muted text-sm tabular-nums"
+            data-duration-ms={timing?.durationMs ?? undefined}
+            data-offset-ms={timing?.offsetMs}
+            data-trace-cell="time"
+        >
+            {timing ? formatTraceOffset(timing.offsetMs) : null}
+        </span>
+    );
+}
+
+function formatTraceOffset(offsetMs: number): string {
+    const seconds = offsetMs / 1000;
+    if (seconds < 10) {
+        return `+${seconds.toFixed(1)}s`;
+    }
+    if (seconds < 60) {
+        return `+${Math.round(seconds)}s`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const rest = Math.round(seconds % 60);
+    return rest === 0 ? `+${minutes}m` : `+${minutes}m ${rest}s`;
+}
+
 /** The duration column: right-aligned tabular figures on one line, or nothing. */
 function TraceDuration({ timing }: { timing: TurnTraceTiming | null }) {
     const duration = timing
@@ -176,7 +253,8 @@ function TraceDuration({ timing }: { timing: TurnTraceTiming | null }) {
     );
 }
 
-function barTone(bar: TraceBar): string {
+/** A bar's fill; the log's overview paints step marks with the same rule. */
+export function barTone(bar: Pick<TraceBar, 'kind' | 'status'>): string {
     if (bar.status === 'failed') {
         return 'bg-danger';
     }

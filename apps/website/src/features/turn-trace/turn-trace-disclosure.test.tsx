@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
-import { DisclosureGroup } from 'react-aria-components';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TurnTracePresentation } from './turn-trace.tsx';
 import { readReasoning } from './turn-trace-reasoning.tsx';
@@ -26,35 +25,6 @@ test('every row with evidence is a real button that states whether it is open', 
         assert.match(trigger, /aria-expanded="false"/);
         assert.match(trigger, /aria-controls="[^"]+"/);
     }
-});
-
-test('a failed call opens on its own inside the Activity accordion too', () => {
-    // The Activity tab renders the trace inside a DisclosureGroup; its keys
-    // must not own the trace's tool rows.
-    const markup = renderToStaticMarkup(
-        <DisclosureGroup>
-            <TurnTracePresentation
-                access="journal"
-                isPending={false}
-                presentation={{
-                    journal: journal({
-                        tools: [
-                            tool({ toolCallId: 'call-ok', toolName: 'read' }),
-                            tool({
-                                error: 'Permission denied',
-                                status: 'failed',
-                                toolCallId: 'call-bad',
-                            }),
-                        ],
-                    }),
-                    kind: 'available',
-                }}
-            />
-        </DisclosureGroup>
-    );
-
-    assert.equal(markup.match(/aria-expanded="true"/g)?.length, 1);
-    assert.match(markup, /Permission denied/);
 });
 
 test('the running call is the one row that shimmers', () => {
@@ -127,20 +97,7 @@ test('trace content reveals on a no-bounce spring, and at once under reduced mot
     assert.ok(transition.opacity.duration <= 0.2);
 });
 
-test('a turn row opens and closes on the one stock height transition', () => {
-    // The open row's totals line stands before the relay answers, so every
-    // panel holds something to measure: no row opens at once, and no open
-    // panel is promoted to its own layer.
-    assert.doesNotMatch(theme, /:not\(:has\(\[data-turn-trace\]/);
-    assert.match(
-        theme,
-        /\.accordion--activity-history \.accordion__panel\[data-expanded='true'\] \{\s*will-change: auto;\s*\}/
-    );
-    assert.doesNotMatch(theme, /\.accordion--activity-history[^{]*\{[^}]*will-change: (?!auto)/);
-});
-
 test('the theme sets stock ChatTool section labels on the trace micro-label tier', () => {
-    assert.doesNotMatch(theme, /\.accordion--activity-history \.accordion__indicator/);
     assert.match(
         theme,
         /\.chat-tool__args-label,\s*\.chat-tool__result-label,\s*\.chat-tool__error-label \{\s*font-size: var\(--text-xs\);/

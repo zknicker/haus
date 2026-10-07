@@ -9,6 +9,7 @@ import {
     type TraceCellsProps,
     traceRowClass,
     useTraceDepthStyle,
+    useTraceLayout,
 } from './turn-trace-grid.tsx';
 
 /**
@@ -17,7 +18,11 @@ import {
  */
 export function TraceRow(props: TraceCellsProps) {
     return (
-        <div className={traceRowClass(props.tone)} data-trace-row style={useTraceDepthStyle()}>
+        <div
+            className={traceRowClass(props.tone, useTraceLayout())}
+            data-trace-row
+            style={useTraceDepthStyle()}
+        >
             <TraceCells {...props} />
         </div>
     );
@@ -40,6 +45,7 @@ export function TraceDisclosure({
 }) {
     const [expanded, setExpanded] = React.useState(defaultExpanded);
     const [opened, setOpened] = React.useState(defaultExpanded);
+    const layout = useTraceLayout();
 
     return (
         <Disclosure
@@ -54,7 +60,7 @@ export function TraceDisclosure({
             <Disclosure.Heading>
                 <Disclosure.Trigger
                     className={cn(
-                        traceRowClass(cells.tone),
+                        traceRowClass(cells.tone, layout),
                         // A hovered row's bars ring in the hover fill, not the ground.
                         cells.tone !== 'danger' &&
                             'hover:bg-default hover:[--trace-ring:var(--default)]'
