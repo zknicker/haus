@@ -91,7 +91,9 @@ images live in a process-wide `NSCache`, and the bytes behind them persist acros
 cache's own `URLSession`/`URLCache` on disk, fetched with `returnCacheDataElseLoad`. Immutability is
 the license to ignore the Server's freshness headers — nothing the Server says can make a stored
 avatar wrong — so a cold launch paints identities the human has already seen instead of holding
-initials until the network answers. Concurrent loads share the complete fetch, decode, and cache
+initials until the network answers. A synchronous lookup that misses the decoded cache reads those
+bytes from disk in the same call, so the first frame after a launch already has the face; a URL with
+no stored bytes is remembered as a miss until its download lands, so it is not read twice. Concurrent loads share the complete fetch, decode, and cache
 insertion, so rows awaiting one URL receive one image instance. `AvatarImageDecoder` downsamples
 to at most 384 pixels on the concurrent executor, covering the 84pt profile avatar at 3x without
 retaining a full-resolution source for every small identity mark. Synchronous recovery after decoded
@@ -417,6 +419,13 @@ below the chrome stays fully crisp. `chromeBar` remains the one place that decid
 for the chrome itself (`safeAreaBar` on iOS 26, a plain inset before it) and other scrolling
 surfaces still earn the system effect through it.
 
+Dissolving content is not enough on its own: a line of body text passing behind the clock, a
+floating Chat title, or the chrome buttons stayed legible enough to read as two layers of text
+colliding. Every top `chromeBar` therefore also sits on `ChromeScrollEdge`, the bar material solid
+behind the status bar and the upper chrome row and feathering out across the runway, which is what
+the system navigation bar does. It covers the Chat canvas and the Inbox alike, and the header still
+floats rather than capping the screen with a hard edge.
+
 The composer keeps the plain inset and a hard edge on purpose: the clearance it reserves is the
 transcript's own scroll bound, so no sharp row ever reaches past it, and the rows that reach its
 glass are already being refracted. `HausChrome.transcriptBottomRunway` is the breathing room the
@@ -426,7 +435,10 @@ navigation bar.
 
 Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
 22-point app icon, and the glass or material treatment, and `ChromeHeader` owns the 56-point
-chrome row that positions leading, centered, and trailing chrome. Call sites choose a glyph and a
+chrome row that positions leading, centered, and trailing chrome. Its layout offers the center only
+the width between equal side gutters, so a long title truncates instead of sliding under a chrome
+button, and like a system navigation bar it stops growing with text size at the largest standard
+size; the Chat title offers the Large Content Viewer past it. Call sites choose a glyph and a
 label; they do not restyle the control or set their own geometry. The sidebar and the Chat canvas
 both open with that same row, so a chrome button in either pane lands on one centerline. A
 fixed-size chrome circle must not be placed in a system navigation bar, which compresses it into an
@@ -461,7 +473,10 @@ rim, white dome, speculars, hairline edge, eyes — into a `Canvas`. `HausGhost`
 App component's API: `fill` (`.solid` tints the body in the current foreground with the eyes punched
 out even-odd; `.iridescent` is the glass), `animated`, `tempo`, and `size` as the rendered height.
 It is drawn three places: the sidebar's Inbox row, the sign-in screen, and the opening frame the app
-holds while authentication resolves. The retired `HausBrandMark` and its `HausMark` imageset are
+holds while authentication resolves. The launch screen carries a still render of that opening ghost
+(`LaunchGhost` in `HausApp/Launch.xcassets`, light and dark, at the drift's first frame) on the same
+system background, and the opening frame centres its ghost on the full screen as the launch screen
+does, so launch hands off without a pop. Re-render the imageset if the mark or its palette changes. The retired `HausBrandMark` and its `HausMark` imageset are
 gone — that asset was an older eyeless silhouette from a different viewBox.
 
 Two things in the port are carried differently from the App's SVG, and only these two. SVG masks by
@@ -480,8 +495,9 @@ many blobs moved in one. `TimelineView` ticks the canvas on exactly that grid an
 entry when the drift is stopped, which it is under Reduce Motion and whenever the scene is not
 active. Every offset is a pure function of elapsed seconds, so a pause freezes the mark where it
 stands instead of snapping it back to the loop's start. The drawer is the third pause, beside
-Reduce Motion and the scene phase: the sidebar stays mounted behind the canvas, so the shell hands
-the row `ghostPaused` whenever no sliver of the drawer is showing — mid-drag counts as visible —
+Reduce Motion and the scene phase: the sidebar stays mounted behind the canvas, so the sidebar's
+drawer frame sets the `hausSidebarHidden` environment value whenever no sliver of the drawer is
+showing — mid-drag counts as visible —
 and `HausGhostDriftClock` subtracts the slept stretch so reopening resumes the held frame.
 
 SF Symbols stay wherever the system owns the grammar: inside `ContentUnavailableView`, `Menu` labels,
@@ -512,10 +528,23 @@ Without the leading reservation the search button's shadow ended at a hard line 
 top edge.
 
 Dismiss controls follow one vocabulary. A form that creates or edits a draft uses Cancel plus a
-confirming verb (Create, Save); an informational sheet with nothing to confirm uses Done; the
-Settings sheet root uses an X in its navigation bar, which the system draws as the same glass circle
-it gives the back chevron; and a pushed screen uses the system back chevron rather than an explicit
-control.
+confirming verb (Create, Save); an informational sheet with nothing to confirm — Search, Chat
+details, Archived, and the Settings root alike — uses Done in the confirmation slot; and a pushed
+screen uses the system back chevron rather than an explicit control.
+
+A failure the reader should know about and no surface owns — a message that did not send, a Cloud
+Agent refresh that failed — reaches them as one calm notice under the chrome row
+(`HausShellNoticeHost`): it reads the Store's `sendError` through a closure so only the notice
+observes it, is announced to VoiceOver, overlays rather than moves content, and leaves on its own
+after four seconds or on a tap. An error already present when the shell mounts is not news and is
+not shown.
+
+Search focuses its field as the sheet opens, so the keyboard is already up. Each result marks the
+matched term in label ink and semibold, and a message whose match falls late starts its excerpt at a
+word shortly before it, so the match lands inside the two visible lines. Opened from a Chat's header,
+Search offers that Chat as a scope beside Everywhere, through `chat.search`'s own `chatId` filter;
+a scoped search lists messages only. A message result opens its Chat and reveals the message through
+the transcript's existing jump-and-flash path.
 
 Dark mode cannot use the canvas shadow to separate an open drawer from the sidebar, because a black
 canvas over a black sidebar has no edge. The veil painted over the slid-aside canvas therefore
@@ -534,6 +563,22 @@ entry point that presents another surface — Search, Tasks, Settings, Archived,
 the drawer open behind it, so dismissing returns to the open drawer and no presentation ever runs
 against the closing spring.
 
+The drawer's state is an observable `HausDrawerState`, not shell `@State`. A pan rewrites its
+translation every frame, and only the two small frames that read the geometry —
+`HausDrawerSidebarFrame` and `HausDrawerCanvasFrame` — observe it; the shell body, which builds the
+Chat screen and its closures, never does, so a pan frame does not rebuild the screen. Each settled
+open or close is a `.selection` haptic, and so is a Chat switch made without a drawer snap (from
+Search or a route). `onDrawerPresentedChange` reports every settled open and close so the App can
+hold the sidebar's order still while the drawer is open; the sidebar animates a re-sort's row moves
+when it lands.
+
+The sidebar marks what is on screen — Tasks while it is pushed, the Inbox while it is the canvas,
+otherwise the selected Chat — with one selection capsule. A Chat row's long press offers **Mark
+Read** (when unread, through the Inbox's own `chat.markRead` path) and the Chat's details sheet.
+There is no Archive or Copy link there: the phone has no archive action for a Chat, and no app
+origin to build a shareable link from. Row heights, the glyph column, and section labels scale with
+Dynamic Type (`SidebarRowMetrics`); at accessibility sizes a title may wrap to two lines.
+
 The Chat canvas is keyed by the selected destination: a Chat switch remounts the screen, so each
 Chat lays out bottom-anchored and fully formed before the drawer reveals it, and no scroll offset or
 screen-local state crosses between Chats. The swap and the closing slide are two events and must land
@@ -544,7 +589,7 @@ animating transaction at that animation's destination rather than at its in-flig
 selecting a Chat and closing the drawer in the same turn pinned the incoming transcript at the closed
 position while the canvas frame slid over it — a wipe across a stationary Chat, with each line
 uncovered from its right end. `selectDestination` therefore commits the selection and defers
-`setDrawer(open:)` to the next main-actor turn, so the spring animates a screen that is already there
+`HausDrawerState.set(open:)` to the next main-actor turn, so the spring animates a screen that is already there
 and the Chat travels with the drawer, its leading edge fixed to the canvas's. That hop is the
 earliest legal one — SwiftUI merges every mutation made in one turn into a single transaction — so
 the hold is one frame plus the new screen's first layout and cannot go lower. What keeps it from
@@ -694,15 +739,19 @@ same pair a Thread composer sends to — and leaving the canvas selection alone 
 Task does; an Unread row opens its DM or Channel.
 Unread and **Happening now** rows share one Messages-style two-line row (`InboxRowView`): a 44pt
 mark, the title with its perishable fact trailing, and the context below in secondary. Each line is
-capped at one, so every row in both sections is the same height at a given text size. An Unread row
+capped at one, so every row in both sections is the same height at a given text size. At
+accessibility sizes the title may wrap and the trailing fact stacks under it instead of squeezing the
+title to a letter, and the mark scales with the text up to 64 points. Every row's separator starts
+under its title, whatever its mark drew. An Unread row
 is the Chat's name, its age, and the quoted line truncated to one line. A Cloud Agent work row is
 the work's title (`Cloud work` when untitled), its status (`Running · 3m`, `Running · 1h 59m`,
 `Queued`, `Cancelling` — `CloudAgentPresentation.duration`, the App's `formatCloudAgentDuration`,
 whose hours never roll into days), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
-it is Cloud work. An Agent mid-turn is its name, time in its step, and the step itself. The page is a stock `.insetGrouped` `List`, so an Unread
+it is Cloud work, and carries a presence-style dot — yellow running, gray queued. An Agent mid-turn is its name, time in its step, and the step itself. The page is a stock `.insetGrouped` `List`, so an Unread
 row marks read the Messages way: a leading swipe (`.swipeActions`, full swipe allowed) whose button
 is a bare image, which iOS 26 draws as an icon-only circle (its accessibility label is "Mark read"),
-or the long-press peek's **Mark Read**.
+confirmed by a success haptic, or the long-press peek's **Mark Read**. A week card that lands after
+the **Active this week** strip has drawn joins it with an animated insertion rather than a reshuffle.
 Stalled claims live on the Task list, in its **Stopped before finishing** group. One row still lands somewhere the App does not send it, because the phone
 has nowhere else: an Agent in **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
 Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
