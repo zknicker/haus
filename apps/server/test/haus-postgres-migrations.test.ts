@@ -61,9 +61,20 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0060_reminder_descriptions',
             '0061_delegating_activity',
             '0062_agent_run_triggers',
+            '0063_server_turns_index',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
+        ]);
+        // agent.serverTurns pages newest-first per Server through this index.
+        expect(
+            await upgraded`SELECT indexdef FROM pg_indexes
+            WHERE tablename = 'agent_turns' AND indexname = 'agent_turns_server_started_idx'`
+        ).toEqual([
+            {
+                indexdef:
+                    'CREATE INDEX agent_turns_server_started_idx ON public.agent_turns USING btree (server_id, started_at, run_id)',
+            },
         ]);
         // Existing turns gain no invented trigger: the new table starts empty.
         expect(await upgraded`SELECT count(*)::int AS total FROM agent_run_triggers`).toEqual([
@@ -176,6 +187,7 @@ test('copies each existing reminder title into its new description', async () =>
             '0060_reminder_descriptions',
             '0061_delegating_activity',
             '0062_agent_run_triggers',
+            '0063_server_turns_index',
         ]);
         expect(await upgraded`SELECT title, description FROM reminders`).toEqual([
             { description: title, title },

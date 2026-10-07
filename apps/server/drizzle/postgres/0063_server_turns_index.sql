@@ -1,0 +1,1 @@
+CREATE INDEX "agent_turns_server_started_idx" ON "agent_turns" USING btree ("server_id","started_at","run_id");

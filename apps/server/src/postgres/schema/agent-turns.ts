@@ -53,6 +53,9 @@ export const agentTurnsTable = pgTable(
     (table) => [
         uniqueIndex('agent_turns_run_key').on(table.serverId, table.agentId, table.runId),
         index('agent_turns_agent_idx').on(table.serverId, table.agentId, table.reportedAt),
+        // Serves agent.serverTurns' newest-first (startedAt, runId) keyset pages by
+        // backward scan; ascending matches `ORDER BY ... DESC` (NULLS FIRST) exactly.
+        index('agent_turns_server_started_idx').on(table.serverId, table.startedAt, table.runId),
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
