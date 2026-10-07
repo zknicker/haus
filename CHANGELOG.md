@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v9.0.0 - 2026-10-07
+
+- Activity shows every Agent's turns across a Server, with timed steps, sub-agent work, readable tool results, generated images, and a link back to the Chat that started the work. Agent profiles use the same event log.
+- Agents pause automatic wakes after repeated failures. Their profile explains the pause, and a new message retries the Agent. Conversation style and a signature emoji can be chosen at Agent creation and edited afterward.
+- Haus Agent 7.0.0 reads unread conversations through `haus inbox check` and `haus message read --unread`, acknowledges work with its signature emoji, and gives Cove recipe-guided coordination and consented recurring work. Claude Code Agents can use foreground sub-agents; Codex and Grok Build sub-agents are disabled.
+- Haus Computer 7.0.0 saves generated images in the Agent workspace for sharing, reports each model's image and sub-agent features, and preserves turn timing and totals after a relaunch. Update Computer to 7.0.0 for protocol 28 before using Server 8.0.0 and the new Agent inbox contract.
+- Agent visuals use denser reports and fluid charts, avoid drawing a goal pace on top of the actual line, and keep their height when revisiting a Chat. Haus App 5.1.2 includes Electron and editor security fixes.
+- Haus for iPhone 5.2.1 (build 42) reads sub-agent, instruction-update, and interrupted activity without losing the activity page, and tolerates future activity categories.
+
 ## v8.1.0 - 2026-10-06
 
 - One Update press updates the desktop App first, then each Computer in turn, filling a single progress circle across the run. The App no longer restarts on its own: a Restart now / Later prompt ends the run. A Computer that stops reporting progress for two minutes shows as stalled, including one that keeps reconnecting.
