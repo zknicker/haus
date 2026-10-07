@@ -77,6 +77,12 @@
          */
         --trace-axis: var(--border);
         --trace-grid: color-mix(in oklab, var(--border) 35%, transparent);
+        /*
+         * The highlight a row or turn lifts by — a hovered row, a turn the
+         * overview points at. Translucent and layered over the row's own
+         * fill, so a plain row and a failed row's tint move by the same step.
+         */
+        --trace-row-highlight: color-mix(in oklab, var(--foreground) 5%, transparent);
 
         /*
          * Automation provenance. A fire writes nothing to the transcript, so
@@ -166,6 +172,7 @@
         --skill-reference: var(--color-purple-700);
 
         --trace-tool: var(--color-teal-600);
+        --trace-row-highlight: color-mix(in oklab, var(--foreground) 4%, transparent);
 
         /* The same two hues carried down the ramp: light needs the darker,
          * denser end to hold against a near-white page at 11px. */
@@ -230,4 +237,23 @@
         --trace-row-danger: color-mix(in oklab, var(--danger) 10%, var(--trace-ground));
         --trace-leader-danger: color-mix(in oklab, var(--danger) 55%, transparent);
     }
+}
+
+/*
+ * The two highlight layers, registered as colors so they transition: a turn's
+ * (`--trace-turn-lift`, painted by the turn and re-painted over an opaque
+ * failed row) and a row's own hover (`--trace-row-lift`). Both rest
+ * transparent; a bar's ring stacks them over `--trace-ring` so it always
+ * matches the row behind it.
+ */
+@property --trace-turn-lift {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@property --trace-row-lift {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
 }

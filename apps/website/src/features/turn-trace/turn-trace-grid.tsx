@@ -111,19 +111,29 @@ export function traceRowClass(
         'min-h-8 w-full text-start text-sm',
         // The log's rows run edge to edge; a trace's rows are rounded insets.
         layout === 'log' ? 'px-(--trace-pad)' : 'rounded-lg px-2',
-        tone === 'danger' && 'bg-trace-row-danger [--trace-ring:var(--trace-row-danger)]'
+        'transition-[--trace-row-lift] duration-150 motion-reduce:transition-none',
+        tone === 'danger'
+            ? // Opaque, so it re-paints the turn's lift the turn painted beneath it.
+              'bg-[linear-gradient(var(--trace-row-lift),var(--trace-row-lift)),linear-gradient(var(--trace-turn-lift),var(--trace-turn-lift))] bg-trace-row-danger [--trace-ring:var(--trace-row-danger)]'
+            : 'bg-[linear-gradient(var(--trace-row-lift),var(--trace-row-lift))]'
     );
 }
 
 /**
- * The highlight fill — a hovered row, or a turn the overview points at. It
- * wins over the danger tint: a failed row highlights like its neighbors and
- * keeps only its red icon, bar, and leader. Bars ring in the fill, not the
- * ground. The turn form rebinds the danger tint so its failed rows join in.
+ * The highlight is additive: a hovered row, or a turn the overview points at,
+ * lays `--trace-row-highlight` over whatever the row rests on, so a plain row
+ * and a failed row's tint lift by the same step. Bars ring in the same layers.
  */
-export const traceRowHoverClass = 'hover:bg-default hover:[--trace-ring:var(--default)]';
-export const traceTurnHighlightClass =
-    'bg-default [--trace-ring:var(--default)] [--trace-row-danger:var(--default)]';
+export const traceRowHoverClass = 'hover:[--trace-row-lift:var(--trace-row-highlight)]';
+
+/** The turn paints its lift; rows inherit it for their bar rings and tints. */
+export function traceTurnClass(isHighlighted: boolean): string {
+    return cn(
+        'bg-[linear-gradient(var(--trace-turn-lift),var(--trace-turn-lift))]',
+        'transition-[--trace-turn-lift] duration-150 motion-reduce:transition-none',
+        isHighlighted && '[--trace-turn-lift:var(--trace-row-highlight)]'
+    );
+}
 
 export function TraceCells({ bars, line, slot, timing = null, tone = 'default' }: TraceCellsProps) {
     const layout = useTraceLayout();

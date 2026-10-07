@@ -45,7 +45,8 @@ export function TraceTrack({
                     ? bars.map((bar, index) => (
                           <span
                               className={cn(
-                                  'absolute min-w-1 rounded-full shadow-[0_0_0_2px_var(--trace-ring)]',
+                                  // The ring stacks the row's layers, so it matches the fill behind it.
+                                  'absolute min-w-1 rounded-full shadow-[0_0_0_2px_var(--trace-row-lift),0_0_0_2px_var(--trace-turn-lift),0_0_0_2px_var(--trace-ring)]',
                                   'transition-[left,width] duration-200 ease-linear motion-reduce:transition-none',
                                   barTone(bar),
                                   bar.status === 'running' && 'motion-safe:animate-pulse'

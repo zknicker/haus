@@ -12,7 +12,7 @@ import {
     TraceNested,
     traceGridClass,
     traceRowHoverClass,
-    traceTurnHighlightClass,
+    traceTurnClass,
 } from './turn-trace-grid.tsx';
 import { TraceRow } from './turn-trace-row.tsx';
 import { TurnTraceScopeProvider } from './turn-trace-scope.tsx';
@@ -97,7 +97,10 @@ test('every row carries a dotted leader through its track, and bars ring over it
     const markup = render(nested);
     const rows = markup.match(/data-trace-row/g)?.length ?? 0;
     assert.equal(markup.match(/data-trace-leader/g)?.length, rows);
-    assert.match(markup, /shadow-\[0_0_0_2px_var\(--trace-ring\)\]/);
+    assert.match(
+        markup,
+        /shadow-\[0_0_0_2px_var\(--trace-row-lift\),0_0_0_2px_var\(--trace-turn-lift\),0_0_0_2px_var\(--trace-ring\)\]/
+    );
     // Bars say what kind of work ran: a sub-agent is a step, a call a tool.
     assert.match(markup, /data-trace-bar="tool"/);
     assert.match(markup, /data-trace-bar="danger"/);
@@ -120,13 +123,21 @@ test('a failed row tints whole, with a danger bar and a danger leader', () => {
     );
 });
 
-test('the highlight fill wins over the danger tint, so a failed row highlights like its neighbors', () => {
-    // Direct hover: failed rows take the same hover fill and ring as any row;
-    // the hover variant outranks the resting tint.
+test("a highlight lifts every row by the same layer, over a failed row's tint too", () => {
+    // Direct hover sets the row's lift; failed rows keep their tint beneath it.
     const failed = render(nested).match(/<button[^>]*bg-trace-row-danger[^>]*>/g) ?? [];
     assert.equal(failed.length, 2);
     for (const row of failed) {
         assert.ok(row.includes(traceRowHoverClass), row);
+        // Opaque tint, so it re-paints the turn's lift over itself.
+        assert.ok(
+            row.includes('linear-gradient(var(--trace-turn-lift),var(--trace-turn-lift))'),
+            row
+        );
+        assert.ok(
+            row.includes('linear-gradient(var(--trace-row-lift),var(--trace-row-lift))'),
+            row
+        );
     }
     const leaf = renderToStaticMarkup(
         <TraceLayoutProvider layout="log">
@@ -135,11 +146,14 @@ test('the highlight fill wins over the danger tint, so a failed row highlights l
     );
     assert.match(leaf, /bg-trace-row-danger/);
     assert.ok(leaf.includes(traceRowHoverClass), leaf);
-    // Linked highlight: the turn rebinds the danger tint to its own fill, so
-    // a failed row's fill and bar ring match the rest of the turn.
-    assert.match(traceTurnHighlightClass, /(^| )bg-default( |$)/);
-    assert.ok(traceTurnHighlightClass.includes('[--trace-row-danger:var(--default)]'));
-    assert.ok(traceTurnHighlightClass.includes('[--trace-ring:var(--default)]'));
+    assert.equal(traceRowHoverClass, 'hover:[--trace-row-lift:var(--trace-row-highlight)]');
+    // Linked highlight: the turn sets its lift to the same highlight layer.
+    assert.ok(traceTurnClass(true).includes('[--trace-turn-lift:var(--trace-row-highlight)]'));
+    assert.ok(!traceTurnClass(false).includes('--trace-row-highlight'));
+    assert.match(
+        tokens,
+        /--trace-row-highlight: color-mix\(in oklab, var\(--foreground\) \d+%, transparent\)/
+    );
 });
 
 test('bodies open on the label text, and nested rows never sit inside one', () => {

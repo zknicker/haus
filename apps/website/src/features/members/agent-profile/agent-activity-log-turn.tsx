@@ -8,7 +8,7 @@ import {
     TraceNested,
     traceRowClass,
     traceRowHoverClass,
-    traceTurnHighlightClass,
+    traceTurnClass,
 } from '../../turn-trace/turn-trace-grid.tsx';
 import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
 import { TurnTraceScopeProvider } from '../../turn-trace/turn-trace-scope.tsx';
@@ -83,10 +83,7 @@ export function ActivityLogTurn({
 
     return (
         <div
-            className={cn(
-                'grid min-w-0 scroll-mt-40 pt-1.5 pb-1 transition-colors duration-150 motion-reduce:transition-none',
-                isLinked && traceTurnHighlightClass
-            )}
+            className={cn('grid min-w-0 scroll-mt-40 pt-1.5 pb-1', traceTurnClass(isLinked))}
             data-log-turn={turn.runId}
             onPointerLeave={() => hover.set(null)}
             onPointerOver={(event) => {
