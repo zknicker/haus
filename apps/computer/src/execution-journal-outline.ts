@@ -5,6 +5,7 @@ import {
     EXECUTION_OUTLINE_LABEL_MAX_CHARS,
     EXECUTION_OUTLINE_MAX_STEPS,
     type ExecutionToolKind,
+    isExecutionBookkeeping,
     readExecutionToolKind,
 } from '@haus/api';
 import {
@@ -94,10 +95,9 @@ function draftTool(tool: ComputerExecutionJournalTool, tree: Tree): Draft {
         readTime(tool.endedAt) ??
         (tool.durationMs === undefined ? null : startMs + tool.durationMs);
     const classification = classifyJournalTool(tool);
-    const isSubagent = tool.subagent !== undefined;
-    const kind: AgentExecutionOutlineStepKind = isSubagent
+    const kind: AgentExecutionOutlineStepKind = tool.subagent
         ? 'subagent'
-        : classification.outcome === 'skip'
+        : isBookkeeping(tool, classification)
           ? 'bookkeeping'
           : 'tool';
     return {
@@ -144,6 +144,28 @@ function toStep(draft: Draft, origin: number): AgentExecutionOutlineStep {
 }
 
 /**
+ * Harness upkeep such as compaction, or a settled or running call the shared
+ * classifier calls Haus bookkeeping, the same verdict the App's turn trace
+ * mutes. A failed or interrupted bookkeeping call stays a tool, as in the trace.
+ */
+function isBookkeeping(
+    tool: ComputerExecutionJournalTool,
+    classification: ComputerToolClassification
+): boolean {
+    if (classification.outcome === 'skip' && isSyntheticTool(tool.toolName)) {
+        return true;
+    }
+    return (
+        (tool.status === 'completed' || tool.status === 'running') &&
+        isExecutionBookkeeping({ input: tool.input, toolName: tool.toolName })
+    );
+}
+
+function isSyntheticTool(toolName: string): boolean {
+    return Object.hasOwn(computerSyntheticHarnessToolFixtures, toolName);
+}
+
+/**
  * The journal records no runtime id, so a builtin's category comes from the
  * first runtime that names it; the runtimes agree on every shared name.
  */
@@ -169,7 +191,6 @@ function classifyJournalTool(tool: ComputerExecutionJournalTool): ComputerToolCl
     return classifyShellCall(known ?? 'using_tool', tool.input);
 }
 
-/** The scrubbed action description, or the bare tool name for bookkeeping. */
 /**
  * A shell call reads as its first command line, cut before any heredoc so a
  * message body or file content never rides the label; any other call reads as

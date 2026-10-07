@@ -1,9 +1,13 @@
-import type { AgentExecutionJournalTool } from '@haus/api';
+import {
+    type AgentExecutionJournalTool,
+    isExecutionBookkeeping,
+    unwrapShellCommand,
+} from '@haus/api';
 import type { ToolPartState } from '@heroui-pro/react/chat-tool';
 import { readFailure, type TurnTraceError } from './turn-trace-error.ts';
 import { type HausMessage, readHausMessage } from './turn-trace-haus-command.ts';
 import { readTracePath, type TracePath } from './turn-trace-path.ts';
-import { readShellLabel, type ShellLabel, unwrapShellCommand } from './turn-trace-shell-label.ts';
+import { readShellLabel, type ShellLabel } from './turn-trace-shell-label.ts';
 import {
     formatSubagentInterruption,
     formatSubagentLabel,
@@ -77,8 +81,6 @@ const interruptionReasons: Record<string, string> = {
     stream_error: 'the execution stream failed',
 };
 
-const memoryFile = 'MEMORY.md';
-
 export function classifyTraceTool(
     tool: AgentExecutionJournalTool,
     children: readonly TurnTraceTool[] = []
@@ -96,6 +98,9 @@ export function classifyTraceTool(
     const output = resolveTraceOutput(tool);
     const error = resolveTraceError(tool);
     const target = fields.path ? readTracePath(fields.path) : null;
+    // Haus CLI calls, message sends, and MEMORY.md upkeep: the Agent's bookkeeping, not its work.
+    const isBookkeeping =
+        !isSubagent && isExecutionBookkeeping({ input: tool.input, toolName: name });
 
     return {
         ...fields,
@@ -105,14 +110,13 @@ export function classifyTraceTool(
         failedChildCount,
         failure: runStatus === 'failed' ? readFailure(tool.failure, error) : null,
         hausMessage:
-            shell?.isHausOnly && fields.command
+            isBookkeeping && fields.command
                 ? readHausMessage(unwrapShellCommand(fields.command))
                 : null,
         image: fields.kind === 'image' ? readImage(name, tool.input, output) : null,
         interrupted: runStatus === 'interrupted',
         interruption: readInterruption(tool, isSubagent),
-        isBookkeeping:
-            (shell?.isHausOnly ?? false) || fields.kind === 'message' || isMemoryFile(target),
+        isBookkeeping,
         label: runStatus === 'running' ? labels.present : labels.past,
         labels,
         output,
@@ -150,11 +154,6 @@ function readInterruption(tool: AgentExecutionJournalTool, isSubagent: boolean):
             ? 'The call stopped before it finished.'
             : null)
     );
-}
-
-/** The Agent's own memory file at the workspace root. */
-function isMemoryFile(target: TracePath | null): boolean {
-    return target?.name === memoryFile && target.dir === '';
 }
 
 /**

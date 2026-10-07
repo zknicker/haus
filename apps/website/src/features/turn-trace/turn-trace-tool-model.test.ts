@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AgentExecutionJournalTool } from '@haus/api';
+import { executionBookkeepingCases } from '@haus/api/execution-bookkeeping-fixtures';
 import {
     classifyTraceTool,
     resolveToolPartState,
@@ -185,6 +186,15 @@ test('MEMORY.md upkeep and all-haus commands are bookkeeping; real work is not',
     assert.equal(claim.isBookkeeping, true);
     assert.equal(mixed.isBookkeeping, false);
     assert.equal(mixed.label, 'Ran bun test');
+});
+
+test('a call is bookkeeping exactly when the Computer outline files it so', () => {
+    for (const fixture of executionBookkeepingCases) {
+        const traced = classifyTraceTool(
+            tool({ input: fixture.input, toolName: fixture.toolName })
+        );
+        assert.equal(traced.isBookkeeping, fixture.bookkeeping, fixture.name);
+    }
 });
 
 test('a failed call carries a readable failure; an interrupted one does not', () => {

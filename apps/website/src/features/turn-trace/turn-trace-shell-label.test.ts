@@ -1,30 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setupCommand } from './turn-trace-claude-fixtures.ts';
-import { formatShellLabel, readShellLabel, unwrapShellCommand } from './turn-trace-shell-label.ts';
-
-test('a Codex zsh wrapper is unwrapped to the command it ran', () => {
-    assert.equal(
-        unwrapShellCommand(`/bin/zsh -lc "pwd && sed -n '1,240p' MEMORY.md"`),
-        `pwd && sed -n '1,240p' MEMORY.md`
-    );
-    assert.equal(unwrapShellCommand(`zsh -lc 'ls -la'`), 'ls -la');
-    assert.equal(unwrapShellCommand('bash -lc "echo hi"'), 'echo hi');
-    assert.equal(unwrapShellCommand('sh -c "echo hi"'), 'echo hi');
-});
-
-test('an escaped quote inside a double-quoted wrapper is restored', () => {
-    assert.equal(
-        unwrapShellCommand('/bin/zsh -lc "haus message send --target \\"#all\\""'),
-        'haus message send --target "#all"'
-    );
-});
-
-test('something that is not a wrapper is left alone', () => {
-    assert.equal(unwrapShellCommand('rg --files'), 'rg --files');
-    // `-l` alone runs a login shell on a script file, not a command line.
-    assert.equal(unwrapShellCommand('zsh -l script.sh'), 'zsh -l script.sh');
-});
+import { formatShellLabel, readShellLabel } from './turn-trace-shell-label.ts';
 
 test('a heredoc body is never read as a command', () => {
     assert.equal(
@@ -95,7 +72,6 @@ test('P0-3: a script that claimed a task, wrote files, and ran tests reads as th
     assert.equal(label.present, 'Writing 7 files, running npm test');
     // mkdir and the line count; the haus claim, cd, and heredoc bodies are not commands.
     assert.equal(label.extraCommands, 2);
-    assert.equal(label.isHausOnly, false);
     assert.equal(label.lines, 10);
 });
 
@@ -110,19 +86,12 @@ test('P0-3: a haus call beside real commands never names the row', () => {
     );
 });
 
-test('only an all-haus script is bookkeeping, and it reads as its first real verb', () => {
+test('an all-haus script reads as its first real verb', () => {
     const label = readShellLabel(
         "haus message send --target dm:@zach <<'HAUSMSG'\nDone.\nHAUSMSG\nhaus task update --help"
     );
     assert.equal(label.past, 'Sent a message to DM');
     assert.equal(label.extraCommands, 1);
-    assert.equal(label.isHausOnly, true);
-    assert.equal(
-        readShellLabel('haus task claim --target dm:@zach --message-id x 2>&1 | head -3')
-            .isHausOnly,
-        true
-    );
-    assert.equal(readShellLabel('haus message send && curl https://x.dev').isHausOnly, false);
 });
 
 test('setup like cd and echo is skipped; a test runner outranks other commands', () => {

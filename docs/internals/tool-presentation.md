@@ -66,7 +66,11 @@ step quiet, and a failure or warning paints danger or warning over any hue. Labe
 An unread turn's overview segments come from its Computer outline, whose tool steps carry the
 `toolKind` that `readExecutionToolKind` in `@haus/api` assigns, the same classifier the trace
 uses, so an unread turn colors its calls as a read one does (tokens in `product-tokens.css`,
-palette in `DESIGN.md`). Hierarchy is indent, mark,
+palette in `DESIGN.md`). Bookkeeping is shared the same way: `isExecutionBookkeeping` in
+`@haus/api` (a script of only `haus` CLI calls once `cd`/`echo` setup is set aside, a native
+message send, or root `MEMORY.md` upkeep) sets the trace's `isBookkeeping` and the outline's
+`bookkeeping` step kind, and both test against `@haus/api/execution-bookkeeping-fixtures`. A
+failed or interrupted bookkeeping call keeps its own kind and outcome mark in both. Hierarchy is indent, mark,
 bar color, and one rail: a sub-agent's calls are rows one depth in, with no background or edge of
 their own. An opened group — a fold, Haus bookkeeping, a sub-agent's fact line and calls, a run of
 thoughts — hangs its children off one 1px `separator` rail at the center of its row's icon, file

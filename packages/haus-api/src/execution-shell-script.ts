@@ -1,5 +1,7 @@
 /**
- * Splits a shell script into the commands a person would recognize.
+ * Splits a shell script into the commands a person would recognize: the one
+ * reading the App's turn trace labels with and the shared bookkeeping
+ * classifier (`execution-bookkeeping.ts`) checks.
  *
  * Heredoc bodies are skipped (they are file contents or message text, not
  * commands), line continuations join, and unquoted `;`, `&&`, `||`, `|`, `&`
@@ -34,6 +36,24 @@ const quotedString = /'[^']*'|"(?:\\.|[^"\\])*"/gu;
 const envAssignment = /^(?:env\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/u;
 /** `if`/`then`/`while` lead the command they guard; the command is what ran. */
 const controlPrefix = /^(?:(?:if|then|else|elif|do|while|until|!)\s+)+/u;
+
+const shellWrapper = /^(?:\S*\/)?(?:sh|bash|zsh|dash|ksh)\s+(-[a-z]+)\s+([\s\S]+)$/u;
+const doubleQuoteEscape = /\\(["$\\`])/gu;
+
+/** `/bin/zsh -lc "…"` → `…`: a runtime's own wrapper is not what the Agent ran. */
+export function unwrapShellCommand(command: string): string {
+    const match = shellWrapper.exec(command.trim());
+    const flags = match?.[1];
+    const script = match?.[2];
+
+    // `-l` and friends may precede it, but only `-c` means "the rest is the
+    // script"; without it the argument is a file to run, not a command line.
+    if (!(flags?.includes('c') && script)) {
+        return command;
+    }
+
+    return readQuoted(script.trim());
+}
 
 export function parseShellScript(script: string): ShellScript {
     const commands: ShellCommand[] = [];
@@ -180,4 +200,18 @@ function readWriteTarget(text: string): string | null {
     }
     const start = match.index + match[0].length - maskedTarget.length;
     return text.slice(start, start + maskedTarget.length).replace(/^['"]|['"]$/gu, '');
+}
+
+function readQuoted(value: string): string {
+    const quote = value.startsWith('"') ? '"' : value.startsWith("'") ? "'" : null;
+
+    if (!quote) {
+        return value;
+    }
+
+    const end = value.length > 1 && value.endsWith(quote) ? value.length - 1 : value.length;
+    const inner = value.slice(1, end);
+
+    // `'\''` is how a single-quoted wrapper spells a quote inside it.
+    return quote === '"' ? inner.replace(doubleQuoteEscape, '$1') : inner.replace(/'\\''/gu, "'");
 }

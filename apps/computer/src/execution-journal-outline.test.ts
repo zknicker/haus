@@ -4,6 +4,7 @@ import {
     EXECUTION_OUTLINE_LABEL_MAX_CHARS,
     EXECUTION_OUTLINE_MAX_STEPS,
 } from '@haus/api';
+import { executionBookkeepingCases } from '@haus/api/execution-bookkeeping-fixtures';
 import { outlineExecutionJournal } from './execution-journal-outline.ts';
 import type {
     ComputerExecutionJournalDocument,
@@ -188,4 +189,40 @@ test('a tool step names its call kind as the turn trace classifies it', () => {
         other: 'generic',
         web: 'web',
     });
+});
+
+test('files a call as bookkeeping exactly when the turn trace mutes it', () => {
+    const outline = outlineExecutionJournal({
+        ...document,
+        reasoning: [],
+        tools: executionBookkeepingCases.map((fixture, index) =>
+            tool({
+                // The fixtures are plain JSON, which every journal input is.
+                input: fixture.input as ComputerExecutionJournalTool['input'],
+                toolCallId: `call_${index}`,
+                toolName: fixture.toolName,
+            })
+        ),
+    });
+
+    expect(outline.steps.map((step) => step.kind)).toEqual(
+        executionBookkeepingCases.map((fixture) => (fixture.bookkeeping ? 'bookkeeping' : 'tool'))
+    );
+});
+
+test('a failed bookkeeping call stays a tool, as the trace keeps its own mark', () => {
+    const outline = outlineExecutionJournal({
+        ...document,
+        reasoning: [],
+        tools: [
+            tool({
+                error: 'no such task',
+                input: { command: 'haus task claim --number 9' },
+                status: 'failed',
+                toolCallId: 'call_failed',
+            }),
+        ],
+    });
+
+    expect(outline.steps[0]).toMatchObject({ kind: 'tool', toolKind: 'shell' });
 });

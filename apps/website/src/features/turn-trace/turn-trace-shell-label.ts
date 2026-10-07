@@ -1,6 +1,11 @@
+import {
+    isShellSetupCommand,
+    parseShellScript,
+    type ShellCommand,
+    unwrapShellCommand,
+} from '@haus/api';
 import { readHausVerb } from './turn-trace-haus-command.ts';
 import { basenameOf } from './turn-trace-path.ts';
-import { parseShellScript, type ShellCommand } from './turn-trace-shell-script.ts';
 import type { TraceTense } from './turn-trace-tense.ts';
 
 /**
@@ -19,8 +24,6 @@ export interface ShellLabel {
     readonly detail: string | null;
     /** Other meaningful commands the label does not name: the row's `+N commands`. */
     readonly extraCommands: number;
-    /** Every command is a `haus` CLI call: Agent bookkeeping, not work. */
-    readonly isHausOnly: boolean;
     /** Logical script lines outside heredoc bodies. */
     readonly lines: number;
     readonly past: string;
@@ -29,43 +32,9 @@ export interface ShellLabel {
 
 const labelMaxChars = 80;
 
-const shellWrapper = /^(?:\S*\/)?(?:sh|bash|zsh|dash|ksh)\s+(-[a-z]+)\s+([\s\S]+)$/u;
 /** A line that opens with shell syntax reads as the command inside it, never as typed. */
 const controlLead = /^(?:if|while|until|for|case|select|!)\s/u;
-const doubleQuoteEscape = /\\(["$\\`])/gu;
 
-/** Setup and shell syntax that never name a row. */
-const noisePrograms = new Set([
-    '.',
-    ':',
-    '[',
-    '[[',
-    '{',
-    '}',
-    'case',
-    'do',
-    'done',
-    'elif',
-    'else',
-    'esac',
-    'fi',
-    'for',
-    'select',
-    'test',
-    'then',
-    'cd',
-    'echo',
-    'exit',
-    'export',
-    'false',
-    'popd',
-    'printf',
-    'pushd',
-    'set',
-    'source',
-    'true',
-    'unset',
-]);
 const minorPrograms = new Set(['chmod', 'ls', 'mkdir', 'pwd', 'rm', 'touch', 'which']);
 const runnerCommand =
     /^(?:(?:npm|pnpm|yarn|bun)\s+(?:test|run|build|install|ci|x)\b|(?:npx|bunx|pytest|vitest|jest|tsc|cargo|go|make|gradle|mvn|swift|xcodebuild|uv|deno)\b)/u;
@@ -78,17 +47,15 @@ export function readShellLabel(command: string): ShellLabel {
     const script = parseShellScript(unwrapShellCommand(command));
     const heads = script.commands.filter((entry) => !entry.piped);
     // `echo x > notes.md` writes a file; only a bare echo is setup.
-    const meaningful = heads.filter(
-        (entry) => entry.writes !== null || !noisePrograms.has(entry.program)
-    );
+    const meaningful = heads.filter((entry) => !isShellSetupCommand(entry));
     const haus = meaningful.filter((entry) => entry.program === 'haus');
-    const base = { detail: null, extraCommands: 0, isHausOnly: false, lines: script.lines };
+    const base = { detail: null, extraCommands: 0, lines: script.lines };
 
     if (heads.length === 0) {
         return { ...base, past: 'Ran a command', present: 'Running a command' };
     }
     if (haus.length > 0 && haus.length === meaningful.length) {
-        return { ...base, ...readHausLabel(haus), isHausOnly: true };
+        return { ...base, ...readHausLabel(haus) };
     }
     // `python3 - <<'PY'` runs the document, not `-`: name the language, quote its first line.
     const stdinScript = script.hasHeredoc
@@ -130,20 +97,6 @@ export function readShellLabel(command: string): ShellLabel {
             (entry) => readIdiom(script.commands, entry)
         ),
     };
-}
-
-export function unwrapShellCommand(command: string): string {
-    const match = shellWrapper.exec(command.trim());
-    const flags = match?.[1];
-    const script = match?.[2];
-
-    // `-l` and friends may precede it, but only `-c` means "the rest is the
-    // script"; without it the argument is a file to run, not a command line.
-    if (!(flags?.includes('c') && script)) {
-        return command;
-    }
-
-    return readQuoted(script.trim());
 }
 
 /** `a Python script` when a command runs an interpreter on its stdin; null otherwise. */
@@ -272,20 +225,6 @@ function readFirstLine(command: string): string {
         .split('\n')
         .find((entry) => entry.trim().length > 0);
     return (line ?? '').replace(/\s+/gu, ' ').trim();
-}
-
-function readQuoted(value: string): string {
-    const quote = value.startsWith('"') ? '"' : value.startsWith("'") ? "'" : null;
-
-    if (!quote) {
-        return value;
-    }
-
-    const end = value.length > 1 && value.endsWith(quote) ? value.length - 1 : value.length;
-    const inner = value.slice(1, end);
-
-    // `'\''` is how a single-quoted wrapper spells a quote inside it.
-    return quote === '"' ? inner.replace(doubleQuoteEscape, '$1') : inner.replace(/'\\''/gu, "'");
 }
 
 function clampLabel(summary: string): string {

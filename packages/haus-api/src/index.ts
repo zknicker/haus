@@ -91,6 +91,8 @@ export * from './computer-runtime.ts';
 export * from './computer-system-events.ts';
 export * from './computer-update.ts';
 export * from './development-chat-demos.ts';
+export * from './execution-bookkeeping.ts';
+export * from './execution-shell-script.ts';
 export * from './execution-tool-kind.ts';
 export * from './haus-agent-version.ts';
 export * from './haus-release.ts';

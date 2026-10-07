@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readTracePath, relativizeWorkspacePath } from './turn-trace-path.ts';
+import { relativizeWorkspacePath } from '@haus/api';
+import { readTracePath } from './turn-trace-path.ts';
 
 const agent =
     '/Users/zknicker/.haus/dev/cnreview/computer/servers/srv_WaQNQzGWyLYyqZDE/agents/agt_5Pu8v37EEX9Jrmsa';
