@@ -63,6 +63,7 @@ export * from './agent-creation.ts';
 export * from './agent-execution.ts';
 export * from './agent-execution-outline.ts';
 export * from './agent-idempotency.ts';
+export * from './agent-inbox-conversations.ts';
 export * from './agent-profile.ts';
 export * from './agent-profile-text.ts';
 export * from './agent-runner.ts';

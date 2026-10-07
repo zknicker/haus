@@ -451,6 +451,12 @@ inbox. Human **Start** resumes the current session and drains that work.
   `## Personality` prompt section and never in envelopes, rosters, or any Agent API. It is not
   an Agent-owned file and not SOUL's return: the Agent cannot edit it, and evolved identity still
   lives in MEMORY.md.
+  *Revisited 2026-10-06 (operator decision, personality eval series):* every Agent now gets a
+  Haus-only house `## Personality`, and the per-Agent setting became a **Conversation style**
+  layered directly after it (it wins on voice only), plus a **signature emoji** used as the
+  pickup reaction. The owner or the Agent itself can set both (`haus profile update`, when
+  asked). See the Personality and Conversation style rows in
+  [prompt-divergences.md](prompt-divergences.md).
 - **I4 — Inbox visibility read-only; attention is agent-owned.** The agent detail panel gains a
   read-only inbox card (pending targets with counts, muted channels, followed threads;
   dev-mode: per-target cursors). No human-side mute/unfollow controls for agents — humans steer

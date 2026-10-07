@@ -1,15 +1,15 @@
 import { computerInventorySchema } from './computer-inventory.ts';
+import { hausAgentStateSchema } from './haus-agent-state.ts';
 
 export * from './computer-inventory.ts';
+export * from './haus-agent-state.ts';
 
 import * as z from 'zod';
 import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
-import { agentDescriptionInputSchema } from './agent-profile-text.ts';
+import { agentWakePauseSchema } from './agent-turn-failure.ts';
 import { workspacePathSchema } from './agent-workspace-files.ts';
-import { avatarBytesInputSchema } from './avatar.ts';
 import { idSchema } from './chat.ts';
-import { participantHandleSchema } from './participant-handle.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -25,48 +25,6 @@ export { agentReasoningEffortSchema } from './agent-execution.ts';
 export const agentStatusSchema = z.enum(['applied', 'degraded', 'pending']);
 
 export type AgentStatus = z.infer<typeof agentStatusSchema>;
-
-export const hausAgentStatusSchema = z.enum(['current', 'failed', 'pending']);
-
-export type HausAgentStatus = z.infer<typeof hausAgentStatusSchema>;
-
-export const hausAgentStateSchema = z
-    .object({
-        appliedAt: timestampSchema.nullable(),
-        appliedVersion: z
-            .string()
-            .regex(/^\d+\.\d+\.\d+$/u)
-            .nullable(),
-        currentVersion: z.string().regex(/^\d+\.\d+\.\d+$/u),
-        status: hausAgentStatusSchema,
-    })
-    .strict();
-
-export type HausAgentState = z.infer<typeof hausAgentStateSchema>;
-
-export const hausAgentAppliedStateSchema = z
-    .object({
-        agentId: idSchema,
-        appliedAt: timestampSchema.nullable(),
-        status: hausAgentStatusSchema,
-        version: z
-            .string()
-            .regex(/^\d+\.\d+\.\d+$/u)
-            .nullable(),
-    })
-    .strict();
-
-export type HausAgentAppliedState = z.infer<typeof hausAgentAppliedStateSchema>;
-
-/** Additive Computer frame kept separate from the legacy strict effective-state report. */
-export const hausAgentReportFrameSchema = z
-    .object({
-        agents: z.array(hausAgentAppliedStateSchema).max(500),
-        type: z.literal('haus-agent-report'),
-    })
-    .strict();
-
-export type HausAgentReportFrame = z.infer<typeof hausAgentReportFrameSchema>;
 
 export const agentAvailabilitySchema = z.enum(['error', 'idle', 'offline', 'stopped', 'working']);
 
@@ -97,27 +55,11 @@ export const agentSchema = z
         missingResources: z.array(z.string()),
         serverId: idSchema,
         status: agentStatusSchema,
+        wakePause: agentWakePauseSchema.nullable().default(null),
     })
     .strict();
 
 export type Agent = z.infer<typeof agentSchema>;
-
-/** Creating an Agent binds it to exactly one reported Computer, runtime, and model. */
-export const createAgentInputSchema = z
-    .object({
-        avatar: avatarBytesInputSchema.optional(),
-        computerId: idSchema,
-        description: agentDescriptionInputSchema.nullable().optional(),
-        displayName: z.string().trim().min(1).max(80),
-        handle: participantHandleSchema,
-        modelId: z.string().trim().min(1).max(128),
-        reasoningEffort: agentReasoningEffortSchema.default('medium'),
-        runtimeId: z.string().trim().min(1).max(64),
-        serverId: idSchema,
-    })
-    .strict();
-
-export type CreateAgentInput = z.infer<typeof createAgentInputSchema>;
 
 /** Deletion retires the Server record but preserves authored collaboration history. */
 export const deleteAgentInputSchema = z

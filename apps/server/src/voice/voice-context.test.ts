@@ -7,6 +7,7 @@ test('voice identity uses the called Agent while retaining delegation and ground
         name: 'Beacon',
         description: 'Speak plainly.',
         brief: 'Help with the offline launch.',
+        conversationStyle: null,
         generation: 1,
         model: 'claude-sonnet-5-5',
         health: 'healthy',
@@ -28,4 +29,25 @@ test('voice identity uses the called Agent while retaining delegation and ground
     expect(instructions).toContain('about ten seconds');
     expect(instructions).toContain('Agent description: Speak plainly.');
     expect(instructions).toContain('Agent standing brief: Help with the offline launch.');
+});
+
+test('voice instructions carry the conversation style only when one is set', () => {
+    const target = {
+        agentId: 'agent',
+        name: 'Beacon',
+        description: null,
+        brief: null,
+        conversationStyle: 'Dry humor. Sea-shanty asides.',
+        generation: 1,
+        model: null,
+        health: 'healthy',
+        stopped: false,
+        runId: null,
+    } satisfies VoiceTarget;
+    expect(voiceInstructions(target)).toEndWith(
+        '\nConversation style (your voice; keep spoken replies brief): Dry humor. Sea-shanty asides.'
+    );
+    expect(voiceInstructions({ ...target, conversationStyle: null })).not.toContain(
+        'Conversation style'
+    );
 });

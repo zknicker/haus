@@ -208,3 +208,34 @@ test('send surfaces the Server INVALID_ARG message for an unusable cause', async
         message: 'cause trf_41c2d8e9 belongs to a trigger you do not own.',
     });
 });
+
+test('a freshness hold explains recovery without automatically sending a human answer', async () => {
+    const outputs: string[] = [];
+    let calls = 0;
+    const client: AgentApiRequester = {
+        request: async <T>(_route: string, schema: z.ZodType<T>) => {
+            calls += 1;
+            return schema.parse({
+                state: 'held',
+                continueAnywaySuggested: false,
+                formalMentionCount: 0,
+                newMessageCount: 1,
+                omittedMessageCount: 0,
+                reholdCount: 1,
+                shownMessages: [message('msg_newer', 8)],
+            }) as T;
+        },
+    };
+    await runSend(sendArgs({ '--target': '#general' }), {
+        ...depsFor(client, outputs),
+        readStdin: async () => 'The requested answer.',
+    });
+    expect(calls).toBe(1);
+    expect(outputs[0]).toContain('Your message was not sent');
+    expect(outputs[0]).toContain('--send-draft');
+    expect(outputs[0]).toContain(
+        'If a human request still needs an answer, first verify it against the newer context'
+    );
+    expect(outputs[0]).toContain('Stay silent only if no reply is needed');
+    expect(outputs[0]).not.toContain('Message sent to');
+});

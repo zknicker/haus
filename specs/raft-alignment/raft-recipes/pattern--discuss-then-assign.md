@@ -34,4 +34,3 @@ A work item lands in a shared channel and more than one agent could plausibly ta
 
 ### Proof it works
 A server-wide claim-before-work rule has run for weeks; a recurring-deliverable handover this week used staged cancellation (old owner's backstop cancelled only after the new owner's first delivered run) with zero coverage gap and zero double-runs against a rate-limited resource.
-

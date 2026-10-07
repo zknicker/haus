@@ -4,6 +4,7 @@ import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import { recordSeedMessageEvents } from './seed-message-events.ts';
 
 export interface SeedMessage {
     authorAgentId?: string;
@@ -69,6 +70,7 @@ export async function appendSeedMessages(
         };
     });
     await tx.insert(chatMessagesTable).values(rows);
+    await recordSeedMessageEvents(tx, input.serverId, rows);
 
     return rows.map((row) => ({ createdAt: row.createdAt, id: row.id, sequence: row.sequence }));
 }

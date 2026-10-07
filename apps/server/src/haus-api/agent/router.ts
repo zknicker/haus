@@ -4,6 +4,7 @@ import { agentActivityProcedure } from './activity.ts';
 import { agentActivityHistoryProcedure } from './activity-history.ts';
 import { agentChatsProcedure } from './chats.ts';
 import { configureAgentProcedure } from './configure.ts';
+import { agentConversationStyleProcedure } from './conversation-style.ts';
 import { createAgentProcedure } from './create.ts';
 import { deleteAgentProcedure } from './delete.ts';
 import { agentDeliveriesProcedure } from './deliveries.ts';
@@ -15,7 +16,6 @@ import { importAgentSkillProcedure } from './import-skill.ts';
 import { listAgentsProcedure } from './list.ts';
 import { onAgentActivityProcedure } from './on-activity.ts';
 import { onAgentLifecycleProcedure } from './on-lifecycle.ts';
-import { agentPersonalityProcedure } from './personality.ts';
 import { resetAgentProcedure } from './reset.ts';
 import { restartAgentProcedure } from './restart.ts';
 import { agentRunTriggerProcedure } from './run-trigger.ts';
@@ -29,6 +29,7 @@ import {
 import { startAgentProcedure } from './start.ts';
 import { stopAgentProcedure } from './stop.ts';
 import { agentTurnsProcedure } from './turns.ts';
+import { updateAgentConversationStyleProcedure } from './update-conversation-style.ts';
 import { updateAgentProfileProcedure } from './update-profile.ts';
 import { agentWorkspaceFileProcedure } from './workspace-file.ts';
 import { agentWorkspaceFilesProcedure } from './workspace-files.ts';
@@ -39,6 +40,7 @@ export const agentRouter = createRouter({
     activeActivity: agentActiveActivityProcedure,
     chats: agentChatsProcedure,
     configure: configureAgentProcedure,
+    conversationStyle: agentConversationStyleProcedure,
     create: createAgentProcedure,
     delete: deleteAgentProcedure,
     deliveries: agentDeliveriesProcedure,
@@ -52,7 +54,6 @@ export const agentRouter = createRouter({
     list: listAgentsProcedure,
     onLifecycle: onAgentLifecycleProcedure,
     onActivity: onAgentActivityProcedure,
-    personality: agentPersonalityProcedure,
     reset: resetAgentProcedure,
     restart: restartAgentProcedure,
     runTrigger: agentRunTriggerProcedure,
@@ -61,6 +62,7 @@ export const agentRouter = createRouter({
     start: startAgentProcedure,
     stop: stopAgentProcedure,
     turns: agentTurnsProcedure,
+    updateConversationStyle: updateAgentConversationStyleProcedure,
     updateProfile: updateAgentProfileProcedure,
     updateSkillFile: updateAgentSkillFileProcedure,
     workspaceFile: agentWorkspaceFileProcedure,

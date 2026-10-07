@@ -43,6 +43,9 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
     await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
     await createDialog.getByRole('textbox', { name: 'Name' }).fill('Scout');
+    // The signature emoji is optional at creation and starts on the 👀 default.
+    await createDialog.getByRole('button', { name: '👀 Signature emoji' }).click();
+    await page.getByRole('option', { name: '🎉', exact: true }).click();
     await createDialog.getByRole('button', { name: 'Create Agent' }).click();
 
     await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
@@ -64,8 +67,8 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     }
     await expect(page.getByRole('radio', { name: 'Overview' })).toHaveCount(0);
 
-    // The one profile editor carries the private personality beside the role line, and the
-    // description's 280-character budget blocks Save rather than truncating.
+    // The one profile editor carries the private conversation style and signature emoji beside
+    // the role line, and the description's 280-character budget blocks Save rather than truncating.
     await page.getByRole('button', { name: 'Edit Profile', exact: true }).click();
     const editor = page.getByRole('dialog', { name: 'Agent profile' });
     const description = editor.getByRole('textbox', { name: 'Description', exact: true });
@@ -74,17 +77,23 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(editor.getByRole('button', { name: 'Save' })).toBeDisabled();
     await description.fill('Scouts competitor launches and pricing moves.');
     await editor
-        .getByRole('textbox', { name: 'Personality', exact: true })
-        .fill('Terse. Plain words. Dry humor.');
+        .getByRole('textbox', { name: 'Conversation style', exact: true })
+        .fill('Dry and deadpan.');
+    // The emoji chosen at creation is already stored, so Reset is offered.
+    await expect(editor.getByRole('button', { name: 'Reset' })).toBeVisible();
+    await editor.getByRole('button', { name: '🎉 Signature emoji' }).click();
+    await page.getByRole('option', { name: '🔥', exact: true }).click();
+    await expect(editor.getByRole('button', { name: '🔥 Signature emoji' })).toBeVisible();
     await editor.getByRole('button', { name: 'Save' }).click();
     await expect(editor).toBeHidden();
     await page.reload();
     await page.getByRole('button', { name: 'Edit Profile', exact: true }).click();
+    const reopened = page.getByRole('dialog', { name: 'Agent profile' });
     await expect(
-        page
-            .getByRole('dialog', { name: 'Agent profile' })
-            .getByRole('textbox', { name: 'Personality', exact: true })
-    ).toHaveValue('Terse. Plain words. Dry humor.');
+        reopened.getByRole('textbox', { name: 'Conversation style', exact: true })
+    ).toHaveValue('Dry and deadpan.');
+    await expect(reopened.getByRole('button', { name: '🔥 Signature emoji' })).toBeVisible();
+    await expect(reopened.getByRole('button', { name: 'Reset' })).toBeVisible();
     await page.keyboard.press('Escape');
 
     // Every lifecycle verb is a menu item on the header now. Stop is the one

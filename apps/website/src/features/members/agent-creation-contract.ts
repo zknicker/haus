@@ -19,4 +19,6 @@ export interface AgentCreationSubmitValues {
     modelId: string;
     reasoningEffort: AgentReasoningEffort;
     runtimeId: string;
+    /** Null keeps the default pickup reaction. */
+    signatureEmoji: string | null;
 }

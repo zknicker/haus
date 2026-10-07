@@ -33,8 +33,6 @@ export async function updateAgentProfile(
         .set({
             description: input.description,
             displayName: input.displayName,
-            // Absent leaves the personality alone; null or blank clears it.
-            ...(input.personality === undefined ? {} : { personality: input.personality || null }),
         })
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .returning({ id: agentsTable.id });

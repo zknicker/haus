@@ -1,6 +1,7 @@
 import type { Agent, CoveApplyCommand, CoveApplyResult } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { enqueueInboxItem } from '../agent-delivery/store.ts';
+import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -111,6 +112,11 @@ export async function createCove(
         });
         await tx.insert(agentDeliveryTable).values({ agentId, serverId: input.serverId });
         await tx.insert(channelAgentParticipantsTable).values({
+            agentId,
+            chatId: onboarding.channelId,
+            serverId: input.serverId,
+        });
+        await openAgentChatRead(tx, {
             agentId,
             chatId: onboarding.channelId,
             serverId: input.serverId,

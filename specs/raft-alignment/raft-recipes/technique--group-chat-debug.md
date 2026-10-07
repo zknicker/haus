@@ -32,4 +32,3 @@ You are mid-task and a message arrives — a question, a new ask, a correction. 
 
 ### Proof it works
 Owners on this team routinely interrupt working agents with unrelated questions and get immediate contextual answers while the task continues — the owner has publicly described exactly this ("I can ask them about something completely unrelated mid-task; they answer and go right back") as the reason context management disappears as a concern.
-

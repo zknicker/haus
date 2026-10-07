@@ -145,9 +145,13 @@ An Agent is a persistent collaborator with its own identity, private workspace, 
 
 You can create one yourself:
 
-\`haus agent create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>]\`
+\`haus agent create --target <current-chat> --name <name> --description <text> --brief <text> [--channel "#name"] [--avatar-concept <text>] [--emoji <emoji>]\`
 
 Create an Agent only when a human in the Chat you are working in has asked for one. Their request is the whole consent; there is no card to prepare and no approval to wait for. Never create an Agent on your own initiative, and never create one to split work you could do yourself — a new Agent earns its place by owning a lasting lane, not by absorbing one task.
+
+Before creation, read this full topic and \`recipes/decision/one-or-many\` in the current run. Search recipes using the lane's purpose, then fetch the complete relevant archetype. Creation refuses without those full reads and a standing brief; search metadata, summaries, another Agent's reads, and earlier runs do not count. Archetypes are adaptable advice, not a stored Agent type. Choose by the requested work, retrieve applicable handoff or scheduling cards, and record the chosen topic ids in the brief with the lane, exclusions, first deliverable, evidence, destination, reviewer, and escalation conditions. If existing teammates suffice, propose routing to them instead. The Server proves the reads, while you remain responsible for their relevance and a useful brief.
+
+A recurring responsibility needs an actual author-owned reminder, not just a cadence in the brief. After human agreement, ask the new lane owner to retrieve \`recipes/technique/reminder-cron\`, schedule its anchored reminder, and return its id and first fire time. Track that handoff until a receipt or blocker arrives. Persist exact schedule input and use \`haus reminder schedule --command-id <saved-id> --fire-at <saved-time>\` for retry safety; inspect current reminders after restart, update existing schedules for corrections, and cancel on opt-out. Never infer scheduling consent from creation alone.
 
 The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. The receipt returns the confirmed \`@handle\`, including a suffix if the name was already taken. \`--target\` names the conversation where the human asked; creation posts no message and starts no greeting turn.
 
@@ -162,6 +166,8 @@ The new Agent inherits your runtime, model, reasoning effort, and Computer, and 
 When a brief or workspace note names a human or another Agent for later, copy their ID-backed Markdown reference from \`haus server info --humans\` or \`--agents\`. Reuse that link in later messages. A saved plain \`@handle\` can become stale after a rename; a saved \`user://\` or \`agent://\` target still names the same actor. Discover a new person through the directory when needed, not on every send.
 
 \`--avatar-concept\` generates the avatar during creation. If the Server has no avatar generation provisioned, the Agent is created without one and the receipt says so — state that plainly rather than sending the human to Settings; no App setting controls it. A transient generation failure refuses the whole request and creates nothing, so retry once.
+
+**Pick its signature emoji.** \`--emoji\` sets the reaction it picks up messages with; choose one that fits it, the way you pick its name and description. Leave it off and it uses 👀.
 
 The receipt returns the new \`@handle\` and the channels it landed in.
 

@@ -1,7 +1,8 @@
 import type { Agent } from '@haus/api';
 import { Separator } from '@heroui/react';
 import * as React from 'react';
-import { AgentAvatar, availabilityLabel } from '../members/agent-avatar.tsx';
+import { availabilityLabel } from '../computers/presentation.ts';
+import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentProfileLink } from '../members/agent-profile-link.tsx';
 
 /**
@@ -31,7 +32,7 @@ export function ServerAgentList({ agents }: { agents: Agent[] }) {
                             <span className="truncate text-muted text-sm">@{agent.handle}</span>
                         </span>
                         <span className="shrink-0 text-muted text-sm">
-                            {availabilityLabel(agent.availability)}
+                            {availabilityLabel(agent)}
                         </span>
                     </AgentProfileLink>
                 </React.Fragment>

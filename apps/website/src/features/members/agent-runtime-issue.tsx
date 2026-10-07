@@ -5,14 +5,26 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';
 import { agentRuntimeIssue, runtimeIssueLabel } from '../computers/runtime-issue-model.ts';
 import { serverComputersRoute } from '../servers/server-routes.ts';
+import { AgentWakePauseAlert } from './agent-wake-pause-alert.tsx';
 
-export function AgentRuntimeIssue({ agent }: { agent: Agent }) {
+/**
+ * What stands between the Agent and its next turn, one Alert at a time. A
+ * runtime sign-in issue outranks a wake pause: it names the concrete fix, and
+ * repeated sign-in failures are usually why the Agent paused.
+ */
+export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRestart: boolean }) {
     const computers = useComputers(agent.serverId);
     const { slug } = useParams();
     const computer = computers.data?.find(({ id }) => id === agent.computerId);
     const issue = agentRuntimeIssue(agent, computer?.reportedInventory ?? null);
     if (!(computer && issue)) {
-        return null;
+        return agent.wakePause ? (
+            <AgentWakePauseAlert
+                agent={agent}
+                canRestart={canRestart}
+                wakePause={agent.wakePause}
+            />
+        ) : null;
     }
     return (
         <Alert status="warning">

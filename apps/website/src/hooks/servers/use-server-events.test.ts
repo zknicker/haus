@@ -17,6 +17,7 @@ function recordingUtils() {
         utils: {
             agent: {
                 activeActivity: { invalidate: invalidate('agent.activeActivity') },
+                conversationStyle: { invalidate: invalidate('agent.conversationStyle') },
                 deliveryState: { invalidate: invalidate('agent.deliveryState') },
                 get: { invalidate: invalidate('agent.get') },
                 list: { invalidate: invalidate('agent.list') },
@@ -93,10 +94,16 @@ test('Agent events refresh the active directory and durable Chat list', () => {
 
     createServerUpdateHandler(utils, 'server-one', 'team-room')({ scope: 'agent' });
 
-    expect(names(invalidated)).toEqual(['server.bySlug', 'agent.get', 'agent.list', 'chat.list']);
+    expect(names(invalidated)).toEqual([
+        'server.bySlug',
+        'agent.get',
+        'agent.conversationStyle',
+        'agent.list',
+        'chat.list',
+    ]);
 });
 
-test('a named Agent refreshes only its own detail and delivery state', () => {
+test('a named Agent refreshes only its own detail, delivery state, and conversation style', () => {
     const { invalidated, utils } = recordingUtils();
 
     createServerUpdateHandler(
@@ -109,6 +116,10 @@ test('a named Agent refreshes only its own detail and delivery state', () => {
         { input: { slug: 'team-room' }, name: 'server.bySlug' },
         { input: { agentId: 'agt_scout', serverId: 'server-one' }, name: 'agent.get' },
         { input: { agentId: 'agt_scout', serverId: 'server-one' }, name: 'agent.deliveryState' },
+        {
+            input: { agentId: 'agt_scout', serverId: 'server-one' },
+            name: 'agent.conversationStyle',
+        },
         { input: { serverId: 'server-one' }, name: 'agent.list' },
         { input: { serverId: 'server-one' }, name: 'chat.list' },
     ]);

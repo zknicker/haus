@@ -14,8 +14,9 @@ model session. Per-turn message delivery is an inbox concern; see
 
 ## Contract
 
-- Computer composes managed product instructions, the Agent description, its
-  private personality (when set, as a closing `## Personality` section), assigned skills, and tool guidance for every accepted turn. It persists the
+- Computer composes managed product instructions, the Agent description, the house
+  `## Personality` (every Agent, right after `## Who you are`), the Agent's private
+  `## Conversation style` directly after it when set, its signature emoji in the pickup rule, assigned skills, and tool guidance for every accepted turn. It persists the
   applied instruction and Harness bootstrap fingerprints with the resumed session.
 - Computer does not append Haus-specific model-family steering. Every model receives the same
   managed product contract; executor-native instructions remain owned by that executor.

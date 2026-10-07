@@ -156,24 +156,6 @@ export const agentMessageCheckResponseSchema = z.object({
 
 export type AgentCliAutomationEvent = z.infer<typeof agentAutomationEventSchema>;
 
-export const agentInboxCheckResponseSchema = z.object({
-    rows: z.array(
-        z.object({
-            // An older Server omits the work facts; its rows print untagged.
-            chatId: z.string().min(1),
-            cloudAgentResult: z.boolean().default(false),
-            firstShortId: z.string().min(1),
-            latestSender: z.string().min(1),
-            latestShortId: z.string().min(1),
-            mentioned: z.boolean(),
-            pendingCount: z.number().int().positive(),
-            target: z.string().min(1),
-            taskNumber: z.number().int().positive().nullable().default(null),
-        })
-    ),
-    totalPending: z.number().int().nonnegative(),
-});
-
 export const agentChannelActionResponseSchema = z.object({
     joined: z.boolean().optional(),
     left: z.boolean().optional(),
@@ -189,6 +171,10 @@ export const agentHistoryResponseSchema = z.object({
     messages: z.array(agentMessageSchema),
     target: z.string().min(1),
     thread_follow_reactivated_message_ids: z.array(z.string().min(1)).default([]),
+    /** `--unread` only: the read position after this read. */
+    read_through_seq: z.number().int().nonnegative().nullable().optional(),
+    /** `--unread` only: the read position the window starts after. Absent on an older Server. */
+    unread_after_seq: z.number().int().nonnegative().nullable().optional(),
 });
 const directoryPersonSchema = z.object({
     description: z.string().nullable(),
@@ -236,9 +222,13 @@ export const agentSearchResponseSchema = z.object({
 export const agentReactionResponseSchema = z.object({ message: agentMessageSchema });
 
 export const agentProfileSchema = z.object({
+    /** Present only on the caller's own profile. */
+    conversationStyle: z.string().nullable().optional(),
     description: z.string().nullable(),
     handle: z.string().min(1),
     isSelf: z.boolean(),
+    /** Present only on the caller's own profile; null means the default pickup reaction. */
+    signatureEmoji: z.string().nullable().optional(),
 });
 
 export const agentProfileResponseSchema = z.object({ profile: agentProfileSchema });

@@ -1,15 +1,14 @@
 import type { AgentTurnActivitySummary } from '@haus/api';
 import type { AgentTurnFrame } from './agent-commands.ts';
 import type { RunAgentLaunchOptions } from './launch.ts';
-import type { RuntimeFailureKind } from './runtime-failure.ts';
+import type { RuntimeFailureFields } from './runtime-failure.ts';
 
 /** Composes and sends the compact turn summary for one settled launch. */
 export function reportTurn(
     options: RunAgentLaunchOptions,
-    input: {
+    input: Partial<RuntimeFailureFields> & {
         activity?: AgentTurnActivitySummary;
         messageCount: number;
-        failureKind?: RuntimeFailureKind;
         startedAt: string;
         status: 'completed' | 'failed' | 'interrupted';
         summary: string;
@@ -22,6 +21,8 @@ export function reportTurn(
         agentId: options.command.agentId,
         endedAt: new Date().toISOString(),
         ...(input.failureKind ? { failureKind: input.failureKind } : {}),
+        ...(input.failureCode ? { failureCode: input.failureCode } : {}),
+        ...(input.failureFingerprint ? { failureFingerprint: input.failureFingerprint } : {}),
         messageCount: input.messageCount,
         modelId: options.command.modelId,
         outputProduced: input.messageCount > 0,

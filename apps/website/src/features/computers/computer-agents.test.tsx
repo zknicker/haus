@@ -14,6 +14,7 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
                     id: 'agent-blippy',
                     model: 'GPT-5.6 Sol',
                     runtime: 'Codex',
+                    wakePause: null,
                 },
             ]}
             state={{ status: 'ready' }}

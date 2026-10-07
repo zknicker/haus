@@ -36,4 +36,3 @@ A change is easier to judge by experiencing it than by reading a description of 
 
 ### Proof it works
 Two documented runs in one day on this team: a preview env spun up and seeded (messages + two file attachments + comments) specifically so a designer could reproduce real UI, and a feature preview URL held open across multiple fix rounds until the owner finished her walkthrough.
-

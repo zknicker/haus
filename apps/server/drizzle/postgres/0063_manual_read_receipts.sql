@@ -1,0 +1,1 @@
+ALTER TABLE "manual_lookup_audit" ADD COLUMN "resolved_topic_id" text;

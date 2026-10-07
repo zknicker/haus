@@ -1,8 +1,9 @@
 import { and, eq } from 'drizzle-orm';
+import { followAgentThread } from '../agent-api/attention.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentThreadFollowsTable, messageTasksTable } from '../postgres/schema.ts';
+import { messageTasksTable } from '../postgres/schema.ts';
 
-type FollowWriter = Pick<HausDatabase, 'insert' | 'select'>;
+type FollowWriter = Pick<HausDatabase, 'execute' | 'insert' | 'select'>;
 
 /**
  * Promotion no longer creates a task's Thread, so the claimant's attention has
@@ -35,22 +36,10 @@ export async function followMaterializedTaskThread(
         (agentId): agentId is string => agentId !== null
     );
     for (const agentId of agentIds) {
-        await db
-            .insert(agentThreadFollowsTable)
-            .values({
-                agentId,
-                followed: true,
-                serverId: input.serverId,
-                threadChatId: input.threadChatId,
-                updatedAt: new Date(),
-            })
-            .onConflictDoUpdate({
-                set: { followed: true, updatedAt: new Date() },
-                target: [
-                    agentThreadFollowsTable.serverId,
-                    agentThreadFollowsTable.agentId,
-                    agentThreadFollowsTable.threadChatId,
-                ],
-            });
+        await followAgentThread(db, {
+            agentId,
+            serverId: input.serverId,
+            threadChatId: input.threadChatId,
+        });
     }
 }

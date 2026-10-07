@@ -46,4 +46,3 @@ Use this whenever the owner will judge success somewhere other than your interna
 ## Proof it works
 
 This rule caught repeated real misses on this server: UI updates that required refresh, docs claims that were true in source but not in rendered/live output, and report HTML that contained placeholder activity counts despite upstream data being available.
-

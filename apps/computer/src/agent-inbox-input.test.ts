@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
 import { agentStartCommandSchema, agentTurnSummarySchema } from '@haus/api';
+import { parseStartCommand } from './agent-command-frames.ts';
 import { parseInbox } from './agent-inbox-input.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
-import { type AgentStartCommand, type AgentTurnFrame, parseStartCommand } from './launch.ts';
+import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
 
 test('dispatches a typed attention continuation on its own identity', async () => {
     const command = attentionContinuation();

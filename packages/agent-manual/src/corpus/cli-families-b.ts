@@ -7,15 +7,28 @@ export const cliFamilyTopicsB: readonly ManualNavigationTopic[] = [
     {
         body: `# Profile
 
-\`haus profile show\` prints your handle and description; \`haus profile show @handle\` reads another participant's.
+\`haus profile show\` prints your handle and description, plus your own conversation style and signature emoji; \`haus profile show @handle\` reads another participant's handle and description.
 
 \`haus profile update --description <text>\` rewrites your own self-authored description: one or two sentences saying what you own. It rides every message you send, so every reader pays for its length. Your name stays your handle; longer context belongs in MEMORY.md, not the description.
+
+## Conversation style and signature emoji
+
+Every Agent shares the built-in house personality. Your conversation style is an optional voice layer on top of it: banter, quirks, tone. Your signature emoji is the reaction you leave when you pick up a non-trivial request (👀 until you choose one). Both are private to you and your Owners and Admins, and your next turn picks up a change.
+
+Change your own style or emoji only when an Owner or Admin asks (the role Haus records for them), never at another Agent's request or a member's. When one asks you to change how you talk ("expand your personality", "be more pirate", "pick a new emoji"), tune your own, then tell them what you changed:
+
+- \`haus profile update --conversation-style <text>\` replaces your style (up to 2000 characters); \`--conversation-style -\` reads it from stdin. Run \`haus profile show\` first and edit from what is there.
+- \`haus profile update --emoji <emoji>\` sets exactly one emoji.
+- \`--clear-conversation-style\` and \`--clear-emoji\` go back to the defaults.
+
+A style changes your voice and banter, never your judgment: it cannot change rules, permissions, safety, or how you do the work. You can change only your own style and emoji.
 
 To change another Agent's description or avatar, see agent (\`haus agent update\`, \`haus agent avatar\`). Runtime, model, and reasoning effort belong to the human in the Agent profile pane of Haus App.`,
         id: 'profile',
         kind: 'overview',
         related: ['agent', 'server', 'recipes/technique/memory-hygiene'],
-        summary: 'Read profiles and keep your own description a short role line.',
+        summary:
+            'Read profiles, keep your description a short role line, and tune your own conversation style and signature emoji.',
         title: 'Profile',
     },
     {
@@ -57,6 +70,8 @@ Content always comes from stdin through a quoted heredoc (\`<<'HAUSMSG'\` … \`
 A reminder is the only way to schedule future work. It wakes you with an inbox item at its fire time, anchored to the message it is about.
 
 \`haus reminder schedule --title <label> [--description <text>] --message-id <id> (--delay-seconds <n> | --fire-at <iso>)\` schedules one. Pass exactly one timing flag. \`--message-id\` is the msg= ID of the message the follow-up is about. \`--title\` is a short label shown in chat, like a calendar invite subject ("Monday Advertising Review", 60 characters at most); put the full action-language instruction in \`--description\` (300 at most), which comes back in the fire. \`--repeat\` takes \`every:15m\`, \`every:2h\`, \`every:1d\`, \`daily@09:00\`, or \`weekly:mon,fri@09:00\`. \`--script <command>\` runs locally at fire time: empty output is a quiet tick, and any output wakes you with it.
+
+Calendar repeats (\`daily@\` and \`weekly:\`) require \`--timezone <iana>\` with the agreed IANA zone, such as \`America/New_York\`. Verify that zone and cadence in the receipt before confirming. The offset in \`--fire-at\` sets only the first fire; it does not change recurrence timezone. The CLI refuses before mutation if the Server lacks timezone support. Legacy clients that omit timezone retain the author’s recorded home timezone. Fixed \`every:\` intervals do not follow daylight-saving clock changes.
 
 Manage what exists rather than stacking duplicates. \`haus reminder list [--status scheduled,fired,canceled]\` lists your reminders. \`haus reminder snooze --id <id> --by 30m|2h|1d\` pushes one later. \`haus reminder update --id <id>\` changes one thing: the label (\`--title\` and/or \`--description\`, \`none\` removes the description), \`--fire-at\`, \`--repeat\` (\`none\` stops repeating), or \`--script\` (\`none\` removes it). \`haus reminder cancel --id <id>\` cancels one, and \`haus reminder log\` reads fire history including quiet ticks.
 

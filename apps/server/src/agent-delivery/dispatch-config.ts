@@ -12,11 +12,13 @@ import { agentsTable } from '../postgres/schema.ts';
  */
 
 export interface AgentDispatchConfig {
+    /** Private; rides only the start frame into the Agent's own prompt. */
+    agentConversationStyle: string | null;
     agentDescription: string | null;
     agentDisplayName: string;
     agentName: string;
-    /** Private; rides only the start frame into the Agent's own prompt. */
-    agentPersonality: string | null;
+    /** The Agent's pickup reaction; null leaves the Computer's default. */
+    agentSignatureEmoji: string | null;
     brief: string | null;
     briefAuthorHandle: string | null;
     computerId: string | null;
@@ -39,10 +41,11 @@ export async function readAgentDispatchConfig(
     const creator = alias(agentsTable, 'creator_agent');
     const [row] = await db
         .select({
+            agentConversationStyle: agentsTable.conversationStyle,
             agentDescription: agentsTable.description,
             agentDisplayName: agentsTable.displayName,
             agentName: agentsTable.handle,
-            agentPersonality: agentsTable.personality,
+            agentSignatureEmoji: agentsTable.signatureEmoji,
             brief: agentsTable.brief,
             briefAuthorHandle: creator.handle,
             computerId: agentsTable.computerId,
@@ -153,14 +156,24 @@ export interface AgentConfigureRequest {
 }
 
 /**
- * The optional Agent facts a start frame carries into the Agent's own prompt. The personality
- * rides here and nowhere else: never an inbox item, a configure frame, or another Agent's view.
+ * The Agent facts a start frame carries into the Agent's own prompt. The conversation style rides
+ * here and nowhere else: never an inbox item, a configure frame, or another Agent's view.
  */
 export function startPromptFacts(
-    config: Pick<AgentDispatchConfig, 'agentDescription' | 'agentPersonality'>
-): { agentDescription?: string; agentPersonality?: string } {
+    config: Pick<
+        AgentDispatchConfig,
+        'agentConversationStyle' | 'agentDescription' | 'agentSignatureEmoji'
+    >
+): {
+    agentConversationStyle?: string;
+    agentDescription?: string;
+    agentSignatureEmoji: string | null;
+} {
     return {
         ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
-        ...(config.agentPersonality ? { agentPersonality: config.agentPersonality } : {}),
+        ...(config.agentConversationStyle
+            ? { agentConversationStyle: config.agentConversationStyle }
+            : {}),
+        agentSignatureEmoji: config.agentSignatureEmoji,
     };
 }

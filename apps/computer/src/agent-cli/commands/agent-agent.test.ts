@@ -45,6 +45,7 @@ function args(overrides: Record<string, string> = {}): ParsedArgs {
         valueLists: {},
         values: {
             '--description': 'Keeps release notes current.',
+            '--brief': 'Own release notes and report verified results in #product.',
             '--name': 'Orbit',
             '--target': '#product',
             ...overrides,
@@ -203,6 +204,7 @@ test('the create nonce is the request itself, so an identical re-issue replays',
         channels: ['#product', '#design'],
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
+        signatureEmoji: null,
         target: '#product',
     };
     const nonce = deriveAgentCreateNonce('agt_caller', request);
@@ -221,10 +223,11 @@ test('the create nonce is the request itself, so an identical re-issue replays',
         { ...request, avatarConcept: 'a brass compass' },
         { ...request, avatarConcept: null },
         { ...request, brief: 'Own the changelog.' },
-        { ...request, brief: null },
+        { ...request, brief: 'Own a different lane.' },
         { ...request, channels: ['#product'] },
         { ...request, description: 'Keeps the changelog current.' },
         { ...request, displayName: 'Orbit II' },
+        { ...request, signatureEmoji: '🦊' },
         { ...request, target: '#all' },
     ];
     for (const request_ of changed) {

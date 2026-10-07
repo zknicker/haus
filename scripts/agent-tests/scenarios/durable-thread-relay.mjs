@@ -34,10 +34,11 @@ export default defineScenario({
         expect(authorTurn.outputProduced, 'author turn produced durable output').toBe(true);
 
         const task = await kit.readTask(created.messageId);
-        // A one-shot task may already be advanced past in_progress at settlement;
-        // the contract is that the author owned it, not the transient state.
+        // A one-shot task may already be advanced past in_progress at settlement, and
+        // Agents set their own finished tasks done; the contract is that the author owned
+        // it and moved it off todo, not the transient state.
         expect(
-            ['in_progress', 'in_review'].includes(task.status),
+            ['in_progress', 'in_review', 'done'].includes(task.status),
             `task status left todo (got ${task.status})`
         ).toBe(true);
         expect(task.assigneeAgentId, 'task assignee').toBe(author.id);

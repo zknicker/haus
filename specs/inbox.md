@@ -216,9 +216,11 @@ The notice carries its own handling guidance after the closing `]`, as Raft's in
 so the standing system prompt keeps only the collaboration principle (collaborate
 asynchronously; choose when to read; a notice needs no immediate interruption). The guidance
 states that the bodies are withheld to avoid flooding the Agent, not absent; that the notice is not
-itself a request and is not acknowledged; how to pull (`haus message check`, `haus message read
---target`, `haus inbox check`); and that deferral needs no visible reply but must be reported
-honestly, never as a conclusion that nothing is pending. With no concrete message and no notice,
+itself a request and is not acknowledged; how to pull (`haus message read --target <target>
+--unread` for one conversation, `haus message check` for all of them, in Raft 26f77ef's wording);
+and that deferral needs no visible reply but must be reported honestly, never as a conclusion that
+nothing is pending. The unread-elsewhere digest closes by pointing at `haus inbox check`, which
+lists every unread conversation with the command that opens it. With no concrete message and no notice,
 the prompt's startup sequence stops the turn.
 
 Computer owns one local visibility coordinator for the busy-notice
@@ -245,12 +247,31 @@ its notice projection. Server advances `seen` only at settlement; a pull then
 crash/no-output clears stale local visibility evidence and re-exposes the
 canonical envelopes to the replayed turn. History, search, direct reads, and
 freshness-hold results require a Server visibility receipt for any pending
-identities before Computer returns the bodies. `haus inbox check` lists
-pending target rows without draining or advancing anything. Its rows are the busy
-notice's rows: the Server peek derives the task, Cloud Agent result, and mention
-facts from the same envelopes the notice uses, and the notice and the CLI print a
-target through one formatter (`apps/computer/src/inbox-target-row.ts`), as Raft prints
-both with one row formatter.
+identities before Computer returns the bodies.
+
+## Unread conversations and read position
+
+`haus inbox check` is the Agent's counterpart of the human Inbox, ported from Raft
+1.21.2: it lists every channel, DM, and followed thread the Agent is in that has
+unread messages, newest activity first, from a durable per-chat Agent read position
+on the Server (`GET /api/agent/inbox/conversations`). Each row prints the target, the
+unread count, whether it mentions the Agent, and the latest sender, with an `open:`
+line naming the `haus message read --target "<t>" --after <lastReadSeq>` command
+that reads from the read position. Rows whose pending work has not yet been handed to
+the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent results
+print as one `Cloud Agent results · N pending · fetch with haus message check` line.
+The output pages with `More: haus inbox check --before <seq>` and ends with exactly
+one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
+a muted channel appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
+teaches a retry, and `haus message check` still drains. Listing advances nothing.
+
+The read position advances when `haus message read --unread` returns messages, when a
+history read returns a page that starts at or below it, when the Agent sends into the
+chat, and when messages are made visible to the Agent contiguously from it (a wake
+delivery or a `message check` drain). Browsing with `--after` past older unread does
+not move it. `haus message read --target <t> --unread` reads from the read position
+and moves it, cannot combine with `--before`, `--after`, or `--around`, and says
+`More unread remain` when the Agent should run it again.
 
 ## Golden flow
 
@@ -281,14 +302,14 @@ turn starts when its creator sends the working brief.
 | --- | --- |
 | Pending work is the first notice prompt; no `Start.` race or duplicate injection | `apps/computer/src/harness/executor.test.ts` |
 | Notices contain no bodies and exact envelopes retain target/message identity | `apps/computer/src/inbox-format.test.ts` |
-| `haus inbox check` rows match the notice's rows and tags, and the peek advances nothing | `apps/computer/src/agent-cli/commands/agent-inbox.test.ts`, `apps/server/test/agent-inbox-check.test.ts` |
+| `haus inbox check` lists unread conversations from the durable read position, pending rows first, with one `Next:`; listing advances nothing | `apps/computer/src/agent-cli/commands/agent-inbox.test.ts`, `apps/server/test/agent-inbox-check.test.ts` |
 | Local-first pull, exact visibility receipts, history/read consumption, and Server fallback | `apps/computer/src/proxy.test.ts` |
 | Stale notices cannot resurrect identities already made visible | `apps/computer/src/inbox-store.test.ts` |
 | Accepted work and pull evidence survive reconnect or replay correctly | `apps/computer/src/delivery.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/haus-agent-creation.test.ts` |
-| The notice teaches pull, non-request, and honest-deferral semantics; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `apps/computer/src/inbox-format.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
+| The notice teaches Raft's `--unread` / `message check` pull plus non-request and honest-deferral semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `apps/computer/src/inbox-format.test.ts`, `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
 | A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |

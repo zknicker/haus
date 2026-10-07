@@ -47,3 +47,31 @@ export function shortInboxId(id: string): string {
     const subject = assignment?.groups?.messageId ?? id;
     return subject.replace(/^[a-z]+_/u, '').slice(0, 8) || '-';
 }
+
+/**
+ * Raft's `  │ ` continuation prefix (`indentAgentBodyContinuationLines`). Header
+ * lines (`[target=…]`, thread-context `- [msg=…]`) always start at column 0,
+ * so prefixing every continuation line of a sender handle, description, or
+ * body keeps a newline in that free text from forging one. The `│` survives a
+ * reader that trims each line. Every separator a universal-newline reader
+ * breaks on counts, not just `\n`; `\r\n` matches as one.
+ */
+const bodyContinuationPrefix = '  │ ';
+const bodyLineSeparator = /\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]/gu;
+
+export function indentContinuationLines(text: string): string {
+    return text.replace(bodyLineSeparator, (separator) => `${separator}${bodyContinuationPrefix}`);
+}
+
+/**
+ * A fire or task-assignment body is a Server-composed envelope whose own lines
+ * (`fire=…`, the reply command) belong at column 0; the Server already indents
+ * its untrusted parts (trigger payload, reminder description, script output),
+ * and `haus message check` prints it verbatim too. Every Chat message body is
+ * free text and takes the continuation prefix.
+ */
+export function inboxBodyText(id: string, content: string): string {
+    return isBodilessInboxId(id) || id.startsWith('task-assign:')
+        ? content
+        : indentContinuationLines(content);
+}

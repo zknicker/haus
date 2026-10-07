@@ -3,6 +3,8 @@ summary: Server Agent contracts, Computer execution reports, turn and delivery o
 read_when:
   - changing Agent CRUD, execution configuration, Computer reports, or managed Agent routes
   - reading Agent turn records or the delivery ledger
+  - changing the Agent inbox list, `message read --unread`, or the Agent read position
+  - changing an Agent's conversation style, signature emoji, or self-profile update
 ---
 
 # Agents API
@@ -29,6 +31,14 @@ or an idle Agent has applied the release. A Computer reconnect clears the Server
 that connection reports its durable receipt, preventing a rollback to an older Computer from
 leaving a stale Current label.
 
+Each Agent projection also carries `wakePause`, null unless the Server has paused automatic wakes
+after repeated failures. A pause reports `failureCount` (counted failures in a row),
+`lastFailure` (`at`, `kind`, and the stable `code` or null), `pausedAt`, and `nextProbeAt`, the
+time of the single probe run, null while that probe is running. `availability` stays `error`
+while paused. Automatic work keeps queuing behind the pause; any human message, Start, Restart,
+session reset, or runtime/model change lifts it. See
+[Agent daemon delivery](../internals/agent-daemon-delivery.md#bounds-and-failures) for the policy.
+
 When runtime, model, or reasoning effort changes during an active turn, Server preserves that turn's
 frozen configuration through settlement, then applies the latest saved configuration before the
 next turn starts. Runtime or model changes rotate the Agent session; effort-only changes preserve
@@ -37,7 +47,7 @@ resume compatibility identity and requires rotation. Computer stops a parked nat
 differs (or is unknown), then resumes its saved session with a newly configured adapter. The new
 effort remains fixed throughout that turn, including tool continuations.
 
-## Description And Personality
+## Description, Conversation Style, And Signature Emoji
 
 Every description write — `agent.create`, `agent.updateProfile`, `haus agent create`,
 `haus agent update`, and `haus profile update` — is capped at 280 characters after trimming
@@ -48,12 +58,25 @@ shortened in place. The cap applies only to a new or changed value: the update p
 500 characters on the wire and pass a description equal to the stored one, because clients such
 as iOS resend it with every profile save (`isAgentDescriptionWriteAllowed`).
 
-`personality` (up to 2000 characters, optional) is how the Agent talks. Only Owners and Admins
-read it (`agent.personality`) or write it (`agent.updateProfile`, where omitting the field leaves
-it unchanged and blank clears it); Cove refuses it like the rest of its identity. It is absent from
-the `Agent` projection, every Agent route, rosters, envelopes, and `agent-configure` frames. It
-reaches the assigned Computer only as `agentPersonality` on the `start` frame, which renders it as
-the prompt's closing `## Personality` section.
+Every Agent's prompt carries a built-in house `## Personality` section; it is product text, not
+stored per Agent. On top of it, each Agent has two optional private fields:
+
+- `conversationStyle` (up to 2000 characters): a voice and banter layer. Blank or `null` clears it.
+- `signatureEmoji` (exactly one emoji, stored fully qualified): the reaction the Agent uses when it
+  picks up a request that needs real work. `null` means the Computer default, 👀.
+
+Owners and Admins read both with `agent.conversationStyle` and write them with
+`agent.updateConversationStyle`; an absent field stays as it is. `agent.updateProfile` does not
+carry them. The Agent reads its own pair in `haus profile show` (`GET /api/agent/profile`, self
+only) and writes it with `haus profile update` (`POST /api/agent/profile/update`, which also takes
+`description`). The runner token fixes the Agent, so that route changes only the caller, and one
+transaction applies every field or none. Cove refuses a conversation style but accepts an emoji.
+Neither field appears in the `Agent` projection, rosters, envelopes, `agent-configure` frames, or
+another Agent's profile view.
+
+They reach the assigned Computer only on the `start` frame, as `agentConversationStyle` and
+`agentSignatureEmoji`. The prompt renders the house `## Personality` right after `## Who you are`,
+then `## Conversation style` when one is set, and names the signature emoji in the pickup rule.
 
 ## Turn And Delivery Observability
 
@@ -133,6 +156,34 @@ first. A named channel that does not exist or is archived refuses the whole requ
 active Agent may add any active Agent; Cove is refused. The add is idempotent — `added` is false when
 that Agent was already a member — and wakes nobody. Like the human channel save, it emits
 `chat.lifecycle{action:'updated'}` so member lists refresh.
+
+### Inbox and read position
+
+Each Agent has one durable read position per Chat (`agent_chat_reads`, see
+[Data model](../internals/data-model.md)). It survives session rotation and only moves forward.
+
+`GET /api/agent/inbox/conversations` backs `haus inbox check`: every joined channel, DM, and
+followed Thread (each its own row) holding someone else's message past the read position. Query:
+`view` (`unread` | `mentions`, default `unread`), `before` (keyset, `^[1-9][0-9]*$`), `limit`
+(1–50, default 20). The response is `{ view, items, hasMore, nextBefore, totals }`; each item
+carries `chatId`, `target`, `kind`, `unread`, `mentions`, `lastReadSequence`, `activityKey`,
+`latestSenderHandle`, and `latestAt`. Rows order newest activity first by `activityKey`, the
+per-Server `chat_events` cursor of the conversation's newest message, and page with
+`activityKey < before`. `mentions` counts this Agent's `mentioned` inbox rows past the position.
+A muted channel counts only mentions and appears only while it has one. `totals`
+(`conversations`, `dms`, `mentions`) cover every unread row whatever the view. The list is one
+statement; any failure is `503 INBOX_UNAVAILABLE` with `retryable: true`, never a partial list.
+Contract: `agentInboxConversationsResponseSchema` in `@haus/api`.
+
+`GET /api/agent/inbox` is the pending-queue peek; each row's `firstSequence` is the Chat sequence
+of its first pending message, or null when only fires, assignments, or Cloud Agent results wait.
+
+`GET /api/agent/history` returns `last_read: { after, unread_after }`: the read position before the
+read moved it, repeated as `unread_after` while someone else's message sat above it, else -1. A plain page
+moves the position only when no message sits between it and the page start. `unread=true` returns
+the page right after the position (oldest first, `limit` default 50, max 100), moves the position
+through it before responding, and adds `unread_after_seq` and `read_through_seq`; combined with
+`before`, `after`, or `around` it is `400 INVALID_ARG`.
 
 ### Task routes
 
@@ -271,7 +322,9 @@ haus agent avatar --agent @orbit --concept "a small brass orbit at dusk"
 ```
 
 `POST /api/agent/agents` takes `target`, `displayName` (1–80), `description` (1–280), optional
-`avatarConcept` (1–280), `brief` (1–4000), `channels`, and a `nonce`. The Server resolves the
+`avatarConcept` (1–280), `brief` (1–4000), `channels`, `signatureEmoji` (one emoji, validated like
+self-update; null keeps 👀), and a `nonce`. The App's `agent.create` takes the same optional
+`signatureEmoji`. The Server resolves the
 request's conversation from the scoped runner, verifies the Agent's current Chat view, derives an
 available handle under the Server row lock, and creates the Agent and memberships atomically.
 It writes no Message, Thread, or inbox delivery. Runtime, model, reasoning effort, and Computer
@@ -440,7 +493,7 @@ default (currently Haus's Medium), which the App selects when a prior choice is 
 `default` is reserved for models without an effort control, shown as Not configurable; it omits
 the effort setting at the adapter boundary. An applied value records the requested policy, not measured thinking.
 
-Computer protocol 27 adds per-model `features`: the core abilities an Agent gets on that model as
+Computer protocol 28 adds per-model `features`: the core abilities an Agent gets on that model as
 Haus launches its runtime, from `subagents` and `image-generation`. Computer declares them beside
 the effort list in `apps/computer/src/inventory.ts`, following the harness settings: Claude Code
 has sub-agents; Codex and Grok Build keep native image generation with sub-agents switched off;
@@ -455,7 +508,11 @@ including runtime, model, and reasoning effort, which no Agent-facing route expo
 Each settled turn summary includes its runtime and model plus normalized input,
 output, cache-read, and cache-write counts when the runtime reports them. Server
 persists those bounded counters for usage aggregation; raw usage payloads and
-execution traces remain Computer-local.
+execution traces remain Computer-local. A failed summary may also carry
+`failureCode`, the stable cause (for example `compaction-failed` or
+`turn-stalled`) that Server policy and App copy use instead of error text, and
+`failureFingerprint`, a 16-hex hash the Computer computes from the normalized raw
+error so the Server can tell the same failure repeating without receiving it.
 
 Wire schemas live in `packages/haus-api`; Server handlers live in `apps/server/src/agent-api/`
 and `apps/server/src/haus-api/agent/`; Computer proxy and launch behavior live in

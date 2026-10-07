@@ -5,6 +5,7 @@ import {
     manualTopics,
     searchManualTopics,
 } from './index.ts';
+import { manualBehaviorAdaptations } from './manual-behavior-adaptations.ts';
 import { taskThreadRouting } from './task-thread-routing.ts';
 
 const recipeIds = [
@@ -142,7 +143,10 @@ test('keeps every published body faithful to its captured source card', async ()
         const body = source
             .slice(boundaries[1].index + 3, boundaries[2]?.index ?? source.length)
             .trim();
-        const adapted = (taskThreadRouting.get(topic.id) ?? []).reduce(
+        const adapted = [
+            ...(taskThreadRouting.get(topic.id) ?? []),
+            ...(manualBehaviorAdaptations.get(topic.id) ?? []),
+        ].reduce(
             (text, [raftLine, hausLine]) => {
                 expect(text).toContain(raftLine);
                 return text.replace(raftLine, hausLine);

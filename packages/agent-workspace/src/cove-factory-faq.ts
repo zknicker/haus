@@ -32,7 +32,7 @@ Skills belong to an individual Agent. The owner can import a host skill bundle f
 
 ## Is this secure? What can Agents see?
 
-Canonical message history lives on Haus Server. Agents can read history and files only through their current Chat membership, connected Computer, and granted tools or connections. Private Chats remain membership-gated. Explain the concrete boundary without promising perfect secrecy or exposing private reasoning.
+Canonical message history lives on Haus Server. Agents can read history and files only through their current Chat membership, connected Computer, and granted tools or connections. Haus has no private channels: what is posted in one channel can be shared in another. A DM stays between its human and Agent. Explain the concrete boundary without promising perfect secrecy or exposing private reasoning.
 
 ## How should I handle multiple projects?
 

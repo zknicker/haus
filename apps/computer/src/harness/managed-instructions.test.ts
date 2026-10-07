@@ -66,8 +66,10 @@ test('the Agent prompt keeps collaboration principles and leaves notice mechanic
     expect(prompt).toContain(
         "4. When a message needs a reply, send it with `haus message send`. Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (`haus message react --message-id <id> --emoji <emoji>`); an explicit FYI gets nothing."
     );
-    // A literal emoji anywhere in the prompt becomes every Agent's default reaction.
-    expect(prompt).not.toMatch(/\p{Extended_Pictographic}/u);
+    // A literal emoji elsewhere in the prompt becomes every Agent's default thanks reaction; the
+    // only one allowed is the signature emoji in the pickup bullet.
+    expect(prompt.match(/\p{Extended_Pictographic}/gu)).toEqual(['👀']);
+    expect(prompt).toContain('react with your signature emoji (👀) as you pick it up');
 });
 
 test('the @Mentions section separates display name from the stable name', () => {
@@ -76,7 +78,7 @@ test('the @Mentions section separates display name from the stable name', () => 
     // teach that identity reasoning uses the stable name, not the presentation.
     expect(efficiencyPrompt).toContain('Your stable Haus @mention handle is `@Marlow`.');
     expect(efficiencyPrompt).toContain(
-        'Your display name is `Marlow`. Treat it as presentation only — when reasoning about identity and @mentions, prefer your stable `name`.'
+        'Your display name is `Marlow`. Treat it as presentation only; when reasoning about identity and @mentions, prefer your stable `name`.'
     );
 });
 
@@ -111,14 +113,14 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
     expect(prompt).not.toContain('Next action:');
     expect(prompt).toContain('### Capability and execution-surface selection');
     expect(prompt).toContain("The human's explicit choice of surface is part of that fit.");
-    expect(prompt).not.toContain('### Formatting — URLs in non-English text');
+    expect(prompt).not.toContain('URLs in non-English text');
     expect(prompt).not.toContain('## Capabilities');
     expect(prompt).toContain('Haus renders your message as Markdown, GFM tables included');
     expect(prompt).not.toContain('### Preparing native action cards');
     expect(prompt).not.toContain('## Security');
 
     expect(prompt.indexOf('## How these instructions apply')).toBeLessThan(
-        prompt.indexOf('## Communication — haus CLI ONLY')
+        prompt.indexOf('## Communication: haus CLI ONLY')
     );
 });
 
@@ -176,20 +178,14 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
 test('keeps the managed prompt within its reviewed size budget', () => {
     const prompt = renderPrompt({
         homeTimezone: 'America/Los_Angeles',
+        conversationStyle: 'Terse.',
         initialRole: 'the operator’s right hand',
-        personality: 'Terse.',
         supportsSubagents: true,
         webAccess: 'search',
     });
 
-    // A ratchet that forces a deliberate decision, not a hard or runtime limit: no adapter
-    // enforces a prompt length. A justified addition raises this cap to the measured render in the
-    // same change, with a one-line reason in specs/raft-alignment/prompt-divergences.md. Never
-    // delete, trim, merge, or deduplicate other prompt text to make room; shrinking the prompt is
-    // its own change with its own reason, and lowers the cap. Raft-verbatim text (present in the
-    // Raft prompt at the pinned source commit) is never trimmed. See AGENTS.md "Agent System
-    // Prompt Changes".
-    //
+    // Review ratchet, not a runtime limit. Never trim prompt text to fit this cap;
+    // additions need measured budgets and a reason in specs/raft-alignment/prompt-divergences.md.
     // Lowered from 40,270 on the Raft 1.0.25 re-baseline (render 40,270 → 32,359): notice
     // mechanics moved into the inbox notice, task mechanics into the `tasks` Manual topic, and
     // clauses Raft deleted were cut. Raised by exactly 42 when Haus gained task assign/unassign
@@ -217,9 +213,17 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // example list. Raised by operator decision (32,496 → 32,579) when Agents came to set their own
     // finished tasks `done`, keeping `in_review` for requested sign-off or a pending human decision;
     // the Raft review-then-done sentence and the same-turn `done` exception it made redundant went.
-    // Raised by operator decision (32,579 → 34,777) when Claude Code Agents gained Raft v1.21's
-    // conditional `## Working through sub-agents` section, adapted for Haus; measured here with it on.
-    expect(prompt.length).toBeLessThanOrEqual(34_777);
+    // Raised (32,579 → 33,513) on the Raft v1.21.2 re-pin: Raft's suspect-the-CLI-first paragraph
+    // adopted verbatim, and Discovering's `server info` sentences rewritten for its paged listing.
+    // Lowered (33,513 → 33,056) when Raft's three private-channel clauses (Discovering's two, the
+    // Visibility bullet) were omitted: Haus has no private channels.
+    // Raised by exactly 332 (33,056 → 33,388): the Inbox entry adopted Raft's `inbox check` text.
+    // Raised by 522 (33,388 → 33,910) for quiet agreements, one confirmation and reaction-only acknowledgments.
+    // Raised by 1,201 (33,910 → 35,111) by the 2026-10-06 personality work (house Personality,
+    // Conversation style, signature-emoji pickup rule, em-dash scrub); steps in the register.
+    // Raised (35,111 → 37,309; +2,198) when Claude Code Agents gained Raft v1.21's conditional
+    // `## Working through sub-agents` section, adapted for Haus; measured here with it on.
+    expect(prompt.length).toBeLessThanOrEqual(37_309);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
@@ -235,11 +239,16 @@ test('teaches automation provenance without an envelope tutorial', () => {
     // provenance reason are the same rule and read as one.
     expect(prompt).not.toContain('When you speak because a reminder fired');
     expect(prompt).not.toContain('When you speak because a trigger fired');
-    expect(
-        prompt.match(
-            /Answer a fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in\./gu
-        )
-    ).toHaveLength(2);
+    expect(prompt).toContain(
+        'Exception: for an explicitly agreed quiet reminder check, do not answer unchanged or healthy state; report only new actionable evidence.'
+    );
+    expect(prompt).toContain(
+        'Answer a trigger fire with a new top-level message in the anchor chat'
+    );
+    expect(prompt).toContain(
+        'For a short schedule confirmation, correction, or opt-out, send one confirmed result as the acknowledgment; honor requests for one reply to those short changes. Longer work still needs an initial acknowledgment.'
+    );
+
     expect(prompt).not.toContain('the Server records the cause even if you omit the flag');
     expect(prompt).not.toContain(
         "Each fire is its own message; never reply into an earlier fire's thread."
@@ -268,17 +277,6 @@ test('pins the rendered visuals and artifact fence contract', () => {
     );
     expect(prompt).toContain(
         'Artifact fences render a card the reader clicks to open in the artifact pane; nothing auto-opens.'
-    );
-});
-
-test('teaches a chat register for Markdown formatting', () => {
-    const prompt = renderPrompt();
-
-    expect(prompt).toContain(
-        'Haus renders your message as Markdown, GFM tables included, but it is a chat: write like a teammate messaging, in plain sentences.'
-    );
-    expect(prompt).toContain(
-        "Don't bold for emphasis or as labels; use lists, headings, or tables only when the content is genuinely structured, such as steps, comparisons, or data."
     );
 });
 

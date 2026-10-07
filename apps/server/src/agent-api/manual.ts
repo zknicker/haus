@@ -122,14 +122,14 @@ async function readManualTopic(
     runner: ResolvedRunner,
     input: z.infer<typeof agentManualGetQuerySchema>
 ) {
-    await recordManualLookup(db, runner, {
-        intent: input.intent,
-        operation: 'get',
-        reason: input.reason,
-        topicId: input.topic,
-    });
     const resolved = resolveManualTopic(input.topic);
     if (!resolved) {
+        await recordManualLookup(db, runner, {
+            intent: input.intent,
+            operation: 'get',
+            reason: input.reason,
+            topicId: input.topic,
+        });
         throw new ManualLookupMissError(
             'MANUAL_TOPIC_NOT_FOUND',
             manualGetMissGuidance(input.topic)
@@ -137,7 +137,16 @@ async function readManualTopic(
     }
     // Aliases steer server-side lookup only; they are not part of the wire topic.
     const { aliases: _aliases, ...topic } = resolved;
-    return agentManualGetResponseSchema.parse({ topic });
+    const result = agentManualGetResponseSchema.parse({ topic });
+    // Only a resolved, validated full read can authorize Agent creation.
+    await recordManualLookup(db, runner, {
+        intent: input.intent,
+        operation: 'get',
+        reason: input.reason,
+        topicId: input.topic,
+        resolvedTopicId: topic.id,
+    });
+    return result;
 }
 
 async function searchManual(
@@ -182,6 +191,7 @@ async function recordManualLookup(
         query?: string;
         reason: string;
         topicId?: string;
+        resolvedTopicId?: string;
     }
 ) {
     await db.insert(agentManualLookupAuditTable).values({
@@ -191,6 +201,7 @@ async function recordManualLookup(
         operation: input.operation,
         query: input.query ?? null,
         reason: input.reason,
+        resolvedTopicId: input.resolvedTopicId ?? null,
         runId: runner.runId,
         runnerId: runner.runnerId,
         serverId: runner.serverId,

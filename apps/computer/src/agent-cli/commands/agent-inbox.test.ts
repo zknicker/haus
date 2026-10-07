@@ -1,116 +1,168 @@
 import { expect, test } from 'bun:test';
-import type { AgentInboxItem } from '../../agent-inbox-item.ts';
-import { composeInboxNotice } from '../../inbox-format.ts';
-import type { AgentApiRequester } from '../agent-api-client.ts';
+import type * as z from 'zod';
+import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
+import { AgentCliError } from '../agent-error.ts';
+import type { ParsedArgs } from '../parse.ts';
 import { runInboxCheck } from './agent-inbox.ts';
 
-test('inbox check prints each target exactly as the busy notice does', async () => {
-    const items: AgentInboxItem[] = [
-        item({
-            id: 'msg_tasklead',
-            mentioned: true,
-            task: {
-                assigneeAgentId: null,
-                messageId: 'msg_tasklead',
-                number: 7,
-                priority: 'none',
-                status: 'todo',
-            },
-            target: '#general:abcd1234',
-        }),
-        item({ chatId: 'cht_dm', id: 'msg_dmreply', senderHandle: 'rosa', target: 'dm:@rosa' }),
-    ];
-    const noticeLines = (composeInboxNotice(items) ?? '').split('\n');
-    const noticeRows = noticeLines.slice(2, noticeLines.indexOf(']'));
-    const output = await inboxCheck([
-        row({
-            firstShortId: 'tasklead',
-            latestShortId: 'tasklead',
-            mentioned: true,
-            target: '#general:abcd1234',
-            taskNumber: 7,
-        }),
-        row({
-            chatId: 'cht_dm',
-            firstShortId: 'dmreply',
-            latestSender: 'rosa',
-            latestShortId: 'dmreply',
-            target: 'dm:@rosa',
-        }),
-    ]);
+const NOW_MS = Date.parse('2026-09-25T12:00:00.000Z');
 
-    expect(noticeRows).toEqual([
-        '#general:abcd1234  pending: 1 message · first msg=tasklead · latest sender @zach · latest msg=tasklead · thread · task #7 · you were mentioned',
-        'dm:@rosa  pending: 1 message · first msg=dmreply · latest sender @rosa · latest msg=dmreply · dm',
+const listBody = {
+    hasMore: false,
+    items: [
+        {
+            activityKey: 1210,
+            chatId: 'cht_richard',
+            kind: 'dm',
+            lastReadSequence: 1200,
+            latestAt: '2026-09-25T11:48:00.000Z',
+            latestSenderHandle: 'richard',
+            mentions: 0,
+            target: 'dm:@richard',
+            unread: 3,
+        },
+    ],
+    nextBefore: null,
+    totals: { conversations: 1, dms: 1, mentions: 0 },
+    view: 'unread',
+};
+const pendingBody = {
+    rows: [
+        {
+            chatId: 'cht_richard',
+            cloudAgentResult: false,
+            firstSequence: 1201,
+            firstShortId: 'first',
+            latestSender: 'richard',
+            latestShortId: 'first',
+            mentioned: false,
+            pendingCount: 2,
+            target: 'dm:@richard',
+            taskNumber: null,
+        },
+    ],
+    totalPending: 2,
+};
+
+test('inbox check reads the Server list and the pending snapshot together', async () => {
+    const routed = routedClient({ list: listBody, pending: pendingBody });
+    const output = await inboxCheck(routed.client, { '--before': '1300' });
+
+    expect(routed.requests.sort()).toEqual([
+        '/api/agent/inbox',
+        '/api/agent/inbox/conversations?before=1300',
     ]);
     expect(output).toBe(
-        `${[...noticeRows, 'Read pending bodies with haus message check.'].join('\n')}\n`
+        [
+            'Inbox: 1 unread conversation (1 DM, 0 with mentions). Activity before seq 1300, newest first.',
+            '',
+            'dm:@richard · 3 unread · 2 new, not yet delivered · latest @richard 12m ago',
+            '  open: haus message read --target "dm:@richard" --after 1200',
+            '',
+            'Next: open the first conversation above: haus message read --target "dm:@richard" --after 1200',
+            '',
+        ].join('\n')
     );
 });
 
-test('inbox check tags a waiting Cloud Agent result as work, like the notice', async () => {
-    const output = await inboxCheck([
-        row({
-            cloudAgentResult: true,
-            firstShortId: '-',
-            latestShortId: '-',
-            latestSender: 'haus',
+test('only the mentions view is sent as a parameter', async () => {
+    const routed = routedClient({ list: listBody, pending: pendingBody });
+    await inboxCheck(routed.client, {});
+    await inboxCheck(routed.client, { '--view': 'mentions' });
+    expect(routed.requests).toContain('/api/agent/inbox/conversations');
+    expect(routed.requests).toContain('/api/agent/inbox/conversations?view=mentions');
+});
+
+test('inbox check still lists conversations when the pending snapshot fails', async () => {
+    const routed = routedClient({
+        list: listBody,
+        pending: new AgentCliError('SERVER_5XX', 'The Haus server is unavailable.'),
+    });
+    const output = await inboxCheck(routed.client, {});
+    expect(output).toContain('dm:@richard · 3 unread · latest @richard 12m ago');
+    expect(output).toEndWith(
+        'Pending queue unavailable (The Haus server is unavailable.); not-yet-delivered counts are not shown.\n'
+    );
+});
+
+test('inbox check maps 503 INBOX_UNAVAILABLE to a retry hint', async () => {
+    const routed = routedClient({
+        list: new AgentCliError('INBOX_UNAVAILABLE', 'Inbox is temporarily unavailable', {
+            retryable: true,
         }),
-    ]);
-    expect(output).toBe(
-        '#general  pending: 1 work item · first msg=- · latest sender @haus · latest msg=- · cloud agent result\nRead pending bodies with haus message check.\n'
-    );
+        pending: pendingBody,
+    });
+    const error = await inboxCheck(routed.client, {}).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(AgentCliError);
+    expect((error as AgentCliError).code).toBe('INBOX_UNAVAILABLE');
+    expect((error as AgentCliError).message).toBe('Inbox is temporarily unavailable');
+    expect((error as AgentCliError).options).toEqual({
+        nextAction: 'Retry in a moment; to drain new messages now use haus message check.',
+        retryable: true,
+    });
 });
 
-test('rows from a Server that predates the work facts still print, untagged', async () => {
-    const { cloudAgentResult: _cloud, taskNumber: _task, ...legacy } = row({});
-    const output = await inboxCheck([{ ...legacy, dm: false, thread: false }]);
-    expect(output).toBe(
-        '#general  pending: 1 message · first msg=first · latest sender @zach · latest msg=first\nRead pending bodies with haus message check.\n'
-    );
+test('any other list failure is INBOX_CHECK_FAILED with the Server message', async () => {
+    const routed = routedClient({
+        list: new AgentCliError('SERVER_5XX', 'The Haus server is unavailable.', {
+            nextAction: 'Retry after the Haus Server is reachable.',
+        }),
+        pending: pendingBody,
+    });
+    const error = (await inboxCheck(routed.client, {}).catch(
+        (caught: unknown) => caught
+    )) as AgentCliError;
+    expect(error.code).toBe('INBOX_CHECK_FAILED');
+    expect(error.message).toBe('The Haus server is unavailable.');
+    expect(error.options.nextAction).toBe('Retry after the Haus Server is reachable.');
 });
 
-async function inboxCheck(rows: Record<string, unknown>[]): Promise<string> {
+test('inbox check rejects bad flags before network I/O', async () => {
+    const routed = routedClient({ list: listBody, pending: pendingBody });
+    await expect(inboxCheck(routed.client, { '--view': 'all' })).rejects.toThrow(
+        '--view must be one of unread, mentions; got all'
+    );
+    await expect(inboxCheck(routed.client, { '--before': 'abc' })).rejects.toThrow(
+        '--before must be a positive integer seq (copy it from the More: line); got abc'
+    );
+    await expect(inboxCheck(routed.client, { '--before': '0' })).rejects.toThrow(
+        '--before must be a positive integer seq'
+    );
+    expect(routed.requests).toEqual([]);
+});
+
+async function inboxCheck(
+    client: AgentApiRequester,
+    values: Record<string, string>
+): Promise<string> {
     let written = '';
-    const client: AgentApiRequester = {
-        request: async (_route, schema) => schema.parse({ rows, totalPending: rows.length }),
-    };
-    expect(
-        await runInboxCheck({
-            client,
-            write: (text) => {
-                written += text;
-            },
-        })
-    ).toBe(0);
+    const args: ParsedArgs = { flags: {}, help: false, positionals: [], values };
+    await runInboxCheck(args, {
+        client,
+        now: () => NOW_MS,
+        write: (text) => {
+            written += text;
+        },
+    });
     return written;
 }
 
-function row(overrides: Record<string, unknown>): Record<string, unknown> {
-    return {
-        chatId: 'cht_general',
-        cloudAgentResult: false,
-        firstShortId: 'first',
-        latestSender: 'zach',
-        latestShortId: 'first',
-        mentioned: false,
-        pendingCount: 1,
-        target: '#general',
-        taskNumber: null,
-        ...overrides,
+/** Answers each route with a body, or rejects with the given error. */
+function routedClient(routes: { list: unknown; pending: unknown }) {
+    const requests: string[] = [];
+    const client: AgentApiRequester = {
+        request: async <T>(route: string, schema: z.ZodType<T>, input?: AgentApiRequest) => {
+            const query = Object.entries(input?.query ?? {})
+                .filter(([, value]) => value !== undefined)
+                .map(([name, value]) => `${name}=${value}`)
+                .join('&');
+            requests.push(query ? `${route}?${query}` : route);
+            const answer = route === '/api/agent/inbox' ? routes.pending : routes.list;
+            if (answer instanceof Error) {
+                throw answer;
+            }
+            return schema.parse(answer);
+        },
     };
-}
-
-function item(overrides: Partial<AgentInboxItem>): AgentInboxItem {
-    return {
-        chatId: 'cht_general',
-        content: 'Ship it',
-        createdAt: '2026-07-27T00:00:00.000Z',
-        id: 'msg_first',
-        senderHandle: 'zach',
-        senderType: 'human',
-        sequence: 1,
-        target: '#general',
-        ...overrides,
-    };
+    return { client, requests };
 }

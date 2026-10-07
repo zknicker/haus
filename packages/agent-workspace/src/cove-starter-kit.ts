@@ -1,10 +1,11 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getManualTopic } from '@haus/agent-manual';
 import { coveOnboardingFaq } from './cove-factory-faq.ts';
 import { coveMemory, coveOnboardingPlaybook } from './cove-factory-guidance.ts';
 import { recognizedFactoryGuidanceHashes } from './cove-factory-guidance-hashes.ts';
+import { refreshCoveGuidanceFile } from './cove-guidance-file-refresh.ts';
 
 export const coveSeededSummaries = [
     [
@@ -163,7 +164,8 @@ export async function inspectCoveFactoryGuidance(
 
 /**
  * Replaces recognized prior factory revisions with current bytes. The plan is
- * revalidated immediately before writing so an Agent edit wins any race.
+ * revalidated per file before replacement. Keep the outgoing inode while checking
+ * for concurrent in-place edits; arbitrary external atomic replacement has no file CAS.
  */
 export async function reconcileCoveFactoryGuidance(
     workspaceDir: string
@@ -173,21 +175,15 @@ export async function reconcileCoveFactoryGuidance(
         return plan;
     }
     for (const name of plan.files) {
-        const destination = path.join(workspaceDir, name);
-        const actual = await fs.readFile(destination);
-        const hash = createHash('sha256').update(actual).digest('hex');
-        if (!recognizedFactoryGuidanceHashes[name].includes(hash)) {
+        if (
+            !(await refreshCoveGuidanceFile(
+                path.join(workspaceDir, name),
+                coveFactoryGuidanceFiles[name],
+                recognizedFactoryGuidanceHashes[name]
+            ))
+        ) {
             return { files: [name], kind: 'conflict' };
         }
-    }
-    for (const name of plan.files) {
-        const destination = path.join(workspaceDir, name);
-        const temporary = `${destination}.haus-refresh-${process.pid}-${randomUUID()}`;
-        await fs.writeFile(temporary, coveFactoryGuidanceFiles[name], { mode: 0o600 });
-        await fs.rename(temporary, destination).catch(async (error) => {
-            await fs.rm(temporary, { force: true });
-            throw error;
-        });
     }
     return plan;
 }

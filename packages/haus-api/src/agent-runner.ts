@@ -15,6 +15,11 @@ import * as z from 'zod';
 import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import {
+    agentTurnFailureCodeSchema,
+    agentTurnFailureFingerprintSchema,
+    agentTurnFailureKindSchema,
+} from './agent-turn-failure.ts';
+import {
     agentSkillFileRequestSchema,
     agentSkillFileSchema,
     agentWorkspaceRequestSchema,
@@ -408,6 +413,7 @@ export const runnerRevokeRequestSchema = z
 export type RunnerRevokeRequest = z.infer<typeof runnerRevokeRequestSchema>;
 
 export * from './agent-message-input.ts';
+export * from './agent-turn-failure.ts';
 
 /**
  * The compact turn summary a Computer pushes after a launch settles. Durable
@@ -415,17 +421,6 @@ export * from './agent-message-input.ts';
  * logs, and workspace stay Computer-local behind the authorized live relay.
  */
 export const agentTurnStatusSchema = z.enum(['completed', 'failed', 'interrupted']);
-export const agentTurnFailureKindSchema = z.enum([
-    'authentication',
-    'configuration',
-    'input',
-    'rate-limit',
-    'session-resume',
-    'timeout',
-    'transport',
-    'unknown',
-]);
-
 export const agentTokenUsageSchema = z
     .object({
         cacheReadTokens: z.number().int().nonnegative(),
@@ -442,6 +437,8 @@ export const agentTurnSummarySchema = z
         activity: agentTurnActivitySummarySchema.default({ operations: [] }),
         agentId: idSchema,
         endedAt: timestampSchema,
+        failureCode: agentTurnFailureCodeSchema.optional(),
+        failureFingerprint: agentTurnFailureFingerprintSchema.optional(),
         failureKind: agentTurnFailureKindSchema.optional(),
         messageCount: z.number().int().nonnegative().max(10_000),
         modelId: z.string().trim().min(1),

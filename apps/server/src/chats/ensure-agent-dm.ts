@@ -1,4 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
+import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
@@ -79,5 +80,12 @@ export async function ensureAgentDmRecord(
         throw new Error('Failed to resolve the Agent DM after creating it.');
     }
 
+    if (inserted.length > 0) {
+        await openAgentChatRead(db, {
+            agentId: input.agentId,
+            chatId: chat.id,
+            serverId: input.serverId,
+        });
+    }
     return { created: inserted.length > 0, id: chat.id };
 }

@@ -42,7 +42,7 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   failed turn destroys its bridge, so it also clears the stored Claude Code bridge coordinates
   (ACP coordinates stay, because its process-loss recovery reads them). A live turn that emits nothing for fifteen minutes with no tool call in flight is interrupted and
   resume state is kept, but it settles as a retryable `timeout` failure, so a turn that stalls
-  every time backs off and degrades instead of looping. A Stop or Restart during startup settles
+  every time backs off and then pauses automatic wakes instead of looping. A Stop or Restart during startup settles
   as interrupted, never as a resume failure.
 - Stop interrupts the live turn and persists the Agent's stopped lifecycle state. New messages and
   reminders continue to accumulate in its inbox but cannot wake it. A human Start resumes the

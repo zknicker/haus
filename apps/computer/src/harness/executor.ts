@@ -7,7 +7,6 @@ import type {
     HarnessAgentSession,
 } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@haus/agent-workspace';
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
@@ -23,13 +22,8 @@ import {
 import { createHarnessActivityProjector } from './activity-projector.ts';
 import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
 import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
-import {
-    clearPendingCoveGuidanceRefresh,
-    coveGuidanceConflictNotice,
-    coveGuidanceRefreshNotice,
-    hasPendingCoveGuidanceRefresh,
-    markCoveGuidanceRefreshPending,
-} from './cove-guidance-refresh.ts';
+import { clearPendingCoveGuidanceRefresh } from './cove-guidance-refresh.ts';
+import { prepareCoveGuidanceForTurn } from './cove-guidance-turn.ts';
 import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
 import {
     type ComputerExecutionJournal,
@@ -66,6 +60,7 @@ export interface HarnessTurnInput extends TurnDelivery {
     activity: AgentActivityRun;
     agentName: string;
     agentRoot: string;
+    conversationStyle?: string | null;
     env: Record<string, string>;
     factoryKind: 'cove' | 'ordinary';
     /** Per-turn construction seam for boundary tests; production uses the default Harness Agent. */
@@ -74,13 +69,13 @@ export interface HarnessTurnInput extends TurnDelivery {
     initialRole: string | null;
     modelId: string;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
-    personality?: string | null;
     reasoningEffort: AgentReasoningEffort;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtime: DaemonRuntime;
     runtimeId: string;
     sessionGeneration: number;
     signal?: AbortSignal;
+    signatureEmoji?: string | null;
     skillsDir: string;
     thoughts?: import('./thought-narrator.ts').AgentThoughtNarrator;
     tools: ToolSet;
@@ -212,7 +207,6 @@ async function executeHarnessTurn(
     let live: HarnessAgentSession | undefined;
     const instructionActivityKey = 'instructions';
     const hausAgentVersionDrift = session.hausAgentVersion !== hausAgentVersion;
-    let hausAgentVersionCanApply = true;
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom =
@@ -220,49 +214,13 @@ async function executeHarnessTurn(
         lease.prepare(resumeFrom, (state, abortSignal) =>
             agent.createSession({ abortSignal, resumeFrom: state, sessionId })
         );
-        let factoryGuidanceNotice: string | null = null;
-        let factoryGuidanceRefreshPending =
-            input.factoryKind === 'cove' && (await hasPendingCoveGuidanceRefresh(input.agentRoot));
-        let factoryGuidanceRefreshCanComplete = factoryGuidanceRefreshPending;
-        if (factoryGuidanceRefreshPending) {
-            await input.activity.start({
-                category: 'updating_instructions',
-                key: instructionActivityKey,
-            });
-            factoryGuidanceNotice = coveGuidanceRefreshNotice;
-        }
-        if (input.factoryKind === 'cove') {
-            const plan = await inspectCoveFactoryGuidance(input.workspaceDir);
-            if (plan.kind !== 'current') {
-                if (!input.activity.isActive(instructionActivityKey)) {
-                    await input.activity.start({
-                        category: 'updating_instructions',
-                        key: instructionActivityKey,
-                    });
-                }
-                if (plan.kind === 'conflict') {
-                    await input.activity.finish(instructionActivityKey, 'failed');
-                    hausAgentVersionCanApply = false;
-                    factoryGuidanceRefreshCanComplete = false;
-                    factoryGuidanceNotice = coveGuidanceConflictNotice(plan.files);
-                } else {
-                    await markCoveGuidanceRefreshPending(input.agentRoot);
-                    factoryGuidanceRefreshPending = true;
-                    factoryGuidanceRefreshCanComplete = true;
-                    const result = await reconcileCoveFactoryGuidance(input.workspaceDir);
-                    if (result.kind !== 'conflict') {
-                        factoryGuidanceNotice = coveGuidanceRefreshNotice;
-                    } else {
-                        await input.activity.finish(instructionActivityKey, 'failed');
-                        hausAgentVersionCanApply = false;
-                        factoryGuidanceRefreshCanComplete = false;
-                        factoryGuidanceNotice = coveGuidanceConflictNotice(
-                            result.kind === 'conflict' ? result.files : plan.files
-                        );
-                    }
-                }
-            }
-        }
+        const coveGuidance = await prepareCoveGuidanceForTurn({
+            activity: input.activity,
+            activityKey: instructionActivityKey,
+            agentRoot: input.agentRoot,
+            factoryKind: input.factoryKind,
+            workspaceDir: input.workspaceDir,
+        });
         // Remove only an unresumable cold generation; successful sessions retain resume state.
         if (!(resumeFrom || session.runtimeSessionId)) {
             await rm(join(input.agentRoot, '.agent-runs', sessionId), {
@@ -278,7 +236,7 @@ async function executeHarnessTurn(
             (restartRequested ||
                 instructionDrift ||
                 bootstrapDrift ||
-                (hausAgentVersionDrift && hausAgentVersionCanApply)) &&
+                (hausAgentVersionDrift && coveGuidance.versionCanApply)) &&
             !input.activity.isActive(instructionActivityKey)
         ) {
             await input.activity.start({
@@ -334,7 +292,7 @@ async function executeHarnessTurn(
         const turn = await agent.stream({
             abortSignal: turnSignal,
             prompt: projectMessageForAgent({
-                content: [factoryGuidanceNotice, turnContent, memoryNotice]
+                content: [coveGuidance.notice, turnContent, memoryNotice]
                     .filter(Boolean)
                     .join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
@@ -429,7 +387,7 @@ async function executeHarnessTurn(
             await input.activity.finish(instructionActivityKey, 'interrupted');
             return { ...observation, stalled: noProgress.signal.aborted && !input.signal?.aborted };
         }
-        const appliesHausAgentVersion = !hausAgentVersionDrift || hausAgentVersionCanApply;
+        const appliesHausAgentVersion = !hausAgentVersionDrift || coveGuidance.versionCanApply;
         await writeAgentSessionState(input.agentRoot, {
             bootstrapFingerprint,
             effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
@@ -445,7 +403,7 @@ async function executeHarnessTurn(
             resumeState: resumeState as Record<string, unknown>,
             runtimeSessionId: live.sessionId,
         });
-        if (factoryGuidanceRefreshPending && factoryGuidanceRefreshCanComplete) {
+        if (coveGuidance.refreshPending && coveGuidance.refreshCanComplete) {
             await clearPendingCoveGuidanceRefresh(input.agentRoot);
         }
         await input.activity.finish(instructionActivityKey, 'completed');
@@ -484,7 +442,6 @@ export function setHarnessAgentFactoryForTesting(factory: HarnessAgentFactory) {
 }
 
 type HarnessBootstrapRefresh = typeof refreshHarnessBootstrap;
-
 let harnessBootstrapRefresh: HarnessBootstrapRefresh = refreshHarnessBootstrap;
 
 export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRefresh) {

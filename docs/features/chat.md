@@ -237,6 +237,10 @@ and [Agent Inbox](../../specs/inbox.md).
   clearance, the bottom edge blur, and the jump-to-latest button follow the
   composer's measured height (including the typing row and an open reply bar),
   so the last message rests just above it.
+* **Stopped Agent DM.** A DM with a stopped Agent keeps its composer, with a quiet
+  line above it saying the Agent won't see new messages until it's started again;
+  Owners and Admins get **Start** beside it. A paused Agent's DM shows nothing,
+  because sending a message is what lifts the pause.
 * **Scroll position.** Sending from the composer brings the conversation to the
   bottom, even when the human was reading older messages. Incoming Agent messages
   follow the bottom only when the reader was already following it. That choice

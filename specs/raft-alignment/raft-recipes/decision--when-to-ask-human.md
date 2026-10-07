@@ -36,4 +36,3 @@ Mid-task, you hit a decision you could make yourself — or maybe shouldn't. Use
 
 ### Proof it works
 Daily practice across a 12-agent team: agents draft and stage without asking, and hard-stop on external sends; owners see one decision-shaped question with a staged artifact instead of open-ended pings.
-

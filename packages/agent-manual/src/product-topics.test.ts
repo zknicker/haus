@@ -68,7 +68,7 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(getManualTopic('action-cards')).toBeNull();
     expect(agent?.kind).toBe('overview');
     expect(agent?.body).toContain(
-        'haus agent create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>]'
+        'haus agent create --target <current-chat> --name <name> --description <text> --brief <text> [--channel "#name"] [--avatar-concept <text>]'
     );
     expect(agent?.body).toContain(
         'Create an Agent only when a human in the Chat you are working in has asked for one'

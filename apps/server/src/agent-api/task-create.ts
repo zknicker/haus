@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
+import { advanceAgentChatReadsSeen } from '../agent-reads/agent-chat-reads.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
@@ -111,6 +112,12 @@ export async function createAgentTasks(
                     sessionGeneration,
                 })
                 .returning(messageSelection);
+            // Own messages count as read; unseen messages from others below stay unread.
+            await advanceAgentChatReadsSeen(tx, {
+                agentId: runner.agentId,
+                chatIds: [chatId],
+                serverId: runner.serverId,
+            });
             const completedActivity = await appendServerAgentActivity(tx, {
                 agentId: runner.agentId,
                 category: 'sending_message',

@@ -1,5 +1,5 @@
 ---
-summary: Inline replies keep conversation in its channel while scoped subscriptions control Agent attention independently of task ownership; solo step-by-step progress goes in a thread on the Agent's acknowledgment (amended 2026-10-02).
+summary: Inline replies keep conversation in its channel while scoped subscriptions control Agent attention independently of task ownership; solo step-by-step progress goes in a thread on the Agent's acknowledgment (amended 2026-10-02); the acknowledgment is a signature-emoji pickup reaction plus a one-line note (amended 2026-10-06).
 read_when:
   - changing inline replies, Agent inbox recipients, or task conversation placement
   - changing where Agents post acknowledgments, progress, questions, or cloud review rounds
@@ -9,7 +9,7 @@ read_when:
 
 ## Status
 
-Accepted, 2026-09-16; amended 2026-10-02 (progress threads, below). Implemented in the worktree; release remains gated by
+Accepted, 2026-09-16; amended 2026-10-02 (progress threads) and 2026-10-06 (pickup acknowledgment), below. Implemented in the worktree; release remains gated by
 [the implementation plan](../plans/inline-replies.md).
 
 Amends ADR 0013's removal of inline replies and ADR 0015's task completion and
@@ -87,3 +87,15 @@ The managed prompt's Sending messages paragraph carries the rule; the `replies` 
 solo-progress-threads-on-ack` (new), with `task-conversation-routing` and
 `conversation-natural-followups` guarding that one-step work and ordinary answers create no
 thread.
+
+## Amendment, 2026-10-06: the acknowledgment is a pickup reaction
+
+Operator-approved. For a request that needs real work before the Agent can answer (changing
+files, running commands, or digging in, rather than one quick look-up), the
+acknowledgment is now the Agent's signature-emoji reaction on the request (default 👀) plus, when
+the work has several steps, a one-line note that it is on it. That note is the "acknowledgment"
+the progress thread above hangs under. The note carries no plan, and progress threads under it as meaningful
+steps land. A request the Agent can answer from what it has or one quick look-up gets the answer
+with no reaction first.
+The managed prompt's pickup bullet carries the rule; see
+[Agents](../features/agents.md#identity-and-instructions) for the signature emoji.

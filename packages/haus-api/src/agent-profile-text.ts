@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { normalizeReactionEmoji } from './reaction-emoji.ts';
 
 /**
  * An Agent's description is its role line. It closes the Agent's own system prompt as
@@ -9,10 +10,12 @@ import * as z from 'zod';
 export const AGENT_DESCRIPTION_MAX_LENGTH = 280;
 
 /**
- * How an Agent talks — tone, length, quirks — as its Owners and Admins set it. Private: it reaches
- * only the Agent's own system prompt (`## Personality`), never an envelope, roster, or Agent API.
+ * An Agent's conversation style: an optional voice and banter layer on top of the built-in house
+ * personality, written by its Owners and Admins or by the Agent itself. Private: it reaches only
+ * the Agent's own system prompt and its own `haus profile show`, never an envelope, roster, or
+ * another Agent's view.
  */
-export const AGENT_PERSONALITY_MAX_LENGTH = 2000;
+export const AGENT_CONVERSATION_STYLE_MAX_LENGTH = 2000;
 
 export const agentDescriptionTooLongMessage = `An Agent description is a one-or-two-sentence role line of at most ${AGENT_DESCRIPTION_MAX_LENGTH} characters.`;
 
@@ -45,11 +48,30 @@ export function isAgentDescriptionWriteAllowed(
     return next === null || next.length <= AGENT_DESCRIPTION_MAX_LENGTH || next === stored;
 }
 
-/** A personality being written; empty clears it. */
-export const agentPersonalityInputSchema = z
+/** A conversation style being written; empty clears it. */
+export const agentConversationStyleInputSchema = z
     .string()
     .trim()
     .max(
-        AGENT_PERSONALITY_MAX_LENGTH,
-        `An Agent personality is at most ${AGENT_PERSONALITY_MAX_LENGTH} characters.`
+        AGENT_CONVERSATION_STYLE_MAX_LENGTH,
+        `A conversation style is at most ${AGENT_CONVERSATION_STYLE_MAX_LENGTH} characters.`
     );
+
+export const signatureEmojiRule =
+    'A signature emoji must be exactly one emoji (a flag, skin tone, or combined emoji counts as one), not text.';
+
+/** Matches the `agents_signature_emoji_length` check; one grapheme can still stack modifiers past it. */
+export const AGENT_SIGNATURE_EMOJI_MAX_LENGTH = 64;
+
+/**
+ * The emoji an Agent reacts with when it picks up a non-trivial request. Stored fully qualified;
+ * null means the Computer's default.
+ */
+export const signatureEmojiInputSchema = z.string().transform((value, context) => {
+    const emoji = normalizeReactionEmoji(value);
+    if (!emoji || emoji.length > AGENT_SIGNATURE_EMOJI_MAX_LENGTH) {
+        context.addIssue({ code: 'custom', message: signatureEmojiRule });
+        return z.NEVER;
+    }
+    return emoji;
+});

@@ -1,14 +1,26 @@
 import { expect, test } from 'bun:test';
 import { badgeVariants } from '@heroui/styles';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { AgentAvatar, availabilityBadgeColor, availabilityLabel } from './agent-avatar.tsx';
+import { availabilityLabel } from '../computers/presentation.ts';
+import { AgentAvatar, availabilityBadgeColor } from './agent-avatar.tsx';
 
 test('DM status copy uses concise global availability labels', () => {
-    expect(availabilityLabel('idle')).toBe('Online');
-    expect(availabilityLabel('working')).toBe('Working');
-    expect(availabilityLabel('offline')).toBe('Offline');
-    expect(availabilityLabel('stopped')).toBe('Stopped');
-    expect(availabilityLabel('error')).toBe('Needs attention');
+    expect(availabilityLabel({ availability: 'idle' })).toBe('Online');
+    expect(availabilityLabel({ availability: 'working' })).toBe('Working');
+    expect(availabilityLabel({ availability: 'offline' })).toBe('Offline');
+    expect(availabilityLabel({ availability: 'stopped' })).toBe('Stopped');
+    expect(availabilityLabel({ availability: 'error' })).toBe('Needs attention');
+    expect(
+        availabilityLabel({
+            availability: 'error',
+            wakePause: {
+                failureCount: 3,
+                lastFailure: { at: '2026-10-06T11:00:00.000Z', code: null, kind: 'unknown' },
+                nextProbeAt: null,
+                pausedAt: '2026-10-06T11:00:00.000Z',
+            },
+        })
+    ).toBe('Paused');
 });
 
 test('availability maps onto HeroUI Badge colors', () => {

@@ -6,6 +6,7 @@ import {
 } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import { clearDeliveryFailures, wakePauseColumns } from '../agent-delivery/failure-hold.ts';
 import { recordSessionRotation } from '../agent-delivery/session-rotation.ts';
 import * as deliveryStore from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -134,6 +135,8 @@ export async function configureAgent(
             throw new AgentConfigDeniedError('No configured Agent exists with that id.');
         }
 
+        await liftWakePauseOnExecutionChange(tx, agent, input);
+
         let rotation: AgentConfigurationRotation | null = null;
         if (changed || deferred) {
             if (rotateNow) {
@@ -165,7 +168,6 @@ export async function configureAgent(
                 computerId: agentsTable.computerId,
                 createdByAgentId: agentsTable.createdByAgentId,
                 createdByUserId: agentsTable.createdByUserId,
-                consecutiveFailures: agentDeliveryTable.consecutiveFailures,
                 createdAt: agentsTable.createdAt,
                 description: agentsTable.description,
                 desiredModelId: agentsTable.desiredModelId,
@@ -186,6 +188,7 @@ export async function configureAgent(
                 id: agentsTable.id,
                 serverId: agentsTable.serverId,
                 stopped: agentDeliveryTable.stopped,
+                ...wakePauseColumns,
             })
             .from(agentsTable)
             .leftJoin(
@@ -217,4 +220,15 @@ export async function configureAgent(
             rotation,
         };
     });
+}
+
+/** A new runtime or model is a human fix attempt: it lifts any wake pause. */
+async function liftWakePauseOnExecutionChange(
+    tx: HausDatabase,
+    current: { desiredModelId: string | null; desiredRuntimeId: string | null },
+    input: ConfigureAgentInput
+): Promise<void> {
+    if (current.desiredRuntimeId !== input.runtimeId || current.desiredModelId !== input.modelId) {
+        await clearDeliveryFailures(tx, input.agentId);
+    }
 }

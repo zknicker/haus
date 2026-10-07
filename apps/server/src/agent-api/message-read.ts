@@ -1,6 +1,5 @@
 import type { HausAgentMessage } from '@haus/api';
-import { and, asc, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
-import { listUnservedThreadFollowReactivationIds } from '../agent-delivery/store.ts';
+import { and, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -16,76 +15,6 @@ import {
     visibleChatSql,
 } from './message-view.ts';
 import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
-
-export async function readAgentHistory(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    input: {
-        after?: string;
-        around?: string;
-        before?: string;
-        limit: number;
-        target: string;
-    }
-) {
-    const chatId = await resolveAgentTarget(db, runner, input.target);
-    const anchor = input.after ?? input.before ?? input.around;
-    const anchorSequence = anchor
-        ? await resolveSequence(db, runner.serverId, chatId, anchor)
-        : null;
-    const rows = await db
-        .select(messageSelection)
-        .from(chatMessagesTable)
-        .where(
-            and(
-                eq(chatMessagesTable.serverId, runner.serverId),
-                eq(chatMessagesTable.chatId, chatId),
-                input.after && anchorSequence !== null
-                    ? gt(chatMessagesTable.sequence, anchorSequence)
-                    : undefined,
-                input.before && anchorSequence !== null
-                    ? lt(chatMessagesTable.sequence, anchorSequence)
-                    : undefined,
-                input.around && anchorSequence !== null
-                    ? and(
-                          gt(
-                              chatMessagesTable.sequence,
-                              Math.max(0, anchorSequence - Math.floor(input.limit / 2) - 1)
-                          ),
-                          lt(
-                              chatMessagesTable.sequence,
-                              anchorSequence + Math.ceil(input.limit / 2) + 1
-                          )
-                      )
-                    : undefined
-            )
-        )
-        .orderBy(
-            input.before || !anchor
-                ? desc(chatMessagesTable.sequence)
-                : asc(chatMessagesTable.sequence)
-        )
-        .limit(input.limit + 1);
-    const hasMore = rows.length > input.limit;
-    const page = rows.slice(0, input.limit);
-    if (input.before || !anchor) {
-        page.reverse();
-    }
-    const threadFollowReactivatedMessageIds = await listUnservedThreadFollowReactivationIds(db, {
-        agentId: runner.agentId,
-        dedupeKeys: page.map((message) => message.id),
-        runId: runner.runId,
-    });
-    return {
-        has_more: hasMore,
-        has_newer: Boolean(input.before),
-        has_older: hasMore || Boolean(input.after),
-        last_read: { after: 0, unread_after: -1 },
-        messages: await toAgentMessages(db, runner.serverId, page),
-        target: input.target,
-        thread_follow_reactivated_message_ids: threadFollowReactivatedMessageIds,
-    };
-}
 
 export async function resolveAgentMessage(
     db: HausDatabase,
@@ -234,34 +163,6 @@ export async function requireAgentChatAccess(
         }
     }
     throw new AgentTargetError();
-}
-
-async function resolveSequence(
-    db: HausDatabase,
-    serverId: string,
-    chatId: string,
-    anchor: string
-): Promise<number> {
-    if (/^\d+$/u.test(anchor)) {
-        return Number(anchor);
-    }
-    const [message] = await db
-        .select({ sequence: chatMessagesTable.sequence })
-        .from(chatMessagesTable)
-        .where(
-            and(
-                eq(chatMessagesTable.serverId, serverId),
-                eq(chatMessagesTable.chatId, chatId),
-                anchor.startsWith('msg_')
-                    ? eq(chatMessagesTable.id, anchor)
-                    : ilike(chatMessagesTable.id, `msg_${escapeLike(anchor)}%`)
-            )
-        )
-        .limit(1);
-    if (!message) {
-        throw new AgentTargetError('That history anchor does not exist in this target.');
-    }
-    return message.sequence;
 }
 
 function escapeLike(value: string) {

@@ -112,7 +112,7 @@ test("the unread digest prints Raft's wording after the prompt body", () => {
             'You also have unread messages in other channels:',
             '- #product: 3 unread',
             '- dm:@operator: 1 unread',
-            'Use the inbox/read commands at a natural breakpoint if you choose to inspect those targets.',
+            'Run `haus inbox check` at a natural breakpoint if you choose to inspect those targets; it lists every unread conversation with the command that opens it.',
         ].join('\n')
     );
 });

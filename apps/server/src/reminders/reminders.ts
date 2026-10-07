@@ -17,6 +17,8 @@ import {
     type Reminder,
     type ReminderClock,
     ReminderCommandConflictError,
+    ReminderScheduleExpiredError,
+    readReminder,
     requireActiveAgent,
     requireAgentAnchor,
     type ScheduleReminderInput,
@@ -53,17 +55,29 @@ export async function scheduleReminder(
     clock: ReminderClock
 ): Promise<{ idempotent: boolean; reminder: Reminder }> {
     const now = clock.now();
-    const title = validReminderTitle(input.title);
-    const description =
-        input.description == null ? null : validReminderDescription(input.description);
+    // Replay old commands before applying the current write contract.
+    const title = input.title.trim();
+    const description = input.description == null ? null : input.description.trim();
     const repeat = input.repeat ? parseReminderRepeat(input.repeat) : null;
-    validateScheduleInput(input, { repeat });
     const fingerprint = JSON.stringify({
         anchorChatId: input.anchorChatId,
         anchorMessageId: input.anchorMessageId,
         description,
         fireAt: input.fireAt.toISOString(),
-        repeat: repeat?.spec ?? null,
+        repeat: repeat?.spec ?? input.repeat ?? null,
+        script: input.script ?? null,
+        title,
+        ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+    });
+
+    // Pre-0060 commands did not include description. Retain this decoder until
+    // pre-0060 callers are unsupported and a migration marks or removes retained
+    // legacy fingerprints; recurring command receipts do not expire automatically.
+    const legacyFingerprint = JSON.stringify({
+        anchorChatId: input.anchorChatId,
+        anchorMessageId: input.anchorMessageId,
+        fireAt: input.fireAt.toISOString(),
+        repeat: repeat?.spec ?? input.repeat ?? null,
         script: input.script ?? null,
         title,
     });
@@ -71,20 +85,10 @@ export async function scheduleReminder(
     const result = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const agent = await requireActiveAgent(tx, input.serverId, agentId);
-        if (!isValidReminderTimezone(agent.homeTimezone)) {
-            throw new Error('The reminder author must have a valid IANA timezone.');
-        }
-        if (repeat) {
-            nextReminderFireAt(repeat, input.fireAt.getTime(), agent.homeTimezone);
-        }
         const anchor = await requireAgentAnchor(tx, {
             agentId,
             anchorChatId: input.anchorChatId,
             anchorMessageId: input.anchorMessageId,
-            serverId: input.serverId,
-        });
-        await requireChatWritable(tx, {
-            chatId: input.anchorChatId,
             serverId: input.serverId,
         });
         await lockReminderCommand(tx, input.serverId, 'agent', agentId, input.commandId);
@@ -104,17 +108,41 @@ export async function scheduleReminder(
             )
             .limit(1);
         if (existingCommand) {
-            if (existingCommand.fingerprint !== fingerprint) {
+            if (
+                existingCommand.fingerprint !== fingerprint &&
+                !(
+                    input.timezone === undefined &&
+                    description === null &&
+                    existingCommand.fingerprint === legacyFingerprint
+                )
+            ) {
                 throw new ReminderCommandConflictError();
             }
             return {
                 events: [],
                 idempotent: true,
-                reminder: parseReminderCommandResult(existingCommand.resultSnapshot),
+                reminder: await readReminder(
+                    tx,
+                    input.serverId,
+                    parseReminderCommandResult(existingCommand.resultSnapshot).id
+                ),
             };
         }
+        validReminderTitle(title);
+        if (description !== null) {
+            validReminderDescription(description);
+        }
+        validateScheduleInput(input, { repeat });
+        const timezone = validatedTimezone(input.timezone, agent.homeTimezone);
+        if (repeat) {
+            nextReminderFireAt(repeat, input.fireAt.getTime(), timezone);
+        }
+        await requireChatWritable(tx, {
+            chatId: input.anchorChatId,
+            serverId: input.serverId,
+        });
         if (input.fireAt.getTime() <= now.getTime()) {
-            throw new Error('Reminder fire time must be in the future.');
+            throw new ReminderScheduleExpiredError();
         }
 
         await tx.execute(sql`
@@ -133,11 +161,11 @@ export async function scheduleReminder(
                 fireAt: input.fireAt,
                 id: reminderId,
                 ownerAgentId: agentId,
-                repeat: repeat?.spec ?? null,
+                repeat: repeat?.spec ?? input.repeat ?? null,
                 script: input.script ?? null,
                 serverId: input.serverId,
                 status: 'scheduled',
-                timezone: agent.homeTimezone,
+                timezone,
                 title,
                 updatedAt: now,
             })
@@ -229,4 +257,12 @@ export async function listReminders(
         )
     );
     return rows.map(({ agent, reminder }) => toReminder(reminder, agent.handle));
+}
+
+function validatedTimezone(explicit: string | undefined, home: string): string {
+    const timezone = explicit ?? home;
+    if (!isValidReminderTimezone(timezone)) {
+        throw new Error('Provide a valid IANA timezone for the reminder.');
+    }
+    return timezone;
 }

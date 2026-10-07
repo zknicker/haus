@@ -52,7 +52,17 @@ export interface ScheduleReminderInput {
     repeat?: string | null;
     script?: string | null;
     serverId: string;
+    timezone?: string;
     title: string;
+}
+
+export class ReminderScheduleExpiredError extends Error {
+    constructor() {
+        super(
+            'The requested fire time has passed. List reminders first; if no matching reminder exists, choose a future fire time and use a new command id.'
+        );
+        this.name = 'ReminderScheduleExpiredError';
+    }
 }
 
 export class ReminderCommandConflictError extends Error {

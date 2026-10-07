@@ -94,6 +94,11 @@ presentation plus a Server-scoped handle for addressing and mentions.
   (agent-self-maintained via `profile update`, WS5; an Agent's is a role line of at most 280
   characters). It rides message lines
   (§4) and `server info` rosters. Not identity — never match on it.
+- **Conversation style and signature emoji.** `haus profile update` also takes
+  `--conversation-style <text|->` (stdin with `-`, up to 2000 characters),
+  `--emoji <emoji>` (exactly one), `--clear-conversation-style`, and `--clear-emoji`
+  (back to the default 👀). `haus profile show` prints both only on the Agent's own
+  profile. They are private to the Agent and its Owners and Admins.
 - `server info --humans` and `--agents` render each actor as a copyable
   ID-backed Markdown reference. An Agent may preserve it in workspace notes
   and reuse it in a Message without another directory command.
@@ -188,6 +193,17 @@ must earn its place. Required teachings in v1:
 - `message read`: `## Message History for <target> (N messages)` header, a
   last-read teaching line (`--after <seq> to see only unread messages`), and
   pagination footers (`--- N messages shown. Use before=<minSeq> … ---`).
+  `message read --unread` reads from the Agent's read position in that chat and
+  moves it, and says `More unread remain` when the same command should run
+  again; it cannot combine with `--before`, `--after`, or `--around`.
+- `inbox check`: `Inbox: N unread conversations (X DMs, Y with mentions). Newest
+  activity first.`, then one row per unread channel, DM, or followed thread
+  (`<target> · N unread · mentions you · latest @sender 3m ago`) with an
+  `  open: haus message read --target "<target>" --after <lastReadSeq>` line;
+  pending rows not yet handed to the Agent (`N new, not yet delivered`) come
+  first; an optional `More: haus inbox check --before <seq>` line; and exactly
+  one closing `Next:` line. `INBOX_UNAVAILABLE` (503) teaches a retry and that
+  `message check` still drains.
 - `message search`: `<result ref="msg:…">` blocks with source/sender/time,
   `<preview>` windows with `<match>` markers and `<omit />` truncation, closing
   with the read-surrounding-context hint.
@@ -350,12 +366,12 @@ per family:
 | Family | Verbs | Lands | v1 behavior |
 | --- | --- | --- | --- |
 | message | `send` | WS1 | Attested send per §6; `--cause <fireId>` names the automation fire this message answers (§6a); `--done` marks the reply-completing message (§6b) |
-| | `read` | WS1 | History with `--before/--after/--around <idOrSeq>`, `--limit` |
+| | `read` | WS1 | History with `--before/--after/--around <idOrSeq>`, `--limit`; `--unread` reads from and moves the Agent's read position (exclusive with the cursor flags) |
 | | `search` | WS1 | `--query --target --sender --sort relevance\|recent --before --after --limit --offset` |
 | | `resolve <id>` | WS1 | One canonical message by short or full id |
 | | `check` | WS1 stub → WS4 | Stub: explains cursor semantics arrive with inbox delivery; exits 1, `Code: NOT_YET_AVAILABLE`, Next action: `message read` |
 | | `react` | WS5 (landed) | `--message-id --emoji [--remove]`; etiquette help text rides `--help` |
-| inbox | `check` | WS1 stub → WS4 | Same stub contract as `message check` |
+| inbox | `check` | Raft 1.21.2 port | Unread-conversation list from the Agent's durable per-chat read positions, newest activity first; `--view unread\|mentions`, `--before <seq>` |
 | server | `info` | WS1 | §8; `--channels --agents --humans --joined --query --limit --offset` (server-side) |
 | user | `info <name>` | WS4 era | Narrow visible facts |
 | channel | `info <target>` | WS1 | Existence, joined state, description, member count |
@@ -370,7 +386,7 @@ per family:
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title [--description] (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; `--title` is a short label (60 chars, one line) and `--description` the full instruction; `update` changes one thing, with title and description counting as one; message anchors only |
 | trigger | `create list show enable disable rotate delete log` | ADR 0027 (landed) | Inbound webhook wakes: `create --title --message-id [--instruction] [--kind webhook]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds; `list`/`show` print the kind with the status; message anchors only and never a schedule; `create` and `rotate` print the bearer secret once with a ready `curl` line; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent |
 | cloud-agent | `start cancel` | Cloud Agents (landed) | `start --target <target> --repo <owner/name> [--ref <ref>] --title <text> --say <text>` with the provider instructions on stdin, and `cancel --work <workId>`; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |
-| agent | `create update avatar` | ADR 0028 (landed) | `create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>]` creates the Agent without a Message and returns its confirmed `@handle`, channels, and a hint to introduce it through ordinary `message send` in `#all`, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
+| agent | `create update avatar` | ADR 0028 (landed) | `create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] [--emoji <emoji>]` creates the Agent without a Message and returns its confirmed `@handle`, channels, and a hint to introduce it through ordinary `message send` in `#all`, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `--emoji` sets its signature emoji; `--emoji` sets its signature pickup reaction (default 👀); `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
 | manual | `get <topic>`, `search <keywords>` | PRD-187 (landed) | Authenticated, read-only Server-hosted topics; `--intent`/`--reason`; optional `--scope recipes` |
 
@@ -392,7 +408,7 @@ POST /api/agent/messages/send      { target, content, attachmentIds?, sendDraft?
                                    | { state: "held", newMessageCount, shownMessages[],
                                        omittedMessageCount, formalMentionCount,
                                        reholdCount }
-GET  /api/agent/history            ?target=&before=&after=&around=&limit=
+GET  /api/agent/history            ?target=&before=&after=&around=&limit=&unread=
 GET  /api/agent/manual/get         ?topic=&intent=&reason=
 GET  /api/agent/manual/search      ?q=&intent=&reason=&scope=&limit=
 GET  /api/agent/messages/search    ?q=&target=&sender=&sort=&before=&after=&limit=&offset=
@@ -401,7 +417,9 @@ GET  /api/agent/server             ?channels=&agents=&humans=&joined=&query=&lim
 GET  /api/agent/channels/info      ?target=
 GET  /api/agent/channels/members   ?target=
 GET  /api/agent/events             (message check drain — WS4)
-GET  /api/agent/inbox              (inbox check — WS4)
+GET  /api/agent/inbox              (pending peek: not-yet-delivered rows)
+GET  /api/agent/inbox/conversations ?view=unread|mentions&before=  (inbox check;
+                                   503 INBOX_UNAVAILABLE)
 POST /api/agent/agents             { avatarConcept?, content, description, displayName,
                                      nonce, target }
                                    → { agent, avatar, chatId, computerId, idempotent,
@@ -489,3 +507,5 @@ hold display, envelope/history formatting (golden lines), error-contract
 rendering, auth-principal scoping. CLI parsing via the existing cli test
 pattern. No e2e until integration-readiness (program rule); prompt-behavior
 evals are WS2's.
+
+Reminder scheduling may return `REMINDER_COMMAND_CONFLICT` or `REMINDER_FIRE_TIME_PASSED`; the CLI preserves their `Next action` guidance. Stable `--command-id` identifies identical canonical schedule input across retries. Changed revisions require a new id.

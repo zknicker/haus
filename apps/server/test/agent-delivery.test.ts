@@ -1283,7 +1283,7 @@ test('an expired backoff redrives and settles the queued work once', async () =>
     expect(await countUnsettledPending(seed.agentId)).toBe(0);
 });
 
-test('an operator-action failure degrades immediately instead of spending retries', async () => {
+test('an operator-action failure pauses immediately instead of spending retries', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
@@ -1304,75 +1304,13 @@ test('an operator-action failure degrades immediately instead of spending retrie
     );
 
     const state = await readDeliveryState(connection.db, seed.agentId);
-    expect(state?.consecutiveFailures).toBe(5);
-    expect(state?.retryAfter).toBeNull();
+    expect(state?.consecutiveFailures).toBe(1);
+    expect(state?.lastFailureKind).toBe('authentication');
+    expect(state?.pausedAt).not.toBeNull();
+    expect(state?.retryAfter?.getTime()).toBeGreaterThan(Date.now() + 59 * 60_000);
     expect(await countUnsettledPending(seed.agentId)).toBe(1);
     await delivery.sweep();
     expect(transport.framesOfType('start')).toHaveLength(1);
-});
-
-test('a degraded Agent stops auto-retrying until fresh human intent', async () => {
-    const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
-
-    // Force a degraded row with queued work: many failures, no backoff window.
-    await connection.db
-        .insert(agentDeliveryTable)
-        .values({ agentId: seed.agentId, consecutiveFailures: 99, serverId: seed.serverId });
-    await connection.db.insert(agentInboxTable).values({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'stuck',
-        dedupeKey: 'msg-1',
-        id: createOpaqueId('inb'),
-        serverId: seed.serverId,
-        source: 'human',
-    });
-
-    // Degraded: the sweep will not auto-dispatch even with online, queued work.
-    await delivery.sweep();
-    expect(transport.framesOfType('start')).toHaveLength(0);
-
-    // A new human message clears the degrade and delivers.
-    await delivery.deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'retry please',
-        dedupeKey: 'msg-2',
-        serverId: seed.serverId,
-    });
-    expect(transport.framesOfType('start')).toHaveLength(1);
-    expect((await readDeliveryState(connection.db, seed.agentId))?.consecutiveFailures).toBe(0);
-});
-
-test('Restart clears a degraded Agent failure hold and redrives queued work', async () => {
-    const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
-
-    await connection.db
-        .insert(agentDeliveryTable)
-        .values({ agentId: seed.agentId, consecutiveFailures: 5, serverId: seed.serverId });
-    await connection.db.insert(agentInboxTable).values({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'retry after repair',
-        dedupeKey: 'msg-restart-degraded',
-        id: createOpaqueId('inb'),
-        serverId: seed.serverId,
-        source: 'human',
-    });
-
-    await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
-
-    expect(transport.framesOfType('start')).toHaveLength(1);
-    expect(transport.framesOfType('start')[0]?.inbox.map((item) => item.content)).toEqual([
-        'retry after repair',
-    ]);
-    expect((await readDeliveryState(connection.db, seed.agentId))?.consecutiveFailures).toBe(0);
 });
 
 test('a floating-session run drains queued work across every target', async () => {

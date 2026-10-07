@@ -3,8 +3,10 @@ import { agentReasoningEffortSchema } from './agent-execution.ts';
 import {
     agentDescriptionInputSchema,
     agentDescriptionUpdateInputSchema,
+    signatureEmojiInputSchema,
 } from './agent-profile-text.ts';
-import { avatarMediaTypeSchema } from './avatar.ts';
+import { avatarBytesInputSchema, avatarMediaTypeSchema } from './avatar.ts';
+import { idSchema as appIdSchema } from './chat-contract-primitives.ts';
 import { participantHandleSchema } from './participant-handle.ts';
 
 /** Local so the Message body union never imports the Chat contracts back. */
@@ -28,6 +30,25 @@ export const createdAgentSummarySchema = z
 
 export type CreatedAgentSummary = z.infer<typeof createdAgentSummarySchema>;
 
+/** Creating an Agent binds it to exactly one reported Computer, runtime, and model. */
+export const createAgentInputSchema = z
+    .object({
+        avatar: avatarBytesInputSchema.optional(),
+        computerId: appIdSchema,
+        description: agentDescriptionInputSchema.nullable().optional(),
+        displayName: z.string().trim().min(1).max(80),
+        handle: participantHandleSchema,
+        modelId: z.string().trim().min(1).max(128),
+        reasoningEffort: agentReasoningEffortSchema.default('medium'),
+        runtimeId: z.string().trim().min(1).max(64),
+        serverId: appIdSchema,
+        /** Omitted or null: the Agent picks up messages with the default 👀. */
+        signatureEmoji: signatureEmojiInputSchema.nullable().optional(),
+    })
+    .strict();
+
+export type CreateAgentInput = z.infer<typeof createAgentInputSchema>;
+
 /** `#name`, as every Agent-facing channel target is written. */
 export const channelTargetSchema = z
     .string()
@@ -43,8 +64,10 @@ export const channelTargetSchema = z
  * rendered into the seeded workspace memory, not a Message, so nothing has to
  * DM the new Agent to tell it what it owns. `channels` names the channels it
  * joins on top of the Server's `#all`, which creation always joins.
+ * `signatureEmoji` is the new Agent's pickup reaction; null means the default 👀.
  */
-export const agentCreateAgentInputSchema = z
+/** Server decoder retains missing legacy briefs solely for skew errors and nonce replay. */
+export const agentCreateAgentRequestSchema = z
     .object({
         avatarConcept: z.string().trim().min(1).max(280).nullable().default(null),
         brief: z.string().trim().min(1).max(4000).nullable().default(null),
@@ -52,10 +75,17 @@ export const agentCreateAgentInputSchema = z
         description: agentDescriptionInputSchema,
         displayName: z.string().trim().min(1).max(80),
         nonce: z.string().trim().min(1).max(128),
+        signatureEmoji: signatureEmojiInputSchema.nullable().default(null),
         target: z.string().trim().min(1).max(200),
     })
     .strict();
 
+export type AgentCreateAgentRequest = z.infer<typeof agentCreateAgentRequestSchema>;
+
+/** New Agent-owned creation always carries durable standing instructions. */
+export const agentCreateAgentInputSchema = agentCreateAgentRequestSchema.extend({
+    brief: z.string().trim().min(1).max(4000),
+});
 export type AgentCreateAgentInput = z.infer<typeof agentCreateAgentInputSchema>;
 
 /**

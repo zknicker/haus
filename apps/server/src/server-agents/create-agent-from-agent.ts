@@ -1,6 +1,6 @@
 import type {
-    AgentCreateAgentInput,
     AgentCreateAgentReceipt,
+    AgentCreateAgentRequest,
     AgentCreatedAvatarOutcome,
     AgentReasoningEffort,
     AvatarMediaType,
@@ -24,6 +24,7 @@ import {
     readAgentChannels,
     requireCreationChannels,
 } from './creation-channels.ts';
+import { requireAgentCreationGuidance } from './creation-guidance.ts';
 import {
     agentCreationRequestHash,
     readAgentCreationReplay,
@@ -58,7 +59,7 @@ export interface CreateAgentFromAgentResult {
 export async function createAgentFromAgent(
     db: HausDatabase,
     runner: ResolvedRunner,
-    input: AgentCreateAgentInput,
+    input: AgentCreateAgentRequest,
     avatar: CreationAvatar
 ): Promise<CreateAgentFromAgentResult> {
     return await db.transaction(async (tx) => {
@@ -71,6 +72,7 @@ export async function createAgentFromAgent(
         }
 
         await assertFreshAgentView(tx, runner, plan.chatId);
+        await requireAgentCreationGuidance(tx, runner, input.brief);
         // Nothing is written until every requested channel is there to join, so
         // a typo in `--channel` creates nothing.
         const channels = await requireCreationChannels(tx, runner.serverId, input.channels);
@@ -94,6 +96,7 @@ export async function createAgentFromAgent(
                 reasoningEffort: execution.reasoningEffort,
                 runtimeId: execution.runtimeId,
                 serverId: runner.serverId,
+                signatureEmoji: input.signatureEmoji,
             },
             avatar.bytes
         );

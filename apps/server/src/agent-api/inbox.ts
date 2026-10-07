@@ -170,6 +170,9 @@ export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner
                 cloudAgentResult: group.some((item) => item.cloudAgentWork !== undefined),
                 // Released Computers still read these two; current ones derive them from `target`.
                 dm: latest.target.startsWith('dm:'),
+                // Where `message read --after` starts to show the pending messages;
+                // null when only fires, assignments, or Cloud Agent results wait.
+                firstSequence: firstMessageSequence(group),
                 firstShortId: shortId(first.id),
                 latestSender: latest.senderHandle,
                 latestShortId: shortId(latest.id),
@@ -182,6 +185,11 @@ export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner
         ];
     });
     return { rows, totalPending: pending.length };
+}
+
+function firstMessageSequence(group: Array<{ message?: unknown; sequence: number }>) {
+    const sequences = group.flatMap((item) => (item.message ? [item.sequence] : []));
+    return sequences.length > 0 ? Math.min(...sequences) : null;
 }
 
 /**

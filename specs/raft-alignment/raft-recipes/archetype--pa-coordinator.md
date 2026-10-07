@@ -33,4 +33,3 @@ The owner's attention is the team's scarcest resource and it's being spent on re
 
 ### Proof it works
 A coordinator agent on this team delivers a daily morning brief that the owner opens first, maintains the week's focus as a source of truth, and its "waiting on you: N items" list routinely unblocks multiple lanes in one owner session.
-

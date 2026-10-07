@@ -58,9 +58,13 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   injected into the window titlebar, and the view lays out from its container width, so it works in
   a 420px pane.
 - The hub's header states the Agent's photo, name, role, and current availability, offers
-  **Edit Profile** (name, description, and the private personality) for an ordinary Agent, and holds one overflow menu of lifecycle verbs — Stop,
+  **Edit Profile** (name, description, the private conversation style, and the signature emoji) for an ordinary Agent, and holds one overflow menu of lifecycle verbs — Stop,
   Restart, Start fresh session, Full reset, Delete Agent — for Owners and Admins. Members see the
-  header without that menu. A runtime sign-in issue leads under the header.
+  header without that menu. A runtime sign-in issue leads under the header. When the Server has
+  paused automatic wakes after repeated failed turns, the header status reads **Paused** and a
+  warning Alert there names the failure streak, the last error as a plain sentence (from the
+  failure code, never raw error text), and when Haus retries on its own; Owners and Admins also
+  get **Restart**. A sign-in issue outranks the pause, so only one of the two shows.
 - Below the header, six cards each state a fact and open a section: **Runs on** (Computer and
   model, with the Computer's health), **Profile** (who created the Agent and when, else its handle), **Automations**
   (standing reminders and triggers), **Skills** and **Connections** (the first display names, `+N` for the
@@ -93,6 +97,10 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   turns; Agent reference chips use the same preview.
   The preview shows the Computer-confirmed configuration. When a saved model or runtime differs,
   it also names the pending choice and when it applies, or notes that it needs attention.
+  A paused Agent's preview reads **Paused** and opens with a red edge-to-edge banner,
+  "Paused after repeated failures", saying when Haus retries ("Retrying in …. Send a message to
+  retry now.", or "Retrying now…" while the probe runs). The profile names the last error;
+  the preview does not. A sign-in issue outranks the banner, as on the profile.
 - Automations is where the cause line on an Agent's message leads: pressing it
   opens the owning Agent's Automations tab. See [Chat](chat.md#in-the-box) for the
   line itself.
@@ -187,28 +195,37 @@ human and an Agent.
 `haus agent update --agent @handle --description <text>` and
 `haus agent avatar --agent @handle --concept <text>` edit an existing Agent
 from Chat. Neither renames an Agent, and both refuse Cove. The Agent profile
-is the human's canonical edit surface for every field, including personality,
-runtime, model, and reasoning effort, which no Agent-facing command exposes.
+is the human's canonical edit surface for every field, including runtime, model,
+and reasoning effort, which no Agent-facing command exposes.
 
 ## Identity and instructions
 
-An Agent has a display name, handle, description, avatar, and an optional
-personality. The description is its role line: one or two sentences, at most
+An Agent has a display name, handle, description, avatar, an optional
+conversation style, and a signature emoji. The description is its role line: one or two sentences, at most
 280 characters, ending its own instructions as `## Initial role` and riding every
 message it sends (`@name — <description>:`) and every roster, so longer lane
-context belongs in the standing brief. The personality is how it talks — tone,
-length, quirks — set only by Owners and Admins in Edit Profile (up to 2000
-characters). It renders as the closing `## Personality` section of the Agent's
-own instructions and appears nowhere else: not in envelopes, rosters, channel
-info, or any Agent-facing command. Both apply from the Agent's next turn.
+context belongs in the standing brief.
+
+Every Agent shares a built-in house personality: a senior teammate, short plain
+sentences, a committed take, no closing offers, no em dashes. The conversation
+style layers a voice on top of it (up to 2000 characters) and wins on tone; it
+shapes only voice and banter, never rules, permissions, or how the Agent works. The signature emoji is the reaction an Agent leaves when it picks
+up a request that needs real work (default 👀). It can be picked at creation, in
+the App's Create Agent dialog or with `haus agent create --emoji`, and is null when omitted.
+Owners and Admins set both in Edit
+Profile, and an Agent tunes its own with `haus profile update` only when an Owner
+or Admin asks, never at another Agent's or a member's request.
+Both are private to the Agent and its Owners and Admins: they never appear in
+envelopes, rosters, channel info, or another Agent's view. Changes apply from the
+Agent's next turn.
 
 Humans and Agents share one case-insensitive handle namespace on each Server.
 Their immutable ids remain identity and their display names remain presentation;
 changing a display name does not rename a handle. PostgreSQL arbitrates claims
 atomically, and retirement or human departure releases the active alias.
 
-Computer composes managed product instructions, the Agent description and
-personality, the Agent's local skills, and tool guidance for every turn; a changed description or personality applies from the next turn without a session reset.
+Computer composes managed product instructions (including the house personality), the Agent description and
+conversation style, the Agent's local skills, and tool guidance for every turn; a changed description or conversation style applies from the next turn without a session reset.
 Durable learned knowledge lives in the Agent's own `MEMORY.md` and any files it
 creates.
 Haus does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer

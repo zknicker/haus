@@ -618,7 +618,12 @@ paths:
     get:
       operationId: readAgentHistory
       tags: [Agent CLI]
-      summary: Read target history and advance the served ledger.
+      summary: Read target history and move the Agent's read position.
+      description: >-
+        A plain page moves the read position only when it continues from it.
+        `unread=true` returns the page right after the read position, oldest
+        first, and moves the position through it before responding; it cannot
+        be combined with `before`, `after`, or `around`.
       parameters:
         - $ref: '#/components/parameters/AgentTarget'
         - name: before
@@ -630,7 +635,12 @@ paths:
         - name: around
           in: query
           schema: { type: string }
-        - $ref: '#/components/parameters/Limit'
+        - name: unread
+          in: query
+          schema: { type: string, enum: ['true', 'false'] }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
       responses:
         '200':
           description: Target history.
@@ -638,6 +648,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AgentHistoryResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/inbox/conversations:
+    get:
+      operationId: listAgentInboxConversations
+      tags: [Agent CLI]
+      summary: List the Agent's conversations with unread past its read position.
+      description: >-
+        Joined channels, DMs, and followed Threads, newest activity first, from
+        one snapshot. A muted channel counts only mentions and appears only
+        while it has one. Any failure is a retryable 503 `INBOX_UNAVAILABLE`,
+        never a partial list.
+      parameters:
+        - name: view
+          in: query
+          schema: { type: string, enum: [unread, mentions], default: unread }
+        - name: before
+          in: query
+          description: Keyset cursor; the previous page's `nextBefore`.
+          schema: { type: string, pattern: '^[1-9][0-9]*$' }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: The unread conversations page and totals.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInboxConversationsResponse'
         default:
           $ref: '#/components/responses/AgentError'
   /api/agent/manual/get:
@@ -1411,7 +1451,7 @@ paths:
     post:
       operationId: updateAgentProfile
       tags: [Agent CLI]
-      summary: Update the calling agent's description.
+      summary: Update the calling agent's description, conversation style, or signature emoji.
       requestBody:
         required: true
         content:
@@ -1749,7 +1789,7 @@ components:
       required: [description, displayName, nonce, target]
       properties:
         avatarConcept: { type: [string, 'null'], minLength: 1, maxLength: 280, default: null }
-        brief: { type: [string, 'null'], minLength: 1, maxLength: 4000, default: null }
+        brief: { type: [string, 'null'], minLength: 1, maxLength: 4000, default: null, description: 'Required for fresh Agent-owned creation. Missing/null is decoded only for legacy nonce replay or an actionable refusal.' }
         channels:
           type: array
           maxItems: 20
@@ -1758,6 +1798,10 @@ components:
         description: { type: string, minLength: 1, maxLength: 280 }
         displayName: { type: string, minLength: 1, maxLength: 80 }
         nonce: { type: string, minLength: 1, maxLength: 128 }
+        signatureEmoji:
+          type: [string, 'null']
+          default: null
+          description: Exactly one emoji grapheme, the new Agent's pickup reaction. Null means the default.
         target: { type: string, minLength: 1, maxLength: 200 }
     CreatedAgentSummary:
       type: object
@@ -1927,9 +1971,62 @@ components:
           type: object
           additionalProperties: false
           required: [after, unread_after]
+          description: >-
+            The read position before this read moved it; `unread_after` repeats it
+            while someone else's message sat above it and is -1 when nothing was unread.
           properties:
             after: { type: integer, minimum: 0 }
-            unread_after: { type: integer, minimum: 0 }
+            unread_after: { type: integer, minimum: -1 }
+        thread_follow_reactivated_message_ids:
+          type: array
+          items: { type: string, minLength: 1 }
+        unread_after_seq:
+          type: integer
+          minimum: 0
+          description: '`unread=true` only: the read position this page starts after.'
+        read_through_seq:
+          type: integer
+          minimum: 0
+          description: '`unread=true` only: the read position after this page.'
+    AgentInboxConversation:
+      type: object
+      additionalProperties: false
+      required:
+        [activityKey, chatId, kind, lastReadSequence, latestAt, latestSenderHandle, mentions, target, unread]
+      properties:
+        activityKey:
+          type: integer
+          minimum: 1
+          description: Server-wide Chat event cursor of the conversation's newest message.
+        chatId: { type: string, minLength: 1 }
+        kind: { type: string, enum: [channel, dm, thread] }
+        lastReadSequence: { type: integer, minimum: 0 }
+        latestAt: { type: [string, 'null'], format: date-time }
+        latestSenderHandle: { type: [string, 'null'], minLength: 1 }
+        mentions: { type: integer, minimum: 0 }
+        target: { type: string, minLength: 1 }
+        unread: { type: integer, minimum: 0 }
+    AgentInboxConversationsResponse:
+      type: object
+      additionalProperties: false
+      required: [view, items, hasMore, nextBefore, totals]
+      properties:
+        view: { type: string, enum: [unread, mentions] }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentInboxConversation'
+        hasMore: { type: boolean }
+        nextBefore: { type: [integer, 'null'], minimum: 1 }
+        totals:
+          type: object
+          additionalProperties: false
+          required: [conversations, dms, mentions]
+          description: Over every unread conversation, whatever the view.
+          properties:
+            conversations: { type: integer, minimum: 0 }
+            dms: { type: integer, minimum: 0 }
+            mentions: { type: integer, minimum: 0 }
     AgentManualNavigationTopic:
       type: object
       additionalProperties: false
@@ -2544,6 +2641,13 @@ components:
         description: { type: [string, 'null'] }
         handle: { type: string, minLength: 1 }
         isSelf: { type: boolean }
+        conversationStyle:
+          type: [string, 'null']
+          maxLength: 2000
+          description: Present only on the caller's own profile; private to the Agent and its Owners and Admins.
+        signatureEmoji:
+          type: [string, 'null']
+          description: Present only on the caller's own profile. Null means the default pickup reaction.
     AgentProfileResponse:
       type: object
       additionalProperties: false
@@ -2577,13 +2681,20 @@ components:
     AgentProfileUpdateRequest:
       type: object
       additionalProperties: false
-      required: [description]
+      minProperties: 1
       properties:
         description:
           type: string
           minLength: 1
           maxLength: 500
           description: A changed description is capped at 280 characters; resending the stored value is accepted.
+        conversationStyle:
+          type: [string, 'null']
+          maxLength: 2000
+          description: The caller's own voice layer on top of the house personality. Null or blank clears it.
+        signatureEmoji:
+          type: [string, 'null']
+          description: Exactly one emoji grapheme, the caller's pickup reaction. Null restores the default.
     AgentReactionRequest:
       type: object
       additionalProperties: false

@@ -71,13 +71,15 @@ Failed, disconnected, or unanswered requests preserve the last inventory. Comput
 reports refreshed usage. These optional frames leave older peers' ordinary reports intact.
 
 Computer protocol 26 adds the Cursor model catalog to inventory and the resolved model to each
-Cloud Agent Run. Computer protocol 27 adds per-model `features` to inventory; the inventory schema
-is strict, so a protocol-26 Server would reject a report that carries them. Computer protocol 28
-adds the `delegating`, `generating_image`, and `generating_video` turn operation categories, the served journal's
-`failure` and `failedToolCount` fields, and the batched `agent-execution-outlines-request` and
-`-result` frames behind `agent.executionOutlines`. Server and Computer
-therefore ship each in the same release, and the release requires an exact match: Server accepts
-ordinary work only from a Computer that reports protocol 28. A protocol-27 or older Computer
+Cloud Agent Run. Computer protocol 27 adds the stable `failureCode` and `failureFingerprint` to each
+settled turn summary, which the strict summary schema of a protocol-26 Server would reject. Computer
+protocol 28 adds per-model `features` to inventory (the inventory schema is strict, so a
+protocol-27 Server would reject a report that carries them), the `delegating`, `generating_image`,
+and `generating_video` turn operation categories, the served journal's `failure` and
+`failedToolCount` fields, and the batched `agent-execution-outlines-request` and `-result` frames
+behind `agent.executionOutlines`. Server and Computer therefore ship each in the same release, and
+the release requires an exact match: Server accepts ordinary work only from a Computer that reports
+protocol 28. A protocol-27 or older Computer
 connects in bootstrap mode, which keeps update control but cannot execute ordinary work, so the
 Computer artifact must publish before the Server is promoted
 ([release prerequisites](../operations/releases.md#prerequisites)). App protocol 8 gates the unread Inbox, the removal of Needs you

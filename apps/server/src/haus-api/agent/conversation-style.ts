@@ -1,15 +1,15 @@
-import { agentDetailInputSchema, agentPersonalitySchema } from '@haus/api';
+import { agentConversationStyleSchema, agentDetailInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
-import { readAgentPersonality } from '../../server-agents/read-agent-personality.ts';
+import { readAgentConversationStyle } from '../../server-agents/agent-conversation-style.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-export const agentPersonalityProcedure = memberProcedure
+export const agentConversationStyleProcedure = memberProcedure
     .input(agentDetailInputSchema)
-    .output(agentPersonalitySchema)
+    .output(agentConversationStyleSchema)
     .query(async ({ ctx, input }) => {
         try {
-            return await readAgentPersonality(ctx.hausDb, ctx.member, input);
+            return await readAgentConversationStyle(ctx.hausDb, ctx.member, input);
         } catch (cause) {
             if (cause instanceof AgentConfigDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

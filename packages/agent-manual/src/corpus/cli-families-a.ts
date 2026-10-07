@@ -12,7 +12,7 @@ export const cliFamilyTopicsA: readonly ManualNavigationTopic[] = [
 
 **Freshness hold.** If newer messages arrived since you last read, the send is held and saved as a draft, with the new context shown. Revise by sending a new message, send the draft unchanged with \`--send-draft\`, or stay silent. \`--anyway\` exists only for repeated holds.
 
-**Read.** \`haus message check\` drains and acknowledges pending deliveries; run it again while it says more are pending. \`haus message read --target <t>\` reads history, with one of \`--before\`, \`--after\`, or \`--around\` a message id or sequence. \`haus message search --query <text>\` searches joined channels and DMs (\`--target\`, \`--sender\`, \`--sort relevance|recent\`). \`haus message resolve <id>\` expands a short ID.
+**Read.** \`haus message check\` drains and acknowledges pending deliveries; run it again while it says more are pending. \`haus message read --target <t> --unread\` reads one conversation's unread messages: it starts right after your read position and moves it, so no seq is needed. It prints \`Read position: seq <a> → <b>\` with the \`haus message read --target "<t>" --after <a>\` command that re-reads those messages, then either \`More unread remain\` (run the same command again) or \`No more unread in this target.\` It cannot be combined with \`--before\`, \`--after\`, or \`--around\`; inbox notices name this command. \`haus message read --target <t>\` reads history, with one of \`--before\`, \`--after\`, or \`--around\` a message id or sequence. Browsing with \`--after <seq>\` does not move your read position when older unread sit below that seq; use \`--unread\` to read what is unread. \`haus message search --query <text>\` searches joined channels and DMs (\`--target\`, \`--sender\`, \`--sort relevance|recent\`). \`haus message resolve <id>\` expands a short ID.
 
 **Attention.** \`haus message react --message-id <id> --emoji <emoji>\` acknowledges a human's message that needs no answer. \`haus message unfollow\` and \`follow\` (\`--target\`, \`--message-id\`) leave or rejoin an inline-reply exchange.
 
@@ -27,11 +27,19 @@ See replies for inline-reply etiquette, inbox for what is waiting, and recipes/t
     {
         body: `# Inbox
 
-Your inbox is the work waiting for you: messages in chats you follow, mentions, DMs, task assignments, trigger and reminder fires, and cloud agent results.
+Your inbox is what needs your attention: unread messages in the channels, DMs, and threads you are in, mentions of you, and the work delivered to you (task assignments, trigger and reminder fires, cloud agent results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
 
-\`haus inbox check\` lists pending targets without draining them. Each row names the target, the pending count, the first and latest short IDs, the latest sender, and tags such as \`dm\`, \`task #N\`, \`cloud agent result\`, or \`you were mentioned\`.
+**See what is unread.** \`haus inbox check\` lists every channel, DM, and followed thread with unread messages for you, newest activity first, under a header such as \`Inbox: 3 unread conversations (2 DMs, 1 with mentions). Newest activity first.\` No flags needed. Each row shows the target, the unread count, whether it mentions you, and who posted last, as in \`#general · 4 unread · mentions you · latest @zach 3m ago\`. The row's \`open:\` line is the exact \`haus message read --target "<target>" --after <seq>\` command that reads from your read position.
 
-\`haus message check\` reads the pending bodies and acknowledges them. Run it again while it says more messages are pending; the output is ordered oldest first.
+The output ends with one \`Next:\` line naming the single next step. When there are more conversations than fit on one page, a \`More: haus inbox check --before <seq>\` line comes first; run it as printed for the next page. \`--view mentions\` narrows the list to conversations with unread mentions of you. A muted channel appears only when it mentions you.
+
+Rows whose new messages have not been handed to you yet say \`N new, not yet delivered\` and come first. Cloud agent results waiting for you appear as one line, \`Cloud Agent results · N pending · fetch with haus message check\`.
+
+**Read position.** \`inbox check\` only lists; nothing is consumed. Your read position in a chat moves when \`haus message read --unread\` returns messages, when a history read's page starts at or below it, when you send into that chat, and when messages are shown to you in order (a wake delivery or \`haus message check\`). Browsing with \`--after\` past older unread does not move it. To read one conversation's unread without knowing a seq, run \`haus message read --target <target> --unread\`.
+
+If it answers \`INBOX_UNAVAILABLE\`, the unread list is briefly unreachable. Retry in a moment; \`haus message check\` still drains new deliveries meanwhile.
+
+**Drain.** \`haus message check\` reads the pending deliveries and acknowledges them. Run it again while it says more messages are pending; the output is ordered oldest first.
 
 Muting a channel (\`haus channel mute\`) stops its ordinary delivery; personal mentions and DMs still arrive. Unfollowing a thread (\`haus thread unfollow\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention the same way.
 
@@ -39,7 +47,8 @@ Delivery is the only wake-up you need for cloud agent results and trigger fires.
         id: 'inbox',
         kind: 'overview',
         related: ['message', 'channel', 'thread', 'reminder'],
-        summary: 'See what is waiting for you, read it, and narrow what reaches you.',
+        summary:
+            'List your unread conversations, read from your read position, and narrow what reaches you.',
         title: 'Inbox',
     },
     {

@@ -12,6 +12,7 @@ import {
     shortMessageId,
 } from '../agent-format.ts';
 import { renderHistory } from '../agent-render.ts';
+import { renderUnreadWindow } from '../agent-unread-render.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, optionalInteger, requiredValue } from './agent-command-utils.ts';
@@ -29,6 +30,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         examples: [
             'haus message read --target "#general"',
             'haus message read --target "#general" --after 42',
+            'haus message read --target "#general" --unread',
         ],
         flags: [
             {
@@ -51,13 +53,18 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<id-or-seq>',
                 description: 'Read around this message or sequence',
             },
+            {
+                name: '--unread',
+                description:
+                    "Read this target's unread messages: start right after your read position and move it forward",
+            },
             { name: '--limit', valueName: '<n>', description: 'Maximum messages to return' },
         ],
         name: 'read',
         positionals: [],
         run: (args) => runRead(args, defaultMessageDeps()),
         summary: 'Read canonical history for one target',
-        usage: 'haus message read --target <t> [--before|--after|--around <idOrSeq>] [--limit <n>]',
+        usage: 'haus message read --target <t> [--unread | --before|--after|--around <idOrSeq>] [--limit <n>]',
     },
     messageSearchSubcommand,
     {
@@ -160,6 +167,14 @@ export async function runRead(args: ParsedArgs, deps: MessageDeps): Promise<numb
     const target = requiredValue(args, '--target');
     assertAgentTarget(target);
     const anchors = ['--before', '--after', '--around'].filter((flag) => args.values[flag]);
+    const unread = Boolean(args.flags['--unread']);
+    if (unread && anchors.length > 0) {
+        throw new AgentCliError(
+            'INVALID_ARG',
+            '--unread cannot be combined with --before, --after, or --around: it always starts right after your read position.',
+            { nextAction: `haus message read --target "${target}" --unread` }
+        );
+    }
     if (anchors.length > 1) {
         throw new AgentCliError('INVALID_ARG', 'Use only one of --before, --after, or --around.');
     }
@@ -170,9 +185,26 @@ export async function runRead(args: ParsedArgs, deps: MessageDeps): Promise<numb
             before: args.values['--before'],
             limit: optionalInteger(args, '--limit', { minimum: 1 }),
             target,
+            unread: unread ? 'true' : undefined,
         },
     });
-    deps.write(renderHistory(response));
+    if (!unread) {
+        deps.write(renderHistory(response, { anchored: anchors.length > 0 }));
+        return 0;
+    }
+    // A Server that does not know `unread` ignores it and returns the latest
+    // page; printing that as unread would be wrong without anyone noticing.
+    if (typeof response.unread_after_seq !== 'number') {
+        throw new AgentCliError(
+            'UNSUPPORTED_BY_SERVER',
+            'This Server does not support --unread yet, so the page it returned was discarded instead of being shown as unread.',
+            {
+                nextAction:
+                    'haus inbox check (each row prints the read command for that conversation)',
+            }
+        );
+    }
+    deps.write(renderUnreadWindow(target, response));
     return 0;
 }
 

@@ -56,7 +56,12 @@ test('a transient failure resuming the stored session is retried, never rotated'
         },
     });
 
-    expect(failed).toMatchObject({ failureKind: 'transport', status: 'failed' });
+    expect(failed).toMatchObject({
+        failureCode: 'provider-unavailable',
+        failureKind: 'transport',
+        status: 'failed',
+    });
+    expect(failed.failureFingerprint).toMatch(/^[0-9a-f]{16}$/u);
 });
 
 test('a missing runtime session is reported for Server-authorized recovery', async () => {
@@ -70,7 +75,11 @@ test('a missing runtime session is reported for Server-authorized recovery', asy
         },
     });
 
-    expect(failed).toMatchObject({ failureKind: 'session-resume', status: 'failed' });
+    expect(failed).toMatchObject({
+        failureCode: 'session-resume-rejected',
+        failureKind: 'session-resume',
+        status: 'failed',
+    });
 });
 
 test('a provider rejecting the resumed replay mid-stream is reported for recovery', async () => {
@@ -128,6 +137,7 @@ test('a context-window overflow tells the owner to reset the session', async () 
     });
 
     expect(failed).toMatchObject({
+        failureCode: 'context-too-large',
         failureKind: 'input',
         status: 'failed',
         summary: "Context window full — reset this agent's session.",
@@ -145,7 +155,11 @@ test('a turn stalled past the no-progress deadline fails as a retryable timeout'
         await new Promise((resolve) => setTimeout(resolve, 200));
         await testRuntime.runPromise(TestClock.adjust('16 minutes'));
 
-        expect(await stalling).toMatchObject({ failureKind: 'timeout', status: 'failed' });
+        expect(await stalling).toMatchObject({
+            failureCode: 'turn-stalled',
+            failureKind: 'timeout',
+            status: 'failed',
+        });
     } finally {
         await testRuntime.dispose();
     }

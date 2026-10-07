@@ -70,11 +70,14 @@ export const agentsTable = pgTable(
         homeTimezone: text('home_timezone').notNull(),
         id: text('id').primaryKey(),
         /**
-         * How the Agent talks — tone, length, quirks — set only by Owners and Admins. The Computer
-         * renders it as the prompt's `## Personality`; no Agent API, roster, or envelope reads it.
+         * The Agent's optional voice layer on top of the house personality, written by Owners,
+         * Admins, or the Agent itself. It rides only the Agent's own start frame and self profile;
+         * no roster, envelope, or other Agent reads it.
          */
-        personality: text('personality'),
+        conversationStyle: text('conversation_style'),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
+        /** One fully qualified emoji: the Agent's pickup reaction. Null means the default. */
+        signatureEmoji: text('signature_emoji'),
         sessionGeneration: integer('session_generation').notNull().default(1),
         sessionResetKind: text('session_reset_kind')
             .notNull()
@@ -147,8 +150,12 @@ export const agentsTable = pgTable(
             sql`${table.description} is null or char_length(${table.description}) between 1 and 500`
         ),
         check(
-            'agents_personality_length',
-            sql`${table.personality} is null or char_length(${table.personality}) between 1 and 2000`
+            'agents_conversation_style_length',
+            sql`${table.conversationStyle} is null or char_length(${table.conversationStyle}) between 1 and 2000`
+        ),
+        check(
+            'agents_signature_emoji_length',
+            sql`${table.signatureEmoji} is null or char_length(${table.signatureEmoji}) between 1 and 64`
         ),
         check(
             'agents_brief_length',

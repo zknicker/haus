@@ -16,7 +16,7 @@ import { UsageError } from './agent-cli/parse.ts';
 import { dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
 import { errorBlock } from './agent-cli/ui.ts';
 
-const commandGroups = {
+export const commandGroups = {
     agent: AGENT_SUBCOMMANDS,
     attachment: ATTACHMENT_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,

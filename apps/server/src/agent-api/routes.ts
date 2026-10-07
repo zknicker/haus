@@ -1,11 +1,9 @@
-import { agentDescriptionUpdateInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { setAgentInlineReplyFollow } from '../chats/reply-follow-route.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { AgentDescriptionTooLongError } from '../server-agents/errors.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
@@ -13,17 +11,14 @@ import { unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
-import {
-    agentDescriptionTooLongRefusal,
-    describeInvalidAgentProfileWrite,
-} from './description-invalid.ts';
 import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
-import { readAgentHistory, resolveAgentMessage, searchAgentMessages } from './message-read.ts';
+import { readAgentHistory } from './message-history.ts';
+import { resolveAgentMessage, searchAgentMessages } from './message-read.ts';
 import { registerAgentMessageSendRoute } from './message-send-route.ts';
-import { readAgentProfile, updateAgentProfile } from './profile.ts';
+import { registerAgentProfileRoutes } from './profile-routes.ts';
 import { registerAgentReactionRoutes } from './reaction-routes.ts';
 import { registerAgentReminderRoutes } from './reminder-routes.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
@@ -35,6 +30,10 @@ const historyQuerySchema = z.object({
     before: z.string().min(1).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(50),
     target: z.string().min(1),
+    unread: z
+        .enum(['true', 'false'])
+        .optional()
+        .transform((value) => value === 'true'),
 });
 const searchQuerySchema = z.object({
     after: z.coerce.date().optional(),
@@ -107,47 +106,7 @@ export function registerAgentApiRoutes(
     });
     registerAgentTriggerRoutes(app, options.db);
 
-    app.get('/api/agent/profile', async (request, reply) => {
-        const runner = await authorizeAgentRunner(options.db, request);
-        const parsed = z.object({ target: z.string().optional() }).safeParse(request.query);
-        if (!(runner && parsed.success)) {
-            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The profile request was invalid.');
-        }
-        try {
-            return await readAgentProfile(options.db, runner, parsed.data.target);
-        } catch (cause) {
-            return sendAgentReadError(reply, cause);
-        }
-    });
-
-    app.post('/api/agent/profile/update', async (request, reply) => {
-        const runner = await authorizeAgentRunner(options.db, request);
-        const parsed = z
-            .object({ description: agentDescriptionUpdateInputSchema })
-            .strict()
-            .safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendAgentApiError(
-                reply,
-                400,
-                'INVALID_ARG',
-                parsed.success
-                    ? 'The profile request was invalid.'
-                    : describeInvalidAgentProfileWrite(
-                          parsed.error,
-                          'The profile request was invalid.'
-                      )
-            );
-        }
-        try {
-            return await updateAgentProfile(options.db, runner, parsed.data.description);
-        } catch (cause) {
-            if (cause instanceof AgentDescriptionTooLongError) {
-                return sendAgentApiError(reply, 400, 'INVALID_ARG', agentDescriptionTooLongRefusal);
-            }
-            return sendAgentReadError(reply, cause);
-        }
-    });
+    registerAgentProfileRoutes(app, options.db);
 
     app.get('/api/agent/server', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);
@@ -224,6 +183,15 @@ export function registerAgentApiRoutes(
         const parsed = historyQuerySchema.safeParse(request.query);
         if (!parsed.success) {
             return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The history request was invalid.');
+        }
+        const { after, around, before, unread } = parsed.data;
+        if (unread && (after || around || before)) {
+            return sendAgentApiError(
+                reply,
+                400,
+                'INVALID_ARG',
+                '--unread cannot be combined with --before, --after, or --around.'
+            );
         }
         try {
             return await readAgentHistory(options.db, runner, parsed.data);

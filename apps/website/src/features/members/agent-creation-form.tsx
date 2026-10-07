@@ -19,6 +19,7 @@ import { createAgentHandle } from './agent-handle.ts';
 import { InventorySelect } from './inventory-select.tsx';
 import { modelFeatureDescription } from './model-features.ts';
 import { ReasoningSelect, supportedReasoningEffort } from './reasoning-select.tsx';
+import { SignatureEmojiField } from './signature-emoji-field.tsx';
 
 export type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 
@@ -53,6 +54,7 @@ export function AgentCreationForm({
     );
     const [displayName, setDisplayName] = React.useState('');
     const [description, setDescription] = React.useState('');
+    const [signatureEmoji, setSignatureEmoji] = React.useState<string | null>(null);
     const [avatar, setAvatar] = React.useState<AvatarImage | null>(null);
     const [avatarError, setAvatarError] = React.useState<string | null>(null);
     const formId = React.useId();
@@ -68,6 +70,7 @@ export function AgentCreationForm({
         setReasoningEffort(defaults.reasoningEffort);
         setDisplayName('');
         setDescription('');
+        setSignatureEmoji(null);
         setAvatar(null);
         setAvatarError(null);
     }, [defaults, defaultsKey]);
@@ -104,6 +107,7 @@ export function AgentCreationForm({
                 modelId: model.id,
                 reasoningEffort: supportedReasoningEffort(model, reasoningEffort),
                 runtimeId: runtime.id,
+                signatureEmoji,
             });
             onCreated(result.agentId);
         } catch {
@@ -178,6 +182,7 @@ export function AgentCreationForm({
                         />
                         <Description>Optional</Description>
                     </TextField>
+                    <SignatureEmojiField onChange={setSignatureEmoji} value={signatureEmoji} />
                     <div className="grid gap-4 sm:grid-cols-2">
                         <InventorySelect
                             disabled={!computer}

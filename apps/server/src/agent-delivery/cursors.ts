@@ -1,4 +1,5 @@
 import { and, eq, inArray, ne, sql } from 'drizzle-orm';
+import { advanceAgentChatReadsSeen } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInboxCursorsTable,
@@ -115,6 +116,13 @@ export async function recordExactMessagesServed(
                 ],
             });
     }
+    // Every exact-visibility write lands here, so this is the one delivery-seen
+    // hook for the durable read position.
+    await advanceAgentChatReadsSeen(db, {
+        agentId: input.agentId,
+        chatIds: input.messages.map((message) => message.chatId),
+        serverId: input.serverId,
+    });
 }
 
 export async function advanceSeenForRun(

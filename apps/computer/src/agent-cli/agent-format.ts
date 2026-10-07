@@ -1,6 +1,6 @@
 import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
 import { formatAttachmentSuffix, formatThreadFollowRestoration } from '../inbox-format.ts';
-import { shortInboxId } from '../inbox-header-format.ts';
+import { indentContinuationLines, shortInboxId } from '../inbox-header-format.ts';
 import { formatInlineReplyContext } from '../inline-reply-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
@@ -35,7 +35,7 @@ export function formatHistoryLine(message: AgentCliMessage): string {
         ...(message.replyCount !== undefined ? [`replyCount=${message.replyCount}`] : []),
         ...(message.replyTarget ? [`replyTarget=${message.replyTarget}`] : []),
     ];
-    return `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${messageSuffixes(message)}${formatInlineReplyContext(message.reply)}`;
+    return `[${attributes.join(' ')}] ${formatSender(message)}: ${indentContinuationLines(message.content)}${messageSuffixes(message)}${formatInlineReplyContext(message.reply)}`;
 }
 
 export function formatDeliveryEnvelope(
@@ -49,7 +49,7 @@ export function formatDeliveryEnvelope(
         `time=${formatLocalTime(message.created_at)}`,
         `type=${message.sender.type}`,
     ];
-    const envelope = `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${messageSuffixes(message)}${formatInlineReplyContext(message.reply)}`;
+    const envelope = `[${attributes.join(' ')}] ${formatSender(message)}: ${indentContinuationLines(message.content)}${messageSuffixes(message)}${formatInlineReplyContext(message.reply)}`;
     return threadFollowReactivated
         ? `${formatThreadFollowRestoration(target)}\n${envelope}`
         : envelope;
@@ -75,8 +75,10 @@ export function formatAutomationEnvelope(event: AgentCliAutomationEvent): string
 export function formatSender(message: AgentCliMessage): string {
     // System and unlabeled authors legitimately have no handle (Raft renders
     // them as @unknown too); never fail a whole read over one such row.
-    const handle = message.sender.handle ?? 'unknown';
-    return message.sender.description ? `@${handle} — ${message.sender.description}` : `@${handle}`;
+    const handle = indentContinuationLines(message.sender.handle ?? 'unknown');
+    return message.sender.description
+        ? `@${handle} — ${indentContinuationLines(message.sender.description)}`
+        : `@${handle}`;
 }
 
 export function shortMessageId(messageId: string): string {

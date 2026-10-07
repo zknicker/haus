@@ -34,6 +34,7 @@ function args(overrides: Record<string, string> = {}): ParsedArgs {
         valueLists: {},
         values: {
             '--description': 'Keeps release notes current.',
+            '--brief': 'Own release notes and report verified results in #product.',
             '--name': 'Orbit',
             '--target': '#product',
             ...overrides,
@@ -94,18 +95,20 @@ test('create returns an introduction hint without sending a message', async () =
     expect(routes).toEqual(['/api/agent/agents']);
     expect(seen[0]?.body).toEqual({
         avatarConcept: 'a moonlit raccoon',
-        brief: null,
+        brief: 'Own release notes and report verified results in #product.',
         channels: [],
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
         nonce: deriveAgentCreateNonce('agt_caller', {
             avatarConcept: 'a moonlit raccoon',
-            brief: null,
+            brief: 'Own release notes and report verified results in #product.',
             channels: [],
             description: 'Keeps release notes current.',
             displayName: 'Orbit',
+            signatureEmoji: null,
             target: '#product',
         }),
+        signatureEmoji: null,
         target: '#product',
     });
     // Avatar generation alone takes up to 75 s, so the request must outwait it.
@@ -146,11 +149,25 @@ test('the brief and repeated channels ride the create, and the receipt says so',
     expect(output.join('')).toContain('Its brief is in its memory');
 });
 
-test('a create with no brief says so rather than staying silent about it', async () => {
-    const output: string[] = [];
-    await runAgentCreate(args(), deps({ write: (text) => output.push(text) }));
+test('--emoji rides the create normalized, and the nonce tells it apart', async () => {
+    const seen: AgentApiRequest[] = [];
+    await runAgentCreate(args({ '--emoji': ' ❤ ' }), deps({ client: requester(seen) }));
+    await runAgentCreate(args(), deps({ client: requester(seen) }));
 
-    expect(output.join('')).toContain('No brief: it wakes without standing instructions');
+    const [withEmoji, without] = seen.map(
+        (request) => request.body as { nonce: string; signatureEmoji: string | null }
+    );
+    expect(withEmoji?.signatureEmoji).toBe('❤️');
+    expect(without?.signatureEmoji).toBeNull();
+    expect(withEmoji?.nonce).not.toBe(without?.nonce);
+});
+
+test('a create with no standing brief refuses before making a request', async () => {
+    const seen: AgentApiRequest[] = [];
+    await expect(
+        runAgentCreate(args({ '--brief': '' }), deps({ client: requester(seen) }))
+    ).rejects.toThrow('--brief is required');
+    expect(seen).toHaveLength(0);
 });
 
 test('a create without an avatar concept sends null and keeps the ordinary timeout', async () => {
@@ -213,6 +230,8 @@ test('create refuses locally before spending a request on a bad flag', async () 
         [{ '--avatar-concept': 'x'.repeat(281) }, /--avatar-concept must be 280 characters/u],
         [{ '--brief': 'x'.repeat(4001) }, /--brief must be 4000 characters/u],
         [{ '--channel': 'product' }, /Invalid channel "product"/u],
+        [{ '--emoji': 'fox' }, /exactly one emoji/u],
+        [{ '--emoji': '🦊🦊' }, /exactly one emoji/u],
     ];
     for (const [overrides, expected] of cases) {
         await expect(runAgentCreate(args(overrides), deps({ client }))).rejects.toThrow(expected);

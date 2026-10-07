@@ -38,4 +38,3 @@ Design lanes by **ownership** (who owns what domain) or by **data** (who owns wh
 
 ### Proof it works
 A 12-agent team runs on exactly these lane splits; a 2,000-item mass review (split by data) and a publish gate chain (independent reviewer) are documented runs.
-

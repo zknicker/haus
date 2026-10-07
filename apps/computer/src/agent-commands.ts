@@ -1,15 +1,17 @@
-import type { AgentTurnActivitySummary } from '@haus/api';
+import type { AgentTurnActivitySummary, AgentTurnFailureCode } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
 
 /** Server→Computer launch command kept local so the Computer artifact is self-contained. */
 export interface AgentStartCommand {
+    /** Private voice guidance for this Agent's own prompt; never part of an inbox item. */
+    agentConversationStyle?: string;
     /** Server-owned Agent facts the Computer composes into the system prompt. */
     agentDescription?: string;
     agentId: string;
     agentName?: string;
-    /** Private tone guidance for this Agent's own prompt; never part of an inbox item. */
-    agentPersonality?: string;
+    /** Pickup reaction; null or absent means the prompt's default. */
+    agentSignatureEmoji?: string | null;
     chatId: string;
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
@@ -77,6 +79,9 @@ export interface AgentTurnFrame {
     activity: AgentTurnActivitySummary;
     agentId: string;
     endedAt: string;
+    failureCode?: AgentTurnFailureCode;
+    /** A hash of the normalized raw failure text; the text itself stays on the Computer. */
+    failureFingerprint?: string;
     failureKind?: RuntimeFailureKind;
     messageCount: number;
     modelId: string;

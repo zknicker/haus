@@ -21,6 +21,9 @@ durable rotation record plus a `session_generation` stamp on the Agent's
 messages ([specs/sessions.md](../../specs/sessions.md#generation-in-the-transcript)).
 Everything else below stands.
 
+Reaffirmed 2026-10-06 after evaluating recycle-on-cold-wake; see
+[Considered: recycle on cold wake](#considered-recycle-on-cold-wake).
+
 ## Context
 
 ADR 0007 made the agent's chat participant row (the Agent seat) the owner of
@@ -111,3 +114,30 @@ likely multi-human future.
   prompt contract suite tracks them.
 - The privacy caveat is documented, not engineered: models resist deliberate
   extraction less reliably than humans.
+
+## Considered: Recycle On Cold Wake
+
+Rejected 2026-10-06. Raft v1.21.2 (RFC 070, flag `constructed_wake_context`, default off)
+starts a fresh session when an Agent wakes after more than 60 minutes idle with a last
+request over 128k tokens, seeding it with the head of `MEMORY.md` (16 KB) and a constructed
+briefing of recent messages, files in play, and recent actions. We prototyped it behind a
+switch and measured 4–5 fresh Agents per arm on one build with real idle gaps of 70–97
+minutes:
+
+- Claude Code's prompt cache expires at one hour; resuming a ~170k-token session after
+  that rewrites ~158k cached tokens. Recycling made the wake turn ~3.6x cheaper and each
+  later turn ~2.6x cheaper (about $1.90 and $0.35 at Opus 4.8 API prices; on subscription
+  auth this is usage-limit headroom, not billing).
+- Codex's cache was still warm after 86 minutes; recycling still halved cost by shrinking
+  the session, but the first recycled turn took ~2x longer because the briefing lacked the
+  files and working commands the next step needed.
+- First replies were as fast or faster, and blind grading found no continuity loss on the
+  task. An hour later, recycled Agents sat well under 128k and resumed normally.
+
+We keep one persistent session because the briefing is a hand-built rival to engine-native
+compaction: it must understand every runtime's records and guess what each Agent needs,
+and it needs ongoing tuning to match the engine. OpenClaw and Hermes both retired default
+time-based resets in July 2026 after users objected to unexpected context loss; neither ties
+sessions to cache lifetime. The savings are modest per Agent. Revisit if usage limits bind;
+the lower-maintenance variant to evaluate first is triggering the engine's own compaction
+shortly before the cache expires.

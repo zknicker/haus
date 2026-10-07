@@ -64,6 +64,10 @@ export function createServerUpdateHandler(
         if (event.scope === 'agent') {
             invalidateServerDetail(utils, slug);
             invalidateAgentDetail(utils, serverId, event.agentId);
+            // The Agent can rewrite its own style or emoji; the open Edit Profile read must follow.
+            void (event.agentId
+                ? utils.agent.conversationStyle.invalidate({ agentId: event.agentId, serverId })
+                : utils.agent.conversationStyle.invalidate(undefined, { exact: false }));
             void utils.agent.list.invalidate({ serverId });
             void utils.chat.list.invalidate({ serverId });
             return;

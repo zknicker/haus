@@ -1,6 +1,6 @@
 {
-  "id": "0c33152e-8118-438d-abd1-c65cbe62c3e8",
-  "prevId": "fc8b723f-d781-4a6a-85c9-f3cd8c891181",
+  "id": "86e7d86e-d76f-4a5c-aa32-fefc3d2fa9a9",
+  "prevId": "ed7011a3-1c1f-4bac-b700-54149f9a6dcc",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -31,12 +31,6 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
-        },
-        "operation_id": {
-          "name": "operation_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "phase": {
           "name": "phase",
@@ -309,7 +303,7 @@
       "checkConstraints": {
         "agent_activity_category": {
           "name": "agent_activity_category",
-          "value": "\"agent_activity\".\"category\" in ('starting_work', 'updating_instructions', 'checking_messages', 'received_message', 'thinking', 'browsing', 'searching_web', 'reading_files', 'editing_files', 'running_command', 'using_tool', 'delegating', 'sending_message', 'working')"
+          "value": "\"agent_activity\".\"category\" in ('starting_work', 'updating_instructions', 'checking_messages', 'received_message', 'thinking', 'browsing', 'searching_web', 'reading_files', 'editing_files', 'running_command', 'using_tool', 'sending_message', 'working')"
         },
         "agent_activity_phase": {
           "name": "agent_activity_phase",
@@ -334,10 +328,6 @@
         "agent_activity_id_shape": {
           "name": "agent_activity_id_shape",
           "value": "\"agent_activity\".\"id\" ~ '^aev_[A-Za-z0-9_-]{16}$'"
-        },
-        "agent_activity_operation_id": {
-          "name": "agent_activity_operation_id",
-          "value": "\"agent_activity\".\"operation_id\" is null or \"agent_activity\".\"operation_id\" ~ '^[0-9a-f]{16,64}$'"
         },
         "agent_activity_tool_ref": {
           "name": "agent_activity_tool_ref",
@@ -544,6 +534,96 @@
       },
       "isRLSEnabled": false
     },
+    "public.agent_chat_reads": {
+      "name": "agent_chat_reads",
+      "schema": "",
+      "columns": {
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chat_id": {
+          "name": "chat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "agent_chat_reads_agent_fk": {
+          "name": "agent_chat_reads_agent_fk",
+          "tableFrom": "agent_chat_reads",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "server_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "agent_chat_reads_chat_fk": {
+          "name": "agent_chat_reads_chat_fk",
+          "tableFrom": "agent_chat_reads",
+          "tableTo": "chats",
+          "columnsFrom": [
+            "server_id",
+            "chat_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "agent_chat_reads_server_id_agent_id_chat_id_pk": {
+          "name": "agent_chat_reads_server_id_agent_id_chat_id_pk",
+          "columns": [
+            "server_id",
+            "agent_id",
+            "chat_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "agent_chat_reads_nonnegative": {
+          "name": "agent_chat_reads_nonnegative",
+          "value": "\"agent_chat_reads\".\"sequence\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.agent_delivery": {
       "name": "agent_delivery",
       "schema": "",
@@ -616,11 +696,54 @@
           "primaryKey": false,
           "notNull": false
         },
+        "failure_fingerprint": {
+          "name": "failure_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_failure_at": {
+          "name": "last_failure_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_failure_code": {
+          "name": "last_failure_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_failure_kind": {
+          "name": "last_failure_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paused_at": {
+          "name": "paused_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pause_step": {
+          "name": "pause_step",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "retry_after": {
           "name": "retry_after",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "same_failure_streak": {
+          "name": "same_failure_streak",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "server_id": {
           "name": "server_id",
@@ -685,6 +808,14 @@
         "agent_delivery_nonnegative_failures": {
           "name": "agent_delivery_nonnegative_failures",
           "value": "\"agent_delivery\".\"consecutive_failures\" >= 0"
+        },
+        "agent_delivery_nonnegative_same_failure_streak": {
+          "name": "agent_delivery_nonnegative_same_failure_streak",
+          "value": "\"agent_delivery\".\"same_failure_streak\" >= 0"
+        },
+        "agent_delivery_wake_pause": {
+          "name": "agent_delivery_wake_pause",
+          "value": "(\n                \"agent_delivery\".\"paused_at\" is null and \"agent_delivery\".\"pause_step\" is null\n            ) or (\n                \"agent_delivery\".\"paused_at\" is not null\n                and \"agent_delivery\".\"pause_step\" between 0 and 2\n                and \"agent_delivery\".\"consecutive_failures\" > 0\n                and \"agent_delivery\".\"last_failure_at\" is not null\n                and \"agent_delivery\".\"last_failure_kind\" is not null\n            )"
         },
         "agent_delivery_active_run": {
           "name": "agent_delivery_active_run",
@@ -1736,115 +1867,6 @@
           "value": "\"agent_message_follows\".\"chat_kind\" in ('channel', 'dm')"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.agent_run_triggers": {
-      "name": "agent_run_triggers",
-      "schema": "",
-      "columns": {
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "chat_id": {
-          "name": "chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source": {
-          "name": "source",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "work_id": {
-          "name": "work_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "agent_run_triggers_server_id_servers_id_fk": {
-          "name": "agent_run_triggers_server_id_servers_id_fk",
-          "tableFrom": "agent_run_triggers",
-          "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_run_triggers_agent_fk": {
-          "name": "agent_run_triggers_agent_fk",
-          "tableFrom": "agent_run_triggers",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_run_triggers_chat_fk": {
-          "name": "agent_run_triggers_chat_fk",
-          "tableFrom": "agent_run_triggers",
-          "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "agent_run_triggers_server_id_agent_id_run_id_pk": {
-          "name": "agent_run_triggers_server_id_agent_id_run_id_pk",
-          "columns": [
-            "server_id",
-            "agent_id",
-            "run_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.agent_runner_credentials": {
@@ -3504,6 +3526,28 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "chat_events_message_created_idx": {
+          "name": "chat_events_message_created_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "message_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"chat_events\".\"event_type\" = 'message.created'",
           "concurrently": false,
           "method": "btree",
           "with": {}

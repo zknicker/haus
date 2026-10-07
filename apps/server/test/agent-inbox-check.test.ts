@@ -6,7 +6,7 @@ import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentInboxTable, messageTasksTable } from '../src/postgres/schema.ts';
+import { agentInboxTable, chatMessagesTable, messageTasksTable } from '../src/postgres/schema.ts';
 import { deliverHuman, FakeTransport, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -56,6 +56,8 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
         chatId: seed.channelId,
         cloudAgentResult: false,
         dm: false,
+        // The fire after it has no Chat message; the first pending message does.
+        firstSequence: await sequenceOf(taskMessageId),
         firstShortId: taskMessageId.slice(4, 12),
         latestSender: 'reminder',
         latestShortId: '-',
@@ -118,6 +120,14 @@ async function deliverMention(delivery: AgentDelivery, seed: Seed): Promise<stri
         .set({ mentioned: true })
         .where(eq(agentInboxTable.dedupeKey, messageId));
     return messageId;
+}
+
+async function sequenceOf(messageId: string) {
+    const [message] = await connection.db
+        .select({ sequence: chatMessagesTable.sequence })
+        .from(chatMessagesTable)
+        .where(eq(chatMessagesTable.id, messageId));
+    return message?.sequence;
 }
 
 async function readInbox(seed: Seed) {

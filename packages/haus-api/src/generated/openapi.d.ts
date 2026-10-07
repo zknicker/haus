@@ -420,8 +420,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read target history and advance the served ledger. */
+        /**
+         * Read target history and move the Agent's read position.
+         * @description A plain page moves the read position only when it continues from it. `unread=true` returns the page right after the read position, oldest first, and moves the position through it before responding; it cannot be combined with `before`, `after`, or `around`.
+         */
         get: operations["readAgentHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/inbox/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the Agent's conversations with unread past its read position.
+         * @description Joined channels, DMs, and followed Threads, newest activity first, from one snapshot. A muted channel counts only mentions and appears only while it has one. Any failure is a retryable 503 `INBOX_UNAVAILABLE`, never a partial list.
+         */
+        get: operations["listAgentInboxConversations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1022,7 +1045,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Update the calling agent's description. */
+        /** Update the calling agent's description, conversation style, or signature emoji. */
         post: operations["updateAgentProfile"];
         delete?: never;
         options?: never;
@@ -1221,13 +1244,21 @@ export interface components {
         AgentCreateAgentRequest: {
             /** @default null */
             avatarConcept: string | null;
-            /** @default null */
+            /**
+             * @description Required for fresh Agent-owned creation. Missing/null is decoded only for legacy nonce replay or an actionable refusal.
+             * @default null
+             */
             brief: string | null;
             /** @default [] */
             channels: string[];
             description: string;
             displayName: string;
             nonce: string;
+            /**
+             * @description Exactly one emoji grapheme, the new Agent's pickup reaction. Null means the default.
+             * @default null
+             */
+            signatureEmoji: string | null;
             target: string;
         };
         CreatedAgentSummary: {
@@ -1329,9 +1360,42 @@ export interface components {
             has_more: boolean;
             has_older: boolean;
             has_newer: boolean;
+            /** @description The read position before this read moved it; `unread_after` repeats it while someone else's message sat above it and is -1 when nothing was unread. */
             last_read: {
                 after: number;
                 unread_after: number;
+            };
+            thread_follow_reactivated_message_ids?: string[];
+            /** @description `unread=true` only: the read position this page starts after. */
+            unread_after_seq?: number;
+            /** @description `unread=true` only: the read position after this page. */
+            read_through_seq?: number;
+        };
+        AgentInboxConversation: {
+            /** @description Server-wide Chat event cursor of the conversation's newest message. */
+            activityKey: number;
+            chatId: string;
+            /** @enum {string} */
+            kind: "channel" | "dm" | "thread";
+            lastReadSequence: number;
+            /** Format: date-time */
+            latestAt: string | null;
+            latestSenderHandle: string | null;
+            mentions: number;
+            target: string;
+            unread: number;
+        };
+        AgentInboxConversationsResponse: {
+            /** @enum {string} */
+            view: "unread" | "mentions";
+            items: components["schemas"]["AgentInboxConversation"][];
+            hasMore: boolean;
+            nextBefore: number | null;
+            /** @description Over every unread conversation, whatever the view. */
+            totals: {
+                conversations: number;
+                dms: number;
+                mentions: number;
             };
         };
         AgentManualNavigationTopic: {
@@ -1692,6 +1756,10 @@ export interface components {
             description: string | null;
             handle: string;
             isSelf: boolean;
+            /** @description Present only on the caller's own profile; private to the Agent and its Owners and Admins. */
+            conversationStyle?: string | null;
+            /** @description Present only on the caller's own profile. Null means the default pickup reaction. */
+            signatureEmoji?: string | null;
         };
         AgentProfileResponse: {
             profile: components["schemas"]["AgentProfile"];
@@ -1714,7 +1782,11 @@ export interface components {
         };
         AgentProfileUpdateRequest: {
             /** @description A changed description is capped at 280 characters; resending the stored value is accepted. */
-            description: string;
+            description?: string;
+            /** @description The caller's own voice layer on top of the house personality. Null or blank clears it. */
+            conversationStyle?: string | null;
+            /** @description Exactly one emoji grapheme, the caller's pickup reaction. Null restores the default. */
+            signatureEmoji?: string | null;
         };
         AgentReactionRequest: {
             emoji: string;
@@ -3023,7 +3095,8 @@ export interface operations {
                 before?: string;
                 after?: string;
                 around?: string;
-                limit?: components["parameters"]["Limit"];
+                unread?: "true" | "false";
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -3038,6 +3111,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentHistoryResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    listAgentInboxConversations: {
+        parameters: {
+            query?: {
+                view?: "unread" | "mentions";
+                /** @description Keyset cursor; the previous page's `nextBefore`. */
+                before?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The unread conversations page and totals. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentInboxConversationsResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

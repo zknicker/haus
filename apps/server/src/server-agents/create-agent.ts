@@ -115,6 +115,7 @@ export async function createAgentInTransaction(
             homeTimezone: 'UTC',
             id: agentId,
             serverId: input.serverId,
+            signatureEmoji: input.signatureEmoji ?? null,
         });
     } catch (cause) {
         if (
@@ -146,6 +147,11 @@ export async function createAgentInTransaction(
             computerId: input.computerId,
             computerHealth,
             consecutiveFailures: 0,
+            lastFailureAt: null,
+            lastFailureCode: null,
+            lastFailureKind: null,
+            pausedAt: null,
+            retryAfter: null,
             createdAt: new Date(),
             createdByAgentId,
             createdByUserId,

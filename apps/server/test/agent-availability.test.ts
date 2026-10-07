@@ -24,6 +24,11 @@ const base: ConfiguredAgentRow = {
     factoryKind: 'ordinary',
     handle: 'sage',
     id: 'agt_1234567890123456',
+    lastFailureAt: null,
+    lastFailureCode: null,
+    lastFailureKind: null,
+    pausedAt: null,
+    retryAfter: null,
     serverId: 'srv_1234567890123456',
     stopped: false,
 };
@@ -42,6 +47,10 @@ describe('Agent availability', () => {
         expect(deriveAgentAvailability({ ...base, activeRunId: 'run_123' })).toBe('working');
         expect(deriveAgentAvailability({ ...base, stopped: true })).toBe('stopped');
         expect(deriveAgentAvailability({ ...base, consecutiveFailures: 1 })).toBe('error');
+        // A wake pause stays `error`; the pause detail rides `wakePause`.
+        expect(
+            deriveAgentAvailability({ ...base, consecutiveFailures: 3, pausedAt: new Date() })
+        ).toBe('error');
         expect(deriveAgentAvailability(base)).toBe('idle');
     });
 });

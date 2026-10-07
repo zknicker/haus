@@ -432,22 +432,50 @@
     {
       "idx": 61,
       "version": "7",
-      "when": 1791303476606,
-      "tag": "0061_delegating_activity",
+      "when": 1791297233357,
+      "tag": "0061_agent_wake_pause",
       "breakpoints": true
     },
     {
       "idx": 62,
       "version": "7",
-      "when": 1791312456332,
-      "tag": "0062_agent_run_triggers",
+      "when": 1791303357444,
+      "tag": "0062_agent_chat_reads",
       "breakpoints": true
     },
     {
       "idx": 63,
       "version": "7",
+      "when": 1791309687829,
+      "tag": "0063_manual_read_receipts",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1791318691443,
+      "tag": "0064_agent_conversation_style",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1791318700000,
+      "tag": "0065_delegating_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1791318710000,
+      "tag": "0066_agent_run_triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
       "when": 1791391226727,
-      "tag": "0063_server_turns_index",
+      "tag": "0067_server_turns_index",
       "breakpoints": true
     }
   ]

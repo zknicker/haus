@@ -10,6 +10,7 @@ import {
     type Reminder,
     type ReminderClock,
     ReminderCommandConflictError,
+    readReminder,
     requireActiveAgent,
     requireAgentAnchor,
     toReminder,
@@ -174,7 +175,12 @@ export async function readExistingCommand(
     if (command.fingerprint !== fingerprint) {
         throw new ReminderCommandConflictError();
     }
-    return parseReminderCommandResult(command.resultSnapshot);
+    // The snapshot proves what was applied; the receipt must describe what exists now.
+    return await readReminder(
+        db,
+        input.serverId,
+        parseReminderCommandResult(command.resultSnapshot).id
+    );
 }
 
 export function parseReminderCommandResult(snapshot: unknown): Reminder {

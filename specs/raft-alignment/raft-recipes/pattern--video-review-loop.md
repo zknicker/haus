@@ -41,4 +41,3 @@ The written fix list should cover every timestamp/comment. The final verificatio
 
 ### Proof it works
 Recorded walkthroughs and anchored artifact feedback let owners review asynchronously while agents convert the recording into a durable fix list and verify the same surface afterward.
-

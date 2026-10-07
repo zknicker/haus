@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { lstat, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { parseNoticeCommand, parseServerDeleteCommand } from './agent-command-frames.ts';
 import {
     decideStart,
     noticePath,
@@ -12,7 +13,6 @@ import {
     writeRunMarker,
 } from './delivery.ts';
 import type { AgentTurnFrame } from './launch.ts';
-import { parseNoticeCommand, parseServerDeleteCommand } from './launch.ts';
 
 let dataRoot: string;
 const serverId = 'srv_deliverytest0000';

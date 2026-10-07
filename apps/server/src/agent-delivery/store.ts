@@ -1,5 +1,5 @@
 import type { AddressedReason, AgentReasoningEffort } from '@haus/api';
-import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lte, ne, notInArray, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -11,8 +11,9 @@ import {
 } from '../postgres/schema.ts';
 import { bodilessInboxSources, concreteInboxSources } from './inbox-lanes.ts';
 import { retireRemovedTriggerItemsForRun } from './retire-removed-trigger-items.ts';
+import type { WakeState } from './wake-pause.ts';
 
-export interface AgentDeliveryRow {
+export interface AgentDeliveryRow extends WakeState {
     acceptedAt: Date | null;
     activeRunChatId: string | null;
     activeRunComputerId: string | null;
@@ -22,8 +23,6 @@ export interface AgentDeliveryRow {
     activeRunRuntimeId: string | null;
     agentChainTurns: number;
     agentId: string;
-    consecutiveFailures: number;
-    retryAfter: Date | null;
     serverId: string;
     stopped: boolean;
 }
@@ -613,29 +612,6 @@ export async function clearActiveRun(db: HausDatabase, agentId: string): Promise
         .where(eq(agentDeliveryTable.agentId, agentId));
 }
 
-/** Records a run failure: bumps the failure count and sets the next retry (or degraded). */
-export async function recordDeliveryFailure(
-    db: HausDatabase,
-    input: { agentId: string; consecutiveFailures: number; retryAfter: Date | null }
-): Promise<void> {
-    await db
-        .update(agentDeliveryTable)
-        .set({
-            consecutiveFailures: input.consecutiveFailures,
-            retryAfter: input.retryAfter,
-            updatedAt: new Date(),
-        })
-        .where(eq(agentDeliveryTable.agentId, input.agentId));
-}
-
-/** Clears the failure backoff — a success, Start, or session recovery re-enables dispatch. */
-export async function clearDeliveryFailures(db: HausDatabase, agentId: string): Promise<void> {
-    await db
-        .update(agentDeliveryTable)
-        .set({ consecutiveFailures: 0, retryAfter: null, updatedAt: new Date() })
-        .where(eq(agentDeliveryTable.agentId, agentId));
-}
-
 export async function setAgentChainTurns(
     db: HausDatabase,
     input: { agentId: string; turns: number }
@@ -691,12 +667,12 @@ export async function requeueInboxItemsForRun(
 
 /**
  * Every Agent the retry sweep should re-examine: one with an unacknowledged
- * in-flight run, or one with queued work and no active run that is not stopped,
- * not inside its failure backoff, and not degraded (`maxFailures` reached).
+ * in-flight run, or one with queued work and no active run that is not stopped
+ * and whose `retry_after` has passed. A paused Agent qualifies once its probe
+ * is due; the probe is then the one run its single active-run slot admits.
  */
 export async function listDispatchCandidates(
-    db: HausDatabase,
-    maxFailures: number
+    db: HausDatabase
 ): Promise<{ agentId: string; serverId: string }[]> {
     const now = new Date();
     const unacknowledged = await db
@@ -737,7 +713,6 @@ export async function listDispatchCandidates(
                 isNull(agentDeliveryTable.activeRunId),
                 eq(agentDeliveryTable.stopped, false),
                 isNull(agentsTable.retiredAt),
-                lt(agentDeliveryTable.consecutiveFailures, maxFailures),
                 or(isNull(agentDeliveryTable.retryAfter), lte(agentDeliveryTable.retryAfter, now))
             )
         );

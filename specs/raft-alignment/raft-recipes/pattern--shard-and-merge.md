@@ -41,4 +41,3 @@ Check that row counts reconcile: input count = accepted + rejected + pending + e
 
 ### Proof it works
 A multi-agent review of more than two thousand items used deterministic shards, shared labels, per-row evidence, and a merge pass to produce one final candidate list.
-

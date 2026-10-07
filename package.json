@@ -64,7 +64,7 @@
     "test:computer": "VARLOCK_ENV=test varlock run -- bun run --filter @haus/computer test",
     "test:fast": "VARLOCK_ENV=test varlock run -- bun test packages scripts apps/website/electron",
     "test:licensed": "VARLOCK_ENV=test varlock run -- node --test scripts/release/desktop-release-dependencies.licensed-check.mjs",
-    "test:prompt-contract": "VARLOCK_ENV=test varlock run -- bun test apps/computer/src/harness/managed-instructions.test.ts",
+    "test:prompt-contract": "VARLOCK_ENV=test varlock run -- bun test apps/computer/src/harness/managed-instructions.test.ts apps/computer/src/harness/managed-instructions-inbox.test.ts",
     "test:server": "VARLOCK_ENV=test varlock run -- bun run --filter @haus/server test",
     "test:tracer": "cd apps/website && bun x playwright test --config agent-e2e/playwright.config.ts",
     "typecheck": "bun run typecheck:fast && bun run typecheck:licensed",

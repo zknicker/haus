@@ -29,20 +29,6 @@ export function formatReminderTime(value: string) {
     }).format(new Date(value));
 }
 
-/** The one scheduled-row line: the next wake, and the cadence when it repeats. */
-export function formatReminderSchedule(reminder: Pick<Reminder, 'fireAt' | 'repeat'>) {
-    const fireAt = formatReminderTime(reminder.fireAt);
-    return reminder.repeat ? `${fireAt} · ${reminder.repeat}` : fireAt;
-}
-
-/**
- * A one-shot has a cadence too — it is "Once". Leaving the cell blank would
- * read as missing data in a column every other row fills.
- */
-export function formatReminderCadence(repeat: string | null) {
-    return repeat ?? 'Once';
-}
-
 /** What one execution produced, as the History drawer's outcome cell renders it. */
 export type ReminderExecutionOutcome =
     | { color: 'danger' | 'default' | 'success'; kind: 'script'; label: string }

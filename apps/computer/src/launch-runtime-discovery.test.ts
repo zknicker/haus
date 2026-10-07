@@ -50,7 +50,8 @@ test('launch accepts every runtime advertised by executable discovery', async ()
                 sendFrame: () => undefined,
                 serverOrigin: server.url.origin,
             });
-            expect(turn.summary).toContain('Discovery passed; stop before execution.');
+            // Reaching the runner mint proves the runtime cleared the installed check.
+            expect(turn.failureCode).toBe('runner-credential-failed');
         }
     } finally {
         process.env.PATH = previousPath;

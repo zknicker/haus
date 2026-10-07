@@ -5,8 +5,9 @@ import { agentsTable } from './agents.ts';
 import { serversTable } from './servers.ts';
 
 /**
- * Durable per-Agent delivery state: the human Stop flag plus the single
- * in-flight run. Serialization is per Agent — one row, one active run — so
+ * Durable per-Agent delivery state: the human Stop flag, the single in-flight
+ * run, and the wake pause (`paused_at`) that holds automatic wakes after
+ * repeated failures. Serialization is per Agent — one row, one active run — so
  * different Agents on one Computer run concurrently without a Computer-wide
  * queue. `acceptedAt` records the Computer's local-acceptance ack; a null
  * `acceptedAt` on an active run is what the retry sweep resends.
@@ -25,7 +26,14 @@ export const agentDeliveryTable = pgTable(
         agentId: text('agent_id').primaryKey(),
         consecutiveFailures: integer('consecutive_failures').notNull().default(0),
         dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
+        failureFingerprint: text('failure_fingerprint'),
+        lastFailureAt: timestamp('last_failure_at', { withTimezone: true }),
+        lastFailureCode: text('last_failure_code'),
+        lastFailureKind: text('last_failure_kind'),
+        pausedAt: timestamp('paused_at', { withTimezone: true }),
+        pauseStep: integer('pause_step'),
         retryAfter: timestamp('retry_after', { withTimezone: true }),
+        sameFailureStreak: integer('same_failure_streak').notNull().default(0),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -40,6 +48,22 @@ export const agentDeliveryTable = pgTable(
         }).onDelete('cascade'),
         check('agent_delivery_nonnegative_chain_turns', sql`${table.agentChainTurns} >= 0`),
         check('agent_delivery_nonnegative_failures', sql`${table.consecutiveFailures} >= 0`),
+        check(
+            'agent_delivery_nonnegative_same_failure_streak',
+            sql`${table.sameFailureStreak} >= 0`
+        ),
+        check(
+            'agent_delivery_wake_pause',
+            sql`(
+                ${table.pausedAt} is null and ${table.pauseStep} is null
+            ) or (
+                ${table.pausedAt} is not null
+                and ${table.pauseStep} between 0 and 2
+                and ${table.consecutiveFailures} > 0
+                and ${table.lastFailureAt} is not null
+                and ${table.lastFailureKind} is not null
+            )`
+        ),
         check(
             'agent_delivery_active_run',
             sql`(

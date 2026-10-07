@@ -1,38 +1,26 @@
 import { hausTrpc } from '../../lib/haus-server.tsx';
-import { withSavingToast } from '../../lib/saving-toast.ts';
 import { refreshAgent } from './agent-refresh.ts';
 
 export interface AgentIdentityDraft {
     description: string;
     displayName: string;
-    /** Absent leaves the stored personality unchanged; blank clears it. */
-    personality?: string;
 }
 
+/** Saves the Agent's public name and description; the caller owns the saving toast. */
 export function useAgentIdentity(serverId: string, agentId: string) {
     const utils = hausTrpc.useUtils();
     const mutation = hausTrpc.agent.updateProfile.useMutation({
-        onSuccess: () =>
-            Promise.all([
-                refreshAgent(utils, serverId, agentId),
-                utils.agent.personality.invalidate({ agentId, serverId }),
-            ]),
+        onSuccess: () => refreshAgent(utils, serverId, agentId),
     });
 
     return {
         ...mutation,
-        save: async (identity: AgentIdentityDraft) => {
-            await withSavingToast(() =>
-                mutation.mutateAsync({
-                    agentId,
-                    description: identity.description.trim() || null,
-                    displayName: identity.displayName.trim(),
-                    ...(identity.personality === undefined
-                        ? {}
-                        : { personality: identity.personality.trim() || null }),
-                    serverId,
-                })
-            );
-        },
+        save: (identity: AgentIdentityDraft) =>
+            mutation.mutateAsync({
+                agentId,
+                description: identity.description.trim() || null,
+                displayName: identity.displayName.trim(),
+                serverId,
+            }),
     };
 }

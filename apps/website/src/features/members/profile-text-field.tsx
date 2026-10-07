@@ -85,7 +85,14 @@ export function ProfileTextField({
     );
 }
 
-function ProfileFieldInfo({ children, label }: { children: React.ReactNode; label: string }) {
+/** The info tooltip beside a profile field label. */
+export function ProfileFieldInfo({
+    children,
+    label,
+}: {
+    children: React.ReactNode;
+    label: string;
+}) {
     return (
         <Tooltip delay={0}>
             <Button

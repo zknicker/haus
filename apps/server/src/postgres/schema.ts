@@ -2,6 +2,7 @@
 
 export * from './schema/agent-activity.ts';
 export * from './schema/agent-attention.ts';
+export * from './schema/agent-chat-reads.ts';
 export * from './schema/agent-delivery.ts';
 export * from './schema/agent-inbox.ts';
 export * from './schema/agent-manual-audit.ts';

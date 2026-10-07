@@ -105,3 +105,51 @@ flow without changing the durable onboarding record, relocking Haus App,
 creating another onboarding Channel, or recreating Cove. A full reset restores
 Cove's exact factory workspace; a session reset preserves its workspace and
 skills.
+
+Cove continues as the owner's chief of staff after onboarding: route work,
+track decisions and handoffs, and suggest improvements backed by current
+evidence. Once useful work scope is established, Cove offers an optional weekly
+review once, as a soft next step during onboarding or the next suitable owner
+interaction on an existing Server. Urgent work and upgrade-only turns do not
+prompt an offer. Recurring team reviews require agreement on accessible Chats,
+cadence, and destination. Cove keeps the agreement and prior findings in his
+workspace notes and installs one author-owned reminder. Healthy or unchanged
+state stays quiet; opt-outs persist and cancel the review. Upgrading guidance
+does not start monitoring or overwrite learned memory or custom guidance. The
+existing coordination note records offered, pending, enabled, declined or
+postponed state; unanswered and declined offers are not repeated. Uncertain
+sends are reconciled against Chat history, and unresolved delivery waits for
+the owner. Existing review cadences remain unchanged.
+
+Agent-owned creation requires full Manual reads in the creating run: `agent`,
+`recipes/decision/one-or-many`, and a relevant published archetype, plus a
+standing brief. Archetypes remain advice, not Agent settings. A recurring lane
+is ready only after its owner confirms a real reminder receipt, not a cadence
+written into the brief. See [Cove coordination](../plans/cove-coordination.md).
+
+On ordinary Cove turns, the Computer adds private operating-note context,
+including resumed sessions, asking Cove to read the playbook and current agreement.
+A factory refresh sends a reread notice instead. Custom, deleted or unrecognized
+factory files produce a conflict notice and are preserved. That notice includes
+the weekly offer protocol, existing agreement checks and explicit coordinator
+and reminder Manual topics. Delivery of these pointers does not prove model
+compliance. Neither path starts a review schedule.
+
+## Existing Cove updates
+
+A behavior release ships matching Server and Computer artifacts plus the Agent
+version. Server supplies the Manual and creation checks; Computer supplies factory
+notes, managed instructions and CLI behavior. Updating only the App is insufficient.
+The signed Computer update waits for active turns, installs and restarts. Cove
+receives the new behavior on his next turn; an idle Cove is not woken solely to
+apply it.
+
+Before that turn, Computer refreshes only recognized old factory playbook/FAQ
+bytes. Learned MEMORY, onboarding objectives, coordination agreements and owner
+notes remain unchanged. A per-turn pointer addresses discovery even when learned
+MEMORY lacks the new routines. Existing schedules remain Server-owned; a new
+review requires an agreed cadence. Deleting Cove never causes automatic recreation.
+The original cove-apply setup command is not the upgrade mechanism.
+
+For current archetype coverage and deliberate source adaptations, see
+[Manual source coverage](manual-source.md).

@@ -7,6 +7,7 @@ import {
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
+import { reactionEmojiCatalog } from '../reactions/reaction-emoji-catalog.ts';
 
 export const quickReactionEmoji = ['👍', '❤️', '🎉', '👀', '🔥', '😂', '✅'] as const;
 
@@ -147,56 +148,3 @@ export function hasOwnReaction(row: TranscriptMessageRow, emoji: string, viewerU
             false)
     );
 }
-
-// The picker ships no emoji dataset; this curated catalog keeps the grid
-// small, searchable by name, and centered on chat-reaction vocabulary.
-const reactionEmojiCatalog: { emoji: string; name: string }[] = [
-    { emoji: '👍', name: 'thumbs up' },
-    { emoji: '👎', name: 'thumbs down' },
-    { emoji: '❤️', name: 'heart' },
-    { emoji: '🎉', name: 'party tada' },
-    { emoji: '😂', name: 'joy laugh' },
-    { emoji: '😊', name: 'smile' },
-    { emoji: '😀', name: 'grin' },
-    { emoji: '😅', name: 'sweat smile' },
-    { emoji: '🤣', name: 'rofl' },
-    { emoji: '😍', name: 'heart eyes' },
-    { emoji: '🤔', name: 'thinking' },
-    { emoji: '🤯', name: 'mind blown' },
-    { emoji: '😮', name: 'wow open mouth' },
-    { emoji: '😢', name: 'cry sad' },
-    { emoji: '😭', name: 'sob' },
-    { emoji: '😡', name: 'angry' },
-    { emoji: '👀', name: 'eyes looking' },
-    { emoji: '🙏', name: 'pray thanks' },
-    { emoji: '👏', name: 'clap' },
-    { emoji: '🙌', name: 'raised hands' },
-    { emoji: '💪', name: 'muscle strong' },
-    { emoji: '🤝', name: 'handshake' },
-    { emoji: '👋', name: 'wave hello' },
-    { emoji: '✌️', name: 'peace' },
-    { emoji: '🤞', name: 'fingers crossed' },
-    { emoji: '👌', name: 'ok' },
-    { emoji: '✅', name: 'check done' },
-    { emoji: '❌', name: 'cross no' },
-    { emoji: '❓', name: 'question' },
-    { emoji: '❗', name: 'exclamation' },
-    { emoji: '➕', name: 'plus one' },
-    { emoji: '🔥', name: 'fire hot' },
-    { emoji: '⭐', name: 'star' },
-    { emoji: '✨', name: 'sparkles' },
-    { emoji: '🐝', name: 'bee' },
-    { emoji: '🚀', name: 'rocket ship' },
-    { emoji: '💡', name: 'idea lightbulb' },
-    { emoji: '🧠', name: 'brain' },
-    { emoji: '🎯', name: 'target bullseye' },
-    { emoji: '🏆', name: 'trophy win' },
-    { emoji: '☕', name: 'coffee' },
-    { emoji: '🍕', name: 'pizza' },
-    { emoji: '🎂', name: 'cake birthday' },
-    { emoji: '🐛', name: 'bug' },
-    { emoji: '🤖', name: 'robot' },
-    { emoji: '💯', name: 'hundred' },
-    { emoji: '⏳', name: 'hourglass waiting' },
-    { emoji: '📌', name: 'pin' },
-];

@@ -120,7 +120,7 @@ test('preserves the Cindy factory guidance shape with only supported Haus action
         '### Active-Elsewhere Handoff',
         '## Step 4: Progress Setup (Soft Guidance)',
         '## Team-Shape Flexibility Principle',
-        '## Step 5: End Every Turn with One Next Step',
+        '## Step 5: Offer One Useful Next Step',
         '## Inspiration Stories',
         '## Operational Guardrails',
     ]) {
@@ -157,6 +157,10 @@ test('refreshes factory guidance without overwriting Cove-owned memory or object
     await fs.writeFile(path.join(workspaceDir, 'notes', 'onboarding_playbook.md'), legacyPlaybook);
     await fs.writeFile(path.join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), legacyFaq);
     await fs.writeFile(path.join(workspaceDir, 'owner-note.md'), 'keep me\n');
+    await fs.writeFile(
+        path.join(workspaceDir, 'notes', 'coordination.md'),
+        'Reviews declined. Do not re-enable without consent.\n'
+    );
 
     expect(await inspectCoveFactoryGuidance(workspaceDir)).toMatchObject({ kind: 'refresh' });
     expect(await reconcileCoveFactoryGuidance(workspaceDir)).toMatchObject({ kind: 'refresh' });
@@ -169,6 +173,9 @@ test('refreshes factory guidance without overwriting Cove-owned memory or object
         await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_objectives.md'), 'utf8')
     ).toBe('owner progress\n');
     expect(await fs.readFile(path.join(workspaceDir, 'owner-note.md'), 'utf8')).toBe('keep me\n');
+    expect(await fs.readFile(path.join(workspaceDir, 'notes', 'coordination.md'), 'utf8')).toBe(
+        'Reviews declined. Do not re-enable without consent.\n'
+    );
     expect(
         await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')
     ).toContain('When the owner agrees another Agent would help, create it yourself');
