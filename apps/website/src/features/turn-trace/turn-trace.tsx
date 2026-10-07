@@ -22,6 +22,7 @@ import { TurnTraceFooter } from './turn-trace-footer.tsx';
 import { TurnTraceReveal } from './turn-trace-reveal.tsx';
 import { TurnTraceScopeProvider, type TurnTraceWorkspace } from './turn-trace-scope.tsx';
 import { TurnTraceScroll } from './turn-trace-scroll.tsx';
+import { TurnTraceStatsStrip } from './turn-trace-stats-strip.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from './turn-trace-view.ts';
 import { useTurnTraceNow } from './use-turn-trace-now.ts';
@@ -38,6 +39,7 @@ export function TurnTrace({
     outcome = null,
     runId,
     serverId,
+    totalsPlacement = 'footer',
     turn,
 }: {
     access: TurnDetailAccess;
@@ -47,6 +49,11 @@ export function TurnTrace({
     outcome?: AgentActivityTurn | null;
     runId: string | null;
     serverId: string;
+    /**
+     * `footer` closes the trace with its totals; `strip` states them as one
+     * muted line above the steps, for a host whose header leads into the trace.
+     */
+    totalsPlacement?: 'footer' | 'strip';
     turn: AgentActivityTurn | null;
 }) {
     const journal = useRetainedJournal(
@@ -74,6 +81,7 @@ export function TurnTrace({
             outcome={outcome}
             presentation={presentation}
             refreshError={journal.refreshError}
+            totalsPlacement={totalsPlacement}
             workspace={agentId ? { agentId, serverId } : null}
         />
     );
@@ -87,6 +95,7 @@ export function TurnTracePresentation({
     outcome = null,
     presentation,
     refreshError = null,
+    totalsPlacement = 'footer',
     workspace = null,
 }: {
     access: TurnDetailAccess;
@@ -95,6 +104,7 @@ export function TurnTracePresentation({
     outcome?: AgentActivityTurn | null;
     presentation: TurnJournalPresentation | null;
     refreshError?: string | null;
+    totalsPlacement?: 'footer' | 'strip';
     workspace?: TurnTraceWorkspace | null;
 }) {
     const journal =
@@ -135,12 +145,20 @@ export function TurnTracePresentation({
                     // trace grows into place instead of landing at full height.
                     <TurnTraceReveal className="grid min-w-0 gap-2">
                         {outcome ? <TurnTraceOutcome turn={outcome} /> : null}
+                        {totalsPlacement === 'strip' ? (
+                            <TurnTraceStatsStrip
+                                status={journal?.status ?? null}
+                                totals={view.totals}
+                            />
+                        ) : null}
                         <TurnTraceScopeProvider scope={{ axisMs: readAxis(view), workspace }}>
                             <TurnTraceScroll>
                                 <TurnTraceSteps steps={view.steps} />
                             </TurnTraceScroll>
                         </TurnTraceScopeProvider>
-                        <TurnTraceFooter totals={view.totals} />
+                        {totalsPlacement === 'footer' ? (
+                            <TurnTraceFooter totals={view.totals} />
+                        ) : null}
                     </TurnTraceReveal>
                 )}
                 {refreshError ? <TurnTraceNote>{refreshError}</TurnTraceNote> : null}
@@ -152,7 +170,7 @@ export function TurnTracePresentation({
 /** The turn's own failure, above its steps: the reason the turn stopped, not a call's. */
 function TurnTraceError({ error }: { error: NonNullable<TurnTraceView['error']> }) {
     return (
-        <div className="flex min-w-0 gap-2 text-sm">
+        <div className="flex min-w-0 gap-2 px-2 text-sm">
             <span className="flex h-5 shrink-0 items-center">
                 <Icon className="size-3.5 text-danger" icon={CancelCircleIcon} />
             </span>

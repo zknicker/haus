@@ -1,32 +1,59 @@
 import { expect, test } from 'bun:test';
+import type { AgentTurnOperationCount } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import { TurnRowContent } from './agent-turn-row.tsx';
 import type { TurnRowTitle } from './agent-turn-row-model.ts';
 
-test('a titled row stacks request over outcome and length over start time', () => {
+test('a titled row is one line: time, request, place, length — no action marks', () => {
     const markup = render(settled({ durationMs: 660_000 }), {
         kind: 'text',
         place: 'DM',
-        text: 'Ship the changelog',
+        request: 'Ship the changelog\nThen tag it',
+        text: 'Ship the changelog Then tag it',
     });
-    expect(text(markup)).toEqual(['Ship the changelog', 'DM', '1 message', '11m', time()]);
-    // One fixed, unwrapping numeric column carries both numbers.
-    expect(markup).toMatch(/class="[^"]*w-18[^"]*whitespace-nowrap[^"]*tabular-nums/);
-    expect(markup).not.toContain('Failed');
+    expect(text(markup)).toEqual([time(), 'Ship the changelog Then tag it', 'DM', '11m']);
+    expect(markup).toMatch(/class="[^"]*truncate text-foreground/);
+    expect(markup).not.toMatch(/font-medium|Failed|<svg/);
+    // Time and length are tabular and never wrap.
+    expect(markup).toMatch(/<time class="whitespace-nowrap text-muted tabular-nums"/);
+    expect(markup).toMatch(/whitespace-nowrap text-end text-muted tabular-nums/);
 });
 
-test('a row without a visible request is its outcome alone, never repeated', () => {
-    const markup = render(settled(), { kind: 'none' });
-    expect(text(markup)).toEqual(['1 message', '1m', time()]);
+test('an open row replaces its truncated title with the whole request, once', () => {
+    const markup = render(
+        settled(),
+        { kind: 'text', place: 'DM', request: 'Ship it\nThen tag it', text: 'Ship it Then tag it' },
+        1,
+        true
+    );
+    expect(text(markup)).toEqual([time(), 'Ship it\nThen tag it', '1m']);
+    expect(markup).toContain('whitespace-pre-line');
+    expect(markup).not.toContain('truncate');
 });
 
-test('a failed row keeps its status explicit, before the numbers', () => {
+test('a row without a visible request is titled, muted, by what the turn did', () => {
+    const markup = render(
+        settled({ messageCount: 0, operations: [op('editing_files', 3), op('reading_files', 4)] }),
+        { kind: 'none' }
+    );
+    expect(text(markup)).toEqual([time(), 'Edited 3 files · read 4', '1m']);
+    expect(markup).toMatch(/class="min-w-0 truncate text-muted">Edited/);
+});
+
+test('a failed row shows only its glyph, with the folded repeat count', () => {
     const markup = render(settled({ status: 'failed' }), { kind: 'none' }, 3);
-    expect(text(markup)).toEqual(['1 message', 'Failed', '3×', '1m', time()]);
+    expect(text(markup)).toEqual([time(), 'Failed', 'Sent 1 message', '3×', '1m']);
+    expect(markup).toMatch(/text-danger" title="Failed"/);
+    expect(render(settled(), { kind: 'none' })).not.toContain('title=');
 });
 
-test('a running row shows Working and a live length', () => {
+test('an interrupted row takes the warning glyph', () => {
+    const markup = render(settled({ status: 'interrupted' }), { kind: 'none' });
+    expect(markup).toMatch(/text-warning" title="Interrupted"/);
+});
+
+test('a running row shows a spinner glyph and a live length', () => {
     const markup = render(
         { ...base(), kind: 'active', startedAt: new Date(Date.now() - 42_000).toISOString() },
         { kind: 'pending', place: '#product' }
@@ -35,9 +62,17 @@ test('a running row shows Working and a live length', () => {
     expect(markup).toMatch(/>4[23]s</);
 });
 
-function render(turn: AgentActivityTurn, title: TurnRowTitle, count = 1) {
+function op(category: AgentTurnOperationCount['category'], completed: number) {
+    return { category, completed, failed: 0, interrupted: 0 };
+}
+
+function render(turn: AgentActivityTurn, title: TurnRowTitle, count = 1, isExpanded = false) {
     return renderToStaticMarkup(
-        <TurnRowContent row={{ count, latest: turn, since: turn.startedAt }} title={title} />
+        <TurnRowContent
+            isExpanded={isExpanded}
+            row={{ count, latest: turn, since: turn.startedAt }}
+            title={title}
+        />
     );
 }
 

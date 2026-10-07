@@ -1,5 +1,6 @@
 import { Spinner } from '@heroui/react';
 import { AlertCircleIcon, StopCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
@@ -14,44 +15,60 @@ import {
 import type { RecentActivityRow } from './recent-activity-rows.ts';
 
 /**
- * One turn as a row: the request that woke it (with its Chat) over the actions
- * it took, then a fixed numeric column — length over start time — so every
- * row's numbers share one right edge. Status shows only when it is news
- * (failed, interrupted, or still working), in its own slot before the numbers.
+ * One turn as one log line on fixed columns: start time, a status glyph only
+ * when it is news (failed, interrupted, still working), the request with its
+ * Chat, and the turn's length. Every row shares the columns, so times,
+ * requests, and lengths each line up down the list. A turn with no request
+ * the reader may see is titled, muted, by what it did. Open, the request
+ * replaces its one truncated line in place, whole and wrapping.
  */
-export function TurnRowContent({ row, title }: { row: RecentActivityRow; title: TurnRowTitle }) {
-    const outcome = formatTurnOutcome(row.latest);
+export function TurnRowContent({
+    isExpanded = false,
+    row,
+    title,
+}: {
+    isExpanded?: boolean;
+    row: RecentActivityRow;
+    title: TurnRowTitle;
+}) {
+    const turn = row.latest;
     const status = getTurnRowStatus(row);
 
     return (
         // `w-0` keeps the long title out of the trigger's min-content width, so
-        // the row truncates instead of widening the Accordion past the viewport.
-        <span className="me-2 flex w-0 min-w-0 flex-1 items-center gap-3 text-left font-normal text-sm">
-            <span className="flex min-w-0 flex-1 flex-col">
-                {title.kind === 'none' ? (
-                    // No request the reader may see: what the turn did is the
-                    // whole row, one line set against the two-line numbers.
-                    <span className="min-w-0 truncate text-foreground">{outcome}</span>
-                ) : (
-                    <>
-                        <span className="flex min-h-5 min-w-0 items-baseline gap-1.5">
-                            <span className="min-w-0 truncate font-medium text-foreground">
-                                {title.kind === 'text' ? title.text : null}
-                            </span>
-                            {title.place ? (
-                                <span className="shrink-0 text-muted">{title.place}</span>
-                            ) : null}
-                        </span>
-                        <span className="min-w-0 truncate text-muted">{outcome}</span>
-                    </>
-                )}
+        // the row truncates instead of widening the list past the viewport.
+        <span
+            className="me-2 grid w-0 min-w-0 flex-1 grid-cols-[4.25rem_1rem_minmax(0,1fr)_3.25rem] items-start gap-x-2 text-left font-normal text-sm leading-5"
+            data-turn-row
+        >
+            <time className="whitespace-nowrap text-muted tabular-nums" dateTime={turn.startedAt}>
+                {formatShortTime(turn.startedAt)}
+            </time>
+            <span className="flex h-5 items-center justify-center">
+                {status ? <TurnStatusGlyph status={status} /> : null}
             </span>
-            {status ? <TurnRowStatusMark status={status} /> : null}
-            <span className="flex w-18 shrink-0 flex-col items-end whitespace-nowrap text-muted tabular-nums">
-                <TurnDuration turn={row.latest} />
-                <time dateTime={row.latest.startedAt}>{formatShortTime(row.latest.startedAt)}</time>
+            <TurnRowTitleLine
+                count={status?.kind === 'failed' ? status.count : 1}
+                isExpanded={isExpanded}
+                title={title}
+                turn={turn}
+            />
+            <span className="whitespace-nowrap text-end text-muted tabular-nums">
+                <TurnDuration turn={turn} />
             </span>
         </span>
+    );
+}
+
+/**
+ * An open row's content, on the row's own columns: it starts at the request's
+ * left edge, so what the turn did reads as the request's continuation.
+ */
+export function TurnRowBody({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="grid min-w-0 grid-cols-[4.25rem_1rem_minmax(0,1fr)] gap-x-2">
+            <div className="col-start-3 grid min-w-0 gap-3">{children}</div>
+        </div>
     );
 }
 
@@ -64,28 +81,61 @@ export function TurnDuration({ turn }: { turn: AgentActivityTurn }) {
     );
 }
 
-function TurnRowStatusMark({ status }: { status: NonNullable<TurnRowStatus> }) {
+function TurnRowTitleLine({
+    count,
+    isExpanded,
+    title,
+    turn,
+}: {
+    /** Folded repeats of a failure: `3×`. */
+    count: number;
+    isExpanded: boolean;
+    title: TurnRowTitle;
+    turn: AgentActivityTurn;
+}) {
+    const repeats =
+        count > 1 ? <span className="shrink-0 text-danger tabular-nums">{count}×</span> : null;
+    if (title.kind === 'none') {
+        return (
+            <span className="flex min-w-0 items-baseline gap-1.5">
+                <span className="min-w-0 truncate text-muted">{formatTurnOutcome(turn)}</span>
+                {repeats}
+            </span>
+        );
+    }
+    if (isExpanded && title.kind === 'text') {
+        return (
+            <span className="min-w-0 whitespace-pre-line break-words text-foreground">
+                {title.request}
+            </span>
+        );
+    }
+    return (
+        <span className="flex min-w-0 items-baseline gap-1.5">
+            <span className="min-w-0 truncate text-foreground">
+                {title.kind === 'text' ? title.text : null}
+            </span>
+            {title.place ? <span className="shrink-0 text-muted">{title.place}</span> : null}
+            {repeats}
+        </span>
+    );
+}
+
+function TurnStatusGlyph({ status }: { status: NonNullable<TurnRowStatus> }) {
     if (status.kind === 'working') {
         return (
-            <span className="flex shrink-0 items-center gap-1 text-accent">
+            <span className="flex text-accent" title="Working">
                 <Spinner color="current" size="sm" />
-                <span className="max-sm:sr-only">Working</span>
+                <span className="sr-only">Working</span>
             </span>
         );
     }
     const failed = status.kind === 'failed';
+    const label = failed ? 'Failed' : 'Interrupted';
     return (
-        <span
-            className={
-                failed
-                    ? 'flex shrink-0 items-center gap-1 text-danger'
-                    : 'flex shrink-0 items-center gap-1 text-warning'
-            }
-        >
+        <span className={failed ? 'flex text-danger' : 'flex text-warning'} title={label}>
             <Icon className="size-4" icon={failed ? AlertCircleIcon : StopCircleIcon} />
-            {/* On a phone the mark alone carries the status; the title needs the room. */}
-            <span className="max-sm:sr-only">{failed ? 'Failed' : 'Interrupted'}</span>
-            {status.count > 1 ? <span className="tabular-nums">{status.count}×</span> : null}
+            <span className="sr-only">{label}</span>
         </span>
     );
 }

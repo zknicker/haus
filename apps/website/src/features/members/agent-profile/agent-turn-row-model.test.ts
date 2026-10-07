@@ -28,8 +28,17 @@ test('a message turn is titled by its first line, with a DM labeled "DM", never 
     expect(resolveTurnRowTitle(dmMessage, messages, chats)).toEqual({
         kind: 'text',
         place: 'DM',
+        request: 'Set up a project in tinylink',
         text: 'Set up a project in tinylink',
     });
+    // The open row's request keeps its paragraphs.
+    expect(
+        resolveTurnRowTitle(
+            dmMessage,
+            reads(['msg_one', resolved('First ask.\n\nThen this.')]),
+            chats
+        )
+    ).toMatchObject({ request: 'First ask.\nThen this.', text: 'First ask. Then this.' });
     expect(
         resolveTurnRowTitle({ ...dmMessage, chatId: 'cht_product' }, messages, chats)
     ).toMatchObject({ place: '#product' });
@@ -50,11 +59,12 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
     expect(resolveTurnRowTitle(null, reads(), chats)).toEqual({ kind: 'none' });
     expect(
         resolveTurnRowTitle({ chatId: 'cht_product', kind: 'reminder' }, reads(), chats)
-    ).toEqual({ kind: 'text', place: '#product', text: 'Reminder' });
+    ).toEqual({ kind: 'text', place: '#product', request: 'Reminder', text: 'Reminder' });
     // A Chat outside the reader's list (a Thread) loses its place, not its title.
     expect(resolveTurnRowTitle({ chatId: 'cht_thread', kind: 'trigger' }, reads(), chats)).toEqual({
         kind: 'text',
         place: null,
+        request: 'Trigger',
         text: 'Trigger',
     });
 });
@@ -66,7 +76,7 @@ test('a task turn reads its task message, and an attachment-only message says so
     });
 });
 
-test('the outcome lists actions taken, most telling first, with no invented count', () => {
+test('the outcome says what the turn did in words, most telling first', () => {
     const turn = settled({
         messageCount: 1,
         operations: [
@@ -78,8 +88,24 @@ test('the outcome lists actions taken, most telling first, with no invented coun
         ],
     });
     expect(formatTurnOutcome(turn)).toBe(
-        '2 sub-agents · 1 image · 2 videos · 3 file edits · 4 commands (1 failed) · 1 message'
+        'Ran 2 sub-agents · generated 1 image · generated 2 videos · edited 3 files · ran 4 commands (1 failed) · sent 1 message'
     );
+    // A noun the previous action named is not repeated; a one-off repeat needs no count.
+    expect(
+        formatTurnOutcome(
+            settled({
+                messageCount: 0,
+                operations: [
+                    op('reading_files', 4),
+                    op('editing_files', 3),
+                    op('checking_messages', 2),
+                ],
+            })
+        )
+    ).toBe('Edited 3 files · read 4 · checked messages 2 times');
+    expect(
+        formatTurnOutcome(settled({ messageCount: 0, operations: [op('searching_web', 1)] }))
+    ).toBe('Searched the web');
     // Nothing done and nothing said: a completed turn chose quiet; any other ended early.
     expect(formatTurnOutcome(settled())).toBe('Stayed quiet');
     expect(formatTurnOutcome({ ...settled(), status: 'interrupted' })).toBe(

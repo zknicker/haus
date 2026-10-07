@@ -7,14 +7,21 @@ import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import type { RecentActivityRow } from './recent-activity-rows.ts';
 
 /**
- * What a turn row is titled by: the request that woke it. `pending` holds the
- * title line blank while the message reads; `none` means there is nothing the
- * reader may see (private, unrecorded, or unreadable), so the outcome is the row.
+ * What a turn row is titled by: the request that woke it. `text` is its first
+ * line for the collapsed row and `request` the whole of it, line breaks kept,
+ * for the open row. `pending` holds the title line blank while the message
+ * reads; `none` means there is nothing the reader may see (private,
+ * unrecorded, or unreadable), so the row is titled by what the turn did.
  */
 export type TurnRowTitle =
     | { readonly kind: 'none' }
     | { readonly kind: 'pending'; readonly place: string | null }
-    | { readonly kind: 'text'; readonly place: string | null; readonly text: string };
+    | {
+          readonly kind: 'text';
+          readonly place: string | null;
+          readonly request: string;
+          readonly text: string;
+      };
 
 export function resolveTurnRowTitle(
     trigger: AgentTurnTrigger | null,
@@ -37,39 +44,56 @@ export function resolveTurnRowTitle(
         const text =
             messagePreviewLine(read.message.content) ||
             (read.message.attachments.length > 0 ? 'Attachment' : '');
-        return text ? { kind: 'text', place, text } : { kind: 'none' };
+        return text
+            ? { kind: 'text', place, request: readRequest(read.message.content) || text, text }
+            : { kind: 'none' };
     }
-    return { kind: 'text', place, text: workTitles[trigger.kind] };
+    const title = workTitles[trigger.kind];
+    return { kind: 'text', place, request: title, text: title };
 }
 
-/** The actions a turn took, most telling first: `2 sub-agents · 3 file edits · 1 message`. */
+/**
+ * What a turn did, in words, most telling first: `Ran 2 sub-agents · edited 3
+ * files · read 4 · sent 1 message`. A noun the previous action already named
+ * is not repeated. Failed or interrupted calls follow their count.
+ */
 export function formatTurnOutcome(turn: AgentActivityTurn): string {
-    const operations = [...turn.operations]
+    const actions = [...turn.operations]
         .sort(
             (left, right) =>
                 outcomeOrder.indexOf(left.category) - outcomeOrder.indexOf(right.category)
         )
         .map((operation) => {
             const total = operation.completed + operation.failed + operation.interrupted;
-            const noun = outcomeNouns[operation.category][total === 1 ? 0 : 1];
             const exceptions = [
                 operation.failed > 0 ? `${operation.failed} failed` : null,
                 operation.interrupted > 0 ? `${operation.interrupted} interrupted` : null,
             ].filter(Boolean);
-            return `${total} ${noun}${exceptions.length > 0 ? ` (${exceptions.join(', ')})` : ''}`;
+            return {
+                ...outcomeAction(operation.category, total),
+                suffix: exceptions.length > 0 ? ` (${exceptions.join(', ')})` : '',
+            };
         });
+    if (turn.messageCount > 0) {
+        actions.push({ ...outcomeAction('sending_message', turn.messageCount), suffix: '' });
+    }
     const parts = [
         // The row's status mark already says "Failed"; only a known reason adds anything.
         ...(turn.kind === 'settled' && turn.status === 'failed' && turn.failureKind
-            ? [failureReasons[turn.failureKind]].filter(Boolean)
+            ? [failureReasons[turn.failureKind]].filter((reason) => reason !== undefined)
             : []),
-        ...operations,
-        ...(turn.messageCount > 0
-            ? [`${turn.messageCount} ${turn.messageCount === 1 ? 'message' : 'messages'}`]
-            : []),
+        ...actions.map((action, index) => {
+            // `Searched the web` needs no count of one, and its `times` never carries over.
+            if (action.isRepeat) {
+                const count = action.count === 1 ? '' : ` ${action.count} ${action.noun}`;
+                return `${action.verb}${count}${action.suffix}`;
+            }
+            const repeated = index > 0 && actions[index - 1]?.noun === action.noun;
+            return `${action.verb} ${action.count}${repeated ? '' : ` ${action.noun}`}${action.suffix}`;
+        }),
     ];
     if (parts.length > 0) {
-        return parts.join(' · ');
+        return parts.map((part, index) => (index === 0 ? part : lowerFirst(part))).join(' · ');
     }
     if (turn.kind === 'active') {
         // Nothing has settled yet: say what the Agent is doing right now.
@@ -198,16 +222,39 @@ const outcomeOrder: readonly AgentTurnOperationCategory[] = [
     'checking_messages',
 ];
 
-const outcomeNouns: Record<AgentTurnOperationCategory, readonly [string, string]> = {
-    browsing: ['browser action', 'browser actions'],
-    checking_messages: ['message check', 'message checks'],
-    delegating: ['sub-agent', 'sub-agents'],
-    editing_files: ['file edit', 'file edits'],
-    generating_image: ['image', 'images'],
-    generating_video: ['video', 'videos'],
-    reading_files: ['file read', 'file reads'],
-    running_command: ['command', 'commands'],
-    searching_web: ['web search', 'web searches'],
-    updating_instructions: ['instruction update', 'instruction updates'],
-    using_tool: ['tool call', 'tool calls'],
+/** Verb, then the singular and plural noun its count takes. */
+const outcomeWords: Record<
+    AgentTurnOperationCategory | 'sending_message',
+    readonly [string, string, string]
+> = {
+    browsing: ['Took', 'browser action', 'browser actions'],
+    checking_messages: ['Checked messages', 'time', 'times'],
+    delegating: ['Ran', 'sub-agent', 'sub-agents'],
+    editing_files: ['Edited', 'file', 'files'],
+    generating_image: ['Generated', 'image', 'images'],
+    generating_video: ['Generated', 'video', 'videos'],
+    reading_files: ['Read', 'file', 'files'],
+    running_command: ['Ran', 'command', 'commands'],
+    searching_web: ['Searched the web', 'time', 'times'],
+    sending_message: ['Sent', 'message', 'messages'],
+    updating_instructions: ['Updated instructions', 'time', 'times'],
+    using_tool: ['Used', 'tool', 'tools'],
 };
+
+function outcomeAction(category: keyof typeof outcomeWords, count: number) {
+    const [verb, one, many] = outcomeWords[category];
+    return { count, isRepeat: one === 'time', noun: count === 1 ? one : many, verb };
+}
+
+/** A message's whole text as plain lines, one per paragraph it was written in. */
+function readRequest(content: string): string {
+    return content
+        .split(/\n{2,}/u)
+        .map((paragraph) => messagePreviewLine(paragraph))
+        .filter(Boolean)
+        .join('\n');
+}
+
+function lowerFirst(value: string): string {
+    return value.charAt(0).toLowerCase() + value.slice(1);
+}

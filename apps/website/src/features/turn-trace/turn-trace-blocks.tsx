@@ -90,7 +90,8 @@ export function TurnTraceFact({ label, value }: { label: string; value: string }
 }
 
 export function TurnTraceNote({ children }: { children: React.ReactNode }) {
-    return <p className="text-muted text-sm">{children}</p>;
+    // On the rows' own inline pad, so a note starts where their icons do.
+    return <p className="px-2 text-muted text-sm">{children}</p>;
 }
 
 /**

@@ -36,7 +36,7 @@ test('TurnTrace does not flash a loading label or semantic replacement while the
     assert.doesNotMatch(markup, /Loading|Started work|No activity/);
 });
 
-test('reasoning reads inline as a row, with no disclosure, even before the first tool', () => {
+test('reasoning is a one-line row, its first line as detail, even before the first tool', () => {
     const markup = renderJournal({
         ...journal([]),
         reasoning: [{ id: 'thinking', startedAt: at(1), text: 'Inspecting the delivery queue.' }],
@@ -44,8 +44,13 @@ test('reasoning reads inline as a row, with no disclosure, even before the first
     });
 
     assert.match(markup, /data-trace-row/);
-    assert.match(markup, /Inspecting the delivery queue/);
-    assert.doesNotMatch(markup, /aria-expanded/);
+    assert.match(
+        markup,
+        />Thought<[\s\S]*?class="[^"]*text-muted">Inspecting the delivery queue\.</
+    );
+    // Closed like every other step; its prose mounts only once opened.
+    assert.match(markup, /aria-expanded="false"/);
+    assert.doesNotMatch(markup, /chat-markdown/);
 });
 
 test('the trace is one grid of borderless rows with totals stated once, in its footer', () => {
@@ -65,6 +70,24 @@ test('the trace is one grid of borderless rows with totals stated once, in its f
         /class="whitespace-nowrap text-end text-muted text-sm tabular-nums" data-trace-cell="duration">19s</
     );
     assert.doesNotMatch(markup, />\d+ms</);
+});
+
+test('a strip host states the totals once, as one muted line above the steps', () => {
+    const markup = renderToStaticMarkup(
+        <TurnTracePresentation
+            access="journal"
+            isPending={false}
+            presentation={{ journal: complexTurn, kind: 'available' }}
+            totalsPlacement="strip"
+        />
+    );
+    assert.doesNotMatch(markup, /data-trace-footer/);
+    const strip = markup.slice(markup.indexOf('data-trace-strip'), markup.indexOf('trace-row'));
+    const parts = [...strip.matchAll(/<span(?: class="([^"]*)")?>([^<·]+)<\/span>/g)].map(
+        (match) => match[2]
+    );
+    assert.deepEqual(parts, ['1m 25s', '12 calls', '3 sub-agents', '3 failed', 'Done']);
+    assert.match(strip, /class="text-danger">3 failed</);
 });
 
 test('steps are tab stops only when they open to something', () => {

@@ -2,11 +2,13 @@ import type { Agent } from '@haus/api';
 import { Accordion, Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { useHausServerConnectionState } from '../../../lib/haus-server.tsx';
+import { serverChatRoute } from '../../servers/server-routes.ts';
 import { TurnTrace } from '../../turn-trace/turn-trace.tsx';
 import { TurnTraceScroll } from '../../turn-trace/turn-trace-scroll.tsx';
 import {
@@ -16,8 +18,8 @@ import {
 } from './agent-activity-model.ts';
 import { type AgentActivityTurn, groupAgentActivityTurns } from './agent-activity-turns.ts';
 import { AgentLoading } from './agent-loading.tsx';
-import { TurnRowContent } from './agent-turn-row.tsx';
-import { groupTurnRowsByDay } from './agent-turn-row-model.ts';
+import { TurnRowBody, TurnRowContent } from './agent-turn-row.tsx';
+import { groupTurnRowsByDay, type TurnRowTitle } from './agent-turn-row-model.ts';
 import { collapseRecentActivity, type RecentActivityRow } from './recent-activity-rows.ts';
 import { useTurnRowTitles } from './use-turn-row-titles.ts';
 
@@ -76,6 +78,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
                     access={getTurnDetailAccess(server.role)}
                     agentId={agent.id}
                     serverId={server.id}
+                    serverSlug={server.slug}
                     turns={turns}
                 />
             )}
@@ -99,11 +102,13 @@ function ActivityTurnHistory({
     access,
     agentId,
     serverId,
+    serverSlug,
     turns,
 }: {
     access: TurnDetailAccess;
     agentId: string;
     serverId: string;
+    serverSlug: string;
     turns: readonly AgentActivityTurn[];
 }) {
     // Expansion is the journal's request gate: a turn asks its Computer for
@@ -135,20 +140,37 @@ function ActivityTurnHistory({
                                 <Accordion.Item id={row.latest.runId} key={row.latest.runId}>
                                     <Accordion.Heading>
                                         <Accordion.Trigger>
-                                            <TurnRowContent row={row} title={titleOf(row.latest)} />
+                                            <TurnRowContent
+                                                isExpanded={expanded.has(row.latest.runId)}
+                                                row={row}
+                                                title={titleOf(row.latest)}
+                                            />
                                             <Accordion.Indicator />
                                         </Accordion.Trigger>
                                     </Accordion.Heading>
                                     <Accordion.Panel>
                                         <Accordion.Body>
-                                            <TurnTrace
-                                                access={access}
-                                                agentId={agentId}
-                                                enabled={expanded.has(row.latest.runId)}
-                                                runId={row.latest.runId}
-                                                serverId={serverId}
-                                                turn={row.latest}
-                                            />
+                                            <TurnRowBody>
+                                                <TurnChatLink
+                                                    serverSlug={serverSlug}
+                                                    title={titleOf(row.latest)}
+                                                    turn={row.latest}
+                                                />
+                                                {/* Trace rows pad their own hover fill;
+                                                    their icons, not the fill, meet the
+                                                    request's edge. */}
+                                                <div className="-mx-2 min-w-0">
+                                                    <TurnTrace
+                                                        access={access}
+                                                        agentId={agentId}
+                                                        enabled={expanded.has(row.latest.runId)}
+                                                        runId={row.latest.runId}
+                                                        serverId={serverId}
+                                                        totalsPlacement="strip"
+                                                        turn={row.latest}
+                                                    />
+                                                </div>
+                                            </TurnRowBody>
                                         </Accordion.Body>
                                     </Accordion.Panel>
                                 </Accordion.Item>
@@ -158,6 +180,30 @@ function ActivityTurnHistory({
                 ))}
             </div>
         </TurnTraceScroll>
+    );
+}
+
+/** The way back to the Chat the request came from, once the row is open. */
+function TurnChatLink({
+    serverSlug,
+    title,
+    turn,
+}: {
+    serverSlug: string;
+    title: TurnRowTitle;
+    turn: AgentActivityTurn;
+}) {
+    const trigger = turn.trigger;
+    if (!(trigger && trigger.kind !== 'private' && title.kind === 'text' && title.place)) {
+        return null;
+    }
+    return (
+        <Link
+            className="w-fit text-accent text-xs"
+            to={serverChatRoute(serverSlug, trigger.chatId)}
+        >
+            Open in {title.place}
+        </Link>
     );
 }
 

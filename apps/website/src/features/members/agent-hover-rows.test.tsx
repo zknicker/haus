@@ -32,11 +32,11 @@ test('a recent turn stacks request over place and outcome, length over age', () 
     const markup = renderToStaticMarkup(
         <AgentHoverTurn
             row={{ count: 1, latest: turn(), since: startedAt }}
-            title={{ kind: 'text', place: 'DM', text: 'Ship it' }}
+            title={{ kind: 'text', place: 'DM', request: 'Ship it', text: 'Ship it' }}
         />
     );
     const [title, outcome, length] = text(markup);
-    expect([title, outcome, length]).toEqual(['Ship it', 'DM · 1 message', '11m']);
+    expect([title, outcome, length]).toEqual(['Ship it', 'DM · Sent 1 message', '11m']);
 });
 
 test('a recent turn with no visible request is one outcome line, status explicit', () => {
@@ -46,7 +46,7 @@ test('a recent turn with no visible request is one outcome line, status explicit
             title={{ kind: 'none' }}
         />
     );
-    expect(text(markup).slice(0, 3)).toEqual(['1 message', 'Interrupted 2×', '11m']);
+    expect(text(markup).slice(0, 3)).toEqual(['Sent 1 message', 'Interrupted 2×', '11m']);
 });
 
 const startedAt = '2026-10-06T12:00:00.000Z';
