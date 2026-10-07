@@ -75,7 +75,18 @@ works and `Done` once it settles. The Activity tab's event log
 (`members/agent-profile/agent-activity-log*.tsx`) states no totals: each turn's header carries its
 length, and its steps render through `TurnTraceSteps` on the log's grid (`TraceLayoutProvider`
 `layout="log"`), which leads every row with the step's offset from the turn's start and drops the
-track below a 42rem log. The journal reports tokens only per sub-agent, so neither states any for
+track below a 42rem log. Each turn keeps its own scale, but the log gives it a visible one: the
+turn's axis rounds up to a clock step it can count in four intervals or fewer (1/2/5 below a
+minute, then 1, 2, 5, 10, 15, 30 minutes; `turn-trace-scale.ts`), so a 32s turn draws on 0–40s
+and a 6m10s turn on 0–8m. An open turn's header draws that ruler in its track column
+(`turn-trace-ruler.tsx`): a hairline baseline, a short tick and a tiny muted tabular label per
+step. Its step rows carry the ticks down as gridlines (`--trace-grid`), the 0 line darker
+(`--trace-axis`) as the steps' shared left edge; they live inside each row's track, so they break
+under a step's evidence and never cross into another turn or the label and duration columns. In
+the log a row's dotted leader stops at that 0 edge, so the lane holds only gridlines and bars. A
+running turn's scale steps up as its elapsed time grows, and the ticks slide with the bars. The
+header's Chat button lays over the ruler, which fades while the button shows; a collapsed turn
+or a narrow log has no ruler. The overview strip keeps the turn's unrounded span. The journal reports tokens only per sub-agent, so neither states any for
 the turn. In the drawer the turn's outcome chip leads the trace; with no steps to
 total, the turn's own record says how long it took, and a turn's own `failure` reads as a danger
 note above the rows rather than "No activity was recorded". A row is a stock `Disclosure`, whose
