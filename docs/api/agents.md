@@ -500,9 +500,13 @@ Server turn record; only `failureKind` crosses there.
 every run in one round trip, in request order, each as `available` with its outline or
 `unavailable` with `missing`, `offline`, or `timeout` (Server fills the last two when the Computer
 never answers). An outline is `{ runId, status, startedAt, durationMs, steps, omittedSteps? }`:
-each step is `{ id, kind, label, depth, parentId?, startOffsetMs, durationMs?, status, subagent? }`
+each step is `{ id, kind, label, depth, parentId?, startOffsetMs, durationMs?, status, subagent?, toolKind? }`
 with `kind` one of `tool`, `bookkeeping`, `reasoning`, or `subagent`, `subagent` as
 `{ label, failedToolCount }`, and offsets from the outline's `startedAt`, its earliest evidence.
+Exactly the `tool` steps carry `toolKind`, the call kind `readExecutionToolKind` in
+`@haus/api` reads from the tool's wire name (`shell`, `file-read`, `web`, `image`, `mcp`,
+`generic`, …). The App's turn trace classifies a read journal with the same function, so an unread
+turn's overview colors its calls with the same kind palette a read trace uses.
 Labels are the scrubbed action descriptions used for thoughts (ADR 0036), at most 96
 characters; a shell call's label stops before any heredoc. An outline never carries tool inputs
 or outputs, errors, reports, reasoning text, message bodies, or images. It keeps at most 200

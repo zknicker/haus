@@ -63,8 +63,9 @@ has one hue (`TraceKind` in `turn-trace-kind.ts`) that paints the row's icon, it
 Activity overview segment: thinking, shell, files (reads, edits, writes, search), web, sub-agents,
 image or media, and MCP or other tools. Haus bookkeeping stays the quiet muted wash, an interrupted
 step quiet, and a failure or warning paints danger or warning over any hue. Labels stay neutral.
-An unread turn's overview segments come from its Computer outline, which names no tool kind, so
-its calls take the general tool hue until the turn is read (tokens in `product-tokens.css`,
+An unread turn's overview segments come from its Computer outline, whose tool steps carry the
+`toolKind` that `readExecutionToolKind` in `@haus/api` assigns, the same classifier the trace
+uses, so an unread turn colors its calls as a read one does (tokens in `product-tokens.css`,
 palette in `DESIGN.md`). Hierarchy is indent, mark,
 bar color, and one rail: a sub-agent's calls are rows one depth in, with no background or edge of
 their own. An opened group — a fold, Haus bookkeeping, a sub-agent's fact line and calls, a run of
