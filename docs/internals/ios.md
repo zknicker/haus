@@ -43,6 +43,23 @@ and active message search. Older reads cannot replace the recovered snapshot. Ot
 only update activity; foreground and reconnect recovery remain independent fallback paths. Message
 rows always come from Server reads, never from lifecycle text.
 
+The open Chat and the open Thread show who is answering them in a typing strip above the composer,
+the App's ADR 0035/0036 feature. `ChatComposerStatus` sits at the top of each composer inset and
+takes no space while nobody is engaged; the strip then shows the engaged Agents' avatars on the
+transcript's avatar rail and one shimmering line — the latest thought while one is up, otherwise
+"Juniper is typing" with three hopping dots (still under Reduce Motion). Engagement and thoughts are
+Chat-scoped, so `HausStoreEngagement` subscribes to `chat.onEngagement` and `chat.onThought` only for
+as long as the strip's task lives, re-reads `chat.engagements` on every (re)connect, and reconnects
+after a background return. `ChatTypingModel` ports the App's timing: a `--done` reply holds its Agent
+until the reply is in the transcript (two seconds at most), thoughts pace and extend as on the web, and
+both clear the moment their run stops engaging the Chat. Tapping the strip brings back the latest
+thought, the phone's stand-in for the App's hover recall. The App's emoji faces are not ported.
+
+A stopped Agent's DM says so above the composer, with Start for Owners and Admins (`agent.start`,
+then an Agent directory refresh; success and failure haptics, an inline line on failure). An Agent
+the Server paused after repeated failures (`wakePause`) explains why on its Chat-details profile,
+in the App's `agent-wake-pause-model.ts` copy; the phone offers no Restart.
+
 Debug builds mirror the web App's local authentication flow. When launched with
 `HAUS_DEV_SERVER_ORIGIN` and `HAUS_CLERK_PUBLISHABLE_KEY`, the app requests the existing
 localhost-only `dev.createClerkSignInToken` ticket, activates it through Clerk's native SDK, and calls
@@ -373,6 +390,26 @@ column, the same inline frame as the web (ADR 0031) — and uses natural documen
 with 240pt reserved until the first report, a 120pt minimum, and a 100,000pt resource guard for
 pathological documents, matching the web. Height changes apply immediately without animation or
 collapse controls. The transcript owns vertical scrolling; wide tables still pan horizontally.
+
+An ```` ```artifact ```` fence names a self-contained HTML page in the authoring Agent's workspace.
+`ArtifactFence` ports the App's `splitArtifactFences` and the shared props schema — opener mid-line,
+terminator glued or on its own line, a strict `{path, title?}` object with a confined `.html`/`.htm`
+path — and only a payload that passes becomes a card; anything else stays message text. Valid fences
+leave the prose before the visual split runs, so their JSON never renders, and a preview line reads the
+page's title (else `Artifact: <path>`). The cards sit under the visuals, as compact rows that read
+nothing: tapping one presents `ArtifactPageSheet` from the frontmost controller (rows have no view
+controller of their own), which reads the page through `agent.workspaceFile` — the App's artifact pane
+read — and draws it in `VisualWebView` with scrolling on, the app's tokens injected after `<head>` and
+a viewport rule added when the page has none. Blank while it loads; a Computer that does not answer is
+a calm unavailable state with Try Again, never an error string. The App installs the reader in
+`ArtifactPageReader` at its root, beside `InAppReferenceRoutes`.
+
+An Agent's message that answers a Reminder or Trigger fire carries a `cause` (ADR 0026), and the Chat
+row draws `MessageCauseLine` above its identity in place of an inline-reply line: the reply line's
+elbow in the automation's ink, the clock or bolt glyph in a soft box of that ink, then the title. A
+caused message always opens its own identity block. The phone has no hover card or Automations surface,
+so the line is a statement, not a control. `ChatMessageCause` decodes the Server's current
+`messageCauseSchema` and still decodes away on a malformed cause rather than costing the row.
 
 An Agent-created Agent reaches the transcript as the creating Agent's own sentence and nothing else.
 The `--say` text is the Message body, so every surface that renders a body — the Chat transcript and
@@ -1084,7 +1121,13 @@ run's words and over a chip's whole run, the mark's spacer included, so the mark
 rather than sitting in a dead margin before it. Only the schemes the system routes qualify, which is `http`, `https`, `mailto`,
 and `tel`: a website or pull-request chip opens its address, a `haus://` resource draws as a link
 and stays inert because nothing on the phone routes one yet, and an Agent or Channel chip carries no
-`.link` at all, where the App opens a profile or a channel. UIKit's own link machinery decides the
+`.link` at all, where the App opens a profile or a channel. A Thread chip is the one in-app route: the
+Server rewrites an Agent's Thread mention to `chat://<chatId>?thread=<anchorMessageId>`, which
+`ThreadReferenceTarget` reads ahead of the Channel form (any other query on `chat://` is no reference,
+as in the shared parser). It wears the App's thread glyph, names its anchor's first line once the parent
+page holds the anchor, and keeps that wire target as its `.link`; the coordinator asks
+`InAppReferenceRoutes` before handing any URL to the system, and the App's installed route pushes the
+Thread over its parent Chat, fetching the anchor when the page is not loaded. UIKit's own link machinery decides the
 tap, and `RichMessageLinkCoordinator` — the representable's `UITextViewDelegate` — decides only what
 it means: `textView(_:primaryActionFor:defaultAction:)` returns a `UIAction` that hands the address
 to `UIApplication.open`, and `textView(_:menuConfigurationFor:defaultMenu:)` returns nil so a link
@@ -1252,8 +1295,8 @@ the human taps "Sign in to local Server".
 The app shell, navigation, chat timeline, composer, and threads are native SwiftUI. An interactive
 artifact may use an isolated web canvas inside a native route when the artifact runtime requires
 browser APIs; that canvas would receive a narrow serialized contract and would not own authentication,
-navigation, Server queries, or durable app state. No artifact route is wired into the current app —
-this remains future work.
+navigation, Server queries, or durable app state. An ```` ```artifact ```` page is the one such
+canvas today (see the artifact cards above).
 
 Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
 floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
