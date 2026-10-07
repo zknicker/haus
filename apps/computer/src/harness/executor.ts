@@ -48,6 +48,7 @@ import {
     type AgentSessionState,
     readAgentSessionState,
     resolveTurnSession,
+    resumedTurnSession,
     writeAgentSessionState,
     writeFailedTurnSession,
 } from './session-store.ts';
@@ -320,11 +321,7 @@ async function executeHarnessTurn(
             });
             return { aborted: true, claudePlanUsage: null, contextTokens: null, tokenUsage: null };
         }
-        const prompt = composeTurnPrompt(input, {
-            isColdStart: !live.isResume,
-            resumesInterruptedTurn: live.isResume && session.interruptedTurn === true,
-            sessionGeneration: session.generation,
-        });
+        const prompt = composeTurnPrompt(input, resumedTurnSession(session, live.isResume));
         // A notice-lane drain is composed here, not served by the Server, so the Computer attests
         // it exactly as a pull does — to the Server before the model streams — and clears it from
         // the local notice projection before any stored notice can repeat it.

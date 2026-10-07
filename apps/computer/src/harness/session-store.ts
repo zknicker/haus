@@ -188,3 +188,15 @@ function parseSemver(value: unknown): string | null {
 function parseTimestamp(value: unknown): string | null {
     return typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : null;
 }
+
+/** The prompt-facing view of the stored session for this turn. */
+export function resumedTurnSession(
+    session: AgentSessionState,
+    isResume: boolean
+): { isColdStart: boolean; resumesInterruptedTurn: boolean; sessionGeneration: number } {
+    return {
+        isColdStart: !isResume,
+        resumesInterruptedTurn: isResume && session.interruptedTurn === true,
+        sessionGeneration: session.generation,
+    };
+}
