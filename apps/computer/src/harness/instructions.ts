@@ -11,15 +11,16 @@ import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-
  * collaboration contract.
  *
  * Boundary adaptation: host facts (hostname/OS/runtime version) are derived on
- * the Computer; Server-owned Agent facts (name, description, personality, web
- * access, home timezone) arrive on the start command because the Computer cannot know them.
+ * the Computer; Server-owned Agent facts (name, description, conversation style,
+ * signature emoji, web access, home timezone) arrive on the start command because the Computer cannot know them.
  */
 export interface AgentInstructionFacts {
     agentId: string;
     agentName: string;
+    conversationStyle?: string | null;
     homeTimezone: string;
     initialRole: string | null;
-    personality?: string | null;
+    signatureEmoji?: string | null;
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspacePath: string;
 }
@@ -33,12 +34,13 @@ export function composeAgentInstructions(facts: AgentInstructionFacts): Composed
     const render: AgentPromptRenderInput = {
         agentId: facts.agentId,
         agentName: facts.agentName,
+        conversationStyle: facts.conversationStyle ?? null,
         homeTimezone: facts.homeTimezone,
         hostname: hostname(),
         initialRole: facts.initialRole,
         os: `${type()} ${release()}`,
-        personality: facts.personality ?? null,
         runtimeVersion: process.env.HAUS_COMPUTER_PRODUCT_VERSION ?? computerPackage.version,
+        signatureEmoji: facts.signatureEmoji ?? null,
         webAccess: facts.webAccess,
         workspacePath: facts.workspacePath,
     };

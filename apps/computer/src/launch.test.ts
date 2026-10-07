@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { parseResetCommand, parseStartCommand } from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { applyCoveConfiguration } from './cove-configuration.ts';
@@ -12,8 +13,6 @@ import type { HarnessAgentFactory } from './harness/executor.ts';
 import {
     type AgentStartCommand,
     type Attachment,
-    parseResetCommand,
-    parseStartCommand,
     resetAgentState,
     runAgentLaunch,
 } from './launch.ts';

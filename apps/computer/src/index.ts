@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
+import * as commandFrames from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
@@ -95,11 +96,6 @@ import {
     type AgentStartCommand,
     type AgentTurnFrame,
     type Attachment,
-    parseNoticeCommand,
-    parseResetCommand,
-    parseRestartCommand,
-    parseServerDeleteCommand,
-    parseStopCommand,
     resetAgentState,
     runAgentLaunch,
 } from './launch.ts';
@@ -1041,7 +1037,7 @@ async function connect(
                 heartbeat?.acceptAck(heartbeatAck.id);
                 return;
             }
-            if (parseServerDeleteCommand(frame)) {
+            if (commandFrames.parseServerDeleteCommand(frame)) {
                 deleting = true;
                 disposeServerLaunchHosts(attachment.serverId);
                 agentWork.abortAll();
@@ -1138,12 +1134,12 @@ async function connect(
             ) {
                 return;
             }
-            const stop = parseStopCommand(frame);
+            const stop = commandFrames.parseStopCommand(frame);
             if (stop) {
                 agentWork.abortRun(stop.runId);
                 return;
             }
-            const restart = parseRestartCommand(frame);
+            const restart = commandFrames.parseRestartCommand(frame);
             if (restart) {
                 if (retiredAgents.has(restart.agentId)) {
                     return;
@@ -1308,7 +1304,7 @@ async function connect(
                 );
                 return;
             }
-            const reset = parseResetCommand(frame);
+            const reset = commandFrames.parseResetCommand(frame);
             if (reset) {
                 if (retiredAgents.has(reset.agentId)) {
                     return;
@@ -1373,7 +1369,7 @@ async function connect(
                 );
                 return;
             }
-            const notice = parseNoticeCommand(frame);
+            const notice = commandFrames.parseNoticeCommand(frame);
             if (notice) {
                 if (retiredAgents.has(notice.agentId)) {
                     return;

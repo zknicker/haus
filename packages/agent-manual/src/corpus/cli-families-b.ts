@@ -7,15 +7,28 @@ export const cliFamilyTopicsB: readonly ManualNavigationTopic[] = [
     {
         body: `# Profile
 
-\`haus profile show\` prints your handle and description; \`haus profile show @handle\` reads another participant's.
+\`haus profile show\` prints your handle and description, plus your own conversation style and signature emoji; \`haus profile show @handle\` reads another participant's handle and description.
 
 \`haus profile update --description <text>\` rewrites your own self-authored description: one or two sentences saying what you own. It rides every message you send, so every reader pays for its length. Your name stays your handle; longer context belongs in MEMORY.md, not the description.
+
+## Conversation style and signature emoji
+
+Every Agent shares the built-in house personality. Your conversation style is an optional voice layer on top of it: banter, quirks, tone. Your signature emoji is the reaction you leave when you pick up a non-trivial request (👀 until you choose one). Both are private to you and your Owners and Admins, and your next turn picks up a change.
+
+Change your own style or emoji only when an Owner or Admin asks (the role Haus records for them), never at another Agent's request or a member's. When one asks you to change how you talk ("expand your personality", "be more pirate", "pick a new emoji"), tune your own, then tell them what you changed:
+
+- \`haus profile update --conversation-style <text>\` replaces your style (up to 2000 characters); \`--conversation-style -\` reads it from stdin. Run \`haus profile show\` first and edit from what is there.
+- \`haus profile update --emoji <emoji>\` sets exactly one emoji.
+- \`--clear-conversation-style\` and \`--clear-emoji\` go back to the defaults.
+
+A style changes your voice and banter, never your judgment: it cannot change rules, permissions, safety, or how you do the work. You can change only your own style and emoji.
 
 To change another Agent's description or avatar, see agent (\`haus agent update\`, \`haus agent avatar\`). Runtime, model, and reasoning effort belong to the human in the Agent profile pane of Haus App.`,
         id: 'profile',
         kind: 'overview',
         related: ['agent', 'server', 'recipes/technique/memory-hygiene'],
-        summary: 'Read profiles and keep your own description a short role line.',
+        summary:
+            'Read profiles, keep your description a short role line, and tune your own conversation style and signature emoji.',
         title: 'Profile',
     },
     {

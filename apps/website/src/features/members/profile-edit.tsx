@@ -1,16 +1,19 @@
-import { AGENT_PERSONALITY_MAX_LENGTH } from '@haus/api';
+import { AGENT_CONVERSATION_STYLE_MAX_LENGTH } from '@haus/api';
 import { Button, Popover } from '@heroui/react';
 import * as React from 'react';
 import { ProfileTextField } from './profile-text-field.tsx';
+import { SignatureEmojiField } from './signature-emoji-field.tsx';
 
-/** The Agent-only personality field: still loading, or ready with its stored value. */
-export type ProfilePersonality = { status: 'loading' } | { status: 'ready'; value: string };
+/** The Agent-only voice fields: still loading, or ready with their stored values. */
+export type ProfileAgentVoice =
+    | { status: 'loading' }
+    | { status: 'ready'; conversationStyle: string; signatureEmoji: string | null };
 
 export interface ProfileDraft {
     description: string;
     displayName: string;
-    /** Present only when the editor offered the personality field. */
-    personality?: string;
+    /** Only the voice fields the editor changed; absent when none changed. */
+    voice?: { conversationStyle?: string; signatureEmoji?: string | null };
 }
 
 /**
@@ -19,8 +22,8 @@ export interface ProfileDraft {
  * chrome; the identity mutation saves every field together anyway, so one
  * editor matches the contract instead of splitting it.
  *
- * An Agent's editor also carries its private personality, the one identity
- * field other participants never see; a human's does not.
+ * An Agent's editor also carries its private voice — conversation style and
+ * signature emoji — which other participants never see; a human's does not.
  */
 export function ProfileEdit({
     description,
@@ -31,7 +34,7 @@ export function ProfileEdit({
     isDisabled,
     namePlaceholder,
     onSave,
-    personality,
+    voice,
 }: {
     description: string;
     descriptionInfo?: React.ReactNode;
@@ -41,31 +44,42 @@ export function ProfileEdit({
     isDisabled?: boolean;
     namePlaceholder: string;
     onSave: (draft: ProfileDraft) => Promise<void>;
-    personality?: ProfilePersonality;
+    voice?: ProfileAgentVoice;
 }) {
-    const storedPersonality = personality?.status === 'ready' ? personality.value : '';
+    const storedStyle = voice?.status === 'ready' ? voice.conversationStyle : '';
+    const storedEmoji = voice?.status === 'ready' ? voice.signatureEmoji : null;
     const [nameDraft, setNameDraft] = React.useState(displayName);
     const [descriptionDraft, setDescriptionDraft] = React.useState(description);
-    const [personalityDraft, setPersonalityDraft] = React.useState(storedPersonality);
+    // Voice edits stay undefined until touched, so a read that resolves after the editor
+    // opens fills the fields instead of being saved over with blanks.
+    const [styleEdit, setStyleDraft] = React.useState<string | undefined>();
+    const [emojiEdit, setEmojiDraft] = React.useState<string | null | undefined>();
+    const styleDraft = styleEdit ?? storedStyle;
+    const emojiDraft = emojiEdit === undefined ? storedEmoji : emojiEdit;
     const [open, setOpen] = React.useState(false);
 
     React.useEffect(() => {
         if (!open) {
             setNameDraft(displayName);
             setDescriptionDraft(description);
-            setPersonalityDraft(storedPersonality);
+            setStyleDraft(undefined);
+            setEmojiDraft(undefined);
         }
-    }, [description, displayName, open, storedPersonality]);
+    }, [description, displayName, open]);
 
-    const personalityChanged =
-        personality?.status === 'ready' && personalityDraft !== storedPersonality;
+    const voiceReady = voice?.status === 'ready';
+    const styleChanged = voiceReady && styleDraft !== storedStyle;
+    const emojiChanged = voiceReady && emojiDraft !== storedEmoji;
     const changed =
-        nameDraft !== displayName || descriptionDraft !== description || personalityChanged;
+        nameDraft !== displayName ||
+        descriptionDraft !== description ||
+        styleChanged ||
+        emojiChanged;
     // A stored description that predates the cap may be resent unchanged; the Server allows it.
     const withinLimits =
         (descriptionDraft === description ||
             descriptionDraft.trim().length <= descriptionMaxLength) &&
-        personalityDraft.trim().length <= AGENT_PERSONALITY_MAX_LENGTH;
+        styleDraft.trim().length <= AGENT_CONVERSATION_STYLE_MAX_LENGTH;
     const canSave = changed && withinLimits && nameDraft.trim().length > 0 && !isDisabled;
 
     const save = async () => {
@@ -77,7 +91,14 @@ export function ProfileEdit({
             await onSave({
                 description: descriptionDraft,
                 displayName: nameDraft,
-                ...(personalityChanged ? { personality: personalityDraft } : {}),
+                ...(styleChanged || emojiChanged
+                    ? {
+                          voice: {
+                              ...(styleChanged ? { conversationStyle: styleDraft } : {}),
+                              ...(emojiChanged ? { signatureEmoji: emojiDraft } : {}),
+                          },
+                      }
+                    : {}),
             });
             setOpen(false);
         } catch {
@@ -90,7 +111,7 @@ export function ProfileEdit({
             <Button isDisabled={isDisabled} size="sm" variant="secondary">
                 Edit Profile
             </Button>
-            <Popover.Content className={personality ? 'w-96' : 'w-80'} placement="bottom">
+            <Popover.Content className={voice ? 'w-96' : 'w-80'} placement="bottom">
                 <Popover.Dialog className="grid gap-3 p-3">
                     <Popover.Heading>{entityLabel}</Popover.Heading>
                     <ProfileTextField
@@ -111,17 +132,27 @@ export function ProfileEdit({
                         placeholder="No description yet."
                         value={descriptionDraft}
                     />
-                    {personality ? (
-                        <ProfileTextField
-                            info="Private to this Agent: it shapes how it talks, not what it owns. Other Agents never see it. Applies from its next turn."
-                            isDisabled={personality.status === 'loading'}
-                            label="Personality"
-                            limit={{ kind: 'counted', max: AGENT_PERSONALITY_MAX_LENGTH }}
-                            multiline={{ rows: 4 }}
-                            onChange={setPersonalityDraft}
-                            placeholder="Terse. Plain words. Dry humor."
-                            value={personalityDraft}
-                        />
+                    {voice ? (
+                        <>
+                            <ProfileTextField
+                                info="Adds a voice on top of the Agent's default personality. The Agent can also change this when you ask it to."
+                                isDisabled={!voiceReady}
+                                label="Conversation style"
+                                limit={{
+                                    kind: 'counted',
+                                    max: AGENT_CONVERSATION_STYLE_MAX_LENGTH,
+                                }}
+                                multiline={{ rows: 4 }}
+                                onChange={setStyleDraft}
+                                placeholder="e.g. Dry and deadpan. Short replies, lowercase when it's casual. One emoji max."
+                                value={styleDraft}
+                            />
+                            <SignatureEmojiField
+                                isDisabled={!voiceReady}
+                                onChange={setEmojiDraft}
+                                value={emojiDraft}
+                            />
+                        </>
                     ) : null}
                     <div className="flex justify-end gap-2">
                         <Button onPress={() => setOpen(false)} size="sm" variant="ghost">

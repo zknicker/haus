@@ -22,7 +22,12 @@ export async function startFrame(
     state: AgentDeliveryRow,
     config: Pick<
         AgentDispatchConfig,
-        'agentDescription' | 'agentName' | 'agentPersonality' | 'homeTimezone' | 'sessionGeneration'
+        | 'agentConversationStyle'
+        | 'agentDescription'
+        | 'agentName'
+        | 'agentSignatureEmoji'
+        | 'homeTimezone'
+        | 'sessionGeneration'
     >
 ): Promise<AgentCommand> {
     const runRows = state.activeRunId

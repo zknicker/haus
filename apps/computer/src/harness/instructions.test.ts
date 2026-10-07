@@ -20,7 +20,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     const { instructions } = composeAgentInstructions(facts);
 
     // CLI-only output is the load-bearing rule (D1/ADR 0014).
-    expect(instructions).toContain('## Communication — haus CLI ONLY');
+    expect(instructions).toContain('## Communication: haus CLI ONLY');
     expect(instructions).toContain(
         'This is your only output channel: text you produce outside a `haus` command is not delivered to anyone.'
     );
@@ -30,7 +30,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions).toContain('haus message send');
     expect(instructions).toContain('haus agent create');
     expect(instructions).toContain(
-        '**Manual** — `haus manual get`, `haus manual search`. Both require `--intent`'
+        '**Manual**: `haus manual get`, `haus manual search`. Both require `--intent`'
     );
     expect(instructions).toContain('## Startup sequence');
     expect(instructions).not.toContain('## Message Notifications');
@@ -115,14 +115,14 @@ test('composes the CLI-only Haus collaboration contract', () => {
     // Triggers are the outside-stimulus primitive: no schedule, agent-created,
     // secret shown once, and the delivered payload is untrusted data.
     expect(instructions).toContain(
-        '**Triggers** — `haus trigger create`, `haus trigger list`, `haus trigger show`, `haus trigger disable`, `haus trigger enable`, `haus trigger rotate`, `haus trigger delete`, `haus trigger log`.'
+        '**Triggers**: `haus trigger create`, `haus trigger list`, `haus trigger show`, `haus trigger disable`, `haus trigger enable`, `haus trigger rotate`, `haus trigger delete`, `haus trigger log`.'
     );
     expect(instructions).toContain('### Triggers');
     expect(instructions).toContain(
         'A trigger wakes you when an outside system POSTs to a private URL; it never has a schedule. Use reminders for anything time-based.'
     );
     expect(instructions).toContain(
-        'Create one when someone wants an outside event — a webhook, CI, an alert, a form, a sensor — to reach you; anchor it to the message where they asked (`--message-id`).'
+        'Create one when someone wants an outside event (a webhook, CI, an alert, a form, a sensor) to reach you; anchor it to the message where they asked (`--message-id`).'
     );
     expect(instructions).toContain(
         'Before creating or managing a trigger, read Manual topic `recipes/technique/trigger-webhook` for setup, secret handling, and fire history.'
@@ -137,7 +137,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     );
     // The message header contract names the trigger sender kind.
     expect(instructions).toContain(
-        '`type=` — sender kind. Values are `human`, `agent`, `system`, or `trigger`.'
+        '`type=`: sender kind. Values are `human`, `agent`, `system`, or `trigger`.'
     );
     // A trigger must never grow a schedule: that is what reminders are for.
     expect(instructions).not.toMatch(/haus trigger (schedule|repeat|cron)/u);
@@ -152,7 +152,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions).toContain('- Agent: @Cove (agt_cove)');
     expect(instructions).toContain('- Home timezone: America/Los_Angeles');
 
-    // The description is the personality surface (ruling W2).
+    // The description is the role line (ruling W2); voice lives in Personality and Conversation style.
     expect(instructions).toContain('## Initial role');
     expect(instructions).toContain('the operator’s right hand');
 });
@@ -164,7 +164,7 @@ test('advertises the Agent family without inventing an Agent-creation policy', (
     // inheritance, the avatar fallback, and Cove's protected identity live in the
     // `agent` topic, so the prompt must not restate — or contradict — them.
     expect(instructions).toContain(
-        '**Agents** — `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.'
+        '**Agents**: `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.'
     );
     expect(instructions).not.toContain('haus action prepare');
     expect(instructions).not.toContain('haus avatar generate');
@@ -253,13 +253,17 @@ test('claims before acting and finishes its own work without parking it', () => 
     expect(instructions).toContain('live in the `tasks` Manual topic');
 });
 
-test('a personality change changes the instruction fingerprint, so it reaches the next turn', () => {
+test('a conversation style or signature emoji change changes the instruction fingerprint, so it reaches the next turn', () => {
     const plain = composeAgentInstructions(facts);
-    const voiced = composeAgentInstructions({ ...facts, personality: 'Terse. Dry humor.' });
+    const voiced = composeAgentInstructions({ ...facts, conversationStyle: 'Terse. Dry humor.' });
+    const signed = composeAgentInstructions({ ...facts, signatureEmoji: '👽' });
 
-    expect(plain.instructions).not.toContain('## Personality');
-    expect(voiced.instructions).toContain('## Personality\n\nTerse. Dry humor.');
+    expect(plain.instructions).toContain('## Personality');
+    expect(plain.instructions).not.toContain('## Conversation style');
+    expect(voiced.instructions).toContain('Terse. Dry humor.');
     expect(voiced.fingerprint).not.toBe(plain.fingerprint);
+    expect(signed.instructions).toContain('signature emoji (👽)');
+    expect(signed.fingerprint).not.toBe(plain.fingerprint);
 });
 
 test('teaches MEMORY.md as hot memory plus a notes index, with history left in chat', () => {
@@ -272,7 +276,7 @@ test('teaches MEMORY.md as hot memory plus a notes index, with history left in c
         '## Standing Preferences\n<communication style and standing directives people gave you>'
     );
     expect(prompt).toContain(
-        "## Active Context\n<current work only: rewrite, don't append; drop finished items>\n\n## Key Knowledge\n- notes/channels.md — what each channel is about"
+        "## Active Context\n<current work only: rewrite, don't append; drop finished items>\n\n## Key Knowledge\n- notes/channels.md: what each channel is about"
     );
     expect(prompt).toContain(
         "`notes/` holds deeper knowledge not needed every wake: topic files, each the current truth on one subject. Update or delete a topic's note before adding one; no dated logs. Manual topic `recipes/technique/memory-hygiene` has the rest."

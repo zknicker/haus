@@ -15,7 +15,7 @@ import {
 } from '../src/postgres/schema.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
-const personality = 'Terse. Plain words. Dry humor.';
+const conversationStyle = 'Terse. Plain words. Dry humor.';
 
 let cluster: PostgresCluster;
 let connection: HausConnection;
@@ -48,8 +48,8 @@ class FakeTransport implements DeliveryTransport {
     }
 }
 
-test('a live dispatch carries the personality on the start frame and nowhere else', async () => {
-    const seed = await seedAgent(personality);
+test('a live dispatch carries the conversation style and emoji on the start frame and nowhere else', async () => {
+    const seed = await seedAgent(conversationStyle, '🦊');
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
@@ -62,11 +62,11 @@ test('a live dispatch carries the personality on the start frame and nowhere els
         serverId: seed.serverId,
     });
 
-    expectPersonalityOnlyOnStart(transport.sent);
+    expectStyleOnlyOnStart(transport.sent);
 });
 
-test('a reconnect replay rebuilds the same personality from durable state', async () => {
-    const seed = await seedAgent(personality);
+test('a reconnect replay rebuilds the same conversation style from durable state', async () => {
+    const seed = await seedAgent(conversationStyle, '🦊');
     const transport = new FakeTransport();
     const delivery = new AgentDelivery(connection.db, transport);
     await delivery.deliver({
@@ -80,11 +80,11 @@ test('a reconnect replay rebuilds the same personality from durable state', asyn
     transport.online.add(seed.computerId);
     await delivery.onComputerReconnect(seed.computerId);
 
-    expectPersonalityOnlyOnStart(transport.sent);
+    expectStyleOnlyOnStart(transport.sent);
 });
 
-test('an Agent without a personality starts with no personality field', async () => {
-    const seed = await seedAgent(null);
+test('an Agent without a conversation style starts with no style and a null emoji', async () => {
+    const seed = await seedAgent(null, null);
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
@@ -99,23 +99,27 @@ test('an Agent without a personality starts with no personality field', async ()
 
     const start = transport.sent.find((frame) => frame.type === 'start');
     expect(start).toBeDefined();
-    expect(start && 'agentPersonality' in start).toBe(false);
+    expect(start && 'agentConversationStyle' in start).toBe(false);
+    expect(start?.type === 'start' && start.agentSignatureEmoji).toBeNull();
 });
 
-function expectPersonalityOnlyOnStart(sent: AgentCommand[]) {
+function expectStyleOnlyOnStart(sent: AgentCommand[]) {
     const starts = sent.filter((frame) => frame.type === 'start');
     expect(starts).toHaveLength(1);
     const [start] = starts;
-    expect(start?.type === 'start' && start.agentPersonality).toBe(personality);
+    expect(start?.type === 'start' && start.agentConversationStyle).toBe(conversationStyle);
+    expect(start?.type === 'start' && start.agentSignatureEmoji).toBe('🦊');
     expect(start?.type === 'start' && start.agentDescription).toBe('Keeps release notes current.');
-    // The envelope other Agents' messages ride, and every other frame, stays personality-free.
-    expect(JSON.stringify(start?.type === 'start' ? start.inbox : null)).not.toContain(personality);
+    // The envelope other Agents' messages ride, and every other frame, stays style-free.
+    expect(JSON.stringify(start?.type === 'start' ? start.inbox : null)).not.toContain(
+        conversationStyle
+    );
     for (const frame of sent.filter((candidate) => candidate.type !== 'start')) {
-        expect(JSON.stringify(frame)).not.toContain(personality);
+        expect(JSON.stringify(frame)).not.toContain(conversationStyle);
     }
 }
 
-async function seedAgent(agentPersonality: string | null) {
+async function seedAgent(agentConversationStyle: string | null, signatureEmoji: string | null) {
     const db = connection.db;
     const userId = createOpaqueId('usr');
     const serverId = createOpaqueId('srv');
@@ -125,7 +129,7 @@ async function seedAgent(agentPersonality: string | null) {
     await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
-        .values({ displayName: 'Personality', id: serverId, slug: createOpaqueId('slug') });
+        .values({ displayName: 'Conversation style', id: serverId, slug: createOpaqueId('slug') });
     await db.insert(serverMembershipsTable).values({
         handle: `human-${randomBytes(4).toString('hex')}`,
         id: createOpaqueId('mem'),
@@ -148,8 +152,9 @@ async function seedAgent(agentPersonality: string | null) {
         handle: `orbit-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
-        personality: agentPersonality,
+        conversationStyle: agentConversationStyle,
         serverId,
+        signatureEmoji,
     });
     await db.insert(chatsTable).values({
         dmAgentId: agentId,

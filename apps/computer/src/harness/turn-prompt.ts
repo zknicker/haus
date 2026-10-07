@@ -30,7 +30,7 @@ export interface TurnDelivery {
 }
 
 const resetContextLine =
-    'Fresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact — MEMORY.md is your recovery point.';
+    'Fresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact; MEMORY.md is your recovery point.';
 
 export interface TurnPrompt {
     /** Exactly the identities whose bodies this prompt puts in front of the model. */

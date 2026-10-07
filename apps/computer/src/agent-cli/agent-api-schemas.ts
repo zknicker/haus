@@ -222,9 +222,13 @@ export const agentSearchResponseSchema = z.object({
 export const agentReactionResponseSchema = z.object({ message: agentMessageSchema });
 
 export const agentProfileSchema = z.object({
+    /** Present only on the caller's own profile. */
+    conversationStyle: z.string().nullable().optional(),
     description: z.string().nullable(),
     handle: z.string().min(1),
     isSelf: z.boolean(),
+    /** Present only on the caller's own profile; null means the default pickup reaction. */
+    signatureEmoji: z.string().nullable().optional(),
 });
 
 export const agentProfileResponseSchema = z.object({ profile: agentProfileSchema });

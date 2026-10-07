@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentSchema } from './agent.ts';
 import { agentCreateAgentInputSchema, agentUpdateAgentInputSchema } from './agent-creation.ts';
-import { agentStartCommandSchema } from './agent-delivery-frames.ts';
 import { updateAgentProfileInputSchema } from './agent-profile.ts';
 import {
     AGENT_DESCRIPTION_MAX_LENGTH,
@@ -53,36 +52,4 @@ test('updates admit the stored bound; only a changed description must fit the ca
 
 test('stored descriptions written before the limit still read back', () => {
     expect(agentSchema.shape.description.safeParse('x'.repeat(500)).success).toBe(true);
-});
-
-test('a profile update may omit, set, or clear the personality, within its cap', () => {
-    const base = { agentId: 'agt_1', description: null, displayName: 'Orbit', serverId: 'srv_1' };
-    expect(updateAgentProfileInputSchema.parse(base).personality).toBeUndefined();
-    expect(
-        updateAgentProfileInputSchema.parse({ ...base, personality: '  Terse.  ' }).personality
-    ).toBe('Terse.');
-    expect(
-        updateAgentProfileInputSchema.parse({ ...base, personality: null }).personality
-    ).toBeNull();
-    expect(
-        updateAgentProfileInputSchema.safeParse({ ...base, personality: 'x'.repeat(2001) }).success
-    ).toBe(false);
-});
-
-test('the start frame carries an optional personality', () => {
-    const frame = {
-        agentId: 'agt_1',
-        chatId: 'cht_1',
-        inboxDelivery: 'notice',
-        modelId: 'm',
-        runId: 'run_1',
-        runtimeId: 'codex',
-        sessionGeneration: 1,
-        totalPending: 0,
-        type: 'start',
-    };
-    expect(agentStartCommandSchema.parse(frame).agentPersonality).toBeUndefined();
-    expect(
-        agentStartCommandSchema.parse({ ...frame, agentPersonality: 'Terse.' }).agentPersonality
-    ).toBe('Terse.');
 });

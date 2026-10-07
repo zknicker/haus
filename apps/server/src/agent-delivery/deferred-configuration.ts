@@ -77,10 +77,11 @@ export async function rotateDeferredConfiguration(
 }
 
 export interface ConfiguredAgent {
+    agentConversationStyle: string | null;
     agentDescription: string | null;
     agentDisplayName: string;
     agentName: string;
-    agentPersonality: string | null;
+    agentSignatureEmoji: string | null;
     brief: string | null;
     briefAuthorHandle: string | null;
     computerId: string;

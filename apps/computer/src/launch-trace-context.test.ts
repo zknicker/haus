@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { parseRestartCommand, parseStartCommand } from './launch.ts';
+import { parseRestartCommand, parseStartCommand } from './agent-command-frames.ts';
 
 test('accepts only a valid trace carrier on a start command', () => {
     const frame = {

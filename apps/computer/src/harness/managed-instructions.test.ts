@@ -66,8 +66,10 @@ test('the Agent prompt keeps collaboration principles and leaves notice mechanic
     expect(prompt).toContain(
         "4. When a message needs a reply, send it with `haus message send`. Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (`haus message react --message-id <id> --emoji <emoji>`); an explicit FYI gets nothing."
     );
-    // A literal emoji anywhere in the prompt becomes every Agent's default reaction.
-    expect(prompt).not.toMatch(/\p{Extended_Pictographic}/u);
+    // A literal emoji elsewhere in the prompt becomes every Agent's default thanks reaction; the
+    // only one allowed is the signature emoji in the pickup bullet.
+    expect(prompt.match(/\p{Extended_Pictographic}/gu)).toEqual(['👀']);
+    expect(prompt).toContain('react with your signature emoji (👀) as you pick it up');
 });
 
 test('the @Mentions section separates display name from the stable name', () => {
@@ -76,7 +78,7 @@ test('the @Mentions section separates display name from the stable name', () => 
     // teach that identity reasoning uses the stable name, not the presentation.
     expect(efficiencyPrompt).toContain('Your stable Haus @mention handle is `@Marlow`.');
     expect(efficiencyPrompt).toContain(
-        'Your display name is `Marlow`. Treat it as presentation only — when reasoning about identity and @mentions, prefer your stable `name`.'
+        'Your display name is `Marlow`. Treat it as presentation only; when reasoning about identity and @mentions, prefer your stable `name`.'
     );
 });
 
@@ -111,14 +113,14 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
     expect(prompt).not.toContain('Next action:');
     expect(prompt).toContain('### Capability and execution-surface selection');
     expect(prompt).toContain("The human's explicit choice of surface is part of that fit.");
-    expect(prompt).not.toContain('### Formatting — URLs in non-English text');
+    expect(prompt).not.toContain('URLs in non-English text');
     expect(prompt).not.toContain('## Capabilities');
     expect(prompt).toContain('Haus renders your message as Markdown, GFM tables included');
     expect(prompt).not.toContain('### Preparing native action cards');
     expect(prompt).not.toContain('## Security');
 
     expect(prompt.indexOf('## How these instructions apply')).toBeLessThan(
-        prompt.indexOf('## Communication — haus CLI ONLY')
+        prompt.indexOf('## Communication: haus CLI ONLY')
     );
 });
 
@@ -176,8 +178,8 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
 test('keeps the managed prompt within its reviewed size budget', () => {
     const prompt = renderPrompt({
         homeTimezone: 'America/Los_Angeles',
+        conversationStyle: 'Terse.',
         initialRole: 'the operator’s right hand',
-        personality: 'Terse.',
         webAccess: 'search',
     });
 
@@ -216,7 +218,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Visibility bullet) were omitted: Haus has no private channels.
     // Raised by exactly 332 (33,056 → 33,388): the Inbox entry adopted Raft's `inbox check` text.
     // Raised by 522 (33,388 → 33,910) for quiet agreements, one confirmation and reaction-only acknowledgments.
-    expect(prompt.length).toBeLessThanOrEqual(33_910);
+    // Raised by 1,201 (33,910 → 35,111) by the 2026-10-06 personality work (house Personality,
+    // Conversation style, signature-emoji pickup rule, em-dash scrub); steps in the register.
+    expect(prompt.length).toBeLessThanOrEqual(35_111);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
@@ -270,17 +274,6 @@ test('pins the rendered visuals and artifact fence contract', () => {
     );
     expect(prompt).toContain(
         'Artifact fences render a card the reader clicks to open in the artifact pane; nothing auto-opens.'
-    );
-});
-
-test('teaches a chat register for Markdown formatting', () => {
-    const prompt = renderPrompt();
-
-    expect(prompt).toContain(
-        'Haus renders your message as Markdown, GFM tables included, but it is a chat: write like a teammate messaging, in plain sentences.'
-    );
-    expect(prompt).toContain(
-        "Don't bold for emphasis or as labels; use lists, headings, or tables only when the content is genuinely structured, such as steps, comparisons, or data."
     );
 });
 

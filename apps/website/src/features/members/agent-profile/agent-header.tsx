@@ -3,13 +3,17 @@ import { Chip } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
+import {
+    useAgentConversationStyle,
+    useUpdateAgentConversationStyle,
+} from '../../../hooks/members/use-agent-conversation-style.ts';
 import { useAgentIdentity } from '../../../hooks/members/use-agent-identity.ts';
-import { useAgentPersonality } from '../../../hooks/members/use-agent-personality.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { withSavingToast } from '../../../lib/saving-toast.ts';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { availabilityLabel } from '../../computers/presentation.ts';
 import { MemberProfileHeader } from '../member-profile-header.tsx';
-import { ProfileEdit, type ProfilePersonality } from '../profile-edit.tsx';
+import { type ProfileAgentVoice, type ProfileDraft, ProfileEdit } from '../profile-edit.tsx';
 import { AgentActionsMenu } from './agent-actions-menu.tsx';
 import { canRunAgentActions } from './agent-actions-model.ts';
 import { AgentAvatarGenerator } from './agent-avatar-generator.tsx';
@@ -40,16 +44,38 @@ export function AgentHeader({
     const [generateOpen, setGenerateOpen] = React.useState(false);
     const setAvatar = useAgentAvatar(server.id, agent.id);
     const updateIdentity = useAgentIdentity(server.id, agent.id);
-    const error = avatarError ?? setAvatar.error?.message ?? updateIdentity.error?.message ?? null;
+    const updateVoice = useUpdateAgentConversationStyle(server.id, agent.id);
+    const error =
+        avatarError ??
+        setAvatar.error?.message ??
+        updateIdentity.error?.message ??
+        updateVoice.error?.message ??
+        null;
     const canEdit = server.role === 'owner' || server.role === 'admin';
     // Factory Agents (Cove) carry a product-owned identity the Server refuses
     // to change, so no editor rather than a guaranteed error. Profile says why.
     const canEditIdentity = canEdit && agent.factoryKind === 'ordinary';
     // Read up front for the people who can edit it, so the editor opens filled.
-    const personality = useAgentPersonality(server.id, agent.id, canEditIdentity);
-    const personalityField: ProfilePersonality = personality.data
-        ? { status: 'ready', value: personality.data.personality ?? '' }
+    const voice = useAgentConversationStyle(server.id, agent.id, canEditIdentity);
+    const voiceField: ProfileAgentVoice = voice.data
+        ? {
+              conversationStyle: voice.data.conversationStyle ?? '',
+              signatureEmoji: voice.data.signatureEmoji,
+              status: 'ready',
+          }
         : { status: 'loading' };
+    // Identity and voice are separate Server writes; save only what changed, under one toast.
+    const saveProfile = (draft: ProfileDraft) => {
+        const identityChanged =
+            draft.displayName !== agent.displayName ||
+            draft.description !== (agent.description ?? '');
+        return withSavingToast(() =>
+            Promise.all([
+                identityChanged ? updateIdentity.save(draft) : null,
+                draft.voice ? updateVoice.save(draft.voice) : null,
+            ])
+        ).then(() => undefined);
+    };
     // The menu always offers Generate for an ordinary Agent; without the
     // Server capability the item renders disabled with the reason inline.
     const canGenerate = canEditIdentity;
@@ -65,10 +91,10 @@ export function AgentHeader({
                             descriptionMaxLength={AGENT_DESCRIPTION_MAX_LENGTH}
                             displayName={agent.displayName}
                             entityLabel="Agent profile"
-                            isDisabled={updateIdentity.isPending}
+                            isDisabled={updateIdentity.isPending || updateVoice.isPending}
                             namePlaceholder="Agent name"
-                            onSave={(draft) => updateIdentity.save(draft)}
-                            personality={personalityField}
+                            onSave={saveProfile}
+                            voice={voiceField}
                         />
                     ) : null}
                     {canRunAgentActions(server.role) ? (

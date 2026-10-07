@@ -1,6 +1,7 @@
 import { agentStartCommandSchema } from '@haus/api';
+import { parseStartCommand } from './agent-command-frames.ts';
 import type { AgentWorkCoordinator } from './agent-work-coordinator.ts';
-import { type AgentStartCommand, type AgentTurnFrame, parseStartCommand } from './launch.ts';
+import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
 
 const startIdentitySchema = agentStartCommandSchema
     .pick({ agentId: true, modelId: true, runId: true, runtimeId: true, type: true })

@@ -28,7 +28,7 @@ export function AgentProfileCard({ agent }: { agent: Agent }) {
                 <ItemCardGroup.Title>Profile</ItemCardGroup.Title>
                 <ItemCardGroup.Description>
                     {agent.factoryKind === 'ordinary'
-                        ? 'Edit the name, description, personality, and photo from the profile header.'
+                        ? 'Edit the name, description, conversation style, signature emoji, and photo from the profile header.'
                         : `${agent.displayName} is a product-owned Agent, so the Server keeps this identity fixed.`}
                 </ItemCardGroup.Description>
             </ItemCardGroup.Header>

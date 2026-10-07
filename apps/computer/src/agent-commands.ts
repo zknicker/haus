@@ -4,12 +4,14 @@ import type { RuntimeFailureKind } from './runtime-failure.ts';
 
 /** Server→Computer launch command kept local so the Computer artifact is self-contained. */
 export interface AgentStartCommand {
+    /** Private voice guidance for this Agent's own prompt; never part of an inbox item. */
+    agentConversationStyle?: string;
     /** Server-owned Agent facts the Computer composes into the system prompt. */
     agentDescription?: string;
     agentId: string;
     agentName?: string;
-    /** Private tone guidance for this Agent's own prompt; never part of an inbox item. */
-    agentPersonality?: string;
+    /** Pickup reaction; null or absent means the prompt's default. */
+    agentSignatureEmoji?: string | null;
     chatId: string;
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];

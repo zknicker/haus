@@ -62,6 +62,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0061_agent_wake_pause',
             '0062_agent_chat_reads',
             '0063_manual_read_receipts',
+            '0064_agent_conversation_style',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
@@ -177,6 +178,7 @@ test('copies each existing reminder title into its new description', async () =>
             '0061_agent_wake_pause',
             '0062_agent_chat_reads',
             '0063_manual_read_receipts',
+            '0064_agent_conversation_style',
         ]);
         expect(
             await upgraded`SELECT topic_id,resolved_topic_id FROM manual_lookup_audit ORDER BY id`

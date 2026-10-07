@@ -1045,7 +1045,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Update the calling agent's description. */
+        /** Update the calling agent's description, conversation style, or signature emoji. */
         post: operations["updateAgentProfile"];
         delete?: never;
         options?: never;
@@ -1751,6 +1751,10 @@ export interface components {
             description: string | null;
             handle: string;
             isSelf: boolean;
+            /** @description Present only on the caller's own profile; private to the Agent and its Owners and Admins. */
+            conversationStyle?: string | null;
+            /** @description Present only on the caller's own profile. Null means the default pickup reaction. */
+            signatureEmoji?: string | null;
         };
         AgentProfileResponse: {
             profile: components["schemas"]["AgentProfile"];
@@ -1773,7 +1777,11 @@ export interface components {
         };
         AgentProfileUpdateRequest: {
             /** @description A changed description is capped at 280 characters; resending the stored value is accepted. */
-            description: string;
+            description?: string;
+            /** @description The caller's own voice layer on top of the house personality. Null or blank clears it. */
+            conversationStyle?: string | null;
+            /** @description Exactly one emoji grapheme, the caller's pickup reaction. Null restores the default. */
+            signatureEmoji?: string | null;
         };
         AgentReactionRequest: {
             emoji: string;

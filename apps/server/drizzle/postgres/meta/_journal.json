@@ -449,6 +449,13 @@
       "when": 1791309687829,
       "tag": "0063_manual_read_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1791318691443,
+      "tag": "0064_agent_conversation_style",
+      "breakpoints": true
     }
   ]
 }

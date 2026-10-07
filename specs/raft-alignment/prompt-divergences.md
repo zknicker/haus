@@ -16,7 +16,10 @@ and the re-pin record [repin-v1.21.2.md](repin-v1.21.2.md). Diffed 2026-10-06.
 product-noun substitution. *Deliberate* means an owning spec, ADR, or test requires the
 difference. *TODO* means the difference exists without an owner and should either be justified
 or removed. Haus substitutes `haus` for `raft`, `Haus` for `Raft (former Slock)` in prose, and
-`HAUSMSG` for the `RAFTMSG` heredoc delimiter; that substitution is assumed everywhere.
+`HAUSMSG` for the `RAFTMSG` heredoc delimiter; that substitution is assumed everywhere. Haus also
+writes Raft's prose em dashes as commas, colons, semicolons, periods, or parentheses (see
+[Writing style](#writing-style-em-dash-scrub-2026-10-06)); that punctuation substitution is
+assumed everywhere too, so a *Parity* row means parity modulo punctuation.
 
 ## Tracking rule and budget
 
@@ -32,7 +35,7 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **33,910** characters. The cap is a
+`managed-instructions.test.ts` caps the composed prompt at **35,111** characters. The cap is a
 ratchet that forces a deliberate decision, not a hard limit: a justified addition raises it to
 the measured render in the same change, with a one-line reason in the history below. Never
 delete, trim, merge, or deduplicate other prompt text just to make room; shrinking the prompt is
@@ -53,8 +56,29 @@ on the v1.21.2 re-pin: 631 for Raft's suspect-the-CLI-first paragraph (verbatim)
 Discovering's paged-listing sentences (2026-10-06), then lowered by exactly 457 to 33,056 when
 Raft's three private-channel clauses were omitted because Haus has no private channels
 (2026-10-06), then raised by exactly 332 to 33,388 when the Inbox family entry adopted Raft's
-`inbox check` description verbatim at the pinned commit (2026-10-06). Measured line-by-line
-against the pinned render, about 19,500 characters of the Haus prompt are Raft-verbatim.
+`inbox check` description verbatim at the pinned commit (2026-10-06), then raised by 522 to 33,910
+for quiet agreements, one confirmation, and reaction-only acknowledgments (2026-10-06), then
+raised by 1,201 to 35,111 for the personality eval series' changes (operator decision,
+2026-10-06), measured on the 32,579 base before landing on 33,910 as these steps: the house
+`## Personality` (+566), the layered `## Conversation style` framing (+176, measured with a
+one-word style), the pickup bullet replacing Raft's acknowledge/progress bullets (+254), and the
+Profiles family clause (+63), net of the em-dash scrub (−58), then +60 when the
+`## Conversation style` framing became voice-only (never rules, permissions, or how the work is
+done) (+43) and the Profiles clause limited self-edits to an Owner or Admin's ask (+17), so
+another Agent or a member cannot steer an Agent into writing policy into its own style
+(review finding), then +120 after eval round 9 and the live gate (operator decision): the pickup
+bullet gained a quick-answer versus real-work threshold and a no-plan note (+24), the progress
+bullet came to thread progress on that note as steps land (+33), and the house humor sentence
+ruled out a message where a reaction would do (+63), then +32 when the pickup bullet was scoped
+to requests addressed to the Agent after the live gate saw unaddressed thread anchors answered
+with "Acknowledged.", then −45 when a baseline-versus-change live gate showed the bullets pulling
+task-Thread progress into a thread on the note and an ack into a text reply: the pickup bullet now
+applies when someone asks the Agent to do something, and progress placement is left to the
+existing Sending rule, then +33 when the same gate showed quick explicit tasks answered without
+the claim, so the quick-answer clause keeps the claim first. Landing on 33,910 also wrote the
+Inbox family entry's separator em dash as a colon, like every other family entry. Measured
+line-by-line against the pinned render, about 19,500 characters of the Haus prompt are
+Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
 
@@ -69,6 +93,29 @@ Operator-approved. Render 40,270 → 32,359 characters.
 | Trimmed | Capability and execution-surface selection, by about 500 characters, keeping every tested sentence |
 | Adopted from Raft | The `**Visibility**` block in Channel awareness; the draft no-op bullet; `### Reading history & references` as one section; Raft's current wording for the credential paragraph, Runtime Context preamble, thread unfollow, etiquette "report on it", Live constraints reception ("a task description"), Formatting refs, the MEMORY.md paragraph, and compaction safety ("recovery point"); `## Live constraints` and `## Formatting — Mentions & Channel Refs` at Raft's heading level |
 
+## Writing style: em-dash scrub, 2026-10-06
+
+Operator-approved. Principle: **the system prompt's own writing style directly shapes how Agents
+write.** Models mirror the prompt's punctuation and register, so the prompt is written the way
+Agents should write. In the personality eval series (rounds 4 to 8, 2026-10-05/06, Claude Opus
+and Codex at medium effort, blind-judged), scrubbing the prompt's em dashes cut Codex's em dashes
+in sent chat from about 1.0 per 100 words to 0 to 0.2, and Claude's from about 1.7 to 1.9 down
+to about 0.4 to 0.5. An arm that dropped the house personality's "no em dashes" clause roughly
+doubled them again.
+
+The scrub rewrote 64 rendered em dashes across Raft-verbatim and Haus-only text with commas,
+colons, semicolons, periods, or parentheses, keeping each sentence's meaning. It kept 6: the five
+`[target=…]` header examples and the `@sender — <description>:` format in the header spec,
+because they reproduce the real envelope an Agent receives. Raft-verbatim clauses keep their
+words and order; only punctuation changed. `managed-instructions.test.ts` asserts no other em
+dash renders.
+
+Event input follows the same rule for prose. `turn-prompt.ts` writes its fresh-session notice with
+a semicolon. The em dashes left in `inbox-format.ts` are formats, not prose: the
+`@sender — <description>:` envelope sender, the cloud agent attention title line
+(`title — repository (provider)`), and the envelope attachment suffix row below, which the CLI
+history shares.
+
 ## Section-by-section register
 
 Sections are in Haus's render order.
@@ -77,14 +124,16 @@ Sections are in Haus's render order.
 | --- | --- | --- |
 | Identity line | `an AI agent in Haus` vs `in Raft (former Slock)` | Deliberate — AGENTS.md coding rule 11; `specs/haus-rename.md` |
 | Who you are | Parity | — |
+| Personality | Haus-only house personality, rendered for every Agent directly after Who you are: senior teammate not a service, short casual plain sentences, bullets or short lines for options, steps, or data, a committed take with fact-checked one-line pushback, dry humor at the situation never the person and never a reason to send a message when a reaction would do, stop with no closing offers unless a decision is needed, and no em dashes. Raft has no voice section; its generic harness voice read as a service answering customers | Deliberate — operator decision 2026-10-06 from the personality eval series (rounds 1 to 8): blind-judged first on both runtimes against the unchanged prompt, with pushback, structure, and fact citation held or improved; `personality-instructions.test.ts` |
+| Conversation style | Haus-only, rendered only when set, directly after Personality: `## Conversation style`, a framing line (set by the owner or the Agent; shapes only voice and banter on top of the personality above, wins on tone, and never changes rules, permissions, or how the work is done), then the text verbatim. Renamed from the former closing `## Personality` section, now layered rather than standalone so the house rules (pushback, structure, no em dashes) survive a custom voice. The Agent can tune it and its signature emoji with `haus profile update` only when an Owner or Admin asks (Server cannot know who asked, so the prompt and the `profile` Manual topic carry the rule); voice-only framing and the Owner/Admin-only self-edit keep a member or another Agent from planting policy-like text in a section that wins on tone | Deliberate — operator decision 2026-10-06; eval round 8 ranked layering above replacement (replacement doubled em dashes and softened pushback) and placement after Personality best on Claude; README ruling W2 (revisited 2026-10-06); `personality-instructions.test.ts`, budget measured with a one-word style in `managed-instructions.test.ts` |
 | Current Runtime Context | Parity for the preamble. Rows differ: Haus renders `- Agent: @handle (id)`, Hostname, OS, Runtime, Workspace, Home timezone; Raft renders Role, Agent ID, Server ID, `Computer: name (id)`, Hostname, OS, Daemon, Workspace. Raft renders the section only in its configured variant; Haus always does | Deliberate — ADR 0019; the home timezone is load-bearing for the `time=` header (specs/messages.md); the role renders as `## Initial role` |
 | How these instructions apply | Parity | — |
-| Communication — CLI ONLY, command families | Haus drops Raft's admin channel/server management, Integrations (including v1.21's official-apps hint and installed-apps directory), Action cards, `raft version`, sender-side mention actions, `user info`, built-in apps, `auth whoami` (whose v1.21 server-confirmed-identity wording Haus therefore does not carry), and task `amend/history/convert/delete` (task `assign/unassign` restored verbatim when Haus gained the verbs). Raft deleted its Wiki bridge entry at v1.21, so it is no longer a difference. Haus adds Triggers, Skills, Agents, Cloud agents, `channel info`, and `message follow/unfollow`. Haus keeps its own family numbering (Inbox is 4; Raft's is 13) | Deliberate — specs/haus-cli.md is the CLI contract; ADRs 0017/0021/0027/0028, specs/cloud-agents.md, specs/skills.md |
-| Communication — Inbox family entry | Parity with the pinned commit: Raft's `inbox check` family entry (`raftCliGuide.ts`), with `haus` for `raft` and "your Inbox" for "your Activity panel": the human surface Raft calls the Activity panel is the Haus App's Inbox, so the agent command is named for the surface it mirrors. Replaces the bare `` `haus inbox check`. `` entry (+332 characters) | Parity — operator decision 2026-10-06 (match Raft); specs/inbox.md §Unread conversations and read position; `managed-instructions.test.ts`, `managed-instructions-inbox.test.ts` |
+| Communication — CLI ONLY, command families | Haus drops Raft's admin channel/server management, Integrations (including v1.21's official-apps hint and installed-apps directory), Action cards, `raft version`, sender-side mention actions, `user info`, built-in apps, `auth whoami` (whose v1.21 server-confirmed-identity wording Haus therefore does not carry), and task `amend/history/convert/delete` (task `assign/unassign` restored verbatim when Haus gained the verbs). Raft deleted its Wiki bridge entry at v1.21, so it is no longer a difference. Haus adds Triggers, Skills, Agents, Cloud agents, `channel info`, and `message follow/unfollow`. The Profiles entry adds "(also your conversation style and signature emoji, when an Owner or Admin asks)". Haus keeps its own family numbering (Inbox is 4; Raft's is 13) | Deliberate — specs/haus-cli.md is the CLI contract; ADRs 0017/0021/0027/0028, specs/cloud-agents.md, specs/skills.md |
+| Communication — Inbox family entry | Parity with the pinned commit: Raft's `inbox check` family entry (`raftCliGuide.ts`), with `haus` for `raft`, a colon for the family separator em dash (see Writing style), and "your Inbox" for "your Activity panel": the human surface Raft calls the Activity panel is the Haus App's Inbox, so the agent command is named for the surface it mirrors. Replaces the bare `` `haus inbox check`. `` entry (+332 characters) | Parity — operator decision 2026-10-06 (match Raft); specs/inbox.md §Unread conversations and read position; `managed-instructions.test.ts`, `managed-instructions-inbox.test.ts` |
 | Communication — suspect the CLI first | Parity with Raft v1.21's paragraph after `--help`, with "the Manual" for "this Manual" (the Haus prompt is not itself the Manual) and "a Computer does not upgrade itself" for "a daemon" | Deliberate — ADR 0020 and specs/raft-alignment/computer-release-and-update.md (no automatic Computer updates; the Server serves the Manual); `discovery-instructions.test.ts` |
 | Agent creation guidance in Manual and Cove factory notes | Haus creates directly on the human's request, then hints an ordinary introduction using the confirmed handle. Raft retains human-committed action cards; its agentic greeting is a private instruction to the new Agent. Haus creation posts no Message and has no `--say` | Deliberate — ADR 0028; agent creation, CLI, Manual, and Cove factory tests |
 | Credential handling, CRITICAL RULES | Parity | — |
-| Startup steps 1, 2, 3, 5 | Parity | — |
+| Startup steps 1, 2, 3, 5 | Parity. Step 1 ("send it early with `haus message send`") stays verbatim beside the pickup bullet: step 1 governs timing (signal before deep context gathering), the pickup bullet narrows the form (a reaction, plus a one-line note for multi-step work). Eval runs with both texts signalled pickup 22 to 24 of 24 times | — |
 | Startup step 4 | Parity **plus** "Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (`haus message react --message-id <id> --emoji <emoji>`); an explicit FYI gets nothing." No literal emoji, which would become every Agent's default | Deliberate — specs/inbox.md silence semantics; emoji choice per the `replies` Manual topic; the Agent API accepts exactly one emoji; gated by `fyi-silence-channel` / `fyi-silence-dm` / `ack-reaction-thanks` / `ack-reaction-with-request` / `ack-reaction-variety` in `bun run eval:prompt` |
 | Messaging — async paragraph | Parity | — |
 | Messaging — header spec and examples | Haus adds `type=trigger` (Raft has `third_party_app`), the `@sender — <description>:` suffix, home-timezone wall-clock `time=` with a staleness sentence, and `msg=` "(first 8 chars)" without "of UUID". Haus's `type=system` paragraph drops Raft's task-event examples and adds the assignee-receipt sentences | Deliberate — ADR 0027 (triggers), specs/agent-profile.md (description rides the envelope), specs/messages.md (local wall clock), ADR 0015 + ADR 0026 (no task-event receipts; assignment receipt) |
@@ -102,7 +151,7 @@ Sections are in Haus's render order.
 | Splitting tasks | Parity | — |
 | Working through sub-agents | Raft-only. Raft v1.21 renders a `## Working through sub-agents` section after Splitting tasks only when the Server enables `subagentDelegation` and the runtime can start sub-agents. Not in the snapshot render; not adopted | **Pending operator decision** — sub-agent delegation is being decided separately |
 | @Mentions | Parity **plus** one Haus-only bullet: to need a human's decision or action, @mention them where the work lives, with one question, a default only if reversible, and what you prepared; their reply wakes you; irreversible acts wait for an explicit yes. Raft keeps this in its `recipes/decision/when-to-ask-human` recipe; Haus lifts it into the prompt because deleting `haus ask` removed the only prompt-taught way to need a human. Haus renders one name, so the display-name bullet interpolates the same value twice | Deliberate — ADR 0037 (replaces the retired Asks family entry, net −6 characters; a later mention-the-asker clause was cut again once an inline reply to a human's message came to address them like a mention, 32,393 → 32,281), specs/identity.md; `managed-instructions.test.ts`, `human-ask-reply-wakes` |
-| Communication style | Parity | — |
+| Communication style | Parity **except** the first two bullets. Raft's "When you receive a task, acknowledge it and briefly outline your plan before starting." and "For multi-step work, send short progress updates (e.g. "Working on step 2/3…")." are replaced by the pickup rule, which applies when someone asks the Agent to do something: answer directly (claiming first if it is a task) with no reaction when the answer needs at most one quick look-up; react with the signature emoji (the Agent's own, default 👀) before changing files, running commands, or digging in; for several steps also send a one-line note with no plan (ADR 0029's acknowledgment; progress placement stays with the Sending rule); and "For multi-step work, send short progress updates as meaningful steps land; skip updates that change nothing." The signature emoji is the prompt's only literal emoji, scoped to pickup so it does not become the step 4 thanks reaction | Deliberate — operator decision 2026-10-06 from the personality eval series: Raft's plan-outline acknowledgments and step counters read as noise, while a pickup reaction signalled non-instant work 100% of the time (round 5) with a median first signal of 5 to 7 seconds and never fired on social turns; ADR 0029 (progress threads on the acknowledgment); `managed-instructions.test.ts` |
 | Conversation etiquette | Parity **plus** "Silence is deliberate" (step 4 holds in a DM: an explicit FYI gets nothing, a thanks or ack one reaction), "DM knowledge is not room knowledge", and "Welcome new teammates" | Deliberate — specs/inbox.md (silence), specs/sessions.md §"Knowledge and discretion", ADR 0028 (welcome fires on a message, so it cannot live in a Manual topic) |
 | Live constraints | Parity | — |
 | Formatting — Mentions & Channel Refs | Haus drops Raft's `#1` numeric channel form and adds "Haus renders your message as Markdown, GFM tables included," extended with a chat-register rule: plain sentences, no bold for emphasis or as labels, lists/headings/tables only for genuinely structured content | Deliberate — specs/mentions.md (no numeric refs); Haus App renders GFM (docs/internals/widgets.md); chat register is an operator decision 2026-10-01 (agents overused bold in chat), covered by managed-instructions.test.ts |
@@ -114,7 +163,6 @@ Sections are in Haus's render order.
 | Visuals | Haus-only | Deliberate — ADR 0012, ADR 0031 |
 | Web access | Haus-only, rendered only when web access is granted | Deliberate — specs/tools.md |
 | Initial role | Parity | — |
-| Personality | Haus-only closing section, `## Personality` followed by the operator-set text verbatim; rendered only when an Owner or Admin set one. No framing sentence: the heading is the whole scaffold (18 characters) | Deliberate — README ruling W2 (2026-10-03 partial revisit); docs/features/agents.md; `personality-instructions.test.ts`, budget measured with a one-word personality in `managed-instructions.test.ts` |
 | Runtime Profile Control | Raft-only (configured variant's daemon release notice) | Deliberate — Computer upgrades are operator-driven, ADR 0020 |
 | Workspace seed (`packages/agent-workspace/src/starter-kit.ts`) | Not re-diffed at 1.0.25; last matched 1.0.16's `buildInitialMemoryMd` | Re-check on the next pin |
 
@@ -153,7 +201,7 @@ when re-pinning to a newer Raft source commit. Verification for a prompt edit is
 
 ## Cove coordination release review
 
-The rendered prompt budget is 33,910 characters (previously 33,388 after the v1.21.2 re-pin and inbox updates). The 522-character
+This review set the rendered prompt budget to 33,910 characters (previously 33,388 after the v1.21.2 re-pin and inbox updates). The 522-character
 increase explicitly preserves default reminder answers except for agreed quiet reporting,
 and lets a short human schedule confirmation/correction/opt-out use one confirmed reply as
 its acknowledgment. Longer work still needs its initial acknowledgment. Trigger provenance,
