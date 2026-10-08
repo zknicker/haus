@@ -51,9 +51,15 @@ a product placeholder mark, and the RankWrangler lookup fills it in place.
 While the lookup runs, the placeholder pulses and the hover card says product
 details are being fetched. Once it completes, the label becomes RankWrangler’s
 generated short name (else the ASIN) and the mark becomes the transparent cutout
-thumbnail in an 18px box, else the listing photo. A failed lookup keeps the ASIN
-chip and the hover card says details are unavailable; without a RankWrangler
-connection in Settings → Connections the hover card notes that details need it.
+thumbnail in an 18px box, else the listing photo. A lookup that does not
+resolve keeps the ASIN chip unchanged; only the hover card's notice explains it:
+"Fetching product details…" on the first read, "Product details are taking
+longer than usual. Retrying…" while bounded retries run, "Product details are
+temporarily unavailable. We’ll try again shortly." once they give up on a
+transient problem, and "Product details unavailable" for an unknown ASIN or a
+permanent failure. Once a lookup has explained a problem it never falls back to
+the bare loading copy. Without a RankWrangler connection in Settings →
+Connections the hover card notes that details need it.
 The hover card retains the full listing
 title. Hover or keyboard focus opens a compact glass card with a title of at most two lines, brand, and available price. The transparent product cutout floats beside it, tilted slightly, with a brief settling entrance and sparkle. Reduced motion disables the decoration. Clicking opens Amazon.
 
@@ -68,15 +74,29 @@ Server membership authorizes preview reads through the connected RankWrangler
 account. Agent tool calls still require an explicit connection grant. Credentials
 stay on Server. Lookups share a bounded five-minute Server cache; account changes
 clear it and invalidate App reads. Chips mounted together share one
-`mcp.amazonProducts` read. Server reads the basics (title, thumbnail, listing
-status) with one RankWrangler `getMany`, and the short name and cutout with a
-best-effort `get` per product using `include: ['shortName', 'cutoutThumbnail']`.
-When RankWrangler has not generated those yet (`TEMPORARILY_UNAVAILABLE`), the
-summary still returns with `enrichment: 'pending'`; Server caches it for two
-seconds and the App refetches a few times, five seconds apart. Any other
-enrichment failure serves the basics with `enrichment: 'ready'` and logs a Server
-warning. A batched read returns the products it resolved, so one unknown ASIN
-fails only its own chip. Errors are never cached. Market data loads only on preview with `include: ['marketData']`.
+`mcp.amazonProducts` read, which returns one typed result per product: `found`
+with the summary, `temporarilyUnavailable` with `retryAfterSeconds` (1–30), or
+`unavailable`; `null` means no RankWrangler connection. Server reads the basics
+(title, thumbnail, listing status) with one RankWrangler `getMany`, and the short
+name and cutout with a best-effort `get` per product using
+`include: ['shortName', 'cutoutThumbnail']`. That `get` also carries the basics,
+so a failed `getMany` falls back to it per product. A product is
+`temporarilyUnavailable` only when neither read produced it and a failure was
+transient (a retryable RankWrangler error, an MCP timeout, or an unreachable
+upstream); otherwise it is `unavailable`. When basics arrive but RankWrangler has
+not generated the short name and cutout yet, the summary returns with
+`enrichment: 'pending'`; Server caches it for two seconds and the App refetches a
+few times, five seconds apart. Any other enrichment failure serves the basics with
+`enrichment: 'ready'` and logs a Server warning.
+
+The App's React Query lookup owns retries; Server never holds a request open to
+wait. A `temporarilyUnavailable` result or a failed read retries three times with
+exponential backoff that starts at `retryAfterSeconds` and caps at 30 seconds.
+After that the hover card shows the temporary notice and, while it stays open,
+the lookup tries again every 15 seconds and fills in once a read succeeds.
+Transient and unavailable results are never cached on Server.
+
+Market data loads only on preview with `include: ['marketData']`.
 Removed listings show last-known data with a removal label. Missing prices and brands are omitted. An upstream detail failure leaves the thumbnail and title
 visible with an unavailable notice.
 
