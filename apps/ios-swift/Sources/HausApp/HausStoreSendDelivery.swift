@@ -1,5 +1,6 @@
 import Foundation
 import HausModels
+import HausTransport
 import HausUI
 import OSLog
 #if canImport(UIKit)
@@ -47,18 +48,21 @@ extension HausStore {
                 serverID: serverID,
                 chatID: chatID
             )
-            let receipt: SendReceipt = try await client.mutation(
-                "chat.send",
-                input: ChatSendInput(
-                    serverId: serverID,
-                    chatId: chatID,
-                    content: row.content,
-                    nonce: row.nonce,
-                    attachmentIds: uploadedAttachments.map(\.id),
-                    replyToMessageId: replyToMessageID,
-                    thread: threadAnchorMessageID.map(ChatThreadInput.init(anchorMessageId:))
-                )
+            // Server deduplicates by nonce, so a send that hit a bad link is
+            // replayed before the row is marked failed.
+            let client = self.client
+            let input = ChatSendInput(
+                serverId: serverID,
+                chatId: chatID,
+                content: row.content,
+                nonce: row.nonce,
+                attachmentIds: uploadedAttachments.map(\.id),
+                replyToMessageId: replyToMessageID,
+                thread: threadAnchorMessageID.map(ChatThreadInput.init(anchorMessageId:))
             )
+            let receipt: SendReceipt = try await IdempotentRetry.run {
+                try await client.mutation("chat.send", input: input)
+            }
             row.attachments.forEach(ComposerAttachmentStager.remove)
             // A first reply is optimistically keyed by its anchor (or another
             // temporary route key). Move it to the child Chat returned by

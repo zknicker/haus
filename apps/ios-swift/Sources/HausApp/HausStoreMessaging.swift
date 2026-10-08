@@ -1,5 +1,6 @@
 import Foundation
 import HausModels
+import HausTransport
 import HausUI
 import OSLog
 
@@ -136,16 +137,19 @@ extension HausStore {
         var uploaded: [AttachmentMetadata] = []
         uploaded.reserveCapacity(attachments.count)
         for attachment in attachments {
-            let reservation: AttachmentReservation = try await client.mutation(
-                "attachment.reserve",
-                input: AttachmentReserveInput(
-                    chatId: chatID,
-                    filename: attachment.filename,
-                    mediaType: attachment.mediaType,
-                    nonce: attachment.id,
-                    serverId: serverID
-                )
+            let client = self.client
+            let input = AttachmentReserveInput(
+                chatId: chatID,
+                filename: attachment.filename,
+                mediaType: attachment.mediaType,
+                nonce: attachment.id,
+                serverId: serverID
             )
+            // A reservation is idempotent by its nonce, so it rides out a bad
+            // link the same way the send does.
+            let reservation: AttachmentReservation = try await IdempotentRetry.run {
+                try await client.mutation("attachment.reserve", input: input)
+            }
             guard attachment.sizeBytes <= reservation.maxSizeBytes else {
                 throw AttachmentSendError.tooLarge(filename: attachment.filename)
             }

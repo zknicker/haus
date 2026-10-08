@@ -107,8 +107,8 @@ struct MessageTimelineRow: View {
                     )
                 }
 
-                if message.isPending {
-                    PendingSendCaption(isFailed: message.isSendFailed)
+                if message.isSendFailed {
+                    NotSentCaption()
                 }
 
                 if ThreadPreviewProjection.showsIngress(

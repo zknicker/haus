@@ -33,8 +33,6 @@ extension ThreadDetailView {
         case .reply(let message):
             messageRow(message)
                 .padding(.top, 10)
-        case .pendingSend:
-            ThreadPendingSendRow()
         case .dayDivider(let date, _):
             TranscriptDayDivider(date: date)
                 .padding(.top, 14)
@@ -78,7 +76,7 @@ extension ThreadDetailView {
         switch item {
         case .anchor(let message, _), .inlineReply(let message), .reply(let message):
             message.isPending ? nil : message
-        case .taskMetadata, .inlineReplies, .threadHeader, .pendingSend, .dayDivider:
+        case .taskMetadata, .inlineReplies, .threadHeader, .dayDivider:
             nil
         }
     }

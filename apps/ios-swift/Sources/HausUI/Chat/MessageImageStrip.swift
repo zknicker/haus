@@ -16,7 +16,6 @@ import SwiftUI
 /// horizontal direction, momentum, and hit-testing exactly as they are.
 struct MessageImageStrip: View {
     let attachments: [MessageAttachmentPresentation]
-    let isPending: Bool
     let isDisabled: Bool
     let onOpen: (MessageAttachmentPresentation) async throws -> URL
     let onFailure: (MessageAttachmentPresentation) -> Void
@@ -58,8 +57,6 @@ struct MessageImageStrip: View {
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
-        .accessibilityLabel(
-            isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
-        )
+        .accessibilityLabel("Preview \(attachment.filename)")
     }
 }

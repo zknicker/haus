@@ -49,10 +49,9 @@ struct MessageAttachmentGroup: View {
             case .strip:
                 MessageImageStrip(
                     attachments: layout.images,
-                    isPending: isPending,
                     // A file row resolving its bytes owns the preview binding
                     // until it lands, so the strip stops taking taps with it.
-                    isDisabled: isPending || loadingAttachmentID != nil,
+                    isDisabled: loadingAttachmentID != nil,
                     onOpen: onOpen,
                     onFailure: { imageTileFailedIDs.insert($0.id) },
                     onTap: { open($0) },
@@ -75,10 +74,8 @@ struct MessageAttachmentGroup: View {
             label()
         }
         .buttonStyle(.plain)
-        .disabled(isPending || loadingAttachmentID != nil)
-        .accessibilityLabel(
-            isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
-        )
+        .disabled(loadingAttachmentID != nil)
+        .accessibilityLabel("Preview \(attachment.filename)")
     }
 
     /// Image attachments render as pictures — including pending uploads, which
@@ -119,7 +116,7 @@ struct MessageAttachmentGroup: View {
 
             Spacer(minLength: 8)
 
-            if isPending || loadingAttachmentID == attachment.id {
+            if loadingAttachmentID == attachment.id {
                 ProgressView().controlSize(.small)
             } else {
                 Image(systemName: "chevron.right")
@@ -149,6 +146,10 @@ struct MessageAttachmentGroup: View {
     /// the caller's attachment cache and outlives the preview, so dismissal
     /// deletes nothing.
     private func open(_ attachment: MessageAttachmentPresentation) {
+        // A send in flight has nothing durable to open yet. Its row takes the
+        // tap and does nothing rather than drawing a disabled state the
+        // confirmed row would then drop.
+        guard !isPending else { return }
         if layout.images.contains(where: { $0.id == attachment.id }) {
             preview = .image(attachmentID: attachment.id)
             return

@@ -11,7 +11,6 @@ final class ThreadTranscriptProjection {
     private struct Inputs: Equatable {
         let anchor: MessagePresentation
         let replies: [MessagePresentation]
-        let pending: Bool
         let includesInlineReplies: Bool
         let inlineReplies: [MessagePresentation]
     }
@@ -24,14 +23,12 @@ final class ThreadTranscriptProjection {
     func update(
         anchor: MessagePresentation,
         replies: [MessagePresentation],
-        pending: Bool,
         includesInlineReplies: Bool,
         inlineReplies: [MessagePresentation]
     ) {
         let next = Inputs(
             anchor: anchor,
             replies: replies,
-            pending: pending,
             includesInlineReplies: includesInlineReplies,
             inlineReplies: inlineReplies
         )
@@ -40,7 +37,6 @@ final class ThreadTranscriptProjection {
         items = ThreadTranscriptItem.items(
             anchor: anchor,
             replies: replies,
-            pending: pending,
             includesInlineReplies: includesInlineReplies,
             inlineReplies: inlineReplies
         )

@@ -154,10 +154,7 @@ extension HausStore {
     /// about which row is on screen.
     func reconcilePendingMessages(chatID: String, page: ChatMessagePage) {
         guard let pending = pendingMessagesByChatID[chatID] else { return }
-        let durableNonces = OptimisticMessageRow.durableNonces(in: page.messages)
-        let remaining = pending.filter {
-            !OptimisticMessageRow.isSuperseded(nonce: $0.nonce, durableNonces: durableNonces)
-        }
+        let remaining = OptimisticMessageRow.unsettled(pending, page: page.messages)
         if remaining.isEmpty {
             pendingMessagesByChatID.removeValue(forKey: chatID)
         } else {

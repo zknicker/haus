@@ -8,7 +8,6 @@ public struct MessageComposerView: View {
     @Binding private var text: String
     @Bindable private var interaction: ComposerInteraction
     private let placeholder: String
-    private let isConnected: Bool
     private let allowsAttachments: Bool
     private let mentionOptions: [MentionOptionPresentation]
     private let inlineReply: MessageReplyReferencePresentation?
@@ -36,7 +35,6 @@ public struct MessageComposerView: View {
         text: Binding<String>,
         interaction: ComposerInteraction,
         placeholder: String,
-        isConnected: Bool,
         isTextFocused: FocusState<Bool>.Binding,
         allowsAttachments: Bool = true,
         mentionOptions: [MentionOptionPresentation] = [],
@@ -48,7 +46,6 @@ public struct MessageComposerView: View {
         _text = text
         self.interaction = interaction
         self.placeholder = placeholder
-        self.isConnected = isConnected
         _isTextFocused = isTextFocused
         self.allowsAttachments = allowsAttachments
         self.mentionOptions = mentionOptions
@@ -60,8 +57,8 @@ public struct MessageComposerView: View {
 
     public var body: some View {
         // Deliberately not wrapped in a `GlassEffectContainer`: a container exists to merge sibling
-        // glass shapes into one layer, and the composer has a single glass shape with the status
-        // banner as a separate object, so there is nothing here to merge. The earlier reason — that
+        // glass shapes into one layer, and the composer has a single glass shape, so there is
+        // nothing here to merge. The earlier reason — that
         // the merged layer dimmed the shell's rim — described the hand-rolled specular overlay that
         // `ComposerGlassSurface` no longer paints, so it no longer argues against a container. If
         // the composer and the attachment portal are ever morphed as one glass object, that is the
@@ -71,7 +68,6 @@ public struct MessageComposerView: View {
             mentionOptions: mentionOptions,
             inlineReply: inlineReply,
             onCancelInlineReply: onCancelInlineReply,
-            status: { statusView },
             surface: { composerSurface }
         )
             .padding(.horizontal, isExpanded ? 12 : 24)
@@ -81,7 +77,6 @@ public struct MessageComposerView: View {
             // glass, which is the only thing that gives it something to be translucent against.
             .animation(.spring(response: 0.3, dampingFraction: 0.9), value: isExpanded)
             .animation(.easeOut(duration: 0.24), value: interaction.attachments.count)
-            .animation(.smooth(duration: 0.22), value: isConnected)
             .sensoryFeedback(.success, trigger: attachmentReadyFeedback)
             .sensoryFeedback(.impact(weight: .light), trigger: sendFeedback)
             .sensoryFeedback(.error, trigger: sendFailureFeedback)
@@ -118,6 +113,9 @@ public struct MessageComposerView: View {
                 case .failure(let error): interaction.errorMessage = error.localizedDescription
                 }
             }
+            // A file that could not be staged is a native alert, not a caption
+            // floating over the transcript the composer sits on.
+            .composerAttachmentAlert(message: $interaction.errorMessage)
             // The interaction outlives this view — a Chat switch or a push-over
             // destroys the screen while the shell keeps the staged attachments —
             // so leaving takes the presentation state and nothing else. Files
@@ -309,16 +307,6 @@ public struct MessageComposerView: View {
 
     private func reportDestinationFrame(_ geometry: GeometryProxy) {
         interaction.morphDestinationFrame = geometry.frame(in: .global)
-    }
-
-    @ViewBuilder
-    private var statusView: some View {
-        if let error = interaction.errorMessage {
-            ComposerErrorNotice(message: error)
-        } else if !isConnected {
-            ConnectionStatusBanner()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
     }
 
     private var canSend: Bool {

@@ -3,12 +3,11 @@ import SwiftUI
 /// The shared vertical composer stack. Keeping the inline reference beside the
 /// mention picker and surface preserves their single layout animation while
 /// keeping `MessageComposerView` focused on input and attachment behavior.
-struct MessageComposerStack<Status: View, Surface: View>: View {
+struct MessageComposerStack<Surface: View>: View {
     @Binding var text: String
     let mentionOptions: [MentionOptionPresentation]
     let inlineReply: MessageReplyReferencePresentation?
     let onCancelInlineReply: () -> Void
-    private let status: () -> Status
     private let surface: () -> Surface
 
     init(
@@ -16,14 +15,12 @@ struct MessageComposerStack<Status: View, Surface: View>: View {
         mentionOptions: [MentionOptionPresentation],
         inlineReply: MessageReplyReferencePresentation?,
         onCancelInlineReply: @escaping () -> Void,
-        @ViewBuilder status: @escaping () -> Status,
         @ViewBuilder surface: @escaping () -> Surface
     ) {
         _text = text
         self.mentionOptions = mentionOptions
         self.inlineReply = inlineReply
         self.onCancelInlineReply = onCancelInlineReply
-        self.status = status
         self.surface = surface
     }
 
@@ -33,9 +30,6 @@ struct MessageComposerStack<Status: View, Surface: View>: View {
             options: mentionOptions
         )
         return VStack(alignment: .leading, spacing: 8) {
-            // The stopped-Agent notice sits above this stack, in
-            // `ChatComposerStatus`, outside the composer's horizontal inset.
-            status()
             MessageComposerMentionPicker(text: $text, options: mentionOptions)
             if let inlineReply {
                 InlineReplyComposerReference(

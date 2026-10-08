@@ -7,7 +7,6 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     case inlineReply(MessagePresentation)
     case threadHeader
     case reply(MessagePresentation)
-    case pendingSend
     /// Opens a calendar day. `region` keeps the parent chain's dividers apart
     /// from the Thread's own.
     case dayDivider(Date, region: String)
@@ -20,7 +19,6 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         case .inlineReply(let message): "thread-inline-reply-\(message.id)"
         case .threadHeader: "thread-header"
         case .reply(let message): message.id
-        case .pendingSend: "thread-pending-send"
         case .dayDivider(let date, let region):
             "thread-day-\(region)-\(Int(date.timeIntervalSinceReferenceDate))"
         }
@@ -28,7 +26,6 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
 
     var isPending: Bool {
         switch self {
-        case .pendingSend: true
         case .reply(let message): message.isPending
         case .inlineReply(let message): message.isPending
         case .anchor, .taskMetadata, .inlineReplies, .threadHeader, .dayDivider: false
@@ -41,13 +38,12 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     }
 
     /// The Thread transcript in order: the anchor, its task metadata when it
-    /// has any, the parent chain when inspecting a Task, the replies, and the
-    /// viewer's own send while it is in flight. A day divider opens each
+    /// has any, the parent chain when inspecting a Task, and the replies, the
+    /// viewer's own optimistic replies among them. A day divider opens each
     /// calendar day after the anchor's.
     static func items(
         anchor: MessagePresentation,
         replies: [MessagePresentation],
-        pending: Bool,
         includesInlineReplies: Bool = false,
         inlineReplies: [MessagePresentation] = [],
         calendar: Calendar = .current
@@ -71,9 +67,6 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
             replies, after: anchor, region: "replies", calendar: calendar,
             row: ThreadTranscriptItem.reply
         ))
-        if pending {
-            items.append(.pendingSend)
-        }
         return items
     }
 
@@ -94,22 +87,6 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
             previous = message.createdAt
         }
         return items
-    }
-}
-
-/// The viewer's own reply while the send is in flight, aligned under the reply
-/// column rather than the avatar rail.
-struct ThreadPendingSendRow: View {
-    var body: some View {
-        HStack(spacing: 7) {
-            ProgressView()
-                .controlSize(.small)
-            Text("Sending")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.leading, 46)
-        .padding(.top, 12)
     }
 }
 

@@ -75,9 +75,10 @@ extension View {
 }
 
 enum MessageRowAccessibilityLabel {
+    /// Only a failed send is announced; one in flight reads like the durable
+    /// row it becomes.
     private static func pendingState(_ message: MessagePresentation) -> String? {
-        guard message.isPending else { return nil }
-        return message.isSendFailed ? "Not sent" : "Sending"
+        message.isSendFailed ? "Not sent" : nil
     }
 
     static func label(for message: MessagePresentation, now: Date = .now) -> String {

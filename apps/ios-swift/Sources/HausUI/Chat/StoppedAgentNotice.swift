@@ -26,76 +26,104 @@ extension EnvironmentValues {
 }
 
 /// A stopped Agent's DM still takes messages, but they wait until someone
-/// starts it. The App's `StoppedAgentDmNotice`: said once above the composer
-/// in the footer's quiet register, with Start for the people who may run it.
+/// starts it. The App's `StoppedAgentDmNotice`, drawn the way iOS draws a
+/// standing fact about a conversation: one glass card above the composer with
+/// a status glyph, a short title and its consequence, and Start for the
+/// people who may run it. A failed start is an alert, not red text.
 struct StoppedAgentNotice: View {
     let name: String
     let canStart: Bool
     let onStart: () async throws -> Void
 
     @State private var isStarting = false
-    @State private var failed = false
+    @State private var isShowingFailure = false
     @State private var started = 0
-    @State private var failures = 0
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(StoppedAgentNoticeCopy.message(name: name))
+        HStack(spacing: 12) {
+            Image(systemName: "stop.circle.fill")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(StoppedAgentNoticeCopy.title(name: name))
+                    .font(.subheadline.weight(.semibold))
+                Text(StoppedAgentNoticeCopy.detail)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
-                if failed {
-                    Text(StoppedAgentNoticeCopy.failure(name: name))
-                        .foregroundStyle(.red)
-                        .transition(.opacity)
-                }
             }
-            .font(.footnote)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
 
             if canStart {
                 Button(action: start) {
-                    Text(isStarting ? "Starting…" : "Start")
-                        .font(.footnote.weight(.semibold))
+                    ZStack {
+                        // The label keeps its width while the spinner stands in.
+                        Text("Start").opacity(isStarting ? 0 : 1)
+                        if isStarting { ProgressView().controlSize(.small) }
+                    }
+                    .font(.subheadline.weight(.semibold))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
                 .controlSize(.small)
                 .disabled(isStarting)
                 .accessibilityLabel(isStarting ? "Starting \(name)" : "Start \(name)")
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 6)
-        .animation(.easeOut(duration: 0.2), value: failed)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .modifier(StoppedAgentNoticeSurface())
+        .padding(.horizontal, 12)
+        .padding(.bottom, 6)
         .sensoryFeedback(.success, trigger: started)
-        .sensoryFeedback(.error, trigger: failures)
+        .sensoryFeedback(.error, trigger: isShowingFailure) { _, failed in failed }
+        .alert(StoppedAgentNoticeCopy.failureTitle(name: name), isPresented: $isShowingFailure) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(StoppedAgentNoticeCopy.failureDetail)
+        }
         .accessibilityElement(children: .contain)
     }
 
     private func start() {
         guard !isStarting else { return }
         isStarting = true
-        failed = false
         Task {
             do {
                 try await onStart()
                 started += 1
             } catch {
-                failed = true
-                failures += 1
+                isShowingFailure = true
             }
             isStarting = false
         }
     }
 }
 
+/// The same glass the composer floats on, so the notice reads as part of the
+/// composer's chrome rather than text laid over the transcript.
+private struct StoppedAgentNoticeSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            content.glassEffect(.regular, in: .haus(HausRadius.large))
+        } else {
+            content.background(.thinMaterial, in: .haus(HausRadius.large))
+        }
+    }
+}
+
 /// The notice's words, kept apart so they are testable.
 enum StoppedAgentNoticeCopy {
-    static func message(name: String) -> String {
-        "\(name) is stopped and won’t see new messages until it’s started again."
+    static func title(name: String) -> String {
+        "\(name) is stopped"
     }
 
-    static func failure(name: String) -> String {
-        "Couldn’t start \(name). Try again."
+    static let detail = "It won’t see new messages until it’s started again."
+
+    static func failureTitle(name: String) -> String {
+        "Couldn’t Start \(name)"
     }
+
+    static let failureDetail = "Try again in a moment."
 }

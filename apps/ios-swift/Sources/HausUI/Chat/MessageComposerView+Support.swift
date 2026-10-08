@@ -13,21 +13,21 @@ extension MessageComposerView {
     }
 }
 
-/// The composer no longer sits on an opaque band, so a send failure carries its own surface
-/// rather than laying red text straight over the transcript running underneath.
-struct ComposerErrorNotice: View {
-    let message: String
-
-    var body: some View {
-        let label = Text(message)
-            .font(.caption)
-            .foregroundStyle(.red)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-        if #available(iOS 26, macOS 26, *) {
-            label.glassEffect(.regular, in: .rect(cornerRadius: 14))
-        } else {
-            label.background(.thinMaterial, in: .rect(cornerRadius: 14))
+extension View {
+    /// Why a picked file could not join the draft, as a native alert. The
+    /// message clears when the alert is dismissed.
+    func composerAttachmentAlert(message: Binding<String?>) -> some View {
+        alert(
+            "Couldn’t Add Attachment",
+            isPresented: Binding(
+                get: { message.wrappedValue != nil },
+                set: { if !$0 { message.wrappedValue = nil } }
+            ),
+            presenting: message.wrappedValue
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { text in
+            Text(text)
         }
     }
 }

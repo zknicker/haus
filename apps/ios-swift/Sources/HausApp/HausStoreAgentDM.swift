@@ -28,15 +28,17 @@ extension HausStore {
     func deliverAgentDM(_ row: PendingChatMessage, serverID: String) async -> SendOutcome {
         guard case .agentDM(let agentID) = row.target else { return .rejected }
         do {
-            let receipt: SendReceipt = try await client.mutation(
-                "chat.send",
-                input: SendAgentDMInput(
-                    agentID: agentID,
-                    content: row.content,
-                    nonce: row.nonce,
-                    serverID: serverID
-                )
+            let client = self.client
+            let input = SendAgentDMInput(
+                agentID: agentID,
+                content: row.content,
+                nonce: row.nonce,
+                serverID: serverID
             )
+            // Replayed through a bad link by nonce, like every other send.
+            let receipt: SendReceipt = try await IdempotentRetry.run {
+                try await client.mutation("chat.send", input: input)
+            }
             let chatID = receipt.message.chatID
             receiptBackedAgentDMsByChatID[chatID] = agentID
             adoptPendingMessages(from: row.chatID, to: chatID)

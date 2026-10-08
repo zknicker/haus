@@ -127,14 +127,10 @@ extension HausStore {
         _ pending: [PendingChatMessage],
         page: ChatMessagePage?
     ) -> [MessagePresentation] {
-        guard !pending.isEmpty else { return [] }
-        let durableNonces = OptimisticMessageRow.durableNonces(in: page?.messages ?? [])
+        let unsettled = OptimisticMessageRow.unsettled(pending, page: page?.messages ?? [])
+        guard !unsettled.isEmpty else { return [] }
         let viewer = viewerAuthorPresentation
-        return pending.compactMap { message in
-            guard !OptimisticMessageRow.isSuperseded(
-                nonce: message.nonce,
-                durableNonces: durableNonces
-            ) else { return nil }
+        return unsettled.map { message in
             // An optimistic row goes through the same body resolution as a
             // durable one, so its mentions survive the trust check even when
             // trimming changes the string the composer staged.

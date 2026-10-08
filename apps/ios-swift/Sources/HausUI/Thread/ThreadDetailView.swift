@@ -3,11 +3,10 @@ import SwiftUI
 /// A native NavigationStack destination for one message thread.
 ///
 /// The parent chat owns fetching and mutation. This view only presents the
-/// anchor, task metadata, current reply state, and local pending state.
+/// anchor, task metadata, and current reply state.
 public struct ThreadDetailView: View {
     private let anchor: MessagePresentation
     private let replyProvider: () -> [MessagePresentation]
-    let pending: Bool
     private let isConnected: Bool
     /// Whether this conversation refuses new Messages — an archived Chat, or a
     /// DM whose peer Agent was retired (`ChatSummary.isReadOnly`). The Thread
@@ -38,6 +37,8 @@ public struct ThreadDetailView: View {
     /// lands, so the push never shows the anchor first and then snaps to the
     /// newest reply. See `ThreadOpening`.
     @State private var awaitsFirstReplies: Bool
+    /// Whether the navigation subtitle reads "Connecting…" (`ConnectionOutage`).
+    @State private var showsOutage = false
     @State private var isNearNewest = true
     @State private var reveal: TranscriptReveal?
     /// Same ownership rule as the Chat timeline: the screen presents, the rows
@@ -65,7 +66,6 @@ public struct ThreadDetailView: View {
     public init(
         anchor: MessagePresentation,
         replies: [MessagePresentation],
-        pending: Bool = false,
         isConnected: Bool = true,
         isReadOnly: Bool = false,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
@@ -86,7 +86,6 @@ public struct ThreadDetailView: View {
         self.replyProvider = { replies }
         self.contextLabel = contextLabel
         _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
-        self.pending = pending
         self.isConnected = isConnected
         self.isReadOnly = isReadOnly
         self.onSend = onSend
@@ -106,7 +105,6 @@ public struct ThreadDetailView: View {
     public init(
         anchor: MessagePresentation,
         replies: @escaping () -> [MessagePresentation],
-        pending: Bool = false,
         isConnected: Bool = true,
         isReadOnly: Bool = false,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
@@ -127,7 +125,6 @@ public struct ThreadDetailView: View {
         self.replyProvider = replies
         self.contextLabel = contextLabel
         _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
-        self.pending = pending
         self.isConnected = isConnected
         self.isReadOnly = isReadOnly
         self.onSend = onSend
@@ -147,7 +144,6 @@ public struct ThreadDetailView: View {
         projection.update(
             anchor: anchor,
             replies: replies,
-            pending: pending,
             includesInlineReplies: inlineReplies != nil,
             inlineReplies: inlineReplyMessages
         )
@@ -171,13 +167,9 @@ public struct ThreadDetailView: View {
                                 text: $draft,
                                 interaction: composerInteraction,
                                 placeholder: "Reply in thread",
-                                isConnected: isConnected,
                                 isTextFocused: $isComposerFocused,
                                 transitionNamespace: composerTransitionNamespace,
-                                onSend: { content, attachments in
-                                    guard !pending else { return false }
-                                    return await onSend(content, attachments)
-                                }
+                                onSend: onSend
                             )
                         }
                     }
@@ -211,7 +203,11 @@ public struct ThreadDetailView: View {
         .onChange(of: projection.messageIDs) { _, ids in
             visualHeights.retain(messageIDs: Set(ids))
         }
-        .threadNavigationTitle(ThreadOpening.title(anchor: anchor), subtitle: contextLabel)
+        .threadNavigationTitle(
+            ThreadOpening.title(anchor: anchor),
+            subtitle: showsOutage ? ConnectionOutage.title : contextLabel
+        )
+        .connectionOutage(isConnected: isConnected, showsOutage: $showsOutage)
         .toolbar {
             if let follow {
                 ToolbarItem(placement: .automatic) {

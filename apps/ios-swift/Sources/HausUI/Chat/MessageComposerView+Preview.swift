@@ -10,7 +10,6 @@ private struct MessageComposerPreview: View {
             text: $text,
             interaction: interaction,
             placeholder: "Message #product",
-            isConnected: true,
             isTextFocused: $isFocused,
             onSend: { _, _ in true }
         )

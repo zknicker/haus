@@ -10,27 +10,16 @@ public enum FailedSendRoutes {
     public static var delete: ((_ messageID: String) -> Void)?
 }
 
-/// The caption under the viewer's own row while it is not yet durable:
-/// "Sending" with a spinner, or "Not sent" in red once the send failed.
-struct PendingSendCaption: View {
-    let isFailed: Bool
-    var spinnerSize: ControlSize = .mini
-
+/// The caption under the viewer's own row once its send failed. A send in
+/// flight draws nothing: the row looks exactly like the durable row that will
+/// replace it, as on the web, so confirmation changes no pixels.
+struct NotSentCaption: View {
     var body: some View {
-        HStack(spacing: 5) {
-            if isFailed {
-                Text("Not sent")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.red)
-            } else {
-                ProgressView().controlSize(spinnerSize)
-                Text("Sending")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.top, 2)
-        .accessibilityHidden(true)
+        Text("Not sent")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.red)
+            .padding(.top, 2)
+            .accessibilityHidden(true)
     }
 }
 

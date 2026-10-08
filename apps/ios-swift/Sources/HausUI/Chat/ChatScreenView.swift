@@ -98,8 +98,14 @@ public struct ChatScreenView: View {
             // moves onto the header itself, inside the bar. It is a `chromeBar` and not a
             // plain inset because the soft edge below only paints behind a declared bar.
             .chromeBar(edge: .top, spacing: 0) {
-                header
-                    .overlay(alignment: .top) { engagement }
+                ChatScreenHeader(
+                    chat: chat,
+                    isConnected: isConnected,
+                    onOpenSidebar: onOpenSidebar,
+                    onOpenChatDetails: onOpenChatDetails,
+                    onOpenSearch: onOpenSearch,
+                    onCall: onCall
+                )
                     .padding(.top, contentInsets.top)
                     .openingEntrance(.header)
             }
@@ -116,7 +122,6 @@ public struct ChatScreenView: View {
                         text: $draft,
                         interaction: composerInteraction,
                         placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
-                        isConnected: isConnected,
                         isTextFocused: $isComposerFocused,
                         allowsAttachments: chat.durableChat != nil,
                         mentionOptions: mentionOptions,
@@ -221,69 +226,19 @@ public struct ChatScreenView: View {
         }
 
         guard let onSendInlineReply else { return false }
+        // The reply lands in the transcript the moment it is sent, so the
+        // composer lets go of its target with the draft rather than holding it
+        // until Server answers. Only a send that never left brings it back.
+        self.inlineReply = nil
         let sent = await onSendInlineReply(content, attachments, inlineReply)
-        if sent, self.inlineReply?.id == inlineReply.id {
-            self.inlineReply = nil
+        if !sent, self.inlineReply == nil {
+            self.inlineReply = inlineReply
         }
         return sent
     }
-
-    private var header: some View {
-        ChromeHeader {
-            GlassChromeButton(.sidebar, label: "Open navigation", action: onOpenSidebar)
-        } center: {
-            Button(action: onOpenChatDetails) {
-                HStack(spacing: 7) {
-                    chatIdentity
-                    Text(chat.title).font(.headline).lineLimit(1)
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: 220)
-            }
-            .buttonStyle(.plain)
-            // The header caps its text size like a navigation bar does, so a
-            // reader at an accessibility size gets the system's enlarged
-            // preview on a long press instead.
-            .accessibilityShowsLargeContentViewer {
-                Text(chat.title)
-            }
-        } trailing: {
-            HStack(spacing: 8) {
-                if let onCall {
-                    GlassChromeButton(.system("phone"), label: "Call Agent", action: onCall)
-                }
-                GlassChromeButton(.icon(.search), label: "Search messages", action: onOpenSearch)
-            }
-        }
-    }
-
-    /// Who is answering: an overlay under the title, so it never moves the transcript.
-    @ViewBuilder
-    private var engagement: some View {
-        if let chatID = chat.durableChat?.id {
-            HeaderEngagement(chatID: chatID, style: chat.kind.engagementStyle)
-                .fixedSize(horizontal: false, vertical: true)
-                .offset(y: HausChrome.headerHeight - 8)
-        }
-    }
-
-    @ViewBuilder
-    private var chatIdentity: some View {
-        switch chat.kind {
-        case .channel:
-            ChannelIconBox(appearance: chat.appearance, size: 26)
-        case .agentDirectMessage(let agent):
-            AvatarView(name: agent.name, url: agent.avatarURL, presence: agent.presence, size: 30)
-        case .humanDirectMessage(let human):
-            AvatarView(name: human.name, url: human.avatarURL, presence: nil, size: 30)
-        }
-    }
-
 }
 
-private extension ChatKind {
+extension ChatKind {
     var peerAgentID: String? {
         if case .agentDirectMessage(let agent) = self { agent.id } else { nil }
     }

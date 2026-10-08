@@ -33,4 +33,20 @@ public enum OptimisticMessageRow {
     public static func isSuperseded(nonce: String, durableNonces: Set<String>) -> Bool {
         durableNonces.contains(nonce)
     }
+
+    /// The optimistic rows a durable page does not account for yet, in send
+    /// order. The transcript is the page as Server ordered it followed by
+    /// these, so a row stays at the tail until the page carrying its nonce
+    /// places it by sequence. Pages load as whole snapshots: a message on a page
+    /// without this nonce was committed before this send, so the tail is the
+    /// right place for the row. A failed row retires the same way once a
+    /// replayed send lands.
+    public static func unsettled<Row: OptimisticSendRow>(
+        _ rows: [Row],
+        page messages: [ChatMessage]
+    ) -> [Row] {
+        guard !rows.isEmpty else { return [] }
+        let durable = durableNonces(in: messages)
+        return rows.filter { !isSuperseded(nonce: $0.nonce, durableNonces: durable) }
+    }
 }

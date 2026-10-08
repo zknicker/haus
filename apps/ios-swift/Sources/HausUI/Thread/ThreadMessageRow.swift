@@ -73,8 +73,8 @@ struct ThreadMessageRow: View {
                     ReactionPileView(messageID: message.id, reactions: message.reactions, board: reactionBoard)
                 }
 
-                if message.isPending {
-                    PendingSendCaption(isFailed: message.isSendFailed)
+                if message.isSendFailed {
+                    NotSentCaption()
                 }
             }
         }
