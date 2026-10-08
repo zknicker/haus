@@ -30,7 +30,9 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
         .filter({ has: page.locator(`[data-message-id="${root.message.id}"]`) });
     await rootRow.hover();
     const initialMessageBox = await rootRow.boundingBox();
-    const initialComposerBox = await page.locator('.prompt-input').boundingBox();
+    // Recently opened Chats stay mounted hidden; measure the composer on screen.
+    const composerInput = page.locator('.prompt-input').filter({ visible: true });
+    const initialComposerBox = await composerInput.boundingBox();
     await rootRow.getByLabel('Reply', { exact: true }).click();
     await expect(page.locator('[data-inline-reply-reference]')).toHaveAttribute(
         'title',
@@ -42,7 +44,7 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
     );
     await page.screenshot({ path: testInfo.outputPath('reply-composer.png') });
     expect((await rootRow.boundingBox())?.y).toBe(initialMessageBox?.y);
-    expect(await page.locator('.prompt-input').boundingBox()).toEqual(initialComposerBox);
+    expect(await composerInput.boundingBox()).toEqual(initialComposerBox);
     await expect(rootRow.locator('.chat-reply-target')).toHaveCount(1);
     const cancelBox = await page.getByRole('button', { name: 'Cancel reply' }).boundingBox();
     const sendBox = await page.getByRole('button', { name: 'Send', exact: true }).boundingBox();
@@ -60,7 +62,7 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
     await expect(page.locator('[data-inline-reply-reference]')).toHaveCount(0);
     await expect(page.locator('.chat-reply-target')).toHaveCount(0);
     expect((await rootRow.boundingBox())?.y).toBe(initialMessageBox?.y);
-    expect(await page.locator('.prompt-input').boundingBox()).toEqual(initialComposerBox);
+    expect(await composerInput.boundingBox()).toEqual(initialComposerBox);
     await rootRow.hover();
     await rootRow.getByLabel('Reply', { exact: true }).click();
     const composer = page.getByRole('textbox', { name: `Message ${server.channels[0].name}` });

@@ -52,7 +52,10 @@ test('human sends jump to latest; agent messages preserve following across backg
     }
     const sendAgent = await agentSender();
     await openChannel(page, 'all');
-    const viewport = page.locator('[data-slot="message-scroller-viewport"]');
+    // Recently opened Chats stay mounted hidden; target the one on screen.
+    const viewport = page
+        .locator('[data-slot="message-scroller-viewport"]')
+        .filter({ visible: true });
     await expect(page.getByText('History 23', { exact: true })).toBeAttached();
     await expect
         .poll(() => viewport.evaluate((node) => node.scrollHeight - node.clientHeight))

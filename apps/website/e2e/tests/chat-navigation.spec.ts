@@ -42,15 +42,17 @@ for (const intent of ['hover', 'focus'] as const) {
             nonce: 'navigation-history',
             content: 'Cached navigation message',
         });
-        await page.goto(`/s/chat-navigation-${intent}/chats/${otherChatId}`);
-        await expect(page.getByText('Other channel message', { exact: true })).toBeVisible();
-        const row = page.getByRole('row', { name: 'all', exact: true });
-        await expect(row).toBeVisible();
+        // Idle warming may fetch #all before the intent does; either way its
+        // history must be warm before the click.
         const history = page.waitForResponse(
             (response) =>
                 response.url().includes('chat.messages') &&
                 Boolean(response.request().postData()?.includes(chatId))
         );
+        await page.goto(`/s/chat-navigation-${intent}/chats/${otherChatId}`);
+        await expect(page.getByText('Other channel message', { exact: true })).toBeVisible();
+        const row = page.getByRole('row', { name: 'all', exact: true });
+        await expect(row).toBeVisible();
         if (intent === 'hover') {
             await row.hover();
         } else {
@@ -68,9 +70,10 @@ for (const intent of ['hover', 'focus'] as const) {
             element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
             for (let index = 0; index < 12; index += 1) {
                 await new Promise(requestAnimationFrame);
-                const surface = document.querySelector(
-                    '[data-slot="chat-surface"][aria-label="all"]'
-                );
+                // A kept-alive Chat stays mounted hidden; only a displayed surface counts.
+                const surface = [
+                    ...document.querySelectorAll('[data-slot="chat-surface"][aria-label="all"]'),
+                ].find((node) => node.checkVisibility());
                 const viewport = surface?.querySelector('[data-slot="message-scroller-viewport"]');
                 const message = [
                     ...(surface?.querySelectorAll('[data-slot="markdown"]') ?? []),

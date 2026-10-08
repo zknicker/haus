@@ -77,7 +77,10 @@ test('inline reports track the reply column and grow and shrink with their docum
         y: element.scrollHeight > element.clientHeight,
     }));
     expect(overflow).toEqual({ x: true, y: false });
-    const viewport = page.locator('[data-slot="message-scroller-viewport"]');
+    // Recently opened Chats stay mounted hidden; target the one on screen.
+    const viewport = page
+        .locator('[data-slot="message-scroller-viewport"]')
+        .filter({ visible: true });
     await viewport.evaluate((element) => {
         element.scrollTop = element.scrollHeight;
     });

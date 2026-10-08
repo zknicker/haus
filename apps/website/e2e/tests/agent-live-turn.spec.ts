@@ -75,7 +75,9 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
                 startedAt: new Date(now.getTime() - 70_000 + index * 1000).toISOString(),
                 endedAt: new Date(now.getTime() - 69_500 + index * 1000).toISOString(),
                 status: 'completed',
-                input: { command: `echo inspection-${index}` },
+                // One-line shell calls fold into one row; multi-line scripts keep a row
+                // each, so the log is tall enough to scroll and call_2 stands alone.
+                input: { command: `cd /tmp\necho inspection-${index}` },
                 output: `Evidence ${index}`,
             })),
         };
@@ -105,9 +107,12 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
                 reply(request);
             }
         });
+        // The running turn opens on arrival; its header is the Disclosure trigger.
+        const turnHeader = page.locator(
+            `[data-log-turn="${runId}"] [data-log-header][aria-expanded]`
+        );
         await page.goto(`/s/live-turn/agents/${agent.id}/activity`);
-        await page.locator('.accordion__trigger').click();
-        await expect(page.locator('.accordion__panel')).toHaveCSS('will-change', 'auto');
+        await expect(turnHeader).toHaveAttribute('aria-expanded', 'true');
         await expect(page.getByText('Inspecting the active queue.', { exact: true })).toBeVisible();
         const inspected = page.locator('[data-trace-anchor="tool:call_2"]');
         const trigger = inspected.getByRole('button').first();
@@ -151,7 +156,7 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
                     toolName: 'bash',
                     status: 'completed',
                     startedAt: new Date(now.getTime() - 70_500).toISOString(),
-                    input: { command: 'echo late-arriving-evidence' },
+                    input: { command: 'cd /tmp\necho late-arriving-evidence' },
                     output: 'Late evidence',
                 },
             ],
@@ -169,12 +174,9 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
         for (const request of queued.splice(0)) {
             reply(request);
         }
+        // A collapsed thought previews its paragraphs on one line, so match a substring.
         await expect(
-            page
-                .getByText('Additional reasoning arrives above the inspected tool.', {
-                    exact: true,
-                })
-                .first()
+            page.getByText('Additional reasoning arrives above the inspected tool.').first()
         ).toBeAttached();
         await expect(trigger).toHaveAttribute('aria-expanded', 'true');
         await expect(inspected).toHaveAttribute('data-inspected-instance', 'retained');
@@ -215,11 +217,13 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
         await expect(inspected).toHaveAttribute('data-inspected-instance', 'retained');
         await page.screenshot({ path: test.info().outputPath('live-turn.png') });
         await page.reload();
-        await page.locator('.accordion__trigger').click();
+        await expect(turnHeader).toHaveAttribute('aria-expanded', 'true');
         await expect(
             page.getByText('The latest reasoning is now visible.', { exact: true })
         ).toBeAttached();
-        await page.locator('.accordion__trigger').click();
+        // A closed turn stops polling the Computer for its journal.
+        await turnHeader.click();
+        await expect(turnHeader).toHaveAttribute('aria-expanded', 'false');
         await page.waitForTimeout(1200);
         const closedRequests = requests;
         await page.waitForTimeout(1200);

@@ -91,8 +91,8 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await composer.fill('Browser-authored durable message');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.getByText('Browser-authored durable message')).toBeVisible();
-    await expect(page.getByTestId('read-state')).toContainText(/Read through \d+/u);
-
+    const readState = page.getByTestId('read-state').filter({ visible: true }); // kept Chats hide
+    await expect(readState).toContainText(/Read through \d+/u);
     await page.reload();
     await openChannel(page, 'all');
     await expect(page.getByText('Browser-authored durable message')).toBeVisible();
@@ -224,7 +224,7 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await expect
         .poll(async () => {
             const [chatBox, panelBox] = await Promise.all([
-                page.locator('[data-slot="chat-surface"]').boundingBox(),
+                page.locator('[data-slot="chat-surface"]').filter({ visible: true }).boundingBox(),
                 panel.boundingBox(),
             ]);
 

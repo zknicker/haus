@@ -56,7 +56,8 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
     const runner = await mintRunner(agent.id, chatId);
 
     await openChannel(page, 'all');
-    const typing = page.locator('[data-slot="chat-typing"]');
+    // Recently opened Chats stay mounted hidden; target the one on screen.
+    const typing = page.locator('[data-slot="chat-typing"]').filter({ visible: true });
     await expect(typing).toBeEmpty();
     const composer = page.getByRole('textbox', { name: 'Message all' });
     await composer.fill('Scout, can you check the build?');
@@ -77,7 +78,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
 
     // An inline reply joins the composer beneath the typing row, never over it,
     // and neither moves the composer.
-    const composerBox = await page.locator('.prompt-input').boundingBox();
+    const composerBox = await page.locator('.prompt-input').filter({ visible: true }).boundingBox();
     const sent = page
         .locator('[data-slot="message-scroller-item"]')
         .filter({ hasText: 'Scout, can you check the build?' });
@@ -92,7 +93,9 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
             return strip && bar ? bar.y - (strip.y + strip.height) : Number.NEGATIVE_INFINITY;
         })
         .toBeGreaterThanOrEqual(0);
-    expect(await page.locator('.prompt-input').boundingBox()).toEqual(composerBox);
+    expect(await page.locator('.prompt-input').filter({ visible: true }).boundingBox()).toEqual(
+        composerBox
+    );
     await page.getByRole('button', { name: 'Cancel reply' }).click();
     await expect(reply).toHaveCount(0);
 
