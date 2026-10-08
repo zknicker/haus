@@ -3,6 +3,7 @@
 const path = require('node:path');
 const { existsSync, readFileSync, unlinkSync, writeFileSync } = require('node:fs');
 const { createLoopbackSsoCallback } = require('./clerk-loopback-callback.cjs');
+const { isProviderAppDeeplink } = require('./provider-app-deeplinks.cjs');
 const { assertTrustedRenderer, isTrustedRendererUrl } = require('./trusted-renderer.cjs');
 
 const callbackChannel = 'desktop:auth:sso-callback';
@@ -72,9 +73,10 @@ function registerClerkAuth({
     });
     ipcMain.handle('desktop:open-external', async (event, url) => {
         assertTrustedRenderer(event, appUrl);
-        if (!isExternalBrowserUrl(url)) {
-            throw new Error('Only HTTP(S) URLs can open in the system browser.');
+        if (!(isExternalBrowserUrl(url) || isProviderAppDeeplink(url))) {
+            throw new Error('Only HTTP(S) URLs and provider app deeplinks can open externally.');
         }
+        // Rejects when no app handles the scheme; the renderer falls back on that.
         await shell.openExternal(url);
     });
     app.on('before-quit', () => {
