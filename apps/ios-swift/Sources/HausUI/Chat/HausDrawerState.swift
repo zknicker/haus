@@ -1,68 +1,45 @@
 import Observation
 import SwiftUI
 
-/// The sidebar drawer's state, held outside the shell's body.
+/// What moves the drawer. The UIKit container (`HausDrawerController`) is the
+/// only implementation: it owns the canvas's per-frame offset, which never
+/// reaches SwiftUI.
+@MainActor
+protocol HausDrawerMotion: AnyObject {
+    /// Springs the drawer to a side from wherever it is now.
+    func settle(open: Bool)
+}
+
+/// The sidebar drawer's discrete state, shared by the shell and the UIKit
+/// container that moves it.
 ///
-/// A drag rewrites `dragTranslation` on every frame. Kept as shell `@State`,
-/// each of those writes re-ran the whole shell body and rebuilt the Chat
-/// screen with fresh closures, so SwiftUI could never skip it mid-pan. As an
-/// observable object, only the small frame views that actually read the
-/// geometry (`HausDrawerSidebarFrame`, `HausDrawerCanvasFrame`) are
-/// invalidated per frame; the shell body never reads it.
+/// Nothing here changes per frame. The drag's offset lives in the container as
+/// layer properties; this object only hears about the moments a SwiftUI reader
+/// cares about — a drag starting, the drawer committing to a side, the sidebar
+/// becoming visible or hidden — so a pan frame invalidates no view at all.
 @MainActor
 @Observable
 final class HausDrawerState {
     private(set) var isPresented = false
-    private(set) var dragTranslation: CGFloat?
+    /// A finger is on the canvas. True from the drag's first frame until release.
+    private(set) var isDragging = false
+    /// No sliver of the sidebar is showing. Flips when a drag or settle leaves
+    /// zero and when a close lands there.
+    private(set) var isSidebarHidden = true
     /// What the current close is, for as long as one is running. Only the veil
     /// reads it, and only a Chat selection ever sets anything else.
     var close = HausDrawerClose.interactive
-    /// Called with every settled open or close, inside the drawer's own
-    /// animation, so whatever it changes — a sidebar re-sort — animates with it.
+    /// Called with every settled open or close, inside `settle`, so whatever it
+    /// changes — a sidebar re-sort — animates with the drawer.
     @ObservationIgnored var onPresentedChange: (Bool) -> Void = { _ in }
+    @ObservationIgnored weak var motion: HausDrawerMotion?
 
+    /// The SwiftUI animation for changes that ride a settle.
     static let settle = Animation.interpolatingSpring(duration: 0.38, bounce: 0.06)
 
     /// Open, or under a finger: the canvas is no longer the reader's whole screen. The Chat
     /// screen puts its keyboard away the moment this turns true.
-    var isEngaged: Bool { isPresented || dragTranslation != nil }
-
-    func offset(width: CGFloat) -> CGFloat {
-        guard let dragTranslation else { return isPresented ? width : 0 }
-        return DrawerInteraction.offset(isOpen: isPresented, translation: dragTranslation, width: width)
-    }
-
-    func progress(width: CGFloat) -> CGFloat {
-        guard width > 0 else { return 0 }
-        return min(1, max(0, offset(width: width) / width))
-    }
-
-    func cornerRadius(width: CGFloat) -> CGFloat {
-        38 * progress(width: width)
-    }
-
-    func handle(_ pan: DrawerPan, width: CGFloat) {
-        switch pan {
-        case .changed(let translation):
-            // A finger on the canvas is an interactive close whatever ended the
-            // last one, and it is the one path that can reopen the drawer
-            // without going through `set(open:)`.
-            if close != .interactive { close = .interactive }
-            dragTranslation = translation
-        case .ended(let translation, let velocity):
-            let offset = DrawerInteraction.offset(isOpen: isPresented, translation: translation, width: width)
-            let opens = DrawerInteraction.settlesOpen(offset: offset, velocity: velocity, width: width)
-            let settleVelocity = DrawerInteraction.settleVelocity(
-                velocity: velocity,
-                offset: offset,
-                target: opens ? width : 0
-            )
-            withAnimation(.interpolatingSpring(duration: 0.38, bounce: 0.06, initialVelocity: settleVelocity)) {
-                dragTranslation = nil
-                settle(open: opens)
-            }
-        }
-    }
+    var isEngaged: Bool { isPresented || isDragging }
 
     func set(open: Bool) {
         // Opening restores the veil. Suppression belongs to the one close a Chat
@@ -70,28 +47,47 @@ final class HausDrawerState {
         // to be cleared here keeps a stale suppression from surviving into the
         // next open.
         if open { close = .interactive }
-        withAnimation(Self.settle) {
-            dragTranslation = nil
-            settle(open: open)
+        if let motion {
+            motion.settle(open: open)
+        } else {
+            commit(open: open)
         }
     }
 
-    private func settle(open: Bool) {
-        guard isPresented != open else { return }
-        isPresented = open
-        onPresentedChange(open)
+    func toggle() { set(open: !isPresented) }
+
+    // MARK: Reported by the motion
+
+    /// A finger caught the canvas. It is an interactive close whatever ended the
+    /// last one, and it is the one path that can reopen the drawer without going
+    /// through `set(open:)`.
+    func beginDrag() {
+        if close != .interactive { close = .interactive }
+        if !isDragging { isDragging = true }
     }
 
-    func toggle() { set(open: !isPresented) }
+    /// The drawer committed to a side: a release, a tap, or a selection.
+    /// Returns whether that changed the side, which is when the snap is felt.
+    @discardableResult
+    func commit(open: Bool) -> Bool {
+        if isDragging { isDragging = false }
+        guard isPresented != open else { return false }
+        isPresented = open
+        withAnimation(Self.settle) { onPresentedChange(open) }
+        return true
+    }
+
+    func setSidebarHidden(_ hidden: Bool) {
+        if isSidebarHidden != hidden { isSidebarHidden = hidden }
+    }
 }
 
 extension EnvironmentValues {
     /// Whether the drawer holding the sidebar is fully shut. The sidebar stays
     /// mounted behind the canvas, so anything in it that animates for its own
-    /// sake — the Inbox ghost's drift — freezes while this is true. Set by the
-    /// sidebar frame, so only readers whose answer flips are invalidated.
+    /// sake — the Inbox ghost's drift — freezes while this is true.
     @Entry var hausSidebarHidden = false
-    /// Whether the drawer is open or being dragged (`HausDrawerState.isEngaged`). Set by the
-    /// canvas frame; a boolean, so a pan invalidates its readers only when it starts and ends.
+    /// Whether the drawer is open or being dragged (`HausDrawerState.isEngaged`). A boolean,
+    /// so a pan invalidates its readers only when it starts and ends.
     @Entry var hausDrawerEngaged = false
 }

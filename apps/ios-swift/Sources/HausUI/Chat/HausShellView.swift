@@ -153,29 +153,25 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
 
     public var body: some View {
         GeometryReader { proxy in
-            let drawerWidth = min(proxy.size.width * 0.82, 340)
-            ZStack(alignment: .leading) {
-                HausDrawerSidebarFrame(drawer: drawer, drawerWidth: drawerWidth, height: proxy.size.height) {
-                    ChatSidebarView(
-                        server: server,
-                        destinations: destinations,
-                        selection: sidebarSelection,
-                        onSelectDestination: selectDestination,
-                        onOpenSettings: { openSettings() },
-                        onOpenSearch: { activeChatSheet = .search(scope: nil) },
-                        onOpenInbox: openInboxCanvas,
-                        inboxHasUnread: inboxHasUnread,
-                        ghostTempo: ghostTempo,
-                        onOpenTasks: openTasks,
-                        onOpenArchived: { activeChatSheet = .archived },
-                        onOpenNewChannel: { activeChatSheet = .newChannel },
-                        onMarkRead: onMarkRead,
-                        onOpenDetails: { activeChatSheet = .details($0) }
-                    )
-                }
-                .zIndex(1)
-
-                canvas(proxy: proxy, drawerWidth: drawerWidth)
+            HausDrawerContainer(drawer: drawer, onPresentedChange: onDrawerPresentedChange) {
+                ChatSidebarView(
+                    server: server,
+                    destinations: destinations,
+                    selection: sidebarSelection,
+                    onSelectDestination: selectDestination,
+                    onOpenSettings: { openSettings() },
+                    onOpenSearch: { activeChatSheet = .search(scope: nil) },
+                    onOpenInbox: openInboxCanvas,
+                    inboxHasUnread: inboxHasUnread,
+                    ghostTempo: ghostTempo,
+                    onOpenTasks: openTasks,
+                    onOpenArchived: { activeChatSheet = .archived },
+                    onOpenNewChannel: { activeChatSheet = .newChannel },
+                    onMarkRead: onMarkRead,
+                    onOpenDetails: { activeChatSheet = .details($0) }
+                )
+            } canvas: {
+                canvas(contentInsets: proxy.safeAreaInsets)
             }
             .background(HausPlatformColor.background)
         }

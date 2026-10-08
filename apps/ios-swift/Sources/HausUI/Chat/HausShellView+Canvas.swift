@@ -42,50 +42,29 @@ extension HausShellView {
 }
 
 /// What the canvas draws: the Inbox the app lands on, or the Chat the reader
-/// selected, inside the drawer geometry both share.
+/// selected. The drawer's geometry, veil, and pan belong to the UIKit
+/// container hosting this view (`HausDrawerContainer`), which outlives every
+/// swap below, so a Chat that mounts mid-slide travels with the canvas.
 extension HausShellView {
     @ViewBuilder
-    func canvas(proxy: GeometryProxy, drawerWidth: CGFloat) -> some View {
+    func canvas(contentInsets: EdgeInsets) -> some View {
         if let selectedDestination {
-            // The drawer's geometry belongs to this container, not to the
-            // screen inside it. The screen is keyed by destination, so
-            // selecting a Chat replaces it, and a view that did not exist a
-            // frame ago has no offset to animate from. The container outlives
-            // the swap, so the spring keeps running through it.
-            HausDrawerCanvasFrame(
-                drawer: drawer,
-                drawerWidth: drawerWidth,
-                onPresentedChange: onDrawerPresentedChange
-            ) {
-                ZStack {
-                    if showsInbox {
-                        // The Inbox is the landing canvas, not a screen pushed
-                        // over one: it wears no navigation bar and offers no
-                        // way back, because there is nothing behind it to go
-                        // back to. The drawer's geometry, veil, and pan are
-                        // the canvas's own, so the page inherits every one of
-                        // them unchanged.
-                        inboxCanvas(proxy.safeAreaInsets, { [drawer] in drawer.toggle() })
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        chatScreen(selectedDestination, contentInsets: proxy.safeAreaInsets)
-                            // Each Chat gets its own screen. Reusing one screen
-                            // carried the previous Chat's scroll offset and
-                            // transcript state into the next one, and left
-                            // `defaultScrollAnchor(.bottom)` unapplied; a fresh
-                            // screen lays out bottom-anchored before the drawer
-                            // reveals it.
-                            .id(selectedDestination.id)
-                            // The drawer's own motion is the transition. The
-                            // Chat behind it is already the next one, fully
-                            // formed, and `selectDestination` has given it a
-                            // frame of its own to land in before the spring
-                            // starts.
-                            .transition(.identity)
-                    }
-                }
+            if showsInbox {
+                // The Inbox is the landing canvas, not a screen pushed over
+                // one: it wears no navigation bar and offers no way back,
+                // because there is nothing behind it to go back to.
+                inboxCanvas(contentInsets, { [drawer] in drawer.toggle() })
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                chatScreen(selectedDestination, contentInsets: contentInsets)
+                    // Each Chat gets its own screen. Reusing one screen
+                    // carried the previous Chat's scroll offset and transcript
+                    // state into the next one; a fresh screen lays out
+                    // bottom-anchored before the drawer reveals it.
+                    .id(selectedDestination.id)
+                    // The drawer's own motion is the transition.
+                    .transition(.identity)
             }
-            .zIndex(2)
         }
     }
 

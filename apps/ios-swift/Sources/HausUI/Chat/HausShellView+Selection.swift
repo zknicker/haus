@@ -34,8 +34,8 @@ extension HausShellView {
     /// surface over the open drawer, this one only swaps what the canvas draws
     /// — so it closes the drawer the way selecting a Chat does, and for the
     /// same two reasons: the veil cuts rather than dissolving over a canvas
-    /// that was never behind it, and the slide waits a turn so the page
-    /// mounting inside it is not pinned at the closed position.
+    /// that was never behind it, and the slide waits a turn so the page is
+    /// mounted before it moves.
     func openInboxCanvas() {
         if !showsInbox { drawer.close = .chatSelection }
         onOpenInbox()
@@ -64,20 +64,12 @@ extension HausShellView {
         // way back to it is the App's.
         showsInbox = false
         selectedDestinationID = destination.id
-        // The swap and the slide are two events, and they have to land in two
-        // frames. The canvas is keyed by destination, so this selection inserts
-        // a new Chat screen — and SwiftUI places a view inserted *inside* an
-        // animating transaction at that animation's destination, not at its
-        // in-flight geometry. Closing the drawer in the same turn therefore
-        // pinned the incoming Chat at the closed position while the canvas
-        // frame slid over it: a wipe across a stationary transcript rather than
-        // the Chat travelling with the drawer. SwiftUI merges every mutation
-        // made in one turn into a single transaction, so the two can only be
-        // separated by a turn: this hop is enqueued before the update that
-        // mounts the screen and runs at the first main-actor drain after it,
-        // which is the earliest a spring can start without sharing that
-        // transaction. The hold is therefore one frame plus the new screen's
-        // first layout, and cannot go below one frame.
+        // The swap and the slide land in two steps. This selection reaches the
+        // canvas's hosting controller in the shell's next update, after this
+        // call returns; closing here would start the slide over the outgoing
+        // screen and show a blank canvas for the frame the new one mounts. The
+        // hop runs after that update, and the container lays the new screen
+        // out before its first animation frame (`HausDrawerController.settle`).
         Task { @MainActor [drawer] in drawer.set(open: false) }
     }
 

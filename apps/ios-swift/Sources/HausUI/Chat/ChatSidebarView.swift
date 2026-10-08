@@ -1,16 +1,6 @@
 import SwiftUI
 
 public struct ChatSidebarView: View {
-    /// Real (non-safe-area-bleed) space reserved above and below the visible
-    /// content so the floating chrome buttons' shadows have room to render.
-    /// `HausShellView` composites this view with `.mask()`, which rasterizes
-    /// into an offscreen buffer sized to this view's own resolved height —
-    /// `.ignoresSafeArea()` bleed does not survive that, so the extra room has
-    /// to come from actual layout height. `HausShellView` grows the proposed
-    /// height by this amount at both ends and lifts the result back by one, so
-    /// the content itself stays exactly where it was.
-    static let shadowBleedHeight: CGFloat = 32
-
     /// One left edge for every line in the sidebar: the Server identity, the
     /// section labels, and each row's glyph all start here.
     private static let railInset: CGFloat = 20
@@ -86,68 +76,57 @@ public struct ChatSidebarView: View {
     }
 
     public var body: some View {
-        // The bracketing `shadowBleed` rows reserve real space (not a
-        // safe-area bleed hint) for the search and gear buttons' shadows — see
-        // `shadowBleedHeight`. They don't move anything: `HausShellView`
-        // grows this view's proposed height by both, so the ZStack below still
-        // resolves to its original height.
-        VStack(spacing: 0) {
-            shadowBleed
-
-            ZStack(alignment: .bottomTrailing) {
-                VStack(alignment: .leading, spacing: 14) {
-                    ChromeHeader(inset: Self.railInset, leading: { serverTitle }) {
-                        GlassChromeButton(.icon(.search), label: "Search", action: onOpenSearch)
-                    }
-
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 5) {
-                            // Server-wide destinations lead, then the chat
-                            // lists — the App's own sidebar order, Inbox first.
-                            SidebarInboxRow(
-                                hasUnread: inboxHasUnread,
-                                ghostTempo: ghostTempo,
-                                metrics: metrics,
-                                isSelected: selection == .inbox,
-                                onOpen: onOpenInbox
-                            )
-
-                            SidebarUtilityRow(
-                                title: "Tasks",
-                                icon: .tasks,
-                                metrics: metrics,
-                                isSelected: selection == .tasks,
-                                action: onOpenTasks
-                            )
-
-                            sectionHeader("Channels", trailingAction: onOpenNewChannel)
-                                .padding(.top, 6)
-                            ForEach(channels) { row($0) }
-
-                            sectionHeader("DMs")
-                                .padding(.top, 6)
-                            ForEach(directMessages) { row($0) }
-                        }
-                        // The inset rides on the list, not on the scroll
-                        // view: the unread markers sit in the gutter outside
-                        // each row, and the scroll view's clip must not reach
-                        // them.
-                        .padding(.horizontal, Self.listInset)
-                        .padding(.bottom, 72)
-                        // The App holds the order still while the drawer is
-                        // open; a re-sort lands as the drawer next opens, and
-                        // rows travel to their new places rather than jump.
-                        .animation(.snappy(duration: 0.35), value: destinations.map(\.id))
-                    }
-                    .scrollIndicators(.hidden)
+        ZStack(alignment: .bottomTrailing) {
+            VStack(alignment: .leading, spacing: 14) {
+                ChromeHeader(inset: Self.railInset, leading: { serverTitle }) {
+                    GlassChromeButton(.icon(.search), label: "Search", action: onOpenSearch)
                 }
 
-                GlassChromeButton(.icon(.settings), label: "Settings", action: onOpenSettings)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 5) {
+                        // Server-wide destinations lead, then the chat
+                        // lists — the App's own sidebar order, Inbox first.
+                        SidebarInboxRow(
+                            hasUnread: inboxHasUnread,
+                            ghostTempo: ghostTempo,
+                            metrics: metrics,
+                            isSelected: selection == .inbox,
+                            onOpen: onOpenInbox
+                        )
+
+                        SidebarUtilityRow(
+                            title: "Tasks",
+                            icon: .tasks,
+                            metrics: metrics,
+                            isSelected: selection == .tasks,
+                            action: onOpenTasks
+                        )
+
+                        sectionHeader("Channels", trailingAction: onOpenNewChannel)
+                            .padding(.top, 6)
+                        ForEach(channels) { row($0) }
+
+                        sectionHeader("DMs")
+                            .padding(.top, 6)
+                        ForEach(directMessages) { row($0) }
+                    }
+                    // The inset rides on the list, not on the scroll
+                    // view: the unread markers sit in the gutter outside
+                    // each row, and the scroll view's clip must not reach
+                    // them.
+                    .padding(.horizontal, Self.listInset)
+                    .padding(.bottom, 72)
+                    // The App holds the order still while the drawer is
+                    // open; a re-sort lands as the drawer next opens, and
+                    // rows travel to their new places rather than jump.
+                    .animation(.snappy(duration: 0.35), value: destinations.map(\.id))
+                }
+                .scrollIndicators(.hidden)
             }
 
-            shadowBleed
+            GlassChromeButton(.icon(.settings), label: "Settings", action: onOpenSettings)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
         }
         .background(HausPlatformColor.background)
     }
@@ -186,12 +165,6 @@ public struct ChatSidebarView: View {
         .buttonStyle(.pressable)
         .foregroundStyle(HausPlatformColor.label)
         .accessibilityLabel("\(server.name) menu")
-    }
-
-    private var shadowBleed: some View {
-        Color.clear
-            .frame(height: Self.shadowBleedHeight)
-            .allowsHitTesting(false)
     }
 
     private var channels: [ChatDestination] {
