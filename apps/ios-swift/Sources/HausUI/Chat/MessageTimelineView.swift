@@ -9,6 +9,8 @@ public struct MessageTimelineView: View {
     let isMessageHistoryLoaded: Bool
     private let emptyStateDescription: String
     let onOpenThread: (MessagePresentation) -> Void
+    /// A tap on the transcript itself, not on a row control; the screen puts the keyboard away.
+    private let onContentTap: () -> Void
     let allowsInlineReplies: Bool
     let onSelectInlineReply: (MessagePresentation) -> Void
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
@@ -56,6 +58,7 @@ public struct MessageTimelineView: View {
         isMessageHistoryLoaded: Bool = true,
         emptyStateDescription: String = "Send a message to start the conversation.",
         onOpenThread: @escaping (MessagePresentation) -> Void,
+        onContentTap: @escaping () -> Void = {},
         allowsInlineReplies: Bool = false,
         onSelectInlineReply: @escaping (MessagePresentation) -> Void = { _ in },
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
@@ -73,6 +76,7 @@ public struct MessageTimelineView: View {
         self.isMessageHistoryLoaded = isMessageHistoryLoaded
         self.emptyStateDescription = emptyStateDescription
         self.onOpenThread = onOpenThread
+        self.onContentTap = onContentTap
         self.allowsInlineReplies = allowsInlineReplies
         self.onSelectInlineReply = onSelectInlineReply
         self.onOpenAttachment = onOpenAttachment
@@ -108,6 +112,8 @@ public struct MessageTimelineView: View {
                     dynamicTypeSize.isAccessibilitySize ? 0 : proxy.size.height * 0.175
                 )
                 .ignoresSafeArea()
+                .contentShape(.rect)
+                .onTapGesture(perform: onContentTap)
             } else {
                 TranscriptListView(
                     items: entries,
@@ -119,6 +125,7 @@ public struct MessageTimelineView: View {
                     },
                     reveal: reveal,
                     isNearNewest: $isNearNewest,
+                    onContentTap: onContentTap,
                     onVisibleItems: onVisibleMessagesChange,
                     animatesEntrance: opensWithEntrance,
                     onLongPress: { entry in

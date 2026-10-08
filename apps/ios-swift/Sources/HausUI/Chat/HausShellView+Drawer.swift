@@ -73,6 +73,7 @@ struct HausDrawerCanvasFrame<Content: View>: View {
     var body: some View {
         let progress = drawer.progress(width: drawerWidth)
         content
+            .environment(\.hausDrawerEngaged, drawer.isEngaged)
             .overlay {
                 // The veil leaves by being removed, never by animating to
                 // clear: progress is discrete, so it reads zero as soon as the

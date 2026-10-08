@@ -20,6 +20,25 @@ struct HausDrawerStateTests {
         #expect(drawer.offset(width: width) == width)
     }
 
+    /// The Chat screen puts its keyboard away the moment this turns true, so it must cover the
+    /// first frame of a drag as well as the settled open drawer.
+    @Test func isEngagedFromTheFirstPanFrameUntilItSettlesShut() {
+        let drawer = HausDrawerState()
+        #expect(!drawer.isEngaged)
+
+        drawer.handle(.changed(translation: 4), width: width)
+        #expect(drawer.isEngaged)
+
+        drawer.handle(.ended(translation: 4, velocity: 0), width: width)
+        #expect(!drawer.isPresented)
+        #expect(!drawer.isEngaged)
+
+        drawer.set(open: true)
+        #expect(drawer.isEngaged)
+        drawer.set(open: false)
+        #expect(!drawer.isEngaged)
+    }
+
     @Test func aFlickClosesAnOpenDrawerWhereverItIsReleased() {
         let drawer = HausDrawerState()
         drawer.set(open: true)

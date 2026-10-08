@@ -23,6 +23,10 @@ final class HausDrawerState {
 
     static let settle = Animation.interpolatingSpring(duration: 0.38, bounce: 0.06)
 
+    /// Open, or under a finger: the canvas is no longer the reader's whole screen. The Chat
+    /// screen puts its keyboard away the moment this turns true.
+    var isEngaged: Bool { isPresented || dragTranslation != nil }
+
     func offset(width: CGFloat) -> CGFloat {
         guard let dragTranslation else { return isPresented ? width : 0 }
         return DrawerInteraction.offset(isOpen: isPresented, translation: dragTranslation, width: width)
@@ -87,4 +91,7 @@ extension EnvironmentValues {
     /// sake — the Inbox ghost's drift — freezes while this is true. Set by the
     /// sidebar frame, so only readers whose answer flips are invalidated.
     @Entry var hausSidebarHidden = false
+    /// Whether the drawer is open or being dragged (`HausDrawerState.isEngaged`). Set by the
+    /// canvas frame; a boolean, so a pan invalidates its readers only when it starts and ends.
+    @Entry var hausDrawerEngaged = false
 }

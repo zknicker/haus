@@ -33,6 +33,10 @@ public struct ChatScreenView: View {
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
     @State private var inlineReply: MessageReplyReferencePresentation?
+    /// The keyboard's reach from the screen bottom, read from UIKit (`onKeyboardInsetChange`);
+    /// nil until the first reading, when the shell's home-indicator inset stands in.
+    @State private var keyboardInset: CGFloat?
+    @Environment(\.hausDrawerEngaged) private var isDrawerEngaged
 
     public init(
         chat: ChatDestination,
@@ -120,13 +124,10 @@ public struct ChatScreenView: View {
                         transitionNamespace: composerTransitionNamespace,
                         onSend: sendMessage
                     )
+                    // The shell ignores the keyboard, so this inset is the canvas's only keyboard
+                    // response. Each reading arrives in its own transaction: the keyboard's curve
+                    // for a rise or fall, none while a finger drags the keyboard down.
                     .padding(.bottom, chatBottomInset)
-                    // The shell ignores the keyboard safe area, so this manual inset is the only
-                    // keyboard response the canvas has — and it arrives as plain data through a
-                    // GeometryReader, outside the keyboard's own animation transaction. Without
-                    // this, the transcript and composer teleport to the keyboard-up layout while
-                    // the keyboard is still sliding in below them.
-                    .animation(ComposerKeyboardMotion.travel, value: chatBottomInset)
                     .openingEntrance(.composer)
                 }
             }
@@ -140,8 +141,18 @@ public struct ChatScreenView: View {
             .composerPortalFreeze(
                 interaction: composerInteraction,
                 isTextFocused: $isComposerFocused,
-                liveBottomInset: contentInsets.bottom
+                liveBottomInset: liveBottomInset
             )
+            .onKeyboardInsetChange { sample in
+                withTransaction(Transaction(animation: sample.animation)) {
+                    keyboardInset = sample.inset
+                }
+            }
+            // The keyboard leaves before anything covers the composer — the drawer, a pushed
+            // Thread — and nothing raises it again when that surface goes away.
+            .onChange(of: isDrawerEngaged) { _, engaged in
+                if engaged { isComposerFocused = false }
+            }
             .background(.background)
             .task(id: chat.id) { await onLoadMentionOptions() }
     }
@@ -151,8 +162,10 @@ public struct ChatScreenView: View {
     /// leaving and returning behind an open portal: it sets how far the composer sits off the
     /// screen bottom, and through the composer's own height it sets the transcript's clearance.
     private var chatBottomInset: CGFloat {
-        composerInteraction.portalFreeze.bottomInset(live: contentInsets.bottom)
+        composerInteraction.portalFreeze.bottomInset(live: liveBottomInset)
     }
+
+    private var liveBottomInset: CGFloat { keyboardInset ?? contentInsets.bottom }
 
     /// A caller's safe-area attachment lands on the timeline's transcript root, so the
     /// transcript scrolls beneath both the header and the composer instead of clipping under
@@ -163,7 +176,11 @@ public struct ChatScreenView: View {
             messages: messages,
             isMessageHistoryLoaded: isMessageHistoryLoaded,
             emptyStateDescription: emptyStateDescription,
-            onOpenThread: onOpenThread,
+            onOpenThread: { message in
+                isComposerFocused = false
+                onOpenThread(message)
+            },
+            onContentTap: { isComposerFocused = false },
             allowsInlineReplies: chat.durableChat != nil && onSendInlineReply != nil,
             onSelectInlineReply: selectInlineReply,
             onOpenAttachment: onOpenAttachment,

@@ -190,6 +190,10 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                     .padding(.top, HausChrome.headerHeight + 4)
             }
         }
+        // The shell's geometry never answers the keyboard: a keyboard-sized safe area shrank the
+        // sidebar under a keyboard still up as the drawer opened. The Chat screen reads the
+        // keyboard itself (`onKeyboardInsetChange`).
+        .ignoresSafeArea(.keyboard)
         .sensoryFeedback(.selection, trigger: chatSwitchFeedback)
         .sheet(item: $settingsRequest) { request in settingsContent(request.path) }
         .sheet(item: $activeChatSheet, onDismiss: presentQueuedSettings) { sheet in
