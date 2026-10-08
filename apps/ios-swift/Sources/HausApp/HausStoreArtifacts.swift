@@ -5,13 +5,28 @@ import HausUI
 
 /// Reading an artifact page from the authoring Agent's workspace — the same
 /// `agent.workspaceFile` read the App's artifact pane uses. The Server relays
-/// it to the Agent's Computer, so an offline Computer is the common failure.
+/// it to the Agent's Computer, so an offline Computer is the common failure —
+/// unless the phone itself has lost the Server, which the sheet says instead.
 extension HausStore {
     func readArtifactPage(agentID: String, path: String) async throws -> ArtifactPageFile {
         guard let serverID = activeServer?.id else { throw ArtifactPageUnavailable.failed }
         let file: WorkspaceFileContent
         do {
-            file = try await client.query(
+            file = try await readWorkspaceFile(agentID: agentID, path: path, serverID: serverID)
+        } catch ArtifactPageUnavailable.computerUnreachable where !isConnected {
+            // A relay failure while the live streams are down is this phone's
+            // outage, not the Computer's.
+            throw ArtifactPageUnavailable.offline
+        }
+        guard !file.binary, file.encoding == "utf8", file.mediaType.hasPrefix("text/html") else {
+            throw ArtifactPageUnavailable.notAPage
+        }
+        return ArtifactPageFile(html: file.content, truncated: file.truncated)
+    }
+
+    private func readWorkspaceFile(agentID: String, path: String, serverID: String) async throws -> WorkspaceFileContent {
+        do {
+            return try await client.query(
                 "agent.workspaceFile",
                 input: WorkspaceFileInput(agentId: agentID, includeHidden: false, path: path, serverId: serverID)
             )
@@ -23,15 +38,12 @@ extension HausStore {
             default: throw ArtifactPageUnavailable.failed
             }
         } catch is URLError {
-            throw ArtifactPageUnavailable.computerUnreachable
+            // The request never reached the Server, so the Computer was not asked.
+            throw ArtifactPageUnavailable.offline
         } catch {
             Self.logger.error("Reading an artifact page failed: \(error.localizedDescription, privacy: .public)")
             throw ArtifactPageUnavailable.failed
         }
-        guard !file.binary, file.encoding == "utf8", file.mediaType.hasPrefix("text/html") else {
-            throw ArtifactPageUnavailable.notAPage
-        }
-        return ArtifactPageFile(html: file.content, truncated: file.truncated)
     }
 }
 

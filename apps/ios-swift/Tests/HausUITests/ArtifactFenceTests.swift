@@ -83,4 +83,15 @@ struct ArtifactFenceTests {
         #expect(document.hasPrefix("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style data-haus-tokens>:root{color-scheme:light;"))
         #expect(document.hasSuffix("</style><header>Top</header><p>hi</p>"))
     }
+
+    /// The sheet used to blame the Agent's Computer even when the phone had
+    /// lost the Server, so it named the wrong thing to fix.
+    @Test func anOfflinePhoneIsNotAnUnreachableComputer() {
+        let offline = ArtifactPageUnavailable.offline
+        #expect(offline.title != ArtifactPageUnavailable.computerUnreachable.title)
+        #expect(!offline.message.contains("Computer"))
+        #expect(offline.isRetryable)
+        #expect(!ArtifactPageUnavailable.forbidden.isRetryable)
+        #expect(!ArtifactPageUnavailable.notAPage.isRetryable)
+    }
 }

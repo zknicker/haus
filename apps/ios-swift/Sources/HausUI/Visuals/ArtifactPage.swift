@@ -16,6 +16,8 @@ public struct ArtifactPageFile: Sendable, Equatable {
 public enum ArtifactPageUnavailable: Error, Equatable, Sendable {
     /// The Agent's Computer did not answer — offline, asleep, or unreachable.
     case computerUnreachable
+    /// This phone could not reach the Server, so the Computer was never asked.
+    case offline
     /// The viewer may not read this Agent's workspace.
     case forbidden
     /// The file is not an HTML page the phone can show.
@@ -26,6 +28,7 @@ public enum ArtifactPageUnavailable: Error, Equatable, Sendable {
     public var title: String {
         switch self {
         case .computerUnreachable: "Page unavailable"
+        case .offline: "You’re offline"
         case .forbidden: "Page not shared with you"
         case .notAPage: "Can’t show this file"
         case .failed: "Page unavailable"
@@ -36,6 +39,8 @@ public enum ArtifactPageUnavailable: Error, Equatable, Sendable {
         switch self {
         case .computerUnreachable:
             "This page lives on the Agent’s Computer, which isn’t reachable right now. Try again once it’s back online."
+        case .offline:
+            "Haus can’t reach the Server from this phone right now. Try again once you’re back online."
         case .forbidden:
             "You don’t have access to this Agent’s workspace."
         case .notAPage:
@@ -46,7 +51,7 @@ public enum ArtifactPageUnavailable: Error, Equatable, Sendable {
     }
 
     /// Whether trying again could help.
-    public var isRetryable: Bool { self == .computerUnreachable || self == .failed }
+    public var isRetryable: Bool { self != .forbidden && self != .notAPage }
 }
 
 /// Reads an artifact page from the authoring Agent's workspace.
