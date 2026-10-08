@@ -66,42 +66,25 @@ test('a press that ended elsewhere (a drag) does not swallow a later click', () 
     expect(click.defaultPrevented).toBe(false);
 });
 
-test('a draggable row navigates on an unmoved release, never on a reorder drag', () => {
+test('a draggable row opens on press, and dragging it to reorder never opens it again', () => {
     const at = (x: number, y: number) => ({ ...plain, clientX: x, clientY: y });
+    const { element, navigations } = boundElement();
 
-    // A simple press on a row that is not the current Chat opens it on release.
-    const press = boundElement('release');
-    press.element.dispatchEvent(gesture('pointerdown', at(10, 10)));
-    expect(press.navigations).toEqual([]);
-    press.element.dispatchEvent(gesture('pointermove', at(11, 11)));
-    press.element.dispatchEvent(gesture('pointerup', at(11, 11)));
-    expect(press.navigations).toEqual(['/s/haus/c/chat_one']);
-    expect(press.preloads).toBe(1);
-    const pressClick = gesture('click', { detail: 1 });
-    press.element.dispatchEvent(pressClick);
-    expect(pressClick.defaultPrevented).toBe(true);
+    // Like a Chrome tab, the press opens the row before any drag can start.
+    element.dispatchEvent(gesture('pointerdown', at(10, 10)));
+    expect(navigations).toEqual(['/s/haus/c/chat_one']);
 
-    // Dragging the row past the sensor's threshold to reorder it never opens it,
-    // even when the drop lands back on the row and fires a click there.
-    const drag = boundElement('release');
-    drag.element.dispatchEvent(gesture('pointerdown', at(10, 10)));
-    drag.element.dispatchEvent(gesture('pointermove', at(10, 18)));
-    drag.element.dispatchEvent(gesture('pointermove', at(10, 11)));
-    drag.element.dispatchEvent(gesture('pointerup', at(10, 11)));
+    // The drag that follows, and a drop that lands back on the row, add nothing.
+    element.dispatchEvent(gesture('pointermove', at(10, 18)));
+    element.dispatchEvent(gesture('pointermove', at(10, 11)));
+    element.dispatchEvent(gesture('pointerup', at(10, 11)));
     const dropClick = gesture('click', { detail: 1 });
-    drag.element.dispatchEvent(dropClick);
-    expect(drag.navigations).toEqual([]);
+    element.dispatchEvent(dropClick);
     expect(dropClick.defaultPrevented).toBe(true);
-
-    // A pointer that left the row mid-press is a drag too.
-    const left = boundElement('release');
-    left.element.dispatchEvent(gesture('pointerdown', at(10, 10)));
-    left.element.dispatchEvent(gesture('pointerleave', at(10, 12)));
-    left.element.dispatchEvent(gesture('pointerup', at(10, 11)));
-    expect(left.navigations).toEqual([]);
+    expect(navigations).toHaveLength(1);
 });
 
-function boundElement(timing: 'press' | 'release' = 'press') {
+function boundElement() {
     const element = new EventTarget();
     const navigations: string[] = [];
     let preloads = 0;
@@ -116,7 +99,6 @@ function boundElement(timing: 'press' | 'release' = 'press') {
             onPress: () => {
                 preloads += 1;
             },
-            timing,
         },
     };
     bindPressNavigation(element, latest, { current: false });

@@ -5,7 +5,7 @@ import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
-import { type PressTiming, usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';
+import { usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
@@ -14,8 +14,8 @@ import { ChatNavigationContextMenu } from './chat-navigation-context-menu.tsx';
 /**
  * One Chat in the sidebar. Memoized on a boolean `isCurrent`, so a navigation
  * re-renders only the row it leaves and the row it lands on. A plain mouse
- * press opens the Chat; keyboard and modified clicks keep the link's own path.
- * A draggable row passes `pressTiming="release"` so a reorder drag never opens it.
+ * press opens the Chat, even one that then drags to reorder; keyboard and
+ * modified clicks keep the link's own path.
  */
 export const ChatNavigationRow = React.memo(function ChatNavigationRow({
     agent,
@@ -24,7 +24,6 @@ export const ChatNavigationRow = React.memo(function ChatNavigationRow({
     className,
     isCurrent,
     name,
-    pressTiming,
     ref,
     slug,
     style,
@@ -35,14 +34,13 @@ export const ChatNavigationRow = React.memo(function ChatNavigationRow({
     className?: string;
     isCurrent: boolean;
     name: string;
-    pressTiming?: PressTiming;
     ref?: React.Ref<HTMLDivElement>;
     slug: string;
     style?: React.CSSProperties;
 }) {
     const { focusRef, preload } = usePreloadChat(chat.serverId, chat.id);
     const href = serverChatRoute(slug, chat.id);
-    const pressRef = usePressNavigation(href, preload, pressTiming);
+    const pressRef = usePressNavigation(href, preload);
     const rowRef = React.useMemo(
         () => mergeRefs<HTMLDivElement>(ref, focusRef, pressRef),
         [focusRef, pressRef, ref]

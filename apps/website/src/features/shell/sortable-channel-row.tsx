@@ -70,10 +70,12 @@ export const SortableChannelRow = React.memo(function SortableChannelRow({
             onKeyboardCommand(chat, command);
         };
         row.addEventListener('keydown', handleKeyDown);
-        row.addEventListener('pointerdown', handlePointerDown);
+        // Capture, so the drag sensor arms before the row's press navigation re-renders it;
+        // that render can rebind this listener mid-dispatch and drop the drag.
+        row.addEventListener('pointerdown', handlePointerDown, true);
         return () => {
             row.removeEventListener('keydown', handleKeyDown);
-            row.removeEventListener('pointerdown', handlePointerDown);
+            row.removeEventListener('pointerdown', handlePointerDown, true);
         };
     }, [chat, keyboardActive, listeners, onKeyboardCommand]);
 
@@ -85,7 +87,6 @@ export const SortableChannelRow = React.memo(function SortableChannelRow({
             className="no-drag sortable-channel-row"
             isCurrent={isCurrent}
             name={name}
-            pressTiming="release"
             ref={setRowRef}
             slug={slug}
             style={{
