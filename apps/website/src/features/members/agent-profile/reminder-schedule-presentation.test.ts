@@ -1,85 +1,109 @@
 import { expect, test } from 'bun:test';
-import { formatReminderCadence, formatReminderSchedule } from './reminder-schedule-presentation.ts';
+import {
+    formatReminderRowSummary,
+    formatReminderScheduleDetail,
+    reminderKind,
+    reminderKindLabel,
+} from './reminder-schedule-presentation.ts';
 
+// Thursday, Oct 8 2026, noon in New York.
+const now = Date.parse('2026-10-08T16:00:00.000Z');
+const context = { locale: 'en-US', now, viewerZone: 'America/New_York' };
 const reminder = {
-    fireAt: '2026-10-09T13:00:00.000Z',
-    repeat: 'weekly:fri@09:00',
-    timezone: 'America/New_York',
+    fireAt: '2026-10-10T20:00:00.000Z',
+    repeat: null as string | null,
+    timezone: 'UTC',
 };
-const text = (viewerZone: string, overrides = {}) =>
-    formatReminderSchedule({ ...reminder, ...overrides }, viewerZone, 'en-US').text;
+const row = (overrides: Partial<typeof reminder>, viewerZone = 'America/New_York') =>
+    formatReminderRowSummary({ ...reminder, ...overrides }, { ...context, viewerZone });
 
-test('calendar cadence and next fire share the named schedule zone', () => {
-    expect(text('America/New_York')).toContain('9:00 AM · Every Friday at 9:00 AM · New York time');
-    expect(text('America/New_York')).not.toContain('your time');
-    expect(text('America/Detroit')).not.toContain('your time');
-    expect(formatReminderSchedule(reminder, 'Asia/Tokyo').title).toContain('America/New_York');
+test('the kind is one of two, and says so', () => {
+    expect(reminderKind({ repeat: null })).toBe('once');
+    expect(reminderKind({ repeat: 'daily@09:00' })).toBe('recurring');
+    expect(reminderKindLabel('once')).toBe('One-time reminder');
+    expect(reminderKindLabel('recurring')).toBe('Recurring reminder');
 });
 
-test('a different viewer sees a local equivalent, including a different calendar day', () => {
-    const local = text('Asia/Tokyo', { fireAt: '2026-10-09T20:00:00.000Z' });
-    expect(local).toContain('4:00 PM · Every Friday at 9:00 AM · New York time');
-    expect(local).toContain('Sat, Oct 10, 2026');
-    expect(local).toContain('5:00 AM your time');
-    expect(text('America/Los_Angeles')).toContain('6:00 AM your time');
+test('a one-time row leads with Once and reads in the viewer time, without zone text', () => {
+    expect(row({})).toBe('Once · Sat, Oct 10 at 4:00 PM');
+    expect(row({})).not.toContain('UTC');
+    expect(row({})).not.toContain('your time');
 });
 
-test('DST changes the local equivalent, not the promised calendar clock', () => {
-    for (const [fireAt, local] of [
-        ['2026-03-02T14:00:00.000Z', '2:00 PM'],
-        ['2026-03-09T13:00:00.000Z', '1:00 PM'],
-        ['2026-10-26T13:00:00.000Z', '1:00 PM'],
-        ['2026-11-02T14:00:00.000Z', '2:00 PM'],
-    ]) {
-        expect(text('Europe/London', { fireAt, repeat: 'weekly:mon@09:00' })).toContain(
-            `Every Monday at 9:00 AM · New York time · ${local} your time`
-        );
-    }
+test('a near run uses relative day words', () => {
+    expect(row({ fireAt: '2026-10-08T21:30:00.000Z' })).toBe('Once · Today at 5:30 PM');
+    expect(row({ fireAt: '2026-10-09T13:00:00.000Z' })).toBe('Once · Tomorrow at 9:00 AM');
+    // A wake still waiting on an offline Agent.
+    expect(row({ fireAt: '2026-10-07T13:00:00.000Z' })).toBe('Once · Yesterday at 9:00 AM');
 });
 
-test('multiple weekdays use calendar order and locale weekday names', () => {
-    expect(text('America/New_York', { repeat: 'weekly:fri,mon,wed@09:00' })).toContain(
-        'Every Mon, Wed, and Fri at 9:00 AM'
+test('a run in another year names the year', () => {
+    expect(row({ fireAt: '2027-01-04T15:00:00.000Z' })).toBe('Once · Mon, Jan 4, 2027 at 10:00 AM');
+});
+
+test('a recurring row leads with its cadence and names the next run by day', () => {
+    expect(
+        row({ fireAt: '2026-10-12T19:57:00.000Z', repeat: 'weekly:mon@19:57', timezone: 'UTC' })
+    ).toBe('Every Monday at 3:57 PM · Next run Mon, Oct 12');
+    expect(
+        row({
+            fireAt: '2026-10-09T13:00:00.000Z',
+            repeat: 'daily@09:00',
+            timezone: 'America/New_York',
+        })
+    ).toBe('Daily at 9:00 AM · Next run tomorrow');
+});
+
+test('a recurring row adds the next clock only when the cadence does not say it', () => {
+    // An interval has no clock of its own.
+    expect(row({ fireAt: '2026-10-08T21:30:00.000Z', repeat: 'every:30m' })).toBe(
+        'Every 30 minutes · Next run today at 5:30 PM'
     );
+    // An off-slot first fire keeps the Server's actual instant.
     expect(
-        formatReminderSchedule({ ...reminder, repeat: 'weekly:mon@09:00' }, 'UTC', 'de-DE').text
-    ).toContain('Every Montag at 9:00');
+        row({ fireAt: '2026-10-12T19:57:00.000Z', repeat: 'weekly:mon@15:57', timezone: 'UTC' })
+    ).toBe('Every Monday at 11:57 AM · Next run Mon, Oct 12 at 3:57 PM');
 });
 
-test('fixed intervals never imply a daily wall-clock appointment', () => {
-    const interval = text('America/New_York', { repeat: 'every:24h' });
-    expect(interval).toContain('Every 24 hours');
-    expect(interval).not.toContain('Daily');
-    expect(interval).not.toContain('Every 24 hours at');
-    expect(formatReminderCadence('every:1d')).toBe('Every 1 day');
-    expect(formatReminderCadence('every:15m')).toBe('Every 15 minutes');
-});
-
-test('one-shot and off-slot first fires retain the actual Server instant', () => {
-    expect(text('America/New_York', { repeat: null })).toContain('9:00 AM · Once · New York time');
-    expect(text('America/New_York', { repeat: null })).not.toContain('Next');
+test('the detail carries the schedule zone and its clock there when it differs', () => {
+    const detail = formatReminderScheduleDetail(reminder, context);
+    expect(detail).toEqual({
+        nextRun: 'Sat, Oct 10, 2026 at 4:00 PM',
+        repeats: "Doesn't repeat",
+        timezone: 'UTC · 8:00 PM there',
+    });
     expect(
-        text('America/New_York', { fireAt: '2026-10-09T19:15:00.000Z', repeat: 'daily@09:00' })
-    ).toContain('3:15 PM · Daily at 9:00 AM');
+        formatReminderScheduleDetail(
+            {
+                fireAt: '2026-10-09T13:00:00.000Z',
+                repeat: 'daily@09:00',
+                timezone: 'America/New_York',
+            },
+            context
+        )
+    ).toEqual({
+        nextRun: 'Fri, Oct 9, 2026 at 9:00 AM',
+        repeats: 'Daily at 9:00 AM',
+        timezone: 'New York time · Same as yours',
+    });
 });
 
-test('history shows frequency without implying an unknown schedule timezone', () => {
-    expect(formatReminderCadence(null)).toBe('Once');
-    expect(formatReminderCadence('daily@09:00')).toBe('Daily');
-    expect(formatReminderCadence('weekly:mon@09:00', 'en-US')).toBe('Every Monday');
+test('the detail names the weekday there when the schedule zone is on another day', () => {
+    const detail = formatReminderScheduleDetail(
+        {
+            fireAt: '2026-10-10T01:00:00.000Z',
+            repeat: 'weekly:fri@21:00',
+            timezone: 'America/New_York',
+        },
+        { ...context, viewerZone: 'Asia/Tokyo' }
+    );
+    expect(detail.repeats).toBe('Every Saturday at 10:00 AM');
+    expect(detail.nextRun).toBe('Sat, Oct 10, 2026 at 10:00 AM');
+    expect(detail.timezone).toBe('New York time · Fri 9:00 PM there');
 });
 
-test('unrecognized or invalid grammar remains readable without inventing a schedule', () => {
-    for (const repeat of ['custom:future', 'weekly:nope@09:00', 'daily@25:00', 'every:0m']) {
-        expect(text('America/New_York', { repeat })).toContain(repeat);
-    }
-});
-
-test('invalid stored zones fall back to explicitly labelled viewer time', () => {
-    const shown = formatReminderSchedule({ ...reminder, timezone: 'Invalid/Zone' }, 'UTC', 'en-US');
-    expect(shown.text).toContain('1:00 PM your time');
-    expect(shown.text).toContain('Schedule timezone unavailable');
-    expect(shown.text).not.toContain(' at 9:00 AM');
-    expect(shown.title).toContain('Invalid/Zone');
-    expect(text('UTC', { timezone: 'UTC' })).toContain(' · UTC');
+test('an unrecognized stored zone is named rather than silently replaced', () => {
+    const detail = formatReminderScheduleDetail({ ...reminder, timezone: 'Invalid/Zone' }, context);
+    expect(detail.timezone).toBe('Invalid/Zone · Unrecognized timezone');
+    expect(detail.nextRun).toBe('Sat, Oct 10, 2026 at 4:00 PM');
 });

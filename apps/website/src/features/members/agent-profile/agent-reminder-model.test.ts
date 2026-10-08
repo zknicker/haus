@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
 import type { Reminder, ReminderHistoryEntry } from '@haus/api';
 import {
+    formatReminderRunDelay,
     reminderDescription,
     reminderExecutionOutcome,
+    resolveReminderDetail,
     scheduledReminders,
 } from './agent-reminder-model.ts';
 
@@ -115,4 +117,22 @@ test('a scheduled row adds the description unless it only repeats the title', ()
     ).toBe('Check advertising and adjust bids');
     expect(reminderDescription(reminder({ description: 'Reminder', id: 'r2' }))).toBeNull();
     expect(reminderDescription(reminder({ id: 'r3' }))).toBeNull();
+});
+
+test('the detail resolves against the live schedule and closes when its reminder leaves', () => {
+    const scheduled = [reminder({ id: 'r1' }), reminder({ id: 'r2' })];
+    expect(resolveReminderDetail('r2', scheduled)?.id).toBe('r2');
+    expect(resolveReminderDetail('r3', scheduled)).toBeNull();
+    expect(resolveReminderDetail(null, scheduled)).toBeNull();
+});
+
+test('a run states its delay only when it woke meaningfully late', () => {
+    const run = (late: number) => ({
+        firedAt: new Date(Date.parse('2026-09-02T09:00:00.000Z') + late).toISOString(),
+        scheduledFor: '2026-09-02T09:00:00.000Z',
+    });
+    expect(formatReminderRunDelay(run(30_000))).toBeNull();
+    expect(formatReminderRunDelay(run(5 * 60_000))).toBe('5m late');
+    expect(formatReminderRunDelay(run(3 * 3_600_000))).toBe('3h late');
+    expect(formatReminderRunDelay(run(72 * 3_600_000))).toBe('3d late');
 });

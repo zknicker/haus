@@ -34,12 +34,47 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
     await page.getByRole('button', { name: /^Automations/u }).click();
     await expect(page.getByText('Local watchdog', { exact: true })).toBeVisible();
-    await expect(page.getByText(/Daily at 9:00 AM · New York time/u)).toBeVisible();
-    await expect(page.getByText(/your time/u)).toHaveCount(0);
+    // A row is one short line in the viewer's time, led by its kind: the
+    // cadence for a recurring reminder, "Once" for a one-time one. The
+    // schedule's own timezone lives in the detail, not the row.
+    await expect(
+        page.getByText('Daily at 9:00 AM · Next run Mon, Jul 27, 2099', { exact: true })
+    ).toBeVisible();
+    await expect(
+        page.getByText('Once · Tue, Sep 1, 2099 at 12:00 PM', { exact: true })
+    ).toBeVisible();
+    await expect(page.getByText(/New York time|your time/u)).toHaveCount(0);
     await page.screenshot({
         path: testInfo.outputPath('reminders-new-york.png'),
         animations: 'disabled',
     });
+
+    // The row opens the reminder's detail: its kind, schedule, and context.
+    await page.getByRole('button', { name: /Local watchdog/u }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: 'Local watchdog' })).toBeVisible();
+    await expect(sheet.getByText('Recurring reminder', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('Daily at 9:00 AM', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('New York time · Same as yours', { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('link', { name: '#all' })).toHaveAttribute(
+        'href',
+        `/s/reminders/chats/${chatId}`
+    );
+    await expect(sheet.getByText(/^Attached · /u)).toBeVisible();
+    await expect(sheet.getByText('Run history', { exact: true })).toBeVisible();
+    await page.screenshot({
+        path: testInfo.outputPath('reminder-detail.png'),
+        animations: 'disabled',
+    });
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+
+    await page.getByRole('button', { name: /Renewal check/u }).click();
+    await expect(sheet.getByText('One-time reminder', { exact: true })).toBeVisible();
+    await expect(sheet.getByText("Doesn't repeat", { exact: true })).toBeVisible();
+    await expect(sheet.getByText('Run history', { exact: true })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
 
     const context = await browser.newContext({
         timezoneId: 'Asia/Tokyo',
@@ -50,12 +85,17 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
         const other = await context.newPage();
         await signInAsClerkHuman(other);
         await other.goto(page.url());
-        const schedule = other.getByText(/Daily at 9:00 AM · New York time/u);
-        await expect(schedule).toContainText('10:00 PM your time');
-        await expect(schedule).toHaveCSS('white-space', 'normal');
+        const schedule = other.getByText('Daily at 10:00 PM · Next run Mon, Jul 27, 2099', {
+            exact: true,
+        });
+        await expect(schedule).toBeVisible();
         expect(
             await schedule.evaluate((element) => element.scrollWidth <= element.clientWidth)
         ).toBe(true);
+        await other.getByRole('button', { name: /Local watchdog/u }).click();
+        await expect(
+            other.getByRole('dialog').getByText('New York time · 9:00 AM there', { exact: true })
+        ).toBeVisible();
         await other.screenshot({
             path: testInfo.outputPath('reminders-tokyo-narrow.png'),
             animations: 'disabled',
@@ -106,6 +146,18 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await expect(answerLink).toHaveAttribute('href', `/s/reminders/chats/${chatId}`);
     await expect(drawer.getByText('No answer')).toHaveCount(1);
     await expect(drawer.getByText('History is kept for 30 days.')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+
+    // Canceling asks first, then removes the reminder from the schedule,
+    // which closes its detail.
+    await page.getByRole('button', { name: /Renewal check/u }).click();
+    await sheet.getByRole('button', { name: 'Cancel Reminder' }).click();
+    const confirm = page.getByRole('alertdialog');
+    await expect(confirm.getByRole('heading', { name: 'Cancel Renewal check?' })).toBeVisible();
+    await confirm.getByRole('button', { name: 'Cancel Reminder' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByText('Renewal check', { exact: true })).toHaveCount(0);
 
     runPsql(
         session.databaseUrl,
@@ -179,6 +231,12 @@ function seedReminderState(input: {
            'rem_e2e_standup', '${input.serverId}', 'agt_e2e_reminder',
            'Standup nudge', '${input.chatId}', 'msg_e2e_reminder_anchor',
            '2099-08-03T13:00:00.000Z', 'weekly:mon@09:00', 'America/New_York',
+           null, 'scheduled', 1,
+           '2026-07-26T12:00:00.000Z', '2026-07-26T12:00:00.000Z'
+         ), (
+           'rem_e2e_renewal', '${input.serverId}', 'agt_e2e_reminder',
+           'Renewal check', '${input.chatId}', 'msg_e2e_reminder_anchor',
+           '2099-09-01T16:00:00.000Z', null, 'America/New_York',
            null, 'scheduled', 1,
            '2026-07-26T12:00:00.000Z', '2026-07-26T12:00:00.000Z'
          ), (

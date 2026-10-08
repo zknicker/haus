@@ -8,8 +8,6 @@ import {
     formatTriggerFireDetail,
     formatTriggerFireTime,
     formatTriggerHistoryTime,
-    formatTriggerPayloadSize,
-    formatTriggerRowDetail,
     resolveTriggerSheetMode,
     triggerCreatorName,
     triggerEditPatch,
@@ -17,18 +15,15 @@ import {
     triggerKindLabel,
     triggerKindOption,
     triggerKindOptions,
-    triggerStatusChip,
+    triggerRowStatus,
     triggerTitleIssue,
 } from './agent-trigger-model.ts';
 
 const now = new Date('2026-09-02T12:00:00.000Z').getTime();
 
-test('an armed Trigger reads as live', () => {
-    expect(triggerStatusChip('armed')).toEqual({ color: 'success', label: 'Armed' });
-});
-
-test('a disabled Trigger reads as inert rather than as a failure', () => {
-    expect(triggerStatusChip('disabled')).toEqual({ color: 'default', label: 'Disabled' });
+test('an armed row stays quiet; only a disabled one carries a status', () => {
+    expect(triggerRowStatus('armed')).toBeNull();
+    expect(triggerRowStatus('disabled')).toBe('Disabled');
 });
 
 test('an unfired Trigger states that once instead of also saying "0 fires"', () => {
@@ -63,26 +58,9 @@ test('every offered kind carries the label and description the picker shows', ()
     expect(triggerKindLabel('webhook')).toBe('Webhook');
 });
 
-test('a row leads with what wakes the Trigger, then how it has been used', () => {
-    expect(
-        formatTriggerRowDetail(
-            { fireCount: 2, kind: 'webhook', lastFiredAt: '2026-09-02T11:00:00.000Z' },
-            now
-        )
-    ).toBe('Webhook · Last fired 1h ago · 2 fires');
-});
-
 test('a human-created Trigger credits the handle, an Agent-created one the Agent', () => {
     expect(triggerCreatorName({ createdByHandle: 'zach' }, 'Blippy')).toBe('@zach');
     expect(triggerCreatorName({ createdByHandle: null }, 'Blippy')).toBe('Blippy');
-});
-
-test('payload size reads in the unit a person would say it in', () => {
-    expect(formatTriggerPayloadSize(0)).toBe('0 bytes');
-    expect(formatTriggerPayloadSize(1)).toBe('1 byte');
-    expect(formatTriggerPayloadSize(512)).toBe('512 bytes');
-    expect(formatTriggerPayloadSize(1536)).toBe('1.5 KB');
-    expect(formatTriggerPayloadSize(65_536)).toBe('64 KB');
 });
 
 test('a fire states only the facts its sender actually supplied', () => {
