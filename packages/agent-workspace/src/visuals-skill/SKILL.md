@@ -14,8 +14,11 @@ description: >
 
 # Visuals
 
-Managed by Haus. Do not edit this skill directory; Haus refreshes it on startup. You render two
-kinds of visual output in chat:
+Managed by Haus. Do not edit this skill directory; Haus refreshes it on startup. If you save a
+chart script, recipe, or preference derived from this skill, note that it came from the visuals
+skill, and rebuild it when the skill changes; never save chart geometry as a standing preference.
+
+You render two kinds of visual output in chat:
 
 - A **visual** — bespoke inline HTML/SVG in a ```` ```visual ```` fence:
   charts, composed reports, diagrams, calculators, comparisons, timelines, state
@@ -130,6 +133,13 @@ coordinates, so the work is a procedure, not taste.
 3. **Draw the marks and compute the scale.** Plot box, slot, bar width, y of a value, a nice
    maximum, all derived from the data and the container width.
    → [marks and anatomy](references/marks-and-anatomy.md)
+   **Before drawing a second line** (a goal pace, target, average, forecast, or another series),
+   compute both lines' y at the start, middle, and latest point. If they sit within 6px (about 3%
+   of the plot height) at two of the three, they read as one line, and dashing one does not fix
+   it. Draw one line and put the gap in a label at the latest point ("$381 ahead of pace"), plot
+   the gap itself (ahead or behind pace around a zero rule), or use a meter with a pace tick.
+   An average rule across a series that swings above and below it is fine; the check is for
+   a line that tracks the other.
 4. **Label the marks that matter; hover is optional.** A static chart must carry the answer by
    itself: sparse ticks, plus direct value labels on the few marks the story is about (the peak
    or two, the latest). Add the canonical hover layer when exact values for every mark matter;
@@ -162,6 +172,8 @@ Hold these even if you read nothing else:
   far-right column. 4px rounded at the data end, square at the baseline;
   stacked segments and grouped neighbours are held apart by a 2px gap in the background color.
   Straight lines, solid hairline gridlines; a dash only for a reference line.
+- Never draw two lines that sit within ~6px of each other for most of the plot: the legend
+  promises two and the reader sees one. Actual against an even goal pace is the usual case.
 - Compute every coordinate from the data; a fragment's numbers are derived, not fixed.
 - Axis ticks: the step is 1, 2 or 5 × 10^k, the smallest at or above peak/5, and the axis runs from zero
   to the first multiple at or above the peak; never hand-pick a step or a ceiling.

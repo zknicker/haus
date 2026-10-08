@@ -47,6 +47,7 @@ axes, drawn when the user asks for it.
 | --- | --- |
 | One number | A stat tile — never a one-bar chart or a two-slice pie |
 | One number against a limit | A meter (components.md), never a pie |
+| Progress against a goal pace | A meter with a pace tick and the gap in words, not actual-vs-pace lines |
 | A few headline numbers | A KPI row (components.md) |
 | "How is X doing", any period question | A KPI row above one chart, tiles per the tile grammar |
 | Several facets of one period — headline, trend, breakdowns | A report: stat row, full-width time series, side-by-side ranked lists |
@@ -237,6 +238,8 @@ simply not load:
 - [ ] Y axis from zero, one y-axis unless the user asked for bars and a line
       together, hairlines on the value axis only.
 - [ ] Legend only past one series, with values in the labels.
+- [ ] No two lines within ~6px of each other at most of start, middle, latest;
+      a reference that close is dropped and its gap said in a label.
 - [ ] A label that will not fit moves outside the bar or drops to the tooltip;
       it is never cropped by `overflow: hidden`.
 - [ ] Categorical hues in numeric order. Status colors mean status, or carry a

@@ -16,6 +16,10 @@ import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import {
+    clearManagedSkillChangeNotice,
+    readManagedSkillChangeNotice,
+} from '../managed-skill-changes.ts';
+import {
     claimClaudeSdkUsageRefresh,
     saveClaudePlanUsageSnapshot,
 } from '../usage/claude-plan-usage-state.ts';
@@ -286,13 +290,15 @@ async function executeHarnessTurn(
         await attestComposedDrain(input, prompt.drained);
         const turnContent = prompt.turnContent;
         const memoryNotice = await takeMemorySizeNotice(input);
+        // Cleared only after a completed turn, so a turn that fails before the model sees it retries.
+        const skillNotice = await readManagedSkillChangeNotice(input.agentRoot);
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await agent.stream({
             abortSignal: turnSignal,
             prompt: projectMessageForAgent({
-                content: [coveGuidance.notice, turnContent, memoryNotice]
+                content: [coveGuidance.notice, turnContent, memoryNotice, skillNotice?.text]
                     .filter(Boolean)
                     .join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
@@ -405,6 +411,9 @@ async function executeHarnessTurn(
         });
         if (coveGuidance.refreshPending && coveGuidance.refreshCanComplete) {
             await clearPendingCoveGuidanceRefresh(input.agentRoot);
+        }
+        if (skillNotice) {
+            await clearManagedSkillChangeNotice(input.agentRoot, skillNotice);
         }
         await input.activity.finish(instructionActivityKey, 'completed');
         return observation;

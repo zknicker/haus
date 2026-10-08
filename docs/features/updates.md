@@ -59,7 +59,9 @@ loses its Computer connection remains visible until that timeout. Afterward, bot
 and Computer Settings say the outcome is unconfirmed and direct the operator to reconnect the
 Computer. The sidebar does not offer a retry while it is offline, and other reachable updates may
 continue. Reconnection replaces the last reported phase with the Computer's installed version and
-actual update result. Server requires a live Computer attachment before checking or starting an
+actual update result. Once the new Computer is installed, the restarted Computer decides the
+outcome: it reports the update complete when it starts on the target version and failed when it
+starts on any other, so a slow shutdown of the old Computer never marks a finished update failed. Server requires a live Computer attachment before checking or starting an
 update, so a retained old version alone never starts one. A requested update or check that the
 Computer has not advanced within two minutes is reported as failed, so the updater never shows an
 update in progress indefinitely. The App, in both the sidebar and Computer Settings, applies the same bound to any update phase on

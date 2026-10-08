@@ -53,6 +53,8 @@ const asks = {
     'quarter-trend': 'how have weekly sales trended this quarter? break it down by marketplace',
     'ui-mockup':
         "I want a sales-goal progress banner at the top of my dashboard showing how I'm tracking against the $30K monthly goal. mock up 2–3 different designs for it right here so I can pick one, and tell me which you'd go with",
+    'goal-pace-chart':
+        'chart my cumulative revenue this month against the even pace I need to hit the $30K goal',
 };
 
 /** `ask` is the human line alone; `prompt` is that line plus the data block. */

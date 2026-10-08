@@ -4,7 +4,10 @@ One series over time, no fill: the shape is the story and the endpoint is the
 answer, so the last point is the only value on the plot. The dashed `--chart-5`
 rule is the period average — a dashed stroke is reserved for a reference and
 never goes unnamed, so it carries a short label at the quiet end of the plot
-rather than a legend (one series still needs no legend box).
+rather than a legend (one series still needs no legend box). Draw it only when
+it clears the line: if the series sits within 6px of the average (or a goal or
+pace line) at most of start, middle, and latest, drop the rule and say the gap
+in the end label ("$381 ahead of pace").
 
 Scale derivation for this data: the left pad is 56 because the widest tick,
 `$1,500`, needs 6 × 7.6 + 8 = 53.6 (rounded up to a multiple of 4), with the

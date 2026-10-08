@@ -8,6 +8,7 @@ import {
 } from '../../../scripts/visuals-lab/engine/skill-fragments.mjs';
 import {
     defaultVisualsSkill,
+    factoryManagedSkillHashes,
     seedFactoryManagedSkills,
     visualsSkillFiles,
 } from './managed-skills.ts';
@@ -93,6 +94,21 @@ test('the core and the skill both route to every module', () => {
         expect(core).toContain(`(${name})`);
         expect(defaultVisualsSkill).toContain(`references/${name}`);
     }
+});
+
+test('visuals skill tells agents to tag and rebuild what they derive from it', () => {
+    // Juniper kept a stale chart script after a skill update; derived recipes must say
+    // where they came from so a change notice can find them.
+    expect(defaultVisualsSkill).toContain('note that it came from the visuals\nskill');
+    expect(defaultVisualsSkill).toContain('rebuild it when the skill changes');
+    expect(defaultVisualsSkill).toContain('never save chart geometry as a standing preference');
+});
+
+test('each factory-managed skill has one stable content hash', () => {
+    const hashes = factoryManagedSkillHashes();
+    expect(Object.keys(hashes)).toEqual(['visuals']);
+    expect(hashes.visuals).toMatch(/^[0-9a-f]{64}$/u);
+    expect(factoryManagedSkillHashes()).toEqual(hashes);
 });
 
 test('visuals skill states the visual frame facts', () => {

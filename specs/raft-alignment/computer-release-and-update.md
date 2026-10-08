@@ -169,11 +169,12 @@ The UI uses these user-visible phases:
 | `complete` | Shows the installed version and restored connection. Queued work resumes. |
 | `failed` | Names the failed stage in plain language, preserves the last trustworthy progress, and presents the exact local recovery command. |
 
-Once an attachment daemon begins the update restart drain, shutdown is terminal. If the drain or
-service restart fails, it persists the failed update stage and releases the update lock before
-exiting with an error. The resident Computer replaces the exited daemon using the installed
-executable. A disposed runtime must never remain alive in the reconnect loop; recovery does not
-claim that the failed shutdown saved every session checkpoint.
+Once an attachment daemon begins the update restart drain, shutdown is terminal. The new
+executable is already installed by then, so a drain or service restart error is logged as a
+shutdown failure, not an update failure: the record stays `restarting`, and the daemon releases the
+update lock before exiting with an error. The resident Computer replaces the exited daemon using
+the installed executable. A disposed runtime must never remain alive in the reconnect loop;
+recovery does not claim that the failed shutdown saved every session checkpoint.
 
 The service restart depends on where it runs. An attachment daemon runs inside the
 `com.haus.computer` launchd job's process group (launchd names it through `XPC_SERVICE_NAME`), so
@@ -181,8 +182,9 @@ it restarts the job with `launchctl kickstart -k`, which also ends the daemon. I
 `bootout` its own job: launchd reaps the process group before `bootstrap` runs and leaves the
 service unloaded. A rewritten plist takes effect at the job's next load. CLI `upgrade`, rollback,
 and `install` run outside the job and reload the definition with `bootout` plus `bootstrap`.
-Whichever process starts first after the restart, the resident or an attachment daemon, moves
-`restarting` to `complete`, so the next bootstrap handshake reports it.
+Whichever process starts first after the restart, the resident or an attachment daemon, settles
+`restarting`: `complete` when it runs the target version, otherwise `failed` at `restarting`
+naming the version that came up. The next bootstrap handshake reports the result.
 
 Shutdown drains accepted writers before saving parked Agent sessions, with a separate 20-second
 deadline for each stage. A completed writer cannot consume the session checkpoint deadline.

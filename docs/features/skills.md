@@ -2,6 +2,7 @@
 summary: Agent-local skills and explicit imports from a Computer.
 read_when:
   - changing Agent skill discovery, import, authoring, or execution
+  - changing factory-managed skill seeding or the skill update notice
   - changing the Skills settings surface
 ---
 
@@ -65,6 +66,33 @@ The Server authorizes the request but does not store the bytes.
 Save and delete use the hash from the opened copy. If the Agent or another
 operator changed the bundle, Haus asks the operator to reload instead of
 overwriting it. Successful changes refresh from a Computer event, not a timer.
+
+## Factory-managed skills
+
+Haus ships a small set of release-owned skills, presently `visuals`. Computer rewrites their files
+into every Agent's library whenever it applies that Agent's configuration (attach, reconnect,
+configuration change) and on full reset. Agent-authored and imported skills are never touched.
+
+Each seed hashes every file of each managed skill and records the hashes in the Agent's
+machine-local `runtime/managed-skills.json`. A managed skill whose hash differs from the recorded
+one is queued as changed. An identical reseed, a brand-new Agent, and a managed skill a release
+adds queue nothing; an Agent seeded before the record existed that already held the skill is
+notified once. Several changes before the Agent's next turn coalesce into one pending entry per
+skill.
+
+The next turn carries one private notice in its event input, never a Chat message and never the
+standing system prompt:
+
+> [Haus skill update: these Haus skills were updated: visuals.] Re-read each before you next use
+> it, and rebuild any scripts, notes, memory, or recipes you derived from it. If that changed
+> something you rely on, post one short note in #all saying what you updated; otherwise do not
+> post.
+
+The notice clears only after a completed turn included it, so a turn that fails or is interrupted
+retries it. A skill that changes again after the notice was composed stays pending. Session reset
+keeps a pending notice; full reset discards the record with the library and reseeds as new. The
+visuals skill also tells Agents to mark anything they derive from it and rebuild it when the skill
+changes. Owner: `apps/computer/src/managed-skill-changes.ts`.
 
 ## Agent authoring
 

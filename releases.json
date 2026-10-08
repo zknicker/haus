@@ -1225,5 +1225,16 @@
       "computer": "6.1.0",
       "agent": "6.1.0"
     }
+  },
+  {
+    "version": "9.0.0",
+    "date": "2026-10-07",
+    "targets": {
+      "server": "8.0.0",
+      "app": "5.1.2",
+      "ios": { "version": "5.2.1", "buildNumber": 42 },
+      "computer": "7.0.0",
+      "agent": "7.0.0"
+    }
   }
 ]

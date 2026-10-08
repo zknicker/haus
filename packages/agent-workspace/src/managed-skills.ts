@@ -1,5 +1,6 @@
 /// <reference path="./visuals-skill/markdown.d.ts" />
 
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import antiPatternsMd from './visuals-skill/anti-patterns.md' with { type: 'text' };
@@ -58,4 +59,23 @@ export async function seedFactoryManagedSkills(skillsDir: string): Promise<void>
             await fs.writeFile(destination, content, { mode: 0o600 });
         }
     }
+}
+
+/**
+ * One content hash per factory-managed skill over every file it ships, in sorted path order, so
+ * a Computer can tell a changed skill from an identical reseed.
+ */
+export function factoryManagedSkillHashes(): Record<string, string> {
+    return Object.fromEntries(
+        Object.entries(factoryManagedSkillFiles).map(([skillId, files]) => {
+            const hash = createHash('sha256');
+            for (const relativePath of Object.keys(files).sort()) {
+                hash.update(relativePath)
+                    .update('\0')
+                    .update(files[relativePath] ?? '')
+                    .update('\0');
+            }
+            return [skillId, hash.digest('hex')];
+        })
+    );
 }

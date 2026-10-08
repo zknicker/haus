@@ -129,6 +129,9 @@ visual fence, not an artifact, when it fits the reply column.
   sentence-case label outside its frame, 14px weight 500 — "Now", "1. Inline progress banner ·
   recommended", "2. Compact chip in the header" — then the mockup under it,
   `--gap-lg` between variants. Show the current state first when there is one.
+- A goal or progress mockup shows actual against pace as a meter with a pace
+  tick and the gap in words ("$381 ahead of pace"). Never a cumulative line on
+  a pace line: a few percent apart, they draw as one line.
 - Show only the slice of the screen the change touches, with just enough
   surrounding chrome to place it. No hover layer, no working logic unless the
   user asked to try it.

@@ -17,6 +17,7 @@ const facts = (overrides: Partial<LayoutFacts> = {}): LayoutFacts => ({
     clipCandidates: [],
     overflowRoots: [],
     scrollWidth: 736,
+    seriesLines: [],
     svgTexts: [],
     textBoxes: [],
     viewportWidth: 736,

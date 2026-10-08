@@ -277,17 +277,21 @@ Chrome sits a step back and content comes forward. Do not paint chrome and
 content the same value: that flattens them into one plane and leaves every card
 leaning entirely on its shadow.
 
-**Dark mode does none of this.** It keeps HeroUI's neutrals and a single ground
-plane, because dark already separates chrome from content through the surfaces
-sitting on it rather than by tinting the ground. `--sidebar-surface` and
-`--hairline` are deliberately unset there, and the rules that read them carry
-`var(…, fallback)` so dark resolves to HeroUI's own values.
+**Dark keeps HeroUI's neutrals for the page,** and `--sidebar-surface` and
+`--hairline` stay unset globally there; the rules that read them carry
+`var(…, fallback)` so dark resolves to HeroUI's own values. The desktop shell
+card is the exception: it keeps the same ladder in dark's own lightness range —
+`--shell-canvas` 10.5% under the tabs, `--shell-band-sidebar` 14%, `--shell-card`
+16.5% — and sets `--sidebar-surface` itself. Because the card is lifted, dark
+fields inside it take their own step (`--field-background` 21%) and a 0.5px
+`--field-border` hairline. Shadows vanish on near-black, so the shown tab lifts by
+fill (21%, a step above the card) rather than by shadow. See "Shell variants" in `default-theme.css`.
 
 | Token | Light | Dark | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `backdrop` | `rgba(0, 0, 0, 0.5)` | `rgba(0, 0, 0, 0.6)` | `Light: oklch(0% 0 0 / 0.5); Dark: oklch(0% 0 0 / 0.6)` | `--backdrop` | Modal, drawer, and overlay backdrops | Semi-transparent overlay rendered behind modals, drawers, and alert dialogs. |
 | `background` | `#F9F9FA` | `#060606` | `Light: oklch(98.24% 0.0013 286.4); Dark: oklch(12.00% 0.0000 253.83)` | `--background` | `bg-background` | The content plane. See "The light gray ramp" above. |
-| `sidebar surface` | `#EFEFF0` | not set | `Light: oklch(95.24% 0.0013 286.4)` | `--sidebar-surface` | Read by the `.sidebar` rule in `default-theme.css`; not a call-site utility. | The chrome plane, one step back from content. Unset in dark, which uses one ground. |
+| `sidebar surface` | `#EFEFF0` | not set (shell card: `--shell-band-sidebar`) | `Light: oklch(95.24% 0.0013 286.4)` | `--sidebar-surface` | Read by the `.sidebar` rule in `default-theme.css`; not a call-site utility. | The chrome plane, one step back from content. Unset globally in dark; the desktop shell card sets it. |
 | `foreground` | `#18181B` | `#FCFCFC` | `Light: = eclipse; Dark: = snow` | `--foreground` | `text-foreground` | Primary text and icon color. Optimized for readability on backgrounds and surfaces. |
 | `muted` | `#727272` | `#A0A0A0` | `Light: oklch(55.17% 0.0000 253.83); Dark: oklch(70.50% 0.0000 253.83)` | `--muted` | `text-muted` | Secondary text color for less prominent content like placeholders and captions. |
 | `overlay` | `#FFFFFF` | `#181818` | `Light: = white; Dark: oklch(21.03% 0.0000 253.83)` | `--overlay` | `bg-overlay text-overlay-foreground` for floating panels | Background for modals, popovers, and floating panels. |
@@ -520,7 +524,7 @@ InputGroup prefix has no divider; the field keeps its outer border and focus rin
 | `spacing` | `3.75px` |  | `--spacing` | Prefer Tailwind spacing utilities like `gap-4`, `p-6`, `px-8`, and `space-y-4`. | Base spacing unit used by the generated Tailwind spacing scale. |
 | `spacing compact` | `3.1875px` | `spacing × 0.85` | `--spacing-compact` | Applied at the sidebar boundary. | Compact navigation rhythm for persistent sidebar rows. |
 | `spacing dense` | `3px` | `spacing × 0.8` | `--spacing-dense` | Applied at menu, listbox, dropdown, select, combobox, and context-menu popover boundaries. | Tightest spacing step for transient lists that users scan. |
-| `field border width` | `Light: 0.5px; Dark: 0px` |  | `--border-width-field` | Prefer HeroUI field components; use this only for custom field implementations. | Border width used by form fields and field-like cells. Light draws the hairline; dark keeps HeroUI's borderless field. |
+| `field border width` | `Light: 0.5px; Dark: 0px (0.5px inside the desktop shell card)` |  | `--border-width-field` | Prefer HeroUI field components; use this only for custom field implementations. | Border width used by form fields and field-like cells. Light draws the hairline; dark keeps HeroUI's borderless field except on the lifted shell card. |
 | `field border width alias` | `0px` |  | `--field-border-width` | Prefer `--border-width-field` for new CSS. | Compatibility alias for field border width. |
 
 ## Elevation & Depth

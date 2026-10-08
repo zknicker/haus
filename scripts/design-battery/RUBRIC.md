@@ -43,6 +43,10 @@ geometry is the agent's and these checks are about arithmetic as much as taste.
       touching marks.
 - [ ] Coordinates derived from the data — marks land on their ticks at any point
       count, and the fence carries its `<!-- scale: … -->` comment.
+- [ ] No two lines nearly coincide (within ~6px over most of the plot). A goal
+      pace or target that tracks the actual becomes one line with the gap
+      labeled, a plot of the gap, or a meter with a pace tick; dashing one of two
+      overlapping lines does not count.
 - [ ] Horizontal gridlines only, three to five; muted 11–12px axis labels;
       legend only when >1 series.
 - [ ] Tick labels fit: no tick text clipped at the left edge (gutter = widest

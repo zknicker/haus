@@ -77,6 +77,7 @@ test('pinned source inventory accounts for every card, omission and Haus additio
             expect(topic.triggers).toEqual([
                 'my MEMORY.md is bloating or over its size limit',
                 'where should this preference or fact live in memory',
+                'someone gave me feedback to remember as a standing preference',
                 'Active Context reads like a diary',
                 'about to append a log entry or work log to notes',
                 'closed work still looks active',

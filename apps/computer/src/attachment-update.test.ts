@@ -6,11 +6,12 @@ import { join } from 'node:path';
 import { getFreePort } from './test-port.ts';
 import { readUpdateProgress } from './update.ts';
 import { computerProtocolVersion, computerReleaseSigningPayload } from './update-contract.ts';
+import { finishRestart } from './update-recovery.ts';
 
 for (const restartFails of [true, false]) {
     test(
         restartFails
-            ? 'a failed update drain exits after saving failure and releasing the update lock'
+            ? 'an unclean drain after install exits, and the restarted target version reports complete'
             : 'a rejected release leaves the attachment daemon running',
         async () => {
             const root = await mkdtemp(join(tmpdir(), 'haus-attachment-update-'));
@@ -77,14 +78,19 @@ for (const restartFails of [true, false]) {
                     await Bun.sleep(10);
                 }
                 const progress = await readUpdateProgress(root);
-                expect(progress.phase).toBe('failed');
                 expect(await Bun.file(join(root, 'update-job.lock')).exists()).toBe(false);
                 if (restartFails) {
                     expect(daemon.exitCode).toBe(1);
-                    expect(progress.failedPhase).toBe('restarting');
-                    expect(progress.detail).toBe('ManagedRuntime disposed during shutdown');
                     expect(await Bun.file(survived).exists()).toBe(false);
+                    // The executable is installed, so the drain error is not an update failure.
+                    expect(progress).toMatchObject({ failedPhase: null, phase: 'restarting' });
+                    await finishRestart(root, release.version);
+                    expect(await readUpdateProgress(root)).toMatchObject({
+                        phase: 'complete',
+                        targetVersion: release.version,
+                    });
                 } else {
+                    expect(progress.phase).toBe('failed');
                     expect(daemon.exitCode).toBeNull();
                     expect(progress.failedPhase).toBe('verifying');
                     expect(await readFile(survived, 'utf8')).toBe('still running');

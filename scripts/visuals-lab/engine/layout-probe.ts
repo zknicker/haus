@@ -1,8 +1,10 @@
 import * as z from 'zod';
+import { coincidentLines, describeCoincidence, seriesLineSchema } from './coincident-lines.ts';
 import { layoutFactsSource } from './layout-probe-source.ts';
 
 export type LayoutFindingKind =
     | 'clipped-text'
+    | 'coincident-lines'
     | 'horizontal-overflow'
     | 'svg-text-outside'
     | 'text-overlap';
@@ -37,6 +39,7 @@ export const layoutFactsSchema = z.object({
     ),
     overflowRoots: z.array(z.object({ label: z.string(), right: z.number() })),
     scrollWidth: z.number(),
+    seriesLines: z.array(seriesLineSchema),
     svgTexts: z.array(z.object({ label: z.string(), rect: rectSchema, svg: rectSchema })),
     textBoxes: z.array(z.object({ label: z.string(), owner: z.number(), rect: rectSchema })),
     viewportWidth: z.number(),
@@ -59,6 +62,12 @@ export function analyzeLayout(facts: LayoutFacts): LayoutFinding[] {
         ...clippedText(facts),
         ...svgTextOutside(facts),
         ...textOverlaps(facts),
+        ...capFindings(
+            coincidentLines(facts.seriesLines).map((pair) => ({
+                kind: 'coincident-lines' as const,
+                message: describeCoincidence(pair),
+            }))
+        ),
     ];
 }
 

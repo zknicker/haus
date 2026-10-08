@@ -136,8 +136,20 @@ Good: leader lines from label to line end, or small multiples.
 bar, two lines that nearly coincide drawn on top of each other with their
 labels colliding.
 Why: the reader can read neither the mark nor the text.
-Good: labels in clear space; when two lines coincide, one solid and one dashed
-in `--chart-5` with the gap named in one label, or one line and the gap in words.
+Good: labels in clear space; when two lines coincide, one line and the gap in words.
+
+**Bad: actual drawn on its own goal pace.** $14.4K against a $14.0K pace mark on
+a 56px plot is 0.7px apart; the dashed pace line vanishes under the solid one
+and the legend promises a line nobody can see.
+```
+<line … stroke="var(--chart-5)" stroke-dasharray="4 4"/>   <!-- pace, y 60→4 -->
+<polyline … stroke="var(--chart-1)" points="0,60 … 326.7,33.2"/>  <!-- pace y there: 33.9 -->
+```
+Good: one line, the gap as words at its end — or the progress meter with a pace tick.
+```
+<polyline … stroke="var(--chart-1)" points="0,60 … 326.7,33.2"/>
+<text x="334" y="33.2">$381 ahead of pace</text>
+```
 
 **Bad: tick labels clipped at the left edge** — `$8,000` right-aligned at a
 fixed x of 40 loses its `$`.

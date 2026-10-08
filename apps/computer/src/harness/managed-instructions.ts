@@ -391,7 +391,7 @@ Your working directory (cwd) is your **persistent, agent-owned workspace**; file
 <your role definition, evolved over time>
 
 ## Standing Preferences
-<communication style and standing directives people gave you>
+<communication style and standing directives: terse imperative rules; merge, don't append>
 
 ## Active Context
 <current work only: rewrite, don't append; drop finished items>

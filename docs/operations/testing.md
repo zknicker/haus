@@ -320,6 +320,18 @@ bun run test:agents --include-opt-in --only warm-dm-memory-refresh --only respon
 They log durations for comparison; a single model run is not a latency guarantee. Run agent-test
 commands serially against one dev stack, because startup cleanup sweeps prior run records.
 
+The managed-skill update probe is opt-in because it rewrites one test Agent's skill library and
+`runtime/managed-skills.json` on the dev Computer's disk, so the Computer must be this checkout's
+local dev stack. It installs a legacy visuals skill with a literal `Share %` second axis, has the
+Agent chart and save `notes/sales-chart-recipe.md`, marks the record stale and reapplies the
+Agent's configuration so Computer reseeds the current skill and queues the update notice, then
+asks for the next chart. It gates on the notice being queued and consumed, the second chart and
+the rebuilt recipe dropping `Share %`, and the recipe naming its visuals origin:
+
+```sh
+bun run test:agents --include-opt-in --only managed-skill-update-rebuilds-recipe --lanes 1
+```
+
 The Cove creation scenario is opt-in because it needs a real active Cove on an
 attached healthy Computer plus the local deterministic avatar fixture. Start
 the dev stack with an absolute JSONL path, then run the scenario:
@@ -504,8 +516,9 @@ Nothing reaches an unselected model and skill pair.
 Every cell's stats line also carries an objective read on the fences it
 shipped: layout findings and console errors from an in-frame geometry probe
 (`scripts/visuals-lab/engine/layout-probe.ts`: horizontal overflow, text
-clipped by `overflow: hidden`, SVG text outside its svg, and text colliding on
-a line; messages on hover). Runs from before the probe are backfilled into a
+clipped by `overflow: hidden`, SVG text outside its svg, text colliding on
+a line, and two series lines in one svg drawn almost on top of each other,
+judged in `engine/coincident-lines.ts`; messages on hover). Runs from before the probe are backfilled into a
 `<slug>.findings.json` sidecar the first time the lab reads them.
 
 The verdict is human. Judge a rendered cell against
