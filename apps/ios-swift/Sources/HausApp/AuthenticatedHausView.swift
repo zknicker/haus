@@ -135,6 +135,7 @@ struct AuthenticatedHausView: View {
                                 data: settingsData,
                                 persistence: store.settingsPersistence,
                                 cloudAgentActions: store.cloudAgentSettings,
+                                automations: store.agentAutomations { openCanvasChat(.chat($0)) },
                                 notifications: push.setting,
                                 appearance: appearanceBinding,
                                 initialPath: initialPath,

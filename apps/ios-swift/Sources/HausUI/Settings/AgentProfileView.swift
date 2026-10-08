@@ -7,6 +7,7 @@ struct AgentProfileView: View {
     let onSaveAvatar: @Sendable (AvatarImagePayload) async throws -> Void
     let onOpenAvatarGenerator: () -> Void
     let onOpenRuntimeConfiguration: () -> Void
+    let onOpenAutomations: (() -> Void)?
     @State private var name: String
     @State private var savedName: String
     @State private var isSaving = false
@@ -18,7 +19,8 @@ struct AgentProfileView: View {
         onSave: @escaping (SettingsAgent) async throws -> SettingsAgent = { $0 },
         onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in },
         onOpenAvatarGenerator: @escaping () -> Void = {},
-        onOpenRuntimeConfiguration: @escaping () -> Void = {}
+        onOpenRuntimeConfiguration: @escaping () -> Void = {},
+        onOpenAutomations: (() -> Void)? = nil
     ) {
         self.agent = agent
         self.onEditDescription = onEditDescription
@@ -26,6 +28,7 @@ struct AgentProfileView: View {
         self.onSaveAvatar = onSaveAvatar
         self.onOpenAvatarGenerator = onOpenAvatarGenerator
         self.onOpenRuntimeConfiguration = onOpenRuntimeConfiguration
+        self.onOpenAutomations = onOpenAutomations
         _name = State(initialValue: agent.displayName)
         _savedName = State(initialValue: agent.displayName)
     }
@@ -75,6 +78,18 @@ struct AgentProfileView: View {
                     onOpenRuntimeConfiguration: onOpenRuntimeConfiguration
                 )
 
+                if let onOpenAutomations {
+                    SettingsSection(nil, footer: "Reminders and triggers that wake \(agent.displayName).") {
+                        SettingsListGroup {
+                            DisclosureRow(
+                                "Automations",
+                                icon: .reminder,
+                                showsDivider: false,
+                                action: onOpenAutomations
+                            )
+                        }
+                    }
+                }
 
                 if let errorMessage {
                     Text(errorMessage)

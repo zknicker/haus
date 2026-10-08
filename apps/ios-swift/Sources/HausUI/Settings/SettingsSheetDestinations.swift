@@ -59,7 +59,9 @@ extension SettingsSheet {
                     },
                     onOpenRuntimeConfiguration: {
                         path.append(.agentRuntime(id: agent.id))
-                    }
+                    },
+                    // Reminders and Triggers are readable by Owners and Admins only.
+                    onOpenAutomations: canManageServer ? { path.append(.agentAutomations(id: agent.id)) } : nil
                 )
             } else {
                 SettingsUnavailableView(title: "Agent profile")
@@ -79,6 +81,20 @@ extension SettingsSheet {
             } else {
                 SettingsUnavailableView(title: "Runtime configuration")
             }
+        case .agentAutomations(let id):
+            if let agent = data.agents.first(where: { $0.id == id }), canManageServer {
+                AgentAutomationsView(
+                    agentID: agent.id,
+                    agentName: agent.displayName,
+                    actions: automations,
+                    onOpenChat: { chatID in
+                        automations.openChat(chatID)
+                        dismiss()
+                    }
+                )
+            } else {
+                SettingsUnavailableView(title: "Automations")
+            }
         case .server:
             ServerDetailsView(server: data.server)
         case .people:
@@ -88,7 +104,7 @@ extension SettingsSheet {
         case .cloudAgents:
             CloudAgentSettingsView(
                 computers: data.computers,
-                canManage: ["owner", "admin"].contains(data.server.role.lowercased()),
+                canManage: canManageServer,
                 actions: cloudAgentActions
             )
         case .appInfo:
@@ -103,5 +119,9 @@ extension SettingsSheet {
                 }
             )
         }
+    }
+
+    var canManageServer: Bool {
+        ["owner", "admin"].contains(data.server.role.lowercased())
     }
 }

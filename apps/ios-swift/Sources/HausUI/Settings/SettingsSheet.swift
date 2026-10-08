@@ -5,6 +5,7 @@ public enum SettingsRoute: Hashable {
     case profile
     case agent(id: String)
     case agentRuntime(id: String)
+    case agentAutomations(id: String)
     case server
     case people
     case computers
@@ -37,9 +38,10 @@ public enum AppearancePreference: String, CaseIterable, Hashable, Sendable {
 }
 
 public struct SettingsSheet: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
     let persistence: SettingsPersistence
     let cloudAgentActions: CloudAgentSettingsActions
+    let automations: AgentAutomationsActions
     let onSignOut: SettingsSignOut?
     let notifications: PushNotificationsSetting
     @State var data: SettingsData
@@ -57,6 +59,7 @@ public struct SettingsSheet: View {
         data: SettingsData = SettingsFixtures.data,
         persistence: SettingsPersistence = .preview,
         cloudAgentActions: CloudAgentSettingsActions = .unavailable,
+        automations: AgentAutomationsActions = .preview,
         notifications: PushNotificationsSetting = PushNotificationsSetting(),
         appearance: Binding<AppearancePreference> = .constant(.system),
         initialPath: [SettingsRoute] = [],
@@ -65,6 +68,7 @@ public struct SettingsSheet: View {
         self.onSignOut = onSignOut
         self.persistence = persistence
         self.cloudAgentActions = cloudAgentActions
+        self.automations = automations
         self.notifications = notifications
         _data = State(initialValue: data)
         _path = State(initialValue: initialPath)
