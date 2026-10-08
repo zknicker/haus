@@ -59,7 +59,7 @@ struct MessageSearchResultRow: View {
                         .foregroundStyle(.tertiary)
                 }
 
-                Text(SearchHighlight.attributed(SearchHighlight.excerpt(result.content, term: query), term: query))
+                Text(SearchHighlight.attributed(SearchHighlight.excerpt(previewText, term: query), term: query))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -69,7 +69,13 @@ struct MessageSearchResultRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(result.authorName) in \(result.chatName): \(result.content)")
+        .accessibilityLabel("\(result.authorName) in \(result.chatName): \(previewText)")
+    }
+
+    /// The message as words: a result row quotes what the reader saw, not the
+    /// Markdown and reference targets behind it.
+    private var previewText: String {
+        RichMessageParser.oneLinePreview(result.content)
     }
 
     private var chatContextLabel: String {
