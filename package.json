@@ -40,6 +40,7 @@
     "ios:status": "HAUS_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/ios-build-status.mjs",
     "lint": "ultracite check . && bun scripts/check-source-size.ts && bun run effect:migration-check",
     "lint:fix": "ultracite fix . && bun scripts/check-source-size.ts && bun run effect:migration-check",
+    "perf:web": "node scripts/perf/interaction-harness.mjs",
     "publish:desktop": "HAUS_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- bun run --filter @haus/website desktop:publish",
     "release:bump": "node scripts/release/bump-version.mjs",
     "release:changed": "node scripts/release/changed-release.mjs",

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Perf Haus App"
+  short_description: "Measure and fix Haus App interaction latency"
+  default_prompt: "Use $perf-haus-app to baseline, diagnose, and fix this Haus App performance issue."

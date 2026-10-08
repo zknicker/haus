@@ -24,6 +24,8 @@ apps/website/test-results
 scripts/design-battery/output
 scripts/visuals-lab/results
 scripts/visuals-lab/skills
+# Interaction perf results, prod bundles, traces (scripts/perf)
+.perf/
 
 # Claude Code preview launch config — generated per checkout by scripts/generate-claude-launch.mjs
 .claude/launch.json

@@ -6,6 +6,7 @@ read_when:
   - adding or changing an agent-behavior scenario under scripts/agent-tests/
   - changing lint rules, source-size policy, or Quality CI gates
   - changing the visuals lab, its battery, or how rendered visuals are judged
+  - measuring or changing App interaction performance (chat switch, profile open, pop-in)
 ---
 
 # Testing
@@ -541,6 +542,22 @@ and (in `visuals-chart-geometry.test.ts`) a 736 viewBox or the fluid-plot
 anatomy with no svg text past the drawing's left or right edge;
 `packages/agent-workspace/src/managed-skills.test.ts` pins that every fragment
 seeds and is reachable from a module index.
+
+## Interaction Performance
+
+`bun run perf:web` drives real pointer interactions (channel and DM switch,
+Agent profile open) in installed Chrome against a running dev stack and writes
+per-interaction timings under `.perf/` (gitignored): time to URL, to the target
+view displayed, to a stable main pane, plus long tasks, DOM mutations, tRPC
+batches, and chunk loads. The rest of the toolkit lives in `scripts/perf/`
+(prod-bundle build, sweep, before/after compare, frames-to-visible, single-switch
+trace, scroll-anchoring check); each script's header documents its flags.
+
+It is a measurement tool, not a CI lane. Judge performance changes on the
+prod bundle (`--serve-dist`) at CPU×1 and CPU×4 against a baseline taken
+before the change, and keep the realtime guard tests green. The
+`perf-haus-app` skill (`.agents/skills/perf-haus-app/SKILL.md`) owns the
+process, metric definitions, guard tests, and past results.
 
 ## Keeping Suites Current
 
