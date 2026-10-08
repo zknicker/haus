@@ -274,7 +274,7 @@ test('teaches MEMORY.md as hot memory plus a notes index, with history left in c
         'all your knowledge: hot memory you need on every wake, then an index of `notes/`.'
     );
     expect(prompt).toContain(
-        '## Standing Preferences\n<communication style and standing directives people gave you>'
+        "## Standing Preferences\n<communication style and standing directives: terse imperative rules; merge, don't append>"
     );
     expect(prompt).toContain(
         "## Active Context\n<current work only: rewrite, don't append; drop finished items>\n\n## Key Knowledge\n- notes/channels.md: what each channel is about"

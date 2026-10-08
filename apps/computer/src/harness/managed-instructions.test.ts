@@ -223,7 +223,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Conversation style, signature-emoji pickup rule, em-dash scrub); steps in the register.
     // Raised (35,111 → 37,309; +2,198) when Claude Code Agents gained Raft v1.21's conditional
     // `## Working through sub-agents` section, adapted for Haus; measured here with it on.
-    expect(prompt.length).toBeLessThanOrEqual(37_309);
+    // Raised by exactly 29 (37,309 → 37,338): the Standing Preferences placeholder now says
+    // terse imperative rules, merged not appended, after live Agents wrote verbose preferences.
+    expect(prompt.length).toBeLessThanOrEqual(37_338);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
