@@ -13,6 +13,24 @@ final class ProfileAvatarModelsTests: XCTestCase {
         XCTAssertEqual(object["serverId"] as? String, "srv_123")
     }
 
+    /// `timezone` is optional, not nullable, on the Server: a device zone the
+    /// phone skipped must be omitted, never sent as null.
+    func testHumanIdentitySyncSendsTheDeviceZoneOnlyWhenPresent() throws {
+        let withZone = try jsonObject(
+            SyncHumanIdentityInput(email: nil, name: "Zach", serverID: "srv_123", timezone: "America/New_York")
+        )
+        XCTAssertEqual(withZone["timezone"] as? String, "America/New_York")
+
+        let withoutZone = try jsonObject(SyncHumanIdentityInput(email: nil, name: "Zach", serverID: "srv_123"))
+        XCTAssertNil(withoutZone["timezone"])
+    }
+
+    func testSetTimezoneInputUsesTheServerWireNames() throws {
+        let object = try jsonObject(SetHumanTimezoneInput(serverID: "srv_123", timezone: "Asia/Tokyo"))
+        XCTAssertEqual(Set(object.keys), ["serverId", "timezone"])
+        XCTAssertEqual(object["timezone"] as? String, "Asia/Tokyo")
+    }
+
     func testHumanProfileInputEncodesNullableDescriptionAndExactWireNames() throws {
         let input = UpdateHumanProfileInput(
             description: nil,
