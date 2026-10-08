@@ -680,7 +680,9 @@ sits behind the canvas past either edge; `DrawerInteraction` owns that math and 
 so a flick settles the drawer by velocity and a slow drag settles it by position. The drag uses a UIKit pan recognizer so it can claim
 only horizontal movement, cancel an in-flight vertical timeline scroll once it begins, and leave
 horizontally scrollable content such as staged attachments alone. There is no edge-only hit zone and
-no all-or-nothing open. Selecting a Chat is the only action that closes the drawer; every sidebar
+no all-or-nothing open. Because the drawer owns every right-drag on the canvas, no canvas row carries
+a leading swipe action: a row's swipe actions sit on the trailing edge (swipe-left), as the Inbox's
+Mark read and Archived's Restore do, so one drag never both reveals a row action and moves the drawer. Selecting a Chat is the only action that closes the drawer; every sidebar
 entry point that presents another surface — Search, Tasks, Settings, Archived, New channel — leaves
 the drawer open behind it, so dismissing returns to the open drawer and no presentation ever runs
 against the closing spring.
@@ -923,8 +925,8 @@ the work's title (`Cloud work` when untitled), its status (`Running · 3m`, `Run
 `Queued`, `Cancelling` — `CloudAgentPresentation.duration`, the App's `formatCloudAgentDuration`,
 whose hours never roll into days), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
 it is Cloud work, and carries a presence-style dot — yellow running, gray queued. An Agent mid-turn is its name, time in its step, and the step itself. The page is a stock `.insetGrouped` `List`, so an Unread
-row marks read the Messages way: a leading swipe (`.swipeActions`, full swipe allowed) whose button
-is a bare image, which iOS 26 draws as an icon-only circle (its accessibility label is "Mark read"),
+row marks read with a trailing swipe (swipe-left; `.swipeActions(edge: .trailing)`, full swipe
+allowed) whose button is a bare image, which iOS 26 draws as an icon-only circle (its accessibility label is "Mark read"),
 confirmed by a success haptic, or the long-press peek's **Mark Read**. A week card that lands after
 the **Active this week** strip has drawn joins it with an animated insertion rather than a reshuffle.
 Stalled claims live on the Task list, in its **Stopped before finishing** group. One row still lands somewhere the App does not send it, because the phone
