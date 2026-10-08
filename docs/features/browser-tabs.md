@@ -166,8 +166,8 @@ Web pages are things you are reading, and a sidebar click should not throw one a
 sidebar can navigate in place because Linear has no web tabs; Haus keeps that behavior for app
 pages only.
 
-A **Thread** page shows the same Thread surface the web's side panel hosts, in a centered reading
-column; View in chat opens the chat scrolled to the anchor, flashing it. A `?thread=` or `?task=`
+A **Thread** page shows the same Thread surface the web's side panel hosts, full width like a chat;
+View in chat opens the chat scrolled to the anchor, flashing it. A `?thread=` or `?task=`
 chat link strips its parameter, then opens the Thread page. A chat's **Files** page lists the
 attachments in its loaded messages. An **artifact** page shows the Artifact Panel's renderers (a file
 preview with copy, raw, and link actions, or the workspace browser); a target no Agent workspace
