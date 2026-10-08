@@ -42,7 +42,10 @@ public enum TRPCClientError: Error, Equatable, LocalizedError, Sendable {
     case invalidProcedurePath(String)
     case invalidResponse(status: Int, body: String)
     case decoding(String)
-    case transport(String)
+    /// The request did not complete. `urlErrorCode` is the underlying
+    /// `URLError` code when there was one, so callers can tell a phone that is
+    /// offline from a Server that answered badly.
+    case transport(String, urlErrorCode: URLError.Code? = nil)
 
     public var errorDescription: String? {
         switch self {
@@ -52,10 +55,33 @@ public enum TRPCClientError: Error, Equatable, LocalizedError, Sendable {
             return "Invalid tRPC response (HTTP \(status)): \(body)"
         case let .decoding(message):
             return "Unable to decode tRPC response: \(message)"
-        case let .transport(message):
+        case let .transport(message, _):
             return "tRPC transport failed: \(message)"
         }
     }
+
+    public var isTransport: Bool {
+        if case .transport = self { return true }
+        return false
+    }
+
+    /// Whether the request never reached the Server because this device has no
+    /// route to it: no network, a dropped link, or a host it cannot resolve or
+    /// connect to. A timeout is not counted — the Server may have been slow.
+    public var isNoConnection: Bool {
+        guard case let .transport(_, code?) = self else { return false }
+        return Self.noConnectionCodes.contains(code)
+    }
+
+    private static let noConnectionCodes: Set<URLError.Code> = [
+        .notConnectedToInternet,
+        .networkConnectionLost,
+        .cannotFindHost,
+        .cannotConnectToHost,
+        .dnsLookupFailed,
+        .dataNotAllowed,
+        .internationalRoamingOff,
+    ]
 }
 
 public struct TRPCSubscriptionOptions: Sendable, Equatable {

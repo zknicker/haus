@@ -37,8 +37,13 @@ extension HausStore {
             case "SERVICE_UNAVAILABLE", nil: throw ArtifactPageUnavailable.computerUnreachable
             default: throw ArtifactPageUnavailable.failed
             }
-        } catch is URLError {
+        } catch let error as TRPCClientError where error.isNoConnection {
             // The request never reached the Server, so the Computer was not asked.
+            throw ArtifactPageUnavailable.offline
+        } catch let error as TRPCClientError where !isConnected && error.isTransport {
+            // A timeout or dropped exchange while the live streams are down is
+            // this phone's outage too.
+            Self.logger.error("Reading an artifact page failed: \(error.localizedDescription, privacy: .public)")
             throw ArtifactPageUnavailable.offline
         } catch {
             Self.logger.error("Reading an artifact page failed: \(error.localizedDescription, privacy: .public)")

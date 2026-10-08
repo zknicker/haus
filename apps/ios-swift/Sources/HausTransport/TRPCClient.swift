@@ -92,6 +92,8 @@ public final class TRPCClient: Sendable {
             throw error
         } catch is CancellationError {
             throw CancellationError()
+        } catch let error as URLError {
+            throw TRPCClientError.transport(error.localizedDescription, urlErrorCode: error.code)
         } catch {
             throw TRPCClientError.transport(error.localizedDescription)
         }
