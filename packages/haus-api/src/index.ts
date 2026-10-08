@@ -125,5 +125,6 @@ export * from './server-events.ts';
 export * from './stats.ts';
 export * from './task.ts';
 export * from './task-shared.ts';
+export * from './timezone.ts';
 export * from './triggers.ts';
 export * from './widgets/contracts.ts';

@@ -1,3 +1,4 @@
+import { canonicalIanaTimezone } from '@haus/api';
 import {
     isValidReminderTimezone,
     nextReminderFireAt,
@@ -25,7 +26,7 @@ export function resolveScheduleTiming(
                 `A ${repeat.spec} reminder needs an explicit IANA timezone: the zone of the person it is for.`
             );
         }
-        const timezone = validTimezone(input.timezone);
+        const timezone = explicitTimezone(input.timezone);
         if (input.fireAt === undefined) {
             return {
                 fireAt: new Date(nextReminderFireAt(repeat, context.now.getTime(), timezone)),
@@ -42,7 +43,10 @@ export function resolveScheduleTiming(
     }
     return {
         fireAt: input.fireAt,
-        timezone: validTimezone(input.timezone ?? context.homeTimezone),
+        timezone:
+            input.timezone === undefined
+                ? homeTimezone(context.homeTimezone)
+                : explicitTimezone(input.timezone),
     };
 }
 
@@ -92,7 +96,18 @@ function requireCadenceSlot(repeat: CalendarRepeat, fireAt: Date, timezone: stri
     }
 }
 
-function validTimezone(timezone: string): string {
+/** An Agent-supplied zone must be a canonical IANA name; offsets carry no DST rule. */
+function explicitTimezone(timezone: string): string {
+    const canonical = canonicalIanaTimezone(timezone);
+    if (canonical === null) {
+        throw new Error(
+            'Provide a valid IANA timezone for the reminder, such as America/New_York or UTC.'
+        );
+    }
+    return canonical;
+}
+
+function homeTimezone(timezone: string): string {
     if (!isValidReminderTimezone(timezone)) {
         throw new Error('Provide a valid IANA timezone for the reminder.');
     }

@@ -40,8 +40,15 @@ test('a timezone must be an IANA zone and only a member sets their own', async (
         owner.trpc.member.setTimezone.mutate({ serverId, timezone: 'Eastern' })
     ).rejects.toThrow('IANA timezone');
     await expect(
+        owner.trpc.member.setTimezone.mutate({ serverId, timezone: '+05:00' })
+    ).rejects.toThrow('IANA timezone');
+    await expect(
         outsider.trpc.member.setTimezone.mutate({ serverId, timezone: 'Asia/Tokyo' })
     ).rejects.toThrow();
+    await owner.trpc.member.setTimezone.mutate({ serverId, timezone: 'europe/berlin' });
+    expect(
+        (await owner.trpc.member.get.query({ serverId, userId: fixture.ownerUserId })).timezone
+    ).toBe('Europe/Berlin');
     await outsider.trpc.member.setTimezone.mutate({
         serverId: otherServerId,
         timezone: 'Asia/Tokyo',

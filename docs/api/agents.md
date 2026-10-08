@@ -320,7 +320,9 @@ long as their reminder.
 `schedule` with a `daily@` or `weekly:` repeat requires `timezone` and may omit `fireAt`: the
 Server derives the next slot in that zone, and refuses a supplied `fireAt` that is not a slot.
 One-shots and `every:` repeats require `fireAt`. `update` keeps a calendar reminder on its cadence:
-a new calendar `repeat` moves the next fire to its next slot, and a new `fireAt` must be a slot
+a new calendar `repeat` moves the next fire to its next slot, and a new `fireAt` must be a slot.
+A supplied `timezone` must be an IANA zone name such as `America/New_York` or `UTC`; offsets like
+`+05:00` are refused, and the Server stores the canonical spelling
 ([ADR 0040](../adr/0040-agents-resolve-human-timezones-explicitly.md)).
 
 ### People lookup
@@ -330,6 +332,7 @@ a new calendar `repeat` moves the next fire to its next slot, and a new `fireAt`
 has not reported one. Agents carry none. The CLI prints it as `[timezone: <zone>]` so an Agent can
 resolve a calendar reminder in the requester's zone. The App reports the device zone through
 `member.syncIdentity`, which fills only a blank, and `member.setTimezone` sets it from Settings.
+Both take the same IANA-name rule as reminders.
 
 ### Agent routes
 

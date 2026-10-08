@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { serverRoleSchema } from './member-authority.ts';
 import { participantHandleSchema } from './participant-handle.ts';
+import { canonicalIanaTimezone } from './timezone.ts';
 
 /**
  * The Server membership contract: invitations, the member directory, and the
@@ -38,13 +39,19 @@ export type ServerMember = z.infer<typeof serverMemberSchema>;
 export const humanDisplayNameSchema = z.string().trim().min(1).max(80);
 export const humanDescriptionSchema = z.string().trim().max(500);
 
-/** An IANA zone name the runtime can format in, such as `America/New_York`. */
+/**
+ * An IANA zone name such as `America/New_York`, stored in its canonical case.
+ * Offsets like `+05:00` are refused: they carry no DST rule.
+ */
 export const humanTimezoneSchema = z
     .string()
     .trim()
     .min(1)
     .max(64)
-    .refine(isIanaTimezone, { message: 'Use an IANA timezone, such as America/New_York.' });
+    .refine((value) => canonicalIanaTimezone(value) !== null, {
+        message: 'Use an IANA timezone, such as America/New_York.',
+    })
+    .overwrite((value) => canonicalIanaTimezone(value) ?? value);
 
 /**
  * The App reports the signed-in human's Clerk identity so the Server can seed
@@ -196,12 +203,3 @@ export const serverInvitationPreviewSchema = z
 export const acceptedServerInvitationSchema = z
     .object({ serverId: idSchema, serverSlug: z.string().min(1) })
     .strict();
-
-function isIanaTimezone(value: string): boolean {
-    try {
-        new Intl.DateTimeFormat('en-US', { timeZone: value }).format();
-        return true;
-    } catch {
-        return false;
-    }
-}

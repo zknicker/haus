@@ -105,3 +105,38 @@ test('derives a calendar first fire in the requester zone and keeps every fire o
         )
     ).rejects.toThrow('needs an explicit IANA timezone');
 });
+
+test('a reminder zone must be a canonical IANA name, stored in its canonical case', async () => {
+    const base = {
+        anchorChatId: chatId,
+        anchorMessageId,
+        repeat: 'daily@09:00',
+        serverId,
+        title: 'Standup',
+    };
+    const now = { now: () => new Date('2026-10-08T12:00:00.000Z') };
+    for (const timezone of ['+05:00', 'Eastern']) {
+        await expect(
+            scheduleReminder(
+                connection.db,
+                agentId,
+                { ...base, commandId: `reminder-command-zone-${timezone}`, timezone },
+                now
+            )
+        ).rejects.toThrow('valid IANA timezone');
+    }
+    const lowercase = await scheduleReminder(
+        connection.db,
+        agentId,
+        { ...base, commandId: 'reminder-command-zone-lowercase', timezone: 'america/new_york' },
+        now
+    );
+    expect(lowercase.reminder.timezone).toBe('America/New_York');
+    const utc = await scheduleReminder(
+        connection.db,
+        agentId,
+        { ...base, commandId: 'reminder-command-zone-utc', timezone: 'UTC' },
+        now
+    );
+    expect(utc.reminder).toMatchObject({ fireAt: '2026-10-09T09:00:00.000Z', timezone: 'UTC' });
+});
