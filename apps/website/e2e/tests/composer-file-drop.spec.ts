@@ -66,8 +66,13 @@ test('the drop overlay tracks a file drag across children and only for files', a
     const overlay = page.getByTestId('composer-file-drop-overlay');
     const drag = (steps: DragStep[]) =>
         page.evaluate((sequence) => {
+            // Recently opened Chats stay mounted hidden; target the one on screen.
             const find = (selector: string | null) =>
-                selector ? document.querySelector(selector) : null;
+                selector
+                    ? ([...document.querySelectorAll(selector)].find((node) =>
+                          node.checkVisibility()
+                      ) ?? null)
+                    : null;
             for (const step of sequence) {
                 const transfer = new DataTransfer();
                 if (step.files) {
