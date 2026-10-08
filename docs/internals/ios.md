@@ -55,10 +55,12 @@ Agent's avatar lifts slightly while it shows. In an Agent DM the title already n
 the row is that Agent's latest thought as a one-line secondary subtitle, crossfading as thoughts
 change, with the dots trailing (only the dots before a first thought). A Thread puts the same row
 just under its navigation bar's subtitle, channel style in a channel and subtitle style in a DM;
-there the band reaches up to the screen top, because the system bar draws no material. Tapping the
-row or a bubble opens Working now (`WorkingNowSheet`), a small-detent sheet with one live row per
-working Agent and its latest thought; it says "Everyone's done" and closes itself when the last
-Agent finishes. It is the phone's stand-in for the App's hover recall.
+there the band reaches up to the screen top, because the system bar draws no material. The band's
+feathers are fixed lengths at its edges, never fractions of its height, so the row always sits on
+full material. Tapping the row opens Working now (`WorkingNowSheet`); a bubble passes touches
+through, so it never blocks a link or message under it. Working now is a small-detent sheet with
+one live row per working Agent and its latest thought; it says "Everyone's done" and closes itself
+when the last Agent finishes. It is the phone's stand-in for the App's hover recall.
 
 Bubbles take turns through `EngagementThoughtQueue` (HausModels), a pure clock-driven state machine:
 a bubble holds 2.2 seconds, yields after 1.5 seconds when another waits, and leaves 0.35 seconds

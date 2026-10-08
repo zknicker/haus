@@ -148,28 +148,37 @@ private struct HeaderEngagementContent: View {
 /// scrolling behind the row never reads through it. Under the Chat header it
 /// feathers in from the header's own frost; under a system navigation bar,
 /// which draws no material of its own, it reaches up to the screen top.
+///
+/// The feathers are fixed lengths in the band's padding, never fractions of
+/// its height: a band that reaches the screen top is several times taller
+/// than the row, and a proportional fade put the row itself in the fade,
+/// where messages read straight through it.
 private struct HeaderEngagementBackdrop: View {
+    static let topFeather: CGFloat = 12
+    static let bottomFeather: CGFloat = 16
+
     let reachesScreenTop: Bool
 
     var body: some View {
         Rectangle()
-            .fill(reachesScreenTop ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(.bar))
+            .fill(.bar)
             .mask {
-                LinearGradient(
-                    stops: [
-                        .init(color: .black.opacity(reachesScreenTop ? 1 : 0), location: 0),
-                        .init(color: .black, location: 0.3),
-                        .init(color: .black, location: 0.62),
-                        .init(color: .black.opacity(0), location: 1),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                VStack(spacing: 0) {
+                    if !reachesScreenTop {
+                        feather(from: .clear, to: .black).frame(height: Self.topFeather)
+                    }
+                    Rectangle()
+                    feather(from: .black, to: .clear).frame(height: Self.bottomFeather)
+                }
             }
-            .padding(.top, -12)
-            .padding(.bottom, -16)
+            .padding(.top, reachesScreenTop ? 0 : -Self.topFeather)
+            .padding(.bottom, -Self.bottomFeather)
             .ignoresSafeArea(edges: reachesScreenTop ? .top : [])
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+    }
+
+    private func feather(from start: Color, to end: Color) -> some View {
+        LinearGradient(colors: [start, end], startPoint: .top, endPoint: .bottom)
     }
 }
