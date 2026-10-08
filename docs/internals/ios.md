@@ -1010,15 +1010,33 @@ the keyboard bottom inset it lays out against (`ComposerPortalFreeze`), so the t
 stay pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it
 was up when the portal opened.
 
-The Chat canvas answers the keyboard by hand, and hand-applied insets must run the keyboard's own
-curve. The shell ignores the keyboard safe area and re-applies the height as a bottom padding read
-from a `GeometryReader` — plain data that never inherits the keyboard's animation transaction, so
-without an explicit animation the transcript and composer teleported to the keyboard-up layout
-while the keyboard was still sliding in beneath them. `ComposerKeyboardMotion.travel` is the spring
-UIKit drives the keyboard with, and the canvas animates its manual inset on it
-(`ChatScreenView`), which is what keeps the composer riding the keyboard's top edge through the
-rise and the interactive dismissal. A pushed screen such as Thread keeps the system bar and native
-keyboard avoidance, and needs none of this.
+The Chat canvas answers the keyboard by hand. The shell's geometry ignores the keyboard entirely
+(`.ignoresSafeArea(.keyboard)` on `HausShellView`), so the sidebar never resizes for one, and the
+Chat screen reads the keyboard itself through `onKeyboardInsetChange` (`KeyboardInset.swift`): a
+probe pinned to UIKit's `keyboardLayoutGuide`, which follows a finger through interactive dismissal
+frame by frame, plus the announced end frame of `keyboardWillChangeFrame`, which lands a keyboard
+that leaves while the screen is mid-transition. Each reading carries its own transaction — the
+keyboard's curve (`ComposerKeyboardMotion.travel`) when UIKit animates the keyboard, none while a
+finger drags it — so the composer rides the keyboard's top edge through the rise, the fall, and a
+drag in either direction, and the typing strip rides with it because it shares the composer's
+stack. A keyboard frame counts only while something is first responder: after a cancelled back
+swipe out of a Thread, UIKit keeps reporting a 233-point keyboard that is not on screen.
+
+Do not go back to SwiftUI's keyboard safe area read through the shell's `GeometryReader`: it
+floated the composer a growing gap above the keyboard as a draft grew (about 57pt at six lines),
+went stale across a Thread pop so a returning keyboard covered the composer, shrank the sidebar
+under a keyboard still up, and, with a spring on every step, trailed the finger through a drag.
+
+Three gestures put the keyboard away. Dragging the transcript down into the keyboard dismisses it
+interactively (`keyboardDismissMode = .interactive` on the flipped table) and is cancellable by
+dragging back up. A tap on the transcript that lands on no row control resigns the composer
+(`onContentTap`, the Thread's existing rule); links and controls still act on that tap, and a long
+press still opens the message drawer. And anything that covers the composer resigns it first: the
+drawer as soon as it is open or under a finger (`HausDrawerState.isEngaged`, published to the screen
+as `hausDrawerEngaged`), and a pushed Thread. Neither raises the keyboard again when it goes away;
+a sheet, which takes the keyboard for itself, hands it back on dismissal the way UIKit does. A
+pushed screen such as Thread keeps the system bar and native keyboard avoidance, and needs none of
+this.
 
 The card overlaps the keyboard because it is drawn in a window of its own. The keyboard is not part of
 the app's window — iOS paints it in `UIRemoteKeyboardWindow`, above everything the app draws — so a
