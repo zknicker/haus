@@ -1,3 +1,4 @@
+import type { Chat } from '@haus/api';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
@@ -91,10 +92,7 @@ export function useChatTranscript({
         () => indexCloudAgentWorkByThreadAnchor(threadCloudAgentWork.data),
         [threadCloudAgentWork.data]
     );
-    const chatsById = React.useMemo(
-        () => new Map((chats.data ?? []).map((chat) => [chat.id, chat])),
-        [chats.data]
-    );
+    const chatsById = useChatAppearanceById(chats.data);
     // Read through a ref: these lookups answer a click or a row's own render,
     // both of which already happen after the newest snapshot landed. Depending
     // on them directly would rebuild the render context on every refetch.
@@ -249,6 +247,21 @@ export function useChatTranscript({
 
     return { downloadError: download.error?.message ?? null, renderContext, rows };
 }
+
+/**
+ * Rows read a chat only for its reference mark (color, icon). The chat list
+ * changes far more often than that, on every unread count, and a new map would
+ * rebuild the render context and re-render every row, so the map keeps its
+ * identity until a mark actually changes.
+ */
+function useChatAppearanceById(chats: readonly Chat[] | undefined) {
+    const list = chats ?? emptyChats;
+    const key = list.map((chat) => `${chat.id}:${chat.color ?? ''}:${chat.icon ?? ''}`).join('|');
+    // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the appearance fields rows read.
+    return React.useMemo(() => new Map(list.map((chat) => [chat.id, chat])), [key]);
+}
+
+const emptyChats: readonly Chat[] = [];
 
 function useLatestRef<T>(value: T) {
     const ref = React.useRef(value);

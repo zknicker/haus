@@ -8,6 +8,7 @@ import {
     MessageScrollerViewport,
 } from '../../components/chats/message-scroller.tsx';
 import { DevModeProvider } from '../../components/dev-mode-provider.tsx';
+import { renderWithTrpc } from '../../test-support/trpc-test-provider.tsx';
 import { ArtifactLogEntry } from '../sessions/log/event-entry/artifact-entry.tsx';
 import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
@@ -1697,8 +1698,7 @@ function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderCo
         threadActionsEnabled: false,
         ...overrides,
     };
-
-    return renderToStaticMarkup(
+    return renderWithTrpc(
         <MemoryRouter>
             <DevModeProvider>
                 <MessageScrollerProvider>

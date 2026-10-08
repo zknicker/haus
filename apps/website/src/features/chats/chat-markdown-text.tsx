@@ -4,7 +4,7 @@ import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
 import { splitMentionText } from '../mentions/render-mention-text.tsx';
 import { renderInlineMarkdown } from './chat-inline-markdown-renderer.tsx';
 import type { ChatTextAnimationRange } from './chat-inline-text-animation.tsx';
-import { type ChatMarkdownHeadingBlock, parseChatMarkdownBlocks } from './chat-markdown-blocks.ts';
+import { type ChatMarkdownHeadingBlock, readChatMarkdownBlocks } from './chat-markdown-blocks.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
 
 export function ChatMarkdownText({
@@ -36,7 +36,7 @@ export function ChatMarkdownText({
         );
     }
 
-    const blocks = parseChatMarkdownBlocks(content);
+    const blocks = readChatMarkdownBlocks(content);
 
     return blocks.map((block) => {
         if (block.kind === 'heading') {

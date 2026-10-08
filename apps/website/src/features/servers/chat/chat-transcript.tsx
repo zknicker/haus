@@ -21,20 +21,11 @@ export function ChatTranscript({
     scrollContentRef?: React.RefObject<HTMLDivElement | null>;
 }) {
     const { downloadError, renderContext, rows } = useChatTranscript(input);
-    const visibility = useMessageScrollerVisibility();
     const transcriptEntries = React.useMemo(() => buildTranscriptEntries({ rows }), [rows]);
     const sequenceByEntryId = React.useMemo(
         () => getTranscriptEntrySequences(transcriptEntries, input.messages ?? []),
         [input.messages, transcriptEntries]
     );
-    const visibleSequence = getHighestVisibleSequence(
-        visibility.visibleMessageIds,
-        sequenceByEntryId
-    );
-
-    React.useEffect(() => {
-        onVisibleSequenceChange?.(visibleSequence);
-    }, [onVisibleSequenceChange, visibleSequence]);
 
     if (!input.messages) {
         return null;
@@ -42,6 +33,12 @@ export function ChatTranscript({
 
     return (
         <>
+            {onVisibleSequenceChange ? (
+                <VisibleSequenceReporter
+                    onChange={onVisibleSequenceChange}
+                    sequenceByEntryId={sequenceByEntryId}
+                />
+            ) : null}
             <ChatTranscriptPresentation
                 leadingContent={
                     downloadError ? (
@@ -55,4 +52,27 @@ export function ChatTranscript({
             <ChatSendScroll messages={input.pendingMessages} />
         </>
     );
+}
+
+/**
+ * Reports the highest visible sequence. Its own component, so the scroller's
+ * visibility store (which changes as rows scroll in and out, and resets while
+ * a kept chat view is hidden) re-renders only this, never the transcript rows.
+ */
+function VisibleSequenceReporter({
+    onChange,
+    sequenceByEntryId,
+}: {
+    onChange: (sequence: number | undefined) => void;
+    sequenceByEntryId: ReturnType<typeof getTranscriptEntrySequences>;
+}) {
+    const visibility = useMessageScrollerVisibility();
+    const visibleSequence = getHighestVisibleSequence(
+        visibility.visibleMessageIds,
+        sequenceByEntryId
+    );
+    React.useEffect(() => {
+        onChange(visibleSequence);
+    }, [onChange, visibleSequence]);
+    return null;
 }

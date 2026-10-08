@@ -3,6 +3,7 @@ import type { AutomationFireContext, MessageCause } from '@haus/api';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { TrpcTestProvider } from '../../../test-support/trpc-test-provider.tsx';
 import { AutomationFireContextCardView } from './automation-fire-context-card.tsx';
 import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
 
@@ -136,11 +137,13 @@ test('an archived Reminder context card keeps its cadence and loses its anchor n
 /** Rendered where the transcript lives, so the manage link resolves a real slug. */
 function render(element: React.ReactElement) {
     return renderToStaticMarkup(
-        <MemoryRouter initialEntries={['/s/dev/c/cht_dm']}>
-            <Routes>
-                <Route element={element} path="/s/:slug/*" />
-            </Routes>
-        </MemoryRouter>
+        <TrpcTestProvider>
+            <MemoryRouter initialEntries={['/s/dev/c/cht_dm']}>
+                <Routes>
+                    <Route element={element} path="/s/:slug/*" />
+                </Routes>
+            </MemoryRouter>
+        </TrpcTestProvider>
     );
 }
 

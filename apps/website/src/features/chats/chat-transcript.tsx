@@ -43,10 +43,15 @@ export function ChatTranscriptPresentation({
                     {transcriptRows.map((row) =>
                         row.kind === 'hiddenCount' && renderContext.hiddenCount === 0 ? null : (
                             <MessageScrollerItem
-                                // Drop paint containment so a message's hover
-                                // action island can sit on top of the row
-                                // without being clipped, keeping rows tight.
-                                className="![content-visibility:visible]"
+                                // Rows keep the scroller's `content-visibility:
+                                // auto`, so off-screen rows skip style, layout,
+                                // and paint (and a revealed kept chat view
+                                // restyles only what is on screen). Its paint
+                                // containment would clip what a turn draws past
+                                // its row: the hover action island (-top-4)
+                                // and the hover wash (-mx-5). The clip margin
+                                // gives them that room.
+                                className="[overflow-clip-margin:1.25rem]"
                                 key={row.id}
                                 messageId={row.id}
                             >

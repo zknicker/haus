@@ -1,6 +1,7 @@
 import { Button } from '@heroui/react';
 import { ChatMessage, EmojiPicker } from '@heroui-pro/react';
 import { SmileIcon } from '@hugeicons-pro/core-stroke-rounded';
+import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {
@@ -57,19 +58,57 @@ export function MessageReactionActions({
     );
 }
 
-/** The full searchable picker behind a compact smiley trigger. */
+/**
+ * The full searchable picker behind a compact smiley trigger. The picker is a
+ * Select, which builds its whole collection even while closed, and every turn
+ * carries one, so a turn shows a plain trigger until the pointer reaches it or
+ * it is pressed, and only then mounts the picker.
+ */
 export function MessageReactionPicker({ row }: { row: TranscriptMessageRow }) {
     const context = useTranscriptRenderContextOptional();
     const toggle = context?.onToggleReaction;
+    const [armed, setArmed] = React.useState(false);
+    const [open, setOpen] = React.useState(false);
+    const [openOnArm, setOpenOnArm] = React.useState(false);
+    const triggerRef = React.useRef<HTMLButtonElement>(null);
+    // A press on the plain trigger arms the picker and opens it once its own
+    // trigger holds focus, so closing the picker returns focus there.
+    React.useEffect(() => {
+        if (openOnArm) {
+            triggerRef.current?.focus();
+            setOpenOnArm(false);
+            setOpen(true);
+        }
+    }, [openOnArm]);
 
     if (!toggle) {
         return null;
+    }
+
+    if (!armed) {
+        return (
+            <ActionTooltip label="Add reaction">
+                <ChatMessage.Action
+                    aria-label="Add reaction"
+                    className={reactionTriggerClassName}
+                    onHoverStart={() => setArmed(true)}
+                    onPress={() => {
+                        setArmed(true);
+                        setOpenOnArm(true);
+                    }}
+                >
+                    <Icon icon={SmileIcon} />
+                </ChatMessage.Action>
+            </ActionTooltip>
+        );
     }
 
     return (
         <ActionTooltip label="Add reaction">
             <EmojiPicker
                 aria-label="Add reaction"
+                isOpen={open}
+                onOpenChange={setOpen}
                 onSelectionChange={(key) => {
                     if (typeof key === 'string') {
                         toggle({
@@ -86,7 +125,8 @@ export function MessageReactionPicker({ row }: { row: TranscriptMessageRow }) {
                     // The stock trigger ships unstyled by design; these
                     // documented HeroUI button classes make it identical
                     // to its ChatMessage.Action siblings in the bar.
-                    className="button button--icon-only button--sm button--ghost chat-message__action size-7 shrink-0 [&_svg]:size-4"
+                    className={`button button--icon-only button--sm button--ghost chat-message__action ${reactionTriggerClassName}`}
+                    ref={triggerRef}
                 >
                     <Icon icon={SmileIcon} />
                 </EmojiPicker.Trigger>
@@ -105,6 +145,8 @@ export function MessageReactionPicker({ row }: { row: TranscriptMessageRow }) {
         </ActionTooltip>
     );
 }
+
+const reactionTriggerClassName = 'size-7 shrink-0 [&_svg]:size-4';
 
 /** Quick strip for the message context menu. */
 export function QuickReactionStrip({ row }: { row: TranscriptMessageRow }) {

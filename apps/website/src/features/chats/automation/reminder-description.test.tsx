@@ -3,6 +3,7 @@ import type { AutomationFireContext, MessageCause } from '@haus/api';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { TrpcTestProvider } from '../../../test-support/trpc-test-provider.tsx';
 import { AutomationFireContextCardView } from './automation-fire-context-card.tsx';
 import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
 
@@ -43,11 +44,13 @@ test('a Reminder context card carries its description under the title', () => {
 
 function render(element: React.ReactElement) {
     return renderToStaticMarkup(
-        <MemoryRouter initialEntries={['/s/dev/c/cht_dm']}>
-            <Routes>
-                <Route element={element} path="/s/:slug/*" />
-            </Routes>
-        </MemoryRouter>
+        <TrpcTestProvider>
+            <MemoryRouter initialEntries={['/s/dev/c/cht_dm']}>
+                <Routes>
+                    <Route element={element} path="/s/:slug/*" />
+                </Routes>
+            </MemoryRouter>
+        </TrpcTestProvider>
     );
 }
 

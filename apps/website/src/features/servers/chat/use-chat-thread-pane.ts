@@ -35,6 +35,18 @@ export function useChatThreadPane({
         openThreadTab ? undefined : initialTask
     );
     useThreadTabDeepLink(chatId, openThreadTab);
+    // A kept chat view (`KeptChatViews`) keeps its selection while hidden. On
+    // reveal its effects reconnect: a route with no `?thread=` or `?task=` shows
+    // no Thread, as a freshly mounted view would.
+    const syncSelectionToRoute = React.useEffectEvent(() => {
+        if (openThreadTab || searchParams.has('thread') || searchParams.has('task')) {
+            return;
+        }
+        setSelection(null);
+    });
+    React.useEffect(() => {
+        syncSelectionToRoute();
+    }, []);
     usePendingMessageReveal({
         chatId,
         ready: transcriptMessages !== undefined,

@@ -2,13 +2,10 @@ import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { ChatPage } from '../../features/servers/chat/chat-page.tsx';
 import { ChatPagePending } from '../../features/servers/chat/chat-page-pending.tsx';
+import { useChatViewModule } from '../../features/servers/chat/chat-view-module.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
-import { serverRouteModules } from './server-route-modules.ts';
-
-const ImplicitAgentDmPage = React.lazy(async () => ({
-    default: (await serverRouteModules.chat()).ImplicitAgentDmPage,
-}));
+import type { ServerDetail } from '../../lib/haus-server.tsx';
 
 export function ChatRoute() {
     const { chatId = '' } = useParams();
@@ -23,7 +20,13 @@ export function ImplicitAgentDmRoute() {
     const agent = agents.data?.find((candidate) => candidate.id === agentId);
     return (
         <React.Suspense fallback={<ChatPagePending agent={agent} />} key={agentId}>
-            <ImplicitAgentDmPage agentId={agentId} server={server} />
+            <ImplicitAgentDmModule agentId={agentId} server={server} />
         </React.Suspense>
     );
+}
+
+/** Renders synchronously once the chat chunk is loaded; suspends only on a cold chunk. */
+function ImplicitAgentDmModule({ agentId, server }: { agentId: string; server: ServerDetail }) {
+    const { ImplicitAgentDmPage } = useChatViewModule();
+    return <ImplicitAgentDmPage agentId={agentId} server={server} />;
 }

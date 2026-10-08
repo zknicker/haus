@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import { useDesktopTabCommands } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentEntry } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 
 const saveDelayMs = 200;
 const restoreFrames = 30;
-/** The chat transcript's own scroller; its default position is the end, not the top. */
+/** The chat transcript's scroller, which `ChatScrollPositionMemory` alone restores. */
 const transcriptSelector = '[data-slot="message-scroller-viewport"]';
 
 /**
@@ -13,15 +13,15 @@ const transcriptSelector = '[data-slot="message-scroller-viewport"]';
  * history, so the frame restores the saved offset whenever the page shows.
  *
  * It listens in the capture phase on the frame, so it follows whichever
- * element the page scrolls (the chat transcript, a page column) without the
- * page knowing. A transcript left at its end saves nothing, so it reopens at
- * the newest message rather than at a stale offset.
+ * element the page scrolls (a page column) without the page knowing. A chat
+ * transcript is not its: the transcript restores its own row anchor before
+ * paint, and a second, pixel-offset restorer would fight it.
  */
 export function useTabScrollMemory(
     frame: React.RefObject<HTMLElement | null>,
     { entryKey, shown, tabId }: { entryKey: string; shown: boolean; tabId: string }
 ) {
-    const tabs = useDesktopTabs();
+    const tabs = useDesktopTabCommands();
     const latest = React.useRef(tabs);
     latest.current = tabs;
     const scroller = React.useRef<HTMLElement | null>(null);
@@ -45,11 +45,14 @@ export function useTabScrollMemory(
             }
         };
         const onScroll = (event: Event) => {
-            if (!(event.target instanceof HTMLElement)) {
+            if (
+                !(event.target instanceof HTMLElement) ||
+                event.target.matches(transcriptSelector)
+            ) {
                 return;
             }
             scroller.current = event.target;
-            saved = readOffset(event.target);
+            saved = event.target.scrollTop;
             if (pending !== null) {
                 window.clearTimeout(pending);
             }
@@ -78,20 +81,12 @@ export function useTabScrollMemory(
     }, [entryKey, frame, shown, tabId]);
 }
 
-function readOffset(element: HTMLElement): number | undefined {
-    const atEnd = element.scrollHeight - element.scrollTop - element.clientHeight < 4;
-    return element.matches(transcriptSelector) && atEnd ? undefined : element.scrollTop;
-}
-
 /** Content arrives after mount, so retry for a few frames until the offset fits. */
 function restoreOffset(root: HTMLElement, remembered: HTMLElement | null, scrollTop: number) {
     let frames = 0;
     let handle = 0;
     const attempt = () => {
-        const target =
-            remembered && root.contains(remembered)
-                ? remembered
-                : root.querySelector<HTMLElement>(transcriptSelector);
+        const target = remembered && root.contains(remembered) ? remembered : null;
         if (target && target.scrollHeight - target.clientHeight >= scrollTop) {
             target.scrollTop = scrollTop;
             return;

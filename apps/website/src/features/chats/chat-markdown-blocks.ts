@@ -23,6 +23,33 @@ interface ChatMarkdownProseBlock {
     text: string;
 }
 
+const cachedBlockLimit = 256;
+const cachedBlocks = new Map<string, readonly ChatMarkdownBlock[]>();
+
+/**
+ * `parseChatMarkdownBlocks`, cached by content. A row re-renders (and remounts
+ * on a cold chat view) far more often than its text changes, so a parse is
+ * reused across renders and mounts. Bounded LRU: a streaming reply passes
+ * through many prefixes, and only recent ones are worth keeping.
+ */
+export function readChatMarkdownBlocks(content: string): readonly ChatMarkdownBlock[] {
+    const cached = cachedBlocks.get(content);
+    if (cached) {
+        cachedBlocks.delete(content);
+        cachedBlocks.set(content, cached);
+        return cached;
+    }
+    const blocks = parseChatMarkdownBlocks(content);
+    cachedBlocks.set(content, blocks);
+    if (cachedBlocks.size > cachedBlockLimit) {
+        const oldest = cachedBlocks.keys().next().value;
+        if (oldest !== undefined) {
+            cachedBlocks.delete(oldest);
+        }
+    }
+    return blocks;
+}
+
 export function parseChatMarkdownBlocks(content: string): ChatMarkdownBlock[] {
     const blocks: ChatMarkdownBlock[] = [];
     const lines = splitMarkdownLines(content);
