@@ -9,10 +9,10 @@ struct ChatTypingTests {
 
     @Test func labelNamesUpToTwoThenCountsTheRest() {
         #expect(ChatTypingLabel.text([]) == nil)
-        #expect(ChatTypingLabel.text(["Juniper"]) == "Juniper is typing")
-        #expect(ChatTypingLabel.text(["Juniper", "Cove"]) == "Juniper and Cove are typing")
-        #expect(ChatTypingLabel.text(["Juniper", "Cove", "Blippy"]) == "Juniper, Cove, and 1 other are typing")
-        #expect(ChatTypingLabel.text(["Juniper", "Cove", "Blippy", "Tiny"]) == "Juniper, Cove, and 2 others are typing")
+        #expect(ChatTypingLabel.text(["Juniper"]) == "Juniper is working")
+        #expect(ChatTypingLabel.text(["Juniper", "Cove"]) == "Juniper and Cove are working")
+        #expect(ChatTypingLabel.text(["Juniper", "Cove", "Blippy"]) == "Juniper, Cove, and 1 other are working")
+        #expect(ChatTypingLabel.text(["Juniper", "Cove", "Blippy", "Tiny"]) == "Juniper, Cove, and 2 others are working")
     }
 
     @Test func typistsAreEachAgentOnceAndSkipUnknownAgents() {
@@ -52,6 +52,14 @@ struct ChatTypingTests {
         #expect(model.shownEngagements.map(\.agentID) == ["agent_1"])
     }
 
+    @Test func aHeldAgentKeepsItsPlaceInTheRow() {
+        let model = ChatTypingModel()
+        model.replace([engagement(agent: "agent_1", run: "run_1"), engagement(agent: "agent_2", run: "run_2")])
+        model.apply(event(.ended(.sent), agent: "agent_1", run: "run_1"))
+
+        #expect(model.shownEngagements.map(\.agentID) == ["agent_1", "agent_2"])
+    }
+
     @Test func aDoneReplyAlreadyInTheTranscriptLeavesAtOnce() {
         let model = ChatTypingModel()
         model.transcript = { [Self.reply(agent: "agent_1", run: "run_1")] }
@@ -66,10 +74,23 @@ struct ChatTypingTests {
         model.replace([engagement(agent: "agent_1", run: "run_1")])
 
         model.receive(thought("Thinking about another chat", run: "run_9"))
-        #expect(model.shownThought == nil)
+        #expect(model.bubble == nil)
+        #expect(model.latestThought(for: "agent_1") == nil)
 
         model.receive(thought("Checking the forecast", run: "run_1"))
-        #expect(model.shownThought?.text == "Checking the forecast")
+        #expect(model.bubble?.text == "Checking the forecast")
+        #expect(model.latestThought(for: "agent_1")?.text == "Checking the forecast")
+    }
+
+    @Test func aSecondAgentsThoughtWaitsItsTurn() {
+        let model = ChatTypingModel(clock: { 100 })
+        model.replace([engagement(agent: "agent_1", run: "run_1"), engagement(agent: "agent_2", run: "run_2")])
+        model.receive(thought("Checking the forecast", run: "run_1"))
+        model.receive(thought("Reading the drawer code", agent: "agent_2", run: "run_2"))
+
+        #expect(model.bubble?.agentID == "agent_1")
+        // The waiting line is still the Agent's latest, for Working now.
+        #expect(model.latestThought(for: "agent_2")?.text == "Reading the drawer code")
     }
 
     @Test func aThoughtGoesWhenItsRunStopsEngaging() {
@@ -78,34 +99,47 @@ struct ChatTypingTests {
         model.receive(thought("Checking the forecast", run: "run_1"))
 
         model.apply(event(.ended(.settled), agent: "agent_1", run: "run_1"))
-        #expect(model.shownThought == nil)
-        #expect(!model.canRecall)
+        #expect(model.bubble == nil)
+        #expect(model.latestThought(for: "agent_1") == nil)
+    }
+
+    @Test func aDoneReplyKeepsTheBubbleUpWhileItsAgentIsHeld() {
+        let model = ChatTypingModel(clock: { 100 })
+        model.replace([engagement(agent: "agent_1", run: "run_1")])
+        model.receive(thought("Writing the answer", run: "run_1"))
+
+        model.apply(event(.ended(.sent), agent: "agent_1", run: "run_1"))
+        #expect(model.bubble?.text == "Writing the answer")
+        #expect(model.latestThought(for: "agent_1")?.text == "Writing the answer")
     }
 
     @Test func theSameLineAgainKeepsItsIdentity() {
         let model = ChatTypingModel(clock: { 100 })
         model.replace([engagement(agent: "agent_1", run: "run_1")])
         model.receive(thought("Checking the forecast", run: "run_1"))
-        let first = model.shownThought?.id
+        let first = model.bubble?.id
 
         model.receive(thought("checking the forecast.", run: "run_1"))
-        #expect(model.shownThought?.id == first)
+        #expect(model.bubble?.id == first)
     }
 
-    // MARK: - Motion
+    // MARK: - Motion and announcements
 
-    @Test func theShimmerSweepsAcrossThenRestsOffTheEnd() {
-        let period = ChatTypingShimmerText.period
-        #expect(ChatTypingShimmerText.phase(at: 0) == 0)
-        #expect(abs(ChatTypingShimmerText.phase(at: period * 0.4) - 0.5) < 0.001)
-        #expect(ChatTypingShimmerText.phase(at: period * 0.9) == 1)
+    @Test func theDotsHopInTurn() {
+        let period = EngagementDots.period
+        #expect(abs(EngagementDots.lift(index: 0, at: period * 0.25) - 1) < 0.001)
+        #expect(EngagementDots.lift(index: 0, at: period * 0.75) == 0)
+        #expect(abs(EngagementDots.lift(index: 1, at: period * (0.25 + 1.0 / 6)) - 1) < 0.001)
     }
 
-    @Test func eachDotHopsInTurnAndRestsHalfThePeriod() {
-        let period = ChatTypingDots.period
-        #expect(abs(ChatTypingDots.lift(index: 0, at: period * 0.25) - 1) < 0.001)
-        #expect(ChatTypingDots.lift(index: 0, at: period * 0.75) == 0)
-        #expect(abs(ChatTypingDots.lift(index: 1, at: period * (0.25 + 1.0 / 6)) - 1) < 0.001)
+    @Test func announcementsAreThrottled() {
+        var now: TimeInterval = 0
+        let announcer = EngagementAnnouncer(clock: { now })
+        #expect(announcer.shouldAnnounce())
+        now = EngagementAnnouncer.minimumInterval - 0.1
+        #expect(!announcer.shouldAnnounce())
+        now = EngagementAnnouncer.minimumInterval
+        #expect(announcer.shouldAnnounce())
     }
 
     // MARK: - Helpers
@@ -118,8 +152,8 @@ struct ChatTypingTests {
         ChatEngagementEvent(agentID: agent, chatID: "chat_1", emittedAt: Date(), runID: run, serverID: "server_1", kind: kind)
     }
 
-    private func thought(_ text: String, run: String) -> AgentThoughtEvent {
-        AgentThoughtEvent(agentID: "agent_1", at: Date(), chatID: "chat_1", runID: run, serverID: "server_1", text: text)
+    private func thought(_ text: String, agent: String = "agent_1", run: String) -> AgentThoughtEvent {
+        AgentThoughtEvent(agentID: agent, at: Date(), chatID: "chat_1", runID: run, serverID: "server_1", text: text)
     }
 
     private static func reply(agent: String, run: String) -> ChatMessage {
