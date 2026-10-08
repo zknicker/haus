@@ -1,8 +1,27 @@
+import { gzipSync } from 'node:zlib';
+
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 // Multiples of 7 in 1..500: 71; their sum 17,892; 17,892 mod 97 = 44.
 const expectedAnswer = '44';
+
+// Each step's instructions are sealed inside the previous step, so the work
+// cannot collapse into one shell command: the Agent must run a step and read
+// its output before it knows the next one. That makes intermediate progress
+// unavoidable, which is what lets `progressPosts > 0` stay a hard gate.
+const unpack = (blob) => `echo ${blob} | base64 -d | gunzip`;
+const seal = (text) => gzipSync(Buffer.from(text)).toString('base64');
+const step4 = seal('Step 4 of 4: take your step 3 sum mod 97. That is the final number to report.');
+const step3 = seal(
+    `Step 3 of 4: sum the multiples of 7 you counted in step 2. Then unpack step 4: ${unpack(step4)}`
+);
+const step2 = seal(
+    `Step 2 of 4: count how many numbers in that file are divisible by 7. Then unpack step 3: ${unpack(step3)}`
+);
+const step1 = seal(
+    `Step 1 of 4: write the numbers 1 to 500, one per line, to a file in your workspace. Then unpack step 2: ${unpack(step2)}`
+);
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
@@ -15,7 +34,7 @@ export default defineScenario({
         const channel = await kit.createChannel({ agentIds: [worker.id] });
         const request = await kit.harness.send(
             channel.id,
-            `@${worker.handle} Small investigation for you, run it yourself in the shell and keep me posted as you go: (1) write the numbers 1 to 500 to a file in your workspace, (2) count how many are divisible by 7, (3) sum those, (4) take that sum mod 97. Give me the final number with the exact marker ${token}.`
+            `@${worker.handle} Small four-step relay puzzle for you, run it yourself in the shell and keep me posted as you go. Each step's instructions are sealed in the step before, so start by unpacking step 1: \`${unpack(step1)}\`. Give me the final number with the exact marker ${token}.`
         );
         const turn = await settleTurn(worker.id);
         const channelPosts = (await turn.authoredMessagesIn(channel.id)).filter(
