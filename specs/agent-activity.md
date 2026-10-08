@@ -280,14 +280,15 @@ costs nothing. The overview draws a closed turn's steps from its execution outli
 day's settled turns are outlined in one batched `agent.executionOutlines` read, a settled outline
 is never read again, and a turn whose Computer is offline stays a plain block until it reconnects. Viewers without execution access, and turns whose Computer did not answer, see one
 muted line instead of steps. A running turn has not settled into
-`agent.turns`, so its row reads its trigger through `agent.runTrigger` and is titled the same way
-while it works. Trigger messages are read once per list through a small rolling
-window of ordinary message reads, never one burst per row. These compact totals are part of
+`agent.turns`, so its row takes its trigger from the `runTriggers` its Activity History page
+carries, or through `agent.runTrigger` when it started after that page was read, and is titled
+the same way while it works. A message or task trigger quotes its message (`preview`), so no row
+reads a message to be titled. These compact totals are part of
 the durable turn summary, so a settled row does not depend on every best-effort live activity frame
 having arrived. A run the Server resends after a Computer restart keeps its first start and the
 totals its lost launch settled (the Computer-local turn ledger), so duration and counts cover the
 whole run. Each settled turn also names its trigger — the message, task, reminder, or other inbox
-work that woke it — as ids the App resolves through ordinary message reads
+work that woke it — quoting a waking message the reader may see
 ([Agents API](../docs/api/agents.md#turn-and-delivery-observability)). Silent completion and interruption are explicit. Expanding a turn reveals the
 existing granular semantic timeline when retained; repeated heartbeats and raw details never appear.
 
@@ -306,7 +307,7 @@ Settled turns come a page at a time from `agent.serverTurns` (one request per pa
 the Server when filtered), refreshed when any Agent's turn settles. A working run comes from the
 Server's one current-activity projection, started at its recorded run start; its steps stream
 from the live journal for Owners and Admins, and other members see only its header. Turn
-titles, trigger messages, and journals read as in the Agent tab. Outlines are still one batched
+titles and journals read as in the Agent tab. Outlines are still one batched
 `agent.executionOutlines` read per Agent per day, and every log in a window shares one gate of at
 most three outline reads in flight, so a day with many Agents never bursts the Server.
 

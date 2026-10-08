@@ -45,6 +45,8 @@ The API covers:
 * read Codex, Claude Code, and Grok Build plan-usage summaries
 * read 30-day Claude Code and Grok Build local token summaries
 * read 90 days of range-ready Agent/runtime/model daily breakdowns
+* read one Agent's slice of that breakdown (`stats.agentUsage`, `{ serverId, agentId }`, any
+  member) in the same token shape, so an Agent profile never reads every Computer and Agent
 * read provider and model activity
 * read spend estimates
 * read runtime health

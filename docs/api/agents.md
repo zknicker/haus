@@ -96,20 +96,27 @@ quiet, not evidence of a lost run.
 
 `trigger` names the inbox work the Server chose when it dispatched the run, recorded
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
-rows. It carries ids only: `{ kind: 'message', author: 'human' | 'agent', chatId,
-messageId }`, `{ kind: 'task', chatId, messageId }` (the task's message), or
-`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`. A trigger
-in a Chat the reader cannot see is `{ kind: 'private' }`, and `null` means the Server
-recorded none (turns from before the record existed, or an unrecognized source). The
-App resolves a message's text through its ordinary message reads. The listing is one
-joined query; it never fans out per turn.
+rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
+`{ kind: 'task', chatId, messageId, preview }` (the task's message), or
+`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`. `preview`
+quotes the waking message so a turn row is titled from the same read:
+`{ content, attachmentCount }`, where `content` is the head of the message's raw
+Markdown (at most 1,000 UTF-16 units; the reader collapses it to one line), or `null`
+when the message no longer exists in that Chat. A trigger in a Chat the reader cannot
+see is `{ kind: 'private' }` and quotes nothing, and `null` means the Server recorded
+none (turns from before the record existed, or an unrecognized source). The listing is
+one joined query plus one read quoting the waking messages; it never fans out per turn.
+Membership and the Agent's existence are checked together, and a membership failure
+always wins, so a non-member never learns whether an Agent exists.
 
 `agent.runTrigger` (`{ serverId, agentId, runId }`) returns `{ trigger }` for one run
 in the same shape and with the same visibility gate, so a turn that is still working
 can be titled before it settles. The trigger is recorded in the dispatch transaction
 that writes the run's `starting_work` activity, so any run the App sees already has
 one; `null` means none was recorded. It is a Server-to-App read only and adds nothing
-to the Computer protocol.
+to the Computer protocol. `agent.activityHistory` pages carry the same answer for every
+run they name as `runTriggers: [{ runId, trigger }]`, so the App reads `agent.runTrigger`
+only for a run that started after its page was read.
 
 `agent.serverTurns` (`{ serverId, agentIds?, before?, limit? }`) is the Server-wide
 listing behind the Activity page: every Agent's settled turns on one Server, interleaved

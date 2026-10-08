@@ -90,7 +90,10 @@ Profile loading follows the same rule. Human profiles reserve identity facts and
 Agents independently. Profile settings keeps Identity rows and Account actions visible while
 the member directory resolves, with identity inputs disabled until the real member arrives.
 Computer profiles reserve their named sections during the first roster read. An Agent profile
-page stays blank while its Agent loads.
+page stays blank while its Agent loads. Its hub then paints identity and card titles at once,
+and its remote parts — card facts and the Chats, Recent activity, and usage below — land as one
+reveal: immediately when every hub read is cached, else when they settle or after 150ms,
+whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves when they land.
 
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
@@ -111,10 +114,20 @@ page stays blank while its Agent loads.
   content while idle; sidebar-row hover warms the destination before selection.
   The shared Agent profile frame also serves desktop tabs: identity, navigation cards,
   and section trails remain available while activity, usage, workspace, or section code loads.
-  Channel and existing DM rows also warm Chat detail and paginated history on
-  hover or keyboard focus. Preloads use the mounted query's options and cache,
+  Once the shell has warmed the profile content module, the frame renders it directly in its
+  first commit (`readLoadedAgentProfileContent`); the lazy boundary is only a cold fallback,
+  decided once per mount so it never remounts.
+  Channel and existing DM rows also warm Chat detail, paginated history,
+  engagements, and Cloud Agent work on hover, keyboard focus, or press; once
+  the shell is idle it warms the first paint of unread and recently active
+  Chats, two at a time and only when uncached (`use-idle-chat-warming.ts`).
+  `AgentProfileLink` warms the Agent profile's reads the same way
+  (`use-preload-agent-profile.ts`). Preloads use the mounted query's options and cache,
   retain loaded history pages, and respect realtime invalidation. An implicit
   DM only warms route code; navigating or preloading must not create a Chat.
+* Sidebar rows and `AgentProfileLink` navigate on a plain primary mouse press
+  (`usePressNavigation`) and swallow that press's click. Keyboard, touch,
+  right-click, and modified or middle clicks keep the link's click path.
 * Treat empty synced database results as valid rendered states.
 * Keep `/s/*` on the Haus Server route tree. It may mount Server hooks and
   Computer-backed capability surfaces, but it must not invent direct execution

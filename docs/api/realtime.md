@@ -82,7 +82,9 @@ ordering, unread counts, and Thread attention, so only `message.created`,
 `chat.read`, `thread.follow.updated`, and `chat.lifecycle` target it.
 `message.created` invalidates the exact message query and Thread transcript,
 its parent summary when present, the Chat list, and Server search. `chat.read`
-invalidates the Chat list alone. `thread.follow.updated` invalidates the parent
+invalidates the Chat list alone, and skips even that when the settled list
+already shows zero unread for the read Chat (or a Thread's parent) — a read only
+lowers counts. `thread.follow.updated` invalidates the parent
 summary and the Chat list, because parent unread counts include Thread
 attention. `task.created` and `task.updated` invalidate the Server task list
 and the affected Chat message snapshot, not the Chat list. `task.label.updated`
@@ -124,9 +126,13 @@ announcement Message's `message.created` refreshes the transcript, and
 detail, and Chat list. The `agent-created` body is terminal, so reconnect
 replay of that one `message.created` recovers the whole state.
 
-`chat.markRead` does not invalidate anything from its mutation result. Its
-durable `chat.read` event reaches the reader's own subscription and owns the
-Chat list refresh.
+`chat.markRead` does not invalidate anything from its mutation result. Viewing
+a Chat zeroes its cached list row before the request leaves only when the
+settled transcript cache holds the whole Chat with no unread Thread reply; its durable
+`chat.read` event reaches the reader's own subscription, finds that row pending,
+and owns the Chat list refresh, since `unreadCount` also rolls up followed
+Thread replies. A read the Server found already done emits no event, so the
+pending row refetches the list itself a second after the mutation settles.
 
 The Server row owns the next durable cursor. Event transactions increment that
 counter while holding the Server row lock, then insert `chat_events` before
@@ -181,7 +187,19 @@ opaque hex `operationId` that pairs a `delegating` start with its settlement. Th
 carry reasoning, drafts, commands, paths, inputs, or outputs. Reconnect reads durable Activity
 History plus the current unsettled-Agent snapshot before applying later live updates. Hosted tRPC
 uses one Server-scoped `agent.onActivity` subscription; `agent.activityHistory` and
-`agent.activeActivity` are the durable history and reconnect snapshot reads. Activity positions
+`agent.activeActivity` are the durable history and reconnect snapshot reads. In the App, the
+Server shell owns the only `agent.onActivity` and `agent.onLifecycle` subscriptions
+(`AgentActivityProvider`, `AgentLifecycleProvider`); profile, Activity, and hover-card reads
+never subscribe themselves. Each committed activity event is written into every cached newest
+Activity History page that covers it, in Server order, so a live turn updates without a refetch
+per event (`agent-history-cache.ts`). A patched page grows past its limit and keeps its cursor,
+so loaded older pages stay contiguous; a smaller reader (the hover card) trims at read time. A
+page whose read is in flight, first read included, reads again once that read lands. A `settled`
+lifecycle event invalidates that Agent's `agent.turns`, newest Activity History pages,
+`agent.serverTurns`, and `stats.agentUsage` once. Neither stream replays, so each
+`agent.onActivity` start refreshes that Server's mounted Activity History, turn, Server turn, and
+usage reads (a window handoff or Server switch hydrates them fresh); a websocket reconnect also
+reconciles through the App-wide reconnect invalidation, and an open turn journal re-reads itself. Activity positions
 are assigned under the Server row lock and are never derived from producer timestamps.
 A Server `sending_message:completed` activity is committed with the Agent message and presents the
 run as `Finishing up…`. Terminal lifecycle proof owns both current-activity removal and the
