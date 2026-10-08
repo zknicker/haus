@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { parseAmazonProduct } from './amazon-products.ts';
+import { amazonProductResultSchema, parseAmazonProduct } from './amazon-products.ts';
 
 test('recognizes US Amazon product identity independently of tracking parameters', () => {
     for (const input of [
@@ -26,5 +26,23 @@ test('rejects lookalike hosts, unknown markets, partial ASINs, and unrelated pat
         'https://amazon.com/dp/B07XN9T11RX',
     ]) {
         expect(parseAmazonProduct(input)).toBeNull();
+    }
+});
+test('product results are a closed status union', () => {
+    const identity = { asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' } as const;
+    expect(
+        amazonProductResultSchema.parse({
+            ...identity,
+            status: 'temporarilyUnavailable',
+            retryAfterSeconds: 2,
+        })
+    ).toEqual({ ...identity, status: 'temporarilyUnavailable', retryAfterSeconds: 2 });
+    for (const invalid of [
+        { ...identity, status: 'temporarilyUnavailable' },
+        { ...identity, status: 'temporarilyUnavailable', retryAfterSeconds: 0 },
+        { ...identity, status: 'loading' },
+        { status: 'found' },
+    ]) {
+        expect(amazonProductResultSchema.safeParse(invalid).success).toBe(false);
     }
 });

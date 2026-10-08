@@ -54,7 +54,7 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
         const results = await Promise.all(
             paths.map(async (path, index) => {
                 if (path === 'mcp.amazonProducts') {
-                    return { result: { data: [summary] } };
+                    return { result: { data: [{ status: 'found', product: summary }] } };
                 }
                 if (path === 'mcp.amazonProductDetail') {
                     detailCalls += 1;
