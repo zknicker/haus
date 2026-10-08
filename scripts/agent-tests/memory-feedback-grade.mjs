@@ -16,7 +16,8 @@ import path from 'node:path';
 import { evidenceDirectory, seededRules } from './memory-feedback.mjs';
 
 const brevity = /\b(short|brief|concise|terse|tight|lean|ground|scope|focus|succinct|minimal)/i;
-const autonomy = /\b(ask(ing)?\b|routine|next step|just do|proceed|permission|confirm|agency|autonom)/i;
+const autonomy =
+    /\b(ask(ing)?\b|routine|next step|just do|proceed|permission|confirm|agency|autonom)/i;
 const delta = /\b(more|less|a bit|a little|tighter|shorter|briefer|fewer|stop|anymore)\b/i;
 const sourced =
     /\bsource\b|\bmsg\b|#[\w-]+|\d{4}-\d{2}-\d{2}|reinforc|@[\w-]+|\bfeedback\b|\bcorrect(ed|ion)\b|\b(said|told|asked) (me|us)\b/i;
