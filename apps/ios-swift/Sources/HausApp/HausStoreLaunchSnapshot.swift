@@ -22,6 +22,7 @@ extension HausStore {
         agents = snapshot.agents
         members = snapshot.members
         messagesByChatID = snapshot.pagesByChatID
+        serverUsage = snapshot.serverUsage
         for chatID in snapshot.pagesByChatID.keys {
             historyNavigation.retention.touch(chatID)
         }
@@ -80,7 +81,8 @@ extension HausStore {
             chats: chats,
             agents: agents,
             members: members,
-            pagesByChatID: LaunchSnapshot.pages(messagesByChatID, priority: priority)
+            pagesByChatID: LaunchSnapshot.pages(messagesByChatID, priority: priority),
+            serverUsage: serverUsage
         )
     }
 }

@@ -20,6 +20,10 @@ public struct LaunchSnapshot: Codable, Sendable, Equatable {
     public let agents: [AgentSummary]
     public let members: MemberList?
     public let pagesByChatID: [String: ChatMessagePage]
+    /// The Inbox's week strip. Optional, so a snapshot written before it was
+    /// carried still decodes; without it the strip popped in a beat after the
+    /// cold-launch paint and shoved the page down.
+    public let serverUsage: ServerUsageSnapshot?
 
     public var serverID: String? { servers.first?.id }
 
@@ -29,7 +33,8 @@ public struct LaunchSnapshot: Codable, Sendable, Equatable {
         chats: [ChatSummary],
         agents: [AgentSummary],
         members: MemberList?,
-        pagesByChatID: [String: ChatMessagePage]
+        pagesByChatID: [String: ChatMessagePage],
+        serverUsage: ServerUsageSnapshot? = nil
     ) {
         version = Self.currentVersion
         self.userID = userID
@@ -38,6 +43,7 @@ public struct LaunchSnapshot: Codable, Sendable, Equatable {
         self.agents = agents
         self.members = members
         self.pagesByChatID = pagesByChatID
+        self.serverUsage = serverUsage
     }
 
     /// The pages worth carrying: the given Chats in priority order, skipping

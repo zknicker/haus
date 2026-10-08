@@ -3,8 +3,8 @@ import Foundation
 /// The slice of the `stats.live` snapshot the Inbox reads. The Server also
 /// reports per-Computer capacity and token totals in the same payload; nothing
 /// on the phone renders those yet, so they are deliberately not modeled and
-/// decoding ignores them.
-public struct ServerUsageSnapshot: Decodable, Sendable, Equatable {
+/// decoding ignores them. Encodable only so the launch snapshot can carry it.
+public struct ServerUsageSnapshot: Codable, Sendable, Equatable {
     public let tokenUsage: ServerTokenUsage
 
     public init(tokenUsage: ServerTokenUsage) {
@@ -12,7 +12,7 @@ public struct ServerUsageSnapshot: Decodable, Sendable, Equatable {
     }
 }
 
-public struct ServerTokenUsage: Decodable, Sendable, Equatable {
+public struct ServerTokenUsage: Codable, Sendable, Equatable {
     public let breakdown: [AgentTokenUsageRow]
 
     public init(breakdown: [AgentTokenUsageRow]) {
@@ -22,7 +22,7 @@ public struct ServerTokenUsage: Decodable, Sendable, Equatable {
 
 /// One Agent's processed tokens on one UTC day. The Server emits a row per
 /// model and runtime configuration, so one Agent-day can carry several rows.
-public struct AgentTokenUsageRow: Decodable, Sendable, Equatable {
+public struct AgentTokenUsageRow: Codable, Sendable, Equatable {
     public let agentID: String
     /// A UTC calendar day, `yyyy-MM-dd`. Compared as a string exactly as the
     /// App compares it: the format sorts lexicographically.

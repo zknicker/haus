@@ -16,6 +16,21 @@ struct LaunchSnapshotTests {
         #expect(loaded?.serverID == HausPreviewFixtures.server.id)
     }
 
+    @Test("A snapshot written before usage was carried still paints, without the strip")
+    func usageIsOptional() async throws {
+        let url = temporaryFile()
+        let store = LaunchSnapshotStore(fileURL: url)
+        try await store.save(fixtureSnapshot(userID: "user_preview"))
+        let data = try Data(contentsOf: url)
+        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object.removeValue(forKey: "serverUsage")
+        try JSONSerialization.data(withJSONObject: object).write(to: url)
+
+        let loaded = try #require(await store.load(userID: "user_preview"))
+        #expect(loaded.serverUsage == nil)
+        #expect(loaded.chats == HausPreviewFixtures.chats)
+    }
+
     @Test("Another user's snapshot is never painted, and is deleted")
     func otherUserIsDiscarded() async throws {
         let url = temporaryFile()
@@ -91,7 +106,10 @@ struct LaunchSnapshotTests {
                     nextBeforeSequence: nil,
                     threads: []
                 ),
-            ]
+            ],
+            serverUsage: ServerUsageSnapshot(tokenUsage: ServerTokenUsage(breakdown: [
+                AgentTokenUsageRow(agentID: "agent_blippy", date: "2026-10-08", totalTokens: 1200),
+            ]))
         )
     }
 

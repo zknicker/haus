@@ -906,8 +906,9 @@ own), so the client never patches unread locally.
 
 A cold launch paints from an on-disk launch snapshot before the network answers
 (`LaunchSnapshot`, `HausStoreLaunchSnapshot.swift`): the last Server list, Chat list, Agent and
-member directories, and up to three bounded latest-message pages (the canvas and open Chats first),
-written as versioned JSON to Application Support atomically (file protection until first unlock, the
+member directories, the Server usage read behind the Inbox's week strip (optional, so an older
+snapshot still decodes; without it the strip popped in after the paint and shoved the page down), and
+up to three bounded latest-message pages (the canvas and open Chats first), written as versioned JSON to Application Support atomically (file protection until first unlock, the
 directory excluded from iCloud and Finder backups; Application Support rather than Caches so storage
 pressure cannot purge the paint), off the main actor, at most once per two
 seconds and again when the app leaves the foreground. It is a cache: scoped to the signed-in Clerk
