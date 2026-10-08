@@ -15,6 +15,7 @@ import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
 import { handleInfo, ProfileIdentityPending } from './profile-identity-pending.tsx';
+import { TimezoneRow } from './timezone-row.tsx';
 
 export function ProfileSettings({ serverId }: { serverId: string }) {
     const directory = useMembers(serverId);
@@ -173,6 +174,7 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
                     </TextField>
                 </ItemCard.Action>
             </ItemCard>
+            <TimezoneRow serverId={serverId} timezone={viewer.timezone} userId={viewer.userId} />
         </ItemCardGroup>
     );
 }
