@@ -1,8 +1,9 @@
 import { afterAll, afterEach, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { ensureNativeSkillLinks } from './native-skill-links.ts';
 import { createHarnessForRuntime } from './runtime-harness.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
@@ -24,7 +25,10 @@ test('the Claude bridge asks the Agent SDK for user settings and foreground sub-
     const agentRoot = join(root, 'parent', 'servers', 'srv', 'agents', 'agt');
     const homeDir = join(agentRoot, 'home');
     const workspace = join(agentRoot, 'workspace');
+    const skillsDir = join(agentRoot, 'skills');
     await mkdir(workspace, { recursive: true });
+    await mkdir(skillsDir, { recursive: true });
+    await ensureNativeSkillLinks(homeDir, skillsDir);
     await writeFile(join(root, 'parent', 'CLAUDE.md'), 'CANARY_ANCESTOR_CLAUDE_MD\n');
 
     const harness = createHarnessForRuntime('claude-code', 'medium');
@@ -60,6 +64,8 @@ test('the Claude bridge asks the Agent SDK for user settings and foreground sub-
         expect(options.cwd).toBe(workspace);
         // Like Raft, no turn cap: hitting one ended real work as a retried `error_max_turns`.
         expect(options.hasMaxTurns).toBe(false);
+        // Haus passes no skills, so the turn leaves no harness manifest in the linked library.
+        expect(await readdir(skillsDir)).toEqual([]);
     } finally {
         await session.doDestroy?.();
         await sandboxSession.destroy?.();

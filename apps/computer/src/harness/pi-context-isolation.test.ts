@@ -1,5 +1,5 @@
 import { afterAll, afterEach, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
@@ -59,6 +59,48 @@ test('a Pi session sees exactly the skills in its Agent library', async () => {
     expect(loaders.length).toBeGreaterThan(0);
     for (const loader of loaders) {
         expect(loader.getSkills().skills.map((skill) => skill.name)).toEqual(['library-skill']);
+    }
+}, 30_000);
+
+// Every harness records the skills it wrote in a manifest inside its native skill directory,
+// which links to the Agent's canonical library. Haus passes no skills, so a turn must leave the
+// library free of that manifest (patched in @ai-sdk/harness `writeSkills`).
+test('a Pi turn writes no harness manifest into the Agent library', async () => {
+    const tree = await canaryTree();
+    const skillsDir = join(tree.agentRoot, 'skills');
+    await mkdir(skillsDir, { recursive: true });
+    await ensureNativeSkillLinks(tree.homeDir, skillsDir);
+    const sandboxSession = await createLocalTrustedSandboxProvider({
+        homeDir: tree.homeDir,
+        hostHomeDir: join(tree.agentRoot, 'host'),
+        rootDir: tree.agentRoot,
+        runtime,
+    }).createSession?.();
+    if (!sandboxSession) {
+        throw new Error('Sandbox provider did not create a session.');
+    }
+    const harness = createHarnessForRuntime('pi', 'medium');
+    const session = await harness.doStart({
+        sandboxSession,
+        sessionId: 'agt_pi-skill-manifest',
+        sessionWorkDir: tree.workspace,
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+    try {
+        // Skill sync runs before the turn reaches a model, so the turn itself may fail here.
+        const control = await session.doPromptTurn({
+            emit: () => undefined,
+            prompt: 'Start.',
+            skills: [],
+            tools: [],
+        });
+        await Promise.race([
+            Promise.resolve(control.done).catch(() => undefined),
+            Bun.sleep(15_000),
+        ]);
+        expect(await readdir(skillsDir)).toEqual([]);
+    } finally {
+        await session.doDestroy?.();
+        await sandboxSession.destroy?.();
     }
 }, 30_000);
 
