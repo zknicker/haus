@@ -16,6 +16,7 @@ implementation ownership, and runtime details live under
 | Chat | [Chat](chat.md) |
 | Inbox | [Inbox](inbox.md) |
 | Agents | [Agents](agents.md) |
+| Agent conversation behavior | [Agent conversation behavior](agent-conversation-behavior.md) |
 | Context management | [Context management](context-management.md) |
 | Rich references | [Rich references](rich-references.md) |
 | Clarifications | [Clarifications](clarifications.md) |

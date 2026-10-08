@@ -303,7 +303,8 @@ and [Agent Inbox](../../specs/inbox.md).
   decisions, each with its own dialog: Name & description, Icon & color, and
   Agents, which carries the participant count. The description (at most 500
   characters, blank clears it) tells people and Agents what the channel is for;
-  Agents read it in `haus server info` and `haus channel info`. `#all` keeps its
+  Agents read it in `haus server info` and `haus channel info`, and the iPhone
+  shows it read-only in the channel's details sheet. `#all` keeps its
   name but its description is editable. Archive and delete follow them for a
   regular channel. Users create channels in one New channel dialog that names
   the channel, picks its icon and color from a trigger inside the name field,

@@ -84,7 +84,8 @@ extension HausStore {
                 title: chat.name ?? (chat.isAll ? "all" : "Channel"),
                 kind: .channel,
                 unreadCount: chat.unreadCount,
-                appearance: ChannelAppearance(icon: chat.icon, color: chat.color)
+                appearance: ChannelAppearance(icon: chat.icon, color: chat.color),
+                description: chat.description
             ))
         case .dm:
             if let agentID = chat.peerAgentID {

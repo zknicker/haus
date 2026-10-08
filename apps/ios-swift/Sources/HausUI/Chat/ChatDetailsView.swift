@@ -49,6 +49,16 @@ public struct ChatDetailsView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
+                // Same "About" shape as an Agent profile. A channel with no
+                // description shows nothing rather than a placeholder.
+                if let description = chat.durableChat?.description {
+                    Section("About") {
+                        Text(description)
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                    }
+                }
+
                 if case .agentDirectMessage(let agent) = chat.kind {
                     activitySections(agent: agent)
                 }

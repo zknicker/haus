@@ -57,19 +57,26 @@ public struct ChatPresentation: Identifiable, Hashable, Sendable {
     public let unreadCount: Int
     /// Channel-only. DMs keep their Agent avatar and ignore this.
     public let appearance: ChannelAppearance
+    /// Channel-only, and nil when the channel has none. Never blank.
+    public let description: String?
 
     public init(
         id: String,
         title: String,
         kind: ChatKind,
         unreadCount: Int = 0,
-        appearance: ChannelAppearance = .default
+        appearance: ChannelAppearance = .default,
+        description: String? = nil
     ) {
         self.id = id
         self.title = title
         self.kind = kind
         self.unreadCount = unreadCount
         self.appearance = appearance
+        self.description = description.flatMap { text in
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
     }
 }
 

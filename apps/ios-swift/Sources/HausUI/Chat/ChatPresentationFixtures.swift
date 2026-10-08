@@ -17,7 +17,8 @@ public enum ChatFixtures {
             title: "product",
             kind: .channel,
             unreadCount: 3,
-            appearance: ChannelAppearance(icon: "RocketIcon", color: "violet")
+            appearance: ChannelAppearance(icon: "RocketIcon", color: "violet"),
+            description: "Roadmap, specs, and launch planning."
         ),
         ChatPresentation(
             id: "onboarding",

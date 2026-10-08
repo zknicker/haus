@@ -21,6 +21,7 @@ import {
 } from './report.mjs';
 import { createExpect, isScenario } from './scenario.mjs';
 import { describeSweep, sweepAgentTestLeftovers } from './sweep.mjs';
+import { collectScenarioMessages, expectAgentVoice } from './voice-gate.mjs';
 
 /**
  * Agents are per scenario, so machine + provider throughput caps the lanes:
@@ -143,6 +144,8 @@ async function runScenario(harness, { index, scenario }, retirements) {
                     ...settleOptions,
                 }),
         });
+        // Shared gate over every model-authored message the scenario produced.
+        expectAgentVoice(expect, await collectScenarioMessages(kit));
     } catch (cause) {
         error = cause;
     }

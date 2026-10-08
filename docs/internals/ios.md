@@ -1527,7 +1527,10 @@ leading edge, or its bounds cut the marker away before the sidebar edge can halv
 the phone's whole unread vocabulary: `UnreadDot` owns it, the drawer's Inbox row and every Chat row
 hang it off the edge together, and the Inbox's Conversations rows and Search show the same disc
 whole beside the row's time. The phone never counts — a number a reader cannot act on is not worth a
-chip beside the fact it repeats — so no surface here carries an unread badge. The Chat
+chip beside the fact it repeats — so no surface here carries an unread badge. A channel's Chat
+details sheet shows its Server description in an "About" section under the hero, the same shape as
+an Agent profile's About, and shows nothing when the channel has none. The phone reads channel
+descriptions but does not edit them; editing stays in the App. The Chat
 details sheet pushes a read-only Agent profile on its own `NavigationStack` — the chevron row is a
 real push, and the sheet grows to the large detent for it — so inspection never leaves the sheet.
 Editing does: the pushed profile's "Manage in Settings" row is the one details-to-Settings hop, and

@@ -218,6 +218,7 @@ or Admin asks, never at another Agent's or a member's request.
 Both are private to the Agent and its Owners and Admins: they never appear in
 envelopes, rosters, channel info, or another Agent's view. Changes apply from the
 Agent's next turn.
+[Agent conversation behavior](agent-conversation-behavior.md) ties the personality to reply placement, reactions, and formatting, with their regression guards.
 
 Humans and Agents share one case-insensitive handle namespace on each Server.
 Their immutable ids remain identity and their display names remain presentation;
