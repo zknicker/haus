@@ -66,6 +66,47 @@ final class TranscriptListBehaviorTests: XCTestCase {
         }
     }
 
+    /// Sending attachments: the composer drops its strip a frame before the
+    /// Store's row arrives, its glass keeps collapsing over the next frames,
+    /// and Server confirms the row under its own id mid-flight. The rows
+    /// already on screen move as one motion — never dropped by the collapse,
+    /// never thrown back up — and the new row ends resting above the composer.
+    func testAttachmentSendMovesTheTranscriptAsOneMotion() throws {
+        var items = (0..<30).map { Row(id: "m\($0)", height: 60) }
+        let harness = Harness(items: items, bottomInset: 320)
+        let start = try XCTUnwrap(harness.position(of: "m29"))
+
+        // The strip's 100pt leave in one frame; the rows ease after it.
+        harness.model.bottomInset = 220
+        harness.pump()
+        let afterCollapse = try XCTUnwrap(harness.position(of: "m29"))
+        XCTAssertLessThan(start - afterCollapse, 40, "collapse dropped the rows")
+
+        items.append(Row(id: "pending", height: 60, behavior: .animateToNewest))
+        harness.model.items = items
+        var trace = [start, afterCollapse]
+        for (frame, inset) in stride(from: 210, through: 120, by: -10).enumerated() {
+            if frame == 3 {
+                items[items.count - 1] = Row(id: "sent", height: 60, behavior: .animateToNewest)
+                harness.model.items = items
+            }
+            harness.model.bottomInset = CGFloat(inset)
+            harness.frame()
+            trace.append(try XCTUnwrap(harness.position(of: "m29")))
+        }
+        harness.settle()
+        trace.append(try XCTUnwrap(harness.position(of: "m29")))
+
+        // m29 travels down by the collapse less the row it makes room for.
+        XCTAssertEqual(trace.last!, start - 140, accuracy: 0.5, "\(trace)")
+        for (earlier, later) in zip(trace, trace.dropFirst()) {
+            XCTAssertLessThanOrEqual(later, earlier + 0.5, "moved back up: \(trace)")
+            XCTAssertLessThan(earlier - later, 40, "jumped: \(trace)")
+        }
+        XCTAssertEqual(harness.distanceFromNewest(), 0, accuracy: 0.5)
+        XCTAssertTrue(harness.model.isNearNewest)
+    }
+
     /// A reply taller than the viewport arrives while the reader is at the
     /// tail: its top comes into view, and stays there as it grows.
     func testLongReplyBringsItsTopIntoView() throws {
@@ -178,7 +219,13 @@ final class TranscriptListBehaviorTests: XCTestCase {
             RunLoop.main.run(until: Date().addingTimeInterval(0.02))
         }
 
-        /// Long enough for a settle's travel and its fallback to close.
+        /// About one display frame.
+        func frame() {
+            host.view.layoutIfNeeded()
+            RunLoop.main.run(until: Date().addingTimeInterval(1.0 / 60))
+        }
+
+        /// Long enough for a settle's travel to close.
         func settle() {
             pump()
             RunLoop.main.run(until: Date().addingTimeInterval(0.6))
@@ -195,6 +242,11 @@ final class TranscriptListBehaviorTests: XCTestCase {
             let newest = table.rectForRow(at: IndexPath(row: 0, section: 0))
             let viewportTop = table.contentOffset.y + table.bounds.height - table.contentInset.bottom
             return viewportTop - newest.maxY
+        }
+
+        /// How far an on-screen item's visual bottom sits above the viewport's.
+        func position(of id: String) -> CGFloat? {
+            visibleRowPositions()[id]
         }
 
         /// Each on-screen item's position in the viewport.
