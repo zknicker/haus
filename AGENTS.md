@@ -265,8 +265,9 @@ Single-context repo: use root `CONTEXT.md` and `docs/adr/`. See `docs/agents/dom
 
 For release target decisions, `releases.json` preparation, the single release PR, post-merge
 target-job monitoring, or the operator handoff, use `.agents/skills/release-haus/SKILL.md`.
-Route durable artifact and target contracts through `docs/operations/releases.md`; production
-Haus Server promotion remains a separate manual operation in
+Route durable artifact and target contracts through `docs/operations/releases.md`; merging a release PR that
+publishes a Server target deploys production automatically through the Release workflow's
+`production` Environment. Manual deploy and activate runs are for recovery only; see
 `docs/operations/haus-server-deploy.md`.
 
 ## Cursor Cloud specific instructions
