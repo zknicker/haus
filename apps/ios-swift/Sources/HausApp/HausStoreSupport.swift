@@ -187,6 +187,8 @@ struct ChatProjectionCaches {
     var messagePresentationsByChatID: [String: [MessagePresentation]] = [:]
     var chatDestinations: [ChatDestination]?
     var bodies = MessageBodyMemo<ParsedMessageBody>()
+    /// Chats whose rows draw Thread chips resolved from another Chat's page.
+    var threadChipReferrers = ReferenceReferrers()
     /// Bumped whenever a reference chip could resolve differently, which is
     /// what retires a parsed body that did not itself change.
     private(set) var referenceRevision = 0
@@ -218,22 +220,29 @@ struct ChatProjectionCaches {
         chatDestinations = nil
         if references.update(chats: chats) {
             referenceRevision += 1
-            messagePresentationsByChatID.removeAll()
+            retireAllRows()
         }
     }
 
     /// A page, optimistic-row, or cloud-work write reaches its own transcript.
+    /// It also reaches every transcript drawing a Thread chip named from it.
     mutating func retireMessages(chatIDs: Set<String>) {
-        for chatID in chatIDs { messagePresentationsByChatID.removeValue(forKey: chatID) }
+        let retired = chatIDs.union(threadChipReferrers.takeReferrers(of: chatIDs))
+        for chatID in retired { messagePresentationsByChatID.removeValue(forKey: chatID) }
     }
 
     mutating func retireAllMessages() {
-        messagePresentationsByChatID.removeAll()
+        retireAllRows()
     }
 
     private mutating func retireRows() {
         chatDestinations = nil
+        retireAllRows()
+    }
+
+    private mutating func retireAllRows() {
         messagePresentationsByChatID.removeAll()
+        threadChipReferrers.removeAll()
     }
 }
 
@@ -243,6 +252,10 @@ struct ParsedMessageBody {
     let body: String
     let visuals: VisualMessageBody
     let richBlocks: [RichMessageBlock]
+    /// Each Thread chip's wire target and the label it resolved to (nil while
+    /// the anchor was not loaded). A Thread chip reads another page rather
+    /// than the reference directory, so the memo checks these on reuse.
+    var threadChips: [String: String?] = [:]
 }
 
 enum HausStoreError: LocalizedError {

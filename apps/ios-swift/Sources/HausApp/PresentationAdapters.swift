@@ -93,7 +93,7 @@ extension HausStore {
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
-            let parsed = parsedBody(id: message.id, content: message.content)
+            let parsed = parsedBody(id: message.id, content: message.content, chatID: message.chatID)
             let ownWork: CloudAgentWork? = if case .cloudAgentWork(let work) = message.body { work } else { nil }
             return MessagePresentation(
                 id: message.id,
@@ -138,7 +138,7 @@ extension HausStore {
             // An optimistic row goes through the same body resolution as a
             // durable one, so its mentions survive the trust check even when
             // trimming changes the string the composer staged.
-            let parsed = parsedBody(id: message.id, content: message.content)
+            let parsed = parsedBody(id: message.id, content: message.content, chatID: message.chatID)
             return MessagePresentation(
                 id: message.id,
                 author: viewer,
@@ -160,54 +160,6 @@ extension HausStore {
             mediaType: attachment.mediaType,
             sizeBytes: attachment.sizeBytes
         )
-    }
-
-    /// The body parse is the expensive step of a row, so it is memoized per
-    /// message and survives every rebuild that cannot change it.
-    private func parsedBody(id: String, content: String) -> ParsedMessageBody {
-        let revision = projections.referenceRevision
-        if let cached = projections.bodies.cached(id: id, content: content, revision: revision) {
-            return cached
-        }
-        let (body, visuals) = MessagePresentation.resolvedBody(content: content)
-        let parsed = ParsedMessageBody(body: body, visuals: visuals, richBlocks: richMessageBlocks(visuals.prose))
-        projections.bodies.remember(parsed, id: id, content: content, revision: revision)
-        return parsed
-    }
-
-    private func richMessageBlocks(_ content: String) -> [RichMessageBlock] {
-        RichMessageBlockParser.blocks(content) { kind, id, fallback in
-            switch kind {
-            case .agent:
-                guard let agent = agentsByID[id] else { return nil }
-                return RichReferencePresentation(
-                    id: id, kind: .agent,
-                    label: ReferenceLabel.display(agent.displayName, kind: .agent),
-                    avatarURL: resolvedAvatarURL(agent.avatarURL)
-                )
-            case .human:
-                guard let member = membersByID[id] else { return nil }
-                let name = member.displayName ?? member.handle ?? fallback
-                return RichReferencePresentation(
-                    id: id, kind: .human,
-                    label: ReferenceLabel.display(name, kind: .human),
-                    avatarURL: resolvedAvatarURL(member.avatarURL)
-                )
-            case .channel:
-                guard let chat = chatsByID[id], let name = chat.name else { return nil }
-                return RichReferencePresentation(
-                    id: id,
-                    kind: .channel,
-                    label: ReferenceLabel.display(name, kind: .channel),
-                    avatarURL: nil,
-                    channelAppearance: ChannelAppearance(icon: chat.icon, color: chat.color)
-                )
-            case .thread:
-                return threadReferencePresentation(wireTarget: id)
-            // No other kind names Server state, so the parser's own chip stands.
-            default: return nil
-            }
-        }
     }
 
     /// Projects a task-list row back into the shared message presentation used
