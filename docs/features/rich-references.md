@@ -73,30 +73,32 @@ prototype.
 Server membership authorizes preview reads through the connected RankWrangler
 account. Agent tool calls still require an explicit connection grant. Credentials
 stay on Server. Lookups share a bounded five-minute Server cache; account changes
-clear it and invalidate App reads. Chips mounted together share one
-`mcp.amazonProducts` read, which returns one typed result per product: `found`
-with the summary, `temporarilyUnavailable` with `retryAfterSeconds` (1–30), or
-`unavailable`; `null` means no RankWrangler connection. Server makes exactly one
-RankWrangler `getMany` per batch with `include: ['shortName', 'cutoutThumbnail']`;
-there is no per-product read or fallback, because batch reliability belongs to
-RankWrangler. A batch error applies to every product in it: transient (a
-retryable RankWrangler error with its `retryAfterSeconds`, an MCP timeout, or an
-unreachable upstream) makes each `temporarilyUnavailable`, and anything else
-makes each `unavailable`. A product the response omits is `unavailable`.
-`getMany` never waits for generation: an item whose `pending` list is non-empty
-returns as `enrichment: 'pending'` with its basics, Server caches it for two
-seconds, and the App refetches a few times, five seconds apart. An empty
-`pending` list is final, so a product without a short name or cutout settles as
-`enrichment: 'ready'`.
+clear it and invalidate App reads. Each chip makes its own
+`mcp.amazonProduct` read and fills in as soon as its answer arrives; no chip waits
+on another product. The App sends these reads, and the hover-card detail read, as
+their own unbatched HTTP requests (`skipBatch`), so a slow product never holds the
+tRPC batch that carries a screen's other queries. The read returns one typed
+result: `found` with the summary, `temporarilyUnavailable` with
+`retryAfterSeconds` (1–30), or `unavailable`; `null` means no RankWrangler
+connection. Server makes exactly one RankWrangler `get` per product with
+`include: ['shortName', 'cutoutThumbnail']` and shares an in-flight read between
+concurrent chips. RankWrangler waits, up to about 20 seconds, for the short name
+and cutout, then returns the listing with anything unfinished settled as
+`shortName: null` or an unavailable cutout, so a found summary is final and
+nothing polls. The Haus MCP invocation timeout (30 seconds) covers that wait. A
+transient failure (a retryable RankWrangler error with its `retryAfterSeconds`,
+an MCP timeout, or an unreachable upstream) is `temporarilyUnavailable`; anything
+else, including an unknown ASIN, is `unavailable`.
 
-The App's React Query lookup owns retries; Server never holds a request open to
-wait. A `temporarilyUnavailable` result or a failed read retries three times with
-exponential backoff that starts at `retryAfterSeconds` and caps at 30 seconds.
-After that the hover card shows the temporary notice and, while it stays open,
-the lookup tries again every 15 seconds and fills in once a read succeeds.
-Transient and unavailable results are never cached on Server.
+The App's React Query lookup owns retries. A `temporarilyUnavailable` result or a
+failed read retries three times with exponential backoff that starts at
+`retryAfterSeconds` and caps at 30 seconds. After that the hover card shows the
+temporary notice and, while it stays open, the lookup tries again every 15
+seconds and fills in once a read succeeds. Transient and unavailable results are
+never cached on Server.
 
-Market data loads only on preview with `include: ['marketData']`.
+Market data loads only on preview, through a separate `mcp.amazonProductDetail`
+read with `include: ['marketData']`, so the chip never waits on market data.
 Removed listings show last-known data with a removal label. Missing prices and brands are omitted. An upstream detail failure leaves the thumbnail and title
 visible with an unavailable notice.
 
