@@ -57,11 +57,19 @@ export function resolveThreadReference(
                 if (thread.parentChatId !== parentChatId) {
                     return false;
                 }
-                const canonical = /^msg_([a-fA-F0-9]{32})$/u.exec(thread.anchorMessageId);
+                if (thread.anchorMessageId === reference) {
+                    return true;
+                }
+                if (!thread.anchorMessageId.startsWith('msg_')) {
+                    return false;
+                }
+                // Agents see `msg_` ids as their next eight characters (the CLI short id).
+                // Opaque ids are case-sensitive base64url; only legacy hex ids fold case.
+                const short = thread.anchorMessageId.slice(4, 12);
                 return (
-                    thread.anchorMessageId === reference ||
-                    (canonical &&
-                        canonical[1].slice(0, 8).toLowerCase() === reference.toLowerCase())
+                    short === reference ||
+                    (/^msg_[a-fA-F0-9]{32}$/u.test(thread.anchorMessageId) &&
+                        short.toLowerCase() === reference.toLowerCase())
                 );
             })
             .map((thread) => thread.anchorMessageId)
