@@ -76,18 +76,18 @@ stay on Server. Lookups share a bounded five-minute Server cache; account change
 clear it and invalidate App reads. Chips mounted together share one
 `mcp.amazonProducts` read, which returns one typed result per product: `found`
 with the summary, `temporarilyUnavailable` with `retryAfterSeconds` (1–30), or
-`unavailable`; `null` means no RankWrangler connection. Server reads the basics
-(title, thumbnail, listing status) with one RankWrangler `getMany`, and the short
-name and cutout with a best-effort `get` per product using
-`include: ['shortName', 'cutoutThumbnail']`. That `get` also carries the basics,
-so a failed `getMany` falls back to it per product. A product is
-`temporarilyUnavailable` only when neither read produced it and a failure was
-transient (a retryable RankWrangler error, an MCP timeout, or an unreachable
-upstream); otherwise it is `unavailable`. When basics arrive but RankWrangler has
-not generated the short name and cutout yet, the summary returns with
-`enrichment: 'pending'`; Server caches it for two seconds and the App refetches a
-few times, five seconds apart. Any other enrichment failure serves the basics with
-`enrichment: 'ready'` and logs a Server warning.
+`unavailable`; `null` means no RankWrangler connection. Server makes exactly one
+RankWrangler `getMany` per batch with `include: ['shortName', 'cutoutThumbnail']`;
+there is no per-product read or fallback, because batch reliability belongs to
+RankWrangler. A batch error applies to every product in it: transient (a
+retryable RankWrangler error with its `retryAfterSeconds`, an MCP timeout, or an
+unreachable upstream) makes each `temporarilyUnavailable`, and anything else
+makes each `unavailable`. A product the response omits is `unavailable`.
+`getMany` never waits for generation: an item whose `pending` list is non-empty
+returns as `enrichment: 'pending'` with its basics, Server caches it for two
+seconds, and the App refetches a few times, five seconds apart. An empty
+`pending` list is final, so a product without a short name or cutout settles as
+`enrichment: 'ready'`.
 
 The App's React Query lookup owns retries; Server never holds a request open to
 wait. A `temporarilyUnavailable` result or a failed read retries three times with
