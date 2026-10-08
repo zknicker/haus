@@ -813,17 +813,22 @@ itself is `TranscriptNearNewest`, pure so the UIKit path and its tests share one
 destination is the coordinator's own answer too: while a settle is in flight the transcript counts
 as showing its newest item, so an inset write landing mid-travel re-rests the viewport and an
 append still animates rather than reading the offset it is passing through as scrolled away. The
-travel itself stays the scroll view's own `setContentOffset(_:animated:)`, because that is what lays
-the table out frame by frame; a `UIView.animate` block on `contentOffset` looks identical, writes the
-destination offset immediately, and leaves everything the viewport passes over blank. Each settle
-therefore holds a single-use `SettleTicket`, closed by whichever arrives first —
-`scrollViewDidEndScrollingAnimation`, or a deferred fallback armed just past UIKit's own duration for
-the flights that never report one, such as a mid-flight inset write cancelling the travel — while a
-drag closes it on the spot and orphans both. Whichever closes it lands the viewport on the settle's
-home as it stands then (`land`): a travel UIKit cancelled — the composer collapsing right after a
-send — otherwise stranded the newest row under the composer with the chevron up. Without that guarantee a cancelled settle would keep
-publishing "showing the newest item" over a viewport stranded anywhere, which is the stale chevron
-this contract exists to prevent.
+travel is the coordinator's own (`TranscriptSettleTravel`, stepped by a display link in
+`TranscriptListView+SettleTravel`): each frame writes the real `contentOffset`, so the table lays
+out every row the viewport passes over — a `UIView.animate` block on `contentOffset` writes the
+destination immediately and leaves everything travelled through blank. The travel holds a distance
+from home, not a destination, and reads home live each frame, so a home that moves mid-flight
+carries the travel with it. UIKit's `setContentOffset(_:animated:)` travelled to a destination fixed
+at its start, and a send moves home under it: an attachment send drops the composer's strip a frame
+before the Store's row arrives, its glass keeps collapsing for several frames, and Server confirms
+the row under a new id mid-flight. Snapping to each new rest threw the transcript about two messages
+away and eased it back. So a resting transcript eases down when the bottom inset shrinks (it still
+lifts at once when the inset grows), an append stages from where the previous newest row stood
+before the update rather than against the new rest, and while a travel starts past the newest edge
+the table's inset is held open to it so UIKit has nothing to clamp; it closes as the travel arrives.
+Each settle holds a single-use `SettleTicket`, closed by the travel arriving home or by a drag,
+which orphans it. `TranscriptListBehaviorTests.testAttachmentSendMovesTheTranscriptAsOneMotion`
+pins the attachment-send motion.
 
 The flip has known UIKit seams, all owned inside `TranscriptListView`: the system scroll edge effects are
 hidden (they compute their region from safe areas the flipped table lacks and wash the viewport —
