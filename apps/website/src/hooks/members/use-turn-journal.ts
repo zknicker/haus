@@ -3,7 +3,8 @@ import {
     shouldRequestExecutionJournal,
     type TurnDetailAccess,
 } from '../../features/members/agent-profile/agent-activity-model.ts';
-import { hausTrpc } from '../../lib/haus-server.tsx';
+import { hausTrpc, useHausServerConnectionState } from '../../lib/haus-server.tsx';
+import { useAgentActivityListener } from '../agents/use-current-agent-activity.tsx';
 import {
     createTurnJournalRelay,
     emptyTurnJournal,
@@ -63,20 +64,22 @@ export function useTurnJournal(input: {
         return () => window.clearInterval(timer);
     }, [allowed, live]);
 
-    hausTrpc.agent.onActivity.useSubscription(
-        { serverId },
-        {
-            enabled: allowed,
-            onData: (event) => {
-                if (event.agentId === agentId && event.runId === runId) {
-                    void relay.current?.refresh();
-                }
-            },
-            onStarted: () => {
-                void relay.current?.refresh();
-            },
+    useAgentActivityListener((event) => {
+        if (allowed && event.agentId === agentId && event.runId === runId) {
+            void relay.current?.refresh();
         }
-    );
+    });
+
+    // A websocket gap may have hidden journal changes; the first connection has not.
+    const connection = useHausServerConnectionState();
+    const previousConnection = React.useRef(connection);
+    React.useEffect(() => {
+        const previous = previousConnection.current;
+        previousConnection.current = connection;
+        if (allowed && connection === 'connected' && previous === 'reconnecting') {
+            void relay.current?.refresh();
+        }
+    }, [allowed, connection]);
 
     return allowed && state.scope === scope ? state.snapshot : emptyTurnJournal;
 }

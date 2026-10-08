@@ -60,7 +60,7 @@ test('the same failure on different requests stays separate rows', () => {
 });
 
 function messageTrigger(messageId: string): AgentActivityTurn['trigger'] {
-    return { author: 'human', chatId: 'cht_one', kind: 'message', messageId };
+    return { author: 'human', chatId: 'cht_one', kind: 'message', messageId, preview: null };
 }
 
 function failed(runId: string, startedAt: string, failureKind = 'runtime'): AgentActivityTurn {

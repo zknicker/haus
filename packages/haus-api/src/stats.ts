@@ -211,6 +211,12 @@ const runtimeTokenUsageStateSchema = z.discriminatedUnion('status', [
 
 export const serverStatsInputSchema = z.object({ serverId: z.string().trim().min(1) }).strict();
 
+/** `stats.agentUsage`: one Agent's slice of the token ledger, for its profile tile. */
+export const agentUsageInputSchema = serverStatsInputSchema.extend({
+    agentId: z.string().trim().min(1),
+});
+export type AgentUsageInput = z.infer<typeof agentUsageInputSchema>;
+
 /**
  * Exact pre-WS6 provider-usage payload, now transported Computer → Server →
  * App. Credentials and provider calls stay on the assigned Computer.

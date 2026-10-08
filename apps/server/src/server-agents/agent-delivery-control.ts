@@ -57,6 +57,26 @@ export async function readAgentDeliveryState(
     };
 }
 
+/**
+ * Server membership and the Agent's existence, read at once. A membership
+ * failure always wins, so a non-member never learns whether the Agent exists.
+ */
+export async function requireMemberAgent(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: { agentId: string; serverId: string }
+): Promise<void> {
+    const checks = await Promise.allSettled([
+        requireServerMembership(db, member, input.serverId),
+        requireAgent(db, input),
+    ]);
+    for (const check of checks) {
+        if (check.status === 'rejected') {
+            throw check.reason;
+        }
+    }
+}
+
 /** Refuses any read or control targeting an id that is not a live Agent here. */
 export async function requireAgent(
     db: HausDatabase,

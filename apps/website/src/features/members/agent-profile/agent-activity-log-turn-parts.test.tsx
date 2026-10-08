@@ -5,7 +5,13 @@ import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
 import { LogChatButton, readChatTarget, TurnRuler } from './agent-activity-log-turn-parts.tsx';
 
 const dm = { kind: 'text', place: 'DM', text: 'Ship it' } as const;
-const message = { author: 'human', chatId: 'cht_dm', kind: 'message', messageId: 'msg' } as const;
+const message = {
+    author: 'human',
+    chatId: 'cht_dm',
+    kind: 'message',
+    messageId: 'msg',
+    preview: null,
+} as const;
 
 test('a header offers its Chat only for a visible request in a known place', () => {
     expect(readChatTarget(dm, message)).toEqual({ chatId: 'cht_dm', place: 'DM' });

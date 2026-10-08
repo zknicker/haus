@@ -1,4 +1,9 @@
-import type { AgentActivityCursor, AgentActivityEvent, AgentActivityHistoryPage } from '@haus/api';
+import type {
+    AgentActivityCursor,
+    AgentActivityEvent,
+    AgentActivityHistoryPage,
+    AgentTurnTrigger,
+} from '@haus/api';
 import { useQueries } from '@tanstack/react-query';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
@@ -6,6 +11,17 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 
 const activityPageSize = 50;
 
+/** The newest Activity History page an Agent's profile and Activity section read. */
+export function agentActivityHistoryInput(serverId: string, agentId: string) {
+    return { agentId, limit: activityPageSize, serverId };
+}
+
+/**
+ * An Agent's Activity History, a page at a time, with the trigger of every run
+ * the pages name. The Server shell's activity stream writes live events into
+ * the cached newest page (`agent-history-cache.ts`), so this read never
+ * subscribes or refetches per event.
+ */
 export function useAgentActivityHistory(serverId: string, agentId: string) {
     const utils = hausTrpc.useUtils();
     const scope = `${serverId}:${agentId}`;
@@ -23,36 +39,10 @@ export function useAgentActivityHistory(serverId: string, agentId: string) {
         setCursors([undefined]);
     }, [scope]);
 
-    const invalidateLatestPage = React.useCallback(() => {
-        void utils.agent.activityHistory.invalidate({
-            agentId,
-            limit: activityPageSize,
-            serverId,
-        });
-    }, [agentId, serverId, utils.agent.activityHistory]);
-
-    hausTrpc.agent.onActivity.useSubscription(
-        { serverId },
-        {
-            enabled: Boolean(serverId && agentId),
-            onData: (event) => {
-                if (event.agentId === agentId) {
-                    invalidateLatestPage();
-                }
-            },
-            onStarted: invalidateLatestPage,
-        }
-    );
-
     const pages = useQueries({
         queries: activeCursors.map((before) =>
             utils.agent.activityHistory.queryOptions(
-                {
-                    agentId,
-                    limit: activityPageSize,
-                    ...(before ? { before } : {}),
-                    serverId,
-                },
+                { ...agentActivityHistoryInput(serverId, agentId), ...(before ? { before } : {}) },
                 {
                     ...queryPolicy.syncedSnapshot,
                     enabled: Boolean(serverId && agentId),
@@ -65,6 +55,7 @@ export function useAgentActivityHistory(serverId: string, agentId: string) {
     const isFetching = pages.some((page) => page.isFetching);
     const error = pages.find((page) => page.error)?.error ?? null;
     const events = React.useMemo(() => dedupeEvents(pages), [pages]);
+    const runTriggers = React.useMemo(() => collectRunTriggers(pages), [pages]);
     const loadMore = React.useCallback(() => {
         if (!nextBefore || isFetching) {
             return;
@@ -85,6 +76,7 @@ export function useAgentActivityHistory(serverId: string, agentId: string) {
         isFetching,
         isPending: pages[0]?.isPending ?? true,
         loadMore,
+        runTriggers,
     };
 }
 
@@ -104,6 +96,16 @@ export function useAgentTurnActivityHistory(
             ...queryPolicy.syncedSnapshot,
             enabled: Boolean(serverId && agentId && runId),
         }
+    );
+}
+
+function collectRunTriggers(
+    pages: Array<{ data?: AgentActivityHistoryPage }>
+): ReadonlyMap<string, AgentTurnTrigger | null> {
+    return new Map(
+        pages.flatMap((page) =>
+            (page.data?.runTriggers ?? []).map((entry) => [entry.runId, entry.trigger] as const)
+        )
     );
 }
 

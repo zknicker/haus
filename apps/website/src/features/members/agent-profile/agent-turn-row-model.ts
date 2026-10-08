@@ -1,5 +1,4 @@
 import type { AgentTurnOperationCategory, AgentTurnTrigger, Chat } from '@haus/api';
-import type { TurnTriggerMessage } from '../../../hooks/members/use-turn-trigger-messages.ts';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { chatPlace } from '../../shell/tab-identity.ts';
 import { formatAgentActivityEvent } from './agent-activity-model.ts';
@@ -8,18 +7,19 @@ import type { RecentActivityRow } from './recent-activity-rows.ts';
 
 /**
  * What a turn row is titled by: the request that woke it, as its first line
- * (`text`). `pending` holds the title line blank while the message
+ * (`text`). `pending` holds the title line blank while a running turn's trigger
  * reads; `none` means there is nothing the reader may see (private,
- * unrecorded, or unreadable), so the row is titled by what the turn did.
+ * unrecorded, or a message that is gone), so the row is titled by what the
+ * turn did.
  */
 export type TurnRowTitle =
     | { readonly kind: 'none' }
     | { readonly kind: 'pending'; readonly place: string | null }
     | { readonly kind: 'text'; readonly place: string | null; readonly text: string };
 
+/** A message or task trigger quotes its message (`preview`), so a title is never a second read. */
 export function resolveTurnRowTitle(
     trigger: AgentTurnTrigger | null,
-    messages: ReadonlyMap<string, TurnTriggerMessage>,
     chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>
 ): TurnRowTitle {
     if (!trigger || trigger.kind === 'private') {
@@ -28,16 +28,13 @@ export function resolveTurnRowTitle(
     const chat = chats.get(trigger.chatId);
     const place = chat ? chatPlace(chat) : null;
     if (trigger.kind === 'message' || trigger.kind === 'task') {
-        const read = messages.get(trigger.messageId) ?? { status: 'pending' };
-        if (read.status === 'pending') {
-            return { kind: 'pending', place };
-        }
-        if (read.status === 'unreadable') {
+        const { preview } = trigger;
+        if (!preview) {
             return { kind: 'none' };
         }
         const text =
-            messagePreviewLine(read.message.content) ||
-            (read.message.attachments.length > 0 ? 'Attachment' : '');
+            messagePreviewLine(preview.content) ||
+            (preview.attachmentCount > 0 ? 'Attachment' : '');
         return text ? { kind: 'text', place, text } : { kind: 'none' };
     }
     const title = workTitles[trigger.kind];

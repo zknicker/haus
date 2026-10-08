@@ -2,6 +2,7 @@ import type { Agent, AgentLifecycleEvent } from '@haus/api';
 import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { invalidateSettledAgentHistory } from '../agents/agent-history-cache.ts';
 import { recoverAgentMessage } from './agent-message-recovery.ts';
 
 export type AgentLifecycles = ReadonlyMap<string, AgentLifecycleEvent>;
@@ -41,6 +42,7 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
                     (agent) => (agent ? projectAgentAvailability([agent], event)[0] : agent)
                 );
                 if (event.phase === 'settled') {
+                    void invalidateSettledAgentHistory(queryClient, event);
                     void Promise.all([
                         utils.agent.activity.invalidate({
                             agentId: event.agentId,

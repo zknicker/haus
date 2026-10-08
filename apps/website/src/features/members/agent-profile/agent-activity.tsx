@@ -9,7 +9,7 @@ import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { useHausServerConnectionState } from '../../../lib/haus-server.tsx';
 import { AgentActivityLog } from './agent-activity-log.tsx';
 import { formatAgentActivityDiagnosticInfo, getTurnDetailAccess } from './agent-activity-model.ts';
-import { groupAgentActivityTurns } from './agent-activity-turns.ts';
+import { groupAgentActivityTurns, withRunTriggers } from './agent-activity-turns.ts';
 import { AgentLoading } from './agent-loading.tsx';
 
 /**
@@ -24,7 +24,10 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
     const events = activity.events;
     const unavailable =
         events.length === 0 && activity.error !== null && settledTurns.error !== null;
-    const turns = groupAgentActivityTurns(events, settledTurns.data ?? []);
+    const turns = withRunTriggers(
+        groupAgentActivityTurns(events, settledTurns.data ?? []),
+        activity.runTriggers
+    );
 
     if (activity.isPending || settledTurns.isPending) {
         return <AgentLoading label="Loading activity history..." />;

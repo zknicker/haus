@@ -1,22 +1,41 @@
 import { expect, test } from 'bun:test';
 import { agentExecutionJournalSchema } from './agent-execution-journal.ts';
-import { agentTurnSchema, agentTurnTriggerSchema, serverTurnsInputSchema } from './agent-turn.ts';
+import { agentTurnSchema, serverTurnsInputSchema } from './agent-turn.ts';
+import { agentTurnTriggerSchema } from './agent-turn-trigger.ts';
 
-test('a turn trigger carries ids only, never message text', () => {
+test('a message trigger quotes its message; typed work carries ids only', () => {
     expect(
         agentTurnTriggerSchema.parse({
             author: 'human',
             chatId: 'cht_one',
             kind: 'message',
             messageId: 'msg_one',
+            preview: { attachmentCount: 0, content: 'set up tinylink' },
         })
-    ).toMatchObject({ kind: 'message' });
+    ).toMatchObject({ kind: 'message', preview: { content: 'set up tinylink' } });
+    expect(
+        agentTurnTriggerSchema.parse({
+            chatId: 'cht_one',
+            kind: 'task',
+            messageId: 'msg_gone',
+            preview: null,
+        })
+    ).toMatchObject({ preview: null });
     expect(agentTurnTriggerSchema.parse({ kind: 'private' })).toEqual({ kind: 'private' });
     expect(
         agentTurnTriggerSchema.safeParse({
             chatId: 'cht_one',
             content: 'set up tinylink',
             kind: 'reminder',
+        }).success
+    ).toBe(false);
+    expect(
+        agentTurnTriggerSchema.safeParse({
+            author: 'human',
+            chatId: 'cht_one',
+            kind: 'message',
+            messageId: 'msg_one',
+            preview: { attachmentCount: 0, content: 'x'.repeat(1001) },
         }).success
     ).toBe(false);
     expect(agentTurnTriggerSchema.safeParse({ chatId: 'cht_one', kind: 'private' }).success).toBe(

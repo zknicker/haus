@@ -4,7 +4,7 @@ import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useUsage } from '../../hooks/servers/use-usage.ts';
+import { useAgentUsage } from '../../hooks/members/use-agent-usage.ts';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { usageRoute } from '../servers/server-routes.ts';
 import { agentUsageSparkline, summarizeAgentTokenUsage } from '../stats/agent-usage-summary.ts';
@@ -20,11 +20,12 @@ const sparklineHeight = 40;
  * The profile used to carry the whole Usage view — range picker, stacked chart,
  * and a per-configuration grid — which made a summary page host a second
  * dashboard. Comparison, ranges, and per-configuration detail belong to Usage,
- * scoped to this Agent by the link below.
+ * scoped to this Agent by the link below. It reads only this Agent's slice of
+ * the token ledger (`stats.agentUsage`), not the Server-wide usage snapshot.
  */
 export function AgentUsageTile({ agent, server }: { agent: Agent; server: ServerDetail }) {
-    const usage = useUsage(server.id);
-    const tokenUsage = usage.data?.tokenUsage;
+    const usage = useAgentUsage(server.id, agent.id);
+    const tokenUsage = usage.data;
     const summary = useMemo(
         () => (tokenUsage ? summarizeAgentTokenUsage(tokenUsage, agent.id, tileDays) : null),
         [agent.id, tokenUsage]

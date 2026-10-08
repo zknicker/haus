@@ -1,12 +1,12 @@
-import type { AgentRunTrigger, AgentRunTriggerInput } from '@haus/api';
-import { and, eq, isNull } from 'drizzle-orm';
+import type { AgentRunTrigger, AgentRunTriggerEntry, AgentRunTriggerInput } from '@haus/api';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, chatsTable } from '../postgres/schema.ts';
-import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { requireAgent } from './agent-delivery-control.ts';
-import { agentTurnTrigger } from './agent-turn-trigger.ts';
+import { requireMemberAgent } from './agent-delivery-control.ts';
+import type { AgentTurnTriggerRecord } from './agent-turn-trigger.ts';
+import { resolveAgentTurnTriggers } from './agent-turn-trigger-previews.ts';
 
 /**
  * The work that woke one run, recorded at dispatch, so a running turn can be
@@ -18,12 +18,41 @@ export async function readAgentRunTrigger(
     member: HausUser | null,
     input: AgentRunTriggerInput
 ): Promise<AgentRunTrigger> {
-    await requireServerMembership(db, member, input.serverId);
-    await requireAgent(db, input);
+    await requireMemberAgent(db, member, input);
 
-    const [row] = await db
+    const [row] = await readTriggerRows(db, member, { ...input, runIds: [input.runId] });
+    const [trigger = null] = await resolveAgentTurnTriggers(db, input.serverId, [row ?? null]);
+    return { trigger };
+}
+
+/**
+ * The triggers of the runs on one Activity History page, so a run still working
+ * is titled in the same read. Callers must have required Server membership.
+ */
+export async function readAgentRunTriggers(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: { agentId: string; runIds: readonly string[]; serverId: string }
+): Promise<AgentRunTriggerEntry[]> {
+    const runIds = [...new Set(input.runIds)];
+    if (runIds.length === 0) {
+        return [];
+    }
+    const rows = await readTriggerRows(db, member, { ...input, runIds });
+    const triggers = await resolveAgentTurnTriggers(db, input.serverId, rows);
+    const byRunId = new Map(rows.map((row, index) => [row.runId, triggers[index] ?? null]));
+    return runIds.map((runId) => ({ runId, trigger: byRunId.get(runId) ?? null }));
+}
+
+async function readTriggerRows(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: { agentId: string; runIds: readonly string[]; serverId: string }
+): Promise<(AgentTurnTriggerRecord & { runId: string })[]> {
+    const rows = await db
         .select({
             chatId: agentRunTriggersTable.chatId,
+            runId: agentRunTriggersTable.runId,
             source: agentRunTriggersTable.source,
             visibleChatId: chatsTable.id,
             workId: agentRunTriggersTable.workId,
@@ -35,7 +64,7 @@ export async function readAgentRunTrigger(
                 eq(chatsTable.serverId, agentRunTriggersTable.serverId),
                 eq(chatsTable.id, agentRunTriggersTable.chatId),
                 isNull(chatsTable.deletedAt),
-                // Membership was required above, so a null member never reaches here.
+                // Membership was required by the caller, so a null member never reaches here.
                 visibleChats(member?.id ?? '')
             )
         )
@@ -43,21 +72,8 @@ export async function readAgentRunTrigger(
             and(
                 eq(agentRunTriggersTable.serverId, input.serverId),
                 eq(agentRunTriggersTable.agentId, input.agentId),
-                eq(agentRunTriggersTable.runId, input.runId)
+                inArray(agentRunTriggersTable.runId, [...input.runIds])
             )
-        )
-        .limit(1);
-
-    return {
-        trigger: agentTurnTrigger(
-            row
-                ? {
-                      chatId: row.chatId,
-                      source: row.source,
-                      visible: row.visibleChatId !== null,
-                      workId: row.workId,
-                  }
-                : null
-        ),
-    };
+        );
+    return rows.map(({ visibleChatId, ...row }) => ({ ...row, visible: visibleChatId !== null }));
 }

@@ -3,26 +3,26 @@ import { and, desc, eq, isNull, type SQL } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, agentTurnsTable, chatsTable } from '../postgres/schema.ts';
-import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { requireAgent } from './agent-delivery-control.ts';
-import { agentTurnTrigger } from './agent-turn-trigger.ts';
+import { requireMemberAgent } from './agent-delivery-control.ts';
+import { resolveAgentTurnTriggers } from './agent-turn-trigger-previews.ts';
 
 /**
  * One Agent's settled turns, newest first. `outputProduced` is the field that
  * separates a silent turn from a lost one, so an observer can settle "did it
  * answer?" without reading Computer-local execution traces. Each turn names the
- * work that woke it in one joined read, gated by the reader's Chat visibility.
+ * work that woke it, gated by the reader's Chat visibility: one joined read plus
+ * one read quoting the waking messages.
  */
 export async function listAgentTurns(
     db: HausDatabase,
     member: HausUser | null,
     input: AgentTurnsInput
 ): Promise<AgentTurn[]> {
-    await requireServerMembership(db, member, input.serverId);
-    await requireAgent(db, input);
+    await requireMemberAgent(db, member, input);
 
     return await readSettledTurns(db, member, {
+        serverId: input.serverId,
         limit: input.limit,
         orderBy: [desc(agentTurnsTable.startedAt)],
         where: and(
@@ -40,7 +40,7 @@ export async function listAgentTurns(
 export async function readSettledTurns(
     db: HausDatabase,
     member: HausUser | null,
-    query: { limit: number; orderBy: SQL[]; where: SQL | undefined }
+    query: { limit: number; orderBy: SQL[]; serverId: string; where: SQL | undefined }
 ): Promise<AgentTurn[]> {
     const rows = await db
         .select({
@@ -82,22 +82,36 @@ export async function readSettledTurns(
         .orderBy(...query.orderBy)
         .limit(query.limit);
 
+    const triggers = await resolveAgentTurnTriggers(
+        db,
+        query.serverId,
+        rows.map((row) =>
+            row.triggerChatId && row.triggerSource && row.triggerWorkId
+                ? {
+                      chatId: row.triggerChatId,
+                      source: row.triggerSource,
+                      visible: row.triggerVisibleChatId !== null,
+                      workId: row.triggerWorkId,
+                  }
+                : null
+        )
+    );
     return rows.map(
-        ({ triggerChatId, triggerSource, triggerVisibleChatId, triggerWorkId, ...row }) => ({
+        (
+            {
+                triggerChatId: _chat,
+                triggerSource: _source,
+                triggerVisibleChatId: _visible,
+                triggerWorkId: _work,
+                ...row
+            },
+            index
+        ) => ({
             ...row,
             activity: agentTurnActivitySummarySchema.parse(row.activity),
             endedAt: row.endedAt.toISOString(),
             startedAt: row.startedAt.toISOString(),
-            trigger: agentTurnTrigger(
-                triggerChatId && triggerSource && triggerWorkId
-                    ? {
-                          chatId: triggerChatId,
-                          source: triggerSource,
-                          visible: triggerVisibleChatId !== null,
-                          workId: triggerWorkId,
-                      }
-                    : null
-            ),
+            trigger: triggers[index] ?? null,
         })
     );
 }

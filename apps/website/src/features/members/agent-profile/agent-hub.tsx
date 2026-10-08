@@ -1,15 +1,16 @@
 import type { Agent } from '@haus/api';
 import * as React from 'react';
+import { useAgentHubReveal } from '../../../hooks/members/use-agent-hub-reveal.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentRuntimeIssue } from '../agent-runtime-issue.tsx';
 import { canRunAgentActions } from './agent-actions-model.ts';
 import { AgentHeader } from './agent-header.tsx';
 import { AgentHubCards } from './agent-hub-cards.tsx';
 import { AgentLoading } from './agent-loading.tsx';
-import { loadAgentProfileContent } from './agent-profile-module.ts';
+import { loadAgentProfileContent, useLoadedAgentProfileContent } from './agent-profile-module.ts';
 import type { AgentSection } from './agent-sections.ts';
 
-const AgentHubContent = React.lazy(async () => ({
+const LazyAgentHubContent = React.lazy(async () => ({
     default: (await loadAgentProfileContent()).AgentHubContent,
 }));
 
@@ -18,6 +19,10 @@ const AgentHubContent = React.lazy(async () => ({
  * it belongs to, what it did lately, and how much it processed. A runtime
  * issue or wake pause leads under the identity, because when the Agent needs a human that is
  * the first thing to read. Lifecycle verbs live in the header's menu.
+ *
+ * The identity and the cards' titles paint at once from the Agent record. Every
+ * remote part — the cards' facts and the lists below — lands as one reveal
+ * (`useAgentHubReveal`), and nothing above the lists moves when it does.
  */
 export function AgentHub({
     agent,
@@ -30,14 +35,33 @@ export function AgentHub({
     onSectionChange: (section: AgentSection) => void;
     server: ServerDetail;
 }) {
+    const revealed = useAgentHubReveal({
+        agentId: agent.id,
+        canView: server.role !== 'member',
+        serverId: server.id,
+    });
+    const loaded = useLoadedAgentProfileContent();
+    const content = { agent, onSectionChange, server };
+
     return (
         <>
             <AgentHeader agent={agent} onDeleted={onDeleted} server={server} />
             <AgentRuntimeIssue agent={agent} canRestart={canRunAgentActions(server.role)} />
-            <AgentHubCards agent={agent} onOpen={onSectionChange} server={server} />
-            <React.Suspense fallback={<AgentLoading label="Loading Agent activity" />}>
-                <AgentHubContent agent={agent} onSectionChange={onSectionChange} server={server} />
-            </React.Suspense>
+            <AgentHubCards
+                agent={agent}
+                onOpen={onSectionChange}
+                revealed={revealed}
+                server={server}
+            />
+            {revealed ? (
+                loaded ? (
+                    <loaded.AgentHubContent {...content} />
+                ) : (
+                    <React.Suspense fallback={<AgentLoading label="Loading Agent activity" />}>
+                        <LazyAgentHubContent {...content} />
+                    </React.Suspense>
+                )
+            ) : null}
         </>
     );
 }

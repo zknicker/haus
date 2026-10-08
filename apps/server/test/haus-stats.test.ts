@@ -168,6 +168,50 @@ test('Members read every durable Computer usage snapshot while Computers are off
     expect(corrected.tokenUsage.breakdown).toHaveLength(1);
 });
 
+test('An Agent profile reads only its own token rows', async () => {
+    await harness.sql`
+        insert into agents (
+            id, server_id, computer_id, desired_runtime_id, desired_model_id,
+            display_name, handle, home_timezone
+        ) values (
+            'agt_abcdef1234567890', ${serverId}, ${computerId}, 'codex', 'gpt-5.6-sol',
+            'Wren', 'stats-wren', 'UTC'
+        )
+    `;
+    await harness.sql`
+        insert into agent_turns (
+            id, server_id, agent_id, computer_id, run_id, started_at, ended_at,
+            status, summary, model_id, runtime_id, token_usage_reported,
+            input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_tokens
+        ) values (
+            'atn_abcdef1234567890', ${serverId}, 'agt_abcdef1234567890', ${computerId},
+            'run_stats_usage_wren', now() - interval '1 minute', now(), 'completed', 'done',
+            'gpt-5.6-sol', 'codex', true, 7, 3, 0, 0, 10
+        )
+    `;
+
+    const ada = await member.trpc.stats.agentUsage.query({
+        agentId: 'agt_1234567890abcdef',
+        serverId,
+    });
+    expect(ada.breakdown.map((row) => row.agentId)).toEqual(['agt_1234567890abcdef']);
+    expect(ada.totals.totalTokens).toBe(170);
+    const wren = await member.trpc.stats.agentUsage.query({
+        agentId: 'agt_abcdef1234567890',
+        serverId,
+    });
+    expect(wren.totals.totalTokens).toBe(10);
+
+    const outsider = await signIn('user_stats_outsider', ['outsider@example.com']);
+    try {
+        await expect(
+            outsider.trpc.stats.agentUsage.query({ agentId: 'agt_1234567890abcdef', serverId })
+        ).rejects.toThrow();
+    } finally {
+        outsider.close();
+    }
+});
+
 test('Stats remain readable after the Server restarts', async () => {
     await harness.sql`update computers set health = 'healthy' where id = ${computerId}`;
     member.close();

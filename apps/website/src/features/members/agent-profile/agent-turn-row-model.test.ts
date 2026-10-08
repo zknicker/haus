@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentTurnOperationCount, ChatMessage } from '@haus/api';
-import type { TurnTriggerMessage } from '../../../hooks/members/use-turn-trigger-messages.ts';
+import type { AgentTurnOperationCount } from '@haus/api';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import {
     formatTurnDuration,
@@ -22,48 +21,45 @@ const dmMessage = {
     chatId: 'cht_dm',
     kind: 'message',
     messageId: 'msg_one',
+    preview: null,
 } as const;
 
 test('a message turn is titled by its first line, with a DM labeled "DM", never the peer', () => {
-    const messages = reads(['msg_one', resolved('**Set up** a project\nin tinylink')]);
-    expect(resolveTurnRowTitle(dmMessage, messages, chats)).toEqual({
+    const trigger = quoting(dmMessage, '**Set up** a project\nin tinylink');
+    expect(resolveTurnRowTitle(trigger, chats)).toEqual({
         kind: 'text',
         place: 'DM',
         text: 'Set up a project in tinylink',
     });
-    expect(
-        resolveTurnRowTitle({ ...dmMessage, chatId: 'cht_product' }, messages, chats)
-    ).toMatchObject({ place: '#product' });
+    expect(resolveTurnRowTitle({ ...trigger, chatId: 'cht_product' }, chats)).toMatchObject({
+        place: '#product',
+    });
 });
 
 test('a message turn title is plain text, never escaped Markdown', () => {
-    const messages = reads([
-        'msg_one',
-        resolved('**Run** sleep 20 \\&\\& echo hi per [the doc](https://haus.dev)'),
-    ]);
-    expect(resolveTurnRowTitle(dmMessage, messages, chats)).toMatchObject({
+    const trigger = quoting(
+        dmMessage,
+        '**Run** sleep 20 \\&\\& echo hi per [the doc](https://haus.dev)'
+    );
+    expect(resolveTurnRowTitle(trigger, chats)).toMatchObject({
         text: 'Run sleep 20 && echo hi per the doc',
     });
 });
 
-test('a title stays blank while its message reads, and is absent when unreadable', () => {
-    expect(resolveTurnRowTitle(dmMessage, reads(), chats)).toEqual({
-        kind: 'pending',
-        place: 'DM',
-    });
-    expect(
-        resolveTurnRowTitle(dmMessage, reads(['msg_one', { status: 'unreadable' }]), chats)
-    ).toEqual({ kind: 'none' });
+test('a message that is gone leaves the title absent', () => {
+    expect(resolveTurnRowTitle(dmMessage, chats)).toEqual({ kind: 'none' });
 });
 
 test('private and unrecorded triggers show nothing; typed work names itself', () => {
-    expect(resolveTurnRowTitle({ kind: 'private' }, reads(), chats)).toEqual({ kind: 'none' });
-    expect(resolveTurnRowTitle(null, reads(), chats)).toEqual({ kind: 'none' });
-    expect(
-        resolveTurnRowTitle({ chatId: 'cht_product', kind: 'reminder' }, reads(), chats)
-    ).toEqual({ kind: 'text', place: '#product', text: 'Reminder' });
+    expect(resolveTurnRowTitle({ kind: 'private' }, chats)).toEqual({ kind: 'none' });
+    expect(resolveTurnRowTitle(null, chats)).toEqual({ kind: 'none' });
+    expect(resolveTurnRowTitle({ chatId: 'cht_product', kind: 'reminder' }, chats)).toEqual({
+        kind: 'text',
+        place: '#product',
+        text: 'Reminder',
+    });
     // A Chat outside the reader's list (a Thread) loses its place, not its title.
-    expect(resolveTurnRowTitle({ chatId: 'cht_thread', kind: 'trigger' }, reads(), chats)).toEqual({
+    expect(resolveTurnRowTitle({ chatId: 'cht_thread', kind: 'trigger' }, chats)).toEqual({
         kind: 'text',
         place: null,
         text: 'Trigger',
@@ -71,10 +67,13 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
 });
 
 test('a task turn reads its task message, and an attachment-only message says so', () => {
-    const task = { chatId: 'cht_dm', kind: 'task', messageId: 'msg_task' } as const;
-    expect(resolveTurnRowTitle(task, reads(['msg_task', resolved('', 1)]), chats)).toMatchObject({
-        text: 'Attachment',
-    });
+    const task = {
+        chatId: 'cht_dm',
+        kind: 'task',
+        messageId: 'msg_task',
+        preview: { attachmentCount: 1, content: '' },
+    } as const;
+    expect(resolveTurnRowTitle(task, chats)).toMatchObject({ text: 'Attachment' });
 });
 
 test('the outcome says what the turn did in words, most telling first', () => {
@@ -182,18 +181,8 @@ function op(
     return { category, completed: completed - failed, failed, interrupted: 0 };
 }
 
-function reads(...entries: [string, TurnTriggerMessage][]) {
-    return new Map(entries);
-}
-
-function resolved(content: string, attachments = 0): TurnTriggerMessage {
-    return {
-        message: {
-            attachments: Array.from({ length: attachments }, () => ({})),
-            content,
-        } as unknown as ChatMessage,
-        status: 'resolved',
-    };
+function quoting(trigger: typeof dmMessage, content: string) {
+    return { ...trigger, preview: { attachmentCount: 0, content } };
 }
 
 function at(minute: number) {

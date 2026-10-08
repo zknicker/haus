@@ -1,8 +1,10 @@
 import type { AgentActivityEvent } from '@haus/api';
+import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { useAgents } from '../members/use-agents.ts';
+import { invalidateServerAgentHistory, patchAgentActivityHistory } from './agent-history-cache.ts';
 import {
     type CurrentAgentActivity,
     type CurrentAgentActivityLiveOverlay,
@@ -28,13 +30,16 @@ const CurrentAgentActivityContext = React.createContext<CurrentAgentActivityCont
 /**
  * Owns the one Server current-activity read and committed activity listener
  * for a persistent Server shell. Live events patch only this volatile cache;
- * Activity History remains an independent read and is never invalidated here.
+ * the provider below writes each event into cached Activity History pages.
+ * Each stream start refreshes current activity and, because the stream never
+ * replays, the Server's mounted Activity History, turn, and usage reads.
  */
 export function useCurrentAgentActivity(
     serverId: string | undefined,
     onEvent?: AgentActivityListener
 ) {
     const utils = hausTrpc.useUtils();
+    const queryClient = useQueryClient();
     const [liveState, setLiveState] = React.useState<{
         byAgentId: ReadonlyMap<string, CurrentAgentActivityLiveOverlay>;
         serverId: string | undefined;
@@ -73,6 +78,7 @@ export function useCurrentAgentActivity(
                 setLiveState({ byAgentId: new Map(), serverId });
                 if (serverId) {
                     void utils.agent.activeActivity.invalidate({ serverId });
+                    void invalidateServerAgentHistory(queryClient, serverId);
                 }
             },
         }
@@ -89,6 +95,10 @@ export function useCurrentAgentActivity(
     return { ...query, data: query.data ? { activities } : query.data };
 }
 
+/**
+ * The Server shell's one `agent.onActivity` stream: current activity, transient
+ * listeners, and the cached Activity History pages each event extends.
+ */
 export function AgentActivityProvider({
     children,
     serverId,
@@ -106,7 +116,9 @@ export function AgentActivityProvider({
         },
         [listeners]
     );
+    const queryClient = useQueryClient();
     const query = useCurrentAgentActivity(serverId, (event) => {
+        patchAgentActivityHistory(queryClient, event);
         for (const listener of listeners) {
             listener(event);
         }

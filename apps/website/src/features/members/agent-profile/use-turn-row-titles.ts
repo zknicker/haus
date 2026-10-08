@@ -1,7 +1,6 @@
 import type { AgentTurnTrigger, Chat } from '@haus/api';
 import { useQueries } from '@tanstack/react-query';
 import { useAgentRunTrigger } from '../../../hooks/members/use-agent-run-trigger.ts';
-import { useTurnTriggerMessages } from '../../../hooks/members/use-turn-trigger-messages.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { queryPolicy } from '../../../lib/query-policy.ts';
@@ -9,10 +8,10 @@ import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import { resolveTurnRowTitle, type TurnRowTitle } from './agent-turn-row-model.ts';
 
 /**
- * Titles for a list of turn rows from any number of Agents. A settled turn
- * carries its trigger; a running turn (at most one per Agent) reads its own
- * from the Server, since it has not settled yet. Trigger messages and the
- * Chat list are each read once for the whole list.
+ * Titles for a list of turn rows from any number of Agents. A turn's trigger
+ * quotes its message, so a row is titled from the read that listed it. Only a
+ * running turn the list did not name (one that started after the read) asks
+ * the Server for its own trigger. The Chat list is read once for the places.
  */
 export function useAgentsTurnRowTitles(
     serverId: string,
@@ -36,13 +35,11 @@ export function useAgentsTurnRowTitles(
             return [turn.runId, trigger] as const;
         })
     );
-    const triggerOf = (turn: AgentActivityTurn) =>
-        turn.trigger ?? (runTriggerOf.has(turn.runId) ? runTriggerOf.get(turn.runId) : null);
-    const titleOf = useTriggerTitles(
-        serverId,
-        turns.map(({ turn }) => triggerOf(turn))
-    );
-    return (turn) => titleOf(triggerOf(turn));
+    const titleOf = useTriggerTitles(serverId);
+    return (turn) =>
+        titleOf(
+            turn.trigger ?? (runTriggerOf.has(turn.runId) ? runTriggerOf.get(turn.runId) : null)
+        );
 }
 
 /** One Agent's turn titles: {@link useAgentsTurnRowTitles} with a single Agent. */
@@ -60,18 +57,13 @@ export function useTurnRowTitles(
 /** The title of one run that is still working, for the hover card's live line. */
 export function useRunTitle(serverId: string, agentId: string, runId: string): TurnRowTitle {
     const trigger = useAgentRunTrigger(serverId, agentId, runId);
-    return useTriggerTitles(serverId, [trigger])(trigger);
+    return useTriggerTitles(serverId)(trigger);
 }
 
 /** `undefined` is a trigger still being read: the title holds blank, never the outcome. */
 function useTriggerTitles(
-    serverId: string,
-    triggers: readonly (AgentTurnTrigger | null | undefined)[]
+    serverId: string
 ): (trigger: AgentTurnTrigger | null | undefined) => TurnRowTitle {
-    const messages = useTurnTriggerMessages(
-        serverId,
-        triggers.map((trigger) => trigger ?? null)
-    );
     const chats = useChats(serverId);
     const chatsById = new Map<string, Pick<Chat, 'kind' | 'name'>>(
         (chats.data ?? []).map((chat) => [chat.id, chat])
@@ -79,5 +71,5 @@ function useTriggerTitles(
     return (trigger) =>
         trigger === undefined
             ? { kind: 'pending', place: null }
-            : resolveTurnRowTitle(trigger, messages, chatsById);
+            : resolveTurnRowTitle(trigger, chatsById);
 }

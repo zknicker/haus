@@ -22,7 +22,14 @@ test('a running turn is titled by the trigger it reads before it settles', async
         chatId: 'cht_product',
         kind: 'reminder',
     });
-    const harness = await mount([running, settled]);
+    const quoted = turn('run_quoted', 'settled', {
+        author: 'human',
+        chatId: 'cht_product',
+        kind: 'message',
+        messageId: 'msg_quoted',
+        preview: { attachmentCount: 0, content: '**Draft** the launch post' },
+    });
+    const harness = await mount([running, settled, quoted]);
 
     expect(harness.titleOf(running)).toEqual({
         kind: 'text',
@@ -34,8 +41,15 @@ test('a running turn is titled by the trigger it reads before it settles', async
         place: '#product',
         text: 'Reminder',
     });
-    // Only the running turn asks for its trigger; a settled one already carries it.
+    expect(harness.titleOf(quoted)).toEqual({
+        kind: 'text',
+        place: '#product',
+        text: 'Draft the launch post',
+    });
+    // Only the running turn asks for its trigger; a settled one already carries it,
+    // quoted, so no row reads a message.
     expect(harness.paths().filter((path) => path === 'agent.runTrigger')).toHaveLength(1);
+    expect(harness.paths()).not.toContain('chat.messages');
     await harness.unmount();
 });
 
@@ -70,18 +84,16 @@ const responses: Record<string, (input: Record<string, unknown>) => unknown> = {
     'agent.runTrigger': (input) => ({
         trigger:
             input.runId === 'run_live'
-                ? { author: 'human', chatId: 'cht_product', kind: 'message', messageId: 'msg_live' }
+                ? {
+                      author: 'human',
+                      chatId: 'cht_product',
+                      kind: 'message',
+                      messageId: 'msg_live',
+                      preview: { attachmentCount: 0, content: 'Ship the changelog' },
+                  }
                 : null,
     }),
     'chat.list': () => [{ id: 'cht_product', kind: 'channel', name: 'product' }],
-    'chat.messages': (input) => ({
-        messages: [
-            { attachments: [], content: 'Ship the changelog', id: String(input.aroundMessageId) },
-        ],
-        nextAfterSequence: null,
-        nextBeforeSequence: null,
-        threads: [],
-    }),
 };
 
 async function mount(turns: readonly AgentActivityTurn[]) {

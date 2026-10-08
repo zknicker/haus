@@ -115,6 +115,20 @@ export function groupAgentActivityTurns(
         .sort((left, right) => Date.parse(right.startedAt) - Date.parse(left.startedAt));
 }
 
+/**
+ * Names each turn the settled read has not titled yet from the triggers its
+ * Activity History pages carry, so a run still working is titled in that read.
+ */
+export function withRunTriggers(
+    turns: readonly AgentActivityTurn[],
+    runTriggers: ReadonlyMap<string, AgentTurnTrigger | null>
+): AgentActivityTurn[] {
+    return turns.map((turn) => {
+        const trigger = turn.trigger ?? runTriggers.get(turn.runId) ?? null;
+        return trigger === turn.trigger ? turn : { ...turn, trigger };
+    });
+}
+
 /** One turn's start, at the density both the journal and its summary rows use. */
 export function formatActivityTurnTime(value: string): string {
     return new Date(value).toLocaleString([], {

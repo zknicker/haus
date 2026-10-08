@@ -15,10 +15,11 @@ import {
     computersTable,
 } from '../postgres/schema.ts';
 
+/** One page of an Agent's committed activity, newest run first, without run triggers. */
 export async function listAgentActivityHistory(
     db: HausDatabase,
     input: AgentActivityHistoryInput
-): Promise<AgentActivityHistoryPage> {
+): Promise<Omit<AgentActivityHistoryPage, 'runTriggers'>> {
     const predicates = [
         eq(agentActivityTable.serverId, input.serverId),
         eq(agentActivityTable.agentId, input.agentId),

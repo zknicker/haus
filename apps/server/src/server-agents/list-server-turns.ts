@@ -24,6 +24,7 @@ export async function listServerTurns(
     const turns = await readSettledTurns(db, member, {
         limit: input.limit + 1,
         orderBy: [desc(agentTurnsTable.startedAt), desc(agentTurnsTable.runId)],
+        serverId: input.serverId,
         where: and(
             eq(agentTurnsTable.serverId, input.serverId),
             input.agentIds ? inArray(agentTurnsTable.agentId, input.agentIds) : undefined,

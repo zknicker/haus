@@ -40,10 +40,13 @@ import { resolveRuntimeConfig } from './runtime-model.ts';
 export function AgentHubCards({
     agent,
     onOpen,
+    revealed,
     server,
 }: {
     agent: Agent;
     onOpen: (section: AgentSection) => void;
+    /** The hub's one reveal: facts stay blank until the hub's reads land together. */
+    revealed: boolean;
     server: ServerDetail;
 }) {
     const canView = server.role !== 'member';
@@ -54,7 +57,7 @@ export function AgentHubCards({
     const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
     const inventory = computer?.reportedInventory;
     const execution = resolveRuntimeConfig(agent, inventory?.runtimes ?? []);
-    const settled = computers.data !== undefined;
+    const settled = revealed && computers.data !== undefined;
     const creator = useAgentCreatorName(agent);
 
     return (
@@ -77,7 +80,7 @@ export function AgentHubCards({
                 icon={ComputerIcon}
                 onPress={() => onOpen('runtime')}
                 status={
-                    computer
+                    revealed && computer
                         ? {
                               color: computerHealthColor(computer.health),
                               label: computerHealthLabel(computer.health),
@@ -87,14 +90,14 @@ export function AgentHubCards({
                 title="Runs on"
             />
             <AgentHubCard
-                fact={formatAgentProfileFact(agent, creator)}
+                fact={revealed ? formatAgentProfileFact(agent, creator) : undefined}
                 icon={UserIcon}
                 onPress={() => onOpen('profile')}
                 title="Profile"
             />
             <AgentHubCard
                 fact={
-                    reminders.data && triggers.data
+                    revealed && reminders.data && triggers.data
                         ? formatAutomationsFact(
                               countAgentAutomations(reminders.data, triggers.data)
                           )
@@ -118,7 +121,7 @@ export function AgentHubCards({
             />
             <AgentHubCard
                 fact={
-                    connections.data
+                    revealed && connections.data
                         ? formatNameList(
                               grantedAgentConnections(connections.data, agent.id).map(
                                   (connection) => connection.name

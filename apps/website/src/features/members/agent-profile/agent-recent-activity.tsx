@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
-import { groupAgentActivityTurns } from './agent-activity-turns.ts';
+import { groupAgentActivityTurns, withRunTriggers } from './agent-activity-turns.ts';
 import { AgentLoading } from './agent-loading.tsx';
 import { TurnRowContent } from './agent-turn-row.tsx';
 import { ProfileListSection } from './profile-list-section.tsx';
@@ -36,7 +36,10 @@ export function AgentRecentActivity({
     const activity = useAgentActivityHistory(server.id, agent.id);
     const settledTurns = useAgentTurns(server.id, agent.id);
     const rows = collapseRecentActivity(
-        groupAgentActivityTurns(activity.events, settledTurns.data ?? []),
+        withRunTriggers(
+            groupAgentActivityTurns(activity.events, settledTurns.data ?? []),
+            activity.runTriggers
+        ),
         recentRowLimit
     );
 

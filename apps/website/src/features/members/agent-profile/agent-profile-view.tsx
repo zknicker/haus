@@ -14,13 +14,14 @@ import { canRunAgentActions } from './agent-actions-model.ts';
 import { AgentHub } from './agent-hub.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 import { AgentHubBand, AgentSectionBand, AgentTrail } from './agent-profile-band.tsx';
-import { loadAgentProfileContent } from './agent-profile-module.ts';
+import { loadAgentProfileContent, useLoadedAgentProfileContent } from './agent-profile-module.ts';
 import type { AgentSection } from './agent-sections.ts';
 
-const AgentWorkspace = React.lazy(async () => ({
+// Cold fallbacks only: a warmed content module renders directly (`useLoadedAgentProfileContent`).
+const LazyAgentWorkspace = React.lazy(async () => ({
     default: (await loadAgentProfileContent()).AgentWorkspace,
 }));
-const AgentSectionBody = React.lazy(async () => ({
+const LazyAgentSectionBody = React.lazy(async () => ({
     default: (await loadAgentProfileContent()).AgentSectionBody,
 }));
 
@@ -98,13 +99,34 @@ export function AgentProfileView({
                         server={server}
                     />
                     <SectionColumn section={section}>
-                        <React.Suspense fallback={<AgentLoading label="Loading Agent section" />}>
-                            <AgentSectionBody agent={agent} section={section} server={server} />
-                        </React.Suspense>
+                        <AgentSectionContent agent={agent} section={section} server={server} />
                     </SectionColumn>
                 </>
             )}
         </div>
+    );
+}
+
+/**
+ * A drill-down section's body, rendered in the profile's own commit when the
+ * content module is warm, so opening a section never flashes a fallback.
+ */
+function AgentSectionContent({
+    agent,
+    section,
+    server,
+}: {
+    agent: Agent;
+    section: Exclude<AgentSection, 'home' | 'workspace'>;
+    server: ServerDetail;
+}) {
+    const loaded = useLoadedAgentProfileContent();
+    return loaded ? (
+        <loaded.AgentSectionBody agent={agent} section={section} server={server} />
+    ) : (
+        <React.Suspense fallback={<AgentLoading label="Loading Agent section" />}>
+            <LazyAgentSectionBody agent={agent} section={section} server={server} />
+        </React.Suspense>
     );
 }
 
@@ -150,36 +172,42 @@ function AgentWorkspacePage({
     const barPlacement: Extract<WorkspaceBarPlacement, 'band' | 'column'> =
         useTabPresence().tabId === null ? 'band' : 'column';
     const menuSections = canAct ? <AgentActionsSections /> : undefined;
+    const loaded = useLoadedAgentProfileContent();
     const trail = (
         <AgentTrail agent={agent} onHome={onHome} serverSlug={server.slug}>
             <WorkspaceRootCrumb>{sectionLabels.workspace}</WorkspaceRootCrumb>
             <WorkspaceOpenFileCrumb />
         </AgentTrail>
     );
+    const workspace = {
+        agent,
+        barPlacement,
+        menuSections,
+        server,
+        toolbarLeading: trail,
+    };
     const page = (
         <div className="@container flex h-full min-h-0 w-full flex-col overflow-hidden">
-            <React.Suspense
-                fallback={
-                    <>
-                        <WorkspacePageToolbar
-                            leading={trail}
-                            menuSections={menuSections}
-                            placement={barPlacement}
-                            selectedPath={null}
-                            title={null}
-                        />
-                        <AgentLoading label="Loading workspace" />
-                    </>
-                }
-            >
-                <AgentWorkspace
-                    agent={agent}
-                    barPlacement={barPlacement}
-                    menuSections={menuSections}
-                    server={server}
-                    toolbarLeading={trail}
-                />
-            </React.Suspense>
+            {loaded ? (
+                <loaded.AgentWorkspace {...workspace} />
+            ) : (
+                <React.Suspense
+                    fallback={
+                        <>
+                            <WorkspacePageToolbar
+                                leading={trail}
+                                menuSections={menuSections}
+                                placement={barPlacement}
+                                selectedPath={null}
+                                title={null}
+                            />
+                            <AgentLoading label="Loading workspace" />
+                        </>
+                    }
+                >
+                    <LazyAgentWorkspace {...workspace} />
+                </React.Suspense>
+            )}
         </div>
     );
     return canAct ? (

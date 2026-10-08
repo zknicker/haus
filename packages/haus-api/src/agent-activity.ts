@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { agentRunTriggerEntrySchema } from './agent-turn-trigger.ts';
 import { idSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -266,10 +267,15 @@ export const agentActivityHistoryInputSchema = z
 
 export type AgentActivityHistoryInput = z.infer<typeof agentActivityHistoryInputSchema>;
 
+/**
+ * `runTriggers` names what woke each run on the page, gated and quoted exactly
+ * as `agent.turns` does, so a run still working is titled in the same read.
+ */
 export const agentActivityHistoryPageSchema = z
     .object({
         events: z.array(agentActivityEventSchema),
         nextBefore: agentActivityCursorSchema.nullable(),
+        runTriggers: z.array(agentRunTriggerEntrySchema),
     })
     .strict();
 

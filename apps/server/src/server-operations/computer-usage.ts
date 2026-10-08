@@ -1,4 +1,9 @@
-import type { ServerUsageOverview, TokenUsageOverview, UsageOverview } from '@haus/api';
+import type {
+    AgentUsageInput,
+    ServerUsageOverview,
+    TokenUsageOverview,
+    UsageOverview,
+} from '@haus/api';
 import { and, desc, eq, gte, lt } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -100,7 +105,24 @@ const tokenFields = [
 
 type TokenTotals = TokenUsageOverview['totals'];
 
-async function readTokenUsage(db: HausDatabase, serverId: string): Promise<TokenUsageOverview> {
+/**
+ * One Agent's slice of the token ledger, in the `stats.live` token shape: its
+ * profile tile reads this rather than every Computer and every Agent's rows.
+ */
+export async function readAgentTokenUsage(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: AgentUsageInput
+): Promise<TokenUsageOverview> {
+    await requireServerMembership(db, member, input.serverId);
+    return await readTokenUsage(db, input.serverId, input.agentId);
+}
+
+async function readTokenUsage(
+    db: HausDatabase,
+    serverId: string,
+    agentId?: string
+): Promise<TokenUsageOverview> {
     const cutoff = new Date();
     cutoff.setUTCHours(0, 0, 0, 0);
     cutoff.setUTCDate(cutoff.getUTCDate() - 89);
@@ -135,6 +157,7 @@ async function readTokenUsage(db: HausDatabase, serverId: string): Promise<Token
         .where(
             and(
                 eq(agentTokenUsageDailyTable.serverId, serverId),
+                agentId ? eq(agentTokenUsageDailyTable.agentId, agentId) : undefined,
                 gte(agentTokenUsageDailyTable.date, cutoffDate),
                 lt(agentTokenUsageDailyTable.date, tomorrowDate)
             )

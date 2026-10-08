@@ -7,15 +7,18 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
+    chatMessagesTable,
     chatsTable,
     computersTable,
     serverMembershipsTable,
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import { agentTurnTrigger } from '../src/server-agents/agent-turn-trigger.ts';
 import { listAgentTurns } from '../src/server-agents/list-agent-turns.ts';
-import { readAgentRunTrigger } from '../src/server-agents/read-agent-run-trigger.ts';
+import {
+    readAgentRunTrigger,
+    readAgentRunTriggers,
+} from '../src/server-agents/read-agent-run-trigger.ts';
 import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -60,8 +63,9 @@ class FakeTransport implements DeliveryTransport {
     }
 }
 
-test('a failed turn still names the human message that woke it', async () => {
+test('a failed turn still names and quotes the human message that woke it', async () => {
     const seed = await seedAgent();
+    await insertMessage(seed, 'msg_triggerhuman01', 'set up **tinylink**');
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
@@ -91,6 +95,7 @@ test('a failed turn still names the human message that woke it', async () => {
             chatId: seed.chatId,
             kind: 'message',
             messageId: 'msg_triggerhuman01',
+            preview: { attachmentCount: 0, content: 'set up **tinylink**' },
         },
     });
 
@@ -121,19 +126,47 @@ test('a running turn names its trigger before it settles, gated like agent.turns
 
     const input = { agentId: seed.agentId, runId, serverId: seed.serverId };
     expect(await listAgentTurns(connection.db, seed.owner, { ...input, limit: 1 })).toEqual([]);
+    // No stored message behind the trigger: it is named, with nothing to quote.
     expect(await readAgentRunTrigger(connection.db, seed.owner, input)).toEqual({
         trigger: {
             author: 'human',
             chatId: seed.chatId,
             kind: 'message',
             messageId: 'msg_triggerrunning01',
+            preview: null,
         },
     });
+    expect(
+        await readAgentRunTriggers(connection.db, seed.owner, {
+            agentId: seed.agentId,
+            runIds: [runId, runId, 'run_unknown02'],
+            serverId: seed.serverId,
+        })
+    ).toEqual([
+        {
+            runId,
+            trigger: {
+                author: 'human',
+                chatId: seed.chatId,
+                kind: 'message',
+                messageId: 'msg_triggerrunning01',
+                preview: null,
+            },
+        },
+        { runId: 'run_unknown02', trigger: null },
+    ]);
 
     const outsider = await addMember(seed.serverId);
     expect(await readAgentRunTrigger(connection.db, outsider, input)).toEqual({
         trigger: { kind: 'private' },
     });
+    expect(
+        await readAgentRunTriggers(connection.db, outsider, {
+            agentId: seed.agentId,
+            runIds: [runId],
+            serverId: seed.serverId,
+        })
+    ).toEqual([{ runId, trigger: { kind: 'private' } }]);
     expect(
         await readAgentRunTrigger(connection.db, seed.owner, { ...input, runId: 'run_unknown01' })
     ).toEqual({ trigger: null });
@@ -155,28 +188,21 @@ test('a turn the Server never dispatched reports no trigger instead of guessing'
     expect(turns.map((turn) => turn.trigger)).toEqual([null]);
 });
 
-test('maps each inbox source to its narrow trigger kind', () => {
-    const at = (source: string, workId = 'msg_one') =>
-        agentTurnTrigger({ chatId: 'cht_one', source, visible: true, workId });
-    expect(at('agent:wren')).toEqual({
-        author: 'agent',
-        chatId: 'cht_one',
-        kind: 'message',
-        messageId: 'msg_one',
+async function insertMessage(
+    seed: Awaited<ReturnType<typeof seedAgent>>,
+    id: string,
+    content: string
+) {
+    await connection.db.insert(chatMessagesTable).values({
+        authorUserId: seed.owner.id,
+        chatId: seed.chatId,
+        content,
+        id,
+        nonce: id,
+        sequence: 1,
+        serverId: seed.serverId,
     });
-    expect(at('task_assignment', 'task-assign:msg_task:3')).toEqual({
-        chatId: 'cht_one',
-        kind: 'task',
-        messageId: 'msg_task',
-    });
-    expect(at('task_assignment', 'not-a-task-key')).toBeNull();
-    expect(at('reminder')).toEqual({ chatId: 'cht_one', kind: 'reminder' });
-    expect(at('trigger')).toEqual({ chatId: 'cht_one', kind: 'trigger' });
-    expect(at('cloud_agent_work')).toEqual({ chatId: 'cht_one', kind: 'cloud_agent' });
-    expect(at('onboarding')).toEqual({ chatId: 'cht_one', kind: 'onboarding' });
-    expect(at('something_new')).toBeNull();
-    expect(agentTurnTrigger(null)).toBeNull();
-});
+}
 
 function summary(agentId: string, runId: string, status: 'completed' | 'failed'): AgentTurnSummary {
     return {
