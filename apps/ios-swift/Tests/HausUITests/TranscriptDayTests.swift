@@ -66,7 +66,7 @@ struct TranscriptDayTests {
             message("r3", at: day(1, hour: 9, minute: 0)),
         ]
 
-        let items = ThreadTranscriptItem.items(anchor: anchor, replies: replies, pending: false, calendar: utc)
+        let items = ThreadTranscriptItem.items(anchor: anchor, replies: replies, calendar: utc)
 
         #expect(items.map(\.id) == [
             "thread-anchor-root",
@@ -83,7 +83,6 @@ struct TranscriptDayTests {
         let items = ThreadTranscriptItem.items(
             anchor: anchor,
             replies: [],
-            pending: false,
             includesInlineReplies: true,
             inlineReplies: [],
             calendar: utc

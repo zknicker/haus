@@ -25,7 +25,6 @@ struct ThreadInlineRepliesTests {
                 content: "A thread reply",
                 createdAt: .now
             )],
-            pending: false,
             includesInlineReplies: true,
             inlineReplies: inlineReplies
         )
@@ -47,8 +46,7 @@ struct ThreadInlineRepliesTests {
     @Test func ordinaryThreadsKeepTheirExistingTranscriptShape() {
         let items = ThreadTranscriptItem.items(
             anchor: ChatFixtures.messages[1],
-            replies: [],
-            pending: false
+            replies: []
         )
 
         #expect(items.map(\.id) == ["thread-anchor-message-2"])
