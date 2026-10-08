@@ -71,6 +71,18 @@ struct ThreadReferenceTests {
         #expect(InAppReferenceRoutes.action(for: URL(string: "https://haus.dev")!) == nil)
     }
 
+    /// Table cells are SwiftUI `Text`, whose links go through `openURL`
+    /// rather than the body text view's coordinator.
+    @Test func openURLHandlesAThreadAndLeavesOtherAddressesToTheSystem() throws {
+        var opened: ThreadReferenceTarget?
+        InAppReferenceRoutes.openThread = { opened = $0 }
+        defer { InAppReferenceRoutes.openThread = nil }
+
+        #expect(InAppReferenceRoutes.handle(try #require(URL(string: "chat://cht_1?thread=msg_2"))))
+        #expect(opened == ThreadReferenceTarget(chatID: "cht_1", anchorMessageID: "msg_2"))
+        #expect(!InAppReferenceRoutes.handle(try #require(URL(string: "https://haus.dev"))))
+    }
+
     @Test func titleIsTheAnchorsFirstLineCutAt64() {
         #expect(ThreadReferenceTarget.title(anchorContent: "\n  \n**Launch** plan for [#product](chat://c)\nmore") == "Launch plan for #product")
         #expect(ThreadReferenceTarget.title(anchorContent: "   ") == "Thread")

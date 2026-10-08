@@ -43,6 +43,9 @@ struct RichMessageTableView: View {
         }
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
+        // Cells are SwiftUI `Text`, not the body's text view, so a Thread chip
+        // in a cell needs the in-app routes on `openURL` to open its Thread.
+        .inAppReferenceRoutes()
     }
 
     private func alignment(_ column: Int) -> RichMessageTableAlignment {
