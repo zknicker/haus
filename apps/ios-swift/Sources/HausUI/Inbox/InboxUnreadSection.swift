@@ -14,6 +14,8 @@ struct InboxUnreadSection: View {
     let now: Date
     let onOpen: (InboxOpenRequest) -> Void
     let onMarkRead: (String) -> Void
+    /// A swipe's Mark read, which the page confirms with a success haptic.
+    var onSwipedRead: () -> Void = {}
 
     var body: some View {
         if let rows {
@@ -42,7 +44,13 @@ struct InboxUnreadSection: View {
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             // Icon-only, as Messages draws it: the system
                             // renders a bare image as a circle with no title.
-                            Button { onMarkRead(row.id) } label: {
+                            Button {
+                                // A swipe commits under the finger, so it
+                                // confirms by touch; the menu's Mark Read
+                                // confirms by the row leaving.
+                                onSwipedRead()
+                                onMarkRead(row.id)
+                            } label: {
                                 Image(systemName: "envelope.open.fill")
                             }
                             .tint(.blue)

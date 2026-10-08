@@ -26,9 +26,14 @@ struct InboxActiveAgentsSection: View {
                             HStack(alignment: .top, spacing: 12) {
                                 ForEach(weeks) { week in
                                     InboxAgentWeekCard(week: week) { onOpen(.agent(week.id)) }
+                                        .transition(.scale(scale: 0.92).combined(with: .opacity))
                                 }
                             }
                             .padding(.vertical, 1)
+                            // An Agent whose week lands after the strip has
+                            // drawn joins it in place; the cards beside it
+                            // slide over rather than reshuffling in one frame.
+                            .animation(.snappy(duration: 0.35), value: weeks.map(\.id))
                         }
                         .scrollIndicators(.hidden)
                         // The strip lives inside the section's inset column but

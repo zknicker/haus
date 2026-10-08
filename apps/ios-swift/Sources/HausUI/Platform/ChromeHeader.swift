@@ -51,17 +51,80 @@ struct ChromeHeader<Leading: View, Center: View, Trailing: View>: View {
     }
 
     var body: some View {
-        ZStack {
-            center()
-
-            HStack(spacing: 12) {
-                leading()
-                Spacer(minLength: 12)
-                trailing()
-            }
+        ChromeHeaderLayout(spacing: 12) {
+            leading().layoutValue(key: ChromeHeaderSlot.self, value: .leading)
+            center().layoutValue(key: ChromeHeaderSlot.self, value: .center)
+            trailing().layoutValue(key: ChromeHeaderSlot.self, value: .trailing)
         }
         .padding(.horizontal, inset)
-        .frame(height: HausChrome.headerHeight)
+        .frame(minHeight: HausChrome.headerHeight)
+        // Bars do not grow with text size past the largest standard size, the
+        // way the system navigation bar does; past it a title would push the
+        // chrome buttons out of the row.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Which slot of a ``ChromeHeader`` a subview fills. An `EmptyView` slot
+/// produces no subview at all, so slots are found by tag, not by position.
+enum ChromeHeaderSlot: LayoutValueKey {
+    enum Slot { case leading, center, trailing }
+    static let defaultValue = Slot.center
+}
+
+/// Leading and trailing chrome hug their edges; the center is truly centered
+/// and is offered only the width between equal side gutters, so a long title
+/// truncates instead of sliding under a chrome button. Without a center, the
+/// leading item takes whatever the trailing one leaves.
+struct ChromeHeaderLayout: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? subviews.reduce(0) { $0 + $1.sizeThatFits(.unspecified).width }
+        let frames = proposals(width: width, subviews: subviews)
+        let height = frames.map { subviews[$0.index].sizeThatFits($0.proposal).height }.max() ?? 0
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for frame in proposals(width: bounds.width, subviews: subviews) {
+            let subview = subviews[frame.index]
+            switch subview[ChromeHeaderSlot.self] {
+            case .leading:
+                subview.place(at: CGPoint(x: bounds.minX, y: bounds.midY), anchor: .leading, proposal: frame.proposal)
+            case .center:
+                subview.place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center, proposal: frame.proposal)
+            case .trailing:
+                subview.place(at: CGPoint(x: bounds.maxX, y: bounds.midY), anchor: .trailing, proposal: frame.proposal)
+            }
+        }
+    }
+
+    private func proposals(
+        width: CGFloat,
+        subviews: Subviews
+    ) -> [(index: Int, proposal: ProposedViewSize)] {
+        func index(_ slot: ChromeHeaderSlot.Slot) -> Int? {
+            subviews.indices.first { subviews[$0][ChromeHeaderSlot.self] == slot }
+        }
+        let leading = index(.leading)
+        let center = index(.center)
+        let trailing = index(.trailing)
+        let trailingWidth = trailing.map { subviews[$0].sizeThatFits(.unspecified).width } ?? 0
+        var result: [(Int, ProposedViewSize)] = []
+        if let trailing { result.append((trailing, .unspecified)) }
+
+        if let center {
+            let leadingWidth = leading.map { subviews[$0].sizeThatFits(.unspecified).width } ?? 0
+            let gutter = max(leadingWidth, trailingWidth)
+            let centerWidth = max(0, width - 2 * (gutter + (gutter > 0 ? spacing : 0)))
+            if let leading { result.append((leading, .unspecified)) }
+            result.append((center, ProposedViewSize(width: centerWidth, height: nil)))
+        } else if let leading {
+            let available = max(0, width - trailingWidth - (trailing == nil ? 0 : spacing))
+            result.append((leading, ProposedViewSize(width: available, height: nil)))
+        }
+        return result
     }
 }
 
@@ -88,11 +151,47 @@ extension View {
     ) -> some View {
         if #available(iOS 26, macOS 26, *) {
             safeAreaBar(edge: edge, spacing: spacing) {
-                content().padding(edge == .top ? .bottom : .top, HausChrome.scrollEdgeRunway)
+                content()
+                    .padding(edge == .top ? .bottom : .top, HausChrome.scrollEdgeRunway)
+                    .background { if edge == .top { ChromeScrollEdge() } }
             }
         } else {
-            safeAreaInset(edge: edge, spacing: spacing, content: content)
+            safeAreaInset(edge: edge, spacing: spacing) {
+                content()
+                    .background { if edge == .top { ChromeScrollEdge() } }
+            }
         }
+    }
+}
+
+/// The frosted edge under top chrome: the status bar and the chrome row sit on
+/// the bar material, which then feathers out across the runway below them.
+///
+/// The system soft edge only dims what scrolls under a bar, and on a
+/// transcript the dissolve is a mask over the rows themselves; either way a
+/// passing line of body text stayed legible behind the clock, a floating title,
+/// and the chrome buttons, and read as two layers of text colliding. Blurring
+/// the region is what the system navigation bar does, so the title and the
+/// buttons always sit on a quiet ground, while the feathered bottom keeps the
+/// header floating rather than capping the screen with a hard edge.
+struct ChromeScrollEdge: View {
+    var body: some View {
+        Rectangle()
+            .fill(.bar)
+            .mask {
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0),
+                        .init(color: .black, location: 0.62),
+                        .init(color: .black.opacity(0), location: 1),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }
 

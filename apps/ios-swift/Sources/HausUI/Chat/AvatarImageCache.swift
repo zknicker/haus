@@ -23,33 +23,41 @@ public final class AvatarImageCache {
 
     private let images = NSCache<NSURL, PlatformImageBox>()
     private var loads: [URL: Task<PlatformImageBox?, Never>] = [:]
-    /// Every avatar this process has decoded at least once. `images` is an
-    /// `NSCache` and drops entries under pressure; without this set a recycled
-    /// row would read "no avatar", raster initials over an avatar it had
-    /// already drawn, and reload — a visible flip and two junk chip bitmaps.
-    private var resolvedURLs: Set<URL> = []
+    /// URLs whose bytes were not on disk when a render asked, so a row redrawn
+    /// before its download lands does not read the disk again for nothing.
+    /// Every other URL — including one `images` evicted under pressure — is
+    /// restored from disk synchronously, so a recycled row never flips to
+    /// initials over an avatar it already drew.
+    private var diskMisses: Set<URL> = []
     /// Bumped by `removeAll()`, so a load that began before it can neither
     /// store its image nor clear the slot of a load that began after it.
     private var generation = 0
+    /// The bytes behind every decoded image. Tests hand in their own; the app
+    /// always uses the one its download session writes to.
+    private let byteCache: URLCache
 
-    init() {
+    init(byteCache: URLCache = AvatarImageCache.defaultByteCache) {
+        self.byteCache = byteCache
         images.countLimit = 100
         images.totalCostLimit = 32 * 1024 * 1024
     }
 
     /// The avatar's decoded pixels, ready for a synchronous render. An entry
-    /// the memory cache has evicted is restored from the disk byte cache; when
-    /// even those bytes are gone the URL stops claiming to be resolved, so the
-    /// caller falls back to initials rather than rendering blank.
+    /// the memory cache has evicted, or one this process has not drawn yet, is
+    /// restored from the disk byte cache, so the first frame after a cold
+    /// launch paints faces the reader has already seen instead of initials.
+    /// Each URL consults the disk at most once until it loads: a URL with no
+    /// stored bytes stops claiming to be resolved and is not looked up again,
+    /// so the caller falls back to initials rather than rendering blank.
     func image(for url: URL) -> AvatarPlatformImage? {
         if let cached = images.object(forKey: url as NSURL)?.image {
             return cached
         }
-        guard resolvedURLs.contains(url) else { return nil }
-        guard let data = Self.byteCache.cachedResponse(for: URLRequest(url: url))?.data,
+        guard !diskMisses.contains(url) else { return nil }
+        guard let data = byteCache.cachedResponse(for: URLRequest(url: url))?.data,
               let decoded = AvatarImageDecoder.decodeCachedBytes(data)
         else {
-            resolvedURLs.remove(url)
+            diskMisses.insert(url)
             return nil
         }
         return store(decoded, for: url).image
@@ -88,8 +96,8 @@ public final class AvatarImageCache {
         for load in loads.values { load.cancel() }
         loads.removeAll()
         images.removeAllObjects()
-        resolvedURLs.removeAll()
-        Self.byteCache.removeAllCachedResponses()
+        diskMisses.removeAll()
+        byteCache.removeAllCachedResponses()
     }
 
     private func store(_ decoded: DecodedAvatarBitmap, for url: URL) -> PlatformImageBox {
@@ -104,7 +112,7 @@ public final class AvatarImageCache {
             forKey: url as NSURL,
             cost: decoded.pixelCost
         )
-        resolvedURLs.insert(url)
+        diskMisses.remove(url)
         return box
     }
 
@@ -112,7 +120,7 @@ public final class AvatarImageCache {
     /// ordinary API traffic and evicts image bytes long before the next launch
     /// needs them. It also outlives the decoded `NSCache`, which is what lets
     /// an evicted avatar come back without a round trip.
-    private static let byteCache = URLCache(
+    static let defaultByteCache = URLCache(
         memoryCapacity: 4 * 1024 * 1024,
         diskCapacity: 64 * 1024 * 1024,
         directory: FileManager.default
@@ -123,7 +131,7 @@ public final class AvatarImageCache {
 
     private static let session: URLSession = {
         let configuration = URLSessionConfiguration.default
-        configuration.urlCache = byteCache
+        configuration.urlCache = defaultByteCache
         return URLSession(configuration: configuration)
     }()
 

@@ -35,7 +35,11 @@ struct InboxAgentWeekCard: View {
                     }
                 }
             }
-            .padding(14)
+            // The trailing inset clears the corner's curve, which starts where
+            // a radius-sized inset ends; the sparkline's last point sat on it.
+            .padding(.vertical, 14)
+            .padding(.leading, 14)
+            .padding(.trailing, 18)
             .frame(width: isStacked ? 280 : 196, alignment: .leading)
             .background(
                 HausPlatformColor.groupedSurface,
@@ -103,7 +107,8 @@ struct InboxSparkline: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let points = Self.points(values, in: proxy.size)
+            // Inset by the stroke so the round caps stay inside the frame.
+            let points = Self.points(values, in: proxy.size, inset: Self.lineWidth / 2)
             if points.count >= 2 {
                 ZStack {
                     if !isFlat {
@@ -113,7 +118,7 @@ struct InboxSparkline: View {
                     line(points)
                         .stroke(
                             .foreground.opacity(isFlat ? 0.3 : 0.85),
-                            style: StrokeStyle(lineWidth: 1.25, lineCap: .round, lineJoin: .round)
+                            style: StrokeStyle(lineWidth: Self.lineWidth, lineCap: .round, lineJoin: .round)
                         )
                 }
             }
@@ -140,14 +145,18 @@ struct InboxSparkline: View {
         return path
     }
 
-    static func points(_ values: [Int], in size: CGSize) -> [CGPoint] {
+    static let lineWidth: CGFloat = 1.25
+
+    static func points(_ values: [Int], in size: CGSize, inset: CGFloat = 0) -> [CGPoint] {
         guard values.count >= 2 else { return [] }
+        let width = max(0, size.width - inset * 2)
+        let height = max(0, size.height - inset * 2)
         let peak = CGFloat(max(values.max() ?? 0, 1))
-        let step = size.width / CGFloat(values.count - 1)
+        let step = width / CGFloat(values.count - 1)
         return values.enumerated().map { index, value in
             CGPoint(
-                x: CGFloat(index) * step,
-                y: size.height - (CGFloat(value) / peak) * size.height
+                x: inset + CGFloat(index) * step,
+                y: inset + height - (CGFloat(value) / peak) * height
             )
         }
     }

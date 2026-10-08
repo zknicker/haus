@@ -89,25 +89,38 @@ public struct ChatDetailsView: View {
         }
     }
 
+    /// The profile leads, so the activity section landing below it moves
+    /// nothing. Nothing of the activity renders while its read is in flight:
+    /// an unsettled read is not an empty one, so it appears once, with what it
+    /// holds.
     @ViewBuilder
     private func activitySections(agent: AgentPresentation) -> some View {
-        Section("Recent activity") {
-            switch historyState {
-            case .idle, .loading:
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-            case .failed:
+        Section {
+            // A real push, so the row's chevron is the stack's own and the
+            // profile arrives on this surface instead of replacing it.
+            NavigationLink(value: ChatDetailsRoute.agentProfile(agent)) {
+                Label("View profile", systemImage: "person.crop.circle")
+            }
+            .accessibilityLabel("View \(agent.name)'s profile")
+        }
+
+        switch historyState {
+        case .idle, .loading:
+            EmptyView()
+        case .failed:
+            Section("Recent activity") {
                 ContentUnavailableView(
                     "Activity unavailable",
                     systemImage: "clock.badge.exclamationmark"
                 )
-            case .loaded(let events) where events.isEmpty:
+            }
+        case .loaded(let events) where events.isEmpty:
+            Section("Recent activity") {
                 Text("No recent activity")
                     .foregroundStyle(.secondary)
-            case .loaded(let events):
+            }
+        case .loaded(let events):
+            Section("Recent activity") {
                 ForEach(events) { event in
                     HStack(spacing: 12) {
                         activityMark(event.state)
@@ -125,15 +138,6 @@ public struct ChatDetailsView: View {
                     .accessibilityElement(children: .combine)
                 }
             }
-        }
-
-        Section {
-            // A real push, so the row's chevron is the stack's own and the
-            // profile arrives on this surface instead of replacing it.
-            NavigationLink(value: ChatDetailsRoute.agentProfile(agent)) {
-                Label("View profile", systemImage: "person.crop.circle")
-            }
-            .accessibilityLabel("View \(agent.name)'s profile")
         }
     }
 

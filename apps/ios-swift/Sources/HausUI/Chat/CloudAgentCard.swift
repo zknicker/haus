@@ -118,8 +118,6 @@ struct CloudAgentCard: View {
                 Link(destination: url) { actionLabel("View PR", systemImage: "arrow.triangle.pull") }
             } else if let providerURL {
                 Link(destination: providerURL) { actionLabel(openInProvider, systemImage: "arrow.up.right") }
-            } else {
-                Button {} label: { actionLabel(openInProvider, systemImage: "arrow.up.right") }.disabled(true)
             }
             Menu {
                 if let providerURL {
@@ -142,6 +140,9 @@ struct CloudAgentCard: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .buttonStyle(.bordered)
+        // An explicit tint: with the inherited one these controls drew gray
+        // and read as disabled. Label ink reads as live on both appearances.
+        .tint(HausPlatformColor.label)
         .controlSize(.small)
         .font(.caption.weight(.medium))
     }

@@ -63,7 +63,7 @@ public enum InboxHappeningNowRows {
         let chatLabel = InboxConversationLabel.text(kind: item.chatKind, name: item.chatName)
         return InboxHappeningNowRow(
             id: "work:\(item.work.messageId)",
-            mark: .cloudAgent,
+            mark: .cloudAgent(isRunning: item.work.status == .running),
             title: workTitle(item.work.title),
             // Status trails the title rather than joining this line: it is the
             // fact that changes while the row sits there. The boxed glyph already

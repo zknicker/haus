@@ -1,80 +1,21 @@
 import Foundation
 import SwiftUI
 
-/// A presentation-only message result. The App adapter resolves the Server's
-/// message author and chat ids into this display-ready shape before handing it
-/// to the view.
-public struct MessageSearchResultPresentation: Identifiable, Hashable, Sendable {
-    public let id: String
-    public let authorName: String
-    public let authorAvatarURL: URL?
-    public let chatID: String
-    public let chatKind: MessageSearchChatKind
-    public let chatName: String
-    public let content: String
-    public let createdAt: Date
-
-    public init(
-        id: String,
-        authorName: String,
-        authorAvatarURL: URL? = nil,
-        chatID: String,
-        chatKind: MessageSearchChatKind = .channel,
-        chatName: String,
-        content: String,
-        createdAt: Date
-    ) {
-        self.id = id
-        self.authorName = authorName
-        self.authorAvatarURL = authorAvatarURL
-        self.chatID = chatID
-        self.chatKind = chatKind
-        self.chatName = chatName
-        // A search result is a message excerpt, and a ```visual fence has no
-        // prose to excerpt: the same rule the transcript follows applies here,
-        // so the row reads the visual's name rather than its raw markup.
-        self.content = VisualFence.previewText(content)
-        self.createdAt = createdAt
-    }
-}
-
-public enum MessageSearchChatKind: Hashable, Sendable {
-    case channel
-    case directMessage
-}
-
-/// Chat-name matching for the search surface.
-enum ServerSearch {
-    /// Chats whose name matches the query, with prefix matches first.
-    static func matchingChats(_ chats: [ChatPresentation], query: String) -> [ChatPresentation] {
-        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !term.isEmpty else { return [] }
-
-        let matches = chats.filter {
-            $0.title.range(of: term, options: [.caseInsensitive, .diacriticInsensitive]) != nil
-        }
-        return matches.sorted { lhs, rhs in
-            hasPrefix(lhs, term) && !hasPrefix(rhs, term)
-        }
-    }
-
-    private static func hasPrefix(_ chat: ChatPresentation, _ term: String) -> Bool {
-        chat.title.range(
-            of: term,
-            options: [.caseInsensitive, .diacriticInsensitive, .anchored]
-        ) != nil
-    }
-}
-
 /// One search surface for the active Server: chats resolve locally from the
 /// Store cache while messages resolve through the Server. Search work is
 /// injected so the view stays independent from tRPC, authentication, and the
 /// App's cache policy.
+///
+/// The field is focused the moment the sheet opens, so the keyboard is already
+/// up when it lands. Opened from inside a Chat, the sheet also offers that Chat
+/// as a narrower scope, using the Server search's own Chat filter.
 struct ServerSearchView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let chats: [ChatPresentation]
-    private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
+    /// The Chat the sheet was opened from, offered as a scope.
+    private let scopeChat: ChatPresentation?
+    private let searchMessages: MessageSearch
     /// The Store advances this only after a committed Agent message. A mounted
     /// non-empty query then reruns; an unmounted sheet owns no search work.
     private let searchRecoveryRevision: Int
@@ -84,6 +25,8 @@ struct ServerSearchView: View {
     private let onSelectMessage: (MessageSearchResultPresentation) -> Bool
 
     @State private var query = ""
+    @State private var scope = ServerSearchScope.everywhere
+    @State private var isSearchPresented = false
     @State private var selectionError: String?
     @State private var results: [MessageSearchResultPresentation] = []
     @State private var hasSearched = false
@@ -93,12 +36,14 @@ struct ServerSearchView: View {
 
     init(
         chats: [ChatPresentation],
-        searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation],
+        scopeChat: ChatPresentation? = nil,
+        searchMessages: @escaping MessageSearch,
         searchRecoveryRevision: Int = 0,
         onSelectChat: @escaping (ChatPresentation) -> Void,
         onSelectMessage: @escaping (MessageSearchResultPresentation) -> Bool
     ) {
         self.chats = chats
+        self.scopeChat = scopeChat
         self.searchMessages = searchMessages
         self.searchRecoveryRevision = searchRecoveryRevision
         self.onSelectChat = onSelectChat
@@ -107,14 +52,13 @@ struct ServerSearchView: View {
 
     var body: some View {
         NavigationStack {
-            content
-                .navigationTitle("Search")
-                .hausInlineNavigationTitle()
-                .searchable(text: $query, prompt: "Channels, Agents, and messages")
+            searchableContent
 #if os(iOS)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
 #endif
+                .navigationTitle("Search")
+                .hausInlineNavigationTitle()
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
@@ -126,12 +70,47 @@ struct ServerSearchView: View {
                     Text(selectionError ?? "Try again.")
                 }
         }
-        .task(id: "\(query)|\(retryToken)|\(searchRecoveryRevision)") {
+        .task(id: "\(query)|\(scope)|\(retryToken)|\(searchRecoveryRevision)") {
             await runSearch(for: query)
         }
+        // Raising the field in the sheet's first turn is too early for the
+        // navigation bar to own it; one turn later the keyboard comes up as
+        // the sheet lands.
+        .task { isSearchPresented = true }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(HausPlatformColor.groupedBackground)
+    }
+
+    @ViewBuilder
+    private var searchableContent: some View {
+        let searchable = content.searchable(
+            text: $query,
+            isPresented: $isSearchPresented,
+            prompt: prompt
+        )
+        if let scopeChat {
+            searchable.searchScopes($scope, activation: .onSearchPresentation) {
+                Text("Everywhere").tag(ServerSearchScope.everywhere)
+                Text(scopeLabel(scopeChat)).tag(ServerSearchScope.chat)
+            }
+        } else {
+            searchable
+        }
+    }
+
+    private var prompt: String {
+        if scope == .chat, let scopeChat { return "Search \(scopeLabel(scopeChat))" }
+        return "Channels, Agents, and messages"
+    }
+
+    private func scopeLabel(_ chat: ChatPresentation) -> String {
+        if case .channel = chat.kind { return "#\(chat.title)" }
+        return chat.title
+    }
+
+    private var scopedChatID: String? {
+        scope == .chat ? scopeChat?.id : nil
     }
 
     private var hasSelectionError: Binding<Bool> {
@@ -141,8 +120,10 @@ struct ServerSearchView: View {
         )
     }
 
+    /// A search narrowed to one Chat is a search of its messages; its name
+    /// matching itself would only offer the Chat the reader is already in.
     private var chatMatches: [ChatPresentation] {
-        ServerSearch.matchingChats(chats, query: query)
+        scopedChatID == nil ? ServerSearch.matchingChats(chats, query: query) : []
     }
 
     @ViewBuilder
@@ -162,7 +143,9 @@ struct ServerSearchView: View {
                     ContentUnavailableView(
                         "No matches",
                         systemImage: "text.magnifyingglass",
-                        description: Text("Try a channel, an Agent name, or a different phrase.")
+                        description: Text(scopedChatID == nil
+                            ? "Try a channel, an Agent name, or a different phrase."
+                            : "Try a different phrase, or search everywhere.")
                     )
                 } else if query.isEmpty {
                     ContentUnavailableView(
@@ -192,7 +175,7 @@ struct ServerSearchView: View {
                         Button {
                             onSelectChat(chat)
                         } label: {
-                            ChatSearchResultRow(chat: chat)
+                            ChatSearchResultRow(chat: chat, query: query)
                         }
                         .buttonStyle(.plain)
                         .listRowInsets(searchRowInsets)
@@ -209,7 +192,7 @@ struct ServerSearchView: View {
                                 return
                             }
                         } label: {
-                            MessageSearchResultRow(result: result)
+                            MessageSearchResultRow(result: result, query: query)
                         }
                         .buttonStyle(.plain)
                         .listRowInsets(searchRowInsets)
@@ -223,6 +206,7 @@ struct ServerSearchView: View {
         .listStyle(.inset)
 #endif
         .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.immediately)
         .background(HausPlatformColor.groupedBackground)
     }
 
@@ -277,7 +261,7 @@ struct ServerSearchView: View {
             try await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }
             isSearching = true
-            let results = try await searchMessages(term)
+            let results = try await searchMessages(term, scopedChatID)
             guard !Task.isCancelled else { return }
             self.results = results
             hasSearched = true
@@ -293,6 +277,3 @@ struct ServerSearchView: View {
         }
     }
 }
-
-// Chat and message results share one row inset so a single-line chat row and a
-// multi-line message row read as the same list rhythm.

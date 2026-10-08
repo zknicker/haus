@@ -10,8 +10,8 @@ import SwiftUI
 struct SidebarUtilityRow: View {
     let title: String
     let icon: HausIconName
-    let glyphColumn: CGFloat
-    let capsuleBleed: CGFloat
+    let metrics: SidebarRowMetrics
+    let isSelected: Bool
     let action: () -> Void
 
     /// The family's own 1.5 reads thin against a row's body text.
@@ -25,16 +25,16 @@ struct SidebarUtilityRow: View {
                 // a larger share of it than `ChannelIconBox` gives its own
                 // boxed glyph. `HausIcon` reads this as a font size, so a wide
                 // glyph still fits the column.
-                HausIcon(icon, size: (glyphColumn * 0.8).rounded(), weight: Self.glyphWeight)
-                    .frame(width: glyphColumn, height: glyphColumn)
+                HausIcon(icon, size: (metrics.glyph * 0.8).rounded(), weight: Self.glyphWeight)
+                    .frame(width: metrics.glyph, height: metrics.glyph)
                 Text(title)
+                    .lineLimit(metrics.titleLineLimit)
                 Spacer(minLength: 0)
             }
             .foregroundStyle(.primary)
-            .padding(.horizontal, capsuleBleed)
-            .frame(height: 42)
+            .sidebarRowFrame(metrics, isSelected: isSelected)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.pressableRow)
+        .buttonStyle(.pressableRow(cornerRadius: metrics.pressRadius))
     }
 }

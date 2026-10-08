@@ -89,15 +89,9 @@ public struct SettingsSheet: View {
             .navigationTitle("Settings")
             .hausInlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Button { dismiss() } label: {
-                        HausIcon(.close, size: 19, weight: GlassChromeButton.iconGlyphWeight)
-                    }
-                    // The sheet's blue tint belongs to its rows and pickers.
-                    // This control is chrome and reads in label colour, like
-                    // the back chevron a pushed screen puts on the same rail.
-                    .foregroundStyle(HausPlatformColor.label)
-                    .accessibilityLabel("Close settings")
+                // The same Done every other sheet in the app closes with.
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
                 }
             }
             .navigationDestination(for: SettingsRoute.self) { route in
