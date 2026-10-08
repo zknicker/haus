@@ -157,13 +157,9 @@ struct AuthenticatedHausView: View {
                             return await store.send(content, to: chat.id, attachments: attachments)
                         case .implicitAgentDM(let agent):
                             guard attachments.isEmpty else { return false }
-                            switch await store.sendAgentDM(content, to: agent.id) {
-                            case .sent(let chatID):
-                                if let chatID { selectedDestinationID = .chat(chatID) }
-                                return true
-                            case .failed: return true
-                            case .rejected: return false
-                            }
+                            let outcome = await store.sendAgentDM(content, to: agent.id)
+                            if case .sent(let chatID?) = outcome { selectedDestinationID = .chat(chatID) }
+                            return outcome != .rejected
                         }
                     },
                     onSendInlineReply: { destination, content, attachments, reference in
