@@ -4,8 +4,9 @@ import SwiftUI
 /// Which Agents are answering this Chat right now, just above its composer:
 /// their avatars on the transcript's avatar rail, then a softly shimmering
 /// line — the Agent's latest thought while one is up, "Juniper is typing"
-/// otherwise. It takes space only while someone is answering, so the last
-/// message rises to make room the way a reply would.
+/// otherwise. It takes space only while someone is answering, and opens that
+/// space a frame at a time (`ChatTypingReveal`), so the last message glides up
+/// to make room the way a reply would.
 ///
 /// The screen owns the model, so the strip's state goes away with the Chat.
 /// A foreground return reconnects, which re-reads the durable engagements.
@@ -23,6 +24,7 @@ struct ChatTypingStrip: View {
         let label = ChatTypingLabel.text(typists.map(\.name))
         let thought = label == nil ? nil : model.shownThought
 
+        let motion = reduceMotion ? Animation.easeOut(duration: 0.2) : .smooth(duration: 0.32)
         VStack(spacing: 0) {
             if let label {
                 ChatTypingRow(
@@ -40,7 +42,8 @@ struct ChatTypingStrip: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(reduceMotion ? .easeOut(duration: 0.2) : .smooth(duration: 0.32), value: label)
+        .modifier(ChatTypingReveal(isOpen: label != nil, animation: motion))
+        .animation(motion, value: label)
         .task(id: ConnectionKey(chatID: chatID, generation: foregroundGeneration)) {
             await source.connect(chatID, model)
         }
