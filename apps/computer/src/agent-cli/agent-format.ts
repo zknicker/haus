@@ -88,10 +88,32 @@ export function shortMessageId(messageId: string): string {
 /**
  * Every product record a Message carries rides its line in one fixed order:
  * attachments, the task metadata, delegated Cloud Agent
- * work, then the Agent this Message created.
+ * work, the Agent this Message created, then its reactions.
  */
 function messageSuffixes(message: AgentCliMessage): string {
-    return `${formatAttachmentSuffix(message.attachments)}${taskSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}`;
+    return `${formatAttachmentSuffix(message.attachments)}${taskSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}${formatReactionsSuffix(message.reactions)}`;
+}
+
+const reactionActorLimit = 3;
+
+/**
+ * Reactions are visible on reads but never wake an Agent. Each emoji lists its
+ * actors in arrival order, capped so a popular message stays one short line.
+ */
+export function formatReactionsSuffix(reactions: AgentCliMessage['reactions']): string {
+    const groups = (reactions ?? []).filter((reaction) => reaction.actors.length > 0);
+    if (groups.length === 0) {
+        return '';
+    }
+    const rendered = groups.map(({ actors, emoji }) => {
+        const shown = actors
+            .slice(0, reactionActorLimit)
+            .map((actor) => `@${actor.handle ?? 'unknown'}`)
+            .join(', ');
+        const hidden = actors.length - reactionActorLimit;
+        return `${emoji} ${shown}${hidden > 0 ? ` +${hidden} more` : ''}`;
+    });
+    return ` [reactions: ${rendered.join(' · ')}]`;
 }
 
 /** Task-messages ride every surface with their metadata suffix (D8). */
