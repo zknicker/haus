@@ -6,31 +6,26 @@ import {
 import { z } from 'zod';
 import {
     readAmazonProductDetail,
-    readAmazonProductSummaries,
+    readAmazonProductSummary,
 } from '../../amazon-products/read-products.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-/** One result per requested product; `null` when no RankWrangler account is connected. */
-export const amazonProducts = memberProcedure
-    .input(
-        z.object({
-            serverId: z.string(),
-            products: z.array(amazonProductIdentitySchema).min(1).max(50),
-        })
-    )
-    .output(z.array(amazonProductResultSchema).nullable())
-    .query(async ({ ctx, input }) => {
-        const results = await readAmazonProductSummaries(
-            ctx.hausDb,
-            ctx.mcpRuntime,
-            ctx.member,
-            input
-        );
-        return results?.map((result) => amazonProductResultSchema.parse(result)) ?? null;
-    });
+const productInput = amazonProductIdentitySchema.extend({ serverId: z.string() });
+
+/** One chip's summary; `null` when no RankWrangler account is connected. */
+export const amazonProduct = memberProcedure
+    .input(productInput)
+    .output(amazonProductResultSchema.nullable())
+    .query(
+        async ({ ctx, input }) =>
+            await readAmazonProductSummary(ctx.hausDb, ctx.mcpRuntime, ctx.member, {
+                serverId: input.serverId,
+                product: { asin: input.asin, marketplaceId: input.marketplaceId },
+            })
+    );
 
 export const amazonProductDetail = memberProcedure
-    .input(amazonProductIdentitySchema.extend({ serverId: z.string() }))
+    .input(productInput)
     .output(amazonProductDetailSchema.nullable())
     .query(
         async ({ ctx, input }) =>

@@ -8,7 +8,7 @@ import { McpUpstreamError } from '../server-mcp/errors.ts';
 import {
     assertSameProduct,
     parseProductDetails,
-    parseProductSummaries,
+    parseProductSummary,
     RankWranglerError,
     summaryFields,
 } from './rankwrangler-payload.ts';
@@ -18,45 +18,29 @@ export type RankWranglerRead = (args: Record<string, unknown>) => Promise<unknow
 const defaultRetryAfterSeconds = 2;
 
 /**
- * Chip summaries from one RankWrangler `getMany` per batch. A batch failure
- * applies to every product in it: transient → `temporarilyUnavailable`, else
- * `unavailable`. A product the response omits is `unavailable`. Never rejects.
+ * One chip summary from one RankWrangler `get`. A transient failure is
+ * `temporarilyUnavailable`; any other failure, including an unknown ASIN, is
+ * `unavailable`. Never rejects.
  */
-export function lookupProductSummaries(
+export async function lookupProductSummary(
     read: RankWranglerRead,
-    products: AmazonProductIdentity[]
-): Map<string, Promise<AmazonProductResult>> {
-    const resolve = read({ operation: 'getMany', products, include: [...summaryFields] })
-        .then(parseProductSummaries)
-        .then(
-            (list) =>
-                (product: AmazonProductIdentity): AmazonProductResult => {
-                    const found = list.find(
-                        (item) =>
-                            item.asin === product.asin &&
-                            item.marketplaceId === product.marketplaceId
-                    );
-                    return found
-                        ? { status: 'found', product: found }
-                        : { ...product, status: 'unavailable' };
-                },
-            (error: unknown) => {
-                const retryAfter = transientRetryAfter(error);
-                // Retryable is polled by the App; stay quiet for it.
-                if (retryAfter === null) {
-                    warn('Amazon product summaries failed', error);
-                }
-                return (product: AmazonProductIdentity): AmazonProductResult =>
-                    retryAfter === null
-                        ? { ...product, status: 'unavailable' }
-                        : {
-                              ...product,
-                              status: 'temporarilyUnavailable',
-                              retryAfterSeconds: retryAfter,
-                          };
-            }
+    product: AmazonProductIdentity
+): Promise<AmazonProductResult> {
+    try {
+        const summary = parseProductSummary(
+            await read({ operation: 'get', ...product, include: [...summaryFields] })
         );
-    return new Map(products.map((product) => [product.asin, resolve.then((of) => of(product))]));
+        assertSameProduct(summary, product);
+        return { status: 'found', product: summary };
+    } catch (error) {
+        const retryAfter = transientRetryAfter(error);
+        if (retryAfter === null) {
+            warn('Amazon product summary failed', error);
+            return { ...product, status: 'unavailable' };
+        }
+        // Retryable is retried by the App; stay quiet for it.
+        return { ...product, status: 'temporarilyUnavailable', retryAfterSeconds: retryAfter };
+    }
 }
 
 export async function lookupProductDetail(

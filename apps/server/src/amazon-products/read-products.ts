@@ -10,12 +10,10 @@ import { mcpConnectionsTable } from '../postgres/schema.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { lookupProductDetail, lookupProductSummaries } from './lookup-products.ts';
+import { lookupProductDetail, lookupProductSummary } from './lookup-products.ts';
 import { type ProductCache, readThroughCache } from './product-cache.ts';
 
 const cacheTtlMs = 5 * 60_000;
-/** Short enough that the App's bounded refetch reaches RankWrangler again. */
-const pendingEnrichmentTtlMs = 2000;
 
 interface RuntimeCaches {
     details: ProductCache<AmazonProductDetail>;
@@ -27,29 +25,24 @@ export function clearAmazonProductCache(runtime: McpRuntime) {
     caches.delete(runtime);
 }
 
-/**
- * Chip summaries, one result per requested product. `null` means the Server
- * has no connected RankWrangler account.
- */
-export async function readAmazonProductSummaries(
+/** One chip summary; `null` means the Server has no connected RankWrangler account. */
+export async function readAmazonProductSummary(
     db: HausDatabase,
     runtime: McpRuntime,
     member: HausUser | null,
-    input: { serverId: string; products: AmazonProductIdentity[] }
-): Promise<AmazonProductResult[] | null> {
+    input: { serverId: string; product: AmazonProductIdentity }
+): Promise<AmazonProductResult | null> {
     const source = await connectedSource(db, runtime, member, input.serverId);
     if (!source) {
         return null;
     }
-    return await Promise.all(
-        readThroughCache({
-            cache: source.caches.summaries,
-            keyOf: source.keyOf,
-            lookup: (missing) => lookupProductSummaries(source.read, missing),
-            products: uniqueProducts(input.products),
-            ttlOf: summaryTtl,
-        })
-    );
+    return await readThroughCache({
+        cache: source.caches.summaries,
+        key: source.keyOf(input.product),
+        lookup: () => lookupProductSummary(source.read, input.product),
+        // Transient and final misses are never cached.
+        ttlOf: (result) => (result.status === 'found' ? cacheTtlMs : null),
+    });
 }
 
 /** Rejects when RankWrangler cannot provide the product's market data. */
@@ -63,17 +56,12 @@ export async function readAmazonProductDetail(
     if (!source) {
         return null;
     }
-    const [detail] = readThroughCache({
+    return await readThroughCache({
         cache: source.caches.details,
-        keyOf: source.keyOf,
-        lookup: (missing) =>
-            new Map(
-                missing.map((product) => [product.asin, lookupProductDetail(source.read, product)])
-            ),
-        products: [input.product],
+        key: source.keyOf(input.product),
+        lookup: () => lookupProductDetail(source.read, input.product),
         ttlOf: () => cacheTtlMs,
     });
-    return detail ? await detail : null;
 }
 
 async function connectedSource(
@@ -110,16 +98,4 @@ async function connectedSource(
             JSON.stringify([connection.id, connection.accountLabel, product]),
         read: (args: Record<string, unknown>) => runtime.readAmazonProducts(connection.id, args),
     };
-}
-
-/** Transient and final misses are never cached; unfinished enrichment only briefly. */
-function summaryTtl(result: AmazonProductResult): number | null {
-    if (result.status !== 'found') {
-        return null;
-    }
-    return result.product.enrichment === 'pending' ? pendingEnrichmentTtlMs : cacheTtlMs;
-}
-
-function uniqueProducts(products: AmazonProductIdentity[]): AmazonProductIdentity[] {
-    return [...new Map(products.map((product) => [product.asin, product])).values()];
 }

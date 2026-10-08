@@ -19,8 +19,6 @@ export const amazonProductSummarySchema = amazonProductIdentitySchema.extend({
     thumbnail: amazonThumbnailSchema,
     cutoutThumbnail: amazonThumbnailSchema.nullable().default(null),
     amazonListingStatus: z.enum(['active', 'deleted']),
-    /** `pending` while RankWrangler is still generating the short name and cutout. */
-    enrichment: z.enum(['ready', 'pending']).default('ready'),
 });
 export const amazonProductDetailSchema = amazonProductSummarySchema.extend({
     price: z
@@ -34,7 +32,7 @@ export type AmazonProductDetail = z.infer<typeof amazonProductDetailSchema>;
 export const amazonProductMaxRetryAfterSeconds = 30;
 
 /**
- * One requested product's outcome in a batched `mcp.amazonProducts` read.
+ * One product's outcome from `mcp.amazonProduct`.
  * `temporarilyUnavailable` is a transient upstream problem worth retrying after
  * `retryAfterSeconds`; `unavailable` is final (unknown ASIN or a permanent error).
  */
@@ -47,10 +45,6 @@ export const amazonProductResultSchema = z.discriminatedUnion('status', [
     amazonProductIdentitySchema.extend({ status: z.literal('unavailable') }),
 ]);
 export type AmazonProductResult = z.infer<typeof amazonProductResultSchema>;
-
-export function amazonProductResultAsin(result: AmazonProductResult): string {
-    return result.status === 'found' ? result.product.asin : result.asin;
-}
 
 export function parseAmazonProduct(value: string): AmazonProductIdentity | null {
     let asin = value;

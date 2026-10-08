@@ -1,5 +1,3 @@
-import type { AmazonProductIdentity } from '@haus/api';
-
 const cacheLimit = 500;
 /** Covers the in-flight read until its settled value decides the real lifetime. */
 const inFlightTtlMs = 5 * 60_000;
@@ -11,39 +9,24 @@ interface CacheEntry<T> {
 export type ProductCache<T> = Map<string, CacheEntry<T>>;
 
 /**
- * Serves fresh entries, looks up the rest in one call, and caches each new
- * lookup. In-flight lookups are shared; once settled, `ttlOf` sets the lifetime
- * (`null` evicts), and rejections are evicted.
+ * Serves a fresh entry or starts one lookup and caches it. An in-flight lookup
+ * is shared; once settled, `ttlOf` sets the lifetime (`null` evicts), and a
+ * rejection is evicted.
  */
 export function readThroughCache<T>(input: {
     cache: ProductCache<T>;
-    keyOf: (product: AmazonProductIdentity) => string;
-    lookup: (missing: AmazonProductIdentity[]) => Map<string, Promise<T>>;
-    products: AmazonProductIdentity[];
+    key: string;
+    lookup: () => Promise<T>;
     ttlOf: (value: T) => number | null;
-}): Promise<T>[] {
-    const { cache, keyOf, products } = input;
-    const now = Date.now();
-    const missing = products.filter((product) => {
-        const entry = cache.get(keyOf(product));
-        return !entry || entry.expires <= now;
-    });
-    const lookups = missing.length > 0 ? input.lookup(missing) : new Map<string, Promise<T>>();
-    // Resolve every value before storing, so eviction by this call cannot drop a hit.
-    const values = products.map((product) => {
-        const value = lookups.get(product.asin) ?? cache.get(keyOf(product))?.value;
-        if (!value) {
-            throw new Error('Amazon product lookup was not scheduled.');
-        }
-        return value;
-    });
-    for (const product of missing) {
-        const value = lookups.get(product.asin);
-        if (value) {
-            storeEntry(cache, keyOf(product), value, input.ttlOf);
-        }
+}): Promise<T> {
+    const { cache, key } = input;
+    const cached = cache.get(key);
+    if (cached && cached.expires > Date.now()) {
+        return cached.value;
     }
-    return values;
+    const value = input.lookup();
+    storeEntry(cache, key, value, input.ttlOf);
+    return value;
 }
 
 function storeEntry<T>(

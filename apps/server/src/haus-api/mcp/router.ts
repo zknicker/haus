@@ -27,7 +27,7 @@ import { listMcpConnections, setMcpGrant } from '../../server-mcp/state.ts';
 import { memberProcedure } from '../server/procedure.ts';
 import { emitServerUpdated } from '../server-events.ts';
 import { createRouter } from '../trpc.ts';
-import { amazonProductDetail, amazonProducts } from './amazon-products.ts';
+import { amazonProduct, amazonProductDetail } from './amazon-products.ts';
 
 const guarded = memberProcedure.use(async ({ next }) => {
     const result = await next();
@@ -42,7 +42,7 @@ const guarded = memberProcedure.use(async ({ next }) => {
 });
 
 export const mcpRouter = createRouter({
-    amazonProducts,
+    amazonProduct,
     amazonProductDetail,
     add: guarded
         .input(mcpConnectionCreateSchema)

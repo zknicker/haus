@@ -94,7 +94,7 @@ export function createServerUpdateHandler(
         }
         if (event.scope === 'mcp') {
             void utils.mcp.list.invalidate({ serverId });
-            void utils.mcp.amazonProducts.invalidate({ serverId });
+            void utils.mcp.amazonProduct.invalidate({ serverId });
             void utils.mcp.amazonProductDetail.invalidate({ serverId });
             return;
         }

@@ -54,51 +54,34 @@ export function rankWranglerPayload(result: unknown): unknown {
     return JSON.parse(text);
 }
 
-export function parseProductDetails(result: unknown): AmazonProductDetail {
-    const { data } = z
-        .object({
-            operation: z.literal('get'),
-            data: z.object({
-                asin: z.string(),
-                marketplaceId: z.string(),
-                listing: amazonProductSummarySchema.omit({ asin: true, marketplaceId: true }),
-                price: amazonProductDetailSchema.shape.price,
-            }),
-        })
-        .parse(rankWranglerPayload(result));
-    return amazonProductDetailSchema.parse({
-        ...data,
-        ...data.listing,
-    });
-}
-
 export const summaryFields = ['shortName', 'cutoutThumbnail'] as const;
 
-const summaryItemSchema = amazonProductSummarySchema
-    .omit({ brand: true, cutoutThumbnail: true, enrichment: true, shortName: true })
-    .extend({
-        shortName: amazonProductSummarySchema.shape.shortName.unwrap(),
-        cutoutThumbnail: z.union([
-            amazonProductSummarySchema.shape.thumbnail,
-            z.object({ status: z.literal('pending') }),
-        ]),
-        pending: z.array(z.enum(summaryFields)),
-    });
+const getPayloadSchema = z.object({
+    operation: z.literal('get'),
+    data: z.object({
+        asin: z.string(),
+        marketplaceId: z.string(),
+        listing: amazonProductSummarySchema.omit({ asin: true, marketplaceId: true }),
+        price: amazonProductDetailSchema.shape.price,
+    }),
+});
 
 /**
- * `getMany` with `include: summaryFields`. A non-empty `pending` means
- * RankWrangler is still generating those fields; empty means settled.
+ * `get` with `include: summaryFields`. RankWrangler waits for the short name
+ * and cutout, settling unfinished ones as `null` / `unavailable`.
  */
-export function parseProductSummaries(result: unknown): AmazonProductSummary[] {
-    return z
-        .object({ operation: z.literal('getMany'), data: z.array(summaryItemSchema) })
-        .parse(rankWranglerPayload(result))
-        .data.map(({ pending, cutoutThumbnail, ...item }) => ({
-            ...item,
-            brand: null,
-            cutoutThumbnail: cutoutThumbnail.status === 'pending' ? null : cutoutThumbnail,
-            enrichment: pending.length > 0 ? 'pending' : 'ready',
-        }));
+export function parseProductSummary(result: unknown): AmazonProductSummary {
+    const { data } = getPayloadSchema.parse(rankWranglerPayload(result));
+    return amazonProductSummarySchema.parse({ ...data.listing, ...identityOf(data) });
+}
+
+export function parseProductDetails(result: unknown): AmazonProductDetail {
+    const { data } = getPayloadSchema.parse(rankWranglerPayload(result));
+    return amazonProductDetailSchema.parse({
+        ...data.listing,
+        ...identityOf(data),
+        price: data.price,
+    });
 }
 
 export function assertSameProduct(
@@ -108,6 +91,10 @@ export function assertSameProduct(
     if (actual.asin !== expected.asin || actual.marketplaceId !== expected.marketplaceId) {
         throw new Error('RankWrangler returned a different product.');
     }
+}
+
+function identityOf(data: { asin: string; marketplaceId: string }) {
+    return { asin: data.asin, marketplaceId: data.marketplaceId };
 }
 
 function parseJson(text: string | undefined): unknown {
