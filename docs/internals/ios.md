@@ -54,7 +54,8 @@ transcript's avatar rail and one shimmering line — the latest thought while on
 Chat-scoped, so `HausStoreEngagement` subscribes to `chat.onEngagement` and `chat.onThought` only for
 as long as the strip's task lives, re-reads `chat.engagements` on every (re)connect, restarts a
 stream the transport will not retry with the Server-wide streams' capped backoff, and reconnects
-after a background return. `ChatTypingModel` ports the App's timing: a `--done` reply holds its Agent
+after a background return. A newer Server never breaks the stream: an engagement frame of an unknown
+type is skipped (`ChatEngagementFrame`), and an unknown end reason reads as settled. `ChatTypingModel` ports the App's timing: a `--done` reply holds its Agent
 until the reply is in the transcript (two seconds at most), thoughts pace and extend as on the web, and
 both clear the moment their run stops engaging the Chat. Tapping the strip brings back the latest
 thought, the phone's stand-in for the App's hover recall. The App's emoji faces are not ported.
@@ -416,8 +417,9 @@ controller of their own), which reads the page through `agent.workspaceFile` —
 read — and draws it in `VisualWebView` with scrolling on, the app's tokens injected after `<head>` and
 a viewport rule added when the page has none. Blank while it loads; a Computer that does not answer is
 a calm unavailable state with Try Again, never an error string. A read that never reached the Server
-(a `URLError`), or a relay failure while the App's live streams are down (`isConnected` false), says
-the phone is offline instead, since blaming the Computer would name the wrong thing to fix. The App installs the reader in
+(a `TRPCClientError.transport` whose `URLError` code means no route — `isNoConnection`), or a relay or
+transport failure while the App's live streams are down (`isConnected` false), says the phone is
+offline instead, since blaming the Computer would name the wrong thing to fix. The App installs the reader in
 `ArtifactPageReader` at its root, beside `InAppReferenceRoutes`.
 
 An Agent's message that answers a Reminder or Trigger fire carries a `cause` (ADR 0026), and the Chat
@@ -583,12 +585,17 @@ confirming verb (Create, Save); an informational sheet with nothing to confirm �
 details, Archived, and the Settings root alike — uses Done in the confirmation slot; and a pushed
 screen uses the system back chevron rather than an explicit control.
 
-A failure the reader should know about and no surface owns — a message that did not send, a Cloud
-Agent refresh that failed — reaches them as one calm notice under the chrome row
-(`HausShellNoticeHost`): it reads the Store's `sendError` through a closure so only the notice
-observes it, is announced to VoiceOver, overlays rather than moves content, and leaves on its own
-after four seconds or on a tap. An error already present when the shell mounts is not news and is
-not shown.
+A user-initiated failure the reader should know about and no surface owns — a message that did not
+send, a page of history or replies they asked for that did not load, a Cloud Agent refresh that
+failed — reaches them as one calm notice under the chrome row (`HausShellNoticeHost`). The Store's
+`notice` is a `HausShellNotice`: a fixed product-copy reason plus a fresh id, so a repeat of the same
+failure shows again and no transport or Server error string ever reaches the reader. Background work
+(event catch-up, foreground refresh, stream recovery, history refresh) logs instead: the offline
+indicator already speaks for connectivity. A surface with its own failure state (the Inline replies
+region's Retry, the jump-to-message alert) does not also raise a notice. The host reads `notice`
+through a closure so only it observes the value, announces it to VoiceOver, overlays rather than
+moves content, and leaves on its own after four seconds or on a tap. A notice already present when
+the shell mounts is not news and is not shown.
 
 Search focuses its field as the sheet opens, so the keyboard is already up. Each result marks the
 matched term in label ink and semibold, and a message whose match falls late starts its excerpt at a
@@ -900,7 +907,9 @@ own), so the client never patches unread locally.
 A cold launch paints from an on-disk launch snapshot before the network answers
 (`LaunchSnapshot`, `HausStoreLaunchSnapshot.swift`): the last Server list, Chat list, Agent and
 member directories, and up to three bounded latest-message pages (the canvas and open Chats first),
-written as versioned JSON to Application Support atomically, off the main actor, at most once per two
+written as versioned JSON to Application Support atomically (file protection until first unlock, the
+directory excluded from iCloud and Finder backups; Application Support rather than Caches so storage
+pressure cannot purge the paint), off the main actor, at most once per two
 seconds and again when the app leaves the foreground. It is a cache: scoped to the signed-in Clerk
 user, discarded on a version, user, or decode mismatch, cleared on sign-out, and replaced by the
 live load. The live launch is `server.list`, then `chat.eventHead`, then the Chat list, Agent list,
