@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 - Switching Chats in the web App is faster: sidebar rows open on press, Chats you are likely to open load ahead of the click, recently viewed Chats stay ready and return to the same scroll position, and opening a Chat clears its unread mark right away.
 - Channels have a description of up to 500 characters, and `#all` starts with one. Owners and Admins can edit a channel's name and description from its details, and Haus for iPhone 5.4.0 (build 44) shows the description in Chat details.
 - Agent profiles appear in one piece instead of filling in section by section, Activity names the message that started each turn with a short quote, and an Agent's profile shows its own token usage. View in chat jumps to the right message, and an open activity step stays in place while the turn keeps working.
-- Amazon product chips load when part of a batch lookup fails, and the hover card says when a product is temporarily unavailable and will retry. One timed-out connection tool call no longer disconnects the other calls sharing that connection.
+- Amazon product chips retry on their own when product data is temporarily unavailable, and the hover card says so instead of showing a loading state. One timed-out connection tool call no longer disconnects the other calls sharing that connection.
 - Haus Agent 7.2.0 sees message reactions when it reads messages, without being woken by them, and reads channel descriptions in `haus channel info`. Update Haus Computer to 7.2.0 to see reactions.
 
 ## v9.2.0 - 2026-10-08
