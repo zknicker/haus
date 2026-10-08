@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v9.2.0 - 2026-10-08
+
+- Haus for iPhone 5.3.0 (build 43) opens straight into your last Inbox and Chats while it reconnects, with the launch screen handing off to the first frame without a flash. Transcripts redraw only the messages that changed, and presence or list updates no longer reparse every open Chat.
+- The iPhone Chat header shows which Agents are working and their latest thought; tap it to see everyone working now. Transcripts add a typing strip, day dividers, the cause line above Agent messages, and notices for stopped or paused Agents.
+- Thread references appear as chips that open the Thread, including inside tables, and shared artifacts appear as cards that say when the phone is offline. A failed send stays in the transcript with Try Again, the keyboard can be put away without losing the composer, and sending plays a haptic.
+- Haus Server 8.1.1 turns an Agent's mention of a current Thread into a Thread chip instead of leaving it as plain text.
+
 ## v9.1.0 - 2026-10-08
 
 - Chats and Threads accept dropped files as attachments, with a preview before sending. Activity groups Agent turns by day and shows days with no activity.
