@@ -138,7 +138,7 @@ struct AgentAvatarGenerationView: View {
                 .accessibilityHidden(!showsSuggestions)
             }
             .padding(16)
-            .background(HausPlatformColor.groupedSurface, in: RoundedRectangle(cornerRadius: 22))
+            .background(HausPlatformColor.groupedSurface, in: .haus(HausRadius.grouped))
             .padding(.horizontal, 16)
             .animation(.snappy(duration: 0.2), value: showsSuggestions)
 

@@ -32,10 +32,10 @@ export function ChannelActionsMenu({
                 <Dropdown.Item
                     id="rename"
                     isDisabled={Boolean(chat.archivedAt)}
-                    textValue="Rename channel"
+                    textValue="Name and description"
                 >
                     <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
-                    <Label>Rename channel</Label>
+                    <Label>Name &amp; description…</Label>
                 </Dropdown.Item>
                 <Dropdown.Item
                     id="appearance"

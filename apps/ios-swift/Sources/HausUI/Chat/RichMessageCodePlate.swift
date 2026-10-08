@@ -42,6 +42,6 @@ extension RichReferenceLayoutManager {
     /// The span breathes a little sideways and sits inside the line's own box,
     /// so one line's plate never touches the plate on the line above it.
     static let codePlateInset: CGFloat = 1.5
-    static let codePlateRadius: CGFloat = 4
+    static let codePlateRadius: CGFloat = HausRadius.inline
 }
 #endif

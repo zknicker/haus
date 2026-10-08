@@ -18,7 +18,6 @@ const agentRuntimeCoreCapabilityIds = [
     'skills',
     'cron',
     'autoDispatch',
-    'webAccess',
     'browser',
     'identity',
 ] as const;
@@ -458,7 +457,6 @@ export const agentRuntimeDiscordBindingListSchema = z.object({
 });
 
 export const agentRuntimeAgentSchema = z.object({
-    webAccessEnabled: z.boolean().optional(),
     avatarUrl: agentRuntimeAvatarUrlSchema.optional(),
     bio: z.string().trim().min(1).nullable().optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)),
@@ -482,7 +480,6 @@ export const agentRuntimeArchiveAgentSchema = z.object({
 
 export const agentRuntimeCreateAgentSchema = z
     .object({
-        webAccessEnabled: z.boolean().optional(),
         avatarUrl: agentRuntimeAvatarUrlSchema.optional(),
         bio: z.string().trim().min(1).nullable().optional(),
         enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
@@ -495,7 +492,6 @@ export const agentRuntimeCreateAgentSchema = z
     .strict();
 
 export const agentRuntimeUpdateAgentSchema = z.object({
-    webAccessEnabled: z.boolean().optional(),
     avatarUrl: agentRuntimeAvatarUrlSchema.optional(),
     bio: z.string().trim().min(1).nullable().optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
@@ -999,10 +995,6 @@ export const agentRuntimeModelsSchema = z.object({
     models: z.array(agentRuntimeModelCatalogEntrySchema),
     providers: z.array(agentRuntimeModelProviderEntrySchema).default([]),
     updatedAt: z.string().datetime().nullable(),
-});
-
-export const agentRuntimeUpdateAgentWebSettingsSchema = z.object({
-    webAccessEnabled: z.boolean(),
 });
 
 export const agentRuntimeFrontendSchema = z.enum(['cli', 'discord', 'sdk', 'haus', 'telegram']);
@@ -1955,6 +1947,3 @@ export type AgentRuntimeRunJob = z.infer<typeof agentRuntimeRunJobSchema>;
 export type AgentRuntimeWidgetProgress = z.infer<typeof agentRuntimeWidgetProgressSchema>;
 export type AgentRuntimeUpsertBinding = z.infer<typeof agentRuntimeUpsertBindingSchema>;
 export type AgentRuntimeUpdateAgent = z.infer<typeof agentRuntimeUpdateAgentSchema>;
-export type AgentRuntimeUpdateAgentWebSettings = z.infer<
-    typeof agentRuntimeUpdateAgentWebSettingsSchema
->;

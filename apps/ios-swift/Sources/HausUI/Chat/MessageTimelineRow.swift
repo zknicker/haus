@@ -20,11 +20,18 @@ struct MessageTimelineRow: View {
     let onOpenThread: () -> Void
     let onOpenInlineReply: (MessageReplyReferencePresentation) -> Void
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
+    /// The drawer's actions, for VoiceOver.
+    var accessibilityActions: MessageRowAccessibilityActions = .none
     @AppStorage(ShowTasksInChat.storageKey) private var showTasksInChat = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if showsReplyReference, let inlineReply = message.inlineReply {
+            // A fire is why the Agent spoke, so its line replaces a reply's.
+            if let cause = message.cause {
+                // Read inside the identity block's element instead.
+                MessageCauseLine(cause: cause)
+                    .accessibilityHidden(true)
+            } else if showsReplyReference, let inlineReply = message.inlineReply {
                 InlineReplyPreview(
                     reference: inlineReply,
                     onOpen: { onOpenInlineReply(inlineReply) }
@@ -32,6 +39,7 @@ struct MessageTimelineRow: View {
             }
             content
         }
+        .failedSendControls(message)
         .modifier(ReactionThud(stamps: reactionBoard?.stamps(messageID: message.id) ?? [:]))
         .modifier(ReactionObservation(messageID: message.id, reactions: message.reactions, board: reactionBoard))
         .messageRowTint(isHighlighted: isHighlighted, isPressed: isPressed)
@@ -51,21 +59,24 @@ struct MessageTimelineRow: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                if !isContinuation {
-                    HStack(alignment: .firstTextBaseline, spacing: 7) {
-                        Text(message.author.name)
-                            .font(.body.weight(.semibold))
-                            .lineLimit(1)
-                        Text(message.createdAt, format: .dateTime.hour().minute())
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    if !isContinuation {
+                        HStack(alignment: .firstTextBaseline, spacing: 7) {
+                            Text(message.author.name)
+                                .font(.body.weight(.semibold))
+                                .lineLimit(1)
+                            Text(message.createdAt, format: .dateTime.hour().minute())
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if !message.prose.isEmpty {
+                        RichMessageContentView(blocks: message.richBlocks)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-
-                if !message.prose.isEmpty {
-                    RichMessageContentView(blocks: message.richBlocks)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                .messageRowAccessibility(message, actions: accessibilityActions)
 
                 MessageVisualStack(
                     message: message,
@@ -97,11 +108,7 @@ struct MessageTimelineRow: View {
                 }
 
                 if message.isPending {
-                    HStack(spacing: 5) {
-                        ProgressView().controlSize(.mini)
-                        Text("Sending").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 2)
+                    PendingSendCaption(isFailed: message.isSendFailed)
                 }
 
                 if ThreadPreviewProjection.showsIngress(

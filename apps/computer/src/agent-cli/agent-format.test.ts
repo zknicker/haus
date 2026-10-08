@@ -138,3 +138,54 @@ test('a creating Message names the Agent it created, and says when that Agent is
         )
     ).toEndWith('[created @scout (retired)]');
 });
+
+const zach = { handle: 'zach', id: 'usr_zach' };
+const blippy = { handle: 'blippy', id: 'agt_blippy' };
+
+test('a Message with no reactions carries no reactions suffix', () => {
+    expect(formatHistoryLine(message({ reactions: [] }))).toEndWith('Should I run it?');
+    expect(formatHistoryLine(message({ reactions: [{ actors: [], emoji: '👍' }] }))).toEndWith(
+        'Should I run it?'
+    );
+});
+
+test('reactions ride the read line grouped by emoji in arrival order', () => {
+    expect(formatHistoryLine(message({ reactions: [{ actors: [zach], emoji: '👍' }] }))).toEndWith(
+        'Should I run it? [reactions: 👍 @zach]'
+    );
+    const grouped = message({
+        reactions: [
+            { actors: [zach, blippy], emoji: '👍' },
+            { actors: [zach], emoji: '🎉' },
+        ],
+    });
+    expect(formatHistoryLine(grouped)).toEndWith(
+        'Should I run it? [reactions: 👍 @zach, @blippy · 🎉 @zach]'
+    );
+    expect(formatDeliveryEnvelope('#product', grouped)).toEndWith(
+        '[reactions: 👍 @zach, @blippy · 🎉 @zach]'
+    );
+});
+
+test('a long actor list is capped, and a handleless actor reads as unknown', () => {
+    const actors = [
+        zach,
+        blippy,
+        { handle: null, id: 'usr_x' },
+        ...['a', 'b', 'c'].map((h) => ({ handle: h, id: h })),
+    ];
+    expect(formatHistoryLine(message({ reactions: [{ actors, emoji: '👀' }] }))).toEndWith(
+        '[reactions: 👀 @zach, @blippy, @unknown +3 more]'
+    );
+});
+
+test('reactions follow every other suffix', () => {
+    expect(
+        formatHistoryLine(
+            message({
+                attachments: [{ filename: 'plan.md', id: 'att_1' }],
+                reactions: [{ actors: [zach], emoji: '👍' }],
+            })
+        )
+    ).toEndWith('download] [reactions: 👍 @zach]');
+});

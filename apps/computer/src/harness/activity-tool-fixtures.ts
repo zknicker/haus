@@ -59,6 +59,8 @@ export const computerNativeToolActivityFixtures = {
         list_dir: 'reading_files',
         read_file: 'reading_files',
         reference_to_video: 'using_tool',
+        // Grok's native fetch, which its harness declares no builtin for.
+        web_fetch: 'browsing',
         webSearch: 'searching_web',
         write: 'editing_files',
     },

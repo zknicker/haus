@@ -27,6 +27,7 @@ export async function listChats(
             // `chats_shape` keeps appearance channel-only, so DM rows read null.
             color: chatsTable.color,
             createdAt: chatsTable.createdAt,
+            description: chatsTable.description,
             icon: chatsTable.icon,
             id: chatsTable.id,
             isAll: chatsTable.isAll,

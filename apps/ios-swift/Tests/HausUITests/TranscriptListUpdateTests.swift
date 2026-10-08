@@ -30,6 +30,17 @@ struct TranscriptListUpdateTests {
         )
     }
 
+    /// A send confirmed under its durable id swaps the optimistic row: one
+    /// tail insertion that replaces, rather than adds to, the newest row.
+    @Test func aConfirmedSendReplacesTheNewestRow() {
+        let old = ["anchor", "pending:n1"]
+        let new = ["anchor", "msg_1"]
+        #expect(TranscriptListUpdate.classify(old: old, new: new) == .window(appended: 1))
+        #expect(TranscriptListUpdate.replacedTailCount(old: old, new: new) == 1)
+        #expect(TranscriptListUpdate.replacedTailCount(old: ["a", "b"], new: ["a", "b", "c"]) == 0)
+        #expect(TranscriptListUpdate.replacedTailCount(old: ["a", "b", "c"], new: ["b", "c"]) == 0)
+    }
+
     @Test func anEmptyTranscriptStayingEmptyIsARefresh() {
         #expect(TranscriptListUpdate.classify(old: [], new: []) == .refresh)
     }

@@ -106,7 +106,7 @@ private struct QuickReactionTileStyle: ButtonStyle {
     let isSelected: Bool
 
     func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle.haus(HausRadius.medium)
         configuration.label
             .frame(maxWidth: .infinity)
             .aspectRatio(1, contentMode: .fit)

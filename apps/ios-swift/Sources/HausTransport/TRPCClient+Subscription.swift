@@ -36,7 +36,9 @@ extension TRPCClient {
         onConnected: (@Sendable () async -> Void)?
     ) -> AsyncThrowingStream<Event, Error> {
         AsyncThrowingStream { continuation in
-            let task = Task {
+            // Detached so the read loop never runs on the subscriber's actor:
+            // a stream started from the main actor must not parse bytes there.
+            let task = Task.detached { [self] in
                 do {
                     try await streamSubscription(
                         path: path,
@@ -145,40 +147,39 @@ extension TRPCClient {
     }
 
     /// `AsyncBytes.lines` omits empty lines, but an empty line is the SSE
-    /// dispatch delimiter. Keep our own byte-level splitter so blank lines and
-    /// UTF-8 data are preserved exactly.
+    /// dispatch delimiter. Keep our own splitter so blank lines and UTF-8 data
+    /// are preserved exactly. `AsyncBytes` already buffers the socket, so the
+    /// per-byte step is a buffer read; the line accumulates in a reused array.
     private func consumeSSEBytes(
         _ bytes: URLSession.AsyncBytes,
         parser: inout SSEParser,
         handle: (ServerSentEvent) throws -> Bool
     ) async throws -> Bool {
-        var lineData = Data()
+        var line: [UInt8] = []
+        line.reserveCapacity(4096)
         for try await byte in bytes {
-            if byte == 0x0A {
-                let line = String(decoding: lineData, as: UTF8.self)
-                lineData.removeAll(keepingCapacity: true)
-                if let event = parser.consume(line: line), try handle(event) {
-                    return true
-                }
-            } else {
-                lineData.append(byte)
+            guard byte == 0x0A else {
+                line.append(byte)
+                continue
             }
-        }
-        if !lineData.isEmpty {
-            let line = String(decoding: lineData, as: UTF8.self)
-            if let event = parser.consume(line: line), try handle(event) {
+            let text = String(decoding: line, as: UTF8.self)
+            line.removeAll(keepingCapacity: true)
+            if let event = parser.consume(line: text), try handle(event) {
                 return true
             }
+        }
+        if !line.isEmpty, let event = parser.consume(line: String(decoding: line, as: UTF8.self)) {
+            return try handle(event)
         }
         return false
     }
 
     private func readAll(_ bytes: URLSession.AsyncBytes) async throws -> Data {
-        var data = Data()
+        var data: [UInt8] = []
         for try await byte in bytes {
             data.append(byte)
         }
-        return data
+        return Data(data)
     }
 
     private func handle<Event: Decodable & Sendable>(
@@ -203,18 +204,35 @@ extension TRPCClient {
                 return
             }
             do {
-                // tRPC 11 SSE data frames contain the serialized output
-                // directly, unlike query/mutation response envelopes. Accept
-                // an envelope too so fixtures and future adapters remain safe.
-                if let envelope = try? decoder.decode(TRPCResultEnvelope<Event>.self, from: Data(event.data.utf8)),
-                   let value = envelope.data {
-                    yield(value)
-                } else {
-                    yield(try decoder.decode(Event.self, from: Data(event.data.utf8)))
-                }
+                yield(try decoder.decode(SSEDataFrame<Event>.self, from: Data(event.data.utf8)).value)
             } catch {
                 throw TRPCClientError.decoding(error.localizedDescription)
             }
         }
+    }
+}
+
+/// One SSE data frame, decoded in a single pass.
+///
+/// tRPC 11 frames carry the serialized output directly, unlike query and
+/// mutation envelopes. A `{"data": …}` envelope (optionally with an `id`) is
+/// still accepted so fixtures and future adapters remain safe; any other shape
+/// is the output itself.
+struct SSEDataFrame<Event: Decodable>: Decodable {
+    let value: Event
+
+    init(from decoder: Decoder) throws {
+        if let keyed = try? decoder.container(keyedBy: FrameKey.self),
+           keyed.contains(.data),
+           keyed.allKeys.allSatisfy({ $0 == .data || $0 == .id }) {
+            value = try keyed.decode(Event.self, forKey: .data)
+        } else {
+            value = try Event(from: decoder)
+        }
+    }
+
+    private enum FrameKey: String, CodingKey {
+        case data
+        case id
     }
 }

@@ -8,7 +8,6 @@ import { typedSessionFailureClientCapabilities } from './runtime-session-failure
 type CodexReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 interface CodexAcpSettings {
     reasoningEffort?: CodexReasoningEffort;
-    webSearch: boolean;
 }
 
 /**
@@ -52,7 +51,8 @@ export function codexAcpEnvironment(settings: CodexAcpSettings): Record<string, 
             ...(settings.reasoningEffort
                 ? { model_reasoning_effort: settings.reasoningEffort }
                 : {}),
-            web_search: settings.webSearch ? 'live' : 'disabled',
+            // Live web search, as Codex itself runs it under full access; Raft passes no override.
+            web_search: 'live',
             // Zero turns off project docs: AGENTS.md from the workspace and every directory
             // up to its git root. Haus instructions ride `developer_instructions` instead.
             project_doc_max_bytes: 0,

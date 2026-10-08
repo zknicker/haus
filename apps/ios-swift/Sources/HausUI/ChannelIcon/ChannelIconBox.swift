@@ -71,7 +71,7 @@ public struct ChannelIconBox: View {
 
     /// The box's corner follows its size, so a larger box keeps its shape.
     static func cornerRadius(for size: CGFloat) -> CGFloat {
-        size / 3
+        HausRadius.mark(side: size)
     }
 
     private var boxShape: AnyShape {

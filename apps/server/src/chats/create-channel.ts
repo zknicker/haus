@@ -64,6 +64,7 @@ export async function createChannel(
         try {
             await tx.insert(chatsTable).values({
                 color: input.color ?? null,
+                description: input.description ?? null,
                 icon: input.icon ?? null,
                 id,
                 kind: 'channel',

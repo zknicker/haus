@@ -10,7 +10,6 @@ test('cloud work teaches automatic inbox delivery without a backup reminder', ()
         initialRole: null,
         os: 'macOS',
         runtimeVersion: 'test',
-        webAccess: null,
         workspacePath: '/workbench',
     });
     const section = prompt.split('### Cloud agents\n')[1]?.split('### Threads')[0];

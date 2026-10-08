@@ -11,14 +11,32 @@ extension HausStore {
         trackProjectionDirectory()
         let chats = chats
         let receiptBackedAgentDMs = receiptBackedAgentDMsByChatID
+        let order = sidebarOrder
         if let cached = projections.chatDestinations { return cached }
 
-        let destinations = buildChatDestinations(
-            chats: chats,
-            receiptBackedAgentDMs: receiptBackedAgentDMs
+        let destinations = order.apply(
+            buildChatDestinations(chats: chats, receiptBackedAgentDMs: receiptBackedAgentDMs),
+            id: \.id
         )
         projections.chatDestinations = destinations
         return destinations
+    }
+
+    /// Freezes the sidebar's row order at the live order. Rows keep updating
+    /// their unread counts, names, and presence, but a Chat that gains a
+    /// message does not move until the order is held again or released.
+    ///
+    /// The shell calls this as the drawer opens — animating the change, since
+    /// it adopts any reordering that happened while the drawer was shut — and
+    /// `releaseSidebarOrder()` as it closes.
+    func holdSidebarOrder() {
+        sidebarOrder.hold(
+            buildChatDestinations(chats: chats, receiptBackedAgentDMs: receiptBackedAgentDMsByChatID).map(\.id)
+        )
+    }
+
+    func releaseSidebarOrder() {
+        sidebarOrder.release()
     }
 
     private func buildChatDestinations(
@@ -116,11 +134,15 @@ extension HausStore {
     /// field derivations in step with `SettingsAgent`.
     func agentProfilePresentation(agentID: String) -> AgentProfilePresentation? {
         guard let agent = agentsByID[agentID] else { return nil }
+        let runtime = settingsRuntimeDisplayName(agent.effectiveRuntimeID ?? agent.desiredRuntimeID)
         return AgentProfilePresentation(
             handle: agent.handle,
             description: agent.description ?? "",
-            runtime: settingsRuntimeDisplayName(agent.effectiveRuntimeID ?? agent.desiredRuntimeID),
-            model: agent.effectiveModelID ?? agent.desiredModelID
+            runtime: runtime,
+            model: agent.effectiveModelID ?? agent.desiredModelID,
+            wakePause: agent.wakePause.map {
+                AgentWakePauseCopy.presentation(agentName: agent.displayName, runtimeLabel: runtime, wakePause: $0)
+            }
         )
     }
 }

@@ -57,7 +57,7 @@ enum RichReferenceMarkPainter {
     ) {
         context.saveGState()
         RichReferenceChipInk.markGround(for: appearance).setFill()
-        UIBezierPath(roundedRect: rect, cornerRadius: rect.height / 3).fill()
+        UIBezierPath(roundedRect: rect, cornerRadius: HausRadius.mark(side: rect.height)).fill()
         context.restoreGState()
 
         // The App pairs a 24pt box with a 16pt glyph. A catalog that has not

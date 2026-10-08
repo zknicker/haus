@@ -2,59 +2,67 @@ import Foundation
 import XCTest
 @testable import HausModels
 
+/// The phone decodes the Server's current `messageCauseSchema`. The previous
+/// model expected fields the Server stopped sending, so every cause decoded
+/// away to nil and the cause line could never show.
 final class ChatMessageCauseTests: XCTestCase {
-    func testDecodesATriggerCause() throws {
+    func testDecodesALiveTriggerCause() throws {
         let message = try decodeMessage(cause: """
         {
-          "kind": "trigger",
+          "attribution": "explicit",
           "automationId": "automation_1",
+          "description": null,
+          "firedAt": "2026-08-15T14:00:00.500Z",
           "fireId": "fire_1",
+          "kind": "trigger",
+          "live": {
+            "fireCount": 3,
+            "instruction": "Summarize the release.",
+            "lastFiredAt": "2026-08-15T14:00:00.500Z",
+            "status": "armed"
+          },
+          "ownerAgentId": "agent_1",
+          "summary": "Webhook",
           "title": "Deploy finished",
-          "status": "active",
-          "lastFiredAt": "2026-08-15T14:00:00.500Z",
-          "fireCount": 3,
-          "summary": "Runs after every production deploy.",
-          "instruction": "Summarize the release.",
           "unknownFutureKey": {"nested": true}
         }
         """)
 
         let cause = try XCTUnwrap(message.cause)
         XCTAssertEqual(cause.kind, .trigger)
+        XCTAssertEqual(cause.attribution, "explicit")
         XCTAssertEqual(cause.automationID, "automation_1")
         XCTAssertEqual(cause.fireID, "fire_1")
+        XCTAssertEqual(cause.ownerAgentID, "agent_1")
         XCTAssertEqual(cause.title, "Deploy finished")
-        XCTAssertEqual(cause.status, "active")
-        XCTAssertEqual(cause.lastFiredAt, HausISO8601.date(from: "2026-08-15T14:00:00.500Z"))
-        XCTAssertEqual(cause.fireCount, 3)
-        XCTAssertEqual(cause.summary, "Runs after every production deploy.")
-        XCTAssertEqual(cause.instruction, "Summarize the release.")
+        XCTAssertEqual(cause.summary, "Webhook")
+        XCTAssertEqual(cause.firedAt, HausISO8601.date(from: "2026-08-15T14:00:00.500Z"))
+        XCTAssertEqual(cause.live?.fireCount, 3)
+        XCTAssertEqual(cause.live?.status, "armed")
+        XCTAssertEqual(cause.live?.instruction, "Summarize the release.")
     }
 
-    /// A Trigger's anchor message is nullable on the Server, and a fire no
-    /// longer carries a receipt message id. The phone models neither, so both
-    /// must ride along as unknown keys without costing the reader the row.
-    func testDecodesATriggerCauseWithANullAnchorAndNoReceipt() throws {
+    /// An archived automation has no live record; the snapshot still decodes.
+    func testDecodesAnArchivedReminderCause() throws {
         let message = try decodeMessage(cause: """
         {
-          "kind": "trigger",
+          "attribution": "inferred",
           "automationId": "automation_3",
-          "anchorMessageId": null,
+          "description": "Check the overnight build and post what broke.",
+          "firedAt": "2026-08-15T09:00:00Z",
           "fireId": "fire_3",
-          "title": "Nightly digest",
-          "status": "active",
-          "lastFiredAt": null,
-          "fireCount": 1,
-          "summary": "Runs every night.",
-          "instruction": null
+          "kind": "reminder",
+          "live": null,
+          "ownerAgentId": "agent_2",
+          "summary": "Every weekday at 09:00",
+          "title": "Morning build check"
         }
         """)
 
         let cause = try XCTUnwrap(message.cause)
-        XCTAssertEqual(cause.kind, .trigger)
-        XCTAssertEqual(cause.automationID, "automation_3")
-        XCTAssertEqual(cause.fireID, "fire_3")
-        XCTAssertNil(cause.lastFiredAt)
+        XCTAssertEqual(cause.kind, .reminder)
+        XCTAssertNil(cause.live)
+        XCTAssertEqual(cause.description, "Check the overnight build and post what broke.")
         XCTAssertEqual(message.content, "Please review this.")
     }
 
@@ -63,22 +71,20 @@ final class ChatMessageCauseTests: XCTestCase {
     func testDecodesAnUnknownCauseKind() throws {
         let message = try decodeMessage(cause: """
         {
-          "kind": "webhook",
+          "attribution": "explicit",
           "automationId": "automation_2",
+          "description": null,
+          "firedAt": "2026-08-15T09:00:00Z",
           "fireId": "fire_2",
-          "title": "Weekly self-review",
-          "status": "paused",
-          "lastFiredAt": null,
-          "fireCount": 0,
-          "summary": "Fires on an inbound webhook.",
-          "instruction": null
+          "kind": "webhook",
+          "live": null,
+          "ownerAgentId": "agent_1",
+          "summary": "Inbound",
+          "title": "Weekly self-review"
         }
         """)
 
-        let cause = try XCTUnwrap(message.cause)
-        XCTAssertEqual(cause.kind, .unknown("webhook"))
-        XCTAssertNil(cause.lastFiredAt)
-        XCTAssertNil(cause.instruction)
+        XCTAssertEqual(try XCTUnwrap(message.cause).kind, .unknown("webhook"))
     }
 
     func testAMalformedCauseLeavesTheMessageDecodable() throws {

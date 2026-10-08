@@ -172,15 +172,8 @@ extension HausStore {
         // Keep the Chat list and mounted transcripts on the same recovery
         // signal. Pages are refreshed in focused-then-canvas order so a pop
         // reveals a parent summary that already includes a first Thread reply.
-        do {
-            try await reloadChats(serverID: plan.serverID)
-        } catch is CancellationError {
-            Self.logger.debug("Committed Agent message recovery list refresh cancelled")
-        } catch {
-            Self.logger.warning(
-                "Committed Agent message recovery list refresh failed: \(error.localizedDescription, privacy: .public)"
-            )
-        }
+        // Shared with the `message.created` batch that usually follows.
+        await refreshChatList(serverID: plan.serverID)
         guard activeServer?.id == plan.serverID else { return }
         // Search is view-owned, but its result presentation uses the Chat list
         // projections. Publish the revision only after that list is current so

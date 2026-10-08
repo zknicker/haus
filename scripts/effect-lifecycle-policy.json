@@ -565,7 +565,7 @@
       "reason": "The injected Server runtime owns MCP acquisition, operations, retirement, bounded close, and interruption translation.",
       "risks": {
         "abortController": 6,
-        "catchAndIgnore": 6,
+        "catchAndIgnore": 5,
         "finallyBlock": 1,
         "manualPromise": 1,
         "timer": 2

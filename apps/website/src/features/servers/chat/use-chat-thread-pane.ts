@@ -162,8 +162,8 @@ function useThreadTabDeepLink(chatId: string, openThreadTab: OpenThread | null) 
         if (!(openThreadTab && anchorMessageId)) {
             return;
         }
-        // Strip first: with one pane the Thread link navigates this same tab,
-        // and a later replace would overwrite the Thread with the chat.
+        // Strip first, so the replace lands on this chat's entry before the
+        // Thread opens (in the right pane, ADR 0039).
         setSearchParams(
             (current) => {
                 const next = new URLSearchParams(current);

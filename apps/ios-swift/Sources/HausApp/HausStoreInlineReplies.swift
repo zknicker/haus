@@ -124,7 +124,7 @@ extension HausStore {
         } catch is CancellationError {
             return false
         } catch {
-            sendError = error.localizedDescription
+            // The Inline replies region draws its own Retry state for this load.
             Self.logger.error("Loading inline replies failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
@@ -167,7 +167,6 @@ extension HausStore {
         } catch is CancellationError {
             return false
         } catch {
-            sendError = error.localizedDescription
             Self.logger.error("Loading older inline replies failed: \(error.localizedDescription, privacy: .public)")
             return false
         }

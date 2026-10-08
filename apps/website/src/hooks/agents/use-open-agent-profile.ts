@@ -9,10 +9,9 @@ export interface OpenAgentProfileOptions {
 
 /**
  * The one way to open an Agent's profile: a push to its page. On desktop the
- * router it runs under places it (ADR 0039): from a page it is a link (the
- * other pane in split), from the sidebar or command menu it goes to a place
- * from the focused pane. It reads only the route's Server slug, so it
- * works anywhere in the Server shell.
+ * router it runs under places it (ADR 0039): an existing tab on that Agent is
+ * selected, else it opens as a new tab (`pagePlacement`). It reads only the
+ * route's Server slug, so it works anywhere in the Server shell.
  */
 export function useOpenAgentProfile() {
     const navigate = useNavigate();

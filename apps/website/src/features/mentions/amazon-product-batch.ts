@@ -1,14 +1,18 @@
-import type { AmazonProductIdentity, AmazonProductSummary } from '@haus/api';
+import {
+    type AmazonProductIdentity,
+    type AmazonProductResult,
+    amazonProductResultAsin,
+} from '@haus/api';
 
 /** `null` means the Server has no connected RankWrangler account. */
 export type ReadAmazonProducts = (input: {
     serverId: string;
     products: AmazonProductIdentity[];
-}) => Promise<AmazonProductSummary[] | null>;
+}) => Promise<AmazonProductResult[] | null>;
 export type LoadAmazonProduct = (
     serverId: string,
     product: AmazonProductIdentity
-) => Promise<AmazonProductSummary | null>;
+) => Promise<AmazonProductResult | null>;
 
 const batchWindowMs = 10;
 /** Matches the `mcp.amazonProducts` input limit. */
@@ -17,7 +21,7 @@ const batchLimit = 50;
 interface Waiter {
     product: AmazonProductIdentity;
     settle: Array<{
-        resolve: (summary: AmazonProductSummary | null) => void;
+        resolve: (result: AmazonProductResult | null) => void;
         reject: (error: unknown) => void;
     }>;
 }
@@ -34,9 +38,9 @@ export function createAmazonProductBatcher(read: ReadAmazonProducts): LoadAmazon
         for (let start = 0; start < waiters.length; start += batchLimit) {
             const chunk = waiters.slice(start, start + batchLimit);
             read({ serverId, products: chunk.map((waiter) => waiter.product) }).then(
-                (summaries) => {
+                (results) => {
                     for (const waiter of chunk) {
-                        settleWaiter(waiter, summaries);
+                        settleWaiter(waiter, results);
                     }
                 },
                 (error: unknown) => {
@@ -63,13 +67,13 @@ export function createAmazonProductBatcher(read: ReadAmazonProducts): LoadAmazon
         });
 }
 
-function settleWaiter(waiter: Waiter, summaries: AmazonProductSummary[] | null) {
-    const summary = summaries?.find((item) => item.asin === waiter.product.asin);
+function settleWaiter(waiter: Waiter, results: AmazonProductResult[] | null) {
+    const result = results?.find((item) => amazonProductResultAsin(item) === waiter.product.asin);
     for (const { reject, resolve } of waiter.settle) {
-        if (summaries === null) {
+        if (results === null) {
             resolve(null);
-        } else if (summary) {
-            resolve(summary);
+        } else if (result) {
+            resolve(result);
         } else {
             reject(new Error('Amazon product lookup omitted a product.'));
         }

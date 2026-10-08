@@ -75,10 +75,12 @@ struct InlineReplyComposerReference: View {
 
 /// The rounded corner that climbs from the reply's avatar toward its parent
 /// line. Spans the avatar rail: the 38pt avatar plus the row's 11pt gutter.
-private struct InlineReplyElbow: View {
+/// The cause line draws the same elbow in its automation's tint.
+struct InlineReplyElbow: View {
     static let railWidth: CGFloat = 49
     private static let avatarCenter: CGFloat = 19
     private static let radius: CGFloat = 8
+    var color: Color = HausPlatformColor.separator
 
     var body: some View {
         GeometryReader { geometry in
@@ -93,7 +95,7 @@ private struct InlineReplyElbow: View {
                 )
                 path.addLine(to: CGPoint(x: Self.railWidth - 6, y: midY))
             }
-            .stroke(HausPlatformColor.separator, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
         }
         .accessibilityHidden(true)
     }

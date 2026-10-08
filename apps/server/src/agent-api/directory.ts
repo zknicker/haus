@@ -60,9 +60,10 @@ export async function readAgentChannelInfo(
         isAgentJoined(db, runner, channel.id),
         countChannelMembers(db, runner, channel.id),
     ]);
+    // `handle` is the bare name; the CLI renders the `#`.
     return {
-        description: null,
-        handle: `#${channel.name}`,
+        description: channel.description,
+        handle: channel.name,
         joined,
         memberCount,
     };
@@ -250,7 +251,7 @@ async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: Agent
 async function findChannel(db: HausDatabase, serverId: string, target: string) {
     const name = target.startsWith('#') ? target.slice(1) : target;
     const [channel] = await db
-        .select({ id: chatsTable.id, name: chatsTable.name })
+        .select({ description: chatsTable.description, id: chatsTable.id, name: chatsTable.name })
         .from(chatsTable)
         .where(
             and(
@@ -263,7 +264,7 @@ async function findChannel(db: HausDatabase, serverId: string, target: string) {
     if (!channel?.name) {
         throw new AgentTargetError('That channel does not exist.');
     }
-    return { id: channel.id, name: channel.name };
+    return { description: channel.description, id: channel.id, name: channel.name };
 }
 
 async function isAgentJoined(db: HausDatabase, runner: ResolvedRunner, chatId: string) {

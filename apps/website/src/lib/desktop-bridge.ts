@@ -88,7 +88,7 @@ export interface HausDesktopBridge {
     onUpdateStatus: (listener: (status: DesktopUpdateBridgeStatus) => void) => () => void;
     /** Main → renderer: this window gained or lost native focus. */
     onWindowFocusChanged?: (listener: (focused: boolean) => void) => () => void;
-    /** Open an HTTP(S) URL in the operating system's default browser. */
+    /** Open an HTTP(S) URL or an allowlisted provider app deeplink through the operating system. */
     openExternal: (url: string) => Promise<void>;
     /**
      * Main opened this window from another one (⌘N, openWindow, tab tear-off); fixed for the

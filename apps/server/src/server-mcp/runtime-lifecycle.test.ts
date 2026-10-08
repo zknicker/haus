@@ -12,7 +12,7 @@ afterAll(async () => {
     await effectRuntime.dispose();
 });
 
-test('timeouts abort active list and call requests and close their clients', async () => {
+test('timeouts abort active list and call requests and keep their clients', async () => {
     const listGate = Promise.withResolvers<unknown>();
     let listAborted = false;
     const listed = makeClient('Slow list', {
@@ -34,7 +34,7 @@ test('timeouts abort active list and call requests and close their clients', asy
     expect(listAborted).toBe(true);
     listGate.resolve({ tools: [] });
     await tick();
-    expect(listed.state.closeCount).toBe(1);
+    expect(listed.state.closeCount).toBe(0);
 
     const callGate = Promise.withResolvers<unknown>();
     let callAborted = false;
@@ -57,8 +57,9 @@ test('timeouts abort active list and call requests and close their clients', asy
     expect(callAborted).toBe(true);
     callGate.resolve({ content: [] });
     await tick();
-    expect(called.state.closeCount).toBe(1);
+    expect(called.state.closeCount).toBe(0);
     await Promise.all([listRuntime.close(), callRuntime.close()]);
+    expect([listed.state.closeCount, called.state.closeCount]).toEqual([1, 1]);
 });
 
 test('discovery timeout covers client acquisition and retires a late client', async () => {
@@ -160,7 +161,7 @@ test('close interrupts active non-cooperative discovery and invocation', async (
     );
 });
 
-test('one failed operation retires the client and interrupts its sibling', async () => {
+test('a session failure retires the client without interrupting its sibling', async () => {
     const hanging = Promise.withResolvers<unknown>();
     const firstStarted = Promise.withResolvers<void>();
     let firstSignal: AbortSignal | undefined;
@@ -180,20 +181,17 @@ test('one failed operation retires the client and interrupts its sibling', async
         clientFactory: async () => fixture.client,
         discoveryTimeoutMs: 1000,
     });
-    const first = runtime.discover('shared').catch((cause) => cause);
+    const first = runtime.discover('shared');
     await firstStarted.promise;
     const failed = await runtime.discover('shared').catch((cause) => cause);
-    const interrupted = await Promise.race([
-        first,
-        new Promise((resolve) => setTimeout(() => resolve('late'), 100)),
-    ]);
 
     expect(failed).toBeInstanceOf(McpUpstreamError);
     expect(failed).toMatchObject({ code: 'MCP_UNAVAILABLE' });
-    expect(interrupted).toBeInstanceOf(McpUpstreamError);
-    expect(interrupted).toMatchObject({ code: 'MCP_UNAVAILABLE' });
-    expect(firstSignal?.aborted).toBe(true);
+    await tick();
+    expect(firstSignal?.aborted).toBe(false);
+    expect(fixture.state.closeCount).toBe(0);
     hanging.resolve({ tools: [] });
+    await expect(first).resolves.toMatchObject({ tools: [] });
     await tick();
     expect(fixture.state.closeCount).toBe(1);
     await runtime.close();

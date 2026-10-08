@@ -6,6 +6,17 @@ import { repoRoot } from './release-utils.mjs';
 
 export const iosIconArtifactDirectory = path.join(repoRoot, 'assets', 'ios-icon');
 export const iosIconSourceDirectory = path.join(repoRoot, 'assets', 'mac-icon.icon');
+// The launch screen image ships in the same compiled catalog: the release archive excludes
+// every catalog source and installs this one Assets.car, so anything left out never ships.
+export const iosLaunchCatalogSourceDirectory = path.join(
+    repoRoot,
+    'apps',
+    'ios-swift',
+    'Sources',
+    'HausApp',
+    'Launch.xcassets'
+);
+export const iosLaunchImageName = 'LaunchGhost';
 export const requiredIOSIconXcodeBuild = '27A5237l';
 export const iosIconCompilationOptions = {
     appIcon: 'mac-icon',
@@ -33,7 +44,7 @@ export function assertIOSIconArtifact(directory) {
         throw new Error(`compiled iOS icon artifact is missing ${iosIconArtifactManifestFile}`);
     }
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-    if (manifest.schemaVersion !== 1) {
+    if (manifest.schemaVersion !== 2) {
         throw new Error('compiled iOS icon artifact has an unsupported manifest schema');
     }
     if (manifest.xcodeBuild !== requiredIOSIconXcodeBuild) {
@@ -47,6 +58,9 @@ export function assertIOSIconArtifact(directory) {
     if (manifest.sourceSha256 !== hashDirectory(iosIconSourceDirectory)) {
         throw new Error('compiled iOS icon artifact does not match assets/mac-icon.icon');
     }
+    if (manifest.launchCatalogSha256 !== hashDirectory(iosLaunchCatalogSourceDirectory)) {
+        throw new Error('compiled iOS icon artifact does not match Launch.xcassets');
+    }
     for (const file of iosIconArtifactFiles) {
         if (manifest.files?.[file] !== hashFile(path.join(directory, file))) {
             throw new Error(`compiled iOS icon artifact checksum failed for ${file}`);
@@ -56,10 +70,11 @@ export function assertIOSIconArtifact(directory) {
 
 export function writeIOSIconArtifactManifest(directory, xcodeBuild) {
     const manifest = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         xcodeBuild,
         compilation: iosIconCompilationOptions,
         sourceSha256: hashDirectory(iosIconSourceDirectory),
+        launchCatalogSha256: hashDirectory(iosLaunchCatalogSourceDirectory),
         files: Object.fromEntries(
             iosIconArtifactFiles.map((file) => [file, hashFile(path.join(directory, file))])
         ),
@@ -84,7 +99,9 @@ export function inspectIOSIconArtifact(directory) {
             `assetutil failed to inspect the compiled iOS icon: ${result.stderr.trim()}`
         );
     }
-    assertIOSIconRenditions(JSON.parse(result.stdout));
+    const renditions = JSON.parse(result.stdout);
+    assertIOSIconRenditions(renditions);
+    assertIOSLaunchRenditions(renditions);
 }
 
 export function assertInstalledIOSIcon({ appDirectory, artifactDirectory }) {
@@ -147,6 +164,20 @@ export function assertIOSIconRenditions(renditions) {
     for (const appearance of ['UIAppearanceAny', 'UIAppearanceDark', 'ISAppearanceTintable']) {
         if (!marketingAppearances.has(appearance)) {
             throw new Error(`compiled iOS icon is missing its ${appearance} 1024px rendition`);
+        }
+    }
+}
+
+export function assertIOSLaunchRenditions(renditions) {
+    const launchImages = renditions.filter(
+        (rendition) => rendition.AssetType === 'Image' && rendition.Name === iosLaunchImageName
+    );
+    const appearances = new Set(
+        launchImages.map((rendition) => rendition.Appearance ?? 'UIAppearanceAny')
+    );
+    for (const appearance of ['UIAppearanceAny', 'UIAppearanceDark']) {
+        if (!appearances.has(appearance)) {
+            throw new Error(`compiled iOS catalog is missing its ${appearance} launch image`);
         }
     }
 }

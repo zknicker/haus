@@ -13,7 +13,8 @@ enum RichMessageInlineText {
     static func attributed(
         _ segments: [RichMessageSegment],
         textStyle: Font.TextStyle,
-        appearance: RichMessageTextAppearance = .body
+        appearance: RichMessageTextAppearance = .body,
+        carriesLinks: Bool = true
     ) -> AttributedString {
         var result = AttributedString()
         for segment in segments {
@@ -21,12 +22,29 @@ enum RichMessageInlineText {
             case .text(let run, let style):
                 result += text(run, style: style, textStyle: textStyle, appearance: appearance)
             case .reference(let reference):
-                result += self.reference(reference, textStyle: textStyle)
+                var piece = self.reference(reference, textStyle: textStyle)
+                if !carriesLinks { piece.link = nil }
+                result += piece
             case .link(let words, let target):
-                result += link(words, target: target, textStyle: textStyle)
+                var piece = link(words, target: target, textStyle: textStyle)
+                if !carriesLinks { piece.link = nil }
+                result += piece
             }
         }
         return result
+    }
+
+    /// The address a run opens when it carries exactly one link, so a table
+    /// cell can be that link as a whole.
+    static func soleActivationURL(_ segments: [RichMessageSegment]) -> URL? {
+        let urls = segments.compactMap { segment -> URL? in
+            switch segment {
+            case .text: nil
+            case .reference(let reference): reference.activationURL
+            case .link(_, let target): RichReferenceWireForm.activationURL(for: target)
+            }
+        }
+        return urls.count == 1 ? urls[0] : nil
     }
 
     /// A run read back as the words it draws, for the accessibility label of a

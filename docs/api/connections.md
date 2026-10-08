@@ -76,6 +76,14 @@ connections contribute no tools to that search; healthy connections remain avail
 has a 30-second upstream deadline. Client cancellation interrupts the request through Computer
 and Server without closing other Agents' healthy shared client operations.
 
+Server keeps one shared MCP client per connection and retires it only when a failure proves the
+session broken (`apps/server/src/server-mcp/client-failure.ts`). A per-call deadline, caller
+cancellation, JSON-RPC error, or non-session HTTP status cancels only that request; the client and
+its concurrent calls continue. A closed transport, network failure, HTTP 404 (expired session),
+401/403 or OAuth failure, or initialize failure retires the client: new calls build a fresh one,
+calls already in flight on the old client run to completion, and the old client closes when they
+finish. Disconnecting the connection or stopping Server still aborts every in-flight call.
+
 Runner failures use stable codes:
 
 - `MCP_DENIED` — the connection grant or requested tool is absent or revoked

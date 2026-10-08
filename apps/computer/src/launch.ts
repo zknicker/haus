@@ -396,7 +396,6 @@ async function runRealRuntime(
             totalPending: command.totalPending,
             unreadElsewhere: command.unreadElsewhere ?? [],
             warmDrainItemIds: command.warmDrainItemIds ?? [],
-            webAccess: command.webAccess ?? null,
             workspaceDir: input.dirs.workspace,
             tools: input.tools,
         });

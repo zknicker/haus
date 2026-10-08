@@ -32,14 +32,12 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
     if (activity.isPending || settledTurns.isPending) {
         return <AgentLoading label="Loading activity history..." />;
     }
-    if (unavailable || turns.length === 0) {
+    if (unavailable) {
         return (
             <ActivityNote>
-                {unavailable
-                    ? connectionState === 'connecting' || connectionState === 'reconnecting'
-                        ? 'Activity history is unavailable while offline. Reconnect to try again.'
-                        : 'Activity history is unavailable right now.'
-                    : 'No activity yet.'}
+                {connectionState === 'connecting' || connectionState === 'reconnecting'
+                    ? 'Activity history is unavailable while offline. Reconnect to try again.'
+                    : 'Activity history is unavailable right now.'}
             </ActivityNote>
         );
     }

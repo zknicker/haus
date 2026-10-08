@@ -8,6 +8,9 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     case threadHeader
     case reply(MessagePresentation)
     case pendingSend
+    /// Opens a calendar day. `region` keeps the parent chain's dividers apart
+    /// from the Thread's own.
+    case dayDivider(Date, region: String)
 
     var id: String {
         switch self {
@@ -18,6 +21,8 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         case .threadHeader: "thread-header"
         case .reply(let message): message.id
         case .pendingSend: "thread-pending-send"
+        case .dayDivider(let date, let region):
+            "thread-day-\(region)-\(Int(date.timeIntervalSinceReferenceDate))"
         }
     }
 
@@ -26,7 +31,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         case .pendingSend: true
         case .reply(let message): message.isPending
         case .inlineReply(let message): message.isPending
-        case .anchor, .taskMetadata, .inlineReplies, .threadHeader: false
+        case .anchor, .taskMetadata, .inlineReplies, .threadHeader, .dayDivider: false
         }
     }
 
@@ -36,13 +41,16 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     }
 
     /// The Thread transcript in order: the anchor, its task metadata when it
-    /// has any, the replies, and the viewer's own send while it is in flight.
+    /// has any, the parent chain when inspecting a Task, the replies, and the
+    /// viewer's own send while it is in flight. A day divider opens each
+    /// calendar day after the anchor's.
     static func items(
         anchor: MessagePresentation,
         replies: [MessagePresentation],
         pending: Bool,
         includesInlineReplies: Bool = false,
-        inlineReplies: [MessagePresentation] = []
+        inlineReplies: [MessagePresentation] = [],
+        calendar: Calendar = .current
     ) -> [ThreadTranscriptItem] {
         let hasReplies = !replies.isEmpty
         var items: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: hasReplies)]
@@ -51,12 +59,39 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         }
         if includesInlineReplies {
             items.append(.inlineReplies(isEmpty: inlineReplies.isEmpty))
-            items.append(contentsOf: inlineReplies.map(ThreadTranscriptItem.inlineReply))
-            items.append(.threadHeader)
+            items.append(contentsOf: dated(
+                inlineReplies, after: anchor, region: "inline", calendar: calendar,
+                row: ThreadTranscriptItem.inlineReply
+            ))
+            // The Thread's own label only separates it from a parent chain
+            // that is actually there.
+            if !inlineReplies.isEmpty { items.append(.threadHeader) }
         }
-        items.append(contentsOf: replies.map(ThreadTranscriptItem.reply))
+        items.append(contentsOf: dated(
+            replies, after: anchor, region: "replies", calendar: calendar,
+            row: ThreadTranscriptItem.reply
+        ))
         if pending {
             items.append(.pendingSend)
+        }
+        return items
+    }
+
+    private static func dated(
+        _ messages: [MessagePresentation],
+        after anchor: MessagePresentation,
+        region: String,
+        calendar: Calendar,
+        row: (MessagePresentation) -> ThreadTranscriptItem
+    ) -> [ThreadTranscriptItem] {
+        var previous = anchor.createdAt
+        var items: [ThreadTranscriptItem] = []
+        for message in messages {
+            if !calendar.isDate(previous, inSameDayAs: message.createdAt) {
+                items.append(.dayDivider(calendar.startOfDay(for: message.createdAt), region: region))
+            }
+            items.append(row(message))
+            previous = message.createdAt
         }
         return items
     }

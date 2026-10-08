@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v9.2.0 - 2026-10-08
+
+- Haus for iPhone 5.3.0 (build 43) opens straight into your last Inbox and Chats while it reconnects, with the launch screen handing off to the first frame without a flash. Transcripts redraw only the messages that changed, and presence or list updates no longer reparse every open Chat.
+- The iPhone Chat header shows which Agents are working and their latest thought; tap it to see everyone working now. Transcripts add a typing strip, day dividers, the cause line above Agent messages, and notices for stopped or paused Agents.
+- Thread references appear as chips that open the Thread, including inside tables, and shared artifacts appear as cards that say when the phone is offline. A failed send stays in the transcript with Try Again, the keyboard can be put away without losing the composer, and sending plays a haptic.
+- Haus Server 8.1.1 turns an Agent's mention of a current Thread into a Thread chip instead of leaving it as plain text.
+
+## v9.1.0 - 2026-10-08
+
+- Chats and Threads accept dropped files as attachments, with a preview before sending. Activity groups Agent turns by day and shows days with no activity.
+- Haus App 5.2.0 opens Cloud Agent runs in Cursor. Agent profiles and Settings support new-tab gestures; Threads open in the side pane, and Thread tabs use the full page width. Dark desktop surfaces have clearer separation.
+- Haus Agent 7.1.0 uses its execution runtime's native web tools, receives notices when an installed Haus skill changes, and saves standing preferences as short merged rules. Pi Agents load their own skill library. Claude Code Agents can continue beyond the former turn limit and use Haus for questions and scheduled work.
+- Haus Computer 7.1.0 reconnects after a Server restart without missing a fast socket connection, and keeps a completed update successful when active Agent turns take longer to drain during restart. Update Computer to 7.1.0 for the new Agent behavior.
+
 ## v9.0.0 - 2026-10-07
 
 - Activity shows every Agent's turns across a Server, with timed steps, sub-agent work, readable tool results, generated images, and a link back to the Chat that started the work. Agent profiles use the same event log.

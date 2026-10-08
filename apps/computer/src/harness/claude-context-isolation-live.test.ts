@@ -139,12 +139,7 @@ function skill(name: string): string {
 
 /** Runs the Computer's own Claude bridge bootstrap commands in `dir`. */
 async function installBridgeSdk(dir: string) {
-    const harness = createHarnessForRuntime(
-        'claude-code',
-        'medium',
-        false,
-        bridgeStoreDirForHost()
-    );
+    const harness = createHarnessForRuntime('claude-code', 'medium', bridgeStoreDirForHost());
     const bootstrap = await harness.getBootstrap?.();
     if (!bootstrap) {
         throw new Error('Missing Claude bridge bootstrap');

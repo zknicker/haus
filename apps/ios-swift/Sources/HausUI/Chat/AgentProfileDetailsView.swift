@@ -20,6 +20,12 @@ struct AgentProfileDetailsView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
 
+            if let wakePause = profile?.wakePause {
+                Section {
+                    AgentWakePauseNotice(pause: wakePause)
+                }
+            }
+
             if let about = profile?.about {
                 Section("About") {
                     Text(about)
@@ -97,15 +103,14 @@ struct AgentProfileDetailsView: View {
 }
 
 /// What the Agent is doing right now, or what it is when it is doing nothing.
+/// It is words only: the avatar above it already wears the presence dot, and a
+/// second dot beside "Online" said the same thing twice.
 struct AgentStatusLine: View {
     let presence: AgentPresence
     var currentActivity: AgentActivityPresentation?
 
     var body: some View {
         HStack(spacing: 6) {
-            Circle()
-                .fill(presence.activityColor)
-                .frame(width: 8, height: 8)
             Text(currentActivity?.title ?? presence.activityTitle)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -117,14 +122,6 @@ struct AgentStatusLine: View {
 }
 
 extension AgentPresence {
-    var activityColor: Color {
-        switch self {
-        case .idle: .green
-        case .working: .yellow
-        case .error, .offline, .stopped: .gray
-        }
-    }
-
     var activityTitle: String {
         switch self {
         case .idle: "Online"

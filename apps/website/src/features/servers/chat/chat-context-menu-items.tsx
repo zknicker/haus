@@ -30,9 +30,9 @@ export function ChannelContextMenuItems({
     const count = chat.participantAgentIds.length + chat.participantUserIds.length;
     return (
         <>
-            <ContextMenu.Item id="rename" isDisabled={archived} textValue="Rename channel">
+            <ContextMenu.Item id="rename" isDisabled={archived} textValue="Name and description">
                 <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
-                <Label>Rename channel</Label>
+                <Label>Name &amp; description…</Label>
             </ContextMenu.Item>
             <ContextMenu.Item id="appearance" isDisabled={archived} textValue="Icon and color">
                 <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />

@@ -31,7 +31,6 @@ test('Grok Build launches with Claude and Cursor instruction sources off', () =>
         runtime,
         runtimeId: 'grok-build',
         tools: {},
-        webAccess: null,
         workspaceDir: '/tmp/haus-grok/workspace',
     }).env;
     expect(env).toMatchObject(GROK_INSTRUCTION_COMPAT_ENV);
@@ -132,7 +131,6 @@ async function probe(
         runtime,
         runtimeId: 'grok-build',
         tools: {},
-        webAccess: null,
         workspaceDir,
     } satisfies AgentInput;
     const agent = build(input, {

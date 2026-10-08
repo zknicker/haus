@@ -98,12 +98,15 @@ struct MessageAttachmentGroup: View {
         )
     }
 
+    /// The file card's 42pt thumbnail sits 8pt inside the card, concentric with it.
+    private static let thumbnailRadius = HausRadius.nested(in: HausRadius.medium, inset: 8)
+
     private func attachmentRow(_ attachment: MessageAttachmentPresentation) -> some View {
         HStack(spacing: 10) {
             attachmentMedia(attachment)
                 .frame(width: 42, height: 42)
-                .background(.quaternary, in: .rect(cornerRadius: 9))
-                .clipShape(.rect(cornerRadius: 9))
+                .background(.quaternary, in: .haus(Self.thumbnailRadius))
+                .clipShape(.haus(Self.thumbnailRadius))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(attachment.filename)
@@ -126,7 +129,7 @@ struct MessageAttachmentGroup: View {
         }
         .padding(8)
         .frame(maxWidth: 320, alignment: .leading)
-        .background(HausPlatformColor.inputSurface, in: .rect(cornerRadius: 13))
+        .background(HausPlatformColor.inputSurface, in: .haus(HausRadius.medium))
     }
 
     @ViewBuilder

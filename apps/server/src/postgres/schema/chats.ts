@@ -25,6 +25,7 @@ export const chatsTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         deletedAt: timestamp('deleted_at', { withTimezone: true }),
         deletedByUserId: text('deleted_by_user_id'),
+        description: text('description'),
         dmAgentId: text('dm_agent_id'),
         dmMemberOneStint: integer('dm_member_one_stint'),
         dmMemberOneUserId: text('dm_member_one_user_id'),
@@ -89,6 +90,10 @@ export const chatsTable = pgTable(
         }),
         check('chats_nonnegative_sequence', sql`${table.lastMessageSequence} >= 0`),
         check('chats_nonnegative_task_number', sql`${table.lastTaskNumber} >= 0`),
+        check(
+            'chats_description_length',
+            sql`${table.description} is null or (${table.kind} = 'channel' and char_length(${table.description}) between 1 and 500)`
+        ),
         check('chats_kind', sql`${table.kind} in ('channel', 'dm', 'thread')`),
         check(
             'chats_archive_shape',

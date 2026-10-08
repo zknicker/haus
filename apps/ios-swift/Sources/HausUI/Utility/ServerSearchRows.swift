@@ -4,6 +4,7 @@ let searchRowInsets = EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
 
 struct ChatSearchResultRow: View {
     let chat: ChatPresentation
+    var query = ""
 
     var body: some View {
         HStack(spacing: 12) {
@@ -16,7 +17,7 @@ struct ChatSearchResultRow: View {
                 AvatarView(name: human.name, url: human.avatarURL, presence: nil, size: 36)
             }
 
-            Text(chat.title)
+            Text(SearchHighlight.attributed(chat.title, term: query))
                 .font(.body)
                 .fontWeight(chat.unreadCount > 0 ? .semibold : .regular)
                 .foregroundStyle(.primary)
@@ -35,6 +36,7 @@ struct ChatSearchResultRow: View {
 
 struct MessageSearchResultRow: View {
     let result: MessageSearchResultPresentation
+    var query = ""
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -57,7 +59,7 @@ struct MessageSearchResultRow: View {
                         .foregroundStyle(.tertiary)
                 }
 
-                Text(result.content)
+                Text(SearchHighlight.attributed(SearchHighlight.excerpt(previewText, term: query), term: query))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -67,7 +69,13 @@ struct MessageSearchResultRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(result.authorName) in \(result.chatName): \(result.content)")
+        .accessibilityLabel("\(result.authorName) in \(result.chatName): \(previewText)")
+    }
+
+    /// The message as words: a result row quotes what the reader saw, not the
+    /// Markdown and reference targets behind it.
+    private var previewText: String {
+        RichMessageParser.oneLinePreview(result.content)
     }
 
     private var chatContextLabel: String {
@@ -102,7 +110,7 @@ private enum ServerSearchPreviewFixtures {
 #Preview("Search results") {
     ServerSearchView(
         chats: ChatFixtures.chats,
-        searchMessages: { _ in ServerSearchPreviewFixtures.results },
+        searchMessages: { _, _ in ServerSearchPreviewFixtures.results },
         onSelectChat: { _ in },
         onSelectMessage: { _ in true }
     )
@@ -111,7 +119,7 @@ private enum ServerSearchPreviewFixtures {
 #Preview("Search error") {
     ServerSearchView(
         chats: ChatFixtures.chats,
-        searchMessages: { _ in
+        searchMessages: { _, _ in
             struct PreviewError: LocalizedError {
                 var errorDescription: String? { "The Server could not be reached." }
             }

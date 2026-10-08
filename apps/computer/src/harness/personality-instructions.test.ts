@@ -72,7 +72,6 @@ test('the rendered prompt carries no em dash outside the real envelope header ex
     const prompt = render({
         conversationStyle: 'Warm.',
         initialRole: 'Keeps release notes current.',
-        webAccess: 'search',
     });
     const dashed = prompt.split('\n').filter((line) => line.includes('—'));
     expect(dashed).toHaveLength(6);
@@ -104,7 +103,6 @@ function render(overrides: Partial<AgentPromptRenderInput>) {
         initialRole: null,
         os: 'macOS',
         runtimeVersion: 'test',
-        webAccess: null,
         workspacePath: '/workbench',
         ...overrides,
     });

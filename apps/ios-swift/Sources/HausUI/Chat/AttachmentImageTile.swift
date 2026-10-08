@@ -68,7 +68,7 @@ struct AttachmentImageTile: View {
             }
         }
         .frame(width: size.width, height: size.height)
-        .clipShape(.rect(cornerRadius: AttachmentImageTileSize.cornerRadius))
+        .clipShape(.haus(AttachmentImageTileSize.cornerRadius))
         .overlay { zoomAnchor }
         .task(id: attachment.id) {
             guard needsLoad else { return }

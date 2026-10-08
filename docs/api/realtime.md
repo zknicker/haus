@@ -110,8 +110,8 @@ stale until opened. The sidebar can already show an unread message while that
 older transcript request is still pending.
 
 Every Chat lifecycle mutation emits one: `chat.createChannel` emits `created`,
-`chat.updateChannel` emits `updated` when the save changes the name or the Agent
-participant set, `chat.ensureDm` emits `created` for a DM's first resolution and
+`chat.updateChannel` emits `updated` when the save changes the name, description,
+appearance, or the Agent participant set, `chat.ensureDm` emits `created` for a DM's first resolution and
 nothing for an idempotent reopen, and archive, unarchive, and delete emit their
 own action. Audience is the Chat's own membership rather than an explicit
 recipient: lifecycle events are announced Server-wide and narrowed by the

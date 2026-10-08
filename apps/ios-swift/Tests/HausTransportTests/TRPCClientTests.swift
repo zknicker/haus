@@ -260,7 +260,7 @@ final class TRPCClientTests: XCTestCase {
         )
 
         var values: [SubscriptionOutput] = []
-        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = await client.subscribe(
+        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
             "chat.onEvent",
             input: SubscriptionInput(serverID: "srv_123"),
             options: TRPCSubscriptionOptions(reconnect: false)
@@ -270,6 +270,44 @@ final class TRPCClientTests: XCTestCase {
         }
 
         XCTAssertEqual(values, [SubscriptionOutput(kind: "message", text: "hello")])
+    }
+
+    func testSubscriptionAcceptsEnvelopeAndBareFramesInOneStream() async throws {
+        StubURLProtocol.requestHandler = { _ in
+            let body = """
+            data: {"id":"1","data":{"kind":"message","text":"enveloped"}}
+
+            data: {"kind":"message","text":"bare"}
+
+            event: return
+            data:
+
+            """
+            return response(
+                headers: ["Content-Type": "text/event-stream"],
+                data: Data(body.utf8)
+            )
+        }
+        let client = TRPCClient(
+            config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
+            sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
+            session: makeStubSession()
+        )
+
+        var values: [SubscriptionOutput] = []
+        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
+            "chat.onEvent",
+            input: SubscriptionInput(serverID: "srv_123"),
+            options: TRPCSubscriptionOptions(reconnect: false)
+        )
+        for try await value in stream {
+            values.append(value)
+        }
+
+        XCTAssertEqual(values, [
+            SubscriptionOutput(kind: "message", text: "enveloped"),
+            SubscriptionOutput(kind: "message", text: "bare"),
+        ])
     }
 
     func testSubscriptionCallsOnConnectedAfterEachReconnect() async throws {
@@ -294,7 +332,7 @@ final class TRPCClientTests: XCTestCase {
             session: makeStubSession()
         )
 
-        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = await client.subscribe(
+        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
             "chat.onEvent",
             input: SubscriptionInput(serverID: "srv_123"),
             options: TRPCSubscriptionOptions(
@@ -343,101 +381,4 @@ final class TRPCClientTests: XCTestCase {
             )
         )
     }
-
-    private func makeStubSession() -> URLSession {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [StubURLProtocol.self]
-        return URLSession(configuration: configuration)
-    }
-}
-
-private struct QueryInput: Codable, Equatable {
-    let serverID: String
-}
-
-private struct QueryOutput: Codable, Equatable {
-    let count: Int
-}
-
-private struct SubscriptionInput: Codable {
-    let serverID: String
-}
-
-private struct SubscriptionOutput: Codable, Equatable, Sendable {
-    let kind: String
-    let text: String
-}
-
-private actor SubscriptionCallbackCount {
-    private(set) var value = 0
-
-    func increment() {
-        value += 1
-    }
-}
-
-private final class StubURLProtocol: URLProtocol {
-    typealias Handler = (URLRequest) throws -> StubResponse
-
-    nonisolated(unsafe) static var requestHandler: Handler?
-
-    override class func canInit(with request: URLRequest) -> Bool {
-        true
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        do {
-            let result = try XCTUnwrap(Self.requestHandler?(request))
-            client?.urlProtocol(
-                self,
-                didReceive: result.response,
-                cacheStoragePolicy: .notAllowed
-            )
-            client?.urlProtocol(self, didLoad: result.data)
-            client?.urlProtocolDidFinishLoading(self)
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-}
-private struct StubResponse {
-    let response: HTTPURLResponse
-    let data: Data
-}
-
-private func response(
-    status: Int = 200,
-    headers: [String: String] = ["Content-Type": "application/json"],
-    data: Data
-) -> StubResponse {
-    StubResponse(
-        response: HTTPURLResponse(
-            url: URL(string: "https://haus.test")!,
-            statusCode: status,
-            httpVersion: nil,
-            headerFields: headers
-        )!,
-        data: data
-    )
-}
-
-private func readBody(_ stream: InputStream) -> Data {
-    stream.open()
-    defer { stream.close() }
-    var data = Data()
-    var buffer = [UInt8](repeating: 0, count: 4096)
-    while stream.hasBytesAvailable {
-        let count = stream.read(&buffer, maxLength: buffer.count)
-        if count <= 0 {
-            break
-        }
-        data.append(contentsOf: buffer[..<count])
-    }
-    return data
 }

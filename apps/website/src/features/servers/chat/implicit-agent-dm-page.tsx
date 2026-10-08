@@ -13,6 +13,7 @@ import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
 import { ImplicitAgentDmComposer } from './chat-composer-variants.tsx';
 import { ChatTopbarIdentity } from './chat-topbar.tsx';
+import { composerDropSurfaceProps } from './composer-file-drop.ts';
 import { DmActions } from './dm-actions.tsx';
 
 export function ImplicitAgentDmPage({
@@ -41,6 +42,7 @@ export function ImplicitAgentDmPage({
             aria-label={agent.displayName}
             className="relative flex min-h-0 flex-1"
             data-slot="chat-surface"
+            {...composerDropSurfaceProps}
         >
             {compact ? (
                 // Desktop: the tab names the Agent and its context menu (and the

@@ -8,7 +8,7 @@ import { createHarnessForRuntime } from './runtime-harness.ts';
 const storeDir = '/computer/.haus/cache/harness-bridge-store';
 
 test('the runtime table drives Codex through codex-acp behind harness-acp', async () => {
-    const harness = createHarnessForRuntime('codex', 'high', true, storeDir);
+    const harness = createHarnessForRuntime('codex', 'high', storeDir);
     const bootstrap = await harness.getBootstrap?.();
     const descriptor = bootstrap?.files.find((file) =>
         file.path.endsWith('/implementation/implementation.json')
@@ -54,7 +54,7 @@ test('codex-acp is pinned together with the Codex CLI it drives', async () => {
 });
 
 test('both Codex installs share the machine store and gate on a runnable Codex CLI', async () => {
-    const native = createCodexAcp({ webSearch: false });
+    const native = createCodexAcp({});
     const bootstrap = await withCodexAcpBootstrap(native, { storeDir }).getBootstrap?.();
     const nativeBootstrap = await native.getBootstrap?.();
     const [bridgeInstall, implementationInstall] = (bootstrap?.commands ?? []).map(
@@ -91,7 +91,7 @@ test('both Codex installs share the machine store and gate on a runnable Codex C
 });
 
 test('the Codex bridge steers a live turn through codex-acp session steering', async () => {
-    const bootstrap = await createCodexAcp({ webSearch: false }).getBootstrap?.();
+    const bootstrap = await createCodexAcp({}).getBootstrap?.();
     const bridge = bootstrap?.files.find(
         (file) => file.path === '.harness-bootstrap/codex/bridge.mjs'
     )?.content;
@@ -111,8 +111,8 @@ test('the Codex bridge steers a live turn through codex-acp session steering', a
     expect(adapter).toContain('harnessId === "grok-build" || harnessId === "codex"');
 });
 
-test('Codex launch configuration follows the Agent reasoning and web access', () => {
-    const environment = codexAcpEnvironment({ reasoningEffort: 'high', webSearch: true });
+test('Codex launch configuration follows the Agent reasoning, with live web search always on', () => {
+    const environment = codexAcpEnvironment({ reasoningEffort: 'high' });
     expect(environment).toEqual({
         CODEX_CONFIG: expect.any(String),
         INITIAL_AGENT_MODE: 'agent-full-access',
@@ -125,29 +125,25 @@ test('Codex launch configuration follows the Agent reasoning and web access', ()
         project_doc_max_bytes: 0,
         web_search: 'live',
     });
-    expect(JSON.parse(codexAcpEnvironment({ webSearch: false }).CODEX_CONFIG ?? '')).toEqual({
+    expect(JSON.parse(codexAcpEnvironment({}).CODEX_CONFIG ?? '')).toEqual({
         agents: { enabled: false },
         features: { apps: false, multi_agent: false, plugins: false },
         project_doc_max_bytes: 0,
-        web_search: 'disabled',
+        web_search: 'live',
     });
 });
 
 test('Codex Agents launch with ChatGPT apps and plugin MCP switched off', () => {
     // Only Server grants give an Agent MCP access (specs/mcp.md). A ChatGPT login
     // otherwise adds the operator's connectors as the built-in `codex_apps` server.
-    for (const webSearch of [true, false]) {
-        const config = JSON.parse(codexAcpEnvironment({ webSearch }).CODEX_CONFIG ?? '');
-        expect(config.features).toMatchObject({ apps: false, plugins: false });
-    }
+    const config = JSON.parse(codexAcpEnvironment({}).CODEX_CONFIG ?? '');
+    expect(config.features).toMatchObject({ apps: false, plugins: false });
 });
 
 test('Codex Agents launch with sub-agents switched off', () => {
     // codex 0.159.0: `features.multi_agent` alone leaves a v2 catalog model its
     // collaboration tools; `agents.enabled = false` removes them for every model.
-    for (const webSearch of [true, false]) {
-        const config = JSON.parse(codexAcpEnvironment({ webSearch }).CODEX_CONFIG ?? '');
-        expect(config.agents).toEqual({ enabled: false });
-        expect(config.features.multi_agent).toBe(false);
-    }
+    const config = JSON.parse(codexAcpEnvironment({}).CODEX_CONFIG ?? '');
+    expect(config.agents).toEqual({ enabled: false });
+    expect(config.features.multi_agent).toBe(false);
 });

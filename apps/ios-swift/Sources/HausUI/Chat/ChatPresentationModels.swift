@@ -134,6 +134,9 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let thread: ThreadPreviewPresentation?
     public let task: TaskPresentation?
     public let isPending: Bool
+    /// A pending row whose send did not reach Server: the viewer's own row,
+    /// marked "Not sent", until they retry or delete it.
+    public let isSendFailed: Bool
     public let cloudAgents: [CloudAgentPresentation]
     public let threadCloudAgents: [CloudAgentPresentation]
     /// Grouped emoji reactions in the Server's order, reactors resolved.
@@ -146,6 +149,10 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let prose: String
     /// The fences this message drew, in the order it wrote them.
     public let visuals: [VisualSegment]
+    /// The workspace pages this message linked with ```artifact fences.
+    public let artifacts: [ArtifactSegment]
+    /// The Reminder or Trigger fire this message answers, when it answers one.
+    public let cause: MessageCausePresentation?
 
     public init(
         id: String,
@@ -158,11 +165,13 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         thread: ThreadPreviewPresentation? = nil,
         task: TaskPresentation? = nil,
         isPending: Bool = false,
+        isSendFailed: Bool = false,
         cloudAgents: [CloudAgentPresentation] = [],
         threadCloudAgents: [CloudAgentPresentation] = [],
         reactions: [MessageReactionPresentation] = [],
         richBlocks: [RichMessageBlock]? = nil,
-        visualBody: VisualMessageBody? = nil
+        visualBody: VisualMessageBody? = nil,
+        cause: MessageCausePresentation? = nil
     ) {
         // Trim consistently for Chat and Thread bodies.
         let body = Self.body(content: content)
@@ -182,6 +191,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.thread = thread
         self.task = task
         self.isPending = isPending
+        self.isSendFailed = isPending && isSendFailed
         self.cloudAgents = cloudAgents
         self.threadCloudAgents = threadCloudAgents
         self.reactions = reactions
@@ -193,6 +203,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         // trimmed body still renders its mentions as chips.
         self.prose = fenced.prose
         self.visuals = fenced.visuals
+        self.artifacts = fenced.artifacts
+        self.cause = cause
         self.richBlocks = body == content
             ? richBlocks ?? RichMessageBlockParser.blocks(fenced.prose) { _, _, _ in nil }
             : RichMessageBlockParser.blocks(fenced.prose) { _, _, _ in nil }
@@ -256,38 +268,6 @@ public struct ThreadReplyPresentation: Identifiable, Hashable, Sendable {
         self.author = author
         self.content = content
         self.createdAt = createdAt
-    }
-}
-
-public enum TaskStatusPresentation: String, Hashable, Sendable {
-    case todo = "To do"
-    case inProgress = "In progress"
-    case inReview = "In review"
-    case done = "Done"
-    case closed = "Closed"
-}
-
-public struct TaskPresentation: Hashable, Sendable {
-    public let number: Int
-    /// How the task came to exist, which is what Chat's own visibility rule
-    /// reads: an Agent's claim is bookkeeping, a human's task is not.
-    public let origin: TaskOrigin
-    public let status: TaskStatusPresentation
-    public let assignee: MessageAuthorPresentation?
-    public let creator: MessageAuthorPresentation?
-
-    public init(
-        number: Int,
-        origin: TaskOrigin = .composed,
-        status: TaskStatusPresentation,
-        assignee: MessageAuthorPresentation?,
-        creator: MessageAuthorPresentation? = nil
-    ) {
-        self.number = number
-        self.origin = origin
-        self.status = status
-        self.assignee = assignee
-        self.creator = creator
     }
 }
 

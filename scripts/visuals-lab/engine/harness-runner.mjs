@@ -31,14 +31,12 @@ export const createHarnessRunner = ({
             runtime,
             runtimeId,
             tools: {},
-            webAccess: null,
             workspaceDir,
         },
         {
             harness: createHarnessForRuntime(
                 runtimeId,
                 reasoningEffort,
-                false,
                 bridgeStoreDirForHost(),
                 modelId
             ),

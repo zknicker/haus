@@ -6,8 +6,8 @@ import {
 export type OpenThread = DesktopPageOpeners['openThread'];
 
 /**
- * The one way to open a Thread on desktop (ADR 0039): a Thread is a page, so it
- * opens as a link from the current tab. Null on the website, which has no
+ * The one way to open a Thread on desktop (ADR 0039): a Thread is a page that
+ * opens in the right pane (an open Thread tab is selected). Null on the website, which has no
  * tabs: there the open Chat's side pane hosts Threads, and links elsewhere
  * navigate to the Chat with `?thread=`.
  */

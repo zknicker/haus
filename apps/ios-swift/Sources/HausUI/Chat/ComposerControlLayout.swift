@@ -3,6 +3,13 @@ import SwiftUI
 /// Keeps composer controls alive while their positions interpolate between compact and focused UI.
 struct ComposerControlLayout: Layout {
     var expansion: CGFloat
+    /// The tallest the collapsed pill lets its one line of text be. Scaled by
+    /// the caller with Dynamic Type, so an accessibility size grows the pill
+    /// instead of clipping the placeholder.
+    var compactFieldHeightLimit: CGFloat = 24
+    /// The collapsed pill's floor, the send circle's diameter at the default
+    /// size; scaled by the caller too.
+    var compactMinimumHeight: CGFloat = 34
 
     /// Text zone floor when expanded, so a single line sits close to the controls row
     /// instead of leaving the reference's tall dead space beneath it.
@@ -80,7 +87,7 @@ struct ComposerControlLayout: Layout {
         let expandedFieldSize = subviews[1].sizeThatFits(
             ProposedViewSize(width: expandedFieldWidth, height: proposal.height)
         )
-        let compactFieldHeight = min(expandedFieldSize.height, 24)
+        let compactFieldHeight = min(expandedFieldSize.height, compactFieldHeightLimit)
         let fieldWidth = interpolate(
             compactFieldWidth,
             expandedFieldWidth,
@@ -92,7 +99,7 @@ struct ComposerControlLayout: Layout {
             progress: fieldProgress
         )
         let controlsHeight = max(attachmentSize.height, sendSize.height)
-        let compactHeight = max(34, controlsHeight, compactFieldHeight)
+        let compactHeight = max(compactMinimumHeight, controlsHeight, compactFieldHeight)
         let expandedTopHeight = Self.expandedTopHeight(forFieldHeight: expandedFieldSize.height)
         let controlsRowTop = expandedTopHeight + Self.expandedRowSpacing
         let expandedHeight = controlsRowTop + controlsHeight

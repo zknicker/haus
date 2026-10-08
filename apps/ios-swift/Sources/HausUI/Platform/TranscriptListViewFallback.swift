@@ -19,6 +19,7 @@ where Item.ID == String {
     var animatesEntrance = false
     var onLongPress: ((Item) -> Void)? = nil
     var onHoldChange: ((Item?) -> Void)? = nil
+    var rowRevision = 0
     @ViewBuilder let row: (Item) -> Row
     @ViewBuilder let accessory: () -> Accessory
 

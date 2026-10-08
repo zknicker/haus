@@ -50,6 +50,44 @@ test('only the newest day opens on arrival, at most ten turns of it', () => {
     expect(readOpenOnArrival([]).size).toBe(0);
 });
 
+test('quiet days remain visible before and between loaded activity', () => {
+    const now = new Date(2026, 9, 7, 16).getTime();
+    const days = readLogDays(
+        [entry('oct_5', new Date(2026, 9, 5, 22)), entry('oct_2', new Date(2026, 9, 2, 10))],
+        { agentIds: [tiny.id] },
+        now
+    );
+    expect(days.map((day) => day.label)).toEqual([
+        'Today',
+        'Yesterday',
+        'Oct 5',
+        'Oct 4',
+        'Oct 3',
+        'Oct 2',
+    ]);
+    expect(days.map((day) => day.entries.length)).toEqual([0, 0, 1, 0, 0, 1]);
+    expect([...readOpenOnArrival(days)]).toEqual(['oct_5']);
+});
+
+test('empty and fully filtered logs still show today', () => {
+    const now = new Date(2026, 9, 7, 16).getTime();
+    for (const entries of [[], [entry('other', new Date(2026, 9, 2, 10), blippy)]]) {
+        expect(readLogDays(entries, { agentIds: [tiny.id] }, now)).toEqual([
+            { entries: [], key: '2026-9-7', label: 'Today' },
+        ]);
+    }
+});
+
+test('calendar stepping keeps every local day across a daylight saving transition', () => {
+    const days = readLogDays(
+        [entry('before_dst', new Date(2026, 2, 7, 23))],
+        { agentIds: [tiny.id] },
+        new Date(2026, 2, 9, 12).getTime()
+    );
+    expect(days.map((day) => day.key)).toEqual(['2026-2-9', '2026-2-8', '2026-2-7']);
+    expect(days.map((day) => day.entries.length)).toEqual([0, 0, 1]);
+});
+
 test('step marks are fractions of the turn axis, toned as their rows', () => {
     const marks = readStepMarks(
         [

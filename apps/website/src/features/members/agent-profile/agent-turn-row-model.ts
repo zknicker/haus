@@ -171,11 +171,11 @@ function joinUnits(major: number, majorUnit: string, minor: number, minorUnit: s
     return minor === 0 ? `${major}${majorUnit}` : `${major}${majorUnit} ${minor}${minorUnit}`;
 }
 
-function localDayKey(date: Date): string {
+export function localDayKey(date: Date): string {
     return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
-function formatDayLabel(date: Date, now: number): string {
+export function formatDayLabel(date: Date, now: number): string {
     const today = new Date(now);
     if (localDayKey(date) === localDayKey(today)) {
         return 'Today';

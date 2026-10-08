@@ -42,6 +42,15 @@ struct RichReferenceParityTests {
             label: "Product",
             mark: .channel(.default)
         ),
+        // The Server's rewritten Thread mention: the Chat scheme with the
+        // anchor in the query. The id keeps the whole target so both ids ride.
+        Row(
+            markdown: "[#launch plan](chat://cht_product?thread=msg_anchor)",
+            kind: .thread,
+            id: "chat://cht_product?thread=msg_anchor",
+            label: "launch plan",
+            mark: .glyph(.thread)
+        ),
         Row(
             markdown: "[$ui](skill://ui)",
             kind: .skill,

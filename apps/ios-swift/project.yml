@@ -15,8 +15,8 @@ settings:
     # via explicit xcodebuild args from `bun run ios:release`; see
     # docs/operations/ios-testflight.md. Both values mirror the latest
     # published iOS target in releases.json via release:sync-versions.
-    CURRENT_PROJECT_VERSION: "42"
-    MARKETING_VERSION: 5.2.1
+    CURRENT_PROJECT_VERSION: "43"
+    MARKETING_VERSION: 5.3.0
 
 packages:
   HausIOS:
@@ -77,7 +77,10 @@ targets:
             CFBundleURLSchemes:
               - haus
               - chat.haus.ios
-        UILaunchScreen: {}
+        # The ghost sits where HausOpeningView draws it, on the same system
+        # background, so launch hands off to the opening frame without a pop.
+        UILaunchScreen:
+          UIImageName: LaunchGhost
         ITSAppUsesNonExemptEncryption: false
         NSCameraUsageDescription: Take photos to attach to Haus messages.
         NSMicrophoneUsageDescription: Talk with your Haus Agents during voice calls.

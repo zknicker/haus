@@ -514,7 +514,10 @@ invitation copies nothing onto the membership.
 `server.create` commits one transaction: the creator's Haus User, the opaque
 Server id, its slug and display name, the first human Owner membership, `#all`,
 durable `server_onboarding` progress, and private `#onboarding-owner`; the Owner
-participates in both Channels. It creates no Computer, Agent, or execution
+participates in both Channels. `#all` starts with the description "General
+channel for all members and team-wide announcements." (`allChannelDescription`
+in `servers/contracts.ts`; migration 0068 backfilled existing `#all` rows that
+had none). It creates no Computer, Agent, or execution
 configuration. A taken slug is refused as `CONFLICT`, and the whole transaction
 rolls back — including a first-time creator's User and onboarding rows.
 

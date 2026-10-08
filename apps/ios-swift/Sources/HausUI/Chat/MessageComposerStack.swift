@@ -33,6 +33,8 @@ struct MessageComposerStack<Status: View, Surface: View>: View {
             options: mentionOptions
         )
         return VStack(alignment: .leading, spacing: 8) {
+            // The stopped-Agent notice sits above this stack, in
+            // `ChatComposerStatus`, outside the composer's horizontal inset.
             status()
             MessageComposerMentionPicker(text: $text, options: mentionOptions)
             if let inlineReply {

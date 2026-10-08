@@ -114,11 +114,10 @@ export async function withWeeklyCove(
         agentName: ordinary ? 'Orbit' : 'Cove',
         homeTimezone,
         initialRole: ordinary ? 'Workstream assistant' : 'Onboarding Assistant',
-        webAccess: null,
         workspacePath: workspace,
     });
     const agent = new HarnessAgent({
-        harness: createHarnessForRuntime('codex', 'default', false, bridgeStoreDirForHost()),
+        harness: createHarnessForRuntime('codex', 'default', bridgeStoreDirForHost()),
         model,
         instructions,
         permissionMode: 'allow-all',

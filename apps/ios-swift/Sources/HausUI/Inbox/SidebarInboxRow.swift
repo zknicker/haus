@@ -13,21 +13,20 @@ import SwiftUI
 /// The mark is the iridescent ghost, not the app-icon tile: it shares a glyph
 /// column with Tasks directly below it, and a filled blue tile beside a stroked
 /// checklist reads as a different kind of thing rather than the row above it.
-/// It is drawn a size above those boxed glyphs on purpose — the one glyph in
-/// the column that names the product where the others name a screen — and it
-/// grows inside the shared column, centred on the same midline, so the `Inbox`
-/// label stays on the `Tasks` label's edge whatever size the mark takes. Its
-/// mesh drifts, quicker while an Agent here is working, and not at all while
-/// the drawer holding it is shut.
+/// It is drawn at the column's size here — the one glyph in the column that
+/// names the product where the others name a screen — and it grows inside the
+/// shared column, centred on the same midline, so the `Inbox` label stays on
+/// the `Tasks` label's edge whatever size the mark takes. Its mesh drifts,
+/// quicker while an Agent here is working, and not at all while the drawer
+/// holding it is shut.
 struct SidebarInboxRow: View {
     let hasUnread: Bool
-    let glyphSize: CGFloat
     let ghostTempo: HausGhostTempo
-    let ghostPaused: Bool
-    let glyphColumn: CGFloat
-    let capsuleBleed: CGFloat
-    let listInset: CGFloat
+    let metrics: SidebarRowMetrics
+    let isSelected: Bool
     let onOpen: () -> Void
+
+    @Environment(\.hausSidebarHidden) private var sidebarHidden
 
     var body: some View {
         Button(action: onOpen) {
@@ -36,20 +35,20 @@ struct SidebarInboxRow: View {
                     fill: .iridescent,
                     animated: true,
                     tempo: ghostTempo,
-                    paused: ghostPaused,
-                    size: glyphSize
+                    paused: sidebarHidden,
+                    size: metrics.glyph
                 )
-                    .frame(width: glyphColumn, height: glyphColumn)
+                    .frame(width: metrics.glyph, height: metrics.glyph)
                 Text("Inbox")
+                    .lineLimit(metrics.titleLineLimit)
                 Spacer(minLength: 0)
             }
             .foregroundStyle(.primary)
-            .padding(.horizontal, capsuleBleed)
-            .frame(height: 42)
-            .sidebarUnreadDot(hasUnread, listInset: listInset, glyphInset: capsuleBleed)
+            .sidebarRowFrame(metrics, isSelected: isSelected)
+            .sidebarUnreadDot(hasUnread, listInset: metrics.listInset, glyphInset: metrics.capsuleBleed)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.pressableRow(cornerRadius: 21))
+        .buttonStyle(.pressableRow(cornerRadius: metrics.pressRadius))
         .accessibilityLabel(hasUnread ? "Inbox, unread" : "Inbox")
     }
 }

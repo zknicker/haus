@@ -33,6 +33,10 @@ public struct ChatScreenView: View {
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
     @State private var inlineReply: MessageReplyReferencePresentation?
+    /// The keyboard's reach from the screen bottom, read from UIKit (`onKeyboardInsetChange`);
+    /// nil until the first reading, when the shell's home-indicator inset stands in.
+    @State private var keyboardInset: CGFloat?
+    @Environment(\.hausDrawerEngaged) private var isDrawerEngaged
 
     public init(
         chat: ChatDestination,
@@ -95,6 +99,7 @@ public struct ChatScreenView: View {
             // plain inset because the soft edge below only paints behind a declared bar.
             .chromeBar(edge: .top, spacing: 0) {
                 header
+                    .overlay(alignment: .top) { engagement }
                     .padding(.top, contentInsets.top)
                     .openingEntrance(.header)
             }
@@ -105,27 +110,27 @@ public struct ChatScreenView: View {
             // transcript never puts a sharp row below the composer, and the only rows that
             // reach it are the ones its glass is already refracting.
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                MessageComposerView(
-                    text: $draft,
-                    interaction: composerInteraction,
-                    placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
-                    isConnected: isConnected,
-                    isTextFocused: $isComposerFocused,
-                    allowsAttachments: chat.durableChat != nil,
-                    mentionOptions: mentionOptions,
-                    inlineReply: inlineReply,
-                    onCancelInlineReply: { inlineReply = nil },
-                    transitionNamespace: composerTransitionNamespace,
-                    onSend: sendMessage
-                )
-                .padding(.bottom, chatBottomInset)
-                // The shell ignores the keyboard safe area, so this manual inset is the only
-                // keyboard response the canvas has — and it arrives as plain data through a
-                // GeometryReader, outside the keyboard's own animation transaction. Without
-                // this, the transcript and composer teleport to the keyboard-up layout while
-                // the keyboard is still sliding in below them.
-                .animation(ComposerKeyboardMotion.travel, value: chatBottomInset)
-                .openingEntrance(.composer)
+                VStack(spacing: 0) {
+                    ChatComposerStatus(peerAgentID: chat.kind.peerAgentID)
+                    MessageComposerView(
+                        text: $draft,
+                        interaction: composerInteraction,
+                        placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
+                        isConnected: isConnected,
+                        isTextFocused: $isComposerFocused,
+                        allowsAttachments: chat.durableChat != nil,
+                        mentionOptions: mentionOptions,
+                        inlineReply: inlineReply,
+                        onCancelInlineReply: { inlineReply = nil },
+                        transitionNamespace: composerTransitionNamespace,
+                        onSend: sendMessage
+                    )
+                    // The shell ignores the keyboard, so this inset is the canvas's only keyboard
+                    // response. Each reading arrives in its own transaction: the keyboard's curve
+                    // for a rise or fall, none while a finger drags the keyboard down.
+                    .padding(.bottom, chatBottomInset)
+                    .openingEntrance(.composer)
+                }
             }
             // The portal is drawn in an overlay window above the keyboard, measured against the
             // display rather than against this screen: the card keeps its full height and its gap
@@ -137,8 +142,18 @@ public struct ChatScreenView: View {
             .composerPortalFreeze(
                 interaction: composerInteraction,
                 isTextFocused: $isComposerFocused,
-                liveBottomInset: contentInsets.bottom
+                liveBottomInset: liveBottomInset
             )
+            .onKeyboardInsetChange { sample in
+                withTransaction(Transaction(animation: sample.animation)) {
+                    keyboardInset = sample.inset
+                }
+            }
+            // The keyboard leaves before anything covers the composer — the drawer, a pushed
+            // Thread — and nothing raises it again when that surface goes away.
+            .onChange(of: isDrawerEngaged) { _, engaged in
+                if engaged { isComposerFocused = false }
+            }
             .background(.background)
             .task(id: chat.id) { await onLoadMentionOptions() }
     }
@@ -148,8 +163,10 @@ public struct ChatScreenView: View {
     /// leaving and returning behind an open portal: it sets how far the composer sits off the
     /// screen bottom, and through the composer's own height it sets the transcript's clearance.
     private var chatBottomInset: CGFloat {
-        composerInteraction.portalFreeze.bottomInset(live: contentInsets.bottom)
+        composerInteraction.portalFreeze.bottomInset(live: liveBottomInset)
     }
+
+    private var liveBottomInset: CGFloat { keyboardInset ?? contentInsets.bottom }
 
     /// A caller's safe-area attachment lands on the timeline's transcript root, so the
     /// transcript scrolls beneath both the header and the composer instead of clipping under
@@ -160,7 +177,11 @@ public struct ChatScreenView: View {
             messages: messages,
             isMessageHistoryLoaded: isMessageHistoryLoaded,
             emptyStateDescription: emptyStateDescription,
-            onOpenThread: onOpenThread,
+            onOpenThread: { message in
+                isComposerFocused = false
+                onOpenThread(message)
+            },
+            onContentTap: { isComposerFocused = false },
             allowsInlineReplies: chat.durableChat != nil && onSendInlineReply != nil,
             onSelectInlineReply: selectInlineReply,
             onOpenAttachment: onOpenAttachment,
@@ -222,6 +243,12 @@ public struct ChatScreenView: View {
                 .frame(maxWidth: 220)
             }
             .buttonStyle(.plain)
+            // The header caps its text size like a navigation bar does, so a
+            // reader at an accessibility size gets the system's enlarged
+            // preview on a long press instead.
+            .accessibilityShowsLargeContentViewer {
+                Text(chat.title)
+            }
         } trailing: {
             HStack(spacing: 8) {
                 if let onCall {
@@ -229,6 +256,16 @@ public struct ChatScreenView: View {
                 }
                 GlassChromeButton(.icon(.search), label: "Search messages", action: onOpenSearch)
             }
+        }
+    }
+
+    /// Who is answering: an overlay under the title, so it never moves the transcript.
+    @ViewBuilder
+    private var engagement: some View {
+        if let chatID = chat.durableChat?.id {
+            HeaderEngagement(chatID: chatID, style: chat.kind.engagementStyle)
+                .fixedSize(horizontal: false, vertical: true)
+                .offset(y: HausChrome.headerHeight - 8)
         }
     }
 
@@ -247,43 +284,16 @@ public struct ChatScreenView: View {
 }
 
 private extension ChatKind {
+    var peerAgentID: String? {
+        if case .agentDirectMessage(let agent) = self { agent.id } else { nil }
+    }
+
     var isChannel: Bool {
         if case .channel = self { true } else { false }
     }
-}
 
-#Preview {
-    @Previewable @State var draft = ""
-    @Previewable @State var composerInteraction = ComposerInteraction()
-
-    ChatScreenView(
-        chat: .durableChat(ChatFixtures.chats[1]),
-        messages: ChatFixtures.messages,
-        draft: $draft,
-        composerInteraction: composerInteraction,
-        isConnected: true,
-        onOpenSidebar: {},
-        onOpenChatDetails: {},
-        onOpenSearch: {},
-        onOpenThread: { _ in },
-        onSend: { _, _ in true }
-    )
-}
-
-#Preview("Empty Chat") {
-    @Previewable @State var draft = ""
-    @Previewable @State var composerInteraction = ComposerInteraction()
-
-    ChatScreenView(
-        chat: .durableChat(ChatFixtures.chats[1]),
-        messages: [],
-        draft: $draft,
-        composerInteraction: composerInteraction,
-        isConnected: true,
-        onOpenSidebar: {},
-        onOpenChatDetails: {},
-        onOpenSearch: {},
-        onOpenThread: { _ in },
-        onSend: { _, _ in true }
-    )
+    /// An Agent DM's title already shows its Agent, so its row is the thought.
+    var engagementStyle: HeaderEngagementStyle {
+        if case .agentDirectMessage = self { .subtitle } else { .roster }
+    }
 }

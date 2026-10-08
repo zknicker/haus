@@ -224,12 +224,6 @@ struct AgentProfileView: View {
                     }
                 }
 
-                SettingsSection("Details") {
-                    SettingsListGroup {
-                        ValueRow("Handle", value: "@\(agent.handle)", icon: .handle, showsDivider: false)
-                    }
-                }
-
                 AgentExecutionSettingsSection(
                     agent: agent,
                     onOpenRuntimeConfiguration: onOpenRuntimeConfiguration

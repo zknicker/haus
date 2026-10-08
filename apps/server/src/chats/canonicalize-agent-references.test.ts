@@ -29,6 +29,22 @@ describe('canonicalizeAgentMessageContent', () => {
         expect(canonicalizeAgentMessageContent(protectedContent, input)).toBe(protectedContent);
     });
 
+    it('resolves the CLI short id of an opaque message id, case-sensitively', () => {
+        const anchorMessageId = 'msg_dzV-6EXhQ2abcdEF';
+        const input = {
+            agents,
+            channels,
+            users: [],
+            threads: [{ parentChatId: 'cht_product', anchorMessageId }],
+        };
+        expect(canonicalizeAgentMessageContent('See #product:dzV-6EXh.', input)).toBe(
+            `See [#product thread](chat://cht_product?thread=${anchorMessageId}).`
+        );
+        expect(canonicalizeAgentMessageContent('See #product:dzv-6exh.', input)).toBe(
+            'See #product:dzv-6exh.'
+        );
+    });
+
     it('leaves missing and ambiguous thread targets whole rather than linking just the channel', () => {
         const input = {
             agents,

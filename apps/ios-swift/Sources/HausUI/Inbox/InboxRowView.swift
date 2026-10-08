@@ -7,7 +7,9 @@ import SwiftUI
 ///
 /// Exactly two lines, each capped at one, so every row in both sections is the
 /// same height at a given text size: the list reads as one column, not a stack
-/// of differently sized cards. The height is deliberate too: an Unread row's
+/// of differently sized cards. Accessibility sizes are the exception: there the
+/// title wraps and the trailing fact stacks under it, because one line of
+/// headline at that size holds only a few letters. The height is deliberate too: an Unread row's
 /// leading swipe reveals the system's icon-only circle, which only reads as
 /// Messages' when the row is tall enough to center it with room around it.
 ///
@@ -19,31 +21,35 @@ struct InboxRowView: View {
     let detail: String
     let onOpen: () -> Void
 
+    @ScaledMetric(relativeTo: .headline) private var markSize = InboxMetrics.markSize
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         Button(action: onOpen) {
-            HStack(alignment: .center, spacing: 12) {
-                InboxMarkView(mark: mark)
+            HStack(alignment: isStacked ? .top : .center, spacing: InboxMetrics.markSpacing) {
+                InboxMarkView(mark: mark, size: resolvedMarkSize)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(title)
-                            .font(.headline)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        if let trailing {
-                            Text(trailing)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                    if isStacked {
+                        // At accessibility sizes the title gets the whole
+                        // line and may wrap; the perishable fact moves under
+                        // it instead of squeezing it down to a letter.
+                        titleText.lineLimit(2)
+                        if let trailing { trailingText(trailing) }
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            titleText
                                 .lineLimit(1)
-                                .monospacedDigit()
-                                .layoutPriority(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            if let trailing {
+                                trailingText(trailing).fixedSize()
+                            }
                         }
                     }
                     Text(detail)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(isStacked ? 3 : 1)
                         .truncationMode(.tail)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -54,8 +60,36 @@ struct InboxRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.pressableRow(cornerRadius: InboxMetrics.boxRadius))
+        // Every row's separator starts under its title, whatever the mark drew
+        // — an initials avatar, an image, a channel box — instead of the List
+        // guessing from the first text it finds.
+        .alignmentGuide(.listRowSeparatorLeading) { [separatorLeading] _ in separatorLeading }
         .accessibilityLabel(title)
         .accessibilityValue([trailing, detail].compactMap { $0 }.joined(separator: ", "))
+    }
+
+    private var isStacked: Bool { dynamicTypeSize.isAccessibilitySize }
+
+    /// The mark grows with text size so it keeps pace with two taller lines,
+    /// up to a cap past which it would only eat the title's width.
+    private var resolvedMarkSize: CGFloat { min(markSize, InboxMetrics.maxMarkSize) }
+
+    private var separatorLeading: CGFloat {
+        InboxMetrics.rowInset + resolvedMarkSize + InboxMetrics.markSpacing
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(.headline)
+            .truncationMode(.tail)
+    }
+
+    private func trailingText(_ value: String) -> some View {
+        Text(value)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .monospacedDigit()
     }
 }
 
@@ -74,7 +108,7 @@ struct InboxMarkView: View {
             AvatarView(name: name, url: avatarURL, presence: presence, size: size)
         case .channel(let appearance):
             ChannelIconBox(appearance: appearance, size: size)
-        case .cloudAgent:
+        case .cloudAgent(let isRunning):
             CloudAgentMark(size: size * 0.5, style: .glyph)
                 .frame(width: size, height: size)
                 .background(
@@ -84,7 +118,20 @@ struct InboxMarkView: View {
                         style: .continuous
                     )
                 )
+                .overlay(alignment: .bottomTrailing) { statusDot(isRunning: isRunning) }
         }
+    }
+
+    /// Drawn at the avatar presence dot's size and offset, so the column's
+    /// status marks all sit in one place.
+    private func statusDot(isRunning: Bool) -> some View {
+        let diameter = min(size * 0.33, 16)
+        return Circle()
+            .fill(isRunning ? Color.yellow : Color.gray)
+            .frame(width: diameter, height: diameter)
+            .overlay { Circle().stroke(.background, lineWidth: diameter > 12 ? 3 : 2) }
+            .offset(x: 2, y: 2)
+            .accessibilityHidden(true)
     }
 }
 
@@ -96,8 +143,10 @@ enum InboxMetrics {
     static let rowInset: CGFloat = 14
     /// Messages-like breathing room above and below a row's two lines.
     static let rowVerticalPadding: CGFloat = 12
-    static let boxRadius: CGFloat = 14
+    static let boxRadius: CGFloat = HausRadius.medium
     /// Messages' conversation avatar on a phone. A boxed mark derives its
     /// corner from this size, so the rounded square keeps its shape.
     static let markSize: CGFloat = 44
+    static let maxMarkSize: CGFloat = 64
+    static let markSpacing: CGFloat = 12
 }

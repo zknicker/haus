@@ -12,11 +12,24 @@ struct InboxSectionView<Content: View>: View {
         Section {
             content
         } header: {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(nil)
+            InboxSectionTitle(title: title)
         }
+    }
+}
+
+/// A section label in the system's own secondary label color, semibold, so it
+/// holds its contrast on the grouped background. A hierarchical `.secondary`
+/// resolves against whatever ink the List header already applies, which is
+/// what read too faint.
+struct InboxSectionTitle: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(HausPlatformColor.secondaryLabel)
+            .textCase(nil)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

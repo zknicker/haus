@@ -13,7 +13,6 @@ test('teaches CLI-version suspicion and paged server listings', () => {
         initialRole: null,
         os: 'macOS',
         runtimeVersion: 'test',
-        webAccess: null,
         workspacePath: '/workbench',
     });
 

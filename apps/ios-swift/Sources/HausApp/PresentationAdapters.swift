@@ -56,6 +56,7 @@ extension HausStore {
     /// page, its optimistic rows, the Agent and Member directories, and the
     /// lifecycle presence overlay. Each of those is a `HausStore` accessor
     /// whose setter retires this cache, so a stale row is not expressible.
+    /// A rebuild reuses each unchanged message's parsed body.
     func messagePresentations(chatID: String) -> [MessagePresentation] {
         trackProjectionDirectory()
         let page = messagesByChatID[chatID]
@@ -92,12 +93,12 @@ extension HausStore {
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
-            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content)
+            let parsed = parsedBody(id: message.id, content: message.content, chatID: message.chatID)
             let ownWork: CloudAgentWork? = if case .cloudAgentWork(let work) = message.body { work } else { nil }
             return MessagePresentation(
                 id: message.id,
                 author: author,
-                content: body,
+                content: parsed.body,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(attachmentPresentation),
                 sequence: message.sequence,
@@ -111,8 +112,9 @@ extension HausStore {
                     cloudAgentWork, anchorMessageID: message.id, ownWorkID: ownWork?.id
                 ).map(cloudAgentPresentation),
                 reactions: reactionPresentations(message.reactions),
-                richBlocks: richMessageBlocks(fenced.prose),
-                visualBody: fenced
+                richBlocks: parsed.richBlocks,
+                visualBody: parsed.visuals,
+                cause: message.cause.flatMap(MessageCausePresentation.init)
             )
         }
     }
@@ -136,17 +138,18 @@ extension HausStore {
             // An optimistic row goes through the same body resolution as a
             // durable one, so its mentions survive the trust check even when
             // trimming changes the string the composer staged.
-            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content)
+            let parsed = parsedBody(id: message.id, content: message.content, chatID: message.chatID)
             return MessagePresentation(
                 id: message.id,
                 author: viewer,
-                content: body,
+                content: parsed.body,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(\.presentation),
                 inlineReply: message.inlineReply,
                 isPending: true,
-                richBlocks: richMessageBlocks(fenced.prose),
-                visualBody: fenced
+                isSendFailed: message.sendState == .failed,
+                richBlocks: parsed.richBlocks,
+                visualBody: parsed.visuals
             )
         }
     }
@@ -158,39 +161,6 @@ extension HausStore {
             mediaType: attachment.mediaType,
             sizeBytes: attachment.sizeBytes
         )
-    }
-
-    private func richMessageBlocks(_ content: String) -> [RichMessageBlock] {
-        RichMessageBlockParser.blocks(content) { kind, id, fallback in
-            switch kind {
-            case .agent:
-                guard let agent = agentsByID[id] else { return nil }
-                return RichReferencePresentation(
-                    id: id, kind: .agent,
-                    label: ReferenceLabel.display(agent.displayName, kind: .agent),
-                    avatarURL: resolvedAvatarURL(agent.avatarURL)
-                )
-            case .human:
-                guard let member = membersByID[id] else { return nil }
-                let name = member.displayName ?? member.handle ?? fallback
-                return RichReferencePresentation(
-                    id: id, kind: .human,
-                    label: ReferenceLabel.display(name, kind: .human),
-                    avatarURL: resolvedAvatarURL(member.avatarURL)
-                )
-            case .channel:
-                guard let chat = chatsByID[id], let name = chat.name else { return nil }
-                return RichReferencePresentation(
-                    id: id,
-                    kind: .channel,
-                    label: ReferenceLabel.display(name, kind: .channel),
-                    avatarURL: nil,
-                    channelAppearance: ChannelAppearance(icon: chat.icon, color: chat.color)
-                )
-            // No other kind names Server state, so the parser's own chip stands.
-            default: return nil
-            }
-        }
     }
 
     /// Projects a task-list row back into the shared message presentation used

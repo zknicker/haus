@@ -64,6 +64,8 @@ struct AuthenticatedHausView: View {
                     .environment(\.opensWithEntrance, !openingEntranceFinished)
                     .environment(\.reactionStickers, store.reactionStickers)
                     .environment(\.cloudAgentCancel, cloudAgentCancel)
+                    .environment(\.chatEngagementSource, store.chatEngagementSource)
+                    .environment(\.stoppedAgentSource, store.stoppedAgentSource)
                     .task {
                         guard !openingEntranceFinished else { return }
                         try? await Task.sleep(for: .seconds(1.2))
@@ -72,6 +74,7 @@ struct AuthenticatedHausView: View {
             }
         }
         .task { await store.start() }
+        .onAppear(perform: installTranscriptRoutes)
         .sheet(item: $agentCall) { request in AgentCallView(request: request, client: store.client) }
         .onChange(of: selectedDestinationID) { previous, current in
             // The first selection lands from the shell's own sync; a change
@@ -144,6 +147,7 @@ struct AuthenticatedHausView: View {
                     inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
                     onOpenTasks: { path.append(.tasks) },
                     onOpenInbox: openInbox,
+                    showsTasks: path.last == .tasks,
                     inboxHasUnread: (store.unreadChatCount ?? 0) > 0,
                     ghostTempo: store.agentActivityGhostTempo,
                     onOpenThread: openThread,
@@ -152,12 +156,10 @@ struct AuthenticatedHausView: View {
                         case .durableChat(let chat):
                             return await store.send(content, to: chat.id, attachments: attachments)
                         case .implicitAgentDM(let agent):
-                            guard attachments.isEmpty,
-                                  let chatID = await store.sendAgentDM(content, to: agent.id) else {
-                                return false
-                            }
-                            selectedDestinationID = .chat(chatID)
-                            return true
+                            guard attachments.isEmpty else { return false }
+                            let outcome = await store.sendAgentDM(content, to: agent.id)
+                            if case .sent(let chatID?) = outcome { selectedDestinationID = .chat(chatID) }
+                            return outcome != .rejected
                         }
                     },
                     onSendInlineReply: { destination, content, attachments, reference in
@@ -174,9 +176,12 @@ struct AuthenticatedHausView: View {
                         try await store.downloadAttachment(attachment)
                     },
                     onCallAgent: openAgentCall,
+                    onMarkRead: { chat in
+                        Task { await store.markChatRead(chatID: chat.id) }
+                    },
                     messageHistory: { store.messageHistory(chatID: $0.id) },
-                    searchMessages: { query in
-                        try await store.searchMessagePresentations(query: query)
+                    searchMessages: { query, chatID in
+                        try await store.searchMessagePresentations(query: query, chatID: chatID)
                     },
                     searchRecoveryRevision: store.agentMessageSearchRevision,
                     loadArchivedChannels: {
@@ -205,7 +210,11 @@ struct AuthenticatedHausView: View {
                     createChannel: { draft in
                         try await store.createNativeChannel(draft)
                     },
-                    onVisibleMessages: reportVisibleMessages
+                    onVisibleMessages: reportVisibleMessages,
+                    // Runs inside the drawer's animation, so a re-sort animates.
+                    onDrawerPresentedChange: { open in
+                        open ? store.holdSidebarOrder() : store.releaseSidebarOrder()
+                    }
                 )
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in

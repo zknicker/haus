@@ -24,6 +24,7 @@ import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
 import { ChatViewFooter } from './chat-view-footer.tsx';
 import { ChatViewSidePanel } from './chat-view-side-panel.tsx';
+import { composerDropSurfaceProps } from './composer-file-drop.ts';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
 import { useChatInlineReply } from './use-chat-inline-reply.ts';
@@ -138,6 +139,7 @@ export function ChatView({
             aria-label={chatName}
             className="relative flex min-h-0 flex-1"
             data-slot="chat-surface"
+            {...composerDropSurfaceProps}
         >
             {desktopTabs ? (
                 // Desktop: the tab names the chat and its context menu (and the

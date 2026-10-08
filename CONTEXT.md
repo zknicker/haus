@@ -451,14 +451,14 @@ A Runtime-visible executable action an agent may invoke during an Agent turn.
 _Avoid_: Skill, MCP server, channel, Plugin
 
 **Harness-native tool**:
-A Tool supplied by the selected Agent executor's harness, such as local file, shell, search, or
-provider-native subagent actions. Haus may display these as provider facts, but does not own their
+A Tool supplied by the selected Agent executor's harness, such as local file, shell, search, web
+search and fetch, or provider-native subagent actions. Haus may display these as provider facts, but does not own their
 individual lifecycle.
 _Avoid_: Haus tool, Plugin action, MCP server
 
 **Haus host tool**:
-A Tool implemented by Haus Computer and passed to the Agent executor, such as `web_fetch`,
-browser control, Memory reads, chat sends, or other Haus-owned product actions.
+A Tool implemented by Haus Computer and passed to the Agent executor: browser control and the
+Server MCP `execute` tool. Web search and fetch are harness-native, never Haus host tools.
 _Avoid_: Harness-native tool, raw Runtime route, MCP connection setting
 
 **MCP connection**:

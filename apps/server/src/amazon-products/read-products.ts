@@ -1,6 +1,7 @@
 import {
     type AmazonProductDetail,
     type AmazonProductIdentity,
+    type AmazonProductResult,
     rankWranglerMcpUrl,
 } from '@haus/api';
 import { and, arrayContains, asc, eq } from 'drizzle-orm';
@@ -10,35 +11,84 @@ import type { McpRuntime } from '../server-mcp/runtime.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { lookupProductDetail, lookupProductSummaries } from './lookup-products.ts';
+import { type ProductCache, readThroughCache } from './product-cache.ts';
 
 const cacheTtlMs = 5 * 60_000;
 /** Short enough that the App's bounded refetch reaches RankWrangler again. */
 const pendingEnrichmentTtlMs = 2000;
-const cacheLimit = 500;
 
-interface CacheEntry {
-    expires: number;
-    value: Promise<AmazonProductDetail>;
+interface RuntimeCaches {
+    details: ProductCache<AmazonProductDetail>;
+    summaries: ProductCache<AmazonProductResult>;
 }
-const caches = new WeakMap<McpRuntime, Map<string, CacheEntry>>();
+const caches = new WeakMap<McpRuntime, RuntimeCaches>();
 
 export function clearAmazonProductCache(runtime: McpRuntime) {
     caches.delete(runtime);
 }
 
-export async function readAmazonProducts(
+/**
+ * Chip summaries, one result per requested product. `null` means the Server
+ * has no connected RankWrangler account.
+ */
+export async function readAmazonProductSummaries(
     db: HausDatabase,
     runtime: McpRuntime,
     member: HausUser | null,
-    input: { serverId: string; products: AmazonProductIdentity[]; detail: boolean }
-): Promise<AmazonProductDetail[] | null> {
-    await requireServerMembership(db, member, input.serverId);
+    input: { serverId: string; products: AmazonProductIdentity[] }
+): Promise<AmazonProductResult[] | null> {
+    const source = await connectedSource(db, runtime, member, input.serverId);
+    if (!source) {
+        return null;
+    }
+    return await Promise.all(
+        readThroughCache({
+            cache: source.caches.summaries,
+            keyOf: source.keyOf,
+            lookup: (missing) => lookupProductSummaries(source.read, missing),
+            products: uniqueProducts(input.products),
+            ttlOf: summaryTtl,
+        })
+    );
+}
+
+/** Rejects when RankWrangler cannot provide the product's market data. */
+export async function readAmazonProductDetail(
+    db: HausDatabase,
+    runtime: McpRuntime,
+    member: HausUser | null,
+    input: { serverId: string; product: AmazonProductIdentity }
+): Promise<AmazonProductDetail | null> {
+    const source = await connectedSource(db, runtime, member, input.serverId);
+    if (!source) {
+        return null;
+    }
+    const [detail] = readThroughCache({
+        cache: source.caches.details,
+        keyOf: source.keyOf,
+        lookup: (missing) =>
+            new Map(
+                missing.map((product) => [product.asin, lookupProductDetail(source.read, product)])
+            ),
+        products: [input.product],
+        ttlOf: () => cacheTtlMs,
+    });
+    return detail ? await detail : null;
+}
+
+async function connectedSource(
+    db: HausDatabase,
+    runtime: McpRuntime,
+    member: HausUser | null,
+    serverId: string
+) {
+    await requireServerMembership(db, member, serverId);
     const [connection] = await db
         .select()
         .from(mcpConnectionsTable)
         .where(
             and(
-                eq(mcpConnectionsTable.serverId, input.serverId),
+                eq(mcpConnectionsTable.serverId, serverId),
                 eq(mcpConnectionsTable.url, rankWranglerMcpUrl),
                 arrayContains(mcpConnectionsTable.tools, ['rankwrangler_product']),
                 eq(mcpConnectionsTable.connected, true)
@@ -49,78 +99,27 @@ export async function readAmazonProducts(
     if (!connection?.tools.includes('rankwrangler_product')) {
         return null;
     }
-    const products = [
-        ...new Map(input.products.map((product) => [product.asin, product])).values(),
-    ];
-    const keyOf = (product: AmazonProductIdentity) =>
-        JSON.stringify([connection.id, connection.accountLabel, input.detail, product]);
-    let cache = caches.get(runtime);
-    if (!cache) {
-        cache = new Map();
-        caches.set(runtime, cache);
+    let runtimeCaches = caches.get(runtime);
+    if (!runtimeCaches) {
+        runtimeCaches = { summaries: new Map(), details: new Map() };
+        caches.set(runtime, runtimeCaches);
     }
-    const now = Date.now();
-    const missing = products.filter((product) => {
-        const entry = cache.get(keyOf(product));
-        return !entry || entry.expires <= now;
-    });
-    const read = (args: Record<string, unknown>) => runtime.readAmazonProducts(connection.id, args);
-    const lookups =
-        input.detail || missing.length === 0
-            ? new Map(missing.map((product) => [product.asin, lookupProductDetail(read, product)]))
-            : lookupProductSummaries(read, missing);
-    // Resolve every value before storing, so eviction by this call cannot drop a hit.
-    const values = products.map((product) => {
-        const value = lookups.get(product.asin) ?? cache.get(keyOf(product))?.value;
-        if (!value) {
-            throw new Error('Amazon product lookup was not scheduled.');
-        }
-        return value;
-    });
-    for (const product of missing) {
-        const value = lookups.get(product.asin);
-        if (value) {
-            storeEntry(cache, keyOf(product), value);
-        }
-    }
-    // One unknown ASIN must not fail the other chips sharing this batched read.
-    const settled = await Promise.allSettled(values);
-    const found = settled.flatMap((result) =>
-        result.status === 'fulfilled' ? [result.value] : []
-    );
-    const failure = settled.find((result) => result.status === 'rejected');
-    if (found.length === 0 && failure) {
-        throw failure.reason;
-    }
-    return found;
+    return {
+        caches: runtimeCaches,
+        keyOf: (product: AmazonProductIdentity) =>
+            JSON.stringify([connection.id, connection.accountLabel, product]),
+        read: (args: Record<string, unknown>) => runtime.readAmazonProducts(connection.id, args),
+    };
 }
 
-/** Errors are never cached; unfinished enrichment is cached only briefly. */
-function storeEntry(
-    cache: Map<string, CacheEntry>,
-    key: string,
-    value: Promise<AmazonProductDetail>
-) {
-    cache.delete(key);
-    while (cache.size >= cacheLimit) {
-        const oldest = cache.keys().next().value;
-        if (oldest === undefined) {
-            break;
-        }
-        cache.delete(oldest);
+/** Transient and final misses are never cached; unfinished enrichment only briefly. */
+function summaryTtl(result: AmazonProductResult): number | null {
+    if (result.status !== 'found') {
+        return null;
     }
-    const entry: CacheEntry = { expires: Date.now() + cacheTtlMs, value };
-    cache.set(key, entry);
-    value.then(
-        (product) => {
-            if (product.enrichment === 'pending') {
-                entry.expires = Date.now() + pendingEnrichmentTtlMs;
-            }
-        },
-        () => {
-            if (cache.get(key) === entry) {
-                cache.delete(key);
-            }
-        }
-    );
+    return result.product.enrichment === 'pending' ? pendingEnrichmentTtlMs : cacheTtlMs;
+}
+
+function uniqueProducts(products: AmazonProductIdentity[]): AmazonProductIdentity[] {
+    return [...new Map(products.map((product) => [product.asin, product])).values()];
 }

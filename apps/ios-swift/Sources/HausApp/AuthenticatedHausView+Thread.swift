@@ -34,14 +34,18 @@ extension AuthenticatedHausView {
             // readable and takes its composer away.
             isReadOnly: store.chatsByID[thread.parentChatID]?.isReadOnly ?? false,
             onSend: { content, attachments in
-                guard let resolvedThreadChatID = await store.sendThreadReply(
+                let outcome = await store.sendThreadReply(
                     content,
                     to: thread.parentChatID,
                     anchorMessageID: thread.anchor.id,
                     pendingChatID: thread.threadChatID
                         ?? store.pendingThreadChatID(anchorMessageID: thread.anchor.id),
                     attachments: attachments
-                ) else { return false }
+                )
+                // A failed reply stays in the transcript as its own row to retry.
+                guard case .sent(let sentChatID) = outcome, let resolvedThreadChatID = sentChatID else {
+                    return outcome != .rejected
+                }
 
                 // Server is authoritative for the child Chat id. Usually this
                 // equals the route value; retaining the update makes a
@@ -66,12 +70,29 @@ extension AuthenticatedHausView {
             inlineReplies: inlineReplies(for: thread),
             onOpenAgent: openAgentFromThread,
             follow: threadFollow(for: thread),
+            contextLabel: threadContextLabel(for: thread),
+            engagementChatID: resolvedThreadChatID(for: thread),
+            engagementStyle: threadEngagementStyle(for: thread),
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {
             guard let chatID = resolvedThreadChatID(for: thread) else { return }
             await store.openChat(chatID: chatID)
         }
+    }
+
+    /// Where the Thread lives, under its title: the channel, or "DM".
+    func threadContextLabel(for thread: ThreadSelection) -> String? {
+        guard let chat = store.chatsByID[thread.parentChatID] else { return nil }
+        switch chat.kind {
+        case .channel: return chat.name.map { "#\($0)" }
+        case .dm: return "DM"
+        }
+    }
+
+    /// A DM Thread's Agent is the DM's, so its row is the thought, as in the DM.
+    func threadEngagementStyle(for thread: ThreadSelection) -> HeaderEngagementStyle {
+        if case .dm = store.chatsByID[thread.parentChatID]?.kind { .subtitle } else { .roster }
     }
 
     func resolvedThreadChatID(for thread: ThreadSelection) -> String? {

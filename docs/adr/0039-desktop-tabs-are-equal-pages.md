@@ -1,5 +1,5 @@
 ---
-summary: Approved decision that every desktop tab is an equal page with its own history (no primary tab), arranged in one pane or two (each with its own tab row; links stay in the tab with one pane and open in the other pane with two); one open rule for every in-app destination (an existing tab on that page is selected, else the current app tab navigates, else a new tab opens beside a web page), Cmd-T opens a browser new tab page, Cmd-, Shift-, and middle-click and web links open new tabs (Chrome's dispositions: Cmd- and middle-click in the background, Shift selected, from the sidebar and command menu too), tabs persist per window, and tabs multi-select and drag Chrome-style (a selection moves together) within a row, between panes, off into a new window, and into another window; the tab menu and the App menu's Tab menu carry Chrome's row commands (duplicate, move to new window, close to the right).
+summary: Approved decision that every desktop tab is an equal page with its own history (no primary tab), arranged in one pane or two (each with its own tab row; links stay in the tab with one pane and open in the other pane with two); one open rule for every in-app destination (an existing tab on that page is selected, else Agent profiles and Settings open a new tab, Threads open a new tab in the right pane (creating it), and other places navigate the current app tab, else a new tab opens beside a web page), Cmd-T opens a browser new tab page, Cmd-, Shift-, and middle-click and web links open new tabs (Chrome's dispositions: Cmd- and middle-click in the background, Shift selected, from the sidebar and command menu too), tabs persist per window, and tabs multi-select and drag Chrome-style (a selection moves together) within a row, between panes, off into a new window, and into another window; the tab menu and the App menu's Tab menu carry Chrome's row commands (duplicate, move to new window, close to the right).
 read_when:
   - changing desktop workspace tabs, panes, tab multi-select, tab drag, tear-off, or cross-window drag
   - changing what the sidebar, command menu, a chip, an in-app link, Cmd-, Shift-, or middle-click, or a web link does on desktop
@@ -24,7 +24,10 @@ Amended 2026-10-05: the tab menu and the App menu's Tab menu gain Chrome's row c
 right, Duplicate, Move to new window, Close tabs to the right, and more), and View gains Reload Page
 and Show/Hide Sidebar.
 Amended 2026-10-03: expanded mode and its layout toggle are gone. A window is one pane or two; one
-pane holding every tab is what expanded mode was, and links never open the second pane.
+pane holding every tab is what expanded mode was.
+Amended 2026-10-08: an Agent profile or Settings always opens as a new tab, and a Thread always
+opens as a new tab in the right pane, creating it in a one-pane window (an open tab on that page is
+still selected first).
 
 ## Context
 
@@ -152,13 +155,18 @@ notification, a deep link, or the native menu's Settings… and Find….
   pane, after its current tab. Selecting, moving, or closing a tab ends the run.
 - **A plain click goes to a place.** If a tab in the window already shows that page, it is
   selected (its pane becomes focused) instead of duplicated; a deeper address on the same page (a
-  task, a search filter) pushes onto that tab. Else, if the current tab shows an app page or the
+  task, a search filter) pushes onto that tab. Else an Agent profile or Settings opens as a new
+  selected tab after the current one, and a Thread opens as a new selected tab in the right pane,
+  creating that pane in a one-pane window and focusing it, wherever it is opened from (both panes,
+  the sidebar, a notification). Command-, Shift-, and middle-click on a Thread skip the right pane
+  and open a new tab beside the source like any page. Else, if the current tab shows an app page or the
   new tab page, it navigates (Back returns), like Linear's sidebar. Else the current tab shows a
   web page, and the place opens as a new selected tab right after it; the web page is untouched.
 - **Which tab is current.** The sidebar, command menu, notifications, and deep links act on the
   focused pane (the one you last interacted with). An in-page link with one pane acts on its own
   tab. With two panes an in-page link acts on the **other** pane, matching existing tabs only
-  there (`inPageLinksUseOtherPane` in `desktop-tabs-open.ts`); links never open the second pane. A
+  there (`inPageLinksUseOtherPane` in `desktop-tabs-open.ts`). Agent profiles, Settings, and
+  Threads follow their own placement above (`pagePlacement` in `desktop-tabs-model.ts`). A
   page's own drill-down (a Settings section, an Agent profile card, a search filter) stays in its
   tab.
 
@@ -193,7 +201,7 @@ The shipped macOS Control rule stands: Control combos other than Control-Tab sta
 text bindings.
 
 **Settings is a tab.** Command-comma follows the open rule: it selects an existing Settings tab,
-else opens Settings from the focused pane.
+else opens Settings as a new tab after the focused pane's current tab.
 
 **Unread clearing.** A chat counts as viewed in focus ([ADR 0038 The Inbox Is
 Unread](0038-inbox-is-unread-not-attention.md)) only while its tab is **shown** (selected in either
@@ -225,7 +233,8 @@ Files, and artifacts. iOS is unchanged.
 ## Consequences
 
 - The Thread preview tab retires; a Thread is an ordinary page.
-- One open rule replaces kind-based placement: an existing tab on that page is selected, else the
+- One open rule replaces most kind-based placement: an existing tab on that page is selected, else
+  an Agent profile or Settings opens a new tab and a Thread a new tab in the right pane, else the
   current tab navigates unless it shows a web page (then a new tab beside it); the other pane on an
   in-page link with two panes; a new tab on Command-, Shift-, or middle-click or a web link.
 - Every destination renders as a standalone page at any pane width; the side pane's 420px minimum

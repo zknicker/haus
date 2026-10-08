@@ -22,20 +22,18 @@ struct ServerSnapshot: Sendable {
 }
 
 extension HausStore {
-    private static let realtimeLogger = Logger(
-        subsystem: "chat.haus.ios",
-        category: "chat-realtime"
-    )
-
     /// How long live delivery accumulates events before applying a batch. Short
     /// enough that a single message still lands as an immediate arrival.
     static let liveChatEventWindow = Duration.milliseconds(80)
+
+    /// Below this time in the background, a return skips the full snapshot.
+    static let quickReturnInterval: TimeInterval = 30
 
     /// Reads every snapshot projection concurrently.
     ///
     /// Computers are deliberately left to `loadComputers`, which owns its own
     /// role-denied fallback: no Chat surface observes that field, so its write
-    /// does not need to join the batched apply.
+    /// neither joins the batched apply nor holds it up.
     func fetchServerSnapshot(serverID: String) async throws -> ServerSnapshot {
         async let loadedServers: [ServerSummary] = client.query("server.list")
         async let loadedChats: [ChatSummary] = client.query(
@@ -53,9 +51,9 @@ extension HausStore {
         async let loadedActivity: AgentActiveActivitySnapshot? = fetchActiveActivity(
             serverID: serverID
         )
-        async let loadedComputers: Void = loadComputers(serverID: serverID)
-
-        await loadedComputers
+        // Not awaited: no Chat surface reads Computers, so the snapshot does
+        // not wait on them.
+        Task { await self.loadComputers(serverID: serverID) }
         return try await ServerSnapshot(
             servers: loadedServers,
             chats: loadedChats,
@@ -80,6 +78,26 @@ extension HausStore {
               let serverID = activeServer?.id
         else { return }
 
+        // Still showing the disk paint: finishing the launch is the refresh.
+        // A pending retry runs now; without one the first load is in flight.
+        guard hasLiveServerState else {
+            guard let retry = launchRetry else { return }
+            retry.cancel()
+            launchRetry = nil
+            await loadLiveServer(attempt: 0)
+            return
+        }
+
+        // A short trip away leaves healthy streams standing: any frame missed
+        // while suspended is still in the socket, and a dropped socket
+        // reconnects and walks the event log on its own.
+        if streamsHealthy, isConnected,
+           let backgroundedAt,
+           Date().timeIntervalSince(backgroundedAt) < Self.quickReturnInterval {
+            await refreshIconBadge()
+            return
+        }
+
         foregroundRefreshInFlight = true
         defer { foregroundRefreshInFlight = false }
         stopEventStreams()
@@ -90,7 +108,6 @@ extension HausStore {
             markConnected()
         } catch {
             markDisconnected()
-            sendError = error.localizedDescription
             Self.logger.error("Foreground refresh failed: \(error.localizedDescription, privacy: .public)")
             startEventStreams(serverID: serverID)
         }
@@ -113,11 +130,11 @@ extension HausStore {
         // content through the pop animation. Every other cached page is
         // refreshed by the event walk that follows this snapshot, by live
         // events, and by `openChat` when the user navigates back to it.
-        for chatID in OpenChatPages.toRefresh(
-            focusedChatID: openChatID,
-            canvasChatID: canvasChatID
-        ) {
-            await loadMessages(chatID: chatID)
+        let stack = OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID)
+        await withTaskGroup(of: Void.self) { group in
+            for chatID in stack {
+                group.addTask { await self.loadMessages(chatID: chatID) }
+            }
         }
         // Reads belong to the deepest surface alone. A covered canvas Chat was
         // refreshed above but is not what the user is looking at.
@@ -203,90 +220,5 @@ extension HausStore {
         let batch = liveChatEvents.drain()
         guard !batch.isEmpty else { return }
         await applyChatEvents(batch, serverID: serverID)
-    }
-
-    /// Recovers the durable Chat log while the live SSE subscription is
-    /// starting or reconnecting. The SSE connection is established first;
-    /// this walk then completes before its buffered live events are consumed,
-    /// closing the reconnect gap without losing events that arrive meanwhile.
-    func catchUpChatEvents(serverID: String) async {
-        guard !Task.isCancelled, activeServer?.id == serverID else { return }
-        if chatEventCatchUpInFlight {
-            chatEventCatchUpPending = true
-            return
-        }
-
-        chatEventCatchUpInFlight = true
-        defer { chatEventCatchUpInFlight = false }
-
-        repeat {
-            chatEventCatchUpPending = false
-            await performChatEventCatchUp(serverID: serverID)
-        } while chatEventCatchUpPending && !Task.isCancelled
-    }
-
-    private func performChatEventCatchUp(serverID: String) async {
-        guard !Task.isCancelled, activeServer?.id == serverID else { return }
-
-        do {
-            if chatEventReplay.cursor == "0" {
-                let head: ChatEventHead = try await client.query(
-                    "chat.eventHead",
-                    input: ServerScopedInput(serverId: serverID)
-                )
-                guard !Task.isCancelled, activeServer?.id == serverID else { return }
-                try await refreshServerSnapshot(serverID: serverID)
-                // The snapshot is the proof that every event through `head`
-                // is represented locally. Keep cursor zero when it fails so
-                // the next connection retries the cold-start recovery.
-                chatEventReplay.advance(to: head.cursor)
-                return
-            }
-
-            let (events, walkedCursor) = try await walkChatEvents(
-                serverID: serverID,
-                afterCursor: chatEventReplay.cursor
-            )
-            guard !Task.isCancelled, activeServer?.id == serverID else { return }
-            await applyChatEvents(events, serverID: serverID)
-            chatEventReplay.advance(to: walkedCursor)
-        } catch is CancellationError {
-            return
-        } catch {
-            sendError = error.localizedDescription
-            Self.realtimeLogger.error(
-                "Chat event catch-up failed: \(error.localizedDescription, privacy: .public)"
-            )
-        }
-    }
-
-    private func walkChatEvents(
-        serverID: String,
-        afterCursor: String
-    ) async throws -> ([ChatEvent], String) {
-        let pageSize = 100
-        var cursor = afterCursor
-        var events: [ChatEvent] = []
-
-        while !Task.isCancelled {
-            let page: [ChatEvent] = try await client.query(
-                "chat.events",
-                input: ChatEventsInput(
-                    afterCursor: cursor,
-                    limit: pageSize,
-                    serverId: serverID
-                )
-            )
-            guard !page.isEmpty else { break }
-            events.append(contentsOf: page)
-            if let lastCursor = page.last?.cursor {
-                cursor = ChatEventCursor.later(cursor, lastCursor)
-            }
-            if page.count < pageSize {
-                break
-            }
-        }
-
-        return (events, cursor)
     }
 }

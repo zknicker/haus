@@ -1327,7 +1327,7 @@ test('the ported Agent directory can inspect and change channel membership', asy
     const before = await agentGet(minted.runnerToken, '/api/agent/channels/info', {
         target: '#research',
     });
-    expect(before.body).toMatchObject({ handle: '#research', joined: false });
+    expect(before.body).toMatchObject({ handle: 'research', joined: false });
 
     const joined = await agentPost(minted.runnerToken, '/api/agent/channels/join', {
         target: '#research',
@@ -1342,7 +1342,7 @@ test('the ported Agent directory can inspect and change channel membership', asy
         joined: 'true',
     });
     expect(directory.body.channels).toEqual(
-        expect.arrayContaining([expect.objectContaining({ handle: '#research', joined: true })])
+        expect.arrayContaining([expect.objectContaining({ handle: 'research', joined: true })])
     );
     const members = await agentGet(minted.runnerToken, '/api/agent/channels/members', {
         target: '#research',

@@ -36,6 +36,9 @@ public struct InboxPageView: View {
 
     /// Elapsed time ticks on the rows that are counting up, and only on them.
     @State private var now = Date.now
+    /// Ticks once per swipe that marks a row read: the swipe commits under the
+    /// finger, so it confirms by touch.
+    @State private var swipedReadFeedback = 0
 
     public init(
         greetingName: String?,
@@ -86,7 +89,13 @@ public struct InboxPageView: View {
                 Section { header.inboxBareRow() }
             }
             InboxActiveAgentsSection(weeks: agentWeeks, onOpen: onOpen)
-            InboxUnreadSection(rows: unread, now: now, onOpen: onOpen, onMarkRead: onMarkRead)
+            InboxUnreadSection(
+                rows: unread,
+                now: now,
+                onOpen: onOpen,
+                onMarkRead: onMarkRead,
+                onSwipedRead: { swipedReadFeedback += 1 }
+            )
             InboxHappeningNowSection(rows: happeningNowRows, onOpen: onOpen)
         }
         #if os(iOS)
@@ -101,6 +110,7 @@ public struct InboxPageView: View {
         // A swipe or a Mark read removes the row in the Store's next turn; the
         // List animates that diff as its own row deletion.
         .animation(.default, value: unread?.map(\.id))
+        .sensoryFeedback(.success, trigger: swipedReadFeedback)
         .refreshable { await onRefresh() }
         .task { await onRefresh() }
         .task(id: isCountingUp) { await tick() }

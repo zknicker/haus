@@ -24,7 +24,8 @@ extension ThreadDetailView {
                 visualHeights: visualHeights,
                 onOpenAgent: onOpenAgent,
                 reactionBoard: reactionBoard,
-                isPressed: isPressed(message)
+                isPressed: isPressed(message),
+                accessibilityActions: accessibilityActions(for: message)
             )
             .padding(.top, 4)
         case .threadHeader:
@@ -34,6 +35,9 @@ extension ThreadDetailView {
                 .padding(.top, 10)
         case .pendingSend:
             ThreadPendingSendRow()
+        case .dayDivider(let date, _):
+            TranscriptDayDivider(date: date)
+                .padding(.top, 14)
         }
     }
 
@@ -50,7 +54,21 @@ extension ThreadDetailView {
             visualHeights: visualHeights,
             onOpenAgent: onOpenAgent,
             reactionBoard: reactionBoard,
-            isPressed: isPressed(message)
+            isPressed: isPressed(message),
+            accessibilityActions: accessibilityActions(for: message)
+        )
+    }
+
+    /// Inside the Thread the drawer offers reactions and copying; VoiceOver
+    /// gets the same.
+    func accessibilityActions(for message: MessagePresentation) -> MessageRowAccessibilityActions {
+        .forMessage(
+            message,
+            canReplyInline: false,
+            canOpenThread: false,
+            onReact: { actionMessage = message },
+            onReply: {},
+            onOpenThread: {}
         )
     }
 
@@ -60,8 +78,34 @@ extension ThreadDetailView {
         switch item {
         case .anchor(let message, _), .inlineReply(let message), .reply(let message):
             message.isPending ? nil : message
-        case .taskMetadata, .inlineReplies, .threadHeader, .pendingSend:
+        case .taskMetadata, .inlineReplies, .threadHeader, .pendingSend, .dayDivider:
             nil
         }
+    }
+
+    /// Everything a row draws from beyond its item, read in the screen's own
+    /// body so a change re-hosts the visible rows: a visual's height report,
+    /// a pending own reaction, the press tint, and the parent chain's and
+    /// history's load state that the region and accessory rows show.
+    var rowRevision: Int {
+        var hasher = Hasher()
+        hasher.combine(visualHeights.revision)
+        hasher.combine(reactionBoard?.revision)
+        hasher.combine(heldMessageID)
+        hasher.combine(actionMessage?.id)
+        hasher.combine(history.hasOlder)
+        hasher.combine(history.isLoading)
+        if let inlineReplies {
+            hasher.combine(inlineReplies.isLoaded())
+            hasher.combine(inlineReplies.isLoading())
+            hasher.combine(inlineReplies.hasOlder())
+            hasher.combine(inlineReplies.hasNewer())
+        }
+        return hasher.finalize()
+    }
+
+    /// Whether a row shows the press tint: held now, or its drawer is open.
+    func isPressed(_ message: MessagePresentation) -> Bool {
+        message.id == heldMessageID || message.id == actionMessage?.id
     }
 }

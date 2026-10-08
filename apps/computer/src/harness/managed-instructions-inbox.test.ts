@@ -18,7 +18,6 @@ function renderPrompt() {
         initialRole: null,
         os: 'macOS',
         runtimeVersion: 'test',
-        webAccess: null,
         workspacePath: '/workbench',
     });
 }

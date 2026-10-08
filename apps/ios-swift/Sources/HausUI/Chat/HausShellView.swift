@@ -14,6 +14,9 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     @ViewBuilder let inboxCanvas: (EdgeInsets, @escaping () -> Void) -> InboxCanvas
     let onOpenTasks: () -> Void
     let onOpenInbox: () -> Void
+    /// Whether Tasks is the screen on top, so the sidebar marks it rather than
+    /// the Chat behind it.
+    private let showsTasks: Bool
     private let inboxHasUnread: Bool
     private let ghostTempo: HausGhostTempo
     let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
@@ -22,8 +25,11 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         ((ChatDestination, String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     let onCallAgent: ((ChatDestination) -> Void)?
+    /// Mark read from a sidebar row's long-press menu. Absent, the menu has no
+    /// Mark Read.
+    private let onMarkRead: ((ChatPresentation) -> Void)?
     let messageHistory: (ChatPresentation) -> MessageHistoryNavigation
-    private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
+    private let searchMessages: MessageSearch
     private let searchRecoveryRevision: Int
     private let loadArchivedChannels: @Sendable () async throws -> [ArchivedChannelPresentation]
     private let restoreArchivedChannel: @Sendable (ArchivedChannelPresentation) async throws -> Void
@@ -41,13 +47,16 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     /// The message ids the canvas transcript is showing. It passes straight
     /// through to the App, which owns read acknowledgement.
     let onVisibleMessages: (ChatDestination, [String]) -> Void
+    /// Every settled drawer open or close. The App freezes the sidebar's order
+    /// while it is open, so a re-sort lands on the next open, animated.
+    let onDrawerPresentedChange: (Bool) -> Void
 
     @Binding var selectedDestinationID: ChatDestination.ID?
     /// Whether the canvas is the Inbox rather than the selected Chat. The App
     /// owns it because the App is what lands on it and what routes away from
     /// it; the shell only clears it when a Chat is selected.
     @Binding var showsInbox: Bool
-    @State var drawerPresented = false
+    @State var drawer = HausDrawerState()
     @State var settingsRequest: SettingsPresentationRequest?
     /// Settings queued behind a Chat sheet that has to dismiss first; the two
     /// sheet surfaces are mutually exclusive.
@@ -62,11 +71,8 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     /// a Chat switch or a push-over must not throw away files the user picked.
     @State var composerInteractions = ComposerInteractionStore()
     @State var scrollTarget: MessageScrollTarget?
-    @State var dragTranslation: CGFloat?
-    /// What the current close is, for as long as one is running. Only the veil
-    /// reads it, and only a Chat selection ever sets anything else.
-    @State var drawerClose = HausDrawerClose.interactive
-    @Environment(\.colorScheme) var colorScheme
+    /// Ticks once per Chat switch that no drawer snap already announced.
+    @State var chatSwitchFeedback = 0
 
     public init(
         server: ServerPresentation,
@@ -80,6 +86,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         @ViewBuilder inboxCanvas: @escaping (EdgeInsets, @escaping () -> Void) -> InboxCanvas,
         onOpenTasks: @escaping () -> Void = {},
         onOpenInbox: @escaping () -> Void = {},
+        showsTasks: Bool = false,
         inboxHasUnread: Bool = false,
         ghostTempo: HausGhostTempo = .calm,
         onOpenThread: @escaping (ChatPresentation, MessagePresentation) -> Void = { _, _ in },
@@ -90,8 +97,9 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
             return localURL
         },
         onCallAgent: ((ChatDestination) -> Void)? = nil,
+        onMarkRead: ((ChatPresentation) -> Void)? = nil,
         messageHistory: @escaping (ChatPresentation) -> MessageHistoryNavigation = { _ in .init() },
-        searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation] = { _ in [] },
+        searchMessages: @escaping MessageSearch = { _, _ in [] },
         searchRecoveryRevision: Int = 0,
         loadArchivedChannels: @escaping @Sendable () async throws -> [ArchivedChannelPresentation] = { [] },
         restoreArchivedChannel: @escaping @Sendable (ArchivedChannelPresentation) async throws -> Void = { _ in },
@@ -104,7 +112,8 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         createChannel: @escaping @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation = { _ in
             throw CancellationError()
         },
-        onVisibleMessages: @escaping (ChatDestination, [String]) -> Void = { _, _ in }
+        onVisibleMessages: @escaping (ChatDestination, [String]) -> Void = { _, _ in },
+        onDrawerPresentedChange: @escaping (Bool) -> Void = { _ in }
     ) {
         _selectedDestinationID = selectedDestinationID
         _showsInbox = showsInbox
@@ -117,6 +126,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.inboxCanvas = inboxCanvas
         self.onOpenTasks = onOpenTasks
         self.onOpenInbox = onOpenInbox
+        self.showsTasks = showsTasks
         self.inboxHasUnread = inboxHasUnread
         self.ghostTempo = ghostTempo
         self.onOpenThread = onOpenThread
@@ -124,6 +134,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
         self.onCallAgent = onCallAgent
+        self.onMarkRead = onMarkRead
         self.messageHistory = messageHistory
         self.searchMessages = searchMessages
         self.searchRecoveryRevision = searchRecoveryRevision
@@ -137,63 +148,49 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.loadMentionOptions = loadMentionOptions
         self.createChannel = createChannel
         self.onVisibleMessages = onVisibleMessages
+        self.onDrawerPresentedChange = onDrawerPresentedChange
     }
 
     public var body: some View {
         GeometryReader { proxy in
             let drawerWidth = min(proxy.size.width * 0.82, 340)
             ZStack(alignment: .leading) {
-                ChatSidebarView(
-                    server: server,
-                    destinations: destinations,
-                    selectedDestinationID: selectedDestination?.id,
-                    onSelectDestination: selectDestination,
-                    onOpenSettings: { openSettings() },
-                    onOpenSearch: { activeChatSheet = .search },
-                    onOpenInbox: openInboxCanvas,
-                    inboxHasUnread: inboxHasUnread,
-                    ghostTempo: ghostTempo,
-                    // The sidebar stays mounted behind the canvas, so the mark
-                    // would keep repainting on its drift grid for a shut
-                    // drawer. Any sliver of it counts as visible, mid-drag
-                    // included; the drift freezes where it stands and resumes
-                    // from that frame rather than from the loop's start.
-                    ghostPaused: drawerProgress(drawerWidth: drawerWidth) <= 0,
-                    onOpenTasks: openTasks,
-                    onOpenArchived: { activeChatSheet = .archived },
-                    onOpenNewChannel: { activeChatSheet = .newChannel }
-                )
-                // `.mask()` below rasterizes this view into an offscreen buffer
-                // sized to its own resolved height, which `.ignoresSafeArea()`
-                // bleed cannot expand — so the room the search and gear button
-                // shadows spill into has to come from a genuinely taller
-                // proposed frame. `ChatSidebarView` reserves that height as
-                // inert space at both of its own ends; lifting the masked
-                // result by one of them puts its content back where it was.
-                .frame(
-                    width: drawerWidth,
-                    height: proxy.size.height + ChatSidebarView.shadowBleedHeight * 2,
-                    alignment: .top
-                )
-                .offset(x: -(1 - drawerProgress(drawerWidth: drawerWidth)) * drawerWidth * 0.22)
-                .mask(alignment: .leading) {
-                    Rectangle().frame(width: canvasOffset(drawerWidth: drawerWidth))
+                HausDrawerSidebarFrame(drawer: drawer, drawerWidth: drawerWidth, height: proxy.size.height) {
+                    ChatSidebarView(
+                        server: server,
+                        destinations: destinations,
+                        selection: sidebarSelection,
+                        onSelectDestination: selectDestination,
+                        onOpenSettings: { openSettings() },
+                        onOpenSearch: { activeChatSheet = .search(scope: nil) },
+                        onOpenInbox: openInboxCanvas,
+                        inboxHasUnread: inboxHasUnread,
+                        ghostTempo: ghostTempo,
+                        onOpenTasks: openTasks,
+                        onOpenArchived: { activeChatSheet = .archived },
+                        onOpenNewChannel: { activeChatSheet = .newChannel },
+                        onMarkRead: onMarkRead,
+                        onOpenDetails: { activeChatSheet = .details($0) }
+                    )
                 }
-                .offset(y: -ChatSidebarView.shadowBleedHeight)
-                .frame(height: proxy.size.height, alignment: .top)
-                .allowsHitTesting(drawerPresented)
                 .zIndex(1)
 
                 canvas(proxy: proxy, drawerWidth: drawerWidth)
             }
             .background(HausPlatformColor.background)
         }
+        // The shell's geometry never answers the keyboard: a keyboard-sized safe area shrank the
+        // sidebar under a keyboard still up as the drawer opened. The Chat screen reads the
+        // keyboard itself (`onKeyboardInsetChange`).
+        .ignoresSafeArea(.keyboard)
+        .sensoryFeedback(.selection, trigger: chatSwitchFeedback)
         .sheet(item: $settingsRequest) { request in settingsContent(request.path) }
         .sheet(item: $activeChatSheet, onDismiss: presentQueuedSettings) { sheet in
             switch sheet {
-            case .search:
+            case .search(let scope):
                 ServerSearchView(
                     chats: durableChats,
+                    scopeChat: scope,
                     searchMessages: searchMessages,
                     searchRecoveryRevision: searchRecoveryRevision,
                     onSelectChat: { open($0) },
@@ -227,13 +224,20 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         }
     }
 
+    /// The sidebar marks what is on screen: Tasks over everything, then the
+    /// Inbox canvas, then the Chat it would otherwise be showing.
+    private var sidebarSelection: SidebarSelection? {
+        if showsTasks { return .tasks }
+        if showsInbox { return .inbox }
+        return selectedDestination.map { .chat($0.id) }
+    }
+
     /// Called from the details sheet's own body, so the activity stream
     /// invalidates that sheet rather than the shell behind it.
     private func agentActivity(for chat: ChatDestination) -> AgentActivityPresentation? {
         guard case .agentDirectMessage(let agent) = chat.kind else { return nil }
         return currentAgentActivity(agent.id)
     }
-
 }
 
 #Preview {

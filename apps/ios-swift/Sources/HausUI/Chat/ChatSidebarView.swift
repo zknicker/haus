@@ -21,20 +21,14 @@ public struct ChatSidebarView: View {
     /// What the scrolling list is inset by so a row's own bleed lands its
     /// glyph back on the rail.
     private static var listInset: CGFloat { railInset - rowCapsuleBleed }
-    /// Every row leads with a glyph in a box this size, so the labels behind
-    /// them share one column too.
-    private static let rowGlyphSize: CGFloat = 26
-    /// The Inbox mark's drawn height. It is deliberately larger than the boxed
-    /// glyphs below it — the one glyph in the column that is the logo rather
-    /// than a screen's icon — and it grows inside that column, so no label
-    /// moves with it.
-    private static let inboxGhostSize: CGFloat = 26
     /// The family's own 1.5 reads thin against a row's body text.
     private static let rowGlyphWeight: CGFloat = 1.8
+    /// Past this the glyph column would crowd the title it introduces.
+    private static let maxGlyphSize: CGFloat = 40
 
     private let server: ServerPresentation
     private let destinations: [ChatDestination]
-    private let selectedDestinationID: ChatDestination.ID?
+    private let selection: SidebarSelection?
     private let onSelectDestination: (ChatDestination) -> Void
     private let onOpenSettings: () -> Void
     private let onOpenSearch: () -> Void
@@ -45,44 +39,50 @@ public struct ChatSidebarView: View {
     /// How fast the Inbox mark's mesh drifts: `lively` only while an Agent on
     /// this Server is working.
     private let ghostTempo: HausGhostTempo
-    /// Whether that drift is frozen because the drawer is shut. This view stays
-    /// mounted behind the canvas, so without it the mark repaints on its grid
-    /// for a reader who cannot see it.
-    private let ghostPaused: Bool
     private let onOpenTasks: () -> Void
     private let onOpenArchived: () -> Void
     private let onOpenNewChannel: () -> Void
+    private let onMarkRead: ((ChatPresentation) -> Void)?
+    private let onOpenDetails: (ChatDestination) -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
+    /// Every row leads with a glyph in a box this size, so the labels behind
+    /// them share one column too. It grows with text size, up to a cap.
+    @ScaledMetric(relativeTo: .body) private var rowGlyphSize: CGFloat = 26
+    @ScaledMetric(relativeTo: .body) private var rowHeight: CGFloat = 42
+    @ScaledMetric(relativeTo: .body) private var sectionHeaderHeight: CGFloat = 34
+    @ScaledMetric(relativeTo: .body) private var sectionGlyphSize: CGFloat = 17
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(
         server: ServerPresentation,
         destinations: [ChatDestination],
-        selectedDestinationID: ChatDestination.ID?,
+        selection: SidebarSelection?,
         onSelectDestination: @escaping (ChatDestination) -> Void,
         onOpenSettings: @escaping () -> Void,
         onOpenSearch: @escaping () -> Void = {},
         onOpenInbox: @escaping () -> Void = {},
         inboxHasUnread: Bool = false,
         ghostTempo: HausGhostTempo = .calm,
-        ghostPaused: Bool = false,
         onOpenTasks: @escaping () -> Void = {},
         onOpenArchived: @escaping () -> Void = {},
-        onOpenNewChannel: @escaping () -> Void = {}
+        onOpenNewChannel: @escaping () -> Void = {},
+        onMarkRead: ((ChatPresentation) -> Void)? = nil,
+        onOpenDetails: @escaping (ChatDestination) -> Void = { _ in }
     ) {
         self.server = server
         self.destinations = destinations
-        self.selectedDestinationID = selectedDestinationID
+        self.selection = selection
         self.onSelectDestination = onSelectDestination
         self.onOpenSettings = onOpenSettings
         self.onOpenSearch = onOpenSearch
         self.onOpenInbox = onOpenInbox
         self.inboxHasUnread = inboxHasUnread
         self.ghostTempo = ghostTempo
-        self.ghostPaused = ghostPaused
         self.onOpenTasks = onOpenTasks
         self.onOpenArchived = onOpenArchived
         self.onOpenNewChannel = onOpenNewChannel
+        self.onMarkRead = onMarkRead
+        self.onOpenDetails = onOpenDetails
     }
 
     public var body: some View {
@@ -106,20 +106,17 @@ public struct ChatSidebarView: View {
                             // lists — the App's own sidebar order, Inbox first.
                             SidebarInboxRow(
                                 hasUnread: inboxHasUnread,
-                                glyphSize: Self.inboxGhostSize,
                                 ghostTempo: ghostTempo,
-                                ghostPaused: ghostPaused,
-                                glyphColumn: Self.rowGlyphSize,
-                                capsuleBleed: Self.rowCapsuleBleed,
-                                listInset: Self.listInset,
+                                metrics: metrics,
+                                isSelected: selection == .inbox,
                                 onOpen: onOpenInbox
                             )
 
                             SidebarUtilityRow(
                                 title: "Tasks",
                                 icon: .tasks,
-                                glyphColumn: Self.rowGlyphSize,
-                                capsuleBleed: Self.rowCapsuleBleed,
+                                metrics: metrics,
+                                isSelected: selection == .tasks,
                                 action: onOpenTasks
                             )
 
@@ -137,6 +134,10 @@ public struct ChatSidebarView: View {
                         // them.
                         .padding(.horizontal, Self.listInset)
                         .padding(.bottom, 72)
+                        // The App holds the order still while the drawer is
+                        // open; a re-sort lands as the drawer next opens, and
+                        // rows travel to their new places rather than jump.
+                        .animation(.snappy(duration: 0.35), value: destinations.map(\.id))
                     }
                     .scrollIndicators(.hidden)
                 }
@@ -149,6 +150,16 @@ public struct ChatSidebarView: View {
             shadowBleed
         }
         .background(HausPlatformColor.background)
+    }
+
+    private var metrics: SidebarRowMetrics {
+        SidebarRowMetrics(
+            glyph: min(rowGlyphSize, Self.maxGlyphSize),
+            rowHeight: rowHeight,
+            capsuleBleed: Self.rowCapsuleBleed,
+            listInset: Self.listInset,
+            isAccessibilitySize: dynamicTypeSize.isAccessibilitySize
+        )
     }
 
     /// The Server identity doubles as the Server menu, the way the App's
@@ -199,78 +210,39 @@ public struct ChatSidebarView: View {
         trailingAction: (() -> Void)? = nil
     ) -> some View {
         HStack(spacing: 4) {
-            Text(title).font(.body).foregroundStyle(.secondary)
+            Text(title).font(.body).foregroundStyle(HausPlatformColor.secondaryLabel)
             Spacer(minLength: 0)
             if let trailingAction {
                 Button(action: trailingAction) {
-                    HausIcon(.plus, size: 17, weight: Self.rowGlyphWeight)
-                        .foregroundStyle(.secondary)
+                    HausIcon(.plus, size: sectionGlyphSize, weight: Self.rowGlyphWeight)
+                        .foregroundStyle(HausPlatformColor.secondaryLabel)
+                        .frame(minWidth: 44, minHeight: sectionHeaderHeight)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.pressable)
                 .accessibilityLabel("New channel")
             }
         }
-        .padding(.horizontal, Self.rowCapsuleBleed)
-        .frame(height: 34)
-    }
-
-    /// Dark mode reads `Color.primary.opacity` too faintly against a near-black
-    /// background, so the selected row needs more presence there than light
-    /// mode needs.
-    private var selectedRowFill: Color {
-        colorScheme == .dark ? Color.primary.opacity(0.12) : Color.primary.opacity(0.045)
+        .padding(.leading, Self.rowCapsuleBleed)
+        .padding(.trailing, trailingAction == nil ? Self.rowCapsuleBleed : 0)
+        .frame(minHeight: sectionHeaderHeight)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private func row(_ chat: ChatDestination) -> some View {
-        Button { onSelectDestination(chat) } label: {
-            HStack(spacing: 10) {
-                chatIcon(chat)
-                Text(chat.title)
-                    .fontWeight(chat.unreadCount > 0 ? .semibold : .regular)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, Self.rowCapsuleBleed)
-            .frame(height: 42)
-            .background(
-                selectedDestinationID == chat.id ? selectedRowFill : .clear,
-                in: .capsule
-            )
-            .sidebarUnreadDot(
-                chat.unreadCount > 0,
-                listInset: Self.listInset,
-                glyphInset: Self.rowCapsuleBleed
-            )
-            // The label's own drawing stops at the title, so without this the
-            // tappable area is the glyph and the text rather than the row.
-            .contentShape(Rectangle())
-        }
-        // The row's own selection fill is a capsule at this height, so the
-        // press highlight matches its curve instead of drawing square corners.
-        .buttonStyle(.pressableRow(cornerRadius: 21))
-        .accessibilityLabel(chat.unreadCount > 0 ? "\(chat.title), unread" : chat.title)
+        SidebarChatRow(
+            chat: chat,
+            isSelected: selection == .chat(chat.id),
+            metrics: metrics,
+            onSelect: { onSelectDestination(chat) },
+            onMarkRead: markReadAction(for: chat),
+            onOpenDetails: { onOpenDetails(chat) }
+        )
     }
 
-    @ViewBuilder
-    private func chatIcon(_ chat: ChatDestination) -> some View {
-        switch chat.kind {
-        case .channel:
-            ChannelIconBox(appearance: chat.appearance, size: Self.rowGlyphSize)
-        case .agentDirectMessage(let agent):
-            AvatarView(
-                name: agent.name,
-                url: agent.avatarURL,
-                presence: agent.presence,
-                size: Self.rowGlyphSize
-            )
-        case .humanDirectMessage(let human):
-            AvatarView(
-                name: human.name,
-                url: human.avatarURL,
-                presence: nil,
-                size: Self.rowGlyphSize
-            )
-        }
+    private func markReadAction(for chat: ChatDestination) -> (() -> Void)? {
+        guard let onMarkRead, chat.unreadCount > 0, let durable = chat.durableChat else { return nil }
+        return { onMarkRead(durable) }
     }
 }
 
@@ -278,7 +250,7 @@ public struct ChatSidebarView: View {
     ChatSidebarView(
         server: ChatFixtures.server,
         destinations: ChatFixtures.chats.map(ChatDestination.durableChat),
-        selectedDestinationID: .chat("product"),
+        selection: .chat(.chat("product")),
         onSelectDestination: { _ in },
         onOpenSettings: {}
     )

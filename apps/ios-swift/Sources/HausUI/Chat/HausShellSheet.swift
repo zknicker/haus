@@ -7,7 +7,9 @@ struct SettingsPresentationRequest: Identifiable, Hashable {
 
 /// The sheets the Chat shell can present over its canvas.
 enum HausShellSheet: Identifiable {
-    case search
+    /// `scope` is the Chat search was opened from, which the sheet offers as a
+    /// narrower scope; the sidebar opens it unscoped.
+    case search(scope: ChatPresentation?)
     case details(ChatDestination)
     case archived
     case newChannel

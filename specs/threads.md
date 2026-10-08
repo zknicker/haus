@@ -102,3 +102,5 @@ parent chat's `unread_count` includes followed-thread unreads for the reader.
 - Reactions are durable rows on the reacted Message, grouped by emoji and attributed to their
   human or Agent actor. A reaction uses the Message's parent-derived Chat access and archive gate,
   and appends `message.reaction.updated` without changing read state or unread counts.
+  Agents see grouped reactions on message reads (a trailing `[reactions: ...]` suffix), but a
+  reaction never creates an inbox delivery, notification, or Agent wake.

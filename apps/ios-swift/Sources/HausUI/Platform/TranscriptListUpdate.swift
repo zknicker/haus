@@ -27,6 +27,15 @@ enum TranscriptListUpdate: Equatable {
         }
     }
 
+    /// How many of the newest old items a `.window` update removed — rows the
+    /// tail insertions replace rather than add to. A send's optimistic row
+    /// handing over to its durable row (a new id) is one of each.
+    static func replacedTailCount(old: [String], new: [String]) -> Int {
+        let newIDs = Set(new)
+        guard let lastShared = old.lastIndex(where: newIDs.contains) else { return 0 }
+        return old.count - lastShared - 1
+    }
+
     static func classify(old: [String], new: [String]) -> TranscriptListUpdate {
         guard !old.isEmpty, !new.isEmpty else {
             return old.isEmpty && new.isEmpty ? .refresh : .reset

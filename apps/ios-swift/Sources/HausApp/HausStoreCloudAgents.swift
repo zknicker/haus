@@ -25,7 +25,6 @@ extension HausStore {
             if cloudAgentWorkByChatID[chatID] != rows { cloudAgentWorkByChatID[chatID] = rows }
         } catch {
             Self.logger.error("Loading cloud agents failed: \(error.localizedDescription, privacy: .public)")
-            sendError = "Cloud agent status could not refresh. Check your connection and try again."
         }
     }
 

@@ -10,6 +10,7 @@ import {
     assertIOSIconArtifact,
     assertIOSIconRenditions,
     assertIOSIconSourceEffects,
+    assertIOSLaunchRenditions,
     iosIconArtifactDirectory,
     requiredIOSIconXcodeBuild,
     writeIOSIconArtifactManifest,
@@ -69,6 +70,17 @@ test('rejects a flattened icon without the authored glass stack', () => {
                 },
             ]),
         /missing its UIAppearanceLight icon stack/
+    );
+});
+
+test('requires the launch image in light and dark', () => {
+    const launch = (Appearance) => ({ AssetType: 'Image', Name: 'LaunchGhost', Appearance });
+    assert.doesNotThrow(() =>
+        assertIOSLaunchRenditions([launch(undefined), launch('UIAppearanceDark')])
+    );
+    assert.throws(
+        () => assertIOSLaunchRenditions([launch(undefined)]),
+        /missing its UIAppearanceDark launch image/
     );
 });
 

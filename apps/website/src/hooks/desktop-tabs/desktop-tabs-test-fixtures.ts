@@ -36,7 +36,7 @@ export function run(
 
 /**
  * Splits into `primary: [inbox]`, `secondary: [tasks]`, primary focused: a
- * new tab moved to the right pane (links never open the second pane).
+ * new tab moved to the right pane.
  */
 export function split(): DesktopTabsState {
     return run(

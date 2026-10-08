@@ -27,13 +27,13 @@ struct VisualKey: Hashable {
 ///
 /// Transcript rows are hosted in `UIHostingConfiguration` cells inside the
 /// flipped `UITableView` substrate (`TranscriptListView`), which re-hosts a row
-/// only when SwiftUI state ABOVE the table changes — `reconfigureVisibleRows`
-/// runs from `updateUIView`. A height reported from inside a cell therefore
+/// only when its item or the screen's `rowRevision` changes, from
+/// `updateUIView`. A height reported from inside a cell therefore
 /// never reaches the table, and the row keeps whatever height it first measured
 /// at. Lifting the measurement into the screen's own state — the same shape as
 /// `AttachmentImageTileRegistry` — is what lets a card grow: the screen's body
-/// reads `revision`, so a report re-renders the screen, the table reconfigures
-/// its visible rows, and the row lays out at the new frame.
+/// folds `revision` into the list's `rowRevision`, so a report re-renders the
+/// screen, the table reconfigures its visible rows, and the row lays out at the new frame.
 @MainActor
 @Observable
 final class VisualHeightRegistry {

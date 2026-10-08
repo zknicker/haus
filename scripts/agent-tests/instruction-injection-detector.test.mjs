@@ -22,7 +22,6 @@ const prompt = renderAgentInstructions({
     midTurnNotices: true,
     os: 'macOS',
     runtimeVersion: 'test',
-    webAccess: 'search',
     workspacePath: '/workbench',
 });
 

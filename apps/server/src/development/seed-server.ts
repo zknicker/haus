@@ -19,7 +19,7 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { listAccessibleServers } from '../servers/accessible-servers.ts';
-import type { ServerSummary } from '../servers/contracts.ts';
+import { allChannelDescription, type ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/haus-user.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
 import { ensureDevelopmentArtifactMessage } from './seed-artifact-message.ts';
@@ -131,6 +131,7 @@ export async function seedDevelopmentServer(
             },
         ];
         await tx.insert(chatsTable).values({
+            description: allChannelDescription,
             id: channelId,
             isAll: true,
             kind: 'channel',

@@ -39,12 +39,8 @@ the sole human release gate. Verify those repository settings before merging a
 Server release.
 
 Neither a push to `main` nor a completed target job alone is deployment evidence.
-Production is ready only after deployment health checks pass and Axiom receives
-a successful `haus.server.startup` operation carrying the expected
-`service.version`, `haus.release.id`, and full `haus.release.revision`.
-The `Haus Operations` dashboard is the operator-facing confirmation that the
-new process actually started with that identity; `/healthz` remains the direct
-availability check.
+The Release workflow's own public check is the proof of success: it confirms the
+public Server and hosted App are at the release version, plus `/healthz`.
 
 The self-hosted `Deploy Haus Server` workflow:
 

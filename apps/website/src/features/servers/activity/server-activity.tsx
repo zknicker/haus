@@ -42,15 +42,13 @@ export function ServerActivity() {
     if (agentsQuery.isPending || turns.isPending) {
         return <div aria-busy="true" className="min-h-0 flex-1" />;
     }
-    if (entries.every((entry) => !shown.includes(entry.agent.id))) {
+    if (turns.error && entries.every((entry) => !shown.includes(entry.agent.id))) {
         return (
             <>
                 {agentFilter ? (
                     <div className="flex justify-end px-3 pt-2">{agentFilter}</div>
                 ) : null}
-                <ActivityNote>
-                    {turns.error ? 'Activity is unavailable right now.' : 'No activity yet.'}
-                </ActivityNote>
+                <ActivityNote>Activity is unavailable right now.</ActivityNote>
             </>
         );
     }

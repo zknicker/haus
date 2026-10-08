@@ -477,6 +477,13 @@
       "when": 1791391226727,
       "tag": "0067_server_turns_index",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1791480150972,
+      "tag": "0068_channel_descriptions",
+      "breakpoints": true
     }
   ]
 }

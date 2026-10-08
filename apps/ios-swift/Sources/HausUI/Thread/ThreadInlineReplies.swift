@@ -48,7 +48,6 @@ struct ThreadInlineRepliesRegion: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ThreadRegionHeader(title: "Inline replies", detail: "Read only")
             if let loadError {
                 HStack(spacing: 8) {
                     Text(loadError)
@@ -61,20 +60,17 @@ struct ThreadInlineRepliesRegion: View {
                     }
                     .font(.caption.weight(.semibold))
                 }
-            } else if config.isLoading() && isEmpty {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Loading inline replies…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } else if config.isLoaded() && isEmpty {
-                Text("No inline replies yet.")
-                    .font(.caption)
+            } else if !isEmpty {
+                ThreadRegionHeader(title: "Inline replies", detail: "Read only")
+            } else if config.isLoaded() {
+                // One quiet line rather than a header over an empty region;
+                // blank until the chain has loaded.
+                Text("No inline replies in the channel yet.")
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 12)
         .padding(.bottom, 8)
         .task(id: "\(config.id):\(loadAttempt)") {
@@ -115,6 +111,7 @@ extension ThreadDetailView {
             if let inlineReplies, inlineReplies.hasOlder() {
                 TranscriptLoadOlderButton(
                     title: "Load older inline replies",
+                    failureTitle: "Couldn’t load earlier replies",
                     isLoading: inlineReplies.isLoading(),
                     onLoad: inlineReplies.loadOlder
                 )
@@ -122,6 +119,7 @@ extension ThreadDetailView {
             if let inlineReplies, inlineReplies.hasNewer() {
                 TranscriptLoadOlderButton(
                     title: "Load newer inline replies",
+                    failureTitle: "Couldn’t load newer replies",
                     isLoading: inlineReplies.isLoading(),
                     onLoad: inlineReplies.loadNewer
                 )
@@ -129,6 +127,7 @@ extension ThreadDetailView {
             if history.hasOlder {
                 TranscriptLoadOlderButton(
                     title: "Load older replies",
+                    failureTitle: "Couldn’t load earlier replies",
                     isLoading: history.isLoading,
                     onLoad: history.loadOlder
                 )

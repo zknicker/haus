@@ -6,10 +6,10 @@ struct ConnectionStatusBanner: View {
         Group {
             if #available(iOS 26, macOS 26, *) {
                 content
-                    .glassEffect(.regular, in: .rect(cornerRadius: 18))
+                    .glassEffect(.regular, in: .haus(HausRadius.large))
             } else {
                 content
-                    .background(.thinMaterial, in: .rect(cornerRadius: 18))
+                    .background(.thinMaterial, in: .haus(HausRadius.large))
             }
         }
         .accessibilityElement(children: .ignore)

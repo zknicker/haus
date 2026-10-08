@@ -11,7 +11,7 @@ extension HausStore {
     /// row carries rather than from a Chat page.
     func threadSelection(
         conversationChatID: String,
-        threadChatID: String,
+        threadChatID: String?,
         anchor: ChatMessage
     ) -> ThreadSelection? {
         guard let author = authorPresentation(anchor.author) else { return nil }
@@ -52,7 +52,7 @@ extension HausStore {
     }
 
     /// One Message read on its own, without touching the Chat's loaded window.
-    private func fetchMessage(chatID: String, messageID: String) async -> ChatMessage? {
+    func fetchMessage(chatID: String, messageID: String) async -> ChatMessage? {
         guard let serverID = activeServer?.id else { return nil }
         do {
             let page: ChatMessagePage = try await client.query(

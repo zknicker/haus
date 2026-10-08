@@ -1,9 +1,10 @@
 import { type AmazonProductIdentity, amazonProductUrl, parseAmazonProduct } from '@haus/api';
 import * as React from 'react';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
-import { AmazonProductPreview, productImage } from './amazon-product-preview.tsx';
+import type { AmazonProductLookup } from './amazon-product-lookup.ts';
+import { AmazonProductPreview, lookupInProgress, productImage } from './amazon-product-preview.tsx';
 import { ReferenceChip } from './reference-chip.tsx';
-import { type AmazonProductLookup, useAmazonProduct } from './use-amazon-product.ts';
+import { useAmazonProduct } from './use-amazon-product.ts';
 
 /** The chip comes from the pattern match; the RankWrangler lookup only fills it in. */
 export function AmazonReference({
@@ -47,7 +48,7 @@ export function AmazonReferenceChip({
             onOpenChange={onPreviewOpenChange}
         >
             <a
-                aria-busy={lookup.status === 'loading' || undefined}
+                aria-busy={lookupInProgress(lookup) || undefined}
                 aria-label={`Open ${label} on Amazon`}
                 className="reference-chip-trigger inline-flex max-w-full align-middle no-underline"
                 href={href ?? amazonProductUrl(product)}
@@ -61,7 +62,7 @@ export function AmazonReferenceChip({
                     label={label}
                     metadata={{
                         iconDataUrl: summary ? productImage(summary) : undefined,
-                        pending: lookup.status === 'loading',
+                        pending: lookupInProgress(lookup),
                     }}
                 />
             </a>

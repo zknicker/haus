@@ -11,7 +11,7 @@ import { useServer } from '../../../hooks/servers/use-server.ts';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
-import { ChannelRenameDialog } from '../../chats/channel-rename-dialog.tsx';
+import { ChannelDetailsDialog } from '../../chats/channel-details-dialog.tsx';
 import { tasksRoute } from '../server-routes.ts';
 
 /** Where a chat menu's links go; each surface places them its own way. */
@@ -100,7 +100,7 @@ export function useChannelActions({
     const dialogs = (
         <>
             {editDialog?.kind === 'rename' ? (
-                <ChannelRenameDialog chat={editDialog.chat} onClose={closeEditDialog} />
+                <ChannelDetailsDialog chat={editDialog.chat} onClose={closeEditDialog} />
             ) : null}
             {editDialog?.kind === 'appearance' ? (
                 <ChannelAppearanceDialog chat={editDialog.chat} onClose={closeEditDialog} />

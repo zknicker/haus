@@ -221,7 +221,7 @@ async function withCodexAgent(
     await mkdir(join(rootDir, 'workspace'), { recursive: true });
     await options.prepare?.({ homeDir, rootDir });
     const agent = new HarnessAgent({
-        harness: createHarnessForRuntime('codex', 'default', false, bridgeStoreDirForHost()),
+        harness: createHarnessForRuntime('codex', 'default', bridgeStoreDirForHost()),
         model,
         permissionMode: 'allow-all',
         sandbox: createLocalTrustedSandboxProvider({

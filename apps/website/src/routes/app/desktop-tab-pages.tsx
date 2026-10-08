@@ -15,8 +15,8 @@ import { useThreadAnchor } from '../../hooks/threads/use-thread-anchor.ts';
 
 /**
  * A Thread as a desktop page (`threads/:chatId/:anchorMessageId`, ADR 0039):
- * the same Thread surface the web's chat side pane hosts, in a centered
- * reading column. "View in chat" opens the chat scrolled to the anchor; an
+ * the same Thread surface the web's chat side pane hosts, spanning the tab
+ * like a chat does. "View in chat" opens the chat scrolled to the anchor; an
  * Agent's artifact opens as its own page. Blank while the Thread loads.
  */
 export function ThreadPageRoute() {
@@ -43,25 +43,21 @@ export function ThreadPageRoute() {
     };
     return (
         <section aria-label="Thread" className="flex min-h-0 flex-1 flex-col bg-background">
-            <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1">
-                <ThreadContent
-                    active={shown}
-                    anchor={anchor}
-                    chat={chat}
-                    initialThreadChatId={anchor.task?.threadChatId}
-                    key={anchor.id}
-                    onOpenArtifact={openArtifact}
-                    onReferenceActivate={activateReference}
-                    onViewInChannel={viewInChat}
-                    readOnly={
-                        (chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null
-                    }
-                    summary={thread.summary}
-                    takeover={false}
-                    turnDetailsAccess={getTurnDetailAccess(server.role)}
-                    width={null}
-                />
-            </div>
+            <ThreadContent
+                active={shown}
+                anchor={anchor}
+                chat={chat}
+                initialThreadChatId={anchor.task?.threadChatId}
+                key={anchor.id}
+                onOpenArtifact={openArtifact}
+                onReferenceActivate={activateReference}
+                onViewInChannel={viewInChat}
+                readOnly={(chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null}
+                summary={thread.summary}
+                takeover={false}
+                turnDetailsAccess={getTurnDetailAccess(server.role)}
+                width={null}
+            />
         </section>
     );
 }

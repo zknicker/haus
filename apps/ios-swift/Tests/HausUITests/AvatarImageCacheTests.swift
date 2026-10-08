@@ -101,6 +101,32 @@ struct AvatarImageCacheTests {
         #expect(cache.image(for: url) == nil)
     }
 
+    /// A cold launch: a fresh process has decoded nothing, but the bytes from
+    /// an earlier launch are on disk, so the first frame paints the face.
+    @Test func paintsAnAvatarStoredByAnEarlierLaunchSynchronously() throws {
+        let url = try #require(URL(string: "https://example.com/stored.png"))
+        let imageData = try #require(Data(base64Encoded: Self.onePixelPNG))
+        let byteCache = URLCache(memoryCapacity: 1024 * 1024, diskCapacity: 0, directory: nil)
+        let response = try #require(
+            HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)
+        )
+        byteCache.storeCachedResponse(
+            CachedURLResponse(response: response, data: imageData),
+            for: URLRequest(url: url)
+        )
+
+        let cache = AvatarImageCache(byteCache: byteCache)
+
+        #expect(cache.image(for: url) != nil)
+    }
+
+    @Test func fallsBackToInitialsWhenNothingIsStored() throws {
+        let url = try #require(URL(string: "https://example.com/unseen.png"))
+        let byteCache = URLCache(memoryCapacity: 1024 * 1024, diskCapacity: 0, directory: nil)
+
+        #expect(AvatarImageCache(byteCache: byteCache).image(for: url) == nil)
+    }
+
     private static let onePixelPNG =
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 }

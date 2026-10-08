@@ -67,9 +67,9 @@ struct CloudAgentCard: View {
         }
         .padding(CloudAgentCardMetrics.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(HausPlatformColor.inputSurface, in: .rect(cornerRadius: CloudAgentCardMetrics.cornerRadius))
+        .background(HausPlatformColor.inputSurface, in: .haus(CloudAgentCardMetrics.cornerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: CloudAgentCardMetrics.cornerRadius)
+            RoundedRectangle.haus(CloudAgentCardMetrics.cornerRadius)
                 .strokeBorder(.secondary.opacity(0.18), lineWidth: 0.5)
         }
         .accessibilityElement(children: .contain)
@@ -118,8 +118,6 @@ struct CloudAgentCard: View {
                 Link(destination: url) { actionLabel("View PR", systemImage: "arrow.triangle.pull") }
             } else if let providerURL {
                 Link(destination: providerURL) { actionLabel(openInProvider, systemImage: "arrow.up.right") }
-            } else {
-                Button {} label: { actionLabel(openInProvider, systemImage: "arrow.up.right") }.disabled(true)
             }
             Menu {
                 if let providerURL {
@@ -142,6 +140,9 @@ struct CloudAgentCard: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .buttonStyle(.bordered)
+        // An explicit tint: with the inherited one these controls drew gray
+        // and read as disabled. Label ink reads as live on both appearances.
+        .tint(HausPlatformColor.label)
         .controlSize(.small)
         .font(.caption.weight(.medium))
     }
@@ -190,7 +191,7 @@ private struct CloudAgentMetaLabelStyle: LabelStyle {
 /// cut with, kept together so the two stay in step when either moves.
 enum CloudAgentCardMetrics {
     static let padding: CGFloat = 12
-    static let cornerRadius: CGFloat = 13
+    static let cornerRadius: CGFloat = HausRadius.medium
 }
 
 /// A finished-state fact about the run, drawn as a soft capsule. Work still

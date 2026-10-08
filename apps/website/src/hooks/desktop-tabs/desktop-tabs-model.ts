@@ -185,5 +185,24 @@ export function tabPageKey(location: TabLocation): string {
     return idSections.has(section) && id ? `${section}/${id}` : section;
 }
 
+/**
+ * Where a plain open of a page lands once no tab already shows it (ADR 0039). `place`: the
+ * current tab navigates (the place rule). `newTab`: an Agent profile or Settings opens as a new
+ * selected tab after the source. `sidePane`: a Thread opens as a new selected tab in the right
+ * pane, creating it.
+ */
+export type PagePlacement = 'newTab' | 'place' | 'sidePane';
+
+export function pagePlacement(location: TabLocation): PagePlacement {
+    if (location.kind !== 'app') {
+        return 'place';
+    }
+    const key = tabPageKey(location);
+    if (key.startsWith('threads/')) {
+        return 'sidePane';
+    }
+    return key === 'settings' || key.startsWith('agents/') ? 'newTab' : 'place';
+}
+
 /** Sections whose second segment names a different page rather than a drill-down. */
 const idSections = new Set(['agents', 'artifacts', 'chats', 'dm', 'files', 'threads']);

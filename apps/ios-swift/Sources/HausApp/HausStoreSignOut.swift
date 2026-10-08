@@ -26,6 +26,8 @@ extension HausStore {
         }
         push.didSignOut()
         stopEventStreams()
+        // The launch snapshot is this account's Server state.
+        await clearLaunchSnapshot()
         // The restored last-open Chat names a Chat on this account's Server.
         UserDefaults.standard.removeObject(forKey: ChatDestination.ID.lastOpenDefaultsKey)
         // Avatars on disk are this account's people and Agents.
