@@ -116,7 +116,10 @@ and [Agent Inbox](../../specs/inbox.md).
   updates in place from `cloud-agent-work.updated`; the work never writes a
   second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
-  messages. The App streams human-selected bytes directly to that Server, and
+  messages. Humans pick files with the composer's attachment button or drop them anywhere on the
+  open chat or Thread; each drops into its own composer, so split panes never cross. A file drop
+  outside any chat never navigates the window. The App streams human-selected bytes directly to
+  that Server, and
   Agents upload through their scoped Server credential with `haus attachment upload`, which infers
   the media type from the file's content (PNG, JPEG, GIF, WebP, SVG, PDF), then its extension, when
   `--mime-type` is omitted; the Server stores the declared type and falls back to
