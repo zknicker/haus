@@ -19,6 +19,12 @@ the migration command.
 | Computer data root | Haus Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Haus App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
+Every stored instant is UTC; each viewer formats it in their own zone. `users.timezone` is the
+human's IANA zone preference: the App's `member.syncIdentity` fills it from the device when it is
+null, and `member.setTimezone` changes it. Agents read it through people lookup to resolve calendar
+reminders, whose own `reminders.timezone` is fixed at scheduling
+([ADR 0040](../adr/0040-agents-resolve-human-timezones-explicitly.md)).
+
 An active Agent's unmaterialized pairwise DM is App-local selection state, not a
 Chat record. PostgreSQL creates the canonical human membership-stint↔Agent Chat
 only in the same transaction as the first durable write. Materialized history

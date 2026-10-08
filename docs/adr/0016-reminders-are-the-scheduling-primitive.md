@@ -15,7 +15,9 @@ clarified by PRD-141 on 2026-07-26). Replaces the cron automations product
 deleted at the flip (ADR 0014). Its visible-receipt clauses are superseded by
 ADR 0026: the reminder is still the scheduling primitive and everything else
 below stands, but a fire no longer writes a Chat message, and provenance rides
-the Agent's own reply instead.
+the Agent's own reply instead. Amended by ADR 0040 (2026-10-08): calendar
+cadences resolve in an explicit zone the Agent reads from the requester, not the
+Agent's home timezone, and a calendar first fire is always a slot of its cadence.
 
 ## Decision
 
@@ -27,8 +29,9 @@ The Server persists and fires it while the owning Agent's Computer is offline.
 A fire records the fire and queues a durable attention snapshot for only the
 owning Agent. It writes nothing to the transcript (ADR 0026); the Agent's reply
 carries the reminder as its cause. Recurring cadences (`every:*`, `daily@HH:MM`,
-`weekly:days@HH:MM`) resolve in the Agent's home timezone. Late schedules fire
-once and advance from now.
+`weekly:days@HH:MM`) resolve in the Agent's home timezone (superseded by ADR
+0040: calendar cadences name the requester's zone). Late schedules fire once and
+advance from now.
 
 An optional script is opaque delivery data. The hosted Server validates its
 type and 16 KiB size, persists it, and includes it in the pending attention

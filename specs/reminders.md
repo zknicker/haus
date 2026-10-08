@@ -53,8 +53,10 @@ those is one a human asked for.
 
 - Repeat grammar is exactly `every:<positive>[mhd]`, `daily@HH:MM`, or
   `weekly:<comma-separated days>@HH:MM`. Snooze grammar is
-  `<positive>[mhd]`. Wall-clock cadences use an explicit reminder timezone when supplied, otherwise the author's home timezone,
-  including DST.
+  `<positive>[mhd]`. Wall-clock cadences (`daily@`, `weekly:`) require an explicit
+  reminder timezone, including DST; one-shots and `every:` store the author's home
+  timezone when none is supplied. A calendar first fire is a cadence slot: derived
+  from now when omitted, refused when supplied off-slot (ADR 0040).
 - A delayed Server fires one overdue logical slot, then recurring schedules
   advance from the current time. Missed slots never burst.
 - An active Agent may schedule, list, inspect logs, snooze, update, or cancel
@@ -158,6 +160,6 @@ Agent schedule refusals distinguish `IDEMPOTENCY_KEY_REUSED` (same command id, d
 
 Explicit reminder timezone participates in schedule command identity. Reusing a command id with a different zone conflicts. Existing fingerprints without a timezone retain their exact bytes and replay behavior. Schedule a new reminder to change its recurrence zone; updating cadence preserves the stored zone.
 
-The explicit first fire is independent of the repeat cadence; an off-slot first fire is permitted for an intentional initial check. Confirm its timing separately. CLI updates to a calendar cadence require `--timezone` equal to the reminder’s stored zone; a different zone requires a newly consented replacement. Capability discovery uses a dedicated read-only endpoint and never depends on historical reminder access.
+A calendar first fire is a slot of its cadence, and its derived value is not part of the command fingerprint. An update that sets a calendar repeat moves the next fire to its next slot; a new fire time on a calendar reminder must be a slot. Snooze is the one deliberate off-slot fire. CLI updates to a calendar cadence require `--timezone` equal to the reminder’s stored zone; a different zone requires a newly consented replacement. Capability discovery uses a dedicated read-only endpoint and never depends on historical reminder access.
 
 The CLI reports `REMINDER_RECEIPT_UNCONFIRMED` when a mutation receipt omits or contradicts the expected timezone. The mutation may already have landed: inspect the returned reminder id and reconcile or cancel before retrying; do not create a second reminder blindly.

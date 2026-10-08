@@ -317,6 +317,20 @@ per-key advisory lock. The same key and input replay the original reminder witho
 `reminder.changed` event; a different input returns `409 IDEMPOTENCY_KEY_REUSED`. Commands live as
 long as their reminder.
 
+`schedule` with a `daily@` or `weekly:` repeat requires `timezone` and may omit `fireAt`: the
+Server derives the next slot in that zone, and refuses a supplied `fireAt` that is not a slot.
+One-shots and `every:` repeats require `fireAt`. `update` keeps a calendar reminder on its cadence:
+a new calendar `repeat` moves the next fire to its next slot, and a new `fireAt` must be a slot
+([ADR 0040](../adr/0040-agents-resolve-human-timezones-explicitly.md)).
+
+### People lookup
+
+`GET /api/agent/server` (`haus server info`) and `GET /api/agent/channels/members`
+(`haus channel members`) return each human's `timezone`, their IANA zone or `null` when their App
+has not reported one. Agents carry none. The CLI prints it as `[timezone: <zone>]` so an Agent can
+resolve a calendar reminder in the requester's zone. The App reports the device zone through
+`member.syncIdentity`, which fills only a blank, and `member.setTimezone` sets it from Settings.
+
 ### Agent routes
 
 A managed Agent creates, updates, and re-avatars Agents on its own Server:

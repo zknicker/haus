@@ -1,7 +1,7 @@
 ---
 summary: Hosted, author-owned reminders anchored to Server messages, answered by the Agent's own marked message, with pending Agent attention, a per-fire execution history, and Agent-profile visibility.
 read_when:
-  - changing reminder scheduling, cadences, fires, script payloads, or run history
+  - changing reminder scheduling, cadences, timezones, fires, script payloads, or run history
   - changing Agent-profile reminder visibility
   - changing how a reminder fire appears in a conversation
   - changing how scheduled work waits for an offline Agent
@@ -16,8 +16,9 @@ schedule, so it fires even while the Agent's Computer is offline.
 For a schedule that may be retried after a process restart, persist its complete
 input and use `haus reminder schedule --command-id <saved-id> --fire-at <saved-time>`.
 The command id reuses the existing author-scoped Server idempotency contract.
-It requires an absolute first fire time; recalculating a delay would change the
-request. Replays return current reminder state and identify already-applied commands; list reminders before
+It requires an absolute first fire time, because recalculating a delay would
+change the request; a calendar repeat needs none, since its derived first fire
+is not part of the request. Replays return current reminder state and identify already-applied commands; list reminders before
 deciding whether to update, snooze, cancel, or resume. A replay never recreates
 a canceled reminder. Re-enabling a declined review needs new agreement and a
 new command id.
@@ -48,9 +49,20 @@ new command id.
   labels execution timestamps as your time and shows cadence frequency without
   assuming a schedule timezone that its records do not contain.
 - **Stable recurrence.** Supported repeats are `every:<positive>[mhd]`,
-  `daily@HH:MM`, and `weekly:days@HH:MM` in the reminder's explicit IANA timezone (legacy requests default to the Agent's home timezone). After
-  downtime the Server fires once and advances from now, never bursts missed
-  slots.
+  `daily@HH:MM`, and `weekly:days@HH:MM`. Calendar repeats (`daily@`,
+  `weekly:`) recur in the reminder's explicit IANA timezone, which the Server
+  requires; it never falls back to the Agent's UTC home time. After downtime the
+  Server fires once and advances from now, never bursts missed slots.
+- **The requester's zone.** Every human has a timezone preference: the App
+  reports the device zone when none is set, and Settings > Profile changes it.
+  Agents read it from `haus server info --humans` and `haus channel members`,
+  pass the requester's zone as `--timezone`, ask when it is unknown or people
+  disagree, and restate it when confirming ("Fridays at 3 AM Eastern"). See
+  [ADR 0040](../adr/0040-agents-resolve-human-timezones-explicitly.md).
+- **Calendar first fires are slots.** A calendar schedule may omit its first
+  fire: the Server starts it at the cadence's next slot in its zone. A supplied
+  first fire that is not a slot is refused with the next slot named. One-shots
+  and `every:` intervals keep their explicit first instant.
 - **Retries never duplicate.** Every schedule and change carries an idempotency
   key; a retried request returns the original reminder, and reusing the key for
   different input is refused ([Agents API](../api/agents.md#reminder-routes)).
@@ -129,8 +141,8 @@ the transcript.
 Absolute CLI `--fire-at` inputs need an explicit timezone (`Z` or an offset).
 The CLI normalizes zoned timestamps to UTC before schedule or update, including
 offsets such as `-0400`. Ambiguous local times fail with an actionable CLI error
-before an API request. Calendar schedules require `--timezone <iana>` in the current CLI. The Server stores that zone on the reminder; changing Agent home timezone later does not alter it. Legacy requests without a timezone keep the original home-timezone default. The CLI checks Server support before mutation and refuses on older Servers that would discard the new field.
+before an API request. Calendar schedules require `--timezone <iana>`, and the CLI's error points to the people lookup that shows it. The Server stores that zone on the reminder; changing Agent home timezone later does not alter it. A calendar schedule without a timezone is refused. The CLI checks Server support before mutation and refuses on older Servers that would discard the new field. The schedule receipt restates the cadence with its zone and the next fire as wall clock in that zone, such as `Every Monday at 15:57 America/New_York; next fire Mon 2026-10-12 15:57 EDT (2026-10-12T19:57:00.000Z)`.
 
 Explicit reminder timezone participates in schedule command identity. Reusing a command id with a different zone conflicts. Existing fingerprints without a timezone retain their exact bytes and replay behavior. Schedule a new reminder to change its recurrence zone; updating cadence preserves the stored zone.
 
-The explicit first fire is independent of the repeat cadence; an off-slot first fire is permitted for an intentional initial check. Confirm its timing separately. CLI updates to a calendar cadence require `--timezone` equal to the reminder’s stored zone; a different zone requires a newly consented replacement. Capability discovery uses a dedicated read-only endpoint and never depends on historical reminder access.
+A calendar reminder's first fire is a slot of its cadence: omitted, the Server derives it; supplied off-slot, it is refused. An update that sets a calendar repeat moves the next fire to its next slot, and an update that sets a fire time on a calendar reminder must name a slot. Snooze is the one deliberate off-slot fire. CLI updates to a calendar cadence require `--timezone` equal to the reminder’s stored zone; a different zone requires a newly consented replacement. Capability discovery uses a dedicated read-only endpoint and never depends on historical reminder access.
