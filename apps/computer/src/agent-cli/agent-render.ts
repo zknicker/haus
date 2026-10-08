@@ -142,7 +142,8 @@ export function renderChannelMembers(response: AgentChannelMembers): string {
             throw new AgentCliError('INVALID_JSON_RESPONSE', 'Channel member handle is missing.');
         }
         const handle = member.handle;
-        return `@${handle} [${member.role}]${descriptionSuffix(member.description)}`;
+        const zone = member.role === 'human' ? timezoneSuffix(member.timezone) : '';
+        return `@${handle} [${member.role}]${zone}${descriptionSuffix(member.description)}`;
     });
     return [
         `## Channel Members for ${response.target} (${members.length} members)`,
@@ -243,14 +244,18 @@ function preview(content: string, query: string): string {
 }
 
 function renderPerson(
-    person: { description: string | null; handle: string; id: string },
+    person: { description: string | null; handle: string; id: string; timezone?: string | null },
     kind: 'agent' | 'user'
 ): string {
-    const target =
-        kind === 'agent'
-            ? formatAgentReferenceTarget(person.id)
-            : formatUserReferenceTarget(person.id);
-    return `[@${person.handle}](${target})${descriptionSuffix(person.description)}`;
+    if (kind === 'agent') {
+        return `[@${person.handle}](${formatAgentReferenceTarget(person.id)})${descriptionSuffix(person.description)}`;
+    }
+    return `[@${person.handle}](${formatUserReferenceTarget(person.id)})${timezoneSuffix(person.timezone)}${descriptionSuffix(person.description)}`;
+}
+
+/** A human's zone: what an Agent resolves their daily@/weekly: reminders in. */
+function timezoneSuffix(timezone: string | null | undefined): string {
+    return ` [timezone: ${timezone ?? 'unknown'}]`;
 }
 
 function descriptionSuffix(description: string | null): string {

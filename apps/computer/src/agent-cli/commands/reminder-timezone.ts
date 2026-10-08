@@ -2,12 +2,14 @@ import * as z from 'zod';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
+import { isCalendarRepeat } from './reminder-cadence-label.ts';
 
 export const titleHelp =
     'Short label shown in chat, like a calendar invite subject (e.g. "Monday Advertising Review"); max 60 chars';
 export const descriptionHelp = 'What to do when it fires, in full; max 300 chars';
 export const reminderTimezoneFlag = {
-    description: 'Required IANA zone for calendar schedules; confirms the stored zone on updates',
+    description:
+        'IANA zone of the person a calendar repeat is for (haus server info --humans shows it); required for daily@/weekly:, confirms the stored zone on updates',
     name: '--timezone',
     valueName: '<iana>',
 };
@@ -16,13 +18,13 @@ export const reminderTimezoneFlag = {
 export async function scheduleTimezone(args: ParsedArgs, client: AgentApiRequester) {
     const timezone = args.values['--timezone'];
     if (timezone === undefined) {
-        if (/^(daily@|weekly:)/u.test(args.values['--repeat'] ?? '')) {
+        if (isCalendarRepeat(args.values['--repeat'])) {
             throw new AgentCliError(
                 'INVALID_ARG',
-                'Calendar repeats require an explicit --timezone.',
+                'Calendar repeats require --timezone with the IANA zone of the person they are for.',
                 {
                     nextAction:
-                        'Pass the agreed IANA zone with --timezone; the first-fire offset does not set recurrence timezone.',
+                        'Look up the requester’s timezone with haus server info --humans --query <handle> (or haus channel members "#channel") and pass it as --timezone. If people in the conversation are in different zones, or the zone is unknown, ask which one before scheduling.',
                 }
             );
         }
@@ -76,7 +78,7 @@ export function confirmUpdateTimezone(
     current: { timezone?: string },
     repeat?: string | null
 ) {
-    if (!/^(daily@|weekly:)/u.test(repeat ?? '')) {
+    if (!isCalendarRepeat(repeat)) {
         if (args.values['--timezone'] !== undefined) {
             throw new AgentCliError(
                 'INVALID_ARG',

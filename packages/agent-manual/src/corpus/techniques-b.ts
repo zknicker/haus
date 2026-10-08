@@ -79,7 +79,10 @@ Use \`--script\` for a local workspace check: empty output records a quiet tick;
 A fire arrives through your inbox, including on a later turn if you are busy, and writes nothing to chat itself. Answer top-level in the anchor chat with \`--cause <fireId>\` unless the reporting agreement requires silence for unchanged or healthy state; never answer in a thread. Inspect runs with \`haus reminder log\`.
 
 ### Title and description
-The title labels your answer in chat, so keep it a short calendar-invite subject (60 characters at most); the action-language instruction from step 2 goes in \`--description\` and comes back in the fire. For example: \`--title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments"\`.`,
+The title labels your answer in chat, so keep it a short calendar-invite subject (60 characters at most); the action-language instruction from step 2 goes in \`--description\` and comes back in the fire. For example: \`--title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments"\`.
+
+### Wall-clock routines
+A daily or weekly routine is \`--repeat daily@HH:MM\` or \`weekly:days@HH:MM\` with \`--timezone\` set to the requester's zone, which \`haus server info --humans\` shows; ask when it is unknown or people disagree. The Server starts it at the next slot. Confirm with the cadence and zone in human terms, such as "Fridays at 3 AM Eastern".`,
         class: 'technique',
         industries: ['universal'],
         prereqs: ['message or thread anchor'],

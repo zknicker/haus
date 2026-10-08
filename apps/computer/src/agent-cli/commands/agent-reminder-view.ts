@@ -3,6 +3,7 @@ import type { AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { formatLocalTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
+import { describeCadence, formatZonedFire } from './reminder-cadence-label.ts';
 
 export interface ReminderDeps {
     client: AgentApiRequester;
@@ -43,17 +44,23 @@ export const reminderLogSchema = z.object({
     ),
 });
 
+/**
+ * One reminder as a receipt the Agent can restate: the cadence with the zone it
+ * recurs in, then the next fire as wall clock in that zone.
+ */
 export function describeReminder(reminder: z.infer<typeof reminderViewSchema>): string {
-    const repeat = reminder.repeat
-        ? ` repeats ${reminder.repeat}${reminder.timezone ? ` in ${reminder.timezone}` : ''}`
-        : '';
     const script = reminder.script ? ' (script)' : '';
     const description =
         reminder.description && reminder.description !== reminder.title
             ? ` — ${clip(reminder.description)}`
             : '';
-    const firstFire = reminder.timezone ? reminder.fireAt : formatLocalTime(reminder.fireAt);
-    return `${reminder.id} [${reminder.status}] "${reminder.title}"${description} — fires ${firstFire}${repeat}${script}, anchored in ${reminder.anchorTarget}`;
+    const fire = reminder.timezone
+        ? formatZonedFire(reminder.fireAt, reminder.timezone)
+        : formatLocalTime(reminder.fireAt);
+    const timing = reminder.repeat
+        ? `${describeCadence(reminder.repeat, reminder.timezone)}; next fire ${fire}`
+        : `fires ${fire}`;
+    return `${reminder.id} [${reminder.status}] "${reminder.title}"${description} — ${timing}${script}, anchored in ${reminder.anchorTarget}`;
 }
 
 export function normalizeClearable(value: string | undefined): string | null | undefined {

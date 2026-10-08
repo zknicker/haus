@@ -16,8 +16,14 @@ import {
     reminderSingleSchema,
     requireFlag,
 } from './agent-reminder-view.ts';
+import { isCalendarRepeat } from './reminder-cadence-label.ts';
 import { reminderCommandIdFlag, scheduleCommandId } from './reminder-command-id.ts';
-import { absoluteReminderFireAt, reminderScheduleTime } from './reminder-schedule-time.ts';
+import {
+    absoluteReminderFireAt,
+    reminderScheduleTime,
+    scheduleTimingFlags,
+    updateTimingFlags,
+} from './reminder-schedule-time.ts';
 import {
     confirmUpdateTimezone,
     descriptionHelp,
@@ -35,7 +41,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
             'haus reminder schedule --title "CI Check" --description "check if CI finished and update the task" --delay-seconds 1800 --message-id 1a2b3c4d',
-            'haus reminder schedule --title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments" --fire-at 2026-07-27T09:00:00-04:00 --repeat weekly:mon@09:00 --timezone America/New_York --message-id 1a2b3c4d',
+            'haus reminder schedule --title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments" --repeat weekly:mon@09:00 --timezone America/New_York --message-id 1a2b3c4d',
             "haus reminder schedule --title 'Nightly Export Watch' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
         ],
         flags: [
@@ -43,18 +49,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
             reminderTimezoneFlag,
             { description: titleHelp, name: '--title', valueName: '<label>' },
             { description: descriptionHelp, name: '--description', valueName: '<text>' },
-            {
-                description: 'Fire after N seconds from now',
-                name: '--delay-seconds',
-                valueName: '<n>',
-            },
-            { description: 'Fire at an ISO timestamp', name: '--fire-at', valueName: '<iso>' },
-            {
-                description:
-                    'Recurring cadence: every:15m|every:2h|every:1d|daily@09:00|weekly:mon,fri@09:00',
-                name: '--repeat',
-                valueName: '<cadence>',
-            },
+            ...scheduleTimingFlags,
             {
                 description: 'Anchor message id (msg= from a message you received or read)',
                 name: '--message-id',
@@ -113,12 +108,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
                 name: '--description',
                 valueName: '<text>',
             },
-            { description: 'New fire time (ISO)', name: '--fire-at', valueName: '<iso>' },
-            {
-                description: 'New cadence, or "none" to stop repeating',
-                name: '--repeat',
-                valueName: '<cadence>',
-            },
+            ...updateTimingFlags,
             {
                 description: 'New script, or "none" to remove it',
                 name: '--script',
@@ -179,7 +169,7 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
             body: {
                 commandId: commandId ?? `cli-${randomUUID()}`,
                 description: args.values['--description'],
-                fireAt,
+                ...(fireAt ? { fireAt } : {}),
                 messageId,
                 repeat: args.values['--repeat'],
                 script: args.values['--script'],
@@ -275,7 +265,7 @@ export async function runReminderUpdate(args: ParsedArgs, deps: ReminderDeps): P
         },
         reminderSingleSchema
     );
-    if (/^(daily@|weekly:)/u.test(fields.repeat ?? '')) {
+    if (isCalendarRepeat(fields.repeat)) {
         verifyScheduledTimezone(current.timezone, response.reminder);
     }
     deps.write(

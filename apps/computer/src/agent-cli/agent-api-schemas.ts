@@ -180,6 +180,8 @@ const directoryPersonSchema = z.object({
     description: z.string().nullable(),
     handle: z.string().min(1),
     id: z.string().min(1),
+    /** Humans only: their IANA zone, null when unknown. Absent on an older Server. */
+    timezone: z.string().nullable().optional(),
 });
 
 export const agentChannelSchema = z.object({
@@ -209,6 +211,8 @@ export const agentChannelMembersSchema = z.object({
             description: z.string().nullable(),
             handle: z.string().nullable(),
             role: z.enum(['human', 'agent']),
+            /** Humans only: their IANA zone, null when unknown. Absent on an older Server. */
+            timezone: z.string().nullable().optional(),
         })
     ),
     target: z.string().min(1),
