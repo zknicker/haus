@@ -6,19 +6,15 @@ import {
     triggerInstructionMaxBytes,
     triggerTitleMaxLength,
 } from '@haus/api';
-import { formatRelativeTime } from '../../../lib/format.ts';
+import { formatByteSize, formatRelativeTime } from '../../../lib/format.ts';
 
 /**
- * Armed reads as live, disabled as inert. Disabled is a resting state someone
- * chose, not a failure, so it stays neutral rather than borrowing `danger`.
+ * A row speaks up about its state only when the Trigger is not doing its job:
+ * armed is the norm, so it carries no chip, and disabled is a resting state
+ * someone chose rather than a failure, so it stays neutral.
  */
-export function triggerStatusChip(status: TriggerStatus): {
-    color: 'default' | 'success';
-    label: string;
-} {
-    return status === 'armed'
-        ? { color: 'success', label: 'Armed' }
-        : { color: 'default', label: 'Disabled' };
+export function triggerRowStatus(status: TriggerStatus): string | null {
+    return status === 'armed' ? null : 'Disabled';
 }
 
 export interface TriggerKindOption {
@@ -69,14 +65,6 @@ export function formatTriggerActivity(
     return `Last fired ${formatRelativeTime(trigger.lastFiredAt, now)} · ${fires}`;
 }
 
-/** The one row line: what kind of stimulus wakes it, then how it has been used. */
-export function formatTriggerRowDetail(
-    trigger: Pick<Trigger, 'fireCount' | 'kind' | 'lastFiredAt'>,
-    now = Date.now()
-) {
-    return `${triggerKindLabel(trigger.kind)} · ${formatTriggerActivity(trigger, now)}`;
-}
-
 /**
  * A human author is named by handle; an Agent-created Trigger has no creating
  * user, so it credits the Agent that owns it. The row says "Created by", so the
@@ -84,15 +72,6 @@ export function formatTriggerRowDetail(
  */
 export function triggerCreatorName(trigger: Pick<Trigger, 'createdByHandle'>, ownerName: string) {
     return trigger.createdByHandle ? `@${trigger.createdByHandle}` : ownerName;
-}
-
-/** Payload size reads in the unit a person would say it in. */
-export function formatTriggerPayloadSize(bytes: number) {
-    if (bytes < 1024) {
-        return bytes === 1 ? '1 byte' : `${bytes} bytes`;
-    }
-    const kilobytes = bytes / 1024;
-    return `${kilobytes >= 10 ? Math.round(kilobytes) : Math.round(kilobytes * 10) / 10} KB`;
 }
 
 export function formatTriggerFireTime(fire: Pick<TriggerFire, 'receivedAt'>) {
@@ -117,7 +96,7 @@ function formatTriggerDate(value: string) {
 export function formatTriggerFireDetail(
     fire: Pick<TriggerFire, 'contentType' | 'dedupeKey' | 'payloadBytes'>
 ) {
-    const parts = [formatTriggerPayloadSize(fire.payloadBytes)];
+    const parts = [formatByteSize(fire.payloadBytes)];
     if (fire.contentType) {
         parts.push(fire.contentType);
     }

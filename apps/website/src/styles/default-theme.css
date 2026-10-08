@@ -1389,6 +1389,30 @@
     }
 
     /*
+     * An Automation's kind mark (Reminder or Trigger row). Pro's bare slot is a
+     * neutral `--default` box around a 16px glyph, which reads as a
+     * placeholder at 36px. The mark takes its automation's own soft fill and
+     * ink — the same vocabulary as a caused message's context line, so a
+     * Reminder is the same rose and a Trigger the same yellow wherever it
+     * appears — and a 20px glyph, the catalog tile's ~60% glyph-to-box ratio.
+     * Paired selectors outrank the secondary group's icon wash.
+     */
+    .item-card__icon.automation-mark--reminder {
+        background-color: var(--reminder-mark-soft);
+        color: var(--reminder-mark);
+    }
+
+    .item-card__icon.automation-mark--trigger {
+        background-color: var(--trigger-mark-soft);
+        color: var(--trigger-mark);
+    }
+
+    .item-card__icon.automation-mark svg {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+
+    /*
      * Settings rows share one height. A row's height is whatever its tallest
      * part is, so a title-only row with a Switch or a fact (~44px) sat short
      * beside one with a Select, an input, or a title + description (~60px).

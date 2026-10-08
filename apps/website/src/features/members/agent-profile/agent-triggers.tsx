@@ -1,7 +1,6 @@
-import type { Agent, Trigger } from '@haus/api';
-import { Button, Chip, Separator, Tooltip } from '@heroui/react';
-import { ItemCard, PressableFeedback } from '@heroui-pro/react';
-import { Add01Icon, HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type { Agent } from '@haus/api';
+import { Button, Separator, Tooltip } from '@heroui/react';
+import { Add01Icon, HistoryIcon, WebhookIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -9,11 +8,12 @@ import { useAgentTriggers } from '../../../hooks/members/use-agent-triggers.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 import {
-    formatTriggerRowDetail,
+    formatTriggerActivity,
     resolveTriggerSheetMode,
     type TriggerSheetState,
-    triggerStatusChip,
+    triggerRowStatus,
 } from './agent-trigger-model.ts';
+import { AutomationRow } from './automation-row.tsx';
 import { ProfileListSection } from './profile-list-section.tsx';
 import { TriggerHistoryDrawer } from './trigger-history-drawer.tsx';
 import { TriggerSheet } from './trigger-sheet.tsx';
@@ -82,11 +82,19 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
                     rows.map((trigger, index) => (
                         <React.Fragment key={trigger.id}>
                             {index > 0 ? <Separator /> : null}
-                            <TriggerRow
-                                canManage={canManage}
-                                now={now}
-                                onSelect={() => setSheet({ kind: 'detail', triggerId: trigger.id })}
-                                trigger={trigger}
+                            {/* Every action on a Trigger lives in the sheet its row
+                                opens, so there is one place a Trigger is operated. */}
+                            <AutomationRow
+                                icon={WebhookIcon}
+                                kind="trigger"
+                                onPress={
+                                    canManage
+                                        ? () => setSheet({ kind: 'detail', triggerId: trigger.id })
+                                        : undefined
+                                }
+                                status={triggerRowStatus(trigger.status)}
+                                summary={formatTriggerActivity(trigger, now)}
+                                title={trigger.title}
                             />
                         </React.Fragment>
                     ))
@@ -113,53 +121,5 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
                 />
             ) : null}
         </>
-    );
-}
-
-/**
- * The row states the Trigger and nothing more: every action on it lives in the
- * drawer the row opens, so there is one place a Trigger is operated. The whole
- * row is the press target, using the stock pressable ItemCard rather than a
- * hand-built control inside the title.
- */
-function TriggerRow({
-    canManage,
-    now,
-    onSelect,
-    trigger,
-}: {
-    canManage: boolean;
-    now: number;
-    onSelect: () => void;
-    trigger: Trigger;
-}) {
-    const status = triggerStatusChip(trigger.status);
-    const content = (
-        <ItemCard.Content>
-            <ItemCard.Title>
-                {trigger.title}
-                <Chip className="ms-2 align-middle" color={status.color} size="sm" variant="soft">
-                    {status.label}
-                </Chip>
-            </ItemCard.Title>
-            <ItemCard.Description className="tabular-nums">
-                {formatTriggerRowDetail(trigger, now)}
-            </ItemCard.Description>
-        </ItemCard.Content>
-    );
-
-    if (!canManage) {
-        return <ItemCard>{content}</ItemCard>;
-    }
-
-    return (
-        <ItemCard<'button'>
-            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={onSelect}
-            render={(props) => <button type="button" {...props} />}
-        >
-            <PressableFeedback.Highlight />
-            {content}
-        </ItemCard>
     );
 }

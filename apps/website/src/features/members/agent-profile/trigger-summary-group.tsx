@@ -1,20 +1,15 @@
 import type { Trigger } from '@haus/api';
 import { Separator, Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import type * as React from 'react';
 import { useTriggerSetStatus } from '../../../hooks/members/use-trigger-set-status.ts';
-import { SettingsFact } from '../../settings/layout/settings-text.tsx';
-import {
-    formatTriggerActivity,
-    triggerCreatorName,
-    triggerKindLabel,
-} from './agent-trigger-model.ts';
+import { formatTriggerActivity, triggerCreatorName } from './agent-trigger-model.ts';
+import { AutomationFactRow } from './automation-fact-row.tsx';
 
 /**
  * What this Trigger is, as rows: the one state someone can change, then the
- * three facts the heading used to pack into a single prose line. A fact on a
- * row can be read at a glance and stays true as the drawer grows; the same
- * fact in a sentence has to be parsed and rewritten every time one is added.
+ * facts about it. A fact on a row can be read at a glance and stays true as the
+ * drawer grows. Its kind is not one of them: the sheet's header already says
+ * "Webhook trigger".
  */
 export function TriggerSummaryGroup({
     agentId,
@@ -60,27 +55,14 @@ export function TriggerSummaryGroup({
                     </ItemCard.Action>
                 </ItemCard>
                 <Separator />
-                <TriggerFactRow title="Type">{triggerKindLabel(trigger.kind)}</TriggerFactRow>
-                <Separator />
-                <TriggerFactRow title="Created by">
+                <AutomationFactRow title="Created by">
                     {triggerCreatorName(trigger, ownerName)}
-                </TriggerFactRow>
+                </AutomationFactRow>
                 <Separator />
-                <TriggerFactRow title="Activity">{formatTriggerActivity(trigger)}</TriggerFactRow>
+                <AutomationFactRow title="Activity">
+                    {formatTriggerActivity(trigger)}
+                </AutomationFactRow>
             </ItemCardGroup>
         </ItemCardGroup>
-    );
-}
-
-function TriggerFactRow({ children, title }: { children: React.ReactNode; title: string }) {
-    return (
-        <ItemCard>
-            <ItemCard.Content>
-                <ItemCard.Title>{title}</ItemCard.Title>
-            </ItemCard.Content>
-            <ItemCard.Action className="min-w-0 shrink">
-                <SettingsFact className="block truncate text-right">{children}</SettingsFact>
-            </ItemCard.Action>
-        </ItemCard>
     );
 }

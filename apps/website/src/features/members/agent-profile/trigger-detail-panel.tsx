@@ -13,10 +13,11 @@ import {
     canTestTrigger,
     triggerEditPatch,
     triggerInstructionIssue,
+    triggerKindLabel,
     triggerKindOption,
     triggerTitleIssue,
 } from './agent-trigger-model.ts';
-import { TriggerConfirmDialog } from './trigger-confirm-dialog.tsx';
+import { AutomationConfirmDialog } from './automation-confirm-dialog.tsx';
 import { TriggerFireHistory } from './trigger-fire-history.tsx';
 import { TriggerManageGroup } from './trigger-manage-group.tsx';
 import { TriggerSummaryGroup } from './trigger-summary-group.tsx';
@@ -28,10 +29,10 @@ const TRIGGER_DETAIL_FORM_ID = 'trigger-detail-form';
 
 /**
  * One Trigger, opened from its row or landed on straight after creating it.
- * The heading says what it is in one plain sentence and every fact about it —
- * kind, author, activity — reads as a row below, so the sentence never has to
- * be rewritten to carry one more. A secret minted in this session is pinned
- * above all of that, because it is the one thing that cannot be read again.
+ * The header names it and its kind, the way a Reminder's sheet does, and every
+ * other fact about it — author, activity — reads as a row below. A secret
+ * minted in this session is pinned above all of that, because it is the one
+ * thing that cannot be read again.
  */
 export function TriggerDetailPanel({
     agent,
@@ -69,7 +70,7 @@ export function TriggerDetailPanel({
             <Sheet.Header>
                 <Sheet.Heading>{trigger.title}</Sheet.Heading>
                 <p className="mt-1.5 text-muted text-sm leading-5">
-                    {`Wake ${agent.displayName} when something outside Haus happens.`}
+                    {`${triggerKindLabel(trigger.kind)} trigger`}
                 </p>
             </Sheet.Header>
             <Sheet.Body>
@@ -169,7 +170,7 @@ export function TriggerDetailPanel({
                     Save
                 </Button>
             </Sheet.Footer>
-            <TriggerConfirmDialog
+            <AutomationConfirmDialog
                 body="The current secret stops working immediately. Anything still using it needs the new one."
                 confirmLabel="Rotate Secret"
                 heading={`Rotate the secret for ${trigger.title}?`}
@@ -192,7 +193,7 @@ export function TriggerDetailPanel({
                 }}
                 onOpenChange={(open) => !open && setConfirm(null)}
             />
-            <TriggerConfirmDialog
+            <AutomationConfirmDialog
                 body="This removes the trigger immediately. Recent fire history stays in Agent history for 30 days, and messages already posted keep their provenance mark."
                 confirmLabel="Delete Trigger"
                 heading={`Delete ${trigger.title}?`}

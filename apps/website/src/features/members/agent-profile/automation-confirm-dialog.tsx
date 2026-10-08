@@ -1,12 +1,14 @@
 import { AlertDialog, Button } from '@heroui/react';
 
 /**
- * The two Trigger actions that cannot be taken back — rotating its secret and
- * deleting it — ask first, in the same shape.
+ * The Automation actions that cannot be taken back — rotating a Trigger's
+ * secret, deleting a Trigger, canceling a Reminder — ask first, in one shape.
+ * `dismissLabel` exists for the action whose own name is "Cancel".
  */
-export function TriggerConfirmDialog({
+export function AutomationConfirmDialog({
     body,
     confirmLabel,
+    dismissLabel = 'Cancel',
     heading,
     isOpen,
     isPending,
@@ -16,6 +18,7 @@ export function TriggerConfirmDialog({
 }: {
     body: string;
     confirmLabel: string;
+    dismissLabel?: string;
     heading: string;
     isOpen: boolean;
     isPending: boolean;
@@ -35,7 +38,7 @@ export function TriggerConfirmDialog({
                         <AlertDialog.Body>{body}</AlertDialog.Body>
                         <AlertDialog.Footer>
                             <Button isDisabled={isPending} slot="close" variant="secondary">
-                                Cancel
+                                {dismissLabel}
                             </Button>
                             <Button
                                 isPending={isPending}

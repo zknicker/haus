@@ -8,7 +8,7 @@ import {
 } from '../../../hooks/members/use-agent-reminder-history.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 import { formatReminderTime, reminderExecutionOutcome } from './agent-reminder-model.ts';
-import { formatReminderCadence } from './reminder-schedule-presentation.ts';
+import { formatReminderCadence } from './reminder-cadence.ts';
 
 /**
  * History is a log of executions, not a list of settled reminders: one row per

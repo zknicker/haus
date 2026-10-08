@@ -86,3 +86,12 @@ export function truncate(value: string, maxLength: number) {
 
     return `${value.slice(0, maxLength - 1)}…`;
 }
+
+/** A byte count in the unit a person would say it in. */
+export function formatByteSize(bytes: number) {
+    if (bytes < 1024) {
+        return bytes === 1 ? '1 byte' : `${bytes} bytes`;
+    }
+    const kilobytes = bytes / 1024;
+    return `${kilobytes >= 10 ? Math.round(kilobytes) : Math.round(kilobytes * 10) / 10} KB`;
+}

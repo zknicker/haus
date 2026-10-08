@@ -1,19 +1,24 @@
 import type { Agent } from '@haus/api';
 import { Button, Separator, Tooltip } from '@heroui/react';
-import { ItemCard } from '@heroui-pro/react';
-import { HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Calendar03Icon, HistoryIcon, RepeatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentLoading } from './agent-loading.tsx';
-import { reminderDescription, scheduledReminders } from './agent-reminder-model.ts';
+import { resolveReminderDetail, scheduledReminders } from './agent-reminder-model.ts';
+import { AutomationRow } from './automation-row.tsx';
 import { ProfileListSection } from './profile-list-section.tsx';
 import { ReminderHistoryDrawer } from './reminder-history-drawer.tsx';
-import { formatReminderSchedule } from './reminder-schedule-presentation.ts';
+import { formatReminderRowSummary, reminderKind } from './reminder-schedule-presentation.ts';
+import { ReminderSheet } from './reminder-sheet.tsx';
 
 /**
- * The Agent's time-based wakes. Read-only: authoring is a CLI verb.
+ * The Agent's time-based wakes. Authoring is the Agent's; an operator can open
+ * one and cancel it. Each row says which of the two kinds it is — the icon and
+ * the line's lead word ("Once" or the cadence) — and nothing else that would
+ * make the row wrap.
  *
  * "Reminders 3" means three wakes are still coming, so the count and the list
  * are the schedule alone. What has already happened is a log of executions
@@ -25,8 +30,12 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
     const canView = server.role !== 'member';
     const reminders = useAgentReminders(server.id, agent.id, canView);
     const [isHistoryOpen, setHistoryOpen] = React.useState(false);
+    const [detailId, setDetailId] = React.useState<string | null>(null);
+    // One clock for the section, so "Today" turns into "Yesterday" on time.
+    const now = useRelativeNow();
 
     const scheduled = scheduledReminders(reminders.data ?? []);
+    const detail = resolveReminderDetail(detailId, scheduled);
 
     return (
         <>
@@ -60,34 +69,29 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
                         Nothing scheduled. Just tell {agent.displayName} what to remember and when.
                     </ProfileListSection.Empty>
                 ) : (
-                    scheduled.map((reminder, index) => {
-                        const schedule = formatReminderSchedule(reminder);
-                        return (
-                            <React.Fragment key={reminder.id}>
-                                {index > 0 ? <Separator /> : null}
-                                <ItemCard>
-                                    <ItemCard.Content>
-                                        <ItemCard.Title>{reminder.title}</ItemCard.Title>
-                                        {reminderDescription(reminder) ? (
-                                            <ItemCard.Description
-                                                title={reminder.description ?? ''}
-                                            >
-                                                {reminderDescription(reminder)}
-                                            </ItemCard.Description>
-                                        ) : null}
-                                        <ItemCard.Description
-                                            className="overflow-visible text-clip whitespace-normal break-words tabular-nums"
-                                            title={schedule.title}
-                                        >
-                                            {schedule.text}
-                                        </ItemCard.Description>
-                                    </ItemCard.Content>
-                                </ItemCard>
-                            </React.Fragment>
-                        );
-                    })
+                    scheduled.map((reminder, index) => (
+                        <React.Fragment key={reminder.id}>
+                            {index > 0 ? <Separator /> : null}
+                            <AutomationRow
+                                icon={
+                                    reminderKind(reminder) === 'once' ? Calendar03Icon : RepeatIcon
+                                }
+                                kind="reminder"
+                                onPress={canView ? () => setDetailId(reminder.id) : undefined}
+                                summary={formatReminderRowSummary(reminder, { now })}
+                                title={reminder.title}
+                            />
+                        </React.Fragment>
+                    ))
                 )}
             </ProfileListSection>
+            <ReminderSheet
+                agent={agent}
+                onOpenChange={(open) => !open && setDetailId(null)}
+                reminder={detail}
+                serverId={server.id}
+                serverSlug={server.slug}
+            />
             {canView ? (
                 <ReminderHistoryDrawer
                     agentId={agent.id}

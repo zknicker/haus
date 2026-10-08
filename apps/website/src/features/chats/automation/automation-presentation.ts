@@ -1,6 +1,5 @@
 import type { AutomationFireContext, MessageCause, MessageCauseLive } from '@haus/api';
-import { formatRelativeTime, formatTimestamp } from '../../../lib/format.ts';
-import { formatTriggerPayloadSize } from '../../members/agent-profile/agent-trigger-model.ts';
+import { formatByteSize, formatRelativeTime, formatTimestamp } from '../../../lib/format.ts';
 
 /**
  * How a caused message presents its provenance: the context line, its hover
@@ -187,7 +186,7 @@ export function fireContextPayloadLabel(context: AutomationFireContext): string 
         return null;
     }
 
-    const parts = ['Payload', formatTriggerPayloadSize(context.payloadBytes)];
+    const parts = ['Payload', formatByteSize(context.payloadBytes)];
     if (context.contentType) {
         parts.push(context.contentType);
     }

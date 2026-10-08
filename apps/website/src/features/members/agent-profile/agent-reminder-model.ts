@@ -14,8 +14,21 @@ export function scheduledReminders(reminders: readonly Reminder[]): Reminder[] {
 }
 
 /**
- * The row's second line: what the short title stands for. A Reminder written
- * before the split copied its title here, so an identical one is said once.
+ * The detail sheet opens by id and resolves against the schedule the section
+ * renders, so a reminder that is canceled, fires its one run, or leaves the
+ * list any other way closes the sheet without a second piece of state.
+ */
+export function resolveReminderDetail(
+    reminderId: string | null,
+    scheduled: readonly Reminder[]
+): Reminder | null {
+    return reminderId ? (scheduled.find((reminder) => reminder.id === reminderId) ?? null) : null;
+}
+
+/**
+ * The detail's Instructions: what the short title stands for. A Reminder
+ * written before the split copied its title here, so an identical one is said
+ * once — by the title.
  */
 export function reminderDescription(reminder: Pick<Reminder, 'description' | 'title'>) {
     const description = reminder.description?.trim();
@@ -27,6 +40,22 @@ export function formatReminderTime(value: string) {
         dateStyle: 'medium',
         timeStyle: 'short',
     }).format(new Date(value));
+}
+
+/**
+ * How late one run woke, when it was late enough to matter — a wake that waited
+ * for an offline Agent. On-time runs say nothing, so the column stays quiet.
+ */
+export function formatReminderRunDelay(run: { firedAt: string; scheduledFor: string }) {
+    const minutes = Math.floor((Date.parse(run.firedAt) - Date.parse(run.scheduledFor)) / 60_000);
+    if (minutes < 2) {
+        return null;
+    }
+    if (minutes < 60) {
+        return `${minutes}m late`;
+    }
+    const hours = Math.floor(minutes / 60);
+    return hours < 48 ? `${hours}h late` : `${Math.floor(hours / 24)}d late`;
 }
 
 /** What one execution produced, as the History drawer's outcome cell renders it. */
