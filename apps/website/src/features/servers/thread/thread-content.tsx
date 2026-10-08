@@ -25,6 +25,7 @@ import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { ChatSendScroll } from '../chat/chat-send-scroll.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
+import { composerDropSurfaceProps } from '../chat/composer-file-drop.ts';
 import { pendingThreadReplyKey, usePendingChatMessages } from '../chat/use-pending-messages.ts';
 import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
 import { ThreadContentComposer } from './thread-content-composer.tsx';
@@ -145,8 +146,9 @@ export function ThreadContent({
 
     return (
         <div
-            className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
+            className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col"
             style={width ? { width } : undefined}
+            {...composerDropSurfaceProps}
         >
             <ThreadPanelHeader
                 followed={summary?.followed ?? true}

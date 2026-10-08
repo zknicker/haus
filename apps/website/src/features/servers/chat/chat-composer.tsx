@@ -26,6 +26,8 @@ import { ChatComposerRecovery } from './chat-composer-recovery.tsx';
 import { discardFailedChatDraft, restoreFailedChatDraft } from './chat-draft-store.ts';
 import { ChatInlineReplyReference, type ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 import { ComposerAttachments } from './composer-attachments.tsx';
+import { ComposerDropOverlay } from './composer-drop-overlay.tsx';
+import { useComposerFileDrop } from './composer-file-drop.ts';
 import { submitChatComposer } from './submit-chat-composer.ts';
 import { useChatDraft } from './use-chat-draft.ts';
 import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
@@ -115,6 +117,10 @@ export function ServerChatComposer({
         serverId,
     });
 
+    const fileDrop = useComposerFileDrop({
+        disabled: target.kind !== 'chat',
+        onFiles: addAttachments,
+    });
     const send = useChatMessageSend();
     const upload = useUploadServerAttachment();
     const activeInlineReply = thread ? null : inlineReply;
@@ -170,7 +176,8 @@ export function ServerChatComposer({
     const canSubmit = hasPayload;
 
     return (
-        <div className="shrink-0 px-5 pb-4">
+        <div className="shrink-0 px-5 pb-4" ref={fileDrop.anchorRef}>
+            <ComposerDropOverlay active={fileDrop.isFileDropActive} container={fileDrop.surface} />
             <ChatComposerRecovery
                 drafts={failedDrafts}
                 onDiscard={(id) => discardFailedChatDraft(draftKey, id)}
