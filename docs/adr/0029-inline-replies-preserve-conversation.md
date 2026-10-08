@@ -99,3 +99,4 @@ steps land. A request the Agent can answer from what it has or one quick look-up
 with no reaction first.
 The managed prompt's pickup bullet carries the rule; see
 [Agents](../features/agents.md#identity-and-instructions) for the signature emoji.
+[Agent conversation behavior](../features/agent-conversation-behavior.md) lists the guards that keep this placement from regressing.
