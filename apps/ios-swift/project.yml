@@ -15,8 +15,8 @@ settings:
     # via explicit xcodebuild args from `bun run ios:release`; see
     # docs/operations/ios-testflight.md. Both values mirror the latest
     # published iOS target in releases.json via release:sync-versions.
-    CURRENT_PROJECT_VERSION: "43"
-    MARKETING_VERSION: 5.3.0
+    CURRENT_PROJECT_VERSION: "44"
+    MARKETING_VERSION: 5.4.0
 
 packages:
   HausIOS:
