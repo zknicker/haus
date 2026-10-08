@@ -7,6 +7,7 @@ import { TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
+import { useIdleChatWarming } from '../../hooks/servers/use-idle-chat-warming.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useShellVariantSync } from '../../hooks/shell/use-shell-variant.ts';
 import { useUnfocusableAppMain } from '../../hooks/shell/use-unfocusable-app-main.ts';
@@ -30,6 +31,7 @@ export function ServerLayout() {
 
     useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
     useUnfocusableAppMain();
+    useIdleChatWarming(server.data?.id, chats.data);
     // Desktop: the window layout's full-width band holds the tab rows. The web
     // has no layout and keeps its topbar in the main column.
     const topbarInWindow = useShellVariantSync() !== null;

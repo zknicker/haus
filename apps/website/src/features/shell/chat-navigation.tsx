@@ -12,6 +12,7 @@ import { AgentDmNavigationRow } from './agent-dm-navigation-row.tsx';
 import { chatNavigationName } from './chat-navigation-name.ts';
 import { ChatNavigationRow } from './chat-navigation-row.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
+import { RouteNavigationRow } from './route-navigation-row.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 import { sidebarActionIconSize } from './section-header.tsx';
 import { ShellSidebarPageContent, useSidebarSurface } from './shell-sidebar.tsx';
@@ -96,34 +97,20 @@ export function ChatNavigation({
                             <Sidebar.MenuLabel>Search</Sidebar.MenuLabel>
                         </Sidebar.MenuItemContent>
                     </Sidebar.MenuItem>
-                    <Sidebar.MenuItem
+                    <RouteNavigationRow
                         href={tasksRoute(slug)}
-                        id="tasks"
                         isCurrent={location.pathname.startsWith(tasksRoute(slug))}
-                        onHoverStart={() => onPreloadSection('tasks')}
-                        textValue="Tasks"
-                    >
-                        <Sidebar.MenuIcon>
-                            <RouteTabIcon size={16} tab="tasks" />
-                        </Sidebar.MenuIcon>
-                        <Sidebar.MenuItemContent>
-                            <Sidebar.MenuLabel>Tasks</Sidebar.MenuLabel>
-                        </Sidebar.MenuItemContent>
-                    </Sidebar.MenuItem>
-                    <Sidebar.MenuItem
+                        label="Tasks"
+                        onPreload={() => onPreloadSection('tasks')}
+                        tab="tasks"
+                    />
+                    <RouteNavigationRow
                         href={activityRoute(slug)}
-                        id="activity"
                         isCurrent={location.pathname.startsWith(activityRoute(slug))}
-                        onHoverStart={() => onPreloadSection('activity')}
-                        textValue="Activity"
-                    >
-                        <Sidebar.MenuIcon>
-                            <RouteTabIcon size={16} tab="activity" />
-                        </Sidebar.MenuIcon>
-                        <Sidebar.MenuItemContent>
-                            <Sidebar.MenuLabel>Activity</Sidebar.MenuLabel>
-                        </Sidebar.MenuItemContent>
-                    </Sidebar.MenuItem>
+                        label="Activity"
+                        onPreload={() => onPreloadSection('activity')}
+                        tab="activity"
+                    />
                 </Sidebar.Menu>
             </Sidebar.Group>
             <ChatGroup
@@ -170,9 +157,11 @@ export function ChatNavigation({
                         <AgentDmNavigationRow
                             agent={agent}
                             chat={chat}
+                            isCurrent={
+                                agent.id === selectedAgentDmId ||
+                                (chat !== null && chat.id === selectedChatId)
+                            }
                             key={agent.id}
-                            selectedAgentDmId={selectedAgentDmId}
-                            selectedChatId={selectedChatId}
                             slug={slug}
                         />
                     ))}
@@ -180,9 +169,9 @@ export function ChatNavigation({
                         <ChatNavigationRow
                             agent={null}
                             chat={chat}
+                            isCurrent={chat.id === selectedChatId}
                             key={chat.id}
                             name={chatNavigationName(chat, null)}
-                            selectedChatId={selectedChatId}
                             slug={slug}
                         />
                     ))}

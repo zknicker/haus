@@ -8,19 +8,20 @@ import { ChatNavigationRow } from './chat-navigation-row.tsx';
 
 export type KeyboardCommand = 'cancel' | 'drop' | 'move-down' | 'move-up' | 'pick-up';
 
-export function SortableChannelRow({
+/** Memoized like `ChatNavigationRow`: a navigation re-renders only the two rows it moves between. */
+export const SortableChannelRow = React.memo(function SortableChannelRow({
     agent,
     chat,
+    isCurrent,
     keyboardActive,
     onKeyboardCommand,
-    selectedChatId,
     slug,
 }: {
     agent: Agent | null;
     chat: Chat;
+    isCurrent: boolean;
     keyboardActive: boolean;
     onKeyboardCommand: (chat: Chat, command: KeyboardCommand) => void;
-    selectedChatId: string | undefined;
     slug: string;
 }) {
     const shouldReduceMotion = useReducedMotion() === true;
@@ -82,9 +83,10 @@ export function SortableChannelRow({
             ariaDescribedBy={attributes['aria-describedby']}
             chat={chat}
             className="no-drag sortable-channel-row"
+            isCurrent={isCurrent}
             name={name}
+            pressTiming="release"
             ref={setRowRef}
-            selectedChatId={selectedChatId}
             slug={slug}
             style={{
                 opacity: isDragging ? 0 : undefined,
@@ -93,7 +95,7 @@ export function SortableChannelRow({
             }}
         />
     );
-}
+});
 
 export function keyboardCommand(key: string, active: boolean): KeyboardCommand | null {
     if (key === ' ') {

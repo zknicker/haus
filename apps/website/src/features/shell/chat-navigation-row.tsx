@@ -5,19 +5,27 @@ import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
+import { type PressTiming, usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
 import { ChatNavigationContextMenu } from './chat-navigation-context-menu.tsx';
 
-export function ChatNavigationRow({
+/**
+ * One Chat in the sidebar. Memoized on a boolean `isCurrent`, so a navigation
+ * re-renders only the row it leaves and the row it lands on. A plain mouse
+ * press opens the Chat; keyboard and modified clicks keep the link's own path.
+ * A draggable row passes `pressTiming="release"` so a reorder drag never opens it.
+ */
+export const ChatNavigationRow = React.memo(function ChatNavigationRow({
     agent,
     ariaDescribedBy,
     chat,
     className,
+    isCurrent,
     name,
+    pressTiming,
     ref,
-    selectedChatId,
     slug,
     style,
 }: {
@@ -25,37 +33,38 @@ export function ChatNavigationRow({
     ariaDescribedBy?: string;
     chat: Chat;
     className?: string;
+    isCurrent: boolean;
     name: string;
+    pressTiming?: PressTiming;
     ref?: React.Ref<HTMLDivElement>;
-    selectedChatId: string | undefined;
     slug: string;
     style?: React.CSSProperties;
 }) {
     const { focusRef, preload } = usePreloadChat(chat.serverId, chat.id);
-    const rowRef = React.useMemo(() => mergeRefs(ref, focusRef), [focusRef, ref]);
+    const href = serverChatRoute(slug, chat.id);
+    const pressRef = usePressNavigation(href, preload, pressTiming);
+    const rowRef = React.useMemo(
+        () => mergeRefs<HTMLDivElement>(ref, focusRef, pressRef),
+        [focusRef, pressRef, ref]
+    );
     return (
         <Sidebar.MenuItem
             aria-describedby={ariaDescribedBy}
             className={className}
-            href={serverChatRoute(slug, chat.id)}
+            href={href}
             id={chat.id}
-            isCurrent={chat.id === selectedChatId}
+            isCurrent={isCurrent}
             onHoverStart={preload}
             ref={rowRef}
             style={style}
             textValue={name}
         >
-            <ChatNavigationContextMenu
-                agent={agent}
-                chat={chat}
-                isCurrent={chat.id === selectedChatId}
-                slug={slug}
-            >
+            <ChatNavigationContextMenu agent={agent} chat={chat} isCurrent={isCurrent} slug={slug}>
                 <ChatNavigationRowContent agent={agent} chat={chat} name={name} />
             </ChatNavigationContextMenu>
         </Sidebar.MenuItem>
     );
-}
+});
 
 export function ChatNavigationRowContent({
     agent,

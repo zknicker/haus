@@ -1,7 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useTabPresence } from '../desktop-tabs/tab-presence.ts';
 import { useAppForegrounded } from '../shell/use-app-foregrounded.ts';
+import { localReadSettleMs, patchLocalChatRead, settleLocalChatRead } from './chat-read-cache.ts';
 
 export interface ChatReadAttemptTarget {
     chatKey: string;
@@ -84,10 +86,22 @@ export function useChatRead(input: {
     const shown = useTabPresence().shown;
     const attemptTrackerRef = React.useRef(createChatReadAttemptTracker());
     const attemptTracker = attemptTrackerRef.current;
-    // The durable `chat.read` event owns unread-count invalidation; see useChatEvents.
+    const utils = hausTrpc.useUtils();
+    const queryClient = useQueryClient();
+    // The sidebar chip clears at once; the durable `chat.read` event then owns
+    // reconciling the count (`chat-read-cache.ts`, `useChatReadEvents`).
     const mutation = hausTrpc.chat.markRead.useMutation({
         onError: (_error, variables) => {
             attemptTracker.fail(chatReadTarget(variables));
+        },
+        onMutate: (variables) => {
+            patchLocalChatRead({ ...variables, queryClient, utils });
+        },
+        onSettled: (_receipt, _error, variables) => {
+            setTimeout(
+                () => settleLocalChatRead({ ...variables, queryClient, utils }),
+                localReadSettleMs
+            );
         },
         onSuccess: (receipt, variables) => {
             attemptTracker.succeed(chatReadTarget(variables), receipt.sequence);

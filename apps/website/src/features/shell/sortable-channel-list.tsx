@@ -203,10 +203,10 @@ export function SortableChannelList({
                         <SortableChannelRow
                             agent={chat.peerAgentId ? (agents.get(chat.peerAgentId) ?? null) : null}
                             chat={chat}
+                            isCurrent={chat.id === selectedChatId}
                             key={chat.id}
                             keyboardActive={keyboardDrag?.id === chat.id}
                             onKeyboardCommand={handleKeyboardCommand}
-                            selectedChatId={selectedChatId}
                             slug={slug}
                         />
                     ))}

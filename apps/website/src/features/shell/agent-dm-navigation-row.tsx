@@ -1,38 +1,52 @@
 import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
+import { mergeRefs } from '@react-aria/utils';
+import * as React from 'react';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
+import { usePreloadAgentProfile } from '../../hooks/members/use-preload-agent-profile.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
+import { usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
 import { DmNavigationContextMenu } from './dm-navigation-context-menu.tsx';
 
-export function AgentDmNavigationRow({
+/**
+ * An Agent's DM in the sidebar, memoized on a boolean `isCurrent` like the
+ * Chat rows. Warming it also warms the Agent's record, which the DM shows.
+ */
+export const AgentDmNavigationRow = React.memo(function AgentDmNavigationRow({
     agent,
     chat,
-    selectedAgentDmId,
-    selectedChatId,
+    isCurrent,
     slug,
 }: {
     agent: Agent;
     chat: Chat | null;
-    selectedAgentDmId: string | undefined;
-    selectedChatId: string | undefined;
+    isCurrent: boolean;
     slug: string;
 }) {
-    const { focusRef, preload } = usePreloadChat(agent.serverId, chat?.id);
+    const { focusRef, preload: preloadChat } = usePreloadChat(agent.serverId, chat?.id);
+    const preloadAgent = usePreloadAgentProfile(agent.id, 'record');
+    const preload = React.useCallback(() => {
+        preloadChat();
+        preloadAgent();
+    }, [preloadAgent, preloadChat]);
     const href = chat ? serverChatRoute(slug, chat.id) : serverAgentDmRoute(slug, agent.id);
+    const pressRef = usePressNavigation(href, preload);
+    const rowRef = React.useMemo(
+        () => mergeRefs<HTMLDivElement>(focusRef, pressRef),
+        [focusRef, pressRef]
+    );
     const unreadCount = chat?.unreadCount ?? 0;
 
     return (
         <Sidebar.MenuItem
             href={href}
             id={`agent-dm:${agent.id}`}
-            isCurrent={
-                agent.id === selectedAgentDmId || Boolean(chat && chat.id === selectedChatId)
-            }
+            isCurrent={isCurrent}
             onHoverStart={preload}
-            ref={focusRef}
+            ref={rowRef}
             textValue={agent.displayName}
         >
             <DmNavigationContextMenu
@@ -56,4 +70,4 @@ export function AgentDmNavigationRow({
             </DmNavigationContextMenu>
         </Sidebar.MenuItem>
     );
-}
+});

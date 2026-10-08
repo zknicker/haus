@@ -6,6 +6,7 @@ import {
     lifecycleEvent,
     messageEvent,
     reactionEvent,
+    readEvent,
     taskEvent,
     threadFollowEvent,
 } from './chat-event-fixtures.ts';
@@ -94,9 +95,15 @@ test('a reaction pass refetches message lenses and search, not read state', asyn
 });
 
 test('a read pass refetches the chat list, where unread counts render', async () => {
-    const { recorded, utils } = recordingCaches();
+    const { queryClient, recorded, utils } = recordingCaches();
 
-    await invalidateChatRead({ serverId, utils });
+    // With no settled list to prove the read changed nothing, the list refetches.
+    await invalidateChatRead({
+        events: [readEvent('3', 'chat_one')],
+        queryClient,
+        serverId,
+        utils,
+    });
 
     expect(recorded).toEqual([{ input: { serverId }, name: 'chat.list' }]);
 });
@@ -201,7 +208,7 @@ function recordingCaches() {
         agent: { chats: { invalidate: record('agent.chats') } },
         chat: {
             get: { invalidate: record('chat.get') },
-            list: { invalidate: record('chat.list') },
+            list: { getData: () => undefined, invalidate: record('chat.list') },
             listArchived: { invalidate: record('chat.listArchived') },
             messages: { cancel: async () => {}, invalidate: record('chat.messages') },
             search: { invalidate: record('chat.search') },
