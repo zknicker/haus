@@ -1,6 +1,6 @@
 import type * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import { useDesktopTabsSelector } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentEntry } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { focusedTabId } from '../../hooks/desktop-tabs/desktop-tabs-panes.ts';
 import { serverRoute } from '../servers/server-routes.ts';
@@ -18,11 +18,13 @@ import { useDesktopShell, useTabNavigator } from './use-tab-navigator.ts';
  * Children match `s/:slug/*`, so `useParams().slug` keeps working in chrome.
  */
 export function ShellTabRouter({ children }: { children: React.ReactNode }) {
-    const tabs = useDesktopTabs();
     const { server } = useDesktopShell();
-    const tabId = focusedTabId(tabs.state);
-    const tab = tabId ? tabs.tab(tabId) : null;
-    const entry = tab ? currentEntry(tab) : null;
+    // The focused tab's entry only: other tabs' changes leave window chrome alone.
+    const tabId = useDesktopTabsSelector(focusedTabId);
+    const entry = useDesktopTabsSelector((state) => {
+        const tab = tabId ? state.tabs[tabId] : undefined;
+        return tab ? currentEntry(tab) : null;
+    });
     const path = entry?.location.kind === 'app' ? entry.location.path : serverRoute(server.slug);
     const navigator = useTabNavigator(tabId ?? '', 'shell');
     return (

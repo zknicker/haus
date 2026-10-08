@@ -1,5 +1,9 @@
 import * as React from 'react';
-import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import {
+    useDesktopTabCommands,
+    useDesktopTabs,
+    useDesktopTabsSelector,
+} from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import type { PaneSide } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import {
     framePlacement,
@@ -53,8 +57,8 @@ export const DesktopTabLayer = React.memo(function DesktopTabLayer({
 
 /** Pressing or focusing inside a pane (or a frame drawn over it) focuses that pane. */
 export function usePaneFocus(pane: PaneSide) {
-    const { focusPane, state } = useDesktopTabs();
-    const focused = state.focusedPane === pane;
+    const { focusPane } = useDesktopTabCommands();
+    const focused = useDesktopTabsSelector((state) => state.focusedPane === pane);
     return React.useCallback(() => {
         if (!focused) {
             focusPane(pane);

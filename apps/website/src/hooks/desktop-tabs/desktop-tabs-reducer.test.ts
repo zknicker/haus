@@ -5,8 +5,8 @@ import {
     shownTabIds,
     tabHistoryLimit,
 } from './desktop-tabs-model.ts';
+import { mountedTabIds } from './desktop-tabs-mounted.ts';
 import { app, describeTabs, run, split, start } from './desktop-tabs-test-fixtures.ts';
-import { mountedTabIds } from './use-desktop-tabs-controller.ts';
 
 const push = (page: string) =>
     ({ kind: 'navigate', location: app(page), mode: 'push', tabId: 't0' }) as const;

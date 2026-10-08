@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { useOptionalDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import {
+    useOptionalDesktopTabs,
+    useOptionalDesktopTabsSelector,
+} from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentLocation, type TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { useTabPresence } from '../../hooks/desktop-tabs/tab-presence.ts';
 import { cn } from '../../lib/utils.ts';
@@ -41,7 +44,9 @@ export function ShellTopbar() {
                 'app-shell-band flex h-[var(--app-shell-band-height)] shrink-0 items-center px-3',
                 // Read off the slot's DOM, so a portal landing in it shows the
                 // band in the same frame, with no registration effect to lag.
-                inTab && '[&:not(:has(>[data-topbar-slot]>*))]:hidden'
+                // An inactive kept page's (hidden) scope does not count as content.
+                inTab &&
+                    '[&:not(:has(>[data-topbar-slot]>:not([data-topbar-scope]),>[data-topbar-slot]>[data-topbar-scope]:not([hidden])>*))]:hidden'
             )}
             data-window-drag-region={inTab ? undefined : ''}
         >
@@ -55,6 +60,41 @@ export function ShellTopbar() {
 }
 
 /**
+ * Gives one kept page its own region of the band, shown only while `active`. A page kept
+ * mounted inside a hidden `<Activity>` still portals its band here, and its nodes stay in
+ * the slot (defeating the empty-band collapse) while the hidden tree's own hide lands in
+ * deferred offscreen work, frames late. So the hide is decided here, outside that
+ * boundary, in the same commit that reveals the next page.
+ */
+export function KeptTopbarScope({
+    active,
+    children,
+}: {
+    active: boolean;
+    children: React.ReactNode;
+}) {
+    const slot = React.use(TopbarContext);
+    const [container, setContainer] = React.useState<HTMLElement | null>(null);
+    const scoped = React.useMemo<TopbarSlot>(() => ({ container, setContainer }), [container]);
+    return (
+        <>
+            {slot?.container
+                ? createPortal(
+                      <div
+                          className="contents"
+                          data-topbar-scope=""
+                          hidden={!active}
+                          ref={setContainer}
+                      />,
+                      slot.container
+                  )
+                : null}
+            <TopbarContext value={slot ? scoped : null}>{children}</TopbarContext>
+        </>
+    );
+}
+
+/**
  * Portals its children into the page's topbar band. Render one per routed
  * page; children compose SectionHeader (or any band content) as usual. Inside
  * a desktop tab, band content can drop the title its tab already shows
@@ -62,14 +102,17 @@ export function ShellTopbar() {
  */
 export function PageTopbar({ children }: { children: React.ReactNode }) {
     const slot = React.use(TopbarContext);
-    const tabs = useOptionalDesktopTabs();
     const { tabId } = useTabPresence();
+    // Only this tab's location: another tab's change never re-renders the band.
+    const location = useOptionalDesktopTabsSelector(useOptionalDesktopTabs(), (state) => {
+        const tab = tabId ? state.tabs[tabId] : undefined;
+        return tab ? currentLocation(tab) : null;
+    });
     if (!slot?.container) {
         return null;
     }
-    const tab = tabId ? tabs?.tab(tabId) : null;
     return createPortal(
-        tab ? <TabTitleScope location={currentLocation(tab)}>{children}</TabTitleScope> : children,
+        location ? <TabTitleScope location={location}>{children}</TabTitleScope> : children,
         slot.container
     );
 }

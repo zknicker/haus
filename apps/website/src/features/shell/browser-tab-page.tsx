@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { BrowserTabLocation } from '../../hooks/browser/browser-view-tabs.ts';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
-import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import { useDesktopTabCommands } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { BrowserPage } from './browser-page.tsx';
 
@@ -50,7 +50,7 @@ function useSyncBrowserLocation(
     location: BrowserTabLocation,
     view: BrowserTab | null
 ) {
-    const { navigate } = useDesktopTabs();
+    const { navigate } = useDesktopTabCommands();
     const settled = view && !view.loading && !view.error ? view : null;
     const url = settled?.url;
     const title = settled?.title;

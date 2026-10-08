@@ -1,5 +1,8 @@
 import type * as React from 'react';
-import { DesktopTabsContext } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import {
+    DesktopTabsContext,
+    useDesktopTabs,
+} from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { useDesktopTabShortcuts } from '../../hooks/desktop-tabs/use-desktop-tab-shortcuts.ts';
 import { useDesktopTabsController } from '../../hooks/desktop-tabs/use-desktop-tabs-controller.ts';
@@ -43,8 +46,20 @@ function ServerTabs({
     slug: string;
 }) {
     const home: TabLocation = { kind: 'app', path: inboxRoute(slug) };
-    const tabs = useDesktopTabsController({ home, seed, serverId });
+    const commands = useDesktopTabsController({ home, seed, serverId });
+    // The value never changes, so a tab change re-renders only what subscribes to it.
+    return (
+        <DesktopTabsContext value={commands}>
+            <TabMenusAndShortcuts />
+            {children}
+        </DesktopTabsContext>
+    );
+}
+
+/** Reads every tab change, so it renders nothing and sits beside the tree, not around it. */
+function TabMenusAndShortcuts() {
+    const tabs = useDesktopTabs();
     useDesktopTabShortcuts(tabs);
     useTabMenuBar(tabs);
-    return <DesktopTabsContext value={tabs}>{children}</DesktopTabsContext>;
+    return null;
 }

@@ -5,7 +5,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { newBrowserLocation } from '../../hooks/browser/browser-view-tabs.ts';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import type { BrowserHistoryEntry } from '../../hooks/browser/use-browser-history.ts';
-import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import { useDesktopTabCommands } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { useTabPresence } from '../../hooks/desktop-tabs/tab-presence.ts';
 import { cn } from '../../lib/utils.ts';
 import { resolveBrowserAddress } from './browser-address.ts';
@@ -23,7 +23,7 @@ import { pageToolbarClassName } from './page-toolbar.tsx';
  */
 export function NewTabPage({ className, tabId }: { className?: string; tabId: string }) {
     const browser = useBrowserViews();
-    const { navigate } = useDesktopTabs();
+    const { navigate } = useDesktopTabCommands();
     const { focusedPane, shown } = useTabPresence();
     // null while the field is at rest; the page has no address of its own.
     const [draft, setDraft] = React.useState<string | null>(null);

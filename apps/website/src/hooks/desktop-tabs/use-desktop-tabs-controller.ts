@@ -1,25 +1,21 @@
 import * as React from 'react';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
-import type { DesktopTabsApi } from './desktop-tabs-context.ts';
-import {
-    type DesktopTabsState,
-    mountedTabLimit,
-    shownTabIds,
-    type TabLocation,
-} from './desktop-tabs-model.ts';
+import type { DesktopTabCommands } from './desktop-tabs-context.ts';
+import type { DesktopTabsState, TabLocation } from './desktop-tabs-model.ts';
 import { focusedTabId } from './desktop-tabs-panes.ts';
-import { type DesktopTabsAction, desktopTabsReducer } from './desktop-tabs-reducer.ts';
 import { focusedSelection } from './desktop-tabs-selection.ts';
+import { createDesktopTabsStore, type DesktopTabsStore } from './desktop-tabs-store.ts';
 import { browserTabStore, readWindowTabs } from './desktop-tabs-window-store.ts';
 import { moveTabsToNewWindow } from './move-tabs-to-new-window.ts';
 import { claimTornOffTabs } from './torn-off-tab.ts';
 import { useWindowTabsPersistence } from './use-window-tabs-persistence.ts';
 
 /**
- * Owns one window's tabs for one Server (ADR 0039): the reducer, per-window
+ * Owns one window's tabs for one Server (ADR 0039): the store, per-window
  * persistence, and closing the window when its last tab closes. Mount it
  * keyed by Server; `seed` is the route this window was opened with, used only
- * when the window has no tabs of its own yet.
+ * when the window has no tabs of its own yet. Returns the window's commands,
+ * whose identity never changes.
  */
 export function useDesktopTabsController({
     home,
@@ -29,23 +25,23 @@ export function useDesktopTabsController({
     home: TabLocation;
     seed: TabLocation | null;
     serverId: string;
-}): DesktopTabsApi {
-    const [state, dispatch] = React.useReducer(desktopTabsReducer, null, () =>
-        readWindowTabs({
-            claimed: claimTornOffTabs(serverId),
-            home,
-            ids: freshIds(),
-            seed,
-            serverId,
-            store: browserTabStore(),
-        })
+}): DesktopTabCommands {
+    const [store] = React.useState(() =>
+        createDesktopTabsStore(
+            readWindowTabs({
+                claimed: claimTornOffTabs(serverId),
+                home,
+                ids: freshIds(),
+                seed,
+                serverId,
+                store: browserTabStore(),
+            })
+        )
     );
-    const latest = React.useRef(state);
-    latest.current = state;
 
-    useWindowTabsPersistence(serverId, state);
+    useWindowTabsPersistence(serverId, store);
 
-    const windowEmpty = state.primary === null;
+    const windowEmpty = React.useSyncExternalStore(store.subscribe, () => isEmpty(store));
     React.useEffect(() => {
         if (windowEmpty) {
             void getDesktopBridge()?.closeWindow();
@@ -53,36 +49,19 @@ export function useDesktopTabsController({
     }, [windowEmpty]);
 
     const route = home.kind === 'app' ? home.path : '/';
-    const commands = React.useMemo(
-        () => tabCommands(dispatch, () => latest.current, { route, serverId }),
-        [route, serverId]
-    );
-    const shown = React.useMemo(() => shownTabIds(state), [state]);
-    const mounted = React.useMemo(() => mountedTabIds(state, shown), [state, shown]);
-
     return React.useMemo(
-        () => ({
-            ...commands,
-            mountedTabIds: mounted,
-            serverId,
-            shownTabIds: shown,
-            state,
-            tab: (tabId: string) => state.tabs[tabId] ?? null,
-        }),
-        [commands, mounted, serverId, shown, state]
+        () => createDesktopTabCommands(store, { route, serverId }),
+        [route, serverId, store]
     );
 }
 
-type TabCommands = Omit<
-    DesktopTabsApi,
-    'mountedTabIds' | 'serverId' | 'shownTabIds' | 'state' | 'tab'
->;
-
-function tabCommands(
-    dispatch: React.Dispatch<DesktopTabsAction>,
-    read: () => DesktopTabsState,
+/** The window's commands over its store. Reads go to `latest()`, so a command never acts on stale tabs. */
+export function createDesktopTabCommands(
+    store: DesktopTabsStore,
     window: { route: string; serverId: string }
-): TabCommands {
+): DesktopTabCommands {
+    const { dispatch } = store;
+    const read = store.latest;
     return {
         adopt: (bundle, to) => dispatch({ bundle, kind: 'adopt', to }),
         close: (tabIds) => {
@@ -114,7 +93,7 @@ function tabCommands(
         release: (tabIds) => dispatch({ kind: 'release', tabIds }),
         reopenClosed: () => dispatch({ kind: 'reopenClosed' }),
         reveal: (location) => dispatch({ kind: 'reveal', location, newId: newId() }),
-        savePageState: (tabId, pageState) => dispatch({ kind: 'savePageState', pageState, tabId }),
+        savePageState: store.savePageState,
         select: (tabId) => dispatch({ kind: 'select', tabId }),
         selectInFocusedPane: (target) => {
             const tabId = tabInFocusedRow(read(), target);
@@ -122,6 +101,9 @@ function tabCommands(
                 dispatch({ kind: 'select', tabId });
             }
         },
+        serverId: window.serverId,
+        store,
+        tab: (tabId) => read().tabs[tabId] ?? null,
     };
 }
 
@@ -144,9 +126,8 @@ export function tabInFocusedRow(
     return row[(current + target.step + row.length) % row.length] ?? null;
 }
 
-/** Shown tabs always; then the most recent hidden ones up to `mountedTabLimit`. */
-export function mountedTabIds(state: DesktopTabsState, shown: readonly string[]): string[] {
-    return [...new Set([...shown, ...state.mru.slice(0, mountedTabLimit)])];
+function isEmpty(store: DesktopTabsStore) {
+    return store.snapshot().primary === null;
 }
 
 function freshIds() {

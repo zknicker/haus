@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type { Navigator } from 'react-router-dom';
 import {
-    type DesktopTabsApi,
-    useDesktopTabs,
+    type DesktopTabCommands,
+    useDesktopTabCommands,
 } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentLocation, type TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import type { TabNavigationPolicy } from '../../hooks/desktop-tabs/tab-navigation.ts';
@@ -29,40 +29,32 @@ export function useDesktopShell(): DesktopShell {
 }
 
 /**
- * A stable navigator for one tab. The tabs API changes with every state
- * change, so the navigator reads it through a ref: a new navigator would
+ * A stable navigator for one tab. It reads tabs through the stable commands,
+ * never the rendered state: a new navigator, or a re-render here, would
  * re-render the whole page under that tab's `<Router>`.
  */
 export function useTabNavigator(tabId: string, policy: TabNavigationPolicy): Navigator {
-    const tabs = useDesktopTabs();
+    const tabs = useDesktopTabCommands();
     const { server, windowNavigate } = useDesktopShell();
-    const latest = React.useRef({ tabs, windowNavigate });
-    latest.current = { tabs, windowNavigate };
+    const latest = React.useRef(windowNavigate);
+    latest.current = windowNavigate;
     const slug = server.slug;
     return React.useMemo(
         () =>
             createTabNavigator({
-                current: () => tabLocation(latest.current.tabs, tabId, slug),
+                current: () => tabLocation(tabs, tabId, slug),
                 gesture: currentOpenGesture,
                 policy,
                 serverPath: serverRoute(slug),
                 tabId,
-                tabs: {
-                    go: (id, delta) => latest.current.tabs.go(id, delta),
-                    navigate: (id, location, mode) =>
-                        latest.current.tabs.navigate(id, location, mode),
-                    openInFocusedPane: (location, intent) =>
-                        latest.current.tabs.openInFocusedPane(location, intent),
-                    openLink: (id, location, intent) =>
-                        latest.current.tabs.openLink(id, location, intent),
-                },
-                windowNavigate: (path, options) => latest.current.windowNavigate(path, options),
+                tabs,
+                windowNavigate: (path, options) => latest.current(path, options),
             }),
-        [policy, slug, tabId]
+        [policy, slug, tabId, tabs]
     );
 }
 
-function tabLocation(tabs: DesktopTabsApi, tabId: string, slug: string): TabLocation {
+function tabLocation(tabs: DesktopTabCommands, tabId: string, slug: string): TabLocation {
     const tab = tabs.tab(tabId);
     return tab ? currentLocation(tab) : { kind: 'app', path: serverRoute(slug) };
 }

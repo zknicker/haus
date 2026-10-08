@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {
-    type DesktopTabsApi,
+    useDesktopTabs,
     useOptionalDesktopTabs,
 } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { useAppSidebarOpen } from '../../hooks/shell/use-app-sidebar-open.ts';
@@ -21,11 +21,11 @@ export function WindowBand({
     /** Band content before the desktop tabs provider mounts; ignored once it does. */
     children?: React.ReactNode;
 }) {
-    const tabs = useOptionalDesktopTabs();
+    const desktop = useOptionalDesktopTabs() !== null;
     return (
         <div className="shell-window-band" data-window-drag-region="">
             <WindowBandLead />
-            {tabs ? <DesktopTabBand tabs={tabs} /> : children}
+            {desktop ? <DesktopTabBand /> : children}
         </div>
     );
 }
@@ -34,8 +34,8 @@ export function WindowBand({
  * The desktop tab rows (ADR 0039): one row per pane, each as wide as its pane
  * below, so the second row starts on the divider's line.
  */
-function DesktopTabBand({ tabs }: { tabs: DesktopTabsApi }) {
-    const { primary, secondary } = tabs.state;
+function DesktopTabBand() {
+    const { primary, secondary } = useDesktopTabs().state;
     const twoRows = secondary !== null;
     const band = React.useRef<HTMLElement | null>(null);
     useSplitRowGeometry(band, twoRows);

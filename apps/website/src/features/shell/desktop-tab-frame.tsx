@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { RouterProvider } from 'react-aria-components';
 import { Outlet, type RouteObject, useNavigate, useRoutes } from 'react-router-dom';
-import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import { useDesktopTabsSelector } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentEntry, type TabHistoryEntry } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { type TabPresence, TabPresenceContext } from '../../hooks/desktop-tabs/tab-presence.ts';
 import { serverPageRoutes } from '../../routes/app/server-page-routes.tsx';
@@ -27,7 +27,9 @@ import { useTabScrollMemory } from './use-tab-scroll-memory.ts';
  * table, the page's topbar band, an error boundary, and scroll memory.
  *
  * Memoized on primitive props: a pane divider drag re-renders the panes every
- * frame, and that must not re-render every tab's page under them.
+ * frame, and that must not re-render every tab's page under them. It reads
+ * only its own tab's current entry, and the page under it is memoized on that
+ * entry, so a change in another tab never re-renders this tab's page.
  */
 export const DesktopTabFrame = React.memo(function DesktopTabFrame({
     focusedPane,
@@ -36,15 +38,16 @@ export const DesktopTabFrame = React.memo(function DesktopTabFrame({
     tabId,
     visible,
 }: TabFramePlacement & { tabId: string }) {
-    const tabs = useDesktopTabs();
-    const tab = tabs.tab(tabId);
+    const entry = useDesktopTabsSelector((state) => {
+        const tab = state.tabs[tabId];
+        return tab ? currentEntry(tab) : null;
+    });
     const focus = usePaneFocus(pane);
     const presence = React.useMemo<TabPresence>(
         () => ({ focusedPane, pane, shown, tabId }),
         [focusedPane, pane, shown, tabId]
     );
     const frame = React.useRef<HTMLDivElement>(null);
-    const entry = tab ? currentEntry(tab) : null;
     useTabScrollMemory(frame, { entryKey: entry?.key ?? '', shown: visible, tabId });
     if (!entry) {
         return null;
@@ -67,7 +70,14 @@ export const DesktopTabFrame = React.memo(function DesktopTabFrame({
     );
 });
 
-function TabPage({ entry, tabId }: { entry: TabHistoryEntry; tabId: string }) {
+/** Memoized on the entry: saved page state and other tabs' changes leave it alone. */
+const TabPage = React.memo(function TabPage({
+    entry,
+    tabId,
+}: {
+    entry: TabHistoryEntry;
+    tabId: string;
+}) {
     const { location } = entry;
     if (location.kind === 'browser') {
         // Keyed by view, not entry: the page writes its settled address back as a replace.
@@ -84,9 +94,22 @@ function TabPage({ entry, tabId }: { entry: TabHistoryEntry; tabId: string }) {
         return <NewTabPage className="min-h-0 flex-1" tabId={tabId} />;
     }
     return <AppTabPage entryKey={entry.key} path={location.path} tabId={tabId} />;
-}
+});
 
-function AppTabPage({ entryKey, path, tabId }: { entryKey: string; path: string; tabId: string }) {
+/**
+ * Memoized on its identity props, and nothing above it in the frame reads tab
+ * state, so the routed page under it re-renders only when its own tab
+ * navigates (or for its own page's reasons).
+ */
+const AppTabPage = React.memo(function AppTabPage({
+    entryKey,
+    path,
+    tabId,
+}: {
+    entryKey: string;
+    path: string;
+    tabId: string;
+}) {
     const navigator = useTabNavigator(tabId, 'page');
     return (
         <IsolatedTabRouter entryKey={entryKey} location={path} navigator={navigator}>
@@ -106,7 +129,7 @@ function AppTabPage({ entryKey, path, tabId }: { entryKey: string; path: string;
             </TabLinkRouter>
         </IsolatedTabRouter>
     );
-}
+});
 
 /** HeroUI links (`href` on a menu item or Link) navigate this tab, not the sidebar's. */
 function TabLinkRouter({ children }: { children: React.ReactNode }) {
