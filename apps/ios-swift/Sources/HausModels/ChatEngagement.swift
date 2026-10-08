@@ -82,7 +82,9 @@ public struct ChatEngagementEvent: Decodable, Sendable, Equatable {
         case "chat.engagement.started":
             kind = .started
         case "chat.engagement.ended":
-            kind = .ended(try container.decode(ChatEngagementEndReason.self, forKey: .reason))
+            // An end this build has no word for still ends the engagement.
+            let reason = try container.decode(String.self, forKey: .reason)
+            kind = .ended(ChatEngagementEndReason(rawValue: reason) ?? .settled)
         case let other:
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
@@ -91,6 +93,8 @@ public struct ChatEngagementEvent: Decodable, Sendable, Equatable {
             )
         }
     }
+
+    static let knownTypes: Set<String> = ["chat.engagement.started", "chat.engagement.ended"]
 
     enum CodingKeys: String, CodingKey {
         case agentID = "agentId"
@@ -105,6 +109,19 @@ public struct ChatEngagementEvent: Decodable, Sendable, Equatable {
     /// Whether this event names the same Agent run as `engagement`.
     public func names(_ engagement: ChatEngagement) -> Bool {
         engagement.agentID == agentID && engagement.runID == runID
+    }
+}
+
+/// One `chat.onEngagement` stream frame. A frame type this build does not
+/// know yet carries no event and is skipped, so a newer Server never breaks
+/// the stream.
+public struct ChatEngagementFrame: Decodable, Sendable, Equatable {
+    public let event: ChatEngagementEvent?
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: ChatEngagementEvent.CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+        event = ChatEngagementEvent.knownTypes.contains(type) ? try ChatEngagementEvent(from: decoder) : nil
     }
 }
 

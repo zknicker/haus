@@ -63,7 +63,7 @@ extension HausStore {
     }
 
     private func streamChatEngagements(input: ChatEngagementInput, into model: ChatTypingModel) async throws {
-        let events: AsyncThrowingStream<ChatEngagementEvent, Error> = client.subscribe(
+        let frames: AsyncThrowingStream<ChatEngagementFrame, Error> = client.subscribe(
             "chat.onEngagement",
             input: input,
             // The stream never replays, so every (re)connect re-reads the durable state.
@@ -71,8 +71,9 @@ extension HausStore {
                 await self?.reloadChatEngagements(input: input, into: model)
             }
         )
-        for try await event in events
-        where event.serverID == input.serverId && event.chatID == input.chatId {
+        for try await frame in frames {
+            guard let event = frame.event,
+                  event.serverID == input.serverId, event.chatID == input.chatId else { continue }
             model.apply(event)
         }
     }

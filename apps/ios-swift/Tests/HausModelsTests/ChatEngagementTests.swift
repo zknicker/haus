@@ -24,6 +24,22 @@ final class ChatEngagementTests: XCTestCase {
         XCTAssertThrowsError(try decode(ChatEngagementEvent.self, event(type: "chat.engagement.paused")))
     }
 
+    func testAnUnknownEndReasonStillEndsTheEngagement() throws {
+        let ended = try decode(
+            ChatEngagementEvent.self,
+            event(type: "chat.engagement.ended", extra: #""reason":"handed_off","#)
+        )
+        XCTAssertEqual(ended.kind, .ended(.settled))
+    }
+
+    func testAStreamFrameOfAnUnknownTypeIsSkippedNotFatal() throws {
+        let unknown = try decode(ChatEngagementFrame.self, event(type: "chat.engagement.paused"))
+        XCTAssertNil(unknown.event)
+
+        let started = try decode(ChatEngagementFrame.self, event(type: "chat.engagement.started"))
+        XCTAssertEqual(started.event?.kind, .started)
+    }
+
     func testDecodesAThought() throws {
         let thought = try decode(AgentThoughtEvent.self, """
         {"agentId":"agent_1","at":"2026-10-07T12:00:01Z","chatId":"chat_1","runId":"run_1","serverId":"server_1","text":"Checking the weekend forecast"}
