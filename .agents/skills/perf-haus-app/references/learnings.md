@@ -15,8 +15,8 @@ looking at the data layer.
 - **React Router 7 wraps navigations in `startTransition`** unless the navigate call is inside
   `flushSync`. A transition keeps the old view painted until the new tree is ready, so a slow
   render reads as "the click did nothing". `hooks/shell/use-press-navigation.ts` navigates on
-  `pointerdown` under `flushSync`; sortable sidebar rows navigate on release-without-drag so
-  dragging still works.
+  `pointerdown` under `flushSync`, sortable sidebar rows included (Chrome tab-strip behavior).
+  Their dnd-kit sensor listens in the capture phase so it arms before that synchronous render.
 - **`React.lazy` suspends on first render even when its module is already loaded**, which commits
   the fallback and engages React's ~300 ms Suspense reveal throttle. Render a loaded module
   directly and fall back to lazy only on a genuinely cold chunk:

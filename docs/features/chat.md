@@ -289,7 +289,8 @@ and [Agent Inbox](../../specs/inbox.md).
   a hash or chosen catalog icon and optional channel color. Opening a Server
   restores that Server's last visited Chat when it still exists, then falls back
   to `#all` or the first available Chat. A user can drag any part of a Channel
-  row to reorder it, or use Space and the arrow keys while the row is focused. The App keeps that
+  row to reorder it, or use Space and the arrow keys while the row is focused. Like a browser tab,
+  pressing the row opens its Channel, so a drag opens it too. The App keeps that
   personal presentation order per Server on the current device; direct messages
   retain the Server list order.
   On the web, opening a chat shows a room topbar with the chat name and a "…"
