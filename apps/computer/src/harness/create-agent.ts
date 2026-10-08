@@ -53,6 +53,8 @@ export const CLAUDE_INACTIVE_TOOLS = [
     'CronDelete',
     'askUserQuestions',
     'Monitor',
+    'RemoteTrigger',
+    'PushNotification',
 ] as const;
 
 type AgentConstructionInput = Pick<
