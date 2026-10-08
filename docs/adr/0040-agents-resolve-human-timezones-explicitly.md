@@ -29,8 +29,10 @@ was right; every later fire snapped to 15:57 UTC, 11:57 AM Eastern. Two gaps let
 ## Decision
 
 1. **Instants are UTC.** Every stored instant is UTC; each viewer sees times in their own zone.
-2. **Each human has a timezone preference** (`users.timezone`, an IANA name). The App reports the
-   device zone on sign-in, which fills only a blank; the human changes it in Settings > Profile.
+2. **Each human has a timezone preference** (`users.timezone`, a canonical IANA name; offsets are
+   refused). The App reports the device zone on sign-in, which fills it only while it is blank.
+   Afterwards it changes only when the human edits it in Settings > Profile; Haus never prompts
+   when the device zone differs.
 3. **Agents stay on UTC home time.** There is no Server-wide default zone, no per-message zone,
    and no change to the composed system prompt.
 4. **The Agent resolves the zone at scheduling time.** People lookup (`haus server info --humans`,
@@ -47,6 +49,14 @@ was right; every later fire snapped to 15:57 UTC, 11:57 AM Eastern. Two gaps let
 6. **Receipts restate the agreement.** The CLI receipt prints the cadence with its zone and the
    next fire as wall clock in that zone, for example `Every Monday at 15:57 America/New_York; next
    fire Mon 2026-10-12 15:57 EDT (2026-10-12T19:57:00.000Z)`.
+
+### Storage
+
+Every reminder's next fire is stored as a UTC instant. A calendar repeat also stores its
+wall-clock rule and IANA zone, because a fixed UTC time drifts an hour against local clocks across
+DST: 3:57 PM Eastern is 19:57 UTC in summer and 20:57 UTC in winter. Each fire recomputes the next
+instant from the rule in its zone. On a one-shot or `every:` reminder the stored zone is
+display-only.
 
 ## Considered and rejected
 
