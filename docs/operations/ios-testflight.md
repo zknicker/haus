@@ -58,13 +58,15 @@ record or attempt according to the release record contract.
 ## Target publication and promotion
 
 When `ios` is `publish`, the single `Release` workflow runs the iOS target job after the release PR
-merges. The repository contains the compiled catalog in `assets/ios-icon`. Its manifest records the
-canonical `.icon` source digest, exact Xcode compiler build, and every output checksum. Source and
-artifact drift fails the release tests. Regenerate it with `bun run ios:prepare-icon` only when the
-icon source changes.
+merges. The repository contains the compiled catalog in `assets/ios-icon`: the app icon plus the
+`LaunchGhost` launch image from `apps/ios-swift/Sources/HausApp/Launch.xcassets`. The archive
+excludes both catalog sources and installs this one `Assets.car`, so an image that is not in it never
+ships. Its manifest records both source digests, the exact Xcode compiler build, and every output
+checksum. Source and artifact drift fails the release tests. Regenerate it with `bun run
+ios:prepare-icon` whenever the icon or the launch catalog changes.
 
 The stable-Xcode job verifies that the catalog contains the authored light, dark, tinted, specular,
-and 1024px renditions, and that its checksum-bound Icon Composer source keeps an active refractive
+and 1024px icon renditions and the light and dark launch image, and that its checksum-bound Icon Composer source keeps an active refractive
 layer. Stable `assetutil` releases do not all expose preview refraction metadata with the same
 schema, so the source/artifact binding carries that part of the proof. The job excludes the source
 `.icon` from older `actool` and installs the committed catalog during the archive before signing.
@@ -98,6 +100,18 @@ reply, and foreground recovery is useful release verification, but absence of th
 does not turn a routine internal release into an operator blocker.
 
 TestFlight builds expire after 90 days. Never reuse a build number.
+
+## Privacy manifest
+
+`apps/ios-swift/Sources/HausApp/PrivacyInfo.xcprivacy` ships at the app bundle root. It declares no
+tracking and the required-reason APIs the app binary uses, including statically linked packages:
+`UserDefaults` (CA92.1), file timestamps of the attachment cache inside the app container (C617.1),
+and system uptime for in-app timers (35F9.1). Its collected data types cover what the Haus Server
+stores for app functionality: messages, photos, other attachments, name, email address, and user
+ID. Keep the App Store Connect privacy answers consistent with it. The Notification Service
+extension references no required-reason API and carries no manifest; re-check its binary with
+`nm -u` when it gains code. Clerk iOS 1.2.0 ships no manifest of its own; its telemetry runs only
+against development Clerk instances.
 
 ## Credentials
 
