@@ -74,7 +74,7 @@ struct ThreadPreviewCard: View {
             .padding(.vertical, 4)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.pressableRow(cornerRadius: 8))
+        .buttonStyle(.pressableRow(cornerRadius: HausRadius.medium))
         .accessibilityLabel(accessibilityLabel)
         .padding(.top, 6)
         .anchorPreference(key: ThreadIngressAnchor.self, value: .bounds) { $0 }

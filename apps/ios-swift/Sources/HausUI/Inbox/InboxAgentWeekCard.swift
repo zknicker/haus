@@ -43,10 +43,10 @@ struct InboxAgentWeekCard: View {
             .frame(width: isStacked ? 280 : 196, alignment: .leading)
             .background(
                 HausPlatformColor.groupedSurface,
-                in: .rect(cornerRadius: InboxMetrics.boxRadius)
+                in: .rect(cornerRadius: InboxMetrics.boxRadius, style: .continuous)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: InboxMetrics.boxRadius)
+                RoundedRectangle.haus(InboxMetrics.boxRadius)
                     .strokeBorder(Color.primary.opacity(0.07))
             )
             .contentShape(Rectangle())

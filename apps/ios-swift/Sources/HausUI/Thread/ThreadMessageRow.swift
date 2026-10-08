@@ -91,7 +91,7 @@ struct ThreadMessageRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             emphasized ? HausPlatformColor.inputSurface : .clear,
-            in: .rect(cornerRadius: emphasized ? 16 : 0)
+            in: .haus(emphasized ? HausRadius.large : 0)
         )
         .messageRowTint(isPressed: isPressed, card: emphasized)
     }

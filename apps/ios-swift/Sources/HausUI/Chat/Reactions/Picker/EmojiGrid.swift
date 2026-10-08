@@ -166,7 +166,7 @@ private struct EmojiCellStyle: ButtonStyle {
         configuration.label
             .background(
                 Color.primary.opacity(configuration.isPressed ? 0.1 : 0),
-                in: .rect(cornerRadius: 10, style: .continuous)
+                in: .haus(HausRadius.small)
             )
             .contentShape(.rect)
     }

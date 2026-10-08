@@ -20,7 +20,7 @@ private struct MessageRowTint: ViewModifier {
     func body(content: Content) -> some View {
         if card {
             content.overlay {
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle.haus(HausRadius.large)
                     .fill(.primary.opacity(0.06))
                     .opacity(isPressed ? 1 : 0)
                     .animation(pressAnimation, value: isPressed)
@@ -28,7 +28,7 @@ private struct MessageRowTint: ViewModifier {
             }
         } else {
             content.background {
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle.haus(HausRadius.medium)
                     .fill(HausPlatformColor.inputSurface)
                     .opacity(isHighlighted || isPressed ? 1 : 0)
                     .animation(pressAnimation, value: isPressed)

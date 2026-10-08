@@ -22,7 +22,7 @@ struct ArtifactCard: View {
                     .frame(width: markSize, height: markSize)
                     .background(
                         HausPlatformColor.label.opacity(0.05),
-                        in: .rect(cornerRadius: markSize / 3.6, style: .continuous)
+                        in: .haus(HausRadius.mark(side: markSize))
                     )
                 VStack(alignment: .leading, spacing: 1) {
                     Text(artifact.displayTitle)
@@ -44,19 +44,19 @@ struct ArtifactCard: View {
             .padding(.vertical, 10)
             .background(
                 HausPlatformColor.label.opacity(0.035),
-                in: .rect(cornerRadius: Self.cornerRadius, style: .continuous)
+                in: .haus(Self.cornerRadius)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+                RoundedRectangle.haus(Self.cornerRadius)
                     .strokeBorder(HausPlatformColor.separator.opacity(0.6), lineWidth: 0.5)
             }
             .frame(maxWidth: 420, alignment: .leading)
-            .contentShape(.rect(cornerRadius: Self.cornerRadius, style: .continuous))
+            .contentShape(.haus(Self.cornerRadius))
         }
         .buttonStyle(.pressableRow(cornerRadius: Self.cornerRadius))
         .accessibilityLabel("Page: \(artifact.displayTitle)")
         .accessibilityHint("Opens the page.")
     }
 
-    static let cornerRadius: CGFloat = 13
+    static let cornerRadius: CGFloat = HausRadius.medium
 }

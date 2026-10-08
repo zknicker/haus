@@ -58,7 +58,7 @@ struct MessageCauseLine: View {
                 HausIcon(cause.glyph, size: markSize * 0.66, weight: 1.8)
                     .foregroundStyle(ink)
                     .frame(width: markSize, height: markSize)
-                    .background(ink.opacity(0.18), in: .rect(cornerRadius: markSize / 3, style: .continuous))
+                    .background(ink.opacity(0.18), in: .haus(HausRadius.mark(side: markSize)))
                 Text(cause.title)
                     .fontWeight(.medium)
                     .foregroundStyle(ink)

@@ -99,7 +99,7 @@ struct EmojiPickerView: View {
             }
             .padding(.horizontal, 10)
             .frame(minHeight: 36)
-            .background(HausPlatformColor.inputSurface, in: .rect(cornerRadius: 10, style: .continuous))
+            .background(HausPlatformColor.inputSurface, in: .haus(HausRadius.medium))
         }
     }
 }

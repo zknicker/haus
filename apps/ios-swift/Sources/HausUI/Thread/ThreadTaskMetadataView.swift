@@ -23,7 +23,7 @@ struct ThreadTaskMetadataView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(HausPlatformColor.inputSurface, in: .rect(cornerRadius: 16))
+        .background(HausPlatformColor.inputSurface, in: .haus(HausRadius.large))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Task #\(task.number) details")
     }

@@ -50,8 +50,8 @@ public struct SettingsListGroup<Content: View>: View {
         VStack(spacing: 0) {
             content()
         }
-        .background(HausPlatformColor.groupedSurface, in: RoundedRectangle(cornerRadius: 22))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .background(HausPlatformColor.groupedSurface, in: .haus(HausRadius.grouped))
+        .clipShape(.haus(HausRadius.grouped))
     }
 }
 

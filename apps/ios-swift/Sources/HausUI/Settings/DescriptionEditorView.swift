@@ -41,7 +41,7 @@ struct DescriptionEditorView: View {
                         .allowsHitTesting(false)
                 }
             }
-            .background(HausPlatformColor.groupedSurface, in: RoundedRectangle(cornerRadius: 22))
+            .background(HausPlatformColor.groupedSurface, in: .haus(HausRadius.grouped))
 
             if let errorMessage {
                 Text(errorMessage)

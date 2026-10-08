@@ -67,9 +67,9 @@ struct CloudAgentCard: View {
         }
         .padding(CloudAgentCardMetrics.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(HausPlatformColor.inputSurface, in: .rect(cornerRadius: CloudAgentCardMetrics.cornerRadius))
+        .background(HausPlatformColor.inputSurface, in: .haus(CloudAgentCardMetrics.cornerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: CloudAgentCardMetrics.cornerRadius)
+            RoundedRectangle.haus(CloudAgentCardMetrics.cornerRadius)
                 .strokeBorder(.secondary.opacity(0.18), lineWidth: 0.5)
         }
         .accessibilityElement(children: .contain)
@@ -191,7 +191,7 @@ private struct CloudAgentMetaLabelStyle: LabelStyle {
 /// cut with, kept together so the two stay in step when either moves.
 enum CloudAgentCardMetrics {
     static let padding: CGFloat = 12
-    static let cornerRadius: CGFloat = 13
+    static let cornerRadius: CGFloat = HausRadius.medium
 }
 
 /// A finished-state fact about the run, drawn as a soft capsule. Work still

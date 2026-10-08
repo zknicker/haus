@@ -13,7 +13,7 @@ struct CloudAgentMark: View {
             .frame(width: size, height: size)
             .background {
                 if style == .tile {
-                    RoundedRectangle(cornerRadius: size * 0.24)
+                    RoundedRectangle.haus(HausRadius.mark(side: size))
                         .fill(HausPlatformColor.inputSurface)
                 }
             }

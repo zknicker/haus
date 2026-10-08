@@ -47,9 +47,9 @@ struct RichMessageCodeBlockView: View {
         }
         .background(
             HausPlatformColor.inputSurface,
-            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            in: RoundedRectangle.haus(HausRadius.medium)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle.haus(HausRadius.medium))
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

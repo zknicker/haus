@@ -44,7 +44,7 @@ extension ButtonStyle where Self == PressableButtonStyle {
     static var pressable: PressableButtonStyle { .init(treatment: .scale) }
 
     /// Full-width tappable rows.
-    static var pressableRow: PressableButtonStyle { pressableRow(cornerRadius: 12) }
+    static var pressableRow: PressableButtonStyle { pressableRow(cornerRadius: HausRadius.medium) }
 
     static func pressableRow(cornerRadius: CGFloat) -> PressableButtonStyle {
         .init(treatment: .rowHighlight(cornerRadius: cornerRadius))

@@ -23,7 +23,7 @@ enum AttachmentImageTileSize {
     /// The tile's clip, shared by the strip's squares. The viewer's zoom source
     /// anchor wears the same radius, so the card's corners start exactly where
     /// the tile's end.
-    static let cornerRadius: CGFloat = 14
+    static let cornerRadius: CGFloat = HausRadius.medium
 
     static func fitted(
         pixelWidth: Int,

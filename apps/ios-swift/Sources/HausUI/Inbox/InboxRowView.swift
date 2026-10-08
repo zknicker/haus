@@ -143,7 +143,7 @@ enum InboxMetrics {
     static let rowInset: CGFloat = 14
     /// Messages-like breathing room above and below a row's two lines.
     static let rowVerticalPadding: CGFloat = 12
-    static let boxRadius: CGFloat = 14
+    static let boxRadius: CGFloat = HausRadius.medium
     /// Messages' conversation avatar on a phone. A boxed mark derives its
     /// corner from this size, so the rounded square keeps its shape.
     static let markSize: CGFloat = 44

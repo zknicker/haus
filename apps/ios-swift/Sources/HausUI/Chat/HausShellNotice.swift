@@ -54,9 +54,9 @@ struct HausShellNoticeBanner: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(.regularMaterial, in: .rect(cornerRadius: 20, style: .continuous))
+            .background(.regularMaterial, in: .haus(HausRadius.large))
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle.haus(HausRadius.large)
                     .strokeBorder(Color.primary.opacity(0.06))
             )
             .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
