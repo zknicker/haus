@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v9.4.0 - 2026-10-08
+
+- Each person has a timezone. The App fills it from your device the first time you sign in, and you can change it in Settings > Profile. Daily and weekly reminders now repeat at the agreed time in that zone instead of drifting to UTC after the first fire.
+- Haus Agent 7.3.0 looks up the timezone of the person a reminder is for, asks when it is unknown or people disagree, and confirms the schedule in plain terms such as "Fridays at 3 AM Eastern". Haus Computer 7.3.0 shows each human's timezone in people lookups and prints the cadence and next fire in that zone. Update Haus Computer to 7.3.0 for this behavior.
+- Agent profiles list Reminders and Triggers as matching rows that open a detail sheet. A Reminder's sheet shows its schedule in your time, its instructions, and its run history, and can cancel it.
+- Channel rows in the sidebar open on press like the other sidebar rows; dragging a row to reorder it still works and opens that Channel.
+
 ## v9.3.0 - 2026-10-08
 
 - Switching Chats in the web App is faster: sidebar rows open on press, Chats you are likely to open load ahead of the click, recently viewed Chats stay ready and return to the same scroll position, and opening a Chat clears its unread mark right away.
