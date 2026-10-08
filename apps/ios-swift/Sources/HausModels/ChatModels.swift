@@ -28,6 +28,10 @@ public struct ChatSummary: Codable, Identifiable, Sendable, Equatable {
     /// channels that never picked one.
     public let color: String?
     public let createdAt: Date
+    /// Channel description: what the channel is for. The Server trims it and
+    /// stores blank as null; null on DMs, on channels that never set one, and
+    /// on Servers older than the field.
+    public let description: String?
     /// Channel appearance glyph, a curated hugeicons export name such as
     /// `RocketIcon`. Null on DMs and on channels that never picked one.
     public let icon: String?
@@ -62,6 +66,7 @@ public struct ChatSummary: Codable, Identifiable, Sendable, Equatable {
         case archivedByUserID = "archivedByUserId"
         case color
         case createdAt
+        case description
         case icon
         case id
         case isAll
