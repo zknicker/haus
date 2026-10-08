@@ -7,12 +7,12 @@ final class DrawerInteractionTests: XCTestCase {
 
     func testCanvasFollowsTheFingerInsideItsTravel() {
         XCTAssertEqual(
-            DrawerInteraction.offset(isOpen: false, translation: 90, width: width),
+            DrawerInteraction.offset(start: 0, translation: 90, width: width),
             90,
             accuracy: 0.001
         )
         XCTAssertEqual(
-            DrawerInteraction.offset(isOpen: true, translation: -120, width: width),
+            DrawerInteraction.offset(start: width, translation: -120, width: width),
             200,
             accuracy: 0.001
         )
@@ -20,15 +20,67 @@ final class DrawerInteractionTests: XCTestCase {
 
     func testDragStopsAtBothEnds() {
         XCTAssertEqual(
-            DrawerInteraction.offset(isOpen: true, translation: 160, width: width),
+            DrawerInteraction.offset(start: width, translation: 160, width: width),
             width,
             accuracy: 0.001
         )
         XCTAssertEqual(
-            DrawerInteraction.offset(isOpen: false, translation: -160, width: width),
+            DrawerInteraction.offset(start: 0, translation: -160, width: width),
             0,
             accuracy: 0.001
         )
+    }
+
+    /// A finger that catches a settle mid-flight drags from where the canvas is,
+    /// not from the side it was heading to.
+    func testADragCaughtMidSettleStartsFromTheCanvasPosition() {
+        XCTAssertEqual(
+            DrawerInteraction.offset(start: 137, translation: 20, width: width),
+            157,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            DrawerInteraction.offset(start: 137, translation: -400, width: width),
+            0,
+            accuracy: 0.001
+        )
+    }
+
+    func testDrawerWidthIsMostOfANarrowScreenAndCappedOnAWideOne() {
+        XCTAssertEqual(DrawerInteraction.width(containerWidth: 402), 329.64, accuracy: 0.001)
+        XCTAssertEqual(DrawerInteraction.width(containerWidth: 1024), 340, accuracy: 0.001)
+        XCTAssertEqual(DrawerInteraction.width(containerWidth: 0), 0, accuracy: 0.001)
+    }
+
+    func testGeometryTracksProgressAcrossTheTravel() {
+        let shut = DrawerGeometry(offset: 0, width: width)
+        XCTAssertEqual(shut.progress, 0, accuracy: 0.001)
+        XCTAssertEqual(shut.cornerRadius, 0, accuracy: 0.001)
+        XCTAssertEqual(shut.sidebarShift, -width * DrawerGeometry.parallax, accuracy: 0.001)
+        XCTAssertEqual(shut.sidebarReveal, 0, accuracy: 0.001)
+        XCTAssertTrue(shut.isSidebarHidden)
+
+        let half = DrawerGeometry(offset: 160, width: width)
+        XCTAssertEqual(half.progress, 0.5, accuracy: 0.001)
+        XCTAssertEqual(half.cornerRadius, DrawerGeometry.maxCornerRadius / 2, accuracy: 0.001)
+        XCTAssertEqual(half.sidebarReveal, 160, accuracy: 0.001)
+        XCTAssertFalse(half.isSidebarHidden)
+
+        let open = DrawerGeometry(offset: width, width: width)
+        XCTAssertEqual(open.cornerRadius, DrawerGeometry.maxCornerRadius, accuracy: 0.001)
+        XCTAssertEqual(open.sidebarShift, 0, accuracy: 0.001)
+    }
+
+    /// A spring overshooting either end must not push the derived values past
+    /// their range: no negative corner, no sidebar uncovered past its width.
+    func testGeometryClampsAnOvershootingSpring() {
+        let past = DrawerGeometry(offset: width + 12, width: width)
+        XCTAssertEqual(past.progress, 1, accuracy: 0.001)
+        XCTAssertEqual(past.sidebarReveal, width, accuracy: 0.001)
+        let before = DrawerGeometry(offset: -8, width: width)
+        XCTAssertEqual(before.progress, 0, accuracy: 0.001)
+        XCTAssertEqual(before.cornerRadius, 0, accuracy: 0.001)
+        XCTAssertEqual(before.sidebarReveal, 0, accuracy: 0.001)
     }
 
     func testShortFlickOpensTheDrawer() {

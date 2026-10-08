@@ -1,35 +1,18 @@
 @testable import HausUI
-import CoreGraphics
 import Testing
 
 @MainActor
 struct HausDrawerStateTests {
-    private let width: CGFloat = 320
-
-    @Test func aPanTracksTheFingerAndSettlesOnRelease() {
-        let drawer = HausDrawerState()
-
-        drawer.handle(.changed(translation: 200), width: width)
-        #expect(drawer.offset(width: width) == 200)
-        #expect(drawer.progress(width: width) == 200 / width)
-        #expect(!drawer.isPresented)
-
-        drawer.handle(.ended(translation: 200, velocity: 0), width: width)
-        #expect(drawer.isPresented)
-        #expect(drawer.dragTranslation == nil)
-        #expect(drawer.offset(width: width) == width)
-    }
-
     /// The Chat screen puts its keyboard away the moment this turns true, so it must cover the
     /// first frame of a drag as well as the settled open drawer.
     @Test func isEngagedFromTheFirstPanFrameUntilItSettlesShut() {
         let drawer = HausDrawerState()
         #expect(!drawer.isEngaged)
 
-        drawer.handle(.changed(translation: 4), width: width)
+        drawer.beginDrag()
         #expect(drawer.isEngaged)
 
-        drawer.handle(.ended(translation: 4, velocity: 0), width: width)
+        drawer.commit(open: false)
         #expect(!drawer.isPresented)
         #expect(!drawer.isEngaged)
 
@@ -39,14 +22,21 @@ struct HausDrawerStateTests {
         #expect(!drawer.isEngaged)
     }
 
-    @Test func aFlickClosesAnOpenDrawerWhereverItIsReleased() {
+    @Test func aReleaseThatOpensEndsTheDragAndPresents() {
         let drawer = HausDrawerState()
-        drawer.set(open: true)
+        drawer.beginDrag()
 
-        drawer.handle(.ended(translation: -20, velocity: -900), width: width)
+        #expect(drawer.commit(open: true))
+        #expect(drawer.isPresented)
+        #expect(!drawer.isDragging)
+    }
 
-        #expect(!drawer.isPresented)
-        #expect(drawer.offset(width: width) == 0)
+    /// The snap haptic plays only when the side changes.
+    @Test func commitReportsWhetherTheSideChanged() {
+        let drawer = HausDrawerState()
+        #expect(drawer.commit(open: true))
+        #expect(!drawer.commit(open: true))
+        #expect(drawer.commit(open: false))
     }
 
     @Test func reportsEverySettledChangeOnce() {
@@ -56,10 +46,35 @@ struct HausDrawerStateTests {
 
         drawer.set(open: true)
         drawer.set(open: true)
-        drawer.handle(.changed(translation: -300), width: width)
-        drawer.handle(.ended(translation: -300, velocity: 0), width: width)
+        drawer.beginDrag()
+        drawer.commit(open: false)
 
         #expect(reported == [true, false])
+    }
+
+    /// With the UIKit container attached, the state never decides the side itself: the
+    /// motion springs the canvas and reports the commit back.
+    @Test func setAsksTheMotionToSettle() {
+        let drawer = HausDrawerState()
+        let motion = RecordingMotion(drawer: drawer)
+        drawer.motion = motion
+
+        drawer.toggle()
+        #expect(motion.settles == [true])
+        #expect(drawer.isPresented)
+
+        drawer.toggle()
+        #expect(motion.settles == [true, false])
+        #expect(!drawer.isPresented)
+    }
+
+    @Test func sidebarVisibilityFlipsOnlyOnChange() {
+        let drawer = HausDrawerState()
+        #expect(drawer.isSidebarHidden)
+        drawer.setSidebarHidden(false)
+        #expect(!drawer.isSidebarHidden)
+        drawer.setSidebarHidden(true)
+        #expect(drawer.isSidebarHidden)
     }
 
     @Test func openingRestoresTheVeilAChatSelectionSuppressed() {
@@ -76,8 +91,21 @@ struct HausDrawerStateTests {
         drawer.set(open: true)
         drawer.close = .chatSelection
 
-        drawer.handle(.changed(translation: -40), width: width)
+        drawer.beginDrag()
 
         #expect(drawer.close == .interactive)
+    }
+}
+
+@MainActor
+private final class RecordingMotion: HausDrawerMotion {
+    let drawer: HausDrawerState
+    var settles: [Bool] = []
+
+    init(drawer: HausDrawerState) { self.drawer = drawer }
+
+    func settle(open: Bool) {
+        settles.append(open)
+        drawer.commit(open: open)
     }
 }
