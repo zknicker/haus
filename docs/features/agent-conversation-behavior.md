@@ -51,6 +51,28 @@ and never in a task thread. The completing message carries `--done`.
   and progress bullets"); `packages/agent-manual/src/product-topics.test.ts`; register rows
   "Sending messages" and "Communication style".
 
+**Known flake (investigated 2026-10-08).** `solo-progress-threads-on-ack` fails intermittently on
+"progress in a thread on own acknowledgment". Repeated runs on one stack: Codex `gpt-5.6-terra`
+(the eval default) 2/4, Claude Code `claude-opus-5-5` 3/4, Codex `gpt-5.6-sol` 3/3. In 11 valid
+runs no model posted progress at the top level or in the request thread; every failure is
+*missing* progress, never misplaced progress. The workload collapses into one
+`seq | awk` command, so a model that runs it in one call has no intermediate step to report. The
+prompt then permits silence: "skip updates that change nothing", the Manual's "One-step work
+needs no thread", and the pickup bullet's "one quick look-up, just answer". The failing terra
+runs sent the acknowledgment and the whole computation in one or two shell calls. The failing
+Opus run sent no acknowledgment at all, only `--done` with the answer. Passing terra runs added a
+single thread post before or just after that one command. Sol ran each step as its own command
+and threaded each result. The CLI is not the cause: every send receipt names the
+`#channel:<shortId>` thread target. The scenario was then reshaped so each step's instructions are
+gzip+base64-sealed inside the previous step, forcing one observed shell call per step; after that,
+terra passed 4/4 and Opus 1/2, and the Opus miss ran every step separately yet posted nothing
+before `--done`. That is a real "keep me posted" miss, not a collapsed workload. If it recurs,
+read the run's journal in `.context/agent-tests/evidence/<stamp>/solo-progress-threads-on-ack.json`.
+Steps run as separate calls with no thread post is that behavior miss; a single collapsed command
+means the sealing regressed. A post at the top level or in the request thread is a real
+regression. Never run two `test:agents` processes against one stack: each
+startup sweeps the other's Agents, and the victim fails within seconds with `No Agent exists`.
+
 ## 2. House personality, conversation style, signature emoji
 
 Every Agent speaks as a senior teammate, not a service: short plain sentences, a committed take,
