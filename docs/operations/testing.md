@@ -317,8 +317,21 @@ Computer execution journals rather than a flaky wall-clock threshold:
 bun run test:agents --include-opt-in --only warm-dm-memory-refresh --only response-efficiency --lanes 1
 ```
 
-They log durations for comparison; a single model run is not a latency guarantee. Run agent-test
-commands serially against one dev stack, because startup cleanup sweeps prior run records.
+They log durations for comparison; a single model run is not a latency guarantee.
+
+The memory-feedback probes are opt-in because they overwrite a test Agent's `MEMORY.md` on the
+dev Computer's disk. Each seeds two Standing Preferences, gives passing feedback (`implicit`,
+`explicit`) or none (`control`), resets the session, and asks a probe question in a new channel.
+The scenario gates only structure; rule grammar, merge, and post-reset application are scored
+from evidence under `.context/agent-tests/memory-feedback/` by a separate, rerunnable grader:
+
+```sh
+bun run test:agents --include-opt-in --only memory-feedback --lanes 3
+bun scripts/agent-tests/memory-feedback-grade.mjs [--since <stamp>] [--json]
+```
+
+Run agent-test commands serially against one dev stack, because startup cleanup sweeps prior run
+records.
 
 The managed-skill update probe is opt-in because it rewrites one test Agent's skill library and
 `runtime/managed-skills.json` on the dev Computer's disk, so the Computer must be this checkout's
