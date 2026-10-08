@@ -1,7 +1,15 @@
-/** The zone this device runs in, as the Server stores a human's timezone. */
-export function deviceTimezone(): string | undefined {
-    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    return zone && zone.length > 0 ? zone : undefined;
+import { humanTimezoneSchema } from '@haus/api/membership';
+
+/**
+ * The zone this device runs in, as the Server stores a human's timezone. A zone
+ * the Server would refuse (some runtimes report `Etc/Unknown`) is left out, so
+ * it never fails the identity sync it rides on.
+ */
+export function deviceTimezone(
+    zone: string | undefined = Intl.DateTimeFormat().resolvedOptions().timeZone
+): string | undefined {
+    const parsed = humanTimezoneSchema.safeParse(zone);
+    return parsed.success ? parsed.data : undefined;
 }
 
 export interface TimezoneOption {
@@ -22,4 +30,13 @@ export function timezoneOptions(current: string | null): TimezoneOption[] {
     return [...zones]
         .sort((left, right) => left.localeCompare(right))
         .map((id) => ({ id, label: id.replaceAll('_', ' ') }));
+}
+
+/**
+ * The picker's search matcher. React Aria's Autocomplete filters only when
+ * given one; `New_York` and `new york` both find `America/New York`.
+ */
+export function matchesTimezoneSearch(label: string, input: string): boolean {
+    const normalize = (value: string) => value.replaceAll('_', ' ').trim().toLowerCase();
+    return normalize(label).includes(normalize(input));
 }

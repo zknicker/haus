@@ -2,7 +2,7 @@ import { Autocomplete, EmptyState, Label, ListBox, SearchField, Separator } from
 import { ItemCard } from '@heroui-pro/react';
 import * as React from 'react';
 import { useHumanTimezone } from '../../../hooks/members/use-human-timezone.ts';
-import { timezoneOptions } from '../../../lib/timezones.ts';
+import { matchesTimezoneSearch, timezoneOptions } from '../../../lib/timezones.ts';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
 
@@ -53,7 +53,7 @@ export function TimezoneRow({
                             <Autocomplete.Indicator />
                         </Autocomplete.Trigger>
                         <Autocomplete.Popover>
-                            <Autocomplete.Filter>
+                            <Autocomplete.Filter filter={matchesTimezoneSearch}>
                                 <SearchField
                                     aria-label="Search timezones"
                                     autoFocus
