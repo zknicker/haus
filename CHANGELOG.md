@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v9.4.0 - 2026-10-08
+
+- Each person in Haus has a timezone. The web App and Haus for iPhone fill it from the device the first time you sign in and let you change it in Profile settings; it never overwrites a zone you chose.
+- Daily and weekly reminders fire at the same wall-clock time in their own zone, including across daylight-saving changes, and start at the next matching slot. Haus Server 8.3.0 requires a zone for `daily@` and `weekly:` reminders and refuses a first fire that is off the schedule. Reminders created before this release keep their stored zone; reschedule any that fire at the wrong local time.
+- Haus Agent 7.3.0 schedules routines in the requester's timezone, which `haus server info --humans` and `haus channel members` now show, asks when the zone is unknown or people disagree, and confirms the cadence in plain terms such as "Fridays at 3 AM Eastern". Update Haus Computer to 7.3.0 with this Server: an older Agent CLI cannot schedule daily or weekly reminders against Server 8.3.0.
+- Agent Automations in the web App list Reminders and Triggers as one set of rows that open a detail sheet with the schedule in your time, instructions, context, and a repeating Reminder's run history, with Cancel Reminder at the bottom. Haus for iPhone 5.5.0 (build 45) adds the same Automations screen to Agent profiles.
+- On Haus for iPhone, sent messages appear in the transcript right away without a Sending label and retry on their own through brief connection drops, showing Not sent only when delivery fails. Sending photos or files settles into the transcript in one smooth motion.
+- The iPhone sidebar drawer follows your finger without stuttering and can be caught mid-flight; a drawer drag no longer opens the Chat under your finger, and Mark read moves to a trailing swipe so opening the drawer cannot mark a Chat read. A lost connection shows as Connecting… in the Chat header, including when the Server is down, and file and stopped-Agent problems use native alerts.
+- Channel rows in the web sidebar open on press like other sidebar rows and still reorder by drag. Amazon product chips each load on their own instead of waiting for the slowest product in a batch.
+
 ## v9.3.0 - 2026-10-08
 
 - Switching Chats in the web App is faster: sidebar rows open on press, Chats you are likely to open load ahead of the click, recently viewed Chats stay ready and return to the same scroll position, and opening a Chat clears its unread mark right away.
