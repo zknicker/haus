@@ -587,7 +587,7 @@ entry when the drift is stopped, which it is under Reduce Motion and whenever th
 active. Every offset is a pure function of elapsed seconds, so a pause freezes the mark where it
 stands instead of snapping it back to the loop's start. The drawer is the third pause, beside
 Reduce Motion and the scene phase: the sidebar stays mounted behind the canvas, so the sidebar's
-drawer frame sets the `hausSidebarHidden` environment value whenever no sliver of the drawer is
+drawer root sets the `hausSidebarHidden` environment value whenever no sliver of the drawer is
 showing — mid-drag counts as visible —
 and `HausGhostDriftClock` subtracts the slept stretch so reopening resumes the held frame.
 
@@ -611,12 +611,10 @@ shadow pinned to the resting size. The style also owns its padding, so the label
 amount to land the drawn circle back on the shared diameter. The pre-26 fallback is
 `.regularMaterial`, which has neither an edge nor a lift of its own, and still draws both.
 
-A chrome button's shadow spills past the edges of whatever contains it. The sidebar is composited
-with `.mask()`, which rasterizes into a buffer sized to the sidebar's own resolved height, so that
-spill survives only inside real layout height: `ChatSidebarView` reserves `shadowBleedHeight` of
-inert space at both ends and `HausShellView` grows and re-anchors the proposed height to match.
-Without the leading reservation the search button's shadow ended at a hard line on the sidebar's
-top edge.
+A chrome button's shadow spills past the edges of whatever contains it. The sidebar's reveal clip
+is a full-screen-height UIKit view, so the search and gear buttons' shadows have the whole screen
+to spill into; do not reintroduce a SwiftUI `.mask()` on the sidebar, which rasterizes into a
+buffer sized to the sidebar's resolved height and cut the search button's shadow at a hard line.
 
 Dismiss controls follow one vocabulary. A form that creates or edits a draft uses Cancel plus a
 confirming verb (Create, Save); an informational sheet with nothing to confirm — Search, Chat
@@ -671,14 +669,41 @@ entry point that presents another surface — Search, Tasks, Settings, Archived,
 the drawer open behind it, so dismissing returns to the open drawer and no presentation ever runs
 against the closing spring.
 
-The drawer's state is an observable `HausDrawerState`, not shell `@State`. A pan rewrites its
-translation every frame, and only the two small frames that read the geometry —
-`HausDrawerSidebarFrame` and `HausDrawerCanvasFrame` — observe it; the shell body, which builds the
-Chat screen and its closures, never does, so a pan frame does not rebuild the screen. Each settled
-open or close is a `.selection` haptic, and so is a Chat switch made without a drawer snap (from
-Search or a route). `onDrawerPresentedChange` reports every settled open and close so the App can
-hold the sidebar's order still while the drawer is open; the sidebar animates a re-sort's row moves
-when it lands.
+A drag of the drawer is GPU-composited translation and nothing else: a pan frame evaluates no
+SwiftUI body and lays out neither the sidebar nor the canvas. `HausDrawerContainer` hosts each side
+in its own `UIHostingController` inside `HausDrawerController`, a UIKit container that owns the pan
+recognizer, the per-frame offset, and the settle. A frame writes layer properties only, all derived
+from one offset by `DrawerGeometry`: the canvas's translation and corner radius, the shadow's alpha,
+the veil's alpha, the sidebar's parallax translation, and the width of the rectangular clip that
+keeps the sidebar (glass included) out of the canvas's rounded corners. The canvas shadow is a
+`shadowPath` on a view of its own, so the canvas's content — bar materials, glass buttons, the
+transcript — is never rendered offscreen to find its outline; the corner is the layer's own
+continuous `cornerRadius`. Release starts a `UIViewPropertyAnimator` spring seeded with the
+release velocity (a short ease-out under Reduce Motion), and a finger that lands mid-settle catches
+the canvas where it is on screen rather than where it was heading. Do not move any of this back into
+SwiftUI state: the SwiftUI drawer (observable offset read by two small frame views, `.offset`,
+`.shadow`, `.clipShape`, and a sidebar `.mask`) re-ran two bodies and re-rendered every effect each
+frame, and missed the frame budget on device even after the shell body stopped observing the drag.
+
+`HausDrawerState` is the drawer's discrete state, shared by the shell and the container, and it
+never changes per frame. The container reports only the moments a SwiftUI reader needs: a drag
+starting (`isDragging`, which with `isPresented` makes `isEngaged`), the drawer committing to a side,
+and the sidebar becoming visible or hidden. Each side's hosted root observes exactly one of those
+booleans and republishes it into the environment (`hausDrawerEngaged`, `hausSidebarHidden`), so a
+drag invalidates each side once when it starts and once when it ends. `set(open:)` from SwiftUI
+(the header button, a selection, the veil tap) asks the container to settle. Each committed side
+change is a `.selection` haptic from the container, and a Chat switch made without a drawer snap
+(from Search or a route) ticks on its own. `onDrawerPresentedChange` reports every settled open and
+close so the App can hold the sidebar's order still while the drawer is open; the sidebar animates
+a re-sort's row moves when it lands.
+
+A hosting controller starts a fresh SwiftUI environment, so environment the App sets above the shell
+does not reach either side on its own. `HausDrawerEnvironment` reads those values where the container
+sits and re-applies them inside: the scene phase, the opening entrance, the reaction board, Cloud
+Agent cancel, and the engagement and stopped-Agent sources. A new value set above the shell and read
+by the sidebar or a canvas screen must be added there. The sidebar host keeps the screen's container
+safe area and ignores the keyboard; the canvas host has no safe area at all, because its screens take
+their insets as values and read the keyboard themselves.
 
 The sidebar marks what is on screen — Tasks while it is pushed, the Inbox while it is the canvas,
 otherwise the selected Chat — with one selection capsule. A Chat row's long press offers **Mark
@@ -690,23 +715,18 @@ Dynamic Type (`SidebarRowMetrics`); at accessibility sizes a title may wrap to t
 The Chat canvas is keyed by the selected destination: a Chat switch remounts the screen, so each
 Chat lays out bottom-anchored and fully formed before the drawer reveals it, and no scroll offset or
 screen-local state crosses between Chats. The swap and the closing slide are two events and must land
-in two frames. The drawer's geometry — offset, corner radius, veil, shadow, and the pan — belongs to a
-container that outlives the keyed screen, because a view that did not exist a frame ago has no offset
-to animate from. That container is not enough on its own: SwiftUI places a view inserted *inside* an
-animating transaction at that animation's destination rather than at its in-flight geometry, so
-selecting a Chat and closing the drawer in the same turn pinned the incoming transcript at the closed
-position while the canvas frame slid over it — a wipe across a stationary Chat, with each line
-uncovered from its right end. `selectDestination` therefore commits the selection and defers
-`HausDrawerState.set(open:)` to the next main-actor turn, so the spring animates a screen that is already there
-and the Chat travels with the drawer, its leading edge fixed to the canvas's. That hop is the
-earliest legal one — SwiftUI merges every mutation made in one turn into a single transaction — so
-the hold is one frame plus the new screen's first layout and cannot go lower. What keeps it from
-reading as a beat is the veil: the veil leaves by removal, never by animating to clear, so which
-transaction the removal lands in decides what the user sees. An interactive close (drag, veil tap,
-header button) removes it inside the closing spring — the fade that reads as the canvas lifting off
-the same Chat — while a Chat selection drops it unanimated in the frame the new screen mounts, so
-the incoming Chat arrives fully lit and the slide is the whole transition. `HausDrawerClose`
-carries that distinction and `HausDrawerVeil.isPainted` applies it. Anything that must survive a switch — the composer draft,
+in two frames. The drawer's geometry — offset, corner radius, veil, shadow, and the pan — belongs to
+the UIKit container, which outlives the keyed screen, so the incoming screen mounts inside the moving
+canvas and travels with it, its leading edge fixed to the canvas's. The selection reaches the canvas's
+hosting controller in the shell's next SwiftUI update, after `selectDestination` returns, so
+`selectDestination` defers `HausDrawerState.set(open:)` to the next main-actor turn, and the
+container lays the new screen out before the closing spring's first frame; closing in the same turn
+slid the outgoing screen for a frame and then showed an empty canvas while the new one mounted. The
+hold is the new screen's first layout. The veil decides how the close reads. An interactive close
+(drag, veil tap, header button) fades it with the closing spring — the canvas lifting off the same
+Chat — while a Chat selection drops it at once, in the frame the new screen appears, so the
+incoming Chat arrives fully lit and the slide is the whole transition. `HausDrawerClose` carries that
+distinction and `HausDrawerVeil.isPainted` applies it. Anything that must survive a switch — the composer draft,
 the staged attachments and their in-flight preparation, a pending message reveal — is owned by the
 shell per destination and reaches the screen as a binding or by reference; a remount resets only
 presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
