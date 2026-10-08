@@ -217,7 +217,7 @@ struct AuthenticatedHausView: View {
                     onDrawerPresentedChange: { open in
                         open ? store.holdSidebarOrder() : store.releaseSidebarOrder()
                     },
-                    notice: { store.sendError }
+                    notice: { store.notice }
                 )
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in

@@ -1,6 +1,8 @@
 import Foundation
 import HausModels
 import HausTransport
+import HausUI
+import OSLog
 
 extension HausStore {
     /// Sends the first message to an Agent without creating a placeholder Chat.
@@ -23,7 +25,6 @@ extension HausStore {
                 inlineReply: nil
             )
         )
-        sendError = nil
 
         do {
             let receipt: SendReceipt = try await client.mutation(
@@ -44,7 +45,8 @@ extension HausStore {
             return chatID
         } catch {
             removePendingMessage(nonce: nonce)
-            sendError = error.localizedDescription
+            Self.logger.error("Sending an Agent DM failed: \(error.localizedDescription, privacy: .public)")
+            notice = HausShellNotice(.messageNotSent)
             return nil
         }
     }

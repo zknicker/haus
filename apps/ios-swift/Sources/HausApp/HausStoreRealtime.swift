@@ -108,7 +108,6 @@ extension HausStore {
             markConnected()
         } catch {
             markDisconnected()
-            sendError = error.localizedDescription
             Self.logger.error("Foreground refresh failed: \(error.localizedDescription, privacy: .public)")
             startEventStreams(serverID: serverID)
         }

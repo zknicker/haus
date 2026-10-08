@@ -1,6 +1,7 @@
 import Foundation
 import HausModels
 import HausUI
+import OSLog
 
 extension HausStore {
     func threadChatID(parentChatID: String, anchorMessageID: String) -> String? {
@@ -76,7 +77,10 @@ extension HausStore {
         let nonce = UUID().uuidString.lowercased()
         let pendingChatID = pendingChatID ?? chatID
         if messagesByChatID[pendingChatID]?.nextAfterSequence != nil {
-            guard await loadHistory(chatID: pendingChatID, direction: .latest) else { return nil }
+            guard await loadHistory(chatID: pendingChatID, direction: .latest) else {
+                notice = HausShellNotice(.messageNotSent)
+                return nil
+            }
         }
         historyNavigation.followingLatest[pendingChatID] = true
         pendingMessagesByChatID[pendingChatID, default: []].append(
@@ -89,7 +93,6 @@ extension HausStore {
                 inlineReply: replyPreview
             )
         )
-        sendError = nil
 
         do {
             // Attachments are reserved in the Chat the composer is anchored in,
@@ -142,7 +145,8 @@ extension HausStore {
             // child before this mutation fails. Remove by nonce across both
             // the provisional and canonical keys.
             removePendingMessage(nonce: nonce)
-            sendError = error.localizedDescription
+            Self.logger.error("Sending a message failed: \(error.localizedDescription, privacy: .public)")
+            notice = HausShellNotice(.messageNotSent)
             return nil
         }
     }

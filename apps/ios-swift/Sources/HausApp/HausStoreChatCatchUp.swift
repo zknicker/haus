@@ -54,7 +54,6 @@ extension HausStore {
         } catch is CancellationError {
             return
         } catch {
-            sendError = error.localizedDescription
             catchUpLogger.error(
                 "Chat event catch-up failed: \(error.localizedDescription, privacy: .public)"
             )

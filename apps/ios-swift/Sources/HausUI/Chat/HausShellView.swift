@@ -52,7 +52,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     let onDrawerPresentedChange: (Bool) -> Void
     /// The latest failure worth telling the reader about, read by the notice
     /// banner alone so a new error never re-runs the shell body.
-    private let notice: () -> String?
+    private let notice: () -> HausShellNotice?
 
     @Binding var selectedDestinationID: ChatDestination.ID?
     /// Whether the canvas is the Inbox rather than the selected Chat. The App
@@ -117,7 +117,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         },
         onVisibleMessages: @escaping (ChatDestination, [String]) -> Void = { _, _ in },
         onDrawerPresentedChange: @escaping (Bool) -> Void = { _ in },
-        notice: @escaping () -> String? = { nil }
+        notice: @escaping () -> HausShellNotice? = { nil }
     ) {
         _selectedDestinationID = selectedDestinationID
         _showsInbox = showsInbox
@@ -186,7 +186,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
             // Below the chrome row, over whatever is there: a notice never
             // moves the transcript or the drawer.
             .overlay(alignment: .top) {
-                HausShellNoticeHost(message: notice)
+                HausShellNoticeHost(notice: notice)
                     .padding(.top, HausChrome.headerHeight + 4)
             }
         }

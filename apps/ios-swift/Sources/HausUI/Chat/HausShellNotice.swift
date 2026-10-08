@@ -1,34 +1,68 @@
+import Foundation
 import SwiftUI
+
+/// One failure the reader should hear about, in product copy. Each notice is
+/// its own event: a repeat of the same failure carries a new `id`, so the
+/// banner shows it again. The copy is fixed per reason — a transport or Server
+/// error string never reaches the reader.
+public struct HausShellNotice: Identifiable, Equatable, Sendable {
+    /// What failed, from the reader's side. Background work — catch-up,
+    /// foreground refresh, stream recovery — has no reason here: the offline
+    /// indicator already speaks for connectivity, so those failures are logged.
+    public enum Reason: CaseIterable, Equatable, Sendable {
+        case messageNotSent
+        case messagesNotLoaded
+        case repliesNotLoaded
+        case cloudAgentsNotRefreshed
+    }
+
+    public let id: UUID
+    public let reason: Reason
+
+    public init(_ reason: Reason, id: UUID = UUID()) {
+        self.id = id
+        self.reason = reason
+    }
+
+    public var message: String {
+        switch reason {
+        case .messageNotSent: "Message not sent. Check your connection and try again."
+        case .messagesNotLoaded: "Messages could not load. Check your connection and try again."
+        case .repliesNotLoaded: "Replies could not load. Check your connection and try again."
+        case .cloudAgentsNotRefreshed: "Cloud agent status could not refresh. Check your connection and try again."
+        }
+    }
+}
 
 /// A calm, transient notice for a failure the reader should know about — a
 /// message that did not send, a refresh that failed. It slides in under the
 /// chrome row, is announced to VoiceOver, and leaves on its own or on a tap.
 ///
-/// It reads the App's error through a closure so this host, not the shell, is
-/// what a new error invalidates. A value already present when the host mounts
-/// is stale and is not shown; only a change is news.
+/// It reads the App's notice through a closure so this host, not the shell, is
+/// what a new notice invalidates. A notice already present when the host mounts
+/// is stale and is not shown; only a new one is news.
 struct HausShellNoticeHost: View {
-    let message: () -> String?
+    let notice: () -> HausShellNotice?
 
-    @State private var shown: String?
+    @State private var shown: HausShellNotice?
 
     static let visibleDuration: Duration = .seconds(4)
 
     var body: some View {
-        let current = message()
+        let current = notice()
         ZStack {
             if let shown {
-                HausShellNoticeBanner(message: shown) { self.shown = nil }
+                HausShellNoticeBanner(message: shown.message) { self.shown = nil }
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .animation(.snappy(duration: 0.3), value: shown)
         .onChange(of: current) { _, next in
-            guard let next, !next.isEmpty else { return }
+            guard let next else { return }
             shown = next
-            AccessibilityNotification.Announcement(next).post()
+            AccessibilityNotification.Announcement(next.message).post()
         }
-        .task(id: shown) {
+        .task(id: shown?.id) {
             guard shown != nil else { return }
             try? await Task.sleep(for: Self.visibleDuration)
             guard !Task.isCancelled else { return }
@@ -69,6 +103,6 @@ struct HausShellNoticeBanner: View {
 }
 
 #Preview {
-    HausShellNoticeBanner(message: "Message not sent. Check your connection and try again.") {}
+    HausShellNoticeBanner(message: HausShellNotice(.messageNotSent).message) {}
         .padding()
 }
