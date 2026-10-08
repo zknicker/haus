@@ -4,7 +4,7 @@ import type {
     SyncHumanIdentityInput,
     UpdateHumanProfileInput,
 } from '@haus/api';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';
@@ -38,7 +38,6 @@ export async function syncHumanIdentity(
             .select({
                 displayName: usersTable.displayName,
                 handle: serverMembershipsTable.handle,
-                timezone: usersTable.timezone,
             })
             .from(serverMembershipsTable)
             .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
@@ -70,7 +69,11 @@ export async function syncHumanIdentity(
             .set({
                 displayName: displayName && displayName.length > 0 ? displayName : null,
                 email: input.email?.trim() || null,
-                timezone: existing.timezone ?? input.timezone ?? null,
+                // Fill only a blank in this statement: a zone the human sets
+                // while this sync runs must survive it.
+                ...(input.timezone
+                    ? { timezone: sql`coalesce(${usersTable.timezone}, ${input.timezone})` }
+                    : {}),
             })
             .where(eq(usersTable.id, member.id));
         await tx

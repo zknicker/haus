@@ -48,6 +48,27 @@ test('a timezone must be an IANA zone and only a member sets their own', async (
     });
 });
 
+// A sign-in sync that read a blank zone must not overwrite a zone the human
+// set while it ran: the fill checks for a blank in the same statement.
+test('a device-zone fill never overwrites a concurrently chosen zone', async () => {
+    const { owner, ownerUserId, serverId } = fixture;
+    for (let round = 0; round < 8; round += 1) {
+        await fixture.harness.sql`update users set timezone = null where id = ${ownerUserId}`;
+        await Promise.all([
+            owner.trpc.member.syncIdentity.mutate({
+                email: 'ada@haus.test',
+                name: 'Ada',
+                serverId,
+                timezone: 'Asia/Tokyo',
+            }),
+            owner.trpc.member.setTimezone.mutate({ serverId, timezone: 'Europe/Berlin' }),
+        ]);
+        expect(
+            (await owner.trpc.member.get.query({ serverId, userId: ownerUserId })).timezone
+        ).toBe('Europe/Berlin');
+    }
+});
+
 test('people lookup shows each human’s timezone to Agents', async () => {
     const { owner, serverId } = fixture;
     await owner.trpc.member.setTimezone.mutate({ serverId, timezone: 'America/Chicago' });
