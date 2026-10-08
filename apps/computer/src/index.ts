@@ -875,8 +875,8 @@ async function connect(
         readUpdateProgress(dataRoot),
         readComputerName(),
     ]);
-    const socket = new WebSocket(socketUrl);
     const connectionWork = await AttachmentConnectionWork.make(runtime);
+    const socket = new WebSocket(socketUrl);
     const { agentWork, noticeSinks, resettingAgents, retiredAgents } = daemonWork;
     let deleting = false;
     let deletionPromise: Promise<void> | null = null;

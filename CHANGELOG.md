@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v9.1.0 - 2026-10-08
+
+- Chats and Threads accept dropped files as attachments, with a preview before sending. Activity groups Agent turns by day and shows days with no activity.
+- Haus App 5.2.0 opens Cloud Agent runs in Cursor. Agent profiles and Settings support new-tab gestures; Threads open in the side pane, and Thread tabs use the full page width. Dark desktop surfaces have clearer separation.
+- Haus Agent 7.1.0 uses its execution runtime's native web tools, receives notices when an installed Haus skill changes, and saves standing preferences as short merged rules. Pi Agents load their own skill library. Claude Code Agents can continue beyond the former turn limit and use Haus for questions and scheduled work.
+- Haus Computer 7.1.0 reconnects after a Server restart without missing a fast socket connection, and keeps a completed update successful when active Agent turns take longer to drain during restart. Update Computer to 7.1.0 for the new Agent behavior.
+
 ## v9.0.0 - 2026-10-07
 
 - Activity shows every Agent's turns across a Server, with timed steps, sub-agent work, readable tool results, generated images, and a link back to the Chat that started the work. Agent profiles use the same event log.
