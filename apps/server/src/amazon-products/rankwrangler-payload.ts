@@ -72,11 +72,33 @@ export function parseProductDetails(result: unknown): AmazonProductDetail {
     });
 }
 
-/** `getMany` returns fixed-shape basics: title, thumbnail, and listing status. */
+export const summaryFields = ['shortName', 'cutoutThumbnail'] as const;
+
+const summaryItemSchema = amazonProductSummarySchema
+    .omit({ brand: true, cutoutThumbnail: true, enrichment: true, shortName: true })
+    .extend({
+        shortName: amazonProductSummarySchema.shape.shortName.unwrap(),
+        cutoutThumbnail: z.union([
+            amazonProductSummarySchema.shape.thumbnail,
+            z.object({ status: z.literal('pending') }),
+        ]),
+        pending: z.array(z.enum(summaryFields)),
+    });
+
+/**
+ * `getMany` with `include: summaryFields`. A non-empty `pending` means
+ * RankWrangler is still generating those fields; empty means settled.
+ */
 export function parseProductSummaries(result: unknown): AmazonProductSummary[] {
     return z
-        .object({ operation: z.literal('getMany'), data: z.array(amazonProductSummarySchema) })
-        .parse(rankWranglerPayload(result)).data;
+        .object({ operation: z.literal('getMany'), data: z.array(summaryItemSchema) })
+        .parse(rankWranglerPayload(result))
+        .data.map(({ pending, cutoutThumbnail, ...item }) => ({
+            ...item,
+            brand: null,
+            cutoutThumbnail: cutoutThumbnail.status === 'pending' ? null : cutoutThumbnail,
+            enrichment: pending.length > 0 ? 'pending' : 'ready',
+        }));
 }
 
 export function assertSameProduct(
