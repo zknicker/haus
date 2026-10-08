@@ -56,6 +56,7 @@ extension HausStore {
     /// page, its optimistic rows, the Agent and Member directories, and the
     /// lifecycle presence overlay. Each of those is a `HausStore` accessor
     /// whose setter retires this cache, so a stale row is not expressible.
+    /// A rebuild reuses each unchanged message's parsed body.
     func messagePresentations(chatID: String) -> [MessagePresentation] {
         trackProjectionDirectory()
         let page = messagesByChatID[chatID]
@@ -92,12 +93,12 @@ extension HausStore {
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
-            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content)
+            let parsed = parsedBody(id: message.id, content: message.content)
             let ownWork: CloudAgentWork? = if case .cloudAgentWork(let work) = message.body { work } else { nil }
             return MessagePresentation(
                 id: message.id,
                 author: author,
-                content: body,
+                content: parsed.body,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(attachmentPresentation),
                 sequence: message.sequence,
@@ -111,8 +112,8 @@ extension HausStore {
                     cloudAgentWork, anchorMessageID: message.id, ownWorkID: ownWork?.id
                 ).map(cloudAgentPresentation),
                 reactions: reactionPresentations(message.reactions),
-                richBlocks: richMessageBlocks(fenced.prose),
-                visualBody: fenced
+                richBlocks: parsed.richBlocks,
+                visualBody: parsed.visuals
             )
         }
     }
@@ -136,17 +137,17 @@ extension HausStore {
             // An optimistic row goes through the same body resolution as a
             // durable one, so its mentions survive the trust check even when
             // trimming changes the string the composer staged.
-            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content)
+            let parsed = parsedBody(id: message.id, content: message.content)
             return MessagePresentation(
                 id: message.id,
                 author: viewer,
-                content: body,
+                content: parsed.body,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(\.presentation),
                 inlineReply: message.inlineReply,
                 isPending: true,
-                richBlocks: richMessageBlocks(fenced.prose),
-                visualBody: fenced
+                richBlocks: parsed.richBlocks,
+                visualBody: parsed.visuals
             )
         }
     }
@@ -158,6 +159,19 @@ extension HausStore {
             mediaType: attachment.mediaType,
             sizeBytes: attachment.sizeBytes
         )
+    }
+
+    /// The body parse is the expensive step of a row, so it is memoized per
+    /// message and survives every rebuild that cannot change it.
+    private func parsedBody(id: String, content: String) -> ParsedMessageBody {
+        let revision = projections.referenceRevision
+        if let cached = projections.bodies.cached(id: id, content: content, revision: revision) {
+            return cached
+        }
+        let (body, visuals) = MessagePresentation.resolvedBody(content: content)
+        let parsed = ParsedMessageBody(body: body, visuals: visuals, richBlocks: richMessageBlocks(visuals.prose))
+        projections.bodies.remember(parsed, id: id, content: content, revision: revision)
+        return parsed
     }
 
     private func richMessageBlocks(_ content: String) -> [RichMessageBlock] {

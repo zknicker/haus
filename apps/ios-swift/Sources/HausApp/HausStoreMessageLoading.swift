@@ -49,9 +49,11 @@ extension HausStore {
                 }
                 shouldReloadActiveCloudAgentWork = true
             case .chatRead:
-                // Server addresses this event to the reader alone, so every one
-                // that reaches this client is the echo of its own
-                // acknowledgement. It is the single refresh for that read.
+                // Server addresses this event to the reader alone: the echo of
+                // this client's acknowledgement or a read on another device.
+                // It carries no unread count, so it asks for a Chat list read,
+                // which the coalesced refresh shares with the batch that
+                // triggered the acknowledgement.
                 shouldReloadChats = true
             case .threadFollowUpdated:
                 if let parentChatID = event.parentChatID {
@@ -72,17 +74,18 @@ extension HausStore {
             }
         }
 
-        for chatID in affectedChatIDs.sorted() where messagesByChatID[chatID] != nil {
-            await loadMessages(chatID: chatID)
-            if openChatID == chatID {
-                await markChatReadIfNeeded(chatID: chatID)
+        // Each loaded page is its own read, so they run side by side; the open
+        // Chat acknowledges as soon as its own page lands.
+        await withTaskGroup(of: Void.self) { group in
+            for chatID in affectedChatIDs where messagesByChatID[chatID] != nil {
+                group.addTask { await self.refreshLoadedPage(chatID: chatID) }
             }
         }
         if !inlineRefreshChatIDs.isEmpty {
             await refreshInlineReplies(for: inlineRefreshChatIDs)
         }
         if shouldReloadChats {
-            try? await reloadChats(serverID: serverID)
+            await refreshChatList(serverID: serverID)
         }
         // The Inbox snapshots refresh only when this client already holds them,
         // the way the App's invalidation only refetches a live query: an event
@@ -100,6 +103,13 @@ extension HausStore {
         // itself the refresh trigger, read from the pages just loaded.
         if namesUnlistedLiveCreatedAgent(in: affectedChatIDs) {
             try? await reloadAgents(serverID: serverID)
+        }
+    }
+
+    private func refreshLoadedPage(chatID: String) async {
+        await loadMessages(chatID: chatID)
+        if openChatID == chatID {
+            await markChatReadIfNeeded(chatID: chatID)
         }
     }
 

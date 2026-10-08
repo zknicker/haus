@@ -10,8 +10,9 @@ import OSLog
 @Observable
 final class HausStore {
     static let logger = Logger(subsystem: "chat.haus.ios", category: "server")
-    private(set) var state: State = .idle
-    private(set) var isConnected = false
+    // Internal so the launch can live in `HausStoreServerReload.swift`.
+    var state: State = .idle
+    var isConnected = false
     // Internal so the batched snapshot apply can live with the rest of the
     // realtime plumbing.
     var servers: [ServerSummary] = []
@@ -73,15 +74,40 @@ final class HausStore {
     var taskBackgroundCount = 0
     var cloudAgentWorkByChatID: [String: [ThreadCloudAgentWork]] = [:] {
         didSet {
-            if oldValue != cloudAgentWorkByChatID { projections.retireMessageProjections() }
+            guard oldValue != cloudAgentWorkByChatID else { return }
+            projections.retireMessages(chatIDs: KeyedChanges.between(oldValue, cloudAgentWorkByChatID))
         }
     }
     private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
     private var storedLifecycleAvailability: [String: AgentAvailability] = [:]
+    /// The sidebar's row order, frozen while the drawer is open so a new
+    /// message cannot move a row under the reader's finger. See
+    /// `holdSidebarOrder()`.
+    var sidebarOrder = HeldOrder<ChatDestination.ID>() {
+        didSet {
+            if oldValue != sidebarOrder { projections.chatDestinations = nil }
+        }
+    }
     var sendError: String?
     var chatEventServerID: String?
     var chatEventReplay = ChatEventReplayState()
     @ObservationIgnored lazy var reactionStickers = Self.makeReactionStickerBoard { [weak self] in self }
+    // Stream recovery (`HausStoreEventStreams.swift`).
+    @ObservationIgnored var streamRestart: Task<Void, Never>?
+    @ObservationIgnored var streamRestartAttempt = 0
+    @ObservationIgnored var streamsStartedAt: Date?
+    @ObservationIgnored var streamsHealthy = false
+    /// When the app last left the foreground, so a quick return can skip the
+    /// full snapshot while its streams are still up.
+    @ObservationIgnored var backgroundedAt: Date?
+    @ObservationIgnored var chatListRefresh: Task<Void, Never>?
+    // Launch (`HausStoreServerReload.swift`, `HausStoreLaunchSnapshot.swift`).
+    /// Whether a live load has replaced whatever the launch painted from disk.
+    @ObservationIgnored var hasLiveServerState = false
+    @ObservationIgnored var launchRetry: Task<Void, Never>?
+    @ObservationIgnored var launchSnapshotWrite: Task<Void, Never>?
+    let launchSnapshots = LaunchSnapshotStore.applicationSupport()
+    @ObservationIgnored var chatListRefreshAgain = false
     var chatEventCatchUpInFlight = false
     var chatEventCatchUpPending = false
     /// The deepest Chat surface on the user's stack, and the only Chat that
@@ -145,39 +171,6 @@ final class HausStore {
 
     var activeServer: ServerSummary? { servers.first }
 
-    func start() async {
-        guard case .idle = state else { return }
-        state = .loading
-        do {
-            if HausRuntimeConfiguration.development != nil {
-                let _: ServerSummary = try await client.mutation("server.developmentBootstrap")
-            }
-            let loadedServers: [ServerSummary] = try await client.query("server.list")
-            if activeServer?.id != loadedServers.first?.id {
-                resetInlineReplyCache()
-            }
-            servers = loadedServers
-            guard let server = loadedServers.first else {
-                state = .failed("You do not have a Haus Server yet.")
-                return
-            }
-            try await syncHumanIdentity(serverID: server.id)
-            try await reloadServer(server.id)
-            startEventStreams(serverID: server.id)
-            isConnected = true
-            state = .loaded
-        } catch {
-            state = .failed(error.localizedDescription)
-            isConnected = false
-        }
-    }
-
-    func retry() async {
-        stopEventStreams()
-        state = .idle
-        await start()
-    }
-
     /// Observation notifies on equal-value writes, so the event paths must not
     /// restate a connection they already have: doing so invalidated the root
     /// body once per SSE frame. `markDisconnected` is the same rule for the
@@ -209,7 +202,8 @@ final class HausStore {
         set {
             guard storedAgents != newValue else { return }
             storedAgents = newValue
-            projections.retireDirectoryProjections()
+            scheduleLaunchSnapshotWrite()
+            projections.retireAgents(newValue)
         }
     }
 
@@ -219,7 +213,8 @@ final class HausStore {
         set {
             guard storedMembers != newValue else { return }
             storedMembers = newValue
-            projections.retireDirectoryProjections()
+            scheduleLaunchSnapshotWrite()
+            projections.retireMembers(newValue?.members ?? [])
         }
     }
 
@@ -231,7 +226,7 @@ final class HausStore {
         set {
             guard storedLifecycleAvailability != newValue else { return }
             storedLifecycleAvailability = newValue
-            projections.retireDirectoryProjections()
+            projections.retirePresence()
         }
     }
 
@@ -241,7 +236,8 @@ final class HausStore {
             if !hasLoadedChats { hasLoadedChats = true }
             guard storedChats != newValue else { return }
             storedChats = newValue
-            projections.retireChatListProjection()
+            scheduleLaunchSnapshotWrite()
+            projections.retireChatList(newValue)
         }
     }
 
@@ -251,25 +247,33 @@ final class HausStore {
         set {
             guard storedReceiptBackedAgentDMsByChatID != newValue else { return }
             storedReceiptBackedAgentDMsByChatID = newValue
-            projections.retireChatListProjection()
+            projections.chatDestinations = nil
         }
     }
 
     var messagesByChatID: [String: ChatMessagePage] {
         get { storedMessagesByChatID }
         set {
-            guard storedMessagesByChatID != newValue else { return }
+            let changed = KeyedChanges.between(storedMessagesByChatID, newValue)
+            guard !changed.isEmpty else { return }
             storedMessagesByChatID = newValue
-            projections.retireMessageProjections()
+            scheduleLaunchSnapshotWrite()
+            // A Thread's rows resolve cloud-agent conversation links through
+            // its parent's page, so loaded Threads (pages the Chat list does
+            // not name) follow any page write.
+            let listedChatIDs = Set(storedChats.map(\.id))
+            let threadChatIDs = newValue.keys.filter { !listedChatIDs.contains($0) }
+            projections.retireMessages(chatIDs: changed.union(threadChatIDs))
         }
     }
 
     var pendingMessagesByChatID: [String: [PendingChatMessage]] {
         get { storedPendingMessagesByChatID }
         set {
-            guard storedPendingMessagesByChatID != newValue else { return }
+            let changed = KeyedChanges.between(storedPendingMessagesByChatID, newValue)
+            guard !changed.isEmpty else { return }
             storedPendingMessagesByChatID = newValue
-            projections.retireMessageProjections()
+            projections.retireMessages(chatIDs: changed)
         }
     }
 }
