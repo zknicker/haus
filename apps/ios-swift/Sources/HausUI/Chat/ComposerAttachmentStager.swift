@@ -19,7 +19,7 @@ struct ComposerPhotoFile: Transferable {
     }
 }
 
-enum ComposerAttachmentStager {
+public enum ComposerAttachmentStager {
     static let maximumSize = 50 * 1_024 * 1_024
 
     static func stagePhoto(at sourceURL: URL) throws -> ComposerAttachment {
@@ -63,7 +63,7 @@ enum ComposerAttachmentStager {
         }
     }
 
-    static func remove(_ attachment: ComposerAttachment) {
+    public static func remove(_ attachment: ComposerAttachment) {
         try? FileManager.default.removeItem(at: attachment.localURL.deletingLastPathComponent())
     }
 

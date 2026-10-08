@@ -147,6 +147,7 @@ extension HausStore {
                 attachments: message.attachments.map(\.presentation),
                 inlineReply: message.inlineReply,
                 isPending: true,
+                isSendFailed: message.sendState == .failed,
                 richBlocks: parsed.richBlocks,
                 visualBody: parsed.visuals
             )

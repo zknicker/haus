@@ -90,8 +90,6 @@ final class HausStore {
             if oldValue != sidebarOrder { projections.chatDestinations = nil }
         }
     }
-    /// The latest user-initiated failure the shell banner announces.
-    var notice: HausShellNotice?
     var chatEventServerID: String?
     var chatEventReplay = ChatEventReplayState()
     @ObservationIgnored lazy var reactionStickers = Self.makeReactionStickerBoard { [weak self] in self }

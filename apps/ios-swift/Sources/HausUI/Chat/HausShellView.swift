@@ -50,9 +50,6 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     /// Every settled drawer open or close. The App freezes the sidebar's order
     /// while it is open, so a re-sort lands on the next open, animated.
     let onDrawerPresentedChange: (Bool) -> Void
-    /// The latest failure worth telling the reader about, read by the notice
-    /// banner alone so a new error never re-runs the shell body.
-    private let notice: () -> HausShellNotice?
 
     @Binding var selectedDestinationID: ChatDestination.ID?
     /// Whether the canvas is the Inbox rather than the selected Chat. The App
@@ -116,8 +113,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
             throw CancellationError()
         },
         onVisibleMessages: @escaping (ChatDestination, [String]) -> Void = { _, _ in },
-        onDrawerPresentedChange: @escaping (Bool) -> Void = { _ in },
-        notice: @escaping () -> HausShellNotice? = { nil }
+        onDrawerPresentedChange: @escaping (Bool) -> Void = { _ in }
     ) {
         _selectedDestinationID = selectedDestinationID
         _showsInbox = showsInbox
@@ -153,7 +149,6 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.createChannel = createChannel
         self.onVisibleMessages = onVisibleMessages
         self.onDrawerPresentedChange = onDrawerPresentedChange
-        self.notice = notice
     }
 
     public var body: some View {
@@ -183,12 +178,6 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                 canvas(proxy: proxy, drawerWidth: drawerWidth)
             }
             .background(HausPlatformColor.background)
-            // Below the chrome row, over whatever is there: a notice never
-            // moves the transcript or the drawer.
-            .overlay(alignment: .top) {
-                HausShellNoticeHost(notice: notice)
-                    .padding(.top, HausChrome.headerHeight + 4)
-            }
         }
         // The shell's geometry never answers the keyboard: a keyboard-sized safe area shrank the
         // sidebar under a keyboard still up as the drawer opened. The Chat screen reads the

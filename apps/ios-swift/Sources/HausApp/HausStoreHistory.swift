@@ -117,14 +117,11 @@ extension HausStore {
         } catch {
             guard agentMessageRecovery.accepts(readToken, activeServerID: activeServer?.id),
                   historyNavigation.requests.isCurrent(ticket, chatID: chatID) else { return false }
+            // A page the reader asked for says so where they asked
+            // (`TranscriptLoadOlderButton`); everything else is background work
+            // the offline indicator covers, and a jump to a message has its own
+            // unavailable alert.
             Self.logger.error("Loading history failed: \(error.localizedDescription, privacy: .public)")
-            // Only a page the reader asked for is news. A refresh is background
-            // work the offline indicator covers, and a jump to a message has its
-            // own unavailable alert.
-            switch direction {
-            case .older, .newer, .latest: notice = HausShellNotice(.messagesNotLoaded)
-            case .refresh, .around: break
-            }
             return false
         }
     }

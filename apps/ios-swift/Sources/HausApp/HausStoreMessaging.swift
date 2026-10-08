@@ -21,6 +21,9 @@ extension HausStore {
         "thread-pending:\(anchorMessageID)"
     }
 
+    /// True once the message is the viewer's row in the transcript — sent, in
+    /// flight, or kept as a failed row to retry. False only when nothing left
+    /// the composer (no Server, nothing to send), so the composer keeps it.
     @discardableResult
     func send(
         _ content: String,
@@ -31,7 +34,7 @@ extension HausStore {
         threadAnchorMessageID: String? = nil,
         pendingChatID: String? = nil
     ) async -> Bool {
-        await sendReceipt(
+        await sendOutcome(
             content,
             to: chatID,
             attachments: attachments,
@@ -39,22 +42,20 @@ extension HausStore {
             replyPreview: replyPreview,
             threadAnchorMessageID: threadAnchorMessageID,
             pendingChatID: pendingChatID
-        ) != nil
+        ) != .rejected
     }
 
-    /// Sends a Thread reply through the parent Chat and returns the canonical
-    /// child Chat id created (or found) by Server. The child id is deliberately
-    /// receipt-backed: the iPhone client must never derive or invent one while
-    /// the first reply is in flight.
-    @discardableResult
+    /// Sends a Thread reply through the parent Chat. A sent reply carries the
+    /// canonical child Chat id Server created (or found): the iPhone client
+    /// must never derive or invent one while the first reply is in flight.
     func sendThreadReply(
         _ content: String,
         to parentChatID: String,
         anchorMessageID: String,
         pendingChatID: String? = nil,
         attachments: [ComposerAttachment] = []
-    ) async -> String? {
-        let receipt = await sendReceipt(
+    ) async -> SendOutcome {
+        await sendOutcome(
             content,
             to: parentChatID,
             attachments: attachments,
@@ -63,10 +64,9 @@ extension HausStore {
             threadAnchorMessageID: anchorMessageID,
             pendingChatID: pendingChatID
         )
-        return receipt?.threadChatID
     }
 
-    private func sendReceipt(
+    private func sendOutcome(
         _ content: String,
         to chatID: String,
         attachments: [ComposerAttachment],
@@ -74,86 +74,35 @@ extension HausStore {
         replyPreview: MessageReplyReferencePresentation?,
         threadAnchorMessageID: String?,
         pendingChatID: String?
-    ) async -> SendReceipt? {
-        guard let serverID = activeServer?.id else { return nil }
+    ) async -> SendOutcome {
+        guard activeServer?.id != nil else { return .rejected }
         let content = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !content.isEmpty || !attachments.isEmpty else { return nil }
+        guard !content.isEmpty || !attachments.isEmpty else { return .rejected }
 
-        let nonce = UUID().uuidString.lowercased()
-        let pendingChatID = pendingChatID ?? chatID
-        if messagesByChatID[pendingChatID]?.nextAfterSequence != nil {
-            guard await loadHistory(chatID: pendingChatID, direction: .latest) else {
-                notice = HausShellNotice(.messageNotSent)
-                return nil
-            }
-        }
-        historyNavigation.followingLatest[pendingChatID] = true
-        pendingMessagesByChatID[pendingChatID, default: []].append(
-            PendingChatMessage(
-                attachments: attachments,
-                chatID: pendingChatID,
-                content: content,
-                createdAt: .now,
-                nonce: nonce,
-                inlineReply: replyPreview
+        let row = PendingChatMessage(
+            attachments: attachments,
+            chatID: pendingChatID ?? chatID,
+            content: content,
+            createdAt: .now,
+            nonce: UUID().uuidString.lowercased(),
+            inlineReply: replyPreview,
+            target: .chat(
+                chatID: chatID,
+                replyToMessageID: replyToMessageID,
+                threadAnchorMessageID: threadAnchorMessageID
             )
         )
-
-        do {
-            // Attachments are reserved in the Chat the composer is anchored in,
-            // which for a Thread reply is the parent Chat — a first reply has no
-            // Thread chat id yet. Server re-homes them to the Thread the reply
-            // lands in, exactly as it does for the web composer.
-            let uploadedAttachments = try await uploadAttachments(
-                attachments,
-                serverID: serverID,
-                chatID: chatID
-            )
-            let receipt: SendReceipt = try await client.mutation(
-                "chat.send",
-                input: ChatSendInput(
-                    serverId: serverID,
-                    chatId: chatID,
-                    content: content,
-                    nonce: nonce,
-                    attachmentIds: uploadedAttachments.map(\.id),
-                    replyToMessageId: replyToMessageID,
-                    thread: threadAnchorMessageID.map(ChatThreadInput.init(anchorMessageId:))
-                )
-            )
-            // A first reply is optimistically keyed by its anchor (or another
-            // temporary route key). Move it to the child Chat returned by
-            // Server before loading that page so reconciliation retires the
-            // pending row instead of leaving a duplicate in the transcript.
-            adoptPendingMessages(from: pendingChatID, to: receipt.message.chatID)
-            // Server has named the message, so the optimistic row can carry the
-            // canonical id before its page is refetched. The row keeps one
-            // transcript identity from here through the durable row that
-            // replaces it.
-            adoptSentMessageID(receipt.message.id, nonce: nonce, in: receipt.message.chatID)
-            await loadMessages(chatID: receipt.message.chatID)
-            await markChatReadIfNeeded(chatID: receipt.message.chatID)
-            if threadAnchorMessageID != nil {
-                // Thread sends are addressed to the parent Chat plus anchor. Refresh both
-                // pages because the receipt lives in the child Chat while its reply count
-                // is projected onto the parent anchor.
-                await loadMessages(chatID: chatID)
-            }
-            // The send receipt is the durable acknowledgement. A projection
-            // refresh can race with the event stream; it must not turn an
-            // accepted message back into a failed mutation or strand the
-            // optimistic row after it has been moved to the canonical Chat.
-            try? await reloadChats(serverID: serverID)
-            return receipt
-        } catch {
-            // Another in-flight send can adopt this row into the canonical
-            // child before this mutation fails. Remove by nonce across both
-            // the provisional and canonical keys.
-            removePendingMessage(nonce: nonce)
-            Self.logger.error("Sending a message failed: \(error.localizedDescription, privacy: .public)")
-            notice = HausShellNotice(.messageNotSent)
-            return nil
+        // A page scrolled away from the latest messages would put the new row
+        // mid-history, so the latest page loads first.
+        if messagesByChatID[row.chatID]?.nextAfterSequence != nil,
+           !(await loadHistory(chatID: row.chatID, direction: .latest)) {
+            pendingMessagesByChatID[row.chatID, default: []].append(row)
+            failSend(nonce: row.nonce, reason: "the latest page did not load")
+            return .failed
         }
+        historyNavigation.followingLatest[row.chatID] = true
+        pendingMessagesByChatID[row.chatID, default: []].append(row)
+        return await deliver(row)
     }
 
     /// Resolves an attachment to a readable file, downloading it at most once.
@@ -179,7 +128,7 @@ extension HausStore {
         }
     }
 
-    private func uploadAttachments(
+    func uploadAttachments(
         _ attachments: [ComposerAttachment],
         serverID: String,
         chatID: String

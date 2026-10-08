@@ -585,17 +585,29 @@ confirming verb (Create, Save); an informational sheet with nothing to confirm �
 details, Archived, and the Settings root alike — uses Done in the confirmation slot; and a pushed
 screen uses the system back chevron rather than an explicit control.
 
-A user-initiated failure the reader should know about and no surface owns — a message that did not
-send, a page of history or replies they asked for that did not load, a Cloud Agent refresh that
-failed — reaches them as one calm notice under the chrome row (`HausShellNoticeHost`). The Store's
-`notice` is a `HausShellNotice`: a fixed product-copy reason plus a fresh id, so a repeat of the same
-failure shows again and no transport or Server error string ever reaches the reader. Background work
-(event catch-up, foreground refresh, stream recovery, history refresh) logs instead: the offline
-indicator already speaks for connectivity. A surface with its own failure state (the Inline replies
-region's Retry, the jump-to-message alert) does not also raise a notice. The host reads `notice`
-through a closure so only it observes the value, announces it to VoiceOver, overlays rather than
-moves content, and leaves on its own after four seconds or on a tap. A notice already present when
-the shell mounts is not news and is not shown.
+There is no shell banner. A failure is told where it happened, the way iOS apps do it. A send that
+does not reach Server stays in the transcript as the viewer's own optimistic row, at its sent
+position, marked failed (iMessage's pattern): a red `exclamationmark.circle.fill` beside the row, a
+red "Not sent" caption under it, and an error haptic. The composer clears on send either way, because
+the content lives in the row. Tapping the row opens a confirmation dialog with Try Again and Delete
+Message (`FailedSendControls`, routed through `FailedSendRoutes`, which the App installs at its root
+because hosted rows have no environment); the row's accessibility element reads "Not sent" and
+carries the same two actions. Try Again replays the original send — same content, target
+(`PendingSendTarget`), and nonce, so a send that did land replays on Server rather than posting twice
+— and Delete removes the local row and its staged files. The state machine is
+`OptimisticSendState` in HausModels (sending → failed → sending on retry, single-flight; only a
+failed row can be deleted), pinned by `OptimisticSendStateTests`. Failed rows are app-local Store
+state: they survive Chat switches within the session, never patch durable history, and are not
+persisted across launches. The Store owns staged attachment files from the moment a send leaves the
+composer and removes them after a confirmed send or a delete. The composer keeps its draft only
+when nothing left it at all (no Server).
+
+A page of history or replies the reader asked for that fails to load says so in place: the
+transcript's load-older accessory turns into a quiet "Couldn't load earlier messages · Try Again" line
+(`TranscriptLoadOlderButton`). Background work (event catch-up, foreground refresh, stream recovery,
+history refresh, Cloud Agent refresh) logs instead: the offline indicator already speaks for
+connectivity. The jump-to-message alert and the Inline replies region's Retry keep their own failure
+states.
 
 Search focuses its field as the sheet opens, so the keyboard is already up. Each result marks the
 matched term in label ink and semibold, and a message whose match falls late starts its excerpt at a

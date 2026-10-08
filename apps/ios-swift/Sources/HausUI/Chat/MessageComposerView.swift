@@ -351,13 +351,13 @@ public struct MessageComposerView: View {
         interaction.errorMessage = nil
         sendFeedback += 1
         Task {
-            if await onSend(content, submittedAttachments) {
-                submittedAttachments.forEach(ComposerAttachmentStager.remove)
-                return
-            }
+            // True means the message is the viewer's row in the transcript —
+            // sent, or kept there marked failed with Try Again. The Store owns
+            // the staged files from here. False means it never left, so the
+            // draft comes back.
+            if await onSend(content, submittedAttachments) { return }
             text = text.isEmpty ? content : [content, text].filter { !$0.isEmpty }.joined(separator: "\n")
             interaction.attachments = submittedAttachments + interaction.attachments
-            interaction.errorMessage = "Message not sent. Your draft is ready to retry."
             sendFailureFeedback += 1
         }
     }

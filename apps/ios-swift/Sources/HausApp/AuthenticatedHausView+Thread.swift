@@ -34,14 +34,18 @@ extension AuthenticatedHausView {
             // readable and takes its composer away.
             isReadOnly: store.chatsByID[thread.parentChatID]?.isReadOnly ?? false,
             onSend: { content, attachments in
-                guard let resolvedThreadChatID = await store.sendThreadReply(
+                let outcome = await store.sendThreadReply(
                     content,
                     to: thread.parentChatID,
                     anchorMessageID: thread.anchor.id,
                     pendingChatID: thread.threadChatID
                         ?? store.pendingThreadChatID(anchorMessageID: thread.anchor.id),
                     attachments: attachments
-                ) else { return false }
+                )
+                // A failed reply stays in the transcript as its own row to retry.
+                guard case .sent(let sentChatID) = outcome, let resolvedThreadChatID = sentChatID else {
+                    return outcome != .rejected
+                }
 
                 // Server is authoritative for the child Chat id. Usually this
                 // equals the route value; retaining the update makes a

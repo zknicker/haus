@@ -74,17 +74,11 @@ struct ThreadMessageRow: View {
                 }
 
                 if message.isPending {
-                    HStack(spacing: 5) {
-                        ProgressView()
-                            .controlSize(.mini)
-                        Text("Sending")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 2)
+                    PendingSendCaption(isFailed: message.isSendFailed)
                 }
             }
         }
+        .failedSendControls(message)
         .modifier(ReactionThud(stamps: reactionBoard?.stamps(messageID: message.id) ?? [:]))
         .modifier(ReactionObservation(messageID: message.id, reactions: message.reactions, board: reactionBoard))
         .padding(emphasized ? 12 : 0)

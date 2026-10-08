@@ -167,7 +167,6 @@ extension HausStore {
         } catch is CancellationError {
             return false
         } catch {
-            notice = HausShellNotice(.repliesNotLoaded)
             Self.logger.error("Loading older inline replies failed: \(error.localizedDescription, privacy: .public)")
             return false
         }

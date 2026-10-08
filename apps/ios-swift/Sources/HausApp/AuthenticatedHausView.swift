@@ -156,12 +156,14 @@ struct AuthenticatedHausView: View {
                         case .durableChat(let chat):
                             return await store.send(content, to: chat.id, attachments: attachments)
                         case .implicitAgentDM(let agent):
-                            guard attachments.isEmpty,
-                                  let chatID = await store.sendAgentDM(content, to: agent.id) else {
-                                return false
+                            guard attachments.isEmpty else { return false }
+                            switch await store.sendAgentDM(content, to: agent.id) {
+                            case .sent(let chatID):
+                                if let chatID { selectedDestinationID = .chat(chatID) }
+                                return true
+                            case .failed: return true
+                            case .rejected: return false
                             }
-                            selectedDestinationID = .chat(chatID)
-                            return true
                         }
                     },
                     onSendInlineReply: { destination, content, attachments, reference in
@@ -216,8 +218,7 @@ struct AuthenticatedHausView: View {
                     // Runs inside the drawer's animation, so a re-sort animates.
                     onDrawerPresentedChange: { open in
                         open ? store.holdSidebarOrder() : store.releaseSidebarOrder()
-                    },
-                    notice: { store.notice }
+                    }
                 )
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in

@@ -134,6 +134,9 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let thread: ThreadPreviewPresentation?
     public let task: TaskPresentation?
     public let isPending: Bool
+    /// A pending row whose send did not reach Server: the viewer's own row,
+    /// marked "Not sent", until they retry or delete it.
+    public let isSendFailed: Bool
     public let cloudAgents: [CloudAgentPresentation]
     public let threadCloudAgents: [CloudAgentPresentation]
     /// Grouped emoji reactions in the Server's order, reactors resolved.
@@ -162,6 +165,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         thread: ThreadPreviewPresentation? = nil,
         task: TaskPresentation? = nil,
         isPending: Bool = false,
+        isSendFailed: Bool = false,
         cloudAgents: [CloudAgentPresentation] = [],
         threadCloudAgents: [CloudAgentPresentation] = [],
         reactions: [MessageReactionPresentation] = [],
@@ -187,6 +191,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.thread = thread
         self.task = task
         self.isPending = isPending
+        self.isSendFailed = isPending && isSendFailed
         self.cloudAgents = cloudAgents
         self.threadCloudAgents = threadCloudAgents
         self.reactions = reactions

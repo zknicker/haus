@@ -111,6 +111,7 @@ extension ThreadDetailView {
             if let inlineReplies, inlineReplies.hasOlder() {
                 TranscriptLoadOlderButton(
                     title: "Load older inline replies",
+                    failureTitle: "Couldn’t load earlier replies",
                     isLoading: inlineReplies.isLoading(),
                     onLoad: inlineReplies.loadOlder
                 )
@@ -118,6 +119,7 @@ extension ThreadDetailView {
             if let inlineReplies, inlineReplies.hasNewer() {
                 TranscriptLoadOlderButton(
                     title: "Load newer inline replies",
+                    failureTitle: "Couldn’t load newer replies",
                     isLoading: inlineReplies.isLoading(),
                     onLoad: inlineReplies.loadNewer
                 )
@@ -125,6 +127,7 @@ extension ThreadDetailView {
             if history.hasOlder {
                 TranscriptLoadOlderButton(
                     title: "Load older replies",
+                    failureTitle: "Couldn’t load earlier replies",
                     isLoading: history.isLoading,
                     onLoad: history.loadOlder
                 )

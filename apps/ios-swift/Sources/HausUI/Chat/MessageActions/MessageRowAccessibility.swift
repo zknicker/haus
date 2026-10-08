@@ -60,6 +60,10 @@ extension View {
         accessibilityElement(children: .ignore)
             .accessibilityLabel(MessageRowAccessibilityLabel.label(for: message))
             .accessibilityActions {
+                if message.isSendFailed {
+                    Button("Try Again") { FailedSendRoutes.retry?(message.id) }
+                    Button("Delete Message") { FailedSendRoutes.delete?(message.id) }
+                }
                 if let onReact = actions.onReact {
                     Button("React", action: onReact)
                 }
@@ -71,6 +75,11 @@ extension View {
 }
 
 enum MessageRowAccessibilityLabel {
+    private static func pendingState(_ message: MessagePresentation) -> String? {
+        guard message.isPending else { return nil }
+        return message.isSendFailed ? "Not sent" : "Sending"
+    }
+
     static func label(for message: MessagePresentation, now: Date = .now) -> String {
         let day = TranscriptDayLabel.title(for: message.createdAt, now: now)
         let time = message.createdAt.formatted(date: .omitted, time: .shortened)
@@ -83,7 +92,7 @@ enum MessageRowAccessibilityLabel {
             .joined(separator: "\n")
         let when = day == "Today" ? time : "\(day), \(time)"
         // The cause line draws above the identity block but reads as part of it.
-        return [message.cause?.accessibilityLabel, message.author.name, when, body, message.isPending ? "Sending" : nil]
+        return [message.cause?.accessibilityLabel, message.author.name, when, body, pendingState(message)]
             .compactMap { $0?.isEmpty == false ? $0 : nil }
             .joined(separator: ", ")
     }

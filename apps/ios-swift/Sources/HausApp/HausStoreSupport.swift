@@ -153,7 +153,7 @@ struct AttachmentReservation: Decodable, Sendable {
     let state: String
 }
 
-struct PendingChatMessage: Identifiable, Equatable, Sendable {
+struct PendingChatMessage: Identifiable, Equatable, Sendable, OptimisticSendRow {
     let attachments: [ComposerAttachment]
     let chatID: String
     let content: String
@@ -161,9 +161,12 @@ struct PendingChatMessage: Identifiable, Equatable, Sendable {
     let nonce: String
     /// The selected parent snapshot shown while an inline reply is in flight.
     let inlineReply: MessageReplyReferencePresentation?
+    /// Where the send goes, so Try Again replays it exactly.
+    let target: PendingSendTarget
     /// Adopted from the send receipt, before the page that carries the message
     /// is refetched. Nil until Server has named the message.
     var serverMessageID: String?
+    var sendState: OptimisticSendState = .sending
 
     var id: String {
         OptimisticMessageRow.id(nonce: nonce, serverMessageID: serverMessageID)
