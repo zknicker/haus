@@ -49,9 +49,6 @@ export function createHarnessForRuntime(
         case 'claude-code':
             return withComputerBridgeBootstrap(
                 createClaudeCode({
-                    // CLI-only output makes every send/check a tool call, so turns
-                    // legitimately run long tool loops.
-                    maxTurns: 50,
                     settingSources: [...CLAUDE_SETTING_SOURCES],
                     env: CLAUDE_FOREGROUND_SUBAGENTS_ENV,
                     effort: reasoningEffort === 'default' ? undefined : reasoningEffort,
