@@ -170,8 +170,7 @@ export async function runSignedUpdate(input: {
         return { status: 'updated', version: targetVersion };
     } catch (cause) {
         if (failedPhase === 'restarting') {
-            // The new executable is already installed. An unclean drain or restart error belongs
-            // to this process's shutdown; the next start reports what version actually came up.
+            // Already installed; the next start reports the version after a failed restart.
             throw cause;
         }
         const current = await readUpdateProgress(dataRoot);
