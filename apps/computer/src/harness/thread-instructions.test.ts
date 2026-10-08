@@ -8,7 +8,6 @@ test('Threads keep the full answer with its request and describe target construc
         homeTimezone: 'UTC',
         initialRole: null,
         runtimeId: 'codex',
-        webAccess: null,
         workspacePath: '/workspace',
     });
     const threads = instructions.split('### Threads')[1]?.split('### ')[0] ?? '';

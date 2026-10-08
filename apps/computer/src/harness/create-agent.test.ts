@@ -6,26 +6,23 @@ import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
 
-for (const webAccess of [null, 'search', 'fetch-only', 'search-only'] as const) {
-    test(`constructs the real Claude Agent with web access ${webAccess}`, () => {
-        expect(() =>
-            createHarnessAgent(
-                {
-                    agentId: 'agt_constructor',
-                    env: {},
-                    homeDir: '/tmp/haus-constructor/home',
-                    modelId: 'claude-fable-5-1',
-                    runtime,
-                    runtimeId: 'claude-code',
-                    tools: {},
-                    webAccess,
-                    workspaceDir: '/tmp/haus-constructor/workspace',
-                },
-                { harness: createClaudeCode(), instructions: 'Test.' }
-            )
-        ).not.toThrow();
-    });
-}
+test('constructs the real Claude Agent', () => {
+    expect(() =>
+        createHarnessAgent(
+            {
+                agentId: 'agt_constructor',
+                env: {},
+                homeDir: '/tmp/haus-constructor/home',
+                modelId: 'claude-fable-5-1',
+                runtime,
+                runtimeId: 'claude-code',
+                tools: {},
+                workspaceDir: '/tmp/haus-constructor/workspace',
+            },
+            { harness: createClaudeCode(), instructions: 'Test.' }
+        )
+    ).not.toThrow();
+});
 
 const grokInput = {
     agentId: 'agt_grok',
@@ -35,7 +32,6 @@ const grokInput = {
     runtime,
     runtimeId: 'grok-build',
     tools: {},
-    webAccess: null,
     workspaceDir: '/tmp/haus-constructor/workspace',
 } as const;
 

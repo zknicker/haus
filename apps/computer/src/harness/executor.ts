@@ -84,7 +84,6 @@ export interface HarnessTurnInput extends TurnDelivery {
     thoughts?: import('./thought-narrator.ts').AgentThoughtNarrator;
     tools: ToolSet;
     turnTimings?: AgentTurnTimings;
-    webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspaceDir: string;
 }
 
@@ -188,7 +187,6 @@ async function executeHarnessTurn(
     const harness = createHarnessForRuntime(
         input.runtimeId,
         input.reasoningEffort,
-        input.webAccess !== null,
         bridgeStoreDirForHost(),
         input.modelId
     );

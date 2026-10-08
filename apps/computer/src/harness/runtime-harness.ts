@@ -42,7 +42,6 @@ export function supportsSubagents(runtimeId: string): boolean {
 export function createHarnessForRuntime(
     runtimeId: string,
     reasoningEffort: AgentReasoningEffort,
-    webAccess = false,
     storeDir?: string,
     modelId?: string
 ): HarnessV1<ToolSet> {
@@ -67,7 +66,6 @@ export function createHarnessForRuntime(
             return withCodexAcpBootstrap(
                 createCodexAcp({
                     reasoningEffort: reasoningEffort === 'default' ? undefined : reasoningEffort,
-                    webSearch: webAccess,
                 }),
                 { storeDir }
             ) as HarnessV1<ToolSet>;

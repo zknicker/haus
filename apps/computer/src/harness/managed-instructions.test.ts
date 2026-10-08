@@ -181,7 +181,6 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         conversationStyle: 'Terse.',
         initialRole: 'the operator’s right hand',
         supportsSubagents: true,
-        webAccess: 'search',
     });
 
     // Review ratchet, not a runtime limit. Never trim prompt text to fit this cap;
@@ -225,7 +224,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // `## Working through sub-agents` section, adapted for Haus; measured here with it on.
     // Raised by exactly 29 (37,309 → 37,338): the Standing Preferences placeholder now says
     // terse imperative rules, merged not appended, after live Agents wrote verbose preferences.
-    expect(prompt.length).toBeLessThanOrEqual(37_338);
+    // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their
+    // runtime's native web tools with no gate and no prompt text, as in Raft.
+    expect(prompt.length).toBeLessThanOrEqual(37_035);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
@@ -291,7 +292,6 @@ function renderPrompt(overrides: Partial<AgentPromptRenderInput> = {}) {
         initialRole: null,
         os: 'macOS',
         runtimeVersion: 'test',
-        webAccess: null,
         workspacePath: '/workbench',
         ...overrides,
     });

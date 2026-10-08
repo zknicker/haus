@@ -35,7 +35,7 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **37,309** characters, measured with
+`managed-instructions.test.ts` caps the composed prompt at **37,035** characters, measured with
 every conditional section rendered. The cap is a
 ratchet that forces a deliberate decision, not a hard limit: a justified addition raises it to
 the measured render in the same change, with a one-line reason in the history below. Never
@@ -79,7 +79,11 @@ existing Sending rule, then +33 when the same gate showed quick explicit tasks a
 the claim, so the quick-answer clause keeps the claim first. Landing on 33,910 also wrote the
 Inbox family entry's separator em dash as a colon, like every other family entry. Then raised
 by 2,198 to 37,309 when Claude Code Agents gained the adapted `## Working through sub-agents`
-section (operator decision, 2026-10-06; the cap test renders it on). Measured line-by-line
+section (operator decision, 2026-10-06; the cap test renders it on), then raised by exactly 29 to
+37,338 when the Standing Preferences placeholder asked for terse merged rules (2026-10-08), then
+lowered by 303 to 37,035 when the Haus-only `## Web access` section was deleted (2026-10-08): the
+Server never granted web access, so the section never rendered, and Agents now get their runtime's
+native web tools with no gate and no prompt text, as in Raft. Measured line-by-line
 against the pinned render, about 19,500 characters of the Haus prompt are Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
@@ -163,7 +167,7 @@ Sections are in Haus's render order.
 | What to memorize, compaction safety | Parity except item 4: Haus keeps "Work history" to decisions and approaches and adds that the history itself lives in Haus chats and tasks — record handles (chat/message, task, file, commit), find it with `haus message search` | Deliberate — same operator decision as the memory-shape row; `managed-instructions.test.ts` |
 | Outputs | Haus-only | Deliberate — ADR 0003, ADR 0004, ADR 0010 |
 | Visuals | Haus-only | Deliberate — ADR 0012, ADR 0031 |
-| Web access | Haus-only, rendered only when web access is granted | Deliberate — specs/tools.md |
+| Web access | Parity: no section. Like Raft, Haus gives Agents their runtime's native web tools with no gate and no prompt text (the Haus-only gated section was deleted 2026-10-08) | — specs/tools.md |
 | Initial role | Parity | — |
 | Runtime Profile Control | Raft-only (configured variant's daemon release notice) | Deliberate — Computer upgrades are operator-driven, ADR 0020 |
 | Workspace seed (`packages/agent-workspace/src/starter-kit.ts`) | Not re-diffed at 1.0.25; last matched 1.0.16's `buildInitialMemoryMd` | Re-check on the next pin |

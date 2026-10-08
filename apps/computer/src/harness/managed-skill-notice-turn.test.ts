@@ -122,7 +122,6 @@ function turnInput(): HarnessTurnInput {
         totalPending: 0,
         unreadElsewhere: [],
         warmDrainItemIds: [],
-        webAccess: null,
         workspaceDir: join(agentRoot, 'workspace'),
     };
 }

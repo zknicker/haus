@@ -172,7 +172,6 @@ function turnInput(
         signal,
         skillsDir: join(root, 'skills'),
         totalPending: 0,
-        webAccess: null,
         workspaceDir: join(root, 'workspace'),
         tools: {},
         harnessAgentFactory: (input) =>

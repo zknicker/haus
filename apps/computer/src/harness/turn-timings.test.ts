@@ -57,7 +57,6 @@ test('records native startup and stream boundaries without inventing message sen
             tools: {},
             totalPending: 0,
             turnTimings: timings,
-            webAccess: null,
             workspaceDir: join(root, 'workspace'),
         });
         expect(timings.snapshot()).toMatchObject({

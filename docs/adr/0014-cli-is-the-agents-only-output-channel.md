@@ -16,9 +16,9 @@ core of ADR 0011 survives).
 
 ## Decision
 
-Agents speak only by running `haus message send`. The engine exposes zero
-tools except the uniform `web_fetch` host tool; every other capability is a
-CLI on PATH. Consequences adopted together as one landing:
+Agents speak only by running `haus message send`. The engine gets no Haus
+output tool; web search and fetch are the runtime's native tools, and Haus
+product actions are a CLI on PATH. Consequences adopted together as one landing:
 
 - **No final replies.** Text a model emits outside a `haus` command is
   delivered to no one. `NO_REPLY`, outcome notes, per-message evaluation

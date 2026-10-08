@@ -20,7 +20,6 @@ export const agentRuntimeRoutes = {
     agentRestart: (id: string) => `/agents/${id}/restart`,
     agentStop: (id: string) => `/agents/${id}/stop`,
     agentThinkingDefault: (id: string) => `/agents/${id}/thinking-default`,
-    agentWebSettings: (id: string) => `/agents/${id}/web-settings`,
     agents: '/agents',
     capabilities: '/capabilities',
     capability: (id: string) => `/capabilities/${encodeURIComponent(id)}`,
@@ -31,9 +30,6 @@ export const agentRuntimeRoutes = {
     updateStatus: '/update/status',
     macApps: '/mac-apps',
     mcpAgentGrants: (agentId: string) => `/mcp/agents/${encodeURIComponent(agentId)}/grants`,
-    mcpAgentHostTools: (agentId: string) => `/mcp/agents/${encodeURIComponent(agentId)}/host-tools`,
-    mcpAgentHostToolGrant: (agentId: string, toolId: string) =>
-        `/mcp/agents/${encodeURIComponent(agentId)}/host-tools/${encodeURIComponent(toolId)}/grant`,
     mcpAgentToolGrant: (agentId: string, connectionId: string, toolName: string) =>
         `/mcp/agents/${encodeURIComponent(agentId)}/connections/${encodeURIComponent(
             connectionId

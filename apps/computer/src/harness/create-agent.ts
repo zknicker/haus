@@ -3,7 +3,6 @@ import type { HarnessV1 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { HarnessTurnInput } from './executor.ts';
-import { inactiveWebToolSettings } from './runtime-web-tools.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 /**
@@ -40,15 +39,7 @@ const GROK_FOREIGN_MCP_SOURCES_OFF = {
 
 type AgentConstructionInput = Pick<
     HarnessTurnInput,
-    | 'agentId'
-    | 'env'
-    | 'homeDir'
-    | 'modelId'
-    | 'runtime'
-    | 'runtimeId'
-    | 'tools'
-    | 'webAccess'
-    | 'workspaceDir'
+    'agentId' | 'env' | 'homeDir' | 'modelId' | 'runtime' | 'runtimeId' | 'tools' | 'workspaceDir'
 >;
 
 /**
@@ -65,7 +56,6 @@ export function createHarnessAgent(
     return new HarnessAgent({
         harness: options.harness,
         id: input.agentId,
-        ...inactiveWebToolSettings(options.harness, input),
         instructions: options.instructions,
         model: input.modelId,
         permissionMode: 'allow-all',

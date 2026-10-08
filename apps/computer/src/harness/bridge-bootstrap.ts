@@ -157,7 +157,7 @@ export async function validateComputerBridgeAssets(): Promise<void> {
         throw new Error('Grok Build must use the detected local executable.');
     }
     assertLiveUserMessageDelivery(grokBuildBootstrap, 'grok-build', '_x.ai/interject');
-    const codexBootstrap = await createCodexAcp({ webSearch: false }).getBootstrap?.();
+    const codexBootstrap = await createCodexAcp({}).getBootstrap?.();
     if (
         !codexBootstrap?.files?.some(
             (file) =>

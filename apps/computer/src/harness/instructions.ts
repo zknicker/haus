@@ -24,7 +24,6 @@ export interface AgentInstructionFacts {
     /** Selects runtime-conditional sections such as sub-agent delegation. */
     runtimeId: string;
     signatureEmoji?: string | null;
-    webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspacePath: string;
 }
 
@@ -45,7 +44,6 @@ export function composeAgentInstructions(facts: AgentInstructionFacts): Composed
         runtimeVersion: process.env.HAUS_COMPUTER_PRODUCT_VERSION ?? computerPackage.version,
         signatureEmoji: facts.signatureEmoji ?? null,
         supportsSubagents: supportsSubagents(facts.runtimeId),
-        webAccess: facts.webAccess,
         workspacePath: facts.workspacePath,
     };
     const instructions = renderAgentInstructions(render);
