@@ -1,28 +1,56 @@
 diff --git a/dist/index.js b/dist/index.js
-index 0149a57ec24036ce3bddb82bbc1d99d0343ace07..2811effb67d893e85f9fd6334a3176cfa21bb4f2 100644
+index 0149a57ec24036ce3bddb82bbc1d99d0343ace07..66ef8d68e716098cad5ba7ce9c38186480bf3ee9 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -2517,6 +2517,9 @@ async function createPiSession(input) {
+@@ -2517,13 +2517,21 @@ async function createPiSession(input) {
      // are kept but filtered to workspace project skills plus harness-provided
      // skills whose files live in sandbox HOME.
      noExtensions: true,
 +    // Haus: context files walk every ancestor of cwd to `/`, reaching the
 +    // operator's AGENTS.md/CLAUDE.md; Agent context is the composed prompt.
 +    noContextFiles: true,
++    // Haus: Pi runs in the Computer process, so default skill discovery reads
++    // the operator's HOME and the workspace. Load exactly the native skill
++    // directory in sandbox HOME, which links to the Agent's skill library.
++    noSkills: true,
++    additionalSkillPaths: [sandboxSkillRootDir],
      noThemes: true,
      noPromptTemplates: true,
      skillsOverride: (base) => ({
+       ...base,
+       skills: [
+         ...base.skills.filter(
+-          (skill) => isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir)
++          (skill) => !harnessSkills.some((harnessSkill) => harnessSkill.name === skill.name)
+         ),
+         ...harnessSkills
+       ]
 diff --git a/src/pi-session.ts b/src/pi-session.ts
-index c823a34ecc886cefda2f1951f355a0ef145a89ac..da70009ef5b5ae9433d119d6f6972f8f2a035448 100644
+index c823a34ecc886cefda2f1951f355a0ef145a89ac..6334565a9efa5c454b339a0c1224e84f99e28e0b 100644
 --- a/src/pi-session.ts
 +++ b/src/pi-session.ts
-@@ -600,6 +600,9 @@ export async function createPiSession(
+@@ -600,13 +600,22 @@ export async function createPiSession(
      // are kept but filtered to workspace project skills plus harness-provided
      // skills whose files live in sandbox HOME.
      noExtensions: true,
 +    // Haus: context files walk every ancestor of cwd to `/`, reaching the
 +    // operator's AGENTS.md/CLAUDE.md; Agent context is the composed prompt.
 +    noContextFiles: true,
++    // Haus: Pi runs in the Computer process, so default skill discovery reads
++    // the operator's HOME and the workspace. Load exactly the native skill
++    // directory in sandbox HOME, which links to the Agent's skill library.
++    noSkills: true,
++    additionalSkillPaths: [sandboxSkillRootDir],
      noThemes: true,
      noPromptTemplates: true,
      skillsOverride: base => ({
+       ...base,
+       skills: [
+-        ...base.skills.filter(skill =>
+-          isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
++        ...base.skills.filter(
++          skill =>
++            !harnessSkills.some(harnessSkill => harnessSkill.name === skill.name),
+         ),
+         ...harnessSkills,
+       ],

@@ -63,7 +63,8 @@ type AgentConstructionInput = Pick<
  * reads its native skill directory, and `ensureNativeSkillLinks` already points
  * those at the one canonical library, so asking the harness to materialize its
  * own copies would write the library back over itself — which the harness now
- * refuses, since it only overwrites skill directories it owns.
+ * refuses, since it only overwrites skill directories it owns. In-process Pi reads
+ * the same link through the patched `@ai-sdk/harness-pi` skill loader.
  */
 export function createHarnessAgent(
     input: AgentConstructionInput,
