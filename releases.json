@@ -1276,7 +1276,7 @@
     "targets": {
       "server": "8.3.0",
       "app": null,
-      "ios": null,
+      "ios": { "version": "5.5.0", "buildNumber": 45 },
       "computer": "7.3.0",
       "agent": "7.3.0"
     }

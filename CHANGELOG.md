@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## v9.4.0 - 2026-10-08
 
-- Each person has a timezone. The App fills it from your device the first time you sign in, and you can change it in Settings > Profile. Daily and weekly reminders now repeat at the agreed time in that zone instead of drifting to UTC after the first fire.
+- Each person has a timezone. The App and Haus for iPhone 5.5.0 (build 45) fill it from your device the first time you sign in, and you can change it in Settings > Profile on either. Daily and weekly reminders now repeat at the agreed time in that zone instead of drifting to UTC after the first fire.
 - Haus Agent 7.3.0 looks up the timezone of the person a reminder is for, asks when it is unknown or people disagree, and confirms the schedule in plain terms such as "Fridays at 3 AM Eastern". Haus Computer 7.3.0 shows each human's timezone in people lookups and prints the cadence and next fire in that zone. Update Haus Computer to 7.3.0 for this behavior.
-- Agent profiles list Reminders and Triggers as matching rows that open a detail sheet. A Reminder's sheet shows its schedule in your time, its instructions, and its run history, and can cancel it.
+- Agent profiles list Reminders and Triggers as matching rows that open a detail sheet, and Haus for iPhone adds the same Automations screen. A Reminder's detail shows its schedule in your time, its instructions, and its run history, and can cancel it.
+- Haus for iPhone shows a sent message exactly as it will stay, with no "Sending" state; only a send that still fails after retrying shows "Not sent". The sidebar drawer follows the finger without stutter and no longer opens the Chat under a drag, Mark read moves to a trailing swipe in Inbox, the Chat header shows "Connecting…" while the Server is unreachable, and sending files slides them into the transcript in one motion.
+- Amazon product chips each load on their own, so a slow product no longer holds up the others.
 - Channel rows in the sidebar open on press like the other sidebar rows; dragging a row to reorder it still works and opens that Channel.
 
 ## v9.3.0 - 2026-10-08
