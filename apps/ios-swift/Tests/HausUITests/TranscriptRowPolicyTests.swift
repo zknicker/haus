@@ -50,6 +50,19 @@ struct TranscriptRowPolicyTests {
         #expect(!label.contains("Today"))
     }
 
+    @Test func voiceOverLeadsWithTheFireAMessageAnswers() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let message = MessagePresentation(
+            id: "m1",
+            author: MessageAuthorPresentation(id: "a", name: "Blippy", avatarURL: nil),
+            content: "Standup notes are posted.",
+            createdAt: now.addingTimeInterval(-60),
+            cause: MessageCausePresentation(kind: .reminder, title: "Daily standup")
+        )
+        let label = MessageRowAccessibilityLabel.label(for: message, now: now)
+        #expect(label.hasPrefix("Reminder: Daily standup, Blippy, "))
+    }
+
     @Test func voiceOverOffersTheDrawersActions() {
         let message = MessagePresentation(
             id: "m1",
